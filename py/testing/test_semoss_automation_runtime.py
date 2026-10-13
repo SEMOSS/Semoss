@@ -1,6 +1,7 @@
 """Focused regression tests for SEMOSS Automation Python runtime helpers."""
 
 import base64
+import importlib.util
 import json
 import unittest
 
@@ -72,7 +73,6 @@ class ExtractDataElementTests(unittest.TestCase):
 
 class DataFrameOutputTests(unittest.TestCase):
     def test_preserves_scalar_dict_and_list_results(self) -> None:
-        session_globals: dict[str, object] = {}
         for name, source, expected in (
             ("scalar", "def run(scope):\n    return 7\n", 7),
             ("mapping", "def run(scope):\n    return {'ok': True}\n", {"ok": True}),
@@ -89,13 +89,10 @@ class DataFrameOutputTests(unittest.TestCase):
                         _encode(source),
                         1024,
                         name,
-                        session_globals,
-                        {},
                     ),
                 )
 
     def test_keeps_table_shaped_json_as_ordinary_json(self) -> None:
-        session_globals: dict[str, object] = {}
         result = execute_node(
             _encode({}),
             _encode(
@@ -105,8 +102,6 @@ class DataFrameOutputTests(unittest.TestCase):
             ),
             1024,
             "result",
-            session_globals,
-            {},
         )
 
         self.assertEqual(
@@ -121,34 +116,9 @@ class DataFrameOutputTests(unittest.TestCase):
             },
             result,
         )
-        self.assertNotIn("result", session_globals)
 
-    def test_keeps_private_frame_marker_as_ordinary_json(self) -> None:
-        result = execute_node(
-            _encode({}),
-            _encode(
-                "def run(scope):\n"
-                "    return {'__automation_frame__': "
-                "{'rowCount': 2, 'columnCount': 1}}\n"
-            ),
-            1024,
-            "result",
-            {},
-            {},
-        )
-
-        self.assertEqual(
-            {
-                "__automation_result_kind__": "VALUE",
-                "__automation_result_value__": {
-                    "__automation_frame__": {"rowCount": 2, "columnCount": 1}
-                },
-            },
-            result,
-        )
-
-    def test_retains_dataframe_and_rebinds_it_for_the_next_node(self) -> None:
-        session_globals: dict[str, object] = {}
+    @unittest.skipUnless(importlib.util.find_spec("pandas"), "pandas is not installed")
+    def test_converts_dataframe_and_rehydrates_it_for_the_next_node(self) -> None:
         result = execute_node(
             _encode({}),
             _encode(
@@ -158,15 +128,16 @@ class DataFrameOutputTests(unittest.TestCase):
             ),
             1024,
             "rows",
-            session_globals,
-            {},
         )
 
-        self.assertEqual({"__automation_result_kind__": "FRAME"}, result)
-        self.assertEqual([7, 9], session_globals["rows"]["value"].tolist())
+        table = result["__automation_result_value__"]
+        self.assertEqual("VALUE", result["__automation_result_kind__"])
+        self.assertEqual("table", table["__semossAutomationType"])
+        self.assertEqual([["value"]], [[column["name"] for column in table["columns"]]])
+        self.assertEqual([[7], [9]], table["rows"])
 
         downstream = execute_node(
-            _encode({"rows": {"dataType": "table", "rowCount": 2}}),
+            _encode({"rows": table}),
             _encode(
                 "def run(scope):\n"
                 "    return {'rows': len(scope['rows']), "
@@ -174,8 +145,6 @@ class DataFrameOutputTests(unittest.TestCase):
             ),
             1024,
             "metrics",
-            session_globals,
-            {"rows": "PY"},
         )
 
         self.assertEqual(
@@ -186,8 +155,8 @@ class DataFrameOutputTests(unittest.TestCase):
             downstream,
         )
 
-    def test_retains_empty_dataframe_schema(self) -> None:
-        session_globals: dict[str, object] = {}
+    @unittest.skipUnless(importlib.util.find_spec("pandas"), "pandas is not installed")
+    def test_preserves_empty_dataframe_schema(self) -> None:
         result = execute_node(
             _encode({}),
             _encode(
@@ -197,16 +166,16 @@ class DataFrameOutputTests(unittest.TestCase):
             ),
             1024,
             "rows",
-            session_globals,
-            {},
         )
 
-        self.assertEqual({"__automation_result_kind__": "FRAME"}, result)
-        self.assertEqual(["id", "name"], list(session_globals["rows"].columns))
+        table = result["__automation_result_value__"]
+        self.assertEqual("VALUE", result["__automation_result_kind__"])
+        self.assertEqual(["id", "name"], [column["name"] for column in table["columns"]])
+        self.assertEqual([], table["rows"])
 
-    def test_frame_aliases_share_the_live_mutable_object(self) -> None:
-        session_globals: dict[str, object] = {}
-        execute_node(
+    @unittest.skipUnless(importlib.util.find_spec("pandas"), "pandas is not installed")
+    def test_dataframe_mutation_does_not_mutate_prior_java_table_value(self) -> None:
+        original = execute_node(
             _encode({}),
             _encode(
                 "import pandas as pd\n\n"
@@ -215,12 +184,11 @@ class DataFrameOutputTests(unittest.TestCase):
             ),
             1024,
             "rows",
-            session_globals,
-            {},
         )
 
+        table = original["__automation_result_value__"]
         result = execute_node(
-            _encode({"rows": {"dataType": "table", "rowCount": 1}}),
+            _encode({"rows": table}),
             _encode(
                 "def run(scope):\n"
                 "    scope['rows'].loc[0, 'value'] = 99\n"
@@ -228,34 +196,17 @@ class DataFrameOutputTests(unittest.TestCase):
             ),
             1024,
             "updated_rows",
-            session_globals,
-            {"rows": "PY"},
         )
 
-        self.assertEqual({"__automation_result_kind__": "FRAME"}, result)
-        self.assertIs(session_globals["rows"], session_globals["updated_rows"])
-        self.assertEqual(99, session_globals["rows"].loc[0, "value"])
-
-    def test_reports_expired_frame_backing_explicitly(self) -> None:
-        with self.assertRaisesRegex(ValueError, "no longer available"):
-            execute_node(
-                _encode({"rows": {"dataType": "table"}}),
-                _encode("def run(scope):\n    return len(scope['rows'])\n"),
-                1024,
-                "count",
-                {},
-                {"rows": "PY"},
-            )
+        self.assertEqual([[99]], result["__automation_result_value__"]["rows"])
+        self.assertEqual([[1]], table["rows"])
 
     def test_json_row_list_keeps_its_existing_scope_shape(self) -> None:
-        session_globals: dict[str, object] = {}
         result = execute_node(
             _encode({}),
             _encode("def run(scope):\n    return [{'value': 7}]\n"),
             1024,
             "rows",
-            session_globals,
-            {},
         )
 
         self.assertEqual(
@@ -274,8 +225,6 @@ class DataFrameOutputTests(unittest.TestCase):
             ),
             1024,
             "metrics",
-            session_globals,
-            {},
         )
         self.assertEqual(
             {

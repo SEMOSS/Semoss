@@ -28,36 +28,37 @@
 package prerna.reactor.automation.run;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.algorithm.api.DataFrameTypeEnum;
-import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.om.Insight;
-import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.interpreters.sql.ParameterizedSqlInterpreter.CompiledQuery;
+import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.rdf.engine.wrappers.RawPreparedRDBMSSelectWrapper;
 import prerna.reactor.automation.AutomationConstants;
-import prerna.reactor.frame.FrameFactory;
-import prerna.reactor.imports.IImporter;
-import prerna.reactor.imports.ImportFactory;
 import prerna.reactor.qs.SqlQueryReactor;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.util.QueryExecutionUtility.ParameterizedQuery;
 
 /**
- * Loads a generated Automation database read into a SEMOSS frame.
+ * Loads a typed Automation database read into a bounded Java table value.
  *
  * <p>
- * The generated Python source resolves its ordinary {@code scope} references and
- * returns only an internal query request. This adapter sends that request through
+ * Java resolves the node's immutable config against scope and creates an internal
+ * query request. This adapter sends that request through
  * {@link SqlQueryReactor}, preserving its SQL routing, authorization, audit, and
- * limit behavior. The returned task is imported once into the run Insight's
- * configured Python frame backend and registered under the node output alias.
- * Full rows therefore do not cross the Python-to-Java Automation result boundary.
+ * limit behavior. The authorized task is consumed directly; typed database
+ * nodes do not create execution frames or initialize Python.
  */
 final class AutomationDatabaseQueryExecutor {
 
@@ -66,59 +67,57 @@ final class AutomationDatabaseQueryExecutor {
 	private AutomationDatabaseQueryExecutor() {
 	}
 
-	/** Returns whether this node owns the internal generated-query contract. */
+	/** Returns whether this typed node owns the internal query contract. */
 	static boolean supports(Map<String, Object> node) {
 		return AutomationConstants.NODE_DATABASE_QUERY.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))
 				&& !AutomationConstants.NODE_CODE_MODE_CUSTOM
 						.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
 	}
 
-	/** Returns whether a generated source returned a frame-producing query request. */
+	/** Returns whether a typed request is frame-producing. */
 	static boolean isRequest(Object value) {
 		return value instanceof Map<?, ?> result
 				&& result.containsKey(AutomationConstants.INTERNAL_DATABASE_QUERY);
 	}
 
+	static Map<String, Object> request(Map<String, Object> config, Map<String, Object> scope, String nodeId) {
+		Object engine = AutomationScopeResolver.resolveExactOrLiteral(config.get(AutomationConstants.CONFIG_ENGINE_ID),
+				scope, "Database query node '" + nodeId + "' engineId");
+		Object query = AutomationScopeResolver.resolveExactOrLiteral(config.get("query"), scope,
+				"Database query node '" + nodeId + "' query");
+		Object limit = AutomationScopeResolver.resolveExactOrLiteral(config.get(AutomationConstants.CONFIG_LIMIT), scope,
+				"Database query node '" + nodeId + "' limit");
+		Object parameters = AutomationScopeResolver.resolveConfig(
+				config.getOrDefault(AutomationConstants.CONFIG_QUERY_PARAMETERS, List.of()), scope,
+				"Database query node '" + nodeId + "' parameters");
+		Map<String, Object> request = new LinkedHashMap<>();
+		request.put(AutomationConstants.CONFIG_ENGINE_ID, engine);
+		request.put("query", query);
+		request.put(AutomationConstants.CONFIG_LIMIT, limit);
+		request.put(AutomationConstants.CONFIG_QUERY_PARAMETERS, parameters);
+		return Map.of(AutomationConstants.INTERNAL_DATABASE_QUERY, request);
+	}
+
 	/**
-	 * Executes one internal request and registers the resulting frame.
+	 * Executes one internal request and materializes the resulting Java table.
 	 *
 	 * @param insight        run Insight that owns database access and frame lifetime
-	 * @param rawRequest     internal request returned by generated Python source
-	 * @param outputVariable node output alias and Python frame variable name
+	 * @param rawRequest     internal request built from typed config
 	 * @param runId          durable Automation run identifier used for diagnostics
 	 * @param nodeId         executing node identifier used for diagnostics
-	 * @return registered frame identity and bounded public summary
+	 * @return immutable bounded table value
 	 */
-	static AutomationFrameOutput.RegisteredFrame execute(Insight insight, Object rawRequest, String outputVariable,
-			String runId, String nodeId) {
+	static AutomationTableValue execute(Insight insight, Object rawRequest, String runId, String nodeId) {
 		QueryRequest request = parseRequest(rawRequest);
 		BasicIteratorTask task = createTask(insight, request);
-		ITableDataFrame frame = null;
-		boolean registered = false;
 		try {
-			frame = FrameFactory.getFrame(insight, DataFrameTypeEnum.PYTHON.getTypeAsString(), outputVariable);
-			SelectQueryStruct queryStruct = task.getQueryStruct();
-			IImporter importer = ImportFactory.getImporter(frame, queryStruct, task);
-			if (importer == null) {
-				throw new IllegalStateException("SEMOSS could not create a Python frame importer.");
-			}
-			importer.setInsight(insight);
-			importer.insertData();
-
-			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable,
-					frame);
-			registered = true;
-
+			AutomationTableValue output = AutomationTableValue.fromTask(task, nodeId);
 			classLogger.debug(
-					"Loaded database query output '{}' for Automation run '{}', node '{}', execution Insight '{}': "
+					"Loaded Java database table for Automation run '{}', node '{}', execution Insight '{}': "
 							+ "{} rows, {} columns",
-					outputVariable, runId, nodeId, insight.getInsightId(), output.summary().get("rowCount"),
-					output.summary().get("columnCount"));
+					runId, nodeId, insight.getInsightId(), output.rowCount(), output.columns().size());
 			return output;
 		} catch (Exception e) {
-			if (!registered && frame != null) {
-				closeFailedFrame(frame, outputVariable, runId, nodeId);
-			}
 			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
 		} finally {
 			closeTask(task, runId, nodeId);
@@ -141,6 +140,33 @@ final class AutomationDatabaseQueryExecutor {
 		if (!(queryResult instanceof BasicIteratorTask task)) {
 			throw new IllegalStateException("Generated database query did not return a tabular task.");
 		}
+		if (!request.parameters().isEmpty()) {
+			if (!(task.getQueryStruct() instanceof HardSelectQueryStruct queryStruct)
+					|| !(queryStruct.getEngine() instanceof IRDBMSEngine database)) {
+				closeTask(task, "parameterized", "authorization");
+				throw new IllegalStateException("Parameterized database query requires a relational database.");
+			}
+			try {
+				ParameterizedQuery data =
+						new ParameterizedQuery(request.query(), request.parameters(), request.limit());
+				ParameterizedQuery count = new ParameterizedQuery(
+						"SELECT COUNT(*) FROM (" + request.query() + ") AUTOMATION_BOUND_COUNT",
+						request.parameters(), 1);
+				RawPreparedRDBMSSelectWrapper wrapper = RawPreparedRDBMSSelectWrapper.executeParameterized(database,
+						new CompiledQuery(data, count), 0);
+				closeTask(task, "parameterized", "authorization");
+				BasicIteratorTask preparedTask = new BasicIteratorTask(queryStruct, wrapper);
+				preparedTask.setNumCollect(request.limit());
+				preparedTask.setCollectLimit(request.limit());
+				return preparedTask;
+			} catch (RuntimeException e) {
+				closeTask(task, "parameterized", "authorization");
+				throw e;
+			} catch (Exception e) {
+				closeTask(task, "parameterized", "authorization");
+				throw new IllegalStateException("Unable to execute the parameterized database query.", e);
+			}
+		}
 		return task;
 	}
 
@@ -152,7 +178,15 @@ final class AutomationDatabaseQueryExecutor {
 		String databaseId = requiredString(request, AutomationConstants.CONFIG_ENGINE_ID);
 		String query = requiredString(request, "query");
 		int limit = requiredLimit(request.get(AutomationConstants.CONFIG_LIMIT));
-		return new QueryRequest(databaseId, query, limit);
+		Object rawParameters = request.get(AutomationConstants.CONFIG_QUERY_PARAMETERS);
+		List<Object> parameters = rawParameters == null ? List.of()
+				: rawParameters instanceof List<?> list ? new ArrayList<>(list)
+						: throwInvalidParameters();
+		return new QueryRequest(databaseId, query, limit, parameters);
+	}
+
+	private static List<Object> throwInvalidParameters() {
+		throw new IllegalStateException("Generated database query request.parameters must be an array.");
 	}
 
 	private static String requiredString(Map<?, ?> request, String key) {
@@ -176,15 +210,6 @@ final class AutomationDatabaseQueryExecutor {
 		return (int) configured;
 	}
 
-	private static void closeFailedFrame(ITableDataFrame frame, String outputVariable, String runId, String nodeId) {
-		try {
-			frame.close();
-		} catch (RuntimeException closeError) {
-			classLogger.warn("Unable to close failed database frame '{}' for Automation run '{}', node '{}'",
-					outputVariable, runId, nodeId, closeError);
-		}
-	}
-
 	private static void closeTask(BasicIteratorTask task, String runId, String nodeId) {
 		try {
 			task.close();
@@ -194,6 +219,6 @@ final class AutomationDatabaseQueryExecutor {
 		}
 	}
 
-	record QueryRequest(String databaseId, String query, int limit) {
+	record QueryRequest(String databaseId, String query, int limit, List<Object> parameters) {
 	}
 }

@@ -62,7 +62,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 
 	/**
 	 * Processes SMSS files.
-	 * 
+	 *
 	 * @param Name of the file.
 	 */
 	@Override
@@ -80,7 +80,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 
 	/**
 	 * Loads a new database by setting a specific engine with associated properties.
-	 * 
+	 *
 	 * @param Specifies properties to load
 	 */
 	public static String loadNewEngine(String newFile, String folderToWatch) {
@@ -110,7 +110,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 
 	/**
 	 * Loads a new database by setting a specific engine with associated properties.
-	 * 
+	 *
 	 * @param Specifies properties to load
 	 */
 	public static String catalogEngine(String newFile, String folderToWatch) {
@@ -218,6 +218,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					// after the scheduler DB has started successfully.
 					AutomationRunStore.initialize();
 					AutomationRunStore.markStaleRunsInterrupted();
+					AutomationRunStore.startMaintenance();
 				} catch (Exception e) {
 					classLogger.error("Failed to load and start the scheduler database", e);
 				}

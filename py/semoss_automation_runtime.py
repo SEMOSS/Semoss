@@ -22,7 +22,6 @@ _DATA_PATH_TOKEN_PATTERN = re.compile(
 _RESULT_KIND_KEY = "__automation_result_kind__"
 _RESULT_VALUE_KEY = "__automation_result_value__"
 _RESULT_KIND_VALUE = "VALUE"
-_RESULT_KIND_FRAME = "FRAME"
 _MISSING = object()
 
 
@@ -270,11 +269,9 @@ def execute_node(
     encoded_source: str,
     max_output_bytes: int,
     output_variable: str,
-    session_globals: dict[str, Any],
-    frame_bindings: dict[str, str],
 ) -> Any:
     """Execute one persisted node module with a fresh module namespace."""
-    scope = _decode_scope(encoded_scope, session_globals, frame_bindings)
+    scope = _decode_scope(encoded_scope)
     source = _decode(encoded_source)
     module: dict[str, Any] = {
         "__name__": "__automation_node__",
@@ -290,74 +287,64 @@ def execute_node(
     if not callable(run):
         raise ValueError("Automation node source must define callable run(scope).")
     value = run(scope)
-    if _retain_supported_frame(value, output_variable, session_globals):
-        return {_RESULT_KIND_KEY: _RESULT_KIND_FRAME}
+    if _is_supported_dataframe(value):
+        value = _dataframe_envelope(value)
     result = _json_result(value, max_output_bytes)
-    _prepare_row_preview_frame(result, output_variable, session_globals)
     return {
         _RESULT_KIND_KEY: _RESULT_KIND_VALUE,
         _RESULT_VALUE_KEY: result,
     }
 
 
-def execute_trigger(
-    encoded_scope: str, encoded_source: str, max_output_bytes: int
-) -> dict[str, Any]:
-    """Execute trigger setup and return only public JSON-compatible globals."""
-    scope = _decode_scope(encoded_scope)
-    module: dict[str, Any] = {"__name__": "__automation_trigger__"}
-    exec(_decode(encoded_source), module)
-    run = module.get("run")
-    result = run(scope) if callable(run) else None
-    globals_result: dict[str, Any] = {}
-
-    for name, value in module.items():
-        if name.startswith("_") or callable(value):
-            continue
-        if _is_json_compatible(value):
-            globals_result[name] = value
-
-    if isinstance(result, dict):
-        for name, value in result.items():
-            if (
-                isinstance(name, str)
-                and not name.startswith("_")
-                and _is_json_compatible(value)
-            ):
-                globals_result[name] = value
-
-    return _json_result(globals_result, max_output_bytes)
-
-
 def _decode(value: str) -> str:
     return base64.urlsafe_b64decode(value).decode("utf-8")
 
 
-def _decode_scope(
-    value: str,
-    session_globals: dict[str, Any] | None = None,
-    frame_bindings: dict[str, str] | None = None,
-) -> AutomationScope:
-    """Decode scope and bind live Insight-owned frames by output alias.
-
-    Frame values follow the existing SEMOSS frame model: they are live mutable
-    objects, not per-node snapshots. In-place changes are therefore visible
-    through every alias bound to that object for the life of the run Insight.
-    """
+def _decode_scope(value: str) -> AutomationScope:
+    """Decode actual values supplied by the Java execution scope."""
     decoded = json.loads(_decode(value))
     if not isinstance(decoded, dict):
         raise ValueError("Automation scope must be a JSON object.")
-    for name, backend in (frame_bindings or {}).items():
-        if name not in decoded:
-            continue
-        frame = (session_globals or {}).get(name, _MISSING)
-        if frame is _MISSING:
-            raise ValueError(
-                f"Automation {backend} frame-backed scope value '{name}' "
-                "is no longer available."
-            )
-        decoded[name] = frame
+    for name, item in list(decoded.items()):
+        decoded[name] = _decode_table_value(item)
     return AutomationScope(decoded)
+
+
+def _decode_table_value(value: Any) -> Any:
+    if not isinstance(value, dict) or value.get("__semossAutomationType") != "table":
+        return value
+    columns = value.get("columns")
+    rows = value.get("rows")
+    if not isinstance(columns, list) or not isinstance(rows, list):
+        raise ValueError("Automation table scope value is malformed.")
+    names: list[str] = []
+    for column in columns:
+        if not isinstance(column, dict) or not isinstance(column.get("name"), str):
+            raise ValueError("Automation table scope schema is malformed.")
+        names.append(column["name"])
+    if any(not isinstance(row, list) or len(row) != len(names) for row in rows):
+        raise ValueError("Automation table scope row is malformed.")
+    import pandas as pd
+
+    return pd.DataFrame(rows, columns=names)
+
+
+def _is_supported_dataframe(value: Any) -> bool:
+    value_type = type(value)
+    return value_type.__name__ == "DataFrame" and value_type.__module__.split(".", 1)[0] == "pandas"
+
+
+def _dataframe_envelope(value: Any) -> dict[str, Any]:
+    split = json.loads(value.to_json(orient="split", date_format="iso"))
+    columns = [
+        {"name": str(name), "type": str(dtype)}
+        for name, dtype in zip(value.columns, value.dtypes)
+    ]
+    return {
+        "__semossAutomationType": "table",
+        "columns": columns,
+        "rows": split["data"],
+    }
 
 
 def _is_json_compatible(value: Any) -> bool:
@@ -366,42 +353,6 @@ def _is_json_compatible(value: Any) -> bool:
         return True
     except (TypeError, ValueError):
         return False
-
-
-def _retain_supported_frame(
-    value: Any, output_variable: str, session_globals: dict[str, Any]
-) -> bool:
-    """Retain a supported Python frame in the run Insight's live namespace.
-
-    Pandas is the first supported adapter. Additional SEMOSS Python frame
-    backends can join this boundary without changing node scope or Java
-    orchestration contracts.
-    """
-    import pandas as pd
-
-    if not isinstance(value, pd.DataFrame):
-        return False
-    session_globals[output_variable] = value
-    return True
-
-
-def _prepare_row_preview_frame(
-    value: Any, output_variable: str, session_globals: dict[str, Any]
-) -> None:
-    """Retain row output where the standard SEMOSS Python-frame bridge expects it.
-
-    The JSON result remains the Automation value used by history and downstream
-    scope. The DataFrame is the run-Insight view used for paged UI inspection.
-    """
-    session_globals.pop(output_variable, None)
-    if not value or not isinstance(value, list):
-        return
-    if not all(isinstance(row, dict) for row in value):
-        return
-
-    import pandas as pd
-
-    session_globals[output_variable] = pd.DataFrame.from_records(value)
 
 
 def _json_result(value: Any, max_bytes: int) -> Any:

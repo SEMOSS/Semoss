@@ -44,7 +44,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Requests cancellation of a running or agent-waiting automation. Active
+ * Requests cancellation of a queued, running, item-waiting, or agent-waiting automation. Active
  * execution stops between nodes (or inside blocking operations that observe
  * cancellation). An agent-waiting run cancels its trace-linked child agent and
  * transitions the durable Automation wait to a terminal state.
@@ -56,15 +56,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * <p>
  * Sets a cluster-safe cancellation flag
  * ({@code AUTOMATION_RUNS.CANCEL_REQUESTED}, via
- * {@link AutomationRunStore#setCancelRequested(String)}) that the
- * executing pod polls regardless of which pod owns the Python run. The same-pod
- * fast path also interrupts the matching Python socket job, allowing native
- * Python and blocking bridge calls to stop promptly. A running run's
+ * {@link AutomationRunStore#cancelQueuedOrRunningRun(String, String)}) while
+ * atomically terminalizing a queued run if it has not yet been claimed. The
+ * executing pod polls the flag regardless of which pod owns the Python run. The
+ * same-pod fast path also interrupts the matching Python socket job, allowing
+ * native Python and blocking bridge calls to stop promptly. A running run's
  * {@code STATUS} is transitioned to CANCELLED by the executing pod, not by this
  * reactor; a truly orphaned run is caught by the periodic stale-heartbeat
- * sweep. A waiting run has no executing pod, so this reactor records the
- * request, stops the child agent, and reconciles the run to CANCELLED itself
- * without continuing the remaining graph.
+ * sweep. Item-waiting runs and their queued or active durable items are
+ * terminalized atomically by the store. An agent-waiting run has no executing
+ * pod, so this reactor records the request, stops the child agent, and reconciles
+ * the run to CANCELLED itself without continuing the remaining graph.
  */
 public class CancelAutomationRunReactor extends AbstractReactor {
 
@@ -109,26 +111,31 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 		if (AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(status)) {
 			return cancelWaitingAgentRun(projectId, runId);
 		}
-		if (!AutomationConstants.STATUS_RUNNING.equals(status)) {
-			throw new IllegalArgumentException(
-					"Can only cancel RUNNING or WAITING_FOR_INPUT automations. Current status: " + status);
+		if (AutomationConstants.STATUS_SUBMITTED.equals(status)
+				|| AutomationConstants.STATUS_RUNNING.equals(status)
+				|| AutomationConstants.STATUS_WAITING_FOR_ITEMS.equals(status)) {
+			AutomationRunStore.CancellationResult cancellation =
+					AutomationRunStore.cancelQueuedOrRunningRun(runId, projectId);
+			if (!AutomationConstants.STATUS_CANCELLED.equals(cancellation.status())
+					&& !AutomationConstants.STATUS_RUNNING.equals(cancellation.status())) {
+				throw new IllegalArgumentException(
+						"Can only cancel SUBMITTED, RUNNING, WAITING_FOR_INPUT, or WAITING_FOR_ITEMS automations. Current status: "
+								+ cancellation.status());
+			}
+			boolean signalledLocally = cancellation.active()
+					&& AutomationRunRegistry.requestCancellation(runId);
+			classLogger.info("Cancel requested for automation run {}: status={}, signalledLocally={}",
+					runId, cancellation.status(), signalledLocally);
+			Map<String, Object> result = new HashMap<>();
+			result.put(AutomationConstants.RUN_ID, runId);
+			result.put(AutomationConstants.RESULT_CANCEL_REQUESTED, true);
+			result.put(AutomationConstants.RESULT_SIGNALLED_LOCALLY, signalledLocally);
+			result.put(AutomationConstants.STATUS, cancellation.status());
+			return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 		}
-
-		// Persist the cluster-visible request before attempting the same-pod socket
-		// fast path.
-		// The executing pod owns the terminal status transition; stale recovery handles
-		// a run
-		// whose owner disappeared before observing the request.
-		AutomationRunStore.setCancelRequested(runId);
-		boolean signalledLocally = AutomationRunRegistry.requestCancellation(runId);
-
-		classLogger.info("Cancel requested for automation run {}: signalledLocally={}", runId, signalledLocally);
-
-		Map<String, Object> result = new HashMap<>();
-		result.put(AutomationConstants.RUN_ID, runId);
-		result.put(AutomationConstants.RESULT_CANCEL_REQUESTED, true);
-		result.put(AutomationConstants.RESULT_SIGNALLED_LOCALLY, signalledLocally);
-		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
+		throw new IllegalArgumentException(
+				"Can only cancel SUBMITTED, RUNNING, WAITING_FOR_INPUT, or WAITING_FOR_ITEMS automations. Current status: "
+						+ status);
 	}
 
 	/**
@@ -164,7 +171,7 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Requests cancellation of a running or agent-waiting Automation run for the given project.";
+		return "Requests cancellation of a queued, running, item-waiting, or agent-waiting Automation run for the given project.";
 	}
 
 	@Override

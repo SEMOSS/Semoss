@@ -295,6 +295,8 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.DEFINITION_VERSION, AutomationConstants.INTEGER),
 				Pair.with(AutomationConstants.DEFINITION_HASH, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.DEFINITION_SNAPSHOT, CLOB_DATATYPE),
+				Pair.with(AutomationConstants.EXECUTION_CONTRACT_VERSION, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.EXECUTION_CONTRACT_SNAPSHOT, CLOB_DATATYPE),
 				Pair.with(AutomationConstants.INPUT_SNAPSHOT, CLOB_DATATYPE),
 				Pair.with(AutomationConstants.STATUS, AutomationConstants.VARCHAR_50),
 				Pair.with(AutomationConstants.TRIGGER_TYPE, AutomationConstants.VARCHAR_50),
@@ -303,11 +305,21 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.FAILED_NODE_ID, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB_DATATYPE),
 				Pair.with(AutomationConstants.LAST_HEARTBEAT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.ATTEMPT_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.ATTEMPT_NUMBER, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.LEASE_OWNER, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.LEASE_TOKEN, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.LEASE_EXPIRES_AT, TIMESTAMP_DATATYPE),
 				Pair.with(AutomationConstants.TOTAL_NODES, AutomationConstants.INTEGER),
 				Pair.with(AutomationConstants.COMPLETED_NODES, AutomationConstants.INTEGER),
 				Pair.with(AutomationConstants.CREATED_BY, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.PRINCIPAL_ACCESS, AutomationConstants.VARCHAR_2000),
+				Pair.with(AutomationConstants.ASYNC_ADMISSION, BOOLEAN_DATATYPE),
 				Pair.with(AutomationConstants.CANCEL_REQUESTED, BOOLEAN_DATATYPE),
 				Pair.with(AutomationConstants.RESULT_SUMMARY_COL, AutomationConstants.VARCHAR_2000)));
+
+		addTable(AutomationConstants.TABLE_AUTOMATION_ADMISSION_LOCK, Arrays.asList(
+				Pair.with(AutomationConstants.ADMISSION_LOCK_ID, AutomationConstants.VARCHAR_50)));
 
 		addTable(AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES, Arrays.asList(
 				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
@@ -352,6 +364,82 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.RESOLVED_AT, TIMESTAMP_DATATYPE),
 				Pair.with(AutomationConstants.RESOLVED_BY, AutomationConstants.VARCHAR_255)));
 
+		addTable(AutomationConstants.TABLE_AUTOMATION_SAVED_RESULTS, Arrays.asList(
+				Pair.with(AutomationConstants.RESULT_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.PROJECT_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.NODE_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.PARENT_NODE_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.ITERATION_INDEX, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.RESULT_KIND, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.FORMAT_VERSION, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.ROW_COUNT, AutomationConstants.BIGINT),
+				Pair.with(AutomationConstants.BYTE_COUNT, AutomationConstants.BIGINT),
+				Pair.with(AutomationConstants.CHECKSUM, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.CREATED_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.RETAIN_UNTIL, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.CAPTURE_STATE, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.RESULT_ROLE, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.LOGICAL_NAME, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.PAYLOAD_VALUE, CLOB_DATATYPE)));
+
+		addTable(AutomationConstants.TABLE_AUTOMATION_RESULT_CHUNKS, Arrays.asList(
+				Pair.with(AutomationConstants.RESULT_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.CHUNK_INDEX, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.FIRST_ROW_INDEX, AutomationConstants.BIGINT),
+				Pair.with(AutomationConstants.CHUNK_ROW_COUNT, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.BYTE_COUNT, AutomationConstants.BIGINT),
+				Pair.with(AutomationConstants.CHECKSUM, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.CHUNK_VALUE, CLOB_DATATYPE)));
+
+		addTable(AutomationConstants.TABLE_AUTOMATION_ITEMS, Arrays.asList(
+				Pair.with(AutomationConstants.ITEM_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.NODE_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.ITEM_INDEX, AutomationConstants.BIGINT),
+				Pair.with(AutomationConstants.ITEM_INPUT_SNAPSHOT, CLOB_DATATYPE),
+				Pair.with(AutomationConstants.ITEM_REFERENCE_SNAPSHOT, CLOB_DATATYPE),
+				Pair.with(AutomationConstants.STATUS, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.ATTEMPT_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.ATTEMPT_NUMBER, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.MAX_ATTEMPTS, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.LEASE_OWNER, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.LEASE_TOKEN, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.LEASE_EXPIRES_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.NEXT_ATTEMPT_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.CREATED_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB_DATATYPE)));
+
+		addTable(AutomationConstants.TABLE_AUTOMATION_ITEM_ATTEMPTS, Arrays.asList(
+				Pair.with(AutomationConstants.ATTEMPT_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.ITEM_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.ATTEMPT_NUMBER, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.STATUS, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.LEASE_OWNER, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.LEASE_TOKEN, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB_DATATYPE)));
+
+		addTable(AutomationConstants.TABLE_AUTOMATION_EFFECTS, Arrays.asList(
+				Pair.with(AutomationConstants.EFFECT_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.NODE_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.ITEM_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.ATTEMPT_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.EFFECT_STATE, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.OPERATION_KEY, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.IDEMPOTENCY_KEY, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.RECEIPT_HASH, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.RECEIPT_METADATA, CLOB_DATATYPE),
+				Pair.with(AutomationConstants.PREPARED_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.ACCEPTED_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.COMMITTED_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB_DATATYPE)));
+
 		// @formatter:on 
 	}
 
@@ -395,6 +483,24 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
 		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_RUN_WAITS, AutomationConstants.TABLE_AUTOMATION_RUNS,
 				AutomationConstants.TABLE_AUTOMATION_RUN_WAITS + "." + AutomationConstants.RUN_ID + "."
+						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
+		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_SAVED_RESULTS,
+				AutomationConstants.TABLE_AUTOMATION_RUNS,
+				AutomationConstants.TABLE_AUTOMATION_SAVED_RESULTS + "." + AutomationConstants.RUN_ID + "."
+						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
+		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_RESULT_CHUNKS,
+				AutomationConstants.TABLE_AUTOMATION_SAVED_RESULTS,
+				AutomationConstants.TABLE_AUTOMATION_RESULT_CHUNKS + "." + AutomationConstants.RESULT_ID + "."
+						+ AutomationConstants.TABLE_AUTOMATION_SAVED_RESULTS + "." + AutomationConstants.RESULT_ID);
+		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_ITEMS, AutomationConstants.TABLE_AUTOMATION_RUNS,
+				AutomationConstants.TABLE_AUTOMATION_ITEMS + "." + AutomationConstants.RUN_ID + "."
+						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
+		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_ITEM_ATTEMPTS,
+				AutomationConstants.TABLE_AUTOMATION_ITEMS,
+				AutomationConstants.TABLE_AUTOMATION_ITEM_ATTEMPTS + "." + AutomationConstants.ITEM_ID + "."
+						+ AutomationConstants.TABLE_AUTOMATION_ITEMS + "." + AutomationConstants.ITEM_ID);
+		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_EFFECTS, AutomationConstants.TABLE_AUTOMATION_RUNS,
+				AutomationConstants.TABLE_AUTOMATION_EFFECTS + "." + AutomationConstants.RUN_ID + "."
 						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
 	}
 

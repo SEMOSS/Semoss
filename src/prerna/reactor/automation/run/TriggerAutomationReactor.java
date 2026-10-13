@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import prerna.auth.User;
 import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.AutomationConstants;
@@ -39,6 +40,7 @@ import prerna.reactor.automation.AutomationRuntime;
 import prerna.reactor.automation.definition.AutomationDefinitionService;
 import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.reactor.automation.project.AutomationProjectService;
+import prerna.reactor.scheduler.SchedulerUserAccess;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -56,8 +58,9 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		this.keysToGet = new String[] {
 				ReactorKeysEnum.PROJECT.getKey(),
 				AutomationConstants.AUTOMATION_INPUTS_KEY,
-				AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY };
-		this.keyRequired = new int[] { 1, 0, 0 };
+				AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY,
+				AutomationConstants.AUTOMATION_ASYNC_KEY };
+		this.keyRequired = new int[] { 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -79,9 +82,20 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			effectiveInputs.putAll(inputs);
 		}
 		Map<String, String> traceRoomIds = AutomationRunExecutionService.allocateTraceRoomIds(runNodes);
+		AutomationExecutionContract executionContract =
+				AutomationExecutionContract.forSubmission(definition, files.nodeSources());
+		boolean async = Boolean.TRUE.equals(getBoolean(AutomationConstants.AUTOMATION_ASYNC_KEY, false));
 
 		initializeRun(runId, projectId, definition, effectiveInputs, runNodes, traceRoomIds,
-				files.nodeSources());
+				files.nodeSources(), executionContract, async);
+		if (async) {
+			AutomationRunRegistry.signalWork();
+			Map<String, Object> submitted = new LinkedHashMap<>();
+			submitted.put(AutomationConstants.RUN_ID, runId);
+			submitted.put(AutomationConstants.PROJECT_ID, projectId);
+			submitted.put(AutomationConstants.STATUS, AutomationConstants.STATUS_SUBMITTED);
+			return new NounMetadata(submitted, PixelDataType.MAP, PixelOperationType.OPERATION);
+		}
 
 		Map<String, Object> result = new AutomationRunExecutionService(this.insight, ThreadStore.getJobId())
 				.executeInitializedRun(runId, projectId, definition, runNodes, traceRoomIds);
@@ -92,11 +106,17 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			AutomationDefinitionValidator.ValidatedDefinition definition,
 			Map<String, Object> inputs, List<Map<String, Object>> runNodes,
 			Map<String, String> traceRoomIds,
-			Map<String, String> nodeSources) {
+			Map<String, String> nodeSources, AutomationExecutionContract executionContract, boolean async) {
 		AutomationRunStore.initializeRun(runId, projectId,
 				AutomationConstants.DEFAULT_AUTOMATION_ID, AutomationConstants.PYTHON_DOC_CURRENT_VERSION,
-				definition.hash(), definition.snapshot(), inputs, getTriggerType(), getUserId(), runNodes,
-				traceRoomIds, nodeSources);
+				definition.hash(), definition.snapshot(), executionContract.version(), executionContract.snapshot(),
+				inputs, getTriggerType(), getUserId(), principalAccess(this.insight.getUser(), async, definition), async,
+				runNodes, traceRoomIds, nodeSources);
+	}
+
+	static String principalAccess(User user, boolean async,
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		return async || definition.hasDurableItems() ? SchedulerUserAccess.encode(user) : null;
 	}
 
 	private String getProjectId() {
@@ -138,7 +158,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Runs automation through the authenticated Python workflow runtime.";
+		return "Durably submits and runs an authenticated Automation workflow.";
 	}
 
 	@Override
@@ -151,6 +171,9 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		}
 		if (AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY.equals(key)) {
 			return "Optional trigger source: MANUAL (default), PLAYGROUND, or SCHEDULED.";
+		}
+		if (AutomationConstants.AUTOMATION_ASYNC_KEY.equals(key)) {
+			return "When true, durably admits the run and returns before a shared worker executes it.";
 		}
 		return super.getDescriptionForKey(key);
 	}

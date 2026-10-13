@@ -43,13 +43,14 @@ import prerna.om.Insight;
 import prerna.reactor.automation.AutomationConstants;
 
 /**
- * Maintains same-pod cancellation and heartbeat state for active Python
- * Automation runs.
+ * Maintains same-pod cancellation and heartbeat state for active Automation
+ * runs.
  *
  * <p>
  * Durable cancellation remains in the scheduler database. This registry adds
- * only the local socket interrupt fast path and periodic liveness updates for
- * runs owned by the current JVM.
+ * only the local Python socket interrupt fast path and periodic liveness updates
+ * for runs owned by the current JVM. A run registers before selecting an
+ * executor; its Python translator is attached only if Python is actually used.
  */
 final class AutomationRunRegistry {
 
@@ -57,31 +58,134 @@ final class AutomationRunRegistry {
 	private static final ConcurrentHashMap<String, ActiveRun> RUNS = new ConcurrentHashMap<>();
 	private static final ScheduledExecutorService HEARTBEAT_SCHEDULER = Executors
 			.newSingleThreadScheduledExecutor(r -> {
-				Thread thread = new Thread(r, "automation-python-heartbeat");
+				Thread thread = new Thread(r, "automation-heartbeat");
 				thread.setDaemon(true);
 				return thread;
 			});
+	private static final ScheduledExecutorService ADMISSION_SCHEDULER = Executors
+			.newSingleThreadScheduledExecutor(r -> {
+				Thread thread = new Thread(r, "automation-admission");
+				thread.setDaemon(true);
+				return thread;
+			});
+	private static final AtomicBoolean MAINTENANCE_STARTED = new AtomicBoolean();
+	private static final AtomicBoolean SHUTDOWN_STARTED = new AtomicBoolean();
+	private static final AtomicInteger MAINTENANCE_TICKS = new AtomicInteger();
 
 	private AutomationRunRegistry() {
 	}
 
-	static void register(String runId, PyTranslator translator, Insight insight, String jobId) {
-		register(runId, translator, insight, jobId, 0);
+	static void startMaintenance() {
+		if (!MAINTENANCE_STARTED.compareAndSet(false, true)) {
+			return;
+		}
+		Runtime.getRuntime().addShutdownHook(new Thread(AutomationRunRegistry::shutdown,
+				"automation-worker-shutdown"));
+		ADMISSION_SCHEDULER.scheduleWithFixedDelay(() -> {
+			try {
+				AutomationQueueWorker.poll();
+				AutomationItemWorker.poll();
+			} catch (Exception e) {
+				classLogger.warn("Automation admission polling failed", e);
+			}
+		}, 0, 1, TimeUnit.SECONDS);
+		HEARTBEAT_SCHEDULER.scheduleWithFixedDelay(() -> {
+			try {
+				AutomationRunStore.markStaleRunsInterrupted();
+				AutomationRunStore.reconcileDurableLoopCoordinators();
+				classLogger.info("Automation queue metrics {}", AutomationRunStore.queueMetrics());
+				if (MAINTENANCE_TICKS.incrementAndGet() % 60 == 0) {
+					int expired = AutomationRunStore.expireSavedResults(java.time.Instant.now(), 10_000);
+					int expiredItems = AutomationRunStore.expireDurableItemPayloads(java.time.Instant.now(), 10_000);
+					if (expired > 0) {
+						classLogger.info("Expired {} retained Automation result payloads", expired);
+					}
+					if (expiredItems > 0) {
+						classLogger.info("Expired {} durable Automation item payloads", expiredItems);
+					}
+				}
+			} catch (Exception e) {
+				classLogger.warn("Automation maintenance cycle failed", e);
+			}
+		}, 60, 60, TimeUnit.SECONDS);
 	}
 
-	static void register(String runId, PyTranslator translator, Insight insight, String jobId, int completedNodes) {
-		ActiveRun active = new ActiveRun(translator, insight.getInsightId(), jobId, completedNodes);
-		if (RUNS.putIfAbsent(runId, active) != null) {
-			throw new IllegalStateException("Python automation run is already registered: " + runId);
+	static void signalWork() {
+		try {
+			AutomationQueueWorker.poll();
+			AutomationItemWorker.poll();
+		} catch (Exception e) {
+			classLogger.debug("Automation run remains durably queued after local wake-up failed", e);
 		}
+	}
+
+	static void shutdown() {
+		if (!SHUTDOWN_STARTED.compareAndSet(false, true)) {
+			return;
+		}
+		RUNS.forEach((runId, active) -> {
+			active.cancelled.set(true);
+			active.signalJavaCancellation(runId);
+			active.interruptPython(runId);
+			if (active.heartbeat != null) {
+				active.heartbeat.cancel(false);
+			}
+		});
+		RUNS.clear();
+		AutomationQueueWorker.shutdown();
+		AutomationItemWorker.shutdown();
+		ADMISSION_SCHEDULER.shutdownNow();
+		HEARTBEAT_SCHEDULER.shutdownNow();
+	}
+
+	static void register(String runId, Insight insight, String jobId) {
+		register(runId, insight, jobId, 0);
+	}
+
+	static void register(String runId, Insight insight, String jobId, int completedNodes) {
+		ActiveRun active = new ActiveRun(insight.getInsightId(), jobId, completedNodes);
 		active.heartbeat = HEARTBEAT_SCHEDULER.scheduleAtFixedRate(() -> {
 			try {
 				AutomationRunStore.touchHeartbeat(runId);
 			} catch (Exception e) {
-				classLogger.warn("Heartbeat update failed for Python automation run {}: {}", runId, e.getMessage());
+				classLogger.warn("Heartbeat update failed for Automation run '{}'", runId, e);
 			}
 		}, AutomationConstants.HEARTBEAT_INTERVAL_SECONDS, AutomationConstants.HEARTBEAT_INTERVAL_SECONDS,
 				TimeUnit.SECONDS);
+		if (RUNS.putIfAbsent(runId, active) != null) {
+			active.heartbeat.cancel(false);
+			throw new IllegalStateException("Automation run is already registered: " + runId);
+		}
+	}
+
+	static void registerItemAttempt(String attemptId, Insight insight) {
+		ActiveRun active = new ActiveRun(insight.getInsightId(), null, 0);
+		if (RUNS.putIfAbsent(attemptId, active) != null) {
+			throw new IllegalStateException("Automation item attempt is already registered: " + attemptId);
+		}
+	}
+
+	static void attachPythonTranslator(String runId, PyTranslator translator) {
+		ActiveRun active = RUNS.get(runId);
+		if (active == null) {
+			throw new IllegalStateException("Automation run is not registered: " + runId);
+		}
+		active.attachPythonTranslator(runId, translator);
+	}
+
+	static void attachJavaCancellation(String runId, Runnable cancellationSignal) {
+		ActiveRun active = RUNS.get(runId);
+		if (active == null) {
+			throw new IllegalStateException("Automation run is not registered: " + runId);
+		}
+		active.attachJavaCancellation(runId, cancellationSignal);
+	}
+
+	static void detachJavaCancellation(String runId, Runnable cancellationSignal) {
+		ActiveRun active = RUNS.get(runId);
+		if (active != null) {
+			active.detachJavaCancellation(cancellationSignal);
+		}
 	}
 
 	static void unregister(String runId) {
@@ -102,13 +206,8 @@ final class AutomationRunRegistry {
 			return false;
 		}
 		active.cancelled.set(true);
-		if (active.jobId != null && !active.jobId.isBlank()) {
-			try {
-				active.translator.getSocketClient().interruptInsightJob(active.insightId, active.jobId);
-			} catch (Exception e) {
-				classLogger.warn("Unable to interrupt Python socket for automation run {}: {}", runId, e.getMessage());
-			}
-		}
+		active.signalJavaCancellation(runId);
+		active.interruptPython(runId);
 		return true;
 	}
 
@@ -120,18 +219,74 @@ final class AutomationRunRegistry {
 	}
 
 	private static final class ActiveRun {
-		private final PyTranslator translator;
 		private final String insightId;
 		private final String jobId;
 		private final AtomicBoolean cancelled = new AtomicBoolean();
 		private final AtomicInteger completedNodes;
+		private volatile PyTranslator translator;
+		private volatile Runnable javaCancellationSignal;
 		private ScheduledFuture<?> heartbeat;
 
-		private ActiveRun(PyTranslator translator, String insightId, String jobId, int completedNodes) {
-			this.translator = translator;
+		private ActiveRun(String insightId, String jobId, int completedNodes) {
 			this.insightId = insightId;
 			this.jobId = jobId;
 			this.completedNodes = new AtomicInteger(Math.max(0, completedNodes));
+		}
+
+		private synchronized void attachPythonTranslator(String runId, PyTranslator attachedTranslator) {
+			if (attachedTranslator == null) {
+				throw new IllegalArgumentException("Automation Python translator must not be null.");
+			}
+			if (translator != null && translator != attachedTranslator) {
+				throw new IllegalStateException("Automation run has a different Python translator: " + runId);
+			}
+			translator = attachedTranslator;
+			if (cancelled.get()) {
+				interruptPython(runId);
+			}
+		}
+
+		private synchronized void attachJavaCancellation(String runId, Runnable cancellationSignal) {
+			if (cancellationSignal == null) {
+				throw new IllegalArgumentException("Automation Java cancellation signal must not be null.");
+			}
+			if (javaCancellationSignal != null && javaCancellationSignal != cancellationSignal) {
+				throw new IllegalStateException("Automation run already has an active Java executor: " + runId);
+			}
+			javaCancellationSignal = cancellationSignal;
+			if (cancelled.get()) {
+				signalJavaCancellation(runId);
+			}
+		}
+
+		private synchronized void detachJavaCancellation(Runnable cancellationSignal) {
+			if (javaCancellationSignal == cancellationSignal) {
+				javaCancellationSignal = null;
+			}
+		}
+
+		private void signalJavaCancellation(String runId) {
+			Runnable activeSignal = javaCancellationSignal;
+			if (activeSignal == null) {
+				return;
+			}
+			try {
+				activeSignal.run();
+			} catch (RuntimeException e) {
+				classLogger.warn("Unable to signal Java executor cancellation for Automation run '{}'", runId, e);
+			}
+		}
+
+		private void interruptPython(String runId) {
+			PyTranslator activeTranslator = translator;
+			if (activeTranslator == null || jobId == null || jobId.isBlank()) {
+				return;
+			}
+			try {
+				activeTranslator.getSocketClient().interruptInsightJob(insightId, jobId);
+			} catch (Exception e) {
+				classLogger.warn("Unable to interrupt Python socket for Automation run '{}'", runId, e);
+			}
 		}
 	}
 

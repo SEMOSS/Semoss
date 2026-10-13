@@ -38,7 +38,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
@@ -232,53 +231,30 @@ public final class AutomationRuntime {
 	 *
 	 * <p>
 	 * The serialized {@code scope} remains the public node contract. Names in
-	 * {@code frameBindings} identifies scope entries whose bounded summaries must be
-	 * rebound to live SEMOSS frames already owned by the run Insight. Each value is
-	 * the frame backend reported by SEMOSS. Bindings are execution metadata and are
-	 * not exposed to node authors or persisted in run history.
-	 *
 	 * @param source             persisted Python source defining {@code run(scope)}
 	 * @param scope              bounded run scope supplied by the Java scheduler
-	 * @param outputVariable     node output alias used for live frame registration
-	 * @param frameBindings    output aliases and SEMOSS backend types for live frames
+	 * @param outputVariable     node output alias used in diagnostics
 	 * @return Python script that invokes the Automation runtime boundary
 	 * @throws IllegalStateException when the Automation Python runtime is unavailable
 	 */
-	public static String buildNodeInvocationScript(String source, Map<String, Object> scope, String outputVariable,
-			Map<String, String> frameBindings) {
-		return buildPythonInvocation("execute_node", source, scope, outputVariable, frameBindings);
-	}
-
-	/**
-	 * Executes trigger Python in an isolated module and returns its non-private,
-	 * JSON-compatible globals. A trigger may also return a map from
-	 * {@code run(scope)} to define computed globals.
-	 */
-	public static String buildTriggerInvocationScript(String source, Map<String, Object> scope) {
-		return buildPythonInvocation("execute_trigger", source, scope, null, Map.of());
-	}
-
-	private static String buildPythonInvocation(String function, String source, Map<String, Object> scope,
-			String outputVariable, Map<String, String> frameBindings) {
+	public static String buildNodeInvocationScript(String source, Map<String, Object> scope, String outputVariable) {
 		Path runtimePath = Path.of(Utility.getBaseFolder(), Constants.PY_BASE_FOLDER, "semoss_automation_runtime.py")
 				.toAbsolutePath().normalize();
 		if (!Files.isRegularFile(runtimePath)) {
 			throw new IllegalStateException("Automation Python runtime is unavailable: " + runtimePath);
 		}
-		String frameArguments = outputVariable == null ? ""
-				: ", " + AutomationRuntimeUtils.GSON.toJson(outputVariable) + ", globals(), "
-						+ AutomationRuntimeUtils.GSON.toJson(new TreeMap<>(frameBindings));
 		return """
 				import importlib.util as _automation_importlib
 				_automation_spec = _automation_importlib.spec_from_file_location(
 				    "_semoss_automation_runtime", %s)
 				_automation_runtime = _automation_importlib.module_from_spec(_automation_spec)
 				_automation_spec.loader.exec_module(_automation_runtime)
-				_automation_runtime.%s("%s", "%s", %d%s)
-				""".formatted(AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()), function,
+				_automation_runtime.execute_node("%s", "%s", %d, %s)
+				""".formatted(AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()),
 				encode(AutomationRuntimeUtils.toBoundedRuntimeJson(scope != null ? scope : Map.of(),
 						AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope")),
-				encode(source != null ? source : ""), AutomationConstants.NODE_OUTPUT_MAX_BYTES, frameArguments);
+				encode(source != null ? source : ""), AutomationConstants.NODE_OUTPUT_MAX_BYTES,
+				AutomationRuntimeUtils.GSON.toJson(outputVariable));
 	}
 
 	/**
@@ -322,19 +298,6 @@ public final class AutomationRuntime {
 			}
 		}
 		return globals;
-	}
-
-	/**
-	 * Returns the optional setup source held in
-	 * {@code trigger.start.config.pythonSource}.
-	 */
-	@SuppressWarnings("unchecked")
-	public static String triggerSource(Map<String, Object> node) {
-		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
-		if (rawConfig instanceof Map<?, ?> raw) {
-			return sourceValue(((Map<String, Object>) raw).get(AutomationConstants.CONFIG_PYTHON_SOURCE));
-		}
-		return null;
 	}
 
 	/**
@@ -413,23 +376,17 @@ public final class AutomationRuntime {
 				|| !(result.get(AutomationConstants.INTERNAL_NODE_RESULT_KIND) instanceof String kind)) {
 			throw new IllegalStateException("Python automation node returned an invalid runtime result.");
 		}
-		if (AutomationConstants.INTERNAL_NODE_RESULT_KIND_FRAME.equals(kind)) {
-			if (result.size() != 1) {
-				throw new IllegalStateException("Python automation frame result contains unexpected values.");
-			}
-			return new NodeResult(null, true);
-		}
 		if (AutomationConstants.INTERNAL_NODE_RESULT_KIND_VALUE.equals(kind)) {
 			if (result.size() != 2 || !result.containsKey(AutomationConstants.INTERNAL_NODE_RESULT_VALUE)) {
 				throw new IllegalStateException("Python automation value result is missing its value.");
 			}
-			return new NodeResult(result.get(AutomationConstants.INTERNAL_NODE_RESULT_VALUE), false);
+			return new NodeResult(result.get(AutomationConstants.INTERNAL_NODE_RESULT_VALUE));
 		}
 		throw new IllegalStateException("Python automation node returned an unknown runtime result kind.");
 	}
 
 	/** Decoded result returned by the Python Automation runtime. */
-	public record NodeResult(Object value, boolean frame) {
+	public record NodeResult(Object value) {
 	}
 
 	private static String encode(String value) {

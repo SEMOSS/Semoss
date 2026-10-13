@@ -28,7 +28,9 @@
 package prerna.reactor.automation.definition;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -393,12 +395,13 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
-	void triggerAcceptsSetupSourceAndGlobals() {
+	void triggerRejectsSetupSourceEvenWhenGlobalsAreValid() {
 		Map<String, Object> config = new LinkedHashMap<>();
 		config.put(AutomationConstants.CONFIG_PYTHON_SOURCE, "def run(scope):\n    return {}\n");
 		config.put(AutomationConstants.CONFIG_GLOBALS,
 				List.of(Map.of("name", "lookback_days", AutomationConstants.CONFIG_DEFAULT_VALUE, "7")));
-		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(config));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(config)));
 	}
 
 	/** Globals become Python identifiers in scope, so the name has to be one. */
@@ -459,7 +462,7 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
-	void rejectsGeneratedDatabaseQueryInsideExecutableLoop() {
+	void acceptsGeneratedDatabaseQueryInsideExecutableLoop() {
 		Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DATABASE_QUERY, databaseQueryConfig());
 		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-query");
 		bodyNode.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, "query_result");
@@ -473,7 +476,7 @@ public class AutomationDefinitionValidatorUnitTests {
 		String json = definition(Map.of(), loop);
 
 		AutomationDefinitionValidator.parseAndValidateForAuthoring(json);
-		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidate(json));
+		AutomationDefinitionValidator.parseAndValidate(json);
 	}
 
 	@Test
@@ -496,6 +499,155 @@ public class AutomationDefinitionValidatorUnitTests {
 						AutomationConstants.CONFIG_LOOP_CONDITION, "${status} != \"complete\"",
 						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
 		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), whileLoop));
+	}
+
+	@Test
+	void durableItemsAreExplicitAndLimitedToBoundedForEachLoops() {
+		Map<String, Object> durable = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10,
+						AutomationConstants.CONFIG_LOOP_DURABLE_ITEMS, true,
+						AutomationConstants.CONFIG_LOOP_DURABLE_MAX_ATTEMPTS, 3));
+		assertTrue(AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), durable))
+				.hasDurableItems());
+		assertFalse(AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_CONTROL_LOOP,
+						Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+								AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1),
+								AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+								AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10))))
+				.hasDurableItems());
+
+		Map<String, Object> repeat = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_REPEAT,
+						AutomationConstants.CONFIG_LOOP_COUNT, 2,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10,
+						AutomationConstants.CONFIG_LOOP_DURABLE_ITEMS, true));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), repeat)));
+
+		Map<String, Object> invalidAttempts = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10,
+						AutomationConstants.CONFIG_LOOP_DURABLE_ITEMS, true,
+						AutomationConstants.CONFIG_LOOP_DURABLE_MAX_ATTEMPTS,
+						AutomationConstants.DURABLE_ITEM_MAX_ATTEMPTS + 1));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(definition(Map.of(), invalidAttempts)));
+	}
+
+	@Test
+	void durableItemsRejectCustomPythonBodyNodes() {
+		Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DEVELOPER_PYTHON, Map.of());
+		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-python");
+		bodyNode.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_CUSTOM);
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10,
+						AutomationConstants.CONFIG_LOOP_DURABLE_ITEMS, true));
+		loop.put(AutomationConstants.NODE_FIELD_BODY,
+				Map.of(AutomationConstants.DOC_NODES, List.of(bodyNode), AutomationConstants.DOC_EDGES, List.of()));
+
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), loop)));
+		assertTrue(error.getMessage().contains("journaled effect contract"));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void durableItemsRequireSingleItemBatchesAndTerminalParentGraph() {
+		Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DATABASE_QUERY,
+				Map.of("engineId", "database", "query", "select 1", "limit", 100));
+		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-query");
+		Map<String, Object> loopConfig = new LinkedHashMap<>();
+		loopConfig.put(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH);
+		loopConfig.put(AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1));
+		loopConfig.put(AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 2);
+		loopConfig.put(AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10);
+		loopConfig.put(AutomationConstants.CONFIG_LOOP_DURABLE_ITEMS, true);
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP, loopConfig);
+		loop.put(AutomationConstants.NODE_FIELD_BODY,
+				Map.of(AutomationConstants.DOC_NODES, List.of(bodyNode), AutomationConstants.DOC_EDGES, List.of()));
+		IllegalArgumentException batchError = assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), loop)));
+		assertTrue(batchError.getMessage().contains("batchSize=1"));
+
+		loopConfig.put(AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1);
+		Map<String, Object> document = AutomationRuntimeUtils.GSON.fromJson(definition(Map.of(), loop), Map.class);
+		Map<String, Object> graph = (Map<String, Object>) document.get(AutomationConstants.DOC_GRAPH);
+		List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get(AutomationConstants.DOC_NODES);
+		Map<String, Object> downstream = workNode(AutomationConstants.NODE_DATABASE_QUERY,
+				Map.of("engineId", "database", "query", "select 1", "limit", 100));
+		downstream.put(AutomationConstants.NODE_FIELD_ID, "after");
+		nodes.add(downstream);
+		List<Map<String, Object>> edges = (List<Map<String, Object>>) graph.get(AutomationConstants.DOC_EDGES);
+		Map<String, Object> downstreamEdge = new LinkedHashMap<>(controlEdge());
+		downstreamEdge.put(AutomationConstants.NODE_FIELD_ID, "e-work-after");
+		downstreamEdge.put(AutomationConstants.EDGE_FIELD_SOURCE, "work");
+		downstreamEdge.put(AutomationConstants.EDGE_FIELD_TARGET, "after");
+		edges.add(downstreamEdge);
+
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+						AutomationRuntimeUtils.GSON.toJson(document)));
+	}
+
+	@Test
+	void durableItemsRejectWaitAndArbitraryPixelBodies() {
+		for (String type : List.of(AutomationConstants.NODE_CONTROL_WAIT, AutomationConstants.NODE_APP_PIXEL)) {
+			Map<String, Object> bodyNode = workNode(type,
+					AutomationConstants.NODE_CONTROL_WAIT.equals(type)
+							? Map.of("durationSeconds", 0)
+							: Map.of("pixel", "1;"));
+			bodyNode.put(AutomationConstants.NODE_FIELD_ID, "unsafe-body");
+			Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+					Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+							AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1),
+							AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+							AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10,
+							AutomationConstants.CONFIG_LOOP_DURABLE_ITEMS, true));
+			loop.put(AutomationConstants.NODE_FIELD_BODY, Map.of(AutomationConstants.DOC_NODES, List.of(bodyNode),
+					AutomationConstants.DOC_EDGES, List.of()));
+			assertThrows(IllegalArgumentException.class,
+					() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), loop)));
+		}
+	}
+
+	@Test
+	void durableHistoryBoundIncludesMaximumAttempts() {
+		List<Map<String, Object>> bodyNodes = new java.util.ArrayList<>();
+		for (int index = 0; index < 10; index++) {
+			Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DATABASE_QUERY,
+					Map.of("engineId", "database", "query", "select 1", "limit", 100));
+			bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-" + index);
+			bodyNode.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, "body_" + index);
+			bodyNodes.add(bodyNode);
+		}
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10_000,
+						AutomationConstants.CONFIG_LOOP_DURABLE_ITEMS, true,
+						AutomationConstants.CONFIG_LOOP_DURABLE_MAX_ATTEMPTS, 1));
+		loop.put(AutomationConstants.NODE_FIELD_BODY,
+				Map.of(AutomationConstants.DOC_NODES, bodyNodes, AutomationConstants.DOC_EDGES, List.of()));
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), loop));
+
+		@SuppressWarnings("unchecked")
+		Map<String, Object> config = (Map<String, Object>) loop.get(AutomationConstants.NODE_FIELD_CONFIG);
+		Map<String, Object> overBudget = new LinkedHashMap<>(config);
+		overBudget.put(AutomationConstants.CONFIG_LOOP_DURABLE_MAX_ATTEMPTS, 2);
+		loop.put(AutomationConstants.NODE_FIELD_CONFIG, overBudget);
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), loop)));
+		assertTrue(error.getMessage().contains("200000"));
 	}
 
 	@Test

@@ -59,9 +59,9 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
  *
  * <p>
  * The graph structure remains separate from implementation source. The graph is
- * the business-editable contract; generated Python and developer-owned blocks
- * implement that contract without changing its node, port, or capability
- * declarations.
+ * the business-editable contract; typed Java/direct implementations and explicit
+ * developer.python blocks implement that contract without changing its node,
+ * port, or capability declarations.
  */
 public final class AutomationDefinitionValidator {
 
@@ -75,7 +75,7 @@ public final class AutomationDefinitionValidator {
 	 * @return immutable-by-convention validated graph metadata
 	 */
 	public static ValidatedDefinition parseAndValidate(String json) {
-		return parseAndValidate(json, true);
+		return parseAndValidate(json, true, false);
 	}
 
 	/**
@@ -90,17 +90,22 @@ public final class AutomationDefinitionValidator {
 	 * @return validated graph metadata
 	 */
 	public static ValidatedDefinition parseAndValidateForAuthoring(String json) {
-		return parseAndValidate(json, false);
+		return parseAndValidate(json, false, false);
 	}
 
-	private static ValidatedDefinition parseAndValidate(String json, boolean requireExecutableGraph) {
+	public static ValidatedDefinition parseAndValidateLegacyRunSnapshot(String json) {
+		return parseAndValidate(json, true, true);
+	}
+
+	private static ValidatedDefinition parseAndValidate(String json, boolean requireExecutableGraph,
+			boolean allowLegacyPythonOwnership) {
 		if (json == null || json.isBlank()) {
 			throw new IllegalArgumentException("Python automation definition must be a nonblank JSON object.");
 		}
 		try {
 			Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(json,
 					AutomationRuntimeUtils.MAP_TYPE);
-			return validate(definition, requireExecutableGraph);
+			return validate(definition, requireExecutableGraph, allowLegacyPythonOwnership);
 		} catch (JsonParseException e) {
 			throw new IllegalArgumentException("Python automation definition must be valid JSON.", e);
 		}
@@ -114,10 +119,11 @@ public final class AutomationDefinitionValidator {
 	 * @return validated definition and deterministic provenance fields
 	 */
 	public static ValidatedDefinition validate(Map<String, Object> definition) {
-		return validate(definition, true);
+		return validate(definition, true, false);
 	}
 
-	private static ValidatedDefinition validate(Map<String, Object> definition, boolean requireExecutableGraph) {
+	private static ValidatedDefinition validate(Map<String, Object> definition, boolean requireExecutableGraph,
+			boolean allowLegacyPythonOwnership) {
 		if (definition == null) {
 			throw new IllegalArgumentException("Python automation definition must be a JSON object.");
 		}
@@ -126,11 +132,11 @@ public final class AutomationDefinitionValidator {
 		List<Map<String, Object>> nodes = requireMapList(graph.get(AutomationConstants.DOC_NODES), "graph.nodes");
 		List<Map<String, Object>> edges = requireMapList(graph.get(AutomationConstants.DOC_EDGES), "graph.edges");
 
-		Map<String, String> nodeTypes = validateNodes(nodes, true);
+		Map<String, String> nodeTypes = validateNodes(nodes, true, allowLegacyPythonOwnership);
 		Map<String, Set<String>> branchPorts = branchPorts(nodes);
 		validateEdges(edges, nodeTypes, branchPorts);
 		validateControlPath(edges, nodeTypes, branchPorts, requireExecutableGraph);
-		validateLoopBodies(nodes, nodeTypes.keySet(), requireExecutableGraph);
+		validateLoopBodies(nodes, edges, nodeTypes.keySet(), requireExecutableGraph, allowLegacyPythonOwnership);
 		validateTriggerBindings(definition.get(AutomationConstants.DOC_TRIGGER_BINDINGS));
 
 		String snapshot = AutomationRuntimeUtils.GSON.toJson(canonicalize(definition));
@@ -145,7 +151,8 @@ public final class AutomationDefinitionValidator {
 		}
 	}
 
-	private static Map<String, String> validateNodes(List<Map<String, Object>> nodes, boolean requireStart) {
+	private static Map<String, String> validateNodes(List<Map<String, Object>> nodes, boolean requireStart,
+			boolean allowLegacyPythonOwnership) {
 		Map<String, String> nodeTypes = new LinkedHashMap<>();
 		Set<String> outputVariables = new HashSet<>();
 		int startCount = 0;
@@ -192,15 +199,25 @@ public final class AutomationDefinitionValidator {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> nodeConfig = config instanceof Map<?, ?> map ? (Map<String, Object>) map : Map.of();
 			validateNodeConfig(nodeId, typedNode, nodeConfig);
+			if (!allowLegacyPythonOwnership && typedNode != AutomationNodeType.DEVELOPER_PYTHON
+					&& nodeConfig.containsKey(AutomationConstants.CONFIG_PYTHON_SOURCE)) {
+				throw new IllegalArgumentException("Only developer.python nodes may own Python source; node '"
+						+ nodeId + "' is type '" + nodeType + "'.");
+			}
 			Object codeMode = node.get(AutomationConstants.NODE_FIELD_CODE_MODE);
 			if (codeMode != null && !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)
 					&& !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)) {
 				throw new IllegalArgumentException("Node '" + nodeId + "' has unsupported codeMode: " + codeMode + ".");
 			}
-			if (isJavaOwnedNode(typedNode)
+			if (!allowLegacyPythonOwnership && typedNode == AutomationNodeType.DEVELOPER_PYTHON
+					&& !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)) {
+				throw new IllegalArgumentException(
+						"Explicit Python node '" + nodeId + "' must use custom mode.");
+			}
+			if (!allowLegacyPythonOwnership && typedNode != AutomationNodeType.DEVELOPER_PYTHON
 					&& !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)) {
 				throw new IllegalArgumentException(
-						"Java-owned node '" + nodeId + "' must use generated mode.");
+						"Typed node '" + nodeId + "' must use generated mode; only developer.python may be custom.");
 			}
 			if (AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode) && !(config instanceof Map<?, ?>)) {
 				throw new IllegalArgumentException("Custom node '" + nodeId + "' must declare a config object.");
@@ -407,7 +424,6 @@ public final class AutomationDefinitionValidator {
 	}
 
 	private static void validateTriggerConfig(String nodeId, Map<String, Object> config) {
-		validateOptionalSource(nodeId, config, AutomationConstants.CONFIG_PYTHON_SOURCE);
 		if (!config.containsKey(AutomationConstants.CONFIG_GLOBALS)) {
 			return;
 		}
@@ -1085,8 +1101,9 @@ public final class AutomationDefinitionValidator {
 	 * iteration, cancellation, and bounds while the ordinary node executors own the
 	 * work inside one iteration.
 	 */
-	private static void validateLoopBodies(List<Map<String, Object>> nodes, Set<String> parentNodeIds,
-			boolean requireExecutableGraph) {
+	private static void validateLoopBodies(List<Map<String, Object>> nodes, List<Map<String, Object>> parentEdges,
+			Set<String> parentNodeIds,
+			boolean requireExecutableGraph, boolean allowLegacyPythonOwnership) {
 		Set<String> allNodeIds = new HashSet<>(parentNodeIds);
 		Set<String> parentOutputVariables = new HashSet<>();
 		for (Map<String, Object> node : nodes) {
@@ -1100,6 +1117,35 @@ public final class AutomationDefinitionValidator {
 				continue;
 			}
 			String loopNodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+			Map<String, Object> loopConfig = requireMap(node.get(AutomationConstants.NODE_FIELD_CONFIG),
+					"Loop node '" + loopNodeId + "' config");
+			Object durableItems = loopConfig.getOrDefault(AutomationConstants.CONFIG_LOOP_DURABLE_ITEMS, false);
+			if (!(durableItems instanceof Boolean)) {
+				throw new IllegalArgumentException(
+						"Loop node '" + loopNodeId + "' durableItems must be a boolean.");
+			}
+			if (Boolean.TRUE.equals(durableItems)) {
+				String mode = String.valueOf(loopConfig.getOrDefault(AutomationConstants.CONFIG_LOOP_MODE,
+						AutomationConstants.LOOP_MODE_FOR_EACH));
+				if (!AutomationConstants.LOOP_MODE_FOR_EACH.equals(mode)) {
+					throw new IllegalArgumentException("Loop node '" + loopNodeId
+							+ "' durableItems is supported only for forEach loops.");
+				}
+				Object attempts = loopConfig.getOrDefault(AutomationConstants.CONFIG_LOOP_DURABLE_MAX_ATTEMPTS,
+						AutomationConstants.DURABLE_ITEM_DEFAULT_MAX_ATTEMPTS);
+				if (!(attempts instanceof Number number) || number.intValue() < 1
+						|| number.intValue() > AutomationConstants.DURABLE_ITEM_MAX_ATTEMPTS) {
+					throw new IllegalArgumentException("Loop node '" + loopNodeId
+							+ "' durableMaxAttempts must be between 1 and "
+							+ AutomationConstants.DURABLE_ITEM_MAX_ATTEMPTS + ".");
+				}
+				Object batchSize = loopConfig.get(AutomationConstants.CONFIG_LOOP_BATCH_SIZE);
+				if (!(batchSize instanceof Number batchNumber) || batchNumber.intValue() != 1) {
+					throw new IllegalArgumentException("Loop node '" + loopNodeId
+							+ "' durableItems requires batchSize=1 so every leased item is independently retryable.");
+				}
+				validateDurableParentGraph(nodes, parentEdges, loopNodeId);
+			}
 			Object rawBody = node.get(AutomationConstants.NODE_FIELD_BODY);
 			if (rawBody == null && !requireExecutableGraph) {
 				continue;
@@ -1129,20 +1175,47 @@ public final class AutomationDefinitionValidator {
 					throw new IllegalArgumentException("Loop node '" + loopNodeId
 							+ "' cannot contain an agent.run node because durable input waits inside iterations are not supported.");
 				}
-				if (requireExecutableGraph && AutomationConstants.NODE_DATABASE_QUERY.equals(bodyType)
-						&& !AutomationConstants.NODE_CODE_MODE_CUSTOM
-								.equals(bodyNode.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+				if (Boolean.TRUE.equals(durableItems)
+						&& (AutomationConstants.NODE_DEVELOPER_PYTHON.equals(bodyType)
+								|| AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(
+										bodyNode.get(AutomationConstants.NODE_FIELD_CODE_MODE)))) {
 					throw new IllegalArgumentException("Loop node '" + loopNodeId
-							+ "' cannot contain a generated database.query node because frame outputs inside iterations are not supported.");
+							+ "' durableItems cannot contain custom or Python source body node '"
+							+ bodyNode.get(AutomationConstants.NODE_FIELD_ID)
+							+ "' until an explicit journaled effect contract is available.");
+				}
+				if (Boolean.TRUE.equals(durableItems)
+						&& (AutomationConstants.NODE_CONTROL_WAIT.equals(bodyType)
+								|| AutomationConstants.NODE_AGENT_RUN.equals(bodyType)
+								|| AutomationConstants.NODE_APP_PIXEL.equals(bodyType))) {
+					throw new IllegalArgumentException("Loop node '" + loopNodeId + "' durableItems cannot contain '"
+							+ bodyType + "' body node '" + bodyNode.get(AutomationConstants.NODE_FIELD_ID)
+							+ "' because cross-host replay or arbitrary effects cannot be reconciled safely.");
 				}
 			}
-			Map<String, String> bodyNodeTypes = validateNodes(bodyNodes, false);
+			if (Boolean.TRUE.equals(durableItems)) {
+				int maximumIterations = ((Number) loopConfig
+						.get(AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS)).intValue();
+				int maximumAttempts = ((Number) loopConfig.getOrDefault(
+						AutomationConstants.CONFIG_LOOP_DURABLE_MAX_ATTEMPTS,
+						AutomationConstants.DURABLE_ITEM_DEFAULT_MAX_ATTEMPTS)).intValue();
+				long maximumHistoryRows = (long) maximumIterations * bodyNodes.size() * maximumAttempts;
+				if (maximumHistoryRows > AutomationConstants.LOOP_MAX_NODE_EXECUTIONS) {
+					throw new IllegalArgumentException("Loop node '" + loopNodeId + "' can materialize up to "
+							+ maximumHistoryRows + " body history rows across durable attempts, exceeding the maximum of "
+							+ AutomationConstants.LOOP_MAX_NODE_EXECUTIONS
+							+ ". Reduce maxIterations, body nodes, or durableMaxAttempts.");
+				}
+			}
+
+			Map<String, String> bodyNodeTypes = validateNodes(bodyNodes, false, allowLegacyPythonOwnership);
 			for (String bodyNodeId : bodyNodeTypes.keySet()) {
 				if (!allNodeIds.add(bodyNodeId)) {
 					throw new IllegalArgumentException(
 							"Automation definition has duplicate node id: " + bodyNodeId + ".");
 				}
 			}
+
 			for (Map<String, Object> bodyNode : bodyNodes) {
 				Object outputVariable = bodyNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
 				if (outputVariable instanceof String value && parentOutputVariables.contains(value)) {
@@ -1154,6 +1227,37 @@ public final class AutomationDefinitionValidator {
 			validateEdges(bodyEdges, bodyNodeTypes, bodyBranchPorts);
 			validateLoopBodyControlPath(loopNodeId, bodyEdges, bodyNodeTypes, bodyBranchPorts,
 					requireExecutableGraph);
+		}
+	}
+
+	private static void validateDurableParentGraph(List<Map<String, Object>> nodes,
+			List<Map<String, Object>> parentEdges, String loopNodeId) {
+		if (nodes.size() != 2) {
+			throw new IllegalArgumentException("Loop node '" + loopNodeId
+					+ "' durableItems must be the only work node in its parent graph. The owning run parks at the "
+					+ "loop and cannot replay arbitrary upstream or downstream mutable context across hosts.");
+		}
+		String startNodeId = nodes.stream()
+				.filter(node -> AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE)))
+				.map(node -> String.valueOf(node.get(AutomationConstants.NODE_FIELD_ID)))
+				.findFirst()
+				.orElseThrow(() -> new IllegalArgumentException(
+						"Durable item graph requires one trigger.start node."));
+		boolean directEdge = false;
+		for (Map<String, Object> edge : parentEdges) {
+			String source = String.valueOf(edge.get(AutomationConstants.EDGE_FIELD_SOURCE));
+			String target = String.valueOf(edge.get(AutomationConstants.EDGE_FIELD_TARGET));
+			if (loopNodeId.equals(source)) {
+				throw new IllegalArgumentException("Loop node '" + loopNodeId
+						+ "' durableItems must be terminal so coordinator completion is deterministic.");
+			}
+			if (startNodeId.equals(source) && loopNodeId.equals(target)) {
+				directEdge = true;
+			}
+		}
+		if (!directEdge) {
+			throw new IllegalArgumentException("Loop node '" + loopNodeId
+					+ "' durableItems must be reached directly from trigger.start.");
 		}
 	}
 
@@ -1289,5 +1393,23 @@ public final class AutomationDefinitionValidator {
 	 */
 	public record ValidatedDefinition(Map<String, Object> definition, List<Map<String, Object>> nodes,
 			List<Map<String, Object>> edges, String snapshot, String hash) {
+		/**
+		 * Returns whether execution can hand work off to cross-host durable item
+		 * workers. Loop configuration has already been type-checked by validation.
+		 */
+		@SuppressWarnings("unchecked")
+		public boolean hasDurableItems() {
+			for (Map<String, Object> node : nodes) {
+				if (!AutomationConstants.NODE_CONTROL_LOOP.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+					continue;
+				}
+				Map<String, Object> config =
+						(Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+				if (Boolean.TRUE.equals(config.get(AutomationConstants.CONFIG_LOOP_DURABLE_ITEMS))) {
+					return true;
+				}
+			}
+			return false;
+		}
 	}
 }

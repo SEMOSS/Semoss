@@ -59,6 +59,13 @@ public final class AutomationConstants {
 	public static final String TABLE_AUTOMATION_RUN_NODE_SOURCES = "AUTOMATION_RUN_NODE_SOURCES";
 	public static final String TABLE_AUTOMATION_NODE_OUTPUTS = "AUTOMATION_NODE_OUTPUTS";
 	public static final String TABLE_AUTOMATION_RUN_WAITS = "AUTOMATION_RUN_WAITS";
+	public static final String TABLE_AUTOMATION_SAVED_RESULTS = "AUTOMATION_SAVED_RESULTS";
+	public static final String TABLE_AUTOMATION_RESULT_CHUNKS = "AUTOMATION_RESULT_CHUNKS";
+	public static final String TABLE_AUTOMATION_ADMISSION_LOCK = "AUTOMATION_ADMISSION_LOCK";
+	public static final String TABLE_AUTOMATION_ITEMS = "AUTOMATION_ITEMS";
+	public static final String TABLE_AUTOMATION_ITEM_ATTEMPTS = "AUTOMATION_ITEM_ATTEMPTS";
+	public static final String TABLE_AUTOMATION_EFFECTS = "AUTOMATION_EFFECTS";
+	public static final String ADMISSION_LOCK_ID = "LOCK_ID";
 
 	// -- AUTOMATION_RUNS columns
 	// ---------------------------------------------------
@@ -69,6 +76,8 @@ public final class AutomationConstants {
 	public static final String DEFINITION_VERSION = "DEFINITION_VERSION";
 	public static final String DEFINITION_HASH = "DEFINITION_HASH";
 	public static final String DEFINITION_SNAPSHOT = "DEFINITION_SNAPSHOT";
+	public static final String EXECUTION_CONTRACT_VERSION = "EXECUTION_CONTRACT_VERSION";
+	public static final String EXECUTION_CONTRACT_SNAPSHOT = "EXECUTION_CONTRACT_SNAPSHOT";
 	public static final String INPUT_SNAPSHOT = "INPUT_SNAPSHOT";
 	public static final String STATUS = "STATUS";
 	public static final String TRIGGER_TYPE = "TRIGGER_TYPE";
@@ -77,11 +86,36 @@ public final class AutomationConstants {
 	public static final String FAILED_NODE_ID = "FAILED_NODE_ID";
 	public static final String ERROR_MESSAGE = "ERROR_MESSAGE";
 	public static final String LAST_HEARTBEAT = "LAST_HEARTBEAT";
+	public static final String ATTEMPT_ID = "ATTEMPT_ID";
+	public static final String ATTEMPT_NUMBER = "ATTEMPT_NUMBER";
+	public static final String LEASE_OWNER = "LEASE_OWNER";
+	public static final String LEASE_TOKEN = "LEASE_TOKEN";
+	public static final String LEASE_EXPIRES_AT = "LEASE_EXPIRES_AT";
 	public static final String TOTAL_NODES = "TOTAL_NODES";
 	public static final String COMPLETED_NODES = "COMPLETED_NODES";
 	public static final String CREATED_BY = "CREATED_BY";
+	public static final String PRINCIPAL_ACCESS = "PRINCIPAL_ACCESS";
+	public static final String ASYNC_ADMISSION = "ASYNC_ADMISSION";
 	public static final String CANCEL_REQUESTED = "CANCEL_REQUESTED";
 	public static final String RESULT_SUMMARY_COL = "RESULT_SUMMARY";
+
+	// -- Durable item, attempt, and effect columns --------------------------------
+
+	public static final String ITEM_ID = "ITEM_ID";
+	public static final String ITEM_INDEX = "ITEM_INDEX";
+	public static final String ITEM_INPUT_SNAPSHOT = "ITEM_INPUT_SNAPSHOT";
+	public static final String ITEM_REFERENCE_SNAPSHOT = "ITEM_REFERENCE_SNAPSHOT";
+	public static final String MAX_ATTEMPTS = "MAX_ATTEMPTS";
+	public static final String NEXT_ATTEMPT_AT = "NEXT_ATTEMPT_AT";
+	public static final String EFFECT_ID = "EFFECT_ID";
+	public static final String EFFECT_STATE = "EFFECT_STATE";
+	public static final String OPERATION_KEY = "OPERATION_KEY";
+	public static final String IDEMPOTENCY_KEY = "IDEMPOTENCY_KEY";
+	public static final String RECEIPT_HASH = "RECEIPT_HASH";
+	public static final String RECEIPT_METADATA = "RECEIPT_METADATA";
+	public static final String PREPARED_AT = "PREPARED_AT";
+	public static final String ACCEPTED_AT = "ACCEPTED_AT";
+	public static final String COMMITTED_AT = "COMMITTED_AT";
 
 	// -- AUTOMATION_RUN_NODE_SOURCES columns
 	// ---------------------------------------
@@ -98,8 +132,9 @@ public final class AutomationConstants {
 	public static final String OUTPUT_VAR_NAME = "OUTPUT_VAR_NAME";
 	/** Internal durable discriminator for node output storage semantics. */
 	public static final String OUTPUT_KIND = "OUTPUT_KIND";
-	/** Output kind for a value backed by a frame in the run Insight. */
-	public static final String OUTPUT_KIND_FRAME = "FRAME";
+	/** Output kind for an immutable Java table value with independent durable capture. */
+	public static final String OUTPUT_KIND_TABLE = "TABLE";
+	public static final String OUTPUT_KIND_FILE = "FILE";
 	public static final String OUTPUT_VALUE = "OUTPUT_VALUE";
 	public static final String OUTPUT_PREVIEW = "OUTPUT_PREVIEW";
 	public static final String ROOM_ID = "ROOM_ID";
@@ -126,6 +161,43 @@ public final class AutomationConstants {
 	public static final String WAIT_STATUS_RESUMING = "RESUMING";
 	public static final String WAIT_STATUS_RESOLVED = "RESOLVED";
 
+	// -- Saved result columns and states -----------------------------------------
+
+	public static final String RESULT_ID = "RESULT_ID";
+	public static final String RESULT_KIND = "RESULT_KIND";
+	public static final String FORMAT_VERSION = "FORMAT_VERSION";
+	public static final String ROW_COUNT = "ROW_COUNT";
+	public static final String BYTE_COUNT = "BYTE_COUNT";
+	public static final String CHECKSUM = "CHECKSUM";
+	public static final String CREATED_AT = "CREATED_AT";
+	public static final String RETAIN_UNTIL = "RETAIN_UNTIL";
+	public static final String CAPTURE_STATE = "CAPTURE_STATE";
+	public static final String RESULT_ROLE = "RESULT_ROLE";
+	public static final String LOGICAL_NAME = "LOGICAL_NAME";
+	public static final String PAYLOAD_VALUE = "PAYLOAD_VALUE";
+	public static final String CHUNK_INDEX = "CHUNK_INDEX";
+	public static final String FIRST_ROW_INDEX = "FIRST_ROW_INDEX";
+	public static final String CHUNK_ROW_COUNT = "CHUNK_ROW_COUNT";
+	public static final String CHUNK_VALUE = "CHUNK_VALUE";
+	public static final String RESULT_KIND_VALUE = "VALUE";
+	public static final String RESULT_KIND_TABLE = "TABLE";
+	public static final String RESULT_KIND_FILE = "FILE";
+	public static final String CAPTURE_STATE_RETAINED = "RETAINED";
+	public static final String CAPTURE_STATE_FAILED = "FAILED";
+	public static final String CAPTURE_STATE_EXPIRED = "EXPIRED";
+	public static final String RESULT_ROLE_OUTPUT = "OUTPUT";
+	public static final int SAVED_RESULT_FORMAT_VERSION = 1;
+	public static final int SAVED_RESULT_RETENTION_DAYS = 30;
+	public static final int SAVED_RESULT_MAX_CHUNK_ROWS = 1_000;
+	public static final int SAVED_RESULT_MAX_CHUNK_BYTES = 1_048_576;
+	public static final long SAVED_RESULT_MAX_ROWS = 1_000_000;
+	public static final long SAVED_RESULT_MAX_BYTES = 64L * 1_048_576;
+	public static final int SAVED_RESULT_PAGE_DEFAULT_ROWS = 100;
+	public static final int SAVED_RESULT_PAGE_MAX_ROWS = 1_000;
+	public static final int SAVED_RESULT_PAGE_MAX_BYTES = 4 * 1_048_576;
+	public static final long SAVED_RESULT_OPEN_MAX_ROWS = 100_000;
+	public static final long SAVED_RESULT_OPEN_MAX_BYTES = 32L * 1_048_576;
+
 	// -- Run statuses
 	// --------------------------------------------------------------
 
@@ -136,6 +208,24 @@ public final class AutomationConstants {
 	public static final String STATUS_INTERRUPTED = "INTERRUPTED";
 	public static final String STATUS_CANCELLED = "CANCELLED";
 	public static final String STATUS_WAITING_FOR_INPUT = "WAITING_FOR_INPUT";
+	public static final String STATUS_WAITING_FOR_ITEMS = "WAITING_FOR_ITEMS";
+	public static final String STATUS_BLOCKED = "BLOCKED";
+	public static final String ITEM_STATUS_PENDING = "PENDING";
+	public static final String ITEM_STATUS_RUNNING = "RUNNING";
+	public static final String ITEM_STATUS_RETRY = "RETRY";
+	public static final String ITEM_STATUS_SUCCESS = "SUCCESS";
+	public static final String ITEM_STATUS_FAILED = "FAILED";
+	public static final String ITEM_STATUS_CANCELLED = "CANCELLED";
+	public static final String ITEM_STATUS_BLOCKED = "BLOCKED";
+	public static final String ATTEMPT_STATUS_RUNNING = "RUNNING";
+	public static final String ATTEMPT_STATUS_SUCCESS = "SUCCESS";
+	public static final String ATTEMPT_STATUS_FAILED = "FAILED";
+	public static final String ATTEMPT_STATUS_CANCELLED = "CANCELLED";
+	public static final String ATTEMPT_STATUS_INTERRUPTED = "INTERRUPTED";
+	public static final String EFFECT_STATE_PREPARED = "PREPARED";
+	public static final String EFFECT_STATE_ACCEPTED = "ACCEPTED";
+	public static final String EFFECT_STATE_COMMITTED = "COMMITTED";
+	public static final String EFFECT_STATE_UNKNOWN = "UNKNOWN";
 
 	// -- Node statuses
 	// -------------------------------------------------------------
@@ -153,6 +243,11 @@ public final class AutomationConstants {
 	public static final String TRIGGER_MANUAL = "MANUAL";
 	public static final String TRIGGER_PLAYGROUND = "PLAYGROUND";
 	public static final String TRIGGER_SCHEDULED = "SCHEDULED";
+	public static final String AUTOMATION_ASYNC_KEY = "async";
+	public static final int DEFAULT_GLOBAL_ADMISSION_LIMIT = 1_000;
+	public static final int DEFAULT_PROJECT_ADMISSION_LIMIT = 100;
+	public static final int DEFAULT_WORKER_CONCURRENCY = 2;
+	public static final int DEFAULT_ITEM_WORKER_CONCURRENCY = 4;
 
 	// -- Node types
 	// -----------------------------------------------------------------
@@ -188,6 +283,7 @@ public final class AutomationConstants {
 	// --------
 
 	public static final String CONFIG_ENGINE_ID = "engineId";
+	public static final String CONFIG_QUERY_PARAMETERS = "parameters";
 	public static final String CONFIG_KEY = "key";
 	public static final String CONFIG_TYPE = "type";
 	public static final String CONFIG_CLAUSES = "clauses";
@@ -255,6 +351,8 @@ public final class AutomationConstants {
 	public static final String CONFIG_LOOP_COUNT = "count";
 	public static final String CONFIG_LOOP_CONDITION = "condition";
 	public static final String CONFIG_LOOP_MAX_ITERATIONS = "maxIterations";
+	public static final String CONFIG_LOOP_DURABLE_ITEMS = "durableItems";
+	public static final String CONFIG_LOOP_DURABLE_MAX_ATTEMPTS = "durableMaxAttempts";
 	public static final String LOOP_MODE_FOR_EACH = "forEach";
 	public static final String LOOP_MODE_REPEAT = "repeat";
 	public static final String LOOP_MODE_WHILE = "while";
@@ -284,9 +382,16 @@ public final class AutomationConstants {
 	public static final int LOOP_MAX_BODY_NODES = 1_000;
 	/** Maximum materialized body-node rows created by one loop execution. */
 	public static final int LOOP_MAX_NODE_EXECUTIONS = 100_000;
+	public static final int DURABLE_ITEM_DEFAULT_MAX_ATTEMPTS = 3;
+	public static final int DURABLE_ITEM_MAX_ATTEMPTS = 10;
+	public static final int DURABLE_ITEM_SNAPSHOT_MAX_BYTES = 1_048_576;
+	public static final int DURABLE_ITEM_REFERENCE_MAX_BYTES = 64 * 1024;
+	public static final int DURABLE_ITEM_DETAIL_MAX_ROWS = 100;
+	public static final int EFFECT_RECEIPT_METADATA_MAX_BYTES = 16 * 1024;
 	public static final int NODE_SOURCE_MAX_BYTES = 100_000;
 	public static final int NODE_OUTPUT_MAX_BYTES = 5 * 1024 * 1024;
 	public static final int RUN_INPUTS_MAX_BYTES = 5 * 1024 * 1024;
+	public static final int RUN_EXECUTION_CONTRACT_MAX_BYTES = 1024 * 1024;
 	public static final int RUN_SCOPE_MAX_BYTES = 20 * 1024 * 1024;
 	public static final int RUNTIME_JSON_MAX_DEPTH = 64;
 
@@ -348,6 +453,7 @@ public final class AutomationConstants {
 	// ---------------------------------------------------------------
 
 	public static final String RESULT_NODE_RESULTS = "nodeResults";
+	public static final String RESULT_SAVED_RESULTS = "savedResults";
 	/** Ephemeral Insight workspace for an active or recently completed local run. */
 	public static final String RESULT_EXECUTION_INSIGHT_ID = "executionInsightId";
 	public static final String RESULT_CANCEL_REQUESTED = "cancelRequested";
@@ -371,7 +477,6 @@ public final class AutomationConstants {
 	/** Runtime result kind for an ordinary JSON-compatible node value. */
 	public static final String INTERNAL_NODE_RESULT_KIND_VALUE = "VALUE";
 	/** Runtime result kind for a frame retained in the run Insight. */
-	public static final String INTERNAL_NODE_RESULT_KIND_FRAME = "FRAME";
 	/**
 	 * Reserved generated-source signal requesting a guarded database query whose
 	 * result is loaded directly into a run-owned frame. Removed before scope and
@@ -427,6 +532,12 @@ public final class AutomationConstants {
 	public static final String PK_AUTO_RUN_SOURCE = "PK_AUTO_RUN_SOURCE";
 	public static final String PK_AUTO_NODE_OUT = "PK_AUTO_NODE_OUT";
 	public static final String PK_AUTO_RUN_WAIT = "PK_AUTO_RUN_WAIT";
+	public static final String PK_AUTO_SAVED_RESULT = "PK_AUTO_SAVED_RESULT";
+	public static final String PK_AUTO_RESULT_CHUNK = "PK_AUTO_RESULT_CHUNK";
+	public static final String PK_AUTO_ADMISSION_LOCK = "PK_AUTO_ADMISSION_LOCK";
+	public static final String PK_AUTO_ITEM = "PK_AUTO_ITEM";
+	public static final String PK_AUTO_ITEM_ATTEMPT = "PK_AUTO_ITEM_ATTEMPT";
+	public static final String PK_AUTO_EFFECT = "PK_AUTO_EFFECT";
 	public static final String IDX_AR_PROJECT = "IDX_AR_PROJECT";
 	public static final String IDX_AR_STATUS = "IDX_AR_STATUS";
 	public static final String IDX_AR_STARTED = "IDX_AR_STARTED";
@@ -436,6 +547,13 @@ public final class AutomationConstants {
 	public static final String IDX_ANO_AGENT_RUN = "IDX_ANO_AGENT_RUN";
 	public static final String IDX_ARW_RUN = "IDX_ARW_RUN";
 	public static final String IDX_ARW_AGENT_RUN = "IDX_ARW_AGENT_RUN";
+	public static final String IDX_ASR_RUN = "IDX_ASR_RUN";
+	public static final String IDX_ASR_PROJECT_CREATED = "IDX_ASR_PROJECT_CREATED";
+	public static final String IDX_AI_CLAIM = "IDX_AI_CLAIM";
+	public static final String IDX_AI_RUN = "IDX_AI_RUN";
+	public static final String IDX_AIA_ITEM = "IDX_AIA_ITEM";
+	public static final String IDX_AE_RUN = "IDX_AE_RUN";
+	public static final String IDX_AE_ITEM = "IDX_AE_ITEM";
 
 	// -- Defaults
 	// ------------------------------------------------------------------

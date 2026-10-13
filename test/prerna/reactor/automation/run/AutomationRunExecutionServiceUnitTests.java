@@ -60,6 +60,7 @@ import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -78,6 +79,51 @@ public class AutomationRunExecutionServiceUnitTests {
 		return TypeSafeModelEngineResponse.fromObject(Map.of("model", "jev-latest",
 				"usage", Map.of("input_tokens", 1, "output_tokens", 1), "answers",
 				Map.of("route", routeAnswer)));
+	}
+
+	@Test
+	void readOnlyDirectOperationsDoNotRequireEffectRecords() {
+		assertFalse(AutomationRunExecutionService.requiresEffectRecord(AutomationConstants.NODE_DATABASE_QUERY));
+		assertFalse(AutomationRunExecutionService.requiresEffectRecord(AutomationConstants.NODE_STORAGE_LIST));
+		assertFalse(AutomationRunExecutionService.requiresEffectRecord(AutomationConstants.NODE_STORAGE_READ));
+		assertFalse(AutomationRunExecutionService.requiresEffectRecord(AutomationConstants.NODE_STORAGE_DOWNLOAD));
+		assertFalse(AutomationRunExecutionService.requiresEffectRecord(AutomationConstants.NODE_VECTOR_SEARCH));
+		assertTrue(AutomationRunExecutionService.requiresEffectRecord(AutomationConstants.NODE_DATABASE_INSERT));
+		assertTrue(AutomationRunExecutionService.requiresEffectRecord(AutomationConstants.NODE_STORAGE_UPLOAD));
+		assertTrue(AutomationRunExecutionService.requiresEffectRecord(AutomationConstants.NODE_MODEL_CHAT));
+	}
+
+	@Test
+	void everyDurableItemAttemptUsesANewInsightIdentity() {
+		AutomationRunStore.ItemClaim first = new AutomationRunStore.ItemClaim("item", "run", "loop", 0, "[]",
+				"{}", "attempt-1", 1, 3, "lease-1");
+		AutomationRunStore.ItemClaim retry = new AutomationRunStore.ItemClaim("item", "run", "loop", 0, "[]",
+				"{}", "attempt-2", 2, 3, "lease-2");
+
+		assertEquals("automation-item-attempt-1", AutomationRunExecutionService.itemExecutionInsightId(first));
+		assertEquals("automation-item-attempt-2", AutomationRunExecutionService.itemExecutionInsightId(retry));
+		assertFalse(AutomationRunExecutionService.itemExecutionInsightId(first)
+				.equals(AutomationRunExecutionService.itemExecutionInsightId(retry)));
+	}
+
+	@Test
+	void durableItemSourceValidationAcceptsTypedBodyWithoutSource() {
+		Map<String, Object> typed = Map.of(
+				AutomationConstants.NODE_FIELD_ID, "typed",
+				AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_CONTROL_WAIT,
+				AutomationConstants.NODE_FIELD_CONFIG, Map.of("durationSeconds", 0));
+		Map<String, Object> python = Map.of(
+				AutomationConstants.NODE_FIELD_ID, "python",
+				AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_DEVELOPER_PYTHON,
+				AutomationConstants.NODE_FIELD_CONFIG, Map.of());
+		var definition = new AutomationDefinitionValidator.ValidatedDefinition(
+				Map.of(), List.of(typed, python), List.of(), "{}", "hash");
+		AutomationExecutionContract contract = AutomationExecutionContract.forSubmission(
+				definition, Map.of("python", "def run(scope):\n    return None\n"));
+
+		AutomationRunExecutionService.requireDurableItemSources(List.of(typed), contract, Map.of());
+		assertThrows(IllegalStateException.class, () ->
+				AutomationRunExecutionService.requireDurableItemSources(List.of(python), contract, Map.of()));
 	}
 
 	private static TypeSafeModelEngineResponse mixedResponse(double urgentProbability) {
@@ -242,138 +288,42 @@ public class AutomationRunExecutionServiceUnitTests {
 	}
 
 	@Test
-	void readsLoopRowsThroughTheSemossFrameContract() throws Exception {
-		ITableDataFrame frame = mock(ITableDataFrame.class);
-		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
-		IHeadersDataRow first = mock(IHeadersDataRow.class);
-		IHeadersDataRow second = mock(IHeadersDataRow.class);
-		when(frame.getQsHeaders()).thenReturn(new String[] { "HERO__NAME", "HERO__POWER" });
-		when(frame.query(any(SelectQueryStruct.class))).thenReturn(wrapper);
-		when(wrapper.hasNext()).thenReturn(true, true, false);
-		when(wrapper.next()).thenReturn(first, second);
-		when(first.getHeaders()).thenReturn(new String[] { "NAME", "POWER" });
-		when(first.getValues()).thenReturn(new Object[] { "Storm", "Weather control" });
-		when(second.getHeaders()).thenReturn(new String[] { "NAME", "POWER" });
-		when(second.getValues()).thenReturn(new Object[] { "Flash", "Super speed" });
+	void reconstructsJavaTableScopeFromRetainedChunksWithoutALiveFrame() {
+		String runId = "run-table";
+		Map<String, Object> output = new LinkedHashMap<>();
+		output.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		output.put(AutomationConstants.NODE_ID, "query");
+		output.put(AutomationConstants.OUTPUT_VAR_NAME, "query_result");
+		output.put(AutomationConstants.OUTPUT_KIND, AutomationConstants.OUTPUT_KIND_TABLE);
+		output.put(AutomationConstants.OUTPUT_VALUE,
+				"{\"dataType\":\"table\",\"rowCount\":1,\"columnCount\":2}");
+		Map<String, Object> reference = new LinkedHashMap<>();
+		reference.put(AutomationConstants.RESULT_ID, "result-1");
+		reference.put(AutomationConstants.NODE_ID, "query");
+		reference.put(AutomationConstants.RESULT_KIND, AutomationConstants.RESULT_KIND_TABLE);
+		reference.put(AutomationConstants.PARENT_NODE_ID, null);
 
 		Insight insight = new Insight();
-		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
-
-		assertEquals(List.of(Map.of("NAME", "Storm", "POWER", "Weather control"),
-				Map.of("NAME", "Flash", "POWER", "Super speed")),
-				AutomationRunExecutionService.frameRows(insight, "heroes", "loop", 10, 2));
-		ArgumentCaptor<SelectQueryStruct> query = ArgumentCaptor.forClass(SelectQueryStruct.class);
-		verify(frame).query(query.capture());
-		assertEquals(10, query.getValue().getOffset());
-		assertEquals(2, query.getValue().getLimit());
-		assertFalse(query.getValue().isDistinct());
-	}
-
-	@Test
-	void preservesDuplicateFrameRowsAcrossMultipleBatches() throws Exception {
-		ITableDataFrame frame = mock(ITableDataFrame.class);
-		List<Integer> physicalRows = List.of(7, 7, 9);
-		List<SelectQueryStruct> queries = new ArrayList<>();
-		List<IRawSelectWrapper> wrappers = new ArrayList<>();
-		when(frame.getQsHeaders()).thenReturn(new String[] { "VALUES__VALUE" });
-		when(frame.query(any(SelectQueryStruct.class))).thenAnswer(invocation -> {
-			SelectQueryStruct query = invocation.getArgument(0);
-			queries.add(query);
-			List<Integer> queryRows = query.isDistinct() ? physicalRows.stream().distinct().toList() : physicalRows;
-			int from = (int) Math.min(query.getOffset(), queryRows.size());
-			int to = Math.min(from + (int) query.getLimit(), queryRows.size());
-			IRawSelectWrapper wrapper = wrapperFor(queryRows.subList(from, to));
-			wrappers.add(wrapper);
-			return wrapper;
-		});
-
-		Insight insight = new Insight();
-		insight.getVarStore().put("values", new NounMetadata(frame, PixelDataType.FRAME));
-
-		List<Object> firstBatch = AutomationRunExecutionService.frameRows(insight, "values", "loop", 0, 2);
-		List<Object> finalBatch = AutomationRunExecutionService.frameRows(insight, "values", "loop", 2, 1);
-
-		assertEquals(List.of(Map.of("VALUE", 7), Map.of("VALUE", 7)), firstBatch);
-		assertEquals(List.of(Map.of("VALUE", 9)), finalBatch);
-		assertEquals(3, firstBatch.size() + finalBatch.size());
-		assertEquals(2, queries.size());
-		assertFalse(queries.get(0).isDistinct());
-		assertEquals(0, queries.get(0).getOffset());
-		assertEquals(2, queries.get(0).getLimit());
-		assertFalse(queries.get(1).isDistinct());
-		assertEquals(2, queries.get(1).getOffset());
-		assertEquals(1, queries.get(1).getLimit());
-		verify(wrappers.get(0)).close();
-		verify(wrappers.get(1)).close();
-	}
-
-	private static IRawSelectWrapper wrapperFor(List<Integer> values) {
-		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
-		Iterator<Integer> iterator = values.iterator();
-		when(wrapper.hasNext()).thenAnswer(invocation -> iterator.hasNext());
-		when(wrapper.next()).thenAnswer(invocation -> new HeadersDataRow(new String[] { "VALUE" },
-				new Object[] { iterator.next() }));
-		return wrapper;
-	}
-
-	@Test
-	void rejectsFrameLoopInputBeyondTheConfiguredBound() throws Exception {
-		ITableDataFrame frame = mock(ITableDataFrame.class);
-		when(frame.size("heroes")).thenReturn(2L);
-
-		Insight insight = new Insight();
-		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
-
-		assertThrows(IllegalArgumentException.class,
-				() -> AutomationRunExecutionService.frameRowCount(insight, "heroes", "loop", 1));
-	}
-
-	@Test
-	void resumeRequiresTheOriginalLiveFrameBinding() {
-		ITableDataFrame frame = mock(ITableDataFrame.class);
-		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
-		Insight insight = new Insight();
-		insight.setInsightId("automation-run-1");
-		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
-
-		assertEquals(DataFrameTypeEnum.PYTHON.getTypeAsString(),
-				AutomationRunExecutionService.requireResumableFrameBackend(insight, "run-1", "heroes"));
-		IllegalStateException unavailable = assertThrows(IllegalStateException.class,
-				() -> AutomationRunExecutionService.requireResumableFrameBackend(insight, "run-1", "missing"));
-		assertTrue(unavailable.getMessage().contains("cannot resume"));
-	}
-
-	@Test
-	void lostExecutionInsightDoesNotReplayTheSuccessfulDatabaseNode() {
-		String runId = "run-1";
-		String insightId = "automation-" + runId;
-		Map<String, Object> frameOutput = new LinkedHashMap<>();
-		frameOutput.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
-		frameOutput.put(AutomationConstants.NODE_ID, "query");
-		frameOutput.put(AutomationConstants.OUTPUT_VAR_NAME, "query_result");
-		frameOutput.put(AutomationConstants.OUTPUT_KIND, AutomationConstants.OUTPUT_KIND_FRAME);
-		frameOutput.put(AutomationConstants.OUTPUT_VALUE,
-				"{\"dataType\":\"table\",\"rowCount\":10,\"columnCount\":2}");
-		Insight originalInsight = new Insight();
-		originalInsight.setInsightId(insightId);
-		InsightStore.getInstance().put(originalInsight);
-		assertEquals(insightId, AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
-		InsightStore.getInstance().remove(insightId);
-		assertNull(AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
-
-		Insight replacementInsight = new Insight();
-		replacementInsight.setInsightId(insightId);
-
-		try (var store = mockStatic(AutomationRunStore.class, CALLS_REAL_METHODS);
-				var database = mockStatic(AutomationDatabaseQueryExecutor.class)) {
+		insight.setInsightId("automation-" + runId);
+		try (var store = mockStatic(AutomationRunStore.class, CALLS_REAL_METHODS)) {
 			store.when(() -> AutomationRunStore.getRunInputs(runId)).thenReturn(Map.of());
-			store.when(() -> AutomationRunStore.getNodeOutputsForRun(runId)).thenReturn(List.of(frameOutput));
+			store.when(() -> AutomationRunStore.getNodeOutputsForRun(runId)).thenReturn(List.of(output));
+			store.when(() -> AutomationRunStore.getSavedResultReferencesForRun(runId))
+					.thenReturn(List.of(reference));
+			store.when(() -> AutomationRunStore.getSavedResult("result-1")).thenReturn(Map.of(
+					AutomationConstants.PAYLOAD_VALUE,
+					"[{\"name\":\"ID\",\"type\":\"INT\"},{\"name\":\"STATUS\",\"type\":\"STRING\"}]"));
+			store.when(() -> AutomationRunStore.getSavedResultChunkMetadata("result-1"))
+					.thenReturn(List.of(Map.of(AutomationConstants.CHUNK_INDEX, 0)));
+			store.when(() -> AutomationRunStore.getSavedResultChunk("result-1", 0))
+					.thenReturn(Map.of(AutomationConstants.CHUNK_VALUE, "[[7,\"ready\"]]"));
 
-			IllegalStateException unavailable = assertThrows(IllegalStateException.class,
-					() -> AutomationRunExecutionService.reconstructScope(runId, replacementInsight, "trigger"));
+			AutomationRunExecutionService.ReconstructedScope reconstructed =
+					AutomationRunExecutionService.reconstructScope(runId, insight, "trigger");
 
-			assertTrue(unavailable.getMessage().contains("cannot resume"));
-			database.verifyNoInteractions();
+			AutomationTableValue table =
+					(AutomationTableValue) reconstructed.scope().get("query_result");
+			assertEquals(List.of(7.0, "ready"), table.rows().get(0));
 		}
 	}
 
