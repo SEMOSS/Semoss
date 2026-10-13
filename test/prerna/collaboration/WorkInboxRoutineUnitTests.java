@@ -623,6 +623,11 @@ class WorkInboxRoutineUnitTests {
 	void briefDefinitionIsStrictlyValidAndReadsOnlyDeclaredScopeNames() {
 		AutomationDefinitionService.DefinitionFiles files = WorkInboxRoutine.briefDefinition("engine-1", 25);
 		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator.parseAndValidate(files.definition());
+		assertEquals(Set.of("wait_sync", "deliver"), files.nodeSources().keySet());
+		assertEquals(List.of("start", "sync", "wait_sync", "topics", "threads", "brief", "deliver"),
+				definition.nodes().stream()
+						.map(node -> (String) node.get(AutomationConstants.NODE_FIELD_ID))
+						.toList());
 		Set<String> declared = new HashSet<>(Set.of("owner_email", AutomationConstants.SCOPE_DATE,
 				AutomationConstants.SCOPE_TRIGGERED_AT, AutomationConstants.SCOPE_RUN_ID));
 		Set<String> used = new HashSet<>();
