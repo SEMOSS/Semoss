@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.project.AutomationProjectService;
@@ -51,11 +50,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Reads from AUTOMATION_RUNS and AUTOMATION_NODE_OUTPUTS in the scheduler DB.
  */
 public class GetAutomationRunReactor extends AbstractReactor {
-
-	private static final String OUTPUT_FRAME_KEY = "OUTPUT_FRAME";
-	private static final String OUTPUT_FRAME_UNAVAILABLE_KEY = "OUTPUT_FRAME_UNAVAILABLE";
-	private static final String FRAME_UNAVAILABLE_MESSAGE =
-			"Frame data is unavailable because this run's execution workspace is closed.";
 
 	// Not standardized in ReactorKeysEnum — matches the local-key convention used
 	// by prerna.reactor.agent (e.g. GetAgentRunReactor.RUN_ID_KEY).
@@ -96,18 +90,9 @@ public class GetAutomationRunReactor extends AbstractReactor {
 		List<Map<String, Object>> nodeResults = AutomationRunStore.buildNodeResults(nodeOutputs);
 
 		runDetail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
-		Insight executionInsight = AutomationRunExecutionService.getAvailableExecutionInsight(runId);
-		if (executionInsight != null && projectId.equals(executionInsight.getProjectId())) {
-			runDetail.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsight.getInsightId());
-		}
-		int resultIndex = 0;
-		for (Map<String, Object> nodeOutput : nodeOutputs) {
-			if (nodeOutput.get(AutomationConstants.PARENT_NODE_ID) != null) {
-				continue;
-			}
-			Map<String, Object> nodeResult = nodeResults.get(resultIndex++);
-			decorateFrameResult(executionInsight, projectId, nodeOutput, nodeResult);
-		}
+		runDetail.put(AutomationConstants.RESULT_SAVED_RESULTS,
+				AutomationRunStore.getSavedResultReferencesForRun(runId));
+		attachExecutionInsight(runDetail, runId);
 		Map<String, Object> wait = AutomationRunStore.getActiveWait(runId);
 		if (wait != null) {
 			runDetail.put("wait", wait);
@@ -115,33 +100,17 @@ public class GetAutomationRunReactor extends AbstractReactor {
 		return new NounMetadata(runDetail, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
-	/** Returns whether the durable row explicitly identifies a live frame output. */
-	static boolean isFrameOutput(Map<String, Object> nodeOutput) {
-		return AutomationConstants.OUTPUT_KIND_FRAME.equals(nodeOutput.get(AutomationConstants.OUTPUT_KIND));
-	}
-
 	/**
-	 * Adds either the live frame payload or the explicit closed-workspace state.
+	 * Adds the live run workspace to persisted run detail when that exact execution
+	 * Insight is still registered with the platform.
 	 *
-	 * @param executionInsight live run Insight, or {@code null} after cleanup
-	 * @param projectId        owning Automation project
-	 * @param nodeOutput       durable node-output row
-	 * @param nodeResult       result returned to the caller
+	 * @param runDetail run detail returned to the client
+	 * @param runId     durable run identifier
 	 */
-	void decorateFrameResult(Insight executionInsight, String projectId, Map<String, Object> nodeOutput,
-			Map<String, Object> nodeResult) {
-		Object outputVariable = nodeOutput.get(AutomationConstants.OUTPUT_VAR_NAME);
-		if (executionInsight != null && projectId.equals(executionInsight.getProjectId())
-				&& outputVariable instanceof String name) {
-			NounMetadata frame = executionInsight.getVarStore().get(name);
-			if (frame != null && frame.getNounType() == PixelDataType.FRAME) {
-				nodeResult.put(OUTPUT_FRAME_KEY, processNounMetadata(frame));
-				return;
-			}
-		}
-		if (isFrameOutput(nodeOutput)) {
-			nodeResult.put(OUTPUT_FRAME_UNAVAILABLE_KEY, true);
-			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, FRAME_UNAVAILABLE_MESSAGE);
+	static void attachExecutionInsight(Map<String, Object> runDetail, String runId) {
+		String executionInsightId = AutomationRunExecutionService.getAvailableExecutionInsightId(runId);
+		if (executionInsightId != null) {
+			runDetail.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsightId);
 		}
 	}
 

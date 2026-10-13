@@ -54,14 +54,12 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.util.AssetUtility;
 
 /**
- * Persists and loads the canonical automation graph and its per-node Python
+ * Persists and loads the canonical automation graph and explicit Python-node
  * implementations.
  *
  * <p>
- * The graph remains canonical metadata. Absent developer source is replaced
- * with deterministic generated {@code run(scope)} source. Trigger code is
- * stored in {@code trigger.start.config.pythonSource}; Java owns graph control
- * flow and invokes one persisted source file for each non-start node.
+ * Only {@code developer.python} owns source. Trigger and typed nodes reject
+ * source rather than entering a compatibility or migration path.
  */
 public final class AutomationDefinitionService {
 
@@ -107,23 +105,20 @@ public final class AutomationDefinitionService {
 			validateUniqueNodeSourceFileNames(validated);
 			Map<String, String> sources = new LinkedHashMap<>();
 			for (Map<String, Object> node : AutomationRuntime.allNodes(validated)) {
-				if (isJavaOwnedNode(node)) {
+				if (!requiresPythonSource(node)) {
 					continue;
 				}
 				String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 				Path sourceFile = nodeSourcePath(folder, node);
-				String source = Files.isRegularFile(sourceFile) ? Files.readString(sourceFile, StandardCharsets.UTF_8)
-						: AutomationSourceRenderer.renderNode(node);
-				boolean generated = AutomationConstants.NODE_CODE_MODE_GENERATED
-						.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))
-						&& !AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE));
-				sources.put(nodeId, generated ? AutomationSourceRenderer.renderNode(node) : source);
+				String source = Files.isRegularFile(sourceFile)
+						? Files.readString(sourceFile, StandardCharsets.UTF_8)
+						: null;
+				validateNodeSource(nodeId, node, source);
+				sources.put(nodeId, source);
 			}
-			String normalized = normalizeGeneratedCodeModes(validated, sources, definition);
-			return new DefinitionFiles(normalized, withoutTriggerSources(sources,
-					AutomationDefinitionValidator.parseAndValidateForAuthoring(normalized)));
+			return new DefinitionFiles(definition, sources);
 		} catch (IOException e) {
-			throw new IllegalArgumentException("Unable to read Python automation definition: " + e.getMessage(), e);
+			throw new IllegalArgumentException("Unable to read Automation definition: " + e.getMessage(), e);
 		}
 	}
 
@@ -179,9 +174,7 @@ public final class AutomationDefinitionService {
 		validateUniqueNodeSourceFileNames(definition);
 		Path assetsFolder = getAssetsFolder(projectId);
 		Map<String, String> sourcesToPersist = validateAndCompleteNodeSources(definition, nodeSources);
-		String persistedDefinition = normalizeGeneratedCodeModes(definition, sourcesToPersist, definitionJson);
-		DefinitionFiles candidate = new DefinitionFiles(persistedDefinition, withoutTriggerSources(sourcesToPersist,
-				AutomationDefinitionValidator.parseAndValidateForAuthoring(persistedDefinition)));
+		DefinitionFiles candidate = new DefinitionFiles(definitionJson, sourcesToPersist);
 
 		try {
 			Files.createDirectories(assetsFolder);
@@ -213,7 +206,7 @@ public final class AutomationDefinitionService {
 			}
 			return candidate;
 		} catch (IOException e) {
-			throw new IllegalArgumentException("Unable to save Python automation definition: " + e.getMessage(), e);
+			throw new IllegalArgumentException("Unable to save Automation definition: " + e.getMessage(), e);
 		}
 	}
 
@@ -283,21 +276,21 @@ public final class AutomationDefinitionService {
 			if (!nodesById.containsKey(entry.getKey())) {
 				throw new IllegalArgumentException("Python source was supplied for an unknown node: " + entry.getKey());
 			}
-			if (isJavaOwnedNode(nodesById.get(entry.getKey()))) {
-				throw new IllegalArgumentException(
-						"Control node '" + entry.getKey() + "' is evaluated by Java and cannot have Python source.");
+			if (!requiresPythonSource(nodesById.get(entry.getKey()))) {
+				throw new IllegalArgumentException("Only developer.python may own Python source; node '"
+						+ entry.getKey() + "' is type '"
+						+ nodesById.get(entry.getKey()).get(AutomationConstants.NODE_FIELD_TYPE) + "'.");
 			}
 			validateNodeSource(entry.getKey(), nodesById.get(entry.getKey()), entry.getValue());
 		}
 		Map<String, String> result = new LinkedHashMap<>();
 		for (Map.Entry<String, Map<String, Object>> entry : nodesById.entrySet()) {
-			if (isJavaOwnedNode(entry.getValue())) {
+			if (!requiresPythonSource(entry.getValue())) {
 				continue;
 			}
 			String source = supplied.get(entry.getKey());
-			String completedSource = source == null ? AutomationSourceRenderer.renderNode(entry.getValue()) : source;
-			validateNodeSource(entry.getKey(), entry.getValue(), completedSource);
-			result.put(entry.getKey(), completedSource);
+			validateNodeSource(entry.getKey(), entry.getValue(), source);
+			result.put(entry.getKey(), source);
 		}
 		return result;
 	}
@@ -311,10 +304,12 @@ public final class AutomationDefinitionService {
 			throw new IllegalArgumentException("Python source for node '" + nodeId + "' exceeds the maximum of "
 					+ AutomationConstants.NODE_SOURCE_MAX_BYTES + " UTF-8 bytes.");
 		}
-		// The trigger's setup source is optional and its globals are read from the module
-		// namespace, so only a node the runtime invokes through run(scope) needs the entry point.
-		if (!AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))
-				&& !definesRunEntryPoint(source)) {
+		if (!AutomationConstants.NODE_DEVELOPER_PYTHON.equals(
+				node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+			throw new IllegalArgumentException(
+					"Only developer.python may own Python source; node '" + nodeId + "' is not explicit Python.");
+		}
+		if (!definesRunEntryPoint(source)) {
 			throw new IllegalArgumentException("Python source for node '" + nodeId
 					+ "' must define run(scope) at the top level. The runtime calls run(scope) with the run's"
 					+ " variables and stores what it returns as this node's output.");
@@ -338,61 +333,6 @@ public final class AutomationDefinitionService {
 					|| line.startsWith("async def run(") || line.startsWith("async def run (")
 					|| line.startsWith("run=") || line.startsWith("run =");
 		});
-	}
-
-	/**
-	 * A generated source is viewable/editable in the inspector, where an actual
-	 * edit intentionally changes its mode to custom. Monaco can also emit its
-	 * initial value while hydrating, so recover the generated mode whenever the
-	 * persisted source remains byte-for-byte identical to its renderer output.
-	 */
-	private static String normalizeGeneratedCodeModes(AutomationDefinitionValidator.ValidatedDefinition definition,
-			Map<String, String> nodeSources, String unchangedDefinition) {
-		boolean changed = false;
-		changed |= definition.definition().remove(AutomationConstants.DOC_NODE_SOURCES) != null;
-		changed |= definition.definition().remove(AutomationConstants.DOC_GLOBALS) != null;
-		for (Map<String, Object> node : AutomationRuntime.allNodes(definition)) {
-			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
-			if (isJavaOwnedNode(node)) {
-				if (!AutomationConstants.NODE_CODE_MODE_GENERATED
-						.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
-					node.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_GENERATED);
-					changed = true;
-				}
-				continue;
-			}
-			if (AutomationConstants.NODE_DEVELOPER_PYTHON.equals(nodeType) || !AutomationConstants.NODE_CODE_MODE_CUSTOM
-					.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
-				if (!AutomationConstants.NODE_START.equals(nodeType)) {
-					continue;
-				}
-			}
-			boolean generated = AutomationSourceRenderer.renderNode(node).equals(persistedSource(node, nodeSources));
-			if (AutomationConstants.NODE_START.equals(nodeType)) {
-				String codeMode = generated ? AutomationConstants.NODE_CODE_MODE_GENERATED
-						: AutomationConstants.NODE_CODE_MODE_CUSTOM;
-				if (!codeMode.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
-					node.put(AutomationConstants.NODE_FIELD_CODE_MODE, codeMode);
-					changed = true;
-				}
-			} else if (generated) {
-				node.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_GENERATED);
-				changed = true;
-			}
-		}
-		return changed ? AutomationRuntimeUtils.GSON.toJson(definition.definition()) : unchangedDefinition;
-	}
-
-	/**
-	 * Returns the source currently persisted for a node. The trigger keeps its
-	 * optional setup source inside {@code config.pythonSource}; every other node
-	 * owns one file in the node-source map.
-	 */
-	private static String persistedSource(Map<String, Object> node, Map<String, String> nodeSources) {
-		if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
-			return AutomationRuntime.triggerSource(node);
-		}
-		return nodeSources.get(node.get(AutomationConstants.NODE_FIELD_ID));
 	}
 
 	private static Path getAssetsFolder(String projectId) {
@@ -579,22 +519,8 @@ public final class AutomationDefinitionService {
 	}
 
 	private static boolean requiresPythonSource(Map<String, Object> node) {
-		return !AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))
-				&& !isJavaOwnedNode(node);
-	}
-
-	/**
-	 * Reports whether a node is evaluated directly by the Java control-flow
-	 * runtime and therefore has no persisted Python source file.
-	 *
-	 * @param node automation node
-	 * @return {@code true} for a node evaluated directly by Java
-	 */
-	private static boolean isJavaOwnedNode(Map<String, Object> node) {
-		Object nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE);
-		return AutomationConstants.NODE_CONTROL_IF.equals(nodeType)
-				|| AutomationConstants.NODE_CONTROL_JEV.equals(nodeType)
-				|| AutomationConstants.NODE_CONTROL_LOOP.equals(nodeType);
+		return AutomationConstants.NODE_DEVELOPER_PYTHON.equals(
+				node.get(AutomationConstants.NODE_FIELD_TYPE));
 	}
 
 	private static String emptyDefinition() {

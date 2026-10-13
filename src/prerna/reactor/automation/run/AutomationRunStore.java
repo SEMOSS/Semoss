@@ -82,9 +82,11 @@ import static prerna.reactor.automation.AutomationConstants.STATUS_INTERRUPTED;
 import static prerna.reactor.automation.AutomationConstants.STATUS_RUNNING;
 import static prerna.reactor.automation.AutomationConstants.STATUS_SUBMITTED;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS;
+import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RESULT_CHUNKS;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUNS;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUN_WAITS;
+import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_SAVED_RESULTS;
 import static prerna.reactor.automation.AutomationConstants.TOTAL_NODES;
 import static prerna.reactor.automation.AutomationConstants.TRIGGER_TYPE;
 import static prerna.reactor.automation.AutomationConstants.WORKSPACE_ID;
@@ -94,6 +96,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -154,18 +157,36 @@ public final class AutomationRunStore {
 	 * types only, so the nullability the tables were originally built with is kept
 	 * here rather than being silently dropped.
 	 */
-	private static final Map<String, Set<String>> NOT_NULL_COLUMNS = Map.of(TABLE_AUTOMATION_RUNS,
-			Set.of(RUN_ID, PROJECT_ID, STATUS, TRIGGER_TYPE, STARTED_AT), TABLE_AUTOMATION_RUN_NODE_SOURCES,
-			Set.of(RUN_ID, NODE_ID, SOURCE_HASH, SOURCE_CODE), TABLE_AUTOMATION_NODE_OUTPUTS,
-			Set.of(RUN_ID, NODE_ID, EXECUTION_ORDER, STATUS), TABLE_AUTOMATION_RUN_WAITS,
-			Set.of(AutomationConstants.WAIT_ID, RUN_ID, NODE_ID, AutomationConstants.WAIT_TYPE, AGENT_RUN_ID, ROOM_ID,
-					STATUS, STARTED_AT, AutomationConstants.EXPIRES_AT));
+	private static final Map<String, Set<String>> NOT_NULL_COLUMNS = notNullColumns();
 
 	// Table name shortcuts for SelectQueryStruct (TABLE__COLUMN format)
 	private static final String TABLE_RUNS = TABLE_AUTOMATION_RUNS;
 	private static final String TABLE_RUN_SOURCES = TABLE_AUTOMATION_RUN_NODE_SOURCES;
 	private static final String TABLE_NODE_OUTPUTS = TABLE_AUTOMATION_NODE_OUTPUTS;
 	private static final String TABLE_RUN_WAITS = TABLE_AUTOMATION_RUN_WAITS;
+	private static final String TABLE_SAVED_RESULTS = TABLE_AUTOMATION_SAVED_RESULTS;
+	private static final String TABLE_RESULT_CHUNKS = TABLE_AUTOMATION_RESULT_CHUNKS;
+
+	private static Map<String, Set<String>> notNullColumns() {
+		Map<String, Set<String>> required = new LinkedHashMap<>();
+		required.put(TABLE_AUTOMATION_RUNS, Set.of(RUN_ID, PROJECT_ID, STATUS, TRIGGER_TYPE, STARTED_AT));
+		required.put(TABLE_AUTOMATION_RUN_NODE_SOURCES, Set.of(RUN_ID, NODE_ID, SOURCE_HASH, SOURCE_CODE));
+		required.put(TABLE_AUTOMATION_NODE_OUTPUTS, Set.of(RUN_ID, NODE_ID, EXECUTION_ORDER, STATUS));
+		required.put(TABLE_AUTOMATION_RUN_WAITS,
+				Set.of(AutomationConstants.WAIT_ID, RUN_ID, NODE_ID, AutomationConstants.WAIT_TYPE, AGENT_RUN_ID,
+						ROOM_ID, STATUS, STARTED_AT, AutomationConstants.EXPIRES_AT));
+		required.put(TABLE_AUTOMATION_SAVED_RESULTS,
+				Set.of(AutomationConstants.RESULT_ID, PROJECT_ID, RUN_ID, NODE_ID, AutomationConstants.RESULT_KIND,
+						AutomationConstants.FORMAT_VERSION, AutomationConstants.BYTE_COUNT,
+						AutomationConstants.CHECKSUM, AutomationConstants.CREATED_AT,
+						AutomationConstants.CAPTURE_STATE, AutomationConstants.RESULT_ROLE));
+		required.put(TABLE_AUTOMATION_RESULT_CHUNKS,
+				Set.of(AutomationConstants.RESULT_ID, AutomationConstants.CHUNK_INDEX,
+						AutomationConstants.FIRST_ROW_INDEX, AutomationConstants.CHUNK_ROW_COUNT,
+						AutomationConstants.BYTE_COUNT, AutomationConstants.CHECKSUM,
+						AutomationConstants.CHUNK_VALUE));
+		return Map.copyOf(required);
+	}
 
 	private AutomationRunStore() {
 	}
@@ -252,6 +273,21 @@ public final class AutomationRunStore {
 	private static final String SKIP_PENDING_NODE_OUTPUT = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, ERROR_MESSAGE = ? \
 			WHERE RUN_ID = ? AND NODE_ID = ? AND STATUS = ?""";
+
+	private static final String INSERT_SAVED_VALUE = """
+			INSERT INTO AUTOMATION_SAVED_RESULTS \
+			(RESULT_ID, PROJECT_ID, RUN_ID, NODE_ID, PARENT_NODE_ID, ITERATION_INDEX, RESULT_KIND, \
+			FORMAT_VERSION, ROW_COUNT, BYTE_COUNT, CHECKSUM, CREATED_AT, RETAIN_UNTIL, CAPTURE_STATE, \
+			RESULT_ROLE, LOGICAL_NAME, PAYLOAD_VALUE) \
+			SELECT ?, R.PROJECT_ID, N.RUN_ID, N.NODE_ID, N.PARENT_NODE_ID, N.ITERATION_INDEX, ?, \
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ? \
+			FROM AUTOMATION_NODE_OUTPUTS N JOIN AUTOMATION_RUNS R ON R.RUN_ID = N.RUN_ID \
+			WHERE N.RUN_ID = ? AND N.NODE_ID = ?""";
+
+	private static final String INSERT_RESULT_CHUNK = """
+			INSERT INTO AUTOMATION_RESULT_CHUNKS \
+			(RESULT_ID, CHUNK_INDEX, FIRST_ROW_INDEX, CHUNK_ROW_COUNT, BYTE_COUNT, CHECKSUM, CHUNK_VALUE) \
+			VALUES (?, ?, ?, ?, ?, ?, ?)""";
 
 	private static final String UPDATE_NODE_OUTPUT_SUCCESS = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
@@ -359,6 +395,17 @@ public final class AutomationRunStore {
 				new String[] { RUN_ID, STATUS });
 		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ARW_AGENT_RUN, TABLE_AUTOMATION_RUN_WAITS,
 				new String[] { AGENT_RUN_ID });
+
+		addPrimaryKeyIfNotExists(conn, queryUtil, TABLE_SAVED_RESULTS, database, schema,
+				AutomationConstants.PK_AUTO_SAVED_RESULT, new String[] { AutomationConstants.RESULT_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, AutomationConstants.IDX_ASR_RUN, TABLE_SAVED_RESULTS,
+				new String[] { RUN_ID, NODE_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, AutomationConstants.IDX_ASR_PROJECT_CREATED,
+				TABLE_SAVED_RESULTS, new String[] { PROJECT_ID, AutomationConstants.CREATED_AT });
+
+		addPrimaryKeyIfNotExists(conn, queryUtil, TABLE_RESULT_CHUNKS, database, schema,
+				AutomationConstants.PK_AUTO_RESULT_CHUNK,
+				new String[] { AutomationConstants.RESULT_ID, AutomationConstants.CHUNK_INDEX });
 	}
 
 	/**
@@ -499,8 +546,8 @@ public final class AutomationRunStore {
 	}
 
 	/**
-	 * Persists an agent input boundary and releases the Automation run from its
-	 * executing worker. Agent action arguments remain authoritative in the
+	 * Persists an agent input boundary and releases the Automation run from active
+	 * execution. Agent action arguments remain authoritative in the
 	 * model-inference agent tables.
 	 *
 	 * @param runId         Automation run identifier
@@ -1092,6 +1139,97 @@ public final class AutomationRunStore {
 		return sources;
 	}
 
+	/** Returns payload-free retained-result references for a run. */
+	public static List<Map<String, Object>> getSavedResultReferencesForRun(String runId) {
+		SelectQueryStruct qs = savedResultMetadataQuery(false);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_SAVED_RESULTS + "__" + RUN_ID, "==", runId,
+				PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_SAVED_RESULTS + "__" + AutomationConstants.CAPTURE_STATE, "==",
+				AutomationConstants.CAPTURE_STATE_RETAINED, PixelDataType.CONST_STRING));
+		qs.addOrderBy(TABLE_SAVED_RESULTS + "__" + AutomationConstants.CREATED_AT,
+				QueryColumnOrderBySelector.ORDER_BY_DIRECTION.ASC.toString());
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(
+				requireSchedulerDb("loading automation saved-result references"), qs);
+		return results != null ? results : new ArrayList<>();
+	}
+
+	/** Returns one retained result, including its table schema or bounded value. */
+	public static Map<String, Object> getSavedResult(String resultId) {
+		SelectQueryStruct qs = savedResultMetadataQuery(true);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_SAVED_RESULTS + "__" + AutomationConstants.RESULT_ID, "==", resultId,
+				PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_SAVED_RESULTS + "__" + AutomationConstants.CAPTURE_STATE, "==",
+				AutomationConstants.CAPTURE_STATE_RETAINED, PixelDataType.CONST_STRING));
+		qs.setLimit(1);
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(
+				requireSchedulerDb("loading an automation saved result"), qs);
+		return results == null || results.isEmpty() ? null : results.get(0);
+	}
+
+	/** Returns ordered chunk metadata without loading chunk payloads. */
+	public static List<Map<String, Object>> getSavedResultChunkMetadata(String resultId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		addChunkSelectors(qs, false);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RESULT_CHUNKS + "__" + AutomationConstants.RESULT_ID, "==", resultId,
+				PixelDataType.CONST_STRING));
+		qs.addOrderBy(TABLE_RESULT_CHUNKS + "__" + AutomationConstants.CHUNK_INDEX,
+				QueryColumnOrderBySelector.ORDER_BY_DIRECTION.ASC.toString());
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(
+				requireSchedulerDb("loading saved-result chunk metadata"), qs);
+		return results != null ? results : new ArrayList<>();
+	}
+
+	/** Loads one bounded result chunk. */
+	public static Map<String, Object> getSavedResultChunk(String resultId, int chunkIndex) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		addChunkSelectors(qs, true);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RESULT_CHUNKS + "__" + AutomationConstants.RESULT_ID, "==", resultId,
+				PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RESULT_CHUNKS + "__" + AutomationConstants.CHUNK_INDEX, "==", chunkIndex,
+				PixelDataType.CONST_INT));
+		qs.setLimit(1);
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(
+				requireSchedulerDb("loading a saved-result chunk"), qs);
+		return results == null || results.isEmpty() ? null : results.get(0);
+	}
+
+	private static SelectQueryStruct savedResultMetadataQuery(boolean includePayload) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		for (String column : new String[] { AutomationConstants.RESULT_ID, PROJECT_ID, RUN_ID, NODE_ID,
+				AutomationConstants.PARENT_NODE_ID, AutomationConstants.ITERATION_INDEX,
+				AutomationConstants.RESULT_KIND, AutomationConstants.FORMAT_VERSION, AutomationConstants.ROW_COUNT,
+				AutomationConstants.BYTE_COUNT, AutomationConstants.CHECKSUM, AutomationConstants.CREATED_AT,
+				AutomationConstants.RETAIN_UNTIL, AutomationConstants.CAPTURE_STATE,
+				AutomationConstants.RESULT_ROLE, AutomationConstants.LOGICAL_NAME }) {
+			qs.addSelector(new QueryColumnSelector(TABLE_SAVED_RESULTS + "__" + column, column));
+		}
+		if (includePayload) {
+			qs.addSelector(new QueryColumnSelector(
+					TABLE_SAVED_RESULTS + "__" + AutomationConstants.PAYLOAD_VALUE,
+					AutomationConstants.PAYLOAD_VALUE));
+		}
+		return qs;
+	}
+
+	private static void addChunkSelectors(SelectQueryStruct qs, boolean includePayload) {
+		for (String column : new String[] { AutomationConstants.RESULT_ID, AutomationConstants.CHUNK_INDEX,
+				AutomationConstants.FIRST_ROW_INDEX, AutomationConstants.CHUNK_ROW_COUNT,
+				AutomationConstants.BYTE_COUNT, AutomationConstants.CHECKSUM }) {
+			qs.addSelector(new QueryColumnSelector(TABLE_RESULT_CHUNKS + "__" + column, column));
+		}
+		if (includePayload) {
+			qs.addSelector(new QueryColumnSelector(
+					TABLE_RESULT_CHUNKS + "__" + AutomationConstants.CHUNK_VALUE,
+					AutomationConstants.CHUNK_VALUE));
+		}
+	}
+
 	// -- AUTOMATION_NODE_OUTPUTS CRUD
 	// ------------------------------------------------
 
@@ -1186,11 +1324,22 @@ public final class AutomationRunStore {
 	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
 			String outputVar, String outputKind, String outputValue, String outputPreview, String modelMessageId,
 			String agentRunId) {
+		updateNodeSuccess(runId, nodeId, startedAt, durationMs, outputVar, outputKind, outputValue, outputPreview,
+				modelMessageId, agentRunId, null);
+	}
+
+	/** Publishes a captured table and node success in one scheduler transaction. */
+	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
+			String outputVar, String outputKind, String outputValue, String outputPreview, String modelMessageId,
+			String agentRunId, AutomationTableCaptureService.TableCapture tableCapture) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the successful automation node result");
 
 		try {
 			QueryExecutionUtility.write(schedulerDb, conn -> {
 				AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
+				if (tableCapture != null) {
+					insertSavedTable(conn, queryUtil, runId, nodeId, outputVar, tableCapture);
+				}
 
 				try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_SUCCESS)) {
 					int index = 1;
@@ -1216,6 +1365,63 @@ public final class AutomationRunStore {
 			throw new IllegalStateException("Unable to persist the successful automation node result.", e);
 		}
 	}
+
+	private static void insertSavedTable(Connection conn, AbstractSqlQueryUtil queryUtil, String runId, String nodeId,
+			String outputVar, AutomationTableCaptureService.TableCapture capture) throws SQLException {
+		String resultId = UUID.randomUUID().toString();
+		insertSavedResultMetadata(conn, queryUtil, resultId, runId, nodeId, outputVar,
+				AutomationConstants.RESULT_KIND_TABLE, capture.rowCount(), capture.byteCount(), capture.checksum(),
+				capture.schema());
+		try (PreparedStatement ps = conn.prepareStatement(INSERT_RESULT_CHUNK)) {
+			for (AutomationTableCaptureService.TableChunk chunk : capture.chunks()) {
+				int index = 1;
+				ps.setString(index++, resultId);
+				ps.setInt(index++, chunk.index());
+				ps.setLong(index++, chunk.firstRow());
+				ps.setLong(index++, chunk.rowCount());
+				ps.setLong(index++, chunk.byteCount());
+				ps.setString(index++, chunk.checksum());
+				queryUtil.setNullableLargeText(ps, index++, chunk.payload());
+				ps.addBatch();
+			}
+			if (!capture.chunks().isEmpty()) {
+				int[] counts = ps.executeBatch();
+				if (counts.length != capture.chunks().size()) {
+					throw new SQLException("Not all saved-result chunks were persisted.");
+				}
+			}
+		}
+	}
+
+	private static void insertSavedResultMetadata(Connection conn, AbstractSqlQueryUtil queryUtil, String resultId,
+			String runId, String nodeId, String outputVar, String resultKind, Long rowCount, long byteCount,
+			String checksum, String payload) throws SQLException {
+		Timestamp created = toTimestamp(Instant.now());
+		try (PreparedStatement ps = conn.prepareStatement(INSERT_SAVED_VALUE)) {
+			int index = 1;
+			ps.setString(index++, resultId);
+			ps.setString(index++, resultKind);
+			ps.setInt(index++, AutomationConstants.SAVED_RESULT_FORMAT_VERSION);
+			if (rowCount == null) {
+				ps.setNull(index++, Types.BIGINT);
+			} else {
+				ps.setLong(index++, rowCount);
+			}
+			ps.setLong(index++, byteCount);
+			ps.setString(index++, checksum);
+			ps.setTimestamp(index++, created);
+			ps.setTimestamp(index++, toTimestamp(created.toInstant()
+					.plusSeconds(AutomationConstants.SAVED_RESULT_RETENTION_DAYS * 24L * 60 * 60)));
+			ps.setString(index++, AutomationConstants.CAPTURE_STATE_RETAINED);
+			ps.setString(index++, AutomationConstants.RESULT_ROLE_OUTPUT);
+			queryUtil.setNullableString(ps, index++, outputVar);
+			queryUtil.setNullableLargeText(ps, index++, payload);
+			ps.setString(index++, runId);
+			ps.setString(index++, nodeId);
+			requireSingleRow(ps.executeUpdate(), "persist the saved automation value", runId, nodeId);
+		}
+	}
+
 
 	/**
 	 * Persists the durable agent-run ID as soon as an asynchronous child is

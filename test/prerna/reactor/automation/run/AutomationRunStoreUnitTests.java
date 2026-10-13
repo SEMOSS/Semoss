@@ -40,6 +40,9 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -69,6 +72,14 @@ class AutomationRunStoreUnitTests {
 				"CREATE TABLE AUTOMATION_RUNS (RUN_ID VARCHAR PRIMARY KEY, PROJECT_ID VARCHAR, AUTOMATION_ID VARCHAR, DEFINITION_VERSION INT, DEFINITION_HASH VARCHAR, DEFINITION_SNAPSHOT CLOB, INPUT_SNAPSHOT CLOB, STATUS VARCHAR, TRIGGER_TYPE VARCHAR, STARTED_AT TIMESTAMP, LAST_HEARTBEAT TIMESTAMP, TOTAL_NODES INT, COMPLETED_NODES INT, CREATED_BY VARCHAR, CANCEL_REQUESTED BOOLEAN, RESULT_SUMMARY VARCHAR, COMPLETED_AT TIMESTAMP, FAILED_NODE_ID VARCHAR, ERROR_MESSAGE VARCHAR)",
 				"CREATE TABLE AUTOMATION_RUN_NODE_SOURCES (RUN_ID VARCHAR, NODE_ID VARCHAR, SOURCE_HASH VARCHAR, SOURCE_CODE CLOB)",
 				"CREATE TABLE AUTOMATION_NODE_OUTPUTS (RUN_ID VARCHAR, NODE_ID VARCHAR, NODE_LABEL VARCHAR, EXECUTION_ORDER INT, STATUS VARCHAR, ROOM_ID VARCHAR, WORKSPACE_ID VARCHAR, STARTED_AT TIMESTAMP, COMPLETED_AT TIMESTAMP, DURATION_MS BIGINT, OUTPUT_VAR_NAME VARCHAR, OUTPUT_KIND VARCHAR, OUTPUT_VALUE CLOB, OUTPUT_PREVIEW VARCHAR, MODEL_MESSAGE_ID VARCHAR, AGENT_RUN_ID VARCHAR, ERROR_MESSAGE VARCHAR)");
+	}
+
+	private void savedResultSchema(JdbcTestDatabase db) throws Exception {
+		db.execute(
+				"ALTER TABLE AUTOMATION_NODE_OUTPUTS ADD PARENT_NODE_ID VARCHAR",
+				"ALTER TABLE AUTOMATION_NODE_OUTPUTS ADD ITERATION_INDEX INT",
+				"CREATE TABLE AUTOMATION_SAVED_RESULTS (RESULT_ID VARCHAR PRIMARY KEY, PROJECT_ID VARCHAR, RUN_ID VARCHAR, NODE_ID VARCHAR, PARENT_NODE_ID VARCHAR, ITERATION_INDEX INT, RESULT_KIND VARCHAR, FORMAT_VERSION INT, ROW_COUNT BIGINT, BYTE_COUNT BIGINT, CHECKSUM VARCHAR, CREATED_AT TIMESTAMP, RETAIN_UNTIL TIMESTAMP, CAPTURE_STATE VARCHAR, RESULT_ROLE VARCHAR, LOGICAL_NAME VARCHAR, PAYLOAD_VALUE CLOB)",
+				"CREATE TABLE AUTOMATION_RESULT_CHUNKS (RESULT_ID VARCHAR, CHUNK_INDEX INT, FIRST_ROW_INDEX BIGINT, CHUNK_ROW_COUNT INT, BYTE_COUNT BIGINT, CHECKSUM VARCHAR, CHUNK_VALUE CLOB)");
 	}
 
 	private void initialize(String runId, Map<String, String> sources) {
@@ -155,9 +166,9 @@ class AutomationRunStoreUnitTests {
 			assertEquals("RESOLVED", db.value("SELECT STATUS FROM AUTOMATION_RUN_WAITS"));
 			var started = java.sql.Timestamp.from(java.time.Instant.now());
 			AutomationRunStore.updateNodeSuccess("run", "node", started, 5L, "output",
-					AutomationConstants.OUTPUT_KIND_FRAME, "  {}  ", "preview", null, "agent");
+					AutomationConstants.OUTPUT_KIND_TABLE, "  {}  ", "preview", null, "agent");
 			assertEquals("  {}  ", db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='node'"));
-			assertEquals(AutomationConstants.OUTPUT_KIND_FRAME,
+			assertEquals(AutomationConstants.OUTPUT_KIND_TABLE,
 					db.value("SELECT OUTPUT_KIND FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='node'"));
 			String ordinarySummary = "{\"dataType\":\"table\",\"rowCount\":2,\"columnCount\":1}";
 			AutomationRunStore.markNodeRunning("run", "summary");
@@ -175,6 +186,38 @@ class AutomationRunStoreUnitTests {
 			assertEquals("SKIPPED", db.value("SELECT STATUS FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='skipped'"));
 			assertThrows(IllegalStateException.class,
 					() -> AutomationRunStore.updateNodeAgentRunTrace("run", "missing", "agent"));
+		}
+	}
+
+	@Test
+	void tableSuccessPersistsDurableHistoryWithTheNodeResult() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			schema(db);
+			savedResultSchema(db);
+			AutomationRunStore.initializeRun("run", "project", "automation", 1, "hash", "{}", Map.of(),
+					"manual", "user", List.of(Map.of("id", "query", "label", "Query")), Map.of(), Map.of());
+			assertTrue(AutomationRunStore.claimRun("run"));
+			AutomationRunStore.markNodeRunning("run", "query");
+
+			String payload = "[[\"Ada\"],[\"Grace\"]]";
+			byte[] bytes = payload.getBytes(StandardCharsets.UTF_8);
+			String checksum = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+			AutomationTableCaptureService.TableCapture capture = new AutomationTableCaptureService.TableCapture(
+					"[{\"name\":\"hero\",\"type\":\"STRING\"}]",
+					List.of(new AutomationTableCaptureService.TableChunk(0, 0, 2, payload, bytes.length, checksum)),
+					2, bytes.length, checksum);
+
+			AutomationRunStore.updateNodeSuccess("run", "query", java.sql.Timestamp.from(java.time.Instant.now()),
+					8L, "heroes", AutomationConstants.OUTPUT_KIND_TABLE,
+					"{\"dataType\":\"table\",\"rowCount\":2}", "2 rows", null, null, capture);
+
+			assertEquals(1, db.count("AUTOMATION_SAVED_RESULTS"));
+			assertEquals(1, db.count("AUTOMATION_RESULT_CHUNKS"));
+			assertEquals("project", db.value("SELECT PROJECT_ID FROM AUTOMATION_SAVED_RESULTS"));
+			assertEquals(2L, ((Number) db.value("SELECT ROW_COUNT FROM AUTOMATION_SAVED_RESULTS")).longValue());
+			assertEquals(payload, db.value("SELECT CHUNK_VALUE FROM AUTOMATION_RESULT_CHUNKS"));
+			assertEquals(AutomationConstants.OUTPUT_KIND_TABLE,
+					db.value("SELECT OUTPUT_KIND FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='query'"));
 		}
 	}
 
