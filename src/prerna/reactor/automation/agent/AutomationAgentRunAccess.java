@@ -29,7 +29,6 @@ package prerna.reactor.automation.agent;
 
 import prerna.auth.User;
 import prerna.om.Insight;
-import prerna.project.api.IProject;
 import prerna.reactor.automation.project.AutomationProjectService;
 import prerna.reactor.automation.run.AutomationRunStore;
 
@@ -39,7 +38,8 @@ import prerna.reactor.automation.run.AutomationRunStore;
  * <p>
  * This class is the only Automation path that may access an agent run without
  * the generic agent-run owner's identity. It first uses the normal project ACL,
- * then requires an exact persisted Automation run/node/agent-run relationship.
+ * or the caller's own inline run scope when no project is given, then requires
+ * an exact persisted Automation run/node/agent-run relationship.
  */
 public final class AutomationAgentRunAccess {
 
@@ -49,19 +49,23 @@ public final class AutomationAgentRunAccess {
 	static Access authorizeView(Insight insight, String projectId, String automationRunId, String nodeId,
 			String agentRunId) {
 		User user = authenticatedUser(insight);
-		IProject project = AutomationProjectService.getViewableAutomationProject(user, required(projectId, "project"));
-		requireTrace(project.getProjectId(), automationRunId, nodeId, agentRunId);
-		return new Access(project.getProjectId(), canControl(user, project.getProjectId()));
+		String runScope = AutomationProjectService.resolveRunScope(user, projectId, false);
+		requireTrace(runScope, automationRunId, nodeId, agentRunId);
+		return new Access(runScope, canControl(user, runScope));
 	}
 
 	public static void authorizeEdit(Insight insight, String projectId, String automationRunId, String nodeId,
 			String agentRunId) {
 		User user = authenticatedUser(insight);
-		IProject project = AutomationProjectService.getEditableAutomationProject(user, required(projectId, "project"));
-		requireTrace(project.getProjectId(), automationRunId, nodeId, agentRunId);
+		requireTrace(AutomationProjectService.resolveRunScope(user, projectId, true), automationRunId, nodeId,
+				agentRunId);
 	}
 
 	private static boolean canControl(User user, String projectId) {
+		// The owner of an inline run scope is its only reader, so it may also control.
+		if (AutomationProjectService.isInlineRunScope(projectId)) {
+			return true;
+		}
 		try {
 			AutomationProjectService.getEditableAutomationProject(user, projectId);
 			return true;

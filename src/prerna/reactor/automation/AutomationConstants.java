@@ -441,6 +441,11 @@ public final class AutomationConstants {
 	// ------------------------------------------------------------------
 
 	public static final String DEFAULT_AUTOMATION_ID = "default";
+	/**
+	 * Prefix of the per-login run scope stored in {@code PROJECT_ID} for a run of
+	 * inline definition JSON, which has no Automation project.
+	 */
+	public static final String INLINE_RUN_SCOPE_PREFIX = "SYSTEM__AUTOMATION_INLINE__";
 	public static final int HEARTBEAT_INTERVAL_SECONDS = 30;
 	public static final int STALE_HEARTBEAT_THRESHOLD_MINUTES = 5;
 	public static final int OUTPUT_PREVIEW_MAX_LENGTH = 2000;

@@ -12,10 +12,17 @@ in the authenticated user's Python insight.
 | `GetAutomation` | `project` | Returns the definition as the top-level map, including `trigger.start.config.globals`, `nodeSources: { nodeId: source }`, and server-derived `scopeVariables` by node ID. |
 | `SaveAutomation` | `project`, `json`, optional `nodeSources` | `json` and the `nodeSources` JSON map may be raw or Base64. `nodeSources` holds one entry per Python-backed node; trigger setup source belongs in `trigger.start.config.pythonSource`. |
 | `TriggerAutomation` | `project`, optional `inputs`, `triggerType` | Java seeds configured trigger globals, executes trigger Python, then follows the canonical control path; returned scope and `globals` include resolved values. |
-| `GetAutomationRun` | `project`, `runId` | Returns live run state and per-node outputs. |
-| `ListAutomationRuns` | `project`, optional `limit` | Returns run history, newest first. |
-| `CancelAutomationRun` | `project`, `runId` | Requests cancellation using the DB flag and same-pod fast path. |
+| `RunAutomationDefinition` | `json`, optional `nodeSources`, `inputs`, `triggerType` | Runs inline definition JSON (for example a `GetAutomation` export) as the caller, without a project. Only custom nodes keep supplied source; generated nodes are re-rendered. Caller-written Python must pass the same global switches as `Py()`. |
+| `GetAutomationRun` | optional `project`, `runId` | Returns live run state and per-node outputs. |
+| `ListAutomationRuns` | optional `project`, optional `limit` | Returns run history, newest first. |
+| `CancelAutomationRun` | optional `project`, `runId` | Requests cancellation using the DB flag and same-pod fast path. |
 | `RemoveAutomationStep` | `project`, `nodeId`, optional `removeDownstream` | Removes one step and its attached edges; when `removeDownstream=true`, removes the selected step and every downstream step. Detached drafts can be saved but cannot run. |
+
+An inline run stores the caller's own scope, `SYSTEM__AUTOMATION_INLINE__<sha256(loginType:loginId)>`, in
+`AUTOMATION_RUNS.PROJECT_ID`. The run reactors (Get, List, Cancel, Resume, and the agent-run reactors) treat an
+omitted `project` as that scope, so inline runs are owner-scoped. A project lookup never accepts an inline-prefixed id.
+Server code that runs a definition it holds calls `RunAutomationDefinitionReactor.runDefinition`, which skips the
+`Py()` switches.
 
 ## MCP authoring
 
@@ -149,7 +156,7 @@ job when possible, and is checked before each node and during waits.
 | `AutomationRunStore` | Physical run records, node outputs, per-run claiming, and stale-run recovery in the scheduler DB. |
 | `SchedulerOwlCreator` | Authoritative OWL schema for both scheduler-owned and automation-owned tables in that DB. |
 | `AutomationRunRegistry` | Same-pod Python socket interruption, heartbeat, and cancellation state. |
-| `AutomationProjectService` | Project permissions, definition locking/persistence, reference validation, and derived-asset synchronization. |
+| `AutomationProjectService` | Project permissions, inline run scopes, definition locking/persistence, reference validation, and derived-asset synchronization. |
 | `AutomationRuntimeUtils` | JSON serialization, scope construction, and output previews. |
 
 Do not bypass the per-run database claim, run snapshot, or DB/in-memory cancellation signal.

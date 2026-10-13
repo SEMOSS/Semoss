@@ -442,6 +442,14 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
+	void acceptsAnAgentRunWithoutAWorkspace() {
+		AutomationDefinitionValidator.parseAndValidate(definition(Map.of(),
+				workNode(AutomationConstants.NODE_AGENT_RUN, Map.of(AutomationConstants.CONFIG_COMMAND, "Summarize"))));
+		AutomationDefinitionValidator.parseAndValidate(definition(Map.of(), workNode(AutomationConstants.NODE_AGENT_RUN,
+				Map.of(AutomationConstants.CONFIG_WORKSPACE_ID, "", AutomationConstants.CONFIG_COMMAND, "Summarize"))));
+	}
+
+	@Test
 	void acceptsABoundedLoopWithAnAcyclicBody() {
 		Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DEVELOPER_PYTHON, Map.of());
 		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-python");

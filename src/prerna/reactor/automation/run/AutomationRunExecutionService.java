@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -71,7 +72,9 @@ import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationRuntime;
 import prerna.reactor.automation.definition.AutomationConditionEvaluator;
+import prerna.reactor.automation.definition.AutomationDefinitionService;
 import prerna.reactor.automation.definition.AutomationDefinitionValidator;
+import prerna.reactor.automation.project.AutomationProjectService;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.PixelDataType;
@@ -84,8 +87,9 @@ import prerna.util.insight.InsightUtility;
  * Owns execution of one already initialized Automation run.
  *
  * <p>
- * The triggering reactor performs access checks and atomically creates
- * submitted run history before entering this boundary. This class claims that
+ * The calling reactor performs access checks and resolves the run scope, a
+ * project ID or the caller's inline run scope; {@link #start} then atomically
+ * creates submitted run history. This class claims that
  * individual run, creates a run-local {@link Insight}, traverses the validated
  * control path, executes the immutable source snapshot one node at a time,
  * persists each transition, and binds interactive run Insights to the caller's
@@ -124,6 +128,67 @@ final class AutomationRunExecutionService {
 		}
 		this.requestInsight = requestInsight;
 		this.streamJobId = streamJobId;
+	}
+
+	/**
+	 * Validates a definition for execution, records it as a submitted run under
+	 * {@code runScope}, then claims and executes it synchronously. This is the one
+	 * start path for project and inline runs; the caller owns the access check
+	 * that produced {@code runScope}.
+	 *
+	 * @param insight      caller's authenticated Insight
+	 * @param streamJobId  live Pixel job that receives progress, or {@code null}
+	 * @param runId        new durable run identifier
+	 * @param runScope     Automation project ID or the caller's inline run scope
+	 * @param automationId logical automation stored in {@code AUTOMATION_ID}
+	 * @param files        definition and the source of each Python-backed node
+	 * @param inputs       optional values overriding trigger globals
+	 * @param triggerType  MANUAL (default), PLAYGROUND, or SCHEDULED
+	 * @return persisted run detail and node results
+	 */
+	static Map<String, Object> start(Insight insight, String streamJobId, String runId, String runScope,
+			String automationId, AutomationDefinitionService.DefinitionFiles files, Map<String, Object> inputs,
+			String triggerType) {
+		AutomationRunExecutionService service = new AutomationRunExecutionService(insight, streamJobId);
+		AutomationDefinitionValidator.ValidatedDefinition definition =
+				AutomationDefinitionValidator.parseAndValidate(files.definition());
+		AutomationProjectService.validateDefinitionReferences(definition, insight.getUser());
+		List<Map<String, Object>> runNodes = AutomationRuntime.nodesForRun(definition);
+		validateInputs(inputs);
+		Map<String, Object> effectiveInputs = new LinkedHashMap<>(AutomationRuntime.declaredGlobals(definition));
+		if (inputs != null) {
+			effectiveInputs.putAll(inputs);
+		}
+		Map<String, String> traceRoomIds = allocateTraceRoomIds(runNodes);
+
+		AutomationRunStore.initializeRun(runId, runScope, automationId, AutomationConstants.PYTHON_DOC_CURRENT_VERSION,
+				definition.hash(), definition.snapshot(), effectiveInputs, triggerType(triggerType),
+				service.currentUserId(), runNodes, traceRoomIds, files.nodeSources());
+		return service.executeInitializedRun(runId, runScope, definition, runNodes, traceRoomIds);
+	}
+
+	private static String triggerType(String triggerType) {
+		if (triggerType == null || triggerType.isBlank()) {
+			return AutomationConstants.TRIGGER_MANUAL;
+		}
+		if (!AutomationConstants.TRIGGER_MANUAL.equals(triggerType)
+				&& !AutomationConstants.TRIGGER_PLAYGROUND.equals(triggerType)
+				&& !AutomationConstants.TRIGGER_SCHEDULED.equals(triggerType)) {
+			throw new IllegalArgumentException("triggerType must be MANUAL, PLAYGROUND, or SCHEDULED.");
+		}
+		return triggerType;
+	}
+
+	private static void validateInputs(Map<String, Object> inputs) {
+		if (inputs == null) {
+			return;
+		}
+		for (String key : inputs.keySet()) {
+			if (AutomationConstants.RESERVED_SCOPE_KEYS.contains(key)) {
+				throw new IllegalArgumentException("Automation input '" + key
+						+ "' is reserved for runtime metadata and cannot be overridden.");
+			}
+		}
 	}
 
 	/**
@@ -1064,9 +1129,10 @@ final class AutomationRunExecutionService {
 			if (translator == null) {
 				throw new IllegalStateException("Python runtime is not available for this insight.");
 			}
+			String assetsFolder = assetsFolder(executionInsight, projectId);
 			Object raw = translator.runScriptWithExplicitAssetPaths(executionInsight,
-					AutomationRuntime.buildTriggerInvocationScript(source, scope), getProjectAssetsFolder(projectId),
-					new String[] { getProjectPyFolder(projectId) });
+					AutomationRuntime.buildTriggerInvocationScript(source, scope), assetsFolder,
+					new String[] { assetsFolder + File.separator + "py" });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
 			Map<String, Object> sourceGlobals = normalizeScope(value);
 			for (Map.Entry<String, Object> entry : sourceGlobals.entrySet()) {
@@ -1133,10 +1199,10 @@ final class AutomationRunExecutionService {
 				nodeScope = new LinkedHashMap<>(scope);
 				nodeScope.put(AutomationConstants.SCOPE_ROOM_ID, traceRoomId);
 			}
+			String assetsFolder = assetsFolder(executionInsight, projectId);
 			Object raw = translator.runScriptWithExplicitAssetPaths(executionInsight,
 					AutomationRuntime.buildNodeInvocationScript(source, nodeScope, outputVariable, frameBindings),
-					getProjectAssetsFolder(projectId),
-					new String[] { getProjectPyFolder(projectId) });
+					assetsFolder, new String[] { assetsFolder + File.separator + "py" });
 			AutomationRuntime.NodeResult nodeResult = AutomationRuntime.decodeNodeResult(raw);
 			Object value = nodeResult.value();
 			boolean databaseFrameRequest = AutomationDatabaseQueryExecutor.supports(node)
@@ -1550,8 +1616,9 @@ final class AutomationRunExecutionService {
 		executionInsight.setUser(requestInsight.getUser());
 		executionInsight.setBaseURL(requestInsight.getBaseURL());
 		executionInsight.setSchedulerMode(requestInsight.isSchedulerMode());
-		executionInsight.setProjectId(projectId);
-		IProject project = Utility.getProject(projectId);
+		String insightProjectId = insightProjectId(projectId);
+		executionInsight.setProjectId(insightProjectId);
+		IProject project = insightProjectId == null ? null : Utility.getProject(insightProjectId);
 		if (project != null) {
 			executionInsight.setProjectName(project.getProjectName());
 		}
@@ -1569,10 +1636,22 @@ final class AutomationRunExecutionService {
 	}
 
 	private static ExecutionInsightLease existingExecutionInsight(Insight executionInsight, String projectId) {
-		if (!projectId.equals(executionInsight.getProjectId())) {
+		if (!Objects.equals(insightProjectId(projectId), executionInsight.getProjectId())) {
 			throw new IllegalStateException("Automation run Insight belongs to a different project.");
 		}
 		return new ExecutionInsightLease(executionInsight, false);
+	}
+
+	/**
+	 * Returns the project an execution Insight carries for a run scope. An inline
+	 * scope is not a project, so its Insight carries none and its Pixel calls never
+	 * look one up.
+	 *
+	 * @param runScope Automation project ID or inline run scope
+	 * @return project ID, or {@code null} for an inline scope
+	 */
+	static String insightProjectId(String runScope) {
+		return AutomationProjectService.isInlineRunScope(runScope) ? null : runScope;
 	}
 
 	/**
@@ -2275,7 +2354,7 @@ final class AutomationRunExecutionService {
 	 * Same as {@link #traceForNode(Map, String, String, String)}, additionally
 	 * stamping the durable agent run's current status (e.g. INPUT_REQUIRED) so the
 	 * frontend can distinguish "actively working" from "waiting on a human" without
-	 * any separate plumbing — it flows through the same trace object the node's
+	 * any separate plumbing - it flows through the same trace object the node's
 	 * agentRunId already relies on.
 	 */
 	private static Map<String, Object> traceForNode(Map<String, Object> node, String roomId, String modelMessageId,
@@ -2456,24 +2535,25 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Returns the project's asset folder, which bounds the file access granted to
-	 * node Python.
+	 * Returns the asset folder, which bounds the file access granted to node
+	 * Python: the project's asset folder, or the run Insight's own folder for an
+	 * inline scope. Its {@code py} subfolder is added to the Python path so node
+	 * source can import project modules.
+	 *
+	 * @param executionInsight run-local Insight
+	 * @param runScope         Automation project ID or inline run scope
+	 * @return asset folder for node Python
 	 */
-	private String getProjectAssetsFolder(String projectId) {
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalArgumentException("Project was not found: " + projectId);
+	static String assetsFolder(Insight executionInsight, String runScope) {
+		if (AutomationProjectService.isInlineRunScope(runScope)) {
+			return executionInsight.getInsightFolder();
 		}
-		return EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT, projectId,
+		IProject project = Utility.getProject(runScope);
+		if (project == null) {
+			throw new IllegalArgumentException("Project was not found: " + runScope);
+		}
+		return EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT, runScope,
 				project.getProjectName());
-	}
-
-	/**
-	 * Returns the project's py folder, added to the Python path so node source can
-	 * import project modules.
-	 */
-	private String getProjectPyFolder(String projectId) {
-		return getProjectAssetsFolder(projectId) + File.separator + "py";
 	}
 
 	/**

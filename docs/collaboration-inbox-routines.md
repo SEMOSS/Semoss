@@ -1,10 +1,11 @@
 # Collaboration inbox routine
 
-The Routines page offers one routine: a private daily brief of the most recent
-Outlook inbox emails. New users are opted out. They choose a 24-hour time, one or
-more weekdays, an IANA time zone, and an email limit from 1 to 100. The default is
-08:00 on Monday through Friday, scanning 25 messages. The frontend starts with
-the browser's time zone before the first configuration is saved.
+The Routines page offers one routine: a private daily brief of the owner's
+Collaboration topics and most recent Brain threads, also emailed to the owner.
+New users are opted out. They choose a 24-hour time, one or more weekdays, an
+IANA time zone, and a thread count from 1 to 100 (stored as `emailCount`). The
+default is 08:00 on Monday through Friday, with 25 threads. The frontend starts
+with the browser's time zone before the first configuration is saved.
 
 ## Prerequisites
 
@@ -17,7 +18,10 @@ the browser's time zone before the first configuration is saved.
 - A renewable Microsoft sign-in for that exact mailbox must be available, either
   in the current session, the security database's `MS_GRAPH_CREDENTIAL` table, or
   an existing Microsoft mail/calendar subscription. It needs both an access token
-  and a refresh token, with delegated `Mail.Read` or `Mail.ReadWrite` permission.
+  and a refresh token, with delegated `Mail.Read` or `Mail.ReadWrite` permission,
+  and `Mail.Send` to email the brief.
+- Python must be enabled (`USE_PYTHON`): the brief runs as an Automation
+  definition whose steps execute in the owner's Python process.
 
 Enabling the routine saves those credentials in the security database. Viewing
 the page or saving a paused routine does not save credentials. Scheduled runs use
@@ -67,45 +71,53 @@ skipped. Configuration writes hold the routine row lock, and its owner identity
 has a unique index. A cross-database scheduling failure leaves the routine
 paused. Each execution rechecks consent before processing the brief.
 
-The server reads the newest inbox messages received since the last successful
-brief, up to the chosen scan limit, including both read and unread mail. The
-first brief uses the newest messages without a lower date cutoff. The scan ends
-at the start of the run, so mail arriving while the model writes the brief is
-eligible next time. `LAST_SUCCESS_AT` records that scan cutoff only when the brief
-completes successfully; failed runs leave it unchanged. Existing completed
-routine rows use their previous start time as the initial cutoff. If an older
-row's latest run failed, no earlier success timestamp is available, so its first
-run after this upgrade uses the newest messages.
+Each execution runs the server-held definition
+`prerna/collaboration/inbox-daily-brief.automation.json` (a classpath resource,
+replaceable with an Automation builder export) through `RunAutomationDefinition`'s
+inline runner, as the owner, with no Automation project. The run is stored in the
+scheduler database under the owner's inline run scope with
+`AUTOMATION_ID = collaboration:inbox-daily-brief`, and `WORK_INBOX_ROUTINE.RUN_ID`
+names it. Before the run starts, the server refreshes the stored Microsoft token
+and lends it to the run's session user, then restores the caller's own token
+afterwards; a token refreshed during the run is saved back. A session with no
+Microsoft token of its own keeps the lent one while the Brain sync the run started
+(or its thread summaries) is still reading Graph through it. The recipient is the
+mailbox's own `mail` (or `userPrincipalName`) address from Graph `/me`.
 
-Before any model call, the routine applies the owner's current explicit Brain
-exclusions, including sender, domain, folder, keyword, person, channel, topic,
-and muted thread/sender settings. Existing topic and participant exclusions use
-known Brain threads; new conversations remain eligible without requiring a
-topic classification. Filtering reads Brain settings without importing mail or
-changing Brain's counters. The scan limit applies before exclusions: it does
-not fetch extra messages to replace excluded ones. If the inbox has more new
-mail than the limit, only the newest messages within that limit are considered.
+The definition is a linear graph:
 
-If no eligible messages remain, the routine stores "No new relevant emails."
-directly in Routines without creating an agent session or calling a model.
-Otherwise it submits an ordinary durable `AgentRunService` request (the service used by
-`RunAgent`). Its small `inbox_brief` harness makes one model call and has no tool
-executor. A tool-call response is rejected. Email bodies are bounded to 1,200
-characters per message and supplied as untrusted excerpts; attachments are not
-read and emails are not changed or sent.
+1. `BrainSync()` imports new mail (and Teams when on) and classifies threads. An
+   error, such as an import still running, does not stop the brief.
+2. A Python step waits up to about five minutes for that sync job and its
+   thread summaries.
+3. `BrainListTopics` (active topics) and `BrainListThreads` (the chosen number
+   of recent threads, with participants and summaries).
+4. A Python step builds the agent request from those results. It is
+   percent-encoded so `RunAgent` decodes it back to exactly the original text.
+5. An `agent.run` step with the `inbox_brief` harness and the owner's
+   `COLLAB_LLM_ENGINE_ID` model writes the brief. The harness makes one model
+   call, has no tool executor, rejects tool calls, and treats the data as
+   untrusted. The brief is Markdown with Today, Needs your reply, FYI, and
+   Sources sections; links may only point to URLs present in the data.
+6. A Python step converts the Markdown to HTML (raw HTML in the brief is
+   escaped, images are dropped, and links to URLs not found in the thread data
+   are removed) and sends it with `MicrosoftOutlookSendMail` to the owner only.
 
-The prompt requests at most 120 words: one overview sentence and up to three
-short bullets covering actions, explicit deadlines, and important changes.
-Related emails are grouped, and routine notifications are omitted unless they
-need action. The model is instructed to avoid per-email lists and extra sections.
+The routine's own exclusion filter no longer applies; only Brain's import gating
+does. The sync spends model calls on classification and thread summaries.
 
 The latest result and status are stored in `WORK_INBOX_ROUTINE`, scoped to the
-owner's ID and authentication type. The output is shown in Routines. A standard
-private room also retains each nonempty agent run, without the automatic tools or memory
-hooks of an interactive Collaboration assistant. A new brief replaces the
-routine's latest result. Interrupted runs are reconciled with durable agent
-status; runs still unfinished after fifteen minutes are failed so the next
-scheduled day can retry. Each model wait is limited to ten minutes.
+owner's ID and authentication type, and shown in Routines. If the brief was
+written but the email failed, the routine still completes with the brief and
+reports "The brief was saved but the email could not be sent." `ROOM_ID` names
+the agent step's room for "Open session". A new brief replaces the routine's
+latest result. Interrupted runs are reconciled with the durable Automation run
+status; runs still unfinished after twenty minutes are cancelled and failed so
+the next scheduled day can retry. The agent wait is limited to ten minutes.
+
+Topics, threads, and the brief are also kept as Automation node outputs, which
+the owner can read with `GetAutomationRun`. "Reset my data" deletes these runs;
+there is no time-based retention.
 
 ## Deployment and verification
 
@@ -121,15 +133,15 @@ Verified with Java 21 using:
 
 ```sh
 mvn -q -DskipTests compile
-mvn -q -Dlicense.skip=true -Dtest=WorkInboxRoutineUnitTests,InboxBriefFilterUnitTests,InboxBriefHarnessUnitTests,MicrosoftOutlookMailHelperUnitTests,BrainMemoryRecallUnitTests test
+mvn -q -Dlicense.skip=true -Dtest=WorkInboxRoutineUnitTests,InboxBriefHarnessUnitTests,MicrosoftOutlookMailHelperUnitTests,BrainMemoryRecallUnitTests test
 ```
 
 Focused tests cover configuration validation, owner isolation, DST-aware cron,
 credential persistence only on opt-in, runs without a browser or webhook,
 Settings credential reuse, repeat saves, failed scheduling, brief persistence,
 duplicate-day execution, interrupted-run recovery, the JSON null contract,
-Brain exclusions, date cutoffs, failure catch-up, quiet days, and rejection of
-tool requests. No real mailbox was read, no
+token lending and restore, the Python requirement, an unsent brief, and a strict
+validation of the shipped definition and its scope references. No real mailbox was read, no
 model request was submitted, no live schedule was activated, and no application
 was deployed or restarted during this work. Live OAuth refresh and clustered
 Quartz execution remain deployment integration checks.

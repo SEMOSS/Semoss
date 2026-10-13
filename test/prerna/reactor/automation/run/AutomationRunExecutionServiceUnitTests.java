@@ -37,6 +37,7 @@ import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,6 +63,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 /** Covers deterministic execution-service mappings and run Insight lookup. */
 public class AutomationRunExecutionServiceUnitTests {
@@ -221,6 +223,28 @@ public class AutomationRunExecutionServiceUnitTests {
 		}
 
 		assertNull(AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
+	}
+
+	@Test
+	void inlineRunScopeCarriesNoProjectAndUsesTheRunInsightFolder() {
+		String scope = AutomationConstants.INLINE_RUN_SCOPE_PREFIX + "owner";
+		Insight insight = mock(Insight.class);
+		when(insight.getInsightFolder()).thenReturn("/cache/session/automation-run");
+
+		assertNull(AutomationRunExecutionService.insightProjectId(scope));
+		assertEquals("project-id", AutomationRunExecutionService.insightProjectId("project-id"));
+		assertEquals("/cache/session/automation-run", AutomationRunExecutionService.assetsFolder(insight, scope));
+	}
+
+	@Test
+	void projectRunScopeStillRequiresItsProjectForTheAssetsFolder() {
+		Insight insight = mock(Insight.class);
+		try (var utility = mockStatic(Utility.class)) {
+			IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+					() -> AutomationRunExecutionService.assetsFolder(insight, "missing-project"));
+			assertEquals("Project was not found: missing-project", error.getMessage());
+		}
+		verify(insight, never()).getInsightFolder();
 	}
 
 	@Test

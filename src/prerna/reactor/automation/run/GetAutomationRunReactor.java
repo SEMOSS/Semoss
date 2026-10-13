@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
@@ -45,7 +46,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Returns detail for a single automation run including per-node results.
  *
  * <p>
- * Pixel: {@code GetAutomationRun(project=["appId"], runId=["uuid"])}
+ * Pixel: {@code GetAutomationRun(project=["appId"], runId=["uuid"])}. Without
+ * {@code project}, the run must be one of the caller's own inline runs.
  *
  * <p>
  * Reads from AUTOMATION_RUNS and AUTOMATION_NODE_OUTPUTS in the scheduler DB.
@@ -57,13 +59,13 @@ public class GetAutomationRunReactor extends AbstractReactor {
 	private static final String FRAME_UNAVAILABLE_MESSAGE =
 			"Frame data is unavailable because this run's execution workspace is closed.";
 
-	// Not standardized in ReactorKeysEnum — matches the local-key convention used
+	// Not standardized in ReactorKeysEnum - matches the local-key convention used
 	// by prerna.reactor.agent (e.g. GetAgentRunReactor.RUN_ID_KEY).
 	private static final String RUN_ID_KEY = "runId";
 
 	public GetAutomationRunReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), RUN_ID_KEY };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keyRequired = new int[] { 0, 1 };
 	}
 
 	@Override
@@ -72,15 +74,11 @@ public class GetAutomationRunReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String runId = this.keyValue.get(this.keysToGet[1]);
 
-		if (projectId == null || projectId.isEmpty()) {
-			throw new IllegalArgumentException("Must provide a project id");
-		}
 		if (runId == null || runId.isEmpty()) {
 			throw new IllegalArgumentException("Must provide a run id");
 		}
 
-		projectId = AutomationProjectService.getViewableAutomationProject(this.insight.getUser(), projectId)
-				.getProjectId();
+		projectId = AutomationProjectService.resolveRunScope(this.insight.getUser(), projectId, false);
 
 		Map<String, Object> runDetail = AutomationRunStore.getRunDetail(runId);
 		// Scope by PROJECT_ID so a user with view access to one project cannot read
@@ -97,7 +95,8 @@ public class GetAutomationRunReactor extends AbstractReactor {
 
 		runDetail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
 		Insight executionInsight = AutomationRunExecutionService.getAvailableExecutionInsight(runId);
-		if (executionInsight != null && projectId.equals(executionInsight.getProjectId())) {
+		if (executionInsight != null && Objects.equals(AutomationRunExecutionService.insightProjectId(projectId),
+				executionInsight.getProjectId())) {
 			runDetail.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsight.getInsightId());
 		}
 		int resultIndex = 0;
@@ -124,15 +123,15 @@ public class GetAutomationRunReactor extends AbstractReactor {
 	 * Adds either the live frame payload or the explicit closed-workspace state.
 	 *
 	 * @param executionInsight live run Insight, or {@code null} after cleanup
-	 * @param projectId        owning Automation project
+	 * @param projectId        owning Automation project or inline run scope
 	 * @param nodeOutput       durable node-output row
 	 * @param nodeResult       result returned to the caller
 	 */
 	void decorateFrameResult(Insight executionInsight, String projectId, Map<String, Object> nodeOutput,
 			Map<String, Object> nodeResult) {
 		Object outputVariable = nodeOutput.get(AutomationConstants.OUTPUT_VAR_NAME);
-		if (executionInsight != null && projectId.equals(executionInsight.getProjectId())
-				&& outputVariable instanceof String name) {
+		if (executionInsight != null && Objects.equals(AutomationRunExecutionService.insightProjectId(projectId),
+				executionInsight.getProjectId()) && outputVariable instanceof String name) {
 			NounMetadata frame = executionInsight.getVarStore().get(name);
 			if (frame != null && frame.getNounType() == PixelDataType.FRAME) {
 				nodeResult.put(OUTPUT_FRAME_KEY, processNounMetadata(frame));
