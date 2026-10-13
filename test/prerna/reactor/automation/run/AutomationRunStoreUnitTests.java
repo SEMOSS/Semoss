@@ -222,6 +222,74 @@ class AutomationRunStoreUnitTests {
 	}
 
 	@Test
+	void inlineScopeRunsCompleteAndDeleteOnlyTheirOwnRows() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			schema(db);
+			savedResultSchema(db);
+			db.execute(
+					"CREATE TABLE AUTOMATION_RUN_WAITS (WAIT_ID VARCHAR, RUN_ID VARCHAR, NODE_ID VARCHAR, WAIT_TYPE VARCHAR, AGENT_RUN_ID VARCHAR, ROOM_ID VARCHAR, RESUME_NODE_ID VARCHAR, STATUS VARCHAR, CREATED_BY VARCHAR, STARTED_AT TIMESTAMP, EXPIRES_AT TIMESTAMP, RESOLVED_AT TIMESTAMP, RESOLVED_BY VARCHAR)");
+			String scope = AutomationConstants.INLINE_RUN_SCOPE_PREFIX + "owner";
+			String otherScope = AutomationConstants.INLINE_RUN_SCOPE_PREFIX + "other";
+			List<Map<String, Object>> nodes = List.of(Map.of("id", "node", "label", "Node"));
+			AutomationRunStore.initializeRun("brief", scope, "brief", 1, "hash", "{}", Map.of(), "SCHEDULED", "user",
+					nodes, Map.of(), Map.of("node", "source"));
+			AutomationRunStore.initializeRun("other-automation", scope, "default", 1, "hash", "{}", Map.of(),
+					"MANUAL", "user", nodes, Map.of(), Map.of("node", "source"));
+			AutomationRunStore.initializeRun("other-owner", otherScope, "brief", 1, "hash", "{}", Map.of(),
+					"SCHEDULED", "other", nodes, Map.of(), Map.of("node", "source"));
+			assertEquals(scope, db.value("SELECT PROJECT_ID FROM AUTOMATION_RUNS WHERE RUN_ID='brief'"));
+
+			assertTrue(AutomationRunStore.claimRun("brief"));
+			assertThrows(IllegalStateException.class,
+					() -> AutomationRunStore.completeRun("brief", otherScope, "SUCCESS", null, null));
+			AutomationRunStore.completeRun("brief", scope, "SUCCESS", null, null);
+			assertEquals("SUCCESS", db.value("SELECT STATUS FROM AUTOMATION_RUNS WHERE RUN_ID='brief'"));
+			db.execute("INSERT INTO AUTOMATION_RUN_WAITS (WAIT_ID, RUN_ID, NODE_ID, STATUS) "
+					+ "VALUES ('wait', 'brief', 'node', 'RESOLVED')",
+					"INSERT INTO AUTOMATION_SAVED_RESULTS (RESULT_ID, RUN_ID) VALUES ('result', 'brief')",
+					"INSERT INTO AUTOMATION_RESULT_CHUNKS (RESULT_ID, CHUNK_INDEX) VALUES ('result', 0)");
+
+			assertEquals(1, AutomationRunStore.deleteRuns(scope, "brief"));
+
+			assertEquals(2, db.count("AUTOMATION_RUNS"));
+			assertNull(db.value("SELECT RUN_ID FROM AUTOMATION_RUNS WHERE RUN_ID='brief'"));
+			assertNull(db.value("SELECT RUN_ID FROM AUTOMATION_RUN_NODE_SOURCES WHERE RUN_ID='brief'"));
+			assertNull(db.value("SELECT RUN_ID FROM AUTOMATION_NODE_OUTPUTS WHERE RUN_ID='brief'"));
+			assertEquals(0, db.count("AUTOMATION_RUN_WAITS"));
+			assertEquals(0, db.count("AUTOMATION_SAVED_RESULTS"));
+			assertEquals(0, db.count("AUTOMATION_RESULT_CHUNKS"));
+			assertEquals(2, db.count("AUTOMATION_RUN_NODE_SOURCES"));
+			assertEquals(2, db.count("AUTOMATION_NODE_OUTPUTS"));
+			assertEquals(0, AutomationRunStore.deleteRuns(scope, "brief"));
+		}
+	}
+
+	@Test
+	void lookAlikeScopeGetsNoRunsFromADatabaseThatIgnoresCase() throws Exception {
+		String scope = AutomationConstants.INLINE_RUN_SCOPE_PREFIX + "owner";
+		String lookAlike = scope.toLowerCase();
+		try (var db = new JdbcTestDatabase();
+				var queries = mockStatic(prerna.util.QueryExecutionUtility.class, CALLS_REAL_METHODS)) {
+			// Stands in for SQL Server or MySQL, whose default collation matches the look-alike id.
+			queries.when(() -> prerna.util.QueryExecutionUtility.flushRsToMap(eq(db.engine),
+					any(prerna.query.querystruct.SelectQueryStruct.class)))
+					.thenReturn(List.of(Map.of("RUN_ID", "brief", "PROJECT_ID", scope)));
+
+			assertTrue(AutomationRunStore.getRunsForProject(lookAlike, 10).isEmpty());
+			assertFalse(AutomationRunStore.hasAgentRunTrace(lookAlike, "brief", "node", "agent"));
+			assertEquals(1, AutomationRunStore.getRunsForProject(scope, 10).size());
+			assertTrue(AutomationRunStore.hasAgentRunTrace(scope, "brief", "node", "agent"));
+		}
+	}
+
+	@Test
+	void deletingRunsWithoutTheSchedulerDatabaseIsANoOp() {
+		try (var registry = mockStatic(SystemEngineRegistry.class)) {
+			assertEquals(0, AutomationRunStore.deleteRuns("scope", "automation"));
+		}
+	}
+
+	@Test
 	void staleRecoveryLeavesFreshHeartbeatsRunning() throws Exception {
 		try (var db = new JdbcTestDatabase();
 				var queries = mockStatic(prerna.util.QueryExecutionUtility.class, CALLS_REAL_METHODS)) {

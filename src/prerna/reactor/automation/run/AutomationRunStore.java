@@ -267,6 +267,17 @@ public final class AutomationRunStore {
 			PARENT_NODE_ID, ITERATION_INDEX, SOURCE_NODE_ID) \
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""";
 
+	// Child rows first, then the runs, all selected by run scope and automation.
+	private static final String RUNS_IN_SCOPE = "SELECT RUN_ID FROM AUTOMATION_RUNS WHERE PROJECT_ID = ? AND AUTOMATION_ID = ?";
+	private static final List<String> DELETE_RUNS = List.of(
+			"DELETE FROM AUTOMATION_RESULT_CHUNKS WHERE RESULT_ID IN (SELECT RESULT_ID FROM AUTOMATION_SAVED_RESULTS "
+					+ "WHERE RUN_ID IN (" + RUNS_IN_SCOPE + "))",
+			"DELETE FROM AUTOMATION_SAVED_RESULTS WHERE RUN_ID IN (" + RUNS_IN_SCOPE + ")",
+			"DELETE FROM AUTOMATION_RUN_NODE_SOURCES WHERE RUN_ID IN (" + RUNS_IN_SCOPE + ")",
+			"DELETE FROM AUTOMATION_NODE_OUTPUTS WHERE RUN_ID IN (" + RUNS_IN_SCOPE + ")",
+			"DELETE FROM AUTOMATION_RUN_WAITS WHERE RUN_ID IN (" + RUNS_IN_SCOPE + ")",
+			"DELETE FROM AUTOMATION_RUNS WHERE PROJECT_ID = ? AND AUTOMATION_ID = ?");
+
 	private static final String INCREMENT_RUN_TOTAL_NODES =
 			"UPDATE AUTOMATION_RUNS SET TOTAL_NODES = TOTAL_NODES + ? WHERE RUN_ID = ?";
 
@@ -1029,8 +1040,45 @@ public final class AutomationRunStore {
 		qs.addOrderBy(TABLE_RUNS + "__" + STARTED_AT, QueryColumnOrderBySelector.ORDER_BY_DIRECTION.DESC.toString());
 		qs.setLimit(limit);
 
-		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
-		return results != null ? results : new ArrayList<>();
+		List<Map<String, Object>> results = new ArrayList<>();
+		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		if (rows != null) {
+			// A database that compares ignoring case or accents must not hand another scope's runs to a look-alike id.
+			rows.stream().filter(row -> projectId.equals(row.get(PROJECT_ID))).forEach(results::add);
+		}
+		return results;
+	}
+
+	/**
+	 * Deletes every run of one automation in one run scope, with its source
+	 * snapshot, node outputs, and waits, in one transaction.
+	 *
+	 * @param runScope     Automation project ID or inline run scope
+	 * @param automationId logical automation stored in {@code AUTOMATION_ID}
+	 * @return number of runs deleted; 0 when the scheduler DB is unavailable
+	 * @throws IllegalStateException when the rows cannot be deleted
+	 */
+	public static int deleteRuns(String runScope, String automationId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) {
+			return 0;
+		}
+		try {
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				int deleted = 0;
+				for (String sql : DELETE_RUNS) {
+					deleted = QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
+						ps.setString(1, runScope);
+						ps.setString(2, automationId);
+					});
+				}
+				// The last statement deletes the runs themselves.
+				return deleted;
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to delete automation runs for automation '{}'", automationId, e);
+			throw new IllegalStateException("Unable to delete the automation runs.", e);
+		}
 	}
 
 	/**
@@ -1584,6 +1632,7 @@ public final class AutomationRunStore {
 		try {
 			SelectQueryStruct qs = new SelectQueryStruct();
 			qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + RUN_ID, RUN_ID));
+			qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + PROJECT_ID, PROJECT_ID));
 			qs.addRelation(TABLE_NODE_OUTPUTS + "__" + RUN_ID, TABLE_RUNS + "__" + RUN_ID, "inner.join");
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + PROJECT_ID, "==", projectId,
 					PixelDataType.CONST_STRING));
@@ -1594,7 +1643,9 @@ public final class AutomationRunStore {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_NODE_OUTPUTS + "__" + AGENT_RUN_ID, "==",
 					agentRunId, PixelDataType.CONST_STRING));
 			qs.setLimit(1L);
-			return !QueryExecutionUtility.flushRsToMap(schedulerDb, qs).isEmpty();
+			// The SQL match may ignore case or accents; the scope must be exact, as in getRunsForProject.
+			return QueryExecutionUtility.flushRsToMap(schedulerDb, qs).stream()
+					.anyMatch(row -> projectId.equals(row.get(PROJECT_ID)));
 		} catch (Exception e) {
 			throw new IllegalStateException("Unable to verify the Automation agent-run trace.", e);
 		}

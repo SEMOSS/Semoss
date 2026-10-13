@@ -300,7 +300,7 @@ public final class AutomationDefinitionValidator {
 		case FUNCTION_EXECUTE -> requireConfigObject(nodeId, config, "arguments");
 		case APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
 		case AGENT_RUN -> {
-			requireConfigString(nodeId, config, AutomationConstants.CONFIG_WORKSPACE_ID);
+			validateOptionalConfigString(nodeId, config, AutomationConstants.CONFIG_WORKSPACE_ID);
 			requireConfigString(nodeId, config, AutomationConstants.CONFIG_COMMAND);
 			validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
 			validateOptionalConfigObject(nodeId, config, "paramMap");

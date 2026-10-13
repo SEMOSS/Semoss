@@ -44,6 +44,7 @@ import java.util.stream.Stream;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -70,6 +71,10 @@ public final class AutomationDefinitionService {
 	private static final String TRANSACTION_STAGED_FOLDER = "staged";
 	private static final String TRANSACTION_BACKUP_FOLDER = "backup";
 	private static final String TRANSACTION_RECOVERY_FOLDER = "recovery";
+	/** GetAutomation response keys that are derived, not part of the graph. */
+	private static final List<String> INLINE_DERIVED_KEYS = List.of(AutomationConstants.DOC_NODE_SOURCES,
+			"sourceHashes", AutomationConstants.RESULT_REVISION, AutomationConstants.RESULT_SCOPE_VARIABLES,
+			AutomationConstants.DOC_GLOBALS);
 
 	private AutomationDefinitionService() {
 	}
@@ -120,6 +125,67 @@ public final class AutomationDefinitionService {
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to read Automation definition: " + e.getMessage(), e);
 		}
+	}
+
+	/**
+	 * Builds a runnable definition from inline JSON without a project or files. A
+	 * pasted {@code GetAutomation} export runs as is: its derived keys are dropped
+	 * and, when {@code nodeSources} is null, its embedded source map is used.
+	 *
+	 * <p>
+	 * Only {@code developer.python} keeps supplied source. Every generated node is
+	 * executed by its Java handler and rejects source.
+	 *
+	 * @param definitionJson graph document JSON, optionally a GetAutomation export
+	 * @param nodeSources    source by node ID, or null to use the embedded map
+	 * @return strictly validated graph and the source of each Python-backed node
+	 */
+	public static DefinitionFiles fromInline(String definitionJson, Map<String, String> nodeSources) {
+		if (definitionJson == null || definitionJson.isBlank()) {
+			throw new IllegalArgumentException("Automation definition must be a nonblank JSON object.");
+		}
+		Map<String, Object> document;
+		try {
+			document = AutomationRuntimeUtils.parseJsonObject(definitionJson, "Python automation definition");
+		} catch (JsonParseException e) {
+			throw new IllegalArgumentException("Automation definition must be valid JSON.", e);
+		}
+		Map<String, String> supplied = nodeSources != null ? nodeSources
+				: embeddedNodeSources(document.get(AutomationConstants.DOC_NODE_SOURCES));
+		for (String derivedKey : INLINE_DERIVED_KEYS) {
+			document.remove(derivedKey);
+		}
+		String definition = AutomationRuntimeUtils.GSON.toJson(document);
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidate(definition);
+		return new DefinitionFiles(definition, validateAndCompleteNodeSources(validated, supplied));
+	}
+
+	/**
+	 * Reports whether a definition runs Python written by its caller.
+	 *
+	 * @param files definition built by {@link #fromInline(String, Map)}
+	 * @return {@code true} when caller-written Python would run
+	 */
+	public static boolean containsCallerCode(DefinitionFiles files) {
+		return !files.nodeSources().isEmpty();
+	}
+
+	private static Map<String, String> embeddedNodeSources(Object raw) {
+		if (raw == null) {
+			return Map.of();
+		}
+		if (!(raw instanceof Map<?, ?> map)) {
+			throw new IllegalArgumentException("nodeSources must be a JSON object keyed by node id.");
+		}
+		Map<String, String> sources = new LinkedHashMap<>();
+		for (Map.Entry<?, ?> entry : map.entrySet()) {
+			if (!(entry.getKey() instanceof String nodeId) || !(entry.getValue() instanceof String source)) {
+				throw new IllegalArgumentException("nodeSources must map node ids to Python source strings.");
+			}
+			sources.put(nodeId, source);
+		}
+		return sources;
 	}
 
 	/**

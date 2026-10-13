@@ -192,7 +192,7 @@ public final class AutomationNodeCatalog {
 		definitions.add(
 				definition(AutomationNodeType.AGENT_RUN, "Run agent", "Run a configured SEMOSS agent with a prompt.",
 						orderedConfig("workspaceId", "", "engineId", "", "command", ""),
-						List.of(field("workspaceId", ConfigFieldType.STRING, "Agent", true, ""),
+						List.of(field("workspaceId", ConfigFieldType.STRING, "Agent", false, ""),
 								engineField(IEngine.CATALOG_TYPE.MODEL),
 								field("command", ConfigFieldType.TEXT, "Instruction", true, "")),
 						controlInputs(), controlAndResultOutputs()));

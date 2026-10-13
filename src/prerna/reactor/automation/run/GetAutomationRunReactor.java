@@ -44,7 +44,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Returns detail for a single automation run including per-node results.
  *
  * <p>
- * Pixel: {@code GetAutomationRun(project=["appId"], runId=["uuid"])}
+ * Pixel: {@code GetAutomationRun(project=["appId"], runId=["uuid"])}. Without
+ * {@code project}, the run must be one of the caller's own inline runs.
  *
  * <p>
  * Reads from AUTOMATION_RUNS and AUTOMATION_NODE_OUTPUTS in the scheduler DB.
@@ -57,7 +58,7 @@ public class GetAutomationRunReactor extends AbstractReactor {
 
 	public GetAutomationRunReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), RUN_ID_KEY };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keyRequired = new int[] { 0, 1 };
 	}
 
 	@Override
@@ -66,15 +67,11 @@ public class GetAutomationRunReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String runId = this.keyValue.get(this.keysToGet[1]);
 
-		if (projectId == null || projectId.isEmpty()) {
-			throw new IllegalArgumentException("Must provide a project id");
-		}
 		if (runId == null || runId.isEmpty()) {
 			throw new IllegalArgumentException("Must provide a run id");
 		}
 
-		projectId = AutomationProjectService.getViewableAutomationProject(this.insight.getUser(), projectId)
-				.getProjectId();
+		projectId = AutomationProjectService.resolveRunScope(this.insight.getUser(), projectId, false);
 
 		Map<String, Object> runDetail = AutomationRunStore.getRunDetail(runId);
 		// Scope by PROJECT_ID so a user with view access to one project cannot read
