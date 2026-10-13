@@ -63,11 +63,15 @@ public class AutomationSourceRendererUnitTests {
 	}
 
 	@Test
-	void readsGoThroughExecQuery() {
+	void readsRequestAJavaOwnedFrameImport() {
 		String source = AutomationSourceRenderer.renderNode(
 				node(AutomationConstants.NODE_DATABASE_QUERY, databaseConfig()));
 		assertTrue(source.contains("def run(scope):"), "every node source defines the run entry point");
-		assertTrue(source.contains("_pixel_value(\"limit\", int(scope.resolve(LIMIT)))"));
+		assertTrue(source.contains("REQUEST_KEY = \"__automation_database_query__\""));
+		assertTrue(source.contains("\"engineId\": scope.resolve(ENGINE_ID)"));
+		assertTrue(source.contains("\"query\": scope.resolve(QUERY)"));
+		assertTrue(source.contains("\"limit\": int(scope.resolve(LIMIT))"));
+		assertFalse(source.contains("Insight().run_pixel"));
 		assertFalse(source.contains("insertData"));
 		assertFalse(source.contains("removeData"));
 	}
@@ -118,10 +122,46 @@ public class AutomationSourceRendererUnitTests {
 		assertTrue(source.contains("_pixel_value(\"options\", \"regex\")"));
 		assertTrue(source.contains("\"files\": files"));
 		assertTrue(source.contains("\"filePath\": files[0] if len(files) == 1 else None"));
+		assertTrue(source.contains("if not files:"));
+		assertTrue(source.contains("No file was downloaded from storage path"));
 		assertTrue(source.contains("or \"/\""));
 		assertFalse(source.contains("pathlib"));
 		assertFalse(source.contains(".replace("));
 		assertFalse(source.contains("return storage.copyToLocal("));
+	}
+
+	@Test
+	void storageListCanFilterFileTypesWithoutChangingTheStorageEngine() {
+		Map<String, Object> config = new LinkedHashMap<>();
+		config.put("engineId", "storage-1");
+		config.put("path", "incoming");
+		config.put("extensions", java.util.List.of("pdf", ".png"));
+
+		String source = AutomationSourceRenderer
+				.renderNode(node(AutomationConstants.NODE_STORAGE_LIST, config));
+
+		assertTrue(source.contains("details = storage.listDetails(scope.resolve(STORAGE_PATH))"));
+		assertTrue(source.contains("item.get(\"Path\")"));
+		assertTrue(source.contains("path.rstrip(\"/\").lower().endswith(suffixes)"));
+		assertTrue(source.contains("FILE_TYPES = [\"pdf\",\".png\"]"));
+	}
+
+	@Test
+	void dataExtractReadsOnlyFromTheCurrentInsightWorkspace() {
+		Map<String, Object> config = new LinkedHashMap<>();
+		config.put(AutomationConstants.CONFIG_SOURCE, "${download.filePath}");
+		config.put(AutomationConstants.CONFIG_PATH, "orders[0].id");
+		config.put(AutomationConstants.CONFIG_FORMAT, "json");
+		config.put(AutomationConstants.CONFIG_MISSING_VALUE, "missing");
+		config.put(AutomationConstants.CONFIG_NULL_VALUE, "null");
+
+		String source = AutomationSourceRenderer.renderNode(node(AutomationConstants.NODE_DATA_EXTRACT, config));
+
+		assertTrue(source.contains("GetInsightAssetsBase64("));
+		assertTrue(source.contains("extract_data_element("));
+		assertTrue(source.contains("source=scope.resolve(SOURCE)"));
+		assertFalse(source.contains("from semoss_automation_runtime import"));
+		assertFalse(source.contains("open("));
 	}
 
 	@Test
@@ -197,7 +237,8 @@ public class AutomationSourceRendererUnitTests {
 	@Test
 	void everyNodeSourceResolvesThroughScope() {
 		for (AutomationNodeType type : AutomationNodeType.values()) {
-			if (type == AutomationNodeType.CONTROL_IF || type == AutomationNodeType.CONTROL_JEV) {
+			if (type == AutomationNodeType.CONTROL_IF || type == AutomationNodeType.CONTROL_JEV
+					|| type == AutomationNodeType.CONTROL_LOOP) {
 				continue;
 			}
 			String source = AutomationSourceRenderer.renderNode(node(type.getType(), databaseConfig()));

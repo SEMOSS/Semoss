@@ -71,6 +71,7 @@ public enum AutomationNodeType {
 			Permission.VIEW, true, true),
 	STORAGE_DELETE(AutomationConstants.NODE_STORAGE_DELETE, Category.STORAGE, IEngine.CATALOG_TYPE.STORAGE,
 			Permission.EDIT, true, true),
+	DATA_EXTRACT(AutomationConstants.NODE_DATA_EXTRACT, Category.DATA, null, Permission.NONE, true, false),
 	VECTOR_SEARCH(AutomationConstants.NODE_VECTOR_SEARCH, Category.VECTOR, IEngine.CATALOG_TYPE.VECTOR, Permission.VIEW,
 			true, true),
 	VECTOR_ADD(AutomationConstants.NODE_VECTOR_ADD, Category.VECTOR, IEngine.CATALOG_TYPE.VECTOR, Permission.EDIT, true,
@@ -86,13 +87,14 @@ public enum AutomationNodeType {
 	CONTROL_IF(AutomationConstants.NODE_CONTROL_IF, Category.CONTROL, null, Permission.NONE, false, false),
 	CONTROL_JEV(AutomationConstants.NODE_CONTROL_JEV, Category.CONTROL, IEngine.CATALOG_TYPE.MODEL, Permission.VIEW,
 			false, false),
+	CONTROL_LOOP(AutomationConstants.NODE_CONTROL_LOOP, Category.CONTROL, null, Permission.NONE, true, false),
 	DEVELOPER_PYTHON(AutomationConstants.NODE_DEVELOPER_PYTHON, Category.DEVELOPER, null, Permission.NONE, true, true);
 
 	/**
 	 * Logical grouping used by clients without parsing the persisted type string.
 	 */
 	public enum Category {
-		TRIGGER, DATABASE, MODEL, STORAGE, VECTOR, FUNCTION, APP, AGENT, CONTROL, DEVELOPER
+		TRIGGER, DATABASE, MODEL, STORAGE, DATA, VECTOR, FUNCTION, APP, AGENT, CONTROL, DEVELOPER
 	}
 
 	/** Minimum resource permission required by the node when it references one. */

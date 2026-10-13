@@ -96,12 +96,22 @@ public final class AutomationConstants {
 	public static final String EXECUTION_ORDER = "EXECUTION_ORDER";
 	public static final String DURATION_MS = "DURATION_MS";
 	public static final String OUTPUT_VAR_NAME = "OUTPUT_VAR_NAME";
+	/** Internal durable discriminator for node output storage semantics. */
+	public static final String OUTPUT_KIND = "OUTPUT_KIND";
+	/** Output kind for a value backed by a frame in the run Insight. */
+	public static final String OUTPUT_KIND_FRAME = "FRAME";
 	public static final String OUTPUT_VALUE = "OUTPUT_VALUE";
 	public static final String OUTPUT_PREVIEW = "OUTPUT_PREVIEW";
 	public static final String ROOM_ID = "ROOM_ID";
 	public static final String WORKSPACE_ID = "WORKSPACE_ID";
 	public static final String MODEL_MESSAGE_ID = "MODEL_MESSAGE_ID";
 	public static final String AGENT_RUN_ID = "AGENT_RUN_ID";
+	/** Owning loop node for a dynamically materialized loop-body execution row. */
+	public static final String PARENT_NODE_ID = "PARENT_NODE_ID";
+	/** Zero-based loop iteration for a dynamically materialized body execution row. */
+	public static final String ITERATION_INDEX = "ITERATION_INDEX";
+	/** Canonical graph node represented by a dynamic execution row. */
+	public static final String SOURCE_NODE_ID = "SOURCE_NODE_ID";
 
 	// -- AUTOMATION_RUN_WAITS columns ---------------------------------------------
 
@@ -161,6 +171,7 @@ public final class AutomationConstants {
 	public static final String NODE_STORAGE_UPLOAD = "storage.upload";
 	public static final String NODE_STORAGE_DOWNLOAD = "storage.download";
 	public static final String NODE_STORAGE_DELETE = "storage.delete";
+	public static final String NODE_DATA_EXTRACT = "data.extract";
 	public static final String NODE_VECTOR_SEARCH = "vector.search";
 	public static final String NODE_VECTOR_ADD = "vector.add";
 	public static final String NODE_VECTOR_DELETE = "vector.delete";
@@ -170,18 +181,29 @@ public final class AutomationConstants {
 	public static final String NODE_CONTROL_WAIT = "control.wait";
 	public static final String NODE_CONTROL_IF = "control.if";
 	public static final String NODE_CONTROL_JEV = "control.jev";
+	public static final String NODE_CONTROL_LOOP = "control.loop";
 	public static final String NODE_DEVELOPER_PYTHON = "developer.python";
 
 	// -- Node config keys (node.config map fields, shared across executors)
 	// --------
 
 	public static final String CONFIG_ENGINE_ID = "engineId";
+	public static final String CONFIG_KEY = "key";
+	public static final String CONFIG_TYPE = "type";
 	public static final String CONFIG_CLAUSES = "clauses";
 	public static final String CONFIG_CLAUSE_ID = "id";
 	public static final String CONFIG_CONDITION = "condition";
 	public static final String CONFIG_STATE = "state";
+	public static final String CONFIG_QUESTIONS = "questions";
+	public static final String CONFIG_QUESTION_KEY = "questionKey";
 	public static final String CONFIG_QUESTION = "question";
 	public static final String CONFIG_QUESTION_TYPE = "questionType";
+	public static final String CONFIG_INSTRUCTIONS = "instructions";
+	public static final String CONFIG_CRITERIA = "criteria";
+	public static final String CONFIG_MATCH = "match";
+	public static final String CONFIG_CONDITIONS = "conditions";
+	public static final String CONFIG_FIELD = "field";
+	public static final String CONFIG_OPTION = "option";
 	public static final String CONFIG_CONFIDENCE_THRESHOLD = "confidenceThreshold";
 	public static final String CONFIG_LIMIT = "limit";
 	public static final String CONFIG_COMMAND = "command";
@@ -189,10 +211,37 @@ public final class AutomationConstants {
 	public static final String CONFIG_PIXEL = "pixel";
 	public static final String CONFIG_GLOBALS = "globals";
 	public static final String CONFIG_DEFAULT_VALUE = "defaultValue";
+	public static final String CONFIG_SOURCE = "source";
+	public static final String CONFIG_PATH = "path";
+	public static final String CONFIG_FORMAT = "format";
+	public static final String CONFIG_MISSING_VALUE = "missingValue";
+	public static final String CONFIG_NULL_VALUE = "nullValue";
+	public static final String CONFIG_OPERATION = "operation";
+	public static final String CONFIG_COLUMNS = "columns";
+	public static final String CONFIG_OPERATOR = "operator";
+	public static final String CONFIG_VALUE = "value";
 	public static final String CONFIG_DESCRIPTION = "description";
 	public static final String CONFIG_ANSWER = "answer";
 	public static final String JEV_QUESTION_TYPE_CHOICE = "choice";
+	public static final String JEV_QUESTION_TYPE_SCORE = "score";
 	public static final String JEV_QUESTION_TYPE_NOUL = "noul";
+	public static final String JEV_ROUTE_MATCH_ALL = "all";
+	public static final String JEV_ROUTE_MATCH_ANY = "any";
+	public static final String JEV_FIELD_CHOICE = "choice";
+	public static final String JEV_FIELD_SCORE = "score";
+	public static final String JEV_FIELD_NOUL = "noul";
+	public static final String JEV_FIELD_CONFIDENCE = "confidence";
+	public static final String JEV_FIELD_PROBABILITY = "probability";
+	public static final String JEV_OPERATOR_EQUALS = "equals";
+	public static final String JEV_OPERATOR_NOT_EQUALS = "notEquals";
+	public static final String JEV_OPERATOR_GREATER_THAN = "greaterThan";
+	public static final String JEV_OPERATOR_GREATER_THAN_OR_EQUAL = "greaterThanOrEqual";
+	public static final String JEV_OPERATOR_LESS_THAN = "lessThan";
+	public static final String JEV_OPERATOR_LESS_THAN_OR_EQUAL = "lessThanOrEqual";
+	public static final int JEV_MAX_QUESTIONS = 32;
+	public static final int JEV_MAX_ROUTES = 32;
+	public static final int JEV_MAX_ROUTE_CONDITIONS = 32;
+	public static final int JEV_MAX_CRITERIA = 255;
 	/** Optional trigger setup Python. */
 	public static final String CONFIG_PYTHON_SOURCE = "pythonSource";
 	public static final String CONFIG_HARNESS_TYPE = "harnessType";
@@ -200,6 +249,15 @@ public final class AutomationConstants {
 	public static final String CONFIG_MAX_TURNS = "maxTurns";
 	public static final String CONFIG_MAX_REFLECTIONS = "maxReflections";
 	public static final String CONFIG_WAIT = "wait";
+	public static final String CONFIG_LOOP_MODE = "mode";
+	public static final String CONFIG_LOOP_ITEMS = "items";
+	public static final String CONFIG_LOOP_BATCH_SIZE = "batchSize";
+	public static final String CONFIG_LOOP_COUNT = "count";
+	public static final String CONFIG_LOOP_CONDITION = "condition";
+	public static final String CONFIG_LOOP_MAX_ITERATIONS = "maxIterations";
+	public static final String LOOP_MODE_FOR_EACH = "forEach";
+	public static final String LOOP_MODE_REPEAT = "repeat";
+	public static final String LOOP_MODE_WHILE = "while";
 	public static final String CONFIG_WAIT_TIMEOUT_MS = "waitTimeoutMs";
 	public static final String CONFIG_APP_ID = "appId";
 
@@ -209,12 +267,23 @@ public final class AutomationConstants {
 	public static final int DEFAULT_DB_QUERY_LIMIT = 50;
 	/** Smallest row limit accepted by a generated database query node. */
 	public static final int DB_QUERY_MIN_LIMIT = 1;
-	/** Largest row limit accepted by a generated database query node. */
-	public static final int DB_QUERY_MAX_LIMIT = 1_000;
+	/**
+	 * Largest row limit accepted by a generated database query node. Large query
+	 * results remain in the run Insight's frame and therefore do not cross the
+	 * bounded JSON node-output contract.
+	 */
+	public static final int DB_QUERY_MAX_LIMIT = 50_000;
 	public static final int DEFAULT_VECTOR_SEARCH_LIMIT = 5;
 	public static final int DEFAULT_LIST_RUNS_LIMIT = 25;
 	public static final int WAIT_MIN_SECONDS = 0;
 	public static final int WAIT_MAX_SECONDS = 3600;
+	public static final int LOOP_MIN_BATCH_SIZE = 1;
+	public static final int LOOP_MAX_BATCH_SIZE = 1_000;
+	public static final int LOOP_DEFAULT_MAX_ITERATIONS = 1_000;
+	public static final int LOOP_MAX_ITERATIONS = 10_000;
+	public static final int LOOP_MAX_BODY_NODES = 1_000;
+	/** Maximum materialized body-node rows created by one loop execution. */
+	public static final int LOOP_MAX_NODE_EXECUTIONS = 100_000;
 	public static final int NODE_SOURCE_MAX_BYTES = 100_000;
 	public static final int NODE_OUTPUT_MAX_BYTES = 5 * 1024 * 1024;
 	public static final int RUN_INPUTS_MAX_BYTES = 5 * 1024 * 1024;
@@ -245,6 +314,8 @@ public final class AutomationConstants {
 	public static final String NODE_FIELD_TYPE = "type";
 	public static final String NODE_FIELD_LABEL = "label";
 	public static final String NODE_FIELD_CONFIG = "config";
+	/** Nested acyclic graph owned by a container node such as {@code control.loop}. */
+	public static final String NODE_FIELD_BODY = "body";
 	public static final String NODE_FIELD_OUTPUT_VAR = "outputVar";
 	public static final String EDGE_FIELD_SOURCE = "source";
 	public static final String EDGE_FIELD_TARGET = "target";
@@ -293,6 +364,20 @@ public final class AutomationConstants {
 	 * persistence.
 	 */
 	public static final String INTERNAL_RESULT_METADATA = "__automation_metadata__";
+	/** Runtime-owned Python-to-Java node result discriminator. */
+	public static final String INTERNAL_NODE_RESULT_KIND = "__automation_result_kind__";
+	/** Runtime-owned Python-to-Java ordinary node value. */
+	public static final String INTERNAL_NODE_RESULT_VALUE = "__automation_result_value__";
+	/** Runtime result kind for an ordinary JSON-compatible node value. */
+	public static final String INTERNAL_NODE_RESULT_KIND_VALUE = "VALUE";
+	/** Runtime result kind for a frame retained in the run Insight. */
+	public static final String INTERNAL_NODE_RESULT_KIND_FRAME = "FRAME";
+	/**
+	 * Reserved generated-source signal requesting a guarded database query whose
+	 * result is loaded directly into a run-owned frame. Removed before scope and
+	 * history persistence.
+	 */
+	public static final String INTERNAL_DATABASE_QUERY = "__automation_database_query__";
 	public static final String TRACE_ROOM_ID = "roomId";
 	public static final String TRACE_WORKSPACE_ID = "workspaceId";
 	public static final String TRACE_MODEL_MESSAGE_ID = "modelMessageId";

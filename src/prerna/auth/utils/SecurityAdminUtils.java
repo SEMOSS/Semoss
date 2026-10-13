@@ -28,8 +28,6 @@
 package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -37,12 +35,11 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -53,6 +50,13 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
+import prerna.auth.access.PermissionBatch;
+import prerna.auth.access.PermissionChange;
+import prerna.auth.access.PermissionErrorRules;
+import prerna.auth.access.PermissionGrant;
+import prerna.auth.access.PermissionProblem;
+import prerna.auth.access.PermissionSubject;
+import prerna.auth.access.PermissionTargetResource;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -75,7 +79,6 @@ import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -524,7 +527,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT_USER_PERMISSIONS__PERMISSION", "project_permission"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT_GROUP_PERMISSIONS__PERMISSION", "insight_group_permission"));
 		qs.addSelector(new QueryColumnSelector("PROJECT_GROUP_PERMISSIONS__PERMISSION", "project_group_permission"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT_USER_PERMISSIONS__FAVORITE", "insight_favorite"));
+		qs.addSelector(
+				QueryFunctionSelector.makeCol2ValCoalesceSelector("USER_PREFERENCES__FAVORITE", 0, "insight_favorite"));
 
 		// if user project owner - return owner
 		// if group project owner - return owner
@@ -586,12 +590,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		// add PROJECT relation
 		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-		// add a join to get the user permission level and if favorite
+		// add a join to get the user permission level
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
 			qs2.addSelector(new QueryColumnSelector(userInsightPrefix + "INSIGHTID", "INSIGHTID"));
-			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
-					userInsightPrefix + "FAVORITE", "FAVORITE"));
 			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
 					userInsightPrefix + "PERMISSION", "PERMISSION"));
 			qs2.addGroupBy(new QueryColumnSelector(userInsightPrefix + "INSIGHTID", "INSIGHTID"));
@@ -601,6 +603,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					new String[] { "INSIGHT_USER_PERMISSIONS__INSIGHTID", insightPrefix + "INSIGHTID", "=" });
 			qs.addRelation(subQuery);
 		}
+		// add a join to get if favorite
+		qs.addRelation(SecurityInsightUtils.getUserInsightPreferencesSubquery(securityDb, user));
 		// add a join to get the user project permission
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
@@ -697,18 +701,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			qs.addRelation(subQuery);
 		}
 
-		// remove hidden projects
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			// store first and fill in sub query after
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=", subQs));
-
-			// fill in the sub query with the single return + filters
-			subQs.addSelector(new QueryColumnSelector(userProjectPrefix + "PROJECTID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "VISIBILITY", "==", false,
-					PixelDataType.BOOLEAN));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
-		}
+		// remove hidden projects and insights
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=",
+				getHiddenIdsQs(user, "USERPROJECTPREFERENCE", "PROJECTID")));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", "!=",
+				getHiddenIdsQs(user, "USERINSIGHTPREFERENCE", "INSIGHTID")));
 
 		// filter the insight ids based on
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -1114,6 +1111,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		{
 			String[] deleteQueries = new String[] { "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE USERID=? AND TYPE=?",
+					"DELETE FROM GROUPMANAGERS WHERE USERID=? AND TYPE=?",
+					"DELETE FROM USERENGINEPREFERENCE WHERE USERID=? AND TYPE=?",
+					"DELETE FROM USERPROJECTPREFERENCE WHERE USERID=? AND TYPE=?",
+					"DELETE FROM USERINSIGHTPREFERENCE WHERE USERID=? AND TYPE=?",
 					"DELETE FROM ENGINEACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=?",
 					"DELETE FROM PROJECTACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=?", };
 			for (String query : deleteQueries) {
@@ -1975,285 +1976,115 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param newUserId
-	 * @param engineId
-	 * @param permission
-	 * @param user
-	 * @param endDate
-	 * @param usageRestriction
-	 * @param usageFrequency
-	 * @param maxTokens
-	 * @param maxResponseTime
+	 * Gives a person access to an engine in admin mode, as a permission batch.
+	 * Limits of 0 are no limit.
+	 *
+	 * @param newUserId        the person
+	 * @param engineId         the engine
+	 * @param permission       the level, by name; anything else is Read-Only
+	 * @param user             the admin
+	 * @param endDate          when the access ends, or null
+	 * @param usageRestriction a model engine's usage restriction, or null
+	 * @param usageFrequency   how often a model engine's limits reset, or null
+	 * @param maxTokens        a model engine's token limit, or 0 for none
+	 * @param maxResponseTime  a model engine's response time limit, or 0 for none
 	 */
 	public void addEngineUser(String newUserId, String engineId, String permission, User user, String endDate,
 			String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// make sure user doesn't already exist for this database
-		if (SecurityUserEngineUtils.getUserEnginePermission(newUserId, engineId) != null) {
-			// that means there is already a value
-			throw new IllegalArgumentException(
-					"This user already has access to this engine. Please edit the existing permission level.");
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, insertQ, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, newUserId);
-				ps.setString(parameterIndex++, engineId);
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-				ps.setBoolean(parameterIndex++, true);
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-						StringUtils.trim(usageRestriction));
-				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-						StringUtils.trim(usageFrequency));
-				if (maxTokens == 0) {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-				} else {
-					ps.setInt(parameterIndex++, maxTokens);
-				}
-				if (maxResponseTime == 0.0) {
-					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-				} else {
-					ps.setDouble(parameterIndex++, maxResponseTime);
-				}
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to add engine user", e);
-			throw new IllegalArgumentException(
-					"An error occurred adding the user permissions for this engine. Detailed error message = "
-							+ e.getMessage());
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.add(PermissionSubject.ofUser(newUserId, null),
+						new PermissionGrant(permission, endDate)
+								.withUsageLimits(usageRestriction, usageFrequency, maxTokens, maxResponseTime))),
+				PermissionBatchOptions.adminMode().zeroLimitsAsNone(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						"This user already has access to this engine. Please edit the existing permission level.")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred adding the user permissions for this engine"));
 	}
 
 	/**
-	 * 
-	 * @param engineId
-	 * @param permission
-	 * @param user
+	 * Gives many people access to an engine together in admin mode, as an access
+	 * batch. Each entry has {@code userid}, {@code permission}, and optionally
+	 * {@code type}, {@code endDate} and the model limits.
+	 *
+	 * @param engineId   the engine
+	 * @param permission the people, their levels, end dates and limits
+	 * @param user       the admin
 	 */
 	public void addEngineUserPermissions(String engineId, List<Map<String, Object>> permission, User user) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// first, check to make sure these users do not already have permissions to
-		// database
-		// get list of userids from permission list map
-		List<String> userIds = permission.stream().map(map -> (String) map.get("userid")).collect(Collectors.toList());
-		// this returns a list of existing permissions
-		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(userIds,
-				engineId);
-		if (!existingUserPermission.isEmpty()) {
-			throw new IllegalArgumentException(
-					"The following users already have access to this database. Please edit the existing permission level: "
-							+ String.join(",", existingUserPermission.keySet()));
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
-		try {
-			QueryExecutionUtility.executeBatch(securityDb, insertQ, permission, (ps, thisPermissionMap) -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, (String) thisPermissionMap.get("userid"));
-				ps.setString(parameterIndex++, engineId);
-				ps.setInt(parameterIndex++,
-						AccessPermissionEnum.getIdByPermission((String) thisPermissionMap.get("permission")));
-				ps.setBoolean(parameterIndex++, true);
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				// end date for this user
-				Timestamp verifiedEndDate = null;
-				if (thisPermissionMap.get("endDate") != null) {
-					verifiedEndDate = AbstractSecurityUtils.calculateEndDate((String) thisPermissionMap.get("endDate"));
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-				}
-
-				// engine usage restrictions
-				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-						StringUtils.trim((String) thisPermissionMap.get("usageRestriction")));
-				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-						StringUtils.trim((String) thisPermissionMap.get("usageFrequency")));
-				if (thisPermissionMap.get("maxTokens") != null) {
-					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).intValue());
-				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-				}
-				if (thisPermissionMap.get("maxResponseTime") != null) {
-					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
-				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-				}
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to add engine user permissions", e);
-			throw new IllegalArgumentException(
-					"An error occurred adding the user permissions for this engine. Detailed error message = "
-							+ e.getMessage());
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				PermissionBatchUtils.engineChanges(PermissionChange.Action.ADD, permission),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						"The following users already have access to this database. Please edit the existing permission level: ")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred adding the user permissions for this engine"));
 	}
 
 	/**
-	 * 
-	 * @param newUserId
-	 * @param projectId
-	 * @param permission
-	 * @return
+	 * Gives many people access to a project together in admin mode, as an access
+	 * batch. Each entry has {@code userid}, {@code permission}, and optionally
+	 * {@code type} and {@code endDate}.
+	 *
+	 * @param projectId  the project
+	 * @param permission the people, their levels and end dates
+	 * @param user       the admin
 	 */
 	public void addProjectUserPermissions(String projectId, List<Map<String, String>> permission, User user) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// first, check to make sure these users do not already have permissions to
-		// project
-		// get list of userids from permission list map
-		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
-		// this returns a list of existing permissions
-		Map<String, Integer> existingUserPermission = SecurityProjectUtils.getUserProjectPermissions(userIds,
-				projectId);
-		if (!existingUserPermission.isEmpty()) {
-			throw new IllegalArgumentException(
-					"The following users already have access to this project. Please edit the existing permission level: "
-							+ String.join(",", existingUserPermission.keySet()));
+		// each row has its own end date
+		List<PermissionChange> changes = new ArrayList<>();
+		for (Map<String, String> entry : permission) {
+			changes.add(PermissionChange.add(PermissionSubject.ofUser(entry.get("userid"), entry.get("type")),
+					new PermissionGrant(entry.get("permission"), entry.get("endDate"))));
 		}
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-
-		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-		try {
-			QueryExecutionUtility.executeBatch(securityDb, insertQ, permission, (ps, thisPermissionMap) -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, thisPermissionMap.get("userid"));
-				ps.setString(parameterIndex++, projectId);
-				ps.setInt(parameterIndex++,
-						AccessPermissionEnum.getIdByPermission(thisPermissionMap.get("permission")));
-				ps.setBoolean(parameterIndex++, true);
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				// end date for this user
-				Timestamp verifiedEndDate = null;
-				if (thisPermissionMap.get("endDate") != null) {
-					verifiedEndDate = AbstractSecurityUtils.calculateEndDate(thisPermissionMap.get("endDate"));
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-				}
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to add project user permissions", e);
-			throw new IllegalArgumentException(
-					"An error occurred adding the user permissions for this project. Detailed error message = "
-							+ e.getMessage());
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId), changes,
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						"The following users already have access to this project. Please edit the existing permission level: ")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred adding the user permissions for this project"));
 	}
 
 	/**
-	 * 
-	 * @param newUserId
-	 * @param insightId
-	 * @param permission
-	 * @return
+	 * Gives many people access to an insight together in admin mode, as an access
+	 * batch. Each entry has {@code userid} and {@code permission}; every row gets
+	 * the end date given here.
+	 *
+	 * @param projectId  the project the insight belongs to
+	 * @param insightId  the insight
+	 * @param permission the people and their levels
+	 * @param user       the admin
+	 * @param endDate    when the access ends, or null
 	 */
 	public void addInsightUserPermissions(String projectId, String insightId, List<Map<String, String>> permission,
 			User user, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// first, check to make sure these users do not already have permissions to
-		// insight
-		// get list of userids from permission list map
-		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
-		// this returns a list of existing permissions
-		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(userIds, projectId,
-				insightId);
-		if (!existingUserPermission.isEmpty()) {
-			throw new IllegalArgumentException(
-					"The following users already have access to this insight. Please edit the existing permission level: "
-							+ String.join(",", existingUserPermission.keySet()));
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-		try {
-			QueryExecutionUtility.executeBatch(securityDb, insertQ, permission, (ps, batchRow) -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, batchRow.get("userid"));
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, insightId);
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(batchRow.get("permission")));
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to add insight user permissions", e);
-			throw new IllegalArgumentException(
-					"An error occurred adding the user permissions for this insight. Detailed error message = "
-							+ e.getMessage());
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
+				PermissionBatchUtils.peopleChanges(PermissionChange.Action.ADD, permission, endDate),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgumentWithIds(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						"The following users already have access to this insight. Please edit the existing permission level: ")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred adding the user permissions for this insight"));
 	}
 
 	/**
-	 * 
-	 * @param newUserId
-	 * @param projectId
-	 * @param permission
-	 * @return
+	 * Gives a person access to a project in admin mode, as a permission batch.
+	 *
+	 * @param newUserId  the person
+	 * @param projectId  the project
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param user       the admin
+	 * @param endDate    when the access ends, or null
 	 */
 	public void addProjectUser(String newUserId, String projectId, String permission, User user, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user doesn't already exist for this project
-		if (SecurityUserProjectUtils.getUserProjectPermission(newUserId, projectId) != null) {
-			// that means there is already a value
-			throw new IllegalArgumentException(
-					"This user already has access to this project. Please edit the existing permission level.");
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, insertQ, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, newUserId);
-				ps.setString(parameterIndex++, projectId);
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-				ps.setBoolean(parameterIndex++, true);
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to add project user", e);
-			throw new IllegalArgumentException(
-					"An error occurred adding the user permissions for this project. Detailed error message = "
-							+ e.getMessage());
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange
+						.add(PermissionSubject.ofUser(newUserId, null), new PermissionGrant(permission, endDate))),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						"This user already has access to this project. Please edit the existing permission level.")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred adding the user permissions for this project"));
 	}
 
 	/**
@@ -2271,140 +2102,38 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Return the databases the user has explicit access to
-	 * 
-	 * @param singleUserId
-	 * @return
-	 */
-	public Map<String, Boolean> getProjectsAndVisibilityUserHasExplicitAccess(String singleUserId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__VISIBILITY"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", singleUserId));
-		Map<String, Boolean> values = new HashMap<>();
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
-				Object[] row = wrapper.next().getValues();
-				values.put((String) row[0], (Boolean) row[1]);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to retrieve projects with explicit user visibility settings", e);
-		}
-
-		return values;
-	}
-
-	/**
-	 * Give user permission for all the projects
-	 * 
-	 * @param userId     String - The user id we are providing permissions to
-	 * @param permission String - The permission level for the access
-	 * @param isAddNew   boolean - If false, modifying existing project permissions
-	 *                   to the new permission level If true, adding new projects
-	 *                   with the permission level specified
+	 * Gives a person one level on every project in admin mode, as permission
+	 * batches. With {@code isAddNew}, they get it on every project they have no
+	 * access to; otherwise the projects they have access to change to it, and their
+	 * end dates are cleared.
+	 *
+	 * @param userId     the person
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param isAddNew   whether to add the projects they cannot use, rather than
+	 *                   change the ones they can
+	 * @param user       the admin
 	 */
 	public void grantAllProjects(String userId, String permission, boolean isAddNew, User user) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
+		List<PermissionBatch> batches = new ArrayList<>();
 		if (isAddNew) {
-			List<String> currentProjectAccess = getProjectsUserHasExplicitAccess(userId);
-			List<String> projectIds = SecurityProjectUtils.getAllProjectIds();
-			String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?, ?,?,?,?,?,?)";
-			int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
-			boolean visible = true;
-			PreparedStatement ps = null;
-			try {
-				ps = securityDb.getPreparedStatement(insertQuery);
-				// add new permission for projects
-				for (String projectId : projectIds) {
-					if (currentProjectAccess.contains(projectId)) {
-						// only add for new projects, not existing projects
-						continue;
-					}
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setBoolean(parameterIndex++, visible);
-					ps.setInt(parameterIndex++, permissionLevel);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					ps.addBatch();
+			// rows with no level are no access, so those projects are added
+			Set<String> current = new HashSet<>(getProjectIdsUserCanUse(userId));
+			for (String projectId : SecurityProjectUtils.getAllProjectIds()) {
+				if (!current.contains(projectId)) {
+					batches.add(new PermissionBatch(PermissionTargetResource.project(projectId),
+							PermissionChange.forPeople(PermissionChange.Action.ADD, List.of(userId),
+									new PermissionGrant(permission, null))));
 				}
-				ps.executeBatch();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-			} catch (SQLException e) {
-				classLogger.error("Failed to grant access to all projects", e);
-				throw new IllegalArgumentException(
-						"An error occurred granting the user permission for all the projects");
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		} else {
-			// first grab the projects and visibility
-			Map<String, Boolean> currentProjectToVisibilityMap = getProjectsAndVisibilityUserHasExplicitAccess(userId);
-
-			// we will remove all the current permissions
-			// and then re-add the ones they used to have but with the new level
-
-			// delete first
-			{
-				String deleteQuery = "DELETE FROM PROJECTPERMISSION WHERE USERID=?";
-				PreparedStatement ps = null;
-				try {
-					ps = securityDb.getPreparedStatement(deleteQuery);
-					ps.setString(1, userId);
-					ps.execute();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (SQLException e) {
-					classLogger.error("Failed to grant access to all projects", e);
-					throw new IllegalArgumentException(
-							"An error occurred granting the user permission for all the projects");
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			}
-			// now add
-			{
-				// now we insert the values
-				String insertQuery = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
-				int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
-				PreparedStatement ps = null;
-
-				try {
-					ps = securityDb.getPreparedStatement(insertQuery);
-					// add new permission for all projects
-					for (String projectId : currentProjectToVisibilityMap.keySet()) {
-						boolean visible = currentProjectToVisibilityMap.get(projectId);
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, projectId);
-						ps.setBoolean(parameterIndex++, visible);
-						ps.setInt(parameterIndex++, permissionLevel);
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (SQLException e) {
-					classLogger.error("Failed to grant access to all projects", e);
-					throw new IllegalArgumentException(
-							"An error occurred granting the user permission for all the projects");
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
+			for (String projectId : getProjectIdsUserCanUse(userId)) {
+				batches.add(new PermissionBatch(PermissionTargetResource.project(projectId), PermissionChange.forPeople(
+						PermissionChange.Action.CHANGE, List.of(userId), new PermissionGrant(permission, null))));
 			}
 		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, batches, PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred granting the user permission for all the projects"));
 	}
 
 	/**
@@ -2426,776 +2155,326 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Return the databases the user has explicit access to
-	 * 
-	 * @param singleUserId
-	 * @return
-	 */
-	public Map<String, Boolean> getEnginesAndVisibilityUserHasExplicitAccess(String singleUserId,
-			List<String> engineTypes) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
-		if (engineTypes != null && !engineTypes.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
-			qs.addRelation("ENGINEPERMISSION__ENGINEID", "ENGINE__ENGINEID", "inner.join");
-		}
-		Map<String, Boolean> values = new HashMap<>();
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
-				Object[] row = wrapper.next().getValues();
-				values.put((String) row[0], (Boolean) row[1]);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to retrieve engines with explicit user visibility settings", e);
-		}
-
-		return values;
-	}
-
-	/**
-	 * Give user permission for all the engines
-	 * 
-	 * @param userId      String - The user id we are providing permissions to
-	 * @param permission  String - The permission level for the access
-	 * @param isAddNew    boolean - If false, modifying existing project permissions
-	 *                    to the new permission level If true, adding new projects
-	 *                    with the permission level specified
-	 * @param engineTypes
+	 * Gives a person one level on every engine of the given types in admin mode, as
+	 * permission batches. With {@code isAddNew}, they get it on every such engine
+	 * they have no access to; otherwise those they have access to change to it, and
+	 * their end dates and model limits are cleared.
+	 *
+	 * @param userId      the person
+	 * @param permission  the level, by name; anything else is Read-Only
+	 * @param isAddNew    whether to add the engines they cannot use, rather than
+	 *                    change the ones they can
+	 * @param engineTypes the engine types, or null or empty for every type
+	 * @param user        the admin
 	 */
 	public void grantAllEngines(String userId, String permission, boolean isAddNew, List<String> engineTypes,
 			User user) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String logETypes = (engineTypes == null || engineTypes.isEmpty()) ? "[ALL]"
 				: ("[" + String.join(", ", engineTypes) + "]");
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		List<PermissionBatch> batches = new ArrayList<>();
 		if (isAddNew) {
-			List<String> currentEngineAccess = getEnginesUserHasExplicitAccess(userId, engineTypes);
-			List<String> engineIds = SecurityEngineUtils.getAllEngineIds();
-			String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
-			int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
-			boolean visible = true;
-			PreparedStatement ps = null;
-
-			try {
-				ps = securityDb.getPreparedStatement(insertQuery);
-				// add new permission for databases
-				for (String databaseId : engineIds) {
-					if (currentEngineAccess.contains(databaseId)) {
-						// only add for new databases, not existing databases
-						continue;
-					}
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, databaseId);
-					ps.setBoolean(parameterIndex++, visible);
-					ps.setInt(parameterIndex++, permissionLevel);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					ps.addBatch();
+			// rows with no level are no access, so those engines are added
+			Set<String> current = new HashSet<>(getEngineIdsUserCanUse(userId, engineTypes));
+			List<String> engineIds = engineTypes == null || engineTypes.isEmpty()
+					? SecurityEngineUtils.getAllEngineIds()
+					: SecurityEngineUtils.getAllEngineIds(engineTypes);
+			for (String engineId : engineIds) {
+				if (!current.contains(engineId)) {
+					batches.add(new PermissionBatch(PermissionTargetResource.engine(engineId),
+							PermissionChange.forPeople(PermissionChange.Action.ADD, List.of(userId),
+									new PermissionGrant(permission, null))));
 				}
-				ps.executeBatch();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-			} catch (SQLException e) {
-				classLogger.error("Failed to grant access to all engines", e);
-				throw new IllegalArgumentException(
-						"An error occurred granting the user permission for all the engines of type " + logETypes);
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		} else {
-			// first grab the databases and visibility
-			Map<String, Boolean> currentEngineToVisibilityMap = getEnginesAndVisibilityUserHasExplicitAccess(userId,
-					engineTypes);
-
-			// we will remove all the current permissions
-			// and then re-add the ones they used to have but with the new level
-
-			// delete first
-			{
-				String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID=?";
-				PreparedStatement ps = null;
-				try {
-					ps = securityDb.getPreparedStatement(deleteQuery);
-					ps.setString(1, userId);
-					ps.execute();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (SQLException e) {
-					classLogger.error("Failed to grant access to all engines", e);
-					throw new IllegalArgumentException(
-							"An error occurred granting the user permission for all the engines of type " + logETypes);
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			}
-			// now add
-			{
-				// now we insert the values
-				String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
-				int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
-				PreparedStatement ps = null;
-
-				try {
-					ps = securityDb.getPreparedStatement(insertQuery);
-					// add new permission for all projects
-					for (String databaseId : currentEngineToVisibilityMap.keySet()) {
-						boolean visible = currentEngineToVisibilityMap.get(databaseId);
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, databaseId);
-						ps.setBoolean(parameterIndex++, visible);
-						ps.setInt(parameterIndex++, permissionLevel);
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (SQLException e) {
-					classLogger.error("Failed to grant access to all engines", e);
-					throw new IllegalArgumentException(
-							"An error occurred granting the user permission for all the engines of type " + logETypes);
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
+			for (String engineId : getEngineIdsUserCanUse(userId, engineTypes)) {
+				batches.add(new PermissionBatch(PermissionTargetResource.engine(engineId), PermissionChange.forPeople(
+						PermissionChange.Action.CHANGE, List.of(userId), new PermissionGrant(permission, null))));
 			}
 		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, batches, PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred granting the user permission for all the engines of type " + logETypes));
 	}
 
 	/**
-	 * give new users access to a database
-	 * 
-	 * @param engineId
-	 * @param permission
-	 * @param user
-	 * @param endDate
+	 * Gives everyone who has no access to an engine one level on it, in admin mode,
+	 * as a permission batch. It is a one time grant, not a rule for people who join
+	 * later.
+	 *
+	 * @param engineId   the engine
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param user       the admin
+	 * @param endDate    when the access ends, or null
 	 */
 	public void grantNewUsersEngineAccess(String engineId, String permission, User user, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(query);
-			// get users with no access to app
-			List<Map<String, Object>> users = getEngineUsersNoCredentials(engineId, null, -1, -1);
-			for (Map<String, Object> userMap : users) {
-				String userId = (String) userMap.get("id");
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, engineId);
-				ps.setInt(parameterIndex++, permissionLevel);
-				ps.setBoolean(parameterIndex++, true);
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				ps.addBatch();
-			}
-			ps.executeBatch();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Failed to grant default engine access to new users", e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for engine " + engineId
-					+ " with permission " + permission);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				PermissionChange.forPeople(PermissionChange.Action.ADD,
+						distinctIds(getEngineUsersNoCredentials(engineId, null, -1, -1)),
+						new PermissionGrant(permission, endDate)),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred adding user permissions for engine " + engineId + " with permission "
+								+ permission));
 	}
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param permission
-	 * @param user
-	 * @param endDate
+	 * Gives everyone who has no access to a project one level on it, in admin mode,
+	 * as a permission batch. It is a one time grant, not a rule for people who join
+	 * later.
+	 *
+	 * @param projectId  the project
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param user       the admin
+	 * @param endDate    when the access ends, or null
 	 */
 	public void grantNewUsersProjectAccess(String projectId, String permission, User user, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(query);
-			// get users with no access to project
-			List<Map<String, Object>> users = getProjectUsersNoCredentials(projectId, null, -1, -1);
-			for (Map<String, Object> userMap : users) {
-				String userId = (String) userMap.get("id");
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, projectId);
-				ps.setInt(parameterIndex++, permissionLevel);
-				ps.setBoolean(parameterIndex++, true);
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				ps.addBatch();
-			}
-			ps.executeBatch();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Failed to grant default project access to new users", e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+				PermissionChange.forPeople(PermissionChange.Action.ADD,
+						distinctIds(getProjectUsersNoCredentials(projectId, null, -1, -1)),
+						new PermissionGrant(permission, endDate)),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred adding user permissions for this project"));
 	}
 
 	/**
-	 * Give the user permission for all the insights in a project
-	 * 
-	 * @param projectId
-	 * @param userId
-	 * @param permission
+	 * Gives a person one level on every insight of a project in admin mode, as
+	 * permission batches, with no end date: they get it on the insights they have
+	 * no access to, and the ones they have access to change to it.
+	 *
+	 * @param projectId  the project
+	 * @param userId     the person
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param user       the admin
 	 */
 	public void grantAllProjectInsights(String projectId, String userId, String permission, User user) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// delete all previous permissions for the user
-		String deleteQuery = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=?";
-		String insertQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?)";
-
-		PreparedStatement deletePs = null;
-		PreparedStatement insertPs = null;
-		try {
-			deletePs = securityDb.getPreparedStatement(deleteQuery);
-			int parameterIndex = 1;
-			deletePs.setString(parameterIndex++, userId);
-			deletePs.setString(parameterIndex++, projectId);
-			deletePs.execute();
-
-			insertPs = securityDb.getPreparedStatement(insertQuery);
-			// add new permission for all insights
-			List<String> insightIds = getAllProjectInsights(projectId);
-			for (String insightId : insightIds) {
-				parameterIndex = 1;
-				insertPs.setString(parameterIndex++, userId);
-				insertPs.setString(parameterIndex++, projectId);
-				insertPs.setString(parameterIndex++, insightId);
-				insertPs.setInt(parameterIndex++, permissionLevel);
-				insertPs.setString(parameterIndex++, userDetails.getValue0());
-				insertPs.setString(parameterIndex++, userDetails.getValue1());
-				insertPs.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-				insertPs.addBatch();
-			}
-			insertPs.executeBatch();
-
-			// do commits
-			if (!deletePs.getConnection().getAutoCommit()) {
-				deletePs.getConnection().commit();
-			}
-			if (!insertPs.getConnection().getAutoCommit()) {
-				insertPs.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Failed to grant access to all project insights", e);
-			throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
+		Set<String> current = new HashSet<>(getInsightIdsUserCanUse(userId, projectId));
+		List<PermissionBatch> batches = new ArrayList<>();
+		for (String insightId : getAllProjectInsights(projectId)) {
+			PermissionChange.Action action = current.contains(insightId) ? PermissionChange.Action.CHANGE
+					: PermissionChange.Action.ADD;
+			batches.add(new PermissionBatch(PermissionTargetResource.insight(projectId, insightId),
+					PermissionChange.forPeople(action, List.of(userId), new PermissionGrant(permission, null))));
 		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, batches, PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred granting the user permission for all the projects"));
 	}
 
 	/**
-	 * 
-	 * @param existingUserId
-	 * @param engineId
-	 * @param newPermission
-	 * @param user
-	 * @param endDate
-	 * @param maxTokens
-	 * @param maxResponseTime
-	 * @param usageRestriction
-	 * @param usageFrequency
+	 * Gives people access to many engines in admin mode, as permission batches: one
+	 * batch for each engine, all saved together in one transaction.
+	 *
+	 * @param permissionsByEngine for each engine, the people to give access, each
+	 *                            with {@code userid}, {@code permission}, and
+	 *                            optionally {@code type}, {@code endDate} and the
+	 *                            model limits
+	 * @param user                the admin
+	 */
+	public void addUsersToEngines(Map<String, List<Map<String, Object>>> permissionsByEngine, User user) {
+		List<PermissionBatch> batches = new ArrayList<>();
+		for (Map.Entry<String, List<Map<String, Object>>> engine : permissionsByEngine.entrySet()) {
+			batches.add(new PermissionBatch(PermissionTargetResource.engine(engine.getKey()),
+					PermissionBatchUtils.engineChanges(PermissionChange.Action.ADD, engine.getValue())));
+		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, batches, PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules());
+	}
+
+	/**
+	 * Changes a person's access to an engine in admin mode, as a permission batch.
+	 * The limits are all set, and limits of 0 are no limit.
+	 *
+	 * @param existingUserId   the person
+	 * @param engineId         the engine
+	 * @param newPermission    the level, by name; anything else is Read-Only
+	 * @param user             the admin
+	 * @param endDate          when the access ends, or null for never
+	 * @param usageRestriction a model engine's usage restriction, or null
+	 * @param usageFrequency   how often a model engine's limits reset, or null
+	 * @param maxTokens        a model engine's token limit, or 0 for none
+	 * @param maxResponseTime  a model engine's response time limit, or 0 for none
 	 */
 	public void editEngineUserPermission(String existingUserId, String engineId, String newPermission, User user,
 			String endDate, String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, engineId);
-		if (existingUserPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for a user who does not currently have access to the engine");
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=? WHERE USERID = ? AND ENGINEID = ?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
-				int parameterIndex = 1;
-				// SET
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-						StringUtils.trim(usageRestriction));
-				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-						StringUtils.trim(usageFrequency));
-				if (maxTokens == 0) {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-				} else {
-					ps.setInt(parameterIndex++, maxTokens);
-				}
-				if (maxResponseTime == 0.0) {
-					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-				} else {
-					ps.setDouble(parameterIndex++, maxResponseTime);
-				}
-				// WHERE
-				ps.setString(parameterIndex++, existingUserId);
-				ps.setString(parameterIndex++, engineId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to update engine user permission", e);
-			throw new IllegalArgumentException(
-					"An error occurred updating the user permissions for this engine. Detailed error message = "
-							+ e.getMessage());
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.change(PermissionSubject.ofUser(existingUserId, null),
+						new PermissionGrant(newPermission, endDate)
+								.withUsageLimits(usageRestriction, usageFrequency, maxTokens, maxResponseTime))),
+				PermissionBatchOptions.adminMode().zeroLimitsAsNone(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.NO_ACCESS,
+						"Attempting to modify user permission for a user who does not currently have access to the engine")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred updating the user permissions for this engine"));
 	}
 
 	/**
-	 * 
-	 * @param engineId
-	 * @param permission
-	 * @param user
-	 * @throws IllegalAccessException
+	 * Changes many people's access to an engine together in admin mode, as an
+	 * permission batch. Each entry has {@code userid}, {@code permission}, and
+	 * optionally {@code type}, {@code endDate} and the model limits.
+	 *
+	 * @param engineId   the engine
+	 * @param permission the changes
+	 * @param user       the admin
 	 */
-	public void editEngineUserPermissions(String engineId, List<Map<String, Object>> permission, User user)
-			throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// get userid of all requests
-		List<String> existingUserIds = new ArrayList<String>();
-		for (Map<String, Object> i : permission) {
-			String userId = Utility.inputSQLSanitizer((String) i.get("userid"));
-			existingUserIds.add(userId);
-		}
-
-		// get user permissions to edit
-		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(existingUserIds,
-				engineId);
-
-		// make sure all users to edit currently has access to database
-		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
-		toRemoveUserIds.removeAll(existingUserPermission.keySet());
-		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for the following users who do not currently have access to the engine: "
-							+ String.join(",", toRemoveUserIds));
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// update user permissions in bulk
-		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=? WHERE USERID = ? AND ENGINEID = ?";
-		try {
-			QueryExecutionUtility.executeBatch(securityDb, updateQ, permission, (ps, thisPermissionMap) -> {
-				int parameterIndex = 1;
-				// SET
-				ps.setInt(parameterIndex++,
-						AccessPermissionEnum.getIdByPermission((String) thisPermissionMap.get("permission")));
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				// end date for this user
-				Timestamp verifiedEndDate = null;
-				if (thisPermissionMap.get("endDate") != null) {
-					verifiedEndDate = AbstractSecurityUtils.calculateEndDate((String) thisPermissionMap.get("endDate"));
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-				}
-
-				// engine usage restrictions
-				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-						StringUtils.trim((String) thisPermissionMap.get("usageRestriction")));
-				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-						StringUtils.trim((String) thisPermissionMap.get("usageFrequency")));
-				if (thisPermissionMap.get("maxTokens") != null) {
-					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).intValue());
-				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-				}
-				if (thisPermissionMap.get("maxResponseTime") != null) {
-					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
-				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-				}
-
-				// WHERE
-				ps.setString(parameterIndex++, (String) thisPermissionMap.get("userid"));
-				ps.setString(parameterIndex++, engineId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to update engine user permissions", e);
-			throw new IllegalArgumentException(
-					"An error occurred updating the user permissions for this engine. Detailed error message = "
-							+ e.getMessage());
-		}
+	public void editEngineUserPermissions(String engineId, List<Map<String, Object>> permission, User user) {
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				PermissionBatchUtils.engineChanges(PermissionChange.Action.CHANGE, permission),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+						"Attempting to modify user permission for the following users who do not currently have access to the engine: ")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred updating the user permissions for this engine"));
 	}
 
 	/**
-	 * 
-	 * @param existingUserId
-	 * @param projectId
-	 * @param newPermission
-	 * @return
+	 * Changes a person's access to a project in admin mode, as a permission batch.
+	 *
+	 * @param existingUserId the person
+	 * @param projectId      the project
+	 * @param newPermission  the level, by name; anything else is Read-Only
+	 * @param user           the admin
+	 * @param endDate        when the access ends, or null for never
 	 */
 	public void editProjectUserPermission(String existingUserId, String projectId, String newPermission, User user,
 			String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityUserProjectUtils.getUserProjectPermission(existingUserId, projectId);
-		if (existingUserPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for a user who does not currently have access to the project");
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// update user permissions in bulk
-		String updateQ = "UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
-				int parameterIndex = 1;
-				// SET
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				// WHERE
-				ps.setString(parameterIndex++, existingUserId);
-				ps.setString(parameterIndex++, projectId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to update project user permission", e);
-			throw new IllegalArgumentException(
-					"An error occurred updating the user permissions for this project. Detailed error message = "
-							+ e.getMessage());
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.change(
+						PermissionSubject.ofUser(existingUserId, null), new PermissionGrant(newPermission, endDate))),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.NO_ACCESS,
+						"Attempting to modify user permission for a user who does not currently have access to the project")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred updating the user permissions for this project"));
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param existingUserId
-	 * @param projectId
-	 * @param newPermission
-	 * @param user
-	 * @param endDate
-	 * @return
-	 * @throws IllegalAccessException
+	 * Changes many people's access to a project together in admin mode, as an
+	 * permission batch. Each request has {@code userid} and {@code permission};
+	 * every row gets the end date given here.
+	 *
+	 * @param projectId the project
+	 * @param requests  the changes
+	 * @param user      the admin
+	 * @param endDate   when the access ends, or null for never
 	 */
 	public void editProjectUserPermissions(String projectId, List<Map<String, String>> requests, User user,
 			String endDate) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		// get userid of all requests
-		List<String> existingUserIds = new ArrayList<String>();
-		for (Map<String, String> i : requests) {
-			existingUserIds.add(i.get("userid"));
-		}
-
-		// get user permissions to edit
-		Map<String, Integer> existingUserPermission = SecurityProjectUtils.getUserProjectPermissions(existingUserIds,
-				projectId);
-
-		// make sure all users to edit currently has access to database
-		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
-		toRemoveUserIds.removeAll(existingUserPermission.keySet());
-		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for the following users who do not currently have access to the project: "
-							+ String.join(",", toRemoveUserIds));
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// update user permissions in bulk
-		String updateQ = "UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ?";
-		try {
-			QueryExecutionUtility.executeBatch(securityDb, updateQ, requests, (ps, batchRow) -> {
-				int parameterIndex = 1;
-				// SET
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(batchRow.get("permission")));
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				// WHERE
-				ps.setString(parameterIndex++, batchRow.get("userid"));
-				ps.setString(parameterIndex++, projectId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to update project user permissions", e);
-			throw new IllegalArgumentException(
-					"An error occurred updating the user permissions for this project. Detailed error message = "
-							+ e.getMessage());
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+				PermissionBatchUtils.peopleChanges(PermissionChange.Action.CHANGE, requests, endDate),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+						"Attempting to modify user permission for the following users who do not currently have access to the project: ")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred updating the user permissions for this project"));
 	}
 
 	/**
-	 * Edit insight user permissions in bulk
-	 * 
-	 * @param projectId
-	 * @param insightId
-	 * @param requests
-	 * @param user
-	 * @param endDate
-	 * @throws IllegalAccessException
+	 * Changes many people's access to an insight together in admin mode, as an
+	 * permission batch. Each request has {@code userid} and {@code permission};
+	 * every row gets the end date given here.
+	 *
+	 * @param projectId the project the insight belongs to
+	 * @param insightId the insight
+	 * @param requests  the changes
+	 * @param user      the admin
+	 * @param endDate   when the access ends, or null for never
 	 */
 	public void editInsightUserPermissions(String projectId, String insightId, List<Map<String, String>> requests,
 			User user, String endDate) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// get userid of all requests
-		List<String> existingUserIds = new ArrayList<String>();
-		for (Map<String, String> i : requests) {
-			existingUserIds.add(i.get("userid"));
-		}
-
-		// get user permissions to edit
-		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(existingUserIds,
-				projectId, insightId);
-
-		// make sure all users to edit currently has access to database
-		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
-		toRemoveUserIds.removeAll(existingUserPermission.keySet());
-		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for the following users who do not currently have access to the insight: "
-							+ String.join(",", toRemoveUserIds));
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// update user permissions in bulk
-		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
-		try {
-			QueryExecutionUtility.executeBatch(securityDb, updateQ, requests, (ps, batchRow) -> {
-				int parameterIndex = 1;
-				// SET
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(batchRow.get("permission")));
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				// WHERE
-				ps.setString(parameterIndex++, batchRow.get("userid"));
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, insightId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to update insight user permissions", e);
-			throw new IllegalArgumentException(
-					"An error occurred updating the user permissions for this insight. Detailed error message = "
-							+ e.getMessage());
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
+				PermissionBatchUtils.peopleChanges(PermissionChange.Action.CHANGE, requests, endDate),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+						"Attempting to modify user permission for the following users who do not currently have access to the insight: ")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred updating the user permissions for this insight"));
 	}
 
 	/**
-	 * 
-	 * @param editedUserId
-	 * @param engineId
-	 * @return
+	 * Takes a person's access to an engine away in admin mode, as a permission
+	 * batch.
+	 *
+	 * @param existingUserId the person
+	 * @param engineId       the engine
 	 */
 	public void removeEngineUser(String existingUserId, String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, engineId);
-		if (existingUserPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for a user who does not currently have access to the engine");
-		}
-
-		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, deleteQ, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, existingUserId);
-				ps.setString(parameterIndex++, engineId);
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to remove engine user", e);
-			throw new IllegalArgumentException("An error occurred removing the users access to this engine");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(null, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.remove(PermissionSubject.ofUser(existingUserId, null))),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.NO_ACCESS,
+						"Attempting to modify user permission for a user who does not currently have access to the engine")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred removing the users access to this engine"));
 	}
 
 	/**
-	 * 
-	 * @param editedUserId
-	 * @param engineId
-	 * @return
+	 * Takes many people's access to an engine away together in admin mode, as an
+	 * permission batch.
+	 *
+	 * @param existingUserIds the people
+	 * @param engineId        the engine
 	 */
 	public void removeEngineUsers(List<String> existingUserIds, String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Map<String, Integer> existingUserPermission = SecurityUserEngineUtils.getUserEnginePermissions(existingUserIds,
-				engineId);
-
-		// make sure these users all exist and have access
-		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
-		toRemoveUserIds.removeAll(existingUserPermission.keySet());
-		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for the following users who do not currently have access to the engine: "
-							+ String.join(",", toRemoveUserIds));
-		}
-
-		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
-		try {
-			QueryExecutionUtility.executeBatch(securityDb, deleteQ, existingUserIds, (ps, batchRow) -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, batchRow);
-				ps.setString(parameterIndex++, engineId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to remove engine users", e);
-			throw new IllegalArgumentException("An error occurred removing user permissions from this engine");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(null, PermissionTargetResource.engine(engineId),
+				PermissionChange.forPeople(PermissionChange.Action.REMOVE, existingUserIds, null),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+						"Attempting to modify user permission for the following users who do not currently have access to the engine: ")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred removing user permissions from this engine"));
 	}
 
 	/**
-	 * 
-	 * @param editedUserId
-	 * @param projectId
-	 * @return
+	 * Takes many people's access to a project away together in admin mode, as an
+	 * permission batch.
+	 *
+	 * @param existingUserIds the people
+	 * @param projectId       the project
 	 */
 	public void removeProjectUsers(List<String> existingUserIds, String projectId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Map<String, Integer> existingUserPermission = SecurityProjectUtils.getUserProjectPermissions(existingUserIds,
-				projectId);
-
-		// make sure these users all exist and have access
-		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
-		toRemoveUserIds.removeAll(existingUserPermission.keySet());
-		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for the following users who do not currently have access to the project: "
-							+ String.join(",", toRemoveUserIds));
-		}
-
-		String deleteQ = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
-		try {
-			QueryExecutionUtility.executeBatch(securityDb, deleteQ, existingUserIds, (ps, batchRow) -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, batchRow);
-				ps.setString(parameterIndex++, projectId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to remove project users", e);
-			throw new IllegalArgumentException("An error occurred removing user permissions from this project");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(null, PermissionTargetResource.project(projectId),
+				PermissionChange.forPeople(PermissionChange.Action.REMOVE, existingUserIds, null),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+						"Attempting to modify user permission for the following users who do not currently have access to the project: ")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred removing user permissions from this project"));
 	}
 
 	/**
-	 * 
-	 * @param editedUserId
-	 * @param projectId
-	 * @return
+	 * Takes many people's access to an insight away together in admin mode, as an
+	 * permission batch.
+	 *
+	 * @param existingUserIds the people
+	 * @param projectId       the project the insight belongs to
+	 * @param insightId       the insight
 	 */
 	public void removeInsightUsers(List<String> existingUserIds, String projectId, String insightId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(existingUserIds,
-				projectId, insightId);
-		// make sure these users all exist and have access
-		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
-		toRemoveUserIds.removeAll(existingUserPermission.keySet());
-		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for the following users who do not currently have access to the insight: "
-							+ String.join(",", toRemoveUserIds));
-		}
-		String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
-		try {
-			QueryExecutionUtility.executeBatch(securityDb, deleteQ, existingUserIds, (ps, batchRow) -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, batchRow);
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, insightId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to remove insight users", e);
-			throw new IllegalArgumentException("An error occurred removing insight permissions for this project");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(null, PermissionTargetResource.insight(projectId, insightId),
+				PermissionChange.forPeople(PermissionChange.Action.REMOVE, existingUserIds, null),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+						"Attempting to modify user permission for the following users who do not currently have access to the insight: ")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred removing insight permissions for this project"));
 	}
 
 	/**
-	 * 
-	 * @param editedUserId
-	 * @param projectId
-	 * @return
+	 * Takes a person's access to a project away in admin mode, as a permission
+	 * batch. Their permissions on its insights stay.
+	 *
+	 * @param existingUserId the person
+	 * @param projectId      the project
 	 */
 	public void removeProjectUser(String existingUserId, String projectId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityUserProjectUtils.getUserProjectPermission(existingUserId, projectId);
-		if (existingUserPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for a user who does not currently have access to the project");
-		}
-
-		String deleteQ = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, deleteQ, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, existingUserId);
-				ps.setString(parameterIndex++, projectId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to remove project user", e);
-			throw new IllegalArgumentException("An error occurred removing user permissions for this project");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(null, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.remove(PermissionSubject.ofUser(existingUserId, null))),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.NO_ACCESS,
+						"Attempting to modify user permission for a user who does not currently have access to the project")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred removing user permissions for this project"));
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -3252,6 +2531,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// TODO:
 		String query = "DELETE FROM INSIGHT WHERE INSIGHTID " + insightFilters + " AND PROJECTID='" + projectId + "';";
 		query += "DELETE FROM USERINSIGHTPERMISSION  WHERE INSIGHTID " + insightFilters + " AND PROJECTID='" + projectId
+				+ "';";
+		query += "DELETE FROM USERINSIGHTPREFERENCE WHERE INSIGHTID " + insightFilters + " AND PROJECTID='" + projectId
 				+ "'";
 		securityDb.insertData(query);
 		securityDb.commit();
@@ -3332,179 +2613,90 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param newUserId
-	 * @param projectId
-	 * @param insightId
-	 * @param permission
-	 * @return
+	 * Gives a person access to an insight in admin mode, as a permission batch.
+	 *
+	 * @param newUserId  the person
+	 * @param projectId  the project the insight belongs to
+	 * @param insightId  the insight
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param user       the admin
+	 * @param endDate    when the access ends, or null
 	 */
 	public void addInsightUser(String newUserId, String projectId, String insightId, String permission, User user,
 			String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user doesn't already exist for this insight
-		if (SecurityInsightUtils.getUserInsightPermission(newUserId, projectId, insightId) != null) {
-			// that means there is already a value
-			throw new IllegalArgumentException(
-					"This user already has access to this insight. Please edit the existing permission level.");
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, insertQ, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, newUserId);
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, insightId);
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to add insight user", e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
+				List.of(PermissionChange
+						.add(PermissionSubject.ofUser(newUserId, null), new PermissionGrant(permission, endDate))),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						"This user already has access to this insight. Please edit the existing permission level.")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred adding user permissions for this insight"));
 	}
 
 	/**
-	 * Add all users to an insight with permission level
-	 * 
-	 * @param projectId
-	 * @param insightId
-	 * @param permission
-	 * @param user
-	 * @param endDate
-	 * @return
+	 * Gives everyone one level on an insight in admin mode, as permission batches:
+	 * people with no access get it, and people with access change to it. Every row
+	 * ends up with no end date. It does nothing without a project or a level.
+	 *
+	 * @param projectId  the project the insight belongs to
+	 * @param insightId  the insight
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param user       the admin
+	 * @param endDate    not used: the rows are left with no end date
 	 */
 	public void addAllInsightUsers(String projectId, String insightId, String permission, User user, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		if (projectId == null || permission == null) {
+			return;
 		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
-		String inertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(inertQ);
-			if (projectId != null && permission != null) {
-				List<Map<String, Object>> users = getInsightUsersNoCredentials(projectId, insightId, null, -1, -1);
-				for (Map<String, Object> userMap : users) {
-					String userId = (String) userMap.get("id");
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.setInt(parameterIndex++, permissionLevel);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					ps.addBatch();
-				}
-				ps.executeBatch();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-				// update existing permissions for users
-				updateInsightUserPermissions(projectId, insightId, permission, user, null);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to add all insight users", e);
-			throw new IllegalArgumentException("An error occurred adding all users for this insight");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		List<PermissionChange> changes = PermissionChange.forPeople(PermissionChange.Action.ADD,
+				distinctIds(getInsightUsersNoCredentials(projectId, insightId, null, -1, -1)),
+				new PermissionGrant(permission, null));
+		changes.addAll(PermissionChange.forPeople(PermissionChange.Action.CHANGE,
+				getInsightUserIdsWithAccess(projectId, insightId), new PermissionGrant(permission, null)));
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
+				changes, PermissionBatchOptions.adminMode(), new PermissionErrorRules().illegalArgument(
+						PermissionProblem.Code.WRITE_FAILED, "An error occurred adding all users for this insight"));
 	}
 
 	/**
-	 * 
-	 * @param existingUserId
-	 * @param projectId
-	 * @param insightId
-	 * @param newPermission
-	 * @return
+	 * Changes a person's access to an insight in admin mode, as a permission batch.
+	 *
+	 * @param existingUserId the person
+	 * @param projectId      the project the insight belongs to
+	 * @param insightId      the insight
+	 * @param newPermission  the level, by name; anything else is Read-Only
+	 * @param user           the admin
+	 * @param endDate        when the access ends, or null for never
 	 */
 	public void editInsightUserPermission(String existingUserId, String projectId, String insightId,
 			String newPermission, User user, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityInsightUtils.getUserInsightPermission(existingUserId, projectId,
-				insightId);
-		if (existingUserPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for a user who does not currently have access to the insight");
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		// update user permissions in bulk
-		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
-				int parameterIndex = 1;
-				// SET
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				// WHERE
-				ps.setString(parameterIndex++, existingUserId);
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, insightId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to update insight user permission", e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
+				List.of(PermissionChange.change(
+						PermissionSubject.ofUser(existingUserId, null), new PermissionGrant(newPermission, endDate))),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.NO_ACCESS,
+						"Attempting to modify user permission for a user who does not currently have access to the insight")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred adding user permissions for this insight"));
 	}
 
 	/**
-	 * 
-	 * @param editedUserId
-	 * @param projectId
-	 * @param insightId
-	 * @return
+	 * Takes a person's access to an insight away in admin mode, as a permission
+	 * batch.
+	 *
+	 * @param existingUserId the person
+	 * @param projectId      the project the insight belongs to
+	 * @param insightId      the insight
 	 */
 	public void removeInsightUser(String existingUserId, String projectId, String insightId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = SecurityInsightUtils.getUserInsightPermission(existingUserId, projectId,
-				insightId);
-		if (existingUserPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for a user who does not currently have access to the insight");
-		}
-
-		// update user permissions in bulk
-		String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, deleteQ, ps -> {
-				int parameterIndex = 1;
-				// WHERE
-				ps.setString(parameterIndex++, existingUserId);
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, insightId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to remove insight user", e);
-			throw new IllegalArgumentException("An error occurred deleting user permissions for this insight");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(null, PermissionTargetResource.insight(projectId, insightId),
+				List.of(PermissionChange.remove(PermissionSubject.ofUser(existingUserId, null))),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.NO_ACCESS,
+						"Attempting to modify user permission for a user who does not currently have access to the insight")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred deleting user permissions for this insight"));
 	}
 
 	/**
@@ -3660,213 +2852,112 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param engineId
-	 * @param newPermission
-	 * @param user
-	 * @param endDate
+	 * Changes everyone with access to an engine to one level in admin mode, as
+	 * permission batches, keeping their model limits. Rows with no level are no
+	 * access, so they stay as they are.
+	 *
+	 * @param engineId      the engine
+	 * @param newPermission the level, by name; anything else is Read-Only
+	 * @param user          the admin
+	 * @param endDate       when the access ends, or null for never
 	 */
 	public void updateEngineUserPermissions(String engineId, String newPermission, User user, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		String query = "UPDATE ENGINEPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE ENGINEID=?";
-		try {
-			String boundQuery = query;
-			QueryExecutionUtility.executeUpdate(securityDb, boundQuery, ps -> {
-				int parameterIndex = 1;
-				// SET
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				// WHERE
-				ps.setString(parameterIndex++, engineId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to update engine user permissions", e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				PermissionChange.forPeople(PermissionChange.Action.CHANGE, getEngineUserIdsWithAccess(engineId),
+						new PermissionGrant(newPermission, endDate)),
+				PermissionBatchOptions.adminMode().keepingModelLimits(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred editing user permissions for this engine"));
 	}
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param newPermission
-	 * @param user
-	 * @param endDate
+	 * Changes everyone with access to a project to one level in admin mode, as
+	 * permission batches. Rows with no level are no access, so they stay as they
+	 * are.
+	 *
+	 * @param projectId     the project
+	 * @param newPermission the level, by name; anything else is Read-Only
+	 * @param user          the admin
+	 * @param endDate       when the access ends, or null for never
 	 */
 	public void updateProjectUserPermissions(String projectId, String newPermission, User user, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		String query = "UPDATE PROJECTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE PROJECTID=?";
-		try {
-			String boundQuery = query;
-			QueryExecutionUtility.executeUpdate(securityDb, boundQuery, ps -> {
-				int parameterIndex = 1;
-				// SET
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				// WHERE
-				ps.setString(parameterIndex++, projectId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to update project user permissions", e);
-			throw new IllegalArgumentException("An error occurred editing user permissions for this project");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+				PermissionChange.forPeople(PermissionChange.Action.CHANGE, getProjectUserIdsWithAccess(projectId),
+						new PermissionGrant(newPermission, endDate)),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred editing user permissions for this project"));
 	}
 
 	/**
-	 * Add all users to an database with the same permission
-	 * 
-	 * @param engineId
-	 * @param permission
-	 * @param user
-	 * @param endDate
+	 * Gives everyone one level on an engine in admin mode, as permission batches:
+	 * people with no access get it, and people with access change to it and keep
+	 * their model limits. It does nothing without an engine or a level.
+	 *
+	 * @param engineId   the engine
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param user       the admin
+	 * @param endDate    when the access ends, or null for never
 	 */
 	public void addAllEngineUsers(String engineId, String permission, User user, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		if (engineId == null || permission == null) {
+			return;
 		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(query);
-			if (engineId != null && permission != null) {
-				List<Map<String, Object>> users = getEngineUsersNoCredentials(engineId, null, -1, -1);
-				for (Map<String, Object> userMap : users) {
-					String userId = (String) userMap.get("id");
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, engineId);
-					ps.setInt(parameterIndex++, permissionLevel);
-					ps.setBoolean(parameterIndex++, true);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					ps.addBatch();
-				}
-				ps.executeBatch();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-				// update existing user permissions
-				updateEngineUserPermissions(engineId, permission, user, endDate);
-			}
-		} catch (SQLException e1) {
-			classLogger.error("Failed to add all engine users", e1);
-			throw new IllegalArgumentException("An error occurred adding all users to this engine");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		List<PermissionChange> changes = PermissionChange.forPeople(PermissionChange.Action.ADD,
+				distinctIds(getEngineUsersNoCredentials(engineId, null, -1, -1)),
+				new PermissionGrant(permission, endDate));
+		changes.addAll(PermissionChange.forPeople(PermissionChange.Action.CHANGE, getEngineUserIdsWithAccess(engineId),
+				new PermissionGrant(permission, endDate)));
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId), changes,
+				PermissionBatchOptions.adminMode().keepingModelLimits(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred adding all users to this engine"));
 	}
 
 	/**
-	 * Add all users to an project with the same permission
-	 * 
-	 * @param projectId
-	 * @param permission
-	 * @param user
-	 * @param endDate
+	 * Gives everyone one level on a project in admin mode, as permission batches:
+	 * people with no access get it, and people with access change to it. It does
+	 * nothing without a project or a level.
+	 *
+	 * @param projectId  the project
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param user       the admin
+	 * @param endDate    when the access ends, or null for never
 	 */
 	public void addAllProjectUsers(String projectId, String permission, User user, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
+		if (projectId == null || permission == null) {
+			return;
 		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		String query = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(query);
-			if (projectId != null && permission != null) {
-				List<Map<String, Object>> users = getProjectUsersNoCredentials(projectId, null, -1, -1);
-				for (Map<String, Object> userMap : users) {
-					String userId = (String) userMap.get("id");
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setInt(parameterIndex++, permissionLevel);
-					ps.setBoolean(parameterIndex++, true);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					ps.addBatch();
-				}
-				ps.executeBatch();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-				// update existing user permissions
-				updateProjectUserPermissions(projectId, permission, user, endDate);
-			}
-		} catch (SQLException e1) {
-			classLogger.error("Failed to add all project users", e1);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		List<PermissionChange> changes = PermissionChange.forPeople(PermissionChange.Action.ADD,
+				distinctIds(getProjectUsersNoCredentials(projectId, null, -1, -1)),
+				new PermissionGrant(permission, endDate));
+		changes.addAll(PermissionChange.forPeople(PermissionChange.Action.CHANGE,
+				getProjectUserIdsWithAccess(projectId), new PermissionGrant(permission, endDate)));
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId), changes,
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred adding user permissions for this project"));
 	}
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param insightId
-	 * @param newPermission
-	 * @param user
-	 * @param endDate
+	 * Changes everyone with access to an insight to one level in admin mode, as
+	 * permission batches. Rows with no level are no access, so they stay as they
+	 * are.
+	 *
+	 * @param projectId     the project the insight belongs to
+	 * @param insightId     the insight
+	 * @param newPermission the level, by name; anything else is Read-Only
+	 * @param user          the admin
+	 * @param endDate       when the access ends, or null for never
 	 */
 	public void updateInsightUserPermissions(String projectId, String insightId, String newPermission, User user,
 			String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE PROJECTID=? AND INSIGHTID=?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
-				int parameterIndex = 1;
-				// SET
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				// WHERE
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, insightId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to update insight user permissions", e);
-			throw new IllegalArgumentException("An error occurred updating the permissions for this insight");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
+				PermissionChange.forPeople(PermissionChange.Action.CHANGE,
+						getInsightUserIdsWithAccess(projectId, insightId), new PermissionGrant(newPermission, endDate)),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred updating the permissions for this insight"));
 	}
 
 	/**
@@ -3883,43 +2974,25 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param insightId
-	 * @param permission
-	 * @param user
-	 * @param endDate
+	 * Gives everyone who has no access to an insight one level on it, in admin
+	 * mode, as a permission batch. It is a one time grant, not a rule for people
+	 * who join later.
+	 *
+	 * @param projectId  the project the insight belongs to
+	 * @param insightId  the insight
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param user       the admin
+	 * @param endDate    when the access ends, or null
 	 */
 	public void grantNewUsersInsightAccess(String projectId, String insightId, String permission, User user,
 			String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		List<Map<String, Object>> users = getInsightUsersNoCredentials(projectId, insightId, null, -1, -1);
-		String insertQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
-		try {
-			QueryExecutionUtility.executeBatch(securityDb, insertQuery, users, (ps, userMap) -> {
-				String userId = (String) userMap.get("id");
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, insightId);
-				ps.setInt(parameterIndex++, permissionLevel);
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to grant default insight access to new users", e);
-			throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
+				PermissionChange.forPeople(PermissionChange.Action.ADD,
+						distinctIds(getInsightUsersNoCredentials(projectId, insightId, null, -1, -1)),
+						new PermissionGrant(permission, endDate)),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred granting the user permission for all the projects"));
 	}
 
 	/**
@@ -4142,366 +3215,115 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Approving user access requests and giving user access in permissions
-	 * 
-	 * @param userId
-	 * @param userType
-	 * @param engineId
-	 * @param requests
-	 * @param endDate
+	 * Approves access requests in admin mode, as a permission batch: each person
+	 * gets the level they asked for, and the requests are marked approved in the
+	 * same save.
+	 *
+	 * @param userId   the approving admin's user id, who the rows say gave the
+	 *                 access
+	 * @param userType the approving admin's login type
+	 * @param engineId the engine
+	 * @param requests the requests, each with {@code requestid}, {@code userid} and
+	 *                 {@code permission}
+	 * @param endDate  when the access ends, or null
 	 */
 	public void approveEngineUserAccessRequests(String userId, String userType, String engineId,
 			List<Map<String, Object>> requests, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-		// bulk delete
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
-				try {
-					QueryExecutionUtility.executeBatch(connection, deleteQ, requests, (deletePs, batchRow) -> {
-						int parameterIndex = 1;
-						deletePs.setString(parameterIndex++, (String) batchRow.get("userid"));
-						deletePs.setString(parameterIndex++, engineId);
-					});
-				} catch (Exception e) {
-					classLogger.error("Failed to approve engine user access requests", e);
-					throw new IllegalArgumentException(
-							"An error occurred while deleting enginepermission with detailed message = "
-									+ e.getMessage());
-				}
-				// insert new user permissions in bulk
-				String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-				try {
-					QueryExecutionUtility.executeBatch(connection, insertQ, requests, (insertPs, batchRow) -> {
-						int parameterIndex = 1;
-						insertPs.setString(parameterIndex++, (String) batchRow.get("userid"));
-						insertPs.setString(parameterIndex++, engineId);
-						insertPs.setInt(parameterIndex++,
-								AccessPermissionEnum.getIdByPermission((String) batchRow.get("permission")));
-						insertPs.setBoolean(parameterIndex++, true);
-						insertPs.setString(parameterIndex++, userId);
-						insertPs.setString(parameterIndex++, userType);
-						insertPs.setTimestamp(parameterIndex++, startDate);
-						insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
-					});
-				} catch (Exception e) {
-					classLogger.error("Failed to approve engine user access requests", e);
-					throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
-				}
-
-				// now we do the new bulk update to engineaccessrequest table
-				String updateQ = "UPDATE ENGINEACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
-				try {
-					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-					QueryExecutionUtility.executeBatch(connection, updateQ, requests, (updatePs, batchRow) -> {
-						int index = 1;
-						// set
-						updatePs.setInt(index++,
-								AccessPermissionEnum.getIdByPermission((String) batchRow.get("permission")));
-						updatePs.setString(index++, userId);
-						updatePs.setString(index++, userType);
-						updatePs.setString(index++, "APPROVED");
-						updatePs.setTimestamp(index++, timestamp);
-						// where
-						updatePs.setString(index++, (String) batchRow.get("requestid"));
-						updatePs.setString(index++, engineId);
-					});
-				} catch (Exception e) {
-					classLogger.error("Failed to approve engine user access requests", e);
-					throw new IllegalArgumentException(
-							"An error occurred while updating user access request detailed message = "
-									+ e.getMessage());
-				}
-				return null;
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to approve engine user access requests", e);
-			throw new IllegalArgumentException(
-					"An error occurred while deleting enginepermission with detailed message = " + e.getMessage());
-		}
+		PermissionTargetResource target = PermissionTargetResource.engine(engineId);
+		PermissionBatchUtils.saveChangesNoCheckedException(null, target,
+				PermissionBatchUtils.approvalChanges(target, requests, endDate),
+				PermissionBatchOptions.adminMode().grantedBy(userId, userType).approving(target, requests),
+				PermissionErrorRules.forApprovals(endDate));
 	}
 
 	/**
-	 * Denying user access requests to engine
-	 * 
-	 * @param userId
-	 * @param userType
-	 * @param engineId
-	 * @param requests
+	 * Denies access requests to an engine in admin mode: each is marked denied, by
+	 * the admin named.
+	 *
+	 * @param userId   the denying admin's user id, who the rows say denied them
+	 * @param userType the denying admin's login type
 	 */
 	public void denyEngineUserAccessRequests(String userId, String userType, String engineId, List<String> requestIds) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// bulk update to databaseaccessrequest table
-		String updateQ = "UPDATE ENGINEACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-
-				QueryExecutionUtility.executeBatch(connection, updateQ, requestIds, (ps, batchRow) -> {
-					int index = 1;
-					// set
-					ps.setString(index++, userId);
-					ps.setString(index++, userType);
-					ps.setString(index++, "DENIED");
-					ps.setTimestamp(index++, timestamp);
-					// where
-					ps.setString(index++, batchRow);
-					ps.setString(index++, engineId);
-				});
-				return null;
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to deny engine user access requests", e);
-			throw new IllegalArgumentException(
-					"An error occurred while updating user access request detailed message = " + e.getMessage());
-		}
+		PermissionBatchUtils.denyRequestsNoCheckedException(null, PermissionTargetResource.engine(engineId), requestIds,
+				PermissionBatchOptions.adminMode().grantedBy(userId, userType),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred while updating user access request"));
 	}
 
 	/**
-	 * Approving user access requests and giving user access in permissions
-	 * 
-	 * @param userId
-	 * @param userType
-	 * @param projectId
-	 * @param requests
-	 * @param endDate
+	 * Approves access requests in admin mode, as a permission batch: each person
+	 * gets the level they asked for, and the requests are marked approved in the
+	 * same save.
+	 *
+	 * @param userId    the approving admin's user id, who the rows say gave the
+	 *                  access
+	 * @param userType  the approving admin's login type
+	 * @param projectId the project
+	 * @param requests  the requests, each with {@code requestid}, {@code userid}
+	 *                  and {@code permission}
+	 * @param endDate   when the access ends, or null
 	 */
 	public void approveProjectUserAccessRequests(String userId, String userType, String projectId,
 			List<Map<String, Object>> requests, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-		// bulk delete
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				String deleteQ = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
-				try {
-					QueryExecutionUtility.executeBatch(connection, deleteQ, requests, (deletePs, batchRow) -> {
-						int parameterIndex = 1;
-						deletePs.setString(parameterIndex++, (String) batchRow.get("userid"));
-						deletePs.setString(parameterIndex++, projectId);
-					});
-				} catch (Exception e) {
-					classLogger.error("Failed to approve project user access requests", e);
-					throw new IllegalArgumentException(
-							"An error occurred while deleting projectpermission with detailed message = "
-									+ e.getMessage());
-				}
-				// insert new user permissions in bulk
-				String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-				try {
-					QueryExecutionUtility.executeBatch(connection, insertQ, requests, (insertPs, batchRow) -> {
-						int parameterIndex = 1;
-						insertPs.setString(parameterIndex++, (String) batchRow.get("userid"));
-						insertPs.setString(parameterIndex++, projectId);
-						insertPs.setInt(parameterIndex++,
-								AccessPermissionEnum.getIdByPermission((String) batchRow.get("permission")));
-						insertPs.setBoolean(parameterIndex++, true);
-						insertPs.setString(parameterIndex++, userId);
-						insertPs.setString(parameterIndex++, userType);
-						insertPs.setTimestamp(parameterIndex++, startDate);
-						insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
-					});
-				} catch (Exception e) {
-					classLogger.error("Failed to approve project user access requests", e);
-					throw new IllegalArgumentException(
-							"An error occurred inserting user project permissions on request approval");
-				}
-
-				// now we do the new bulk update to projectaccessrequest table
-				String updateQ = "UPDATE PROJECTACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
-				try {
-					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-					QueryExecutionUtility.executeBatch(connection, updateQ, requests, (updatePs, batchRow) -> {
-						int index = 1;
-						// set
-						updatePs.setInt(index++,
-								AccessPermissionEnum.getIdByPermission((String) batchRow.get("permission")));
-						updatePs.setString(index++, userId);
-						updatePs.setString(index++, userType);
-						updatePs.setString(index++, "APPROVED");
-						updatePs.setTimestamp(index++, timestamp);
-						// where
-						updatePs.setString(index++, (String) batchRow.get("requestid"));
-					});
-				} catch (Exception e) {
-					classLogger.error("Failed to approve project user access requests", e);
-					throw new IllegalArgumentException(
-							"An error occurred while updating user access request detailed message = "
-									+ e.getMessage());
-				}
-				return null;
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to approve project user access requests", e);
-			throw new IllegalArgumentException(
-					"An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
-		}
+		PermissionTargetResource target = PermissionTargetResource.project(projectId);
+		PermissionBatchUtils.saveChangesNoCheckedException(null, target,
+				PermissionBatchUtils.approvalChanges(target, requests, endDate),
+				PermissionBatchOptions.adminMode().grantedBy(userId, userType).approving(target, requests),
+				PermissionErrorRules.forApprovals(endDate));
 	}
 
 	/**
-	 * Denying user access requests to project
-	 * 
-	 * @param userId
-	 * @param userType
-	 * @param projectId
-	 * @param requests
+	 * Denies access requests to a project in admin mode: each is marked denied, by
+	 * the admin named.
+	 *
+	 * @param userId   the denying admin's user id, who the rows say denied them
+	 * @param userType the denying admin's login type
 	 */
 	public void denyProjectUserAccessRequests(String userId, String userType, String projectId,
 			List<String> RequestIdList) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// bulk update to projectaccessrequest table
-		String updateQ = "UPDATE PROJECTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-
-				QueryExecutionUtility.executeBatch(connection, updateQ, RequestIdList, (ps, batchRow) -> {
-					int index = 1;
-					// set
-					ps.setString(index++, userId);
-					ps.setString(index++, userType);
-					ps.setString(index++, "DENIED");
-					ps.setTimestamp(index++, timestamp);
-					// where
-					ps.setString(index++, batchRow);
-				});
-				return null;
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to deny project user access requests", e);
-			throw new IllegalArgumentException(
-					"An error occurred while updating user access request detailed message = " + e.getMessage());
-		}
+		PermissionBatchUtils.denyRequestsNoCheckedException(null, PermissionTargetResource.project(projectId),
+				RequestIdList, PermissionBatchOptions.adminMode().grantedBy(userId, userType),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred while updating user access request"));
 	}
 
 	/**
-	 * Approving user access requests and giving user access in permissions
-	 * 
-	 * @param userId
-	 * @param userType
-	 * @param projectId
-	 * @param insightId
-	 * @param requests
-	 * @param endDate
+	 * Approves access requests in admin mode, as a permission batch: each person
+	 * gets the level they asked for, and the requests are marked approved in the
+	 * same save.
+	 *
+	 * @param userId    the approving admin's user id, who the rows say gave the
+	 *                  access
+	 * @param userType  the approving admin's login type
+	 * @param projectId the project the insight belongs to
+	 * @param insightId the insight
+	 * @param requests  the requests, each with {@code requestid}, {@code userid}
+	 *                  and {@code permission}
+	 * @param endDate   when the access ends, or null
 	 */
 	public void approveInsightUserAccessRequests(String userId, String userType, String projectId, String insightId,
 			List<Map<String, Object>> requests, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-		// bulk delete
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
-				try {
-					QueryExecutionUtility.executeBatch(connection, deleteQ, requests, (deletePs, batchRow) -> {
-						int parameterIndex = 1;
-						deletePs.setString(parameterIndex++, (String) batchRow.get("userid"));
-						deletePs.setString(parameterIndex++, projectId);
-						deletePs.setString(parameterIndex++, insightId);
-					});
-				} catch (Exception e) {
-					classLogger.error("Failed to approve insight user access requests", e);
-					throw new IllegalArgumentException(
-							"An error occurred while deleting projectpermission with detailed message = "
-									+ e.getMessage());
-				}
-				// insert new user permissions in bulk
-				String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-				try {
-					QueryExecutionUtility.executeBatch(connection, insertQ, requests, (insertPs, batchRow) -> {
-						int parameterIndex = 1;
-						insertPs.setString(parameterIndex++, (String) batchRow.get("userid"));
-						insertPs.setString(parameterIndex++, projectId);
-						insertPs.setString(parameterIndex++, insightId);
-						insertPs.setInt(parameterIndex++,
-								AccessPermissionEnum.getIdByPermission((String) batchRow.get("permission")));
-						insertPs.setString(parameterIndex++, userId);
-						insertPs.setString(parameterIndex++, userType);
-						insertPs.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-						insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
-					});
-				} catch (Exception e) {
-					classLogger.error("Failed to approve insight user access requests", e);
-					throw new IllegalArgumentException(
-							"An error occurred inserting user insight permissions on request approval");
-				}
-
-				// now we do the new bulk update to accessrequest table
-				String updateQ = "UPDATE INSIGHTACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
-				try {
-					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-					QueryExecutionUtility.executeBatch(connection, updateQ, requests, (updatePs, batchRow) -> {
-						int index = 1;
-						// set
-						updatePs.setInt(index++,
-								AccessPermissionEnum.getIdByPermission((String) batchRow.get("permission")));
-						updatePs.setString(index++, userId);
-						updatePs.setString(index++, userType);
-						updatePs.setString(index++, "APPROVED");
-						updatePs.setTimestamp(index++, timestamp);
-						// where
-						updatePs.setString(index++, (String) batchRow.get("requestid"));
-					});
-				} catch (Exception e) {
-					classLogger.error("Failed to approve insight user access requests", e);
-					throw new IllegalArgumentException(
-							"An error occurred while updating user access request detailed message = "
-									+ e.getMessage());
-				}
-				return null;
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to approve insight user access requests", e);
-			throw new IllegalArgumentException(
-					"An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
-		}
+		PermissionTargetResource target = PermissionTargetResource.insight(projectId, insightId);
+		PermissionBatchUtils.saveChangesNoCheckedException(null, target,
+				PermissionBatchUtils.approvalChanges(target, requests, endDate),
+				PermissionBatchOptions.adminMode().grantedBy(userId, userType).approving(target, requests),
+				PermissionErrorRules.forApprovals(endDate));
 	}
 
 	/**
-	 * Denying user access requests
-	 * 
-	 * @param userId
-	 * @param userType
-	 * @param projectId
-	 * @param insightId
-	 * @param requests
+	 * Denies access requests to an insight in admin mode: each is marked denied, by
+	 * the admin named.
+	 *
+	 * @param userId   the denying admin's user id, who the rows say denied them
+	 * @param userType the denying admin's login type
 	 */
 	public void denyInsightUserAccessRequests(String userId, String userType, String projectId, String insightId,
 			List<String> RequestIdList) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// bulk update to accessrequest table
-		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-
-				QueryExecutionUtility.executeBatch(connection, updateQ, RequestIdList, (ps, batchRow) -> {
-					int index = 1;
-					// set
-					ps.setString(index++, userId);
-					ps.setString(index++, userType);
-					ps.setString(index++, "DENIED");
-					ps.setTimestamp(index++, timestamp);
-					// where
-					ps.setString(index++, batchRow);
-				});
-				return null;
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to deny insight user access requests", e);
-			throw new IllegalArgumentException(
-					"An error occurred while updating user access request detailed message = " + e.getMessage());
-		}
+		PermissionBatchUtils.denyRequestsNoCheckedException(null,
+				PermissionTargetResource.insight(projectId, insightId), RequestIdList,
+				PermissionBatchOptions.adminMode().grantedBy(userId, userType),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						"An error occurred while updating user access request"));
 	}
 
 	/**
@@ -4603,4 +3425,103 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 
+	/**
+	 * @param users rows with an {@code id}, one for each login of a person
+	 * @return each id once, in order, since a project's, engine's or insight's
+	 *         people are keyed by id alone
+	 */
+	private static List<String> distinctIds(List<Map<String, Object>> users) {
+		Set<String> ids = new LinkedHashSet<>();
+		for (Map<String, Object> row : users) {
+			if (row.get("id") != null) {
+				ids.add(String.valueOf(row.get("id")));
+			}
+		}
+		return new ArrayList<>(ids);
+	}
+
+	/**
+	 * @return the ids of the people with access to the project, leaving out rows
+	 *         with no level
+	 */
+	private static List<String> getProjectUserIdsWithAccess(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "!=", null,
+				PixelDataType.NULL_VALUE));
+		return QueryExecutionUtility.flushToListString(SystemEngineRegistry.getSecurityDb(), qs);
+	}
+
+	/**
+	 * @return the ids of the people with access to the engine, leaving out rows
+	 *         with no level
+	 */
+	private static List<String> getEngineUserIdsWithAccess(String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "!=", null,
+				PixelDataType.NULL_VALUE));
+		return QueryExecutionUtility.flushToListString(SystemEngineRegistry.getSecurityDb(), qs);
+	}
+
+	/**
+	 * @param engineTypes the engine types, or null or empty for every type
+	 * @return the ids of the engines of those types the person has access to,
+	 *         leaving out rows with no level
+	 */
+	private static List<String> getEngineIdsUserCanUse(String userId, List<String> engineTypes) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "!=", null,
+				PixelDataType.NULL_VALUE));
+		if (engineTypes != null && !engineTypes.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
+			qs.addRelation("ENGINEPERMISSION__ENGINEID", "ENGINE__ENGINEID", "inner.join");
+		}
+		return QueryExecutionUtility.flushToListString(SystemEngineRegistry.getSecurityDb(), qs);
+	}
+
+	/**
+	 * @return the ids of the people with access to the insight, leaving out rows
+	 *         with no level
+	 */
+	private static List<String> getInsightUserIdsWithAccess(String projectId, String insightId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "!=", null,
+				PixelDataType.NULL_VALUE));
+		return QueryExecutionUtility.flushToListString(SystemEngineRegistry.getSecurityDb(), qs);
+	}
+
+	/**
+	 * @return the ids of the project's insights the person has access to, leaving
+	 *         out rows with no level
+	 */
+	private static List<String> getInsightIdsUserCanUse(String userId, String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__INSIGHTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "!=", null,
+				PixelDataType.NULL_VALUE));
+		return QueryExecutionUtility.flushToListString(SystemEngineRegistry.getSecurityDb(), qs);
+	}
+
+	/**
+	 * @return the ids of the projects the person has access to, leaving out rows
+	 *         with no level
+	 */
+	private static List<String> getProjectIdsUserCanUse(String userId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "!=", null,
+				PixelDataType.NULL_VALUE));
+		return QueryExecutionUtility.flushToListString(SystemEngineRegistry.getSecurityDb(), qs);
+	}
 }

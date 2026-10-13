@@ -30,6 +30,9 @@ package prerna.reactor.agent.runtime;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -45,6 +48,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -52,6 +56,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -84,6 +89,7 @@ final class PlatformAgentToolHandlers {
 
 	private static final String TOOL_KIND = "semoss_platform_default";
 	private static final int DEFAULT_READ_MAX_LINES = 2000;
+	private static final List<String> DOCLING_READ_EXTENSIONS = List.of("pdf", "docx", "pptx", "xlsx");
 	private static final int MAX_GLOB_RESULTS = 500;
 	private static final int DEFAULT_GREP_HEAD_LIMIT = 200;
 	private static final int MAX_MULTI_EDITS = 200;
@@ -140,7 +146,8 @@ final class PlatformAgentToolHandlers {
 		add(tools,
 				handler("ReadFile", """
 						Reads a file from the working directory. Returns content with line numbers \
-						and a continuation marker when more lines remain.\
+						and a continuation marker when more lines remain. PDF, DOCX, PPTX and XLSX files \
+						are returned as extracted Markdown text; other binary files are rejected.\
 						""",
 						objectSchema(
 								props(prop(PARAM_PATH, stringProp("Path to read, relative to the working directory.")),
@@ -359,7 +366,25 @@ final class PlatformAgentToolHandlers {
 		if (!file.isFile()) {
 			return "Error: not a file: " + filePath;
 		}
-		String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+		String content;
+		String extension = FilenameUtils.getExtension(file.getName()).toLowerCase(Locale.ROOT);
+		if (DOCLING_READ_EXTENSIONS.contains(extension)) {
+			// office/pdf files are zips or binary; read them as markdown via docling
+			try {
+				content = extractDocumentMarkdown(file, tc);
+			} catch (Exception e) {
+				logger.warn("ReadFile document extraction failed for " + filePath, e);
+				return "Error: could not extract text from " + filePath + ": " + lastLine(e.getMessage());
+			}
+		} else {
+			byte[] bytes = Files.readAllBytes(file.toPath());
+			content = decodeTextOrNull(bytes);
+			if (content == null) {
+				return "Error: " + filePath + " is a binary file (" + bytes.length
+						+ " bytes); ReadFile only returns text. Supported documents: "
+						+ String.join(", ", DOCLING_READ_EXTENSIONS) + ".";
+			}
+		}
 		List<String> lines = content.lines().toList();
 		int start = offset - 1;
 		if (start >= lines.size()) {
@@ -375,6 +400,58 @@ final class PlatformAgentToolHandlers {
 					start + 1, end, lines.size(), end + 1));
 		}
 		return sb.toString();
+	}
+
+	// strict utf-8 decode; null for binary (nul bytes or invalid utf-8)
+	private static String decodeTextOrNull(byte[] bytes) {
+		for (int i = 0, n = Math.min(bytes.length, 8192); i < n; i++) {
+			if (bytes[i] == 0) {
+				return null;
+			}
+		}
+		try {
+			return StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
+					.onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString();
+		} catch (CharacterCodingException e) {
+			return null;
+		}
+	}
+
+	// runs smssutil.get_document_markdown in the room's python process
+	private static String extractDocumentMarkdown(File file, ToolContext tc) throws Exception {
+		if (!isPythonToolEnabled()) {
+			throw new IllegalStateException("Document extraction requires Python, which is disabled on this instance.");
+		}
+		if (tc.ctx.getInsight() == null || tc.ctx.getInsight().getUser() == null) {
+			throw new IllegalStateException("no user is associated with this agent run");
+		}
+		// pass the path as base64 so no quoting/escaping can break the script
+		String encodedPath = Base64.getEncoder()
+				.encodeToString(file.getAbsolutePath().getBytes(StandardCharsets.UTF_8));
+		String script = "from smssutil import get_document_markdown as _smss_doc_md\n" + "import base64 as _smss_b64\n"
+				+ "print(_smss_doc_md(_smss_b64.b64decode('" + encodedPath + "').decode('utf-8')), end='')";
+		Insight executionInsight = tc.ctx.getInsight();
+		User user = executionInsight.getUser();
+		Object output = AgentCodeExecutionContext.executeForRoom(tc.ctx.getRoom(), executionInsight, tc.root,
+				roomInsight -> {
+					SocketClient sc = user.getPythonSocketClient(true);
+					PyTranslator translator = new PyTranslator(sc, roomInsight);
+					try {
+						return translator.runScript(script);
+					} catch (RuntimeException e) {
+						interruptRoomExecutionIfCancelled(sc, roomInsight, tc.ctx);
+						throw e;
+					}
+				});
+		return output == null ? "" : output.toString();
+	}
+
+	private static String lastLine(String message) {
+		if (message == null || message.isBlank()) {
+			return "extraction failed";
+		}
+		String[] lines = message.strip().split("\\R");
+		return lines[lines.length - 1].strip();
 	}
 
 	private static String writeFile(Map<String, Object> params, ToolContext tc) {
@@ -1508,7 +1585,8 @@ final class PlatformAgentToolHandlers {
 			}
 			String clean = relativePath.trim();
 			if (new File(clean).isAbsolute()) {
-				throw new IllegalArgumentException("Absolute paths are not allowed: " + clean);
+				throw new IllegalArgumentException("Absolute paths are not allowed: " + clean
+						+ ". Use a path relative to the working directory, such as " + relativeHint(clean) + ".");
 			}
 			File resolved = new File(root, clean);
 			String normalizedResolved = normalizePath(resolved.getAbsolutePath());
@@ -1520,6 +1598,17 @@ final class PlatformAgentToolHandlers {
 
 		private void requireWritable(File file) {
 			ReadOnlyPathPolicy.requireWritable(Path.of(root), file.toPath(), ctx.getAgentConfig().getReadOnlyPaths());
+		}
+
+		/**
+		 * The working-directory-relative form of a rejected absolute path, so the model
+		 * can retry: the remainder after the root when the path is inside it, otherwise
+		 * the path without its leading slashes (a workbench path such as
+		 * /public/main.ipynb is project-relative).
+		 */
+		private String relativeHint(String absolutePath) {
+			String relative = toRelative(absolutePath).replaceFirst("^/+", "");
+			return relative.isEmpty() ? "." : relative;
 		}
 
 		private String toRelative(String absolutePath) {

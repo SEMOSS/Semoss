@@ -37,6 +37,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
@@ -56,9 +58,16 @@ public final class AutomationRuntime {
 	private AutomationRuntime() {
 	}
 
-	public static List<Map<String, Object>> nodesForRun(AutomationDefinitionValidator.ValidatedDefinition definition) {
+	public static List<Map<String, Object>> nodesForRun(
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		return nodesForGraph(definition.nodes(), definition.edges());
+	}
+
+	/** Returns graph nodes in run-history order with runtime defaults applied. */
+	public static List<Map<String, Object>> nodesForGraph(List<Map<String, Object>> graphNodes,
+			List<Map<String, Object>> graphEdges) {
 		List<Map<String, Object>> nodes = new ArrayList<>();
-		for (Map<String, Object> original : controlOrderedNodes(definition)) {
+		for (Map<String, Object> original : controlOrderedNodes(graphNodes, graphEdges)) {
 			Map<String, Object> node = new LinkedHashMap<>(original);
 			node.putIfAbsent(AutomationConstants.NODE_FIELD_LABEL, node.get(AutomationConstants.NODE_FIELD_ID));
 			Object nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE);
@@ -71,6 +80,43 @@ public final class AutomationRuntime {
 			nodes.add(node);
 		}
 		return nodes;
+	}
+
+	/**
+	 * Returns canonical nodes from the parent graph and every loop body. Loop-body
+	 * nodes remain ordinary source-owning nodes even though they are materialized
+	 * into run history only when an iteration executes.
+	 */
+	public static List<Map<String, Object>> allNodes(
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		List<Map<String, Object>> nodes = new ArrayList<>();
+		for (Map<String, Object> node : definition.nodes()) {
+			nodes.add(node);
+			nodes.addAll(loopBodyNodes(node));
+		}
+		return nodes;
+	}
+
+	/** Returns the canonical nodes owned by one loop body. */
+	@SuppressWarnings("unchecked")
+	public static List<Map<String, Object>> loopBodyNodes(Map<String, Object> loopNode) {
+		Object body = loopNode.get(AutomationConstants.NODE_FIELD_BODY);
+		if (!(body instanceof Map<?, ?> bodyMap)
+				|| !(((Map<String, Object>) bodyMap).get(AutomationConstants.DOC_NODES) instanceof List<?> nodes)) {
+			return List.of();
+		}
+		return (List<Map<String, Object>>) (List<?>) nodes;
+	}
+
+	/** Returns the canonical edges owned by one loop body. */
+	@SuppressWarnings("unchecked")
+	public static List<Map<String, Object>> loopBodyEdges(Map<String, Object> loopNode) {
+		Object body = loopNode.get(AutomationConstants.NODE_FIELD_BODY);
+		if (!(body instanceof Map<?, ?> bodyMap)
+				|| !(((Map<String, Object>) bodyMap).get(AutomationConstants.DOC_EDGES) instanceof List<?> edges)) {
+			return List.of();
+		}
+		return (List<Map<String, Object>>) (List<?>) edges;
 	}
 
 	private static String defaultOutputVariable(Map<String, Object> node) {
@@ -89,15 +135,21 @@ public final class AutomationRuntime {
 	 */
 	static List<Map<String, Object>> controlOrderedNodes(
 			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		return controlOrderedNodes(definition.nodes(), definition.edges());
+	}
+
+	/** Returns a deterministic topological order for an already validated graph. */
+	static List<Map<String, Object>> controlOrderedNodes(List<Map<String, Object>> graphNodes,
+			List<Map<String, Object>> graphEdges) {
 		Map<String, Map<String, Object>> nodes = new LinkedHashMap<>();
 		Map<String, Integer> incoming = new LinkedHashMap<>();
-		for (Map<String, Object> node : definition.nodes()) {
+		for (Map<String, Object> node : graphNodes) {
 			String id = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 			nodes.put(id, node);
 			incoming.put(id, 0);
 		}
 		Map<String, List<String>> outgoing = new HashMap<>();
-		for (Map<String, Object> edge : definition.edges()) {
+		for (Map<String, Object> edge : graphEdges) {
 			if (!AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
 				continue;
 			}
@@ -141,8 +193,13 @@ public final class AutomationRuntime {
 
 	public static Map<String, Map<String, String>> controlTargets(
 			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		return controlTargets(definition.edges());
+	}
+
+	/** Indexes each control edge by source node and source port. */
+	public static Map<String, Map<String, String>> controlTargets(List<Map<String, Object>> edges) {
 		Map<String, Map<String, String>> targets = new LinkedHashMap<>();
-		for (Map<String, Object> edge : definition.edges()) {
+		for (Map<String, Object> edge : edges) {
 			if (!AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
 				continue;
 			}
@@ -154,11 +211,42 @@ public final class AutomationRuntime {
 		return targets;
 	}
 
+	/** Returns the sole zero-incoming node in an already validated loop body. */
+	public static String graphEntryNodeId(List<Map<String, Object>> nodes, List<Map<String, Object>> edges) {
+		Map<String, Integer> incoming = new LinkedHashMap<>();
+		for (Map<String, Object> node : nodes) {
+			incoming.put((String) node.get(AutomationConstants.NODE_FIELD_ID), 0);
+		}
+		for (Map<String, Object> edge : edges) {
+			if (AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
+				incoming.compute((String) edge.get(AutomationConstants.EDGE_FIELD_TARGET),
+						(ignored, count) -> count + 1);
+			}
+		}
+		return incoming.entrySet().stream().filter(entry -> entry.getValue() == 0).map(Map.Entry::getKey).findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("Loop body has no entry node."));
+	}
+
 	/**
-	 * Runs one node module with the workflow scope supplied by the Java scheduler.
+	 * Builds the Python invocation for one persisted node source.
+	 *
+	 * <p>
+	 * The serialized {@code scope} remains the public node contract. Names in
+	 * {@code frameBindings} identifies scope entries whose bounded summaries must be
+	 * rebound to live SEMOSS frames already owned by the run Insight. Each value is
+	 * the frame backend reported by SEMOSS. Bindings are execution metadata and are
+	 * not exposed to node authors or persisted in run history.
+	 *
+	 * @param source             persisted Python source defining {@code run(scope)}
+	 * @param scope              bounded run scope supplied by the Java scheduler
+	 * @param outputVariable     node output alias used for live frame registration
+	 * @param frameBindings    output aliases and SEMOSS backend types for live frames
+	 * @return Python script that invokes the Automation runtime boundary
+	 * @throws IllegalStateException when the Automation Python runtime is unavailable
 	 */
-	public static String buildNodeInvocationScript(String source, Map<String, Object> scope, String outputVariable) {
-		return buildPythonInvocation("execute_node", source, scope, outputVariable);
+	public static String buildNodeInvocationScript(String source, Map<String, Object> scope, String outputVariable,
+			Map<String, String> frameBindings) {
+		return buildPythonInvocation("execute_node", source, scope, outputVariable, frameBindings);
 	}
 
 	/**
@@ -167,18 +255,19 @@ public final class AutomationRuntime {
 	 * {@code run(scope)} to define computed globals.
 	 */
 	public static String buildTriggerInvocationScript(String source, Map<String, Object> scope) {
-		return buildPythonInvocation("execute_trigger", source, scope, null);
+		return buildPythonInvocation("execute_trigger", source, scope, null, Map.of());
 	}
 
 	private static String buildPythonInvocation(String function, String source, Map<String, Object> scope,
-			String outputVariable) {
+			String outputVariable, Map<String, String> frameBindings) {
 		Path runtimePath = Path.of(Utility.getBaseFolder(), Constants.PY_BASE_FOLDER, "semoss_automation_runtime.py")
 				.toAbsolutePath().normalize();
 		if (!Files.isRegularFile(runtimePath)) {
 			throw new IllegalStateException("Automation Python runtime is unavailable: " + runtimePath);
 		}
 		String frameArguments = outputVariable == null ? ""
-				: ", " + AutomationRuntimeUtils.GSON.toJson(outputVariable) + ", globals()";
+				: ", " + AutomationRuntimeUtils.GSON.toJson(outputVariable) + ", globals(), "
+						+ AutomationRuntimeUtils.GSON.toJson(new TreeMap<>(frameBindings));
 		return """
 				import importlib.util as _automation_importlib
 				_automation_spec = _automation_importlib.spec_from_file_location(
@@ -308,6 +397,39 @@ public final class AutomationRuntime {
 			return result;
 		}
 		return value;
+	}
+
+	/**
+	 * Decodes the runtime-owned Python result envelope. User values remain nested in
+	 * the envelope, so ordinary JSON cannot impersonate a retained frame.
+	 *
+	 * @param output raw value returned by the Python translator
+	 * @return decoded ordinary value or retained-frame signal
+	 * @throws IllegalStateException when the runtime envelope is malformed
+	 */
+	public static NodeResult decodeNodeResult(Object output) {
+		Object normalized = normalizeNodeResult(output);
+		if (!(normalized instanceof Map<?, ?> result)
+				|| !(result.get(AutomationConstants.INTERNAL_NODE_RESULT_KIND) instanceof String kind)) {
+			throw new IllegalStateException("Python automation node returned an invalid runtime result.");
+		}
+		if (AutomationConstants.INTERNAL_NODE_RESULT_KIND_FRAME.equals(kind)) {
+			if (result.size() != 1) {
+				throw new IllegalStateException("Python automation frame result contains unexpected values.");
+			}
+			return new NodeResult(null, true);
+		}
+		if (AutomationConstants.INTERNAL_NODE_RESULT_KIND_VALUE.equals(kind)) {
+			if (result.size() != 2 || !result.containsKey(AutomationConstants.INTERNAL_NODE_RESULT_VALUE)) {
+				throw new IllegalStateException("Python automation value result is missing its value.");
+			}
+			return new NodeResult(result.get(AutomationConstants.INTERNAL_NODE_RESULT_VALUE), false);
+		}
+		throw new IllegalStateException("Python automation node returned an unknown runtime result kind.");
+	}
+
+	/** Decoded result returned by the Python Automation runtime. */
+	public record NodeResult(Object value, boolean frame) {
 	}
 
 	private static String encode(String value) {

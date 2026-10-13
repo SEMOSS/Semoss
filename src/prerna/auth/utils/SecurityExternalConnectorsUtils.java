@@ -52,6 +52,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 
 	private static final String GITHUB_APP_TABLE = "GITHUB_APP";
 	private static final String GITHUB_PROJECT_LINK_TABLE = "GITHUB_PROJECT_LINK";
+	private static final String MS_GRAPH_CREDENTIAL_TABLE = "MS_GRAPH_CREDENTIAL";
 	private static final String MS_GRAPH_SUBSCRIPTION_TABLE = "MS_GRAPH_SUBSCRIPTION";
 
 	/**
@@ -594,6 +595,76 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Connection id " + connectionId + " is not valid");
 		}
 		return resultList.get(0);
+	}
+
+	/** Returns server-only credentials for one Microsoft account, or null. */
+	public static Map<String, Object> getMicrosoftGraphCredential(String userId) {
+		if (userId == null || userId.isBlank()) {
+			return null;
+		}
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			return QueryExecutionUtility.queryOne(securityDb,
+					"SELECT USER_ID, USER_EMAIL, ACCESS_TOKEN, REFRESH_TOKEN, TOKEN_EXPIRATION FROM "
+							+ MS_GRAPH_CREDENTIAL_TABLE + " WHERE USER_ID = ?",
+					ps -> ps.setString(1, userId), rs -> {
+						Map<String, Object> row = new HashMap<>();
+						row.put("userId", rs.getString(1));
+						row.put("userEmail", rs.getString(2));
+						row.put("accessToken", rs.getString(3));
+						row.put("refreshToken", rs.getString(4));
+						row.put("tokenExpiration", rs.getTimestamp(5));
+						return row;
+					});
+		} catch (Exception e) {
+			// JDBC exceptions may include bound credential values.
+			throw new IllegalStateException("Unable to load Microsoft background credentials.");
+		}
+	}
+
+	/**
+	 * Replaces delegated credentials after explicit opt-in or token refresh, while
+	 * preserving creation time. Secrets remain in the security database.
+	 */
+	public static void upsertMicrosoftGraphCredential(String userId, String userEmail, String accessToken,
+			String refreshToken, Timestamp tokenExpiration) {
+		if (userId == null || userId.isBlank() || accessToken == null || accessToken.isBlank()
+				|| refreshToken == null || refreshToken.isBlank()) {
+			throw new IllegalArgumentException("Renewable Microsoft credentials are required.");
+		}
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			QueryExecutionUtility.write(securityDb, conn -> {
+				Timestamp now = Utility.getCurrentSqlTimestampUTC();
+				String sql = "UPDATE " + MS_GRAPH_CREDENTIAL_TABLE
+						+ " SET USER_EMAIL = ?, ACCESS_TOKEN = ?, REFRESH_TOKEN = ?, TOKEN_EXPIRATION = ?, UPDATED_ON = ?"
+						+ " WHERE USER_ID = ?";
+				int updated = QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
+					ps.setString(1, userEmail);
+					securityDb.getQueryUtil().setNullableLargeText(ps, 2, accessToken);
+					securityDb.getQueryUtil().setNullableLargeText(ps, 3, refreshToken);
+					ps.setTimestamp(4, tokenExpiration);
+					ps.setTimestamp(5, now);
+					ps.setString(6, userId);
+				});
+				if (updated == 0) {
+					QueryExecutionUtility.executeUpdate(conn, "INSERT INTO " + MS_GRAPH_CREDENTIAL_TABLE
+							+ " (USER_ID, USER_EMAIL, ACCESS_TOKEN, REFRESH_TOKEN, TOKEN_EXPIRATION, CREATED_ON, UPDATED_ON)"
+							+ " VALUES (?, ?, ?, ?, ?, ?, ?)", ps -> {
+						ps.setString(1, userId);
+						ps.setString(2, userEmail);
+						securityDb.getQueryUtil().setNullableLargeText(ps, 3, accessToken);
+						securityDb.getQueryUtil().setNullableLargeText(ps, 4, refreshToken);
+						ps.setTimestamp(5, tokenExpiration);
+						ps.setTimestamp(6, now);
+						ps.setTimestamp(7, now);
+					});
+				}
+				return null;
+			});
+		} catch (Exception e) {
+			throw new IllegalStateException("Unable to save Microsoft background credentials.");
+		}
 	}
 
 	/**

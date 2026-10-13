@@ -28,18 +28,40 @@
 package prerna.reactor.automation.run;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
+import prerna.om.HeadersDataRow;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.automation.AutomationConstants;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /** Covers deterministic execution-service mappings and run Insight lookup. */
 public class AutomationRunExecutionServiceUnitTests {
@@ -56,6 +78,40 @@ public class AutomationRunExecutionServiceUnitTests {
 		return TypeSafeModelEngineResponse.fromObject(Map.of("model", "jev-latest",
 				"usage", Map.of("input_tokens", 1, "output_tokens", 1), "answers",
 				Map.of("route", routeAnswer)));
+	}
+
+	private static TypeSafeModelEngineResponse mixedResponse(double urgentProbability) {
+		return TypeSafeModelEngineResponse.fromObject(Map.of("model", "jev-1.13.0",
+				"usage", Map.of("input_tokens", 10, "output_tokens", 4), "answers",
+				Map.of("department",
+						Map.of("type", "choice", "choice", "billing", "confidence", 0.95, "probabilities",
+								Map.of("billing", 0.95, "technical", 0.05)),
+						"frustration", Map.of("type", "score", "score", 0.7, "confidence", 0.9),
+						"urgent", Map.of("type", "noul", "noul", urgentProbability))));
+	}
+
+	private static Map<String, Object> mixedConfig() {
+		return Map.of(AutomationConstants.CONFIG_QUESTIONS,
+				List.of(Map.of(AutomationConstants.CONFIG_KEY, "department"),
+						Map.of(AutomationConstants.CONFIG_KEY, "frustration"),
+						Map.of(AutomationConstants.CONFIG_KEY, "urgent")));
+	}
+
+	private static List<Map<String, Object>> mixedRoutes() {
+		return List.of(Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "urgent_billing",
+				AutomationConstants.CONFIG_DESCRIPTION, "Urgent billing",
+				AutomationConstants.CONFIG_MATCH, AutomationConstants.JEV_ROUTE_MATCH_ALL,
+				AutomationConstants.CONFIG_CONDITIONS,
+				List.of(
+						Map.of(AutomationConstants.CONFIG_QUESTION_KEY, "department",
+								AutomationConstants.CONFIG_FIELD, AutomationConstants.JEV_FIELD_CHOICE,
+								AutomationConstants.CONFIG_OPERATOR, AutomationConstants.JEV_OPERATOR_EQUALS,
+								AutomationConstants.CONFIG_VALUE, "billing"),
+						Map.of(AutomationConstants.CONFIG_QUESTION_KEY, "urgent",
+								AutomationConstants.CONFIG_FIELD, AutomationConstants.JEV_FIELD_NOUL,
+								AutomationConstants.CONFIG_OPERATOR,
+								AutomationConstants.JEV_OPERATOR_GREATER_THAN_OR_EQUAL,
+								AutomationConstants.CONFIG_VALUE, 0.8))));
 	}
 
 	@Test
@@ -98,6 +154,58 @@ public class AutomationRunExecutionServiceUnitTests {
 	}
 
 	@Test
+	void combinesMultipleTypedAnswersIntoOneJevRoute() {
+		Map<String, Object> decision = AutomationRunExecutionService.jevDecision(mixedResponse(0.89), mixedRoutes(),
+				mixedConfig());
+		assertEquals("case:urgent_billing", decision.get("branch"));
+		assertEquals("Urgent billing", decision.get("route"));
+		assertEquals(AutomationConstants.JEV_ROUTE_MATCH_ALL, decision.get("routeMatch"));
+		assertEquals(2, ((List<?>) decision.get("matchedConditions")).size());
+		assertEquals("jev-1.13.0", decision.get("model"));
+		assertEquals(3, ((Map<?, ?>) decision.get("answers")).size());
+	}
+
+	@Test
+	void buildsTheNativeMultiQuestionJevRequestWithoutFlatteningCriteria() {
+		Map<String, Object> config = Map.of(AutomationConstants.CONFIG_QUESTIONS,
+				List.of(
+						Map.of(AutomationConstants.CONFIG_KEY, "department",
+								AutomationConstants.CONFIG_TYPE, AutomationConstants.JEV_QUESTION_TYPE_CHOICE,
+								AutomationConstants.CONFIG_INSTRUCTIONS, "Choose a team",
+								AutomationConstants.CONFIG_CRITERIA,
+								Map.of("billing", "Payments", "technical", "Bugs")),
+						Map.of(AutomationConstants.CONFIG_KEY, "urgent",
+								AutomationConstants.CONFIG_TYPE, AutomationConstants.JEV_QUESTION_TYPE_NOUL,
+								AutomationConstants.CONFIG_INSTRUCTIONS, "${instruction}",
+								AutomationConstants.CONFIG_CRITERIA,
+								Map.of("true", "Today", "false", "Later"))));
+		Map<String, Object> questions = AutomationRunExecutionService.jevQuestions(config,
+				Map.of("instruction", "Does this require action today?"));
+		assertEquals(2, questions.size());
+		assertEquals("Does this require action today?",
+				((Map<?, ?>) questions.get("urgent")).get(AutomationConstants.CONFIG_INSTRUCTIONS));
+		assertEquals(Map.of("billing", "Payments", "technical", "Bugs"),
+				((Map<?, ?>) questions.get("department")).get(AutomationConstants.CONFIG_CRITERIA));
+	}
+
+	@Test
+	void preservesIntegerRetryOptionsAfterJsonDeserialization() {
+		Map<String, Object> parameters = AutomationRunExecutionService.jevParameters(
+				Map.of(AutomationConstants.CONFIG_PARAM_VALUES, Map.of("timeout", 30.0, "max_retries", 2.0)));
+		assertEquals(30.0, parameters.get("timeout"));
+		assertEquals(2, parameters.get("max_retries"));
+		assertEquals(Integer.class, parameters.get("max_retries").getClass());
+	}
+
+	@Test
+	void usesFallbackWhenNoMultiQuestionJevRouteMatches() {
+		Map<String, Object> decision = AutomationRunExecutionService.jevDecision(mixedResponse(0.6), mixedRoutes(),
+				mixedConfig());
+		assertEquals(AutomationConstants.CONTROL_PORT_ELSE, decision.get("branch"));
+		assertNull(decision.get("routeId"));
+	}
+
+	@Test
 	void exposesRunInsightOnlyWhileItRemainsInTheInsightStore() {
 		String runId = UUID.randomUUID().toString();
 		String insightId = "automation-" + runId;
@@ -113,5 +221,218 @@ public class AutomationRunExecutionServiceUnitTests {
 		}
 
 		assertNull(AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
+	}
+
+	@Test
+	void resolvesLoopItemsWithoutCoercingNativeValues() {
+		List<Object> items = List.of(Map.of("id", 1), Map.of("id", 2));
+		assertEquals(items, AutomationRunExecutionService.loopItems("${records}", Map.of("records", items), "loop"));
+		assertEquals(items, AutomationRunExecutionService.loopItems("${query.data.rows}",
+				Map.of("query", Map.of("data", Map.of("rows", items))), "loop"));
+		assertEquals(List.of("a", "b"),
+				AutomationRunExecutionService.loopItems(new String[] { "a", "b" }, Map.of(), "loop"));
+	}
+
+	@Test
+	void rejectsMissingOrNonCollectionLoopItems() {
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationRunExecutionService.loopItems("${missing}", Map.of(), "loop"));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationRunExecutionService.loopItems(42, Map.of(), "loop"));
+	}
+
+	@Test
+	void readsLoopRowsThroughTheSemossFrameContract() throws Exception {
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
+		IHeadersDataRow first = mock(IHeadersDataRow.class);
+		IHeadersDataRow second = mock(IHeadersDataRow.class);
+		when(frame.getQsHeaders()).thenReturn(new String[] { "HERO__NAME", "HERO__POWER" });
+		when(frame.query(any(SelectQueryStruct.class))).thenReturn(wrapper);
+		when(wrapper.hasNext()).thenReturn(true, true, false);
+		when(wrapper.next()).thenReturn(first, second);
+		when(first.getHeaders()).thenReturn(new String[] { "NAME", "POWER" });
+		when(first.getValues()).thenReturn(new Object[] { "Storm", "Weather control" });
+		when(second.getHeaders()).thenReturn(new String[] { "NAME", "POWER" });
+		when(second.getValues()).thenReturn(new Object[] { "Flash", "Super speed" });
+
+		Insight insight = new Insight();
+		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
+
+		assertEquals(List.of(Map.of("NAME", "Storm", "POWER", "Weather control"),
+				Map.of("NAME", "Flash", "POWER", "Super speed")),
+				AutomationRunExecutionService.frameRows(insight, "heroes", "loop", 10, 2));
+		ArgumentCaptor<SelectQueryStruct> query = ArgumentCaptor.forClass(SelectQueryStruct.class);
+		verify(frame).query(query.capture());
+		assertEquals(10, query.getValue().getOffset());
+		assertEquals(2, query.getValue().getLimit());
+		assertFalse(query.getValue().isDistinct());
+	}
+
+	@Test
+	void preservesDuplicateFrameRowsAcrossMultipleBatches() throws Exception {
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		List<Integer> physicalRows = List.of(7, 7, 9);
+		List<SelectQueryStruct> queries = new ArrayList<>();
+		List<IRawSelectWrapper> wrappers = new ArrayList<>();
+		when(frame.getQsHeaders()).thenReturn(new String[] { "VALUES__VALUE" });
+		when(frame.query(any(SelectQueryStruct.class))).thenAnswer(invocation -> {
+			SelectQueryStruct query = invocation.getArgument(0);
+			queries.add(query);
+			List<Integer> queryRows = query.isDistinct() ? physicalRows.stream().distinct().toList() : physicalRows;
+			int from = (int) Math.min(query.getOffset(), queryRows.size());
+			int to = Math.min(from + (int) query.getLimit(), queryRows.size());
+			IRawSelectWrapper wrapper = wrapperFor(queryRows.subList(from, to));
+			wrappers.add(wrapper);
+			return wrapper;
+		});
+
+		Insight insight = new Insight();
+		insight.getVarStore().put("values", new NounMetadata(frame, PixelDataType.FRAME));
+
+		List<Object> firstBatch = AutomationRunExecutionService.frameRows(insight, "values", "loop", 0, 2);
+		List<Object> finalBatch = AutomationRunExecutionService.frameRows(insight, "values", "loop", 2, 1);
+
+		assertEquals(List.of(Map.of("VALUE", 7), Map.of("VALUE", 7)), firstBatch);
+		assertEquals(List.of(Map.of("VALUE", 9)), finalBatch);
+		assertEquals(3, firstBatch.size() + finalBatch.size());
+		assertEquals(2, queries.size());
+		assertFalse(queries.get(0).isDistinct());
+		assertEquals(0, queries.get(0).getOffset());
+		assertEquals(2, queries.get(0).getLimit());
+		assertFalse(queries.get(1).isDistinct());
+		assertEquals(2, queries.get(1).getOffset());
+		assertEquals(1, queries.get(1).getLimit());
+		verify(wrappers.get(0)).close();
+		verify(wrappers.get(1)).close();
+	}
+
+	private static IRawSelectWrapper wrapperFor(List<Integer> values) {
+		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
+		Iterator<Integer> iterator = values.iterator();
+		when(wrapper.hasNext()).thenAnswer(invocation -> iterator.hasNext());
+		when(wrapper.next()).thenAnswer(invocation -> new HeadersDataRow(new String[] { "VALUE" },
+				new Object[] { iterator.next() }));
+		return wrapper;
+	}
+
+	@Test
+	void rejectsFrameLoopInputBeyondTheConfiguredBound() throws Exception {
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		when(frame.size("heroes")).thenReturn(2L);
+
+		Insight insight = new Insight();
+		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
+
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationRunExecutionService.frameRowCount(insight, "heroes", "loop", 1));
+	}
+
+	@Test
+	void resumeRequiresTheOriginalLiveFrameBinding() {
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
+		Insight insight = new Insight();
+		insight.setInsightId("automation-run-1");
+		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
+
+		assertEquals(DataFrameTypeEnum.PYTHON.getTypeAsString(),
+				AutomationRunExecutionService.requireResumableFrameBackend(insight, "run-1", "heroes"));
+		IllegalStateException unavailable = assertThrows(IllegalStateException.class,
+				() -> AutomationRunExecutionService.requireResumableFrameBackend(insight, "run-1", "missing"));
+		assertTrue(unavailable.getMessage().contains("cannot resume"));
+	}
+
+	@Test
+	void lostExecutionInsightDoesNotReplayTheSuccessfulDatabaseNode() {
+		String runId = "run-1";
+		String insightId = "automation-" + runId;
+		Map<String, Object> frameOutput = new LinkedHashMap<>();
+		frameOutput.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		frameOutput.put(AutomationConstants.NODE_ID, "query");
+		frameOutput.put(AutomationConstants.OUTPUT_VAR_NAME, "query_result");
+		frameOutput.put(AutomationConstants.OUTPUT_KIND, AutomationConstants.OUTPUT_KIND_FRAME);
+		frameOutput.put(AutomationConstants.OUTPUT_VALUE,
+				"{\"dataType\":\"table\",\"rowCount\":10,\"columnCount\":2}");
+		Insight originalInsight = new Insight();
+		originalInsight.setInsightId(insightId);
+		InsightStore.getInstance().put(originalInsight);
+		assertEquals(insightId, AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
+		InsightStore.getInstance().remove(insightId);
+		assertNull(AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
+
+		Insight replacementInsight = new Insight();
+		replacementInsight.setInsightId(insightId);
+
+		try (var store = mockStatic(AutomationRunStore.class, CALLS_REAL_METHODS);
+				var database = mockStatic(AutomationDatabaseQueryExecutor.class)) {
+			store.when(() -> AutomationRunStore.getRunInputs(runId)).thenReturn(Map.of());
+			store.when(() -> AutomationRunStore.getNodeOutputsForRun(runId)).thenReturn(List.of(frameOutput));
+
+			IllegalStateException unavailable = assertThrows(IllegalStateException.class,
+					() -> AutomationRunExecutionService.reconstructScope(runId, replacementInsight, "trigger"));
+
+			assertTrue(unavailable.getMessage().contains("cannot resume"));
+			database.verifyNoInteractions();
+		}
+	}
+
+	@Test
+	void serviceOwnedExecutionInsightCleanupClosesFramesAndClearsTheWorkspace() {
+		String insightId = "automation-run-cleanup";
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		Insight insight = new Insight();
+		insight.setInsightId(insightId);
+		insight.setDeletePythonGlobalsOnDropInsight(false);
+		insight.getVarStore().put("query_result", new NounMetadata(frame, PixelDataType.FRAME));
+		InsightStore.getInstance().put(insight);
+
+		AutomationRunExecutionService.releaseExecutionInsight(insight, true);
+
+		assertFalse(InsightStore.getInstance().containsKey(insightId));
+		assertNull(insight.getVarStore().get("query_result"));
+		verify(frame, atLeastOnce()).close();
+	}
+
+	@Test
+	void sessionOwnedExecutionInsightRemainsUnderSessionLifecycle() {
+		String insightId = "automation-run-session";
+		Insight insight = new Insight();
+		insight.setInsightId(insightId);
+		insight.getVarStore().put("value", new NounMetadata("retained", PixelDataType.CONST_STRING));
+		InsightStore.getInstance().put(insight);
+
+		try {
+			AutomationRunExecutionService.releaseExecutionInsight(insight, false);
+			assertTrue(InsightStore.getInstance().containsKey(insightId));
+			assertEquals("retained", insight.getVarStore().get("value").getValue());
+		} finally {
+			InsightStore.getInstance().remove(insightId);
+		}
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void groupsMaterializedLoopHistoryUnderItsParentNode() {
+		Map<String, Object> parent = new LinkedHashMap<>();
+		parent.put(AutomationConstants.RUN_ID, "run");
+		parent.put(AutomationConstants.NODE_ID, "loop");
+		parent.put(AutomationConstants.NODE_LABEL, "Loop");
+		parent.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		Map<String, Object> child = new LinkedHashMap<>();
+		child.put(AutomationConstants.RUN_ID, "run");
+		child.put(AutomationConstants.NODE_ID, "execution-id");
+		child.put(AutomationConstants.SOURCE_NODE_ID, "body-python");
+		child.put(AutomationConstants.PARENT_NODE_ID, "loop");
+		child.put(AutomationConstants.ITERATION_INDEX, 0);
+		child.put(AutomationConstants.NODE_LABEL, "Python");
+		child.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+
+		List<Map<String, Object>> results = AutomationRunStore.buildNodeResults(List.of(parent, child));
+
+		assertEquals(1, results.size());
+		List<Map<String, Object>> iterations = (List<Map<String, Object>>) results.get(0).get("iterations");
+		List<Map<String, Object>> nodes = (List<Map<String, Object>>) iterations.get(0).get("nodeResults");
+		assertEquals("body-python", nodes.get(0).get(AutomationConstants.NODE_ID));
 	}
 }

@@ -41,7 +41,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelCapabilityEnum;
@@ -60,9 +59,9 @@ import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
 import prerna.reactor.agent.skill.SkillStager;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * High-level entry point for resolving context and executing an agent harness.
@@ -96,8 +95,8 @@ public final class AgentRunner {
 	/**
 	 * paramMap key for the SEMOSS asset space in which the agent edits files.
 	 * {@code null}, empty, and {@code INSIGHT} select the room/insight folder;
-	 * {@code USER} selects the authenticated user's asset project; any other
-	 * value is treated as a project id.
+	 * {@code USER} selects the authenticated user's asset project; any other value
+	 * is treated as a project id.
 	 */
 	public static final String PARAM_SPACE = "space";
 
@@ -115,7 +114,9 @@ public final class AgentRunner {
 	 */
 	public static final String PARAM_FILE_PATH_LEGACY = "filePath";
 
-	/** Server-owned working directory for a child that shares its parent's files. */
+	/**
+	 * Server-owned working directory for a child that shares its parent's files.
+	 */
 	public static final String ROOM_OPTION_WORKING_DIR = "working_dir";
 
 	/** Room whose folder authorizes {@link #ROOM_OPTION_WORKING_DIR}. */
@@ -131,6 +132,15 @@ public final class AgentRunner {
 	public static final String PARAM_SANDBOX_WRITES = "sandbox_writes";
 	/** Override enforcement mode per-run: {@code ENFORCE} | {@code DISABLED}. */
 	public static final String PARAM_SANDBOX_ENFORCE = "sandbox_enforce";
+
+	/** agentParams key for the words the user typed when input wraps them in caller context. */
+	public static final String AGENT_PARAM_USER_TEXT = "userText";
+
+	/** The user's own words from agentParams, else the full input. */
+	public static String userText(Map<String, Object> agentParams, String input) {
+		String userText = agentParams == null ? null : ValueUtils.trimToNull(agentParams.get(AGENT_PARAM_USER_TEXT));
+		return userText != null ? userText : input;
+	}
 
 	private AgentRunner() {
 
@@ -230,8 +240,10 @@ public final class AgentRunner {
 		if (preloadedRoom != null && !roomId.equals(preloadedRoom.getId())) {
 			throw new IllegalArgumentException("Preloaded Automation room does not match roomId=" + roomId);
 		}
+		// names the room and shows as the user's message; the model still gets input
+		String userText = userText(agentParamMap, input);
 		Room room = preloadedRoom != null ? preloadedRoom
-				: (modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, input)
+				: (modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userText)
 						: RoomUtils.getOrLoadRoom(roomId, insight));
 		room.setInsight(insight);
 
@@ -270,7 +282,7 @@ public final class AgentRunner {
 			params.put(FILE_PATH_PARAM_KEY, filePath);
 		}
 		// Older configuration reads "project"; bridge an explicit project space.
-		if (target.isProject() && trimToNull(params.get(PARAM_SPACE)) != null) {
+		if (target.isProject() && ValueUtils.trimToNull(params.get(PARAM_SPACE)) != null) {
 			params.put(PARAM_PROJECT, target.getProjectId());
 		}
 
@@ -281,19 +293,13 @@ public final class AgentRunner {
 				maxReflections, explicitWorkspaceId);
 
 		try {
-			if (target.isInsight() && CollaborationUtils.isCollaborationRoom(room)
-					&& agentConfig.getSkills().stream().noneMatch(ref -> ref != null
-							&& Constants.SKILL_PPTX.equals(ref.get("skill_id")))) {
-				// Existing rooms may still contain the former managed default copy.
-				SkillStager.unstage(filePath, Constants.SKILL_PPTX);
-			}
 			SkillStager.stage(filePath, agentConfig.getSkills());
 		} catch (Exception e) {
 			logger.warn("AgentRunner: skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
 		}
 
 		AgentRunContext ctx = AgentRunContext.builder().room(room).modelEngine(modelEngine).insight(insight)
-				.userId(room.getUserId()).input(input).runId(runId).sandboxPolicy(sandboxPolicy)
+				.userId(room.getUserId()).input(input).userText(userText).runId(runId).sandboxPolicy(sandboxPolicy)
 				.mediaInputPaths(mediaInputPaths).mediaUrls(mediaUrls).spawnDepth(resolveSpawnDepth())
 				.resumeMode(resumeMode).agentTarget(target).agentConfig(agentConfig).build();
 
@@ -304,7 +310,7 @@ public final class AgentRunner {
 					"RunAgent media input is not supported for harnessType='" + harness.getName() + "'");
 		}
 		if (!resumeMode && ctx.getSpawnDepth() == 0) {
-			AgentRoomNamer.nameRoomAsync(roomId, input, modelId, room.getUserId(), insight);
+			AgentRoomNamer.nameRoomAsync(roomId, userText, modelId, room.getUserId(), insight);
 		}
 
 		// Apply a temporary workspace overlay so room-based lookups match AgentConfig.
@@ -538,15 +544,14 @@ public final class AgentRunner {
 	}
 
 	/**
-	 * Resolves the working directory from room state plus {@code space},
-	 * legacy {@code project}, and {@code subdir} params. The returned target
-	 * also carries the authorized persistence metadata for hooks and cluster
-	 * synchronization.
+	 * Resolves the working directory from room state plus {@code space}, legacy
+	 * {@code project}, and {@code subdir} params. The returned target also carries
+	 * the authorized persistence metadata for hooks and cluster synchronization.
 	 *
 	 * <p>
-	 * {@code filePath} is deprecated and ignored. {@code space} stays in the
-	 * param map for harness context; a resolved project target is also normalized
-	 * into {@code project} for existing configuration consumers.
+	 * {@code filePath} is deprecated and ignored. {@code space} stays in the param
+	 * map for harness context; a resolved project target is also normalized into
+	 * {@code project} for existing configuration consumers.
 	 *
 	 * @param effectiveWorkspaceId resolved workspace id (explicit override or
 	 *                             {@code room.options.workspace.workspace_id});
@@ -570,7 +575,7 @@ public final class AgentRunner {
 		// An explicit space always selects and authorizes its own target.
 		Object roomLevelOverride = room.getOptionsMap() == null ? null
 				: room.getOptionsMap().get(ROOM_OPTION_WORKING_DIR);
-		if (trimToNull(params.get(PARAM_SPACE)) == null && roomLevelOverride != null) {
+		if (ValueUtils.trimToNull(params.get(PARAM_SPACE)) == null && roomLevelOverride != null) {
 			String raw = String.valueOf(roomLevelOverride).trim();
 			if (!raw.isEmpty()) {
 				String canonical;
@@ -638,8 +643,8 @@ public final class AgentRunner {
 			return createInheritedRoomTarget(roomFolderCanonical, workingDirectory);
 		}
 
-		String sourceRoomId = trimToNull(room.getOptionsMap() == null ? null
-				: room.getOptionsMap().get(ROOM_OPTION_WORKING_DIR_SOURCE_ROOM));
+		String sourceRoomId = ValueUtils.trimToNull(
+				room.getOptionsMap() == null ? null : room.getOptionsMap().get(ROOM_OPTION_WORKING_DIR_SOURCE_ROOM));
 		if (sourceRoomId == null) {
 			throw new IllegalArgumentException("AgentRunner: room.options." + ROOM_OPTION_WORKING_DIR
 					+ " points outside the room folder without an authorized source room");
@@ -663,14 +668,15 @@ public final class AgentRunner {
 	private static AgentRunTarget createInheritedRoomTarget(String rootDirectory, String workingDirectory) {
 		File workingDir = new File(workingDirectory);
 		if (!workingDir.exists() && !workingDir.mkdirs() && !workingDir.isDirectory()) {
-			throw new IllegalArgumentException("AgentRunner: could not create working directory='" + workingDirectory + "'");
+			throw new IllegalArgumentException(
+					"AgentRunner: could not create working directory='" + workingDirectory + "'");
 		}
 		return AgentRunTarget.insight(rootDirectory).withWorkingDirectory(workingDirectory);
 	}
 
 	private static AgentRunTarget resolveAssetTarget(Room room, Insight insight, Map<String, Object> params) {
-		String space = trimToNull(params.get(PARAM_SPACE));
-		String legacyProject = trimToNull(params.get(PARAM_PROJECT));
+		String space = ValueUtils.trimToNull(params.get(PARAM_SPACE));
+		String legacyProject = ValueUtils.trimToNull(params.get(PARAM_PROJECT));
 		if (space != null && legacyProject != null) {
 			throw new IllegalArgumentException(
 					"RunAgent parameters 'space' and 'paramValues.project' are mutually exclusive");
@@ -723,14 +729,6 @@ public final class AgentRunner {
 		return AgentRunTarget.project(project, rootDirectory, gitFolder);
 	}
 
-	private static String trimToNull(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String text = String.valueOf(value).trim();
-		return text.isEmpty() ? null : text;
-	}
-
 	/**
 	 * Pull {@code CONFIG_JSON.subdir} for the given workspace, or {@code null} when
 	 * the workspace has no row / no CONFIG_JSON / no {@code subdir} key. Errors are
@@ -780,13 +778,13 @@ public final class AgentRunner {
 			rootCanonical = rootDirectoryFile.getCanonicalPath();
 			joinedCanonical = joined.getCanonicalPath();
 		} catch (IOException e) {
-			throw new IllegalArgumentException("Could not canonicalize working dir for " + targetLabel + " + '"
-					+ subdir + "': " + e.getMessage(), e);
+			throw new IllegalArgumentException(
+					"Could not canonicalize working dir for " + targetLabel + " + '" + subdir + "': " + e.getMessage(),
+					e);
 		}
 		// Allow equality (subdir resolves to the root itself) or strict-subdir
 		// relationship.
-		if (!joinedCanonical.equals(rootCanonical)
-				&& !joinedCanonical.startsWith(rootCanonical + File.separator)) {
+		if (!joinedCanonical.equals(rootCanonical) && !joinedCanonical.startsWith(rootCanonical + File.separator)) {
 			throw new IllegalArgumentException("subdir '" + subdir + "' escapes target root (" + targetLabel + "): "
 					+ joinedCanonical + " is outside " + rootCanonical);
 		}

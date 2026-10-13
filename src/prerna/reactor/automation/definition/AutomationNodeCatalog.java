@@ -158,6 +158,19 @@ public final class AutomationNodeCatalog {
 		definitions.add(storageDefinition(AutomationNodeType.STORAGE_DELETE, "Delete file",
 				"Delete a file from connected storage.", true, false));
 
+		definitions.add(definition(AutomationNodeType.DATA_EXTRACT, "Extract value",
+				"Read one value from JSON, XML, or a file in this run's workspace.",
+				orderedConfig(AutomationConstants.CONFIG_SOURCE, "", AutomationConstants.CONFIG_PATH, "",
+						AutomationConstants.CONFIG_FORMAT, "auto", AutomationConstants.CONFIG_MISSING_VALUE, null,
+						AutomationConstants.CONFIG_NULL_VALUE, null),
+				List.of(field(AutomationConstants.CONFIG_SOURCE, ConfigFieldType.TEXT, "Data or file path", true, ""),
+						field(AutomationConstants.CONFIG_PATH, ConfigFieldType.STRING, "Value path", true, ""),
+						field(AutomationConstants.CONFIG_FORMAT, ConfigFieldType.STRING, "Data format", true, "auto"),
+						field(AutomationConstants.CONFIG_MISSING_VALUE, ConfigFieldType.JSON,
+								"If the path is missing", false, null),
+						field(AutomationConstants.CONFIG_NULL_VALUE, ConfigFieldType.JSON, "If the value is null", false,
+								null)),
+				controlInputs(), controlAndResultOutputs()));
 		definitions.add(vectorDefinition(AutomationNodeType.VECTOR_SEARCH, "Search vectors",
 				"Search records in a vector database.", true));
 		definitions.add(vectorDefinition(AutomationNodeType.VECTOR_ADD, "Add vector documents",
@@ -196,24 +209,50 @@ public final class AutomationNodeCatalog {
 				List.of(port("case:<clause-id>", "Condition", PortKind.CONTROL, PortDirection.OUTPUT, null),
 						port("else", "Else", PortKind.CONTROL, PortDirection.OUTPUT, null))));
 		definitions.add(definition(AutomationNodeType.CONTROL_JEV, "Jev decision",
-				"Use a TypeSafe/Jev model to choose a configured route or a Yes/No path with an explicit fallback.",
-				orderedConfig("engineId", "", "state", "", "question", "Choose the best route for this input.",
-						"questionType", AutomationConstants.JEV_QUESTION_TYPE_CHOICE,
-						"clauses", List.of(Map.of("id", "initial", "description", "")),
-						"confidenceThreshold", 0.0, "paramValues", Map.of()),
+				"Ask one or more typed Jev questions, then route with explicit rules and a fallback.",
+				orderedConfig("engineId", "", "state", "", "questions",
+						List.of(orderedConfig("key", "route", AutomationConstants.CONFIG_TYPE,
+								AutomationConstants.JEV_QUESTION_TYPE_CHOICE, "instructions",
+								"Choose the best route for this input.", "criteria",
+								Map.of("route_1", "Describe this option"))),
+						"clauses",
+						List.of(orderedConfig("id", "route_1", "description", "Route 1", "match",
+								AutomationConstants.JEV_ROUTE_MATCH_ALL, "conditions",
+								List.of(orderedConfig("questionKey", "route", "field",
+										AutomationConstants.JEV_FIELD_CHOICE, "operator",
+										AutomationConstants.JEV_OPERATOR_EQUALS, "value", "route_1")))),
+						"paramValues", Map.of("timeout", 30, "max_retries", 2)),
 				List.of(engineField(IEngine.CATALOG_TYPE.MODEL),
 						field("state", ConfigFieldType.TEXT, "State to evaluate", true, ""),
-						field("question", ConfigFieldType.TEXT, "Routing question", true,
-								"Choose the best route for this input."),
-						field("questionType", ConfigFieldType.STRING, "Decision type", true,
-								AutomationConstants.JEV_QUESTION_TYPE_CHOICE),
+						field("questions", ConfigFieldType.JSON, "Typed questions", true, List.of()),
 						field("clauses", ConfigFieldType.BRANCH_CLAUSES, "Routes", true, List.of()),
-						new ConfigField("confidenceThreshold", ConfigFieldType.NUMBER, "Minimum confidence", false,
-								0.0, 0.0, 1.0, null),
 						field("paramValues", ConfigFieldType.JSON, "Jev parameters", false, Map.of())),
 				controlInputs(),
 				List.of(port("case:<clause-id>", "Route", PortKind.CONTROL, PortDirection.OUTPUT, null),
 						port("else", "Fallback", PortKind.CONTROL, PortDirection.OUTPUT, null))));
+		definitions.add(definition(AutomationNodeType.CONTROL_LOOP, "Repeat steps",
+				"Run a nested sequence for each item, a fixed number of times, or while a condition is true.",
+				orderedConfig("mode", AutomationConstants.LOOP_MODE_FOR_EACH, "items", List.of(), "batchSize", 1,
+						"count", 1, "condition", "", "maxIterations",
+						AutomationConstants.LOOP_DEFAULT_MAX_ITERATIONS),
+				List.of(field("mode", ConfigFieldType.STRING, "Mode", true,
+						AutomationConstants.LOOP_MODE_FOR_EACH),
+						field("items", ConfigFieldType.JSON, "Items", false, List.of()),
+						optionalBoundedIntegerField("batchSize", "Batch size", 1,
+								AutomationConstants.LOOP_MIN_BATCH_SIZE, AutomationConstants.LOOP_MAX_BATCH_SIZE),
+						optionalBoundedIntegerField("count", "Number of times", 1, 1,
+								AutomationConstants.LOOP_MAX_ITERATIONS),
+						field("condition", ConfigFieldType.TEXT, "Continue while", false, ""),
+						boundedIntegerField("maxIterations", "Maximum iterations",
+								AutomationConstants.LOOP_DEFAULT_MAX_ITERATIONS, 1,
+								AutomationConstants.LOOP_MAX_ITERATIONS)),
+				List.of(outputField("processed", OutputFieldType.NUMBER, "Processed",
+						"Number of items processed.", true),
+						outputField("iterations", OutputFieldType.NUMBER, "Iterations",
+								"Number of loop-body executions.", true),
+						outputField("results", OutputFieldType.OBJECT_LIST, "Results",
+								"Ordered outputs collected from each iteration.", true)),
+				controlInputs(), controlAndResultOutputs()));
 		definitions.add(new AutomationNodeDefinition(AutomationNodeType.DEVELOPER_PYTHON, "Python",
 				"Run custom Python for advanced transformations.", AutomationConstants.NODE_CODE_MODE_CUSTOM, Map.of(),
 				List.of(), List.of(), controlInputs(), controlAndResultOutputs()));
@@ -238,6 +277,10 @@ public final class AutomationNodeCatalog {
 		List<ConfigField> fields = new ArrayList<>();
 		fields.add(engineField(IEngine.CATALOG_TYPE.STORAGE));
 		fields.add(field("path", ConfigFieldType.STRING, "Storage path", pathRequired, ""));
+		if (nodeType == AutomationNodeType.STORAGE_LIST) {
+			defaultConfig.put("extensions", List.of());
+			fields.add(field("extensions", ConfigFieldType.STRING_LIST, "File types", false, List.of()));
+		}
 		if (destinationRequired) {
 			fields.add(field("destination", ConfigFieldType.STRING, "Destination", requireDestination,
 					destinationDefault));
@@ -324,6 +367,11 @@ public final class AutomationNodeCatalog {
 	private static ConfigField boundedIntegerField(String key, String label, int defaultValue, Integer minimum,
 			Integer maximum) {
 		return new ConfigField(key, ConfigFieldType.INTEGER, label, true, defaultValue, minimum, maximum, null);
+	}
+
+	private static ConfigField optionalBoundedIntegerField(String key, String label, int defaultValue, Integer minimum,
+			Integer maximum) {
+		return new ConfigField(key, ConfigFieldType.INTEGER, label, false, defaultValue, minimum, maximum, null);
 	}
 
 	private static Port port(String id, String label, PortKind kind, PortDirection direction, String dataType) {

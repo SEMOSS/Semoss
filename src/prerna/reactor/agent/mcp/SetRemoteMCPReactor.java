@@ -48,6 +48,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * Points a project's MCP at an external/remote MCP server instead of the tools
@@ -94,9 +95,9 @@ public class SetRemoteMCPReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Could not find project " + projectId);
 		}
 
-		String endpoint = trimToNull(this.keyValue.get(MCP_ENDPOINT_KEY));
-		String authScheme = trimToNull(this.keyValue.get(MCP_AUTH_SCHEME_KEY));
-		String authToken = trimToNull(this.keyValue.get(MCP_AUTH_TOKEN_KEY));
+		String endpoint = ValueUtils.trimToNull(this.keyValue.get(MCP_ENDPOINT_KEY));
+		String authScheme = ValueUtils.trimToNull(this.keyValue.get(MCP_AUTH_SCHEME_KEY));
+		String authToken = ValueUtils.trimToNull(this.keyValue.get(MCP_AUTH_TOKEN_KEY));
 
 		Properties smssProp = project.getSmssProp();
 		String existingToken = smssProp == null ? null : smssProp.getProperty(IProject.MCP_AUTH_TOKEN);
@@ -104,7 +105,7 @@ public class SetRemoteMCPReactor extends AbstractReactor {
 		// the FE renders the stored token as a mask so the secret is never shipped to
 		// the client; getting it back means the user did not retype it
 		if (Constants.SENSITIVE_INFO_MASK.equals(authToken)) {
-			authToken = trimToNull(existingToken);
+			authToken = ValueUtils.trimToNull(existingToken);
 		}
 
 		Map<String, String> smssUpdates = new HashMap<>();
@@ -172,14 +173,6 @@ public class SetRemoteMCPReactor extends AbstractReactor {
 		if (uri.getHost() == null || uri.getHost().isBlank()) {
 			throw new IllegalArgumentException("The remote MCP endpoint must include a host");
 		}
-	}
-
-	private static String trimToNull(String value) {
-		if (value == null) {
-			return null;
-		}
-		String trimmed = value.trim();
-		return trimmed.isEmpty() ? null : trimmed;
 	}
 
 	@Override

@@ -277,7 +277,8 @@ public final class BrainRulesGate {
 	// an exclude_topic or exclude_channel rule covering this person on a thread
 	static Rule exclusionRule(List<Rule> rules, List<String> topicIds, String source, String personId) {
 		for (Rule rule : rules) {
-			boolean onTopic = "exclude_topic".equals(rule.kind()) && topicIds.contains(rule.topicId());
+			boolean onTopic = "exclude_topic".equals(rule.kind()) && rule.topicId() != null
+					&& topicIds.contains(rule.topicId());
 			boolean onChannel = "exclude_channel".equals(rule.kind()) && source.equals(rule.channel());
 			if ((onTopic || onChannel) && personId != null && personId.equals(rule.personId())) {
 				return rule;
@@ -304,12 +305,12 @@ public final class BrainRulesGate {
 		}
 	}
 
-	private static boolean matchesSender(Rule rule, String from, String personId) {
+	static boolean matchesSender(Rule rule, String from, String personId) {
 		return from.equals(norm(rule.value())) || (personId != null && personId.equals(rule.personId()));
 	}
 
 	// address book first, then the person's primary address
-	private static String findPerson(String ownerId, String ownerType, String address) {
+	static String findPerson(String ownerId, String ownerType, String address) {
 		String personId = CollaborationDbUtils.queryOne(
 				"SELECT PERSON_ID FROM BRAIN_PERSON_ADDRESS WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND VALUE_NORM = ? "
 						+ "ORDER BY PERSON_ID",
