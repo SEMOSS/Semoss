@@ -45,6 +45,11 @@ final class AutomationPythonExecutor {
 
 	private final Insight insight;
 	private final String runId;
+	/**
+	 * Java object identities already copied into the execution Insight's Python
+	 * namespace. The map lives only for this executor/run and avoids retransmitting
+	 * unchanged JSON values to later developer nodes.
+	 */
 	private final Map<String, Object> retainedValueReferences = new LinkedHashMap<>();
 	private PyTranslator translator;
 

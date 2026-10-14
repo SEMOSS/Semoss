@@ -698,6 +698,14 @@ final class AutomationRunExecutionService {
 	 * Adds one loop result while maintaining the exact encoded size of the JSON
 	 * array. Only the new result is serialized, avoiding repeated serialization of
 	 * every prior iteration.
+	 *
+	 * @param results      accumulated durable iteration results
+	 * @param result       next durable iteration result
+	 * @param currentBytes encoded UTF-8 size of {@code results}
+	 * @param maximumBytes maximum encoded result size
+	 * @param valueName    contextual value name used in validation errors
+	 * @return encoded UTF-8 size after appending {@code result}
+	 * @throws IllegalArgumentException when the append would exceed the bound
 	 */
 	static long appendBoundedLoopResult(List<Map<String, Object>> results, Map<String, Object> result,
 			long currentBytes, int maximumBytes, String valueName) {
@@ -715,6 +723,9 @@ final class AutomationRunExecutionService {
 	/**
 	 * Replaces live frame references with their durable summaries before a value is
 	 * written to run history. Live values remain available in the execution scope.
+	 *
+	 * @param value live execution value
+	 * @return recursively normalized, JSON-safe history value
 	 */
 	static Object persistableValue(Object value) {
 		if (value instanceof AutomationFrameOutput.RegisteredFrame frame) {

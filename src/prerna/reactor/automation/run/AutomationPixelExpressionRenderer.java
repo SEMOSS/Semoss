@@ -432,6 +432,15 @@ final class AutomationPixelExpressionRenderer {
 		return result;
 	}
 
+	/**
+	 * Selects files whose basename matches a single-file storage request. Directory
+	 * requests keep the complete Insight asset search result.
+	 *
+	 * @param files       non-directory Insight asset paths after the transfer
+	 * @param storagePath source path requested from the storage engine
+	 * @return paths belonging to the current transfer, or the original paths when
+	 *         the request does not identify one matching file
+	 */
 	private static List<String> downloadedFiles(List<String> files, String storagePath) {
 		String normalizedStoragePath = storagePath.replace('\\', '/');
 		if (normalizedStoragePath.endsWith("/")) {
