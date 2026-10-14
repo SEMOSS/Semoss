@@ -48,20 +48,18 @@ import prerna.engine.api.IFunctionEngine;
 
 public class AvatarFunctionEngineUnitTests {
 
-	/** Records provider calls instead of hitting the network. */
+	/** Records avatar server calls instead of hitting the network. */
 	private static class RecordingEngine extends AvatarFunctionEngine {
 		final List<String> calls = new ArrayList<>();
 		final List<Map<String, Object>> bodies = new ArrayList<>();
-		String createResponse = "{\"data\":{\"session_id\":\"s1\",\"url\":\"wss://x\",\"access_token\":\"t\"}}";
+		final Map<String, String> responses = new HashMap<>();
 
 		@Override
 		protected String sendRequest(String method, String path, Map<String, Object> body) {
 			calls.add(method + " " + path);
 			bodies.add(body);
-			if (path.contains("streaming.new")) {
-				return createResponse;
-			}
-			return "{\"code\":100}";
+			String canned = responses.get(path);
+			return canned != null ? canned : "{\"code\":0,\"msg\":\"ok\"}";
 		}
 	}
 
@@ -73,9 +71,8 @@ public class AvatarFunctionEngineUnitTests {
 		p.setProperty("ENGINE_ALIAS", "Avatar");
 		p.setProperty("FUNCTION_NAME", "avatar");
 		p.setProperty("FUNCTION_DESCRIPTION", "");
-		p.setProperty("API_KEY", "secret-key");
+		p.setProperty("SERVER_URL", "http://avatar-host:8010/");
 		p.setProperty("DEFAULT_AVATAR_ID", "avatar-1");
-		p.setProperty("DEFAULT_VOICE_ID", "voice-1");
 		return p;
 	}
 
@@ -87,11 +84,16 @@ public class AvatarFunctionEngineUnitTests {
 		return m;
 	}
 
+	private static RecordingEngine open(Properties p) throws Exception {
+		RecordingEngine e = new RecordingEngine();
+		e.setBasic(true); // skips folder initialization
+		e.open(p);
+		return e;
+	}
+
 	@BeforeEach
 	void setUp() throws Exception {
-		engine = new RecordingEngine();
-		engine.setBasic(true); // skips folder initialization
-		engine.open(baseProps());
+		engine = open(baseProps());
 	}
 
 	@Test
@@ -105,28 +107,30 @@ public class AvatarFunctionEngineUnitTests {
 	void catalogTypeAndSubtype() {
 		assertEquals(IEngine.CATALOG_TYPE.FUNCTION, engine.getCatalogType());
 		assertEquals("AVATAR", engine.getCatalogSubType(baseProps()));
+		assertTrue(engine instanceof IFunctionEngine);
 	}
 
 	@Test
-	void openRequiresApiKey() {
+	void openRequiresServerUrl() {
 		Properties p = baseProps();
-		p.remove("API_KEY");
-		assertThrows(IllegalArgumentException.class, () -> {
-			RecordingEngine e = new RecordingEngine();
-			e.setBasic(true);
-			e.open(p);
-		});
+		p.remove("SERVER_URL");
+		assertThrows(IllegalArgumentException.class, () -> open(p));
+		p.setProperty("SERVER_URL", "  ");
+		assertThrows(IllegalArgumentException.class, () -> open(p));
 	}
 
 	@Test
 	void openRejectsUnknownProvider() {
 		Properties p = baseProps();
-		p.setProperty("AVATAR_PROVIDER", "NOPE");
-		assertThrows(IllegalArgumentException.class, () -> {
-			RecordingEngine e = new RecordingEngine();
-			e.setBasic(true);
-			e.open(p);
-		});
+		p.setProperty("AVATAR_PROVIDER", "HEYGEN");
+		assertThrows(IllegalArgumentException.class, () -> open(p));
+	}
+
+	@Test
+	void openRejectsWav2LipAsAvatarModel() {
+		Properties p = baseProps();
+		p.setProperty("DEFAULT_AVATAR_MODEL", "wav2lip");
+		assertThrows(IllegalArgumentException.class, () -> open(p));
 	}
 
 	@Test
@@ -137,41 +141,51 @@ public class AvatarFunctionEngineUnitTests {
 	}
 
 	@Test
-	void missingActionFails() {
+	void missingOrUnknownActionFails() {
 		assertThrows(IllegalArgumentException.class, () -> engine.execute(params()));
-	}
-
-	@Test
-	void unknownActionFails() {
 		assertThrows(IllegalArgumentException.class, () -> engine.execute(params("action", "dance")));
 	}
 
 	@Test
 	@SuppressWarnings("unchecked")
-	void createSessionUsesDefaultsAndStartsStream() {
-		Object out = engine.execute(params("action", "create_session"));
-		assertEquals(List.of("POST /v1/streaming.new", "POST /v1/streaming.start"), engine.calls);
-		Map<String, Object> newBody = engine.bodies.get(0);
-		assertEquals("avatar-1", newBody.get("avatar_id"));
-		assertEquals("medium", newBody.get("quality"));
-		assertEquals("voice-1", ((Map<String, Object>) newBody.get("voice")).get("voice_id"));
-		assertEquals("s1", engine.bodies.get(1).get("session_id"));
-		assertTrue(out instanceof Map);
-	}
-
-	@Test
-	void createSessionNeverLeaksApiKey() {
-		Object out = engine.execute(params("action", "create_session"));
-		assertFalse(out.toString().contains("secret-key"));
-	}
-
-	@Test
-	void speakSendsTextAndDefaultsToRepeat() {
-		engine.execute(params("action", "speak", "sessionId", "s1", "text", "hello"));
-		assertEquals(List.of("POST /v1/streaming.task"), engine.calls);
+	void connectRelaysOfferAndReturnsRawAnswer() {
+		engine.responses.put("/offer", "{\"sdp\":\"answer-sdp\",\"type\":\"answer\",\"sessionid\":\"s1\"}");
+		Object out = engine.execute(params("action", "connect", "sdp", "offer-sdp"));
+		assertEquals(List.of("POST /offer"), engine.calls);
 		Map<String, Object> body = engine.bodies.get(0);
+		assertEquals("offer-sdp", body.get("sdp"));
+		assertEquals("offer", body.get("type"));
+		assertEquals("avatar-1", body.get("avatar"));
+		assertEquals("s1", ((Map<String, Object>) out).get("sessionid"));
+		assertEquals("answer-sdp", ((Map<String, Object>) out).get("sdp"));
+	}
+
+	@Test
+	void connectRequiresSdp() {
+		assertThrows(IllegalArgumentException.class, () -> engine.execute(params("action", "connect")));
+	}
+
+	@Test
+	void speakAlwaysUsesEchoMode() {
+		engine.execute(params("action", "speak", "sessionId", "s1", "text", "hello"));
+		assertEquals(List.of("POST /human"), engine.calls);
+		Map<String, Object> body = engine.bodies.get(0);
+		assertEquals("s1", body.get("sessionid"));
 		assertEquals("hello", body.get("text"));
-		assertEquals("repeat", body.get("task_type"));
+		assertEquals("echo", body.get("type"));
+		assertEquals(false, body.get("interrupt"));
+	}
+
+	@Test
+	void speakCannotRequestChatMode() {
+		engine.execute(params("action", "speak", "sessionId", "s1", "text", "hi", "type", "chat"));
+		assertEquals("echo", engine.bodies.get(0).get("type"));
+	}
+
+	@Test
+	void speakPassesInterruptFlag() {
+		engine.execute(params("action", "speak", "sessionId", "s1", "text", "hi", "interrupt", "true"));
+		assertEquals(true, engine.bodies.get(0).get("interrupt"));
 	}
 
 	@Test
@@ -182,35 +196,60 @@ public class AvatarFunctionEngineUnitTests {
 	}
 
 	@Test
-	void speakRejectsBadTaskType() {
-		assertThrows(IllegalArgumentException.class,
-				() -> engine.execute(params("action", "speak", "sessionId", "s1", "text", "hi", "taskType", "x")));
-	}
-
-	@Test
-	void interruptAndCloseNeedSession() {
+	void interruptAndIsSpeakingNeedSession() {
 		assertThrows(IllegalArgumentException.class, () -> engine.execute(params("action", "interrupt")));
-		assertThrows(IllegalArgumentException.class, () -> engine.execute(params("action", "close_session")));
+		assertThrows(IllegalArgumentException.class, () -> engine.execute(params("action", "is_speaking")));
 		engine.execute(params("action", "interrupt", "sessionId", "s1"));
-		engine.execute(params("action", "close_session", "sessionId", "s1"));
-		assertEquals(List.of("POST /v1/streaming.interrupt", "POST /v1/streaming.stop"), engine.calls);
+		engine.responses.put("/is_speaking", "{\"code\":0,\"msg\":\"ok\",\"data\":true}");
+		Object speaking = engine.execute(params("action", "is_speaking", "sessionId", "s1"));
+		assertEquals(List.of("POST /interrupt_talk", "POST /is_speaking"), engine.calls);
+		assertEquals(true, speaking);
 	}
 
 	@Test
-	void listActionsUseGet() {
-		engine.execute(params("action", "list_avatars"));
-		engine.execute(params("action", "list_voices"));
-		assertEquals(List.of("GET /v1/streaming/avatar.list", "GET /v2/voices"), engine.calls);
+	void nonZeroCodeIsAnError() {
+		engine.responses.put("/human", "{\"code\":-1,\"msg\":\"session not found\"}");
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> engine.execute(params("action", "speak", "sessionId", "bad", "text", "hi")));
+		assertTrue(e.getMessage().contains("session not found"));
 	}
 
 	@Test
-	void functionDefinitionJsonHasName() {
-		engine.setFunctionName("avatar");
-		assertEquals("avatar", engine.getFunctionDefintionJson().getString("name"));
+	void createAvatarDefaultsToMuseTalkAndRejectsWav2Lip() {
+		engine.responses.put("/api/avatar/task", "{\"code\":0,\"msg\":\"ok\",\"data\":{\"task_id\":\"t1\"}}");
+		Object out = engine.execute(params("action", "create_avatar", "avatarId", "a2", "videoPath", "/v/a.mp4"));
+		Map<String, Object> body = engine.bodies.get(0);
+		assertEquals("musetalk", body.get("model"));
+		assertEquals("a2", body.get("avatar_id"));
+		assertEquals("/v/a.mp4", body.get("video_path"));
+		assertEquals("t1", ((Map<?, ?>) out).get("task_id"));
+		assertThrows(IllegalArgumentException.class, () -> engine.execute(
+				params("action", "create_avatar", "avatarId", "a2", "videoPath", "/v/a.mp4", "model", "wav2lip")));
 	}
 
 	@Test
-	void ifaceIsFunctionEngine() {
-		assertTrue(engine instanceof IFunctionEngine);
+	void createAvatarRequiresIdAndVideo() {
+		assertThrows(IllegalArgumentException.class,
+				() -> engine.execute(params("action", "create_avatar", "videoPath", "/v/a.mp4")));
+		assertThrows(IllegalArgumentException.class,
+				() -> engine.execute(params("action", "create_avatar", "avatarId", "a2")));
+	}
+
+	@Test
+	void avatarStatusEncodesTaskIdInRoute() {
+		engine.responses.put("/api/avatar/task/t%2F1", "{\"code\":0,\"msg\":\"ok\",\"data\":{\"status\":\"running\"}}");
+		Object out = engine.execute(params("action", "avatar_status", "taskId", "t/1"));
+		assertEquals(List.of("GET /api/avatar/task/t%2F1"), engine.calls);
+		assertEquals("running", ((Map<?, ?>) out).get("status"));
+		assertThrows(IllegalArgumentException.class, () -> engine.execute(params("action", "avatar_status")));
+	}
+
+	@Test
+	void trailingSlashInServerUrlIsTrimmedAndHeadersParse() throws Exception {
+		Properties p = baseProps();
+		p.setProperty("HEADERS", "{\"X-Gateway-Key\":\"k\"}");
+		RecordingEngine e = open(p);
+		e.execute(params("action", "interrupt", "sessionId", "s1"));
+		assertEquals(List.of("POST /interrupt_talk"), e.calls);
 	}
 }
