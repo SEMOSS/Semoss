@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -230,18 +231,20 @@ public final class AutomationRuntime {
 	 * Builds the Python invocation for one persisted node source.
 	 *
 	 * <p>
-	 * The serialized {@code scope} remains the public node contract. Frame-backed
-	 * names are rebound to their live Insight-owned Python variables.
+	 * The logical {@code scope} remains the public node contract. The serialized
+	 * transport contains changed values plus placeholders for aliases rebound to
+	 * live Insight-owned frames or retained JSON values.
 	 *
 	 * @param source             persisted Python source defining {@code run(scope)}
 	 * @param scope              bounded run scope supplied by the Java scheduler
 	 * @param outputVariable     node output alias used in diagnostics
 	 * @param frameBindings      scope aliases backed by live Python frames
+	 * @param valueBindings      scope aliases backed by retained JSON values
 	 * @return Python script that invokes the Automation runtime boundary
 	 * @throws IllegalStateException when the Automation Python runtime is unavailable
 	 */
 	public static String buildNodeInvocationScript(String source, Map<String, Object> scope, String outputVariable,
-			Map<String, String> frameBindings) {
+			Map<String, String> frameBindings, Collection<String> valueBindings) {
 		Path runtimePath = Path.of(Utility.getBaseFolder(), Constants.PY_BASE_FOLDER, "semoss_automation_runtime.py")
 				.toAbsolutePath().normalize();
 		if (!Files.isRegularFile(runtimePath)) {
@@ -253,13 +256,20 @@ public final class AutomationRuntime {
 				    "_semoss_automation_runtime", %s)
 				_automation_runtime = _automation_importlib.module_from_spec(_automation_spec)
 				_automation_spec.loader.exec_module(_automation_runtime)
-				_automation_runtime.execute_node("%s", "%s", %d, %s, globals(), %s)
+				_automation_runtime.execute_node("%s", "%s", %d, %s, globals(), %s, %s)
 				""".formatted(AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()),
 				encode(AutomationRuntimeUtils.toBoundedRuntimeJson(scope != null ? scope : Map.of(),
 						AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope")),
 				encode(source != null ? source : ""), AutomationConstants.NODE_OUTPUT_MAX_BYTES,
 				AutomationRuntimeUtils.GSON.toJson(outputVariable),
-				AutomationRuntimeUtils.GSON.toJson(frameBindings != null ? frameBindings : Map.of()));
+				AutomationRuntimeUtils.GSON.toJson(frameBindings != null ? frameBindings : Map.of()),
+				AutomationRuntimeUtils.GSON.toJson(valueBindings != null ? valueBindings : List.of()));
+	}
+
+	/** Builds a node invocation with no retained JSON-backed scope values. */
+	public static String buildNodeInvocationScript(String source, Map<String, Object> scope, String outputVariable,
+			Map<String, String> frameBindings) {
+		return buildNodeInvocationScript(source, scope, outputVariable, frameBindings, List.of());
 	}
 
 	/** Builds a node invocation with no live frame-backed scope values. */
