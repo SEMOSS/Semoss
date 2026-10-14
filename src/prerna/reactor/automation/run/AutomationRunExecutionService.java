@@ -446,6 +446,9 @@ final class AutomationRunExecutionService {
 		String loopNodeId = (String) loopNode.get(AutomationConstants.NODE_FIELD_ID);
 		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
 		long startedMs = System.currentTimeMillis();
+		List<Map<String, Object>> iterationResults = new ArrayList<>();
+		Map<String, Object> activeIteration = null;
+		String loopOutputVar = null;
 		AutomationRunStore.markNodeRunning(runId, loopNodeId);
 		streamNodeProgress(runId, loopNode, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
 		try {
@@ -497,8 +500,7 @@ final class AutomationRunExecutionService {
 			List<Map<String, Object>> bodyEdges = AutomationRuntime.loopBodyEdges(loopNode);
 			Map<String, Map<String, String>> bodyTargets = AutomationRuntime.controlTargets(bodyEdges);
 			String bodyEntry = AutomationRuntime.graphEntryNodeId(bodyNodes, bodyEdges);
-			String loopOutputVar = (String) loopNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
-			List<Map<String, Object>> iterationResults = new ArrayList<>();
+			loopOutputVar = (String) loopNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
 			long iterationResultsJsonBytes = 2L;
 			Map<String, Map<String, Object>> bodyNodesById = new LinkedHashMap<>();
 			Map<String, Object> carriedOutputs = new LinkedHashMap<>();
@@ -549,6 +551,9 @@ final class AutomationRunExecutionService {
 					iterationOverrides.putAll(carriedOutputs);
 				}
 				iterationOverrides.put(loopOutputVar, loopContext);
+				activeIteration = new LinkedHashMap<>();
+				activeIteration.put("index", iteration);
+				activeIteration.put("input", persistableValue(loopIterationInput(loopMode, loopContext)));
 				boolean stopLoop = false;
 				AutomationExecutionContext iterationContext = parentContext.child(iterationOverrides);
 				try {
@@ -634,7 +639,7 @@ final class AutomationRunExecutionService {
 						.map(executionNodeIds::get).toList();
 				AutomationRunStore.skipPendingNodes(runId, skipped, "Loop branch was not selected");
 				Map<String, Object> iterationResult = new LinkedHashMap<>();
-				iterationResult.put("index", iteration);
+				iterationResult.putAll(activeIteration);
 				iterationResult.put("outputs", persistableValue(outputs));
 				iterationResultsJsonBytes = appendBoundedLoopResult(iterationResults, iterationResult,
 						iterationResultsJsonBytes, AutomationConstants.NODE_OUTPUT_MAX_BYTES,
@@ -643,6 +648,7 @@ final class AutomationRunExecutionService {
 					carriedOutputs.replaceAll((key, value) -> null);
 					carriedOutputs.putAll(outputs);
 				}
+				activeIteration = null;
 				} finally {
 					// Child scopes contain immutable values and own no external resources.
 				}
@@ -688,10 +694,57 @@ final class AutomationRunExecutionService {
 		} catch (Exception e) {
 			long duration = System.currentTimeMillis() - startedMs;
 			String message = safeMessage(e);
-			AutomationRunStore.updateNodeFailed(runId, loopNodeId, started, duration, message);
+			String failedOutput = failedLoopOutput(iterationResults, activeIteration);
+			if (failedOutput == null) {
+				AutomationRunStore.updateNodeFailed(runId, loopNodeId, started, duration, message);
+			} else {
+				AutomationRunStore.updateNodeFailedWithResult(runId, loopNodeId, started, duration, loopOutputVar,
+						failedOutput, AutomationRuntimeUtils.generatePreview(failedOutput), null, message);
+			}
 			streamNodeProgress(runId, loopNode, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
 			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
 		}
+	}
+
+	/** Builds bounded partial loop history when a body step fails mid-iteration. */
+	private static String failedLoopOutput(List<Map<String, Object>> completedIterations,
+			Map<String, Object> activeIteration) {
+		if (activeIteration == null) {
+			return null;
+		}
+		List<Map<String, Object>> retained = new ArrayList<>(completedIterations);
+		Map<String, Object> failed = new LinkedHashMap<>(activeIteration);
+		failed.put("status", AutomationConstants.NODE_STATUS_FAILED);
+		retained.add(failed);
+		Map<String, Object> value = new LinkedHashMap<>();
+		value.put("processed", completedIterations.size());
+		value.put("iterations", retained.size());
+		value.put("results", retained);
+		try {
+			return AutomationRuntimeUtils.toBoundedRuntimeJson(value, AutomationConstants.NODE_OUTPUT_MAX_BYTES,
+					"Failed Automation loop output");
+		} catch (IllegalArgumentException e) {
+			classLogger.warn("Unable to retain the failed Automation loop input because it exceeds the history limit");
+			return null;
+		}
+	}
+
+	/**
+	 * Returns the exact business value presented to one loop pass. For-each loops
+	 * retain the single item or batch; repeat and while loops retain their bounded
+	 * control context. This value is written with the loop's existing durable
+	 * result, so Source Explorer can explain what a body execution processed after
+	 * the execution Insight has closed.
+	 *
+	 * @param loopMode    configured loop mode
+	 * @param loopContext run-local loop context for one pass
+	 * @return exact input value for the durable iteration record
+	 */
+	private static Object loopIterationInput(String loopMode, Map<String, Object> loopContext) {
+		if (AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)) {
+			return loopContext.containsKey("item") ? loopContext.get("item") : loopContext.get("batch");
+		}
+		return loopContext;
 	}
 
 	/**

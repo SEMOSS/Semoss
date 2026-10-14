@@ -42,14 +42,17 @@ import static org.mockito.Mockito.verify;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.util.JdbcTestDatabase;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 class AutomationRunStoreUnitTests {
@@ -279,6 +282,53 @@ class AutomationRunStoreUnitTests {
 			assertFalse(AutomationRunStore.hasAgentRunTrace(lookAlike, "brief", "node", "agent"));
 			assertEquals(1, AutomationRunStore.getRunsForProject(scope, 10).size());
 			assertTrue(AutomationRunStore.hasAgentRunTrace(scope, "brief", "node", "agent"));
+		}
+	}
+
+	@Test
+	void runSearchFiltersAndPagesOnlyAuthorizedRunSummaries() throws Exception {
+		try (var db = new JdbcTestDatabase(); var queryExecution = mockStatic(QueryExecutionUtility.class)) {
+			List<SelectQueryStruct> queries = new ArrayList<>();
+			queryExecution
+					.when(() -> QueryExecutionUtility.flushRsToMap(eq(db.engine), any(SelectQueryStruct.class)))
+					.thenAnswer(invocation -> {
+						queries.add(invocation.getArgument(1));
+						return switch (queries.size()) {
+						case 1 -> List.of(Map.of(AutomationConstants.RUN_ID, "manual-success",
+								AutomationConstants.PROJECT_ID, "project"));
+						case 2 -> List.of(Map.of(AutomationConstants.RUN_ID, "scheduled-failure",
+								AutomationConstants.PROJECT_ID, "project"));
+						default -> List.of(
+								Map.of(AutomationConstants.RUN_ID, "scheduled-failure",
+										AutomationConstants.PROJECT_ID, "project"),
+								Map.of(AutomationConstants.RUN_ID, "look-alike",
+										AutomationConstants.PROJECT_ID, "PROJECT"));
+						};
+					});
+
+			List<Map<String, Object>> firstPage = AutomationRunStore.searchRunsForProject("project", null, null, null,
+					null, null, 0, 1);
+			assertEquals(1, firstPage.size());
+			assertEquals("manual-success", firstPage.get(0).get(AutomationConstants.RUN_ID));
+			assertEquals("project", firstPage.get(0).get(AutomationConstants.PROJECT_ID));
+
+			List<Map<String, Object>> secondPage = AutomationRunStore.searchRunsForProject("project", null, null, null,
+					null, null, 1, 1);
+			assertEquals("scheduled-failure", secondPage.get(0).get(AutomationConstants.RUN_ID));
+
+			List<Map<String, Object>> failures = AutomationRunStore.searchRunsForProject("project", "smtp", "FAILED",
+					"SCHEDULED", java.time.Instant.parse("2026-10-14T07:00:00Z"),
+					java.time.Instant.parse("2026-10-14T08:30:00Z"), 0, 10);
+			assertEquals(1, failures.size());
+			assertEquals("scheduled-failure", failures.get(0).get(AutomationConstants.RUN_ID));
+
+			assertEquals(3, queries.size());
+			assertEquals(0, queries.get(0).getOffset());
+			assertEquals(1, queries.get(0).getLimit());
+			assertEquals(1, queries.get(1).getOffset());
+			assertEquals(1, queries.get(1).getLimit());
+			assertEquals(6, queries.get(2).getExplicitFilters().getFilters().size());
+			assertEquals(10, queries.get(2).getLimit());
 		}
 	}
 
