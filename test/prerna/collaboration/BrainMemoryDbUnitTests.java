@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.collaboration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,6 +48,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,10 +71,17 @@ import prerna.collaboration.BrainMemoryUtils.Source;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
+import prerna.engine.impl.owl.AbstractOwlCreator;
+import prerna.om.Insight;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.collaboration.BrainCompleteGoalReactor;
+import prerna.reactor.collaboration.BrainEditTopicReactor;
+import prerna.sablecc2.om.NounStore;
 import prerna.util.Utility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -136,6 +171,29 @@ class BrainMemoryDbUnitTests {
 		Memory fact = memories.stream().filter(m -> m.text().startsWith("Vendor")).findFirst().orElseThrow();
 		assertEquals(List.of(new Ref(BrainMemoryUtils.THREAD, "th-1")), fact.about());
 		assertEquals("p-priya", fact.source().personId());
+	}
+
+	@Test
+	void schemaUpgradeAddsGoalResolutionWithoutChangingExistingGoals() throws Exception {
+		topic("t-acme", "Acme");
+		Map<String, Object> goal = BrainTopicUtils.saveTopicNote(user, "t-acme", null, BrainTopicUtils.GOAL,
+				"Close by Q4", "open");
+		sql("ALTER TABLE BRAIN_TOPIC_NOTE DROP COLUMN RESOLUTION");
+		IRDBMSEngine engine = SystemEngineRegistry.getCollaborationDb();
+		var goalSchema = new CollaborationOwlCreator(engine.getQueryUtil()).getDBSchema().stream()
+				.filter(table -> "BRAIN_TOPIC_NOTE".equals(table.getValue0())).toList();
+		AbstractOwlCreator.syncSchema(engine, connection, goalSchema);
+		AbstractOwlCreator.syncSchema(engine, connection, goalSchema);
+		assertEquals(List.of(goal), BrainTopicUtils.getGoals(ownerId, ownerType, "t-acme"));
+
+		BrainAgentEdits.editTopic(user, "t-acme", null, null, null, null, null, null, null, null, null,
+				(String) goal.get("noteId"), "Signed the renewal");
+		Map<String, Object> completed = BrainTopicUtils.getGoals(ownerId, ownerType, "t-acme").get(0);
+		assertEquals("done", completed.get("status"));
+		assertEquals("Signed the renewal", completed.get("resolution"));
+		assertEquals(goal.get("text"), completed.get("text"));
+		assertEquals(goal.get("date"), completed.get("date"));
+		assertEquals(1, count("BRAIN_TOPIC_NOTE"));
 	}
 
 	// ---- owner ----
@@ -305,16 +363,22 @@ class BrainMemoryDbUnitTests {
 	@Test
 	void deletingATopicTakesItsOnlyMemoriesAndUndoPutsThemBack() throws Exception {
 		topic("t-acme", "Acme");
+		String goalId = (String) BrainTopicUtils.saveTopicNote(user, "t-acme", null, BrainTopicUtils.GOAL,
+				"Get the room code for Florida", "open").get("noteId");
+		BrainTopicUtils.completeGoal(user, "t-acme", goalId, "Florida room code is 444553");
+		List<Map<String, Object>> goals = BrainTopicUtils.getGoals(ownerId, ownerType, "t-acme");
 		String onlyTopic = (String) BrainMemoryUtils.saveMemory(user, Map.of("text", "Procurement needs three quotes",
 				"about", List.of(Map.of("type", "topic", "id", "t-acme")))).get("id");
 		String shared = (String) BrainMemoryUtils.saveMemory(user, Map.of("text", "Priya approves Acme spend",
 				"about", List.of(Map.of("type", "topic", "id", "t-acme"), ABOUT_PRIYA))).get("id");
 
 		String changeId = (String) BrainTopicUtils.deleteTopic(user, "t-acme").get("changeId");
+		assertTrue(BrainTopicUtils.getGoals(ownerId, ownerType, "t-acme").isEmpty());
 		assertNull(BrainMemoryUtils.find(ownerId, ownerType, onlyTopic));
 		assertEquals(List.of(new Ref("person", "p-priya")), BrainMemoryUtils.find(ownerId, ownerType, shared).about());
 
 		BrainTopicChangeUtils.undo(user, changeId);
+		assertEquals(goals, BrainTopicUtils.getGoals(ownerId, ownerType, "t-acme"));
 		assertEquals(List.of(new Ref("topic", "t-acme")), BrainMemoryUtils.find(ownerId, ownerType, onlyTopic).about());
 		assertEquals(new TreeSet<>(List.of("person:p-priya", "topic:t-acme")),
 				refs(BrainMemoryUtils.find(ownerId, ownerType, shared)));
@@ -324,6 +388,10 @@ class BrainMemoryDbUnitTests {
 	void mergingTopicsMovesMemoryLinksAndUndoSplitsThemAgain() throws Exception {
 		topic("t-a", "Acme renewal");
 		topic("t-b", "Acme");
+		String goalId = (String) BrainTopicUtils.saveTopicNote(user, "t-a", null, BrainTopicUtils.GOAL,
+				"Get the room code for Florida", "open").get("noteId");
+		BrainTopicUtils.completeGoal(user, "t-a", goalId, "Florida room code is 444553");
+		List<Map<String, Object>> goals = BrainTopicUtils.getGoals(ownerId, ownerType, "t-a");
 		String onSource = (String) BrainMemoryUtils.saveMemory(user, Map.of("text", "Renewal is due in March",
 				"about", List.of(Map.of("type", "topic", "id", "t-a")))).get("id");
 		String onBoth = (String) BrainMemoryUtils.saveMemory(user, Map.of("text", "Legal reviews every Acme contract",
@@ -331,10 +399,13 @@ class BrainMemoryDbUnitTests {
 				.get("id");
 
 		String changeId = (String) BrainTopicUtils.mergeTopics(user, "t-a", "t-b").get("changeId");
+		assertEquals(goals, BrainTopicUtils.getGoals(ownerId, ownerType, "t-b"));
 		assertEquals(List.of(new Ref("topic", "t-b")), BrainMemoryUtils.find(ownerId, ownerType, onSource).about());
 		assertEquals(List.of(new Ref("topic", "t-b")), BrainMemoryUtils.find(ownerId, ownerType, onBoth).about());
 
 		BrainTopicChangeUtils.undo(user, changeId);
+		assertEquals(goals, BrainTopicUtils.getGoals(ownerId, ownerType, "t-a"));
+		assertTrue(BrainTopicUtils.getGoals(ownerId, ownerType, "t-b").isEmpty());
 		assertEquals(List.of(new Ref("topic", "t-a")), BrainMemoryUtils.find(ownerId, ownerType, onSource).about());
 		assertEquals(new TreeSet<>(List.of("topic:t-a", "topic:t-b")),
 				refs(BrainMemoryUtils.find(ownerId, ownerType, onBoth)));
@@ -374,7 +445,7 @@ class BrainMemoryDbUnitTests {
 		sql("UPDATE BRAIN_MEMORY_LINK SET REF_ID = 'th-2' WHERE MEMORY_ID = (SELECT MEMORY_ID FROM BRAIN_MEMORY "
 				+ "WHERE TEXT = 'Wrong thread')");
 
-		List<String> ids = ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-1", 4000));
+		List<String> ids = ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-1", null, 4000));
 		assertEquals(Set.of(preference, aboutThread, aboutPriya, aboutAcme, aboutAccount), Set.copyOf(ids));
 		assertEquals(List.of(preference, aboutThread, aboutPriya), ids.subList(0, 3));
 
@@ -382,22 +453,30 @@ class BrainMemoryDbUnitTests {
 		sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, CHANNEL, CREATED_AT) VALUES (?, ?, 'r1', "
 				+ "'exclude_channel', 'outlook', CURRENT_TIMESTAMP)", ownerId, ownerType);
 		assertEquals(Set.of(preference, aboutAcme, aboutAccount),
-				Set.copyOf(ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-1", 4000))));
+				Set.copyOf(ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-1", null, 4000))));
 
 		// a /new session only gets what applies everywhere
-		assertEquals(List.of(preference), ids(BrainMemoryRecall.recall(ownerId, ownerType, "session:abc", 4000)));
+		assertEquals(List.of(preference), ids(BrainMemoryRecall.recall(ownerId, ownerType, "session:abc", null, 4000)));
 
-		Map<String, Object> shown = BrainMemoryRecall.recallMemories(user, "th-1");
+		Map<String, Object> shown = BrainMemoryRecall.recallMemories(user, "th-1", null);
 		assertEquals(true, shown.get("enabled"));
 		assertEquals(3, ((List<?>) shown.get("items")).size());
 		assertTrue(((String) shown.get("prompt")).contains("[m:" + preference + "] Sign emails as Rob"));
-		assertTrue(BrainMemoryRecall.promptBlock(user, "th-1").contains("### What you remember for this thread"));
+		// the owner's chat opened from th-1
+		Room room = mock(Room.class);
+		when(room.getId()).thenReturn("room-1");
+		when(room.getProjectId()).thenReturn(CollaborationUtils.COLLABORATION_PROJECT_ID);
+		when(room.getOptionsMap()).thenReturn(Map.of("source", Map.of("threadId", "th-1")));
+		String block = BrainMemoryRecall.promptBlock(user, room);
+		assertTrue(block.contains("### What you remember for this thread"));
+		// only the thread's chat gets its topic memories; a room not read as one would fall back to the session's
+		assertTrue(block.contains("[m:" + aboutAcme + "] Acme needs three quotes"));
 
 		// memory off: no block for the prompt and nothing recalled
 		sql("INSERT INTO BRAIN_SETTINGS (OWNER_ID, OWNER_TYPE, FILE_AT, ASK_AT, VERSION, MEMORY_USE) "
 				+ "VALUES (?, ?, 85, 40, 1, FALSE)", ownerId, ownerType);
-		assertNull(BrainMemoryRecall.promptBlock(user, "th-1"));
-		assertEquals(false, BrainMemoryRecall.recallMemories(user, "th-1").get("enabled"));
+		assertNull(BrainMemoryRecall.promptBlock(user, room));
+		assertEquals(false, BrainMemoryRecall.recallMemories(user, "th-1", null).get("enabled"));
 		assertThrows(IllegalArgumentException.class, () -> BrainMemoryUtils.requireAssistantMemory(user));
 	}
 
@@ -491,7 +570,7 @@ class BrainMemoryDbUnitTests {
 		topic("t-acme", "Acme");
 		topic("t-other", "Other");
 		BrainAgentEdits.editTopic(user, "t-acme", null, null, null, null, null, null, "Close by Q4",
-				"Procurement needs three quotes", null);
+				"Procurement needs three quotes", null, null, null);
 		assertEquals(1, count("BRAIN_TOPIC_NOTE"));
 		Map<String, Object> topic = BrainTopicUtils.getTopic(user, null, "Acme");
 		List<Map<String, Object>> notes = (List<Map<String, Object>>) topic.get("notes");
@@ -511,12 +590,205 @@ class BrainMemoryDbUnitTests {
 		String elsewhere = (String) BrainMemoryUtils.saveMemory(user, Map.of("text", "Other needs a quote",
 				"about", List.of(Map.of("type", "topic", "id", "t-other")))).get("id");
 		assertThrows(IllegalArgumentException.class, () -> BrainAgentEdits.editTopic(user, "t-acme", null, null, null,
-				null, null, null, null, null, elsewhere));
-		BrainAgentEdits.editTopic(user, "t-acme", null, null, null, null, null, null, null, null, noteId);
-		BrainAgentEdits.editTopic(user, "t-acme", null, null, null, null, null, null, null, null, goalId);
+				null, null, null, null, null, elsewhere, null, null));
+		BrainAgentEdits.editTopic(user, "t-acme", null, null, null, null, null, null, null, null, noteId, null, null);
+		BrainAgentEdits.editTopic(user, "t-acme", null, null, null, null, null, null, null, null, goalId, null, null);
 		assertNull(BrainMemoryUtils.find(ownerId, ownerType, noteId));
 		assertNotNull(BrainMemoryUtils.find(ownerId, ownerType, elsewhere));
 		assertEquals(0, count("BRAIN_TOPIC_NOTE"));
+	}
+
+	@Test
+	void editTopicCompletesAGoalAndKeepsItsHistoryOnRepeatedCalls() throws Exception {
+		topic("t-acme", "Acme");
+		String text = "  Close by Q4  ";
+		String goalId = (String) BrainTopicUtils.saveTopicNote(user, "t-acme", null, BrainTopicUtils.GOAL,
+				text, "open").get("noteId");
+		sql("UPDATE BRAIN_TOPIC_NOTE SET ORIGIN = 'brain', SOURCE_REF = 'thread:th-1' WHERE NOTE_ID = ?", goalId);
+		Map<String, Object> expected = new LinkedHashMap<>(BrainTopicUtils.getGoals(ownerId, ownerType, "t-acme").get(0));
+		expected.put("status", "done");
+
+		BrainEditTopicReactor reactor = editTopicReactor(Map.of("topicId", "t-acme", "completeGoalId", goalId));
+		for (int attempt = 0; attempt < 2; attempt++) {
+			Map<?, ?> result = (Map<?, ?>) reactor.execute().getValue();
+			Map<?, ?> updatedTopic = (Map<?, ?>) result.get("topic");
+			assertEquals(List.of(Map.of("noteId", goalId, "text", text, "status", "done")), updatedTopic.get("goals"));
+			assertEquals(List.of(expected), BrainTopicUtils.getGoals(ownerId, ownerType, "t-acme"));
+			assertEquals(1, count("BRAIN_TOPIC_NOTE"));
+		}
+	}
+
+	@Test
+	void goalResolutionIsReturnedAndSurvivesRetriesEditsAndReopening() throws Exception {
+		topic("t-acme", "Acme");
+		String goalId = (String) BrainTopicUtils.saveTopicNote(user, "t-acme", null, BrainTopicUtils.GOAL,
+				"Close by Q4", "open").get("noteId");
+		String resolution = "Signed the renewal.\nLegal approved the final terms.";
+		Map<?, ?> result = (Map<?, ?>) editTopicReactor(Map.of("topicId", "t-acme", "completeGoalId", goalId,
+				"goalResolution", "  " + resolution + "  ")).execute().getValue();
+		Map<?, ?> updatedTopic = (Map<?, ?>) result.get("topic");
+		assertEquals(List.of(Map.of("noteId", goalId, "text", "Close by Q4", "status", "done", "resolution",
+				resolution)), updatedTopic.get("goals"));
+
+		for (String omittedOrBlank : new String[] { null, "", " \t " }) {
+			BrainAgentEdits.editTopic(user, "t-acme", null, null, null, null, null, null, null, null, null,
+					goalId, omittedOrBlank);
+			Map<String, Object> saved = BrainTopicUtils.saveTopicNote(user, "t-acme", goalId, BrainTopicUtils.GOAL,
+					"Close by Q4, including the addendum", "open");
+			assertEquals("open", saved.get("status"));
+			assertEquals(resolution, saved.get("resolution"));
+			BrainAgentEdits.editTopic(user, "t-acme", null, null, null, null, null, null, null, null, null,
+					goalId, omittedOrBlank);
+			Map<String, Object> completed = BrainTopicUtils.getGoals(ownerId, ownerType, "t-acme").get(0);
+			assertEquals("done", completed.get("status"));
+			assertEquals("Close by Q4, including the addendum", completed.get("text"));
+			assertEquals(resolution, completed.get("resolution"));
+			assertEquals(1, count("BRAIN_TOPIC_NOTE"));
+		}
+	}
+
+	@Test
+	void resolutionWithoutAGoalIsRejectedBeforeOtherTopicChanges() throws Exception {
+		topic("t-acme", "Acme");
+		for (String missingGoalId : new String[] { null, "", "  " }) {
+			assertThrows(IllegalArgumentException.class, () -> BrainAgentEdits.editTopic(user, "t-acme", null,
+					"Renamed", null, null, null, null, "New goal", null, null, missingGoalId, "Signed the renewal"));
+		}
+		assertEquals("Acme", BrainTopicUtils.getTopic(user, "t-acme", null).get("name"));
+		assertEquals(0, count("BRAIN_TOPIC_NOTE"));
+	}
+
+	@Test
+	void completingAGoalRejectsIdsOutsideTheOwnersTopicGoals() throws Exception {
+		topic("t-acme", "Acme");
+		topic("t-other", "Other");
+		BrainTopicUtils.saveTopicNote(user, "t-acme", null, BrainTopicUtils.GOAL, "Close by Q4", "open");
+		String otherGoalId = (String) BrainTopicUtils.saveTopicNote(user, "t-other", null, BrainTopicUtils.GOAL,
+				"Other goal", "open").get("noteId");
+		sql("INSERT INTO BRAIN_TOPIC_NOTE (OWNER_ID, OWNER_TYPE, NOTE_ID, TOPIC_ID, KIND, TEXT, STATE) "
+				+ "VALUES (?, ?, 'legacy-note', 't-acme', 'note', 'A note', 'confirmed')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_TOPIC_NOTE (OWNER_ID, OWNER_TYPE, NOTE_ID, TOPIC_ID, KIND, TEXT, STATE) "
+				+ "VALUES ('another-owner', ?, 'foreign-goal', 't-acme', 'goal', 'Their goal', 'open')", ownerType);
+		String memoryId = (String) BrainMemoryUtils.saveMemory(user, Map.of("text", "Needs three quotes",
+				"about", List.of(Map.of("type", "topic", "id", "t-acme")))).get("id");
+		List<Map<String, Object>> goals = BrainTopicUtils.getGoals(ownerId, ownerType, "t-acme");
+
+		for (String id : List.of("missing", otherGoalId, "legacy-note", memoryId, "foreign-goal")) {
+			assertThrows(IllegalArgumentException.class, () -> BrainAgentEdits.editTopic(user, "t-acme", null,
+					null, null, null, null, null, null, null, null, id, "Completed the renewal"), id);
+		}
+		assertEquals(goals, BrainTopicUtils.getGoals(ownerId, ownerType, "t-acme"));
+		assertEquals(4, count("BRAIN_TOPIC_NOTE"));
+		assertEquals(0L, value("SELECT COUNT(*) FROM BRAIN_TOPIC_NOTE WHERE STATE = 'done'"));
+		assertEquals(0L, value("SELECT COUNT(*) FROM BRAIN_TOPIC_NOTE WHERE RESOLUTION IS NOT NULL"));
+		assertEquals("confirmed", value("SELECT STATE FROM BRAIN_TOPIC_NOTE WHERE NOTE_ID = 'legacy-note'"));
+		assertEquals(BrainMemoryUtils.ACTIVE, BrainMemoryUtils.find(ownerId, ownerType, memoryId).state());
+	}
+
+	@Test
+	void editTopicExposesOptionalGoalCompletionWithOwnerApproval() {
+		Map<String, Object> tool = CollaborationAgentTools.definitions().stream()
+				.filter(definition -> "EditTopic".equals(definition.get("name"))).findFirst().orElseThrow();
+		Map<?, ?> schema = (Map<?, ?>) tool.get("inputSchema");
+		Map<?, ?> properties = (Map<?, ?>) schema.get("properties");
+		assertEquals("string", ((Map<?, ?>) properties.get("completeGoalId")).get("type"));
+		assertFalse(((List<?>) schema.get("required")).contains("completeGoalId"));
+		assertEquals("string", ((Map<?, ?>) properties.get("goalResolution")).get("type"));
+		assertFalse(((List<?>) schema.get("required")).contains("goalResolution"));
+		assertEquals(MCPUtility.MCPExecution.ASK.getValue(),
+				((Map<?, ?>) tool.get("_meta")).get(MCPUtility.SMSS_MCP_EXECUTION));
+	}
+
+	@Test
+	void assistantCompletesCurrentTopicGoalWithEvidenceAndPreservesItsText() throws Exception {
+		topic("t-acme", "Rule of Nines");
+		String goal = "Get booking details for nevada";
+		String goalId = (String) BrainTopicUtils.saveTopicNote(user, "t-acme", null, BrainTopicUtils.GOAL,
+				goal, "open").get("noteId");
+		sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, 'room-1', 't-acme', 'linked', 'you')", ownerId, ownerType);
+		String resolution = "Booking details confirmed: American flight 4884, arriving 11/01/2026 at Dulles.";
+		try (MockedStatic<ModelInferenceLogsUtils> logs = mockStatic(ModelInferenceLogsUtils.class)) {
+			logs.when(() -> ModelInferenceLogsUtils.getActiveRoomSummaries(ownerId, List.of("room-1")))
+					.thenReturn(List.of(Map.of("ROOM_ID", "room-1", "PROJECT_ID",
+							CollaborationUtils.COLLABORATION_PROJECT_ID, "OPTIONS", "{}")));
+			BrainCompleteGoalReactor reactor = new BrainCompleteGoalReactor() {
+				@Override
+				protected User getUser() {
+					return user;
+				}
+			};
+			Insight insight = mock(Insight.class);
+			when(insight.getRoomId()).thenReturn("room-1");
+			reactor.setInsight(insight);
+			NounStore store = new NounStore("complete-goal");
+			Map.of("topicId", "t-acme", "goalId", goalId, "resolution", resolution)
+					.forEach((key, value) -> store.makeNoun(key).addLiteral(value));
+			reactor.setNounStore(store);
+			for (int attempt = 0; attempt < 2; attempt++) {
+				Map<?, ?> result = (Map<?, ?>) reactor.execute().getValue();
+				assertEquals(List.of("goal completed"), result.get("changes"));
+				assertEquals(List.of(Map.of("noteId", goalId, "text", goal, "status", "done", "resolution", resolution)),
+						((Map<?, ?>) result.get("topic")).get("goals"));
+			}
+		}
+		assertEquals(1, count("BRAIN_TOPIC_NOTE"));
+	}
+
+	@Test
+	void automaticCompletionRequiresEvidenceAndAnOwnedChatTopic() throws Exception {
+		topic("t-acme", "Acme");
+		topic("t-other", "Other");
+		String goalId = (String) BrainTopicUtils.saveTopicNote(user, "t-acme", null, BrainTopicUtils.GOAL,
+				"Get booking details", "open").get("noteId");
+		String otherGoal = (String) BrainTopicUtils.saveTopicNote(user, "t-other", null, BrainTopicUtils.GOAL,
+				"Another goal", "open").get("noteId");
+		sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, 'room-1', 't-acme', 'linked', 'you')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, 'child-room', 't-acme', 'linked', 'you')", ownerId, ownerType);
+		for (String missingEvidence : new String[] { null, "", "  " }) {
+			assertThrows(IllegalArgumentException.class,
+					() -> BrainAgentEdits.completeGoal(user, "room-1", "t-acme", goalId, missingEvidence));
+		}
+		try (MockedStatic<ModelInferenceLogsUtils> logs = mockStatic(ModelInferenceLogsUtils.class)) {
+			logs.when(() -> ModelInferenceLogsUtils.getActiveRoomSummaries(ownerId, List.of("room-1")))
+					.thenReturn(List.of(Map.of("ROOM_ID", "room-1", "PROJECT_ID",
+							CollaborationUtils.COLLABORATION_PROJECT_ID, "OPTIONS", "{}")));
+			assertThrows(IllegalArgumentException.class,
+					() -> BrainAgentEdits.completeGoal(user, "room-1", "t-other", otherGoal, "Got the details"));
+			assertThrows(IllegalArgumentException.class,
+					() -> BrainAgentEdits.completeGoal(user, "room-1", "t-acme", otherGoal, "Got the details"));
+			assertThrows(IllegalArgumentException.class,
+					() -> BrainAgentEdits.completeGoal(user, "not-my-room", "t-acme", goalId, "Got the details"));
+			logs.when(() -> ModelInferenceLogsUtils.getActiveRoomSummaries(ownerId, List.of("child-room")))
+					.thenReturn(List.of(Map.of("ROOM_ID", "child-room", "PROJECT_ID",
+							CollaborationUtils.COLLABORATION_PROJECT_ID, "OPTIONS",
+							"{\"subagent_parent_room_id\":\"room-1\"}")));
+			assertTrue(assertThrows(IllegalArgumentException.class,
+					() -> BrainAgentEdits.completeGoal(user, "child-room", "t-acme", goalId, "Got the details"))
+					.getMessage().contains("subagent"));
+		}
+		assertEquals(0L, value("SELECT COUNT(*) FROM BRAIN_TOPIC_NOTE WHERE STATE = 'done'"));
+	}
+
+	@Test
+	void automaticGoalToolIsOnlyOfferedToTheOwnersRootAssistant() {
+		Room room = new Room();
+		room.setProjectId(CollaborationUtils.COLLABORATION_PROJECT_ID);
+		room.setOptionsMap(new LinkedHashMap<>());
+		Map<String, Object> tool = CollaborationAgentTools.definitions(room, user, true).stream()
+				.filter(definition -> "CompleteGoal".equals(definition.get("name"))).findFirst().orElseThrow();
+		assertEquals(MCPUtility.MCPExecution.AUTO.getValue(),
+				((Map<?, ?>) tool.get("_meta")).get(MCPUtility.SMSS_MCP_EXECUTION));
+		assertEquals(Set.of("topicId", "goalId", "resolution"),
+				Set.copyOf((List<?>) ((Map<?, ?>) tool.get("inputSchema")).get("required")));
+		assertTrue(CollaborationAgentTools.definitions().stream().noneMatch(t -> "CompleteGoal".equals(t.get("name"))));
+		assertTrue(CollaborationAgentTools.definitions(room, user, false).stream()
+				.noneMatch(t -> "CompleteGoal".equals(t.get("name"))));
+		room.setOptionsMap(Map.of(CollaborationUtils.ROOM_OPTION_DELEGATION_ACTION_ID, "delegation-1"));
+		assertTrue(CollaborationAgentTools.definitions(room, user, true).stream()
+				.noneMatch(t -> "CompleteGoal".equals(t.get("name"))));
 	}
 
 	// ---- settings and reset ----
@@ -546,6 +818,19 @@ class BrainMemoryDbUnitTests {
 	}
 
 	// ---- helpers ----
+
+	private BrainEditTopicReactor editTopicReactor(Map<String, String> arguments) {
+		BrainEditTopicReactor reactor = new BrainEditTopicReactor() {
+			@Override
+			protected User getUser() {
+				return user;
+			}
+		};
+		NounStore store = new NounStore("edit-topic");
+		arguments.forEach((key, value) -> store.makeNoun(key).addLiteral(value));
+		reactor.setNounStore(store);
+		return reactor;
+	}
 
 	@SuppressWarnings("unchecked")
 	private static Map<String, Object> memory(Map<String, Object> result) {

@@ -496,6 +496,7 @@ public class CollaborationDbUtils {
 		} catch (RuntimeException e) {
 			classLogger.error("Moving topic notes and thread facts into Brain memory failed; retrying next boot", e);
 		}
+		BrainMailWebhook.startRenewals();
 	}
 
 	/**
@@ -513,6 +514,18 @@ public class CollaborationDbUtils {
 		try {
 			// create the tables and columns from the OWL creator schema
 			AbstractOwlCreator.syncSchema(collaborationDb, conn, dbSchema);
+			// A single routine per owner is required for atomic schedule saves and daily-run claims.
+			var queryUtil = collaborationDb.getQueryUtil();
+			String routineIndex = "WORK_INBOX_ROUTINE_OWNER_UNIQUE";
+			if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, routineIndex,
+					"WORK_INBOX_ROUTINE", collaborationDb.getDatabase(), collaborationDb.getSchema())) {
+				String sql = queryUtil.allowIfExistsIndexSyntax()
+						? queryUtil.createIndexIfNotExists(routineIndex, "WORK_INBOX_ROUTINE", List.of("OWNER_ID", "OWNER_TYPE"))
+						: queryUtil.createIndex(routineIndex, "WORK_INBOX_ROUTINE", List.of("OWNER_ID", "OWNER_TYPE"));
+				try (Statement statement = conn.createStatement()) {
+					statement.execute(sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX"));
+				}
+			}
 			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)
 			widenColumn(collaborationDb, conn, "BRAIN_TOPIC_PERSON", "ROLE_LABEL", 255);
 
@@ -574,6 +587,12 @@ public class CollaborationDbUtils {
 							"OWNER_TYPE", "THREAD_ID"),
 					OwlIndex.of("BRAIN_THREAD_PARTICIPANT_PERSON_ID_INDEX", "BRAIN_THREAD_PARTICIPANT", "OWNER_ID",
 							"OWNER_TYPE", "PERSON_ID"),
+					OwlIndex.of("BRAIN_THREAD_ALIAS_THREAD_ID_INDEX", "BRAIN_THREAD_ALIAS", "OWNER_ID", "OWNER_TYPE",
+							"THREAD_ID"),
+					OwlIndex.of("BRAIN_THREAD_ROOM_ROOM_ID_INDEX", "BRAIN_THREAD_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"ROOM_ID"),
+					OwlIndex.of("BRAIN_THREAD_ROOM_THREAD_ID_INDEX", "BRAIN_THREAD_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"THREAD_ID"),
 					OwlIndex.of("BRAIN_MESSAGE_OWNER_INDEX", "BRAIN_MESSAGE", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_MESSAGE_MESSAGE_KEY_INDEX", "BRAIN_MESSAGE", "OWNER_ID", "OWNER_TYPE",
 							"MESSAGE_KEY"),

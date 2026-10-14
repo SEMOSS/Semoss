@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,14 +34,18 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.javatuples.Pair;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.PermissionChange;
+import prerna.auth.access.PermissionErrorRules;
+import prerna.auth.access.PermissionGrant;
+import prerna.auth.access.PermissionProblem;
+import prerna.auth.access.PermissionSubject;
+import prerna.auth.access.PermissionTargetResource;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.io.connector.ms.MicrosoftGraphUserLookup;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -55,7 +58,6 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
 import prerna.util.ValueUtils;
 
 /**
@@ -66,17 +68,19 @@ import prerna.util.ValueUtils;
  * managers add and remove its members, which gives those people whatever access
  * resource owners have given the group, and add and remove its other managers.
  * They can see which projects and engines the group has access to, but only the
- * resources' owners and admins change that. Admins can do everything a manager
- * can, for every custom group. Groups of other types take their members from
- * the login, so they have no managers.
+ * resources' owners change that. Admins can do everything a manager can, for
+ * every custom group, in admin mode: through the methods that take the admin
+ * group utilities. Outside admin mode an admin is an ordinary user. Groups of
+ * other types take their members from the login, so they have no managers.
  * </p>
  *
  * <p>
- * Every method that reads or changes a group checks the user's rights itself. A
- * manager is matched on a login's id and type together, since ids alone are not
- * unique across providers. A person picked from the Microsoft directory who is
- * not in the security database yet is added to it, with the details the
- * directory holds for them, only after the change has been validated.
+ * Every method that reads or changes a group checks the user's permissions
+ * itself. A manager is matched on a login's id and type together, since ids
+ * alone are not unique across providers. A person picked from the Microsoft
+ * directory who is not in the security database yet is added to it, with the
+ * details the directory holds for them, only after the change has been
+ * validated.
  * </p>
  */
 public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
@@ -91,6 +95,7 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 
 	private static final String GROUP_ID_REQUIRED = "Must define the group id";
 	private static final String USER_ID_REQUIRED = "Must define the user id";
+	private static final String MANAGERS_ONLY = "Only this group's managers and admins can view or change it";
 
 	/**
 	 * Inserts a manager: group id, user id, user type, date added, granted by id
@@ -98,9 +103,6 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 	 */
 	static final String INSERT_MANAGER_QUERY = "INSERT INTO GROUPMANAGERS (GROUPID, USERID, TYPE, DATEADDED, "
 			+ "PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES (?,?,?,?,?,?)";
-
-	/** Makes checking for an existing manager and inserting one a single step */
-	private static final Object MANAGER_WRITE_LOCK = new Object();
 
 	private SecurityGroupManagerUtils() {
 
@@ -134,16 +136,20 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Being an admin counts for nothing here, since an admin can also act as an
+	 * ordinary user; admins manage any custom group in admin mode, through the
+	 * methods that take the admin group utilities.
+	 *
 	 * @param user    the user
 	 * @param groupId the group
 	 * @return whether the user can manage the group's members: the group is a
-	 *         custom group and the user is an admin or one of its managers
+	 *         custom group and the user is one of its managers
 	 */
 	public static boolean userCanManageGroup(User user, String groupId) {
 		if (groupId == null || !AdminSecurityGroupUtils.getUncheckedInstance().isCustomGroup(groupId)) {
 			return false;
 		}
-		return SecurityAdminUtils.userIsAdmin(user) || userIsGroupManager(user, groupId);
+		return userIsGroupManager(user, groupId);
 	}
 
 	/**
@@ -165,7 +171,45 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 			return false;
 		}
 		return (projectId != null && SecurityGroupProjectUtils.userCanManageGroupAccess(user, projectId))
-				|| (engineId != null && SecurityGroupEngineUtils.userCanManageGroupAccess(user, engineId));
+				|| (engineId != null && SecurityGroupEngineUtils.userCanManageGroupAccess(user, engineId))
+				|| userCanViewGroupPeople(user, groupId, projectId, engineId);
+	}
+
+	/**
+	 * Whether the user can see who is in a custom group. With no project or engine,
+	 * its managers can. Through a project or engine, its managers can; so can the
+	 * owners of that project or engine, who see the people they would give access
+	 * to before they give the group access, as they see its managers; and so can
+	 * its editors once the group has access to it. Being an admin counts for
+	 * nothing, since an admin can also act as an ordinary user.
+	 *
+	 * @param user      the user
+	 * @param groupId   the custom group
+	 * @param projectId a project the user owns or edits, or null
+	 * @param engineId  an engine the user owns or edits, or null
+	 * @return whether the user can see the group's members and managers
+	 */
+	public static boolean userCanViewGroupPeople(User user, String groupId, String projectId, String engineId) {
+		if (projectId == null && engineId == null) {
+			return userCanManageGroup(user, groupId);
+		}
+		if (userIsGroupManager(user, groupId)) {
+			return true;
+		}
+		if (groupId == null || !AdminSecurityGroupUtils.getUncheckedInstance().isCustomGroup(groupId)) {
+			return false;
+		}
+		if (projectId != null) {
+			return SecurityGroupProjectUtils.userCanManageGroupAccess(user, projectId)
+					|| (SecurityGroupProjectUtils.getGroupProjectPermission(groupId, CUSTOM_GROUP_TYPE,
+							projectId) != null && SecurityProjectUtils.userCanEditProject(user, projectId));
+		}
+		if (engineId != null) {
+			return SecurityGroupEngineUtils.userCanManageGroupAccess(user, engineId)
+					|| (SecurityGroupEngineUtils.getGroupDatabasePermission(groupId, CUSTOM_GROUP_TYPE,
+							engineId) != null && SecurityEngineUtils.userCanEditEngine(user, engineId));
+		}
+		return false;
 	}
 
 	/**
@@ -299,8 +343,8 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 	/**
 	 * The managers of a custom group, with their names and emails.
 	 *
-	 * @param user      the user asking: an admin, one of the group's managers, or
-	 *                  the owner of the project or engine passed
+	 * @param user      the user asking: one of the group's managers, or the owner
+	 *                  of the project or engine passed
 	 * @param groupId   the custom group
 	 * @param projectId a project the user owns and may give the group access to, or
 	 *                  null
@@ -315,7 +359,7 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 		ValueUtils.requireNonBlank(groupId, GROUP_ID_REQUIRED);
 		if (!userCanViewGroupManagers(user, groupId, projectId, engineId)) {
 			throw new IllegalAccessException(
-					"Only this group's managers, admins and resource owners can see who manages it");
+					"Only this group's managers, and the owners of what it is being given, can see who manages it");
 		}
 		return queryGroupManagers(groupId);
 	}
@@ -337,7 +381,13 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 		return queryGroupManagers(groupId);
 	}
 
-	private static List<Map<String, Object>> queryGroupManagers(String groupId) {
+	/**
+	 * @param groupId the custom group
+	 * @return its managers, with the keys {@code userid}, {@code type},
+	 *         {@code dateadded}, {@code name}, {@code username} and {@code email},
+	 *         read without checking who asks
+	 */
+	static List<Map<String, Object>> queryGroupManagers(String groupId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPMANAGERS__USERID"));
 		qs.addSelector(new QueryColumnSelector("GROUPMANAGERS__TYPE"));
@@ -374,21 +424,20 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Makes a user a manager of a custom group.
+	 * Makes a user a manager of a custom group, as a permission batch.
 	 *
-	 * @param grantor  the admin or manager making the change
+	 * @param grantor  the manager making the change
 	 * @param groupId  the custom group
 	 * @param userId   the new manager's user id
 	 * @param userType the new manager's login type
-	 * @throws IllegalAccessException   when the grantor cannot manage the group
+	 * @throws IllegalAccessException   when the grantor does not manage the group
 	 * @throws IllegalArgumentException when the group is not a custom group, the
 	 *                                  user does not exist or already manages the
 	 *                                  group
-	 * @throws Exception                when the insert fails
 	 */
 	public static void addGroupManager(User grantor, String groupId, String userId, String userType) throws Exception {
 		checkCanManageGroup(null, grantor, groupId);
-		addManager(grantor, groupId, userId, userType);
+		changeManager(grantor, false, PermissionChange.Action.ADD, groupId, userId, userType);
 	}
 
 	/**
@@ -403,56 +452,42 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 			String userId, String userType) throws Exception {
 		requireAdmin(adminGroupUtils);
 		checkCanManageGroup(adminGroupUtils, grantor, groupId);
-		addManager(grantor, groupId, userId, userType);
+		changeManager(grantor, true, PermissionChange.Action.ADD, groupId, userId, userType);
 	}
 
 	/**
-	 * Adds a manager once the grantor's rights have been checked.
+	 * Adds or removes a manager as a permission batch, once the caller's
+	 * permissions have been checked, with these methods' own messages.
 	 */
-	private static void addManager(User grantor, String groupId, String userId, String userType) throws Exception {
+	private static void changeManager(User user, boolean asAdmin, PermissionChange.Action action, String groupId,
+			String userId, String userType) throws IllegalAccessException {
 		String type = normalizeUserType(userType);
 		ValueUtils.requireNonBlank(userId, USER_ID_REQUIRED);
-		if (managerExists(groupId, userId, type)) {
-			throw new IllegalArgumentException("User " + userId + " already manages group " + groupId);
-		}
-		addDirectoryUserIfMissing(grantor, userId, type);
-		if (!AdminSecurityGroupUtils.getUncheckedInstance().userExists(userId, type)) {
-			throw new IllegalArgumentException("User " + userId + " does not exist");
-		}
-
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Pair<String, String> grantorDetails = User.getPrimaryUserIdAndTypePair(grantor);
-		synchronized (MANAGER_WRITE_LOCK) {
-			// a second request for the same manager may have finished first
-			if (managerExists(groupId, userId, type)) {
-				throw new IllegalArgumentException("User " + userId + " already manages group " + groupId);
-			}
-			QueryExecutionUtility.executeUpdate(securityDb, INSERT_MANAGER_QUERY, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, type);
-				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-				ps.setString(parameterIndex++, grantorDetails.getValue0());
-				ps.setString(parameterIndex++, grantorDetails.getValue1());
-			});
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.teamManagers(groupId),
+				List.of(new PermissionChange(action, PermissionSubject.ofUser(userId, type), null)),
+				asAdmin ? PermissionBatchOptions.adminMode() : PermissionBatchOptions.userMode(),
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, MANAGERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.INVALID_TARGET,
+								"Group " + groupId + " is not a custom group")
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+								"User " + userId + " already manages group " + groupId)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+								"User " + userId + " does not manage group " + groupId));
 	}
 
 	/**
-	 * Stops a user managing a custom group.
+	 * Stops a user managing a custom group, as a permission batch.
 	 *
-	 * @param user     the admin or manager making the change
+	 * @param user     the manager making the change
 	 * @param groupId  the custom group
 	 * @param userId   the manager's user id
 	 * @param userType the manager's login type
-	 * @throws IllegalAccessException   when the user cannot manage the group
+	 * @throws IllegalAccessException   when the user does not manage the group
 	 * @throws IllegalArgumentException when the person does not manage the group
-	 * @throws Exception                when the delete fails
 	 */
 	public static void removeGroupManager(User user, String groupId, String userId, String userType) throws Exception {
 		checkCanManageGroup(null, user, groupId);
-		removeManager(groupId, userId, userType);
+		changeManager(user, false, PermissionChange.Action.REMOVE, groupId, userId, userType);
 	}
 
 	/**
@@ -467,30 +502,11 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 			String userType) throws Exception {
 		requireAdmin(adminGroupUtils);
 		checkCanManageGroup(adminGroupUtils, null, groupId);
-		removeManager(groupId, userId, userType);
-	}
-
-	/**
-	 * Removes a manager once the caller's rights have been checked.
-	 */
-	private static void removeManager(String groupId, String userId, String userType) throws Exception {
-		String type = normalizeUserType(userType);
-		ValueUtils.requireNonBlank(userId, USER_ID_REQUIRED);
-		if (!managerExists(groupId, userId, type)) {
-			throw new IllegalArgumentException("User " + userId + " does not manage group " + groupId);
-		}
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		QueryExecutionUtility.executeUpdate(securityDb,
-				"DELETE FROM GROUPMANAGERS WHERE GROUPID=? AND USERID=? AND TYPE=?", ps -> {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, type);
-				});
+		changeManager(null, true, PermissionChange.Action.REMOVE, groupId, userId, userType);
 	}
 
 	/*
-	 * Group details and members, for admins and the group's managers
+	 * Group details and members, for the group's managers
 	 */
 
 	/**
@@ -513,6 +529,37 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 		checkCanManageGroup(user, groupId);
 		return AdminSecurityGroupUtils.getUncheckedInstance().getGroupMembers(groupId, searchTerm, clampPageSize(limit),
 				offset);
+	}
+
+	/**
+	 * {@link #getGroupMembers(User, String, String, long, long)} for the owners and
+	 * editors of a project or engine the group has access to, as well as its
+	 * managers and admins.
+	 *
+	 * @param projectId a project the user owns or edits, or null
+	 * @param engineId  an engine the user owns or edits, or null
+	 * @throws IllegalAccessException when the user cannot see the group's members
+	 * @see #userCanViewGroupPeople(User, String, String, String)
+	 */
+	public static List<Map<String, Object>> getGroupMembers(User user, String groupId, String projectId,
+			String engineId, String searchTerm, long limit, long offset) throws IllegalAccessException {
+		checkCanViewGroupPeople(user, groupId, projectId, engineId);
+		return AdminSecurityGroupUtils.getUncheckedInstance().getGroupMembers(groupId, searchTerm, clampPageSize(limit),
+				offset);
+	}
+
+	/**
+	 * {@link #getNumMembersInGroup(User, String, String)} for the owners and
+	 * editors of a project or engine the group has access to, as well as its
+	 * managers and admins.
+	 *
+	 * @throws IllegalAccessException when the user cannot see the group's members
+	 * @see #userCanViewGroupPeople(User, String, String, String)
+	 */
+	public static Long getNumMembersInGroup(User user, String groupId, String projectId, String engineId,
+			String searchTerm) throws IllegalAccessException {
+		checkCanViewGroupPeople(user, groupId, projectId, engineId);
+		return AdminSecurityGroupUtils.getUncheckedInstance().getNumMembersInGroup(groupId, searchTerm);
 	}
 
 	/**
@@ -608,24 +655,21 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Adds a member to a custom group.
+	 * Adds a member to a custom group, as a permission batch.
 	 *
-	 * @param user     the admin or manager making the change
+	 * @param user     the manager making the change
 	 * @param groupId  the custom group
 	 * @param userId   the new member's user id
 	 * @param userType the new member's login type
 	 * @param endDate  when the membership ends, or null or blank for never
-	 * @throws IllegalAccessException   when the user cannot manage the group
+	 * @throws IllegalAccessException   when the user does not manage the group
 	 * @throws IllegalArgumentException when the person is already a member, does
 	 *                                  not exist, or the end date cannot be read
-	 * @throws Exception                when the insert fails
-	 * @see AdminSecurityGroupUtils#addUserToGroup(User, String, String, String,
-	 *      String)
 	 */
 	public static void addUserToGroup(User user, String groupId, String userId, String userType, String endDate)
 			throws Exception {
 		checkCanManageGroup(null, user, groupId);
-		addMember(user, groupId, userId, userType, endDate);
+		changeMember(user, false, PermissionChange.Action.ADD, groupId, userId, userType, endDate);
 	}
 
 	/**
@@ -640,42 +684,50 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 			String userType, String endDate) throws Exception {
 		requireAdmin(adminGroupUtils);
 		checkCanManageGroup(adminGroupUtils, user, groupId);
-		addMember(user, groupId, userId, userType, endDate);
+		changeMember(user, true, PermissionChange.Action.ADD, groupId, userId, userType, endDate);
 	}
 
 	/**
-	 * Adds a member once the user's rights have been checked.
+	 * Adds or removes a member as a permission batch, once the caller's permissions
+	 * have been checked, with these methods' own messages.
 	 */
-	private static void addMember(User user, String groupId, String userId, String userType, String endDate)
-			throws Exception {
-		String type = normalizeUserType(userType);
-		ValueUtils.requireNonBlank(userId, USER_ID_REQUIRED);
-		AdminSecurityGroupUtils groupUtils = AdminSecurityGroupUtils.getUncheckedInstance();
-		if (groupUtils.userInCustomGroup(groupId, userId, type)) {
-			throw new IllegalArgumentException("User " + userId + " already has access to group " + groupId);
+	private static void changeMember(User user, boolean asAdmin, PermissionChange.Action action, String groupId,
+			String userId, String userType, String endDate) throws IllegalAccessException {
+		String type;
+		if (action == PermissionChange.Action.ADD) {
+			type = normalizeUserType(userType);
+			ValueUtils.requireNonBlank(userId, USER_ID_REQUIRED);
+		} else {
+			ValueUtils.requireNonBlank(userId, USER_ID_REQUIRED);
+			type = normalizeUserType(userType);
 		}
 		String end = endDate == null || endDate.trim().isEmpty() ? null : endDate.trim();
-		if (end != null) {
-			// an end date that cannot be read fails here, before anyone is added
-			try {
-				AbstractSecurityUtils.calculateEndDate(end);
-			} catch (DateTimeParseException e) {
-				throw new IllegalArgumentException("The end date " + end + " is not a valid date");
-			}
-		}
-		addDirectoryUserIfMissing(user, userId, type);
-		groupUtils.addUserToGroup(user, groupId, userId, type, end);
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.team(groupId),
+				List.of(new PermissionChange(action, PermissionSubject.ofUser(userId, type),
+						new PermissionGrant(null, end))),
+				asAdmin ? PermissionBatchOptions.adminMode() : PermissionBatchOptions.userMode(),
+				new PermissionErrorRules(end).illegalAccess(PermissionProblem.Code.NO_PERMISSION, MANAGERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.INVALID_TARGET,
+								"Group " + groupId + " is not a custom group")
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+								"User " + userId + " already has access to group " + groupId)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+								"User " + userId + " does not have access to group " + groupId));
 	}
 
 	/**
-	 * @see AdminSecurityGroupUtils#removeUserFromGroup(String, String, String)
-	 * @throws IllegalAccessException when the user cannot manage the group
+	 * Takes a member out of a custom group, as a permission batch.
+	 *
+	 * @param user     the manager making the change
+	 * @param groupId  the custom group
+	 * @param userId   the member's user id
+	 * @param userType the member's login type
+	 * @throws IllegalAccessException   when the user does not manage the group
+	 * @throws IllegalArgumentException when the person is not a member
 	 */
 	public static void removeUserFromGroup(User user, String groupId, String userId, String userType) throws Exception {
 		checkCanManageGroup(null, user, groupId);
-		ValueUtils.requireNonBlank(userId, USER_ID_REQUIRED);
-		AdminSecurityGroupUtils.getUncheckedInstance().removeUserFromGroup(groupId, userId,
-				normalizeUserType(userType));
+		changeMember(user, false, PermissionChange.Action.REMOVE, groupId, userId, userType, null);
 	}
 
 	/**
@@ -690,8 +742,7 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 			String userType) throws Exception {
 		requireAdmin(adminGroupUtils);
 		checkCanManageGroup(adminGroupUtils, null, groupId);
-		ValueUtils.requireNonBlank(userId, USER_ID_REQUIRED);
-		adminGroupUtils.removeUserFromGroup(groupId, userId, normalizeUserType(userType));
+		changeMember(null, true, PermissionChange.Action.REMOVE, groupId, userId, userType, null);
 	}
 
 	/*
@@ -703,23 +754,43 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Someone who cannot see the group's members is told only that, whether or not
+	 * the group exists or is a custom group, so they learn nothing about it. Only a
+	 * custom group's members can be seen.
+	 *
+	 * @throws IllegalArgumentException when the group id is missing
+	 * @throws IllegalAccessException   when the user cannot see the group's members
+	 */
+	static void checkCanViewGroupPeople(User user, String groupId, String projectId, String engineId)
+			throws IllegalAccessException {
+		ValueUtils.requireNonBlank(groupId, GROUP_ID_REQUIRED);
+		if (!userCanViewGroupPeople(user, groupId, projectId, engineId)) {
+			throw new IllegalAccessException(
+					"Only this group's managers, and the owners and editors of what it can use, can see its members");
+		}
+	}
+
+	/**
 	 * @param adminGroupUtils the admin group utilities when the caller has already
 	 *                        proved they are an admin, or null to check the user
 	 * @param user            the user, when no admin group utilities are passed
 	 * @param groupId         the group
-	 * @throws IllegalArgumentException when the group id is missing or the group is
-	 *                                  not a custom group
-	 * @throws IllegalAccessException   when the user is neither an admin nor one of
-	 *                                  the group's managers
+	 * @throws IllegalArgumentException when the group id is missing, or the group
+	 *                                  is not a custom group, which only admins and
+	 *                                  the group's managers are told
+	 * @throws IllegalAccessException   when no admin group utilities are passed and
+	 *                                  the user is not one of the group's managers
 	 */
 	private static void checkCanManageGroup(AdminSecurityGroupUtils adminGroupUtils, User user, String groupId)
 			throws IllegalAccessException {
 		ValueUtils.requireNonBlank(groupId, GROUP_ID_REQUIRED);
+		// someone who does not manage the group is told only that, so they cannot
+		// tell a missing group or a login provider group from a custom group
+		if (adminGroupUtils == null && !userIsGroupManager(user, groupId)) {
+			throw new IllegalAccessException(MANAGERS_ONLY);
+		}
 		if (!AdminSecurityGroupUtils.getUncheckedInstance().isCustomGroup(groupId)) {
 			throw new IllegalArgumentException("Group " + groupId + " is not a custom group");
-		}
-		if (adminGroupUtils == null && !SecurityAdminUtils.userIsAdmin(user) && !userIsGroupManager(user, groupId)) {
-			throw new IllegalAccessException("Only this group's managers and admins can view or change it");
 		}
 	}
 
@@ -742,17 +813,6 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 	 */
 	static String normalizeUserType(String userType) {
 		return AuthProvider.getProviderLabel(ValueUtils.requireNonBlank(userType, "Must define the user's login type"));
-	}
-
-	/**
-	 * Adds a person picked from the Microsoft directory to the security database
-	 * when they are not in it yet, with the details the directory holds for them.
-	 */
-	private static void addDirectoryUserIfMissing(User user, String userId, String userType)
-			throws IllegalAccessException {
-		if (AuthProvider.MICROSOFT.getLabel().equals(userType) && MicrosoftGraphUserLookup.isEnabled()) {
-			MicrosoftGraphUserLookup.addMissingUser(user, userId);
-		}
 	}
 
 	/**

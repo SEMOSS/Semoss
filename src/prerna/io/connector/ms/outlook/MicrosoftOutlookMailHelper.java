@@ -93,7 +93,7 @@ public class MicrosoftOutlookMailHelper {
 	public static final String DEFAULT_GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0";
 
 	/** The fields a message listing asks for when the caller wants the body. */
-	private static final String MESSAGE_FIELDS = "id,subject,from,replyTo,toRecipients,ccRecipients,bccRecipients,"
+	private static final String MESSAGE_FIELDS = "id,parentFolderId,subject,from,replyTo,toRecipients,ccRecipients,bccRecipients,"
 			+ "receivedDateTime,sentDateTime,isRead,hasAttachments,bodyPreview,body,internetMessageId,webLink,"
 			+ "conversationId";
 
@@ -104,7 +104,7 @@ public class MicrosoftOutlookMailHelper {
 	private static final String CONVERSATION_FIELDS = MESSAGE_FIELDS + ",uniqueBody";
 
 	/** The same without the body, for a listing that only wants headers. */
-	private static final String MESSAGE_FIELDS_NO_BODY = "id,subject,from,toRecipients,ccRecipients,"
+	private static final String MESSAGE_FIELDS_NO_BODY = "id,parentFolderId,subject,from,toRecipients,ccRecipients,"
 			+ "receivedDateTime,sentDateTime,isRead,hasAttachments,bodyPreview,internetMessageId,conversationId,"
 			+ "webLink";
 
@@ -562,10 +562,13 @@ public class MicrosoftOutlookMailHelper {
 			List<String> filters = new ArrayList<>();
 			if (query.since != null) {
 				filters.add("receivedDateTime ge " + DateTimeFormatter.ISO_INSTANT.format(query.since.toInstant()));
-			} else if (query.unreadOnly) {
+			} else if (query.unreadOnly && query.until == null) {
 				// graph refuses a filter sorted by a field it does not filter on first, so
 				// the date the listing is sorted by leads the filter even with no cutoff
 				filters.add("receivedDateTime ge 1900-01-01T00:00:00Z");
+			}
+			if (query.until != null) {
+				filters.add("receivedDateTime le " + DateTimeFormatter.ISO_INSTANT.format(query.until.toInstant()));
 			}
 			if (query.unreadOnly) {
 				filters.add("isRead eq false");
@@ -589,6 +592,9 @@ public class MicrosoftOutlookMailHelper {
 					continue;
 				}
 				if (query.since != null && receivedBefore(message, query.since)) {
+					continue;
+				}
+				if (query.until != null && receivedAfter(message, query.until)) {
 					continue;
 				}
 				narrowed.add(message);
@@ -897,6 +903,20 @@ public class MicrosoftOutlookMailHelper {
 		}
 	}
 
+	/** Whether a search result arrived after the inclusive upper cutoff. */
+	private static boolean receivedAfter(Map<String, Object> message, Date until) {
+		Object received = message.get("receivedDateTime");
+		if (received == null) {
+			return false;
+		}
+		try {
+			return Instant.parse(received.toString()).isAfter(until.toInstant());
+		} catch (RuntimeException e) {
+			classLogger.debug("Could not read the received date {}", received, e);
+			return false;
+		}
+	}
+
 	/**
 	 * Add one set of recipients in the shape Graph reads them.
 	 *
@@ -953,6 +973,9 @@ public class MicrosoftOutlookMailHelper {
 		/** The oldest message to return. */
 		public Date since = null;
 
+		/** The newest message to return, including messages received at this time. */
+		public Date until = null;
+
 		/** Whether to return only messages nobody has opened. */
 		public boolean unreadOnly = false;
 
@@ -961,7 +984,7 @@ public class MicrosoftOutlookMailHelper {
 
 		/**
 		 * The conversation to read, from every folder. When set, the folder, the text
-		 * search, the date, and the unread filter are not applied.
+		 * search, the dates, and the unread filter are not applied.
 		 */
 		public String conversationId = null;
 

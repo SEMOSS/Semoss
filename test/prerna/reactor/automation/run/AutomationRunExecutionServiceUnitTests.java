@@ -37,9 +37,11 @@ import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -47,21 +49,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.logging.log4j.ThreadContext;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.User;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
+import prerna.logging.SemossLogUtils;
 import prerna.om.HeadersDataRow;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.definition.AutomationDefinitionValidator;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 /** Covers deterministic execution-service mappings and run Insight lookup. */
 public class AutomationRunExecutionServiceUnitTests {
@@ -78,6 +87,28 @@ public class AutomationRunExecutionServiceUnitTests {
 		return TypeSafeModelEngineResponse.fromObject(Map.of("model", "jev-latest",
 				"usage", Map.of("input_tokens", 1, "output_tokens", 1), "answers",
 				Map.of("route", routeAnswer)));
+	}
+
+	@Test
+	void reactorResultDoesNotExposeLiveFrameInternals() {
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		Map<String, Object> summary = Map.of(
+				"dataType", "table",
+				"rowCount", 3L,
+				"columnCount", 2);
+		AutomationFrameOutput.RegisteredFrame registeredFrame =
+				new AutomationFrameOutput.RegisteredFrame("heroes", frame, summary, "PY");
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("scope", Map.of("heroes", registeredFrame, "message", "complete"));
+		result.put(AutomationConstants.RESULT_GLOBALS, Map.of("region", "east"));
+
+		Map<String, Object> normalized = AutomationRunExecutionService.normalizeExecutionResult(result);
+		Map<?, ?> normalizedScope = (Map<?, ?>) normalized.get("scope");
+
+		assertEquals(summary, normalizedScope.get("heroes"));
+		assertEquals("complete", normalizedScope.get("message"));
+		assertEquals(Map.of("region", "east"), normalized.get(AutomationConstants.RESULT_GLOBALS));
+		assertTrue(((Map<?, ?>) result.get("scope")).get("heroes") instanceof AutomationFrameOutput.RegisteredFrame);
 	}
 
 	private static TypeSafeModelEngineResponse mixedResponse(double urgentProbability) {
@@ -224,6 +255,85 @@ public class AutomationRunExecutionServiceUnitTests {
 	}
 
 	@Test
+	void retainsInteractiveRunInsightUnderTheSubmittingSession() {
+		String sessionId = "session-automation-test";
+		String projectId = "project-automation-test";
+		String runId = UUID.randomUUID().toString();
+		String executionInsightId = "automation-" + runId;
+		Insight requestInsight = new Insight();
+		requestInsight.setUser(mock(User.class));
+		requestInsight.setSchedulerMode(false);
+
+		ThreadStore.setSessionId(sessionId);
+		AutomationRunExecutionService service = new AutomationRunExecutionService(requestInsight, null);
+		ThreadStore.remove();
+		try (var utility = mockStatic(Utility.class)) {
+			utility.when(() -> Utility.getProject(projectId)).thenReturn(null);
+			AutomationRunExecutionService.ExecutionInsightLease lease =
+					service.openExecutionInsight(projectId, runId);
+
+			assertFalse(lease.cleanupOnCompletion());
+			assertEquals(executionInsightId, lease.insight().getInsightId());
+			assertTrue(InsightStore.getInstance().getInsightIDsForSession(sessionId).contains(executionInsightId));
+		} finally {
+			InsightStore.getInstance().removeFromSessionHash(sessionId, executionInsightId);
+			InsightStore.getInstance().remove(executionInsightId);
+			ThreadStore.remove();
+		}
+	}
+
+	@Test
+	void retainsInteractiveRunInsightUsingTheLoggedSessionContext() {
+		String sessionId = "session-from-log-context";
+		String projectId = "project-automation-test";
+		String runId = UUID.randomUUID().toString();
+		String executionInsightId = "automation-" + runId;
+		Insight requestInsight = new Insight();
+		requestInsight.setUser(mock(User.class));
+		requestInsight.setSchedulerMode(false);
+
+		ThreadStore.remove();
+		ThreadContext.put(SemossLogUtils.SESSION_ID, sessionId);
+		AutomationRunExecutionService service = new AutomationRunExecutionService(requestInsight, null);
+		ThreadContext.remove(SemossLogUtils.SESSION_ID);
+		try (var utility = mockStatic(Utility.class)) {
+			utility.when(() -> Utility.getProject(projectId)).thenReturn(null);
+			AutomationRunExecutionService.ExecutionInsightLease lease =
+					service.openExecutionInsight(projectId, runId);
+
+			assertFalse(lease.cleanupOnCompletion());
+			assertTrue(InsightStore.getInstance().getInsightIDsForSession(sessionId).contains(executionInsightId));
+		} finally {
+			InsightStore.getInstance().removeFromSessionHash(sessionId, executionInsightId);
+			InsightStore.getInstance().remove(executionInsightId);
+			ThreadContext.remove(SemossLogUtils.SESSION_ID);
+			ThreadStore.remove();
+		}
+	}
+
+	@Test
+	void inlineRunScopeCarriesNoProjectAndUsesTheRunInsightFolder() {
+		String scope = AutomationConstants.INLINE_RUN_SCOPE_PREFIX + "owner";
+		Insight insight = mock(Insight.class);
+		when(insight.getInsightFolder()).thenReturn("/cache/session/automation-run");
+
+		assertNull(AutomationRunExecutionService.insightProjectId(scope));
+		assertEquals("project-id", AutomationRunExecutionService.insightProjectId("project-id"));
+		assertEquals("/cache/session/automation-run", AutomationRunExecutionService.assetsFolder(insight, scope));
+	}
+
+	@Test
+	void projectRunScopeStillRequiresItsProjectForTheAssetsFolder() {
+		Insight insight = mock(Insight.class);
+		try (var utility = mockStatic(Utility.class)) {
+			IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+					() -> AutomationRunExecutionService.assetsFolder(insight, "missing-project"));
+			assertEquals("Project was not found: missing-project", error.getMessage());
+		}
+		verify(insight, never()).getInsightFolder();
+	}
+
+	@Test
 	void resolvesLoopItemsWithoutCoercingNativeValues() {
 		List<Object> items = List.of(Map.of("id", 1), Map.of("id", 2));
 		assertEquals(items, AutomationRunExecutionService.loopItems("${records}", Map.of("records", items), "loop"));
@@ -242,138 +352,85 @@ public class AutomationRunExecutionServiceUnitTests {
 	}
 
 	@Test
-	void readsLoopRowsThroughTheSemossFrameContract() throws Exception {
-		ITableDataFrame frame = mock(ITableDataFrame.class);
-		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
-		IHeadersDataRow first = mock(IHeadersDataRow.class);
-		IHeadersDataRow second = mock(IHeadersDataRow.class);
-		when(frame.getQsHeaders()).thenReturn(new String[] { "HERO__NAME", "HERO__POWER" });
-		when(frame.query(any(SelectQueryStruct.class))).thenReturn(wrapper);
-		when(wrapper.hasNext()).thenReturn(true, true, false);
-		when(wrapper.next()).thenReturn(first, second);
-		when(first.getHeaders()).thenReturn(new String[] { "NAME", "POWER" });
-		when(first.getValues()).thenReturn(new Object[] { "Storm", "Weather control" });
-		when(second.getHeaders()).thenReturn(new String[] { "NAME", "POWER" });
-		when(second.getValues()).thenReturn(new Object[] { "Flash", "Super speed" });
+	void appendsLoopResultsWithoutReserializingPriorIterations() {
+		List<Map<String, Object>> results = new ArrayList<>();
+		long encodedBytes = 2L;
+		Map<String, Object> first = Map.of("index", 0, "outputs", Map.of("value", "seven"));
+		Map<String, Object> second = Map.of("index", 1, "outputs", Map.of("value", "neuf é"));
 
-		Insight insight = new Insight();
-		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
+		encodedBytes = AutomationRunExecutionService.appendBoundedLoopResult(results, first, encodedBytes, 1024,
+				"loop results");
+		encodedBytes = AutomationRunExecutionService.appendBoundedLoopResult(results, second, encodedBytes, 1024,
+				"loop results");
 
-		assertEquals(List.of(Map.of("NAME", "Storm", "POWER", "Weather control"),
-				Map.of("NAME", "Flash", "POWER", "Super speed")),
-				AutomationRunExecutionService.frameRows(insight, "heroes", "loop", 10, 2));
-		ArgumentCaptor<SelectQueryStruct> query = ArgumentCaptor.forClass(SelectQueryStruct.class);
-		verify(frame).query(query.capture());
-		assertEquals(10, query.getValue().getOffset());
-		assertEquals(2, query.getValue().getLimit());
-		assertFalse(query.getValue().isDistinct());
+		assertEquals(List.of(first, second), results);
+		assertEquals(AutomationRuntimeUtils.toRuntimeJson(results).getBytes(StandardCharsets.UTF_8).length,
+				encodedBytes);
 	}
 
 	@Test
-	void preservesDuplicateFrameRowsAcrossMultipleBatches() throws Exception {
-		ITableDataFrame frame = mock(ITableDataFrame.class);
-		List<Integer> physicalRows = List.of(7, 7, 9);
-		List<SelectQueryStruct> queries = new ArrayList<>();
-		List<IRawSelectWrapper> wrappers = new ArrayList<>();
-		when(frame.getQsHeaders()).thenReturn(new String[] { "VALUES__VALUE" });
-		when(frame.query(any(SelectQueryStruct.class))).thenAnswer(invocation -> {
-			SelectQueryStruct query = invocation.getArgument(0);
-			queries.add(query);
-			List<Integer> queryRows = query.isDistinct() ? physicalRows.stream().distinct().toList() : physicalRows;
-			int from = (int) Math.min(query.getOffset(), queryRows.size());
-			int to = Math.min(from + (int) query.getLimit(), queryRows.size());
-			IRawSelectWrapper wrapper = wrapperFor(queryRows.subList(from, to));
-			wrappers.add(wrapper);
-			return wrapper;
-		});
+	void rejectsLoopResultBeforeItExceedsTheEncodedLimit() {
+		List<Map<String, Object>> results = new ArrayList<>();
+		Map<String, Object> first = Map.of("value", "first");
+		long encodedBytes = AutomationRunExecutionService.appendBoundedLoopResult(results, first, 2L, 1024,
+				"loop results");
+		int exactBytes = Math.toIntExact(encodedBytes);
 
-		Insight insight = new Insight();
-		insight.getVarStore().put("values", new NounMetadata(frame, PixelDataType.FRAME));
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+				() -> AutomationRunExecutionService.appendBoundedLoopResult(results, Map.of("value", "second"),
+						exactBytes, exactBytes, "loop results"));
 
-		List<Object> firstBatch = AutomationRunExecutionService.frameRows(insight, "values", "loop", 0, 2);
-		List<Object> finalBatch = AutomationRunExecutionService.frameRows(insight, "values", "loop", 2, 1);
-
-		assertEquals(List.of(Map.of("VALUE", 7), Map.of("VALUE", 7)), firstBatch);
-		assertEquals(List.of(Map.of("VALUE", 9)), finalBatch);
-		assertEquals(3, firstBatch.size() + finalBatch.size());
-		assertEquals(2, queries.size());
-		assertFalse(queries.get(0).isDistinct());
-		assertEquals(0, queries.get(0).getOffset());
-		assertEquals(2, queries.get(0).getLimit());
-		assertFalse(queries.get(1).isDistinct());
-		assertEquals(2, queries.get(1).getOffset());
-		assertEquals(1, queries.get(1).getLimit());
-		verify(wrappers.get(0)).close();
-		verify(wrappers.get(1)).close();
-	}
-
-	private static IRawSelectWrapper wrapperFor(List<Integer> values) {
-		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
-		Iterator<Integer> iterator = values.iterator();
-		when(wrapper.hasNext()).thenAnswer(invocation -> iterator.hasNext());
-		when(wrapper.next()).thenAnswer(invocation -> new HeadersDataRow(new String[] { "VALUE" },
-				new Object[] { iterator.next() }));
-		return wrapper;
+		assertEquals("loop results exceeds the maximum of " + exactBytes + " UTF-8 bytes.", error.getMessage());
+		assertEquals(List.of(first), results);
 	}
 
 	@Test
-	void rejectsFrameLoopInputBeyondTheConfiguredBound() throws Exception {
-		ITableDataFrame frame = mock(ITableDataFrame.class);
-		when(frame.size("heroes")).thenReturn(2L);
+	void replacesLiveFramesBeforeSerializingLoopResults() {
+		Map<String, Object> summary = Map.of("dataType", "table", "rowCount", 1L, "columnCount", 1);
+		AutomationFrameOutput.RegisteredFrame frame =
+				new AutomationFrameOutput.RegisteredFrame("query_result", null, summary, "PY");
+		Map<String, Object> outputs = Map.of("query_result", frame,
+				"nested", List.of(Map.of("frame", frame)));
 
-		Insight insight = new Insight();
-		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
+		Object normalized = AutomationRunExecutionService.persistableValue(outputs);
 
-		assertThrows(IllegalArgumentException.class,
-				() -> AutomationRunExecutionService.frameRowCount(insight, "heroes", "loop", 1));
+		assertEquals(Map.of("query_result", summary, "nested", List.of(Map.of("frame", summary))), normalized);
+		assertEquals(frame, outputs.get("query_result"));
+		AutomationRuntimeUtils.toRuntimeJson(normalized);
 	}
 
 	@Test
-	void resumeRequiresTheOriginalLiveFrameBinding() {
+	void reconstructsFrameScopeOnlyFromTheOriginalLiveInsight() {
+		String runId = "run-table";
+		Map<String, Object> output = new LinkedHashMap<>();
+		output.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		output.put(AutomationConstants.NODE_ID, "query");
+		output.put(AutomationConstants.OUTPUT_VAR_NAME, "query_result");
+		output.put(AutomationConstants.OUTPUT_KIND, AutomationConstants.OUTPUT_KIND_TABLE);
+		output.put(AutomationConstants.OUTPUT_VALUE,
+				"{\"dataType\":\"table\",\"rowCount\":1,\"columnCount\":2}");
+		Insight insight = new Insight();
+		insight.setInsightId("automation-" + runId);
 		ITableDataFrame frame = mock(ITableDataFrame.class);
+		when(frame.size("query_result")).thenReturn(1L);
+		when(frame.getQsHeaders()).thenReturn(new String[] { "QUERY_RESULT__ID", "QUERY_RESULT__STATUS" });
 		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
-		Insight insight = new Insight();
-		insight.setInsightId("automation-run-1");
-		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
-
-		assertEquals(DataFrameTypeEnum.PYTHON.getTypeAsString(),
-				AutomationRunExecutionService.requireResumableFrameBackend(insight, "run-1", "heroes"));
-		IllegalStateException unavailable = assertThrows(IllegalStateException.class,
-				() -> AutomationRunExecutionService.requireResumableFrameBackend(insight, "run-1", "missing"));
-		assertTrue(unavailable.getMessage().contains("cannot resume"));
-	}
-
-	@Test
-	void lostExecutionInsightDoesNotReplayTheSuccessfulDatabaseNode() {
-		String runId = "run-1";
-		String insightId = "automation-" + runId;
-		Map<String, Object> frameOutput = new LinkedHashMap<>();
-		frameOutput.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
-		frameOutput.put(AutomationConstants.NODE_ID, "query");
-		frameOutput.put(AutomationConstants.OUTPUT_VAR_NAME, "query_result");
-		frameOutput.put(AutomationConstants.OUTPUT_KIND, AutomationConstants.OUTPUT_KIND_FRAME);
-		frameOutput.put(AutomationConstants.OUTPUT_VALUE,
-				"{\"dataType\":\"table\",\"rowCount\":10,\"columnCount\":2}");
-		Insight originalInsight = new Insight();
-		originalInsight.setInsightId(insightId);
-		InsightStore.getInstance().put(originalInsight);
-		assertEquals(insightId, AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
-		InsightStore.getInstance().remove(insightId);
-		assertNull(AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
-
-		Insight replacementInsight = new Insight();
-		replacementInsight.setInsightId(insightId);
-
-		try (var store = mockStatic(AutomationRunStore.class, CALLS_REAL_METHODS);
-				var database = mockStatic(AutomationDatabaseQueryExecutor.class)) {
+		insight.getVarStore().put("query_result", new NounMetadata(frame, PixelDataType.FRAME));
+		try (var store = mockStatic(AutomationRunStore.class, CALLS_REAL_METHODS)) {
 			store.when(() -> AutomationRunStore.getRunInputs(runId)).thenReturn(Map.of());
-			store.when(() -> AutomationRunStore.getNodeOutputsForRun(runId)).thenReturn(List.of(frameOutput));
+			store.when(() -> AutomationRunStore.getNodeOutputsForRun(runId)).thenReturn(List.of(output));
 
+			AutomationRunExecutionService.ReconstructedScope reconstructed =
+					AutomationRunExecutionService.reconstructScope(runId, insight, "trigger");
+
+			AutomationFrameOutput.RegisteredFrame frameOutput =
+					(AutomationFrameOutput.RegisteredFrame) reconstructed.scope().get("query_result");
+			assertEquals(1L, frameOutput.rowCount());
+			assertEquals(DataFrameTypeEnum.PYTHON.getTypeAsString(), frameOutput.backend());
+			insight.getVarStore().remove("query_result");
 			IllegalStateException unavailable = assertThrows(IllegalStateException.class,
-					() -> AutomationRunExecutionService.reconstructScope(runId, replacementInsight, "trigger"));
-
+					() -> AutomationRunExecutionService.reconstructScope(runId, insight, "trigger"));
 			assertTrue(unavailable.getMessage().contains("cannot resume"));
-			database.verifyNoInteractions();
 		}
 	}
 

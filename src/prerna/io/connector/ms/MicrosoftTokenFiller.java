@@ -142,6 +142,7 @@ public class MicrosoftTokenFiller extends AbstractOAuthTokenFiller {
 		mergedToken.setStartTime(refreshedToken.getStartTime());
 
 		String updatedRefreshToken = getRefreshToken(refreshedToken);
+		mergedToken.removeMetaKey(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY);
 		if (!ValueUtils.isBlank(updatedRefreshToken)) {
 			mergedToken.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, updatedRefreshToken);
 		} else {

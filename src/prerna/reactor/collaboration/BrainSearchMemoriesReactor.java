@@ -86,7 +86,8 @@ public class BrainSearchMemoriesReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Search the owner's memories for something not under What you remember, for example what they told you "
-				+ "about a person in another thread. Returns the best matches with their ids.";
+				+ "about a person in another thread. Also use before saving or updating a memory when an existing match "
+				+ "or its id is uncertain, without waiting for the owner to ask. Returns the best matches with their ids.";
 	}
 
 	@Override

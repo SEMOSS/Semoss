@@ -176,8 +176,11 @@ public final class AgentRunRequest {
 	/** Builds a fresh same-room run that follows one detached child result. */
 	AgentRunRequest forContinuation(String parentRoomId, String childRunId, String continuationInput,
 			Insight continuationInsight) {
+		// the user's text belonged to the original request, not the continuation
+		Map<String, Object> continuationAgentParams = new HashMap<>(agentParamMap);
+		continuationAgentParams.remove(AgentRunner.AGENT_PARAM_USER_TEXT);
 		return new AgentRunRequest(parentRoomId, continuationInput, engineIdFallback, harnessType, workspaceId,
-				maxTurns, maxReflections, paramMap, agentParamMap, null, null, continuationInsight, false, null,
+				maxTurns, maxReflections, paramMap, continuationAgentParams, null, null, continuationInsight, false, null,
 				SubAgentRunCompletionMode.WAIT, ownerAuthType, childRunId, continuationDepth + 1, null);
 	}
 
