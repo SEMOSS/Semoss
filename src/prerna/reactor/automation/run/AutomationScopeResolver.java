@@ -42,6 +42,7 @@ import com.google.re2j.Pattern;
 final class AutomationScopeResolver {
 
 	private static final Pattern EXACT_SCOPE_REFERENCE = Pattern.compile("^\\$\\{([^}]+)}$");
+	private static final Pattern BRACKET_LIST_INDEX = Pattern.compile("\\[([0-9]+)]");
 	private static final Pattern LIST_INDEX = Pattern.compile("^[0-9]+$");
 
 	private AutomationScopeResolver() {
@@ -67,7 +68,7 @@ final class AutomationScopeResolver {
 		if (path == null || path.isBlank()) {
 			throw unavailable(valueName, path);
 		}
-		String[] parts = path.split("\\.", -1);
+		String[] parts = normalizeIndexedPath(path).split("\\.", -1);
 		String root = parts[0];
 		if (root.isBlank() || !scope.containsKey(root)) {
 			throw unavailable(valueName, path);
@@ -83,6 +84,11 @@ final class AutomationScopeResolver {
 				continue;
 			}
 			Integer itemIndex = listIndex(part);
+			if (itemIndex != null && current instanceof AutomationFrameOutput.RegisteredFrame frame
+					&& itemIndex < frame.rowCount()) {
+				current = frame.page(itemIndex, 1).get(0);
+				continue;
+			}
 			if (itemIndex != null && current instanceof List<?> list && itemIndex < list.size()) {
 				current = list.get(itemIndex);
 				continue;
@@ -95,6 +101,17 @@ final class AutomationScopeResolver {
 			throw unresolved(valueName, path);
 		}
 		return current;
+	}
+
+	/** Converts JSON-style numeric indexes to the resolver's dotted path form. */
+	private static String normalizeIndexedPath(String path) {
+		Matcher matcher = BRACKET_LIST_INDEX.matcher(path);
+		StringBuffer normalized = new StringBuffer();
+		while (matcher.find()) {
+			matcher.appendReplacement(normalized, "." + matcher.group(1));
+		}
+		matcher.appendTail(normalized);
+		return normalized.toString();
 	}
 
 	/** Resolves an exact reference and otherwise returns the configured literal. */

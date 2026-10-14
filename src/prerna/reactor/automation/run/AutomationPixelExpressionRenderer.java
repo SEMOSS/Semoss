@@ -421,14 +421,34 @@ final class AutomationPixelExpressionRenderer {
 		if (files.isEmpty()) {
 			throw new IllegalStateException("No file was downloaded from storage path: " + request.storagePath());
 		}
+		List<String> downloadedFiles = downloadedFiles(files, request.storagePath());
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("success", transferResult);
 		result.put("storagePath", request.storagePath());
 		result.put("destination", request.destination());
 		result.put("space", "INSIGHT");
-		result.put("files", files);
-		result.put("filePath", files.size() == 1 ? files.get(0) : null);
+		result.put("files", downloadedFiles);
+		result.put("filePath", downloadedFiles.size() == 1 ? downloadedFiles.get(0) : null);
 		return result;
+	}
+
+	private static List<String> downloadedFiles(List<String> files, String storagePath) {
+		String normalizedStoragePath = storagePath.replace('\\', '/');
+		if (normalizedStoragePath.endsWith("/")) {
+			return files;
+		}
+		int separator = normalizedStoragePath.lastIndexOf('/');
+		String fileName = separator < 0 ? normalizedStoragePath : normalizedStoragePath.substring(separator + 1);
+		List<String> matches = new ArrayList<>();
+		for (String file : files) {
+			String normalizedFile = file.replace('\\', '/');
+			int fileSeparator = normalizedFile.lastIndexOf('/');
+			String assetName = fileSeparator < 0 ? normalizedFile : normalizedFile.substring(fileSeparator + 1);
+			if (fileName.equals(assetName)) {
+				matches.add(file);
+			}
+		}
+		return matches.isEmpty() ? files : matches;
 	}
 
 	private static String requiredString(Object configuredValue, Map<String, Object> scope, String valueName) {

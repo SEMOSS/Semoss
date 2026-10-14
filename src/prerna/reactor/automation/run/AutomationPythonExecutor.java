@@ -28,7 +28,9 @@
 package prerna.reactor.automation.run;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.ds.py.PyTranslator;
 import prerna.om.Insight;
@@ -43,6 +45,7 @@ final class AutomationPythonExecutor {
 
 	private final Insight insight;
 	private final String runId;
+	private final Map<String, Object> retainedValueReferences = new LinkedHashMap<>();
 	private PyTranslator translator;
 
 	AutomationPythonExecutor(Insight insight, String runId) {
@@ -65,20 +68,31 @@ final class AutomationPythonExecutor {
 		}
 		Map<String, Object> pythonScope = new LinkedHashMap<>();
 		Map<String, String> frameBindings = new LinkedHashMap<>();
+		Set<String> valueBindings = new LinkedHashSet<>();
 		for (Map.Entry<String, Object> entry : scope.entrySet()) {
 			Object value = entry.getValue();
 			if (value instanceof AutomationFrameOutput.RegisteredFrame frame) {
 				pythonScope.put(entry.getKey(), frame.summary());
 				frameBindings.put(entry.getKey(), frame.backend());
+			} else if (retainedValueReferences.containsKey(entry.getKey())
+					&& retainedValueReferences.get(entry.getKey()) == value) {
+				pythonScope.put(entry.getKey(), null);
+				valueBindings.add(entry.getKey());
 			} else {
 				pythonScope.put(entry.getKey(), value);
 			}
 		}
+		// The Java execution service validates the complete logical scope at run
+		// start, node and loop finalization, and resume. This boundary serializes only
+		// changed values and retained aliases; revalidating unchanged collections here
+		// makes loop cost grow with the accumulated scope rather than the current item.
 		Object raw = requireTranslator().runScriptWithExplicitAssetPaths(insight,
-				AutomationRuntime.buildNodeInvocationScript(source, pythonScope, outputVariable, frameBindings),
+				AutomationRuntime.buildNodeInvocationScript(source, pythonScope, outputVariable, frameBindings,
+						valueBindings),
 				assetsFolder, new String[] { pyFolder });
 		AutomationRuntime.NodeResult result = AutomationRuntime.decodeNodeResult(raw);
 		if (result.frame()) {
+			retainedValueReferences.remove(outputVariable);
 			try {
 				return new AutomationRuntime.NodeResult(
 						AutomationFrameOutput.registerPythonVariable(insight, outputVariable), true);
@@ -87,6 +101,14 @@ final class AutomationPythonExecutor {
 						"globals().pop(" + AutomationRuntimeUtils.GSON.toJson(outputVariable) + ", None)");
 				throw registrationError;
 			}
+		}
+		for (Map.Entry<String, Object> entry : scope.entrySet()) {
+			if (!(entry.getValue() instanceof AutomationFrameOutput.RegisteredFrame)) {
+				retainedValueReferences.put(entry.getKey(), entry.getValue());
+			}
+		}
+		if (outputVariable != null && !outputVariable.isBlank()) {
+			retainedValueReferences.put(outputVariable, result.value());
 		}
 		return result;
 	}

@@ -212,6 +212,12 @@ class AutomationPixelExpressionRendererUnitTests {
 				Map.of("query_result", output), "model", null);
 		assertTrue(embedded.contains("Summarize these heroes:"));
 		assertTrue(embedded.contains("[{\\\"ID\\\":1},{\\\"ID\\\":2}]"));
+
+		String function = AutomationPixelExpressionRenderer.functionExecute(
+				Map.of("engineId", "function", "arguments",
+						Map.of("payload", Map.of("id", "${query_result[0].ID}"))),
+				Map.of("query_result", output), "function");
+		assertTrue(function.contains("\\\"payload\\\":{\\\"id\\\":1}"));
 	}
 
 	@Test
@@ -336,6 +342,27 @@ class AutomationPixelExpressionRendererUnitTests {
 				AutomationPixelExpressionRenderer.storageDownloadResult(true,
 						List.of(Map.of("type", "directory", "path", "/target"),
 								Map.of("type", "file", "path", "/target/file.csv")),
+						request, "download"));
+	}
+
+	@Test
+	void identifiesTheCurrentDownloadAmongExistingInsightFiles() {
+		AutomationPixelExpressionRenderer.StorageDownload request =
+				AutomationPixelExpressionRenderer.storageDownload(
+						Map.of("engineId", "storage", "path", "source/tracking-numbers-5000.csv",
+								"destination", "/"),
+						Map.of(), "download");
+
+		assertEquals(Map.of(
+				"success", true,
+				"storagePath", "source/tracking-numbers-5000.csv",
+				"destination", "/",
+				"space", "INSIGHT",
+				"files", List.of("/tracking-numbers-5000.csv"),
+				"filePath", "/tracking-numbers-5000.csv"),
+				AutomationPixelExpressionRenderer.storageDownloadResult(true,
+						List.of(Map.of("type", "file", "path", "/appointment-esr-map-5000.csv"),
+								Map.of("type", "file", "path", "/tracking-numbers-5000.csv")),
 						request, "download"));
 	}
 }
