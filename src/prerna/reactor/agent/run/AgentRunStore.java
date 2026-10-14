@@ -916,6 +916,7 @@ public final class AgentRunStore {
 		map.put("userId", rs.getString("USER_ID"));
 		map.put("artifacts", new ArrayList<>());
 		addDeliveryMetadata(map);
+		map.put("taskOutcome", AgentTaskOutcome.fromRun(map));
 		return map;
 	}
 
