@@ -320,6 +320,54 @@ class UserAuditTrailUtilsUnitTests {
 	}
 
 	@Test
+	void failedBatchSavesAreAuditedWithoutRequestPayloads() throws Exception {
+		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
+			createAuditTable(db);
+			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+			try {
+				int request = 0;
+				for (String path : List.of("/Monolith/api/auth/permissionBatch/savePermissionBatches",
+						"/Monolith/api/auth/admin/permissionBatch/savePermissionBatches")) {
+					for (int status : List.of(400, 500)) {
+						org.apache.logging.log4j.ThreadContext.put(prerna.logging.SemossLogUtils.ENDPOINT, path);
+						org.apache.logging.log4j.ThreadContext.put(prerna.logging.SemossLogUtils.REQUEST_ID,
+								"batch-save-" + request++);
+						UserAuditTrailUtils.recordHttpErrorResponse(status, "Untrusted failure dummy-secret");
+						UserAuditTrailUtils.recordHttpErrorResponse(status, "Untrusted failure dummy-secret");
+					}
+				}
+				assertEquals(4, db.count("USER_AUDIT_EVENTS"));
+				assertEquals(2, ((Number) db.value("SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE='PERMISSION_BATCH_APPLY' AND STATUS='FAILURE' AND HTTP_STATUS=400")).intValue());
+				assertEquals(2, ((Number) db.value("SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE='PERMISSION_BATCH_APPLY' AND STATUS='ERROR' AND HTTP_STATUS=500")).intValue());
+				assertEquals(0, ((Number) db.value("SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE ERROR_MESSAGE LIKE '%dummy-secret%'")).intValue());
+				org.apache.logging.log4j.ThreadContext.put(prerna.logging.SemossLogUtils.ENDPOINT,
+						"/Monolith/api/auth/permissionBatch/validatePermissionBatches");
+				UserAuditTrailUtils.recordHttpErrorResponse(400, "Invalid input");
+				assertEquals(4, db.count("USER_AUDIT_EVENTS"));
+				assertEquals(4, AuditChainStore.verify(db.engine));
+			} finally { org.apache.logging.log4j.ThreadContext.clearAll(); }
+		}
+	}
+
+	@Test
+	void httpStatusDistinguishesAuthenticationFromPermissionDenials() throws Exception {
+		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
+			createAuditTable(db);
+			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+			try {
+				for (int status : List.of(401, 403)) {
+					org.apache.logging.log4j.ThreadContext.put(prerna.logging.SemossLogUtils.REQUEST_ID, "denial-" + status);
+					UserAuditTrailUtils.recordHttpErrorResponse(status, "Access refused");
+				}
+				assertEquals(UserAuditTrailUtils.ERROR_LOGIN_REQUIRED,
+						db.value("SELECT ERROR_CODE FROM USER_AUDIT_EVENTS WHERE HTTP_STATUS=401"));
+				assertEquals(UserAuditTrailUtils.ERROR_PERMISSION_DENIED,
+						db.value("SELECT ERROR_CODE FROM USER_AUDIT_EVENTS WHERE HTTP_STATUS=403"));
+			} finally { org.apache.logging.log4j.ThreadContext.clearAll(); }
+		}
+	}
+
+	@Test
 	void rejectedRequestsPopulateTypedSubjectForBothWriterPaths() throws Exception {
 		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
 			createAuditTable(db);

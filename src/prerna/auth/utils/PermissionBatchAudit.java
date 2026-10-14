@@ -93,7 +93,6 @@ final class PermissionBatchAudit {
 
     private static void recordChange(User user, PermissionBatchOptions options, PermissionTargetResource target,
             PermissionChangeValidation validation) {
-        if (target.getKind() == PermissionTargetResource.Kind.TEAM_MANAGERS) return;
         PermissionChange change = validation.getChange();
         String eventType = switch (change.getAction()) {
             case ADD -> "PERMISSION_ADD";
@@ -104,9 +103,10 @@ final class PermissionBatchAudit {
         PermissionGrant grant = change.getTo();
         if (grant != null && grant.getEndDate() != null) details.put("endDate", grant.getEndDate());
         AuditEvent event;
-        if (target.getKind() == PermissionTargetResource.Kind.TEAM) {
-            event = event(user, options, change.getAction() == PermissionChange.Action.ADD
-                    ? "GROUP_MEMBER_ADD" : "GROUP_MEMBER_REMOVE", target)
+        if (isGroup(target)) {
+            String role = target.getKind() == PermissionTargetResource.Kind.TEAM_MANAGERS ? "MANAGER" : "MEMBER";
+            event = event(user, options, "GROUP_" + role + "_"
+                    + (change.getAction() == PermissionChange.Action.ADD ? "ADD" : "REMOVE"), target)
                     .subject(validation.getSubjectId(), validation.getSubjectType(), null);
             details.put("groupType", "CUSTOM");
         } else {
@@ -157,13 +157,18 @@ final class PermissionBatchAudit {
         };
         var event = new AuditEvent().eventType(type).action(type).status("SUCCESS").actorUser(user)
                 .actorIsAdmin(options.isAdminMode() ? true : null)
-                .target(target.getKind() == PermissionTargetResource.Kind.TEAM ? "GROUP" : target.getKind().name(),
-                        target.getId(), target.getKind() == PermissionTargetResource.Kind.TEAM ? target.getId() : null)
+                .target(isGroup(target) ? "GROUP" : target.getKind().name(),
+                        target.getId(), isGroup(target) ? target.getId() : null)
                 .context(projectId, target.getKind() == PermissionTargetResource.Kind.ENGINE ? target.getId() : null,
                         target.getKind() == PermissionTargetResource.Kind.INSIGHT ? target.getId() : null, null);
         if (options.getGrantor() != null) {
             event.actor(options.getGrantor().getValue0(), options.getGrantor().getValue1(), null);
         }
         return event;
+    }
+
+    private static boolean isGroup(PermissionTargetResource target) {
+        return target.getKind() == PermissionTargetResource.Kind.TEAM
+                || target.getKind() == PermissionTargetResource.Kind.TEAM_MANAGERS;
     }
 }

@@ -42,6 +42,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -117,6 +118,43 @@ class ProjectPermissionAuditUnitTests extends AbstractSecurityUtilsUnitTestsSetu
                 assertEquals(3, SecurityProjectUtils.getUserProjectPermission(MEMBER, PROJECT));
                 audit.verifyNoInteractions();
             }
+        }
+    }
+
+    @Test
+    void repeatedGrantAllDoesNotWriteOrAuditANoOp() {
+        UnitTestSecurityAuthUtils.createEngine("auditengine", "Audit engine", actor);
+        UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(actor, MEMBER, "auditengine", "READ_ONLY");
+        SecurityAdminUtils admin = SecurityAdminUtils.getInstance(actor);
+        try (var utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+                var audit = mockStatic(UserAuditTrailUtils.class)) {
+            utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+            assertDoesNotThrow(() -> admin.grantAllProjects(MEMBER, "EDIT", true, actor));
+            assertDoesNotThrow(() -> admin.grantAllEngines(MEMBER, "EDIT", true, null, actor));
+            audit.verifyNoInteractions();
+            assertEquals(3, SecurityProjectUtils.getUserProjectPermission(MEMBER, PROJECT));
+            assertEquals(3, SecurityEngineUtils.getUserEnginePermission(MEMBER, "auditengine"));
+        }
+    }
+
+    @Test
+    void groupManagerAuditSeesCommittedManagerState() throws Exception {
+        AdminSecurityGroupUtils groups = AdminSecurityGroupUtils.getInstance(actor);
+        groups.addGroup(actor, "auditteam", "CUSTOM", "Audit team");
+        try (var utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+                var audit = mockStatic(UserAuditTrailUtils.class)) {
+            utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+            audit.when(() -> UserAuditTrailUtils.recordEvent(any())).thenAnswer(call -> {
+                JsonObject event = AUDIT_JSON.toJsonTree(call.getArgument(0)).getAsJsonObject();
+                boolean added = event.get("eventType").getAsString().equals("GROUP_MANAGER_ADD");
+                assertEquals(added, SecurityGroupManagerUtils.managerExists("auditteam", MEMBER, "NATIVE"));
+                assertEquals(MEMBER, event.get("subjectUserId").getAsString());
+                assertEquals("auditteam", event.get("targetId").getAsString());
+                return null;
+            });
+            SecurityGroupManagerUtils.addGroupManager(groups, actor, "auditteam", MEMBER, "NATIVE");
+            SecurityGroupManagerUtils.removeGroupManager(groups, "auditteam", MEMBER, "NATIVE");
+            audit.verify(() -> UserAuditTrailUtils.recordEvent(any()), times(2));
         }
     }
 }

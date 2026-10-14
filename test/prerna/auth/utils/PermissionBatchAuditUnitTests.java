@@ -111,6 +111,29 @@ class PermissionBatchAuditUnitTests {
         }
     }
 
+    @ParameterizedTest
+    @EnumSource(value = PermissionChange.Action.class, names = { "ADD", "REMOVE" })
+    void auditsManagerChangesAsGroupEvents(PermissionChange.Action action) {
+        PermissionBatchValidation batch = batch(PermissionTargetResource.teamManagers("team"), action,
+                PermissionSubject.ofUser("member", "NATIVE"));
+        try (var utility = mockStatic(Utility.class); var audit = mockStatic(UserAuditTrailUtils.class)) {
+            utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+            audit.when(() -> UserAuditTrailUtils.recordEvent(any())).thenAnswer(call -> {
+                JsonObject event = json(call.getArgument(0));
+                assertEquals("GROUP_MANAGER_" + action.name(), event.get("eventType").getAsString());
+                assertEquals("GROUP", event.get("targetType").getAsString());
+                assertEquals("team", event.get("targetId").getAsString());
+                assertEquals("member", event.get("subjectUserId").getAsString());
+                assertEquals("NATIVE", event.get("subjectUserType").getAsString());
+                assertFalse(event.has("oldValueRaw"));
+                assertFalse(event.has("newValueRaw"));
+                return null;
+            });
+            PermissionBatchAudit.recordChanges(null, List.of(batch), PermissionBatchOptions.userMode());
+            audit.verify(() -> UserAuditTrailUtils.recordEvent(any()), times(1));
+        }
+    }
+
     @Test
     void approvalRetainsProviderAndExplicitApproverWithoutDuplicatingGrant() {
         PermissionTargetResource target = PermissionTargetResource.project("project");

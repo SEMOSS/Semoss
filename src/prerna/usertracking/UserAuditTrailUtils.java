@@ -132,7 +132,8 @@ public final class UserAuditTrailUtils {
 	private static final Set<String> HIGH_SEVERITY_EVENTS = Set.of("AUTHORIZATION_DENIED", "USER_DELETE",
 			"USER_ROLE_UPDATE", "USER_PASSWORD_RESET", "USER_DEACTIVATE", "GROUP_DELETE", "PROJECT_DELETE",
 			"ENGINE_DELETE", "AUDIT_EXPORT", "CONFIG_UPDATE", "API_KEY_CREATE", "API_KEY_DELETE", "PERMISSION_BULK_GRANT",
-			"AUTOMATION_DELETE", "SKILL_DELETE", "JOB_DELETE");
+			"AUTOMATION_DELETE", "SKILL_DELETE", "JOB_DELETE", "GROUP_MANAGER_ADD", "GROUP_MANAGER_REMOVE",
+			"PERMISSION_BATCH_APPLY");
 
 	private static final Set<String> MEDIUM_SEVERITY_EVENTS = Set.of("LOGIN_FAILED", "PERMISSION_ADD",
 			"PERMISSION_UPDATE", "PERMISSION_DELETE", "ACCESS_REQUEST_APPROVE", "ACCESS_REQUEST_REJECT", "USER_CREATE",
@@ -670,12 +671,17 @@ public final class UserAuditTrailUtils {
 		}
 		String path = contextValue(SemossLogUtils.ENDPOINT);
 		if (path == null) return;
-		Matcher endpoint = Pattern.compile(".*/auth/(?:admin/|group/)?(engine|project|insight)/([A-Za-z]+)$").matcher(path);
+		Matcher endpoint = Pattern.compile(".*/auth/(?:admin/|group/)?(engine|project|insight|permissionBatch)/([A-Za-z]+)$").matcher(path);
 		if (!endpoint.matches()) return;
 		String action = endpoint.group(2);
 		String type = endpoint.group(1).toUpperCase(Locale.ROOT);
 		String title = type.substring(0, 1) + type.substring(1).toLowerCase(Locale.ROOT);
 		String eventType = null;
+		if (type.equals("PERMISSIONBATCH")) {
+			if (!action.equals("savePermissionBatches")) return;
+			eventType = "PERMISSION_BATCH_APPLY";
+			type = "PERMISSION_BATCH";
+		}
 		for (String prefix : List.of("add", "edit", "update", "remove")) {
 			if (Set.of(prefix + title + "UserPermission", prefix + title + "UserPermissions",
 					prefix + "Group" + title + "Permission").contains(action)) {

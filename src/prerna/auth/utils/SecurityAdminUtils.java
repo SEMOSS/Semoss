@@ -2259,6 +2259,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						PermissionChange.Action.CHANGE, List.of(userId), new PermissionGrant(permission, null))));
 			}
 		}
+		if (batches.isEmpty()) return;
 		PermissionBatchUtils.saveChangesNoCheckedException(user, batches, PermissionBatchOptions.adminMode().withSummaryAudit(),
 				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 						"An error occurred granting the user permission for all the projects"));
@@ -2321,6 +2322,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						PermissionChange.Action.CHANGE, List.of(userId), new PermissionGrant(permission, null))));
 			}
 		}
+		if (batches.isEmpty()) return;
 		PermissionBatchUtils.saveChangesNoCheckedException(user, batches, PermissionBatchOptions.adminMode().withSummaryAudit(),
 				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 						"An error occurred granting the user permission for all the engines of type " + logETypes));
