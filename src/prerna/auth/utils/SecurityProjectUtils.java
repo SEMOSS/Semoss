@@ -2980,6 +2980,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update project metadata", e);
+			throw new IllegalStateException("Unable to update project metadata", e);
 		}
 	}
 

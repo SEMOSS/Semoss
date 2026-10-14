@@ -117,6 +117,7 @@ public class UserTrackingOwlCreator extends AbstractOwlCreator {
 		addTable(UserAuditTrailUtils.TABLE, Arrays.asList(
 				// event
 				Pair.with("EVENT_ID", VARCHAR_255),
+				Pair.with("AUDIT_SEQUENCE", "BIGINT"),
 				Pair.with("EVENT_TIME", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("EVENT_OCCURRED_TIME", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("EVENT_TYPE", VARCHAR_255),
@@ -175,7 +176,8 @@ public class UserTrackingOwlCreator extends AbstractOwlCreator {
 	 */
 	public static List<OwlIndex> getIndexes() {
 		String table = UserAuditTrailUtils.TABLE;
-		return List.of(OwlIndex.of("USER_AUDIT_EVENTS_TIME_INDEX", table, "EVENT_TIME"),
+		return List.of(OwlIndex.of("USER_AUDIT_EVENTS_SEQUENCE_INDEX", table, "AUDIT_SEQUENCE"),
+				OwlIndex.of("USER_AUDIT_EVENTS_TIME_INDEX", table, "EVENT_TIME", "EVENT_ID"),
 				OwlIndex.of("USER_AUDIT_EVENTS_TYPE_INDEX", table, "EVENT_TYPE"),
 				OwlIndex.of("USER_AUDIT_EVENTS_ACTOR_INDEX", table, "ACTOR_USER_ID"),
 				OwlIndex.of("USER_AUDIT_EVENTS_SUBJECT_INDEX", table, "SUBJECT_USER_ID"),

@@ -71,8 +71,9 @@ public final class AuditSanitizer {
 
 	private static final Pattern BEARER = Pattern.compile("(?i)(bearer\\s+)[A-Za-z0-9._~+/=-]+");
 	private static final Pattern KEY_VALUE_SECRET = Pattern.compile(
-			"(?i)\\b(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|secret[_-]?key|client[_-]?secret)"
-					+ "(\\s*[=:]\\s*)(\"[^\"]*\"|'[^']*'|[^\\s,;&\"'}]+)");
+			"(?i)([\"']?)([a-z][a-z0-9_.-]*)\\1(\\s*[=:]\\s*)"
+					+ "(\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|[^\\s,;&\"'}]+)");
+	private static final Pattern ESCAPED_KEY = Pattern.compile("\\\\+[\"']([a-zA-Z][a-zA-Z0-9_.-]*)\\\\+[\"']\\s*:");
 	private static final Pattern JDBC_URL = Pattern.compile("(?i)jdbc:[^\\s\"'<>]+");
 	private static final Pattern URL_USER_INFO = Pattern
 			.compile("(?i)\\b([a-z][a-z0-9+.-]*://)[^\\s/@:\"']+:[^\\s/@\"']+@");
@@ -170,7 +171,21 @@ public final class AuditSanitizer {
 		}
 		String scrubbed = PRIVATE_KEY.matcher(text).replaceAll(Matcher.quoteReplacement(REDACTED));
 		scrubbed = BEARER.matcher(scrubbed).replaceAll("$1" + Matcher.quoteReplacement(REDACTED));
-		scrubbed = KEY_VALUE_SECRET.matcher(scrubbed).replaceAll("$1$2" + Matcher.quoteReplacement(REDACTED));
+		// Nested encoded JSON has ambiguous quoting: omit it rather than risk partial redaction.
+		Matcher escaped = ESCAPED_KEY.matcher(scrubbed);
+		while (escaped.find()) {
+			if (isSensitiveKey(escaped.group(1))) return REDACTED;
+		}
+		Matcher assignments = KEY_VALUE_SECRET.matcher(scrubbed);
+		StringBuffer safe = new StringBuffer();
+		while (assignments.find()) {
+			String replacement = isSensitiveKey(assignments.group(2))
+					? assignments.group(1) + assignments.group(2) + assignments.group(1) + assignments.group(3) + REDACTED
+					: assignments.group();
+			assignments.appendReplacement(safe, Matcher.quoteReplacement(replacement));
+		}
+		assignments.appendTail(safe);
+		scrubbed = safe.toString();
 		scrubbed = JDBC_URL.matcher(scrubbed).replaceAll(Matcher.quoteReplacement("jdbc:" + REDACTED));
 		scrubbed = URL_USER_INFO.matcher(scrubbed).replaceAll("$1" + Matcher.quoteReplacement(REDACTED) + "@");
 		return scrubbed;
@@ -180,7 +195,9 @@ public final class AuditSanitizer {
 		if (value == null || value.length() <= maxLength) {
 			return value;
 		}
-		return value.substring(0, maxLength) + "...[TRUNCATED]";
+		String marker = "...[TRUNCATED]";
+		if (maxLength <= marker.length()) return marker.substring(0, Math.max(0, maxLength));
+		return value.substring(0, maxLength - marker.length()) + marker;
 	}
 
 	private static JsonElement parseJsonOrText(String text) {

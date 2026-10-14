@@ -54,12 +54,12 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityUserUtils;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -124,10 +124,7 @@ public final class UserAuditTrailUtils {
 			"HASH_CURRENT");
 
 	private static final String INSERT_AUDIT_EVENT = "INSERT INTO " + TABLE + " (" + String.join(", ", COLUMNS)
-			+ ") VALUES (" + String.join(", ", COLUMNS.stream().map(c -> "?").toList()) + ")";
-
-	private static final String SELECT_LAST_HASH = "SELECT HASH_CURRENT FROM " + TABLE
-			+ " WHERE HASH_CURRENT IS NOT NULL ORDER BY EVENT_TIME DESC";
+			+ ", AUDIT_SEQUENCE) VALUES (" + String.join(", ", COLUMNS.stream().map(c -> "?").toList()) + ", ?)";
 
 	private static final Set<String> PLACEHOLDER_CONTEXT_VALUES = Set.of("UNKNOWN", "STARTUP", "SHUTDOWN",
 			"NO_SESSION_ID", "NULL");
@@ -178,6 +175,9 @@ public final class UserAuditTrailUtils {
 			Map.entry("DeleteEngine", new String[] { "ENGINE_DELETE", "ENGINE" }),
 			Map.entry("DeleteDatabase", new String[] { "ENGINE_DELETE", "DATABASE" }),
 			Map.entry("SetEngineMetadata", new String[] { "ENGINE_UPDATE", "ENGINE" }),
+			Map.entry("SetProjectMetadata", new String[] { "PROJECT_UPDATE", "PROJECT" }),
+			Map.entry("LoadProjectMetadata", new String[] { "PROJECT_UPDATE", "PROJECT" }),
+			Map.entry("SaveAppBlocksJson", new String[] { "PROJECT_UPDATE", "PROJECT" }),
 			Map.entry("SetDatabaseMetadata", new String[] { "ENGINE_UPDATE", "DATABASE" }),
 			Map.entry("LoadEngineMetadata", new String[] { "ENGINE_UPDATE", "ENGINE" }),
 			Map.entry("AddWorkspace", new String[] { "WORKSPACE_CREATE", "WORKSPACE" }),
@@ -203,7 +203,7 @@ public final class UserAuditTrailUtils {
 			Map.entry("AdminLockAccounts", new String[] { "USER_DEACTIVATE", "USER" }),
 			Map.entry("AdminUserAuditEvents", new String[] { "AUDIT_QUERY", "AUDIT" }));
 
-	/** Repeated identical failures from the same actor within this window are recorded once. */
+	/** Bounds the cache used to coalesce duplicate HTTP hooks for the same request. */
 	private static final long FAILURE_DEDUPE_WINDOW_MS = 60_000L;
 	private static final int FAILURE_DEDUPE_MAX_ENTRIES = 10_000;
 	private static final Map<String, Long> RECENT_FAILURES = new ConcurrentHashMap<>();
@@ -211,9 +211,6 @@ public final class UserAuditTrailUtils {
 	private static final long ADMIN_CACHE_TTL_MS = 60_000L;
 	private static final Map<String, CachedAdminFlag> ADMIN_CACHE = new ConcurrentHashMap<>();
 
-	private static final Object CHAIN_LOCK = new Object();
-	private static String lastHash = null;
-	private static boolean chainLoaded = false;
 
 	private UserAuditTrailUtils() {
 
@@ -246,26 +243,27 @@ public final class UserAuditTrailUtils {
 					event.eventType);
 			return;
 		}
-		synchronized (CHAIN_LOCK) {
-			PreparedStatement ps = null;
-			try {
-				String previousHash = loadLastHash(userTrackingDb);
-				event.hashPrevious = previousHash;
-				event.hashCurrent = computeHash(previousHash, event);
-
-				ps = userTrackingDb.getPreparedStatement(INSERT_AUDIT_EVENT);
-				bind(userTrackingDb, ps, event);
-				ps.execute();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
+		try {
+			QueryExecutionUtility.write(userTrackingDb, connection -> {
+				AuditChainStore.Head head = AuditChainStore.advance(connection);
+				event.hashPrevious = head.hash();
+				event.hashCurrent = null;
+				try (PreparedStatement ps = connection.prepareStatement(INSERT_AUDIT_EVENT)) {
+					bind(userTrackingDb, ps, event);
+					ps.setLong(COLUMNS.size() + 1, head.sequence());
+					ps.executeUpdate();
 				}
-				lastHash = event.hashCurrent;
-			} catch (Exception e) {
-				classLogger.error("Failed to record audit event type={} action={} targetType={} targetId={}",
-						event.eventType, event.action, event.targetType, event.targetId, e);
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
-			}
+				// Hash the database representation, including its timestamp precision.
+				String hash = AuditChainStore.hashPersistedRow(connection, head);
+				QueryExecutionUtility.executeUpdate(connection, "UPDATE " + TABLE + " SET HASH_CURRENT=? WHERE AUDIT_SEQUENCE=?",
+						ps -> { ps.setString(1, hash); ps.setLong(2, head.sequence()); });
+				QueryExecutionUtility.executeUpdate(connection, "UPDATE " + AuditChainStore.TABLE + " SET LAST_HASH=? WHERE CHAIN_ID='GLOBAL'",
+						ps -> ps.setString(1, hash));
+				return null;
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to record audit event type={} action={} targetType={} targetId={}",
+					event.eventType, event.action, event.targetType, event.targetId, e);
 		}
 	}
 
@@ -523,11 +521,6 @@ public final class UserAuditTrailUtils {
 	 * @param eventType AUDIT_QUERY or AUDIT_EXPORT
 	 */
 	public static void recordAuditAccess(User user, String eventType, Object details) {
-		if ("AUDIT_QUERY".equals(eventType)
-				&& isDuplicateFailure(dedupeKey(getActor(user, null).userId, eventType, null, null, null))) {
-			// paging through results should not write one row per page
-			return;
-		}
 		recordEvent(new AuditEvent().eventType(eventType).action(eventType).status(STATUS_SUCCESS).actorUser(user)
 				.target("AUDIT", TABLE, TABLE).details(details));
 	}
@@ -565,7 +558,9 @@ public final class UserAuditTrailUtils {
 		String attempted = eventType == null ? "UNKNOWN" : eventType;
 		String recordedType = STATUS_DENIED.equals(status) ? "AUTHORIZATION_DENIED" : attempted;
 		recordEvent(new AuditEvent().eventType(recordedType).action(attempted).status(status).actorUser(user)
-				.target(targetType, targetId, null).httpStatus(httpStatus).error(errorCode, errorMessage)
+				.target(targetType, targetId, null)
+				.context("PROJECT".equals(targetType) ? targetId : null, "ENGINE".equals(targetType) ? targetId : null, null, null)
+				.httpStatus(httpStatus).error(errorCode, errorMessage)
 				.details(details));
 	}
 
@@ -602,11 +597,7 @@ public final class UserAuditTrailUtils {
 			String targetType = mapping == null ? null : mapping[1];
 
 			User user = insight == null ? null : insight.getUser();
-			String actorId = getActor(user, null).userId;
-			if (isDuplicateFailure(dedupeKey(actorId, eventType, classification.status(),
-					classification.errorCode(), AuditSanitizer.sanitizeMessage(message)))) {
-				return;
-			}
+			// Pixel failures are separate operations, even inside the same HTTP request.
 
 			Map<String, Object> details = new LinkedHashMap<>();
 			putIfPresent(details, "reactor", reactor);
@@ -617,7 +608,7 @@ public final class UserAuditTrailUtils {
 			recordEvent(new AuditEvent().eventType(denied ? "AUTHORIZATION_DENIED" : eventType)
 					.action(eventType == null ? "UNKNOWN" : eventType).status(status).actorUser(user)
 					.target(targetType, null, null)
-					.context(insight == null ? null : insight.getProjectId(), null, null, null)
+					.context(null, null, insight == null ? null : insight.getInsightId(), null)
 					.error(classification.errorCode(), message).source(null, null, reactor == null ? null : reactor + "Reactor")
 					.details(details));
 		} catch (Exception e) {
@@ -627,8 +618,8 @@ public final class UserAuditTrailUtils {
 
 	/**
 	 * Records an authorization denial returned by a REST endpoint. The actor and
-	 * request (path, method, IP) come from the request logging context. Repeated
-	 * identical denials from the same actor are recorded once per minute.
+	 * request (path, method, IP) come from the request logging context. Only
+	 * duplicate hooks carrying the same request ID are coalesced.
 	 *
 	 * @param errorCode  stable error code
 	 * @param message    error message returned to the client
@@ -645,7 +636,7 @@ public final class UserAuditTrailUtils {
 				action = "HTTP_REQUEST";
 			}
 			String sanitized = AuditSanitizer.sanitizeMessage(message);
-			if (isDuplicateFailure(dedupeKey(contextValue(SemossLogUtils.USER_ID), "AUTHORIZATION_DENIED", action,
+			if (isDuplicateFailure(dedupeKey(contextValue(SemossLogUtils.REQUEST_ID), "AUTHORIZATION_DENIED", action,
 					errorCode, sanitized))) {
 				return;
 			}
@@ -657,20 +648,48 @@ public final class UserAuditTrailUtils {
 	}
 
 	/**
-	 * Inspects an error returned by a REST endpoint and records it when it is an
-	 * authorization denial. Other errors are ignored.
+	 * Records HTTP authorization denials and failures of explicitly recognized
+	 * permission/access-request mutations. Request bodies are never inspected.
 	 *
 	 * @param httpStatus status returned to the client
 	 * @param message    error message returned to the client
 	 */
 	public static void recordHttpErrorResponse(int httpStatus, String message) {
-		if (httpStatus < 400 || message == null) {
+		if (httpStatus < 400) {
+			return;
+		}
+		if (httpStatus == 401 || httpStatus == 403) {
+			recordHttpDenial(httpStatus == 401 ? ERROR_LOGIN_REQUIRED : ERROR_PERMISSION_DENIED,
+					message == null ? "Request authorization denied" : message, httpStatus);
 			return;
 		}
 		FailureClassification classification = classify(null, message);
 		if (STATUS_DENIED.equals(classification.status())) {
 			recordHttpDenial(classification.errorCode(), message, httpStatus);
+			return;
 		}
+		String path = contextValue(SemossLogUtils.ENDPOINT);
+		if (path == null) return;
+		Matcher endpoint = Pattern.compile(".*/auth/(?:admin/|group/)?(engine|project|insight)/([A-Za-z]+)$").matcher(path);
+		if (!endpoint.matches()) return;
+		String action = endpoint.group(2);
+		String type = endpoint.group(1).toUpperCase(Locale.ROOT);
+		String title = type.substring(0, 1) + type.substring(1).toLowerCase(Locale.ROOT);
+		String eventType = null;
+		for (String prefix : List.of("add", "edit", "update", "remove")) {
+			if (Set.of(prefix + title + "UserPermission", prefix + title + "UserPermissions",
+					prefix + "Group" + title + "Permission").contains(action)) {
+				eventType = prefix.equals("add") ? "PERMISSION_ADD" : prefix.equals("remove") ? "PERMISSION_DELETE" : "PERMISSION_UPDATE";
+			}
+		}
+		if (action.equals("approve" + title + "UserAccessRequest")) eventType = "ACCESS_REQUEST_APPROVE";
+		if (action.equals("deny" + title + "UserAccessRequest")) eventType = "ACCESS_REQUEST_REJECT";
+		if (eventType == null || isDuplicateFailure(dedupeKey(contextValue(SemossLogUtils.REQUEST_ID), eventType,
+				action, Integer.toString(httpStatus), AuditSanitizer.sanitizeMessage(message)))) return;
+		recordEvent(new AuditEvent().eventType(eventType).action(eventType).target(type, null, null)
+				.status(httpStatus >= 500 ? STATUS_ERROR : STATUS_FAILURE).httpStatus(httpStatus)
+				.error(httpStatus >= 500 ? ERROR_INTERNAL : ERROR_OPERATION_FAILED, "Permission request did not complete")
+				.details(Map.of("endpointAction", action)));
 	}
 
 	/**
@@ -877,11 +896,12 @@ public final class UserAuditTrailUtils {
 		return name.endsWith("Reactor") ? name.substring(0, name.length() - "Reactor".length()) : name;
 	}
 
-	private static String dedupeKey(String actorId, String eventType, String status, String code, String message) {
-		return actorId + "|" + eventType + "|" + status + "|" + code + "|" + message;
+	private static String dedupeKey(String requestId, String eventType, String status, String code, String message) {
+		return requestId == null ? null : requestId + "|" + eventType + "|" + status + "|" + code + "|" + message;
 	}
 
 	private static boolean isDuplicateFailure(String key) {
+		if (key == null) return false;
 		long now = System.currentTimeMillis();
 		if (RECENT_FAILURES.size() > FAILURE_DEDUPE_MAX_ENTRIES) {
 			RECENT_FAILURES.entrySet().removeIf(e -> now - e.getValue() > FAILURE_DEDUPE_WINDOW_MS);
@@ -889,38 +909,12 @@ public final class UserAuditTrailUtils {
 				RECENT_FAILURES.clear();
 			}
 		}
-		Long previous = RECENT_FAILURES.put(key, now);
-		return previous != null && now - previous < FAILURE_DEDUPE_WINDOW_MS;
-	}
-
-	private static String loadLastHash(IRDBMSEngine userTrackingDb) {
-		if (chainLoaded) {
-			return lastHash;
+		Long previous = RECENT_FAILURES.putIfAbsent(key, now);
+		if (previous == null) return false;
+		if (now - previous >= FAILURE_DEDUPE_WINDOW_MS) {
+			return !RECENT_FAILURES.replace(key, previous, now);
 		}
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		try {
-			ps = userTrackingDb.getPreparedStatement(SELECT_LAST_HASH);
-			ps.setMaxRows(1);
-			rs = ps.executeQuery();
-			lastHash = rs.next() ? rs.getString(1) : null;
-			chainLoaded = true;
-		} catch (Exception e) {
-			classLogger.warn("Unable to read the previous audit hash; starting a new hash chain", e);
-			lastHash = null;
-			chainLoaded = true;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, rs);
-		}
-		return lastHash;
-	}
-
-	static String computeHash(String previousHash, AuditEvent event) {
-		StringBuilder canonical = new StringBuilder(previousHash == null ? "" : previousHash);
-		for (Object value : event.columnValues()) {
-			canonical.append('\u001F').append(value == null ? "" : String.valueOf(value));
-		}
-		return "sha256:" + sha256Hex(canonical.toString());
+		return true;
 	}
 
 	private static String sha256Hex(String value) {
@@ -1014,12 +1008,24 @@ public final class UserAuditTrailUtils {
 		}
 	}
 
-	private static String lookupUserName(String userId) {
+	private static String lookupUserName(String userId, String userType) {
 		if (userId == null) {
 			return null;
 		}
 		try {
-			return SecurityUserUtils.getUserNamesByIds(List.of(userId)).get(userId);
+			return QueryExecutionUtility.read(SystemEngineRegistry.getSecurityDb(), connection -> {
+				try (PreparedStatement ps = connection.prepareStatement("SELECT NAME FROM SMSS_USER WHERE ID=?"
+						+ (userType == null ? "" : " AND TYPE=?"))) {
+					ps.setString(1, userId);
+					if (userType != null) ps.setString(2, userType);
+					ps.setMaxRows(2);
+					try (ResultSet rs = ps.executeQuery()) {
+						if (!rs.next()) return null;
+						String name = rs.getString(1);
+						return rs.next() ? null : name;
+					}
+				}
+			});
 		} catch (Exception e) {
 			classLogger.debug("Unable to look up the audit subject name", e);
 			return null;
@@ -1288,9 +1294,10 @@ public final class UserAuditTrailUtils {
 
 			resolveActor();
 			resolveRequest();
+			resolveAccessRequestSubject();
 
 			if (this.subjectNameLookup && this.subjectUserName == null && this.subjectUserId != null) {
-				this.subjectUserName = lookupUserName(this.subjectUserId);
+				this.subjectUserName = lookupUserName(this.subjectUserId, this.subjectUserType);
 			}
 			if (this.category == null) {
 				this.category = deriveCategory(this.eventType, this.targetType);
@@ -1328,6 +1335,28 @@ public final class UserAuditTrailUtils {
 			this.requestPath = AuditSanitizer.truncate(this.requestPath, 2000);
 		}
 
+		private void resolveAccessRequestSubject() {
+			if (!"ACCESS_REQUEST_REJECT".equals(this.eventType) || this.subjectUserId != null
+					|| !(this.detailsRaw instanceof Map<?, ?> details) || !(details.get("requestId") instanceof String requestId)
+					|| this.targetId == null || this.targetType == null || !Set.of("ENGINE", "PROJECT", "INSIGHT").contains(this.targetType)) return;
+			try {
+				String sql = "SELECT REQUEST_USERID,REQUEST_TYPE FROM " + this.targetType
+						+ "ACCESSREQUEST WHERE ID=? AND " + this.targetType + "ID=?"
+						+ ("INSIGHT".equals(this.targetType) ? " AND PROJECTID=?" : "");
+				String[] requester = QueryExecutionUtility.queryOne(SystemEngineRegistry.getSecurityDb(), sql, ps -> {
+					ps.setString(1, requestId);
+					ps.setString(2, this.targetId);
+					if ("INSIGHT".equals(this.targetType)) ps.setString(3, this.projectId);
+				}, rs -> new String[] { rs.getString(1), rs.getString(2) });
+				if (requester != null) {
+					this.subjectUserId = requester[0];
+					this.subjectUserType = requester[1];
+				}
+			} catch (Exception e) {
+				classLogger.warn("Unable to resolve the affected user for an access-request audit event", e);
+			}
+		}
+
 		private void resolveActor() {
 			// the request logging context is refreshed on every request, unlike ThreadStore
 			// which can hold a previous request's user on a pooled thread
@@ -1357,12 +1386,14 @@ public final class UserAuditTrailUtils {
 				putIfPresent(onBehalfOf, "userName", this.actorUserName);
 				Map<String, Object> detailMap = newDetails(this.detailsRaw);
 				if (!onBehalfOf.isEmpty()) {
+					if (this.actorIsAdmin != null) onBehalfOf.put("isAdmin", this.actorIsAdmin);
 					detailMap.put("onBehalfOf", onBehalfOf);
 				}
 				putIfPresent(detailMap, "agentRunId", contextValue(AGENT_RUN_ID_CONTEXT_KEY));
 				this.detailsRaw = detailMap;
 				this.actorUserId = agentId;
 				this.actorUserType = ACTOR_TYPE_AGENT;
+				this.actorIsAdmin = null;
 				this.actorUserName = Optional.ofNullable(contextValue(AGENT_NAME_CONTEXT_KEY)).orElse(agentId);
 			}
 		}
@@ -1437,6 +1468,19 @@ public final class UserAuditTrailUtils {
 			values.add(this.sourceApp);
 			values.add(this.sourceModule);
 			values.add(this.sourceClass);
+			for (int i = 0; i < values.size(); i++) {
+				if (!(values.get(i) instanceof String value)) continue;
+				int limit = switch (COLUMNS.get(i)) {
+				case "OLD_VALUE", "NEW_VALUE", "DETAILS", "ERROR_MESSAGE" -> Integer.MAX_VALUE;
+				case "STATUS", "SEVERITY" -> 50;
+				case "CATEGORY", "SOURCE_APP" -> 100;
+				case "HTTP_METHOD" -> 20;
+				case "USER_AGENT", "TARGET_NAME" -> 1000;
+				case "REQUEST_PATH" -> 2000;
+				default -> 255;
+				};
+				values.set(i, AuditSanitizer.truncate(value, limit));
+			}
 			return values;
 		}
 	}

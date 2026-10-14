@@ -381,6 +381,7 @@ public class UserTrackingUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, conn, null, null);
 		}
 		syncAuditIndexes(userTrackingDb);
+		AuditChainStore.initialize(userTrackingDb);
 		UserAuditTrailUtils.clearLegacyRawSessionIds(userTrackingDb);
 	}
 

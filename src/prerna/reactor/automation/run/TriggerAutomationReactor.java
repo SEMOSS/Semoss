@@ -91,26 +91,9 @@ public class TriggerAutomationReactor extends AbstractReactor {
 
 		Map<String, Object> result = new AutomationRunExecutionService(this.insight, ThreadStore.getJobId())
 				.executeInitializedRun(runId, projectId, definition, runNodes, traceRoomIds);
-		auditRunEnd(projectId, runId, triggerType);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
-	private void auditRunEnd(String projectId, String runId, String triggerType) {
-		try {
-			Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
-			String runStatus = run == null ? null : String.valueOf(run.get(AutomationConstants.STATUS));
-			if (AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(runStatus)) {
-				return;
-			}
-			String auditStatus = AutomationConstants.STATUS_FAILED.equals(runStatus)
-					|| AutomationConstants.STATUS_INTERRUPTED.equals(runStatus) ? UserAuditTrailUtils.STATUS_FAILURE
-							: UserAuditTrailUtils.STATUS_SUCCESS;
-			UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), "AUTOMATION_RUN_END", projectId, runId,
-					auditStatus, Map.of("triggerType", triggerType, "runStatus", String.valueOf(runStatus)));
-		} catch (Exception e) {
-			// auditing must never change the outcome of the run
-		}
-	}
 
 	private void initializeRun(String runId, String projectId,
 			AutomationDefinitionValidator.ValidatedDefinition definition,

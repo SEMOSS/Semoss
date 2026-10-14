@@ -91,9 +91,13 @@ public class AdminUserAuditEventsReactor extends AbstractQueryStructReactor {
 					+ Constants.USER_TRACKING_DB + ".smss exists and restart SEMOSS.");
 		}
 		boolean export = isExport();
-		UserAuditTrailUtils.recordAuditAccess(this.insight.getUser(), export ? "AUDIT_EXPORT" : "AUDIT_QUERY",
-				Map.of("insightId", String.valueOf(this.insight.getInsightId())));
-		return super.execute();
+		NounMetadata result = super.execute();
+		// This legacy API prepares a query; it cannot attest to later Collect/export completion.
+		UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("AUDIT_QUERY_REQUEST")
+				.action(export ? "AUDIT_EXPORT" : "AUDIT_QUERY").actorUser(this.insight.getUser())
+				.target("AUDIT", TABLE, null).details(Map.of("phase", "QUERY_PREPARED",
+						"insightId", String.valueOf(this.insight.getInsightId()))));
+		return result;
 	}
 
 	private boolean isExport() {
@@ -115,6 +119,7 @@ public class AdminUserAuditEventsReactor extends AbstractQueryStructReactor {
 			sQs.addSelector(new QueryColumnSelector(TABLE + "__" + column));
 		}
 		sQs.addOrderBy(TABLE + "__EVENT_TIME", "DESC");
+		sQs.addOrderBy(TABLE + "__EVENT_ID", "DESC");
 
 		this.qs.merge(sQs);
 		return this.qs;
@@ -123,13 +128,13 @@ public class AdminUserAuditEventsReactor extends AbstractQueryStructReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Admin-only query struct for reading business/security audit events from the user tracking database. "
-				+ "Pass export=true when the results are being exported so the access is recorded as AUDIT_EXPORT.";
+				+ "Records query preparation only. Use AdminAuditEvents for bounded, completed-retrieval auditing.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (EXPORT_KEY.equals(key)) {
-			return "Whether the audit events are being exported (recorded as AUDIT_EXPORT instead of AUDIT_QUERY)";
+			return "Whether this legacy query is intended for export; records preparation only, not completed retrieval";
 		}
 		return super.getDescriptionForKey(key);
 	}

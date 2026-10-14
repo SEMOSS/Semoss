@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +47,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
@@ -114,6 +116,8 @@ public class LoadProjectMetadataReactor extends AbstractSetMetadataReactor {
 		}
 
 		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+		UserAuditTrailUtils.recordProjectLifecycle(this.insight.getUser(), "PROJECT_UPDATE",
+				projectId, null, Map.of("changedFields", new ArrayList<>(metadata.keySet())));
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(
 				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the engine"));

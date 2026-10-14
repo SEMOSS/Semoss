@@ -30,8 +30,6 @@ package prerna.usertracking;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -106,25 +104,9 @@ public final class ResourceAuditReadService {
                 + String.join(",", java.util.Collections.nCopies(events.size(), "?")) + ")");
         List<Object> parameters = new ArrayList<>(List.of(id, id));
         parameters.addAll(events);
-        for (Map.Entry<String, String> filter : FILTERS.entrySet()) {
-            String value = options.get(filter.getKey());
-            if (value != null && !value.isBlank()) {
-                if (value.length() > 255) throw new IllegalArgumentException("Audit filter is too long.");
-                sql.append(" AND ").append(filter.getValue()).append("=?");
-                parameters.add(value);
-            }
-        }
-        LocalDate from = date(options.get("from"));
-        LocalDate to = date(options.get("to"));
-        if (from != null && to != null && from.isAfter(to)) throw new IllegalArgumentException("Invalid audit date range.");
-        if (from != null) {
-            sql.append(" AND EVENT_TIME>=?");
-            parameters.add(Timestamp.from(from.atStartOfDay().toInstant(ZoneOffset.UTC)));
-        }
-        if (to != null) {
-            sql.append(" AND EVENT_TIME<?");
-            parameters.add(Timestamp.from(to.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC)));
-        }
+        AuditReadQuerySupport.appendExactFilters(sql, parameters, FILTERS, options, "Audit filter is too long.");
+        AuditReadQuerySupport.appendDateFilters(sql, parameters, options,
+                "Invalid audit date. Use YYYY-MM-DD.", "Invalid audit date range.");
         String sortExpression = sort.equals("SEVERITY")
                 ? "CASE SEVERITY WHEN 'LOW' THEN 1 WHEN 'MEDIUM' THEN 2 WHEN 'HIGH' THEN 3 WHEN 'CRITICAL' THEN 4 ELSE 0 END"
                 : sort;
@@ -136,13 +118,13 @@ public final class ResourceAuditReadService {
         List<Map<String, Object>> rows = QueryExecutionUtility.read(engine, connection -> {
             List<Map<String, Object>> result = new ArrayList<>();
             try (PreparedStatement statement = connection.prepareStatement(query)) {
-                for (int i = 0; i < parameters.size(); i++) statement.setObject(i + 1, parameters.get(i));
+                AuditReadQuerySupport.bind(statement, parameters);
                 try (ResultSet rs = statement.executeQuery()) {
                     while (rs.next()) {
                         Map<String, Object> row = new LinkedHashMap<>();
                         for (String field : FIELDS) {
                             String value = rs.getString(field);
-                            if (field.equals("EVENT_TIME") && value != null) value = rs.getTimestamp(field).toInstant().toString();
+                            if (field.equals("EVENT_TIME") && value != null) value = AuditReadQuerySupport.utcTimestamp(rs.getTimestamp(field));
                             // Change payloads can contain private metadata; only permission transitions are owner-visible.
                             if (field.equals("OLD_VALUE") || field.equals("NEW_VALUE")) value = permissionValue(value);
                             if (field.equals("DETAILS")) value = permissionDetails(value, rs.getString("EVENT_TYPE"));
@@ -241,11 +223,4 @@ public final class ResourceAuditReadService {
         throw new IllegalArgumentException("Invalid audit pagination.");
     }
 
-    private static LocalDate date(String value) {
-        if (value == null || value.isBlank()) return null;
-        try {
-            if (value.matches("\\d{4}-\\d{2}-\\d{2}")) return LocalDate.parse(value);
-        } catch (java.time.DateTimeException ignored) { }
-        throw new IllegalArgumentException("Invalid audit date. Use YYYY-MM-DD.");
-    }
 }

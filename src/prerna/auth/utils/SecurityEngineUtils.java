@@ -1607,14 +1607,21 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					"The user doesn't have the permission to set this engine as global. Only the owner can perform this action.");
 		}
 
-		String updateQ = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
+		String updateQ = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=? AND (GLOBAL IS NULL OR GLOBAL<>?)";
 		try {
-			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+			int updated = QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
 				ps.setBoolean(1, global);
 				ps.setString(2, engineId);
+				ps.setBoolean(3, global);
 			});
+			if (updated == 0 && QueryExecutionUtility.queryOne(securityDb, "SELECT ENGINEID FROM ENGINE WHERE ENGINEID=?",
+					ps -> ps.setString(1, engineId), rs -> rs.getString(1)) != null) return true;
+			if (updated != 1) throw new IllegalArgumentException("Engine not found");
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine global visibility setting", e);
+			UserAuditTrailUtils.recordFailure(user, "ENGINE_UPDATE", "ENGINE", engineId,
+					new IllegalStateException("Unable to update engine global visibility"), null);
+			throw new IllegalStateException("Unable to update engine global visibility", e);
 		}
 		UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_UPDATE", getAuditEngineTypeName(engineId), engineId,
 				getEngineDisplayNameForId(engineId), Map.of("field", "global", "global", global));
@@ -1661,16 +1668,21 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					"The user doesn't have the permission to set this engine as discoverable. Only the owner or an admin can perform this action.");
 		}
 
-		String updateQ = "UPDATE ENGINE SET DISCOVERABLE=? WHERE ENGINEID=?";
+		String updateQ = "UPDATE ENGINE SET DISCOVERABLE=? WHERE ENGINEID=? AND (DISCOVERABLE IS NULL OR DISCOVERABLE<>?)";
 		try {
-			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+			int updated = QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
 				ps.setBoolean(1, discoverable);
 				ps.setString(2, engineId);
+				ps.setBoolean(3, discoverable);
 			});
-		} catch (RuntimeException e) {
-			throw e;
+			if (updated == 0 && QueryExecutionUtility.queryOne(securityDb, "SELECT ENGINEID FROM ENGINE WHERE ENGINEID=?",
+					ps -> ps.setString(1, engineId), rs -> rs.getString(1)) != null) return true;
+			if (updated != 1) throw new IllegalArgumentException("Engine not found");
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine discoverability setting", e);
+			UserAuditTrailUtils.recordFailure(user, "ENGINE_UPDATE", "ENGINE", engineId,
+					new IllegalStateException("Unable to update engine discoverability"), null);
+			throw new IllegalStateException("Unable to update engine discoverability", e);
 		}
 		UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_UPDATE", getAuditEngineTypeName(engineId), engineId,
 				getEngineDisplayNameForId(engineId), Map.of("field", "discoverable", "discoverable", discoverable));
