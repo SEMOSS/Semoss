@@ -27,17 +27,21 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.javatuples.Pair;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.PermissionChange;
+import prerna.auth.access.PermissionErrorRules;
+import prerna.auth.access.PermissionGrant;
+import prerna.auth.access.PermissionProblem;
+import prerna.auth.access.PermissionSubject;
+import prerna.auth.access.PermissionTargetResource;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -47,16 +51,41 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityGroupInsightsUtils.class);
+
+	private static final String OWNERS_ONLY = "Only this insight's owners can change which teams have access to it.";
+
+	/**
+	 * Only an insight's owners change which groups have access to it. A group's
+	 * managers decide who is in it, so attaching a group trusts them with the
+	 * access. Being an admin counts for nothing here, since an admin can also act
+	 * as an ordinary user.
+	 *
+	 * @param user      the user
+	 * @param projectId the project the insight belongs to
+	 * @param insightId the insight
+	 * @return whether the user is one of the insight's owners
+	 */
+	public static boolean userCanManageGroupAccess(User user, String projectId, String insightId) {
+		return SecurityInsightUtils.userIsInsightOwner(user, projectId, insightId);
+	}
+
+	private static void checkCanManageGroupAccess(User user, String projectId, String insightId)
+			throws IllegalAccessException {
+		if (!userCanManageGroupAccess(user, projectId, insightId)) {
+			throw new IllegalAccessException(OWNERS_ONLY);
+		}
+	}
 
 	/**
 	 * Determine if group can view insight
@@ -249,39 +278,6 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		return false;
 	}
 
-//	/**
-//	 * Determine if a user can view a insight including group permissions
-//	 * @param user
-//	 * @param insightId
-//	 * @return
-//	 */
-//	public static boolean userCanViewInsight(User user, String projectId, String insightId) {
-//		Integer bestUserInsightPermission = getBestInsightPermission(user, projectId, insightId);
-//		return bestUserInsightPermission != null;
-//	}
-//	
-//	/**
-//	 * Determine if the user can modify the insight including group permissions
-//	 * @param insightId
-//	 * @param userId
-//	 * @return
-//	 */
-//	public static boolean userCanEditInsight(User user, String projectId, String insightId) {
-//		Integer bestUserInsightPermission = getBestInsightPermission(user, projectId, insightId);
-//		return bestUserInsightPermission != null && AccessPermission.isEditor(bestUserInsightPermission);
-//	}
-//	
-//	/**
-//	 * Determine if the user is the owner of an insight including group permissions
-//	 * @param userFilters
-//	 * @param insightId
-//	 * @return
-//	 */
-//	public static boolean userIsOwner(User user, String projectId, String insightId) {
-//		Integer bestUserInsightPermission = getBestInsightPermission(user, projectId, insightId);
-//		return bestUserInsightPermission != null && AccessPermission.isOwner(bestUserInsightPermission);
-//	}
-
 	/**
 	 * Determine the strongest insight permission for the user/group
 	 * 
@@ -365,56 +361,28 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Create a insight group permission
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param insightId
-	 * @param permission
-	 * @return
-	 * @throws IllegalAccessException
+	 * Gives a team access to an insight, as a permission batch. Only the insight's
+	 * owners can.
+	 *
+	 * @param user       the user giving access
+	 * @param groupId    the team
+	 * @param groupType  the team's type
+	 * @param projectId  the project the insight belongs to
+	 * @param insightId  the insight
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param endDate    when the access ends, or null
+	 * @throws IllegalAccessException when the user is not one of the insight's
+	 *                                owners
 	 */
 	public static void addInsightGroupPermission(User user, String groupId, String groupType, String projectId,
 			String insightId, String permission, String endDate) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
-		}
-
-		if (getGroupInsightPermission(groupId, groupType, projectId, insightId) != null) {
-			throw new IllegalArgumentException(
-					"This group already has access to this insight. Please edit the existing permission level.");
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					"INSERT INTO GROUPINSIGHTPERMISSION (ID, TYPE, PROJECTID, INSIGHTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?,?)",
-					ps -> {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, groupId);
-						ps.setString(parameterIndex++, groupType);
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-						ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-						ps.setTimestamp(parameterIndex++, startDate);
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-					});
-			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_ADD", "INSIGHT", insightId, null,
-					projectId, null, insightId, groupId, groupType, null, permission,
-					endDate == null ? null : Map.of("endDate", endDate));
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to determine the highest group-based insight permission.", e);
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.insight(projectId, insightId),
+				List.of(PermissionChange.add(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(permission, endDate))),
+				PermissionBatchOptions.userMode().withoutTeamExistsCheck().keepingTeamType(),
+				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+								"This group already has access to this insight. Please edit the existing permission level."));
 	}
 
 	/**
@@ -451,136 +419,50 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Modify a group insight permission
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param insightId
-	 * @param newPermission
-	 * @return
-	 * @throws IllegalAccessException
+	 * Changes a team's access to an insight, as a permission batch. Only the
+	 * insight's owners can.
+	 *
+	 * @param user          the user changing the access
+	 * @param groupId       the team
+	 * @param groupType     the team's type
+	 * @param projectId     the project the insight belongs to
+	 * @param insightId     the insight
+	 * @param newPermission the level, by name; anything else is Read-Only
+	 * @param endDate       when the access ends, or null
+	 * @throws IllegalAccessException when the user is not one of the insight's
+	 *                                owners
 	 */
 	public static void editInsightGroupPermission(User user, String groupId, String groupType, String projectId,
 			String insightId, String newPermission, String endDate) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the insight
-		Integer userPermissionLvl = getBestInsightPermission(user, projectId, insightId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
-		}
-
-		// make sure we are trying to edit a permission that exists
-		Integer existingGroupPermission = getGroupInsightPermission(groupId, groupType, projectId, insightId);
-		if (existingGroupPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify insight permission for a group who does not currently have access to the insight");
-		}
-
-		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
-
-		// if i am not an owner
-		// then i need to check if i can edit this group permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this group insight permission.");
-			}
-
-			// also, cannot give some owner permission if i am just an editor
-			if (AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
-				throw new IllegalAccessException(
-						"Cannot give owner level access to this insight since you are not currently an owner.");
-			}
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					"UPDATE GROUPINSIGHTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?",
-					ps -> {
-						int parameterIndex = 1;
-						ps.setInt(parameterIndex++, newPermissionLvl);
-						ps.setTimestamp(parameterIndex++, startDate);
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setString(parameterIndex++, groupId);
-						ps.setString(parameterIndex++, groupType);
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-					});
-			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_UPDATE", "INSIGHT", insightId, null,
-					projectId, null, insightId, groupId, groupType,
-					AccessPermissionEnum.getPermissionValueById(existingGroupPermission), newPermission,
-					endDate == null ? null : Map.of("endDate", endDate));
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to determine the highest group-based insight permission.", e);
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.insight(projectId, insightId),
+				List.of(PermissionChange.change(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(newPermission, endDate))),
+				PermissionBatchOptions.userMode().keepingTeamType(),
+				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+								"Attempting to modify insight permission for a group who does not currently have access to the insight"));
 	}
 
 	/**
-	 * Delete a group insight permission
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param insightId
-	 * @return
-	 * @throws IllegalAccessException
+	 * Takes a team's access to an insight away, as a permission batch. Only the
+	 * insight's owners can.
+	 *
+	 * @param user      the user taking the access away
+	 * @param groupId   the team
+	 * @param groupType the team's type
+	 * @param projectId the project the insight belongs to
+	 * @param insightId the insight
+	 * @throws IllegalAccessException when the user is not one of the insight's
+	 *                                owners
 	 */
 	public static void removeInsightGroupPermission(User user, String groupId, String groupType, String projectId,
 			String insightId) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the insight
-		Integer userPermissionLvl = getBestInsightPermission(user, projectId, insightId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
-		}
-
-		// make sure we are trying to edit a permission that exists
-		Integer existingGroupPermission = getGroupInsightPermission(groupId, groupType, projectId, insightId);
-		if (existingGroupPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify group permission for a user who does not currently have access to the insight");
-		}
-
-		// if i am not an owner
-		// then i need to check if i can remove this group permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this group insight permission.");
-			}
-		}
-
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?", ps -> {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, groupId);
-						ps.setString(parameterIndex++, groupType);
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-					});
-			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_DELETE", "INSIGHT", insightId, null,
-					projectId, null, insightId, groupId, groupType,
-					AccessPermissionEnum.getPermissionValueById(existingGroupPermission), null, null);
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to determine the highest group-based insight permission.", e);
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.insight(projectId, insightId),
+				List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
+				PermissionBatchOptions.userMode().keepingTeamType(),
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+								"Attempting to modify group permission for a user who does not currently have access to the insight"));
 	}
 
 	/**
@@ -620,4 +502,120 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	/**
+	 * The groups that have access to an insight.
+	 *
+	 * @param user      a user who can view the insight
+	 * @param projectId the project the insight belongs to
+	 * @param insightId the insight
+	 * @param limit     page size, or 0 or less for all
+	 * @param offset    rows to skip
+	 * @return the groups, with the keys {@code ID}, {@code TYPE},
+	 *         {@code PERMISSION} and {@code DATEADDED}, as the project and engine
+	 *         versions return them
+	 * @throws IllegalAccessException when the user cannot view the insight
+	 */
+	public static List<Map<String, Object>> getGroupsWithAccessToInsight(User user, String projectId, String insightId,
+			long limit, long offset) throws IllegalAccessException {
+		checkCanViewInsight(user, projectId, insightId);
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__TYPE"));
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__DATEADDED"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPINSIGHTPERMISSION__ID"));
+		addInsightFilters(qs, projectId, insightId);
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * @param user      a user who can view the insight
+	 * @param projectId the project the insight belongs to
+	 * @param insightId the insight
+	 * @return the number of groups that have access to the insight
+	 * @throws IllegalAccessException when the user cannot view the insight
+	 */
+	public static Long getNumGroupsWithAccessToInsight(User user, String projectId, String insightId)
+			throws IllegalAccessException {
+		checkCanViewInsight(user, projectId, insightId);
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
+				"GROUPINSIGHTPERMISSION__ID", "numGroups"));
+		addInsightFilters(qs, projectId, insightId);
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+
+	/**
+	 * Groups that do not have access to an insight yet, for its owners to choose
+	 * from.
+	 *
+	 * @param user       an owner of the insight
+	 * @param projectId  the project the insight belongs to
+	 * @param insightId  the insight
+	 * @param searchTerm text matched against the group id, or null
+	 * @param limit      page size, or 0 or less for all
+	 * @param offset     rows to skip
+	 * @return the groups, with the keys {@code id}, {@code type} and
+	 *         {@code description}
+	 * @throws IllegalAccessException when the user is not an owner
+	 */
+	public static List<Map<String, Object>> getAvailableGroupsForInsight(User user, String projectId, String insightId,
+			String searchTerm, long limit, long offset) throws IllegalAccessException {
+		requireInsight(projectId, insightId);
+		checkCanManageGroupAccess(user, projectId, insightId);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DESCRIPTION"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__ID"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__TYPE"));
+		{
+			// leave out the groups that already have access
+			SelectQueryStruct attachedQs = new SelectQueryStruct();
+			attachedQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction("GROUPINSIGHTPERMISSION__ID",
+					"GROUPINSIGHTPERMISSION__TYPE", "GROUPKEY"));
+			addInsightFilters(attachedQs, projectId, insightId);
+			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(
+					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_GROUP__ID", "SMSS_GROUP__TYPE", "GROUPKEY"),
+					"!=", attachedQs));
+		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "?like", searchTerm));
+		}
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
+	}
+
+	private static void checkCanViewInsight(User user, String projectId, String insightId)
+			throws IllegalAccessException {
+		requireInsight(projectId, insightId);
+		if (!SecurityInsightUtils.userCanViewInsight(user, projectId, insightId)) {
+			throw new IllegalAccessException("The user does not have access to view this insight");
+		}
+	}
+
+	private static void requireInsight(String projectId, String insightId) {
+		ValueUtils.requireNonBlank(projectId, "Input projectId must not be null or blank");
+		ValueUtils.requireNonBlank(insightId, "Input insightId must not be null or blank");
+	}
+
+	private static void addInsightFilters(SelectQueryStruct qs, String projectId, String insightId) {
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+	}
 }

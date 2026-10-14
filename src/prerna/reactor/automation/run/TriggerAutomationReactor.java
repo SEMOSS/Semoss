@@ -27,27 +27,21 @@
  *******************************************************************************/
 package prerna.reactor.automation.run;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.AutomationConstants;
-import prerna.reactor.automation.AutomationRuntime;
 import prerna.reactor.automation.definition.AutomationDefinitionService;
-import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.reactor.automation.project.AutomationProjectService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.UserAuditTrailUtils;
 
 /**
- * Authenticates, validates, and initializes an Automation run before delegating its lifecycle to
+ * Checks edit access to an Automation project, then starts its saved definition through
  * {@link AutomationRunExecutionService}.
  *
  * <p>Pixel: {@code TriggerAutomation(project=["appId"])}
@@ -65,87 +59,20 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String projectId = getProjectId();
-		String runId = UUID.randomUUID().toString();
-		AutomationDefinitionService.DefinitionFiles files = AutomationDefinitionService.load(projectId);
-		AutomationDefinitionValidator.ValidatedDefinition definition =
-				AutomationDefinitionValidator.parseAndValidate(files.definition());
-		AutomationProjectService.validateDefinitionReferences(definition, this.insight.getUser());
-		List<Map<String, Object>> runNodes = AutomationRuntime.nodesForRun(definition);
+		String projectId = AutomationProjectService.getEditableAutomationProject(this.insight.getUser(),
+				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey())).getProjectId();
 		@SuppressWarnings("unchecked")
 		Map<String, Object> inputs = this.getMap(AutomationConstants.AUTOMATION_INPUTS_KEY);
-		validateInputs(inputs);
-		Map<String, Object> effectiveInputs = new LinkedHashMap<>(
-				AutomationRuntime.declaredGlobals(definition));
-		if (inputs != null) {
-			effectiveInputs.putAll(inputs);
-		}
-		Map<String, String> traceRoomIds = AutomationRunExecutionService.allocateTraceRoomIds(runNodes);
-
-		initializeRun(runId, projectId, definition, effectiveInputs, runNodes, traceRoomIds,
-				files.nodeSources());
-		String triggerType = getTriggerType();
-		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), "AUTOMATION_RUN_START", projectId, runId,
-				null, Map.of("triggerType", triggerType, "nodeCount", runNodes.size(), "inputKeys",
-						new ArrayList<>(effectiveInputs.keySet())));
-
-		Map<String, Object> result = new AutomationRunExecutionService(this.insight, ThreadStore.getJobId())
-				.executeInitializedRun(runId, projectId, definition, runNodes, traceRoomIds);
+		Map<String, Object> result = AutomationRunExecutionService.start(this.insight, ThreadStore.getJobId(),
+				UUID.randomUUID().toString(), projectId, AutomationConstants.DEFAULT_AUTOMATION_ID,
+				AutomationDefinitionService.load(projectId), inputs,
+				this.keyValue.get(AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY));
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
-
-
-	private void initializeRun(String runId, String projectId,
-			AutomationDefinitionValidator.ValidatedDefinition definition,
-			Map<String, Object> inputs, List<Map<String, Object>> runNodes,
-			Map<String, String> traceRoomIds,
-			Map<String, String> nodeSources) {
-		AutomationRunStore.initializeRun(runId, projectId,
-				AutomationConstants.DEFAULT_AUTOMATION_ID, AutomationConstants.PYTHON_DOC_CURRENT_VERSION,
-				definition.hash(), definition.snapshot(), inputs, getTriggerType(), getUserId(), runNodes,
-				traceRoomIds, nodeSources);
-	}
-
-	private String getProjectId() {
-		return AutomationProjectService.getEditableAutomationProject(this.insight.getUser(),
-				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey())).getProjectId();
-	}
-
-	private String getTriggerType() {
-		String triggerType = this.keyValue.get(AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY);
-		if (triggerType == null || triggerType.isBlank()) {
-			return AutomationConstants.TRIGGER_MANUAL;
-		}
-		if (!AutomationConstants.TRIGGER_MANUAL.equals(triggerType)
-				&& !AutomationConstants.TRIGGER_PLAYGROUND.equals(triggerType)
-				&& !AutomationConstants.TRIGGER_SCHEDULED.equals(triggerType)) {
-			throw new IllegalArgumentException("triggerType must be MANUAL, PLAYGROUND, or SCHEDULED.");
-		}
-		return triggerType;
-	}
-
-	private String getUserId() {
-		if (this.insight.getUser() != null && this.insight.getUser().getPrimaryLoginToken() != null) {
-			return this.insight.getUser().getPrimaryLoginToken().getId();
-		}
-		return AutomationConstants.SYSTEM_USER_ID;
-	}
-
-	private static void validateInputs(Map<String, Object> inputs) {
-		if (inputs == null) {
-			return;
-		}
-		for (String key : inputs.keySet()) {
-			if (AutomationConstants.RESERVED_SCOPE_KEYS.contains(key)) {
-				throw new IllegalArgumentException("Automation input '" + key
-						+ "' is reserved for runtime metadata and cannot be overridden.");
-			}
-		}
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Runs automation through the authenticated Python workflow runtime.";
+		return "Runs a saved automation through the authenticated Java graph executor.";
 	}
 
 	@Override

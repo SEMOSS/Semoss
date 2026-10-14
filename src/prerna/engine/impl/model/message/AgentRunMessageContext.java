@@ -31,6 +31,8 @@ import java.util.Map;
 
 import com.google.gson.annotations.SerializedName;
 
+import prerna.util.ValueUtils;
+
 /** Durable agent-run attribution carried directly by a room message. */
 public final class AgentRunMessageContext {
 
@@ -54,27 +56,28 @@ public final class AgentRunMessageContext {
 
 	public AgentRunMessageContext(String runId, String role) {
 		setRunId(runId);
-		this.role = trimToNull(role);
+		this.role = ValueUtils.trimToNull(role);
 	}
 
 	static AgentRunMessageContext fromLegacyOrnaments(Map<String, Object> ornaments) {
 		if (ornaments == null) {
 			return null;
 		}
-		String runId = trimToNull(ornaments.get("agentRunId"));
+		String runId = ValueUtils.trimToNull(ornaments.get("agentRunId"));
 		if (runId == null) {
 			return null;
 		}
-		AgentRunMessageContext context = new AgentRunMessageContext(runId, trimToNull(ornaments.get("agentRunRole")));
-		context.originatingRunId = trimToNull(ornaments.get("originatingAgentRunId"));
-		context.childRunId = trimToNull(ornaments.get("childRunId"));
-		context.completionMode = trimToNull(ornaments.get("completionMode"));
-		context.childStatus = trimToNull(ornaments.get("childStatus"));
+		AgentRunMessageContext context = new AgentRunMessageContext(runId,
+				ValueUtils.trimToNull(ornaments.get("agentRunRole")));
+		context.originatingRunId = ValueUtils.trimToNull(ornaments.get("originatingAgentRunId"));
+		context.childRunId = ValueUtils.trimToNull(ornaments.get("childRunId"));
+		context.completionMode = ValueUtils.trimToNull(ornaments.get("completionMode"));
+		context.childStatus = ValueUtils.trimToNull(ornaments.get("childStatus"));
 		return context;
 	}
 
 	void validate() {
-		if (trimToNull(runId) == null) {
+		if (ValueUtils.trimToNull(runId) == null) {
 			throw new IllegalStateException("agentRun.runId is required");
 		}
 	}
@@ -84,7 +87,7 @@ public final class AgentRunMessageContext {
 	}
 
 	public void setRunId(String runId) {
-		String normalized = trimToNull(runId);
+		String normalized = ValueUtils.trimToNull(runId);
 		if (normalized == null) {
 			throw new IllegalArgumentException("runId is required");
 		}
@@ -96,7 +99,7 @@ public final class AgentRunMessageContext {
 	}
 
 	public void setRole(String role) {
-		this.role = trimToNull(role);
+		this.role = ValueUtils.trimToNull(role);
 	}
 
 	public String getOriginatingRunId() {
@@ -104,7 +107,7 @@ public final class AgentRunMessageContext {
 	}
 
 	public void setOriginatingRunId(String originatingRunId) {
-		this.originatingRunId = trimToNull(originatingRunId);
+		this.originatingRunId = ValueUtils.trimToNull(originatingRunId);
 	}
 
 	public String getChildRunId() {
@@ -112,7 +115,7 @@ public final class AgentRunMessageContext {
 	}
 
 	public void setChildRunId(String childRunId) {
-		this.childRunId = trimToNull(childRunId);
+		this.childRunId = ValueUtils.trimToNull(childRunId);
 	}
 
 	public String getCompletionMode() {
@@ -120,7 +123,7 @@ public final class AgentRunMessageContext {
 	}
 
 	public void setCompletionMode(String completionMode) {
-		this.completionMode = trimToNull(completionMode);
+		this.completionMode = ValueUtils.trimToNull(completionMode);
 	}
 
 	public String getChildStatus() {
@@ -128,14 +131,7 @@ public final class AgentRunMessageContext {
 	}
 
 	public void setChildStatus(String childStatus) {
-		this.childStatus = trimToNull(childStatus);
+		this.childStatus = ValueUtils.trimToNull(childStatus);
 	}
 
-	private static String trimToNull(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String text = String.valueOf(value).trim();
-		return text.isEmpty() ? null : text;
-	}
 }

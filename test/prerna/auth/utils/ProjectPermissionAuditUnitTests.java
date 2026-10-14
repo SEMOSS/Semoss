@@ -27,71 +27,96 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
-import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.javatuples.Pair;
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.FieldAttributes;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.usertracking.UserAuditTrailUtils;
-import prerna.util.JdbcTestDatabase;
+import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
-class ProjectPermissionAuditUnitTests {
+class ProjectPermissionAuditUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
+    static final String PROJECT = "auditproject";
+    static final String MEMBER = "auditmemberid";
+    static final Gson AUDIT_JSON = new GsonBuilder().addSerializationExclusionStrategy(new ExclusionStrategy() {
+        public boolean shouldSkipField(FieldAttributes field) { return field.getName().equals("actorUser"); }
+        public boolean shouldSkipClass(Class<?> type) { return false; }
+    }).create();
 
-	@ParameterizedTest
-	@ValueSource(booleans = {true, false})
-	void bulkUpdateAuditsOnlyAfterSuccessfulCommit(boolean succeeds) throws Exception {
-		User actor = mock(User.class);
-		List<Map<String, String>> requests = List.of(
-				Map.of("userid", "member", "type", "NATIVE", "permission", "EDIT"));
-		try (var db = new JdbcTestDatabase(); var users = mockStatic(User.class);
-				var projects = mockStatic(SecurityProjectUtils.class, CALLS_REAL_METHODS);
-				var utility = mockStatic(Utility.class); var audit = mockStatic(UserAuditTrailUtils.class)) {
-			db.execute("CREATE TABLE PROJECTPERMISSION (USERID VARCHAR, PROJECTID VARCHAR, PERMISSION INT, "
-					+ "PERMISSIONGRANTEDBY VARCHAR, PERMISSIONGRANTEDBYTYPE VARCHAR, DATEADDED TIMESTAMP, ENDDATE TIMESTAMP)",
-					"INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION) VALUES ('member', 'project', "
-							+ AccessPermissionEnum.READ_ONLY.getId() + ")");
-			db.manual();
-			users.when(() -> User.getPrimaryUserIdAndTypePair(actor)).thenReturn(Pair.with("admin", "NATIVE"));
-			projects.when(() -> SecurityProjectUtils.getMaxUserProjectPermission(actor, "project"))
-					.thenReturn(AccessPermissionEnum.OWNER.getId());
-			projects.when(() -> SecurityProjectUtils.getUserProjectPermissions(List.of("member"), "project"))
-					.thenReturn(Map.of("member", AccessPermissionEnum.READ_ONLY.getId()));
-			projects.when(() -> SecurityProjectUtils.getUserProjectPermission("member", "project"))
-					.thenReturn(AccessPermissionEnum.READ_ONLY.getId());
-			if (succeeds) {
-				when(db.engine.getPreparedStatement(anyString())).thenAnswer(invocation ->
-						db.connection.prepareStatement(invocation.getArgument(0, String.class)));
-			} else {
-				when(db.engine.getPreparedStatement(anyString())).thenThrow(new SQLException("Write failed"));
-			}
-			audit.when(() -> UserAuditTrailUtils.recordPermissionUpdate(actor, "PROJECT", "project", null,
-					"project", null, null, "member", "NATIVE", "READ_ONLY", "EDIT", null)).thenAnswer(invocation -> {
-				// Rolling back here proves the permission was committed before auditing.
-				db.connection.rollback();
-				assertEquals(AccessPermissionEnum.EDIT.getId(), db.value("SELECT PERMISSION FROM PROJECTPERMISSION"));
-				return null;
-			});
-			assertDoesNotThrow(() -> SecurityProjectUtils.editProjectUserPermissions(actor, "project", requests, null));
-			if (succeeds) {
-				audit.verify(() -> UserAuditTrailUtils.recordPermissionUpdate(actor, "PROJECT", "project", null,
-						"project", null, null, "member", "NATIVE", "READ_ONLY", "EDIT", null));
-			} else {
-				audit.verifyNoInteractions();
-			}
-		}
-	}
+    IRDBMSEngine securityDb;
+    User actor;
+    List<String> tables = new ArrayList<>();
+    boolean hasFailureConstraint;
+
+    @BeforeEach
+    void setup() throws Exception {
+        securityDb = SystemEngineRegistry.getSecurityDb();
+        assertTrue(securityDb.getOwlFilePath().contains("junit"));
+        actor = UnitTestSecurityAuthUtils.createUser("auditactor", true);
+        UnitTestSecurityAuthUtils.createUser("auditmember", false);
+        UnitTestSecurityAuthUtils.createProject(PROJECT, "Audit project", actor);
+        UnitTestSecurityAuthUtils.addPermissionsToUserForProject(actor, PROJECT, MEMBER, "READ_ONLY");
+    }
+
+    @AfterEach
+    void cleanup() throws Exception {
+        if (hasFailureConstraint) {
+            QueryExecutionUtility.executeUpdate(securityDb,
+                    "ALTER TABLE PROJECTPERMISSION DROP CONSTRAINT AUDIT_FAIL_UPDATE", ps -> { });
+        }
+        tables = UnitTestSecurityAuthUtils.clearSecurityDB(securityDb, tables);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void bulkUpdateAuditsOnlyAfterSuccessfulCommit(boolean succeeds) throws Exception {
+        List<Map<String, String>> requests = List.of(
+                Map.of("userid", MEMBER, "type", "NATIVE", "permission", "EDIT"));
+        if (!succeeds) {
+            QueryExecutionUtility.executeUpdate(securityDb,
+                    "ALTER TABLE PROJECTPERMISSION ADD CONSTRAINT AUDIT_FAIL_UPDATE CHECK (PERMISSION<>2)", ps -> { });
+            hasFailureConstraint = true;
+        }
+        try (var utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+                var audit = mockStatic(UserAuditTrailUtils.class)) {
+            utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+            audit.when(() -> UserAuditTrailUtils.recordEvent(any())).thenAnswer(invocation -> {
+                JsonObject event = AUDIT_JSON.toJsonTree(invocation.getArgument(0)).getAsJsonObject();
+                assertEquals("PERMISSION_UPDATE", event.get("eventType").getAsString());
+                assertEquals(PROJECT, event.get("projectId").getAsString());
+                assertEquals(MEMBER, event.get("subjectUserId").getAsString());
+                assertEquals("READ_ONLY", event.getAsJsonObject("oldValueRaw").get("permission").getAsString());
+                assertEquals("EDIT", event.getAsJsonObject("newValueRaw").get("permission").getAsString());
+                // A separate pooled read sees the committed permission, not an in-flight write.
+                assertEquals(2, SecurityProjectUtils.getUserProjectPermission(MEMBER, PROJECT));
+                return null;
+            });
+            if (succeeds) {
+                SecurityProjectUtils.editProjectUserPermissions(actor, PROJECT, requests, null);
+                audit.verify(() -> UserAuditTrailUtils.recordEvent(any()), times(1));
+            } else {
+                assertThrows(IllegalArgumentException.class,
+                        () -> SecurityProjectUtils.editProjectUserPermissions(actor, PROJECT, requests, null));
+                assertEquals(3, SecurityProjectUtils.getUserProjectPermission(MEMBER, PROJECT));
+                audit.verifyNoInteractions();
+            }
+        }
+    }
 }

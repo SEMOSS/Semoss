@@ -97,6 +97,12 @@ public final class BrainRuleUtils {
 	// no id creates; an id edits the note or value only (delete and re-create to
 	// change the rest)
 	public static Map<String, Object> saveRule(User user, Map<String, Object> changes) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> saveRuleInReview(user, changes));
+	}
+
+	private static Map<String, Object> saveRuleInReview(User user, Map<String, Object> changes) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -194,6 +200,12 @@ public final class BrainRuleUtils {
 
 	// soft delete; people this rule excluded on a thread are included again
 	public static Map<String, Object> deleteRule(User user, String ruleId) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> deleteRuleInReview(user, ruleId));
+	}
+
+	private static Map<String, Object> deleteRuleInReview(User user, String ruleId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();

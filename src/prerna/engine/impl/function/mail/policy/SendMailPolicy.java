@@ -46,6 +46,7 @@ import jakarta.mail.internet.InternetAddress;
 import prerna.engine.impl.function.mail.config.MailProperties;
 import prerna.engine.impl.function.mail.model.OutboundMail;
 import prerna.om.Insight;
+import prerna.util.ValueUtils;
 
 /**
  * What a sending engine is willing to send, and on whose behalf.
@@ -118,16 +119,16 @@ public final class SendMailPolicy {
 	 *                                  same SMSS allows
 	 */
 	public static SendMailPolicy from(Properties properties) {
-		String sender = MailProperties.trimToNull(properties.getProperty(MailProperties.SMTP_SENDER));
+		String sender = ValueUtils.trimToNull(properties.getProperty(MailProperties.SMTP_SENDER));
 		if (sender != null) {
 			validateEmailAddress(sender, MailProperties.SMTP_SENDER);
 		}
-		String senderName = MailProperties.trimToNull(properties.getProperty(MailProperties.SMTP_SENDER_NAME));
-		boolean allowOverride = MailProperties
-				.parseBoolean(properties.getProperty(MailProperties.ALLOW_SENDER_OVERRIDE), false);
-		boolean allowAttachments = MailProperties.parseBoolean(properties.getProperty(MailProperties.ALLOW_ATTACHMENTS),
+		String senderName = ValueUtils.trimToNull(properties.getProperty(MailProperties.SMTP_SENDER_NAME));
+		boolean allowOverride = ValueUtils.parseBoolean(properties.getProperty(MailProperties.ALLOW_SENDER_OVERRIDE),
 				false);
-		boolean html = MailProperties.parseBoolean(properties.getProperty(MailProperties.HTML), false);
+		boolean allowAttachments = ValueUtils.parseBoolean(properties.getProperty(MailProperties.ALLOW_ATTACHMENTS),
+				false);
+		boolean html = ValueUtils.parseBoolean(properties.getProperty(MailProperties.HTML), false);
 
 		Set<String> domains = normalizedDomains(properties.getProperty(MailProperties.ALLOWED_RECIPIENT_DOMAINS));
 		List<String> defaultTo = MailProperties.splitList(properties.getProperty(MailProperties.DEFAULT_TO));
@@ -138,7 +139,7 @@ public final class SendMailPolicy {
 		validateRecipients(defaultBcc, MailProperties.DEFAULT_BCC, domains);
 
 		return new SendMailPolicy(sender, senderName, allowOverride, domains, defaultTo, defaultCc, defaultBcc,
-				MailProperties.trimToNull(properties.getProperty(MailProperties.SUBJECT_PREFIX)), html,
+				ValueUtils.trimToNull(properties.getProperty(MailProperties.SUBJECT_PREFIX)), html,
 				Math.max(1, NumberUtils.toInt(properties.getProperty(MailProperties.MAX_RECIPIENTS), 25)),
 				allowAttachments);
 	}
@@ -384,7 +385,7 @@ public final class SendMailPolicy {
 	 */
 	private static String stringParameter(Map<String, Object> parameters, String key, String defaultValue) {
 		Object value = parameters == null ? null : parameters.get(key);
-		String text = value == null ? null : MailProperties.trimToNull(value.toString());
+		String text = value == null ? null : ValueUtils.trimToNull(value.toString());
 		return text == null ? defaultValue : text;
 	}
 

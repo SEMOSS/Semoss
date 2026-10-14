@@ -37,6 +37,7 @@ import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Reads one message of a Teams chat.
@@ -66,8 +67,8 @@ public class MicrosoftTeamsGetChatMessageReactor extends AbstractMicrosoftTeamsM
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String chatId = trimToNull(this.keyValue.get(CHAT_ID));
-		String messageId = trimToNull(this.keyValue.get(MESSAGE_ID));
+		String chatId = ValueUtils.trimToNull(this.keyValue.get(CHAT_ID));
+		String messageId = ValueUtils.trimToNull(this.keyValue.get(MESSAGE_ID));
 		int maxBodyChars = positiveInt(MAX_BODY_CHARS, DEFAULT_MAX_BODY_CHARS, Integer.MAX_VALUE);
 
 		if (chatId == null) {

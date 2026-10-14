@@ -125,9 +125,15 @@ public final class MCPUtility {
 	public static final String UI_DISPLAY_LOCATION = "displayLocation";
 	public static final String UI_AUTO_OPEN = "autoOpen";
 	/**
-	 * What a tool call holds, so a page can show it with a native element: a
-	 * chat card, or a panel such as a query editor. Pages that do not know the
-	 * name show the generic tool view.
+	 * Starts a {@link #UI_RESOURCE_URI} naming one of the client's own components
+	 * as the tool's view, such as {@code component://mail/list?provider=google},
+	 * which the client renders in the page rather than loading a portal.
+	 */
+	public static final String UI_COMPONENT_SCHEME = "component://";
+	/**
+	 * What a tool call holds, so a page can show it with a native element: a chat
+	 * card, or a panel such as a query editor. Pages that do not know the name show
+	 * the generic tool view.
 	 */
 	public static final String UI_COMPONENT = "component";
 
@@ -136,6 +142,7 @@ public final class MCPUtility {
 	public static final String COMPONENT_EMAIL_DRAFT = "email-draft";
 	public static final String COMPONENT_EMAIL_SEND = "email-send";
 	public static final String COMPONENT_CALENDAR_EVENT = "calendar-event";
+	public static final String COMPONENT_MEMORY = "memory";
 
 	/**
 	 * @deprecated Use {@link #SMSS_ENGINE_ID}, which is set for every engine type
@@ -687,7 +694,8 @@ public final class MCPUtility {
 			}
 		}
 		ModelTypeEnum modelType = modelEngine.getModelType();
-		// OpenAI's Responses API allows 128-char tool names; Chat Completions stays at 64
+		// OpenAI's Responses API allows 128-char tool names; Chat Completions stays at
+		// 64
 		if (modelType == ModelTypeEnum.OPEN_AI && smssProp != null
 				&& "responses".equalsIgnoreCase(smssProp.getProperty("CHAT_TYPE", "").trim())) {
 			return OPENAI_RESPONSES_MAX_TOOL_NAME_LENGTH;
@@ -860,6 +868,23 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * The one listed tool whose name after its engine prefix equals the called
+	 * name's: models misspell the prefix ("apixaber_" for "apixabay_") but keep the
+	 * function. Null when the call has no prefix or several tools share the name.
+	 */
+	static String sameFunctionName(Map<String, Map<String, Object>> listed, String called) {
+		int prefixEnd = called == null ? -1 : called.indexOf('_');
+		if (prefixEnd < 0) {
+			return null;
+		}
+		String function = called.substring(prefixEnd + 1);
+		List<String> matches = listed.keySet().stream()
+				.filter(name -> name.indexOf('_') >= 0 && name.substring(name.indexOf('_') + 1).equals(function))
+				.toList();
+		return matches.size() == 1 ? matches.get(0) : null;
+	}
+
+	/**
 	 * Updates the tool response with engine/tool metadata. Uses llmNameToToolJson
 	 * for direct lookup (short-prefix names) when provided, falling back to
 	 * UUID-regex parsing for legacy full-UUID-prefix names.
@@ -879,15 +904,18 @@ public final class MCPUtility {
 				responseToolMap.put("title", llmFacingName);
 			}
 
-			if (llmNameToToolJson != null && llmNameToToolJson.containsKey(llmFacingName)) {
-				Map<String, Object> toolEntry = llmNameToToolJson.get(llmFacingName);
+			String listedName = llmNameToToolJson == null || llmNameToToolJson.containsKey(llmFacingName)
+					? llmFacingName
+					: sameFunctionName(llmNameToToolJson, llmFacingName);
+			if (llmNameToToolJson != null && listedName != null && llmNameToToolJson.containsKey(listedName)) {
+				Map<String, Object> toolEntry = llmNameToToolJson.get(listedName);
 				Object rawMeta = toolEntry.get("_meta");
 				Map<String, Object> enrichedMeta = (rawMeta instanceof Map) ? (Map<String, Object>) rawMeta
 						: new HashMap<>();
 
 				String origFunctionName = (String) enrichedMeta.get(SMSS_FUNCTION_NAME);
 				if (origFunctionName == null) {
-					origFunctionName = llmFacingName;
+					origFunctionName = listedName;
 				}
 
 				responseToolMap.put("_tool_found", true);
@@ -1351,8 +1379,8 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Copies the {@link #UI_COMPONENT} and {@link #UI_AUTO_OPEN} hints, the UI
-	 * keys every tool builder passes through as they are.
+	 * Copies the {@link #UI_COMPONENT} and {@link #UI_AUTO_OPEN} hints, the UI keys
+	 * every tool builder passes through as they are.
 	 */
 	public static void copyUiHints(Map<String, ?> from, JSONObject to) {
 		if (from == null) {
@@ -1562,13 +1590,13 @@ public final class MCPUtility {
 	 * A tool can hand back a model response that carries generated media, such as
 	 * an image model called through the LLM reactor. Left as is, that result is
 	 * megabytes of base64 text: too large for the browser to post back, far more
-	 * than the calling model should read, and replayed with every later turn of
-	 * the room.
+	 * than the calling model should read, and replayed with every later turn of the
+	 * room.
 	 * <p>
 	 * Each MEDIA part holding base64 data is written to the room folder, and the
 	 * result is replaced by a {@code SEMOSSMultimodalToolResponse} envelope that
-	 * names those files relative to the room. Image and PDF references are
-	 * expanded back into inline data only in the payload sent to the model (see
+	 * names those files relative to the room. Image and PDF references are expanded
+	 * back into inline data only in the payload sent to the model (see
 	 * {@code MessageUtils#toJsonArrayWithImageData}); other media is named in the
 	 * text only.
 	 *
@@ -1671,8 +1699,8 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Writes one tool media part into the room folder under its own file name, or
-	 * a generated one when it has none. An existing file is never replaced, since
+	 * Writes one tool media part into the room folder under its own file name, or a
+	 * generated one when it has none. An existing file is never replaced, since
 	 * earlier turns may still reference it.
 	 *
 	 * @param roomFolder the room folder

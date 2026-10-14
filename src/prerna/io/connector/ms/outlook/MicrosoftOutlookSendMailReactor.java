@@ -27,120 +27,53 @@
  *******************************************************************************/
 package prerna.io.connector.ms.outlook;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
+import prerna.io.connector.mail.AbstractSendMailReactor;
+import prerna.io.connector.mail.ComposedMail;
+import prerna.io.connector.mail.MailApp;
+import prerna.io.connector.mail.OutgoingMail;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.EmailUtility.EmailMetadata;
-import prerna.util.EmailUtility;
 
 /**
- * Sends mail as whoever is signed in.
+ * Sends mail as whoever is signed in, from their own Microsoft 365 mailbox.
  *
  * <p>
- * The message goes out as the signed in user because the token says who that
- * is, so this cannot be used to send as somebody else, and a copy lands in
- * their own Sent Items where they can see what was sent on their behalf. The
- * mail function engines are the other way round: they hold an app
+ * The mail function engines are the other way round: they hold an app
  * registration's credentials and send as a mailbox named in their SMSS, which
  * is why they carry the send policy this does not need.
  * </p>
  *
  * <p>
- * Required delegated Microsoft Graph scope:
- * </p>
- * <ul>
- * <li>{@code Mail.Send} for {@code POST /me/sendMail}</li>
- * </ul>
- *
- * <p>
- * Attachments are named relative to the insight folder and are resolved inside
- * it, so a caller cannot mail an arbitrary file off the server. Graph accepts
+ * Required delegated Microsoft Graph scope: {@code Mail.Send}. Graph accepts
  * about 4MB on a single send, counted on the whole encoded request rather than
  * on any one file.
  * </p>
- *
- * <p>
- * For a message somebody should look at before it goes out, save it with
- * {@code MicrosoftOutlookSaveDraft} instead.
- * </p>
  */
-public class MicrosoftOutlookSendMailReactor extends AbstractMicrosoftOutlookComposeReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(MicrosoftOutlookSendMailReactor.class);
-
-	private static final String SAVE_TO_SENT_ITEMS = "saveToSentItems";
+public class MicrosoftOutlookSendMailReactor extends AbstractSendMailReactor {
 
 	public MicrosoftOutlookSendMailReactor() {
-		this.keysToGet = new String[] { TO, CC, BCC, SUBJECT, MESSAGE, HTML, ATTACHMENTS, SAVE_TO_SENT_ITEMS };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 1, 0, 0, 0 };
+		// only Outlook can send without keeping a copy; Gmail always keeps one
+		super(SAVE_TO_SENT_ITEMS);
 	}
 
 	@Override
-	protected NounMetadata executeAuthenticated() {
-		this.organizeKeys();
+	protected MailApp getMailApp() {
+		return MailApp.OUTLOOK;
+	}
 
+	@Override
+	protected ComposedMail sendMail(User user, OutgoingMail mail) throws Exception {
 		// keeping the copy is the default because the sent mail is the user's own
 		// record of what went out under their name
-		String saveToSentItems = this.keyValue.get(SAVE_TO_SENT_ITEMS);
-		boolean keepCopy = saveToSentItems == null || Boolean.parseBoolean(saveToSentItems);
-
-		try {
-			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			String from = MicrosoftLoginUtils.getMicrosoftEmail(user);
-
-			ComposedMail composed = compose(true, "send");
-			EmailMetadata metadata = new EmailMetadata(composed.to, composed.cc, composed.bcc, from, composed.subject,
-					composed.body, composed.html, composed.attachments);
-			// a null mailbox addresses /me, so this sends as the signed in user
-			EmailUtility.sendEmail(() -> {
-				new MicrosoftOutlookMailHelper().sendMail(accessToken, null, composed.message, keepCopy);
-				return null;
-			}, metadata);
-
-			Map<String, Object> output = new LinkedHashMap<>();
-			output.put("sent", true);
-			composed.describe(output);
-			return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while sending mail as the signed in user", e);
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to send mail as the signed in user", e);
-			throw new SemossPixelException("An error occurred sending the email. Error message: " + e.getMessage());
-		}
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Send an email as the signed in user from their own Microsoft 365 mailbox.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(TO)) {
-			return "Recipients of the email. At least one of to, cc or bcc is required.";
-		} else if (key.equals(SAVE_TO_SENT_ITEMS)) {
-			return "Optional boolean for whether a copy is kept in the sender's Sent Items. Defaults to true.";
-		}
-		return super.getDescriptionForKey(key);
-	}
-
-	@Override
-	public Map<String, String> getMcpToolMetadata() {
-		// sends mail as the user, so an agent asks before running it
-		Map<String, String> meta = super.getMcpToolMetadata();
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
-		meta.put(MCPUtility.UI_COMPONENT, MCPUtility.COMPONENT_EMAIL_SEND);
-		return meta;
+		boolean keepCopy = readBoolean(SAVE_TO_SENT_ITEMS, true);
+		Map<String, Object> message = MicrosoftOutlookMailHelper.buildMessage(mail.subject(), mail.body(), mail.html(),
+				mail.toArray(), mail.ccArray(), mail.bccArray(), null, null, mail.attachmentPaths());
+		// a null mailbox addresses /me, so this sends as the signed in user
+		new MicrosoftOutlookMailHelper().sendMail(MicrosoftLoginUtils.getValidAccessToken(user), null, message,
+				keepCopy);
+		// sendMail answers with nothing, so the sent message has no id to report
+		return ComposedMail.of(mail, null, null, null);
 	}
 }

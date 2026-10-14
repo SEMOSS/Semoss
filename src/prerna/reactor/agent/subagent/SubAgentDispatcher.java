@@ -45,6 +45,7 @@ import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.AgentRunStatus;
 import prerna.reactor.agent.run.SubAgentRunCompletionMode;
+import prerna.util.ValueUtils;
 
 /**
  * Tool-call dispatch for synthesized subagent tools.
@@ -283,16 +284,16 @@ public final class SubAgentDispatcher {
 	}
 
 	private static SubAgentResult toSubAgentResult(String jobId, Map<String, Object> run) {
-		String status = stringValue(run.get("status"));
+		String status = ValueUtils.toNonBlankString(run.get("status"));
 		if (AgentRunStatus.COMPLETED.name().equals(status)) {
-			String finalText = stringValue(run.get("finalText"));
+			String finalText = ValueUtils.toNonBlankString(run.get("finalText"));
 			if (finalText == null) {
 				return SubAgentResult.failed(jobId, "Subagent completed but produced no output");
 			}
 			return SubAgentResult.succeeded(jobId, finalText);
 		}
 		if (AgentRunStatus.FAILED.name().equals(status)) {
-			String error = stringValue(run.get("errorMessage"));
+			String error = ValueUtils.toNonBlankString(run.get("errorMessage"));
 			return SubAgentResult.failed(jobId, error == null ? "Subagent failed" : error);
 		}
 		if (AgentRunStatus.CANCELLED.name().equals(status)) {
@@ -361,11 +362,4 @@ public final class SubAgentDispatcher {
 		return out;
 	}
 
-	private static String stringValue(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String str = String.valueOf(value);
-		return str.trim().isEmpty() ? null : str;
-	}
 }

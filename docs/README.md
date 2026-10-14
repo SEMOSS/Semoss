@@ -44,6 +44,7 @@ Documentation for the SEMOSS core runtime, agents and harnesses, engine integrat
 - [Vector engines](engines/vector_engines.md)
 - [Storage engines](engines/storage_engines.md)
 - [Function engines](engines/function_engines.md)
+- [Jev policy guardrail](engines/jev_policy_guardrail.md)
 - [Projects](engines/project_engines.md)
 - [Supporting engine Docker examples](../docker-compose-examples/engines/README.md)
 

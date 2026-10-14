@@ -50,11 +50,13 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 	private static final String ADD_GOAL = "addGoal";
 	private static final String ADD_NOTE = "addNote";
 	private static final String DELETE_NOTE_ID = "deleteNoteId";
+	private static final String COMPLETE_GOAL_ID = "completeGoalId";
+	private static final String GOAL_RESOLUTION = "goalResolution";
 
 	public BrainEditTopicReactor() {
 		this.keysToGet = new String[] { TOPIC_ID, TOPIC, NAME, DESCRIPTION, STATUS, ADD_PEOPLE, REMOVE_PEOPLE,
-				ADD_GOAL, ADD_NOTE, DELETE_NOTE_ID };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				ADD_GOAL, ADD_NOTE, DELETE_NOTE_ID, COMPLETE_GOAL_ID, GOAL_RESOLUTION };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -63,7 +65,7 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 		return mapResult(BrainAgentEdits.editTopic(user, getString(TOPIC_ID), getString(TOPIC), getString(NAME),
 				getString(DESCRIPTION), getString(STATUS), people(ADD_PEOPLE),
 				people(REMOVE_PEOPLE), getString(ADD_GOAL), getString(ADD_NOTE),
-				getString(DELETE_NOTE_ID)));
+				getString(DELETE_NOTE_ID), getString(COMPLETE_GOAL_ID), getString(GOAL_RESOLUTION)));
 	}
 
 	// each entry a string; a model that sends {name, email, personId} objects is read the same way
@@ -114,7 +116,8 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Changes one of the owner's Brain topics, as the owner would on the topic page: rename it, edit its "
-				+ "description, set its status, add or remove its people, add a goal or note, or delete one. "
+				+ "description, set its status, add or remove its people, add a goal or note, "
+				+ "complete a goal with an optional resolution, or delete one. "
 				+ "Several changes can go in one call. It waits for the owner to approve. Read the topic with "
 				+ "ListTopics first so you pass the right names";
 	}
@@ -138,9 +141,15 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 		} else if (ADD_GOAL.equals(key)) {
 			return "Text of a goal to add";
 		} else if (ADD_NOTE.equals(key)) {
-			return "Text of a note to add";
+			return "Text of a note to add; it is kept as the owner's memory about the topic";
 		} else if (DELETE_NOTE_ID.equals(key)) {
 			return "Id of a goal or note to delete, from ListTopics";
+		} else if (COMPLETE_GOAL_ID.equals(key)) {
+			return "Goal noteId from this topic's ListTopics goals to mark done; keeps the goal and its text";
+		} else if (GOAL_RESOLUTION.equals(key)) {
+			return "Optional short, plain-language accomplishment saved with completeGoalId, based on established facts. "
+					+ "Omit source labels, citations, and internal ids, including shortened thread/message ids; "
+					+ "omit to keep any existing resolution";
 		}
 		return super.getDescriptionForKey(key);
 	}

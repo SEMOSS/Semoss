@@ -28,7 +28,9 @@
 package prerna.reactor.automation.definition;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -159,6 +161,45 @@ public class AutomationDefinitionValidatorUnitTests {
 		return config;
 	}
 
+	private static Map<String, Object> mixedJevConfig() {
+		Map<String, Object> config = new LinkedHashMap<>();
+		config.put(AutomationConstants.CONFIG_ENGINE_ID, "typesafe-engine");
+		config.put(AutomationConstants.CONFIG_STATE, "${request}");
+		config.put(AutomationConstants.CONFIG_QUESTIONS,
+				List.of(
+						Map.of(AutomationConstants.CONFIG_KEY, "department",
+								AutomationConstants.CONFIG_TYPE, AutomationConstants.JEV_QUESTION_TYPE_CHOICE,
+								AutomationConstants.CONFIG_INSTRUCTIONS, "Which team should handle this?",
+								AutomationConstants.CONFIG_CRITERIA,
+								Map.of("billing", "Payments", "technical", "Bugs")),
+						Map.of(AutomationConstants.CONFIG_KEY, "frustration",
+								AutomationConstants.CONFIG_TYPE, AutomationConstants.JEV_QUESTION_TYPE_SCORE,
+								AutomationConstants.CONFIG_INSTRUCTIONS, "How frustrated is the customer?",
+								AutomationConstants.CONFIG_CRITERIA, List.of("Calm", "Frustrated", "Very angry")),
+						Map.of(AutomationConstants.CONFIG_KEY, "urgent",
+								AutomationConstants.CONFIG_TYPE, AutomationConstants.JEV_QUESTION_TYPE_NOUL,
+								AutomationConstants.CONFIG_INSTRUCTIONS, "Does this require action today?",
+								AutomationConstants.CONFIG_CRITERIA,
+								Map.of("true", "Requires action today", "false", "Can wait"))));
+		config.put(AutomationConstants.CONFIG_CLAUSES,
+				List.of(Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "billing_urgent",
+						AutomationConstants.CONFIG_DESCRIPTION, "Urgent billing",
+						AutomationConstants.CONFIG_MATCH, AutomationConstants.JEV_ROUTE_MATCH_ALL,
+						AutomationConstants.CONFIG_CONDITIONS,
+						List.of(
+								Map.of(AutomationConstants.CONFIG_QUESTION_KEY, "department",
+										AutomationConstants.CONFIG_FIELD, AutomationConstants.JEV_FIELD_CHOICE,
+										AutomationConstants.CONFIG_OPERATOR, AutomationConstants.JEV_OPERATOR_EQUALS,
+										AutomationConstants.CONFIG_VALUE, "billing"),
+								Map.of(AutomationConstants.CONFIG_QUESTION_KEY, "urgent",
+										AutomationConstants.CONFIG_FIELD, AutomationConstants.JEV_FIELD_NOUL,
+										AutomationConstants.CONFIG_OPERATOR,
+										AutomationConstants.JEV_OPERATOR_GREATER_THAN_OR_EQUAL,
+										AutomationConstants.CONFIG_VALUE, 0.8)))));
+		config.put(AutomationConstants.CONFIG_PARAM_VALUES, Map.of("timeout", 30, "max_retries", 2));
+		return config;
+	}
+
 	/** The statement a generated node of this type is required to carry. */
 	private static String statementFor(String type) {
 		if (AutomationConstants.NODE_DATABASE_INSERT.equals(type)) {
@@ -206,6 +247,17 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
+	void acceptsTheMaximumDatabaseQueryLimit() {
+		Map<String, Object> maximumLimit = databaseQueryConfig();
+		maximumLimit.put(AutomationConstants.CONFIG_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT);
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(definition(Map.of(),
+						workNode(AutomationConstants.NODE_DATABASE_QUERY, maximumLimit)));
+
+		assertEquals(2, validated.nodes().size());
+	}
+
+	@Test
 	void acceptsAJevDecisionDraft() {
 		Map<String, Object> node = workNode(AutomationConstants.NODE_CONTROL_JEV, jevConfig());
 		node.remove(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
@@ -221,6 +273,32 @@ public class AutomationDefinitionValidatorUnitTests {
 		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
 				.parseAndValidateForAuthoring(definition(Map.of(), node));
 		assertEquals(2, validated.nodes().size());
+	}
+
+	@Test
+	void acceptsAMultiQuestionJevDecisionWithTypedRouteRules() {
+		Map<String, Object> node = workNode(AutomationConstants.NODE_CONTROL_JEV, mixedJevConfig());
+		node.remove(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(definition(Map.of(), node));
+		assertEquals(2, validated.nodes().size());
+	}
+
+	@Test
+	void rejectsAFieldThatDoesNotBelongToTheJevQuestionType() {
+		Map<String, Object> config = mixedJevConfig();
+		config.put(AutomationConstants.CONFIG_CLAUSES,
+				List.of(Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "invalid",
+						AutomationConstants.CONFIG_DESCRIPTION, "Invalid",
+						AutomationConstants.CONFIG_CONDITIONS,
+						List.of(Map.of(AutomationConstants.CONFIG_QUESTION_KEY, "urgent",
+								AutomationConstants.CONFIG_FIELD, AutomationConstants.JEV_FIELD_CONFIDENCE,
+								AutomationConstants.CONFIG_OPERATOR,
+								AutomationConstants.JEV_OPERATOR_GREATER_THAN_OR_EQUAL,
+								AutomationConstants.CONFIG_VALUE, 0.8)))));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+						definition(Map.of(), workNode(AutomationConstants.NODE_CONTROL_JEV, config))));
 	}
 
 	@Test
@@ -317,12 +395,13 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
-	void triggerAcceptsSetupSourceAndGlobals() {
+	void triggerRejectsSetupSourceEvenWhenGlobalsAreValid() {
 		Map<String, Object> config = new LinkedHashMap<>();
 		config.put(AutomationConstants.CONFIG_PYTHON_SOURCE, "def run(scope):\n    return {}\n");
 		config.put(AutomationConstants.CONFIG_GLOBALS,
 				List.of(Map.of("name", "lookback_days", AutomationConstants.CONFIG_DEFAULT_VALUE, "7")));
-		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(config));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(config)));
 	}
 
 	/** Globals become Python identifiers in scope, so the name has to be one. */
@@ -363,5 +442,133 @@ public class AutomationDefinitionValidatorUnitTests {
 		String json = document(Map.of(), null, AutomationConstants.PYTHON_DOC_CURRENT_VERSION + 1, true);
 		assertThrows(IllegalArgumentException.class,
 				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(json));
+	}
+
+	@Test
+	void acceptsAnAgentRunWithoutAWorkspace() {
+		AutomationDefinitionValidator.parseAndValidate(definition(Map.of(),
+				workNode(AutomationConstants.NODE_AGENT_RUN, Map.of(AutomationConstants.CONFIG_COMMAND, "Summarize"))));
+		AutomationDefinitionValidator.parseAndValidate(definition(Map.of(), workNode(AutomationConstants.NODE_AGENT_RUN,
+				Map.of(AutomationConstants.CONFIG_WORKSPACE_ID, "", AutomationConstants.CONFIG_COMMAND, "Summarize"))));
+	}
+
+	@Test
+	void acceptsABoundedLoopWithAnAcyclicBody() {
+		Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DEVELOPER_PYTHON, Map.of());
+		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-python");
+		bodyNode.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, "body_result");
+		bodyNode.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_CUSTOM);
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1, 2, 3),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		loop.put(AutomationConstants.NODE_FIELD_BODY,
+				Map.of(AutomationConstants.DOC_NODES, List.of(bodyNode), AutomationConstants.DOC_EDGES, List.of()));
+
+		AutomationDefinitionValidator.parseAndValidate(definition(Map.of(), loop));
+	}
+
+	@Test
+	void acceptsGeneratedDatabaseQueryInsideExecutableLoop() {
+		Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DATABASE_QUERY, databaseQueryConfig());
+		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-query");
+		bodyNode.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, "query_result");
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1, 2),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		loop.put(AutomationConstants.NODE_FIELD_BODY,
+				Map.of(AutomationConstants.DOC_NODES, List.of(bodyNode), AutomationConstants.DOC_EDGES, List.of()));
+		String json = definition(Map.of(), loop);
+
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(json);
+		AutomationDefinitionValidator.parseAndValidate(json);
+	}
+
+	@Test
+	void acceptsDottedForEachRepeatAndWhileLoopConfiguration() {
+		Map<String, Object> dottedForEach = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, "${download.files}",
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), dottedForEach));
+
+		Map<String, Object> repeat = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_REPEAT,
+						AutomationConstants.CONFIG_LOOP_COUNT, 5,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), repeat));
+
+		Map<String, Object> whileLoop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_WHILE,
+						AutomationConstants.CONFIG_LOOP_CONDITION, "${status} != \"complete\"",
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), whileLoop));
+	}
+
+	@Test
+	void rejectsRepeatCountAboveItsSafetyLimitAndInvalidWhileCondition() {
+		Map<String, Object> repeat = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_REPEAT,
+						AutomationConstants.CONFIG_LOOP_COUNT, 11,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), repeat)));
+
+		Map<String, Object> whileLoop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_WHILE,
+						AutomationConstants.CONFIG_LOOP_CONDITION, "status is complete",
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), whileLoop)));
+	}
+
+	@Test
+	void permitsAnIncompleteLoopBodyOnlyWhileAuthoring() {
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		String json = definition(Map.of(), loop);
+
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(json);
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidate(json));
+	}
+
+	@Test
+	void rejectsNestedLoops() {
+		Map<String, Object> nested = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		nested.put(AutomationConstants.NODE_FIELD_ID, "nested-loop");
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		loop.put(AutomationConstants.NODE_FIELD_BODY,
+				Map.of(AutomationConstants.DOC_NODES, List.of(nested), AutomationConstants.DOC_EDGES, List.of()));
+
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidate(definition(Map.of(), loop)));
+	}
+
+	@Test
+	void rejectsAnUnboundedLoop() {
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS,
+						AutomationConstants.LOOP_MAX_ITERATIONS + 1));
+
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), loop)));
 	}
 }

@@ -52,6 +52,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * Lists the files that make up one skill project's content, so a caller can see
@@ -141,8 +142,8 @@ public class ListSkillFilesReactor extends AbstractReactor {
 
 			Map<String, Object> row = new LinkedHashMap<>();
 			row.put("filePath", relativePath);
-			row.put("name", isEmpty(fm.name) ? entry.get("name") : fm.name);
-			row.put("description", isEmpty(fm.description) ? "" : fm.description);
+			row.put("name", ValueUtils.isBlank(fm.name) ? entry.get("name") : fm.name);
+			row.put("description", ValueUtils.isBlank(fm.description) ? "" : fm.description);
 			rows.add(row);
 		}
 
@@ -167,10 +168,6 @@ public class ListSkillFilesReactor extends AbstractReactor {
 					e.getMessage());
 			return new Skill.Frontmatter();
 		}
-	}
-
-	private static boolean isEmpty(String s) {
-		return s == null || s.trim().isEmpty();
 	}
 
 	@Override

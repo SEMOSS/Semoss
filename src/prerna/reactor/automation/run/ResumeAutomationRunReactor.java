@@ -29,7 +29,6 @@ package prerna.reactor.automation.run;
 
 import java.util.Map;
 
-import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.agent.AutomationAgentRunAccess;
@@ -45,7 +44,8 @@ import prerna.usertracking.UserAuditTrailUtils;
  * a terminal state.
  *
  * <p>
- * Pixel: {@code ResumeAutomationRun(project=["id"], runId=["id"])}
+ * Pixel: {@code ResumeAutomationRun(project=["id"], runId=["id"])}. Without
+ * {@code project}, the run must be one of the caller's own inline runs.
  *
  * <p>
  * The execution service uses a compare-and-set claim, so repeated calls are
@@ -57,7 +57,7 @@ public class ResumeAutomationRunReactor extends AbstractReactor {
 
 	public ResumeAutomationRunReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), RUN_ID_KEY };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keyRequired = new int[] { 0, 1 };
 	}
 
 	@Override
@@ -69,9 +69,8 @@ public class ResumeAutomationRunReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must provide a run id");
 		}
 
-		IProject project = AutomationProjectService.getEditableAutomationProject(this.insight.getUser(),
-				requestedProjectId);
-		String projectId = project.getProjectId();
+		String projectId = AutomationProjectService.resolveRunScope(this.insight.getUser(), requestedProjectId,
+				true);
 		Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
 		if (run == null || !projectId.equals(run.get(AutomationConstants.PROJECT_ID))) {
 			throw new IllegalArgumentException("Automation run not found: " + runId);

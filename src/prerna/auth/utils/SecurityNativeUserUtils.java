@@ -306,13 +306,14 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			List<String> deleteIds = new ArrayList<>();
 
 			// do we have too many stored passwords?
+			// keep the newest ones, which are the ones isPreviousPassword checks
 			SelectQueryStruct qs = new SelectQueryStruct();
 			qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__ID"));
 			qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__USERID"));
 			qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__DATE_ADDED"));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__USERID", "==", userId));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__TYPE", "==", type));
-			qs.addOrderBy("PASSWORD_HISTORY__DATE_ADDED");
+			qs.addOrderBy(new QueryColumnOrderBySelector("PASSWORD_HISTORY__DATE_ADDED", "DESC"));
 			int counter = 0;
 
 			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
@@ -330,21 +331,11 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			}
 
 			if (!deleteIds.isEmpty()) {
-				String deleteQuery = "DELETE FROM PASSWORD_HISTORY WHERE ID=?";
 				try {
-					for (String deleteId : deleteIds) {
-						ps = securityDb.getPreparedStatement(deleteQuery);
-						ps.setString(1, deleteId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
+					QueryExecutionUtility.executeBatch(securityDb, "DELETE FROM PASSWORD_HISTORY WHERE ID=?", deleteIds,
+							(statement, deleteId) -> statement.setString(1, deleteId));
 				} catch (SQLException e) {
 					classLogger.error("Unable to add native user.", e);
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 		}
@@ -687,27 +678,29 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the provided password matches a previous password.", e);
 		}
+		if (passReuseCount < 1) {
+			return false;
+		}
 
+		// the newest passwords, as many as the reuse rule covers
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__PASSWORD"));
 		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__SALT"));
+		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__DATE_ADDED"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__USERID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__TYPE", "==", type));
 		qs.addOrderBy(new QueryColumnOrderBySelector("PASSWORD_HISTORY__DATE_ADDED", "DESC"));
+		qs.setLimit(passReuseCount);
 
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			int counter = 0;
 			while (wrapper.hasNext()) {
-				if (passReuseCount > 0 && counter < passReuseCount) {
-					Object[] previousPass = wrapper.next().getValues();
-					String hashPass = (String) previousPass[0];
-					String salt = (String) previousPass[1];
-					String testPass = hash(password, salt);
-					if (hashPass.equals(testPass)) {
-						return true;
-					}
+				Object[] previousPass = wrapper.next().getValues();
+				String hashPass = (String) previousPass[0];
+				String salt = (String) previousPass[1];
+				String testPass = hash(password, salt);
+				if (hashPass.equals(testPass)) {
+					return true;
 				}
-				counter++;
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the provided password matches a previous password.", e);

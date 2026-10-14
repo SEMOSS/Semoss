@@ -39,6 +39,15 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Reads the signed in user's Gmail address and how many messages and threads
+ * their mailbox holds.
+ *
+ * <p>
+ * Required Google scope, each under {@code https://www.googleapis.com/auth/}:
+ * one of {@code gmail.readonly}, {@code gmail.compose} or {@code gmail.modify}.
+ * </p>
+ */
 public class GoogleGmailProfileByIdReactor extends AbstractGoogleReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GoogleGmailProfileByIdReactor.class);

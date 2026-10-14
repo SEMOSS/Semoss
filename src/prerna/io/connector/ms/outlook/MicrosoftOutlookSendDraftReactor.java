@@ -27,120 +27,50 @@
  *******************************************************************************/
 package prerna.io.connector.ms.outlook;
 
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
-import prerna.io.connector.ms.AbstractMicrosoftReactor;
+import prerna.io.connector.mail.AbstractSendDraftReactor;
+import prerna.io.connector.mail.ComposedMail;
+import prerna.io.connector.mail.MailApp;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.EmailUtility.EmailMetadata;
-import prerna.util.EmailUtility;
 
 /**
- * Sends a draft the signed in user already has, once they have decided it
- * should go out.
+ * Sends a draft that is already saved in the signed in user's own Microsoft 365
+ * mailbox.
  *
  * <p>
- * The other half of {@code MicrosoftOutlookSaveDraft}. The draft can equally be
- * sent from Outlook, which is often the point of saving one, so this exists for
- * the case where the reviewing happens in SEMOSS instead.
+ * Required delegated Microsoft Graph scopes: {@code Mail.Read} to read the
+ * draft, and {@code Mail.Send} to send it.
  * </p>
- *
- * <p>
- * Required delegated Microsoft Graph scope:
- * </p>
- * <ul>
- * <li>{@code Mail.Send} for {@code POST /me/messages/{id}/send}</li>
- * <li>{@code Mail.Read} to read the draft back before sending, which is what is
- * recorded as having been sent</li>
- * </ul>
  */
-public class MicrosoftOutlookSendDraftReactor extends AbstractMicrosoftReactor {
+public class MicrosoftOutlookSendDraftReactor extends AbstractSendDraftReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(MicrosoftOutlookSendDraftReactor.class);
-
-	private static final String DRAFT_ID = "draftId";
-
-	public MicrosoftOutlookSendDraftReactor() {
-		this.keysToGet = new String[] { DRAFT_ID };
-		this.keyRequired = new int[] { 1 };
+	@Override
+	protected MailApp getMailApp() {
+		return MailApp.OUTLOOK;
 	}
 
 	@Override
-	protected NounMetadata executeAuthenticated() {
-		this.organizeKeys();
-
-		String requestedDraftId = this.keyValue.get(DRAFT_ID);
-		if (requestedDraftId == null || requestedDraftId.trim().isEmpty()) {
-			throw new SemossPixelException("A " + DRAFT_ID + " is required to send a draft.");
+	protected ComposedMail readDraft(User user, String id) throws Exception {
+		String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+		MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
+		Map<String, Object> draft = helper.getMessage(accessToken, null, id);
+		if (draft == null) {
+			throw new IllegalArgumentException("No draft exists in your mailbox with id: " + id);
 		}
-		String draftId = requestedDraftId.trim();
-
-		try {
-			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			String from = MicrosoftLoginUtils.getMicrosoftEmail(user);
-			MicrosoftOutlookMailHelper mail = new MicrosoftOutlookMailHelper();
-
-			// read it first, because sending moves it to Sent Items under a new id and
-			// there would be nothing left at this one to record
-			Map<String, Object> draft = mail.getMessage(accessToken, null, draftId);
-			EmailMetadata metadata = new EmailMetadata(
-					MicrosoftOutlookMessageMapper.addressArray(draft.get("toRecipients")),
-					MicrosoftOutlookMessageMapper.addressArray(draft.get("ccRecipients")),
-					MicrosoftOutlookMessageMapper.addressArray(draft.get("bccRecipients")), from,
-					draft.get("subject") == null ? null : draft.get("subject").toString(),
-					MicrosoftOutlookMessageMapper.bodyOf(draft), false, null);
-			EmailUtility.sendEmail(() -> {
-				mail.sendDraft(accessToken, null, draftId);
-				return null;
-			}, metadata);
-
-			Map<String, Object> output = new LinkedHashMap<>();
-			output.put("sent", true);
-			output.put(DRAFT_ID, draftId);
-			if (draft != null) {
-				MicrosoftOutlookMessageMapper.putIfPresent(output, "to",
-						MicrosoftOutlookMessageMapper.addressList(draft.get("toRecipients")));
-				MicrosoftOutlookMessageMapper.putIfPresent(output, "cc",
-						MicrosoftOutlookMessageMapper.addressList(draft.get("ccRecipients")));
-				MicrosoftOutlookMessageMapper.putIfPresent(output, "subject", draft.get("subject"));
-			}
-			return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while sending a draft for the signed in user", e);
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to send a draft for the signed in user", e);
-			throw new SemossPixelException("An error occurred sending the draft. Error message: " + e.getMessage());
-		}
+		List<String> attachments = Boolean.TRUE.equals(draft.get("hasAttachments"))
+				? helper.listAttachmentSummaries(accessToken, null, id).stream()
+						.map(attachment -> String.valueOf(attachment.get("name"))).toList()
+				: List.of();
+		return MicrosoftOutlookMessageMapper.toComposedMail(draft, null, false, attachments);
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Send a draft that is already saved in the signed in user's own Microsoft 365 mailbox.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(DRAFT_ID)) {
-			return "Id of the draft to send, as returned by MicrosoftOutlookSaveDraft or by reading the drafts folder.";
-		}
-		return super.getDescriptionForKey(key);
-	}
-
-	@Override
-	public Map<String, String> getMcpToolMetadata() {
-		// sends mail as the user, so an agent asks before running it
-		Map<String, String> meta = super.getMcpToolMetadata();
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
-		return meta;
+	protected ComposedMail sendDraft(User user, ComposedMail draft) throws Exception {
+		new MicrosoftOutlookMailHelper().sendDraft(MicrosoftLoginUtils.getValidAccessToken(user), null, draft.id());
+		// a sent draft moves to Sent Items under a new id, which Graph does not report
+		return draft.withIds(null, null, null);
 	}
 }

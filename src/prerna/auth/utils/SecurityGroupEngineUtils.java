@@ -27,19 +27,23 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.javatuples.Pair;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.PermissionChange;
+import prerna.auth.access.PermissionErrorRules;
+import prerna.auth.access.PermissionGrant;
+import prerna.auth.access.PermissionProblem;
+import prerna.auth.access.PermissionSubject;
+import prerna.auth.access.PermissionTargetResource;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -53,14 +57,34 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
 
 public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityGroupEngineUtils.class);
+
+	private static final String OWNERS_ONLY = "Only this engine's owners can change which teams have access to it.";
+
+	/**
+	 * Only an engine's owners change which groups have access to it. A group's
+	 * managers decide who is in it, so attaching a group trusts them with the
+	 * access. Being an admin counts for nothing here, since an admin can also act
+	 * as an ordinary user; admins change it in admin mode.
+	 *
+	 * @param user     the user
+	 * @param engineId the engine
+	 * @return whether the user is one of the engine's owners
+	 */
+	public static boolean userCanManageGroupAccess(User user, String engineId) {
+		return SecurityEngineUtils.userIsOwner(user, engineId);
+	}
+
+	private static void checkCanManageGroupAccess(User user, String engineId) throws IllegalAccessException {
+		if (!userCanManageGroupAccess(user, engineId)) {
+			throw new IllegalAccessException(OWNERS_ONLY);
+		}
+	}
 
 	/**
 	 * Determine if a group can view a database
@@ -296,39 +320,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		return false;
 	}
 
-//	/**
-//	 * Determine if a user can view a database including group permissions
-//	 * @param user
-//	 * @param databaseId
-//	 * @return
-//	 */
-//	public static boolean userCanViewDatabase(User user, String databaseId) {
-//		Integer bestUserDatabasePermission = getBestDatabasePermission(user, databaseId);
-//		return bestUserDatabasePermission != null;
-//	}
-//	
-//	/**
-//	 * Determine if the user can modify the database including group permissions
-//	 * @param databaseId
-//	 * @param userId
-//	 * @return
-//	 */
-//	public static boolean userCanEditDatabase(User user, String databaseId) {
-//		Integer bestUserDatabasePermission = getBestDatabasePermission(user, databaseId);
-//		return bestUserDatabasePermission != null && AccessPermission.isEditor(bestUserDatabasePermission);
-//	}
-//	
-//	/**
-//	 * Determine if the user is the owner of an database including group permissions
-//	 * @param userFilters
-//	 * @param databaseId
-//	 * @return
-//	 */
-//	public static boolean userIsOwner(User user, String databaseId) {
-//		Integer bestUserDatabasePermission = getBestDatabasePermission(user, databaseId);
-//		return bestUserDatabasePermission != null && AccessPermission.isOwner(bestUserDatabasePermission);
-//	}
-
 	/**
 	 * Determine the strongest database permission for the user/group
 	 * 
@@ -408,55 +399,27 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Create a database group permission
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param engineId
-	 * @param permission
-	 * @return
-	 * @throws IllegalAccessException
+	 * Gives a team access to an engine, as a permission batch. Only the engine's
+	 * owners can.
+	 *
+	 * @param user       the user giving access
+	 * @param groupId    the team
+	 * @param groupType  the team's type
+	 * @param engineId   the engine
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param endDate    when the access ends, or null
+	 * @throws IllegalAccessException when the user is not one of the engine's
+	 *                                owners
 	 */
 	public static void addEngineGroupPermission(User user, String groupId, String groupType, String engineId,
 			String permission, String endDate) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this engine's permissions.");
-		}
-
-		if (getGroupDatabasePermission(groupId, groupType, engineId) != null) {
-			throw new IllegalArgumentException(
-					"This group already has access to this engine. Please edit the existing permission level.");
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					"INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)",
-					ps -> {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, groupId);
-						ps.setString(parameterIndex++, groupType);
-						ps.setString(parameterIndex++, engineId);
-						ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-						ps.setTimestamp(parameterIndex++, startDate);
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-					});
-			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_ADD", "ENGINE", engineId, null, null,
-					engineId, null, groupId, groupType, null, permission,
-					endDate == null ? null : Map.of("endDate", endDate));
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to determine the highest group-based engine permission.", e);
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.add(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(permission, endDate))),
+				PermissionBatchOptions.userMode().withoutTeamExistsCheck().keepingTeamType(),
+				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+								"This group already has access to this engine. Please edit the existing permission level."));
 	}
 
 	/**
@@ -489,134 +452,48 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Modify a group database permission
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param databaseId
-	 * @param newPermission
-	 * @return
-	 * @throws IllegalAccessException
+	 * Changes a team's access to an engine, as a permission batch. Only the
+	 * engine's owners can.
+	 *
+	 * @param user          the user changing the access
+	 * @param groupId       the team
+	 * @param groupType     the team's type
+	 * @param engineId      the engine
+	 * @param newPermission the level, by name; anything else is Read-Only
+	 * @param endDate       when the access ends, or null
+	 * @throws IllegalAccessException when the user is not one of the engine's
+	 *                                owners
 	 */
 	public static void editDatabaseGroupPermission(User user, String groupId, String groupType, String engineId,
 			String newPermission, String endDate) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the database
-		Integer userPermissionLvl = getBestDatabasePermission(user, engineId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
-		}
-
-		// make sure we are trying to edit a permission that exists
-		Integer existingGroupPermission = getGroupDatabasePermission(groupId, groupType, engineId);
-		if (existingGroupPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify database permission for a group who does not currently have access to the database");
-		}
-
-		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
-
-		// if i am not an owner
-		// then i need to check if i can edit this group permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this group database permission.");
-			}
-
-			// also, cannot give some owner permission if i am just an editor
-			if (AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
-				throw new IllegalAccessException(
-						"Cannot give owner level access to this database since you are not currently an owner.");
-			}
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					"UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND TYPE=? AND ENGINEID=?",
-					ps -> {
-						int parameterIndex = 1;
-						ps.setInt(parameterIndex++, newPermissionLvl);
-						ps.setTimestamp(parameterIndex++, startDate);
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setString(parameterIndex++, groupId);
-						ps.setString(parameterIndex++, groupType);
-						ps.setString(parameterIndex++, engineId);
-					});
-			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_UPDATE", "ENGINE", engineId, null, null,
-					engineId, null, groupId, groupType,
-					AccessPermissionEnum.getPermissionValueById(existingGroupPermission), newPermission,
-					endDate == null ? null : Map.of("endDate", endDate));
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to retrieve the group-based engine permission.", e);
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.change(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(newPermission, endDate))),
+				PermissionBatchOptions.userMode().keepingTeamType(),
+				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+								"Attempting to modify database permission for a group who does not currently have access to the database"));
 	}
 
 	/**
-	 * Delete a group database permission
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param databaseId
-	 * @return
-	 * @throws IllegalAccessException
+	 * Takes a team's access to an engine away, as a permission batch. Only the
+	 * engine's owners can.
+	 *
+	 * @param user      the user taking the access away
+	 * @param groupId   the team
+	 * @param groupType the team's type
+	 * @param engineId  the engine
+	 * @throws IllegalAccessException when the user is not one of the engine's
+	 *                                owners
 	 */
 	public static void removeDatabaseGroupPermission(User user, String groupId, String groupType, String engineId)
 			throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the database
-		Integer userPermissionLvl = getBestDatabasePermission(user, engineId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
-		}
-
-		// make sure we are trying to edit a permission that exists
-		Integer existingGroupPermission = getGroupDatabasePermission(groupId, groupType, engineId);
-		if (existingGroupPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify group permission for a user who does not currently have access to the database");
-		}
-
-		// if i am not an owner
-		// then i need to check if i can remove this group permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this group database permission.");
-			}
-		}
-
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					"DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=? AND ENGINEID=?", ps -> {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, groupId);
-						ps.setString(parameterIndex++, groupType);
-						ps.setString(parameterIndex++, engineId);
-					});
-			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_DELETE", "ENGINE", engineId, null, null,
-					engineId, null, groupId, groupType,
-					AccessPermissionEnum.getPermissionValueById(existingGroupPermission), null, null);
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to retrieve the group-based engine permission.", e);
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
+				PermissionBatchOptions.userMode().keepingTeamType(),
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+								"Attempting to modify group permission for a user who does not currently have access to the database"));
 	}
 
 	/**
@@ -690,18 +567,30 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getGroupsWithAccessToEngine(User user, String engineId, long limit,
 			long offset) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Input engineId must not be null or blank");
 		}
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalAccessException("The user does not have access to view this engine");
 		}
+		return queryGroupsWithAccessToEngine(engineId, limit, offset);
+	}
+
+	/**
+	 * The groups that have access to an engine, read without checking who asks, for
+	 * callers that already checked, such as admin mode
+	 *
+	 * @return rows with {@code ID}, {@code TYPE}, {@code PERMISSION},
+	 *         {@code DATEADDED} and {@code ENDDATE}
+	 */
+	static List<Map<String, Object>> queryGroupsWithAccessToEngine(String engineId, long limit, long offset) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID"));
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE"));
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__DATEADDED"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENDDATE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPENGINEPERMISSION__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		if (limit > 0) {
@@ -732,5 +621,50 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				"GROUPENGINEPERMISSION__ID", "numGroups"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+
+	/**
+	 * Groups that do not have access to an engine yet, for its owners to choose
+	 * from.
+	 *
+	 * @param user       an engine owner
+	 * @param engineId   the engine
+	 * @param searchTerm text matched against the group id, or null
+	 * @param limit      page size, or 0 or less for all
+	 * @param offset     rows to skip
+	 * @return the groups, with the keys {@code id}, {@code type} and
+	 *         {@code description}
+	 * @throws IllegalAccessException when the user is not an owner
+	 */
+	public static List<Map<String, Object>> getAvailableGroupsForEngine(User user, String engineId, String searchTerm,
+			long limit, long offset) throws IllegalAccessException {
+		checkCanManageGroupAccess(user, engineId);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DESCRIPTION"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__ID"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__TYPE"));
+		{
+			// leave out the groups that already have access
+			SelectQueryStruct attachedQs = new SelectQueryStruct();
+			attachedQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction("GROUPENGINEPERMISSION__ID",
+					"GROUPENGINEPERMISSION__TYPE", "GROUPKEY"));
+			attachedQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(
+					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_GROUP__ID", "SMSS_GROUP__TYPE", "GROUPKEY"),
+					"!=", attachedQs));
+		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "?like", searchTerm));
+		}
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
 	}
 }

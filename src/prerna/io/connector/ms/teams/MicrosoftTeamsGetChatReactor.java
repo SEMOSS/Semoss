@@ -37,6 +37,7 @@ import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Reads one Teams chat, including who is in it.
@@ -67,7 +68,7 @@ public class MicrosoftTeamsGetChatReactor extends AbstractMicrosoftTeamsMessageR
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String chatId = trimToNull(this.keyValue.get(CHAT_ID));
+		String chatId = ValueUtils.trimToNull(this.keyValue.get(CHAT_ID));
 
 		if (chatId == null) {
 			throw new SemossPixelException("A " + CHAT_ID + " is required to read a Microsoft Teams chat.");
