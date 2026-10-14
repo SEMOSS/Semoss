@@ -24,43 +24,49 @@
  * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
- ******************************************************************************/
+ *******************************************************************************/
 package prerna.reactor.automation.run;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.reactor.automation.AutomationConstants;
 
 class GetAutomationRunReactorUnitTests {
 
 	@Test
-	void identifiesFramesOnlyFromInternalOutputKind() {
-		Map<String, Object> ordinaryJson = Map.of(AutomationConstants.OUTPUT_VALUE,
-				"{\"dataType\":\"table\",\"rowCount\":2,\"columnCount\":1,\"label\":\"ordinary JSON\"}");
-		Map<String, Object> frame = Map.of(AutomationConstants.OUTPUT_KIND,
-				AutomationConstants.OUTPUT_KIND_FRAME);
+	void returnsTheLiveExecutionInsightForRunHistory() {
+		String runId = UUID.randomUUID().toString();
+		String executionInsightId = "automation-" + runId;
+		Insight executionInsight = new Insight();
+		executionInsight.setInsightId(executionInsightId);
+		Map<String, Object> runDetail = new LinkedHashMap<>();
 
-		assertFalse(GetAutomationRunReactor.isFrameOutput(ordinaryJson));
-		assertTrue(GetAutomationRunReactor.isFrameOutput(frame));
+		try {
+			InsightStore.getInstance().put(executionInsight);
+			GetAutomationRunReactor.attachExecutionInsight(runDetail, runId);
+
+			assertEquals(executionInsightId,
+					runDetail.get(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID));
+		} finally {
+			InsightStore.getInstance().remove(executionInsightId);
+		}
 	}
 
 	@Test
-	void marksExpiredFrameHistoryAsUnavailable() {
-		Map<String, Object> frameOutput = Map.of(AutomationConstants.OUTPUT_KIND,
-				AutomationConstants.OUTPUT_KIND_FRAME, AutomationConstants.OUTPUT_VAR_NAME, "query_result");
-		Map<String, Object> historyResult = new HashMap<>();
+	void omitsTheExecutionInsightAfterItsWorkspaceCloses() {
+		Map<String, Object> runDetail = new LinkedHashMap<>();
 
-		new GetAutomationRunReactor().decorateFrameResult(null, "project", frameOutput, historyResult);
+		GetAutomationRunReactor.attachExecutionInsight(runDetail, UUID.randomUUID().toString());
 
-		assertEquals(true, historyResult.get("OUTPUT_FRAME_UNAVAILABLE"));
-		assertEquals("Frame data is unavailable because this run's execution workspace is closed.",
-				historyResult.get(AutomationConstants.OUTPUT_PREVIEW));
+		assertFalse(runDetail.containsKey(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID));
 	}
 }

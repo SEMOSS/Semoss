@@ -28,23 +28,21 @@
 package prerna.reactor.automation.run;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
@@ -55,79 +53,101 @@ import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.frame.FrameFactory;
 import prerna.reactor.imports.IImporter;
 import prerna.reactor.imports.ImportFactory;
-import prerna.reactor.qs.SqlQueryReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 
 public class AutomationDatabaseQueryExecutorUnitTests {
 
 	@Test
-	void supportsOnlyGeneratedDatabaseReads() {
-		Map<String, Object> generated = new LinkedHashMap<>();
-		generated.put(AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_DATABASE_QUERY);
-		assertTrue(AutomationDatabaseQueryExecutor.supports(generated));
-
-		Map<String, Object> custom = new LinkedHashMap<>(generated);
-		custom.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_CUSTOM);
-		assertFalse(AutomationDatabaseQueryExecutor.supports(custom));
-		assertFalse(AutomationDatabaseQueryExecutor.supports(
-				Map.of(AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_DATABASE_INSERT)));
-	}
-
-	@Test
-	void parsesTheResolvedInternalRequest() {
-		Map<String, Object> request = Map.of(AutomationConstants.INTERNAL_DATABASE_QUERY,
+	void resolvesTheTypedQueryRequest() {
+		AutomationDatabaseQueryExecutor.QueryRequest parsed = AutomationDatabaseQueryExecutor.request(
 				Map.of(AutomationConstants.CONFIG_ENGINE_ID, "engine-1", "query", "SELECT 1",
-						AutomationConstants.CONFIG_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT));
-
-		assertTrue(AutomationDatabaseQueryExecutor.isRequest(request));
-		AutomationDatabaseQueryExecutor.QueryRequest parsed = AutomationDatabaseQueryExecutor.parseRequest(request);
+						AutomationConstants.CONFIG_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT),
+				Map.of(), "query");
 		assertEquals("engine-1", parsed.databaseId());
 		assertEquals("SELECT 1", parsed.query());
 		assertEquals(50_000, parsed.limit());
+		assertEquals(List.of(), parsed.parameters());
+	}
+
+	@Test
+	void buildsTypedRequestWithoutPython() {
+		Map<String, Object> scope = new LinkedHashMap<>();
+		scope.put("database", "engine-1");
+		scope.put("sql", "SELECT * FROM T WHERE V=? AND N=? AND M IS ?");
+		scope.put("unsafe", "'; DROP TABLE T; --\u03bb");
+		scope.put("number", 42);
+		scope.put("missing", null);
+		scope.put("limit", 25);
+		AutomationDatabaseQueryExecutor.QueryRequest request = AutomationDatabaseQueryExecutor.request(
+				Map.of("engineId", "${database}", "query", "${sql}", "parameters",
+						List.of("${unsafe}", "${number}", "${missing}"), "limit", "${limit}"),
+				scope, "query");
+
+		assertEquals("engine-1", request.databaseId());
+		assertEquals("SELECT * FROM T WHERE V=? AND N=? AND M IS ?", request.query());
+		assertEquals(java.util.Arrays.asList("'; DROP TABLE T; --\u03bb", 42, null), request.parameters());
+		assertEquals(25, request.limit());
+	}
+
+	@Test
+	void profilesTypedQuerySubmissionOverhead() {
+		int iterations = 1_000;
+
+		long requestStarted = System.nanoTime();
+		for (int i = 0; i < iterations; i++) {
+			AutomationDatabaseQueryExecutor.request(
+					Map.of("engineId", "engine-1", "query", "SELECT 1", "limit", 50),
+					Map.of(), "query");
+		}
+		long requestNanos = System.nanoTime() - requestStarted;
+
+		System.out.printf("AUTOMATION_SIMPLE_QUERY_TIMING iterations=%d typedRequestMs=%.3f%n",
+				iterations, requestNanos / 1_000_000.0);
+		assertTrue(requestNanos > 0);
 	}
 
 	@Test
 	void rejectsMalformedOrUnboundedRequests() {
-		Map<String, Object> missingQuery = Map.of(AutomationConstants.INTERNAL_DATABASE_QUERY,
-				Map.of(AutomationConstants.CONFIG_ENGINE_ID, "engine-1", AutomationConstants.CONFIG_LIMIT, 50));
-		assertThrows(IllegalStateException.class,
-				() -> AutomationDatabaseQueryExecutor.parseRequest(missingQuery));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDatabaseQueryExecutor.request(
+						Map.of(AutomationConstants.CONFIG_ENGINE_ID, "engine-1", AutomationConstants.CONFIG_LIMIT, 50),
+						Map.of(), "query"));
 
-		Map<String, Object> excessiveLimit = Map.of(AutomationConstants.INTERNAL_DATABASE_QUERY,
-				Map.of(AutomationConstants.CONFIG_ENGINE_ID, "engine-1", "query", "SELECT 1",
-						AutomationConstants.CONFIG_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT + 1));
-		assertThrows(IllegalStateException.class,
-				() -> AutomationDatabaseQueryExecutor.parseRequest(excessiveLimit));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDatabaseQueryExecutor.request(
+						Map.of(AutomationConstants.CONFIG_ENGINE_ID, "engine-1", "query", "SELECT 1",
+								AutomationConstants.CONFIG_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT + 1),
+						Map.of(), "query"));
 	}
 
 	@Test
-	void executesTheSqlTaskImporterAndFrameRegistrationPipeline() throws Exception {
+	void importsTheAuthorizedSqlTaskIntoTheRunFrame() throws Exception {
 		Insight insight = new Insight();
 		insight.setInsightId("automation-run-1");
+		AutomationPixelExecutor pixelExecutor = mock(AutomationPixelExecutor.class);
 		BasicIteratorTask task = mock(BasicIteratorTask.class);
 		SelectQueryStruct queryStruct = new SelectQueryStruct();
 		ITableDataFrame frame = mock(ITableDataFrame.class);
 		IImporter importer = mock(IImporter.class);
 		when(task.getQueryStruct()).thenReturn(queryStruct);
+		when(pixelExecutor.executeTask("SqlQuery(database=\"engine-1\",query=\"SELECT 1\",limit=50);"))
+				.thenReturn(task);
 		when(frame.size("query_result")).thenReturn(2L);
-		when(frame.getColumnHeaders()).thenReturn(new String[] { "ID", "STATUS" });
+		when(frame.getQsHeaders()).thenReturn(new String[] { "QUERY_RESULT__ID", "QUERY_RESULT__STATUS" });
 		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
 
-		try (MockedConstruction<SqlQueryReactor> reactors = sqlQueryReactors(task);
-				MockedStatic<FrameFactory> frames = mockStatic(FrameFactory.class);
+		try (MockedStatic<FrameFactory> frames = mockStatic(FrameFactory.class);
 				MockedStatic<ImportFactory> importers = mockStatic(ImportFactory.class)) {
 			frames.when(() -> FrameFactory.getFrame(insight, DataFrameTypeEnum.PYTHON.getTypeAsString(),
 					"query_result")).thenReturn(frame);
 			importers.when(() -> ImportFactory.getImporter(frame, queryStruct, task)).thenReturn(importer);
 
-			AutomationFrameOutput.RegisteredFrame output = AutomationDatabaseQueryExecutor.execute(insight,
+			AutomationFrameOutput.RegisteredFrame output = AutomationDatabaseQueryExecutor.execute(insight, pixelExecutor,
 					request(), "query_result", "run-1", "node-1");
 
 			assertEquals(Map.of("dataType", "table", "rowCount", 2L, "columnCount", 2), output.summary());
 			assertSame(frame, insight.getVarStore().get("query_result").getValue());
-			verify(reactors.constructed().get(0)).setInsight(insight);
+			verify(pixelExecutor).executeTask("SqlQuery(database=\"engine-1\",query=\"SELECT 1\",limit=50);");
 			verify(importer).setInsight(insight);
 			verify(importer).insertData();
 			verify(task).close();
@@ -135,41 +155,34 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 	}
 
 	@Test
-	void closesTheTaskAndUnregisteredFrameWhenImportFails() throws Exception {
+	void closesTheTaskAndFrameWhenImportFails() throws Exception {
 		Insight insight = new Insight();
 		insight.setInsightId("automation-run-1");
+		AutomationPixelExecutor pixelExecutor = mock(AutomationPixelExecutor.class);
 		BasicIteratorTask task = mock(BasicIteratorTask.class);
 		SelectQueryStruct queryStruct = new SelectQueryStruct();
 		ITableDataFrame frame = mock(ITableDataFrame.class);
 		IImporter importer = mock(IImporter.class);
 		when(task.getQueryStruct()).thenReturn(queryStruct);
+		when(pixelExecutor.executeTask("SqlQuery(database=\"engine-1\",query=\"SELECT 1\",limit=50);"))
+				.thenReturn(task);
 		doThrow(new IllegalStateException("import failed")).when(importer).insertData();
 
-		try (MockedConstruction<SqlQueryReactor> ignored = sqlQueryReactors(task);
-				MockedStatic<FrameFactory> frames = mockStatic(FrameFactory.class);
+		try (MockedStatic<FrameFactory> frames = mockStatic(FrameFactory.class);
 				MockedStatic<ImportFactory> importers = mockStatic(ImportFactory.class)) {
 			frames.when(() -> FrameFactory.getFrame(insight, DataFrameTypeEnum.PYTHON.getTypeAsString(),
 					"query_result")).thenReturn(frame);
 			importers.when(() -> ImportFactory.getImporter(frame, queryStruct, task)).thenReturn(importer);
-
-			assertThrows(IllegalStateException.class, () -> AutomationDatabaseQueryExecutor.execute(insight, request(),
-					"query_result", "run-1", "node-1"));
-
+			assertThrows(IllegalStateException.class,
+					() -> AutomationDatabaseQueryExecutor.execute(insight, pixelExecutor, request(), "query_result", "run-1",
+							"node-1"));
 			assertNull(insight.getVarStore().get("query_result"));
 			verify(frame).close();
 			verify(task).close();
 		}
 	}
 
-	private static MockedConstruction<SqlQueryReactor> sqlQueryReactors(BasicIteratorTask task) {
-		return mockConstruction(SqlQueryReactor.class,
-				(reactor, context) -> when(reactor.execute())
-						.thenReturn(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET)));
-	}
-
-	private static Map<String, Object> request() {
-		return Map.of(AutomationConstants.INTERNAL_DATABASE_QUERY,
-				Map.of(AutomationConstants.CONFIG_ENGINE_ID, "engine-1", "query", "SELECT 1",
-						AutomationConstants.CONFIG_LIMIT, 50));
+	private static AutomationDatabaseQueryExecutor.QueryRequest request() {
+		return new AutomationDatabaseQueryExecutor.QueryRequest("engine-1", "SELECT 1", 50, List.of());
 	}
 }

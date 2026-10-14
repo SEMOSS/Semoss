@@ -16,6 +16,11 @@ contract.
 ## Invariants
 
 - Preserve project permission checks and the atomic submitted-to-running claim.
+- Every run starts through `AutomationRunExecutionService.start`. An inline run
+  (`RunAutomationDefinition`) is stored under the caller's inline run scope;
+  resolve the scope with `AutomationProjectService.resolveRunScope` and match it
+  against `PROJECT_ID`. Its execution Insight has no project, and node Python
+  uses that Insight's folder as its asset root.
 - Execute only the definition, inputs, and source captured for that run.
 - Keep node transitions, cancellation, waits, and terminal status durable.
 - A structured loop materializes independent child history rows for each

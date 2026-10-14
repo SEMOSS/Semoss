@@ -1819,9 +1819,14 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 				|| target.getKind() == PermissionTargetResource.Kind.INSIGHT) {
 			throw new IllegalArgumentException("Copying access to or from an insight is not supported yet");
 		}
-		boolean fromManagers = source.getKind() == PermissionTargetResource.Kind.TEAM_MANAGERS;
-		if (fromManagers != (target.getKind() == PermissionTargetResource.Kind.TEAM_MANAGERS)) {
-			throw new IllegalArgumentException("A team's managers can be copied only to another team's managers");
+		// a team's members and managers can each be copied into either list of any
+		// team, its own included, such as its managers into its members; managers
+		// are never copied to or from a project or an engine
+		boolean involvesManagers = source.getKind() == PermissionTargetResource.Kind.TEAM_MANAGERS
+				|| target.getKind() == PermissionTargetResource.Kind.TEAM_MANAGERS;
+		if (involvesManagers && !(isTeamKind(source) && isTeamKind(target))) {
+			throw new IllegalArgumentException(
+					"A team's managers can be copied only to or from a team's members or managers");
 		}
 		if (source.getKind() == target.getKind() && source.getId().equals(target.getId())) {
 			throw new IllegalArgumentException("Pick a different " + nounFor(source) + " to copy from");
@@ -1908,7 +1913,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Checks that the user may read a custom group's members: its managers, the
-	 * owners and editors of the project or engine being changed when the group can
+	 * owners of the project or engine being changed, its editors when the group can
 	 * use it, or anyone in admin mode. Being an admin gives nothing outside admin
 	 * mode. Who may read them is checked first, so someone who may not is told only
 	 * that and cannot tell a missing team or a login provider group from a custom

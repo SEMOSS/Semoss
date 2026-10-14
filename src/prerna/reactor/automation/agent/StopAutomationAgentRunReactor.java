@@ -46,7 +46,7 @@ public class StopAutomationAgentRunReactor extends AbstractReactor {
 	public StopAutomationAgentRunReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), AUTOMATION_RUN_ID_KEY, NODE_ID_KEY,
 				AGENT_RUN_ID_KEY };
-		this.keyRequired = new int[] { 1, 1, 1, 1 };
+		this.keyRequired = new int[] { 0, 1, 1, 1 };
 	}
 
 	@Override
