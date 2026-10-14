@@ -34,9 +34,11 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Creates a sharing link to a OneDrive file or folder.
@@ -82,13 +84,13 @@ public class MicrosoftOneDriveShareFileReactor extends AbstractMicrosoftOneDrive
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String driveId = trimToNull(this.keyValue.get(DRIVE_ID));
-		String itemId = trimToNull(this.keyValue.get(ITEM_ID));
-		String path = trimToNull(this.keyValue.get(PATH));
-		String linkType = trimToNull(this.keyValue.get(LINK_TYPE));
-		String scope = trimToNull(this.keyValue.get(SCOPE));
-		String password = trimToNull(this.keyValue.get(PASSWORD));
-		String expirationDateTime = trimToNull(this.keyValue.get(EXPIRATION_DATE_TIME));
+		String driveId = ValueUtils.trimToNull(this.keyValue.get(DRIVE_ID));
+		String itemId = ValueUtils.trimToNull(this.keyValue.get(ITEM_ID));
+		String path = ValueUtils.trimToNull(this.keyValue.get(PATH));
+		String linkType = ValueUtils.trimToNull(this.keyValue.get(LINK_TYPE));
+		String scope = ValueUtils.trimToNull(this.keyValue.get(SCOPE));
+		String password = ValueUtils.trimToNull(this.keyValue.get(PASSWORD));
+		String expirationDateTime = ValueUtils.trimToNull(this.keyValue.get(EXPIRATION_DATE_TIME));
 		String[] recipients = values(RECIPIENTS);
 
 		if (itemId == null && path == null) {
@@ -136,5 +138,13 @@ public class MicrosoftOneDriveShareFileReactor extends AbstractMicrosoftOneDrive
 			return "Optional moment the link stops working, as an ISO 8601 date and time such as 2026-12-31T23:59:59Z.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// shares the user's file with others, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

@@ -33,6 +33,36 @@ Workspace `system_prompt` supplies the authored agent instructions. Nonblank roo
 
 The available-skills block contains summaries, not every skill's full contents. `LoadSkill` retrieves the relevant instructions and references when needed.
 
+## Optional current time
+
+For the Semoss harness, `AgentConfig.includeCurrentTime` controls server-clock data
+in `AgentLoopState.runtimeContext()`. It defaults to true for every
+`SYSTEM__COLLABORATION` room and false for other rooms. A boolean
+`room.options.runtimeContext.includeCurrentTime` overrides the agent's
+`CONFIG_JSON.runtime_context.include_current_time`, which overrides that default.
+For example, merge `{"runtimeContext":{"includeCurrentTime":false}}` into a room's
+options to disable it, or use true to enable it in an ordinary room. These are
+configuration flags, not model parameters; the existing room-options API accepts
+them without a frontend change.
+
+The note contains server UTC time, offset-bearing local time, the local date with
+year, weekday and timezone. Collaboration resolves the saved profile timezone,
+then the authenticated user's timezone, then UTC. Other rooms use the authenticated
+user's timezone, then UTC. Profile lookup is read-only and does not create a row.
+The timezone is resolved once per run; the clock is captured when generating each
+tail note, including initial calls, tool continuations, reflections and resumed
+runs. Follow-ups resolve it again. Older messages remain unchanged. The changing
+clock is never added to the system prompt, preserving its prefix for caching.
+
+Brain classification runs outside this conversation loop. Both chat and Jev
+classification payloads include `currentTime` with `nowUtc`, `localDateTime`,
+`today`, `weekday` and `timeZone`. Jev receives structured evaluation state and
+retains source-message `at` timestamps; chat receives JSON input. Neither adapter
+depends on a room clock note. The batch resolves the owner timezone once and
+captures time for each classification. Classifier versions are `chat-v2` and
+`jev-v2` to distinguish the new input contract. Score ranges and existing Work
+policy are unchanged; old cards are not automatically reclassified.
+
 ## Tools and execution policy
 
 [PlatformAgentTools](../../src/prerna/reactor/agent/runtime/PlatformAgentTools.java) resolves the default tool provider and applies workspace policy. [PlatformAgentToolHandlers](../../src/prerna/reactor/agent/runtime/PlatformAgentToolHandlers.java) defines native tool schemas and handlers.
@@ -50,7 +80,7 @@ The available-skills block contains summaries, not every skill's full contents. 
 
 `useDefaultAgentTools` and `disabledDefaultTools` control the agent's general built-in tools. Default-tool availability can also be supplied by a deployment-configured MCP project. Explicit resource attachments and their permission checks still matter; a skill does not grant an engine, filesystem, or tool permission.
 
-Tool execution mode such as `SMSS_MCP_EXECUTION=ask` requires an approval decision. The executor persists that decision point as a run action. [Tool hooks](../../src/prerna/reactor/agent/IToolHook.java) participate before and after dispatch; run hooks surround the overall harness lifecycle.
+Tool execution mode such as `SMSS_MCP_EXECUTION=ask` requires an approval decision; see [MCP tools and `_meta` options](mcp_tools.md) for every tool metadata key, including deferred loading. The executor persists that decision point as a run action. [Tool hooks](../../src/prerna/reactor/agent/IToolHook.java) participate before and after dispatch; run hooks surround the overall harness lifecycle.
 
 ## Budgets and limits
 

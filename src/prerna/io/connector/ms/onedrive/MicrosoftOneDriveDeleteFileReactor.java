@@ -35,9 +35,11 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Deletes a OneDrive file or folder.
@@ -70,9 +72,9 @@ public class MicrosoftOneDriveDeleteFileReactor extends AbstractMicrosoftOneDriv
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String driveId = trimToNull(this.keyValue.get(DRIVE_ID));
-		String itemId = trimToNull(this.keyValue.get(ITEM_ID));
-		String path = trimToNull(this.keyValue.get(PATH));
+		String driveId = ValueUtils.trimToNull(this.keyValue.get(DRIVE_ID));
+		String itemId = ValueUtils.trimToNull(this.keyValue.get(ITEM_ID));
+		String path = ValueUtils.trimToNull(this.keyValue.get(PATH));
 
 		if (itemId == null && path == null) {
 			throw new SemossPixelException("An item id or a path is required to delete a OneDrive item.");
@@ -120,5 +122,13 @@ public class MicrosoftOneDriveDeleteFileReactor extends AbstractMicrosoftOneDriv
 			return "Path of the item to delete, relative to the drive root. Not needed when an item id is given.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// deletes from the user's OneDrive, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

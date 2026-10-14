@@ -35,9 +35,11 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Deletes a message, or a reply, that the signed in user posted in a Teams
@@ -76,10 +78,10 @@ public class MicrosoftTeamsDeleteChannelMessageReactor extends AbstractMicrosoft
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String teamId = trimToNull(this.keyValue.get(TEAM_ID));
-		String channelId = trimToNull(this.keyValue.get(CHANNEL_ID));
-		String messageId = trimToNull(this.keyValue.get(MESSAGE_ID));
-		String replyId = trimToNull(this.keyValue.get(REPLY_ID));
+		String teamId = ValueUtils.trimToNull(this.keyValue.get(TEAM_ID));
+		String channelId = ValueUtils.trimToNull(this.keyValue.get(CHANNEL_ID));
+		String messageId = ValueUtils.trimToNull(this.keyValue.get(MESSAGE_ID));
+		String replyId = ValueUtils.trimToNull(this.keyValue.get(REPLY_ID));
 
 		if (teamId == null) {
 			throw new SemossPixelException(
@@ -131,5 +133,13 @@ public class MicrosoftTeamsDeleteChannelMessageReactor extends AbstractMicrosoft
 			return "Optional id of a reply to the message, which is what is deleted when it is given. Deleting the message itself removes its replies as well.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// deletes the user's message, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

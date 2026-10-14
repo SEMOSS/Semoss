@@ -28,6 +28,7 @@
 package prerna.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -36,6 +37,20 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class SystemDefaultEnginesUnitTests {
+
+	@Test
+	void systemProjectClassificationUsesExactRegisteredIdsAcrossProjectKinds() {
+		for (String id : List.of(Constants.APP_REACT_TEMPLATE, Constants.SKILL_DATABASE, Constants.MCP_APP_FILESYSTEM,
+				Constants.AGENT_APP_BUILDER)) {
+			assertTrue(SystemDefaultEngines.isSystemProject(id));
+			assertFalse(SystemDefaultEngines.isSystemProject(id + "-copy"));
+			assertFalse(SystemDefaultEngines.isSystemProject("platform__" + id));
+		}
+		assertFalse(SystemDefaultEngines.isSystemProject(null));
+		assertFalse(SystemDefaultEngines.isSystemProject(""));
+		assertFalse(SystemDefaultEngines.isSystemProject("user-project"));
+		assertFalse(SystemDefaultEngines.isSystemProject(Constants.SECURITY_DB));
+	}
 
 	@Test
 	void dataWorkbenchAgentsReceiveAnalysisSkillsAndReactorHelp() {
@@ -67,12 +82,13 @@ class SystemDefaultEnginesUnitTests {
 	 */
 	@Test
 	void appBuilderReceivesExactlyItsOwnSkills() {
-		assertEquals(List.of(Constants.SKILL_AGENT_RUN, Constants.SKILL_APP_BOOTSTRAP, Constants.SKILL_APP_DATA,
-				Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_DATABASE, Constants.SKILL_EXPORTS,
-				Constants.SKILL_FILE_UPLOADS, Constants.SKILL_FRONTEND_DESIGN, Constants.SKILL_FUNCTIONS,
-				Constants.SKILL_MCP, Constants.SKILL_MODEL, Constants.SKILL_PAGINATION, Constants.SKILL_PERMISSIONS,
-				Constants.SKILL_PYTHON, Constants.SKILL_ROOM, Constants.SKILL_STORAGE, Constants.SKILL_USER,
-				Constants.SKILL_VECTOR),
+		assertEquals(
+				List.of(Constants.SKILL_AGENT_RUN, Constants.SKILL_APP_BOOTSTRAP, Constants.SKILL_APP_DATA,
+						Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_DATABASE, Constants.SKILL_EXPORTS,
+						Constants.SKILL_FILE_UPLOADS, Constants.SKILL_FRONTEND_DESIGN, Constants.SKILL_FUNCTIONS,
+						Constants.SKILL_MCP, Constants.SKILL_MODEL, Constants.SKILL_PAGINATION,
+						Constants.SKILL_PERMISSIONS, Constants.SKILL_PYTHON, Constants.SKILL_ROOM,
+						Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR),
 				SystemDefaultEngines.getSystemAgentSkills(Constants.AGENT_APP_BUILDER));
 	}
 

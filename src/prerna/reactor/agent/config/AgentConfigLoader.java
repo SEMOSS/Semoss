@@ -48,6 +48,8 @@ import com.google.gson.JsonParser;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.collaboration.CollaborationMemoryRunHook;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomSystemPrompt;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -59,6 +61,7 @@ import prerna.reactor.agent.IAgentRunHook;
 import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.runtime.AgentsMdLoader;
+import prerna.util.SystemDefaultEngines;
 
 /**
  * Builds the resolved {@link AgentConfig} for one run.
@@ -165,8 +168,9 @@ public final class AgentConfigLoader {
 		b.modelId(StringUtils.trimToNull(modelId));
 		b.modelParams(paramMap);
 		b.agentParams(agentParams);
+		b.includeCurrentTime(resolveIncludeCurrentTime(room, cfgJson));
 		b.useDefaultAgentTools(cfgJson == null || cfgJson.optBoolean("use_default_agent_tools", true));
-		b.disabledDefaultTools(resolveDisabledDefaultTools(cfgJson));
+		b.disabledDefaultTools(resolveDisabledDefaultTools(room, cfgJson));
 		JSONObject toolPolicy = cfgJson == null ? null : cfgJson.optJSONObject("tool_policy");
 		b.resultTool(toolPolicy == null ? null : StringUtils.trimToNull(toolPolicy.optString("result_tool", null)));
 		b.readOnlyPaths(resolveReadOnlyPaths(toolPolicy));
@@ -203,7 +207,7 @@ public final class AgentConfigLoader {
 		// list,
 		// or both.
 		ResolvedHooks rh = resolveHooks(cfgJson);
-		b.runHooks(rh.runHooks);
+		b.runHooks(withBuiltInRunHooks(room, rh.runHooks));
 		b.toolHooks(rh.toolHooks);
 		b.subagents(resolveSubagents(cfgJson));
 
@@ -256,23 +260,44 @@ public final class AgentConfigLoader {
 		return paths;
 	}
 
-	/** Reads {@code CONFIG_JSON.tool_policy.default_tools.disabled}. */
-	private static Set<String> resolveDisabledDefaultTools(JSONObject cfgJson) {
-		if (cfgJson == null) {
-			return Collections.emptySet();
+	/** Room override, then workspace configuration, then the Collaboration room default. */
+	static boolean resolveIncludeCurrentTime(Room room, JSONObject cfgJson) {
+		Map<String, Object> options = room == null ? null : room.getOptionsMap();
+		Object runtime = options == null ? null : options.get("runtimeContext");
+		if (runtime instanceof Map<?, ?> values && values.containsKey("includeCurrentTime")) {
+			return currentTimeFlag(values.get("includeCurrentTime"), "runtimeContext.includeCurrentTime");
 		}
-		JSONObject toolPolicy = cfgJson.optJSONObject("tool_policy");
+		JSONObject configured = cfgJson == null ? null : cfgJson.optJSONObject("runtime_context");
+		if (configured != null && configured.has("include_current_time")) {
+			return currentTimeFlag(configured.opt("include_current_time"), "runtime_context.include_current_time");
+		}
+		return CollaborationUtils.isCollaborationRoom(room);
+	}
+
+	private static boolean currentTimeFlag(Object value, String key) {
+		if (value instanceof Boolean enabled) {
+			return enabled;
+		}
+		throw new IllegalArgumentException(key + " must be a boolean");
+	}
+
+	/** Combines room defaults with {@code CONFIG_JSON.tool_policy.default_tools.disabled}. */
+	private static Set<String> resolveDisabledDefaultTools(Room room, JSONObject cfgJson) {
+		LinkedHashSet<String> names = new LinkedHashSet<>();
+		if (CollaborationUtils.isCollaborationRoom(room)) {
+			// Ordinary document reading uses the shared extraction helper. Managed
+			// presentation workflows perform their own review without this tool.
+			names.add("InspectPptx");
+		}
+		JSONObject toolPolicy = cfgJson != null ? cfgJson.optJSONObject("tool_policy") : null;
 		JSONObject defaultTools = toolPolicy != null ? toolPolicy.optJSONObject("default_tools") : null;
 		JSONArray disabled = defaultTools != null ? defaultTools.optJSONArray("disabled") : null;
-		if (disabled == null) {
-			return Collections.emptySet();
-		}
-
-		LinkedHashSet<String> names = new LinkedHashSet<>();
-		for (int i = 0; i < disabled.length(); i++) {
-			Object value = disabled.opt(i);
-			if (value instanceof String) {
-				names.add((String) value);
+		if (disabled != null) {
+			for (int i = 0; i < disabled.length(); i++) {
+				Object value = disabled.opt(i);
+				if (value instanceof String) {
+					names.add((String) value);
+				}
 			}
 		}
 		return names.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(names);
@@ -360,8 +385,9 @@ public final class AgentConfigLoader {
 	}
 
 	/**
-	 * Builds the skill-ref list from workspace resources, CONFIG_JSON, and room
-	 * options, deduped by {@code skill_id}.
+	 * Builds the skill-ref list from workspace resources, CONFIG_JSON, room options,
+	 * and collaboration defaults, deduped by {@code skill_id}. Explicit references
+	 * retain their pinned version when also present in the defaults.
 	 */
 	private static List<Map<String, String>> resolveSkills(String workspaceId, Room room, JSONObject cfgJson) {
 		List<Map<String, String>> out = new ArrayList<>();
@@ -424,6 +450,18 @@ public final class AgentConfigLoader {
 				continue;
 			}
 			out.add(entry);
+		}
+
+		// Resolve on every run, including agentless rooms, follow-ups, and resumes.
+		// Preserve explicit workspace/room references before adding unpinned defaults.
+		if (CollaborationUtils.isCollaborationRoom(room)) {
+			for (String skillId : SystemDefaultEngines.getCollaborationSkills()) {
+				if (seen.add(skillId)) {
+					out.add(skillRef(skillId, null));
+				}
+			}
+			logger.info("AgentConfigLoader: collaboration skills room={} defaults={} effective={}", room.getId(),
+					SystemDefaultEngines.getCollaborationSkills(), out.stream().map(ref -> ref.get("skill_id")).toList());
 		}
 
 		return out;
@@ -758,6 +796,18 @@ public final class AgentConfigLoader {
 	}
 
 	/**
+	 * An assistant room also reviews its finished chats for memories to suggest, whatever its agent configures.
+	 */
+	private static List<IAgentRunHook> withBuiltInRunHooks(Room room, List<IAgentRunHook> configured) {
+		if (!CollaborationUtils.isAssistantRoom(room)) {
+			return configured;
+		}
+		List<IAgentRunHook> hooks = new ArrayList<>(configured);
+		hooks.add(new CollaborationMemoryRunHook());
+		return hooks;
+	}
+
+	/**
 	 * Resolve the configured hook list from {@code CONFIG_JSON.hooks[]}. Each
 	 * entry's {@code kind} is mapped to a concrete {@link IAgentHook} via
 	 * {@link #resolveHook}; the result is then classified by interface -
@@ -816,7 +866,7 @@ public final class AgentConfigLoader {
 	 *
 	 * @return unmodifiable list, never {@code null}
 	 */
-	static List<SubAgentSpec> resolveSubagents(JSONObject cfgJson) {
+	public static List<SubAgentSpec> resolveSubagents(JSONObject cfgJson) {
 		if (cfgJson == null || !cfgJson.has("subagents")) {
 			return Collections.emptyList();
 		}

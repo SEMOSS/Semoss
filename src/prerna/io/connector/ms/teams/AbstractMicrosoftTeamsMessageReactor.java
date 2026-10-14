@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.util.ValueUtils;
 
 /**
  * What every Teams messaging reactor has in common.
@@ -85,7 +86,7 @@ public abstract class AbstractMicrosoftTeamsMessageReactor extends AbstractMicro
 	 * @return the value
 	 */
 	protected int positiveInt(String key, int fallback, int cap) {
-		String value = trimToNull(this.keyValue.get(key));
+		String value = ValueUtils.trimToNull(this.keyValue.get(key));
 		if (value == null) {
 			return fallback;
 		}
@@ -138,18 +139,6 @@ public abstract class AbstractMicrosoftTeamsMessageReactor extends AbstractMicro
 		return values.toArray(new String[0]);
 	}
 
-	/**
-	 * @param value the value to trim
-	 * @return the value without surrounding space, or null when there is nothing
-	 *         left of it
-	 */
-	protected static String trimToNull(String value) {
-		if (value == null || value.trim().isEmpty()) {
-			return null;
-		}
-		return value.trim();
-	}
-
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(TEAM_ID)) {
@@ -169,7 +158,7 @@ public abstract class AbstractMicrosoftTeamsMessageReactor extends AbstractMicro
 		} else if (key.equals(MENTIONS)) {
 			return "Optional email addresses or user ids to mention, which is what notifies those people. Passed as several values or as one comma separated value.";
 		} else if (key.equals(ATTACHMENT_URLS)) {
-			return "Optional urls of files already in OneDrive or SharePoint to attach, such as the webUrl returned by MicrosoftOneDriveUploadFile or MicrosoftTeamsUploadFile.";
+			return "Optional urls of files already in OneDrive or SharePoint to attach, such as the webUrl a OneDrive or Teams channel upload returns.";
 		} else if (key.equals(ATTACHMENT_NAMES)) {
 			return "Optional names to show the attached files under, in the same order as the urls. The name each url ends in is used when omitted.";
 		} else if (key.equals(MAX_BODY_CHARS)) {

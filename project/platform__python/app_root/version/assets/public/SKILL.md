@@ -13,6 +13,51 @@ from semoss import Insight
 
 Then pass a Pixel command string to `Insight().run_pixel(...)`. For the command syntax (LLM, SqlQuery, VectorDatabaseQuery, etc.), see the matching skill; Python does not change the Pixel syntax.
 
+## Resolve file paths before executing Python
+
+Python's current directory may differ from `ROOT`. Resolve every file you create or
+reopen with `Path(smss_get_runtime_var("ROOT")) / filename`; a bare relative Python
+filename can write outside the active room or target. Do not change the shared
+process directory with `os.chdir()`.
+
+Paths are passed in per execution and read with `smss_get_runtime_var(key, default=None)`. Import the accessor once, but resolve the path inside the function or method each time it is called:
+
+```python
+from pathlib import Path
+from smssutil import smss_get_runtime_var
+
+def write_report(content: str) -> str:
+    root = smss_get_runtime_var("ROOT")
+    if not root:
+        raise RuntimeError("ROOT is unavailable for this execution")
+    out_path = Path(root) / "report.txt"
+    out_path.write_text(content, encoding="utf-8")
+    assert out_path.read_text(encoding="utf-8") == content
+    return str(out_path)
+```
+
+For documents, pass the same explicit `ROOT` destination to both save and reopen.
+Before claiming a room output is ready, independently confirm it with room file
+tools such as `ListDirectory` or `GlobFiles`, and use `ReadFile` for text. A Python
+write and read of the same bare relative filename can both succeed outside the room.
+Only hand back a file that exists in the intended target.
+
+Available keys:
+
+| Key | Points to |
+| --- | --- |
+| `ROOT` | the active execution folder; for RunAgent, the target selected by `space` and `subdir` |
+| `APP_ROOT` | the current app's `assets/` folder; absent when the insight has no app context |
+| `USER_ROOT` | the current user's space; absent (returns the default) when there is no user context |
+
+Use the accessor for all new code, including inline snippets. Some execution routes also inject bare `ROOT`, `APP_ROOT`, and `USER_ROOT` names for compatibility; imported functions and methods should not depend on those globals. Do not cache resolved paths at module import time or in function default arguments, because the module may be reused in another execution context.
+
+The accessor reads thread-local state rather than shared globals, which is the point: several executions can run concurrently against the same insight, and a value written into the shared globals could be overwritten by another thread mid-run.
+
+Outside RunAgent, `ROOT` is normally the insight folder. In RunAgent, it is the selected target working directory. `APP_ROOT` is the current app's `assets/` folder when an app context exists, so prefer it over calling `GetProjectAssetsFolder(project='...')` through `run_pixel` when you just need that app's path.
+
+The accessor works inside imported helpers and methods running on the managed execution thread. A new thread or separate Python process does not automatically inherit that context. When a required key is unavailable, report the missing context instead of falling back to an unrelated working directory.
+
 ## Libraries in the standard Python image
 
 The standard Python runtime includes the packages below for common analysis tasks. Availability and versions can vary by deployment, so check the active runtime before relying on a package. Prefer these libraries when they support the task:
@@ -25,11 +70,19 @@ The standard Python runtime includes the packages below for common analysis task
 | Arrow and Parquet files | `pyarrow`, plus pandas readers/writers |
 | Excel files | `openpyxl`, `xlrd`, plus pandas readers |
 | SQL over data frames | `pandasql` |
-| PDF and document data | `pdfplumber`, `pypdf`, `python-docx` (import `docx`), `python-pptx` (import `pptx`) |
+| Structured document extraction to Markdown | `docling` (`from docling.document_converter import DocumentConverter`) |
+| Native PDF and Office inspection | `pdfplumber`, `pypdf`, `python-docx` (import `docx`), `python-pptx` (import `pptx`) |
 | Text analysis | `nltk`, `thefuzz`, `sentence-transformers` (import `sentence_transformers`) |
 | Progress and validation | `tqdm`, `pydantic` |
 
 Python's standard library also provides `json`, `csv`, `pathlib`, `datetime`, `statistics`, and `sqlite3`. PyTorch packages are installed through the image's CPU/GPU extras; do not infer that CUDA or a GPU is available. Model packages do not guarantee that pretrained weights, NLTK data, or other downloaded resources are already present.
+
+For document text and tables, prefer Docling's `DocumentConverter` and
+`result.document.export_to_markdown()` when structured Markdown is useful. Check
+conversion status and coverage; PDF/OCR pipelines can need cached models. Keep
+native readers for exact formulas, cached values, and format-specific inspection.
+In collaboration rooms, load `collaboration/references/documents/read-and-extract.md`
+for bounded conversion, notes/provenance, fallback, and room-file verification.
 
 Check package availability and versions in the managed runtime before relying on an optional library. `plotly`, `polars`, and `statsmodels` are not explicit dependencies in the baseline; a particular image may include them transitively or through local customization. For example:
 
@@ -42,7 +95,7 @@ def installed_version(distribution):
     except PackageNotFoundError:
         return None
 
-{name: installed_version(name) for name in ["pandas", "numpy", "matplotlib", "scikit-learn"]}
+{name: installed_version(name) for name in ["pandas", "numpy", "matplotlib", "scikit-learn", "docling"]}
 ```
 
 You are unable to install Python packages in the managed runtime. Use the packages already available and avoid downloading large model assets for routine analysis when the baseline supports the task. If a required dependency is missing, explain the limitation and use an installed alternative when possible; otherwise ask the user to have it added through the deployment's supported installation process.
@@ -91,39 +144,6 @@ Two options:
 
 1. **Engine wrappers** (`ModelEngine`, `DatabaseEngine`, `VectorEngine`, `StorageEngine`, `FunctionEngine`) - typed Python calls. Prefer these for LLM, SQL, and vector work.
 2. **`Insight().run_pixel(pixel_string)`** - for anything an engine wrapper doesn't expose (system pixels, schema lookups, custom reactors, etc.). The Pixel string is the same one the frontend uses - see the `database`, `model`, `vector` skills for syntax.
-
-## File I/O via `smss_get_runtime_var`
-
-Paths are passed in per execution and read with `smss_get_runtime_var(key, default=None)`. Import the accessor once, but resolve the path inside the function or method each time it is called:
-
-```python
-from pathlib import Path
-from smssutil import smss_get_runtime_var
-
-def write_report(content: str) -> str:
-    root = smss_get_runtime_var("ROOT")
-    if not root:
-        raise RuntimeError("ROOT is unavailable for this execution")
-    out_path = Path(root) / "report.txt"
-    out_path.write_text(content, encoding="utf-8")
-    return str(out_path)
-```
-
-Available keys:
-
-| Key | Points to |
-| --- | --- |
-| `ROOT` | the active execution folder; for RunAgent, the target selected by `space` and `subdir` |
-| `APP_ROOT` | the current app's `assets/` folder; absent when the insight has no app context |
-| `USER_ROOT` | the current user's space; absent (returns the default) when there is no user context |
-
-Use the accessor for all new code, including inline snippets. Some execution routes also inject bare `ROOT`, `APP_ROOT`, and `USER_ROOT` names for compatibility; imported functions and methods should not depend on those globals. Do not cache resolved paths at module import time or in function default arguments, because the module may be reused in another execution context.
-
-The accessor reads thread-local state rather than shared globals, which is the point: several executions can run concurrently against the same insight, and a value written into the shared globals could be overwritten by another thread mid-run.
-
-Outside RunAgent, `ROOT` is normally the insight folder. In RunAgent, it is the selected target working directory. `APP_ROOT` is the current app's `assets/` folder when an app context exists, so prefer it over calling `GetProjectAssetsFolder(project='...')` through `run_pixel` when you just need that app's path.
-
-The accessor works inside imported helpers and methods running on the managed execution thread. A new thread or separate Python process does not automatically inherit that context. When a required key is unavailable, report the missing context instead of falling back to an unrelated working directory.
 
 ## Refreshing app imports after Python file changes
 

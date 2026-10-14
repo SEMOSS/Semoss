@@ -35,9 +35,11 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Deletes a message the signed in user sent in a Teams chat.
@@ -75,8 +77,8 @@ public class MicrosoftTeamsDeleteChatMessageReactor extends AbstractMicrosoftTea
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String chatId = trimToNull(this.keyValue.get(CHAT_ID));
-		String messageId = trimToNull(this.keyValue.get(MESSAGE_ID));
+		String chatId = ValueUtils.trimToNull(this.keyValue.get(CHAT_ID));
+		String messageId = ValueUtils.trimToNull(this.keyValue.get(MESSAGE_ID));
 
 		if (chatId == null) {
 			throw new SemossPixelException("A " + CHAT_ID + " is required to delete a Microsoft Teams chat message.");
@@ -111,5 +113,13 @@ public class MicrosoftTeamsDeleteChatMessageReactor extends AbstractMicrosoftTea
 	@Override
 	public String getReactorDescription() {
 		return "Delete a message the signed in user sent in a Microsoft Teams chat.";
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// deletes the user's message, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

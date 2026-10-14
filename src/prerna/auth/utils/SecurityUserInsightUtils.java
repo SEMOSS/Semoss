@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -36,9 +34,9 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.AccessPermissionEnum;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
@@ -51,7 +49,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
@@ -301,94 +298,50 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Change the user favorite (is favorite / not favorite) for a database. Without
-	 * removing its permissions.
-	 * 
-	 * @param user
-	 * @param projectId
-	 * @param visibility
-	 * @throws SQLException
-	 * @throws IllegalAccessException
+	 * Favorite or unfavorite an insight for each of the user's logins. The favorite
+	 * is saved in USERINSIGHTPREFERENCE, apart from the user's permissions, so it
+	 * gives no access to the insight.
+	 *
+	 * @param user       the user
+	 * @param projectId  the insight's project
+	 * @param insightId  the insight
+	 * @param isFavorite true to favorite the insight, false to unfavorite it
+	 * @throws IllegalAccessException when the project is not public and the user
+	 *                                can neither edit the project nor view the
+	 *                                insight
+	 * @throws Exception              when the favorite cannot be saved
 	 */
 	public static void setInsightFavorite(User user, String projectId, String insightId, boolean isFavorite)
-			throws SQLException, IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// must have ability to edit the project
+			throws Exception {
 		if (!SecurityProjectUtils.projectIsGlobal(projectId)
 				&& !SecurityUserProjectUtils.userCanEditProject(user, projectId)
 				&& !SecurityUserInsightUtils.userCanViewInsight(user, projectId, insightId)) {
 			throw new IllegalAccessException("The user doesn't have the permission to modify this insight");
 		}
-		Collection<String> userIdFilters = getUserFiltersQs(user);
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PROJECTID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIdFilters));
+		setUserPreference(user, "USERINSIGHTPREFERENCE",
+				List.of(Pair.with("PROJECTID", projectId), Pair.with("INSIGHTID", insightId)), "FAVORITE", isFavorite);
+	}
 
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				PreparedStatement ps = securityDb.getPreparedStatement(
-						"UPDATE USERINSIGHTPERMISSION SET FAVORITE=? WHERE PROJECTID=? AND INSIGHTID=? AND USERID=?");
-				if (ps == null) {
-					throw new IllegalArgumentException(
-							"Error generating prepared statement to set user insight favorite");
-				}
-				try {
-					// we will set the permission to read only
-					for (AuthProvider loginType : user.getLogins()) {
-						String userId = user.getAccessToken(loginType).getId();
-						int parameterIndex = 1;
-						ps.setBoolean(parameterIndex++, isFavorite);
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-						ps.setString(parameterIndex++, userId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (Exception e) {
-					classLogger.error("Unable to retrieve the user's highest insight permission.", e);
-					throw e;
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			} else {
-				// need to insert
-				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO USERINSIGHTPERMISSION "
-						+ "(USERID, PROJECTID, INSIGHTID, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
-				if (ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set app visibility");
-				}
-				try {
-					// we will set the permission to read only
-					for (AuthProvider loginType : user.getLogins()) {
-						String userId = user.getAccessToken(loginType).getId();
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-						ps.setBoolean(parameterIndex++, isFavorite);
-						ps.setInt(parameterIndex++, 3);
-
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					// commit the insertion
-					ps.getConnection().commit();
-				} catch (Exception e) {
-					classLogger.error("Unable to retrieve the user's highest insight permission.", e);
-					throw e;
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to retrieve the user's highest insight permission.", e);
+	/**
+	 * Show or hide an insight in the user's lists, for each of their logins. The
+	 * visibility is saved in USERINSIGHTPREFERENCE, apart from the user's
+	 * permissions, and changes only this insight.
+	 *
+	 * @param user       the user
+	 * @param projectId  the insight's project
+	 * @param insightId  the insight
+	 * @param visibility true to show the insight, false to hide it
+	 * @throws IllegalAccessException when the user cannot view the insight
+	 * @throws Exception              when the visibility cannot be saved
+	 */
+	public static void setInsightVisibility(User user, String projectId, String insightId, boolean visibility)
+			throws Exception {
+		if (!SecurityInsightUtils.userCanViewInsight(user, projectId, insightId)) {
+			throw new IllegalAccessException("The user doesn't have the permission to modify this insight");
 		}
+		setUserPreference(user, "USERINSIGHTPREFERENCE",
+				List.of(Pair.with("PROJECTID", projectId), Pair.with("INSIGHTID", insightId)), "VISIBILITY",
+				visibility);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////
@@ -496,39 +449,21 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String[] deleteQueries = new String[] { "DELETE FROM INSIGHT WHERE INSIGHTID =? AND PROJECTID=?",
 				"DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID =? AND PROJECTID=?",
+				"DELETE FROM USERINSIGHTPREFERENCE WHERE INSIGHTID =? AND PROJECTID=?",
 				"DELETE FROM INSIGHTMETA WHERE INSIGHTID =? AND PROJECTID=?",
 				"DELETE FROM INSIGHTFRAMES WHERE INSIGHTID =? AND PROJECTID=?", };
 
 		for (String dQuery : deleteQueries) {
-			PreparedStatement ps = null;
 			try {
-				ps = securityDb.getPreparedStatement(dQuery);
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, insightId);
-				ps.setString(parameterIndex++, projectId);
-				ps.execute();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-			} catch (SQLException e) {
+				QueryExecutionUtility.executeUpdate(securityDb, dQuery, ps -> {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, insightId);
+					ps.setString(parameterIndex++, projectId);
+				});
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
 				classLogger.error("Unable to delete insight.", e);
-			} finally {
-				if (ps != null) {
-					try {
-						ps.close();
-					} catch (SQLException e) {
-						classLogger.error("Unable to delete insight.", e);
-					}
-				}
-				if (securityDb.isConnectionPooling()) {
-					try {
-						if (ps != null) {
-							ps.getConnection().close();
-						}
-					} catch (SQLException e) {
-						classLogger.error("Unable to delete insight.", e);
-					}
-				}
 			}
 
 		}
@@ -550,6 +485,14 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 			classLogger.error("Unable to delete insight.", e);
 		}
 		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID " + insightFilter + " AND PROJECTID='" + projectId
+				+ "'";
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (Exception e) {
+			classLogger.error("Unable to delete insight.", e);
+		}
+		query = "DELETE FROM USERINSIGHTPREFERENCE WHERE INSIGHTID " + insightFilter + " AND PROJECTID='" + projectId
 				+ "'";
 		try {
 			securityDb.insertData(query);

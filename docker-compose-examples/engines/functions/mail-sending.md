@@ -37,6 +37,9 @@ sends the SMTP message there, while Graph supplies its provider call to the same
 tracking boundary. Successful and failed attempts are therefore recorded the
 same way regardless of `MAIL_TRANSPORT`.
 
+For content or business-policy review before delivery, attach an `execute` input
+pipeline as described in [guardrails around mail execution](mail-guardrails.md).
+
 Read what arrived at http://localhost:8085 (the GreenMail UI), or with
 `curl "http://localhost:8085/api/user/reports@semoss.local/messages/"`.
 

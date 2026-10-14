@@ -6,7 +6,7 @@ ARG BASE_TAG=24.04
 ARG COPILOT_VERSION=latest
 
 #global argument for tomcat
-ARG TOMCAT_VERSION=11.0.24
+ARG TOMCAT_VERSION=11.0.26
 # Which tomcat-builder variant to base on. Empty = the standard image; pass
 #   --build-arg TOMCAT_TAG_SUFFIX=-fips
 # for the FIPS 140-3 variant. Only the SUFFIX crosses the workflow boundary, so
@@ -16,7 +16,7 @@ ARG TOMCAT_VERSION=11.0.24
 # boots cleanly while being non-compliant.
 ARG TOMCAT_TAG_SUFFIX=
 ARG JAVA_HOME=/usr/lib/jvm/zulu25
-ARG MAVEN_HOME=/opt/apache-maven-3.9.14
+ARG MAVEN_HOME=/opt/apache-maven-3.9.16
 
 #setting up the tomcat builder for later below. this is for env var expansion.
 FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION}${TOMCAT_TAG_SUFFIX} AS tomcat_builder

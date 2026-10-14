@@ -266,7 +266,8 @@ public final class ModelUsageRestrictionUtility {
 		entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_FREQUENCY,  frequency);
 		entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, limitSource);
 		if (limitSourceName != null) entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE_NAME, limitSourceName);
-		if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(type)) {
+		if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(type)
+				|| Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(type)) {
 			entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE, currentUsage.intValue());
 			entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,     (int) limit);
 		} else {

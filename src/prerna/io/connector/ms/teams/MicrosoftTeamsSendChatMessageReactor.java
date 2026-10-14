@@ -35,9 +35,11 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Sends a message in a Teams chat, as the signed in user.
@@ -83,7 +85,7 @@ public class MicrosoftTeamsSendChatMessageReactor extends AbstractMicrosoftTeams
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String chatId = trimToNull(this.keyValue.get(CHAT_ID));
+		String chatId = ValueUtils.trimToNull(this.keyValue.get(CHAT_ID));
 		String content = this.keyValue.get(MESSAGE);
 		boolean html = Boolean.parseBoolean(this.keyValue.get(HTML));
 		String[] recipients = values(RECIPIENTS);
@@ -146,5 +148,13 @@ public class MicrosoftTeamsSendChatMessageReactor extends AbstractMicrosoftTeams
 			return "Email addresses or user ids to message, passed as several values or as one comma separated value. The one on one chat with one person is used or started, and several people are put in a group chat. Not needed when a chat id is given.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// posts as the user, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

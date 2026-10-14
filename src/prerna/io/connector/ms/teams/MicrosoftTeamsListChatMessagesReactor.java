@@ -40,6 +40,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Reads the messages of a Teams chat.
@@ -69,14 +70,14 @@ public class MicrosoftTeamsListChatMessagesReactor extends AbstractMicrosoftTeam
 	private static final int MAX_LIMIT = 200;
 
 	public MicrosoftTeamsListChatMessagesReactor() {
-		this.keysToGet = new String[] { CHAT_ID, ReactorKeysEnum.LIMIT.getKey(), MAX_BODY_CHARS };
-		this.keyRequired = new int[] { 1, 0, 0 };
+		this.keysToGet = new String[] { CHAT_ID, ReactorKeysEnum.LIMIT.getKey(), MAX_BODY_CHARS, "includeDisplayBody" };
+		this.keyRequired = new int[] { 1, 0, 0, 0 };
 	}
 
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String chatId = trimToNull(this.keyValue.get(CHAT_ID));
+		String chatId = ValueUtils.trimToNull(this.keyValue.get(CHAT_ID));
 		int limit = positiveInt(ReactorKeysEnum.LIMIT.getKey(), DEFAULT_LIMIT, MAX_LIMIT);
 		int maxBodyChars = positiveInt(MAX_BODY_CHARS, DEFAULT_MAX_BODY_CHARS, Integer.MAX_VALUE);
 
@@ -88,7 +89,7 @@ public class MicrosoftTeamsListChatMessagesReactor extends AbstractMicrosoftTeam
 			User user = this.insight.getUser();
 			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			List<Map<String, Object>> messages = MicrosoftTeamsMessageHelper.listChatMessages(accessToken, chatId,
-					maxBodyChars, limit);
+					maxBodyChars, limit, Boolean.parseBoolean(this.keyValue.get("includeDisplayBody")));
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put(CHAT_ID, chatId);
@@ -115,6 +116,9 @@ public class MicrosoftTeamsListChatMessagesReactor extends AbstractMicrosoftTeam
 
 	@Override
 	protected String getDescriptionForKey(String key) {
+		if ("includeDisplayBody".equals(key)) {
+			return "Optional boolean for whether each message also carries displayBody, its formatted original for showing in a UI, with media labels. Defaults to false.";
+		}
 		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
 			return "Optional maximum number of messages to return. Defaults to " + DEFAULT_LIMIT + " and is capped at "
 					+ MAX_LIMIT + ".";

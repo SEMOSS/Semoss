@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import prerna.io.connector.AbstractOAuthTokenFiller;
+import prerna.util.ValueUtils;
 
 /**
  * Dropbox OAuth2 provider. Uses the fixed Dropbox authorize/token endpoints and
@@ -94,7 +95,7 @@ public class DropboxTokenFiller extends AbstractOAuthTokenFiller {
 	protected Map<String, String> getExtraAuthorizeParams(String prefix) {
 		Map<String, String> extra = new LinkedHashMap<>();
 		String role = socialData.getProperty(prefix + "role");
-		if (!isBlank(role)) {
+		if (!ValueUtils.isBlank(role)) {
 			extra.put("require_role", role);
 		}
 		extra.put("disable_signup", "false");

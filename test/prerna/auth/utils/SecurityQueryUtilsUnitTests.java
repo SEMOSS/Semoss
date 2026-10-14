@@ -255,10 +255,8 @@ class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 				"INSERT INTO ENGINE (ENGINEID, ENGINENAME, GLOBAL, DISCOVERABLE, DATECREATED) VALUES (?, ?, ?, ?, ?)",
 				testGlobalEngineId, testGlobalEngineName, Boolean.TRUE, Boolean.TRUE, Timestamp.from(baseInstant));
 
-		executeUpdate(
-				"INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, FAVORITE, DATEADDED) VALUES (?, ?, ?, ?, ?, ?)",
-				testUserId, testEngineId, testPermissionLevel, Boolean.TRUE, Boolean.FALSE,
-				Timestamp.from(baseInstant.plusSeconds(10800)));
+		executeUpdate("INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, DATEADDED) VALUES (?, ?, ?, ?)",
+				testUserId, testEngineId, testPermissionLevel, Timestamp.from(baseInstant.plusSeconds(10800)));
 	}
 
 	private void executeUpdate(String sql, Object... params) throws SQLException {

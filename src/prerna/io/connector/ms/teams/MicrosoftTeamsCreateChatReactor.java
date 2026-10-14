@@ -34,9 +34,11 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Starts a Teams chat with one or more people.
@@ -77,8 +79,8 @@ public class MicrosoftTeamsCreateChatReactor extends AbstractMicrosoftTeamsMessa
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String[] members = values(MEMBERS);
-		String chatType = trimToNull(this.keyValue.get(CHAT_TYPE));
-		String topic = trimToNull(this.keyValue.get(TOPIC));
+		String chatType = ValueUtils.trimToNull(this.keyValue.get(CHAT_TYPE));
+		String topic = ValueUtils.trimToNull(this.keyValue.get(TOPIC));
 
 		if (members == null) {
 			throw new SemossPixelException("At least one other person is required to start a Microsoft Teams chat.");
@@ -123,5 +125,13 @@ public class MicrosoftTeamsCreateChatReactor extends AbstractMicrosoftTeamsMessa
 			return "Optional title for a group chat. Microsoft Teams does not let a one on one chat have one.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// starts a chat as the user, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

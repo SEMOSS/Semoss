@@ -164,6 +164,10 @@ the protocols get a token for `outlook.office365.com` and Graph gets one for
 All sends go through `EmailUtility`, so Graph and Jakarta SMTP attempts use the
 same tracking path.
 
+Guardrail pipelines also sit above the transport choice. The same `execute`
+pipeline therefore applies whether this engine uses Graph or Jakarta Mail; see
+[guardrails around mail execution](mail-guardrails.md).
+
 The mailbox is named the way the protocol engine names it - `SMTP_USERNAME`,
 `POP3_USERNAME`, `IMAP_USERNAME` - and there is no password key. On `graph` the
 host, port and security settings are ignored, since there is no server to reach.
@@ -202,13 +206,14 @@ Office 365 Exchange Online ...
 Everything above is an engine holding an app registration's credentials and
 working a mailbox somebody cataloged it against. The other way to reach Microsoft
 365 mail is as the person using SEMOSS, with the token they already signed in
-with, and that is a pair of reactors rather than an engine:
+with, and that is a set of reactors rather than an engine. They list, read,
+send, draft, reply to, forward, move, delete and mark mail, for example:
 
 ```
 MicrosoftOutlookListMail(folder=["inbox"], limit=[10], unreadOnly=[true]);
-MicrosoftOutlookSendMail(to=["someone@yourdomain.com"], subject=["Hello"], message=["Hi"]);
-MicrosoftOutlookSaveDraft(to=["someone@yourdomain.com"], subject=["Hello"], message=["Hi"]);
-MicrosoftOutlookSendDraft(draftId=["<the id SaveDraft returned>"]);
+MicrosoftOutlookSendMail(to=["someone@yourdomain.com"], subject=["Hello"], body=["Hi"]);
+MicrosoftOutlookSaveDraft(to=["someone@yourdomain.com"], subject=["Hello"], body=["Hi"]);
+MicrosoftOutlookSendDraft(id=["<the id SaveDraft returned>"]);
 ```
 
 None of them takes a mailbox. They address `/me`, so the token decides whose mail
@@ -219,7 +224,7 @@ and keeps a copy in the sender's own Sent Items unless `saveToSentItems=[false]`
 `MicrosoftOutlookSaveDraft` is the one to reach for when something generated the
 message and a person should see it before it goes anywhere. The draft lands in
 their own Drafts folder, nothing is sent, and they decide: the returned `webLink`
-opens it in Outlook to send or discard there, and the returned `draftId` sends it
+opens it in Outlook to send or discard there, and the returned `id` sends it
 from SEMOSS through `MicrosoftOutlookSendDraft`. Nothing is required to save one,
 since a draft with a subject and no recipient is a reasonable thing to leave for
 somebody to finish.
@@ -244,9 +249,12 @@ Users signing in through Microsoft must consent to these delegated scopes.
 | Permission | application, granted once by an admin | delegated, consented to by each user |
 | Runs without a user | yes, so a scheduled job can send | no |
 
-`MicrosoftOutlookListMail` answers in the same message shape the mail engines do,
-down to the key names, so whatever reads one reads the other. `uid` is Graph's
-opaque id, as it is for an engine on `graph`.
+The reactors answer in the shape every mail reactor shares, which is not the
+engines' shape: a message is named by `id`, the recipients are lists, and times
+are UTC. Each one has a Gmail twin under the same operation name, such as
+`GoogleGmailListMail` for `MicrosoftOutlookListMail`, that takes the same keys and
+answers the same way, so whatever reads one reads the other. The one key Gmail
+lacks is `saveToSentItems`, since Gmail always keeps a copy of what it sends.
 
 ---
 

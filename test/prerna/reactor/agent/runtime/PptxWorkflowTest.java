@@ -61,6 +61,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
@@ -96,6 +97,57 @@ class PptxWorkflowTest {
 		assertTrue(workflow.finalText().contains("deck.pptx"));
 		assertTrue(workflow.finalText().contains("Full-deck visual review completed"));
 		assertEquals(PptxWorkflow.hash(root.resolve("deck.pptx")), workflow.snapshot().getString("sourceHash"));
+	}
+
+	@Test
+	void onlyRootCollaborationRunsWithoutAManagedAgentStartTheWorkflowOnDemand() {
+		var collab = mock(Room.class);
+		when(collab.getProjectId()).thenReturn(CollaborationUtils.COLLABORATION_PROJECT_ID);
+		var other = mock(Room.class);
+		when(other.getProjectId()).thenReturn("some-app");
+		var plain = AgentConfig.builder().workingDir(root.toString()).build();
+		var managed = AgentConfig.builder().workingDir(root.toString()).pptxWorkflow(Map.of("enabled", true)).build();
+		assertTrue(PptxWorkflow.onDemand(runContext(collab, plain, 0)));
+		assertFalse(PptxWorkflow.onDemand(runContext(other, plain, 0)));
+		assertFalse(PptxWorkflow.onDemand(runContext(collab, managed, 0)), "a PPTX agent keeps its own workflow");
+		assertFalse(PptxWorkflow.onDemand(runContext(collab, plain, 1)), "the reviewer child must not author");
+		assertFalse(PptxWorkflow.onDemand(runContext(collab, AgentConfig.builder().build(), 0)));
+	}
+
+	@Test
+	void collaborationDeliveryLinksTheSavedDeckInTheRoom() {
+		workflow.roomLinks = true;
+		workflow.build(args, 1);
+		assertTrue(workflow.finalText().startsWith("Saved [deck.pptx](room://deck.pptx) (2 slides)"),
+				workflow.finalText());
+	}
+
+	@Test
+	void withoutAVisionModelTheAuthorIsToldAndNoReviewIsAttempted() {
+		operations.unavailable = "Selected model does not support image input";
+		workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/test"), 6, operations);
+		assertTrue(workflow.guidance(0).contains("Visual review is unavailable in this run"));
+		workflow.build(Map.of("generator", "build-deck.js", "filePath", "deck.pptx", "expectedSlides", 2), 1);
+		assertEquals(0, operations.reviewCalls);
+		assertNull(workflow.completionError(), "the validated deck is still delivered");
+		assertTrue(workflow.finalText().contains("Visual review was skipped: Selected model does not support image input."),
+				workflow.finalText());
+	}
+
+	@Test
+	void anExplicitVisionEngineIsStillReviewedWhenTheDefaultHasNoVision() {
+		operations.unavailable = "Selected model does not support image input";
+		workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/test"), 6, operations);
+		workflow.build(args, 1);
+		assertEquals(1, operations.reviewCalls);
+	}
+
+	private static AgentRunContext runContext(Room room, AgentConfig config, int depth) {
+		var ctx = mock(AgentRunContext.class);
+		when(ctx.getRoom()).thenReturn(room);
+		when(ctx.getAgentConfig()).thenReturn(config);
+		when(ctx.getSpawnDepth()).thenReturn(depth);
+		return ctx;
 	}
 
 	@Test
@@ -505,7 +557,7 @@ class PptxWorkflowTest {
 		when(ctx.getAgentConfig()).thenReturn(
 				AgentConfig.builder().workingDir(root.toString()).pptxWorkflow(Map.of("enabled", true)).build());
 		try (var factory = mockStatic(PptxWorkflow.class, CALLS_REAL_METHODS)) {
-			factory.when(() -> PptxWorkflow.create(ctx)).thenReturn(workflow);
+			factory.when(() -> PptxWorkflow.create(ctx, true)).thenReturn(workflow);
 			var result = new SemossAgentHarness().execute(ctx);
 			assertNull(result.getCompletionError());
 			assertTrue(result.getFinalText().contains("Model connection failed after saved build"));
@@ -577,7 +629,12 @@ class PptxWorkflowTest {
 
 	final class FakeOperations implements PptxWorkflow.Operations {
 		boolean valid = true, cancelBuild;
-		String severity, corruption, instructions, engine;
+		String severity, corruption, instructions, engine, unavailable;
+
+		@Override
+		public String reviewUnavailable() {
+			return unavailable;
+		}
 		String slide1 = "slide1", slide2 = "slide2", theme = "theme";
 		List<String> errors, baselineErrors;
 		int buildCalls, reviewCalls;

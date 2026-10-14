@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -46,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,11 +63,13 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.project.api.IProject;
+import prerna.query.interpreters.sql.ParameterizedSqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.SystemEngineRegistry;
+import prerna.util.Utility;
 
 public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -638,7 +642,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	void testCalculateEndDate() {
 		ZonedDateTime now = ZonedDateTime.now();
 		String nowString = now.toString();
-		java.sql.Timestamp ts = AbstractSecurityUtils.calculateEndDate(nowString);
+		Timestamp ts = AbstractSecurityUtils.calculateEndDate(nowString);
 		// probably figure out a better way to test the timestamp is in utc.
 		assertNotNull(ts);
 	}
@@ -658,6 +662,40 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	void testEndDateIsExpired_false() throws Exception {
 		SemossDate semossDate = new SemossDate(LocalDateTime.now().plusDays(2), ZoneId.of("UTC"));
 		assertFalse(AbstractSecurityUtils.endDateIsExpired(semossDate));
+	}
+
+	@Test
+	void preparedIdentityFiltersRetainOriginalValuesWithoutSqlSanitizers() {
+		try (var sanitizerGuard = org.mockito.Mockito.mockStatic(Utility.class, invocation -> {
+			String method = invocation.getMethod().getName();
+			if (method.equals("inputSQLSanitizer") || method.equals("inputSanitizer")) {
+				throw new AssertionError("Prepared queries must not call Utility." + method);
+			}
+			return invocation.callRealMethod();
+		})) {
+			String id = "O'Brien\\path";
+			User user = new User();
+			AccessToken token = new AccessToken();
+			token.setId(id);
+			token.setProvider(AuthProvider.MICROSOFT);
+			user.setPrimaryLogin(AuthProvider.MICROSOFT);
+			user.setAccessToken(token);
+			assertEquals(List.of(id), AbstractSecurityUtils.getUserFilterValues(user));
+			assertTrue(AbstractSecurityUtils.getUserFilterValues(null).isEmpty());
+			assertTrue(AbstractSecurityUtils.getUserFilterValues(new User()).isEmpty());
+			var creators = List.of(Pair.with(id, "provider'type"), Pair.with("other", "MICROSOFT"));
+			var qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "id"));
+			qs.addExplicitFilter(AbstractSecurityUtils.getPreparedCreatedByFilter("ENGINE__CREATEDBY",
+					"ENGINE__CREATEDBYTYPE", creators));
+			var compiled = new ParameterizedSqlInterpreter(securityDb).compile(qs);
+			assertEquals(List.of(id, "provider'type", "other", "MICROSOFT"), compiled.parameters());
+			assertFalse(compiled.sql().contains(id));
+			assertThrows(IllegalArgumentException.class, () -> AbstractSecurityUtils
+					.getPreparedCreatedByFilter("ENGINE__CREATEDBY", "ENGINE__CREATEDBYTYPE", List.of()));
+			assertThrows(IllegalArgumentException.class, () -> AbstractSecurityUtils
+					.getPreparedCreatedByFilter("ENGINE__CREATEDBY", "ENGINE__CREATEDBYTYPE", null));
+		}
 	}
 
 }

@@ -73,6 +73,7 @@ social.properties
 /user/**
 /vector/**
 *.mv.db
+*.trace.db
 # Don't track anything but CSV_Insights folder
 InsightCache/*
 !InsightCache/CSV_Insights/

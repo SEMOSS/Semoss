@@ -35,14 +35,17 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -54,13 +57,18 @@ public class MyEnginesReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MyEnginesReactor.class);
 
+	private static final String EFFECTIVE_PERMISSIONS = "effectivePermissions";
+	private static final String CREATED_BY = "createdBy";
+	private static final String CREATED_BY_ME = "createdByMe";
+
 	public MyEnginesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.ONLY_FAVORITES.getKey(),
 				ReactorKeysEnum.ENGINE_TYPE.getKey(), ReactorKeysEnum.ENGINE.getKey(),
 				ReactorKeysEnum.PERMISSION_FILTERS.getKey(), ReactorKeysEnum.META_KEYS.getKey(),
 				ReactorKeysEnum.META_FILTERS.getKey(), ReactorKeysEnum.NO_META.getKey(),
-				ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(), ReactorKeysEnum.SORT.getKey() };
+				ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(), ReactorKeysEnum.SORT.getKey(), EFFECTIVE_PERMISSIONS,
+				CREATED_BY, CREATED_BY_ME };
 	}
 
 	@Override
@@ -76,10 +84,17 @@ public class MyEnginesReactor extends AbstractReactor {
 		List<Integer> permissionFilters = getListInteger(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
 		boolean includeUserT = getBoolean(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(), false);
 		Map<String, Object> engineMetadataFilter = getMap(ReactorKeysEnum.META_FILTERS.getKey());
+		List<Integer> effectivePermissions = getListInteger(EFFECTIVE_PERMISSIONS);
+		GenRowStruct createdByGrs = getGenRowStruct(CREATED_BY);
+		List<Pair<String, String>> createdBy = AbstractSecurityUtils
+				.getCreatorPairs(createdByGrs == null ? null : createdByGrs.getAllValues());
+		if (getBoolean(CREATED_BY_ME, false)) {
+			createdBy.addAll(User.getUserIdAndType(this.insight.getUser()));
+		}
 
 		List<Map<String, Object>> engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(),
 				engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter, permissionFilters, searchTerm, limit,
-				offset, sortFields);
+				offset, sortFields, effectivePermissions, createdBy);
 
 		if (!engineInfo.isEmpty() && (!noMeta || includeUserT)) {
 			Map<String, Integer> index = new HashMap<>(engineInfo.size());
@@ -259,6 +274,17 @@ public class MyEnginesReactor extends AbstractReactor {
 			return "The sort is a map with key and direction. Supported keys are 'ENGINENAME' and 'DATECREATED'. Use values like 'ASC' or 'DESC'. 'ENGINENAME' sorting is case-insensitive.";
 		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 			return "This is an optional engine filter";
+		} else if (key.equals(EFFECTIVE_PERMISSIONS)) {
+			return """
+					Keep only the resources whose effective permission is one of these levels: 1 (owner), 2 (edit), \
+					or 3 (read only). The effective permission is the better of the user's own grant and their \
+					groups' grant; a global resource without a grant counts as read only.""";
+		} else if (key.equals(CREATED_BY)) {
+			return """
+					Keep only the resources created by one of these creators. Each is a map with the creator's \
+					login "id" and login "type", such as {"id": "abc", "type": "MICROSOFT"}; both must match.""";
+		} else if (key.equals(CREATED_BY_ME)) {
+			return "When true, keep only the resources the calling user created, under any login in their session.";
 		}
 		return super.getDescriptionForKey(key);
 	}

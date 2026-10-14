@@ -64,8 +64,12 @@ class JsonLogic:
             implementations. Can be extended via ``add_operation``.
     """
 
+    # Comparison operators whose leaf failures are recorded during tracing.
+    _COMPARISON_OPS = frozenset({"==", "===", "!=", "!==", ">", ">=", "<", "<="})
+
     def __init__(self) -> None:
         self.operations: dict[str, Callable[..., Any]] = self._build_default_operations()
+        self._trace: list[str] | None = None  # populated only during apply_with_reason
 
     # ------------------------------------------------------------------
     # Public API
@@ -143,13 +147,61 @@ class JsonLogic:
         if operator == "none":
             return self._none(values, data)
 
+        # reason op: {"reason": [value, "message"]} — returns value, records message in trace.
+        # Custom message takes priority: any auto-generated trace entries from the inner
+        # evaluation are replaced so self._trace[0] is always the custom message.
+        if operator == "reason":
+            trace_start = len(self._trace) if self._trace is not None else 0
+            result = self.apply(values[0], data)
+            if self._trace is not None and len(values) > 1 and result is not True:
+                del self._trace[trace_start:]
+                self._trace.append(str(self.apply(values[1], data)))
+            return result
+
         # --- Standard eager-evaluated operators ---
 
         if operator not in self.operations:
             raise JsonLogicError(f"Unrecognised operation: {operator}")
 
         evaluated_values = [self.apply(v, data) for v in values]
-        return self.operations[operator](*evaluated_values)
+        result = self.operations[operator](*evaluated_values)
+
+        if self._trace is not None and not result and operator in self._COMPARISON_OPS:
+            var_names = _variable_names(values)
+            condition = f" {operator} ".join(repr(v) for v in evaluated_values)
+            if var_names:
+                self._trace.append(
+                    f"Condition failed for {', '.join(var_names)}: {condition}"
+                )
+            else:
+                self._trace.append(f"Condition failed: {condition}")
+
+        return result
+
+    def apply_with_reason(
+        self, rule: Any, data: Optional[dict[str, Any]] = None
+    ) -> tuple[Any, Optional[str]]:
+        """
+        Evaluate *rule* against *data* in a single pass and return ``(result, reason)``.
+
+        *reason* is a human-readable string explaining the first failing condition
+        when *result* is ``False``; it is ``None`` otherwise. No second evaluation
+        is performed — failure context is collected during the normal recursive walk.
+
+        Args:
+            rule: A JsonLogic rule dict.
+            data: The data context.
+
+        Returns:
+            A ``(result, reason)`` tuple.
+        """
+        self._trace = []
+        try:
+            result = self.apply(rule, data)
+            reason = self._trace[0] if self._trace else None
+            return result, reason
+        finally:
+            self._trace = None
 
     def add_operation(self, name: str, func: Callable[..., Any]) -> None:
         """
@@ -390,7 +442,12 @@ class JsonLogic:
     def _if(self, values: list[Any], data: dict[str, Any]) -> Any:
         """Lazy ``if`` / ``?:`` - only evaluates the branch taken."""
         for i in range(0, len(values) - 1, 2):
-            if self.apply(values[i], data):
+            # Suppress tracing during condition evaluation — the condition is routing
+            # logic, not a failure reason. Only the selected branch contributes to trace.
+            saved_trace, self._trace = self._trace, None
+            condition = self.apply(values[i], data)
+            self._trace = saved_trace
+            if condition:
                 return self.apply(values[i + 1], data)
         # Else branch (odd number of args)
         if len(values) % 2:
@@ -739,6 +796,45 @@ def apply_rule_to_dataframe(
 # ------------------------------------------------------------------
 # Java Integration API
 # ------------------------------------------------------------------
+
+def _variable_names(rule: Any) -> list[str]:
+    """Collect literal variable paths referenced by a rule."""
+    if isinstance(rule, dict):
+        if "var" in rule:
+            variable = rule["var"]
+            if isinstance(variable, (list, tuple)):
+                variable = variable[0] if variable else None
+            return [str(variable)] if variable not in (None, "") else []
+
+        names: list[str] = []
+        for value in rule.values():
+            for name in _variable_names(value):
+                if name not in names:
+                    names.append(name)
+        return names
+
+    if isinstance(rule, (list, tuple)):
+        names = []
+        for value in rule:
+            for name in _variable_names(value):
+                if name not in names:
+                    names.append(name)
+        return names
+
+    return []
+
+
+
+def evaluate_json_with_reason(rule_json: str, data_json: str = None) -> str:
+    """Evaluate JSON Logic and include a diagnostic when the result is false."""
+    import json
+
+    rule = json.loads(rule_json)
+    data = json.loads(data_json) if data_json else None
+    engine = create_semoss_engine()
+    result, reason = engine.apply_with_reason(rule, data)
+    return json.dumps({"result": result, "reason": reason})
+
 
 # Singleton engine for Java integration
 _JAVA_ENGINE = None

@@ -35,11 +35,13 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * Uploads a file from the insight folder into OneDrive.
@@ -84,12 +86,12 @@ public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriv
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String filePath = trimToNull(this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
-		String name = trimToNull(this.keyValue.get(ReactorKeysEnum.NAME.getKey()));
-		String driveId = trimToNull(this.keyValue.get(DRIVE_ID));
-		String itemId = trimToNull(this.keyValue.get(ITEM_ID));
-		String path = trimToNull(this.keyValue.get(PATH));
-		String conflictBehavior = trimToNull(this.keyValue.get(CONFLICT_BEHAVIOR));
+		String filePath = ValueUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
+		String name = ValueUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.NAME.getKey()));
+		String driveId = ValueUtils.trimToNull(this.keyValue.get(DRIVE_ID));
+		String itemId = ValueUtils.trimToNull(this.keyValue.get(ITEM_ID));
+		String path = ValueUtils.trimToNull(this.keyValue.get(PATH));
+		String conflictBehavior = ValueUtils.trimToNull(this.keyValue.get(CONFLICT_BEHAVIOR));
 
 		if (filePath == null) {
 			throw new SemossPixelException("A file path is required to upload to OneDrive.");
@@ -181,5 +183,13 @@ public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriv
 			return "Optional behavior when a file of the same name is already there: fail, rename or replace. Defaults to rename.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// writes to the user's OneDrive, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

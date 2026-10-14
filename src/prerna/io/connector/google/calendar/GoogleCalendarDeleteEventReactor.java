@@ -27,60 +27,30 @@
  *******************************************************************************/
 package prerna.io.connector.google.calendar;
 
-import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
-import prerna.io.connector.google.AbstractGoogleReactor;
+import prerna.io.connector.calendar.AbstractDeleteEventReactor;
+import prerna.io.connector.calendar.CalendarApp;
 import prerna.io.connector.google.GoogleLoginUtils;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GoogleCalendarDeleteEventReactor extends AbstractGoogleReactor {
+/**
+ * Deletes an event from a Google calendar, the signed in user's own or one
+ * shared with them to write, canceling it for its attendees.
+ *
+ * <p>
+ * Required Google scope, each under {@code https://www.googleapis.com/auth/}:
+ * one of {@code calendar.events} or {@code calendar}.
+ * </p>
+ */
+public class GoogleCalendarDeleteEventReactor extends AbstractDeleteEventReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarDeleteEventReactor.class);
-
-	public GoogleCalendarDeleteEventReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
-		this.keyRequired = new int[] { 1 };
+	@Override
+	protected CalendarApp getCalendarApp() {
+		return CalendarApp.GOOGLE_CALENDAR;
 	}
 
 	@Override
-	protected NounMetadata executeAuthenticated() {
-		this.organizeKeys();
-		String id = this.keyValue.get(this.keysToGet[0]);
-		if (id == null || id.trim().isEmpty()) {
-			throw new SemossPixelException("Event ID is required.");
-		}
-		try {
-			User user = this.insight.getUser();
-			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			Map<String, Object> result = GoogleCalendarHelper.deleteEvent(accessToken, id);
-			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while deleting a Google Calendar event", e);
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to delete a Google Calendar event", e);
-			throw new SemossPixelException("An error occurred deleting the event. Error message: " + e.getMessage());
-		}
+	protected void deleteEvent(User user, String calendarId, String mailbox, String id) throws Exception {
+		new GoogleCalendarHelper(GoogleLoginUtils.getValidAccessToken(user))
+				.deleteEvent(GoogleCalendarHelper.calendarOf(calendarId, mailbox), id);
 	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Delete an existing event in Google Calendar.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ID.getKey())) {
-			return "Unique identifier of the Google Calendar event to delete (" + ReactorKeysEnum.ID.getKey() + ").";
-		}
-		return super.getDescriptionForKey(key);
-	}
-
 }
