@@ -464,7 +464,7 @@ public final class AgentRunService {
 		if (run.containsKey("progress")) {
 			snapshot.put("progress", run.get("progress"));
 		}
-		for (String key : List.of("artifacts", "reviewOutcome", "warnings")) {
+		for (String key : List.of("artifacts", "reviewOutcome", "warnings", "taskOutcome")) {
 			if (run.containsKey(key)) {
 				snapshot.put(key, run.get(key));
 			}
