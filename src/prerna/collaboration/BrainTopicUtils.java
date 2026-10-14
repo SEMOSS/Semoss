@@ -160,6 +160,9 @@ public final class BrainTopicUtils {
 			goal.put("noteId", note.get("noteId"));
 			goal.put("text", note.get("text"));
 			goal.put("status", note.get("status"));
+			if (note.containsKey("resolution")) {
+				goal.put("resolution", note.get("resolution"));
+			}
 			goals.add(goal);
 		}
 		topic.put("goals", goals);
@@ -171,7 +174,7 @@ public final class BrainTopicUtils {
 
 	static List<Map<String, Object>> getGoals(String ownerId, String ownerType, String topicId) {
 		return CollaborationDbUtils.query(
-				"SELECT NOTE_ID, KIND, TEXT, STATE, ORIGIN, SOURCE_REF, CREATED_AT FROM BRAIN_TOPIC_NOTE "
+				"SELECT NOTE_ID, KIND, TEXT, RESOLUTION, STATE, ORIGIN, SOURCE_REF, CREATED_AT FROM BRAIN_TOPIC_NOTE "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND KIND = ? "
 						+ "ORDER BY CREATED_AT, NOTE_ID",
 				BrainTopicUtils::mapNote, ownerId, ownerType, topicId, GOAL);
@@ -357,9 +360,31 @@ public final class BrainTopicUtils {
 			touchTopic(conn, ownerId, ownerType, topicId, now);
 		});
 		return CollaborationDbUtils.queryOne(
-				"SELECT NOTE_ID, KIND, TEXT, STATE, ORIGIN, SOURCE_REF, CREATED_AT FROM BRAIN_TOPIC_NOTE "
+				"SELECT NOTE_ID, KIND, TEXT, RESOLUTION, STATE, ORIGIN, SOURCE_REF, CREATED_AT FROM BRAIN_TOPIC_NOTE "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND NOTE_ID = ?",
 				BrainTopicUtils::mapNote, ownerId, ownerType, id);
+	}
+
+	static void completeGoal(User user, String topicId, String noteId, String resolution) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		String outcome = resolution == null || resolution.isBlank() ? null : resolution.trim();
+		BrainTopicReviewProfiles.serialized(ownerId, ownerType, () -> {
+			requireTopic(ownerId, ownerType, topicId);
+			Timestamp now = CollaborationDbUtils.now();
+			CollaborationDbUtils.inTransaction(conn -> {
+				int updated = CollaborationDbUtils.update(conn,
+						"UPDATE BRAIN_TOPIC_NOTE SET STATE = ?, RESOLUTION = COALESCE(?, RESOLUTION), UPDATED_AT = ? "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND NOTE_ID = ? AND KIND = ?",
+						"done", outcome, now, ownerId, ownerType, topicId, noteId, GOAL);
+				if (updated == 0) {
+					throw new IllegalArgumentException("This topic has no goal " + noteId + "; take the noteId from ListTopics");
+				}
+				touchTopic(conn, ownerId, ownerType, topicId, now);
+			});
+			return null;
+		});
 	}
 
 	public static Map<String, Object> deleteTopicNote(User user, String topicId, String noteId) {
@@ -740,6 +765,10 @@ public final class BrainTopicUtils {
 		note.put("noteId", CollaborationDbUtils.getString(rs, "NOTE_ID"));
 		note.put("kind", CollaborationDbUtils.getString(rs, "KIND"));
 		note.put("text", CollaborationDbUtils.getString(rs, "TEXT"));
+		String resolution = CollaborationDbUtils.getString(rs, "RESOLUTION");
+		if (resolution != null) {
+			note.put("resolution", resolution);
+		}
 		note.put("status", CollaborationDbUtils.getString(rs, "STATE"));
 		note.put("by", CollaborationDbUtils.getString(rs, "ORIGIN"));
 		note.put("date", CollaborationDbUtils.getTimestamp(rs, "CREATED_AT"));

@@ -51,13 +51,34 @@ public final class BrainAgentEdits {
 
 	// ---- topic ----
 
+	/** Completes an existing goal in this chat's topics, keeping the outcome for later conversations. */
+	public static Map<String, Object> completeGoal(User user, String roomId, String topicId, String goalId,
+			String resolution) {
+		if (!isSet(topicId) || !isSet(goalId) || !isSet(resolution)) {
+			throw new IllegalArgumentException("Pass topicId, goalId, and a resolution describing the evidence that met the goal");
+		}
+		String topic = topicId.trim();
+		BrainTopicRoomUtils.Chat chat = BrainTopicRoomUtils.requireChat(user, roomId);
+		if (chat.options().containsKey("subagent_parent_room_id")) {
+			throw new IllegalArgumentException("CompleteGoal only runs in the owner's chat, not a subagent's chat");
+		}
+		if (!BrainTopicBrief.chatTopics(user, chat).contains(topic)) {
+			throw new IllegalArgumentException("CompleteGoal can only complete a goal from this chat's current topics");
+		}
+		BrainTopicUtils.completeGoal(user, topic, goalId.trim(), resolution.trim());
+		return Map.of("changes", List.of("goal completed"), "topic", BrainTopicUtils.getTopic(user, topic, null));
+	}
+
 	public static Map<String, Object> editTopic(User user, String topicId, String topicName, String name,
 			String description, String status, List<String> addPeople, List<String> removePeople, String addGoal,
-			String addNote, String deleteNoteId) {
+			String addNote, String deleteNoteId, String completeGoalId, String goalResolution) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
 		String topic = BrainThreadFinder.resolveTopic(ownerId, ownerType, topicId, topicName);
+		if (isSet(goalResolution) && !isSet(completeGoalId)) {
+			throw new IllegalArgumentException("Pass completeGoalId with goalResolution");
+		}
 
 		// find everyone first, so a person Brain does not know stops the call before anything changes
 		List<Map<String, String>> adds = new ArrayList<>();
@@ -99,6 +120,10 @@ public final class BrainAgentEdits {
 			if (isSet(addGoal)) {
 				BrainTopicUtils.saveTopicNote(user, topic, null, BrainTopicUtils.GOAL, addGoal.trim(), "open");
 				changes.add("goal added");
+			}
+			if (isSet(completeGoalId)) {
+				BrainTopicUtils.completeGoal(user, topic, completeGoalId.trim(), goalResolution);
+				changes.add("goal completed");
 			}
 			if (isSet(addNote)) {
 				// a topic's notes are Brain memories about it, saved as the owner's topic page saves them

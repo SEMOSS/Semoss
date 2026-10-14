@@ -59,6 +59,8 @@ public final class AutomationConstants {
 	public static final String TABLE_AUTOMATION_RUN_NODE_SOURCES = "AUTOMATION_RUN_NODE_SOURCES";
 	public static final String TABLE_AUTOMATION_NODE_OUTPUTS = "AUTOMATION_NODE_OUTPUTS";
 	public static final String TABLE_AUTOMATION_RUN_WAITS = "AUTOMATION_RUN_WAITS";
+	public static final String TABLE_AUTOMATION_SAVED_RESULTS = "AUTOMATION_SAVED_RESULTS";
+	public static final String TABLE_AUTOMATION_RESULT_CHUNKS = "AUTOMATION_RESULT_CHUNKS";
 
 	// -- AUTOMATION_RUNS columns
 	// ---------------------------------------------------
@@ -96,6 +98,10 @@ public final class AutomationConstants {
 	public static final String EXECUTION_ORDER = "EXECUTION_ORDER";
 	public static final String DURATION_MS = "DURATION_MS";
 	public static final String OUTPUT_VAR_NAME = "OUTPUT_VAR_NAME";
+	/** Internal durable discriminator for node output storage semantics. */
+	public static final String OUTPUT_KIND = "OUTPUT_KIND";
+	/** Output kind for an immutable Java table value with independent durable capture. */
+	public static final String OUTPUT_KIND_TABLE = "TABLE";
 	public static final String OUTPUT_VALUE = "OUTPUT_VALUE";
 	public static final String OUTPUT_PREVIEW = "OUTPUT_PREVIEW";
 	public static final String ROOM_ID = "ROOM_ID";
@@ -121,6 +127,39 @@ public final class AutomationConstants {
 	public static final String WAIT_STATUS_PENDING = "PENDING";
 	public static final String WAIT_STATUS_RESUMING = "RESUMING";
 	public static final String WAIT_STATUS_RESOLVED = "RESOLVED";
+
+	// -- Saved result columns and states -----------------------------------------
+
+	public static final String RESULT_ID = "RESULT_ID";
+	public static final String RESULT_KIND = "RESULT_KIND";
+	public static final String FORMAT_VERSION = "FORMAT_VERSION";
+	public static final String ROW_COUNT = "ROW_COUNT";
+	public static final String BYTE_COUNT = "BYTE_COUNT";
+	public static final String CHECKSUM = "CHECKSUM";
+	public static final String CREATED_AT = "CREATED_AT";
+	public static final String RETAIN_UNTIL = "RETAIN_UNTIL";
+	public static final String CAPTURE_STATE = "CAPTURE_STATE";
+	public static final String RESULT_ROLE = "RESULT_ROLE";
+	public static final String LOGICAL_NAME = "LOGICAL_NAME";
+	public static final String PAYLOAD_VALUE = "PAYLOAD_VALUE";
+	public static final String CHUNK_INDEX = "CHUNK_INDEX";
+	public static final String FIRST_ROW_INDEX = "FIRST_ROW_INDEX";
+	public static final String CHUNK_ROW_COUNT = "CHUNK_ROW_COUNT";
+	public static final String CHUNK_VALUE = "CHUNK_VALUE";
+	public static final String RESULT_KIND_TABLE = "TABLE";
+	public static final String CAPTURE_STATE_RETAINED = "RETAINED";
+	public static final String RESULT_ROLE_OUTPUT = "OUTPUT";
+	public static final int SAVED_RESULT_FORMAT_VERSION = 1;
+	public static final int SAVED_RESULT_RETENTION_DAYS = 30;
+	public static final int SAVED_RESULT_MAX_CHUNK_ROWS = 1_000;
+	public static final int SAVED_RESULT_MAX_CHUNK_BYTES = 1_048_576;
+	public static final long SAVED_RESULT_MAX_ROWS = 1_000_000;
+	public static final long SAVED_RESULT_MAX_BYTES = 64L * 1_048_576;
+	public static final int SAVED_RESULT_PAGE_DEFAULT_ROWS = 100;
+	public static final int SAVED_RESULT_PAGE_MAX_ROWS = 1_000;
+	public static final int SAVED_RESULT_PAGE_MAX_BYTES = 4 * 1_048_576;
+	public static final long SAVED_RESULT_OPEN_MAX_ROWS = 100_000;
+	public static final long SAVED_RESULT_OPEN_MAX_BYTES = 32L * 1_048_576;
 
 	// -- Run statuses
 	// --------------------------------------------------------------
@@ -184,12 +223,23 @@ public final class AutomationConstants {
 	// --------
 
 	public static final String CONFIG_ENGINE_ID = "engineId";
+	public static final String CONFIG_QUERY_PARAMETERS = "parameters";
+	public static final String CONFIG_KEY = "key";
+	public static final String CONFIG_TYPE = "type";
 	public static final String CONFIG_CLAUSES = "clauses";
 	public static final String CONFIG_CLAUSE_ID = "id";
 	public static final String CONFIG_CONDITION = "condition";
 	public static final String CONFIG_STATE = "state";
+	public static final String CONFIG_QUESTIONS = "questions";
+	public static final String CONFIG_QUESTION_KEY = "questionKey";
 	public static final String CONFIG_QUESTION = "question";
 	public static final String CONFIG_QUESTION_TYPE = "questionType";
+	public static final String CONFIG_INSTRUCTIONS = "instructions";
+	public static final String CONFIG_CRITERIA = "criteria";
+	public static final String CONFIG_MATCH = "match";
+	public static final String CONFIG_CONDITIONS = "conditions";
+	public static final String CONFIG_FIELD = "field";
+	public static final String CONFIG_OPTION = "option";
 	public static final String CONFIG_CONFIDENCE_THRESHOLD = "confidenceThreshold";
 	public static final String CONFIG_LIMIT = "limit";
 	public static final String CONFIG_COMMAND = "command";
@@ -209,7 +259,25 @@ public final class AutomationConstants {
 	public static final String CONFIG_DESCRIPTION = "description";
 	public static final String CONFIG_ANSWER = "answer";
 	public static final String JEV_QUESTION_TYPE_CHOICE = "choice";
+	public static final String JEV_QUESTION_TYPE_SCORE = "score";
 	public static final String JEV_QUESTION_TYPE_NOUL = "noul";
+	public static final String JEV_ROUTE_MATCH_ALL = "all";
+	public static final String JEV_ROUTE_MATCH_ANY = "any";
+	public static final String JEV_FIELD_CHOICE = "choice";
+	public static final String JEV_FIELD_SCORE = "score";
+	public static final String JEV_FIELD_NOUL = "noul";
+	public static final String JEV_FIELD_CONFIDENCE = "confidence";
+	public static final String JEV_FIELD_PROBABILITY = "probability";
+	public static final String JEV_OPERATOR_EQUALS = "equals";
+	public static final String JEV_OPERATOR_NOT_EQUALS = "notEquals";
+	public static final String JEV_OPERATOR_GREATER_THAN = "greaterThan";
+	public static final String JEV_OPERATOR_GREATER_THAN_OR_EQUAL = "greaterThanOrEqual";
+	public static final String JEV_OPERATOR_LESS_THAN = "lessThan";
+	public static final String JEV_OPERATOR_LESS_THAN_OR_EQUAL = "lessThanOrEqual";
+	public static final int JEV_MAX_QUESTIONS = 32;
+	public static final int JEV_MAX_ROUTES = 32;
+	public static final int JEV_MAX_ROUTE_CONDITIONS = 32;
+	public static final int JEV_MAX_CRITERIA = 255;
 	/** Optional trigger setup Python. */
 	public static final String CONFIG_PYTHON_SOURCE = "pythonSource";
 	public static final String CONFIG_HARNESS_TYPE = "harnessType";
@@ -235,8 +303,12 @@ public final class AutomationConstants {
 	public static final int DEFAULT_DB_QUERY_LIMIT = 50;
 	/** Smallest row limit accepted by a generated database query node. */
 	public static final int DB_QUERY_MIN_LIMIT = 1;
-	/** Largest row limit accepted by a generated database query node. */
-	public static final int DB_QUERY_MAX_LIMIT = 1_000;
+	/**
+	 * Largest row limit accepted by a generated database query node. Large query
+	 * results remain in the run Insight's frame and therefore do not cross the
+	 * bounded JSON node-output contract.
+	 */
+	public static final int DB_QUERY_MAX_LIMIT = 50_000;
 	public static final int DEFAULT_VECTOR_SEARCH_LIMIT = 5;
 	public static final int DEFAULT_LIST_RUNS_LIMIT = 25;
 	public static final int WAIT_MIN_SECONDS = 0;
@@ -312,6 +384,7 @@ public final class AutomationConstants {
 	// ---------------------------------------------------------------
 
 	public static final String RESULT_NODE_RESULTS = "nodeResults";
+	public static final String RESULT_SAVED_RESULTS = "savedResults";
 	/** Ephemeral Insight workspace for an active or recently completed local run. */
 	public static final String RESULT_EXECUTION_INSIGHT_ID = "executionInsightId";
 	public static final String RESULT_CANCEL_REQUESTED = "cancelRequested";
@@ -328,6 +401,20 @@ public final class AutomationConstants {
 	 * persistence.
 	 */
 	public static final String INTERNAL_RESULT_METADATA = "__automation_metadata__";
+	/** Runtime-owned Python-to-Java node result discriminator. */
+	public static final String INTERNAL_NODE_RESULT_KIND = "__automation_result_kind__";
+	/** Runtime-owned Python-to-Java ordinary node value. */
+	public static final String INTERNAL_NODE_RESULT_VALUE = "__automation_result_value__";
+	/** Runtime result kind for an ordinary JSON-compatible node value. */
+	public static final String INTERNAL_NODE_RESULT_KIND_VALUE = "VALUE";
+	/** Runtime-owned discriminator for a supported live Python frame result. */
+	public static final String INTERNAL_NODE_RESULT_KIND_FRAME = "FRAME";
+	/** Runtime result kind for a frame retained in the run Insight. */
+	/**
+	 * Reserved generated-source signal requesting a guarded database query whose
+	 * result is loaded directly into a run-owned frame. Removed before scope and
+	 * history persistence.
+	 */
 	public static final String TRACE_ROOM_ID = "roomId";
 	public static final String TRACE_WORKSPACE_ID = "workspaceId";
 	public static final String TRACE_MODEL_MESSAGE_ID = "modelMessageId";
@@ -377,6 +464,8 @@ public final class AutomationConstants {
 	public static final String PK_AUTO_RUN_SOURCE = "PK_AUTO_RUN_SOURCE";
 	public static final String PK_AUTO_NODE_OUT = "PK_AUTO_NODE_OUT";
 	public static final String PK_AUTO_RUN_WAIT = "PK_AUTO_RUN_WAIT";
+	public static final String PK_AUTO_SAVED_RESULT = "PK_AUTO_SAVED_RESULT";
+	public static final String PK_AUTO_RESULT_CHUNK = "PK_AUTO_RESULT_CHUNK";
 	public static final String IDX_AR_PROJECT = "IDX_AR_PROJECT";
 	public static final String IDX_AR_STATUS = "IDX_AR_STATUS";
 	public static final String IDX_AR_STARTED = "IDX_AR_STARTED";
@@ -386,11 +475,18 @@ public final class AutomationConstants {
 	public static final String IDX_ANO_AGENT_RUN = "IDX_ANO_AGENT_RUN";
 	public static final String IDX_ARW_RUN = "IDX_ARW_RUN";
 	public static final String IDX_ARW_AGENT_RUN = "IDX_ARW_AGENT_RUN";
+	public static final String IDX_ASR_RUN = "IDX_ASR_RUN";
+	public static final String IDX_ASR_PROJECT_CREATED = "IDX_ASR_PROJECT_CREATED";
 
 	// -- Defaults
 	// ------------------------------------------------------------------
 
 	public static final String DEFAULT_AUTOMATION_ID = "default";
+	/**
+	 * Prefix of the per-login run scope stored in {@code PROJECT_ID} for a run of
+	 * inline definition JSON, which has no Automation project.
+	 */
+	public static final String INLINE_RUN_SCOPE_PREFIX = "SYSTEM__AUTOMATION_INLINE__";
 	public static final int HEARTBEAT_INTERVAL_SECONDS = 30;
 	public static final int STALE_HEARTBEAT_THRESHOLD_MINUTES = 5;
 	public static final int OUTPUT_PREVIEW_MAX_LENGTH = 2000;

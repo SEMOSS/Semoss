@@ -133,6 +133,15 @@ public final class AgentRunner {
 	/** Override enforcement mode per-run: {@code ENFORCE} | {@code DISABLED}. */
 	public static final String PARAM_SANDBOX_ENFORCE = "sandbox_enforce";
 
+	/** agentParams key for the words the user typed when input wraps them in caller context. */
+	public static final String AGENT_PARAM_USER_TEXT = "userText";
+
+	/** The user's own words from agentParams, else the full input. */
+	public static String userText(Map<String, Object> agentParams, String input) {
+		String userText = agentParams == null ? null : ValueUtils.trimToNull(agentParams.get(AGENT_PARAM_USER_TEXT));
+		return userText != null ? userText : input;
+	}
+
 	private AgentRunner() {
 
 	}
@@ -231,8 +240,10 @@ public final class AgentRunner {
 		if (preloadedRoom != null && !roomId.equals(preloadedRoom.getId())) {
 			throw new IllegalArgumentException("Preloaded Automation room does not match roomId=" + roomId);
 		}
+		// names the room and shows as the user's message; the model still gets input
+		String userText = userText(agentParamMap, input);
 		Room room = preloadedRoom != null ? preloadedRoom
-				: (modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, input)
+				: (modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userText)
 						: RoomUtils.getOrLoadRoom(roomId, insight));
 		room.setInsight(insight);
 
@@ -288,7 +299,7 @@ public final class AgentRunner {
 		}
 
 		AgentRunContext ctx = AgentRunContext.builder().room(room).modelEngine(modelEngine).insight(insight)
-				.userId(room.getUserId()).input(input).runId(runId).sandboxPolicy(sandboxPolicy)
+				.userId(room.getUserId()).input(input).userText(userText).runId(runId).sandboxPolicy(sandboxPolicy)
 				.mediaInputPaths(mediaInputPaths).mediaUrls(mediaUrls).spawnDepth(resolveSpawnDepth())
 				.resumeMode(resumeMode).agentTarget(target).agentConfig(agentConfig).build();
 
@@ -299,7 +310,7 @@ public final class AgentRunner {
 					"RunAgent media input is not supported for harnessType='" + harness.getName() + "'");
 		}
 		if (!resumeMode && ctx.getSpawnDepth() == 0) {
-			AgentRoomNamer.nameRoomAsync(roomId, input, modelId, room.getUserId(), insight);
+			AgentRoomNamer.nameRoomAsync(roomId, userText, modelId, room.getUserId(), insight);
 		}
 
 		// Apply a temporary workspace overlay so room-based lookups match AgentConfig.

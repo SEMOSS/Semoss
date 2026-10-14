@@ -80,6 +80,7 @@ class SecurityGroupManagerUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	private static final String GROUP_ID = "team";
 	private static final String OTHER_GROUP_ID = "otherteam";
 	private static final String NON_CUSTOM_GROUP_ID = "msgroup";
+	private static final String MANAGERS_ONLY = "Only this group's managers and admins can view or change it";
 
 	private static final String ADMIN_ID = "adminid";
 	private static final String MANAGER_ID = "managerid";
@@ -174,11 +175,12 @@ class SecurityGroupManagerUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	///
 
 	@Test
-	void userCanManageGroup_adminCanManageACustomGroupTheyDoNotManage() {
+	void userCanManageGroup_anAdminWhoDoesNotManageTheGroupIsAnOrdinaryUser() {
 		User otherAdmin = UnitTestSecurityAuthUtils.createUser("otheradmin", true);
 
+		// admins manage any custom group in admin mode, through the admin versions
 		assertFalse(SecurityGroupManagerUtils.userIsGroupManager(otherAdmin, GROUP_ID));
-		assertTrue(SecurityGroupManagerUtils.userCanManageGroup(otherAdmin, GROUP_ID));
+		assertFalse(SecurityGroupManagerUtils.userCanManageGroup(otherAdmin, GROUP_ID));
 	}
 
 	@Test
@@ -246,9 +248,98 @@ class SecurityGroupManagerUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	}
 
 	@Test
-	void userCanViewGroupManagers_noResourceMeansOnlyManagersAndAdmins() {
+	void userCanViewGroupManagers_noResourceMeansOnlyManagers() {
 		assertFalse(SecurityGroupManagerUtils.userCanViewGroupManagers(outsider, GROUP_ID, null, null));
 		assertTrue(SecurityGroupManagerUtils.userCanViewGroupManagers(admin, OTHER_GROUP_ID, null, null));
+	}
+
+	///
+	/// userCanViewGroupPeople and the member reads through a resource
+	///
+
+	@Test
+	void userCanViewGroupPeople_ownersBeforeTheTeamHasAccessAndEditorsAfter() throws Exception {
+		UnitTestSecurityAuthUtils.createProject("pid", "pname", admin);
+		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(admin, "pid", OUTSIDER_ID, "EDIT");
+		UnitTestSecurityAuthUtils.createEngine("eid", "ename", admin);
+		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(admin, OUTSIDER_ID, "eid", "OWNER");
+
+		// an owner sees who they would give access to before they give it; an
+		// editor sees a team only once it can use what they edit
+		assertFalse(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, GROUP_ID, "pid", null));
+		assertTrue(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, GROUP_ID, null, "eid"));
+
+		groups.addGroupProjectPermission(admin, GROUP_ID, CUSTOM, "pid", 3, null);
+
+		assertTrue(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, GROUP_ID, "pid", null));
+		assertTrue(SecurityGroupManagerUtils.userCanViewGroupManagers(outsider, GROUP_ID, "pid", null));
+	}
+
+	@Test
+	void userCanViewGroupPeople_ownersCannotSeeAGroupThatIsNotCustom() throws Exception {
+		UnitTestSecurityAuthUtils.createProject("pid", "pname", admin);
+		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(admin, "pid", OUTSIDER_ID, "OWNER");
+
+		assertTrue(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, GROUP_ID, "pid", null));
+		assertFalse(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, NON_CUSTOM_GROUP_ID, "pid", null));
+	}
+
+	@Test
+	void userCanViewGroupPeople_readersAndOtherTeamsCannot() throws Exception {
+		UnitTestSecurityAuthUtils.createProject("pid", "pname", admin);
+		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(admin, "pid", OUTSIDER_ID, "READ_ONLY");
+		groups.addGroupProjectPermission(admin, GROUP_ID, CUSTOM, "pid", 3, null);
+
+		assertFalse(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, GROUP_ID, "pid", null));
+		assertFalse(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, OTHER_GROUP_ID, "pid", null));
+		assertFalse(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, GROUP_ID, null, null));
+		assertTrue(SecurityGroupManagerUtils.userCanViewGroupPeople(manager, GROUP_ID, null, null));
+		assertTrue(SecurityGroupManagerUtils.userCanViewGroupPeople(admin, OTHER_GROUP_ID, null, null));
+	}
+
+	@Test
+	void getGroupMembers_editorsReadThemThroughTheirResource() throws Exception {
+		UnitTestSecurityAuthUtils.createProject("pid", "pname", admin);
+		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(admin, "pid", OUTSIDER_ID, "EDIT");
+		UnitTestGroupTables.insertMember(securityDb, GROUP_ID, ADMIN_ID, NATIVE);
+
+		IllegalAccessException e = assertThrows(IllegalAccessException.class,
+				() -> SecurityGroupManagerUtils.getGroupMembers(outsider, GROUP_ID, "pid", null, null, 50, 0));
+		assertEquals(
+				"Only this group's managers, and the owners and editors of what it can use, can see " + "its members",
+				e.getMessage());
+
+		groups.addGroupProjectPermission(admin, GROUP_ID, CUSTOM, "pid", 3, null);
+
+		List<Map<String, Object>> members = SecurityGroupManagerUtils.getGroupMembers(outsider, GROUP_ID, "pid", null,
+				null, 50, 0);
+		assertEquals(List.of(ADMIN_ID), members.stream().map(row -> row.get("userid")).toList());
+		assertEquals(1L, SecurityGroupManagerUtils.getNumMembersInGroup(outsider, GROUP_ID, "pid", null, null));
+	}
+
+	@Test
+	void userCanViewGroupPeople_adminsGetNothingExtraThroughAResource() throws Exception {
+		UnitTestSecurityAuthUtils.createProject("pid", "pname", admin);
+		User otherAdmin = UnitTestSecurityAuthUtils.createUser("otheradmin", true);
+		groups.addGroupProjectPermission(admin, GROUP_ID, CUSTOM, "pid", 3, null);
+
+		// an admin with no access to the project is an ordinary user here, and
+		// with no resource too; admins read the members in admin mode
+		assertFalse(SecurityGroupManagerUtils.userCanViewGroupPeople(otherAdmin, GROUP_ID, "pid", null));
+		assertFalse(SecurityGroupManagerUtils.userCanViewGroupPeople(otherAdmin, GROUP_ID, null, null));
+	}
+
+	@Test
+	void getGroupMembers_throughAResourceTellsSomeoneWhoCannotSeeTheMembersNothingElse() {
+		// a group that is not a custom group, or that does not exist, gets the same
+		// answer as a custom group the user cannot see
+		for (String groupId : List.of(NON_CUSTOM_GROUP_ID, "missing", GROUP_ID)) {
+			IllegalAccessException e = assertThrows(IllegalAccessException.class,
+					() -> SecurityGroupManagerUtils.getGroupMembers(outsider, groupId, "pid", null, null, 50, 0));
+			assertEquals(
+					"Only this group's managers, and the owners and editors of what it can use, can see its members",
+					e.getMessage());
+		}
 	}
 
 	///
@@ -452,11 +543,13 @@ class SecurityGroupManagerUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	void addGroupManager_validatesTheGroupTypeAndUserId() {
 		assertEquals("Must define the group id", assertThrows(IllegalArgumentException.class,
 				() -> SecurityGroupManagerUtils.addGroupManager(admin, " ", OUTSIDER_ID, NATIVE)).getMessage());
-		assertEquals("Group msgroup is not a custom group", assertThrows(IllegalArgumentException.class,
+		// someone who does not manage a group is not told whether it is a custom
+		// group or exists at all
+		assertEquals(MANAGERS_ONLY, assertThrows(IllegalAccessException.class,
 				() -> SecurityGroupManagerUtils.addGroupManager(admin, NON_CUSTOM_GROUP_ID, OUTSIDER_ID, NATIVE))
 				.getMessage());
-		assertEquals("Group missing is not a custom group",
-				assertThrows(IllegalArgumentException.class,
+		assertEquals(MANAGERS_ONLY,
+				assertThrows(IllegalAccessException.class,
 						() -> SecurityGroupManagerUtils.addGroupManager(admin, "missing", OUTSIDER_ID, NATIVE))
 						.getMessage());
 		assertEquals("Must define the user's login type",
@@ -636,10 +729,10 @@ class SecurityGroupManagerUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	}
 
 	@Test
-	void memberReads_rejectGroupsThatAreNotCustom() {
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+	void memberReads_tellSomeoneWhoDoesNotManageTheGroupNothingElse() {
+		IllegalAccessException e = assertThrows(IllegalAccessException.class,
 				() -> SecurityGroupManagerUtils.getGroupMembers(admin, NON_CUSTOM_GROUP_ID, null, 0, 0));
-		assertEquals("Group msgroup is not a custom group", e.getMessage());
+		assertEquals(MANAGERS_ONLY, e.getMessage());
 	}
 
 	///
@@ -652,7 +745,8 @@ class SecurityGroupManagerUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 			SecurityGroupManagerUtils.addUserToGroup(groups, admin, GROUP_ID, OUTSIDER_ID, NATIVE, null);
 			SecurityGroupManagerUtils.removeUserFromGroup(groups, GROUP_ID, OUTSIDER_ID, NATIVE);
 			SecurityGroupManagerUtils.addGroupManager(groups, admin, GROUP_ID, OUTSIDER_ID, NATIVE);
-			assertEquals(Set.of(MANAGER_ID, OUTSIDER_ID), Set.copyOf(SecurityGroupManagerUtils
+			// the admin made the group, so the admin manages it too
+			assertEquals(Set.of(ADMIN_ID, MANAGER_ID, OUTSIDER_ID), Set.copyOf(SecurityGroupManagerUtils
 					.getGroupManagers(groups, GROUP_ID).stream().map(row -> row.get("userid")).toList()));
 			SecurityGroupManagerUtils.removeGroupManager(groups, GROUP_ID, OUTSIDER_ID, NATIVE);
 
@@ -725,9 +819,9 @@ class SecurityGroupManagerUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		assertThrows(IllegalAccessException.class,
 				() -> SecurityGroupManagerUtils.getProjectsForGroup(manager, OTHER_GROUP_ID, null, 0, 0, false));
 
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+		IllegalAccessException e = assertThrows(IllegalAccessException.class,
 				() -> SecurityGroupManagerUtils.getEnginesForGroup(admin, NON_CUSTOM_GROUP_ID, null, 0, 0));
-		assertEquals("Group msgroup is not a custom group", e.getMessage());
+		assertEquals(MANAGERS_ONLY, e.getMessage());
 	}
 
 	///
