@@ -116,6 +116,7 @@ public final class AgentRunService {
 	}
 
 	private AgentRunHandle submitNewRun(String runId, AgentRunRequest request, boolean ownsUser) {
+		request = request.withNormalizedUserContent();
 		String userId = resolveUserId(request.getInsight());
 		AgentRunStore.insertSubmitted(runId, request, userId);
 		if (supportsCanonicalStreaming(request.getHarnessType())) {

@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,15 +90,6 @@ public class RunAgentReactor extends AbstractReactor {
 		String harnessType = this.keyValue.get(HARNESS_TYPE_KEY);
 		String requestedSpace = StringUtils.trimToNull(this.keyValue.get(SPACE_KEY));
 
-		// FE sends `command` URL-encoded (spaces as %20, etc.). Decode before
-		// forwarding to the harness so the prompt reaches the model intact.
-		if (input != null && input.indexOf('%') >= 0) {
-			try {
-				input = URLDecoder.decode(input, StandardCharsets.UTF_8);
-			} catch (IllegalArgumentException e) {
-				logger.warn("RunAgentReactor: command failed URL-decode, passing through raw: {}", e.getMessage());
-			}
-		}
 		// workspaceId overrides room.options.workspace.workspace_id for this run.
 		String explicitWorkspaceId = StringUtils.trimToNull(this.keyValue.get(WORKSPACE_ID_KEY));
 
@@ -111,6 +100,10 @@ public class RunAgentReactor extends AbstractReactor {
 		long waitTimeoutMs = parseLongAtLeast(this.keyValue.get(WAIT_TIMEOUT_MS_KEY), 0L, 0L);
 		Map<String, Object> paramMap = getMap("paramMap");
 		Map<String, Object> agentParams = getMap("agentParams");
+		input = AgentUserContent.decodeCommand(input, agentParams);
+		AgentUserContent.Normalized userContent = AgentUserContent.normalize(input, agentParams);
+		input = userContent.command();
+		agentParams = userContent.params();
 		if (paramMap.containsKey(AgentRunner.PARAM_SPACE)) {
 			throw new IllegalArgumentException(
 					"RunAgent space must be provided as a top-level argument, not paramValues.space");

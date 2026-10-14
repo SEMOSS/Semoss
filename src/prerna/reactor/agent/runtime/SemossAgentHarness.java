@@ -56,6 +56,7 @@ import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.AgentUserContent;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.AgentRunner;
@@ -366,6 +367,7 @@ public class SemossAgentHarness implements IAgentHarness {
 						.withText(ctx.getInput() + priorRequests + "\n\n" + state.runtimeContext(), ctx.getUserText())
 						.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
 						.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
+				AgentUserContent.annotate(firstMsg, ctx.getAgentConfig().getAgentParams());
 				tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
 				// A continuation prompt is platform-authored model context, not something the
 				// user said.
