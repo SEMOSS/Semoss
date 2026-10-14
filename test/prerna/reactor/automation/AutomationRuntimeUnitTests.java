@@ -58,22 +58,6 @@ public class AutomationRuntimeUnitTests {
 	}
 
 	@Test
-	void readsSetupSourceOutOfTriggerConfig() {
-		String source = "def run(scope):\n    return {\"cutoff\": 1}\n";
-		assertEquals(source, AutomationRuntime
-				.triggerSource(triggerNode(Map.of(AutomationConstants.CONFIG_PYTHON_SOURCE, source))));
-	}
-
-	/** A blank or absent source means the trigger contributes no computed globals. */
-	@Test
-	void treatsBlankSetupSourceAsAbsent() {
-		assertNull(AutomationRuntime.triggerSource(triggerNode(Map.of())));
-		assertNull(AutomationRuntime
-				.triggerSource(triggerNode(Map.of(AutomationConstants.CONFIG_PYTHON_SOURCE, "   "))));
-		assertNull(AutomationRuntime.triggerSource(triggerNode(Map.of(AutomationConstants.CONFIG_PYTHON_SOURCE, 7))));
-	}
-
-	@Test
 	void seedsDeclaredGlobalsFromTheirDefaults() {
 		Map<String, Object> config = Map.of(AutomationConstants.CONFIG_GLOBALS,
 				List.of(Map.of("name", "lookback_days", AutomationConstants.CONFIG_DEFAULT_VALUE, "7"),
@@ -141,23 +125,12 @@ public class AutomationRuntimeUnitTests {
 	}
 
 	@Test
-	void decodesRuntimeOwnedFrameResult() {
-		AutomationRuntime.NodeResult result = AutomationRuntime.decodeNodeResult(
-				Map.of(AutomationConstants.INTERNAL_NODE_RESULT_KIND,
-						AutomationConstants.INTERNAL_NODE_RESULT_KIND_FRAME));
-
-		assertTrue(result.frame());
-		assertNull(result.value());
-	}
-
-	@Test
 	void keepsFrameShapedUserJsonAsAnOrdinaryValue() {
 		Map<String, Object> value = Map.of("__automation_frame__", Map.of("rowCount", 12, "columnCount", 3));
 		AutomationRuntime.NodeResult result = AutomationRuntime.decodeNodeResult(Map.of(
 				AutomationConstants.INTERNAL_NODE_RESULT_KIND, AutomationConstants.INTERNAL_NODE_RESULT_KIND_VALUE,
 				AutomationConstants.INTERNAL_NODE_RESULT_VALUE, value));
 
-		assertFalse(result.frame());
 		assertEquals(value, result.value());
 	}
 

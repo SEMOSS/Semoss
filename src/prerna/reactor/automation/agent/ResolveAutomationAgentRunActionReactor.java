@@ -55,7 +55,7 @@ public class ResolveAutomationAgentRunActionReactor extends AbstractReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), AUTOMATION_RUN_ID_KEY, NODE_ID_KEY,
 				AGENT_RUN_ID_KEY, ACTION_ID_KEY, DECISION_KEY, ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
 				ReactorKeysEnum.MCP_TOOL_RESULT.getKey(), ReactorKeysEnum.MCP_TOOL_STATUS.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 0 };
+		this.keyRequired = new int[] { 0, 1, 1, 1, 1, 1, 0, 0, 0 };
 	}
 
 	@Override

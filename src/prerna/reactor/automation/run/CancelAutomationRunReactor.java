@@ -51,7 +51,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  *
  * <p>
  * Pixel:
- * {@code CancelAutomationRun(project=["appId"], runId=["running-run-id"])}
+ * {@code CancelAutomationRun(project=["appId"], runId=["running-run-id"])}.
+ * Without {@code project}, the run must be one of the caller's own inline runs.
  *
  * <p>
  * Sets a cluster-safe cancellation flag
@@ -77,7 +78,7 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 
 	public CancelAutomationRunReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), RUN_ID_KEY };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keyRequired = new int[] { 0, 1 };
 	}
 
 	@Override
@@ -86,15 +87,11 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String runId = this.keyValue.get(this.keysToGet[1]);
 
-		if (projectId == null || projectId.isEmpty()) {
-			throw new IllegalArgumentException("Must provide a project id");
-		}
 		if (runId == null || runId.isEmpty()) {
 			throw new IllegalArgumentException("Must provide the run id to cancel");
 		}
 
-		projectId = AutomationProjectService.getEditableAutomationProject(this.insight.getUser(), projectId)
-				.getProjectId();
+		projectId = AutomationProjectService.resolveRunScope(this.insight.getUser(), projectId, true);
 
 		// Validate the run exists and belongs to this project. Scoping by
 		// PROJECT_ID prevents a user with edit access to their own project from
