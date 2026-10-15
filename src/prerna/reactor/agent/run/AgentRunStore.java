@@ -48,6 +48,7 @@ import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * All SQL against the {@code AGENT_RUN} table: inserts, status transitions,
@@ -158,12 +159,13 @@ public final class AgentRunStore {
 	 * Loads an agent run without applying the owning-user predicate.
 	 *
 	 * <p>
-	 * This method is reserved for Automation APIs that have already verified project
-	 * access and the exact persisted Automation run, node, and agent-run trace.
-	 * Generic agent APIs must use {@link #getRun(String, Insight)}.
+	 * This method is reserved for Automation APIs that have already verified
+	 * project access and the exact persisted Automation run, node, and agent-run
+	 * trace. Generic agent APIs must use {@link #getRun(String, Insight)}.
 	 *
-	 * @param runId agent run identifier
-	 * @param insight current Automation editor insight used to reconstruct the request
+	 * @param runId   agent run identifier
+	 * @param insight current Automation editor insight used to reconstruct the
+	 *                request
 	 * @return matching run, or {@code null} when it does not exist
 	 */
 	public static AgentRunRecord getRunForAutomation(String runId, Insight insight) {
@@ -189,9 +191,10 @@ public final class AgentRunStore {
 			}
 			Map<String, Object> row = rows.get(0);
 			AgentRunRequest request = requestFromMap(row, insight);
-			return new AgentRunRecord(stringValue(row.get("runId")), stringValue(row.get("roomId")),
-					parseRunStatus(stringValue(row.get("status"))), request, stringValue(row.get("userId")),
-					stringValue(row.get("jobId")));
+			return new AgentRunRecord(ValueUtils.toStringOrNull(row.get("runId")),
+					ValueUtils.toStringOrNull(row.get("roomId")),
+					parseRunStatus(ValueUtils.toStringOrNull(row.get("status"))), request,
+					ValueUtils.toStringOrNull(row.get("userId")), ValueUtils.toStringOrNull(row.get("jobId")));
 		} catch (Exception e) {
 			throw new IllegalStateException("Failed to load Automation AGENT_RUN row for runId=" + runId, e);
 		}
@@ -227,8 +230,9 @@ public final class AgentRunStore {
 	 * Loads agent-run details without applying the owning-user predicate.
 	 *
 	 * <p>
-	 * This is the detail-map equivalent of {@link #getRunForAutomation(String, Insight)}
-	 * and is only valid after Automation trace authorization succeeds.
+	 * This is the detail-map equivalent of
+	 * {@link #getRunForAutomation(String, Insight)} and is only valid after
+	 * Automation trace authorization succeeds.
 	 *
 	 * @param runId agent run identifier
 	 * @return matching run details, or {@code null} when it does not exist
@@ -264,9 +268,9 @@ public final class AgentRunStore {
 				return null;
 			}
 			Map<String, Object> run = rows.get(0);
-			run.put("dateCreated", stringValue(run.get("dateCreated")));
-			run.put("startedAt", stringValue(run.get("startedAt")));
-			run.put("completedAt", stringValue(run.get("completedAt")));
+			run.put("dateCreated", ValueUtils.toStringOrNull(run.get("dateCreated")));
+			run.put("startedAt", ValueUtils.toStringOrNull(run.get("startedAt")));
+			run.put("completedAt", ValueUtils.toStringOrNull(run.get("completedAt")));
 			run.put("artifacts", new ArrayList<>());
 			return run;
 		} catch (Exception e) {
@@ -582,16 +586,16 @@ public final class AgentRunStore {
 	}
 
 	public static void markIncomplete(String runId, String jobId, String finalOutput, String errorMessage) {
-        updateStatus(runId, AgentRunStatus.FAILED, jobId, finalOutput, errorMessage, false, true);
-    }
+		updateStatus(runId, AgentRunStatus.FAILED, jobId, finalOutput, errorMessage, false, true);
+	}
 
 	public static void markFailed(String runId, String jobId, String errorMessage) {
 		updateStatus(runId, AgentRunStatus.FAILED, jobId, null, errorMessage, false, true);
 	}
 
 	public static boolean markFailedIfSubmitted(String runId, String jobId, String errorMessage) {
-		return updateStatusIfCurrent(runId, AgentRunStatus.SUBMITTED, AgentRunStatus.FAILED, jobId, null,
-				errorMessage, false, true);
+		return updateStatusIfCurrent(runId, AgentRunStatus.SUBMITTED, AgentRunStatus.FAILED, jobId, null, errorMessage,
+				false, true);
 	}
 
 	public static void markCancelled(String runId, String jobId, String errorMessage) {
@@ -618,8 +622,8 @@ public final class AgentRunStore {
 	}
 
 	static boolean markCompletedIfInputRequired(String runId, String finalOutput) {
-		return updateStatusIfCurrent(runId, AgentRunStatus.INPUT_REQUIRED, AgentRunStatus.COMPLETED, runId,
-				finalOutput, null, false, true);
+		return updateStatusIfCurrent(runId, AgentRunStatus.INPUT_REQUIRED, AgentRunStatus.COMPLETED, runId, finalOutput,
+				null, false, true);
 	}
 
 	static boolean markFailedIfInputRequired(String runId, String errorMessage) {
@@ -747,22 +751,25 @@ public final class AgentRunStore {
 		}
 	}
 
-    /** Store progress independently of the request and final outcome, including failed runs. */
-    public static void updateProgress(String runId, Map<String, Object> progress) {
-        IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
-        PreparedStatement ps = null;
-        try {
-            ps = db.getPreparedStatement("UPDATE AGENT_RUN SET PROGRESS_JSON = ? WHERE RUN_ID = ?");
-            setClob(db, ps, 1, GSON.toJson(progress));
-            ps.setString(2, runId);
-            ps.executeUpdate();
-            commitIfNeeded(ps);
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to persist progress for runId=" + runId, e);
-        } finally {
-            ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
-        }
-    }
+	/**
+	 * Store progress independently of the request and final outcome, including
+	 * failed runs.
+	 */
+	public static void updateProgress(String runId, Map<String, Object> progress) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		try {
+			ps = db.getPreparedStatement("UPDATE AGENT_RUN SET PROGRESS_JSON = ? WHERE RUN_ID = ?");
+			setClob(db, ps, 1, GSON.toJson(progress));
+			ps.setString(2, runId);
+			ps.executeUpdate();
+			commitIfNeeded(ps);
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to persist progress for runId=" + runId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
+		}
+	}
 
 	private static void updateMessageId(String runId, String columnName, String messageId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
@@ -812,21 +819,21 @@ public final class AgentRunStore {
 
 	@SuppressWarnings("unchecked")
 	private static AgentRunRequest requestFromMap(Map<String, Object> row, Insight insight) {
-		String requestJson = stringValue(row.get("requestJson"));
+		String requestJson = ValueUtils.toStringOrNull(row.get("requestJson"));
 		if (requestJson != null) {
 			Map<String, Object> persisted = GSON.fromJson(requestJson, Map.class);
 			AgentRunRequest request = AgentRunRequest.fromPersistedMap(persisted, insight);
 			if (request != null) {
-				String parentRunId = stringValue(row.get("parentRunId"));
+				String parentRunId = ValueUtils.toStringOrNull(row.get("parentRunId"));
 				return request.getParentRunId() == null && parentRunId != null ? request.withParentRunId(parentRunId)
 						: request;
 			}
 		}
-		return new AgentRunRequest(stringValue(row.get("roomId")), stringValue(row.get("input")),
-				stringValue(row.get("modelId")), stringValue(row.get("harnessType")),
-				stringValue(row.get("workspaceId")), AgentRunContext.DEFAULT_MAX_TURNS,
-				AgentRunContext.DEFAULT_MAX_REFLECTIONS, null, null, null, null, insight)
-				.withParentRunId(stringValue(row.get("parentRunId")));
+		return new AgentRunRequest(ValueUtils.toStringOrNull(row.get("roomId")),
+				ValueUtils.toStringOrNull(row.get("input")), ValueUtils.toStringOrNull(row.get("modelId")),
+				ValueUtils.toStringOrNull(row.get("harnessType")), ValueUtils.toStringOrNull(row.get("workspaceId")),
+				AgentRunContext.DEFAULT_MAX_TURNS, AgentRunContext.DEFAULT_MAX_REFLECTIONS, null, null, null, null,
+				insight).withParentRunId(ValueUtils.toStringOrNull(row.get("parentRunId")));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -878,10 +885,6 @@ public final class AgentRunStore {
 		}
 	}
 
-	private static String stringValue(Object value) {
-		return value == null ? null : String.valueOf(value);
-	}
-
 	private static Map<String, Object> runMapFromRow(ResultSet rs) throws SQLException {
 		Map<String, Object> map = new HashMap<>();
 		map.put("runId", rs.getString("RUN_ID"));
@@ -898,26 +901,41 @@ public final class AgentRunStore {
 		map.put("finalText", rs.getString("FINAL_OUTPUT"));
 		map.put("finalOutputMessageId", rs.getString("FINAL_OUTPUT_MESSAGE_ID"));
 		map.put("errorMessage", rs.getString("ERROR_MESSAGE"));
-        String progressJson = rs.getString("PROGRESS_JSON");
-        if (progressJson != null && !progressJson.isBlank()) map.put("progress", GSON.fromJson(progressJson, Map.class));
-        Map<String, Object> liveProgress = prerna.reactor.agent.runtime.AgentRunProgress.activeSnapshot(rs.getString("RUN_ID"));
-        if (liveProgress != null) map.put("progress", liveProgress);
-		map.put("dateCreated", stringValue(rs.getTimestamp("DATE_CREATED")));
-		map.put("startedAt", stringValue(rs.getTimestamp("STARTED_AT")));
-		map.put("completedAt", stringValue(rs.getTimestamp("COMPLETED_AT")));
+		String progressJson = rs.getString("PROGRESS_JSON");
+		if (progressJson != null && !progressJson.isBlank()) {
+			map.put("progress", GSON.fromJson(progressJson, Map.class));
+		}
+		Map<String, Object> liveProgress = prerna.reactor.agent.runtime.AgentRunProgress
+				.activeSnapshot(rs.getString("RUN_ID"));
+		if (liveProgress != null) {
+			map.put("progress", liveProgress);
+		}
+		map.put("dateCreated", ValueUtils.toStringOrNull(rs.getTimestamp("DATE_CREATED")));
+		map.put("startedAt", ValueUtils.toStringOrNull(rs.getTimestamp("STARTED_AT")));
+		map.put("completedAt", ValueUtils.toStringOrNull(rs.getTimestamp("COMPLETED_AT")));
 		map.put("userId", rs.getString("USER_ID"));
 		map.put("artifacts", new ArrayList<>());
 		addDeliveryMetadata(map);
 		return map;
 	}
 
-    /** Project code-owned delivery evidence independently of the run's execution status. */
-    static void addDeliveryMetadata(Map<String, Object> run) {
-        if (!(run.get("progress") instanceof Map<?, ?> progress)
-                || !(progress.get("workflow") instanceof Map<?, ?> workflow)) return;
-        if (workflow.get("reviewOutcome") instanceof Map<?, ?> review) run.put("reviewOutcome", new HashMap<>(review));
-        if (workflow.get("warning") instanceof String warning && !warning.isBlank()) run.put("warnings", List.of(warning));
-        if (workflow.get("artifact") instanceof Map<?, ?> artifact && "available".equals(artifact.get("status")))
-            run.put("artifacts", List.of(new HashMap<>(artifact)));
-    }
+	/**
+	 * Project code-owned delivery evidence independently of the run's execution
+	 * status.
+	 */
+	static void addDeliveryMetadata(Map<String, Object> run) {
+		if (!(run.get("progress") instanceof Map<?, ?> progress)
+				|| !(progress.get("workflow") instanceof Map<?, ?> workflow)) {
+			return;
+		}
+		if (workflow.get("reviewOutcome") instanceof Map<?, ?> review) {
+			run.put("reviewOutcome", new HashMap<>(review));
+		}
+		if (workflow.get("warning") instanceof String warning && !warning.isBlank()) {
+			run.put("warnings", List.of(warning));
+		}
+		if (workflow.get("artifact") instanceof Map<?, ?> artifact && "available".equals(artifact.get("status"))) {
+			run.put("artifacts", List.of(new HashMap<>(artifact)));
+		}
+	}
 }

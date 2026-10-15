@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.util.ValueUtils;
 
 /**
  * Computes agent effectiveness metrics from the canonical AgentRun activity
@@ -91,8 +92,8 @@ public final class AgentEffectivenessCalculator {
 	 */
 	public static Map<String, Object> computeRunMetrics(Map<String, Object> run) {
 		List<Map<String, Object>> messages = asListOfMaps(run.get("messages"));
-		String status = stringValue(run.get("status"));
-		String errorMessage = stringValue(run.get("errorMessage"));
+		String status = ValueUtils.trimToNull(run.get("status"));
+		String errorMessage = ValueUtils.trimToNull(run.get("errorMessage"));
 
 		// --- walk the transcript once, collecting calls and results in order ---
 		List<Map<String, Object>> toolCalls = new ArrayList<>();
@@ -111,7 +112,7 @@ public final class AgentEffectivenessCalculator {
 			if (message == null) {
 				continue;
 			}
-			String io = stringValue(message.get("io"));
+			String io = ValueUtils.trimToNull(message.get("io"));
 			boolean isOutput = "OUTPUT".equalsIgnoreCase(io);
 			if (isOutput) {
 				assistantMessages++;
@@ -130,7 +131,7 @@ public final class AgentEffectivenessCalculator {
 			cacheCreationTokens += longValue(message.get("cacheCreationTokens"), 0L);
 
 			for (Map<String, Object> part : asListOfMaps(message.get("parts"))) {
-				String type = stringValue(part.get("type"));
+				String type = ValueUtils.trimToNull(part.get("type"));
 				if ("TEXT".equalsIgnoreCase(type)) {
 					textParts++;
 				} else if ("THINKING".equalsIgnoreCase(type)) {
@@ -144,7 +145,8 @@ public final class AgentEffectivenessCalculator {
 					Map<String, Object> toolResult = asMap(
 							firstNonNull(part.get("toolResult"), part.get("tool_result")));
 					if (toolResult != null) {
-						String callId = stringValue(firstNonNull(toolResult.get("toolCallId"), toolResult.get("id")));
+						String callId = ValueUtils
+								.trimToNull(firstNonNull(toolResult.get("toolCallId"), toolResult.get("id")));
 						if (callId != null) {
 							resultsByCallId.put(callId, toolResult);
 						}
@@ -167,11 +169,11 @@ public final class AgentEffectivenessCalculator {
 		SkillTally skills = new SkillTally();
 
 		for (Map<String, Object> toolCall : toolCalls) {
-			String name = stringValue(toolCall.get("name"));
+			String name = ValueUtils.trimToNull(toolCall.get("name"));
 			if (name == null) {
 				name = "unknown";
 			}
-			String callId = stringValue(toolCall.get("id"));
+			String callId = ValueUtils.trimToNull(toolCall.get("id"));
 			Map<String, Object> arguments = asMap(toolCall.get("arguments"));
 			boolean serverTool = booleanValue(firstNonNull(toolCall.get("server_tool"), toolCall.get("serverTool")));
 
@@ -198,9 +200,9 @@ public final class AgentEffectivenessCalculator {
 				continue;
 			}
 
-			String output = stringValue(result.get("output"));
+			String output = ValueUtils.trimToNull(result.get("output"));
 			boolean isFailure = isFailedResult(
-					stringValue(firstNonNull(result.get("toolStatus"), result.get("tool_status"))), output);
+					ValueUtils.trimToNull(firstNonNull(result.get("toolStatus"), result.get("tool_status"))), output);
 			Long durationMs = extractDurationMs(result);
 			if (durationMs != null) {
 				addLong(toolStats, "durationMsTotal", durationMs);
@@ -342,7 +344,7 @@ public final class AgentEffectivenessCalculator {
 		List<Double> scores = new ArrayList<>();
 
 		for (Map<String, Object> run : runMetrics) {
-			String status = stringValue(run.get("status"));
+			String status = ValueUtils.trimToNull(run.get("status"));
 			if ("COMPLETED".equalsIgnoreCase(status)) {
 				completed++;
 			} else if ("FAILED".equalsIgnoreCase(status)) {
@@ -564,9 +566,9 @@ public final class AgentEffectivenessCalculator {
 			}
 			String skillName = null;
 			if ("Skill".equals(toolName)) {
-				skillName = arguments == null ? null : stringValue(arguments.get("skill"));
+				skillName = arguments == null ? null : ValueUtils.trimToNull(arguments.get("skill"));
 			} else if ("LoadSkill".equals(toolName)) {
-				skillName = arguments == null ? null : stringValue(arguments.get("skill_name"));
+				skillName = arguments == null ? null : ValueUtils.trimToNull(arguments.get("skill_name"));
 			} else {
 				return;
 			}
@@ -666,7 +668,7 @@ public final class AgentEffectivenessCalculator {
 	}
 
 	private static Long timestampMs(Object value) {
-		String text = stringValue(value);
+		String text = ValueUtils.trimToNull(value);
 		if (text == null) {
 			return null;
 		}
@@ -733,14 +735,6 @@ public final class AgentEffectivenessCalculator {
 
 	private static Object firstNonNull(Object first, Object second) {
 		return first != null ? first : second;
-	}
-
-	private static String stringValue(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String text = String.valueOf(value).trim();
-		return text.isEmpty() ? null : text;
 	}
 
 	@SuppressWarnings("unchecked")

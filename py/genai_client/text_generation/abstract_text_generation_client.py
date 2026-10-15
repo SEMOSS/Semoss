@@ -68,6 +68,8 @@ class AbstractTextGenerationClient(ABC):
             global_param_override=kwargs.pop("global_param_override", None),
             modalities=kwargs.pop("modalities", None),
             native_document_mime_types=kwargs.pop("native_document_mime_types", None),
+            preserve_reasoning_content=kwargs.pop("preserve_reasoning_content", False),
+            chat_reasoning_mode=kwargs.pop("chat_reasoning_mode", "reasoning_effort"),
         )
 
         self._document_input_processor = DocumentInputProcessor()

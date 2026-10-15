@@ -78,7 +78,7 @@ public class AutomationScopeCatalogUnitTests {
 				Map.of());
 		Map<String, Object> decision = node("decision", AutomationConstants.NODE_CONTROL_IF, null,
 				Map.of(AutomationConstants.CONFIG_CLAUSES, List.of(Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "route",
-						AutomationConstants.CONFIG_CONDITION, "True"))));
+						AutomationConstants.CONFIG_CONDITION, "true"))));
 		Map<String, Object> left = node("left", AutomationConstants.NODE_DEVELOPER_PYTHON, "left_result", Map.of());
 		Map<String, Object> right = node("right", AutomationConstants.NODE_DEVELOPER_PYTHON, "right_result", Map.of());
 		Map<String, Object> merge = node("merge", AutomationConstants.NODE_DEVELOPER_PYTHON, "merged_result", Map.of());
@@ -105,8 +105,9 @@ public class AutomationScopeCatalogUnitTests {
 		node.put(AutomationConstants.NODE_FIELD_LABEL, id);
 		node.put(AutomationConstants.NODE_FIELD_CONFIG, config);
 		node.put(AutomationConstants.NODE_FIELD_CODE_MODE,
-				AutomationConstants.NODE_CONTROL_IF.equals(type) ? AutomationConstants.NODE_CODE_MODE_GENERATED
-						: AutomationConstants.NODE_CODE_MODE_CUSTOM);
+				AutomationConstants.NODE_DEVELOPER_PYTHON.equals(type)
+						? AutomationConstants.NODE_CODE_MODE_CUSTOM
+						: AutomationConstants.NODE_CODE_MODE_GENERATED);
 		if (outputVar != null) {
 			node.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, outputVar);
 		}

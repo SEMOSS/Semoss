@@ -42,6 +42,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Finds files in OneDrive by name and by contents.
@@ -98,10 +99,10 @@ public class MicrosoftOneDriveSearchFilesReactor extends AbstractMicrosoftOneDri
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String search = trimToNull(this.keyValue.get(ReactorKeysEnum.SEARCH.getKey()));
-		String driveId = trimToNull(this.keyValue.get(DRIVE_ID));
-		String itemId = trimToNull(this.keyValue.get(ITEM_ID));
-		String path = trimToNull(this.keyValue.get(PATH));
+		String search = ValueUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.SEARCH.getKey()));
+		String driveId = ValueUtils.trimToNull(this.keyValue.get(DRIVE_ID));
+		String itemId = ValueUtils.trimToNull(this.keyValue.get(ITEM_ID));
+		String path = ValueUtils.trimToNull(this.keyValue.get(PATH));
 		int limit = positiveInt(ReactorKeysEnum.LIMIT.getKey(), DEFAULT_LIMIT, MAX_LIMIT);
 
 		if (search == null) {
@@ -150,7 +151,7 @@ public class MicrosoftOneDriveSearchFilesReactor extends AbstractMicrosoftOneDri
 	 * @return the scope to search in
 	 */
 	private String scope(String fallback) {
-		String value = trimToNull(this.keyValue.get(SCOPE));
+		String value = ValueUtils.trimToNull(this.keyValue.get(SCOPE));
 		if (value == null) {
 			return fallback;
 		}

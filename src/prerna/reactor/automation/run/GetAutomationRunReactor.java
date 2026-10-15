@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.project.AutomationProjectService;
@@ -45,14 +44,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Returns detail for a single automation run including per-node results.
  *
  * <p>
- * Pixel: {@code GetAutomationRun(project=["appId"], runId=["uuid"])}
+ * Pixel: {@code GetAutomationRun(project=["appId"], runId=["uuid"])}. Without
+ * {@code project}, the run must be one of the caller's own inline runs.
  *
  * <p>
  * Reads from AUTOMATION_RUNS and AUTOMATION_NODE_OUTPUTS in the scheduler DB.
  */
 public class GetAutomationRunReactor extends AbstractReactor {
-
-	private static final String OUTPUT_FRAME_KEY = "OUTPUT_FRAME";
 
 	// Not standardized in ReactorKeysEnum — matches the local-key convention used
 	// by prerna.reactor.agent (e.g. GetAgentRunReactor.RUN_ID_KEY).
@@ -60,7 +58,7 @@ public class GetAutomationRunReactor extends AbstractReactor {
 
 	public GetAutomationRunReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), RUN_ID_KEY };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keyRequired = new int[] { 0, 1 };
 	}
 
 	@Override
@@ -69,15 +67,11 @@ public class GetAutomationRunReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String runId = this.keyValue.get(this.keysToGet[1]);
 
-		if (projectId == null || projectId.isEmpty()) {
-			throw new IllegalArgumentException("Must provide a project id");
-		}
 		if (runId == null || runId.isEmpty()) {
 			throw new IllegalArgumentException("Must provide a run id");
 		}
 
-		projectId = AutomationProjectService.getViewableAutomationProject(this.insight.getUser(), projectId)
-				.getProjectId();
+		projectId = AutomationProjectService.resolveRunScope(this.insight.getUser(), projectId, false);
 
 		Map<String, Object> runDetail = AutomationRunStore.getRunDetail(runId);
 		// Scope by PROJECT_ID so a user with view access to one project cannot read
@@ -93,25 +87,28 @@ public class GetAutomationRunReactor extends AbstractReactor {
 		List<Map<String, Object>> nodeResults = AutomationRunStore.buildNodeResults(nodeOutputs);
 
 		runDetail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
-		Insight executionInsight = AutomationRunExecutionService.getAvailableExecutionInsight(runId);
-		if (executionInsight != null && projectId.equals(executionInsight.getProjectId())) {
-			runDetail.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsight.getInsightId());
-			for (int index = 0; index < nodeOutputs.size(); index++) {
-				Object outputVariable = nodeOutputs.get(index).get(AutomationConstants.OUTPUT_VAR_NAME);
-				if (!(outputVariable instanceof String name)) {
-					continue;
-				}
-				NounMetadata frame = executionInsight.getVarStore().get(name);
-				if (frame != null && frame.getNounType() == PixelDataType.FRAME) {
-					nodeResults.get(index).put(OUTPUT_FRAME_KEY, processNounMetadata(frame));
-				}
-			}
-		}
+		runDetail.put(AutomationConstants.RESULT_SAVED_RESULTS,
+				AutomationRunStore.getSavedResultReferencesForRun(runId));
+		attachExecutionInsight(runDetail, runId);
 		Map<String, Object> wait = AutomationRunStore.getActiveWait(runId);
 		if (wait != null) {
 			runDetail.put("wait", wait);
 		}
 		return new NounMetadata(runDetail, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
+
+	/**
+	 * Adds the live run workspace to persisted run detail when that exact execution
+	 * Insight is still registered with the platform.
+	 *
+	 * @param runDetail run detail returned to the client
+	 * @param runId     durable run identifier
+	 */
+	static void attachExecutionInsight(Map<String, Object> runDetail, String runId) {
+		String executionInsightId = AutomationRunExecutionService.getAvailableExecutionInsightId(runId);
+		if (executionInsightId != null) {
+			runDetail.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsightId);
+		}
 	}
 
 	@Override

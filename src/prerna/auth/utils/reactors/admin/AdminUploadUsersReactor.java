@@ -266,11 +266,6 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 							"Must have the type of login for the user defined - check row " + counter);
 				}
 				AuthProvider provider = AuthProvider.valueOf(type.trim().toUpperCase());
-				if (provider == null) {
-					throw new IllegalArgumentException(
-							"Could not determine the correct provider type for " + type + " - check row " + counter);
-				}
-
 				// these 2 are required
 				ps.setString(psIndex.get(TYPE_KEY), provider.toString());
 				ps.setString(psIndex.get(ID_KEY), id.trim());

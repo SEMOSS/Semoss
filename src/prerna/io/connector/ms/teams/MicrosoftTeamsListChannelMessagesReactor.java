@@ -40,6 +40,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Reads the messages posted in a Teams channel.
@@ -81,8 +82,8 @@ public class MicrosoftTeamsListChannelMessagesReactor extends AbstractMicrosoftT
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String teamId = trimToNull(this.keyValue.get(TEAM_ID));
-		String channelId = trimToNull(this.keyValue.get(CHANNEL_ID));
+		String teamId = ValueUtils.trimToNull(this.keyValue.get(TEAM_ID));
+		String channelId = ValueUtils.trimToNull(this.keyValue.get(CHANNEL_ID));
 		boolean includeReplies = Boolean.parseBoolean(this.keyValue.get(INCLUDE_REPLIES));
 		int limit = positiveInt(ReactorKeysEnum.LIMIT.getKey(), DEFAULT_LIMIT, MAX_LIMIT);
 		int maxBodyChars = positiveInt(MAX_BODY_CHARS, DEFAULT_MAX_BODY_CHARS, Integer.MAX_VALUE);

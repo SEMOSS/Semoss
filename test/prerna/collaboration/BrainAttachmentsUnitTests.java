@@ -108,7 +108,11 @@ class BrainAttachmentsUnitTests {
     private <T> T withThread(String graphId, boolean never, Supplier<T> body) {
         try (MockedStatic<CollaborationDbUtils> db = mockStatic(CollaborationDbUtils.class, invocation -> {
             String method = invocation.getMethod().getName();
-            if (method.equals("queryOne")) return new String[] { "email", "email:conversation", "false" };
+            if (method.equals("queryOne")) {
+                String sql = invocation.getArgument(0);
+                return sql.startsWith("SELECT SOURCE FROM") ? "email"
+                        : new String[] { "email", "email:conversation", "false" };
+            }
             if (method.equals("query")) {
                 String sql = invocation.getArgument(0);
                 if (!sql.contains("FROM BRAIN_MESSAGE")) return List.of();
@@ -201,6 +205,34 @@ class BrainAttachmentsUnitTests {
                 () -> BrainAttachments.stage(null, "owner", "type", dir.toString(), "thread", "native-id", "att-1",
                         "a.docx", true, source, 10 * MB)));
         assertEquals(0, source.downloads.get());
+    }
+
+    @Test
+    void aMessageIdWithALetterInTheWrongCaseStillFindsTheEmail() {
+        FakeSource source = new FakeSource(file("Budget.docx", 10), new byte[10]);
+        Map<String, Object> result = withThread("native-id", false,
+                () -> BrainAttachments.stage(null, "owner", "type", dir.toString(), "thread", "Native-Id", "att-1",
+                        "a.docx", false, source, 10 * MB));
+        assertEquals("native-id", result.get("messageId"), "later calls use the stored id");
+        assertEquals(1, source.downloads.get());
+    }
+
+    @Test
+    void aGarbledMessageIdIsIgnoredWhenAThreadEmailCarriesThatFile() {
+        FakeSource source = new FakeSource(file("Proposal 1.pdf", 10), new byte[10]);
+        Map<String, Object> result = withThread("native-id", false, () -> BrainAttachments.stage(null, "owner",
+                "type", dir.toString(), "thread", "AQMk-garbled-LY", null, "Proposal_1.pdf", null, false, source,
+                10 * MB));
+        assertEquals("native-id", result.get("messageId"));
+        assertEquals(1, source.downloads.get());
+    }
+
+    @Test
+    void aRetypedAttachmentNameStillMatchesWhenOnlySeparatorsAndCaseDiffer() {
+        FakeSource source = new FakeSource(file("Q3_Budget Final.docx", 10), new byte[10]);
+        withThread("native-id", false, () -> BrainAttachments.stage(null, "owner", "type", dir.toString(), "thread",
+                "native-id", null, "q3 budget-final.docx", null, false, source, 10 * MB));
+        assertEquals(1, source.downloads.get());
     }
 
     @Test

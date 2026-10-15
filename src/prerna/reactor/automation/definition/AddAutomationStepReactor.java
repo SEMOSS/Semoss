@@ -55,6 +55,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  */
 public class AddAutomationStepReactor extends AbstractReactor {
 
+	private static final String DEFAULT_DEVELOPER_SOURCE = """
+			# scope contains trigger inputs and prior outputs by outputVar.
+			def run(scope):
+			    return {}
+			""";
+
 	private static final String NODE_TYPE_KEY = "nodeType";
 	private static final String CONFIG_KEY = "config";
 	private static final String LABEL_KEY = "label";
@@ -119,6 +125,10 @@ public class AddAutomationStepReactor extends AbstractReactor {
 				customSource == null ? AutomationConstants.NODE_CODE_MODE_GENERATED
 						: AutomationConstants.NODE_CODE_MODE_CUSTOM);
 		node.put(AutomationConstants.NODE_FIELD_CONFIG, config);
+		if (AutomationConstants.NODE_CONTROL_LOOP.equals(nodeType)) {
+			node.put(AutomationConstants.NODE_FIELD_BODY,
+					Map.of(AutomationConstants.DOC_NODES, List.of(), AutomationConstants.DOC_EDGES, List.of()));
+		}
 		node.put("position", Map.of("x", 240, "y", 80 + nodes.size() * 180));
 
 		List<Map<String, Object>> updatedNodes = new ArrayList<>(nodes);
@@ -224,13 +234,13 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		}
 		Object value = config.remove("source");
 		if (value == null) {
-			return AutomationSourceRenderer.defaultDeveloperSource();
+			return DEFAULT_DEVELOPER_SOURCE;
 		}
 		if (!(value instanceof String source)) {
 			throw new IllegalArgumentException("developer.python config.source must be a string when provided.");
 		}
 		if (source.isBlank()) {
-			return AutomationSourceRenderer.defaultDeveloperSource();
+			return DEFAULT_DEVELOPER_SOURCE;
 		}
 		if (!AutomationDefinitionService.definesRunEntryPoint(source)) {
 			throw new IllegalArgumentException("developer.python source must define run(scope) at the top level.");

@@ -127,6 +127,17 @@ public class AutomationRuntimeUtilsUnitTests {
 	}
 
 	@Test
+	void boundedJsonAcceptsRepeatedAcyclicContainers() {
+		Map<String, Object> row = Map.of("id", 7);
+		Map<String, Object> value = new LinkedHashMap<>();
+		value.put("rows", List.of(row));
+		value.put("current", row);
+
+		assertEquals("{\"rows\":[{\"id\":7}],\"current\":{\"id\":7}}",
+				AutomationRuntimeUtils.toBoundedRuntimeJson(value, 4096, "Automation run scope"));
+	}
+
+	@Test
 	void boundedJsonRejectsValuesNestedTooDeeply() {
 		List<Object> deepest = new ArrayList<>();
 		Object current = deepest;

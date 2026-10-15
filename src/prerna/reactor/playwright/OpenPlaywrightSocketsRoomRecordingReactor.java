@@ -34,6 +34,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /** Opens the Playwright Sockets portal in recording mode. */
 public class OpenPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
@@ -50,7 +51,7 @@ public class OpenPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String startUrl = normalizeUrl(this.keyValue.get(START_URL));
-		String recordingNameHint = trim(this.keyValue.get(RECORDING_NAME_HINT));
+		String recordingNameHint = ValueUtils.trimToEmpty(this.keyValue.get(RECORDING_NAME_HINT));
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("status", "ui_required");
@@ -62,18 +63,15 @@ public class OpenPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 	}
 
 	static String normalizeUrl(String value) {
-		String normalized = trim(value);
+		String normalized = ValueUtils.trimToEmpty(value);
 		if (normalized.isEmpty()) {
-			throw new IllegalArgumentException("start_url is required. Ask the user for a URL before calling this tool.");
+			throw new IllegalArgumentException(
+					"start_url is required. Ask the user for a URL before calling this tool.");
 		}
 		if (!normalized.matches("^[A-Za-z][A-Za-z0-9+.-]*://.*$")) {
 			normalized = "https://" + normalized;
 		}
 		return normalized;
-	}
-
-	private static String trim(String value) {
-		return value == null ? "" : value.trim();
 	}
 
 	@Override

@@ -54,6 +54,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * Generates business metadata from actions that were actually recorded by the
@@ -371,7 +372,7 @@ public class GeneratePlaywrightRecordingMetadataReactor extends AbstractReactor 
 		String title = requiredSanitized(parsed.get("title"), "title", 120);
 		String intent = requiredSanitized(parsed.get("intent"), "intent", 300);
 		String description = requiredSanitized(parsed.get("description"), "description", 500);
-		String fileName = RecordingMetadataPrivacy.safeSlug(stringValue(parsed.get("fileName")));
+		String fileName = RecordingMetadataPrivacy.safeSlug(ValueUtils.toStringOrEmpty(parsed.get("fileName")));
 		double confidence = parseConfidence(parsed.get("confidence"));
 
 		Map<String, Object> metadata = new LinkedHashMap<>();
@@ -384,7 +385,7 @@ public class GeneratePlaywrightRecordingMetadataReactor extends AbstractReactor 
 	}
 
 	private static String requiredSanitized(Object value, String field, int maxLength) {
-		String sanitized = RecordingMetadataPrivacy.sanitizeText(stringValue(value), maxLength);
+		String sanitized = RecordingMetadataPrivacy.sanitizeText(ValueUtils.toStringOrEmpty(value), maxLength);
 		if (sanitized.isBlank()) {
 			throw new IllegalArgumentException("The model response is missing " + field);
 		}
@@ -394,7 +395,7 @@ public class GeneratePlaywrightRecordingMetadataReactor extends AbstractReactor 
 	private static double parseConfidence(Object value) {
 		try {
 			double parsed = value instanceof Number ? ((Number) value).doubleValue()
-					: Double.parseDouble(stringValue(value));
+					: Double.parseDouble(ValueUtils.toStringOrEmpty(value));
 			return Math.max(0.0, Math.min(1.0, parsed));
 		} catch (Exception e) {
 			return 0.5;
@@ -424,10 +425,6 @@ public class GeneratePlaywrightRecordingMetadataReactor extends AbstractReactor 
 
 	private static String clean(String value) {
 		return value == null ? "" : value.trim();
-	}
-
-	private static String stringValue(Object value) {
-		return value == null ? "" : String.valueOf(value);
 	}
 
 	private record RecordedAction(String tabId, PlaywrightStep step) {

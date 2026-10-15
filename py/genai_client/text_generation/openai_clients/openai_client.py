@@ -43,6 +43,8 @@ class OpenAiClient(AbstractTextGenerationClient):
         "global_param_override",
         "simplify_messages",
         "native_document_mime_types",
+        "preserve_reasoning_content",
+        "chat_reasoning_mode",
     }
 
     def __init__(
@@ -547,6 +549,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             streamed_tools = {}
             finish_reason = None
             aggregated_content = ""
+            reasoning_content = {}
             for chunk in response:
                 # Usage info typically comes in the final chunk
                 if hasattr(chunk, "usage") and chunk.usage is not None:
@@ -570,6 +573,17 @@ class OpenAiClient(AbstractTextGenerationClient):
                     )
 
                 if chunk.choices and (len(chunk.choices) > 0):
+                    reasoning_deltas = self._get_chat_reasoning_content(
+                        chunk.choices[0].delta
+                    )
+                    for source, reasoning_delta in reasoning_deltas.items():
+                        reasoning_content[source] = (
+                            reasoning_content.get(source, "") + reasoning_delta
+                        )
+                        smss_stream(
+                            StreamUtil.create_thinking_chunk(reasoning_delta),
+                            stream_type="thinking",
+                        )
                     # streaming text
                     if chunk.choices[0].delta.content:
                         content = chunk.choices[0].delta.content
@@ -672,7 +686,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                         }
                     )
 
-                parts = (
+                parts = self._chat_reasoning_parts(reasoning_content) + (
                     [{"type": "TEXT", "text": aggregated_content}]
                     if aggregated_content
                     else []
@@ -695,7 +709,11 @@ class OpenAiClient(AbstractTextGenerationClient):
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="content", interim=False)
 
-                reasoning = self._extract_reasoning_summary_chat(response)
+                reasoning_parts = self._chat_reasoning_parts(reasoning_content)
+                if not reasoning_parts:
+                    reasoning = self._extract_reasoning_summary_chat(response)
+                    if reasoning:
+                        reasoning_parts = [{"type": "THINKING", "thinking": reasoning}]
                 return AskModelEngineResponse2(
                     response=aggregated_content,
                     response_tokens=response_tokens,
@@ -706,11 +724,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     schemaVersion=2,
                     io="OUTPUT",
                     parts=(
-                        (
-                            [{"type": "THINKING", "thinking": reasoning}]
-                            if reasoning
-                            else []
-                        )
+                        reasoning_parts
                         + (
                             [{"type": "TEXT", "text": aggregated_content}]
                             if aggregated_content
@@ -733,6 +747,9 @@ class OpenAiClient(AbstractTextGenerationClient):
                 thinking_tokens = None
 
             final_content = response.choices[0].message.content
+            if self.model_settings.preserve_reasoning_content and final_content is None:
+                # A reasoning-only cutoff must still satisfy Java's CHAT string contract.
+                final_content = ""
             tool_calls = response.choices[0].message.tool_calls
             if tool_calls:
                 return self._parse_tools_call_response(
@@ -744,7 +761,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                     thinking_tokens=thinking_tokens,
                 )
             else:
-                reasoning = self._extract_reasoning_summary_chat(response)
+                reasoning_parts = self._chat_reasoning_parts(
+                    self._get_chat_reasoning_content(response.choices[0].message)
+                )
+                if not reasoning_parts:
+                    reasoning = self._extract_reasoning_summary_chat(response)
+                    if reasoning:
+                        reasoning_parts = [{"type": "THINKING", "thinking": reasoning}]
                 return AskModelEngineResponse2(
                     response=final_content,
                     response_tokens=response_tokens,
@@ -755,11 +778,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     schemaVersion=2,
                     io="OUTPUT",
                     parts=(
-                        (
-                            [{"type": "THINKING", "thinking": reasoning}]
-                            if reasoning
-                            else []
-                        )
+                        reasoning_parts
                         + (
                             [{"type": "TEXT", "text": final_content}]
                             if final_content
@@ -819,8 +838,12 @@ class OpenAiClient(AbstractTextGenerationClient):
                 )
 
         preamble_text = None
+        reasoning_parts = []
         if self.chat_type == "chat-completion":
             preamble_text = response.choices[0].message.content
+            reasoning_parts = self._chat_reasoning_parts(
+                self._get_chat_reasoning_content(response.choices[0].message)
+            )
         elif self.chat_type == "responses":
             preamble_text = getattr(response, "output_text", None)
 
@@ -838,7 +861,8 @@ class OpenAiClient(AbstractTextGenerationClient):
             messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
-            parts=text_parts
+            parts=reasoning_parts
+            + text_parts
             + server_tool_parts
             + [{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
         )
@@ -1302,11 +1326,28 @@ class OpenAiClient(AbstractTextGenerationClient):
 
         return ""
 
+    def _get_chat_reasoning_content(self, message: Any) -> dict[str, str]:
+        if not self.model_settings.preserve_reasoning_content:
+            return {}
+        # Compatible servers use either field; replay the field actually received.
+        return {
+            source: value
+            for source in ("reasoning_content", "reasoning")
+            if isinstance(value := getattr(message, source, None), str) and value
+        }
+
+    @staticmethod
+    def _chat_reasoning_parts(reasoning: dict[str, str]) -> list[dict[str, str]]:
+        return [
+            {"type": "THINKING", "thinking": text, "source": source}
+            for source, text in reasoning.items()
+        ]
+
     def _extract_reasoning_summary_chat(self, response) -> str:
         """Extract reasoning metadata from Chat Completion API response.
 
-        Note: Chat-completion API does not expose reasoning text,
-        only token counts in usage stats.
+        OpenAI exposes token counts, not raw reasoning text. Compatible endpoints'
+        reasoning_content is handled separately and never synthesized from this summary.
         """
         if not hasattr(response, "usage"):
             return ""

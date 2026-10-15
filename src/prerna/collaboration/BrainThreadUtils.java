@@ -38,10 +38,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.javatuples.Pair;
 
 import prerna.auth.User;
+import prerna.om.Insight;
 
 // Brain threads: BRAIN_THREAD with its topic links and participants
 public final class BrainThreadUtils {
@@ -57,8 +59,8 @@ public final class BrainThreadUtils {
 	private static final List<String> ROLE_ORDER = List.of("organizer", "from", "to", "cc", "required", "attendee",
 			"member");
 
-	private static final String THREAD_COLUMNS = "t.THREAD_ID, t.SOURCE, t.SUBJECT, t.MUTED, t.AUTOMATED, "
-			+ "t.MESSAGE_COUNT, t.LAST_MESSAGE_AT, t.ROOM_ID";
+	private static final String THREAD_COLUMNS = "t.THREAD_ID, t.THREAD_KEY, t.SOURCE, t.SUBJECT, t.MUTED, t.AUTOMATED, "
+			+ "t.AUTOMATED_OVERRIDE, t.MESSAGE_COUNT, t.LAST_MESSAGE_AT, t.ROOM_ID";
 
 	// an open topic_choice review means two candidate topics were close
 	private static final String OPEN_TOPIC_CHOICE = "EXISTS (SELECT 1 FROM BRAIN_REVIEW r "
@@ -139,6 +141,29 @@ public final class BrainThreadUtils {
 		return page;
 	}
 
+	/** Reads one owned thread with the same metadata as a detailed list row. */
+	public static Map<String, Object> getThread(User user, String threadId) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		Map<String, Object> thread = CollaborationDbUtils.queryOne(
+				"SELECT " + THREAD_COLUMNS + ", t.SUMMARY, t.SUMMARY_REF, t.SUMMARY_AT, " + OPEN_TOPIC_CHOICE
+				+ " AS NEEDS_CHOICE FROM BRAIN_THREAD t WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.THREAD_ID = ?",
+				rs -> {
+					Map<String, Object> row = mapThread(rs);
+					row.put("summary", CollaborationDbUtils.getString(rs, "SUMMARY"));
+					row.put("summaryRef", CollaborationDbUtils.getString(rs, "SUMMARY_REF"));
+					row.put("summaryAt", CollaborationDbUtils.getTimestamp(rs, "SUMMARY_AT"));
+					return row;
+				}, owner.getValue0(), owner.getValue1(), threadId);
+		if (thread == null) throw new IllegalArgumentException("Thread not found");
+		List<Map<String, Object>> rows = List.of(thread);
+		addLinks(owner.getValue0(), owner.getValue1(), rows);
+		addParticipants(owner.getValue0(), owner.getValue1(), rows);
+		addLatestMessage(owner.getValue0(), owner.getValue1(), rows);
+		thread.put("summaryCurrent", WorkThreadInsights.covers((String) thread.remove("summaryRef"),
+				(String) thread.get("latestMessageId")));
+		return thread;
+	}
+
 	static List<Map<String, Object>> getLinks(String ownerId, String ownerType, String threadId) {
 		return CollaborationDbUtils.query("SELECT TOPIC_ID, SOURCE, CONFIDENCE, IS_PRIMARY FROM BRAIN_THREAD_TOPIC "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? ORDER BY IS_PRIMARY DESC, CONFIDENCE DESC, "
@@ -157,16 +182,15 @@ public final class BrainThreadUtils {
 		requireThread(ownerId, ownerType, threadId);
 		BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
 
-		List<Map<String, Object>> links = getLinks(ownerId, ownerType, threadId);
-		Map<String, Object> current = null;
-		for (Map<String, Object> link : links) {
-			if (topicId.equals(link.get("topicId"))) {
-				current = link;
-			}
-		}
-		Map<String, Object> existing = current;
 		Timestamp now = CollaborationDbUtils.now();
-		CollaborationDbUtils.inTransaction(conn -> {
+		CollaborationDbUtils.batch(conn -> {
+			BrainTopicReviewProfiles.lock(ownerId, ownerType);
+			BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
+			BrainThreadTopicDecisions.lockThread(ownerId, ownerType, threadId);
+			List<Map<String, Object>> links = getLinks(ownerId, ownerType, threadId);
+			Map<String, Object> existing = links.stream().filter(link -> topicId.equals(link.get("topicId")))
+					.findFirst().orElse(null);
+			BrainThreadTopicDecisions.remember(ownerId, ownerType, threadId, topicId, remove);
 			if (remove) {
 				if (existing == null) {
 					return;
@@ -269,6 +293,50 @@ public final class BrainThreadUtils {
 				BrainThreadUtils::mapThread, ownerId, ownerType, threadId);
 		addLinks(ownerId, ownerType, List.of(thread));
 		return thread;
+	}
+
+	// The owner's "not automated" correction. It is sticky: the classifier, the sender vote, and the machine-sent check
+	// all leave the thread alone afterwards. Setting it clears the automated flag, brings back what was dismissed as
+	// automated, and classifies the thread again; clearing it only drops the override.
+	public static Map<String, Object> setThreadNotAutomated(User user, Insight insight, String threadId,
+			boolean notAutomated) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		requireThread(ownerId, ownerType, threadId);
+		boolean was = Boolean.TRUE.equals(CollaborationDbUtils.queryOne("SELECT AUTOMATED_OVERRIDE FROM BRAIN_THREAD "
+				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> CollaborationDbUtils.getBoolean(rs, "AUTOMATED_OVERRIDE"), ownerId, ownerType, threadId));
+		if (notAutomated) {
+			CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED_OVERRIDE = ?, AUTOMATED = ? WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND THREAD_ID = ?", true, false, ownerId, ownerType, threadId);
+		} else {
+			CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED_OVERRIDE = ? WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND THREAD_ID = ?", false, ownerId, ownerType, threadId);
+		}
+		if (was != notAutomated) {
+			CollaborationDbUtils.update("INSERT INTO BRAIN_CHANGE (OWNER_ID, OWNER_TYPE, CHANGE_ID, ENTITY_TYPE, "
+					+ "ENTITY_ID, FIELD, OLD_VALUE, NEW_VALUE, ACTOR, AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId,
+					ownerType, UUID.randomUUID().toString(), "thread", threadId, "not_automated", String.valueOf(was),
+					String.valueOf(notAutomated), BrainProfileUtils.YOU, CollaborationDbUtils.now());
+		}
+		Map<String, Object> result = new LinkedHashMap<>();
+		if (notAutomated) {
+			result.put("reopened", WorkItemUtils.reopenAutomated(ownerId, ownerType, threadId));
+			// the correction stands even when the classifier model is not set or fails
+			try {
+				result.put("reclassified", BrainThreadClassifier.classify(user, insight, List.of(threadId), false));
+			} catch (Exception e) {
+				result.put("reclassifyError", e.getMessage());
+			}
+		}
+		Map<String, Object> thread = CollaborationDbUtils.queryOne(
+				"SELECT " + THREAD_COLUMNS + ", " + OPEN_TOPIC_CHOICE + " AS NEEDS_CHOICE FROM BRAIN_THREAD t "
+						+ "WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.THREAD_ID = ?",
+				BrainThreadUtils::mapThread, ownerId, ownerType, threadId);
+		addLinks(ownerId, ownerType, List.of(thread));
+		result.put("thread", thread);
+		return result;
 	}
 
 	// ---- helpers ----
@@ -383,10 +451,16 @@ public final class BrainThreadUtils {
 		Map<String, Object> row = new LinkedHashMap<>();
 		row.put("id", CollaborationDbUtils.getString(rs, "THREAD_ID"));
 		row.put("channel", CollaborationDbUtils.getString(rs, "SOURCE"));
+		String key = CollaborationDbUtils.getString(rs, "THREAD_KEY");
+		String prefix = row.get("channel") + ":";
+		if (key != null && key.startsWith(prefix)) row.put("conversationId", key.substring(prefix.length()));
 		row.put("subject", CollaborationDbUtils.getString(rs, "SUBJECT"));
 		row.put("muted", Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED")));
 		if (Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "AUTOMATED"))) {
 			row.put("automated", true);
+		}
+		if (Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "AUTOMATED_OVERRIDE"))) {
+			row.put("notAutomated", true);
 		}
 		Integer count = CollaborationDbUtils.getInteger(rs, "MESSAGE_COUNT");
 		row.put("messageCount", count == null ? 0 : count);

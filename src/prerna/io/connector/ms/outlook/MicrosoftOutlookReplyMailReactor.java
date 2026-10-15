@@ -27,148 +27,84 @@
  *******************************************************************************/
 package prerna.io.connector.ms.outlook;
 
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.jsoup.nodes.Entities;
 
 import prerna.auth.User;
+import prerna.io.connector.mail.AbstractReplyMailReactor;
+import prerna.io.connector.mail.ComposedMail;
+import prerna.io.connector.mail.MailApp;
+import prerna.io.connector.mail.MailRecipients;
+import prerna.io.connector.mail.OutgoingMail;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Answers a message in the signed in user's mailbox.
+ * Replies to a message in the signed in user's own Microsoft 365 mailbox,
+ * keeping the answer in its thread.
  *
  * <p>
- * Required delegated Microsoft Graph scopes:
- * </p>
- * <ul>
- * <li>{@code Mail.Send} for {@code POST /me/messages/{id}/reply} and
- * {@code /replyAll}</li>
- * <li>{@code Mail.ReadWrite} instead, when {@code asDraft} asks for
- * {@code POST /me/messages/{id}/createReply}, which writes a draft rather than
- * sending anything</li>
- * </ul>
- *
- * <p>
- * This is what keeps an answer in the thread it belongs to. Composing a fresh
- * message with {@code MicrosoftOutlookSendMail} starts a new conversation
- * however carefully the subject is copied, which is what everybody on the
- * thread then has to untangle.
+ * The reply is always written as a native reply draft, so Outlook writes the
+ * quoted original and the recipients itself, and is sent from there when it is
+ * not being left in Drafts. That is what lets a sent reply carry html,
+ * attachments and a chosen set of recipients too.
  * </p>
  *
  * <p>
- * Microsoft Outlook writes the recipients and quotes the original underneath,
- * so what is passed here is only what the reply adds above it. Answering
- * everybody is a choice rather than the default, since a reply to all is the
- * one that is hard to take back.
+ * Required delegated Microsoft Graph scopes: {@code Mail.ReadWrite}, and
+ * {@code Mail.Send} to send it.
  * </p>
  */
-public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMessageReactor {
+public class MicrosoftOutlookReplyMailReactor extends AbstractReplyMailReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(MicrosoftOutlookReplyMailReactor.class);
-
-	private static final String REPLY_ALL = "replyAll";
-
-	public MicrosoftOutlookReplyMailReactor() {
-		this.keysToGet = new String[] { UID, COMMENT, REPLY_ALL, AS_DRAFT, "html", "overrideRecipients", "to", "cc", "attachments" };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0 };
+	@Override
+	protected MailApp getMailApp() {
+		return MailApp.OUTLOOK;
 	}
 
 	@Override
-	protected NounMetadata executeAuthenticated() {
-		this.organizeKeys();
-		String uid = requiredUid("answer a message");
-		String comment = this.keyValue.get(COMMENT);
-		boolean replyAll = Boolean.parseBoolean(this.keyValue.get(REPLY_ALL));
-		boolean asDraft = Boolean.parseBoolean(this.keyValue.get(AS_DRAFT));
-		boolean html = Boolean.parseBoolean(this.keyValue.get("html"));
-		boolean overrideRecipients = Boolean.parseBoolean(this.keyValue.get("overrideRecipients"));
-		if (overrideRecipients && (!asDraft || !html)) {
-			throw new SemossPixelException("Recipient overrides require an HTML draft.");
-		}
-		if (html && !asDraft) {
-			throw new SemossPixelException("HTML is supported for draft saving only.");
-		}
+	protected ComposedMail draftReply(User user, ReplyMailRequest request) throws Exception {
+		String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+		MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
+		// the files are read before anything is written to the mailbox, so one that
+		// cannot be read leaves no draft behind
+		List<Map<String, Object>> files = MicrosoftOutlookMailHelper.fileAttachments(
+				request.attachments().stream().map(file -> file.getAbsolutePath()).toArray(String[]::new));
 
-		if (comment == null || comment.trim().isEmpty()) {
-			throw new SemossPixelException("A " + COMMENT + " is required to answer a message.");
+		Map<String, Object> draft;
+		MailRecipients recipients = request.recipients();
+		if (recipients != null) {
+			// graph only takes chosen recipients on the formatted draft, so a plain
+			// text reply is written as html that reads the same
+			draft = helper.replyHtmlDraft(accessToken, request.id(), asHtml(request.body(), request.html()),
+					request.replyAll(), recipients.to().toArray(new String[0]), recipients.cc().toArray(new String[0]));
+		} else if (request.html()) {
+			draft = helper.replyHtmlDraft(accessToken, request.id(), request.body(), request.replyAll());
+		} else {
+			draft = helper.reply(accessToken, null, request.id(), request.body(), request.replyAll(), true);
 		}
-
-		try {
-			var attachments = draftAttachments(asDraft);
-			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
-			Map<String, Object> draft = overrideRecipients
-					? helper.replyHtmlDraft(accessToken, uid, comment, replyAll, values("to"), values("cc"))
-					: html ? helper.replyHtmlDraft(accessToken, uid, comment, replyAll)
-							: helper.reply(accessToken, null, uid, comment, replyAll, asDraft);
-
-			helper.attachToDraft(accessToken, draft, attachments);
-
-			Map<String, Object> output = new LinkedHashMap<>();
-			output.put("repliedTo", uid);
-			output.put(REPLY_ALL, replyAll);
-			output.put("sent", !asDraft);
-			if (draft != null) {
-				// the draft's own id, which is what MicrosoftOutlookSendDraft takes
-				output.put(UID, draft.get("id"));
-				if (overrideRecipients) {
-					String[] to = MicrosoftOutlookMessageMapper.addressArray(draft.get("toRecipients"));
-					String[] cc = MicrosoftOutlookMessageMapper.addressArray(draft.get("ccRecipients"));
-					output.put("recipients",
-							Map.of("to", to == null ? new String[0] : to, "cc", cc == null ? new String[0] : cc));
-				}
-				MicrosoftOutlookMessageMapper.putIfPresent(output, "webLink", draft.get("webLink"));
-			}
-			return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while answering the message '{}'", uid, e);
-			throw e;
-		} catch (IllegalArgumentException e) {
-			classLogger.error("Invalid input passed to answer a message", e);
-			throw new SemossPixelException(e.getMessage());
-		} catch (Exception e) {
-			classLogger.error("Failed to answer the message '{}'", uid, e);
-			throw new SemossPixelException("An error occurred answering the message. Error message: " + e.getMessage());
-		}
+		helper.attachToDraft(accessToken, draft, files);
+		return MicrosoftOutlookMessageMapper.toComposedMail(draft, request.body(), request.html(),
+				request.attachments().stream().map(OutgoingMail::attachmentName).toList());
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Reply to a message in the signed in user's own Microsoft 365 mailbox, keeping the answer in its thread.";
+	protected ComposedMail sendDraft(User user, ComposedMail draft) throws Exception {
+		new MicrosoftOutlookMailHelper().sendDraft(MicrosoftLoginUtils.getValidAccessToken(user), null, draft.id());
+		// a sent draft moves to Sent Items under a new id, which Graph does not report
+		return draft.withIds(null, null, null);
 	}
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if ("attachments".equals(key)) return "Optional insight-relative files to add to a saved draft; requires asDraft=true.";
-		if ("overrideRecipients".equals(key)) {
-			return "Replace the native To and Cc lists with the supplied lists, including empty lists. Requires html=true and asDraft=true.";
+	/**
+	 * @param body the body
+	 * @param html whether it is html already
+	 * @return the body as html, keeping the lines of a plain text one
+	 */
+	private static String asHtml(String body, boolean html) {
+		if (html) {
+			return body;
 		}
-		if ("to".equals(key) || "cc".equals(key)) {
-			return "Explicit email address list when overrideRecipients=true; an empty list clears these recipients.";
-		}
-		if ("html".equals(key)) {
-			return "Treat the authored comment as HTML when asDraft=true; defaults to false.";
-		}
-		if (key.equals(COMMENT)) {
-			return "What the reply says. Microsoft Outlook quotes the message being answered underneath it.";
-		} else if (key.equals(REPLY_ALL)) {
-			return "Optional boolean to answer everybody on the message rather than only whoever sent it. Defaults to false.";
-		}
-		return super.getDescriptionForKey(key);
-	}
-
-	@Override
-	public Map<String, String> getMcpToolMetadata() {
-		// sends mail as the user, so an agent asks before running it
-		Map<String, String> meta = super.getMcpToolMetadata();
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
-		return meta;
+		return Entities.escape(body == null ? "" : body).replace("\n", "<br>");
 	}
 }
