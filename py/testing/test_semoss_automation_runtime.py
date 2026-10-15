@@ -216,12 +216,13 @@ class DataFrameOutputTests(unittest.TestCase):
         self.assertIs(session_globals["rows"], session_globals["updated_rows"])
 
     def test_json_row_list_keeps_its_existing_scope_shape(self) -> None:
+        session_globals: dict[str, object] = {}
         result = execute_node(
             _encode({}),
             _encode("def run(scope):\n    return [{'value': 7}]\n"),
             1024,
             "rows",
-            {},
+            session_globals,
             {},
         )
 
@@ -232,17 +233,19 @@ class DataFrameOutputTests(unittest.TestCase):
             },
             result,
         )
-        rows = result["__automation_result_value__"]
+        self.assertEqual([{"value": 7}], session_globals["rows"])
         downstream = execute_node(
-            _encode({"rows": rows}),
+            _encode({"rows": None}),
             _encode(
                 "def run(scope):\n"
+                "    scope['rows'][0]['value'] = 99\n"
                 "    return {'is_list': isinstance(scope['rows'], list)}\n"
             ),
             1024,
             "metrics",
+            session_globals,
             {},
-            {},
+            ["rows"],
         )
         self.assertEqual(
             {
@@ -250,6 +253,116 @@ class DataFrameOutputTests(unittest.TestCase):
                 "__automation_result_value__": {"is_list": True},
             },
             downstream,
+        )
+        self.assertEqual([{"value": 7}], session_globals["rows"])
+
+    def test_retains_unchanged_scope_input_and_refreshes_loop_value(self) -> None:
+        session_globals: dict[str, object] = {}
+        stable = {"rows": [{"id": 7}, {"id": 9}]}
+        first = execute_node(
+            _encode({"prior_loop": stable, "current_loop": {"index": 0}}),
+            _encode(
+                "def run(scope):\n"
+                "    scope['prior_loop']['rows'][0]['id'] = 99\n"
+                "    return {'index': scope['current_loop']['index']}\n"
+            ),
+            1024,
+            "first_result",
+            session_globals,
+            {},
+        )
+
+        self.assertEqual(
+            {
+                "__automation_result_kind__": "VALUE",
+                "__automation_result_value__": {"index": 0},
+            },
+            first,
+        )
+        self.assertEqual(stable, session_globals["prior_loop"])
+        second = execute_node(
+            _encode({"prior_loop": None, "current_loop": {"index": 1}}),
+            _encode(
+                "def run(scope):\n"
+                "    return {'first_id': scope['prior_loop']['rows'][0]['id'], "
+                "'index': scope['current_loop']['index']}\n"
+            ),
+            1024,
+            "second_result",
+            session_globals,
+            {},
+            ["prior_loop"],
+        )
+
+        self.assertEqual(
+            {
+                "__automation_result_kind__": "VALUE",
+                "__automation_result_value__": {"first_id": 7, "index": 1},
+            },
+            second,
+        )
+        self.assertEqual({"index": 1}, session_globals["current_loop"])
+
+    def test_does_not_copy_unread_retained_value(self) -> None:
+        class CopyProbe:
+            def __deepcopy__(self, memo):
+                raise AssertionError("Unread retained value was copied")
+
+        session_globals: dict[str, object] = {"large_result": CopyProbe()}
+
+        result = execute_node(
+            _encode({"large_result": None, "current_loop": {"index": 12}}),
+            _encode(
+                "def run(scope):\n"
+                "    return {'index': scope['current_loop']['index']}\n"
+            ),
+            1024,
+            "result",
+            session_globals,
+            {},
+            ["large_result"],
+        )
+
+        self.assertEqual(
+            {
+                "__automation_result_kind__": "VALUE",
+                "__automation_result_value__": {"index": 12},
+            },
+            result,
+        )
+
+    def test_dict_copy_resolves_retained_values(self) -> None:
+        session_globals: dict[str, object] = {
+            "large_result": {"rows": [{"id": 7}]}
+        }
+
+        result = execute_node(
+            _encode({"large_result": None}),
+            _encode(
+                "def run(scope):\n"
+                "    copied = dict(scope)\n"
+                "    copied['large_result']['rows'][0]['id'] = 99\n"
+                "    return copied\n"
+            ),
+            1024,
+            "result",
+            session_globals,
+            {},
+            ["large_result"],
+        )
+
+        self.assertEqual(
+            {
+                "__automation_result_kind__": "VALUE",
+                "__automation_result_value__": {
+                    "large_result": {"rows": [{"id": 99}]}
+                },
+            },
+            result,
+        )
+        self.assertEqual(
+            {"rows": [{"id": 7}]},
+            session_globals["large_result"],
         )
 
 

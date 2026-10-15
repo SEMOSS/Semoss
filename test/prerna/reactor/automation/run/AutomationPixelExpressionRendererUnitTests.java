@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -187,11 +188,16 @@ class AutomationPixelExpressionRendererUnitTests {
 		when(metadata.getHeaderTypeAsString("QUERY_RESULT__ID")).thenReturn("INT");
 		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
 		when(frame.query(any(SelectQueryStruct.class))).thenAnswer(invocation -> {
-			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
-			when(wrapper.hasNext()).thenReturn(true, true, false);
-			when(wrapper.next()).thenReturn(
+			SelectQueryStruct query = invocation.getArgument(0);
+			List<HeadersDataRow> rows = List.of(
 					new HeadersDataRow(new String[] { "ID" }, new Object[] { 1 }),
 					new HeadersDataRow(new String[] { "ID" }, new Object[] { 2 }));
+			int start = Math.toIntExact(Math.min(query.getOffset(), rows.size()));
+			int end = Math.toIntExact(Math.min(query.getOffset() + query.getLimit(), rows.size()));
+			Iterator<HeadersDataRow> page = rows.subList(start, end).iterator();
+			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
+			when(wrapper.hasNext()).thenAnswer(ignored -> page.hasNext());
+			when(wrapper.next()).thenAnswer(ignored -> page.next());
 			return wrapper;
 		});
 		AutomationFrameOutput.RegisteredFrame output =
@@ -212,6 +218,12 @@ class AutomationPixelExpressionRendererUnitTests {
 				Map.of("query_result", output), "model", null);
 		assertTrue(embedded.contains("Summarize these heroes:"));
 		assertTrue(embedded.contains("[{\\\"ID\\\":1},{\\\"ID\\\":2}]"));
+
+		String function = AutomationPixelExpressionRenderer.functionExecute(
+				Map.of("engineId", "function", "arguments",
+						Map.of("payload", Map.of("id", "${query_result[0].ID}"))),
+				Map.of("query_result", output), "function");
+		assertEquals("ExecuteFunctionEngine(engine=\"function\", map=[{\"payload\":{\"id\":1}}]);", function);
 	}
 
 	@Test
@@ -336,6 +348,27 @@ class AutomationPixelExpressionRendererUnitTests {
 				AutomationPixelExpressionRenderer.storageDownloadResult(true,
 						List.of(Map.of("type", "directory", "path", "/target"),
 								Map.of("type", "file", "path", "/target/file.csv")),
+						request, "download"));
+	}
+
+	@Test
+	void identifiesTheCurrentDownloadAmongExistingInsightFiles() {
+		AutomationPixelExpressionRenderer.StorageDownload request =
+				AutomationPixelExpressionRenderer.storageDownload(
+						Map.of("engineId", "storage", "path", "source/tracking-numbers-5000.csv",
+								"destination", "/"),
+						Map.of(), "download");
+
+		assertEquals(Map.of(
+				"success", true,
+				"storagePath", "source/tracking-numbers-5000.csv",
+				"destination", "/",
+				"space", "INSIGHT",
+				"files", List.of("/tracking-numbers-5000.csv"),
+				"filePath", "/tracking-numbers-5000.csv"),
+				AutomationPixelExpressionRenderer.storageDownloadResult(true,
+						List.of(Map.of("type", "file", "path", "/appointment-esr-map-5000.csv"),
+								Map.of("type", "file", "path", "/tracking-numbers-5000.csv")),
 						request, "download"));
 	}
 }

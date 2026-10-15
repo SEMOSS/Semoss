@@ -40,6 +40,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -75,8 +76,12 @@ public class AutomationPythonExecutorUnitTests {
 		clearInvocations(insight);
 		try (MockedStatic<AutomationRuntime> runtime = mockStatic(AutomationRuntime.class)) {
 			AutomationRuntime.NodeResult decoded = new AutomationRuntime.NodeResult(Map.of("ready", true));
+			Map<String, Object> retainedScope = new java.util.LinkedHashMap<>();
+			retainedScope.put("input", null);
 			runtime.when(() -> AutomationRuntime.buildNodeInvocationScript("source", Map.of("input", 1),
-					"result", Map.of())).thenReturn("node-script");
+					"result", Map.of(), Set.of())).thenReturn("node-script");
+			runtime.when(() -> AutomationRuntime.buildNodeInvocationScript("source", retainedScope,
+					"result", Map.of(), Set.of("input"))).thenReturn("node-script");
 			runtime.when(() -> AutomationRuntime.decodeNodeResult("raw")).thenReturn(decoded);
 			AutomationPythonExecutor executor = new AutomationPythonExecutor(insight, runId);
 			verifyNoInteractions(insight);
@@ -91,6 +96,93 @@ public class AutomationPythonExecutorUnitTests {
 			verify(insight, times(1)).getPyTranslator();
 			verify(translator, times(2)).runScriptWithExplicitAssetPaths(eq(insight), eq("node-script"),
 					eq("/assets"), any(String[].class));
+		} finally {
+			AutomationRunRegistry.unregister(runId);
+		}
+	}
+
+	@Test
+	void retainsUnchangedScopeValuesAndRefreshesLoopLocalValues() {
+		String runId = UUID.randomUUID().toString();
+		Insight insight = mock(Insight.class);
+		PyTranslator translator = mock(PyTranslator.class);
+		when(insight.getInsightId()).thenReturn("automation-" + runId);
+		when(insight.getPyTranslator()).thenReturn(translator);
+		when(translator.runScriptWithExplicitAssetPaths(eq(insight), eq("first-script"), eq("/assets"),
+				any(String[].class))).thenReturn("first-raw");
+		when(translator.runScriptWithExplicitAssetPaths(eq(insight), eq("second-script"), eq("/assets"),
+				any(String[].class))).thenReturn("second-raw");
+
+		Map<String, Object> stable = Map.of("rows", java.util.Collections.nCopies(5_000, Map.of("id", 7)));
+		Map<String, Object> firstIteration = Map.of("item", Map.of("id", 1));
+		Map<String, Object> secondIteration = Map.of("item", Map.of("id", 2));
+		Map<String, Object> firstScope = new java.util.LinkedHashMap<>();
+		firstScope.put("prior_loop", stable);
+		firstScope.put("current_loop", firstIteration);
+		Map<String, Object> secondScope = new java.util.LinkedHashMap<>();
+		secondScope.put("prior_loop", stable);
+		secondScope.put("current_loop", secondIteration);
+		Map<String, Object> transportedSecondScope = new java.util.LinkedHashMap<>();
+		transportedSecondScope.put("prior_loop", null);
+		transportedSecondScope.put("current_loop", secondIteration);
+
+		AutomationRunRegistry.register(runId, insight, null);
+		try (MockedStatic<AutomationRuntime> runtime = mockStatic(AutomationRuntime.class)) {
+			AutomationRuntime.NodeResult firstResult = new AutomationRuntime.NodeResult(Map.of("iteration", 1));
+			AutomationRuntime.NodeResult secondResult = new AutomationRuntime.NodeResult(Map.of("iteration", 2));
+			runtime.when(() -> AutomationRuntime.buildNodeInvocationScript("node", firstScope, "result_1",
+					Map.of(), Set.of())).thenReturn("first-script");
+			runtime.when(() -> AutomationRuntime.buildNodeInvocationScript("node", transportedSecondScope, "result_2",
+					Map.of(), Set.of("prior_loop"))).thenReturn("second-script");
+			runtime.when(() -> AutomationRuntime.decodeNodeResult("first-raw")).thenReturn(firstResult);
+			runtime.when(() -> AutomationRuntime.decodeNodeResult("second-raw")).thenReturn(secondResult);
+
+			AutomationPythonExecutor executor = new AutomationPythonExecutor(insight, runId);
+			Map<String, Object> descriptor = Map.of(
+					AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_DEVELOPER_PYTHON);
+			assertEquals(firstResult,
+					executor.executeNode(descriptor, "node", firstScope, "result_1", "/assets", "/assets/py"));
+			assertEquals(secondResult,
+					executor.executeNode(descriptor, "node", secondScope, "result_2", "/assets", "/assets/py"));
+		} finally {
+			AutomationRunRegistry.unregister(runId);
+		}
+	}
+
+	@Test
+	void bindsSuccessfulJsonOutputsWithoutSendingThemAgain() {
+		String runId = UUID.randomUUID().toString();
+		Insight insight = mock(Insight.class);
+		PyTranslator translator = mock(PyTranslator.class);
+		when(insight.getInsightId()).thenReturn("automation-" + runId);
+		when(insight.getPyTranslator()).thenReturn(translator);
+		when(translator.runScriptWithExplicitAssetPaths(eq(insight), eq("first-script"), eq("/assets"),
+				any(String[].class))).thenReturn("first-raw");
+		when(translator.runScriptWithExplicitAssetPaths(eq(insight), eq("second-script"), eq("/assets"),
+				any(String[].class))).thenReturn("second-raw");
+
+		Map<String, Object> rows = Map.of("rows", java.util.List.of(Map.of("id", 7)));
+		Map<String, Object> secondScope = new java.util.LinkedHashMap<>();
+		secondScope.put("large_result", null);
+
+		AutomationRunRegistry.register(runId, insight, null);
+		try (MockedStatic<AutomationRuntime> runtime = mockStatic(AutomationRuntime.class)) {
+			AutomationRuntime.NodeResult firstResult = new AutomationRuntime.NodeResult(rows);
+			AutomationRuntime.NodeResult secondResult = new AutomationRuntime.NodeResult(Map.of("count", 1));
+			runtime.when(() -> AutomationRuntime.buildNodeInvocationScript("first", Map.of(), "large_result",
+					Map.of(), Set.of())).thenReturn("first-script");
+			runtime.when(() -> AutomationRuntime.buildNodeInvocationScript("second", secondScope, "summary",
+					Map.of(), Set.of("large_result"))).thenReturn("second-script");
+			runtime.when(() -> AutomationRuntime.decodeNodeResult("first-raw")).thenReturn(firstResult);
+			runtime.when(() -> AutomationRuntime.decodeNodeResult("second-raw")).thenReturn(secondResult);
+
+			AutomationPythonExecutor executor = new AutomationPythonExecutor(insight, runId);
+			Map<String, Object> descriptor = Map.of(
+					AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_DEVELOPER_PYTHON);
+			assertEquals(firstResult,
+					executor.executeNode(descriptor, "first", Map.of(), "large_result", "/assets", "/assets/py"));
+			assertEquals(secondResult, executor.executeNode(descriptor, "second", Map.of("large_result", rows),
+					"summary", "/assets", "/assets/py"));
 		} finally {
 			AutomationRunRegistry.unregister(runId);
 		}

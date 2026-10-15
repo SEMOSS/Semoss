@@ -1,21 +1,23 @@
 ---
 name: workflow-automation
-description: "Use when authoring, changing, running, or troubleshooting a SEMOSS Automation workflow. Covers the automation project MCP (GetAutomation, GetAutomationNodeDefinitions, AddAutomationStep, UpdateAutomationStep, UpdateAutomationCustomStep, RemoveAutomationStep, TriggerAutomation), the typed node graph, the run(scope) contract every node's Python must satisfy, trigger inputs and setup Python, and the rules each node type is validated against at save time."
+description: "Use when authoring, changing, running, or troubleshooting a SEMOSS Automation workflow. Covers the automation project MCP (GetAutomation, GetAutomationNodeDefinitions, AddAutomationStep, UpdateAutomationStep, UpdateAutomationCustomStep, RemoveAutomationStep, TriggerAutomation), the typed node graph, Java-executed generated nodes, the developer.python run(scope) contract, trigger inputs, and save-time validation."
 ---
 
 # Automations in SEMOSS
 
 An automation is a typed graph the platform executes node by node. The graph lives in
-the project's `automation-workflow.json`, and each non-trigger node's Python lives in
-its own file under `automation-nodes/`. You never touch either file. The active
-automation project's MCP is the only authority for reading, changing, or running it.
+the project's `automation-workflow.json`; only `developer.python` nodes have source
+files under `automation-nodes/`. You never touch either location. The active
+automation project's MCP is the authority for reading, changing, or running it.
 
 Two kinds of node exist, and the difference governs every edit:
 
-- **Generated** nodes hold configuration only. The server renders their Python from
-  that configuration. Change them with `UpdateAutomationStep` by sending configuration.
-- **Custom** nodes (`developer.python`, or any node a user has switched to custom) hold
-  hand-written Python. Change them with `UpdateAutomationCustomStep` by sending source.
+- **Generated** nodes hold configuration only. Java executes them through typed
+  handlers and existing SEMOSS Pixel/reactor/engine paths. Change them with
+  `UpdateAutomationStep` by sending configuration.
+- **Custom** nodes are `developer.python` nodes and hold hand-written Python.
+  Change them with `UpdateAutomationCustomStep` by sending source. Typed generated
+  nodes cannot be switched to custom mode.
 
 Sending source to a generated node, or configuration to a custom node, is rejected.
 
@@ -39,19 +41,20 @@ Always in this order. Skipping step 1 or 2 is the most common cause of a rejecte
 Never claim an operation succeeded unless the tool confirmed it. If a save is rejected,
 read the error: the validator states the exact rule that failed.
 
-## The run(scope) contract
+## The developer Python run(scope) contract
 
-Every node's Python, generated or custom, must bind a module-level `run`:
+Every `developer.python` node must bind a module-level `run`:
 
 ```python
 def run(scope):
     return {"total": 4}
 ```
 
-The runtime imports the node's module and calls `run(scope)`. A `run` nested inside a
-class or another function does not count, and a module with no top-level `run` is
-rejected at save time. Whatever `run` returns is stored as that node's output under its
-output variable, so return a JSON-shaped value.
+The custom-computation bridge imports the module and calls `run(scope)`. A `run`
+nested inside a class or another function does not count, and a module with no
+top-level `run` is rejected at save time. The return becomes the node output under
+its output variable. It may be a bounded JSON-shaped value or a supported pandas
+frame. Generated nodes do not use this source contract.
 
 `scope` is a read-only mapping of the run's values, not a plain dict you can assign to:
 
@@ -62,18 +65,16 @@ output variable, so return a JSON-shaped value.
 Read with `scope["name"]` when the value is required, `scope.get("name")` when optional.
 Assigning to `scope` raises. To pass data on, return it.
 
-**`${...}` is resolved in generated node configuration only.** It has no meaning in
-custom Python. In custom source read `scope["prior_output"]` directly. Generated source
-resolves its own placeholders through `scope.resolve(...)`, which is a method on the
-scope object - there is no module-level `resolve` function.
+**`${...}` is resolved by Java in supported generated-node configuration fields.** It
+has no meaning in custom Python. In custom source read `scope["prior_output"]`
+directly. Exact references preserve maps, lists, table rows, scalars, and nulls.
 
 ## Output variables
 
 Every node except `trigger.start` and `control.if` needs one, and it must be:
 
 - a valid Python identifier, not a Python keyword;
-- unique across the whole graph, because a duplicate silently overwrites the earlier
-  node's output in scope;
+- unique across the whole graph; the validator rejects duplicates before execution;
 - not `date`, `triggered_at`, `run_id`, or `_automation_room_id`, which the runtime owns.
 
 The canvas rewrites `${...}` references when a person renames a variable in the UI.
@@ -106,15 +107,17 @@ Four operations, each of which uses the existing SEMOSS database execution path:
 
 | Node | Execution path | Statement it must contain |
 |---|---|---|
-| `database.query` | `SqlQuery` task imported into the run Insight's pandas frame | `SELECT` or `WITH` |
+| `database.query` | Guarded `SqlQuery` task imported once into an Insight-owned table | `SELECT` or `WITH` |
 | `database.insert` | `insertData` | `INSERT` |
 | `database.update` | `updateData` | `UPDATE`, **and a `WHERE` clause** |
 | `database.delete` | `removeData` | `DELETE`, **and a `WHERE` clause** |
 
-`database.query` publishes a pandas `DataFrame` in downstream Python scope. Use DataFrame operations,
-or call `to_dict("records")` only when a downstream API specifically needs row dictionaries. Query nodes cannot
-currently run inside loop bodies because iteration-owned frame outputs are not yet supported. The statement type must
-match the node type; a `SELECT` in a delete node is rejected. The
+Java carries the database table under the query node's output variable. Generated
+configuration may reference an indexed row such as `${query_result[0].ID}`, and a
+for-each loop may iterate the table. A downstream `developer.python` node receives a
+pandas `DataFrame`; use DataFrame operations or `to_dict("records")` only when a
+specific downstream API needs row dictionaries. Database query nodes may run inside
+loop bodies. The statement type must match the node type; a `SELECT` in a delete node is rejected. The
 `WHERE` requirement on update and delete exists because an automation runs unattended
 and an unqualified statement rewrites or empties the whole table.
 

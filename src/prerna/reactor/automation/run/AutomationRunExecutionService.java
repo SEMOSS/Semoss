@@ -504,6 +504,7 @@ final class AutomationRunExecutionService {
 			String bodyEntry = AutomationRuntime.graphEntryNodeId(bodyNodes, bodyEdges);
 			String loopOutputVar = (String) loopNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
 			List<Map<String, Object>> iterationResults = new ArrayList<>();
+			long iterationResultsJsonBytes = 2L;
 			Map<String, Map<String, Object>> bodyNodesById = new LinkedHashMap<>();
 			Map<String, Object> carriedOutputs = new LinkedHashMap<>();
 			for (Map<String, Object> bodyNode : bodyNodes) {
@@ -639,15 +640,14 @@ final class AutomationRunExecutionService {
 				AutomationRunStore.skipPendingNodes(runId, skipped, "Loop branch was not selected");
 				Map<String, Object> iterationResult = new LinkedHashMap<>();
 				iterationResult.put("index", iteration);
-				iterationResult.put("outputs", outputs);
-				iterationResults.add(iterationResult);
+				iterationResult.put("outputs", persistableValue(outputs));
+				iterationResultsJsonBytes = appendBoundedLoopResult(iterationResults, iterationResult,
+						iterationResultsJsonBytes, AutomationConstants.NODE_OUTPUT_MAX_BYTES,
+						"Automation loop '" + loopNodeId + "' collected results");
 				if (AutomationConstants.LOOP_MODE_WHILE.equals(loopMode)) {
 					carriedOutputs.replaceAll((key, value) -> null);
 					carriedOutputs.putAll(outputs);
 				}
-				AutomationRuntimeUtils.toBoundedRuntimeJson(iterationResults,
-						AutomationConstants.NODE_OUTPUT_MAX_BYTES,
-						"Automation loop '" + loopNodeId + "' collected results");
 				} finally {
 					// Child scopes contain immutable values and own no external resources.
 				}
@@ -697,6 +697,61 @@ final class AutomationRunExecutionService {
 			streamNodeProgress(runId, loopNode, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
 			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
 		}
+	}
+
+	/**
+	 * Adds one loop result while maintaining the exact encoded size of the JSON
+	 * array. Only the new result is serialized, avoiding repeated serialization of
+	 * every prior iteration.
+	 *
+	 * @param results      accumulated durable iteration results
+	 * @param result       next durable iteration result
+	 * @param currentBytes encoded UTF-8 size of {@code results}
+	 * @param maximumBytes maximum encoded result size
+	 * @param valueName    contextual value name used in validation errors
+	 * @return encoded UTF-8 size after appending {@code result}
+	 * @throws IllegalArgumentException when the append would exceed the bound
+	 */
+	static long appendBoundedLoopResult(List<Map<String, Object>> results, Map<String, Object> result,
+			long currentBytes, int maximumBytes, String valueName) {
+		String singleton = AutomationRuntimeUtils.toBoundedRuntimeJson(List.of(result), maximumBytes, valueName);
+		long resultBytes = singleton.getBytes(StandardCharsets.UTF_8).length - 2L;
+		long nextBytes = currentBytes + (results.isEmpty() ? 0L : 1L) + resultBytes;
+		if (nextBytes > maximumBytes) {
+			throw new IllegalArgumentException(
+					valueName + " exceeds the maximum of " + maximumBytes + " UTF-8 bytes.");
+		}
+		results.add(result);
+		return nextBytes;
+	}
+
+	/**
+	 * Replaces live frame references with their durable summaries before a value is
+	 * written to run history. Live values remain available in the execution scope.
+	 *
+	 * @param value live execution value
+	 * @return recursively normalized, JSON-safe history value
+	 */
+	static Object persistableValue(Object value) {
+		if (value instanceof AutomationFrameOutput.RegisteredFrame frame) {
+			return frame.summary();
+		}
+		if (value instanceof Map<?, ?> map) {
+			Map<Object, Object> normalized = new LinkedHashMap<>();
+			map.forEach((key, item) -> normalized.put(key, persistableValue(item)));
+			return normalized;
+		}
+		if (value instanceof Collection<?> collection) {
+			return collection.stream().map(AutomationRunExecutionService::persistableValue).toList();
+		}
+		if (value != null && value.getClass().isArray()) {
+			List<Object> normalized = new ArrayList<>(Array.getLength(value));
+			for (int index = 0; index < Array.getLength(value); index++) {
+				normalized.add(persistableValue(Array.get(value, index)));
+			}
+			return normalized;
+		}
+		return value;
 	}
 
 	/** Resolves a loop's literal list or exact scope reference without string coercion. */
@@ -2785,10 +2840,7 @@ final class AutomationRunExecutionService {
 		}
 		for (Map.Entry<?, ?> entry : map.entrySet()) {
 			if (entry.getKey() instanceof String key) {
-				Object scopeValue = entry.getValue();
-				scope.put(key, scopeValue instanceof AutomationFrameOutput.RegisteredFrame frame
-						? frame.summary()
-						: scopeValue);
+				scope.put(key, persistableValue(entry.getValue()));
 			}
 		}
 		return scope;
