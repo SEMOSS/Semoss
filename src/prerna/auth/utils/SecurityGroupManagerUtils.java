@@ -177,11 +177,11 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Whether the user can see who is in a custom group. With no project or engine,
-	 * its managers can. Through a project or engine, its managers can, and so can
-	 * the owners and editors of that project or engine when the group has access to
-	 * it. Being an admin counts for nothing, since an admin can also act as an
-	 * ordinary user. The group must have access, so editing any project does not
-	 * reveal the members of every group.
+	 * its managers can. Through a project or engine, its managers can; so can the
+	 * owners of that project or engine, who see the people they would give access
+	 * to before they give the group access, as they see its managers; and so can
+	 * its editors once the group has access to it. Being an admin counts for
+	 * nothing, since an admin can also act as an ordinary user.
 	 *
 	 * @param user      the user
 	 * @param groupId   the custom group
@@ -200,12 +200,14 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 			return false;
 		}
 		if (projectId != null) {
-			return SecurityGroupProjectUtils.getGroupProjectPermission(groupId, CUSTOM_GROUP_TYPE, projectId) != null
-					&& SecurityProjectUtils.userCanEditProject(user, projectId);
+			return SecurityGroupProjectUtils.userCanManageGroupAccess(user, projectId)
+					|| (SecurityGroupProjectUtils.getGroupProjectPermission(groupId, CUSTOM_GROUP_TYPE,
+							projectId) != null && SecurityProjectUtils.userCanEditProject(user, projectId));
 		}
 		if (engineId != null) {
-			return SecurityGroupEngineUtils.getGroupDatabasePermission(groupId, CUSTOM_GROUP_TYPE, engineId) != null
-					&& SecurityEngineUtils.userCanEditEngine(user, engineId);
+			return SecurityGroupEngineUtils.userCanManageGroupAccess(user, engineId)
+					|| (SecurityGroupEngineUtils.getGroupDatabasePermission(groupId, CUSTOM_GROUP_TYPE,
+							engineId) != null && SecurityEngineUtils.userCanEditEngine(user, engineId));
 		}
 		return false;
 	}
