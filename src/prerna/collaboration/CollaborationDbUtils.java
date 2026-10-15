@@ -514,6 +514,20 @@ public class CollaborationDbUtils {
 		try {
 			// create the tables and columns from the OWL creator schema
 			AbstractOwlCreator.syncSchema(collaborationDb, conn, dbSchema);
+			// A single routine of each kind per owner is required for atomic schedule saves and run claims.
+			var queryUtil = collaborationDb.getQueryUtil();
+			for (String routineTable : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE")) {
+				String routineIndex = routineTable + "_OWNER_UNIQUE";
+				if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, routineIndex,
+						routineTable, collaborationDb.getDatabase(), collaborationDb.getSchema())) {
+					String sql = queryUtil.allowIfExistsIndexSyntax()
+							? queryUtil.createIndexIfNotExists(routineIndex, routineTable, List.of("OWNER_ID", "OWNER_TYPE"))
+							: queryUtil.createIndex(routineIndex, routineTable, List.of("OWNER_ID", "OWNER_TYPE"));
+					try (Statement statement = conn.createStatement()) {
+						statement.execute(sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX"));
+					}
+				}
+			}
 			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)
 			widenColumn(collaborationDb, conn, "BRAIN_TOPIC_PERSON", "ROLE_LABEL", 255);
 

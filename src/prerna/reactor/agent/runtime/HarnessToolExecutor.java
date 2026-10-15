@@ -347,7 +347,7 @@ final class HarnessToolExecutor {
                 outcome = new ToolExecOutcome(value.toString(), !"incomplete".equals(value.optString("status")));
             } else if (state.pptxWorkflow() != null && ("ExecuteNodeCode".equals(tc.rawToolName) || "InspectPptx".equals(tc.rawToolName)
                     || SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, ctx.getAgentConfig().getSubagents()))) {
-                outcome = new ToolExecOutcome("Managed PPTX workflow: save the generator and call BuildPptx. SEMOSS handles review automatically.", false);
+                outcome = new ToolExecOutcome("Managed PPTX workflow: save the generator and call BuildPptx. SEMOSS handles validation, and visual review when it is enabled, automatically.", false);
             } else {
                 outcome = executeToolSafely(tc, ctx, paramMap, jobId, spawnsRemainingInBatch);
             }

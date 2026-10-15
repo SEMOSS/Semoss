@@ -35,6 +35,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.agent.runtime.SemossAgentHarness;
+import prerna.collaboration.InboxBriefHarness;
 
 /**
  * Static registry for {@link IAgentHarness} implementations.
@@ -66,6 +67,7 @@ public final class AgentHarnessRegistry {
 		IAgentHarness semoss = new SemossAgentHarness();
 		IAgentHarness claudeCode = new ClaudeCodeAgentHarness();
 		IAgentHarness githubCopilotPy = new GitHubCopilotPyAgentHarness();
+		m.put(InboxBriefHarness.NAME, new InboxBriefHarness());
 		m.put(semoss.getName(), semoss);
 		m.put(claudeCode.getName(), claudeCode);
 		m.put(githubCopilotPy.getName(), githubCopilotPy);

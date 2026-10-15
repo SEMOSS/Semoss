@@ -175,8 +175,10 @@ public final class SecurityAccessPermissionBatchUtils {
 	 * The people to copy into a target from a source, with the access each has on
 	 * both, so Bulk Access Management can stage additions and show conflicts. From
 	 * a project or an engine, the people given access to it directly are copied,
-	 * not its groups. From a custom group, its members are copied, or its managers,
-	 * which are copied only to another group's managers.
+	 * not its groups. From a custom group, its members or its managers are copied;
+	 * either can go into a group's members or managers, the same group's included,
+	 * so its managers can be copied into its members. Managers are never copied to
+	 * or from a project or an engine.
 	 *
 	 * @param user   the user
 	 * @param source a project, engine, custom group's members or custom group's

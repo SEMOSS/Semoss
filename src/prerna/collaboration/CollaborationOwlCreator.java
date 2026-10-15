@@ -29,6 +29,7 @@ package prerna.collaboration;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.javatuples.Pair;
 
@@ -94,6 +95,24 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("ERROR", CLOB_DATATYPE_NAME),
 				Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("FINISHED_AT", TIMESTAMP_DATATYPE_NAME)));
+
+		// one table per routine kind (WorkRoutine.Kind), same columns
+		for (String routine : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE")) {
+			addTable(routine, Arrays.asList(
+					OWNER_ID, OWNER_TYPE,
+					Pair.with("SETTINGS_JSON", CLOB_DATATYPE_NAME),
+					Pair.with("ENABLED", BOOLEAN_DATATYPE_NAME),
+					Pair.with("LAST_DATE", VARCHAR_20),
+					Pair.with("RUN_STATUS", VARCHAR_20),
+					Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
+					Pair.with("FINISHED_AT", TIMESTAMP_DATATYPE_NAME),
+					Pair.with("LAST_SUCCESS_AT", TIMESTAMP_DATATYPE_NAME),
+					Pair.with("ROOM_ID", VARCHAR_50),
+					Pair.with("RUN_ID", VARCHAR_50),
+					Pair.with("SUMMARY", CLOB_DATATYPE_NAME),
+					Pair.with("ERROR", CLOB_DATATYPE_NAME),
+					Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		}
 
 		// --- Brain: you ---
 		addTable("BRAIN_PROFILE", Arrays.asList(

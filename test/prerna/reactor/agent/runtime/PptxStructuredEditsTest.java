@@ -71,7 +71,7 @@ class PptxStructuredEditsTest {
 			when(ctx.getMaxTurns()).thenReturn(40);
 			when(ctx.getAgentConfig()).thenReturn(prerna.reactor.agent.config.AgentConfig.builder().build());
 			var operations = mock(PptxWorkflow.Operations.class);
-			var workflow = new PptxWorkflow(root, root.resolve("state"), 6, operations);
+			var workflow = new PptxWorkflow(root, root.resolve("state"), 6, operations, true);
 			var state = new AgentLoopState(workflow);
 			var call = ResponseMessage
 					.toolResponses(List.of(Map.of("id", "bad-plan", "name", name, "input", Map.of())));
