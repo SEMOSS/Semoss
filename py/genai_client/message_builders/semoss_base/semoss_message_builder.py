@@ -82,6 +82,13 @@ class SEMOSSMessageBuilder:
                                 SEMOSSMediaMessagePart(media_info=media_part)
                             )
 
+                    elif (
+                        p.get("type") == "THINKING"
+                        and p.get("source") in {"reasoning_content", "reasoning"}
+                        and model_settings.preserve_reasoning_content
+                    ):
+                        process_parts.append(SEMOSSThinkingMessagePart.model_validate(p))
+
                     elif p.get("type") == "TOOL_CALL":
                         tc = p.get("toolCall") or p.get("tool_call")
                         tool_call_part = SEMOSSToolCallMessagePart(
