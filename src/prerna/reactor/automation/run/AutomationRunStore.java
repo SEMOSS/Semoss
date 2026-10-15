@@ -114,6 +114,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
+import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -1050,6 +1051,93 @@ public final class AutomationRunStore {
 	}
 
 	/**
+	 * Searches one project's automation runs using indexed run-level metadata.
+	 * Full input and node payloads are deliberately excluded from this list query;
+	 * callers load an authorized run through {@link GetAutomationRunReactor} after
+	 * selection.
+	 *
+	 * @param projectId   exact project scope to query
+	 * @param search      optional text matched against run ID, summary, creator, and
+	 *                    failure details
+	 * @param status      optional exact run status
+	 * @param triggerType optional exact trigger type
+	 * @param startedAfter optional inclusive UTC lower bound
+	 * @param startedBefore optional inclusive UTC upper bound
+	 * @param offset      zero-based result offset
+	 * @param limit       maximum rows to return
+	 * @return matching run summaries ordered newest first
+	 */
+	public static List<Map<String, Object>> searchRunsForProject(String projectId, String search, String status,
+			String triggerType, Instant startedAfter, Instant startedBefore, long offset, int limit) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) {
+			return new ArrayList<>();
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + PROJECT_ID, PROJECT_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + AUTOMATION_ID, AUTOMATION_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_VERSION, DEFINITION_VERSION));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_HASH, DEFINITION_HASH));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STATUS, STATUS));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TRIGGER_TYPE, TRIGGER_TYPE));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STARTED_AT, STARTED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_AT, COMPLETED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + FAILED_NODE_ID, FAILED_NODE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TOTAL_NODES, TOTAL_NODES));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_NODES, COMPLETED_NODES));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + CREATED_BY, CREATED_BY));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RESULT_SUMMARY_COL, RESULT_SUMMARY_COL));
+
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + PROJECT_ID, "==", projectId,
+				PixelDataType.CONST_STRING));
+		if (search != null && !search.isBlank()) {
+			String normalizedSearch = search.trim();
+			OrQueryFilter textFilter = new OrQueryFilter();
+			textFilter.addFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + RUN_ID, "?like",
+					normalizedSearch));
+			textFilter.addFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + RESULT_SUMMARY_COL,
+					"?like", normalizedSearch));
+			textFilter.addFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + CREATED_BY, "?like",
+					normalizedSearch));
+			textFilter.addFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + FAILED_NODE_ID, "?like",
+					normalizedSearch));
+			textFilter.addFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + ERROR_MESSAGE, "?like",
+					normalizedSearch));
+			qs.addExplicitFilter(textFilter);
+		}
+		if (status != null && !status.isBlank()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + STATUS, "==", status,
+					PixelDataType.CONST_STRING));
+		}
+		if (triggerType != null && !triggerType.isBlank()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + TRIGGER_TYPE, "==",
+					triggerType, PixelDataType.CONST_STRING));
+		}
+		if (startedAfter != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + STARTED_AT, ">=",
+					new SemossDate(startedAfter, ZoneOffset.UTC), PixelDataType.CONST_TIMESTAMP));
+		}
+		if (startedBefore != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + STARTED_AT, "<=",
+					new SemossDate(startedBefore, ZoneOffset.UTC), PixelDataType.CONST_TIMESTAMP));
+		}
+		qs.addOrderBy(TABLE_RUNS + "__" + STARTED_AT,
+				QueryColumnOrderBySelector.ORDER_BY_DIRECTION.DESC.toString());
+		qs.setOffSet(offset);
+		qs.setLimit(limit);
+
+		List<Map<String, Object>> results = new ArrayList<>();
+		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		if (rows != null) {
+			// Preserve exact project isolation even on databases with case-insensitive collations.
+			rows.stream().filter(row -> projectId.equals(row.get(PROJECT_ID))).forEach(results::add);
+		}
+		return results;
+	}
+
+	/**
 	 * Deletes every run of one automation in one run scope, with its source
 	 * snapshot, node outputs, and waits, in one transaction.
 	 *
@@ -1097,6 +1185,7 @@ public final class AutomationRunStore {
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_VERSION, DEFINITION_VERSION));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_HASH, DEFINITION_HASH));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_SNAPSHOT, DEFINITION_SNAPSHOT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + INPUT_SNAPSHOT, INPUT_SNAPSHOT));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STATUS, STATUS));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TRIGGER_TYPE, TRIGGER_TYPE));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STARTED_AT, STARTED_AT));
@@ -1674,6 +1763,7 @@ public final class AutomationRunStore {
 		List<Map<String, Object>> nodeResults = new ArrayList<>();
 		Map<String, Map<String, Object>> parentResults = new LinkedHashMap<>();
 		Map<String, Map<Integer, List<Map<String, Object>>>> loopIterations = new LinkedHashMap<>();
+		Map<String, String> parentOutputValues = new LinkedHashMap<>();
 		if (nodeOutputs == null) {
 			return nodeResults;
 		}
@@ -1693,6 +1783,8 @@ public final class AutomationRunStore {
 				outputForDisplay = outputValue;
 			}
 			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, outputForDisplay);
+			putIfPresent(nodeResult, AutomationConstants.OUTPUT_VAR_NAME,
+					output.get(AutomationConstants.OUTPUT_VAR_NAME));
 			if (outputValue != null && outputValue.length() <= AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH) {
 				nodeResult.put(AutomationConstants.OUTPUT_VALUE, outputValue);
 			}
@@ -1713,7 +1805,11 @@ public final class AutomationRunStore {
 			}
 			if (parentNodeId == null) {
 				nodeResults.add(nodeResult);
-				parentResults.put(String.valueOf(output.get(AutomationConstants.NODE_ID)), nodeResult);
+				String parentId = String.valueOf(output.get(AutomationConstants.NODE_ID));
+				parentResults.put(parentId, nodeResult);
+				if (outputValue != null) {
+					parentOutputValues.put(parentId, outputValue);
+				}
 			} else {
 				Object iterationValue = output.get(AutomationConstants.ITERATION_INDEX);
 				int iteration = iterationValue instanceof Number number ? number.intValue()
@@ -1727,13 +1823,51 @@ public final class AutomationRunStore {
 			if (parentResult == null) {
 				continue;
 			}
+			Map<Integer, Object> inputs = durableLoopInputs(parentOutputValues.get(parent.getKey()));
 			List<Map<String, Object>> iterations = new ArrayList<>();
 			for (Map.Entry<Integer, List<Map<String, Object>>> iteration : parent.getValue().entrySet()) {
-				iterations.add(Map.of("index", iteration.getKey(), "nodeResults", iteration.getValue()));
+				Map<String, Object> iterationResult = new LinkedHashMap<>();
+				iterationResult.put("index", iteration.getKey());
+				iterationResult.put("nodeResults", iteration.getValue());
+				if (inputs.containsKey(iteration.getKey())) {
+					iterationResult.put("input", inputs.get(iteration.getKey()));
+				}
+				iterations.add(iterationResult);
 			}
 			parentResult.put("iterations", iterations);
 		}
 		return nodeResults;
+	}
+
+	/**
+	 * Reads the system-authored iteration inputs from a loop node's durable output.
+	 * User-authored output maps are never inferred as loop history: only a result
+	 * with the loop service's {@code results[index,input]} shape is accepted.
+	 */
+	private static Map<Integer, Object> durableLoopInputs(String outputValue) {
+		if (outputValue == null || outputValue.isBlank()) {
+			return Map.of();
+		}
+		try {
+			Map<String, Object> output = AutomationRuntimeUtils.GSON.fromJson(outputValue,
+					AutomationRuntimeUtils.MAP_TYPE);
+			Object rawResults = output.get("results");
+			if (!(rawResults instanceof List<?> results)) {
+				return Map.of();
+			}
+			Map<Integer, Object> inputs = new LinkedHashMap<>();
+			for (Object rawResult : results) {
+				if (!(rawResult instanceof Map<?, ?> result) || !(result.get("index") instanceof Number index)
+						|| !result.containsKey("input")) {
+					continue;
+				}
+				inputs.put(index.intValue(), result.get("input"));
+			}
+			return inputs;
+		} catch (RuntimeException e) {
+			classLogger.warn("Unable to read durable Automation loop inputs from a node output", e);
+			return Map.of();
+		}
 	}
 
 	// -- Table Creation

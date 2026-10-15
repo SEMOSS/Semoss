@@ -476,6 +476,8 @@ public class AutomationRunExecutionServiceUnitTests {
 		parent.put(AutomationConstants.NODE_ID, "loop");
 		parent.put(AutomationConstants.NODE_LABEL, "Loop");
 		parent.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		parent.put(AutomationConstants.OUTPUT_VALUE,
+				"{\"processed\":1,\"iterations\":1,\"results\":[{\"index\":0,\"input\":{\"veteranNumber\":\"VET-100\"},\"outputs\":{}}]}");
 		Map<String, Object> child = new LinkedHashMap<>();
 		child.put(AutomationConstants.RUN_ID, "run");
 		child.put(AutomationConstants.NODE_ID, "execution-id");
@@ -489,7 +491,9 @@ public class AutomationRunExecutionServiceUnitTests {
 
 		assertEquals(1, results.size());
 		List<Map<String, Object>> iterations = (List<Map<String, Object>>) results.get(0).get("iterations");
+		Map<String, Object> input = (Map<String, Object>) iterations.get(0).get("input");
 		List<Map<String, Object>> nodes = (List<Map<String, Object>>) iterations.get(0).get("nodeResults");
+		assertEquals("VET-100", input.get("veteranNumber"));
 		assertEquals("body-python", nodes.get(0).get(AutomationConstants.NODE_ID));
 	}
 }
