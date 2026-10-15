@@ -51,6 +51,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 import prerna.util.SocialPropertiesUtil;
+import prerna.util.ValueUtils;
 
 /**
  * Base implementation of {@link IAccessTokenFiller} that owns the full OAuth2
@@ -217,7 +218,7 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 		String scope = getRequestedScope(prefix);
 		String authUrl = resolve(socialData.getProperty(prefix + "auth_url"), getDefaultAuthorizeUrl(prefix));
 
-		if (isBlank(authUrl)) {
+		if (ValueUtils.isBlank(authUrl)) {
 			throw new IllegalArgumentException("Authorize URL can not be null or empty");
 		}
 
@@ -229,7 +230,7 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 		if (includeResponseMode()) {
 			sb.append("&response_mode=query");
 		}
-		if (!isBlank(scope)) {
+		if (!ValueUtils.isBlank(scope)) {
 			sb.append("&scope=").append(encode(scope));
 		}
 		if (includeState()) {
@@ -256,7 +257,7 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 		String scope = getRequestedScope(prefix);
 		String tokenUrl = resolve(socialData.getProperty(prefix + "token_url"), getDefaultTokenUrl(prefix));
 
-		if (isBlank(tokenUrl)) {
+		if (ValueUtils.isBlank(tokenUrl)) {
 			throw new IllegalArgumentException("Token URL can not be null or empty");
 		}
 
@@ -266,7 +267,7 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 		params.put("code", code);
 		params.put("grant_type", "authorization_code");
 		params.put("client_secret", clientSecret);
-		if (includeScopeInTokenRequest() && !isBlank(scope)) {
+		if (includeScopeInTokenRequest() && !ValueUtils.isBlank(scope)) {
 			params.put("scope", scope);
 		}
 
@@ -297,7 +298,7 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 			String userInfoUrl = resolve(socialData.getProperty(prefix + "userinfo_url"),
 					getDefaultUserInfoUrl(prefix));
 			// no userinfo endpoint => profile is fetched lazily elsewhere; nothing to fill
-			if (isBlank(userInfoUrl)) {
+			if (ValueUtils.isBlank(userInfoUrl)) {
 				return;
 			}
 			output = userInfoUsesPost()
@@ -410,21 +411,17 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 	 * {@code fallback}.
 	 */
 	protected String resolve(String configured, String fallback) {
-		return isBlank(configured) ? fallback : configured;
+		return ValueUtils.isBlank(configured) ? fallback : configured;
 	}
 
 	/**
 	 * Parse a comma-separated beanProps value, or {@code null} when not configured.
 	 */
 	protected static String[] parseBeanProps(String beanProps) {
-		if (isBlank(beanProps)) {
+		if (ValueUtils.isBlank(beanProps)) {
 			return null;
 		}
 		return beanProps.split(",", -1);
-	}
-
-	protected static boolean isBlank(String value) {
-		return value == null || value.trim().isEmpty();
 	}
 
 	/**

@@ -36,7 +36,7 @@ import prerna.om.Insight;
 
 // Jev (TypeSafe) models: typed choice / noul / score questions. Tuned on brain-mail-v1: no "none of these"
 // choice (it drew most answers), and "is this only informing?" beats "does it ask me?".
-// With one or two topics the policy adds a "Something else" choice itself; one topic alone is never scored.
+// The policy always adds a "Something else" choice itself (real mail is mostly not about any topic).
 final class JevBrainClassifier implements BrainClassifier {
 
 	private static final String[] URGENCY = { "Whenever", "This week", "Today", "Right now" };
@@ -51,37 +51,43 @@ final class JevBrainClassifier implements BrainClassifier {
 
 	@Override
 	public String version() {
-		return "jev-v1:" + engineId;
+		return "jev-v2:" + engineId;
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public Scores score(ThreadInput thread, List<TopicOption> topics, Insight insight) {
 		Map<String, Object> questions = new LinkedHashMap<>();
-		// choice labels are topic names; a repeated name gets its id so labels stay unique
+		// choice labels are topic names; a repeated name gets its id so labels stay
+		// unique
 		Map<String, String> labelToId = new LinkedHashMap<>();
 		if (topics.size() > 1) {
 			Map<String, Object> criteria = new LinkedHashMap<>();
 			for (TopicOption topic : topics) {
-				String label = labelToId.containsKey(topic.name()) ? topic.name() + " (" + topic.id() + ")" : topic.name();
+				String label = labelToId.containsKey(topic.name()) ? topic.name() + " (" + topic.id() + ")"
+						: topic.name();
 				labelToId.put(label, topic.id());
 				criteria.put(label, topic.description());
 			}
-			questions.put("topic", question("choice", "Which of these work topics is this email thread about?", criteria));
+			questions.put("topic",
+					question("choice", "Which of these work topics is this email thread about?", criteria));
 		}
 		questions.put("fyi", question("noul", "Is the newest message only informing (an update, heads-up, approval, "
 				+ "or sign-off) with nothing for anyone to do?", null));
 		questions.put("automated", question("noul", "Is this an automated or bulk message (newsletter, notification, "
 				+ "no-reply, alert) rather than a person writing?", null));
-		questions.put("urgency", question("score", "How urgently does the newest message need a response?",
-				List.of(URGENCY)));
+		questions.put("urgency",
+				question("score", "How urgently does the newest message need a response as of currentTime? "
+						+ "Compare full dates including year, and resolve relative source dates against the message's at timestamp. "
+						+ "An unanswered invitation to a past meeting is not an upcoming response need. "
+						+ "Do not assume a future year for an incomplete event date.", List.of(URGENCY)));
 
-		Map<String, Object> answers = map(engine.evaluate(state(thread), questions, insight, null).getResponse()
-				.get("answers"));
+		Map<String, Object> answers = map(
+				engine.evaluate(state(thread), questions, insight, null).getResponse().get("answers"));
 		if (answers == null) {
 			throw new IllegalStateException("The classifier model returned no answers");
 		}
-		// an answer missing any score is an error for this thread, never a default that files it
+		// an answer missing any score is an error for this thread, never a default that
+		// files it
 		Map<String, Double> topicScores = new LinkedHashMap<>();
 		if (!labelToId.isEmpty()) {
 			Map<String, Object> topic = map(answers.get("topic"));
@@ -104,23 +110,37 @@ final class JevBrainClassifier implements BrainClassifier {
 		return new Scores(topicScores, noul(answers, "fyi"), noul(answers, "automated"), score.doubleValue(), answers);
 	}
 
-	// the thread as Jev state; Jev did best on the newest message alone (two messages and the owner's name
-	// dropped topic accuracy in the fixture eval), so earlier messages stay out
+	// the thread as Jev state; laya did best on the newest message alone (two
+	// messages and the owner's name dropped topic accuracy in the fixture eval), so
+	// earlier messages go in only when the engine's window is set for them
 	static Map<String, Object> state(ThreadInput thread) {
 		Map<String, Object> state = new LinkedHashMap<>();
 		state.put("subject", thread.subject());
 		state.put("participants", thread.participants());
 		state.put("messageCount", thread.messages().size());
-		if (!thread.messages().isEmpty()) {
-			Message m = thread.messages().get(thread.messages().size() - 1);
-			Map<String, Object> message = new LinkedHashMap<>();
-			message.put("from", m.from());
-			message.put("to", m.to());
-			message.put("cc", m.cc());
-			message.put("text", m.text());
-			state.put("newestMessage", message);
+		List<Message> messages = thread.messages();
+		if (!messages.isEmpty()) {
+			state.put("newestMessage", message(messages.get(messages.size() - 1)));
+			if (thread.earlier() && messages.size() > 1) {
+				state.put("earlierMessages",
+						messages.subList(0, messages.size() - 1).stream().map(JevBrainClassifier::message).toList());
+			}
 		}
+		state.put("currentTime", thread.currentTime().toMap());
 		return state;
+	}
+
+	private static Map<String, Object> message(Message m) {
+		Map<String, Object> message = new LinkedHashMap<>();
+		message.put("from", m.from());
+		message.put("to", m.to());
+		message.put("cc", m.cc());
+		message.put("at", m.at());
+		message.put("text", m.text());
+		if (m.footer() != null && !m.footer().isBlank()) {
+			message.put("footer", m.footer());
+		}
+		return message;
 	}
 
 	private static Map<String, Object> question(String type, String instructions, Object criteria) {

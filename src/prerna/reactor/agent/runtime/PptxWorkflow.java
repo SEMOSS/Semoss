@@ -44,6 +44,7 @@ import java.util.zip.ZipFile;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import prerna.collaboration.CollaborationUtils;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 
@@ -56,9 +57,9 @@ final class PptxWorkflow {
 	static final String TOOL = "BuildPptx";
 	static final String PROMPT = """
 			SEMOSS manages this PPTX workflow. Save your complete generator as build-deck.js, then call
-			BuildPptx alone with generator, filePath, expectedSlides and review instructions. BuildPptx runs
-			the generator, independently validates the saved file, and automatically invokes the configured
-			PPTX reviewer. ExecuteNodeCode and manual reviewer delegation are unavailable in this workflow.
+			BuildPptx alone with generator, filePath, expectedSlides and instructions. BuildPptx runs the
+			generator, independently validates the saved file, and invokes the configured PPTX reviewer only
+			when visual review is enabled for this agent. ExecuteNodeCode and manual reviewer delegation are unavailable in this workflow.
 			For an existing presentation, FIRST call PreparePptxEdit with its exact filename and only the
 			requested slide numbers (editType=text for wording changes). It returns the original snapshot,
 			slide order, object IDs, local styles and existing text. For text, text-color and background
@@ -78,6 +79,11 @@ final class PptxWorkflow {
 		JSONObject build(Map<String, Object> arguments) throws Exception;
 
 		JSONObject review(String file, List<Integer> slides, String instructions, String engine) throws Exception;
+
+		/** Why this run cannot visually review without an explicit engine, e.g. no vision model; null when it can. */
+		default String reviewUnavailable() {
+			return null;
+		}
 	}
 
 	private final Path root;
@@ -85,6 +91,8 @@ final class PptxWorkflow {
 	private final Operations operations;
 	private final PptxEditSession edit;
 	private final int repairTurns;
+	private final boolean reviewEnabled;
+	private final String reviewUnavailable;
 	private String phase = "authoring";
 	private String file;
 	private String generator;
@@ -107,6 +115,8 @@ final class PptxWorkflow {
 	private boolean artifactAvailable;
 	private boolean reviewVerified;
 	private boolean proposalDeliverySupported = true;
+	/** Collaboration chats open saved files from room:// links. */
+	boolean roomLinks;
 	private String finalText;
 	private JSONObject validation;
 	private JSONObject savedValidation;
@@ -121,25 +131,46 @@ final class PptxWorkflow {
 		progress = consumer;
 	}
 
-	PptxWorkflow(Path root, Path stateDirectory, int repairTurns, Operations operations) {
+	PptxWorkflow(Path root, Path stateDirectory, int repairTurns, Operations operations, boolean reviewEnabled) {
 		this.root = root.toAbsolutePath().normalize();
 		this.stateDirectory = stateDirectory;
 		this.repairTurns = Math.max(2, Math.min(12, repairTurns));
 		this.operations = operations;
 		this.edit = new PptxEditSession(this.root, stateDirectory);
+		this.reviewEnabled = reviewEnabled;
+		this.reviewUnavailable = reviewEnabled ? operations.reviewUnavailable() : null;
 	}
 
-	static PptxWorkflow create(AgentRunContext ctx) {
+	/**
+	 * A collaboration run whose agent has no managed workflow starts one on its
+	 * first PPTX tool call; until then it runs as an ordinary chat.
+	 */
+	static boolean onDemand(AgentRunContext ctx) {
+		return !ctx.getAgentConfig().hasPptxWorkflow() && ctx.getAgentConfig().getWorkingDir() != null
+				&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+				&& CollaborationUtils.isCollaborationRoom(ctx.getRoom());
+	}
+
+	/** Whether this run already saved workflow state, i.e. started before a pause. */
+	static boolean started(AgentRunContext ctx) {
+		return ctx.getRunId() != null && Files.exists(Path.of(ctx.getAgentConfig().getWorkingDir())
+				.resolve(".semoss/pptx-workflow/" + ctx.getRunId() + "/state.json"));
+	}
+
+	static PptxWorkflow create(AgentRunContext ctx, boolean restore) {
 		var config = ctx.getAgentConfig().getPptxWorkflow();
 		Path root = Path.of(ctx.getAgentConfig().getWorkingDir());
 		String runId = ctx.getRunId();
 		if (runId == null || !runId.matches("[A-Za-z0-9_-]+")) {
 			throw new IllegalArgumentException("Managed PPTX workflow requires a run ID");
 		}
+		// visual review is opt-in: pptx_workflow.review_enabled must be true
 		PptxWorkflow workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/" + runId),
-				((Number) config.getOrDefault("repair_turns", 6)).intValue(), new PptxWorkflowOperations(ctx));
+				((Number) config.getOrDefault("repair_turns", 6)).intValue(), new PptxWorkflowOperations(ctx),
+				Boolean.TRUE.equals(config.get("review_enabled")));
 		workflow.configureDelivery(ctx.getParamMap());
-		if (ctx.isResumeMode()) {
+		workflow.roomLinks = onDemand(ctx);
+		if (restore) {
 			workflow.restore();
 		} else {
 			workflow.captureInputs();
@@ -224,11 +255,11 @@ final class PptxWorkflow {
 						property("integer", "Requested number of slides. Preserve this count on repairs.")
 								.put("minimum", 1).put("maximum", 100))
 				.put("instructions", property("string",
-						"Visual review criteria and design requirements. The original user brief is included automatically."))
+						"Design requirements and, when visual review is enabled, review criteria. The original user brief is included automatically."))
 				.put("engine", property("string",
-						"Optional exact vision engine ID supplied by the caller. Omit to use the regular reviewer's configured default."));
-		return new JSONObject().put("name", TOOL).put("title", "Build and review PowerPoint").put("description",
-				"Run a saved generator, validate the PPTX, and automatically review it. Call alone. Returns only bounded repair instructions when needed; otherwise SEMOSS delivers the saved file and actual check results.")
+						"Optional exact vision engine ID supplied by the caller. Omit to use the regular reviewer's configured default. Ignored when visual review is disabled."));
+		return new JSONObject().put("name", TOOL).put("title", "Build and validate PowerPoint").put("description",
+				"Run a saved generator, validate the PPTX, and visually review it when review is enabled for this agent. Call alone. Returns only bounded repair instructions when needed; otherwise SEMOSS delivers the saved file and actual check results.")
 				.put("inputSchema",
 						new JSONObject().put("type", "object").put("properties", props)
 								.put("required", new JSONArray(List.of("generator", "filePath", "expectedSlides")))
@@ -344,13 +375,22 @@ final class PptxWorkflow {
 	}
 
 	String guidance(int rounds) {
+		String review = !reviewEnabled
+				? " Visual review is disabled for this agent: BuildPptx validates structure only, so keep text within"
+						+ " the documented component limits and do not wait for review findings."
+				: reviewUnavailable == null ? ""
+				: " Visual review is unavailable in this run (" + reviewUnavailable
+						+ "). BuildPptx still checks structure, but no reviewer will look at the slides: keep text within"
+						+ " the documented component limits and do not wait for review findings.";
 		if (repairStarted < 0) {
 			return "PPTX phase: " + phase
-					+ ". For an existing deck call PreparePptxEdit first, use ApplyPptxEdits for supported operations or its snapshot with BuildPptx for other edits. For a new deck save your generator, then BuildPptx.";
+					+ ". For an existing deck call PreparePptxEdit first, use ApplyPptxEdits for supported operations or its snapshot with BuildPptx for other edits. For a new deck save your generator, then BuildPptx."
+					+ review;
 		}
 		return "PPTX phase: " + phase + ". Repair rounds remaining: "
 				+ Math.max(0, repairTurns - (rounds - repairStarted))
-				+ ". Apply only the requested repairs using the complete ApplyPptxEdits plan, or the existing generator with BuildPptx. At the limit SEMOSS will attempt one final build of changed generator code and deliver the latest validated deck.";
+				+ ". Apply only the requested repairs using the complete ApplyPptxEdits plan, or the existing generator with BuildPptx. At the limit SEMOSS will attempt one final build of changed generator code and deliver the latest validated deck."
+				+ review;
 	}
 
 	/** Must be called on the harness thread; BuildPptx is never a parallel tool. */
@@ -403,8 +443,17 @@ final class PptxWorkflow {
 			reviewVerified = false;
 			Files.createDirectories(stateDirectory);
 			Files.copy(source, stateDirectory.resolve("saved.pptx"), StandardCopyOption.REPLACE_EXISTING);
+			if (!reviewEnabled) {
+				finish(null);
+				return toolResult();
+			}
 			if (reviews >= 2) {
 				finishReview("Review budget exhausted; this saved version has not been reviewed.");
+				return toolResult();
+			}
+			// an explicit engine gets its own preflight in review()
+			if (reviewUnavailable != null && (engine == null || engine.isBlank())) {
+				finishReview("Visual review was skipped: " + reviewUnavailable + ".");
 				return toolResult();
 			}
 			phase = "visual_review";
@@ -736,7 +785,9 @@ final class PptxWorkflow {
 		phase = completionError != null ? "incomplete"
 				: completionWarning != null ? "delivered_with_warnings" : "delivered";
 		StringBuilder text = new StringBuilder(
-				available ? "Saved `" + file + "` (" + slides + " slides). Structural checks passed."
+				available ? "Saved " + (roomLinks ? "[" + file + "](room://" + file.replace("%", "%25").replace(" ", "%20")
+						.replace("#", "%23").replace("?", "%3F").replace("(", "%28").replace(")", "%29") + ")"
+						: "`" + file + "`") + " (" + slides + " slides). Structural checks passed."
 						: "Unable to deliver a validated PowerPoint" + (file == null ? "." : ": `" + file + "`."));
 		if (available && edit.active()) {
 			text.append(" The original input is retained. A package change assessment is included in the workflow report.");
@@ -757,7 +808,7 @@ final class PptxWorkflow {
 				text.append(significantSlides(report).isEmpty() ? " Advisory visual findings remain."
 						: " Significant visual findings remain; this file has not passed visual review.");
 			}
-		} else if (available) {
+		} else if (available && reviewEnabled) {
 			text.append("\n\nThis file is available, but it has not passed visual review.");
 		}
 		if (report != null && report.optJSONArray("issues") != null && !report.getJSONArray("issues").isEmpty()) {

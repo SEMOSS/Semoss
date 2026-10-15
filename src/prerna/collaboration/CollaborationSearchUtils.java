@@ -96,7 +96,11 @@ public final class CollaborationSearchUtils {
 		result.put("items", List.of());
 		result.put("workspaces", Map.of("items", List.of(), "total", 0));
 		if ("topic".equals(kind)) {
-			topics.add(BrainTopicUtils.getTopic(user, id));
+			Map<String, Object> topic = BrainTopicUtils.getTopic(user, id);
+			topics.add(topic);
+			for (String personId : ids(topic.get("people"), "personId")) {
+				people.add(BrainPeopleUtils.getPerson(owner.getValue0(), owner.getValue1(), personId));
+			}
 		} else if ("person".equals(kind)) {
 			people.add(BrainPeopleUtils.getPerson(owner.getValue0(), owner.getValue1(), id));
 		} else if ("thread".equals(kind)) {
@@ -115,6 +119,7 @@ public final class CollaborationSearchUtils {
 		} else {
 			throw new IllegalArgumentException("kind must be thread, person, or topic");
 		}
+		result.put("memories", BrainMemoryUtils.listMemories(user, List.of(), kind, id, null, Integer.MAX_VALUE, 0).get("items"));
 		return result;
 	}
 

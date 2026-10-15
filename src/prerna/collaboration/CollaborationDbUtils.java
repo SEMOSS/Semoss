@@ -33,6 +33,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -61,6 +62,7 @@ import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.util.ConnectionUtils;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 
 // Loads the Collaboration database and holds the shared JDBC helpers for the *Utils classes
 public class CollaborationDbUtils {
@@ -72,11 +74,13 @@ public class CollaborationDbUtils {
 
 	static boolean initialized = false;
 
-	// the tables have no unique constraints, so insert-if-absent runs under one lock per owner and area.
+	// the tables have no unique constraints, so insert-if-absent runs under one
+	// lock per owner and area.
 	// Covers one server only.
 	private static final Map<String, Object> OWNER_LOCKS = new ConcurrentHashMap<>();
 
-	// the connection of a batch running on this thread; query, update and inTransaction join it
+	// the connection of a batch running on this thread; query, update and
+	// inTransaction join it
 	private static final ThreadLocal<Connection> BATCH = new ThreadLocal<>();
 
 	private CollaborationDbUtils() {
@@ -186,7 +190,8 @@ public class CollaborationDbUtils {
 		return String.join(", ", Collections.nCopies(count, "?"));
 	}
 
-	// single insert/update/delete; rolls back on failure so a pooled connection goes back clean
+	// single insert/update/delete; rolls back on failure so a pooled connection
+	// goes back clean
 	static int update(String sql, Object... params) {
 		Connection batch = BATCH.get();
 		if (batch != null) {
@@ -218,7 +223,8 @@ public class CollaborationDbUtils {
 		}
 	}
 
-	// several statements on one connection, one commit; needs pooling so the connection is not shared
+	// several statements on one connection, one commit; needs pooling so the
+	// connection is not shared
 	static void inTransaction(TransactionWork work) {
 		Connection batch = BATCH.get();
 		if (batch != null) {
@@ -268,7 +274,8 @@ public class CollaborationDbUtils {
 		}
 	}
 
-	// every query and update this thread runs inside work shares one connection and one commit;
+	// every query and update this thread runs inside work shares one connection and
+	// one commit;
 	// a failure rolls back the whole batch
 	static void batch(TransactionWork work) {
 		if (BATCH.get() != null) {
@@ -320,12 +327,14 @@ public class CollaborationDbUtils {
 		return rs.wasNull() ? null : value;
 	}
 
-	// timestamps are stored as UTC wall time (Utility.getCurrentSqlTimestampUTC), returned as ISO-8601
+	// timestamps are stored as UTC wall time (Utility.getCurrentSqlTimestampUTC),
+	// returned as ISO-8601
 	static String getTimestamp(ResultSet rs, String column) throws SQLException {
 		return toIso(rs.getTimestamp(column));
 	}
 
-	// ISO-8601 instant, offset time, or a plain date (midnight UTC) to UTC wall time; null stays null
+	// ISO-8601 instant, offset time, or a plain date (midnight UTC) to UTC wall
+	// time; null stays null
 	static Timestamp toTimestamp(Object value, String name) {
 		String text = asString(value);
 		if (text == null || text.isBlank()) {
@@ -351,7 +360,8 @@ public class CollaborationDbUtils {
 		return value == null ? null : value.toLocalDateTime().atOffset(ZoneOffset.UTC).toInstant().toString();
 	}
 
-	// ---- partial-save helpers: build "COL = ?" lists from the keys a caller passed ----
+	// ---- partial-save helpers: build "COL = ?" lists from the keys a caller
+	// passed ----
 
 	static void setIfPresent(Map<String, Object> changes, String key, String column, List<String> sets,
 			List<Object> params) {
@@ -405,7 +415,8 @@ public class CollaborationDbUtils {
 		return json == null ? null : GSON.fromJson(json, Map.class);
 	}
 
-	// the first JSON object in a model reply, skipping reasoning blocks, code fences, and stray text; null if none
+	// the first JSON object in a model reply, skipping reasoning blocks, code
+	// fences, and stray text; null if none
 	static Map<String, Object> firstJsonObject(String reply) {
 		if (reply == null) {
 			return null;
@@ -428,7 +439,8 @@ public class CollaborationDbUtils {
 		return null;
 	}
 
-	// index of the brace closing the object that opens at start, or -1; skips braces inside strings
+	// index of the brace closing the object that opens at start, or -1; skips
+	// braces inside strings
 	private static int objectEnd(String text, int start) {
 		int depth = 0;
 		boolean inString = false;
@@ -478,6 +490,13 @@ public class CollaborationDbUtils {
 		}
 		initialize(owlCreator.getDBSchema());
 		initialized = true;
+		// topic notes and thread facts live in BRAIN_MEMORY now; rows left behind move on the next boot
+		try {
+			BrainMemoryMigration.run();
+		} catch (RuntimeException e) {
+			classLogger.error("Moving topic notes and thread facts into Brain memory failed; retrying next boot", e);
+		}
+		BrainMailWebhook.startRenewals();
 	}
 
 	/**
@@ -495,6 +514,20 @@ public class CollaborationDbUtils {
 		try {
 			// create the tables and columns from the OWL creator schema
 			AbstractOwlCreator.syncSchema(collaborationDb, conn, dbSchema);
+			// A single routine per owner is required for atomic schedule saves and daily-run claims.
+			var queryUtil = collaborationDb.getQueryUtil();
+			String routineIndex = "WORK_INBOX_ROUTINE_OWNER_UNIQUE";
+			if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, routineIndex,
+					"WORK_INBOX_ROUTINE", collaborationDb.getDatabase(), collaborationDb.getSchema())) {
+				String sql = queryUtil.allowIfExistsIndexSyntax()
+						? queryUtil.createIndexIfNotExists(routineIndex, "WORK_INBOX_ROUTINE", List.of("OWNER_ID", "OWNER_TYPE"))
+						: queryUtil.createIndex(routineIndex, "WORK_INBOX_ROUTINE", List.of("OWNER_ID", "OWNER_TYPE"));
+				try (Statement statement = conn.createStatement()) {
+					statement.execute(sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX"));
+				}
+			}
+			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)
+			widenColumn(collaborationDb, conn, "BRAIN_TOPIC_PERSON", "ROLE_LABEL", 255);
 
 			AbstractOwlCreator.syncIndexes(collaborationDb, conn, List.of(
 					// owner and sources
@@ -513,8 +546,7 @@ public class CollaborationDbUtils {
 					OwlIndex.of("BRAIN_ACCOUNT_ACCOUNT_ID_INDEX", "BRAIN_ACCOUNT", "OWNER_ID", "OWNER_TYPE",
 							"ACCOUNT_ID"),
 					OwlIndex.of("BRAIN_PERSON_OWNER_INDEX", "BRAIN_PERSON", "OWNER_ID", "OWNER_TYPE"),
-					OwlIndex.of("BRAIN_PERSON_PERSON_ID_INDEX", "BRAIN_PERSON", "OWNER_ID", "OWNER_TYPE",
-							"PERSON_ID"),
+					OwlIndex.of("BRAIN_PERSON_PERSON_ID_INDEX", "BRAIN_PERSON", "OWNER_ID", "OWNER_TYPE", "PERSON_ID"),
 					OwlIndex.of("BRAIN_PERSON_EMAIL_NORM_INDEX", "BRAIN_PERSON", "OWNER_ID", "OWNER_TYPE",
 							"EMAIL_NORM"),
 					OwlIndex.of("BRAIN_PERSON_ADDRESS_OWNER_INDEX", "BRAIN_PERSON_ADDRESS", "OWNER_ID", "OWNER_TYPE"),
@@ -524,6 +556,7 @@ public class CollaborationDbUtils {
 					// brain: topics
 					OwlIndex.of("BRAIN_TOPIC_OWNER_INDEX", "BRAIN_TOPIC", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_TOPIC_TOPIC_ID_INDEX", "BRAIN_TOPIC", "OWNER_ID", "OWNER_TYPE", "TOPIC_ID"),
+					OwlIndex.of("BRAIN_TOPIC_REVIEW_OWNER_INDEX", "BRAIN_TOPIC_REVIEW", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_TOPIC_NOTE_OWNER_INDEX", "BRAIN_TOPIC_NOTE", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_TOPIC_NOTE_TOPIC_ID_INDEX", "BRAIN_TOPIC_NOTE", "OWNER_ID", "OWNER_TYPE",
 							"TOPIC_ID"),
@@ -532,14 +565,18 @@ public class CollaborationDbUtils {
 							"TOPIC_ID"),
 					OwlIndex.of("BRAIN_TOPIC_PERSON_PERSON_ID_INDEX", "BRAIN_TOPIC_PERSON", "OWNER_ID", "OWNER_TYPE",
 							"PERSON_ID"),
+					OwlIndex.of("BRAIN_TOPIC_ROOM_ROOM_ID_INDEX", "BRAIN_TOPIC_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"ROOM_ID"),
+					OwlIndex.of("BRAIN_TOPIC_ROOM_TOPIC_ID_INDEX", "BRAIN_TOPIC_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"TOPIC_ID"),
 
 					// brain: threads
 					OwlIndex.of("BRAIN_THREAD_OWNER_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE"),
-					OwlIndex.of("BRAIN_THREAD_THREAD_ID_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE",
-							"THREAD_ID"),
+					OwlIndex.of("BRAIN_THREAD_THREAD_ID_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE", "THREAD_ID"),
 					OwlIndex.of("BRAIN_THREAD_THREAD_KEY_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE",
 							"THREAD_KEY"),
 					OwlIndex.of("BRAIN_THREAD_TOPIC_OWNER_INDEX", "BRAIN_THREAD_TOPIC", "OWNER_ID", "OWNER_TYPE"),
+					OwlIndex.of("BRAIN_THREAD_TOPIC_REJECTION_INDEX", "BRAIN_THREAD_TOPIC_REJECTION", "OWNER_ID", "OWNER_TYPE", "THREAD_ID", "TOPIC_ID"),
 					OwlIndex.of("BRAIN_THREAD_TOPIC_THREAD_ID_INDEX", "BRAIN_THREAD_TOPIC", "OWNER_ID", "OWNER_TYPE",
 							"THREAD_ID"),
 					OwlIndex.of("BRAIN_THREAD_TOPIC_TOPIC_ID_INDEX", "BRAIN_THREAD_TOPIC", "OWNER_ID", "OWNER_TYPE",
@@ -550,6 +587,12 @@ public class CollaborationDbUtils {
 							"OWNER_TYPE", "THREAD_ID"),
 					OwlIndex.of("BRAIN_THREAD_PARTICIPANT_PERSON_ID_INDEX", "BRAIN_THREAD_PARTICIPANT", "OWNER_ID",
 							"OWNER_TYPE", "PERSON_ID"),
+					OwlIndex.of("BRAIN_THREAD_ALIAS_THREAD_ID_INDEX", "BRAIN_THREAD_ALIAS", "OWNER_ID", "OWNER_TYPE",
+							"THREAD_ID"),
+					OwlIndex.of("BRAIN_THREAD_ROOM_ROOM_ID_INDEX", "BRAIN_THREAD_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"ROOM_ID"),
+					OwlIndex.of("BRAIN_THREAD_ROOM_THREAD_ID_INDEX", "BRAIN_THREAD_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"THREAD_ID"),
 					OwlIndex.of("BRAIN_MESSAGE_OWNER_INDEX", "BRAIN_MESSAGE", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_MESSAGE_MESSAGE_KEY_INDEX", "BRAIN_MESSAGE", "OWNER_ID", "OWNER_TYPE",
 							"MESSAGE_KEY"),
@@ -560,11 +603,20 @@ public class CollaborationDbUtils {
 					OwlIndex.of("BRAIN_RULE_OWNER_INDEX", "BRAIN_RULE", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_RULE_RULE_ID_INDEX", "BRAIN_RULE", "OWNER_ID", "OWNER_TYPE", "RULE_ID"),
 					OwlIndex.of("BRAIN_REVIEW_OWNER_INDEX", "BRAIN_REVIEW", "OWNER_ID", "OWNER_TYPE"),
-					OwlIndex.of("BRAIN_REVIEW_REVIEW_ID_INDEX", "BRAIN_REVIEW", "OWNER_ID", "OWNER_TYPE",
-							"REVIEW_ID"),
+					OwlIndex.of("BRAIN_REVIEW_REVIEW_ID_INDEX", "BRAIN_REVIEW", "OWNER_ID", "OWNER_TYPE", "REVIEW_ID"),
 					OwlIndex.of("BRAIN_CHANGE_OWNER_INDEX", "BRAIN_CHANGE", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_CHANGE_ENTITY_INDEX", "BRAIN_CHANGE", "OWNER_ID", "OWNER_TYPE", "ENTITY_TYPE",
 							"ENTITY_ID"),
+
+					// brain: memory
+					OwlIndex.of("BRAIN_MEMORY_OWNER_INDEX", "BRAIN_MEMORY", "OWNER_ID", "OWNER_TYPE"),
+					OwlIndex.of("BRAIN_MEMORY_MEMORY_ID_INDEX", "BRAIN_MEMORY", "OWNER_ID", "OWNER_TYPE", "MEMORY_ID"),
+					OwlIndex.of("BRAIN_MEMORY_LINK_MEMORY_ID_INDEX", "BRAIN_MEMORY_LINK", "OWNER_ID", "OWNER_TYPE",
+							"MEMORY_ID"),
+					OwlIndex.of("BRAIN_MEMORY_LINK_REF_INDEX", "BRAIN_MEMORY_LINK", "OWNER_ID", "OWNER_TYPE",
+							"REF_TYPE", "REF_ID"),
+					OwlIndex.of("BRAIN_MEMORY_SCAN_ROOM_INDEX", "BRAIN_MEMORY_SCAN", "OWNER_ID", "OWNER_TYPE",
+							"ROOM_ID"),
 
 					// work
 					OwlIndex.of("WORK_ITEM_OWNER_INDEX", "WORK_ITEM", "OWNER_ID", "OWNER_TYPE"),
@@ -589,6 +641,31 @@ public class CollaborationDbUtils {
 			if (conn != null && collaborationDb.isConnectionPooling()) {
 				conn.close();
 			}
+		}
+	}
+
+	// grows a VARCHAR column created narrower by an earlier schema; never shrinks one
+	private static void widenColumn(IRDBMSEngine db, Connection conn, String table, String column, int size)
+			throws SQLException {
+		Integer current = null;
+		for (String[] name : new String[][] { { table, column }, { table.toLowerCase(), column.toLowerCase() } }) {
+			try (ResultSet rs = conn.getMetaData().getColumns(db.getDatabase(), db.getSchema(), name[0], name[1])) {
+				if (rs.next()) {
+					current = rs.getInt("COLUMN_SIZE");
+					break;
+				}
+			}
+		}
+		if (current == null || current >= size) {
+			return;
+		}
+		String type = "VARCHAR(" + size + ")";
+		String sql = db.getQueryUtil().getDbType() == RdbmsTypeEnum.POSTGRES
+				? "ALTER TABLE " + table + " ALTER COLUMN " + column + " TYPE " + type
+				: db.getQueryUtil().modColumnType(table, column, type);
+		classLogger.info("Widening {}.{} from VARCHAR({}) to {}", table, column, current, type);
+		try (Statement stmt = conn.createStatement()) {
+			stmt.execute(sql);
 		}
 	}
 }

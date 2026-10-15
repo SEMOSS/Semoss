@@ -109,7 +109,8 @@ public final class CollaborationSourceUtils {
 		}
 	}
 
-	// ---- source connections (one row per owner and source: email, calendar, teams) ----
+	// ---- source connections (one row per owner and source: email, calendar,
+	// teams) ----
 
 	public static List<Map<String, Object>> getSources(String ownerId, String ownerType) {
 		return CollaborationDbUtils.query(
@@ -166,7 +167,6 @@ public final class CollaborationSourceUtils {
 		CollaborationDbUtils.update(
 				"INSERT INTO SOURCE_CONNECTION (OWNER_ID, OWNER_TYPE, SOURCE, ENABLED, REAUTH_NEEDED, CREATED_AT, "
 						+ "UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?)",
-				ownerId, ownerType, source, enabled, false, CollaborationDbUtils.now(),
-				CollaborationDbUtils.now());
+				ownerId, ownerType, source, enabled, false, CollaborationDbUtils.now(), CollaborationDbUtils.now());
 	}
 }

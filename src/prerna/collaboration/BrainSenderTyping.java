@@ -40,20 +40,23 @@ public final class BrainSenderTyping {
 
 	public static final String AUTOMATED = "automated";
 	private static final String SUGGESTED = "suggested";
+
 	private BrainSenderTyping() {
 	}
 
 	/**
-	 * After a classifier run: a sender the owner never wrote to, all of whose threads the classifier marked
-	 * automated, is suggested as automated; one who no longer fits goes back to the ranking.
-	 * Returns how many people are automated.
+	 * After a classifier run: a sender the owner never wrote to, all of whose
+	 * threads the classifier marked automated, is suggested as automated; one who
+	 * no longer fits goes back to the ranking. Returns how many people are
+	 * automated.
 	 */
 	public static int fromThreads(String ownerId, String ownerType) {
-		String selfId = CollaborationDbUtils.queryOne("SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? AND "
-				+ "OWNER_TYPE = ? AND RELATIONSHIP = ?", rs -> rs.getString(1), ownerId, ownerType, "self");
-		Set<String> automatedThreads = new HashSet<>(CollaborationDbUtils.query("SELECT THREAD_ID FROM BRAIN_THREAD "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND AUTOMATED = ?", rs -> rs.getString(1), ownerId, ownerType,
-				true));
+		String selfId = CollaborationDbUtils.queryOne(
+				"SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? AND " + "OWNER_TYPE = ? AND RELATIONSHIP = ?",
+				rs -> rs.getString(1), ownerId, ownerType, "self");
+		Set<String> automatedThreads = new HashSet<>(CollaborationDbUtils.query(
+				"SELECT THREAD_ID FROM BRAIN_THREAD " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND AUTOMATED = ?",
+				rs -> rs.getString(1), ownerId, ownerType, true));
 		// threads each person wrote on, and who wrote on each thread
 		Map<String, Set<String>> threadsOf = new HashMap<>();
 		Map<String, Set<String>> sendersOf = new HashMap<>();
@@ -72,8 +75,9 @@ public final class BrainSenderTyping {
 
 		int automated = 0;
 		List<Object[]> changes = new ArrayList<>();
-		for (Object[] p : CollaborationDbUtils.query("SELECT PERSON_ID, RELATIONSHIP, RELATIONSHIP_STATE FROM "
-				+ "BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+		for (Object[] p : CollaborationDbUtils.query(
+				"SELECT PERSON_ID, RELATIONSHIP, RELATIONSHIP_STATE FROM "
+						+ "BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> new Object[] { rs.getString(1), rs.getString(2), rs.getString(3) }, ownerId, ownerType)) {
 			String id = (String) p[0];
 			boolean isAutomated = AUTOMATED.equals(p[1]);
@@ -84,19 +88,29 @@ public final class BrainSenderTyping {
 			}
 			Set<String> threads = threadsOf.getOrDefault(id, Set.of());
 			boolean fits = !youWrote.contains(id) && !threads.isEmpty() && automatedThreads.containsAll(threads);
-			automated += fits ? 1 : 0;
+			// a sender vote typed them: their own threads are automated, even if they also wrote on someone's thread
+			Set<String> solo = new HashSet<>();
+			for (String thread : threads) {
+				if (sendersOf.getOrDefault(thread, Set.of()).size() == 1) {
+					solo.add(thread);
+				}
+			}
+			boolean keeps = isAutomated && !youWrote.contains(id) && solo.size() >= BrainSenderVote.MIN_THREADS
+					&& automatedThreads.containsAll(solo);
+			automated += fits || keeps ? 1 : 0;
 			if (fits && !isAutomated) {
 				changes.add(new Object[] { AUTOMATED, SUGGESTED, id });
-			} else if (!fits && isAutomated) {
+			} else if (!fits && !keeps && isAutomated) {
 				// ranking sets colleague or external again
 				changes.add(new Object[] { null, null, id });
 			}
 		}
 		CollaborationDbUtils.batch(conn -> {
 			for (Object[] c : changes) {
-				CollaborationDbUtils.update(conn, "UPDATE BRAIN_PERSON SET RELATIONSHIP = ?, RELATIONSHIP_STATE = ?, "
-						+ "UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?", c[0], c[1],
-						CollaborationDbUtils.now(), ownerId, ownerType, c[2]);
+				CollaborationDbUtils.update(conn,
+						"UPDATE BRAIN_PERSON SET RELATIONSHIP = ?, RELATIONSHIP_STATE = ?, "
+								+ "UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?",
+						c[0], c[1], CollaborationDbUtils.now(), ownerId, ownerType, c[2]);
 			}
 		});
 		return automated;

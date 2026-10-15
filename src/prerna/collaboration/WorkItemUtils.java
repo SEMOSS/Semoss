@@ -37,6 +37,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,8 +57,10 @@ public final class WorkItemUtils {
 	public static final Set<String> STATUSES = Set.of("open", "waiting", "done", "dismissed", "snoozed");
 	public static final Set<String> PRIORITIES = Set.of("P0", "P1", "P2", "P3");
 	public static final Set<String> CHANNELS = Set.of("email", "teams", "calendar", "room", "task");
+	// the owner's "this never needed me", kept apart from done as a correction for the classifier
+	public static final String NO_RESPONSE_NEEDED = "no_response_needed";
 	public static final Set<String> CLOSED_REASONS = Set.of("replied", "responded", "deleted", "by_owner", "by_agent",
-			"expired");
+			"expired", "kept_out", "automated", NO_RESPONSE_NEEDED);
 
 	public static final String YOU = BrainProfileUtils.YOU;
 	public static final String BRAIN = "brain";
@@ -115,9 +118,12 @@ public final class WorkItemUtils {
 
 	// ---- read ----
 
-	// filter keys (all optional): statuses, askTypes, notAskTypes (lists), channel, topicId (thread link or
-	// linked topic), threadId, suggested, assigned (true: someone else's), closedSince (ISO), sort
-	// (priority | received | closed). Snoozed items whose time has come reopen first.
+	// filter keys (all optional): statuses, askTypes, notAskTypes (lists), channel,
+	// topicId (thread link or
+	// linked topic), threadId, suggested, assigned (true: someone else's),
+	// closedSince (ISO), sort
+	// (priority | received | closed). Snoozed items whose time has come reopen
+	// first.
 	public static Map<String, Object> listItems(User user, Map<String, Object> filter, int limit, int offset) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
@@ -138,9 +144,8 @@ public final class WorkItemUtils {
 			throw new IllegalArgumentException("Work item sort must be priority, received, or closed");
 		}
 
-		List<Map<String, Object>> items = CollaborationDbUtils.query(
-				CollaborationDbUtils.page("SELECT " + ITEM_COLUMNS + " FROM WORK_ITEM w" + where + order, limit,
-						offset),
+		List<Map<String, Object>> items = CollaborationDbUtils.query(CollaborationDbUtils
+				.page("SELECT " + ITEM_COLUMNS + " FROM WORK_ITEM w" + where + order, limit, offset),
 				WorkItemUtils::mapItem, params.toArray());
 		addTopicIds(ownerId, ownerType, items);
 
@@ -150,7 +155,8 @@ public final class WorkItemUtils {
 		return page;
 	}
 
-	// WorkListItems: one queue view (all = every item, for a client that filters itself), plus the collapsed
+	// WorkListItems: one queue view (all = every item, for a client that filters
+	// itself), plus the collapsed
 	// FYI count and the automated threads left out of the queue
 	public static Map<String, Object> listView(User user, String view, String topicId, String channel, String sort,
 			int limit, int offset) {
@@ -196,9 +202,11 @@ public final class WorkItemUtils {
 		fyi.put("hideMuted", true);
 		page.put("fyiCount", countItems(user, fyi));
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		page.put("automatedSkippedCount", CollaborationDbUtils.count("SELECT COUNT(*) FROM BRAIN_THREAD "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND AUTOMATED = ?", owner.getValue0(), owner.getValue1(),
-				true));
+		page.put("automatedSkippedCount",
+				CollaborationDbUtils.count(
+						"SELECT COUNT(*) FROM BRAIN_THREAD "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND AUTOMATED = ?",
+						owner.getValue0(), owner.getValue1(), true));
 		return page;
 	}
 
@@ -228,10 +236,14 @@ public final class WorkItemUtils {
 
 	// ---- create ----
 
-	// ingest: one item per dedupeKey, so a retried delivery returns the first item; a muted thread gets none.
-	// required: threadId, channel, title, askType, receivedAt, dedupeKey. optional: sourceRef, actorType,
-	// actorId, actorName, priority, score, reasons, dueAt, linkTopicId, classifierVersion, status (open or
-	// waiting), origin (brain or assistant), suggested (brain unsure; the owner confirms), reason
+	// ingest: one item per dedupeKey, so a retried delivery returns the first item;
+	// a muted thread gets none.
+	// required: threadId, channel, title, askType, receivedAt, dedupeKey. optional:
+	// sourceRef, actorType,
+	// actorId, actorName, priority, score, reasons, dueAt, linkTopicId,
+	// classifierVersion, status (open or
+	// waiting), origin (brain or assistant), suggested (brain unsure; the owner
+	// confirms), reason
 	public static Map<String, Object> createFromIngest(String ownerId, String ownerType, Map<String, Object> item) {
 		String dedupeKey = required(item, "dedupeKey");
 		String threadId = required(item, "threadId");
@@ -255,16 +267,17 @@ public final class WorkItemUtils {
 
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
 			Map<String, Object> result = new LinkedHashMap<>();
-			String existing = CollaborationDbUtils.queryOne("SELECT ITEM_ID FROM WORK_ITEM WHERE OWNER_ID = ? "
-					+ "AND OWNER_TYPE = ? AND DEDUPE_KEY = ?", rs -> rs.getString(1), ownerId, ownerType, dedupeKey);
+			String existing = CollaborationDbUtils.queryOne(
+					"SELECT ITEM_ID FROM WORK_ITEM WHERE OWNER_ID = ? " + "AND OWNER_TYPE = ? AND DEDUPE_KEY = ?",
+					rs -> rs.getString(1), ownerId, ownerType, dedupeKey);
 			if (existing != null) {
 				result.put("created", false);
 				result.put("item", getItem(ownerId, ownerType, existing));
 				return result;
 			}
-			Boolean muted = CollaborationDbUtils.queryOne("SELECT MUTED FROM BRAIN_THREAD WHERE OWNER_ID = ? "
-					+ "AND OWNER_TYPE = ? AND THREAD_ID = ?", rs -> CollaborationDbUtils.getBoolean(rs, "MUTED"),
-					ownerId, ownerType, threadId);
+			Boolean muted = CollaborationDbUtils.queryOne(
+					"SELECT MUTED FROM BRAIN_THREAD WHERE OWNER_ID = ? " + "AND OWNER_TYPE = ? AND THREAD_ID = ?",
+					rs -> CollaborationDbUtils.getBoolean(rs, "MUTED"), ownerId, ownerType, threadId);
 			if (muted == null) {
 				throw new IllegalArgumentException("Thread not found");
 			}
@@ -283,19 +296,19 @@ public final class WorkItemUtils {
 			String itemId = CollaborationDbUtils.deterministicId(ownerId, ownerType, "work_item", dedupeKey);
 			insert(ownerId, ownerType, itemId, threadId, channel, CollaborationDbUtils.asString(item.get("sourceRef")),
 					actorType, actorId, CollaborationDbUtils.asString(item.get("actorName")), title, askType, origin,
-					priority, score, reasons(item.get("reasons")), CollaborationDbUtils.toTimestamp(item.get("dueAt"),
-							"dueAt"),
-					receivedAt, status, null, linkTopicId,
+					priority, score, reasons(item.get("reasons")),
+					CollaborationDbUtils.toTimestamp(item.get("dueAt"), "dueAt"), receivedAt, status, null, linkTopicId,
 					CollaborationDbUtils.asString(item.get("classifierVersion")), dedupeKey,
-					ASSISTANT.equals(origin) || Boolean.TRUE.equals(item.get("suggested")),
-					origin, CollaborationDbUtils.asString(item.getOrDefault("reason", "ingest")));
+					ASSISTANT.equals(origin) || Boolean.TRUE.equals(item.get("suggested")), origin,
+					CollaborationDbUtils.asString(item.getOrDefault("reason", "ingest")));
 			result.put("created", true);
 			result.put("item", getItem(ownerId, ownerType, itemId));
 			return result;
 		}
 	}
 
-	// WorkCreateItem: the owner's own item (priority P2), or an assistant suggestion that stays suggested until
+	// WorkCreateItem: the owner's own item (priority P2), or an assistant
+	// suggestion that stays suggested until
 	// the owner accepts it (suggested=false)
 	public static Map<String, Object> createItem(User user, String threadId, String title, String askType,
 			String assignee, String dueAt, boolean byAssistant) {
@@ -321,14 +334,15 @@ public final class WorkItemUtils {
 	// ---- update ----
 
 	// WorkUpdateItem from the owner
-	public static Map<String, Object> updateItem(User user, String itemId, Map<String, Object> changes,
-			String reason) {
+	public static Map<String, Object> updateItem(User user, String itemId, Map<String, Object> changes, String reason) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		return updateItem(owner.getValue0(), owner.getValue1(), itemId, changes, YOU, reason);
 	}
 
-	// changes: any of EDITABLE. snoozeUntil alone means snoozed; leaving snoozed clears it; done or dismissed
-	// sets closedAt and closedReason (by_owner or by_agent unless given); reopening clears both.
+	// changes: any of EDITABLE. snoozeUntil alone means snoozed; leaving snoozed
+	// clears it; done or dismissed
+	// sets closedAt and closedReason (by_owner or by_agent unless given); reopening
+	// clears both.
 	// Returns the item with its changeId; no change writes no history.
 	public static Map<String, Object> updateItem(String ownerId, String ownerType, String itemId,
 			Map<String, Object> changes, String actor, String reason) {
@@ -353,9 +367,150 @@ public final class WorkItemUtils {
 		}
 	}
 
+	private static String followUp(String status, String closedReason) {
+		if ("replied".equals(closedReason)) {
+			return "Follow-up after your reply";
+		} else if (NO_RESPONSE_NEEDED.equals(closedReason)) {
+			return "Follow-up; you said the last one needed no response";
+		} else if (DONE.equals(status)) {
+			return "Follow-up; you marked the last one done";
+		}
+		return "Follow-up on a closed item";
+	}
+
+	// a classifier verdict on a thread's newest message, against the Work the thread already has: open and waiting
+	// items update in place (room link kept), a snoozed item keeps its snooze, a closed thread gets a new item only
+	// for a new ask, and a thread with no item gets one as before. Same item fields as createFromIngest
+	public static Map<String, Object> ingestOnThread(String ownerId, String ownerType, Map<String, Object> item) {
+		String dedupeKey = required(item, "dedupeKey");
+		String threadId = required(item, "threadId");
+		String askType = check(ASK_TYPES, required(item, "askType"), "askType");
+		boolean ask = !"fyi".equals(askType) && !"waiting_on".equals(askType);
+		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
+			Map<String, Object> result = new LinkedHashMap<>();
+			result.put("created", false);
+			// a replay of the same newest message changes nothing
+			String seen = CollaborationDbUtils.queryOne("SELECT ITEM_ID FROM WORK_ITEM WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND DEDUPE_KEY = ?", rs -> rs.getString(1), ownerId, ownerType, dedupeKey);
+			if (seen != null) {
+				result.put("item", getItem(ownerId, ownerType, seen));
+				return result;
+			}
+			String[] active = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
+					"SELECT ITEM_ID, STATUS, ASK_TYPE FROM WORK_ITEM WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+							+ "AND THREAD_ID = ? AND STATUS IN (?, ?, ?) ORDER BY RECEIVED_AT DESC, ITEM_ID",
+					1, 0), rs -> new String[] { rs.getString(1), rs.getString(2), rs.getString(3) }, ownerId,
+					ownerType, threadId, OPEN, WAITING, SNOOZED);
+			if (active == null) {
+				String[] closed = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
+						"SELECT STATUS, CLOSED_REASON FROM WORK_ITEM WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+								+ "AND THREAD_ID = ? ORDER BY RECEIVED_AT DESC, ITEM_ID",
+						1, 0), rs -> new String[] { rs.getString(1), rs.getString(2) }, ownerId, ownerType, threadId);
+				if (closed == null) {
+					return createFromIngest(ownerId, ownerType, item);
+				}
+				// done or dismissed: a thanks or an update is context, not new work
+				if (!ask) {
+					result.put("skipped", "closed");
+					return result;
+				}
+				// a new ask after a closed one says so, so it doesn't read as a duplicate
+				Map<String, Object> followUp = new LinkedHashMap<>(item);
+				List<Object> reasons = new ArrayList<>();
+				reasons.add(followUp(closed[0], closed[1]));
+				if (item.get("reasons") instanceof List<?> given) {
+					reasons.addAll(given);
+				}
+				followUp.put("reasons", reasons);
+				return createFromIngest(ownerId, ownerType, followUp);
+			}
+			String itemId = active[0];
+			String status = active[1];
+			boolean wasAsk = !"fyi".equals(active[2]) && !"waiting_on".equals(active[2]);
+			result.put("item", getItem(ownerId, ownerType, itemId));
+			if (SNOOZED.equals(status)) {
+				result.put("skipped", SNOOZED);
+				return result;
+			}
+			if (WAITING.equals(status) && "fyi".equals(askType)) {
+				// they answered with nothing more to do
+				Map<String, String> current = currentValues(ownerId, ownerType, itemId);
+				apply(ownerId, ownerType, itemId, current,
+						next(ownerId, ownerType, current, Map.of("status", DONE, "closedReason", "responded"), BRAIN),
+						BRAIN, "they replied");
+				result.put("closed", true);
+				result.put("item", getItem(ownerId, ownerType, itemId));
+				return result;
+			}
+			// an open ask is not turned into an update or a wait by a later message
+			if (OPEN.equals(status) && wasAsk && !ask) {
+				result.put("skipped", OPEN);
+				return result;
+			}
+			updateInPlace(ownerId, ownerType, itemId, item, ask ? OPEN : WAITING.equals(item.get("status")) ? WAITING
+					: status);
+			result.put("updated", true);
+			result.put("item", getItem(ownerId, ownerType, itemId));
+			return result;
+		}
+	}
+
+	// the item now stands for the newest message: its source, time, ask, actor and score follow the verdict; the
+	// owner's own priority and a confirmed suggestion stay, and a topic is only filled in when missing
+	private static void updateInPlace(String ownerId, String ownerType, String itemId, Map<String, Object> item,
+			String status) {
+		Map<String, Object> before = CollaborationDbUtils.queryOne("SELECT SOURCE_REF, LINK_TOPIC_ID "
+				+ "FROM WORK_ITEM WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ITEM_ID = ?", rs -> {
+					Map<String, Object> row = new LinkedHashMap<>();
+					row.put("sourceRef", CollaborationDbUtils.getString(rs, "SOURCE_REF"));
+					row.put("linkTopicId", CollaborationDbUtils.getString(rs, "LINK_TOPIC_ID"));
+					return row;
+				}, ownerId, ownerType, itemId);
+		String sourceRef = CollaborationDbUtils.asString(item.get("sourceRef"));
+		Integer score = item.get("score") == null ? null : CollaborationDbUtils.toInt(item.get("score"), "score");
+		Timestamp now = CollaborationDbUtils.now();
+		CollaborationDbUtils.inTransaction(conn -> {
+			CollaborationDbUtils.update(conn,
+					"UPDATE WORK_ITEM SET SOURCE_REF = ?, RECEIVED_AT = ?, ASK_TYPE = ?, ACTOR_TYPE = ?, ACTOR_ID = ?, "
+							+ "ACTOR_NAME = ?, SCORE = ?, REASONS_JSON = ?, CLASSIFIER_VERSION = ?, DEDUPE_KEY = ?, "
+							+ "PROCESSED_AT = ?, UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ITEM_ID = ?",
+					sourceRef, CollaborationDbUtils.toTimestamp(required(item, "receivedAt"), "receivedAt"),
+					required(item, "askType"), CollaborationDbUtils.asString(item.get("actorType")),
+					CollaborationDbUtils.asString(item.get("actorId")),
+					CollaborationDbUtils.asString(item.get("actorName")), score,
+					CollaborationDbUtils.toJson(reasons(item.get("reasons"))),
+					CollaborationDbUtils.asString(item.get("classifierVersion")), required(item, "dedupeKey"), now, now,
+					ownerId, ownerType, itemId);
+			insertHistory(conn, ownerId, ownerType, itemId, UUID.randomUUID().toString(), BRAIN, now, "sourceRef",
+					(String) before.get("sourceRef"), sourceRef, "new message");
+		});
+		Map<String, Object> changes = new LinkedHashMap<>();
+		changes.put("status", status);
+		if (!ownerSet(ownerId, ownerType, itemId, "priority")) {
+			changes.put("priority", item.get("priority"));
+		}
+		// a suggestion the owner confirmed or rejected stays theirs
+		if (!ownerSet(ownerId, ownerType, itemId, "suggested")) {
+			changes.put("suggested", Boolean.TRUE.equals(item.get("suggested")));
+		}
+		if (before.get("linkTopicId") == null && item.get("linkTopicId") != null) {
+			changes.put("linkTopicId", item.get("linkTopicId"));
+		}
+		Map<String, String> current = currentValues(ownerId, ownerType, itemId);
+		apply(ownerId, ownerType, itemId, current, next(ownerId, ownerType, current, changes, BRAIN), BRAIN,
+				"new message");
+	}
+
+	// the owner changed this field themselves at some point
+	private static boolean ownerSet(String ownerId, String ownerType, String itemId, String field) {
+		return CollaborationDbUtils.exists("SELECT 1 FROM WORK_ITEM_HISTORY WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+				+ "AND ITEM_ID = ? AND FIELD = ? AND CHANGED_BY = ?", ownerId, ownerType, itemId, field, YOU);
+	}
+
 	// ---- ingest events ----
 
-	// the owner replied on the thread: close open reply items received at or before the send
+	// the owner replied on the thread: close open reply items received at or before
+	// the send
 	public static List<String> closeOnReply(String ownerId, String ownerType, String threadId, String sentAt) {
 		return closeWhere(ownerId, ownerType, " AND THREAD_ID = ? AND ASK_TYPE = ? AND RECEIVED_AT <= ?",
 				List.of(threadId, "reply", CollaborationDbUtils.toTimestamp(sentAt, "sentAt")), DONE, "replied",
@@ -368,12 +523,70 @@ public final class WorkItemUtils {
 				"message deleted");
 	}
 
+	// a keep-out rule now covers these senders: dismiss what they raised, remembering the rule
+	public static List<String> dismissForRule(String ownerId, String ownerType, List<String> personIds, String ruleId) {
+		if (personIds.isEmpty()) {
+			return List.of();
+		}
+		List<String> ids = closeWhere(ownerId, ownerType,
+				" AND ACTOR_ID IN (" + String.join(", ", Collections.nCopies(personIds.size(), "?")) + ")",
+				new ArrayList<>(personIds), DISMISSED, "kept_out", "kept out by a rule");
+		for (String itemId : ids) {
+			CollaborationDbUtils.update("UPDATE WORK_ITEM SET CLOSED_RULE_ID = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+					+ "AND ITEM_ID = ?", ruleId, ownerId, ownerType, itemId);
+		}
+		return ids;
+	}
+
+	// the rule was deleted: what it dismissed comes back
+	public static List<String> reopenForRule(String ownerId, String ownerType, String ruleId) {
+		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
+			List<String> ids = CollaborationDbUtils.query("SELECT ITEM_ID FROM WORK_ITEM WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND CLOSED_RULE_ID = ? AND STATUS = ? ORDER BY ITEM_ID",
+					rs -> rs.getString(1), ownerId, ownerType, ruleId, DISMISSED);
+			for (String itemId : ids) {
+				Map<String, String> current = currentValues(ownerId, ownerType, itemId);
+				apply(ownerId, ownerType, itemId, current,
+						next(ownerId, ownerType, current, Map.of("status", OPEN), BRAIN), BRAIN, "keep-out rule removed");
+			}
+			CollaborationDbUtils.update("UPDATE WORK_ITEM SET CLOSED_RULE_ID = NULL WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+					+ "AND CLOSED_RULE_ID = ?", ownerId, ownerType, ruleId);
+			return ids;
+		}
+	}
+
+	// the owner said the thread is not automated: what was dismissed as automated comes back
+	public static List<String> reopenAutomated(String ownerId, String ownerType, String threadId) {
+		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
+			List<String> ids = CollaborationDbUtils.query("SELECT ITEM_ID FROM WORK_ITEM WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND THREAD_ID = ? AND STATUS = ? AND CLOSED_REASON = ? ORDER BY ITEM_ID",
+					rs -> rs.getString(1), ownerId, ownerType, threadId, DISMISSED, "automated");
+			for (String itemId : ids) {
+				Map<String, String> current = currentValues(ownerId, ownerType, itemId);
+				apply(ownerId, ownerType, itemId, current,
+						next(ownerId, ownerType, current, Map.of("status", OPEN), BRAIN), BRAIN, "owner: not automated");
+			}
+			return ids;
+		}
+	}
+
+	// the sender turned out to be automated: dismiss what their threads raised
+	public static List<String> dismissAutomated(String ownerId, String ownerType, List<String> threadIds) {
+		if (threadIds.isEmpty()) {
+			return List.of();
+		}
+		return closeWhere(ownerId, ownerType,
+				" AND THREAD_ID IN (" + String.join(", ", Collections.nCopies(threadIds.size(), "?")) + ")",
+				new ArrayList<>(threadIds), DISMISSED, "automated", "sender is automated");
+	}
+
 	// snoozed items whose time has come go back to open
 	static void wakeSnoozed(String ownerId, String ownerType) {
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
-			for (String itemId : CollaborationDbUtils.query("SELECT ITEM_ID FROM WORK_ITEM WHERE OWNER_ID = ? "
-					+ "AND OWNER_TYPE = ? AND STATUS = ? AND SNOOZE_UNTIL <= ?", rs -> rs.getString(1), ownerId,
-					ownerType, SNOOZED, CollaborationDbUtils.now())) {
+			for (String itemId : CollaborationDbUtils.query(
+					"SELECT ITEM_ID FROM WORK_ITEM WHERE OWNER_ID = ? "
+							+ "AND OWNER_TYPE = ? AND STATUS = ? AND SNOOZE_UNTIL <= ?",
+					rs -> rs.getString(1), ownerId, ownerType, SNOOZED, CollaborationDbUtils.now())) {
 				Map<String, String> current = currentValues(ownerId, ownerType, itemId);
 				Map<String, String> next = new LinkedHashMap<>(current);
 				next.put("status", OPEN);
@@ -405,7 +618,8 @@ public final class WorkItemUtils {
 
 	// ---- change mechanics ----
 
-	// the item's changeable fields as history strings: ISO times, "true"/"false", ids
+	// the item's changeable fields as history strings: ISO times, "true"/"false",
+	// ids
 	private static Map<String, String> currentValues(String ownerId, String ownerType, String itemId) {
 		Map<String, String> values = CollaborationDbUtils.queryOne("SELECT " + String.join(", ", COLUMNS.values())
 				+ " FROM WORK_ITEM WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ITEM_ID = ?", rs -> {
@@ -414,8 +628,8 @@ public final class WorkItemUtils {
 						if (TIME_FIELDS.contains(e.getKey())) {
 							v.put(e.getKey(), CollaborationDbUtils.getTimestamp(rs, e.getValue()));
 						} else if (BOOLEAN_FIELD.equals(e.getKey())) {
-							v.put(e.getKey(), String.valueOf(Boolean.TRUE.equals(
-									CollaborationDbUtils.getBoolean(rs, e.getValue()))));
+							v.put(e.getKey(), String
+									.valueOf(Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, e.getValue()))));
 						} else {
 							v.put(e.getKey(), CollaborationDbUtils.getString(rs, e.getValue()));
 						}
@@ -440,8 +654,8 @@ public final class WorkItemUtils {
 			case "priority" -> next.put(key, optional(PRIORITIES, value, "priority"));
 			case "closedReason" -> next.put(key, optional(CLOSED_REASONS, value, "closedReason"));
 			case "title" -> next.put(key, title(value));
-			case "snoozeUntil", "dueAt" -> next.put(key, CollaborationDbUtils.toIso(
-					CollaborationDbUtils.toTimestamp(value, key)));
+			case "snoozeUntil", "dueAt" ->
+				next.put(key, CollaborationDbUtils.toIso(CollaborationDbUtils.toTimestamp(value, key)));
 			case "assignee" -> {
 				BrainPeopleUtils.requirePerson(ownerId, ownerType, value);
 				next.put(key, value);
@@ -470,12 +684,16 @@ public final class WorkItemUtils {
 			next.put("snoozeUntil", null);
 		}
 		boolean closing = DONE.equals(status) || DISMISSED.equals(status);
+		if (NO_RESPONSE_NEEDED.equals(changes.get("closedReason")) && !DISMISSED.equals(status)) {
+			throw new IllegalArgumentException("no_response_needed goes with dismissed");
+		}
 		boolean wasClosed = DONE.equals(current.get("status")) || DISMISSED.equals(current.get("status"));
 		if (closing) {
 			if (!wasClosed) {
 				next.put("closedAt", CollaborationDbUtils.toIso(CollaborationDbUtils.now()));
 			}
-			if (!changes.containsKey("closedReason") && (!wasClosed || next.get("closedReason") == null)) {
+			if (!changes.containsKey("closedReason") && (!wasClosed || next.get("closedReason") == null
+					|| !Objects.equals(status, current.get("status")))) {
 				next.put("closedReason", YOU.equals(actor) ? "by_owner" : "by_agent");
 			}
 		} else {
@@ -488,7 +706,8 @@ public final class WorkItemUtils {
 		return next;
 	}
 
-	// writes the differing fields and one history row each under a new change id; null when nothing differs
+	// writes the differing fields and one history row each under a new change id;
+	// null when nothing differs
 	private static String apply(String ownerId, String ownerType, String itemId, Map<String, String> current,
 			Map<String, String> next, String actor, String reason) {
 		List<String> changed = new ArrayList<>();
@@ -553,21 +772,24 @@ public final class WorkItemUtils {
 		});
 	}
 
-	private static void insertHistory(Connection conn, String ownerId, String ownerType, String itemId,
-			String changeId, String actor, Timestamp at, String field, String oldValue, String newValue,
-			String reason) throws SQLException {
-		CollaborationDbUtils.update(conn, "INSERT INTO WORK_ITEM_HISTORY (OWNER_ID, OWNER_TYPE, HISTORY_ID, ITEM_ID, "
-				+ "CHANGED_BY, CHANGED_AT, FIELD, OLD_VALUE, NEW_VALUE, REASON, CHANGE_ID) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, UUID.randomUUID().toString(),
-				itemId, actor, at, field, oldValue, newValue, reason, changeId);
+	private static void insertHistory(Connection conn, String ownerId, String ownerType, String itemId, String changeId,
+			String actor, Timestamp at, String field, String oldValue, String newValue, String reason)
+			throws SQLException {
+		CollaborationDbUtils.update(conn,
+				"INSERT INTO WORK_ITEM_HISTORY (OWNER_ID, OWNER_TYPE, HISTORY_ID, ITEM_ID, "
+						+ "CHANGED_BY, CHANGED_AT, FIELD, OLD_VALUE, NEW_VALUE, REASON, CHANGE_ID) "
+						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				ownerId, ownerType, UUID.randomUUID().toString(), itemId, actor, at, field, oldValue, newValue, reason,
+				changeId);
 	}
 
 	// ---- helpers ----
 
 	static Map<String, Object> getItem(String ownerId, String ownerType, String itemId) {
-		Map<String, Object> item = CollaborationDbUtils.queryOne("SELECT " + ITEM_COLUMNS + " FROM WORK_ITEM w "
-				+ "WHERE w.OWNER_ID = ? AND w.OWNER_TYPE = ? AND w.ITEM_ID = ?", WorkItemUtils::mapItem, ownerId,
-				ownerType, itemId);
+		Map<String, Object> item = CollaborationDbUtils.queryOne(
+				"SELECT " + ITEM_COLUMNS + " FROM WORK_ITEM w "
+						+ "WHERE w.OWNER_ID = ? AND w.OWNER_TYPE = ? AND w.ITEM_ID = ?",
+				WorkItemUtils::mapItem, ownerId, ownerType, itemId);
 		if (item != null) {
 			addTopicIds(ownerId, ownerType, List.of(item));
 		}
@@ -575,8 +797,9 @@ public final class WorkItemUtils {
 	}
 
 	static void requireItem(String ownerId, String ownerType, String itemId) {
-		if (!CollaborationDbUtils.exists("SELECT 1 FROM WORK_ITEM WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-				+ "AND ITEM_ID = ?", ownerId, ownerType, itemId)) {
+		if (!CollaborationDbUtils.exists(
+				"SELECT 1 FROM WORK_ITEM WHERE OWNER_ID = ? AND OWNER_TYPE = ? " + "AND ITEM_ID = ?", ownerId,
+				ownerType, itemId)) {
 			throw new IllegalArgumentException("Work item not found");
 		}
 	}
@@ -623,11 +846,13 @@ public final class WorkItemUtils {
 					: " AND w.ASSIGNEE_PERSON_ID IS NULL");
 		}
 		if (Boolean.parseBoolean(String.valueOf(filter.get("waitingOnOthers")))) {
-			where.append(" AND w.STATUS IN (?, ?) AND (w.STATUS = ? OR w.ASK_TYPE = ? OR w.ASSIGNEE_PERSON_ID IS NOT NULL)");
+			where.append(
+					" AND w.STATUS IN (?, ?) AND (w.STATUS = ? OR w.ASK_TYPE = ? OR w.ASSIGNEE_PERSON_ID IS NOT NULL)");
 			params.addAll(List.of(OPEN, WAITING, WAITING, "waiting_on"));
 		}
 		if (Boolean.parseBoolean(String.valueOf(filter.get("hideMuted")))) {
-			// muted, or automated (by the classifier or by sender typing after the item was made)
+			// muted, or automated (by the classifier or by sender typing after the item was
+			// made)
 			where.append(" AND NOT EXISTS (SELECT 1 FROM BRAIN_THREAD mt WHERE mt.OWNER_ID = w.OWNER_ID "
 					+ "AND mt.OWNER_TYPE = w.OWNER_TYPE AND mt.THREAD_ID = w.THREAD_ID AND (mt.MUTED = ? OR mt.AUTOMATED = ?))");
 			params.add(true);
@@ -675,10 +900,12 @@ public final class WorkItemUtils {
 		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType));
 		params.addAll(threadIds);
 		Map<String, List<String>> byThread = new LinkedHashMap<>();
-		for (Pair<String, String> link : CollaborationDbUtils.query("SELECT THREAD_ID, TOPIC_ID FROM BRAIN_THREAD_TOPIC "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IN ("
-				+ CollaborationDbUtils.placeholders(threadIds.size()) + ") ORDER BY IS_PRIMARY DESC, CONFIDENCE DESC, "
-				+ "TOPIC_ID", rs -> Pair.with(rs.getString(1), rs.getString(2)), params.toArray())) {
+		for (Pair<String, String> link : CollaborationDbUtils.query(
+				"SELECT THREAD_ID, TOPIC_ID FROM BRAIN_THREAD_TOPIC "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IN ("
+						+ CollaborationDbUtils.placeholders(threadIds.size())
+						+ ") ORDER BY IS_PRIMARY DESC, CONFIDENCE DESC, " + "TOPIC_ID",
+				rs -> Pair.with(rs.getString(1), rs.getString(2)), params.toArray())) {
 			byThread.computeIfAbsent(link.getValue0(), k -> new ArrayList<>()).add(link.getValue1());
 		}
 		for (Map<String, Object> item : items) {

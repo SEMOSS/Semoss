@@ -151,6 +151,40 @@ public final class SkillStager {
 
 	private enum StageOutcome { STAGED, CACHED, FAILED }
 
+	/** Remove only managed copies of a skill that is no longer attached. */
+	public static void unstage(String workingDir, String skillId) {
+		if (workingDir == null || workingDir.isBlank() || skillId == null || skillId.isBlank()) {
+			return;
+		}
+		Path skillsRoot = Paths.get(workingDir, CLAUDE_DIR, SKILLS_DIR);
+		if (!Files.isDirectory(skillsRoot) || Files.isSymbolicLink(skillsRoot)) {
+			return;
+		}
+		try (Stream<Path> children = Files.list(skillsRoot)) {
+			for (Path target : children.toList()) {
+				if (!Files.isDirectory(target) || Files.isSymbolicLink(target)) {
+					continue;
+				}
+				Path meta = target.resolve(SKILL_META_FILE);
+				if (!Files.isRegularFile(meta) || Files.isSymbolicLink(meta)) {
+					continue;
+				}
+				try {
+					JSONObject identity = new JSONObject(Files.readString(meta));
+					if (skillId.equals(identity.optString("skill_id", null))) {
+						deleteTree(target);
+						logger.info("SkillStager: removed detached skill '{}' from '{}'", skillId, target);
+					}
+				} catch (Exception e) {
+					logger.warn("SkillStager: could not check/remove detached skill at '{}': {}", target,
+							e.getMessage());
+				}
+			}
+		} catch (IOException e) {
+			logger.warn("SkillStager: could not inspect staged skills at '{}': {}", skillsRoot, e.getMessage());
+		}
+	}
+
 	/**
 	 * Shared staging core: fingerprint the source, short-circuit on an unchanged
 	 * cache, otherwise wipe-and-copy and refresh the {@code .skill-meta} sidecar.

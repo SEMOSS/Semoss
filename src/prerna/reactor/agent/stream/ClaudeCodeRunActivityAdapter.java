@@ -48,6 +48,7 @@ import org.json.JSONObject;
 
 import prerna.reactor.agent.ClaudeCodeTranscriptLocator;
 import prerna.reactor.agent.ClaudeCodeTranscriptParser;
+import prerna.util.ValueUtils;
 
 /**
  * Projects Claude Code's provider-specific live envelopes and JSONL transcript
@@ -66,28 +67,27 @@ public final class ClaudeCodeRunActivityAdapter {
 		if (value == null || !(value.get("data") instanceof Map)) {
 			return false;
 		}
-		String event = stringValue(value.get("event"));
+		String event = ValueUtils.toStringOrNull(value.get("event"));
 		return "assistant".equals(event) || "tool_result".equals(event) || "result".equals(event)
 				|| "user_prompt".equals(event) || "max_turns_reached".equals(event);
 	}
 
-	public static void publishLive(String runId, Map<String, Object> providerEvent,
-			AgentRunStreamService streams) {
+	public static void publishLive(String runId, Map<String, Object> providerEvent, AgentRunStreamService streams) {
 		if (runId == null || runId.isBlank() || providerEvent == null || streams == null) {
 			return;
 		}
-		String eventType = stringValue(providerEvent.get("event"));
+		String eventType = ValueUtils.toStringOrNull(providerEvent.get("event"));
 		Map<String, Object> data = asMap(providerEvent.get("data"));
 		if (eventType == null || data == null) {
 			return;
 		}
-		String eventId = firstNonBlank(stringValue(providerEvent.get("uuid")), runId + ":claude");
+		String eventId = firstNonBlank(ValueUtils.toStringOrNull(providerEvent.get("uuid")), runId + ":claude");
 
 		if ("assistant".equals(eventType)) {
 			List<Object> thinking = asList(data.get("thinking"));
 			for (int i = 0; i < thinking.size(); i++) {
 				Map<String, Object> block = asMap(thinking.get(i));
-				String summary = block == null ? null : stringValue(block.get("thinking"));
+				String summary = block == null ? null : ValueUtils.toStringOrNull(block.get("thinking"));
 				if (summary != null && !summary.isBlank()) {
 					streams.publishReasoningCompleted(runId, eventId + ":thinking:" + i, summary);
 				}
@@ -96,7 +96,7 @@ public final class ClaudeCodeRunActivityAdapter {
 			List<Object> texts = asList(data.get("texts"));
 			for (int i = 0; i < texts.size(); i++) {
 				Map<String, Object> block = asMap(texts.get(i));
-				String text = block == null ? null : stringValue(block.get("text"));
+				String text = block == null ? null : ValueUtils.toStringOrNull(block.get("text"));
 				if (text != null && !text.isBlank()) {
 					streams.publishMessageCompleted(runId, eventId + ":text:" + i, text, null);
 				}
@@ -108,9 +108,9 @@ public final class ClaudeCodeRunActivityAdapter {
 				if (invocation == null) {
 					continue;
 				}
-				String toolUseId = firstNonBlank(stringValue(invocation.get("toolUseId")),
+				String toolUseId = firstNonBlank(ValueUtils.toStringOrNull(invocation.get("toolUseId")),
 						eventId + ":tool:" + i);
-				String toolName = firstNonBlank(stringValue(invocation.get("toolName")), "Tool");
+				String toolName = firstNonBlank(ValueUtils.toStringOrNull(invocation.get("toolName")), "Tool");
 				Map<String, Object> arguments = asMap(invocation.get("arguments"));
 				Map<String, Object> metadata = new LinkedHashMap<>();
 				putIfPresent(metadata, "subagentType", invocation.get("subagentType"));
@@ -123,12 +123,12 @@ public final class ClaudeCodeRunActivityAdapter {
 		}
 
 		if ("tool_result".equals(eventType)) {
-			String toolUseId = stringValue(data.get("toolUseId"));
+			String toolUseId = ValueUtils.toStringOrNull(data.get("toolUseId"));
 			if (toolUseId == null || toolUseId.isBlank()) {
 				return;
 			}
-			boolean failed = isFailedStatus(stringValue(data.get("status")));
-			String content = AgentStreamItems.truncate(stringValue(data.get("content")),
+			boolean failed = isFailedStatus(ValueUtils.toStringOrNull(data.get("status")));
+			String content = AgentStreamItems.truncate(ValueUtils.toStringOrNull(data.get("content")),
 					AgentStreamItems.MAX_TOOL_OUTPUT_CHARS);
 			Map<String, Object> item = new LinkedHashMap<>();
 			item.put("id", toolUseId);
@@ -150,8 +150,8 @@ public final class ClaudeCodeRunActivityAdapter {
 	public static List<Map<String, Object>> projectMessages(Map<String, Object> run,
 			List<Map<String, Object>> durableMessages) {
 		List<Map<String, Object>> existing = durableMessages == null ? List.of() : durableMessages;
-		String roomId = stringValue(run.get("roomId"));
-		String runId = stringValue(run.get("runId"));
+		String roomId = ValueUtils.toStringOrNull(run.get("roomId"));
+		String runId = ValueUtils.toStringOrNull(run.get("runId"));
 		if (roomId == null || runId == null) {
 			return existing;
 		}
@@ -195,7 +195,7 @@ public final class ClaudeCodeRunActivityAdapter {
 	 */
 	private static void normalizeAggregateFinalText(Map<String, Object> run,
 			List<Map<String, Object>> projectedMessages) {
-		String persistedFinal = stringValue(run.get("finalText"));
+		String persistedFinal = ValueUtils.toStringOrNull(run.get("finalText"));
 		if (persistedFinal == null || persistedFinal.isBlank()) {
 			return;
 		}
@@ -207,7 +207,7 @@ public final class ClaudeCodeRunActivityAdapter {
 			for (Object partValue : asList(message.get("parts"))) {
 				Map<String, Object> part = asMap(partValue);
 				String text = part != null && "TEXT".equals(part.get("type"))
-						? stringValue(part.get("text"))
+						? ValueUtils.toStringOrNull(part.get("text"))
 						: null;
 				if (text != null && !text.isBlank()) {
 					assistantTexts.add(text);
@@ -252,7 +252,7 @@ public final class ClaudeCodeRunActivityAdapter {
 		if (events.isEmpty()) {
 			return List.of();
 		}
-		String input = normalizeText(stringValue(run.get("input")));
+		String input = normalizeText(ValueUtils.toStringOrNull(run.get("input")));
 		long startedAt = firstTimestamp(run.get("startedAt"), run.get("dateCreated"));
 		int startIndex = -1;
 		long bestDistance = Long.MAX_VALUE;
@@ -262,12 +262,10 @@ public final class ClaudeCodeRunActivityAdapter {
 				continue;
 			}
 			Map<String, Object> data = asMap(event.envelope().get("data"));
-			if (!input.equals(normalizeText(data == null ? null : stringValue(data.get("text"))))) {
+			if (!input.equals(normalizeText(data == null ? null : ValueUtils.toStringOrNull(data.get("text"))))) {
 				continue;
 			}
-			long distance = startedAt > 0 && event.timestampMs() > 0
-					? Math.abs(event.timestampMs() - startedAt)
-					: i;
+			long distance = startedAt > 0 && event.timestampMs() > 0 ? Math.abs(event.timestampMs() - startedAt) : i;
 			if (distance < bestDistance) {
 				bestDistance = distance;
 				startIndex = i;
@@ -299,10 +297,10 @@ public final class ClaudeCodeRunActivityAdapter {
 	}
 
 	private static List<Map<String, Object>> projectSegment(List<TranscriptEvent> events, Map<String, Object> run) {
-		String runId = stringValue(run.get("runId"));
-		String finalText = normalizeText(stringValue(run.get("finalText")));
-		String fallbackTimestamp = firstNonBlank(stringValue(run.get("startedAt")),
-				stringValue(run.get("dateCreated")));
+		String runId = ValueUtils.toStringOrNull(run.get("runId"));
+		String finalText = normalizeText(ValueUtils.toStringOrNull(run.get("finalText")));
+		String fallbackTimestamp = firstNonBlank(ValueUtils.toStringOrNull(run.get("startedAt")),
+				ValueUtils.toStringOrNull(run.get("dateCreated")));
 		Map<String, String> toolNames = new HashMap<>();
 		List<Map<String, Object>> messages = new ArrayList<>();
 
@@ -312,16 +310,17 @@ public final class ClaudeCodeRunActivityAdapter {
 			if (data == null) {
 				continue;
 			}
-			String eventId = firstNonBlank(stringValue(envelope.get("uuid")), runId + ":history");
+			String eventId = firstNonBlank(ValueUtils.toStringOrNull(envelope.get("uuid")), runId + ":history");
 			if ("assistant".equals(event.eventType())) {
 				List<Object> texts = asList(data.get("texts"));
 				for (int i = 0; i < texts.size(); i++) {
 					Map<String, Object> textBlock = asMap(texts.get(i));
-					String text = textBlock == null ? null : stringValue(textBlock.get("text"));
+					String text = textBlock == null ? null : ValueUtils.toStringOrNull(textBlock.get("text"));
 					if (text == null || text.isBlank() || normalizeText(text).equals(finalText)) {
 						continue;
 					}
-					String timestamp = firstNonBlank(stringValue(textBlock.get("timestamp")), fallbackTimestamp);
+					String timestamp = firstNonBlank(ValueUtils.toStringOrNull(textBlock.get("timestamp")),
+							fallbackTimestamp);
 					messages.add(textMessage(runId, eventId + ":text:" + i, text, timestamp));
 				}
 
@@ -331,25 +330,26 @@ public final class ClaudeCodeRunActivityAdapter {
 					if (invocation == null) {
 						continue;
 					}
-					String toolUseId = firstNonBlank(stringValue(invocation.get("toolUseId")),
+					String toolUseId = firstNonBlank(ValueUtils.toStringOrNull(invocation.get("toolUseId")),
 							eventId + ":tool:" + i);
-					String toolName = firstNonBlank(stringValue(invocation.get("toolName")), "Tool");
+					String toolName = firstNonBlank(ValueUtils.toStringOrNull(invocation.get("toolName")), "Tool");
 					toolNames.put(toolUseId, toolName);
-					String timestamp = firstNonBlank(stringValue(invocation.get("timestamp")), fallbackTimestamp);
-					messages.add(toolCallMessage(runId, eventId + ":tool-call:" + i, toolUseId, toolName,
-							invocation, timestamp));
+					String timestamp = firstNonBlank(ValueUtils.toStringOrNull(invocation.get("timestamp")),
+							fallbackTimestamp);
+					messages.add(toolCallMessage(runId, eventId + ":tool-call:" + i, toolUseId, toolName, invocation,
+							timestamp));
 				}
 			} else if ("tool_result".equals(event.eventType())) {
-				String toolUseId = stringValue(data.get("toolUseId"));
+				String toolUseId = ValueUtils.toStringOrNull(data.get("toolUseId"));
 				if (toolUseId == null || toolUseId.isBlank()) {
 					continue;
 				}
-				String timestamp = firstNonBlank(stringValue(data.get("timestamp")), fallbackTimestamp);
-				messages.add(toolResultMessage(runId, eventId + ":tool-result", toolUseId,
-						toolNames.get(toolUseId), data, timestamp));
+				String timestamp = firstNonBlank(ValueUtils.toStringOrNull(data.get("timestamp")), fallbackTimestamp);
+				messages.add(toolResultMessage(runId, eventId + ":tool-result", toolUseId, toolNames.get(toolUseId),
+						data, timestamp));
 			}
 		}
-		messages.sort(Comparator.comparing(message -> stringValue(message.get("dateCreated")),
+		messages.sort(Comparator.comparing(message -> ValueUtils.toStringOrNull(message.get("dateCreated")),
 				Comparator.nullsLast(String::compareTo)));
 		return messages;
 	}
@@ -384,12 +384,12 @@ public final class ClaudeCodeRunActivityAdapter {
 		Map<String, Object> toolResult = new LinkedHashMap<>();
 		toolResult.put("toolCallId", toolUseId);
 		putIfPresent(toolResult, "toolName", toolName);
-		toolResult.put("output", AgentStreamItems.truncate(stringValue(data.get("content")),
+		toolResult.put("output", AgentStreamItems.truncate(ValueUtils.toStringOrNull(data.get("content")),
 				AgentStreamItems.MAX_TOOL_OUTPUT_CHARS));
 		toolResult.put("toolParameterValues", parameters);
-		toolResult.put("toolStatus", isFailedStatus(stringValue(data.get("status")))
-				? AgentStreamItems.TOOL_FAILED
-				: AgentStreamItems.TOOL_COMPLETED);
+		toolResult.put("toolStatus",
+				isFailedStatus(ValueUtils.toStringOrNull(data.get("status"))) ? AgentStreamItems.TOOL_FAILED
+						: AgentStreamItems.TOOL_COMPLETED);
 		Map<String, Object> part = new LinkedHashMap<>();
 		part.put("type", "TOOL_RESULT");
 		part.put("toolResult", toolResult);
@@ -417,12 +417,12 @@ public final class ClaudeCodeRunActivityAdapter {
 
 	private static String agentRunRole(Map<String, Object> message) {
 		Map<String, Object> agentRun = asMap(message.get("agentRun"));
-		String role = agentRun == null ? null : stringValue(agentRun.get("role"));
+		String role = agentRun == null ? null : ValueUtils.toStringOrNull(agentRun.get("role"));
 		if (role != null) {
 			return role;
 		}
 		Map<String, Object> ornaments = asMap(message.get("ornaments"));
-		return ornaments == null ? null : stringValue(ornaments.get("agentRunRole"));
+		return ornaments == null ? null : ValueUtils.toStringOrNull(ornaments.get("agentRunRole"));
 	}
 
 	private static long eventTimestamp(Map<String, Object> envelope) {
@@ -455,7 +455,7 @@ public final class ClaudeCodeRunActivityAdapter {
 	}
 
 	private static Long timestampValue(Object value) {
-		String text = stringValue(value);
+		String text = ValueUtils.toStringOrNull(value);
 		if (text == null || text.isBlank()) {
 			return null;
 		}
@@ -506,10 +506,6 @@ public final class ClaudeCodeRunActivityAdapter {
 		return value == null ? "" : value.replace("\r\n", "\n").trim().replaceAll("\\s+", " ");
 	}
 
-	private static String stringValue(Object value) {
-		return value == null ? null : String.valueOf(value);
-	}
-
 	private static String firstNonBlank(String first, String second) {
 		return first == null || first.isBlank() ? second : first;
 	}
@@ -522,7 +518,7 @@ public final class ClaudeCodeRunActivityAdapter {
 
 	private record TranscriptEvent(Map<String, Object> envelope, long timestampMs) {
 		private String eventType() {
-			return stringValue(envelope.get("event"));
+			return ValueUtils.toStringOrNull(envelope.get("event"));
 		}
 	}
 }

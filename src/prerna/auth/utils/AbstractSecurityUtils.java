@@ -58,11 +58,13 @@ import javax.crypto.spec.PBEKeySpec;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
@@ -74,12 +76,18 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.project.api.IProject;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemDefaultEngines;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -958,14 +966,13 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			// ENGINEPERMISSION
-			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE",
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE", "USAGERESTRICTION",
-					"MAXTOKENS", "MAXRESPONSETIME", "USAGEFREQUENCY" };
-			types = new String[] { VARCHAR_255, INTEGER_DATATYPE_NAME, VARCHAR_255, BOOLEAN_DATATYPE_NAME,
-					BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
-					VARCHAR_255, INTEGER_DATATYPE_NAME, DOBLE_DATATYPE_NAME, VARCHAR_255 };
-			defaultValues = new Object[] { null, null, null, true, false, null, null, null, null, null, null, null,
-					null };
+			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "PERMISSIONGRANTEDBY",
+					"PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE", "USAGERESTRICTION", "MAXTOKENS",
+					"MAXRESPONSETIME", "USAGEFREQUENCY" };
+			types = new String[] { VARCHAR_255, INTEGER_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255,
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, INTEGER_DATATYPE_NAME,
+					DOBLE_DATATYPE_NAME, VARCHAR_255 };
+			defaultValues = new Object[] { null, null, null, null, null, null, null, null, null, null, null };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types,
 						defaultValues);
@@ -992,6 +999,30 @@ public abstract class AbstractSecurityUtils {
 						securityDb.insertData(addColumnSql);
 					}
 				}
+				// favorites and visibility are kept in USERENGINEPREFERENCE, and the rows with
+				// no level held only those
+				if (allCols.stream().anyMatch("VISIBILITY"::equalsIgnoreCase)) {
+					String deleteSql = "DELETE FROM ENGINEPERMISSION WHERE PERMISSION IS NULL";
+					classLogger.info("Running sql {}", deleteSql);
+					securityDb.removeData(deleteSql);
+				}
+				for (String obsoleteColumn : new String[] { "FAVORITE", "VISIBILITY" }) {
+					if (allCols.stream().anyMatch(obsoleteColumn::equalsIgnoreCase)) {
+						String indexName = "ENGINEPERMISSION_" + obsoleteColumn + "_INDEX";
+						if (allowIfExistsIndexs) {
+							String dropIndexSql = queryUtil.dropIndexIfExists(indexName, "ENGINEPERMISSION");
+							classLogger.info("Running sql {}", dropIndexSql);
+							securityDb.removeData(dropIndexSql);
+						} else if (queryUtil.indexExists(securityDb, indexName, "ENGINEPERMISSION", database, schema)) {
+							String dropIndexSql = queryUtil.dropIndex(indexName, "ENGINEPERMISSION");
+							classLogger.info("Running sql {}", dropIndexSql);
+							securityDb.removeData(dropIndexSql);
+						}
+						String dropColumnSql = queryUtil.alterTableDropColumn("ENGINEPERMISSION", obsoleteColumn);
+						classLogger.info("Running sql {}", dropColumnSql);
+						securityDb.insertData(dropColumnSql);
+					}
+				}
 			}
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION",
@@ -999,18 +1030,8 @@ public abstract class AbstractSecurityUtils {
 				classLogger.info("Running sql {}", sql);
 				securityDb.insertData(sql);
 
-				sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION",
-						"VISIBILITY");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-
 				sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION",
 						"ENGINEID");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-
-				sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION",
-						"FAVORITE");
 				classLogger.info("Running sql {}", sql);
 				securityDb.insertData(sql);
 
@@ -1026,13 +1047,6 @@ public abstract class AbstractSecurityUtils {
 					classLogger.info("Running sql {}", sql);
 					securityDb.insertData(sql);
 				}
-				if (!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION",
-						database, schema)) {
-					String sql = queryUtil.createIndex("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION",
-							"VISIBILITY");
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
 				if (!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", database,
 						schema)) {
 					String sql = queryUtil.createIndex("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION",
@@ -1040,16 +1054,65 @@ public abstract class AbstractSecurityUtils {
 					classLogger.info("Running sql {}", sql);
 					securityDb.insertData(sql);
 				}
-				if (!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION", database,
-						schema)) {
-					String sql = queryUtil.createIndex("ENGINEPERMISSION_FAVORITE_INDEX", "ENGINEPERMISSION",
-							"FAVORITE");
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
 				if (!queryUtil.indexExists(securityDb, "ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", database,
 						schema)) {
 					String sql = queryUtil.createIndex("ENGINEPERMISSION_USERID_INDEX", "ENGINEPERMISSION", "USERID");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+
+			// USERENGINEPREFERENCE
+			// a person's own settings on an engine, such as favorite and visibility, kept
+			// out of ENGINEPERMISSION so that setting one adds no access row
+			colNames = new String[] { "USERID", "TYPE", "ENGINEID", "FAVORITE", "VISIBILITY" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, BOOLEAN_DATATYPE_NAME,
+					BOOLEAN_DATATYPE_NAME };
+			defaultValues = new Object[] { null, null, null, false, true };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExistsWithDefaults("USERENGINEPREFERENCE", colNames, types,
+						defaultValues);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else if (!queryUtil.tableExists(conn, "USERENGINEPREFERENCE", database, schema)) {
+				String sql = queryUtil.createTableWithDefaults("USERENGINEPREFERENCE", colNames, types, defaultValues);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "USERENGINEPREFERENCE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("USERENGINEPREFERENCE", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("USERENGINEPREFERENCE_USERID_INDEX",
+						"USERENGINEPREFERENCE", "USERID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+
+				sql = queryUtil.createIndexIfNotExists("USERENGINEPREFERENCE_ENGINEID_INDEX", "USERENGINEPREFERENCE",
+						"ENGINEID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.indexExists(securityDb, "USERENGINEPREFERENCE_USERID_INDEX", "USERENGINEPREFERENCE",
+						database, schema)) {
+					String sql = queryUtil.createIndex("USERENGINEPREFERENCE_USERID_INDEX", "USERENGINEPREFERENCE",
+							"USERID");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+				if (!queryUtil.indexExists(securityDb, "USERENGINEPREFERENCE_ENGINEID_INDEX", "USERENGINEPREFERENCE",
+						database, schema)) {
+					String sql = queryUtil.createIndex("USERENGINEPREFERENCE_ENGINEID_INDEX", "USERENGINEPREFERENCE",
+							"ENGINEID");
 					classLogger.info("Running sql {}", sql);
 					securityDb.insertData(sql);
 				}
@@ -1215,11 +1278,11 @@ public abstract class AbstractSecurityUtils {
 
 			// PROJECTPERMISSION
 			boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema);
-			colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE",
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
-			types = new String[] { VARCHAR_255, INTEGER_DATATYPE_NAME, VARCHAR_255, BOOLEAN_DATATYPE_NAME,
-					BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
-			defaultValues = new Object[] { null, null, null, true, false, null, null, null, null };
+			colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "PERMISSIONGRANTEDBY",
+					"PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
+			types = new String[] { VARCHAR_255, INTEGER_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255,
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+			defaultValues = new Object[] { null, null, null, null, null, null, null };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("PROJECTPERMISSION", colNames, types,
 						defaultValues);
@@ -1247,10 +1310,35 @@ public abstract class AbstractSecurityUtils {
 						securityDb.insertData(addColumnSql);
 					}
 				}
+				// favorites and visibility are kept in USERPROJECTPREFERENCE, and the rows with
+				// no level held only those
+				if (allCols.stream().anyMatch("VISIBILITY"::equalsIgnoreCase)) {
+					String deleteSql = "DELETE FROM PROJECTPERMISSION WHERE PERMISSION IS NULL";
+					classLogger.info("Running sql {}", deleteSql);
+					securityDb.removeData(deleteSql);
+				}
+				for (String obsoleteColumn : new String[] { "FAVORITE", "VISIBILITY" }) {
+					if (allCols.stream().anyMatch(obsoleteColumn::equalsIgnoreCase)) {
+						String indexName = "PROJECTPERMISSION_" + obsoleteColumn + "_INDEX";
+						if (allowIfExistsIndexs) {
+							String dropIndexSql = queryUtil.dropIndexIfExists(indexName, "PROJECTPERMISSION");
+							classLogger.info("Running sql {}", dropIndexSql);
+							securityDb.removeData(dropIndexSql);
+						} else if (queryUtil.indexExists(securityDb, indexName, "PROJECTPERMISSION", database,
+								schema)) {
+							String dropIndexSql = queryUtil.dropIndex(indexName, "PROJECTPERMISSION");
+							classLogger.info("Running sql {}", dropIndexSql);
+							securityDb.removeData(dropIndexSql);
+						}
+						String dropColumnSql = queryUtil.alterTableDropColumn("PROJECTPERMISSION", obsoleteColumn);
+						classLogger.info("Running sql {}", dropColumnSql);
+						securityDb.insertData(dropColumnSql);
+					}
+				}
 			} else {
 				// copy over engine permission to project permission for legacy installations
 				try (IRawSelectWrapper wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb,
-						"select userid, permission, engineid, visibility, favorite from enginepermission")) {
+						"select userid, permission, engineid from enginepermission")) {
 					while (wrapper2.hasNext()) {
 						Object[] values = wrapper2.next().getValues();
 						// if the project exists - we will insert it
@@ -1271,18 +1359,8 @@ public abstract class AbstractSecurityUtils {
 				classLogger.info("Running sql {}", sql);
 				securityDb.insertData(sql);
 
-				sql = queryUtil.createIndexIfNotExists("PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION",
-						"VISIBILITY");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-
 				sql = queryUtil.createIndexIfNotExists("PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION",
 						"PROJECTID");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-
-				sql = queryUtil.createIndexIfNotExists("PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION",
-						"FAVORITE");
 				classLogger.info("Running sql {}", sql);
 				securityDb.insertData(sql);
 
@@ -1298,13 +1376,6 @@ public abstract class AbstractSecurityUtils {
 					classLogger.info("Running sql {}", sql);
 					securityDb.insertData(sql);
 				}
-				if (!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION",
-						database, schema)) {
-					String sql = queryUtil.createIndex("PROJECTPERMISSION_VISIBILITY_INDEX", "PROJECTPERMISSION",
-							"VISIBILITY");
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
 				if (!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION",
 						database, schema)) {
 					String sql = queryUtil.createIndex("PROJECTPERMISSION_PROJECTID_INDEX", "PROJECTPERMISSION",
@@ -1312,16 +1383,65 @@ public abstract class AbstractSecurityUtils {
 					classLogger.info("Running sql {}", sql);
 					securityDb.insertData(sql);
 				}
-				if (!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION",
-						database, schema)) {
-					String sql = queryUtil.createIndex("PROJECTPERMISSION_FAVORITE_INDEX", "PROJECTPERMISSION",
-							"FAVORITE");
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
 				if (!queryUtil.indexExists(securityDb, "PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", database,
 						schema)) {
 					String sql = queryUtil.createIndex("PROJECTPERMISSION_USERID_INDEX", "PROJECTPERMISSION", "USERID");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+
+			// USERPROJECTPREFERENCE
+			// a person's own settings on a project, such as favorite and visibility, kept
+			// out of PROJECTPERMISSION so that setting one adds no access row
+			colNames = new String[] { "USERID", "TYPE", "PROJECTID", "FAVORITE", "VISIBILITY" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, BOOLEAN_DATATYPE_NAME,
+					BOOLEAN_DATATYPE_NAME };
+			defaultValues = new Object[] { null, null, null, false, true };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExistsWithDefaults("USERPROJECTPREFERENCE", colNames, types,
+						defaultValues);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else if (!queryUtil.tableExists(conn, "USERPROJECTPREFERENCE", database, schema)) {
+				String sql = queryUtil.createTableWithDefaults("USERPROJECTPREFERENCE", colNames, types, defaultValues);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "USERPROJECTPREFERENCE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("USERPROJECTPREFERENCE", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("USERPROJECTPREFERENCE_USERID_INDEX",
+						"USERPROJECTPREFERENCE", "USERID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+
+				sql = queryUtil.createIndexIfNotExists("USERPROJECTPREFERENCE_PROJECTID_INDEX", "USERPROJECTPREFERENCE",
+						"PROJECTID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.indexExists(securityDb, "USERPROJECTPREFERENCE_USERID_INDEX", "USERPROJECTPREFERENCE",
+						database, schema)) {
+					String sql = queryUtil.createIndex("USERPROJECTPREFERENCE_USERID_INDEX", "USERPROJECTPREFERENCE",
+							"USERID");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+				if (!queryUtil.indexExists(securityDb, "USERPROJECTPREFERENCE_PROJECTID_INDEX", "USERPROJECTPREFERENCE",
+						database, schema)) {
+					String sql = queryUtil.createIndex("USERPROJECTPREFERENCE_PROJECTID_INDEX", "USERPROJECTPREFERENCE",
+							"PROJECTID");
 					classLogger.info("Running sql {}", sql);
 					securityDb.insertData(sql);
 				}
@@ -1498,11 +1618,11 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			// USERINSIGHTPERMISSION
-			colNames = new String[] { "USERID", "PROJECTID", "INSIGHTID", "PERMISSION", "FAVORITE",
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
-			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, INTEGER_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
-			defaultValues = new Object[] { null, null, null, null, false, null, null, null, null };
+			colNames = new String[] { "USERID", "PROJECTID", "INSIGHTID", "PERMISSION", "PERMISSIONGRANTEDBY",
+					"PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, INTEGER_DATATYPE_NAME, VARCHAR_255,
+					VARCHAR_255, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+			defaultValues = null;
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("USERINSIGHTPERMISSION", colNames, types);
 				classLogger.info("Running sql {}", sql);
@@ -1540,6 +1660,28 @@ public abstract class AbstractSecurityUtils {
 						securityDb.insertData(addColumnSql);
 					}
 				}
+				// favorites are kept in USERINSIGHTPREFERENCE, and the rows with no level held
+				// only those
+				if (allCols.stream().anyMatch("FAVORITE"::equalsIgnoreCase)) {
+					String deleteSql = "DELETE FROM USERINSIGHTPERMISSION WHERE PERMISSION IS NULL";
+					classLogger.info("Running sql {}", deleteSql);
+					securityDb.removeData(deleteSql);
+					if (allowIfExistsIndexs) {
+						String dropIndexSql = queryUtil.dropIndexIfExists("USERINSIGHTPERMISSION_FAVORITE_INDEX",
+								"USERINSIGHTPERMISSION");
+						classLogger.info("Running sql {}", dropIndexSql);
+						securityDb.removeData(dropIndexSql);
+					} else if (queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_FAVORITE_INDEX",
+							"USERINSIGHTPERMISSION", database, schema)) {
+						String dropIndexSql = queryUtil.dropIndex("USERINSIGHTPERMISSION_FAVORITE_INDEX",
+								"USERINSIGHTPERMISSION");
+						classLogger.info("Running sql {}", dropIndexSql);
+						securityDb.removeData(dropIndexSql);
+					}
+					String dropColumnSql = queryUtil.alterTableDropColumn("USERINSIGHTPERMISSION", "FAVORITE");
+					classLogger.info("Running sql {}", dropColumnSql);
+					securityDb.insertData(dropColumnSql);
+				}
 			}
 
 			if (allowIfExistsIndexs) {
@@ -1553,10 +1695,6 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(sql);
 				sql = queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION",
 						"USERID");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-				sql = queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION",
-						"FAVORITE");
 				classLogger.info("Running sql {}", sql);
 				securityDb.insertData(sql);
 			} else {
@@ -1582,10 +1720,71 @@ public abstract class AbstractSecurityUtils {
 					classLogger.info("Running sql {}", sql);
 					securityDb.insertData(sql);
 				}
-				if (!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION",
+			}
+
+			// USERINSIGHTPREFERENCE
+			// a person's own settings on an insight, such as favorite and visibility, kept
+			// out of USERINSIGHTPERMISSION so that setting one adds no access row
+			colNames = new String[] { "USERID", "TYPE", "PROJECTID", "INSIGHTID", "FAVORITE", "VISIBILITY" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, BOOLEAN_DATATYPE_NAME,
+					BOOLEAN_DATATYPE_NAME };
+			defaultValues = new Object[] { null, null, null, null, false, true };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExistsWithDefaults("USERINSIGHTPREFERENCE", colNames, types,
+						defaultValues);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else if (!queryUtil.tableExists(conn, "USERINSIGHTPREFERENCE", database, schema)) {
+				String sql = queryUtil.createTableWithDefaults("USERINSIGHTPREFERENCE", colNames, types, defaultValues);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPREFERENCE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("USERINSIGHTPREFERENCE", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("USERINSIGHTPREFERENCE_USERID_INDEX",
+						"USERINSIGHTPREFERENCE", "USERID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+
+				sql = queryUtil.createIndexIfNotExists("USERINSIGHTPREFERENCE_PROJECTID_INDEX", "USERINSIGHTPREFERENCE",
+						"PROJECTID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+
+				sql = queryUtil.createIndexIfNotExists("USERINSIGHTPREFERENCE_INSIGHTID_INDEX", "USERINSIGHTPREFERENCE",
+						"INSIGHTID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.indexExists(securityDb, "USERINSIGHTPREFERENCE_USERID_INDEX", "USERINSIGHTPREFERENCE",
 						database, schema)) {
-					String sql = queryUtil.createIndex("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION",
-							"FAVORITE");
+					String sql = queryUtil.createIndex("USERINSIGHTPREFERENCE_USERID_INDEX", "USERINSIGHTPREFERENCE",
+							"USERID");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+				if (!queryUtil.indexExists(securityDb, "USERINSIGHTPREFERENCE_PROJECTID_INDEX", "USERINSIGHTPREFERENCE",
+						database, schema)) {
+					String sql = queryUtil.createIndex("USERINSIGHTPREFERENCE_PROJECTID_INDEX", "USERINSIGHTPREFERENCE",
+							"PROJECTID");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+				if (!queryUtil.indexExists(securityDb, "USERINSIGHTPREFERENCE_INSIGHTID_INDEX", "USERINSIGHTPREFERENCE",
+						database, schema)) {
+					String sql = queryUtil.createIndex("USERINSIGHTPREFERENCE_INSIGHTID_INDEX", "USERINSIGHTPREFERENCE",
+							"INSIGHTID");
 					classLogger.info("Running sql {}", sql);
 					securityDb.insertData(sql);
 				}
@@ -1850,6 +2049,38 @@ public abstract class AbstractSecurityUtils {
 					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
 						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
 						String addColumnSql = queryUtil.alterTableAddColumn("CUSTOMGROUPASSIGNMENT", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// GROUP MANAGERS TABLE
+			// the users who manage the members of a custom group
+			colNames = new String[] { "GROUPID", "USERID", "TYPE", "DATEADDED", "PERMISSIONGRANTEDBY",
+					"PERMISSIONGRANTEDBYTYPE" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255,
+					VARCHAR_255 };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("GROUPMANAGERS", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "GROUPMANAGERS", database, schema)) {
+					// make the table
+					String sql = queryUtil.createTable("GROUPMANAGERS", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "GROUPMANAGERS", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("GROUPMANAGERS", col, types[i]);
 						classLogger.info("Running sql {}", addColumnSql);
 						securityDb.insertData(addColumnSql);
 					}
@@ -2622,6 +2853,33 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// Delegated credentials for opted-in background work, independent of webhooks.
+			colNames = new String[] { "USER_ID", "USER_EMAIL", "ACCESS_TOKEN", "REFRESH_TOKEN", "TOKEN_EXPIRATION",
+					"CREATED_ON", "UPDATED_ON" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("MS_GRAPH_CREDENTIAL", colNames, types));
+			} else if (!queryUtil.tableExists(conn, "MS_GRAPH_CREDENTIAL", database, schema)) {
+				securityDb.insertData(queryUtil.createTable("MS_GRAPH_CREDENTIAL", colNames, types));
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "MS_GRAPH_CREDENTIAL", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						securityDb.insertData(queryUtil.alterTableAddColumn("MS_GRAPH_CREDENTIAL", col, types[i]));
+					}
+				}
+			}
+			if (allowIfExistsIndexs
+					|| !queryUtil.indexExists(securityDb, "IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL", database, schema)) {
+				String sql = allowIfExistsIndexs
+						? queryUtil.createIndexIfNotExists("IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL", "USER_ID")
+						: queryUtil.createIndex("IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL", "USER_ID");
+				securityDb.insertData(sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX"));
+			}
+
 			// MS_GRAPH_SUBSCRIPTION
 			// the Microsoft Graph change notification subscriptions this deployment
 			// created. A notification carries a subscription id and nothing else, and any
@@ -2688,6 +2946,7 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("ENGINEACCESSREQUEST", new String[] { "REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE" });
 		allValues.put("ENGINEPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPENGINEPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
+		allValues.put("GROUPMANAGERS", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPINSIGHTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPPROJECTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("INSIGHTACCESSREQUEST", new String[] { "REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE" });
@@ -2702,8 +2961,9 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("SMSS_USER_ACCESS_KEYS", new String[] { "TYPE" });
 		allValues.put("USERINSIGHTPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 
-		// grab the new fixed names to the old names
-		Map<String, String> newTypesMap = AuthProvider.getLabelToLegacyName();
+		// Use the same aliases as request parsing, including the legacy Microsoft
+		// prefix.
+		Map<String, AuthProvider> providersByKey = AuthProvider.getSocialPropKeysToEnum();
 
 		// repeat for all tables
 		for (String tableName : allValues.keySet()) {
@@ -2717,12 +2977,14 @@ public abstract class AbstractSecurityUtils {
 					conn = securityDb.getConnection();
 					StringBuilder query = new StringBuilder();
 					query.append("UPDATE ").append(tableName).append(" SET ").append(columnName).append("=? WHERE ")
-							.append(columnName).append("=?");
+							.append("LOWER(").append(columnName).append(")=? AND ").append(columnName).append("<>?");
 					ps = conn.prepareStatement(query.toString());
 
-					for (String newType : newTypesMap.keySet()) {
-						ps.setString(1, newType);
-						ps.setString(2, newTypesMap.get(newType));
+					for (Map.Entry<String, AuthProvider> entry : providersByKey.entrySet()) {
+						String label = entry.getValue().getLabel();
+						ps.setString(1, label);
+						ps.setString(2, entry.getKey());
+						ps.setString(3, label);
 						ps.addBatch();
 					}
 					ps.executeBatch();
@@ -3173,7 +3435,7 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
-	 * Get a vector of the user ids
+	 * Get an array of the user ids
 	 * 
 	 * @param user
 	 * @return
@@ -3188,6 +3450,334 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		return filters;
+	}
+
+	/**
+	 * Original login IDs for JDBC binding. Do not SQL-escape these values.
+	 *
+	 * @param user the user for whom to get filter values
+	 * @return a collection of the user's login IDs
+	 */
+	static Collection<String> getUserFilterValues(User user) {
+		List<String> values = new ArrayList<>();
+		if (user != null) {
+			for (AuthProvider login : user.getLogins()) {
+				values.add(user.getAccessToken(login).getId());
+			}
+		}
+		return values;
+	}
+
+	/**
+	 * Keep the rows whose effective permission is one of the given levels. The
+	 * effective permission is the better (lower) of the user's own grant and their
+	 * groups' grant, the same value the list queries select as {@code permission}.
+	 * Built from query struct filters only, so every security database dialect gets
+	 * its own SQL.
+	 *
+	 * A global resource the user holds no grant on counts as read only, as the UI
+	 * shows it, when a global column is given.
+	 *
+	 * @param userPermCol  the user's own grant, such as
+	 *                     {@code USER_PERMISSIONS__PERMISSION}
+	 * @param groupPermCol the best grant of the user's groups, such as
+	 *                     {@code GROUP_PERMISSIONS__PERMISSION}; null when the
+	 *                     query has no group grants
+	 * @param globalCol    the resource's global flag, such as
+	 *                     {@code PROJECT__GLOBAL}; null to leave global resources
+	 *                     without a grant out
+	 * @param permissions  the levels to keep, as {@link AccessPermissionEnum} ids
+	 * @return the filter
+	 * @throws IllegalArgumentException when a level is not an
+	 *                                  {@link AccessPermissionEnum} id
+	 */
+	static IQueryFilter getEffectivePermissionFilter(String userPermCol, String groupPermCol, String globalCol,
+			Collection<Integer> permissions) {
+		List<Integer> levels = new ArrayList<>(permissions);
+		for (Integer level : levels) {
+			if (level == null || level < AccessPermissionEnum.OWNER.getId()
+					|| level > AccessPermissionEnum.READ_ONLY.getId()) {
+				throw new IllegalArgumentException(
+						"Permission filters take 1 (owner), 2 (edit), or 3 (read only); got " + level);
+			}
+		}
+		if (groupPermCol == null) {
+			return SimpleQueryFilter.makeColToValFilter(userPermCol, "==", levels, PixelDataType.CONST_INT);
+		}
+
+		// the user's own grant decides: it is one of the levels, and no group
+		// grant is better
+		AndQueryFilter userDecides = new AndQueryFilter();
+		userDecides.addFilter(SimpleQueryFilter.makeColToValFilter(userPermCol, "==", levels, PixelDataType.CONST_INT));
+		OrQueryFilter noBetterGroup = new OrQueryFilter();
+		noBetterGroup
+				.addFilter(SimpleQueryFilter.makeColToValFilter(groupPermCol, "==", null, PixelDataType.CONST_INT));
+		noBetterGroup.addFilter(SimpleQueryFilter.makeColToColFilter(userPermCol, "<=", groupPermCol));
+		userDecides.addFilter(noBetterGroup);
+
+		// a group grant decides: it is one of the levels, and the user's own
+		// grant is worse or missing
+		AndQueryFilter groupDecides = new AndQueryFilter();
+		groupDecides
+				.addFilter(SimpleQueryFilter.makeColToValFilter(groupPermCol, "==", levels, PixelDataType.CONST_INT));
+		OrQueryFilter noBetterUser = new OrQueryFilter();
+		noBetterUser.addFilter(SimpleQueryFilter.makeColToValFilter(userPermCol, "==", null, PixelDataType.CONST_INT));
+		noBetterUser.addFilter(SimpleQueryFilter.makeColToColFilter(groupPermCol, "<", userPermCol));
+		groupDecides.addFilter(noBetterUser);
+
+		OrQueryFilter effective = new OrQueryFilter();
+		effective.addFilter(userDecides);
+		effective.addFilter(groupDecides);
+
+		if (globalCol != null && levels.contains(AccessPermissionEnum.READ_ONLY.getId())) {
+			AndQueryFilter globalWithoutGrant = new AndQueryFilter();
+			globalWithoutGrant
+					.addFilter(SimpleQueryFilter.makeColToValFilter(globalCol, "==", true, PixelDataType.BOOLEAN));
+			globalWithoutGrant
+					.addFilter(SimpleQueryFilter.makeColToValFilter(userPermCol, "==", null, PixelDataType.CONST_INT));
+			globalWithoutGrant
+					.addFilter(SimpleQueryFilter.makeColToValFilter(groupPermCol, "==", null, PixelDataType.CONST_INT));
+			effective.addFilter(globalWithoutGrant);
+		}
+		return effective;
+	}
+
+	/**
+	 * Keep the rows created by any of the given creators. A creator matches only
+	 * when both its login id and its login type match, the pairs
+	 * {@link User#getUserIdAndType(User)} returns.
+	 *
+	 * @param createdByCol     the creator's id column, such as
+	 *                         {@code PROJECT__CREATEDBY}
+	 * @param createdByTypeCol the creator's login type column, such as
+	 *                         {@code PROJECT__CREATEDBYTYPE}
+	 * @param creators         the creators to keep, as (id, login type) pairs; must
+	 *                         not be empty
+	 * @return the filter
+	 */
+	static IQueryFilter getCreatedByFilter(String createdByCol, String createdByTypeCol,
+			Collection<Pair<String, String>> creators) {
+		if (creators == null || creators.isEmpty()) {
+			throw new IllegalArgumentException("A creator filter needs at least one creator");
+		}
+		OrQueryFilter anyCreator = new OrQueryFilter();
+		for (Pair<String, String> creator : creators) {
+			AndQueryFilter thisCreator = new AndQueryFilter();
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByCol, "==",
+					Utility.inputSQLSanitizer(creator.getValue0())));
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByTypeCol, "==",
+					Utility.inputSQLSanitizer(creator.getValue1())));
+			anyCreator.addFilter(thisCreator);
+		}
+		return anyCreator;
+	}
+
+	/**
+	 * Creator filters for JDBC binding. Pass original values without SQL escaping.
+	 */
+	static IQueryFilter getPreparedCreatedByFilter(String createdByCol, String createdByTypeCol,
+			Collection<Pair<String, String>> creators) {
+		if (creators == null || creators.isEmpty()) {
+			throw new IllegalArgumentException("A creator filter needs at least one creator");
+		}
+		OrQueryFilter anyCreator = new OrQueryFilter();
+		for (Pair<String, String> creator : creators) {
+			AndQueryFilter thisCreator = new AndQueryFilter();
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByCol, "==", creator.getValue0()));
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByTypeCol, "==", creator.getValue1()));
+			anyCreator.addFilter(thisCreator);
+		}
+		return anyCreator;
+	}
+
+	/**
+	 * Keep the rows that belong to any of the user's logins. A login matches only
+	 * when both its id and its login type match, as
+	 * {@link User#getUserIdAndType(User)} returns them.
+	 *
+	 * @param user        the user; their logins come from the session
+	 * @param userIdCol   the user id column, such as
+	 *                    {@code USERENGINEPREFERENCE__USERID}
+	 * @param userTypeCol the login type column, such as
+	 *                    {@code USERENGINEPREFERENCE__TYPE}
+	 * @return the filter, which matches no rows when the user has no logins
+	 */
+	static IQueryFilter getUserIdAndTypeFilter(User user, String userIdCol, String userTypeCol) {
+		OrQueryFilter anyLogin = new OrQueryFilter();
+		if (user != null) {
+			for (AuthProvider login : user.getLogins()) {
+				AndQueryFilter thisLogin = new AndQueryFilter();
+				thisLogin.addFilter(SimpleQueryFilter.makeColToValFilter(userIdCol, "==",
+						Utility.inputSQLSanitizer(user.getAccessToken(login).getId())));
+				thisLogin.addFilter(SimpleQueryFilter.makeColToValFilter(userTypeCol, "==", login.name()));
+				anyLogin.addFilter(thisLogin);
+			}
+		}
+		if (anyLogin.isEmpty()) {
+			// No logins must never become an unrestricted query.
+			return new SimpleQueryFilter(new NounMetadata(1, PixelDataType.CONST_INT), "==",
+					new NounMetadata(0, PixelDataType.CONST_INT));
+		}
+		return anyLogin;
+	}
+
+	/**
+	 * Save one of the user's preferences on an engine, a project or an insight,
+	 * such as FAVORITE or VISIBILITY, for each of their logins. Only that login's
+	 * row for that engine, project or insight changes; a login with no row gets
+	 * one, with the other preferences left at their defaults.
+	 *
+	 * @param user             the user
+	 * @param preferenceTable  USERENGINEPREFERENCE, USERPROJECTPREFERENCE or
+	 *                         USERINSIGHTPREFERENCE
+	 * @param keys             the columns that identify the engine, project or
+	 *                         insight, with their values, such as ENGINEID, or
+	 *                         PROJECTID and INSIGHTID
+	 * @param preferenceColumn the preference to save
+	 * @param value            the value to save
+	 * @throws Exception when the preference cannot be saved
+	 */
+	static void setUserPreference(User user, String preferenceTable, List<Pair<String, String>> keys,
+			String preferenceColumn, boolean value) throws Exception {
+		List<Pair<String, String>> logins = User.getUserIdAndType(user);
+		StringBuilder keyFilter = new StringBuilder();
+		StringBuilder keyColumns = new StringBuilder();
+		StringBuilder keyParameters = new StringBuilder();
+		for (Pair<String, String> key : keys) {
+			keyFilter.append(" AND ").append(key.getValue0()).append("=?");
+			keyColumns.append(", ").append(key.getValue0());
+			keyParameters.append(",?");
+		}
+		String update = "UPDATE " + preferenceTable + " SET " + preferenceColumn + "=? WHERE USERID=? AND TYPE=?"
+				+ keyFilter;
+		String insert = "INSERT INTO " + preferenceTable + " (USERID, TYPE" + keyColumns + ", " + preferenceColumn
+				+ ") VALUES (?,?" + keyParameters + ",?)";
+		QueryExecutionUtility.write(SystemEngineRegistry.getSecurityDb(), connection -> {
+			for (Pair<String, String> login : logins) {
+				int updated = QueryExecutionUtility.executeUpdate(connection, update, ps -> {
+					int parameterIndex = 1;
+					ps.setBoolean(parameterIndex++, value);
+					ps.setString(parameterIndex++, login.getValue0());
+					ps.setString(parameterIndex++, login.getValue1());
+					for (Pair<String, String> key : keys) {
+						ps.setString(parameterIndex++, key.getValue1());
+					}
+				});
+				if (updated == 0) {
+					QueryExecutionUtility.executeUpdate(connection, insert, ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, login.getValue0());
+						ps.setString(parameterIndex++, login.getValue1());
+						for (Pair<String, String> key : keys) {
+							ps.setString(parameterIndex++, key.getValue1());
+						}
+						ps.setBoolean(parameterIndex++, value);
+					});
+				}
+			}
+			return null;
+		});
+	}
+
+	/**
+	 * The ids of the engines, projects or insights the user has hidden, for a NOT
+	 * IN filter. Rows with no VISIBILITY saved are visible.
+	 *
+	 * @param user            the user; their logins come from the session
+	 * @param preferenceTable USERENGINEPREFERENCE, USERPROJECTPREFERENCE or
+	 *                        USERINSIGHTPREFERENCE
+	 * @param idColumn        ENGINEID, PROJECTID or INSIGHTID
+	 * @return the query for the hidden ids
+	 */
+	static SelectQueryStruct getHiddenIdsQs(User user, String preferenceTable, String idColumn) {
+		String prefix = preferenceTable + "__";
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(prefix + idColumn));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(prefix + "VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(getUserIdAndTypeFilter(user, prefix + "USERID", prefix + "TYPE"));
+		return qs;
+	}
+
+	/**
+	 * Read creator filters from reactor input: maps with the creator's login
+	 * {@code id} and login {@code type}.
+	 *
+	 * @param values the input values, each expected to be a map; may be null
+	 * @return (id, login type) pairs, in input order; empty without input
+	 * @throws IllegalArgumentException when a value is not a map, or lacks an id or
+	 *                                  a type
+	 */
+	public static List<Pair<String, String>> getCreatorPairs(Collection<?> values) {
+		List<Pair<String, String>> creators = new ArrayList<>();
+		if (values == null) {
+			return creators;
+		}
+		for (Object value : values) {
+			Object id = value instanceof Map ? ((Map<?, ?>) value).get("id") : null;
+			Object type = value instanceof Map ? ((Map<?, ?>) value).get("type") : null;
+			if (id == null || id.toString().trim().isEmpty() || type == null || type.toString().trim().isEmpty()) {
+				throw new IllegalArgumentException("Each creator filter must be a map with an \"id\" and a \"type\"");
+			}
+			creators.add(Pair.with(id.toString().trim(), type.toString().trim()));
+		}
+		return creators;
+	}
+
+	/**
+	 * Match active grants to the user's provider groups and custom groups. A group
+	 * identity includes both its type and ID; IDs alone are not unique across
+	 * providers.
+	 *
+	 * @param user             the user whose memberships are checked
+	 * @param permissionPrefix the group permission table followed by {@code __}
+	 */
+	static IQueryFilter getUserGroupPermissionFilter(User user, String permissionPrefix) {
+		OrQueryFilter memberships = new OrQueryFilter();
+		if (user != null) {
+			for (AuthProvider login : user.getLogins()) {
+				AccessToken token = user.getAccessToken(login);
+				Collection<String> customGroups = AdminSecurityGroupUtils.getUserCustomGroups(token);
+				if (!customGroups.isEmpty()) {
+					AndQueryFilter custom = new AndQueryFilter();
+					custom.addFilter(SimpleQueryFilter.makeColToValFilter(permissionPrefix + "TYPE", "==", "CUSTOM"));
+					custom.addFilter(SimpleQueryFilter.makeColToValFilter(permissionPrefix + "ID", "==", customGroups));
+					memberships.addFilter(custom);
+				}
+				if (!token.getUserGroups().isEmpty()) {
+					AndQueryFilter provider = new AndQueryFilter();
+					provider.addFilter(SimpleQueryFilter.makeColToValFilter(permissionPrefix + "TYPE", "==",
+							token.getUserGroupType()));
+					provider.addFilter(
+							SimpleQueryFilter.makeColToValFilter(permissionPrefix + "ID", "==", token.getUserGroups()));
+					memberships.addFilter(provider);
+				}
+			}
+		}
+		if (memberships.isEmpty()) {
+			// An empty membership list must never become an unrestricted query.
+			return new SimpleQueryFilter(new NounMetadata(1, PixelDataType.CONST_INT), "==",
+					new NounMetadata(0, PixelDataType.CONST_INT));
+		}
+		AndQueryFilter activeGrants = new AndQueryFilter();
+		activeGrants.addFilter(memberships);
+		activeGrants.addFilter(SimpleQueryFilter.makeColToValFilter(permissionPrefix + "PERMISSION", "!=", null,
+				PixelDataType.CONST_INT));
+		activeGrants.addFilter(getUnexpiredFilter(permissionPrefix + "ENDDATE"));
+		return activeGrants;
+	}
+
+	/**
+	 * Match unlimited or unexpired permissions/memberships, whose end dates are
+	 * stored in UTC.
+	 */
+	static IQueryFilter getUnexpiredFilter(String endDateColumn) {
+		OrQueryFilter active = new OrQueryFilter();
+		active.addFilter(
+				SimpleQueryFilter.makeColToValFilter(endDateColumn, "==", null, PixelDataType.CONST_TIMESTAMP));
+		active.addFilter(SimpleQueryFilter.makeColToValFilter(endDateColumn, ">",
+				new SemossDate(Utility.getCurrentZonedDateTimeUTC()), PixelDataType.CONST_TIMESTAMP));
+		return active;
 	}
 
 	/**

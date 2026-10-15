@@ -51,35 +51,38 @@ public final class BrainFollow {
 	}
 
 	/**
-	 * Suggests people to follow; org is person id to "Your manager", "Reports to you" or "Same manager".
-	 * Returns how many were suggested.
+	 * Suggests people to follow; org is person id to "Your manager", "Reports to
+	 * you" or "Same manager". Returns how many were suggested.
 	 */
 	static int suggest(String ownerId, String ownerType, String selfId, Map<String, String> org) {
 		// threads the owner wrote on, and who else was on To or Cc there
 		Set<String> mine = new HashSet<>();
 		if (selfId != null) {
-			mine.addAll(CollaborationDbUtils.query("SELECT DISTINCT THREAD_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND "
-					+ "OWNER_TYPE = ? AND SENDER_PERSON_ID = ? AND THREAD_ID IS NOT NULL", rs -> rs.getString(1),
-					ownerId, ownerType, selfId));
+			mine.addAll(CollaborationDbUtils.query(
+					"SELECT DISTINCT THREAD_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND "
+							+ "OWNER_TYPE = ? AND SENDER_PERSON_ID = ? AND THREAD_ID IS NOT NULL",
+					rs -> rs.getString(1), ownerId, ownerType, selfId));
 		}
 		Map<String, Integer> together = new HashMap<>();
 		CollaborationDbUtils.query("SELECT THREAD_ID, PERSON_ID, ROLES_JSON FROM BRAIN_THREAD_PARTICIPANT WHERE "
 				+ "OWNER_ID = ? AND OWNER_TYPE = ?", rs -> {
 					String roles = String.valueOf(CollaborationDbUtils.getString(rs, "ROLES_JSON"));
-					if (mine.contains(rs.getString(1)) && (roles.contains("\"to\"") || roles.contains("\"cc\"")
-							|| roles.contains("\"from\""))) {
+					if (mine.contains(rs.getString(1))
+							&& (roles.contains("\"to\"") || roles.contains("\"cc\"") || roles.contains("\"from\""))) {
 						together.merge(rs.getString(2), 1, Integer::sum);
 					}
 					return null;
 				}, ownerId, ownerType);
 
-		// not the owner, not automated, and nothing decided yet; VIPs are followed outright
+		// not the owner, not automated, and nothing decided yet; VIPs are followed
+		// outright
 		Map<String, String> reasons = new LinkedHashMap<>();
 		List<String> vips = new ArrayList<>();
 		List<String[]> byStrength = CollaborationDbUtils.query("SELECT PERSON_ID, RELATIONSHIP, IS_VIP, FOLLOW_STATE "
 				+ "FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? ORDER BY COALESCE(STRENGTH, 0) DESC, PERSON_ID",
 				rs -> new String[] { rs.getString(1), rs.getString(2),
-						String.valueOf(Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "IS_VIP"))), rs.getString(4) },
+						String.valueOf(Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "IS_VIP"))),
+						rs.getString(4) },
 				ownerId, ownerType);
 		for (String[] p : byStrength) {
 			if (p[0].equals(selfId) || p[3] != null || BrainSenderTyping.AUTOMATED.equals(p[1])) {
@@ -106,13 +109,16 @@ public final class BrainFollow {
 		}
 		CollaborationDbUtils.batch(conn -> {
 			for (String id : vips) {
-				CollaborationDbUtils.update(conn, "UPDATE BRAIN_PERSON SET FOLLOW_STATE = ?, FOLLOW_REASON = ? WHERE "
-						+ "OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?", FOLLOWING, "VIP", ownerId, ownerType, id);
+				CollaborationDbUtils.update(conn,
+						"UPDATE BRAIN_PERSON SET FOLLOW_STATE = ?, FOLLOW_REASON = ? WHERE "
+								+ "OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?",
+						FOLLOWING, "VIP", ownerId, ownerType, id);
 			}
 			for (Map.Entry<String, String> r : reasons.entrySet()) {
-				CollaborationDbUtils.update(conn, "UPDATE BRAIN_PERSON SET FOLLOW_STATE = ?, FOLLOW_REASON = ? WHERE "
-						+ "OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?", SUGGESTED, r.getValue(), ownerId, ownerType,
-						r.getKey());
+				CollaborationDbUtils.update(conn,
+						"UPDATE BRAIN_PERSON SET FOLLOW_STATE = ?, FOLLOW_REASON = ? WHERE "
+								+ "OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?",
+						SUGGESTED, r.getValue(), ownerId, ownerType, r.getKey());
 			}
 		});
 		return reasons.size();

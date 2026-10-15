@@ -160,7 +160,9 @@ class CollaborationSearchUtilsTest {
 	@SuppressWarnings("unchecked")
 	void threadDetailsIncludeSavedContextAndSourceIdentity() throws Exception {
 		try (var statement = connection.createStatement()) {
-			statement.execute("UPDATE BRAIN_THREAD SET SOURCE = 'teams', THREAD_KEY = 'teams:chat-native-id', GOAL = 'Saved goal' WHERE THREAD_ID = 't-1'");
+			statement.execute("INSERT INTO BRAIN_MEMORY (OWNER_ID, OWNER_TYPE, MEMORY_ID, KIND, TEXT, STATE, ORIGIN) VALUES ('owner', 'NATIVE', 'saved-memory', 'fact', 'Current thread context', 'active', 'you')");
+			statement.execute("INSERT INTO BRAIN_MEMORY_LINK (OWNER_ID, OWNER_TYPE, MEMORY_ID, REF_TYPE, REF_ID) VALUES ('owner', 'NATIVE', 'saved-memory', 'thread', 't-1')");
+			statement.execute("UPDATE BRAIN_THREAD SET SOURCE = 'teams', THREAD_KEY = 'teams:chat-native-id', SUMMARY = 'Saved summary', AUTOMATED_OVERRIDE = TRUE WHERE THREAD_ID = 't-1'");
 			statement.execute("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, SOURCE, IS_PRIMARY) VALUES ('owner', 'NATIVE', 't-1', 'g-1', 'you', TRUE)");
 			statement.execute("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID, INCLUDED, ROLES_JSON) VALUES ('owner', 'NATIVE', 't-1', 'p-1', TRUE, '[\"member\"]')");
 			statement.execute("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, THREAD_ID, MESSAGE_KEY, GRAPH_ID) VALUES ('owner', 'NATIVE', 't-1', 'msg', 'native-message')");
@@ -171,7 +173,9 @@ class CollaborationSearchUtilsTest {
 		assertEquals("native-message", thread.get("latestMessageId"));
 		assertEquals("g-1", items(Map.of("items", record.get("topics"))).get(0).get("id"));
 		assertEquals("p-1", items(Map.of("items", record.get("people"))).get(0).get("id"));
-		assertEquals("Saved goal", items((Map<String, Object>) record.get("workspaces")).get(0).get("goal"));
+		assertEquals("Saved summary", thread.get("summary"));
+		assertEquals(true, thread.get("notAutomated"));
+		assertEquals("saved-memory", items(Map.of("items", record.get("memories"))).get(0).get("id"));
 	}
 
 	@Test

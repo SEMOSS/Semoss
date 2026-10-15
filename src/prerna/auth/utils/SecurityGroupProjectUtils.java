@@ -27,21 +27,23 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.javatuples.Pair;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.PermissionChange;
+import prerna.auth.access.PermissionErrorRules;
+import prerna.auth.access.PermissionGrant;
+import prerna.auth.access.PermissionProblem;
+import prerna.auth.access.PermissionSubject;
+import prerna.auth.access.PermissionTargetResource;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -55,14 +57,34 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
 
 public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityGroupProjectUtils.class);
+
+	private static final String OWNERS_ONLY = "Only this project's owners can change which teams have access to it.";
+
+	/**
+	 * Only a project's owners change which groups have access to it. A group's
+	 * managers decide who is in it, so attaching a group trusts them with the
+	 * access. Being an admin counts for nothing here, since an admin can also act
+	 * as an ordinary user; admins change it in admin mode.
+	 *
+	 * @param user      the user
+	 * @param projectId the project
+	 * @return whether the user is one of the project's owners
+	 */
+	public static boolean userCanManageGroupAccess(User user, String projectId) {
+		return SecurityProjectUtils.userIsOwner(user, projectId);
+	}
+
+	private static void checkCanManageGroupAccess(User user, String projectId) throws IllegalAccessException {
+		if (!userCanManageGroupAccess(user, projectId)) {
+			throw new IllegalAccessException(OWNERS_ONLY);
+		}
+	}
 
 	/**
 	 * Determine if a group can view a project
@@ -300,39 +322,6 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		return false;
 	}
 
-//	/**
-//	 * Determine if a user can view a project including group permissions
-//	 * @param user
-//	 * @param projectId
-//	 * @return
-//	 */
-//	public static boolean userCanViewProject(User user, String projectId) {
-//		Integer bestUserProjectPermission = getBestProjectPermission(user, projectId);
-//		return bestUserProjectPermission != null;
-//	}
-//
-//	/**
-//	 * Determine if the user can modify the project including group permissions
-//	 * @param projectId
-//	 * @param userId
-//	 * @return
-//	 */
-//	public static boolean userCanEditProject(User user, String projectId) {
-//		Integer bestUserProjectPermission = getBestProjectPermission(user, projectId);
-//		return bestUserProjectPermission != null && AccessPermission.isEditor(bestUserProjectPermission);
-//	}
-//
-//	/**
-//	 * Determine if the user is the owner of an project including group permissions
-//	 * @param userFilters
-//	 * @param projectId
-//	 * @return
-//	 */
-//	public static boolean userIsOwner(User user, String projectId) {
-//		Integer bestUserProjectPermission = getBestProjectPermission(user, projectId);
-//		return bestUserProjectPermission != null && AccessPermission.isOwner(bestUserProjectPermission);
-//	}
-
 	/**
 	 * Determine the strongest project permission for the user/group
 	 * 
@@ -413,58 +402,27 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Create a project group permission
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param projectId
-	 * @param permission
-	 * @return
-	 * @throws IllegalAccessException
+	 * Gives a team access to a project, as a permission batch. Only the project's
+	 * owners can.
+	 *
+	 * @param user       the user giving access
+	 * @param groupId    the team
+	 * @param groupType  the team's type
+	 * @param projectId  the project
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param endDate    when the access ends, or null
+	 * @throws IllegalAccessException when the user is not one of the project's
+	 *                                owners
 	 */
 	public static void addProjectGroupPermission(User user, String groupId, String groupType, String projectId,
 			String permission, String endDate) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
-		}
-
-		if (getGroupProjectPermission(groupId, groupType, projectId) != null) {
-			throw new IllegalArgumentException(
-					"This group already has access to this project. Please edit the existing permission level.");
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
-
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(
-					"INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)");
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, groupType);
-			ps.setString(parameterIndex++, projectId);
-			ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-			ps.setTimestamp(parameterIndex++, startDate);
-			ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to determine the highest group-based project permission.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.add(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(permission, endDate))),
+				PermissionBatchOptions.userMode().withoutTeamExistsCheck().keepingTeamType(),
+				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+								"This group already has access to this project. Please edit the existing permission level."));
 	}
 
 	/**
@@ -498,137 +456,48 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Modify a group project permission
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param projectId
-	 * @param newPermission
-	 * @return
-	 * @throws IllegalAccessException
+	 * Changes a team's access to a project, as a permission batch. Only the
+	 * project's owners can.
+	 *
+	 * @param user          the user changing the access
+	 * @param groupId       the team
+	 * @param groupType     the team's type
+	 * @param projectId     the project
+	 * @param newPermission the level, by name; anything else is Read-Only
+	 * @param endDate       when the access ends, or null
+	 * @throws IllegalAccessException when the user is not one of the project's
+	 *                                owners
 	 */
 	public static void editProjectGroupPermission(User user, String groupId, String groupType, String projectId,
 			String newPermission, String endDate) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the project
-		Integer userPermissionLvl = getBestProjectPermission(user, projectId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
-		}
-
-		// make sure we are trying to edit a permission that exists
-		Integer existingGroupPermission = getGroupProjectPermission(groupId, groupType, projectId);
-		if (existingGroupPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify group project permission for a group who does not currently have access to the project");
-		}
-
-		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
-
-		// if i am not an owner
-		// then i need to check if i can edit this group permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this group project permission.");
-			}
-
-			// also, cannot give some owner permission if i am just an editor
-			if (AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
-				throw new IllegalAccessException(
-						"Cannot give owner level access to this project since you are not currently an owner.");
-			}
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
-
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(
-					"UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND TYPE=? AND PROJECTID=?");
-			int parameterIndex = 1;
-			ps.setInt(parameterIndex++, newPermissionLvl);
-			ps.setTimestamp(parameterIndex++, startDate);
-			ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, groupType);
-			ps.setString(parameterIndex++, projectId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to retrieve the group-based project permission.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.change(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(newPermission, endDate))),
+				PermissionBatchOptions.userMode().keepingTeamType(),
+				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+								"Attempting to modify group project permission for a group who does not currently have access to the project"));
 	}
 
 	/**
-	 * Delete a group project permission
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param projectId
-	 * @return
-	 * @throws IllegalAccessException
+	 * Takes a team's access to a project away, as a permission batch. Only the
+	 * project's owners can.
+	 *
+	 * @param user      the user taking the access away
+	 * @param groupId   the team
+	 * @param groupType the team's type
+	 * @param projectId the project
+	 * @throws IllegalAccessException when the user is not one of the project's
+	 *                                owners
 	 */
 	public static void removeProjectGroupPermission(User user, String groupId, String groupType, String projectId)
 			throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the project
-		Integer userPermissionLvl = getBestProjectPermission(user, projectId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
-		}
-
-		// make sure we are trying to edit a permission that exists
-		Integer existingGroupPermission = getGroupProjectPermission(groupId, groupType, projectId);
-		if (existingGroupPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify group permission for a user who does not currently have access to the project");
-		}
-
-		// if i am not an owner
-		// then i need to check if i can remove this group permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this group project permission.");
-			}
-		}
-
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb
-					.getPreparedStatement("DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=?");
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, groupType);
-			ps.setString(parameterIndex++, projectId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to retrieve the group-based project permission.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
+				PermissionBatchOptions.userMode().keepingTeamType(),
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+								"Attempting to modify group permission for a user who does not currently have access to the project"));
 	}
 
 	/**
@@ -653,22 +522,18 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 					"Attempting to modify group permission for a user who does not currently have access to the project");
 		}
 
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb
-					.getPreparedStatement("DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=?");
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, groupType);
-			ps.setString(parameterIndex++, projectId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=?", ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, groupType);
+						ps.setString(parameterIndex++, projectId);
+					});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the group-based project permission.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
@@ -706,18 +571,30 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getGroupsWithAccessToProject(User user, String projectId, long limit,
 			long offset) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Input projectId must not be null or blank");
 		}
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalAccessException("The user does not have access to view this project");
 		}
+		return queryGroupsWithAccessToProject(projectId, limit, offset);
+	}
+
+	/**
+	 * The groups that have access to a project, read without checking who asks, for
+	 * callers that already checked, such as admin mode
+	 *
+	 * @return rows with {@code ID}, {@code TYPE}, {@code PERMISSION},
+	 *         {@code DATEADDED} and {@code ENDDATE}
+	 */
+	static List<Map<String, Object>> queryGroupsWithAccessToProject(String projectId, long limit, long offset) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ID"));
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__TYPE"));
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__DATEADDED"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ENDDATE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPPROJECTPERMISSION__ID"));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
@@ -750,5 +627,50 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+
+	/**
+	 * Groups that do not have access to a project yet, for its owners to choose
+	 * from.
+	 *
+	 * @param user       a project owner
+	 * @param projectId  the project
+	 * @param searchTerm text matched against the group id, or null
+	 * @param limit      page size, or 0 or less for all
+	 * @param offset     rows to skip
+	 * @return the groups, with the keys {@code id}, {@code type} and
+	 *         {@code description}
+	 * @throws IllegalAccessException when the user is not an owner
+	 */
+	public static List<Map<String, Object>> getAvailableGroupsForProject(User user, String projectId, String searchTerm,
+			long limit, long offset) throws IllegalAccessException {
+		checkCanManageGroupAccess(user, projectId);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DESCRIPTION"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__ID"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__TYPE"));
+		{
+			// leave out the groups that already have access
+			SelectQueryStruct attachedQs = new SelectQueryStruct();
+			attachedQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction("GROUPPROJECTPERMISSION__ID",
+					"GROUPPROJECTPERMISSION__TYPE", "GROUPKEY"));
+			attachedQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(
+					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_GROUP__ID", "SMSS_GROUP__TYPE", "GROUPKEY"),
+					"!=", attachedQs));
+		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "?like", searchTerm));
+		}
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
 	}
 }

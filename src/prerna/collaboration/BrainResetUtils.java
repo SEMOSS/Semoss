@@ -39,13 +39,17 @@ import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
+import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.project.AutomationProjectService;
+import prerna.reactor.automation.run.AutomationRunStore;
 
 // Wipes one owner's Collaboration data so onboarding starts fresh
 public final class BrainResetUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(BrainResetUtils.class);
 
-	// the owner row and source connections carry the Microsoft link; everything else goes
+	// the owner row and source connections carry the Microsoft link; everything
+	// else goes
 	private static final Set<String> KEPT = Set.of("COLLAB_OWNER", "SOURCE_CONNECTION");
 
 	private BrainResetUtils() {
@@ -58,18 +62,25 @@ public final class BrainResetUtils {
 		// same lock as job start, so no import or classify begins mid-reset
 		synchronized (CollaborationDbUtils.ownerLock("job", ownerId, ownerType)) {
 			if (CollaborationJobUtils.anyRunning(ownerId, ownerType)) {
-				throw new IllegalStateException("An import or classify is still running; wait for it to finish, then reset");
+				throw new IllegalStateException(
+						"An import or classify is still running; wait for it to finish, then reset");
 			}
 			Map<String, Object> deleted = new LinkedHashMap<>();
 			CollaborationDbUtils.inTransaction(conn -> {
 				for (String table : tables()) {
-					int rows = CollaborationDbUtils.update(conn, "DELETE FROM " + table
-							+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ?", ownerId, ownerType);
+					int rows = CollaborationDbUtils.update(conn,
+							"DELETE FROM " + table + " WHERE OWNER_ID = ? AND OWNER_TYPE = ?", ownerId, ownerType);
 					if (rows > 0) {
 						deleted.put(table, rows);
 					}
 				}
 			});
+			// the inbox brief's runs keep topics, threads and the brief in the scheduler database
+			int runs = AutomationRunStore.deleteRuns(AutomationProjectService.inlineRunScope(user),
+					WorkInboxRoutine.AUTOMATION_ID);
+			if (runs > 0) {
+				deleted.put(AutomationConstants.TABLE_AUTOMATION_RUNS, runs);
+			}
 			int total = deleted.values().stream().mapToInt(v -> (Integer) v).sum();
 			classLogger.info("Collaboration data reset for {} {}: {} rows", ownerType, ownerId, total);
 			Map<String, Object> result = new LinkedHashMap<>();
@@ -79,7 +90,8 @@ public final class BrainResetUtils {
 		}
 	}
 
-	// every table in the schema, newest first so child rows go before the rows they point at
+	// every table in the schema, newest first so child rows go before the rows they
+	// point at
 	private static List<String> tables() {
 		List<String> tables = new ArrayList<>();
 		new CollaborationOwlCreator(CollaborationDbUtils.db().getQueryUtil()).getDBSchema()

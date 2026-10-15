@@ -45,10 +45,12 @@ public class WorkUpdateItemReactor extends AbstractCollaborationReactor {
 	private static final String DUE_AT = "dueAt";
 	private static final String SUGGESTED = "suggested";
 	private static final String REASON = "reason";
+	private static final String CLOSED_REASON = "closedReason";
 
 	public WorkUpdateItemReactor() {
-		this.keysToGet = new String[] { ITEM_ID, STATUS, SNOOZE_UNTIL, PRIORITY, TITLE, DUE_AT, SUGGESTED, REASON };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { ITEM_ID, STATUS, SNOOZE_UNTIL, PRIORITY, TITLE, DUE_AT, SUGGESTED, REASON,
+				CLOSED_REASON };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -59,7 +61,7 @@ public class WorkUpdateItemReactor extends AbstractCollaborationReactor {
 			throw new IllegalArgumentException("Must pass an itemId");
 		}
 		Map<String, Object> changes = new LinkedHashMap<>();
-		for (String key : new String[] { STATUS, SNOOZE_UNTIL, PRIORITY, TITLE, DUE_AT }) {
+		for (String key : new String[] { STATUS, SNOOZE_UNTIL, PRIORITY, TITLE, DUE_AT, CLOSED_REASON }) {
 			if (getGenRowStruct(key) != null) {
 				changes.put(key, getString(key));
 			}
@@ -93,6 +95,8 @@ public class WorkUpdateItemReactor extends AbstractCollaborationReactor {
 			return "false accepts an assistant suggestion";
 		} else if (REASON.equals(key)) {
 			return "Why, kept in the item history";
+		} else if (CLOSED_REASON.equals(key)) {
+			return "Why it closed; no_response_needed (with dismissed) records the owner's correction";
 		}
 		return super.getDescriptionForKey(key);
 	}

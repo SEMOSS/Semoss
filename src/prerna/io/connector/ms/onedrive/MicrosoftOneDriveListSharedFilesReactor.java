@@ -40,6 +40,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Lists the files other people have shared with the signed in user.
@@ -90,7 +91,7 @@ public class MicrosoftOneDriveListSharedFilesReactor extends AbstractMicrosoftOn
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String search = trimToNull(this.keyValue.get(ReactorKeysEnum.SEARCH.getKey()));
+		String search = ValueUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.SEARCH.getKey()));
 		int limit = positiveInt(ReactorKeysEnum.LIMIT.getKey(), DEFAULT_LIMIT, MAX_LIMIT);
 
 		try {

@@ -33,19 +33,28 @@ import java.util.Map;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ITypeSafeEngine;
 import prerna.om.Insight;
+import prerna.util.RuntimeTimeContext;
 
 // A pluggable thread classifier: any model that can score a thread against the owner's topics. The
 // policy that turns scores into topic links and work items lives in BrainThreadClassifier, so a new model
 // only has to fill in Scores.
 public interface BrainClassifier {
 
-	/** What a classifier sees: the gated thread, never more. */
+	/**
+	 * What a classifier sees: the gated thread, never more. earlier: the engine's
+	 * window fits the earlier messages too (COLLAB_CLASSIFIER_WINDOW).
+	 * currentTime is captured by the server before scoring, with the owner's timezone.
+	 */
 	record ThreadInput(String threadId, String ownerName, String subject, List<String> participants,
-			List<Message> messages) {
+			List<Message> messages, boolean earlier, RuntimeTimeContext currentTime) {
 	}
 
-	/** One message, newest last; "me" marks the owner in from, to, and cc. */
-	record Message(String from, List<String> to, List<String> cc, String at, String text) {
+	/**
+	 * One message, newest last; "me" marks the owner in from, to, and cc. from is
+	 * "Name <address>"; footer is what cleaning cut from the end (signature,
+	 * disclaimer, unsubscribe), null when the window has no room for it.
+	 */
+	record Message(String from, List<String> to, List<String> cc, String at, String text, String footer) {
 	}
 
 	/** A topic the thread can be filed under. */
@@ -53,17 +62,17 @@ public interface BrainClassifier {
 	}
 
 	/**
-	 * Scores in [0, 1] (urgency in [0, 3]); topics maps topic id to probability. raw keeps the model's own
-	 * answer for audit and later re-tuning.
+	 * Scores in [0, 1] (urgency in [0, 3]); topics maps topic id to probability.
+	 * raw keeps the model's own answer for audit and later re-tuning.
 	 */
-	record Scores(Map<String, Double> topics, double fyi, double automated, double urgency,
-			Map<String, Object> raw) {
+	record Scores(Map<String, Double> topics, double fyi, double automated, double urgency, Map<String, Object> raw) {
 	}
 
 	/**
-	 * Where scores turn into work: fyi at or above fyiAt is FYI, below asksAt asks the owner, in between the
-	 * owner confirms; automated at or above automatedAt skips the thread. Models score on different scales,
-	 * so RDF_Map can override these per engine (COLLAB_CLASSIFIER_CUTOFFS {engineId: {...}}).
+	 * Where scores turn into work: fyi at or above fyiAt is FYI, below asksAt asks
+	 * the owner, in between the owner confirms; automated at or above automatedAt
+	 * skips the thread. Models score on different scales, so RDF_Map can override
+	 * these per engine (COLLAB_CLASSIFIER_CUTOFFS {engineId: {...}}).
 	 */
 	record Cutoffs(double fyiAt, double asksAt, double automatedAt) {
 	}
@@ -78,7 +87,8 @@ public interface BrainClassifier {
 
 	Scores score(ThreadInput thread, List<TopicOption> topics, Insight insight);
 
-	// picks the classifier for an engine by its model type: TypeSafe (Jev) or any chat model
+	// picks the classifier for an engine by its model type: TypeSafe (Jev) or any
+	// chat model
 	static BrainClassifier forEngine(String engineId, IModelEngine model) {
 		if (model instanceof ITypeSafeEngine jev) {
 			return new JevBrainClassifier(engineId, jev);

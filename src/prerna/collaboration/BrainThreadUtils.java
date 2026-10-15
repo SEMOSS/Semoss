@@ -38,10 +38,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.javatuples.Pair;
 
 import prerna.auth.User;
+import prerna.om.Insight;
 
 // Brain threads: BRAIN_THREAD with its topic links and participants
 public final class BrainThreadUtils {
@@ -58,7 +60,7 @@ public final class BrainThreadUtils {
 			"member");
 
 	private static final String THREAD_COLUMNS = "t.THREAD_ID, t.THREAD_KEY, t.SOURCE, t.SUBJECT, t.MUTED, t.AUTOMATED, "
-			+ "t.MESSAGE_COUNT, t.LAST_MESSAGE_AT, t.ROOM_ID";
+			+ "t.AUTOMATED_OVERRIDE, t.MESSAGE_COUNT, t.LAST_MESSAGE_AT, t.ROOM_ID";
 
 	// an open topic_choice review means two candidate topics were close
 	private static final String OPEN_TOPIC_CHOICE = "EXISTS (SELECT 1 FROM BRAIN_REVIEW r "
@@ -71,14 +73,15 @@ public final class BrainThreadUtils {
 
 	// ---- read ----
 
-	public static Map<String, Object> listThreads(User user, String filter, String topicId, String channel,
-			int limit, int offset) {
+	public static Map<String, Object> listThreads(User user, String filter, String topicId, String channel, int limit,
+			int offset) {
 		return listThreads(user, filter, topicId, channel, limit, offset, false);
 	}
 
-	// detail adds each thread's participants and summary, one query each for the page
-	public static Map<String, Object> listThreads(User user, String filter, String topicId, String channel,
-			int limit, int offset, boolean detail) {
+	// detail adds each thread's participants and summary, one query each for the
+	// page
+	public static Map<String, Object> listThreads(User user, String filter, String topicId, String channel, int limit,
+			int offset, boolean detail) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -105,14 +108,15 @@ public final class BrainThreadUtils {
 			params.add(channel);
 		}
 
-		List<Map<String, Object>> items = CollaborationDbUtils.query(
-				CollaborationDbUtils.page("SELECT " + THREAD_COLUMNS + ", t.SUMMARY, " + OPEN_TOPIC_CHOICE
-						+ " AS NEEDS_CHOICE FROM BRAIN_THREAD t" + where
-						+ " ORDER BY COALESCE(t.LAST_MESSAGE_AT, t.CREATED_AT) DESC, t.THREAD_ID", limit, offset),
-				rs -> {
+		List<Map<String, Object>> items = CollaborationDbUtils.query(CollaborationDbUtils.page("SELECT "
+				+ THREAD_COLUMNS + ", t.SUMMARY, t.SUMMARY_REF, t.SUMMARY_AT, " + OPEN_TOPIC_CHOICE
+				+ " AS NEEDS_CHOICE FROM BRAIN_THREAD t" + where
+				+ " ORDER BY COALESCE(t.LAST_MESSAGE_AT, t.CREATED_AT) DESC, t.THREAD_ID", limit, offset), rs -> {
 					Map<String, Object> row = mapThread(rs);
 					if (detail) {
 						row.put("summary", CollaborationDbUtils.getString(rs, "SUMMARY"));
+						row.put("summaryRef", CollaborationDbUtils.getString(rs, "SUMMARY_REF"));
+						row.put("summaryAt", CollaborationDbUtils.getTimestamp(rs, "SUMMARY_AT"));
 					}
 					return row;
 				}, params.toArray());
@@ -120,6 +124,15 @@ public final class BrainThreadUtils {
 		if (detail) {
 			addParticipants(ownerId, ownerType, items);
 			addLatestMessage(ownerId, ownerType, items);
+			// whether the summary was made from the newest message, and whether one is being made now
+			for (Map<String, Object> row : items) {
+				String ref = (String) row.remove("summaryRef");
+				row.put("summaryAt", row.remove("summaryAt"));
+				row.put("summaryCurrent", WorkThreadInsights.covers(ref, (String) row.get("latestMessageId")));
+				if (WorkThreadInsights.isPending(ownerId, ownerType, (String) row.get("id"))) {
+					row.put("summaryPending", true);
+				}
+			}
 		}
 
 		Map<String, Object> page = new LinkedHashMap<>();
@@ -128,15 +141,17 @@ public final class BrainThreadUtils {
 		return page;
 	}
 
-	/** Reads one owned thread without relying on a previously loaded list page. */
+	/** Reads one owned thread with the same metadata as a detailed list row. */
 	public static Map<String, Object> getThread(User user, String threadId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		Map<String, Object> thread = CollaborationDbUtils.queryOne(
-				"SELECT " + THREAD_COLUMNS + ", t.SUMMARY, " + OPEN_TOPIC_CHOICE
+				"SELECT " + THREAD_COLUMNS + ", t.SUMMARY, t.SUMMARY_REF, t.SUMMARY_AT, " + OPEN_TOPIC_CHOICE
 				+ " AS NEEDS_CHOICE FROM BRAIN_THREAD t WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.THREAD_ID = ?",
 				rs -> {
 					Map<String, Object> row = mapThread(rs);
 					row.put("summary", CollaborationDbUtils.getString(rs, "SUMMARY"));
+					row.put("summaryRef", CollaborationDbUtils.getString(rs, "SUMMARY_REF"));
+					row.put("summaryAt", CollaborationDbUtils.getTimestamp(rs, "SUMMARY_AT"));
 					return row;
 				}, owner.getValue0(), owner.getValue1(), threadId);
 		if (thread == null) throw new IllegalArgumentException("Thread not found");
@@ -144,6 +159,8 @@ public final class BrainThreadUtils {
 		addLinks(owner.getValue0(), owner.getValue1(), rows);
 		addParticipants(owner.getValue0(), owner.getValue1(), rows);
 		addLatestMessage(owner.getValue0(), owner.getValue1(), rows);
+		thread.put("summaryCurrent", WorkThreadInsights.covers((String) thread.remove("summaryRef"),
+				(String) thread.get("latestMessageId")));
 		return thread;
 	}
 
@@ -155,32 +172,33 @@ public final class BrainThreadUtils {
 
 	// ---- write ----
 
-	// the owner links a topic (source you, confidence 100); one primary per thread, the first link included
-	public static List<Map<String, Object>> linkThreadTopic(User user, String threadId, String topicId,
-			boolean primary, boolean remove) {
+	// the owner links a topic (source you, confidence 100); one primary per thread,
+	// the first link included
+	public static List<Map<String, Object>> linkThreadTopic(User user, String threadId, String topicId, boolean primary,
+			boolean remove) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
 		requireThread(ownerId, ownerType, threadId);
 		BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
 
-		List<Map<String, Object>> links = getLinks(ownerId, ownerType, threadId);
-		Map<String, Object> current = null;
-		for (Map<String, Object> link : links) {
-			if (topicId.equals(link.get("topicId"))) {
-				current = link;
-			}
-		}
-		Map<String, Object> existing = current;
 		Timestamp now = CollaborationDbUtils.now();
-		CollaborationDbUtils.inTransaction(conn -> {
+		CollaborationDbUtils.batch(conn -> {
+			BrainTopicReviewProfiles.lock(ownerId, ownerType);
+			BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
+			BrainThreadTopicDecisions.lockThread(ownerId, ownerType, threadId);
+			List<Map<String, Object>> links = getLinks(ownerId, ownerType, threadId);
+			Map<String, Object> existing = links.stream().filter(link -> topicId.equals(link.get("topicId")))
+					.findFirst().orElse(null);
+			BrainThreadTopicDecisions.remember(ownerId, ownerType, threadId, topicId, remove);
 			if (remove) {
 				if (existing == null) {
 					return;
 				}
-				CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_THREAD_TOPIC "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND TOPIC_ID = ?", ownerId,
-						ownerType, threadId, topicId);
+				CollaborationDbUtils.update(conn,
+						"DELETE FROM BRAIN_THREAD_TOPIC "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND TOPIC_ID = ?",
+						ownerId, ownerType, threadId, topicId);
 				// dropping the primary promotes the strongest remaining link
 				if (Boolean.TRUE.equals(existing.get("primary"))) {
 					for (Map<String, Object> link : links) {
@@ -194,18 +212,23 @@ public final class BrainThreadUtils {
 			}
 			boolean makePrimary = primary || links.isEmpty();
 			if (makePrimary) {
-				CollaborationDbUtils.update(conn, "UPDATE BRAIN_THREAD_TOPIC SET IS_PRIMARY = ? "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?", false, ownerId, ownerType, threadId);
+				CollaborationDbUtils.update(conn,
+						"UPDATE BRAIN_THREAD_TOPIC SET IS_PRIMARY = ? "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+						false, ownerId, ownerType, threadId);
 			}
 			if (existing == null) {
-				CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, "
-						+ "TOPIC_ID, SOURCE, CONFIDENCE, IS_PRIMARY, CHANGED_BY, CHANGED_AT) "
-						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, threadId, topicId,
-						BrainProfileUtils.YOU, 100, makePrimary, BrainProfileUtils.YOU, now);
+				CollaborationDbUtils.update(conn,
+						"INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, "
+								+ "TOPIC_ID, SOURCE, CONFIDENCE, IS_PRIMARY, CHANGED_BY, CHANGED_AT) "
+								+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+						ownerId, ownerType, threadId, topicId, BrainProfileUtils.YOU, 100, makePrimary,
+						BrainProfileUtils.YOU, now);
 			} else {
-				CollaborationDbUtils.update(conn, "UPDATE BRAIN_THREAD_TOPIC SET SOURCE = ?, CONFIDENCE = ?, "
-						+ "IS_PRIMARY = ?, CHANGED_BY = ?, CHANGED_AT = ? "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND TOPIC_ID = ?",
+				CollaborationDbUtils.update(conn,
+						"UPDATE BRAIN_THREAD_TOPIC SET SOURCE = ?, CONFIDENCE = ?, "
+								+ "IS_PRIMARY = ?, CHANGED_BY = ?, CHANGED_AT = ? "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND TOPIC_ID = ?",
 						BrainProfileUtils.YOU, 100, makePrimary || Boolean.TRUE.equals(existing.get("primary")),
 						BrainProfileUtils.YOU, now, ownerId, ownerType, threadId, topicId);
 			}
@@ -213,7 +236,8 @@ public final class BrainThreadUtils {
 		return getLinks(ownerId, ownerType, threadId);
 	}
 
-	// excluding is by hand; a rule-driven exclusion is undone by changing the rule, not here
+	// excluding is by hand; a rule-driven exclusion is undone by changing the rule,
+	// not here
 	public static Map<String, Object> setThreadParticipant(User user, String threadId, String personId,
 			boolean included) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -236,15 +260,18 @@ public final class BrainThreadUtils {
 		boolean wasIncluded = (Boolean) current.get("included");
 		if (included && !wasIncluded && RULE.equals(current.get("excludedBy"))
 				&& isActiveRule(ownerId, ownerType, (String) current.get("ruleId"))) {
-			throw new IllegalArgumentException("Excluded by rule " + current.get("ruleId")
-					+ "; change the rule to include this person");
+			throw new IllegalArgumentException(
+					"Excluded by rule " + current.get("ruleId") + "; change the rule to include this person");
 		}
 		if (included != wasIncluded) {
-			CollaborationDbUtils.update("UPDATE BRAIN_THREAD_PARTICIPANT SET INCLUDED = ?, EXCLUDED_BY = ?, "
-					+ "EXCLUDED_RULE_ID = NULL, EXCLUDED_AT = ? "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND PERSON_ID = ?", included,
-					included ? null : BrainProfileUtils.YOU, included ? null : CollaborationDbUtils.now(), ownerId,
-					ownerType, threadId, personId);
+			CollaborationDbUtils.update(
+					"UPDATE BRAIN_THREAD_PARTICIPANT SET INCLUDED = ?, EXCLUDED_BY = ?, "
+							+ "EXCLUDED_RULE_ID = NULL, EXCLUDED_AT = ? "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND PERSON_ID = ?",
+					included, included ? null : BrainProfileUtils.YOU, included ? null : CollaborationDbUtils.now(),
+					ownerId, ownerType, threadId, personId);
+			// the summary may hold what this person wrote, or miss it
+			WorkThreadInsights.markStale(ownerId, ownerType, threadId);
 		}
 		return CollaborationDbUtils.queryOne("SELECT tp.PERSON_ID, tp.ROLES_JSON, tp.INCLUDED, tp.EXCLUDED_BY, "
 				+ "tp.EXCLUDED_AT, tp.HIDDEN_COUNT, p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_THREAD_PARTICIPANT tp "
@@ -257,21 +284,67 @@ public final class BrainThreadUtils {
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
 		requireThread(ownerId, ownerType, threadId);
-		CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET MUTED = ? "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?", muted, ownerId, ownerType, threadId);
-		Map<String, Object> thread = CollaborationDbUtils.queryOne("SELECT " + THREAD_COLUMNS + ", "
-				+ OPEN_TOPIC_CHOICE + " AS NEEDS_CHOICE FROM BRAIN_THREAD t "
-				+ "WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.THREAD_ID = ?", BrainThreadUtils::mapThread,
+		CollaborationDbUtils.update(
+				"UPDATE BRAIN_THREAD SET MUTED = ? " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?", muted,
 				ownerId, ownerType, threadId);
+		Map<String, Object> thread = CollaborationDbUtils.queryOne(
+				"SELECT " + THREAD_COLUMNS + ", " + OPEN_TOPIC_CHOICE + " AS NEEDS_CHOICE FROM BRAIN_THREAD t "
+						+ "WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.THREAD_ID = ?",
+				BrainThreadUtils::mapThread, ownerId, ownerType, threadId);
 		addLinks(ownerId, ownerType, List.of(thread));
 		return thread;
+	}
+
+	// The owner's "not automated" correction. It is sticky: the classifier, the sender vote, and the machine-sent check
+	// all leave the thread alone afterwards. Setting it clears the automated flag, brings back what was dismissed as
+	// automated, and classifies the thread again; clearing it only drops the override.
+	public static Map<String, Object> setThreadNotAutomated(User user, Insight insight, String threadId,
+			boolean notAutomated) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		requireThread(ownerId, ownerType, threadId);
+		boolean was = Boolean.TRUE.equals(CollaborationDbUtils.queryOne("SELECT AUTOMATED_OVERRIDE FROM BRAIN_THREAD "
+				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> CollaborationDbUtils.getBoolean(rs, "AUTOMATED_OVERRIDE"), ownerId, ownerType, threadId));
+		if (notAutomated) {
+			CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED_OVERRIDE = ?, AUTOMATED = ? WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND THREAD_ID = ?", true, false, ownerId, ownerType, threadId);
+		} else {
+			CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED_OVERRIDE = ? WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND THREAD_ID = ?", false, ownerId, ownerType, threadId);
+		}
+		if (was != notAutomated) {
+			CollaborationDbUtils.update("INSERT INTO BRAIN_CHANGE (OWNER_ID, OWNER_TYPE, CHANGE_ID, ENTITY_TYPE, "
+					+ "ENTITY_ID, FIELD, OLD_VALUE, NEW_VALUE, ACTOR, AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId,
+					ownerType, UUID.randomUUID().toString(), "thread", threadId, "not_automated", String.valueOf(was),
+					String.valueOf(notAutomated), BrainProfileUtils.YOU, CollaborationDbUtils.now());
+		}
+		Map<String, Object> result = new LinkedHashMap<>();
+		if (notAutomated) {
+			result.put("reopened", WorkItemUtils.reopenAutomated(ownerId, ownerType, threadId));
+			// the correction stands even when the classifier model is not set or fails
+			try {
+				result.put("reclassified", BrainThreadClassifier.classify(user, insight, List.of(threadId), false));
+			} catch (Exception e) {
+				result.put("reclassifyError", e.getMessage());
+			}
+		}
+		Map<String, Object> thread = CollaborationDbUtils.queryOne(
+				"SELECT " + THREAD_COLUMNS + ", " + OPEN_TOPIC_CHOICE + " AS NEEDS_CHOICE FROM BRAIN_THREAD t "
+						+ "WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.THREAD_ID = ?",
+				BrainThreadUtils::mapThread, ownerId, ownerType, threadId);
+		addLinks(ownerId, ownerType, List.of(thread));
+		result.put("thread", thread);
+		return result;
 	}
 
 	// ---- helpers ----
 
 	static void requireThread(String ownerId, String ownerType, String threadId) {
-		if (!CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-				+ "AND THREAD_ID = ?", ownerId, ownerType, threadId)) {
+		if (!CollaborationDbUtils.exists(
+				"SELECT 1 FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? " + "AND THREAD_ID = ?", ownerId,
+				ownerType, threadId)) {
 			throw new IllegalArgumentException("Thread not found");
 		}
 	}
@@ -281,11 +354,12 @@ public final class BrainThreadUtils {
 				+ "AND OWNER_TYPE = ? AND RULE_ID = ? AND DISABLED_AT IS NULL", ownerId, ownerType, ruleId);
 	}
 
-	private static void setPrimary(Connection conn, String ownerId, String ownerType, String threadId,
-			String topicId) throws SQLException {
-		CollaborationDbUtils.update(conn, "UPDATE BRAIN_THREAD_TOPIC SET IS_PRIMARY = ? "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND TOPIC_ID = ?", true, ownerId, ownerType,
-				threadId, topicId);
+	private static void setPrimary(Connection conn, String ownerId, String ownerType, String threadId, String topicId)
+			throws SQLException {
+		CollaborationDbUtils.update(conn,
+				"UPDATE BRAIN_THREAD_TOPIC SET IS_PRIMARY = ? "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND TOPIC_ID = ?",
+				true, ownerId, ownerType, threadId, topicId);
 	}
 
 	// one query for every thread on the page
@@ -325,9 +399,10 @@ public final class BrainThreadUtils {
 		Map<String, List<Map<String, Object>>> byThread = new HashMap<>();
 		for (Pair<String, Map<String, Object>> row : CollaborationDbUtils.query(
 				"SELECT tp.THREAD_ID, tp.PERSON_ID, tp.ROLES_JSON, tp.INCLUDED, tp.EXCLUDED_BY, tp.EXCLUDED_AT, "
-						+ "tp.HIDDEN_COUNT, p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_THREAD_PARTICIPANT tp " + PERSON_JOIN
-						+ "WHERE tp.OWNER_ID = ? AND tp.OWNER_TYPE = ? AND tp.THREAD_ID IN ("
-						+ CollaborationDbUtils.placeholders(threads.size()) + ") ORDER BY tp.FIRST_SEEN_AT, tp.PERSON_ID",
+						+ "tp.HIDDEN_COUNT, p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_THREAD_PARTICIPANT tp "
+						+ PERSON_JOIN + "WHERE tp.OWNER_ID = ? AND tp.OWNER_TYPE = ? AND tp.THREAD_ID IN ("
+						+ CollaborationDbUtils.placeholders(threads.size())
+						+ ") ORDER BY tp.FIRST_SEEN_AT, tp.PERSON_ID",
 				rs -> Pair.with(rs.getString("THREAD_ID"), mapParticipant(rs)), params.toArray())) {
 			byThread.computeIfAbsent(row.getValue0(), k -> new ArrayList<>()).add(row.getValue1());
 		}
@@ -339,7 +414,8 @@ public final class BrainThreadUtils {
 		}
 	}
 
-	// the newest message's Graph id, so the UI can reply to it; never-ingest messages have no thread
+	// the newest message's Graph id, so the UI can reply to it; never-ingest
+	// messages have no thread
 	private static void addLatestMessage(String ownerId, String ownerType, List<Map<String, Object>> threads) {
 		if (threads.isEmpty()) {
 			return;
@@ -349,9 +425,11 @@ public final class BrainThreadUtils {
 			params.add(thread.get("id"));
 		}
 		Map<String, String> latest = new HashMap<>();
-		CollaborationDbUtils.query("SELECT THREAD_ID, GRAPH_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-				+ "AND GRAPH_ID IS NOT NULL AND THREAD_ID IN (" + CollaborationDbUtils.placeholders(threads.size())
-				+ ") ORDER BY RECEIVED_AT DESC, MESSAGE_KEY",
+		CollaborationDbUtils.query(
+				"SELECT THREAD_ID, GRAPH_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "AND GRAPH_ID IS NOT NULL AND THREAD_ID IN ("
+						+ CollaborationDbUtils.placeholders(threads.size())
+						+ ") ORDER BY RECEIVED_AT DESC, MESSAGE_KEY",
 				rs -> latest.putIfAbsent(rs.getString("THREAD_ID"), rs.getString("GRAPH_ID")), params.toArray());
 		for (Map<String, Object> thread : threads) {
 			thread.put("latestMessageId", latest.get(thread.get("id")));
@@ -380,6 +458,9 @@ public final class BrainThreadUtils {
 		row.put("muted", Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED")));
 		if (Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "AUTOMATED"))) {
 			row.put("automated", true);
+		}
+		if (Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "AUTOMATED_OVERRIDE"))) {
+			row.put("notAutomated", true);
 		}
 		Integer count = CollaborationDbUtils.getInteger(rs, "MESSAGE_COUNT");
 		row.put("messageCount", count == null ? 0 : count);

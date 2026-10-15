@@ -30,6 +30,7 @@ An agent is not a model engine, a skill is not a tool, and the agent's workspace
 1. [Agent configuration](agent_configuration.md): define a workspace, select a model and target, attach resources, and set limits.
 2. [The SEMOSS harness](semoss_harness.md): understand prompt composition, tools, compaction, hooks, and subagents.
 3. [Run lifecycle and streaming](agent_runs.md): submit, monitor, pause, resume, and cancel runs.
+   - [MCP tools and `_meta` options](mcp_tools.md): define tools, set execution/deferred/UI metadata, and how each MCP type supports it.
 4. [Agent skills](skills/skills_doc.md): author, catalog, attach, stage, discover, and load skills.
 5. [Workbench default agents](workbench-default-agents.md): how frontend defaults and system agents are deployed and selected.
 6. [PowerPoint visual inspection](pptx-visual-inspection.md): a specialized agent workflow.

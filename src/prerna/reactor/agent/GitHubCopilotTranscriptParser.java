@@ -35,6 +35,8 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import prerna.util.ValueUtils;
+
 /**
  * Parses GitHub Copilot session-state JSONL events into the same envelope shape
  * the live streaming path emits to the frontend.
@@ -58,7 +60,7 @@ public class GitHubCopilotTranscriptParser {
 		}
 
 		String type = readString(raw, "type");
-		if (isBlank(type)) {
+		if (ValueUtils.isBlank(type)) {
 			return events;
 		}
 
@@ -91,9 +93,10 @@ public class GitHubCopilotTranscriptParser {
 
 	private static JSONObject parseUserMessage(JSONObject raw, String sessionIdFallback) {
 		JSONObject data = raw.optJSONObject("data");
-		String promptId = firstNonBlank(readString(raw, "id"), readString(data, "messageId"), readString(data, "message_id"));
+		String promptId = firstNonBlank(readString(raw, "id"), readString(data, "messageId"),
+				readString(data, "message_id"));
 		String prompt = firstNonBlank(readString(data, "content"), readString(data, "text"));
-		if (isBlank(promptId) || isBlank(prompt)) {
+		if (ValueUtils.isBlank(promptId) || ValueUtils.isBlank(prompt)) {
 			return null;
 		}
 
@@ -114,7 +117,7 @@ public class GitHubCopilotTranscriptParser {
 
 		String messageId = firstNonBlank(readString(rawData, "messageId"), readString(rawData, "message_id"),
 				readString(raw, "id"));
-		if (isBlank(messageId)) {
+		if (ValueUtils.isBlank(messageId)) {
 			return events;
 		}
 
@@ -123,13 +126,13 @@ public class GitHubCopilotTranscriptParser {
 
 		JSONArray texts = new JSONArray();
 		String content = readString(rawData, "content");
-		if (!isBlank(content)) {
+		if (!ValueUtils.isBlank(content)) {
 			JSONObject text = new JSONObject();
 			text.put("eventId", messageId);
 			text.put("text", content);
 			text.put("timestamp", timestamp);
 			text.put("isPartial", false);
-			if (!isBlank(model)) {
+			if (!ValueUtils.isBlank(model)) {
 				text.put("model", model);
 			}
 			texts.put(text);
@@ -147,22 +150,21 @@ public class GitHubCopilotTranscriptParser {
 					continue;
 				}
 
-				String toolCallId = firstNonBlank(readString(request, "toolCallId"), readString(request, "tool_call_id"),
-						readString(request, "id"));
+				String toolCallId = firstNonBlank(readString(request, "toolCallId"),
+						readString(request, "tool_call_id"), readString(request, "id"));
 				String toolName = firstNonBlank(readString(request, "name"), readString(request, "toolName"),
 						readString(request, "tool_name"));
-				if (isBlank(toolCallId) || isBlank(toolName)) {
+				if (ValueUtils.isBlank(toolCallId) || ValueUtils.isBlank(toolName)) {
 					continue;
 				}
 
 				if (isReportIntentTool(toolName)) {
 					String intent = firstNonBlank(readString(request, "intentionSummary"),
-							readString(request, "intention_summary"),
-							extractDescription(request.opt("arguments")));
-					if (!isBlank(toolCallId)) {
+							readString(request, "intention_summary"), extractDescription(request.opt("arguments")));
+					if (!ValueUtils.isBlank(toolCallId)) {
 						suppressedToolCallIds.add(toolCallId);
 					}
-					if (isBlank(intent)) {
+					if (ValueUtils.isBlank(intent)) {
 						continue;
 					}
 
@@ -172,7 +174,7 @@ public class GitHubCopilotTranscriptParser {
 					intentPayload.put("display", "intent");
 					intentPayload.put("timestamp", timestamp);
 					intentPayload.put("isPartial", false);
-					if (!isBlank(model)) {
+					if (!ValueUtils.isBlank(model)) {
 						intentPayload.put("model", model);
 					}
 					texts.put(intentPayload);
@@ -187,7 +189,7 @@ public class GitHubCopilotTranscriptParser {
 
 				String description = firstNonBlank(readString(request, "intentionSummary"),
 						readString(request, "intention_summary"), extractDescription(request.opt("arguments")));
-				if (!isBlank(description)) {
+				if (!ValueUtils.isBlank(description)) {
 					invocation.put("description", description);
 				}
 				toolInvocations.put(invocation);
@@ -199,7 +201,7 @@ public class GitHubCopilotTranscriptParser {
 		}
 
 		JSONObject payload = new JSONObject();
-		if (!isBlank(model)) {
+		if (!ValueUtils.isBlank(model)) {
 			payload.put("model", model);
 		}
 		payload.put("timestamp", timestamp);
@@ -220,9 +222,10 @@ public class GitHubCopilotTranscriptParser {
 			return null;
 		}
 
-		String eventId = firstNonBlank(readString(data, "messageId"), readString(data, "message_id"), readString(raw, "id"));
+		String eventId = firstNonBlank(readString(data, "messageId"), readString(data, "message_id"),
+				readString(raw, "id"));
 		String delta = firstNonBlank(readString(data, "deltaContent"), readString(data, "delta_content"));
-		if (isBlank(eventId) || isBlank(delta)) {
+		if (ValueUtils.isBlank(eventId) || ValueUtils.isBlank(delta)) {
 			return null;
 		}
 
@@ -233,17 +236,18 @@ public class GitHubCopilotTranscriptParser {
 		text.put("timestamp", timestamp);
 		text.put("isPartial", true);
 		String model = firstNonBlank(readString(data, "model"), readString(raw, "model"));
-		if (!isBlank(model)) {
+		if (!ValueUtils.isBlank(model)) {
 			text.put("model", model);
 		}
 
-		String parentToolUseId = firstNonBlank(readString(data, "parentToolCallId"), readString(data, "parent_tool_call_id"));
-		if (!isBlank(parentToolUseId)) {
+		String parentToolUseId = firstNonBlank(readString(data, "parentToolCallId"),
+				readString(data, "parent_tool_call_id"));
+		if (!ValueUtils.isBlank(parentToolUseId)) {
 			text.put("parentToolUseId", parentToolUseId);
 		}
 
 		JSONObject payload = new JSONObject();
-		if (!isBlank(model)) {
+		if (!ValueUtils.isBlank(model)) {
 			payload.put("model", model);
 		}
 		payload.put("timestamp", timestamp);
@@ -259,7 +263,7 @@ public class GitHubCopilotTranscriptParser {
 
 		String eventId = firstNonBlank(readString(raw, "id"), readString(data, "id"));
 		String intent = firstNonBlank(readString(data, "intent"), readString(data, "content"));
-		if (isBlank(eventId) || isBlank(intent)) {
+		if (ValueUtils.isBlank(eventId) || ValueUtils.isBlank(intent)) {
 			return null;
 		}
 
@@ -271,12 +275,12 @@ public class GitHubCopilotTranscriptParser {
 		text.put("display", "intent");
 		text.put("timestamp", timestamp);
 		text.put("isPartial", false);
-		if (!isBlank(model)) {
+		if (!ValueUtils.isBlank(model)) {
 			text.put("model", model);
 		}
 
 		JSONObject payload = new JSONObject();
-		if (!isBlank(model)) {
+		if (!ValueUtils.isBlank(model)) {
 			payload.put("model", model);
 		}
 		payload.put("timestamp", timestamp);
@@ -294,7 +298,7 @@ public class GitHubCopilotTranscriptParser {
 		String toolCallId = firstNonBlank(readString(data, "toolCallId"), readString(data, "tool_call_id"),
 				readString(raw, "id"));
 		String toolName = firstNonBlank(readString(data, "toolName"), readString(data, "tool_name"));
-		if (isBlank(toolCallId) || isBlank(toolName)) {
+		if (ValueUtils.isBlank(toolCallId) || ValueUtils.isBlank(toolName)) {
 			return null;
 		}
 		if (isReportIntentTool(toolName)) {
@@ -310,7 +314,7 @@ public class GitHubCopilotTranscriptParser {
 		invocation.put("timestamp", timestamp);
 
 		String description = extractDescription(data.opt("arguments"));
-		if (!isBlank(description)) {
+		if (!ValueUtils.isBlank(description)) {
 			invocation.put("description", description);
 		}
 
@@ -318,7 +322,7 @@ public class GitHubCopilotTranscriptParser {
 		payload.put("timestamp", timestamp);
 		payload.put("toolInvocations", new JSONArray().put(invocation));
 		String model = firstNonBlank(readString(data, "model"), readString(raw, "model"));
-		if (!isBlank(model)) {
+		if (!ValueUtils.isBlank(model)) {
 			payload.put("model", model);
 		}
 		return toEvent("assistant", toolCallId, resolveSessionId(raw, sessionIdFallback), payload);
@@ -333,13 +337,13 @@ public class GitHubCopilotTranscriptParser {
 
 		String toolCallId = firstNonBlank(readString(data, "toolCallId"), readString(data, "tool_call_id"),
 				readString(raw, "id"));
-		if (isBlank(toolCallId) || suppressedToolCallIds.contains(toolCallId)) {
+		if (ValueUtils.isBlank(toolCallId) || suppressedToolCallIds.contains(toolCallId)) {
 			return null;
 		}
 
 		String content = firstNonBlank(readString(data, "progressMessage"), readString(data, "progress_message"),
 				readString(data, "partialOutput"), readString(data, "partial_output"));
-		if (isBlank(content)) {
+		if (ValueUtils.isBlank(content)) {
 			return null;
 		}
 
@@ -364,7 +368,7 @@ public class GitHubCopilotTranscriptParser {
 
 		String toolCallId = firstNonBlank(readString(data, "toolCallId"), readString(data, "tool_call_id"),
 				readString(raw, "id"));
-		if (isBlank(toolCallId)) {
+		if (ValueUtils.isBlank(toolCallId)) {
 			return null;
 		}
 		if (suppressedToolCallIds.remove(toolCallId)) {
@@ -375,7 +379,7 @@ public class GitHubCopilotTranscriptParser {
 		JSONObject error = data.optJSONObject("error");
 		boolean success = data.optBoolean("success", false);
 		String content = extractToolResultContent(result, error);
-		if (isBlank(content) && success) {
+		if (ValueUtils.isBlank(content) && success) {
 			content = "(tool completed with no output)";
 		}
 
@@ -387,7 +391,7 @@ public class GitHubCopilotTranscriptParser {
 		payload.put("isPartial", false);
 		payload.put("durationMs", 0);
 		payload.put("timestamp", readTimestamp(raw, data));
-		if (!isBlank(content)) {
+		if (!ValueUtils.isBlank(content)) {
 			payload.put("content", content);
 		}
 		return toEvent("tool_result", toolCallId, resolveSessionId(raw, sessionIdFallback), payload);
@@ -431,14 +435,14 @@ public class GitHubCopilotTranscriptParser {
 	private static String extractToolResultContent(JSONObject result, JSONObject error) {
 		if (error != null) {
 			String message = readString(error, "message");
-			if (!isBlank(message)) {
+			if (!ValueUtils.isBlank(message)) {
 				return message;
 			}
 		}
 
 		if (result != null) {
 			String direct = firstNonBlank(readString(result, "content"), readString(result, "detailedContent"));
-			if (!isBlank(direct)) {
+			if (!ValueUtils.isBlank(direct)) {
 				return direct;
 			}
 
@@ -455,7 +459,7 @@ public class GitHubCopilotTranscriptParser {
 					} else if (item != null) {
 						piece = String.valueOf(item);
 					}
-					if (!isBlank(piece)) {
+					if (!ValueUtils.isBlank(piece)) {
 						if (builder.length() > 0) {
 							builder.append("\n");
 						}
@@ -472,11 +476,11 @@ public class GitHubCopilotTranscriptParser {
 	}
 
 	private static boolean isReportIntentTool(String toolName) {
-		return !isBlank(toolName) && "report_intent".equalsIgnoreCase(toolName.trim());
+		return !ValueUtils.isBlank(toolName) && "report_intent".equalsIgnoreCase(toolName.trim());
 	}
 
 	private static String truncate(String value) {
-		if (isBlank(value)) {
+		if (ValueUtils.isBlank(value)) {
 			return null;
 		}
 		return value.length() <= DESCRIPTION_LIMIT ? value : value.substring(0, DESCRIPTION_LIMIT) + "...";
@@ -489,7 +493,7 @@ public class GitHubCopilotTranscriptParser {
 		for (String key : keys) {
 			if (json.has(key) && !json.isNull(key)) {
 				String value = String.valueOf(json.opt(key));
-				if (!isBlank(value)) {
+				if (!ValueUtils.isBlank(value)) {
 					return value;
 				}
 			}
@@ -502,15 +506,11 @@ public class GitHubCopilotTranscriptParser {
 			return null;
 		}
 		for (String value : values) {
-			if (!isBlank(value)) {
+			if (!ValueUtils.isBlank(value)) {
 				return value;
 			}
 		}
 		return null;
-	}
-
-	private static boolean isBlank(String value) {
-		return value == null || value.trim().isEmpty();
 	}
 
 	private static String valueOrEmpty(String value) {

@@ -63,15 +63,17 @@ public final class BrainRulesGate {
 	}
 
 	/**
-	 * What a bulk import already loaded, so the gate does not read it again per message: the active rules,
-	 * whether the source is on, and lookups for earlier decisions, people by address and threads by key
-	 * ([id, muted]). The caller keeps them current as it writes.
+	 * What a bulk import already loaded, so the gate does not read it again per
+	 * message: the active rules, whether the source is on, and lookups for earlier
+	 * decisions, people by address and threads by key ([id, muted]). The caller
+	 * keeps them current as it writes.
 	 */
 	record Known(List<Rule> rules, boolean enabled, Function<String, Map<String, Object>> replay,
 			Function<String, String> person, Function<String, String[]> thread) {
 	}
 
-	// headers: source, messageId, graphId, conversationId, folderId, from, receivedAt (ISO-8601 UTC)
+	// headers: source, messageId, graphId, conversationId, folderId, from,
+	// receivedAt (ISO-8601 UTC)
 	static Map<String, Object> check(String ownerId, String ownerType, Map<String, String> headers, Known known) {
 		synchronized (lockFor(ownerId, ownerType)) {
 			return checkLocked(ownerId, ownerType, headers, known);
@@ -89,21 +91,24 @@ public final class BrainRulesGate {
 		String messageKey = CollaborationDbUtils.deterministicId(ownerId, ownerType, source, messageId);
 
 		// replay: the first decision stands and nothing is bumped twice
-		Map<String, Object> replay = known != null ? known.replay().apply(messageKey) : CollaborationDbUtils.queryOne(
-				"SELECT DECISION, RULE_ID, THREAD_ID, SENDER_PERSON_ID FROM BRAIN_MESSAGE "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
-				rs -> result(CollaborationDbUtils.getString(rs, "DECISION"), CollaborationDbUtils.getString(rs, "RULE_ID"),
-						CollaborationDbUtils.getString(rs, "THREAD_ID"),
-						CollaborationDbUtils.getString(rs, "SENDER_PERSON_ID")),
-				ownerId, ownerType, messageKey);
+		Map<String, Object> replay = known != null ? known.replay().apply(messageKey)
+				: CollaborationDbUtils.queryOne(
+						"SELECT DECISION, RULE_ID, THREAD_ID, SENDER_PERSON_ID FROM BRAIN_MESSAGE "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
+						rs -> result(CollaborationDbUtils.getString(rs, "DECISION"),
+								CollaborationDbUtils.getString(rs, "RULE_ID"),
+								CollaborationDbUtils.getString(rs, "THREAD_ID"),
+								CollaborationDbUtils.getString(rs, "SENDER_PERSON_ID")),
+						ownerId, ownerType, messageKey);
 		if (replay != null) {
 			return replay;
 		}
 
 		// source off (or never connected): drop without writing anything
-		Boolean enabled = known != null ? Boolean.valueOf(known.enabled()) : CollaborationDbUtils.queryOne(
-				"SELECT ENABLED FROM SOURCE_CONNECTION WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND SOURCE = ?",
-				rs -> CollaborationDbUtils.getBoolean(rs, "ENABLED"), ownerId, ownerType, source);
+		Boolean enabled = known != null ? Boolean.valueOf(known.enabled())
+				: CollaborationDbUtils.queryOne(
+						"SELECT ENABLED FROM SOURCE_CONNECTION WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND SOURCE = ?",
+						rs -> CollaborationDbUtils.getBoolean(rs, "ENABLED"), ownerId, ownerType, source);
 		if (!Boolean.TRUE.equals(enabled)) {
 			return result(OFF, null, null, null);
 		}
@@ -111,11 +116,12 @@ public final class BrainRulesGate {
 		String personId = known != null ? known.person().apply(from) : findPerson(ownerId, ownerType, from);
 		String[] thread = conversationId == null ? null
 				: known != null ? known.thread().apply(source + ":" + conversationId)
-				: CollaborationDbUtils.queryOne(
-						"SELECT THREAD_ID, MUTED FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_KEY = ?",
-						rs -> new String[] { rs.getString("THREAD_ID"),
-								String.valueOf(Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED"))) },
-						ownerId, ownerType, source + ":" + conversationId);
+						: CollaborationDbUtils.queryOne(
+								"SELECT THREAD_ID, MUTED FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_KEY = ?",
+								rs -> new String[] { rs.getString("THREAD_ID"),
+										String.valueOf(
+												Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED"))) },
+								ownerId, ownerType, source + ":" + conversationId);
 		String threadId = thread == null ? null : thread[0];
 		List<Rule> rules = known != null ? known.rules() : activeRules(ownerId, ownerType);
 
@@ -182,7 +188,8 @@ public final class BrainRulesGate {
 		return null;
 	}
 
-	// case-insensitive whole words; any whitespace in the keyword matches any run of whitespace
+	// case-insensitive whole words; any whitespace in the keyword matches any run
+	// of whitespace
 	static Pattern keywordPattern(String keyword) {
 		StringBuilder regex = new StringBuilder("(?<![\\p{L}\\p{N}])");
 		String[] words = keyword.trim().split("\\s+");
@@ -193,8 +200,10 @@ public final class BrainRulesGate {
 		return Pattern.compile(regex.toString(), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 	}
 
-	// writes the BRAIN_MESSAGE row; an exclusion on a known thread also bumps the sender's hidden count.
-	// included is the sender's current participant flag, null when there is no participant row yet
+	// writes the BRAIN_MESSAGE row; an exclusion on a known thread also bumps the
+	// sender's hidden count.
+	// included is the sender's current participant flag, null when there is no
+	// participant row yet
 	private static Map<String, Object> record(String ownerId, String ownerType, String messageKey,
 			Map<String, String> headers, String threadId, String personId, Timestamp receivedAt, String decision,
 			String ruleId, Boolean included) {
@@ -226,7 +235,8 @@ public final class BrainRulesGate {
 					"UPDATE BRAIN_THREAD_PARTICIPANT SET HIDDEN_COUNT = COALESCE(HIDDEN_COUNT, 0) + 1, LAST_SEEN_AT = ?, "
 							+ "INCLUDED = ?, EXCLUDED_BY = ?, EXCLUDED_RULE_ID = ?, EXCLUDED_AT = ? "
 							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND PERSON_ID = ?",
-					receivedAt, false, "rule", ruleId, CollaborationDbUtils.now(), ownerId, ownerType, threadId, personId);
+					receivedAt, false, "rule", ruleId, CollaborationDbUtils.now(), ownerId, ownerType, threadId,
+					personId);
 		} else {
 			CollaborationDbUtils.update(conn,
 					"UPDATE BRAIN_THREAD_PARTICIPANT SET HIDDEN_COUNT = COALESCE(HIDDEN_COUNT, 0) + 1, LAST_SEEN_AT = ? "
@@ -235,7 +245,8 @@ public final class BrainRulesGate {
 		}
 	}
 
-	// the replay check and the write run under one lock per owner. Covers one server only.
+	// the replay check and the write run under one lock per owner. Covers one
+	// server only.
 	private static Object lockFor(String ownerId, String ownerType) {
 		return CollaborationDbUtils.ownerLock("gate", ownerId, ownerType);
 	}
@@ -250,7 +261,8 @@ public final class BrainRulesGate {
 				ownerId, ownerType);
 	}
 
-	// the first never-ingest rule for this sender or folder, in NEVER_KINDS order; from is normalized
+	// the first never-ingest rule for this sender or folder, in NEVER_KINDS order;
+	// from is normalized
 	static Rule neverRule(List<Rule> rules, String from, String personId, String folderId) {
 		for (String kind : NEVER_KINDS) {
 			for (Rule rule : rules) {
@@ -265,7 +277,8 @@ public final class BrainRulesGate {
 	// an exclude_topic or exclude_channel rule covering this person on a thread
 	static Rule exclusionRule(List<Rule> rules, List<String> topicIds, String source, String personId) {
 		for (Rule rule : rules) {
-			boolean onTopic = "exclude_topic".equals(rule.kind()) && topicIds.contains(rule.topicId());
+			boolean onTopic = "exclude_topic".equals(rule.kind()) && rule.topicId() != null
+					&& topicIds.contains(rule.topicId());
 			boolean onChannel = "exclude_channel".equals(rule.kind()) && source.equals(rule.channel());
 			if ((onTopic || onChannel) && personId != null && personId.equals(rule.personId())) {
 				return rule;
@@ -274,7 +287,7 @@ public final class BrainRulesGate {
 		return null;
 	}
 
-	private static boolean matchesNever(Rule rule, String from, String personId, String folderId) {
+	static boolean matchesNever(Rule rule, String from, String personId, String folderId) {
 		switch (rule.kind()) {
 		case "never_sender":
 			return matchesSender(rule, from, personId);
@@ -292,12 +305,12 @@ public final class BrainRulesGate {
 		}
 	}
 
-	private static boolean matchesSender(Rule rule, String from, String personId) {
+	static boolean matchesSender(Rule rule, String from, String personId) {
 		return from.equals(norm(rule.value())) || (personId != null && personId.equals(rule.personId()));
 	}
 
 	// address book first, then the person's primary address
-	private static String findPerson(String ownerId, String ownerType, String address) {
+	static String findPerson(String ownerId, String ownerType, String address) {
 		String personId = CollaborationDbUtils.queryOne(
 				"SELECT PERSON_ID FROM BRAIN_PERSON_ADDRESS WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND VALUE_NORM = ? "
 						+ "ORDER BY PERSON_ID",
@@ -305,10 +318,9 @@ public final class BrainRulesGate {
 		if (personId != null) {
 			return personId;
 		}
-		return CollaborationDbUtils.queryOne(
-				"SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND EMAIL_NORM = ? "
-						+ "ORDER BY PERSON_ID",
-				rs -> rs.getString("PERSON_ID"), ownerId, ownerType, address);
+		return CollaborationDbUtils
+				.queryOne("SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND EMAIL_NORM = ? "
+						+ "ORDER BY PERSON_ID", rs -> rs.getString("PERSON_ID"), ownerId, ownerType, address);
 	}
 
 	static Map<String, Object> result(String decision, String ruleId, String threadId, String personId) {

@@ -51,7 +51,8 @@ final class BrainFixtureHeaderSource implements BrainMailHeaderSource {
 	private final List<Map<String, Object>> messages = new ArrayList<>();
 	// teams.json next to mail.json, Graph chat messages without members
 	private final List<Map<String, Object>> chatMessages = new ArrayList<>();
-	// display name to recipient, from the mail, since the chat fixture has no addresses
+	// display name to recipient, from the mail, since the chat fixture has no
+	// addresses
 	private final Map<String, Map<String, Object>> byName = new LinkedHashMap<>();
 
 	@SuppressWarnings("unchecked")
@@ -129,10 +130,11 @@ final class BrainFixtureHeaderSource implements BrainMailHeaderSource {
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Map<String, Object>> chats(User user, Instant since, int maxChats, int maxPerChat) {
-		// members are whoever wrote in the chat, plus the owner under their own id once they wrote
+		// members are whoever wrote in the chat, plus the owner under their own id once
+		// they wrote
 		Map<String, Object> me = me(user);
-		Map<String, Object> self = Map.of("emailAddress", Map.of("name", me.get("displayName"), "address",
-				me.get("mail")));
+		Map<String, Object> self = Map.of("emailAddress",
+				Map.of("name", me.get("displayName"), "address", me.get("mail")));
 		String selfId = "owner";
 		Map<String, Map<String, Map<String, Object>>> members = new LinkedHashMap<>();
 		for (Map<String, Object> m : chatMessages) {
@@ -142,8 +144,8 @@ final class BrainFixtureHeaderSource implements BrainMailHeaderSource {
 					&& String.valueOf(a.get("address")).equalsIgnoreCase(String.valueOf(me.get("mail")))) {
 				selfId = (String) from.get("id");
 			}
-			members.computeIfAbsent((String) m.get("chatId"), k -> new LinkedHashMap<>()).putIfAbsent(
-					(String) from.get("id"), recipient);
+			members.computeIfAbsent((String) m.get("chatId"), k -> new LinkedHashMap<>())
+					.putIfAbsent((String) from.get("id"), recipient);
 		}
 		List<Map<String, Object>> out = new ArrayList<>();
 		for (Map<String, Object> m : chatMessages) {

@@ -14,6 +14,7 @@ from ..message_builders.semoss_base.semoss_models import (
     SEMOSSMessage,
 )
 from ..utils import string_to_bool
+from ..message_builders.semoss_base.document_input import DocumentInputProcessor
 from .model_engine_exception import ErrorDetails
 
 
@@ -66,7 +67,10 @@ class AbstractTextGenerationClient(ABC):
             thinking_budget=thinking_budget,
             global_param_override=kwargs.pop("global_param_override", None),
             modalities=kwargs.pop("modalities", None),
+            native_document_mime_types=kwargs.pop("native_document_mime_types", None),
         )
+
+        self._document_input_processor = DocumentInputProcessor()
 
     def _handle_template_args(self, template):
         """This may not be used anymore.."""
@@ -98,6 +102,8 @@ class AbstractTextGenerationClient(ABC):
         if not message_json:
             raise ValueError("message_json is required to build semoss messages.")
 
+        # Internal engine metadata is consumed here, never sent to the provider.
+        input_modalities = kwargs.pop("_semoss_input_modalities", None)
         param_map = {**kwargs}
 
         try:
@@ -121,7 +127,10 @@ class AbstractTextGenerationClient(ABC):
             except Exception as e:
                 raise ValueError(f"Invalid JSON format in message_json.: {e}")
 
-        return semoss_messages
+        return self._document_input_processor.prepare(
+            semoss_messages, model_settings, source_messages=message_json,
+            input_modalities=input_modalities,
+        )
 
     def get_template(self, template_name=None, **kwargs):
         if template_name in self.templates.keys():

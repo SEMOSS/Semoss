@@ -114,10 +114,59 @@ public final class BrainPeopleUtils {
 		return page;
 	}
 
+	/**
+	 * People to write to: the owner's own contacts first (every word of the query in
+	 * the name or address, closest first), then the Microsoft directory. Automated
+	 * senders are left out.
+	 */
+	public static List<Map<String, Object>> findPeople(User user, String query, int limit) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		List<String> words = java.util.Arrays.stream(query.trim().toLowerCase().split("[\\s,;]+"))
+				.filter(w -> !w.isEmpty()).limit(5).toList();
+		if (words.isEmpty()) {
+			return List.of();
+		}
+		StringBuilder where = new StringBuilder(
+				" WHERE p.OWNER_ID = ? AND p.OWNER_TYPE = ? AND COALESCE(p.RELATIONSHIP, '') <> ?");
+		List<Object> params = new ArrayList<>(List.of(owner.getValue0(), owner.getValue1(), BrainSenderTyping.AUTOMATED));
+		for (String word : words) {
+			where.append(" AND (LOWER(p.DISPLAY_NAME) LIKE ? OR p.EMAIL_NORM LIKE ?)");
+			params.addAll(List.of("%" + word + "%", "%" + word + "%"));
+		}
+		List<Map<String, Object>> out = new ArrayList<>();
+		Set<String> seen = new HashSet<>();
+		for (Map<String, Object> person : CollaborationDbUtils.query(
+				CollaborationDbUtils.page("SELECT " + PERSON_COLUMNS + PERSON_FROM + where
+						+ " ORDER BY COALESCE(p.STRENGTH, 0) DESC, p.LAST_CONTACT_AT DESC, p.PERSON_ID", limit, 0),
+				BrainPeopleUtils::mapPerson, params.toArray())) {
+			Map<String, Object> entry = new LinkedHashMap<>();
+			entry.put("name", person.get("name"));
+			entry.put("email", person.get("email"));
+			entry.put("title", person.get("title"));
+			entry.put("department", person.get("department"));
+			entry.put("relationship", person.get("relationship"));
+			entry.put("lastContact", person.get("lastContact"));
+			entry.put("source", "contacts");
+			out.add(entry);
+			seen.add(String.valueOf(person.get("email")));
+		}
+		if (out.size() < limit) {
+			for (Map<String, Object> person : BrainMailHeaderSource.current().searchDirectory(user, query, limit)) {
+				if (out.size() < limit && seen.add(String.valueOf(person.get("email")))) {
+					Map<String, Object> entry = new LinkedHashMap<>(person);
+					entry.put("source", "directory");
+					out.add(entry);
+				}
+			}
+		}
+		return out;
+	}
+
 	static Map<String, Object> getPerson(String ownerId, String ownerType, String personId) {
-		Map<String, Object> person = CollaborationDbUtils.queryOne("SELECT " + PERSON_COLUMNS + PERSON_FROM
-				+ " WHERE p.OWNER_ID = ? AND p.OWNER_TYPE = ? AND p.PERSON_ID = ?", BrainPeopleUtils::mapPerson,
-				ownerId, ownerType, personId);
+		Map<String, Object> person = CollaborationDbUtils.queryOne(
+				"SELECT " + PERSON_COLUMNS + PERSON_FROM
+						+ " WHERE p.OWNER_ID = ? AND p.OWNER_TYPE = ? AND p.PERSON_ID = ?",
+				BrainPeopleUtils::mapPerson, ownerId, ownerType, personId);
 		if (person == null) {
 			throw new IllegalArgumentException("Person not found");
 		}
@@ -131,18 +180,20 @@ public final class BrainPeopleUtils {
 					row.put("state", CollaborationDbUtils.getString(rs, "STATE"));
 					return row;
 				}, ownerId, ownerType, personId));
-		person.put("threadInclusion", CollaborationDbUtils.query("SELECT THREAD_ID, INCLUDED "
-				+ "FROM BRAIN_THREAD_PARTICIPANT WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ? "
-				+ "ORDER BY LAST_SEEN_AT DESC, THREAD_ID", rs -> {
-					Map<String, Object> row = new LinkedHashMap<>();
-					row.put("threadId", CollaborationDbUtils.getString(rs, "THREAD_ID"));
-					row.put("included", !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "INCLUDED")));
-					return row;
-				}, ownerId, ownerType, personId));
+		person.put("threadInclusion",
+				CollaborationDbUtils.query("SELECT THREAD_ID, INCLUDED "
+						+ "FROM BRAIN_THREAD_PARTICIPANT WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ? "
+						+ "ORDER BY LAST_SEEN_AT DESC, THREAD_ID", rs -> {
+							Map<String, Object> row = new LinkedHashMap<>();
+							row.put("threadId", CollaborationDbUtils.getString(rs, "THREAD_ID"));
+							row.put("included", !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "INCLUDED")));
+							return row;
+						}, ownerId, ownerType, personId));
 		return person;
 	}
 
-	// partial Person: relationship, vip, accountId, neverIngest, channelScope; the flags save only as rules
+	// partial Person: relationship, vip, accountId, neverIngest, channelScope; the
+	// flags save only as rules
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> savePerson(User user, Map<String, Object> changes) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -175,7 +226,8 @@ public final class BrainPeopleUtils {
 		if (changes.containsKey("vip")) {
 			CollaborationDbUtils.addSet(sets, params, "IS_VIP", vip);
 		}
-		// follow: following, declined (not suggested again), or null; a VIP is always followed
+		// follow: following, declined (not suggested again), or null; a VIP is always
+		// followed
 		if (changes.containsKey("follow") || vip) {
 			String follow = vip ? BrainFollow.FOLLOWING : CollaborationDbUtils.asString(changes.get("follow"));
 			if (follow != null && !BrainFollow.STATES.contains(follow)) {
@@ -192,7 +244,8 @@ public final class BrainPeopleUtils {
 		CollaborationDbUtils.update("UPDATE BRAIN_PERSON SET " + String.join(", ", sets)
 				+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?", params.toArray());
 
-		// the Blocked list: never ingest is an exclude_everywhere rule; clearing it drops any person-level never rule
+		// the Blocked list: never ingest is an exclude_everywhere rule; clearing it
+		// drops any person-level never rule
 		if (Boolean.TRUE.equals(neverIngest)) {
 			BrainRuleUtils.addRule(ownerId, ownerType, BrainRuleUtils.EXCLUDE_EVERYWHERE, null, null, personId, null,
 					"Never ingest");
@@ -221,8 +274,9 @@ public final class BrainPeopleUtils {
 
 	public static Map<String, Object> listAccounts(User user) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		List<Map<String, Object>> items = CollaborationDbUtils.query("SELECT " + ACCOUNT_COLUMNS
-				+ " FROM BRAIN_ACCOUNT WHERE OWNER_ID = ? AND OWNER_TYPE = ? ORDER BY NAME, ACCOUNT_ID",
+		List<Map<String, Object>> items = CollaborationDbUtils.query(
+				"SELECT " + ACCOUNT_COLUMNS
+						+ " FROM BRAIN_ACCOUNT WHERE OWNER_ID = ? AND OWNER_TYPE = ? ORDER BY NAME, ACCOUNT_ID",
 				BrainPeopleUtils::mapAccount, owner.getValue0(), owner.getValue1());
 		Map<String, Object> page = new LinkedHashMap<>();
 		page.put("items", items);
@@ -272,8 +326,9 @@ public final class BrainPeopleUtils {
 			CollaborationDbUtils.update("INSERT INTO BRAIN_ACCOUNT (" + String.join(", ", columns) + ") VALUES ("
 					+ CollaborationDbUtils.placeholders(columns.size()) + ")", params.toArray());
 		} else {
-			if (!CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_ACCOUNT WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-					+ "AND ACCOUNT_ID = ?", ownerId, ownerType, accountId)) {
+			if (!CollaborationDbUtils.exists(
+					"SELECT 1 FROM BRAIN_ACCOUNT WHERE OWNER_ID = ? AND OWNER_TYPE = ? " + "AND ACCOUNT_ID = ?",
+					ownerId, ownerType, accountId)) {
 				throw new IllegalArgumentException("Account not found");
 			}
 			CollaborationDbUtils.addSet(sets, params, "UPDATED_AT", now);
@@ -281,30 +336,35 @@ public final class BrainPeopleUtils {
 			CollaborationDbUtils.update("UPDATE BRAIN_ACCOUNT SET " + String.join(", ", sets)
 					+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ACCOUNT_ID = ?", params.toArray());
 		}
-		return CollaborationDbUtils.queryOne("SELECT " + ACCOUNT_COLUMNS + " FROM BRAIN_ACCOUNT "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ACCOUNT_ID = ?", BrainPeopleUtils::mapAccount, ownerId,
-				ownerType, accountId);
+		return CollaborationDbUtils.queryOne(
+				"SELECT " + ACCOUNT_COLUMNS + " FROM BRAIN_ACCOUNT "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ACCOUNT_ID = ?",
+				BrainPeopleUtils::mapAccount, ownerId, ownerType, accountId);
 	}
 
 	// ---- helpers ----
 
-	// an accountId from the caller must be one of the owner's accounts; null is allowed
+	// an accountId from the caller must be one of the owner's accounts; null is
+	// allowed
 	static void requireAccount(String ownerId, String ownerType, String accountId) {
-		if (accountId != null && !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_ACCOUNT WHERE OWNER_ID = ? "
-				+ "AND OWNER_TYPE = ? AND ACCOUNT_ID = ?", ownerId, ownerType, accountId)) {
+		if (accountId != null && !CollaborationDbUtils.exists(
+				"SELECT 1 FROM BRAIN_ACCOUNT WHERE OWNER_ID = ? " + "AND OWNER_TYPE = ? AND ACCOUNT_ID = ?", ownerId,
+				ownerType, accountId)) {
 			throw new IllegalArgumentException("Account not found");
 		}
 	}
 
 	// a personId from the caller must be one of the owner's people; null is allowed
 	static void requirePerson(String ownerId, String ownerType, String personId) {
-		if (personId != null && !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_PERSON WHERE OWNER_ID = ? "
-				+ "AND OWNER_TYPE = ? AND PERSON_ID = ?", ownerId, ownerType, personId)) {
+		if (personId != null && !CollaborationDbUtils.exists(
+				"SELECT 1 FROM BRAIN_PERSON WHERE OWNER_ID = ? " + "AND OWNER_TYPE = ? AND PERSON_ID = ?", ownerId,
+				ownerType, personId)) {
 			throw new IllegalArgumentException("Person not found");
 		}
 	}
 
-	// rule-derived flags, message counts per channel, calendar threads as meetings, and member topics, one query
+	// rule-derived flags, message counts per channel, calendar threads as meetings,
+	// and member topics, one query
 	// each for the page
 	private static void addCountsAndTopics(String ownerId, String ownerType, List<Map<String, Object>> people) {
 		if (people.isEmpty()) {
@@ -319,37 +379,45 @@ public final class BrainPeopleUtils {
 				+ "AND t.THREAD_ID = x.THREAD_ID";
 
 		Map<String, Map<String, Integer>> counts = new HashMap<>();
-		for (Object[] row : CollaborationDbUtils.query("SELECT x.SENDER_PERSON_ID, t.SOURCE, COUNT(*) FROM BRAIN_MESSAGE x"
-				+ threadJoin + " WHERE x.OWNER_ID = ? AND x.OWNER_TYPE = ? AND x.SENDER_PERSON_ID IN (" + in + ") "
-				+ "GROUP BY x.SENDER_PERSON_ID, t.SOURCE", rs -> new Object[] { rs.getString(1), rs.getString(2),
-						rs.getInt(3) }, params.toArray())) {
+		for (Object[] row : CollaborationDbUtils.query(
+				"SELECT x.SENDER_PERSON_ID, t.SOURCE, COUNT(*) FROM BRAIN_MESSAGE x" + threadJoin
+						+ " WHERE x.OWNER_ID = ? AND x.OWNER_TYPE = ? AND x.SENDER_PERSON_ID IN (" + in + ") "
+						+ "GROUP BY x.SENDER_PERSON_ID, t.SOURCE",
+				rs -> new Object[] { rs.getString(1), rs.getString(2), rs.getInt(3) }, params.toArray())) {
 			counts.computeIfAbsent((String) row[0], k -> new HashMap<>()).put((String) row[1], (Integer) row[2]);
 		}
-		for (Object[] row : CollaborationDbUtils.query("SELECT x.PERSON_ID, COUNT(*) FROM BRAIN_THREAD_PARTICIPANT x"
-				+ threadJoin + " WHERE x.OWNER_ID = ? AND x.OWNER_TYPE = ? AND x.PERSON_ID IN (" + in + ") "
-				+ "AND t.SOURCE = 'calendar' GROUP BY x.PERSON_ID", rs -> new Object[] { rs.getString(1),
-						rs.getInt(2) }, params.toArray())) {
+		for (Object[] row : CollaborationDbUtils.query(
+				"SELECT x.PERSON_ID, COUNT(*) FROM BRAIN_THREAD_PARTICIPANT x" + threadJoin
+						+ " WHERE x.OWNER_ID = ? AND x.OWNER_TYPE = ? AND x.PERSON_ID IN (" + in + ") "
+						+ "AND t.SOURCE = 'calendar' GROUP BY x.PERSON_ID",
+				rs -> new Object[] { rs.getString(1), rs.getInt(2) }, params.toArray())) {
 			counts.computeIfAbsent((String) row[0], k -> new HashMap<>()).put("meetings", (Integer) row[1]);
 		}
 
 		List<Object> topicParams = new ArrayList<>(params);
 		topicParams.add(BrainTopicUtils.MEMBER);
 		Map<String, List<String>> topics = new HashMap<>();
-		for (Pair<String, String> row : CollaborationDbUtils.query("SELECT PERSON_ID, TOPIC_ID FROM BRAIN_TOPIC_PERSON "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID IN (" + in + ") AND STATE = ? "
-				+ "ORDER BY TOPIC_ID", rs -> Pair.with(rs.getString(1), rs.getString(2)), topicParams.toArray())) {
+		for (Pair<String, String> row : CollaborationDbUtils.query(
+				"SELECT PERSON_ID, TOPIC_ID FROM BRAIN_TOPIC_PERSON "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID IN (" + in + ") AND STATE = ? "
+						+ "ORDER BY TOPIC_ID",
+				rs -> Pair.with(rs.getString(1), rs.getString(2)), topicParams.toArray())) {
 			topics.computeIfAbsent(row.getValue0(), k -> new ArrayList<>()).add(row.getValue1());
 		}
 
-		// the gate reads rules only, so the drawer's flags come from active person rules, never a copy
+		// the gate reads rules only, so the drawer's flags come from active person
+		// rules, never a copy
 		List<Object> ruleParams = new ArrayList<>(params);
 		ruleParams.addAll(List.of(BrainRuleUtils.EXCLUDE_EVERYWHERE, BrainRuleUtils.NEVER_SENDER,
 				BrainRuleUtils.EXCLUDE_CHANNEL));
 		Map<String, Set<String>> blocked = new HashMap<>();
-		for (Pair<String, String> row : CollaborationDbUtils.query("SELECT PERSON_ID, KIND, CHANNEL FROM BRAIN_RULE "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID IN (" + in + ") AND DISABLED_AT IS NULL "
-				+ "AND KIND IN (?, ?, ?)", rs -> Pair.with(rs.getString(1), BrainRuleUtils.EXCLUDE_CHANNEL
-						.equals(rs.getString(2)) ? rs.getString(3) : NEVER), ruleParams.toArray())) {
+		for (Pair<String, String> row : CollaborationDbUtils.query(
+				"SELECT PERSON_ID, KIND, CHANNEL FROM BRAIN_RULE "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID IN (" + in + ") AND DISABLED_AT IS NULL "
+						+ "AND KIND IN (?, ?, ?)",
+				rs -> Pair.with(rs.getString(1),
+						BrainRuleUtils.EXCLUDE_CHANNEL.equals(rs.getString(2)) ? rs.getString(3) : NEVER),
+				ruleParams.toArray())) {
 			blocked.computeIfAbsent(row.getValue0(), k -> new HashSet<>()).add(row.getValue1());
 		}
 
