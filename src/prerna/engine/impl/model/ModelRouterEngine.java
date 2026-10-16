@@ -65,6 +65,7 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.usage.ModelUsageRequest;
 import prerna.om.Insight;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -159,6 +160,19 @@ import prerna.util.Utility;
  * once under the delegated engine for actual model usage. Router rows use
  * {@code route_ask} or {@code route_embeddings}; usage and history queries
  * count only the delegated engine's {@code ask} or {@code embeddings} rows.
+ * </p>
+ *
+ * <h3>Usage limits</h3>
+ *
+ * <p>
+ * Limits on the router and on the model it routes to both apply. The router's
+ * own call counts on the router's counters and passes its {@code usage_ceiling}
+ * on to the model it routes to, which fits the call in the lesser of the two.
+ * The router's own call leaves out the person's all-models and platform
+ * counters and its team's total, so a routed call counts once there, under the
+ * model that answered. A router has no output maximum of its own, so its own
+ * call is reserved for the caller's maximum or
+ * {@link ModelUsageRequest#DEFAULT_MAX_OUTPUT_TOKENS}.
  * </p>
  *
  * <h3>Response metadata</h3>
@@ -594,6 +608,23 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	// -------------------------------------------------------------------------
 	// Core delegation
 	// -------------------------------------------------------------------------
+
+	/**
+	 * The router's own calls leave the all-models and platform counters and the
+	 * team's total to the model they are routed to.
+	 */
+	@Override
+	protected ModelUsageRequest usageRequestFor(ModelUsageRequest request) {
+		return request.forRouter();
+	}
+
+	/**
+	 * The router passes its ceiling on to the model it routes to.
+	 */
+	@Override
+	protected boolean acceptsUsageCeiling() {
+		return true;
+	}
 
 	@Override
 	protected String inferenceLogMessageMethod(String method) {

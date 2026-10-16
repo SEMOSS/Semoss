@@ -54,6 +54,7 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
 import prerna.auth.access.PermissionGrant;
@@ -376,6 +377,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Adds a project to the security database with its name as its display name.
+	 * The project is not discoverable and not a template, and the user, when given,
+	 * is recorded as its creator.
 	 * 
 	 * @param projectId
 	 * @param projectName
@@ -518,6 +522,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Builds a new insights database for the project in the given folder from the
+	 * insights and insight metadata stored in the security database, and returns
+	 * its file once the database is closed.
 	 * 
 	 * @param projectId
 	 * @return
@@ -886,6 +893,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Reads the project's portal details: whether the project is published, and the
+	 * URL of its portal folder.
 	 * 
 	 * @param projectId
 	 * @return
@@ -1206,6 +1215,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Records that the project's reactors were compiled now, by the user's primary
+	 * login.
 	 * 
 	 * @param user
 	 * @param projectId
@@ -1228,6 +1239,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Whether the user is an owner of the project, which the UI calls Author.
+	 * Grants that have ended do not count.
+	 *
 	 * @return whether the user is an owner of the project now, directly or through
 	 *         a team; see {@link CurrentPermissionLevel}
 	 */
@@ -1248,6 +1262,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Whether the user can edit the project, as an editor or an owner. Grants that
+	 * have ended do not count.
+	 *
 	 * @return whether the user is an editor or an owner of the project now,
 	 *         directly or through a team; see {@link CurrentPermissionLevel}
 	 */
@@ -1375,12 +1392,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						.add(PermissionSubject.ofUser(newUserId, null), new PermissionGrant(permission, endDate))),
 				PermissionBatchOptions.userMode(),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 								"This user already has access to this project. Please edit the existing permission level.")
-						.illegalAccess(PermissionProblem.Code.GIVES_AUTHOR,
+						.illegalAccess(PermissionProblem.ErrorCode.GIVES_AUTHOR,
 								"Cannot give owner level access to this project since you are not currently an owner.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding user permissions for this project"));
 	}
 
@@ -1405,13 +1422,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						new PermissionGrant(newPermission, endDate))),
 				PermissionBatchOptions.userMode().notifying(false, true),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalAccess(PermissionProblem.Code.NO_ACCESS,
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalAccess(PermissionProblem.ErrorCode.NO_ACCESS,
 								"Attempting to modify project permission for a user who does not currently have access to the project")
-						.illegalAccess(PermissionProblem.Code.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
-						.illegalAccess(PermissionProblem.Code.GIVES_AUTHOR,
+						.illegalAccess(PermissionProblem.ErrorCode.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
+						.illegalAccess(PermissionProblem.ErrorCode.GIVES_AUTHOR,
 								"Cannot give owner level access to this project since you are not currently an owner.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred updating the user permissions for this project"));
 	}
 
@@ -1432,14 +1449,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				PermissionBatchUtils.peopleChanges(PermissionChange.Action.CHANGE, requests, endDate),
 				PermissionBatchOptions.userMode().notifying(false, true),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
 								"Attempting to modify user permission for the following users who do not currently have access to the project: ")
-						.illegalArgument(PermissionProblem.Code.CHANGES_AUTHOR,
+						.illegalArgument(PermissionProblem.ErrorCode.CHANGES_AUTHOR,
 								"As a non-owner, you cannot edit access of an owner.")
-						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR,
+						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR,
 								"As a non-owner, you cannot give a user access as an owner.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred updating the user permissions for this project"));
 	}
 
@@ -1486,15 +1503,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.project(projectId),
 				List.of(PermissionChange.remove(PermissionSubject.ofUser(existingUserId, null))),
 				PermissionBatchOptions.userMode().allowingSelfRemoval().removingInsightPermissions(),
-				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules()
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
 								"Attempting to modify user permission for a user who does not currently have access to the project")
-						.illegalAccess(PermissionProblem.Code.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalAccess(PermissionProblem.ErrorCode.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing the user permissions for the project and insights of this project"));
 	}
 
 	/**
+	 * Deletes the user's grant on the project. Called when that grant has expired.
 	 * 
 	 * @param userId
 	 * @param projectId
@@ -2483,22 +2502,57 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param requester
-	 * @param projectId
-	 * @param newUserId
-	 * @param newUserType
-	 * @param requestedPermission
-	 * @param endDate
-	 * @param usageRestriction
-	 * @param usageFrequency
-	 * @param maxTokens
-	 * @param maxResponseTime
-	 * @return
+	 * Gives a person the requested access to the engines and projects a project
+	 * depends on, or asks their owners for it. On a model, a person added gets no
+	 * usage limit, and a person whose access changes keeps theirs.
+	 *
+	 * @param requester           the user asking
+	 * @param projectId           the project
+	 * @param newUserId           the person
+	 * @param newUserType         the person's login type
+	 * @param requestedPermission the level, by name
+	 * @param endDate             when the access ends, or null
+	 * @return the engines and projects by what was done for each
 	 */
 	public static Map<String, Object> propagateProjectPermission(User requester, String projectId, String newUserId,
-			String newUserType, String requestedPermission, String endDate, String usageRestriction,
-			String usageFrequency, int maxTokens, double maxResponseTime) {
+			String newUserType, String requestedPermission, String endDate) {
+		return propagate(requester, projectId, newUserId, newUserType, requestedPermission, endDate, null);
+	}
+
+	/**
+	 * Gives a person the requested access to the engines and projects a project
+	 * depends on, or asks their owners for it. Only a model's owners set a limit
+	 * that differs from the current one.
+	 *
+	 * @param requester           the user asking
+	 * @param projectId           the project
+	 * @param newUserId           the person
+	 * @param newUserType         the person's login type
+	 * @param requestedPermission the level, by name
+	 * @param endDate             when the access ends, or null
+	 * @param usageLimit          the person's model usage limit on each model given
+	 *                            or changed, or null for no limit defined
+	 * @return the engines and projects by what was done for each
+	 */
+	public static Map<String, Object> propagateProjectPermission(User requester, String projectId, String newUserId,
+			String newUserType, String requestedPermission, String endDate, ModelUsageLimit usageLimit) {
+		return propagate(requester, projectId, newUserId, newUserType, requestedPermission, endDate,
+				new PermissionGrant().withUsageLimit(usageLimit));
+	}
+
+	/**
+	 * Does the work of both propagateProjectPermission methods: for each engine and
+	 * project the project depends on, it gives the person the requested level, or
+	 * files an access request for its owners when the requester is Read-Only or has
+	 * no access there.
+	 *
+	 * @param limit the person's model usage limit on the models: a grant that gives
+	 *              {@code usageLimit}
+	 *              ({@link PermissionGrant#isUsageLimitGiven()}), or null for none,
+	 *              so a person whose access changes keeps theirs
+	 */
+	private static Map<String, Object> propagate(User requester, String projectId, String newUserId, String newUserType,
+			String requestedPermission, String endDate, PermissionGrant limit) {
 		Map<String, Object> ret = new HashMap<String, Object>();
 
 		// get the requested permission as a numeric -- it was passed as a string
@@ -2522,6 +2576,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			Integer requesterEnginePermission;
 			Integer currentNewUserPermission;
 			boolean isEngine = false;
+			// only a model has usage limits
+			PermissionGrant engineLimit = IEngine.CATALOG_TYPE.MODEL.name().equals(dependentEngineType) ? limit : null;
 
 			if (dependentEngineType == null
 					|| IEngine.CATALOG_TYPE.valueOf(dependentEngineType) != IEngine.CATALOG_TYPE.PROJECT) {
@@ -2575,9 +2631,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					&& currentNewUserPermission > requestedPermissionNumeric) {
 				try {
 					if (isEngine) {
-						SecurityEngineUtils.editEngineUserPermission(requester, newUserId, newUserType,
-								dependentEngineId, requestedPermission, endDate, usageRestriction, usageFrequency,
-								maxTokens, maxResponseTime);
+						editDependentEngineUser(requester, newUserId, newUserType, dependentEngineId,
+								requestedPermission, endDate, engineLimit);
 					} else {
 						SecurityProjectUtils.editProjectUserPermission(requester, newUserId, newUserType,
 								dependentEngineId, requestedPermission, endDate);
@@ -2585,7 +2640,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 					accessGranted.add(dependentEngineId);
 					classLogger.info("User has updated permission for {} to {}", newUserId, dependentEngineId);
-				} catch (IllegalAccessException e) {
+				} catch (IllegalAccessException | IllegalArgumentException e) {
 					couldNotAddRequest.add(dependentEngineId);
 					classLogger.error("Failed to propagate project permissions to related artifacts", e);
 				}
@@ -2594,8 +2649,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			} else if (requesterEnginePermission < 3 && currentNewUserPermission == null) {
 				try {
 					if (isEngine) {
-						SecurityEngineUtils.addEngineUser(requester, newUserId, dependentEngineId, requestedPermission,
-								endDate, usageRestriction, usageFrequency, maxTokens, maxResponseTime);
+						addDependentEngineUser(requester, newUserId, dependentEngineId, requestedPermission, endDate,
+								engineLimit);
 					} else {
 						SecurityProjectUtils.addProjectUser(requester, newUserId, dependentEngineId,
 								requestedPermission, endDate);
@@ -2621,6 +2676,34 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		ret.put("accessGranted", accessGranted);
 		ret.put("couldNotAddRequest", couldNotAddRequest);
 		return ret;
+	}
+
+	/**
+	 * Gives a person access to an engine a project depends on, with the usage limit
+	 * given, or none.
+	 *
+	 * @param limit on a model, the limit the propagation gives; null for none
+	 */
+	private static void addDependentEngineUser(User requester, String newUserId, String engineId, String level,
+			String endDate, PermissionGrant limit) throws IllegalAccessException {
+		SecurityEngineUtils.addEngineUser(requester, newUserId, engineId, level, endDate,
+				limit == null ? null : limit.getUsageLimit());
+	}
+
+	/**
+	 * Changes a person's access to an engine a project depends on. Their usage
+	 * limit is kept unless one is given.
+	 *
+	 * @param limit on a model, the limit the propagation gives; null for none
+	 */
+	private static void editDependentEngineUser(User requester, String newUserId, String newUserType, String engineId,
+			String level, String endDate, PermissionGrant limit) throws IllegalAccessException {
+		if (limit != null && limit.isUsageLimitGiven()) {
+			SecurityEngineUtils.editEngineUserPermission(requester, newUserId, newUserType, engineId, level, endDate,
+					limit.getUsageLimit());
+		} else {
+			SecurityEngineUtils.editEngineUserPermission(requester, newUserId, newUserType, engineId, level, endDate);
+		}
 	}
 
 	/*
@@ -3735,6 +3818,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Lists every metadata key defined for projects.
 	 * 
 	 * @return
 	 */
@@ -3747,6 +3831,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Reads the settings of the project metadata keys: whether each takes one value
+	 * or many, its display order and options, and its default values. Reads only
+	 * the given key when one is passed, or every key otherwise.
 	 * 
 	 * @param metakey
 	 * @return
@@ -3766,6 +3853,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Replaces every project metadata key definition with the given ones, each with
+	 * its key, single or multi setting, display order and display options, in one
+	 * write.
 	 * 
 	 * @param metaoptions
 	 * @return
@@ -3906,6 +3996,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * The level the user asked for in their pending access request on the project,
+	 * from their primary login's newest request that is not approved, denied or
+	 * old, or -1 when there is none.
 	 * 
 	 * @param user
 	 * @param projectId
@@ -3990,7 +4083,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		PermissionTargetResource target = PermissionTargetResource.project(projectId);
 		PermissionBatchUtils.saveChanges(user, target, PermissionBatchUtils.approvalChanges(target, requests, endDate),
 				PermissionBatchOptions.userMode().approving(target, requests),
-				PermissionErrorRules.forApprovals(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION,
+				PermissionErrorRules.forApprovals(endDate).illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION,
 						"Insufficient privileges to modify this project's permissions."));
 
 		// notifications and emails go out after the save, and a failure does not
@@ -4027,10 +4120,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throws IllegalAccessException {
 		PermissionBatchUtils.denyRequests(user, PermissionTargetResource.project(projectId), requestIdList,
 				PermissionBatchOptions.userMode(),
-				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalAccess(PermissionProblem.Code.OWNERS_ONLY,
+				new PermissionErrorRules()
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalAccess(PermissionProblem.ErrorCode.OWNERS_ONLY,
 								"Insufficient privileges to deny user access requests.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred while updating user access request"));
 
 		// notifications go out after the save, and a failure does not undo it
@@ -4069,12 +4163,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				PermissionBatchUtils.peopleChanges(PermissionChange.Action.ADD, permission, endDate),
 				PermissionBatchOptions.userMode().notifying(true, false),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgumentWithIds(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 								"The following users already have access to this project. Please edit the existing permission level: ")
-						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR,
+						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR,
 								"As a non-owner, you cannot add owner user access.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding user permissions for this project"));
 	}
 
@@ -4092,12 +4186,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.project(projectId),
 				PermissionChange.forPeople(PermissionChange.Action.REMOVE, existingUserIds, null),
 				PermissionBatchOptions.userMode(),
-				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules()
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
 								"Attempting to modify user permission for the following users who do not currently have access to the project: ")
-						.illegalArgument(PermissionProblem.Code.CHANGES_AUTHOR,
+						.illegalArgument(PermissionProblem.ErrorCode.CHANGES_AUTHOR,
 								"As a non-owner, you cannot remove access of an owner.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing the users from this project"));
 	}
 
@@ -4138,6 +4233,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Maps each of the given project ids to its project name. Ids with no project
+	 * are left out, and no ids give an empty map.
 	 * 
 	 * @param projectIds
 	 * @return

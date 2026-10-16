@@ -35,10 +35,12 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -50,6 +52,8 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
+import prerna.auth.access.ModelUsageLimit;
+import prerna.auth.access.ModelUsageLimitKey;
 import prerna.auth.access.PermissionBatch;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
@@ -83,10 +87,16 @@ import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
+import prerna.util.gson.GsonUtility;
 
-public class SecurityAdminUtils extends AbstractSecurityUtils {
+public final class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityAdminUtils.class);
+
+	/** The most people whose all-models defaults are read in one query */
+	private static final int LIMIT_READ_CHUNK = 500;
+	/** The key of {@link #editUser} for the all-models default */
+	private static final String MODEL_USAGE_LIMIT_KEY = "model_usage_limit";
 
 	private static SecurityAdminUtils instance = new SecurityAdminUtils();
 
@@ -178,7 +188,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 
 	/**
-	 * Get all users
+	 * Get all users. Each row has the person's all-models default as
+	 * {@code model_usage_limit}, or null for no limit defined.
 	 * 
 	 * @param offset
 	 * @param limit
@@ -202,10 +213,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "PHONE", "phone"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "PHONEEXTENSION", "phoneextension"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "COUNTRYCODE", "countrycode"));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGERESTRICTION", "model_usage_restriction"));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXTOKENS", "model_max_tokens"));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXRESPONSETIME", "model_max_response_time"));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGEFREQUENCY", "model_usage_frequency"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "LOCKED", "locked"));
 		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX + "NAME"));
 		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX + "TYPE"));
@@ -223,11 +230,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
-		return getSimpleQuery(qs);
+		return addAllModelsDefaults(getSimpleQuery(qs));
 	}
 
 	/**
-	 * Get all API users
+	 * Get all API users, each with their all-models default as {@link #getAllUsers}
+	 * returns it
 	 *
 	 * @param searchTerm
 	 * @param limit
@@ -252,10 +260,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "PHONE", "phone"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "PHONEEXTENSION", "phoneextension"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "COUNTRYCODE", "countrycode"));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGERESTRICTION", "model_usage_restriction"));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXTOKENS", "model_max_tokens"));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXRESPONSETIME", "model_max_response_time"));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGEFREQUENCY", "model_usage_frequency"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "DATECREATED", "date_created"));
 		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX + "NAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "TYPE", "==",
@@ -274,7 +278,31 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
-		return getSimpleQuery(qs);
+		return addAllModelsDefaults(getSimpleQuery(qs));
+	}
+
+	/**
+	 * Adds each person's all-models default to their row, as
+	 * {@code model_usage_limit}.
+	 *
+	 * @param users the rows, each with the person's {@code id} and {@code type}
+	 * @return the rows
+	 */
+	private static List<Map<String, Object>> addAllModelsDefaults(List<Map<String, Object>> users) {
+		List<ModelUsageLimitKey> keys = new ArrayList<>(users.size());
+		for (Map<String, Object> row : users) {
+			keys.add(ModelUsageLimitKey.allModels(Objects.toString(row.get("id"), null),
+					Objects.toString(row.get("type"), null)));
+		}
+		Map<ModelUsageLimitKey, ModelUsageLimit> limits = new HashMap<>();
+		for (int start = 0; start < keys.size(); start += LIMIT_READ_CHUNK) {
+			limits.putAll(SecurityModelUsageLimitUtils
+					.getLimits(keys.subList(start, Math.min(keys.size(), start + LIMIT_READ_CHUNK))));
+		}
+		for (int i = 0; i < users.size(); i++) {
+			users.get(i).put(MODEL_USAGE_LIMIT_KEY, limits.get(keys.get(i)));
+		}
+		return users;
 	}
 
 	/**
@@ -860,12 +888,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Update user information.
+	 * Update user information. The person's all-models default is
+	 * {@code model_usage_limit}, as a map or as JSON text, and null or blank for no
+	 * limit defined. Without the key, the default is kept as it is.
 	 * 
-	 * @param adminId
-	 * @param userInfo
-	 * @return
-	 * @throws IllegalArgumentException
+	 * @param userInfo the person's {@code id}, {@code type} and the values to save
+	 * @return true
+	 * @throws IllegalArgumentException when a value is not valid
 	 */
 	public boolean editUser(Map<String, Object> userInfo) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -888,31 +917,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String phone = userInfo.get("phone") != null ? userInfo.get("phone").toString() : "";
 		String phoneExtension = userInfo.get("phoneextension") != null ? userInfo.get("phoneextension").toString() : "";
 		String countryCode = userInfo.get("countrycode") != null ? userInfo.get("countrycode").toString() : "";
-		// model restrictions
-		String modelUsageRestriction = userInfo.get("model_usage_restriction") != null
-				? userInfo.get("model_usage_restriction").toString()
+		// the all-models default
+		ModelUsageLimitKey allModelsKey = ModelUsageLimitKey.allModels(userId, type);
+		final boolean changeAllModelsDefault = userInfo.containsKey(MODEL_USAGE_LIMIT_KEY);
+		final ModelUsageLimit allModelsDefault = changeAllModelsDefault
+				? SecurityModelUsageLimitUtils.requireValid(readModelUsageLimit(userInfo.get(MODEL_USAGE_LIMIT_KEY)),
+						allModelsKey, true)
 				: null;
-		String modelUsageFrequency = userInfo.get("model_usage_frequency") != null
-				? userInfo.get("model_usage_frequency").toString()
-				: null;
-		Integer modelMaxTokens = null;
-		if (userInfo.get("model_max_tokens") != null) {
-			try {
-				modelMaxTokens = ((Number) userInfo.get("model_max_tokens")).intValue();
-			} catch (ClassCastException e) {
-				classLogger.error("Failed to update user account information in the security database", e);
-				throw new IllegalArgumentException("model_max_tokens must be a valid integer value");
-			}
-		}
-		Double modelMaxResponseTime = null;
-		if (userInfo.get("model_max_response_time") != null) {
-			try {
-				modelMaxResponseTime = ((Number) userInfo.get("model_max_response_time")).doubleValue();
-			} catch (ClassCastException e) {
-				classLogger.error("Failed to update user account information in the security database", e);
-				throw new IllegalArgumentException("model_max_response_time must be a valid double value");
-			}
-		}
 		// the boolean values
 		Boolean adminValue = Boolean.FALSE;
 		if (userInfo.containsKey("admin")) {
@@ -1007,12 +1018,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String[] columnsToUpdate = null;
 		if (updatePassword) {
 			columnsToUpdate = new String[] { "EMAIL", "USERNAME", "NAME", "ADMIN", "PUBLISHER", "EXPORTER", "PHONE",
-					"PHONEEXTENSION", "COUNTRYCODE", "MODELUSAGERESTRICTION", "MODELMAXTOKENS", "MODELMAXRESPONSETIME",
-					"MODELUSAGEFREQUENCY", "PASSWORD", "SALT" };
+					"PHONEEXTENSION", "COUNTRYCODE", "PASSWORD", "SALT" };
 		} else {
 			columnsToUpdate = new String[] { "EMAIL", "USERNAME", "NAME", "ADMIN", "PUBLISHER", "EXPORTER", "PHONE",
-					"PHONEEXTENSION", "COUNTRYCODE", "MODELUSAGERESTRICTION", "MODELMAXTOKENS", "MODELMAXRESPONSETIME",
-					"MODELUSAGEFREQUENCY" };
+					"PHONEEXTENSION", "COUNTRYCODE" };
 		}
 
 		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER",
@@ -1022,48 +1031,40 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			Boolean boundPublisherValue = publisherValue;
 			Boolean boundExporterValue = exporterValue;
 			String boundPhone = phone;
-			Integer boundModelMaxTokens = modelMaxTokens;
-			Double boundModelMaxResponseTime = modelMaxResponseTime;
 			String boundNewSalt = newSalt;
 			String boundNewHashPass = newHashPass;
-			QueryExecutionUtility.executeUpdate(securityDb, editUserQuery, editUserPs -> {
-				int i = 1;
-				editUserPs.setString(i++, email);
-				editUserPs.setString(i++, username);
-				editUserPs.setString(i++, name);
-				editUserPs.setBoolean(i++, boundAdminValue);
-				editUserPs.setBoolean(i++, boundPublisherValue);
-				editUserPs.setBoolean(i++, boundExporterValue);
-				editUserPs.setString(i++, boundPhone);
-				editUserPs.setString(i++, phoneExtension);
-				editUserPs.setString(i++, countryCode);
-
-				securityDb.getQueryUtil().setStringEmptyAsNullable(editUserPs, i++,
-						StringUtils.trim(modelUsageRestriction));
-				if (boundModelMaxTokens == null) {
-					editUserPs.setNull(i++, java.sql.Types.INTEGER);
-				} else {
-					editUserPs.setInt(i++, boundModelMaxTokens);
+			QueryExecutionUtility.write(securityDb, connection -> {
+				int updated = QueryExecutionUtility.executeUpdate(connection, editUserQuery, editUserPs -> {
+					int i = 1;
+					editUserPs.setString(i++, email);
+					editUserPs.setString(i++, username);
+					editUserPs.setString(i++, name);
+					editUserPs.setBoolean(i++, boundAdminValue);
+					editUserPs.setBoolean(i++, boundPublisherValue);
+					editUserPs.setBoolean(i++, boundExporterValue);
+					editUserPs.setString(i++, boundPhone);
+					editUserPs.setString(i++, phoneExtension);
+					editUserPs.setString(i++, countryCode);
+					// we have these to update as well for native
+					if (updatePassword) {
+						editUserPs.setString(i++, boundNewHashPass);
+						editUserPs.setString(i++, boundNewSalt);
+					}
+					// Where
+					editUserPs.setString(i++, userId);
+					editUserPs.setString(i++, type);
+				});
+				if (updated > 0 && changeAllModelsDefault) {
+					SecurityModelUsageLimitUtils.setLimit(connection, allModelsKey, allModelsDefault, null);
 				}
-				if (boundModelMaxResponseTime == null) {
-					editUserPs.setNull(i++, java.sql.Types.DOUBLE);
-				} else {
-					editUserPs.setDouble(i++, boundModelMaxResponseTime);
-				}
-				securityDb.getQueryUtil().setStringEmptyAsNullable(editUserPs, i++,
-						StringUtils.trim(modelUsageFrequency));
-				// we have these to update as well for native
-				if (updatePassword) {
-					editUserPs.setString(i++, boundNewHashPass);
-					editUserPs.setString(i++, boundNewSalt);
-				}
-				// Where
-				editUserPs.setString(i++, userId);
-				editUserPs.setString(i++, type);
+				return null;
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update user account information in the security database", e);
 			throw new IllegalArgumentException(e.getMessage());
+		}
+		if (changeAllModelsDefault) {
+			SecurityModelUsageLimitUtils.markChanged();
 		}
 
 		/**
@@ -1081,7 +1082,29 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Delete a user and all its relationships.
+	 * Reads the all-models default usage limit sent in a user account update, which
+	 * may arrive as a map or as JSON text.
+	 *
+	 * @param value a model usage limit sent as a map, as JSON text, or null
+	 * @return the limit, or null for no limit defined
+	 * @throws IllegalArgumentException when the value is not a limit
+	 */
+	private static ModelUsageLimit readModelUsageLimit(Object value) {
+		if (value == null || value instanceof ModelUsageLimit) {
+			return (ModelUsageLimit) value;
+		}
+		if (value instanceof String) {
+			return SecurityModelUsageLimitUtils.readJson((String) value);
+		}
+		if (value instanceof Map) {
+			return SecurityModelUsageLimitUtils.readJson(GsonUtility.getDefaultGson().toJson(value));
+		}
+		throw new IllegalArgumentException("The model usage limit must be an object or JSON text");
+	}
+
+	/**
+	 * Delete a user and all its relationships, including their model usage limits:
+	 * the ones on their grants and their all-models default.
 	 * 
 	 * @param userIdToDelete
 	 * @param userTypeToDelete
@@ -1132,6 +1155,22 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
+		// the model usage limits, now that the person's grants are gone
+		try {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				SecurityModelUsageLimitUtils.deleteAllModelsDefault(connection, userIdToDelete, userTypeToDelete);
+				SecurityModelUsageLimitUtils.deleteDirectLimitsWithoutGrant(connection, userIdToDelete);
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to delete user records from the security database", e);
+		} finally {
+			// the person's grants and team memberships are gone even when the limits are
+			// not, so the cached limits are read again
+			SecurityModelUsageLimitUtils.markChanged();
+		}
 //		{
 //			String[] deleteQueries = new String[] {
 //					"DELETE FROM SMSS_USER WHERE ID=? AND TYPE=?",
@@ -1159,6 +1198,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Sets the email of the user with this id and login type. The email is trimmed,
+	 * and a blank email is stored as null.
 	 * 
 	 * @param userId
 	 * @param userType
@@ -1336,6 +1377,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 
 	/**
+	 * Lists every engine on the server for an admin, sorted by name, with no
+	 * permission or creator filters.
 	 * 
 	 * @param engineFilter
 	 * @param engineTypes
@@ -1351,6 +1394,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Lists every engine on the server for an admin, in the given sort order, with
+	 * no permission or creator filters.
 	 * 
 	 * @param engineFilter
 	 * @param engineTypes
@@ -1511,15 +1556,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param projectFilter
-	 * @param projectMetadataFilter
-	 * @param searchTerm
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	/**
 	 * Join one user's grants onto an admin resource list and, when levels are
 	 * given, keep only the resources on which that user holds one of them. The
 	 * user's direct grant and their custom groups' best grant are joined as
@@ -1600,6 +1636,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	/**
+	 * Lists every project on the server for an admin, filtered by id, type,
+	 * metadata and search term, one page at a time.
+	 * 
+	 * @param projectFilter
+	 * @param typeFilter
+	 * @param projectMetadataFilter
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
 	public List<Map<String, Object>> getAllProjectSettings(List<String> projectFilter, List<String> typeFilter,
 			Map<String, Object> projectMetadataFilter, String searchTerm, String limit, String offset) {
 		return getAllProjectSettings(projectFilter, typeFilter, projectMetadataFilter, searchTerm, limit, offset, null);
@@ -1779,6 +1827,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.setBoolean(1, global);
 				ps.setString(2, engineId);
 			});
+			// public use applies only on a public model
+			SecurityModelUsageLimitUtils.markChanged();
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine global visibility setting", e);
 			throw new IllegalArgumentException("An error occurred setting the engine public");
@@ -1902,6 +1952,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Counts the users who hold a level on the engine, for paging the admin list of
+	 * its users. The search matches user id, name, username or email, and the
+	 * permission keeps only users at that level.
 	 * 
 	 * @param engineId
 	 * @param userId
@@ -1977,35 +2030,32 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Gives a person access to an engine in admin mode, as a permission batch.
-	 * Limits of 0 are no limit.
 	 *
-	 * @param newUserId        the person
-	 * @param engineId         the engine
-	 * @param permission       the level, by name; anything else is Read-Only
-	 * @param user             the admin
-	 * @param endDate          when the access ends, or null
-	 * @param usageRestriction a model engine's usage restriction, or null
-	 * @param usageFrequency   how often a model engine's limits reset, or null
-	 * @param maxTokens        a model engine's token limit, or 0 for none
-	 * @param maxResponseTime  a model engine's response time limit, or 0 for none
+	 * @param newUserId  the person
+	 * @param engineId   the engine
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param user       the admin
+	 * @param endDate    when the access ends, or null
+	 * @param usageLimit the person's model usage limit on a model engine, or null
+	 *                   for no limit defined
 	 */
 	public void addEngineUser(String newUserId, String engineId, String permission, User user, String endDate,
-			String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime) {
+			ModelUsageLimit usageLimit) {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
 				List.of(PermissionChange.add(PermissionSubject.ofUser(newUserId, null),
-						new PermissionGrant(permission, endDate)
-								.withUsageLimits(usageRestriction, usageFrequency, maxTokens, maxResponseTime))),
-				PermissionBatchOptions.adminMode().zeroLimitsAsNone(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						new PermissionGrant(permission, endDate).withUsageLimit(usageLimit))),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 						"This user already has access to this engine. Please edit the existing permission level.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding the user permissions for this engine"));
 	}
 
 	/**
 	 * Gives many people access to an engine together in admin mode, as an access
 	 * batch. Each entry has {@code userid}, {@code permission}, and optionally
-	 * {@code type}, {@code endDate} and the model limits.
+	 * {@code type}, {@code endDate} and, on a model, {@code usageLimit}; an entry
+	 * without {@code usageLimit} gives no limit.
 	 *
 	 * @param engineId   the engine
 	 * @param permission the people, their levels, end dates and limits
@@ -2015,9 +2065,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
 				PermissionBatchUtils.engineChanges(PermissionChange.Action.ADD, permission),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 						"The following users already have access to this database. Please edit the existing permission level: ")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding the user permissions for this engine"));
 	}
 
@@ -2039,9 +2089,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId), changes,
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 						"The following users already have access to this project. Please edit the existing permission level: ")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding the user permissions for this project"));
 	}
 
@@ -2061,9 +2111,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
 				PermissionBatchUtils.peopleChanges(PermissionChange.Action.ADD, permission, endDate),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules(endDate).illegalArgumentWithIds(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+				new PermissionErrorRules(endDate).illegalArgumentWithIds(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 						"The following users already have access to this insight. Please edit the existing permission level: ")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding the user permissions for this insight"));
 	}
 
@@ -2081,9 +2131,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				List.of(PermissionChange
 						.add(PermissionSubject.ofUser(newUserId, null), new PermissionGrant(permission, endDate))),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 						"This user already has access to this project. Please edit the existing permission level.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding the user permissions for this project"));
 	}
 
@@ -2132,7 +2182,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		}
 		PermissionBatchUtils.saveChangesNoCheckedException(user, batches, PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred granting the user permission for all the projects"));
 	}
 
@@ -2192,7 +2242,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		}
 		PermissionBatchUtils.saveChangesNoCheckedException(user, batches, PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred granting the user permission for all the engines of type " + logETypes));
 	}
 
@@ -2212,7 +2262,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						distinctIds(getEngineUsersNoCredentials(engineId, null, -1, -1)),
 						new PermissionGrant(permission, endDate)),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred adding user permissions for engine " + engineId + " with permission "
 								+ permission));
 	}
@@ -2233,7 +2283,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						distinctIds(getProjectUsersNoCredentials(projectId, null, -1, -1)),
 						new PermissionGrant(permission, endDate)),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred adding user permissions for this project"));
 	}
 
@@ -2257,7 +2307,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					PermissionChange.forPeople(action, List.of(userId), new PermissionGrant(permission, null))));
 		}
 		PermissionBatchUtils.saveChangesNoCheckedException(user, batches, PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred granting the user permission for all the projects"));
 	}
 
@@ -2267,8 +2317,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 *
 	 * @param permissionsByEngine for each engine, the people to give access, each
 	 *                            with {@code userid}, {@code permission}, and
-	 *                            optionally {@code type}, {@code endDate} and the
-	 *                            model limits
+	 *                            optionally {@code type}, {@code endDate} and, on a
+	 *                            model, {@code usageLimit}
 	 * @param user                the admin
 	 */
 	public void addUsersToEngines(Map<String, List<Map<String, Object>>> permissionsByEngine, User user) {
@@ -2283,35 +2333,54 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Changes a person's access to an engine in admin mode, as a permission batch.
-	 * The limits are all set, and limits of 0 are no limit.
 	 *
-	 * @param existingUserId   the person
-	 * @param engineId         the engine
-	 * @param newPermission    the level, by name; anything else is Read-Only
-	 * @param user             the admin
-	 * @param endDate          when the access ends, or null for never
-	 * @param usageRestriction a model engine's usage restriction, or null
-	 * @param usageFrequency   how often a model engine's limits reset, or null
-	 * @param maxTokens        a model engine's token limit, or 0 for none
-	 * @param maxResponseTime  a model engine's response time limit, or 0 for none
+	 * @param existingUserId the person
+	 * @param engineId       the engine
+	 * @param newPermission  the level, by name; anything else is Read-Only
+	 * @param user           the admin
+	 * @param endDate        when the access ends, or null for never
+	 * @param usageLimit     the person's model usage limit on a model engine, or
+	 *                       null for no limit defined
 	 */
 	public void editEngineUserPermission(String existingUserId, String engineId, String newPermission, User user,
-			String endDate, String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime) {
+			String endDate, ModelUsageLimit usageLimit) {
+		saveEngineUserChange(existingUserId, engineId, user,
+				new PermissionGrant(newPermission, endDate).withUsageLimit(usageLimit),
+				PermissionBatchOptions.adminMode(), endDate);
+	}
+
+	/**
+	 * Changes a person's level and end date on an engine in admin mode, as a
+	 * permission batch. Their model usage limit stays as it is.
+	 *
+	 * @param existingUserId the person
+	 * @param engineId       the engine
+	 * @param newPermission  the level, by name; anything else is Read-Only
+	 * @param user           the admin
+	 * @param endDate        when the access ends, or null for never
+	 */
+	public void editEngineUserPermission(String existingUserId, String engineId, String newPermission, User user,
+			String endDate) {
+		saveEngineUserChange(existingUserId, engineId, user, new PermissionGrant(newPermission, endDate),
+				PermissionBatchOptions.adminMode().keepingModelLimits(), endDate);
+	}
+
+	private static void saveEngineUserChange(String existingUserId, String engineId, User user, PermissionGrant grant,
+			PermissionBatchOptions options, String endDate) {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
-				List.of(PermissionChange.change(PermissionSubject.ofUser(existingUserId, null),
-						new PermissionGrant(newPermission, endDate)
-								.withUsageLimits(usageRestriction, usageFrequency, maxTokens, maxResponseTime))),
-				PermissionBatchOptions.adminMode().zeroLimitsAsNone(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.NO_ACCESS,
+				List.of(PermissionChange.change(PermissionSubject.ofUser(existingUserId, null), grant)), options,
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
 						"Attempting to modify user permission for a user who does not currently have access to the engine")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred updating the user permissions for this engine"));
 	}
 
 	/**
-	 * Changes many people's access to an engine together in admin mode, as an
+	 * Changes many people's access to an engine together in admin mode, as a
 	 * permission batch. Each entry has {@code userid}, {@code permission}, and
-	 * optionally {@code type}, {@code endDate} and the model limits.
+	 * optionally {@code type}, {@code endDate} and, on a model, {@code usageLimit}.
+	 * An entry without {@code usageLimit} keeps the person's current limit, and one
+	 * whose {@code usageLimit} is null removes it.
 	 *
 	 * @param engineId   the engine
 	 * @param permission the changes
@@ -2320,10 +2389,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public void editEngineUserPermissions(String engineId, List<Map<String, Object>> permission, User user) {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
 				PermissionBatchUtils.engineChanges(PermissionChange.Action.CHANGE, permission),
-				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+				PermissionBatchOptions.adminMode().keepingModelLimits(),
+				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
 						"Attempting to modify user permission for the following users who do not currently have access to the engine: ")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred updating the user permissions for this engine"));
 	}
 
@@ -2342,9 +2411,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				List.of(PermissionChange.change(
 						PermissionSubject.ofUser(existingUserId, null), new PermissionGrant(newPermission, endDate))),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
 						"Attempting to modify user permission for a user who does not currently have access to the project")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred updating the user permissions for this project"));
 	}
 
@@ -2363,9 +2432,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
 				PermissionBatchUtils.peopleChanges(PermissionChange.Action.CHANGE, requests, endDate),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules(endDate).illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules(endDate).illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
 						"Attempting to modify user permission for the following users who do not currently have access to the project: ")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred updating the user permissions for this project"));
 	}
 
@@ -2385,9 +2454,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
 				PermissionBatchUtils.peopleChanges(PermissionChange.Action.CHANGE, requests, endDate),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules(endDate).illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules(endDate).illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
 						"Attempting to modify user permission for the following users who do not currently have access to the insight: ")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred updating the user permissions for this insight"));
 	}
 
@@ -2402,9 +2471,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(null, PermissionTargetResource.engine(engineId),
 				List.of(PermissionChange.remove(PermissionSubject.ofUser(existingUserId, null))),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
 						"Attempting to modify user permission for a user who does not currently have access to the engine")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing the users access to this engine"));
 	}
 
@@ -2419,9 +2488,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(null, PermissionTargetResource.engine(engineId),
 				PermissionChange.forPeople(PermissionChange.Action.REMOVE, existingUserIds, null),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
 						"Attempting to modify user permission for the following users who do not currently have access to the engine: ")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing user permissions from this engine"));
 	}
 
@@ -2436,9 +2505,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(null, PermissionTargetResource.project(projectId),
 				PermissionChange.forPeople(PermissionChange.Action.REMOVE, existingUserIds, null),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
 						"Attempting to modify user permission for the following users who do not currently have access to the project: ")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing user permissions from this project"));
 	}
 
@@ -2454,9 +2523,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(null, PermissionTargetResource.insight(projectId, insightId),
 				PermissionChange.forPeople(PermissionChange.Action.REMOVE, existingUserIds, null),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules().illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
 						"Attempting to modify user permission for the following users who do not currently have access to the insight: ")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing insight permissions for this project"));
 	}
 
@@ -2471,9 +2540,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(null, PermissionTargetResource.project(projectId),
 				List.of(PermissionChange.remove(PermissionSubject.ofUser(existingUserId, null))),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
 						"Attempting to modify user permission for a user who does not currently have access to the project")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing user permissions for this project"));
 	}
 
@@ -2488,6 +2557,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 
 	/**
+	 * Lists every insight of the project for an admin, sorted by name, with its
+	 * global flag, execution count, created and last modified dates, and cacheable
+	 * flag.
 	 * 
 	 * @param projectId
 	 * @return
@@ -2511,6 +2583,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Deletes insights from the project's insights database, then removes their
+	 * insight rows, user permissions and user preferences from the security
+	 * database.
+	 *
 	 * @param projectId
 	 * @param insightIds
 	 * @throws Exception
@@ -2580,6 +2656,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Counts the users who hold a level on the insight, for paging the admin list
+	 * of its users. The user id search and the permission level narrow the count
+	 * when given.
 	 * 
 	 * @param projectId
 	 * @param insightId
@@ -2628,9 +2707,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				List.of(PermissionChange
 						.add(PermissionSubject.ofUser(newUserId, null), new PermissionGrant(permission, endDate))),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 						"This user already has access to this insight. Please edit the existing permission level.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding user permissions for this insight"));
 	}
 
@@ -2655,8 +2734,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		changes.addAll(PermissionChange.forPeople(PermissionChange.Action.CHANGE,
 				getInsightUserIdsWithAccess(projectId, insightId), new PermissionGrant(permission, null)));
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
-				changes, PermissionBatchOptions.adminMode(), new PermissionErrorRules().illegalArgument(
-						PermissionProblem.Code.WRITE_FAILED, "An error occurred adding all users for this insight"));
+				changes, PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						"An error occurred adding all users for this insight"));
 	}
 
 	/**
@@ -2675,9 +2755,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				List.of(PermissionChange.change(
 						PermissionSubject.ofUser(existingUserId, null), new PermissionGrant(newPermission, endDate))),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
 						"Attempting to modify user permission for a user who does not currently have access to the insight")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding user permissions for this insight"));
 	}
 
@@ -2693,13 +2773,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(null, PermissionTargetResource.insight(projectId, insightId),
 				List.of(PermissionChange.remove(PermissionSubject.ofUser(existingUserId, null))),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
 						"Attempting to modify user permission for a user who does not currently have access to the insight")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred deleting user permissions for this insight"));
 	}
 
 	/**
+	 * Sets whether the insight is global. Any user can view a global insight.
 	 * 
 	 * @param projectId
 	 * @param isPublic
@@ -2866,7 +2947,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				PermissionChange.forPeople(PermissionChange.Action.CHANGE, getEngineUserIdsWithAccess(engineId),
 						new PermissionGrant(newPermission, endDate)),
 				PermissionBatchOptions.adminMode().keepingModelLimits(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred editing user permissions for this engine"));
 	}
 
@@ -2885,7 +2966,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				PermissionChange.forPeople(PermissionChange.Action.CHANGE, getProjectUserIdsWithAccess(projectId),
 						new PermissionGrant(newPermission, endDate)),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred editing user permissions for this project"));
 	}
 
@@ -2910,7 +2991,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				new PermissionGrant(permission, endDate)));
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId), changes,
 				PermissionBatchOptions.adminMode().keepingModelLimits(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred adding all users to this engine"));
 	}
 
@@ -2935,7 +3016,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				getProjectUserIdsWithAccess(projectId), new PermissionGrant(permission, endDate)));
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId), changes,
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred adding user permissions for this project"));
 	}
 
@@ -2956,11 +3037,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				PermissionChange.forPeople(PermissionChange.Action.CHANGE,
 						getInsightUserIdsWithAccess(projectId, insightId), new PermissionGrant(newPermission, endDate)),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred updating the permissions for this insight"));
 	}
 
 	/**
+	 * Lists the ids of every insight in the project, so a person can be given a
+	 * level on all of them.
 	 * 
 	 * @param projectId
 	 * @return
@@ -2991,7 +3074,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						distinctIds(getInsightUsersNoCredentials(projectId, insightId, null, -1, -1)),
 						new PermissionGrant(permission, endDate)),
 				PermissionBatchOptions.adminMode(),
-				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred granting the user permission for all the projects"));
 	}
 
@@ -3193,6 +3276,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * The id and login type of an admin user, or null when there is none. Used to
+	 * keep the last admin from losing admin level.
 	 * 
 	 * @return
 	 */
@@ -3246,7 +3331,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public void denyEngineUserAccessRequests(String userId, String userType, String engineId, List<String> requestIds) {
 		PermissionBatchUtils.denyRequestsNoCheckedException(null, PermissionTargetResource.engine(engineId), requestIds,
 				PermissionBatchOptions.adminMode().grantedBy(userId, userType),
-				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred while updating user access request"));
 	}
 
@@ -3283,7 +3368,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			List<String> RequestIdList) {
 		PermissionBatchUtils.denyRequestsNoCheckedException(null, PermissionTargetResource.project(projectId),
 				RequestIdList, PermissionBatchOptions.adminMode().grantedBy(userId, userType),
-				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred while updating user access request"));
 	}
 
@@ -3322,7 +3407,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.denyRequestsNoCheckedException(null,
 				PermissionTargetResource.insight(projectId, insightId), RequestIdList,
 				PermissionBatchOptions.adminMode().grantedBy(userId, userType),
-				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred while updating user access request"));
 	}
 
@@ -3358,6 +3443,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Counts every user on the server, for the admin user list.
 	 * 
 	 * @return
 	 */
@@ -3366,6 +3452,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Counts the users whose id, name, username or email matches the search term,
+	 * or every user when there is no search term.
 	 * 
 	 * @param searchTerm
 	 * @return
@@ -3391,6 +3479,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Counts every API user on the server, for the admin list of API users.
 	 * 
 	 * @return
 	 */
@@ -3399,6 +3488,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Counts the API users whose id, name, username or email matches the search
+	 * term, or every API user when there is no search term.
 	 * 
 	 * @param searchTerm
 	 * @return
@@ -3426,6 +3517,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Collects the distinct user ids from rows of user logins, keeping their order,
+	 * so each person appears once in a permission batch.
+	 *
 	 * @param users rows with an {@code id}, one for each login of a person
 	 * @return each id once, in order, since a project's, engine's or insight's
 	 *         people are keyed by id alone
@@ -3441,6 +3535,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Lists the people who hold a level on the project, so a permission batch can
+	 * change all of them at once.
+	 *
 	 * @return the ids of the people with access to the project, leaving out rows
 	 *         with no level
 	 */
@@ -3454,6 +3551,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Lists the people who hold a level on the engine, so a permission batch can
+	 * change all of them at once.
+	 *
 	 * @return the ids of the people with access to the engine, leaving out rows
 	 *         with no level
 	 */
@@ -3467,6 +3567,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Lists the engines the person holds a level on, so admin grants across many
+	 * engines know which ones to change and which ones to add.
+	 *
 	 * @param engineTypes the engine types, or null or empty for every type
 	 * @return the ids of the engines of those types the person has access to,
 	 *         leaving out rows with no level
@@ -3485,6 +3588,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Lists the people who hold a level on the insight, so a permission batch can
+	 * change all of them at once.
+	 *
 	 * @return the ids of the people with access to the insight, leaving out rows
 	 *         with no level
 	 */
@@ -3499,6 +3605,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Lists the insights in the project the person holds a level on, so a grant on
+	 * all of the project's insights knows which ones to change and which ones to
+	 * add.
+	 *
 	 * @return the ids of the project's insights the person has access to, leaving
 	 *         out rows with no level
 	 */
@@ -3513,6 +3623,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Lists the projects the person holds a level on, so a grant on every project
+	 * knows which ones to change and which ones to add.
+	 *
 	 * @return the ids of the projects the person has access to, leaving out rows
 	 *         with no level
 	 */

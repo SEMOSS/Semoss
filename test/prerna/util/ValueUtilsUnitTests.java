@@ -87,6 +87,26 @@ class ValueUtilsUnitTests {
 	}
 
 	@Test
+	void toPositiveLongOrNull_readsPositiveWholeNumbersFromNumbersAndText() {
+		assertEquals(8192L, ValueUtils.toPositiveLongOrNull(8192));
+		assertEquals(3_000_000_000L, ValueUtils.toPositiveLongOrNull(3_000_000_000L));
+		assertEquals(5L, ValueUtils.toPositiveLongOrNull(5.9));
+		assertEquals(4096L, ValueUtils.toPositiveLongOrNull(" 4096 "));
+	}
+
+	@Test
+	void toPositiveLongOrNull_readsAnythingElseAsNull() {
+		assertNull(ValueUtils.toPositiveLongOrNull(null));
+		assertNull(ValueUtils.toPositiveLongOrNull(" "));
+		assertNull(ValueUtils.toPositiveLongOrNull("lots"));
+		assertNull(ValueUtils.toPositiveLongOrNull("1.5"));
+		assertNull(ValueUtils.toPositiveLongOrNull(0));
+		assertNull(ValueUtils.toPositiveLongOrNull(-10));
+		assertNull(ValueUtils.toPositiveLongOrNull("-10"));
+		assertNull(ValueUtils.toPositiveLongOrNull(Boolean.TRUE));
+	}
+
+	@Test
 	void trimToEmpty_readsAValueAsTrimmedText() {
 		assertEquals("", ValueUtils.trimToEmpty((Object) null));
 		assertEquals("", ValueUtils.trimToEmpty((Object) ""));
