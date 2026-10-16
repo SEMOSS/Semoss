@@ -1074,6 +1074,15 @@ public class Constants {
 	public static final String AUDIT_LOGS_DATABASE_ENABLED = "AUDIT_LOGS_DATABASE_ENABLED";
 	public static final String AUDIT_LOGS_DB = "AuditLogs";
 
+	// Security Audit Logs (logins, permission/role/group changes, admin actions)
+	// - independent of AUDIT_LOGS_DATABASE_ENABLED above, which gates the
+	// LLM-pipeline-shaped AUDIT_LOGS/SERVER_LOGS tables; this gates
+	// SECURITY_AUDIT_LOGS, which shares the same AuditLogs engine/database but is
+	// a distinct table
+	public static final String SECURITY_AUDIT_LOGS_ENABLED = "SECURITY_AUDIT_LOGS_ENABLED";
+	// retention window in days for SECURITY_AUDIT_LOGS; <= 0 disables purging
+	public static final String SECURITY_AUDIT_LOGS_RETENTION_DAYS = "SECURITY_AUDIT_LOGS_RETENTION_DAYS";
+
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
 

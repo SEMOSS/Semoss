@@ -45,6 +45,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.logging.LogActivityRecord;
+import prerna.logging.SecurityAuditLogsJDBCAppender;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -113,7 +114,16 @@ public class AuditLogsDbUtils {
 							OwlIndex.of("AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS", "USER_ID", "LOG_TIMESTAMP"),
 							OwlIndex.of("AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS", "ENGINE_ID", "LOG_TIMESTAMP"),
 							OwlIndex.of("AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", "SESSION_ID"),
-							OwlIndex.of("AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", "ROOM_ID")));
+							OwlIndex.of("AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", "ROOM_ID"),
+							OwlIndex.of("SECURITY_AUDIT_LOGS__NODE_TS_INDEX", "SECURITY_AUDIT_LOGS", "NODE_ID",
+									"LOG_TIMESTAMP"),
+							OwlIndex.of("SECURITY_AUDIT_LOGS__ACTOR_TS_INDEX", "SECURITY_AUDIT_LOGS", "ACTOR_USER_ID",
+									"LOG_TIMESTAMP"),
+							OwlIndex.of("SECURITY_AUDIT_LOGS__EVENT_TS_INDEX", "SECURITY_AUDIT_LOGS", "EVENT_TYPE",
+									"LOG_TIMESTAMP"),
+							OwlIndex.of("SECURITY_AUDIT_LOGS__TARGET_INDEX", "SECURITY_AUDIT_LOGS", "TARGET_TYPE",
+									"TARGET_ID"),
+							OwlIndex.of("SECURITY_AUDIT_LOGS__REQUEST_ID_INDEX", "SECURITY_AUDIT_LOGS", "REQUEST_ID")));
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -124,7 +134,115 @@ public class AuditLogsDbUtils {
 	}
 
 	/**
-	 * 
+	 * Delete SECURITY_AUDIT_LOGS rows older than the retention window
+	 * ({@link Utility#getSecurityAuditLogsRetentionDays()}). A value <= 0 (the
+	 * default) means no retention policy is configured, so this is a no-op -
+	 * callers must opt in. Does not touch AUDIT_LOGS or SERVER_LOGS, which have
+	 * their own (currently unset) retention story.
+	 *
+	 * @return the number of rows deleted, or -1 if retention is not configured /
+	 *         the audit database is not enabled
+	 */
+	public static int purgeExpiredSecurityAuditLogs() {
+		if (!Utility.isSecurityAuditLogsEnabled()) {
+			return -1;
+		}
+		int retentionDays = Utility.getSecurityAuditLogsRetentionDays();
+		if (retentionDays <= 0) {
+			return -1;
+		}
+
+		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
+		if (auditLogsDb == null) {
+			classLogger.warn("Audit logs database has not been initialized yet - cannot purge security audit logs");
+			return -1;
+		}
+
+		Timestamp cutoff = Timestamp.from(java.time.Instant.now().minus(retentionDays, ChronoUnit.DAYS));
+		String deleteSql = "DELETE FROM SECURITY_AUDIT_LOGS WHERE LOG_TIMESTAMP < ?";
+
+		Connection conn = null;
+		java.sql.PreparedStatement stmt = null;
+		try {
+			conn = auditLogsDb.getConnection();
+			stmt = conn.prepareStatement(deleteSql);
+			stmt.setTimestamp(1, cutoff);
+			int deleted = stmt.executeUpdate();
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			if (deleted > 0) {
+				classLogger.info("Purged {} SECURITY_AUDIT_LOGS row(s) older than {} day(s) (before {})", deleted,
+						retentionDays, cutoff);
+			}
+			return deleted;
+		} catch (SQLException e) {
+			classLogger.error("Failed to purge expired security audit logs", e);
+			return -1;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(auditLogsDb, conn, stmt, null);
+		}
+	}
+
+	/**
+	 * Verify the tamper-evident hash chain for one writer node's
+	 * SECURITY_AUDIT_LOGS rows. Each row's ROW_HASH should equal
+	 * {@code SecurityAuditLogsJDBCAppender.computeRowHash} applied to its own
+	 * fields and the immediately preceding row's ROW_HASH (its PREV_HASH). A
+	 * break means a row for that node was altered, deleted, or reordered since it
+	 * was written.
+	 *
+	 * @param nodeId the writer node to verify (the appender's NODE_ID column);
+	 *               each node has its own independent chain, so nodes must be
+	 *               checked one at a time
+	 * @return the LOG_IDs of rows whose stored ROW_HASH does not match a
+	 *         recomputation, in ascending LOG_TIMESTAMP order (empty if the chain
+	 *         is intact, including when there are no rows for this node)
+	 */
+	public static List<String> verifySecurityAuditLogChain(String nodeId) {
+		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
+		if (auditLogsDb == null) {
+			throw new IllegalStateException("Audit logs database has not been initialized yet");
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SECURITY_AUDIT_LOGS__LOG_ID"));
+		qs.addSelector(new QueryColumnSelector("SECURITY_AUDIT_LOGS__PREV_HASH"));
+		qs.addSelector(new QueryColumnSelector("SECURITY_AUDIT_LOGS__ROW_HASH"));
+		qs.addSelector(new QueryColumnSelector("SECURITY_AUDIT_LOGS__EVENT_TYPE"));
+		qs.addSelector(new QueryColumnSelector("SECURITY_AUDIT_LOGS__IS_SUCCESS"));
+		qs.addSelector(new QueryColumnSelector("SECURITY_AUDIT_LOGS__ACTOR_USER_ID"));
+		qs.addSelector(new QueryColumnSelector("SECURITY_AUDIT_LOGS__TARGET_TYPE"));
+		qs.addSelector(new QueryColumnSelector("SECURITY_AUDIT_LOGS__TARGET_ID"));
+		qs.addSelector(new QueryColumnSelector("SECURITY_AUDIT_LOGS__LOG_TIMESTAMP"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SECURITY_AUDIT_LOGS__NODE_ID", "==", nodeId));
+		qs.addOrderBy("SECURITY_AUDIT_LOGS__LOG_TIMESTAMP", "asc");
+
+		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
+		List<String> brokenLogIds = new ArrayList<>();
+		for (Map<String, Object> row : rows) {
+			String prevHash = getOrDefault(row.get("PREV_HASH"), "");
+			String storedRowHash = getOrDefault(row.get("ROW_HASH"), "");
+			// LOG_TIMESTAMP reads back as a SemossDate, not the java.sql.Timestamp it was
+			// written as - the appender hashes epoch millis precisely so both
+			// representations agree; see SecurityAuditLogsJDBCAppender.computeRowHash
+			Object rawTimestamp = row.get("LOG_TIMESTAMP");
+			String timestampMillis = (rawTimestamp instanceof SemossDate)
+					? String.valueOf(Utility.getSqlTimestampUTC((SemossDate) rawTimestamp).getTime())
+					: "";
+			String recomputed = SecurityAuditLogsJDBCAppender.computeRowHash(prevHash,
+					getOrDefault(row.get("LOG_ID"), ""), getOrDefault(row.get("EVENT_TYPE"), ""),
+					String.valueOf(row.get("IS_SUCCESS")), getOrDefault(row.get("ACTOR_USER_ID"), ""),
+					getOrDefault(row.get("TARGET_TYPE"), ""), getOrDefault(row.get("TARGET_ID"), ""), timestampMillis);
+			if (!recomputed.equals(storedRowHash)) {
+				brokenLogIds.add(getOrDefault(row.get("LOG_ID"), ""));
+			}
+		}
+		return brokenLogIds;
+	}
+
+	/**
+	 *
 	 * @param userId
 	 * @param projectId
 	 * @param engineId

@@ -91,13 +91,96 @@ public class SemossLogUtils {
 	public static final String DATE_RANGE_VALUE = "dateRangeValue";
 	public static final String FILTER_USER_ID = "filterUserId";
 
+	// SecurityAuditLogsJDBCAppender fields - logins, permission changes, admin
+	// actions, not the engine-invocation fields above
+	public static final String EVENT_TYPE = "eventType";
+	public static final String ACTOR_USER_ID = "actorUserId";
+	public static final String ACTOR_USER_NAME = "actorUserName";
+	public static final String ACTOR_IP = "actorIp";
+	public static final String TARGET_TYPE = "targetType";
+	public static final String TARGET_ID = "targetId";
+	public static final String TARGET_NAME = "targetName";
+	public static final String DETAILS = "details";
+
+	public static final String SECURITY_AUDIT_LOGGER_NAME = "SecurityAuditLogger";
+
 	/**
 	 * Get the engine level logger
-	 * 
+	 *
 	 * @return
 	 */
 	public static Logger getEngineLevelLogger() {
 		return LogManager.getLogger("EngineLogger");
+	}
+
+	/**
+	 * Get the security audit logger - for logins, permission/role/group changes
+	 * and admin actions. Kept separate from {@link #getEngineLevelLogger()},
+	 * whose AUDIT_LOGS table is shaped for LLM pipeline invocations (engine id,
+	 * token counts, guardrail actions), not security events.
+	 *
+	 * @return
+	 */
+	public static Logger getSecurityAuditLogger() {
+		return LogManager.getLogger(SECURITY_AUDIT_LOGGER_NAME);
+	}
+
+	/**
+	 * Log a security-relevant event (login, permission/role/group change, admin
+	 * action) to the security audit trail. Routes through log4j2's MDC, the same
+	 * mechanism {@link prerna.engine.impl.pipeline.PipelineInvocationHandler}
+	 * uses, so {@link SecurityAuditLogsJDBCAppender} can read the fields back off
+	 * the event's context data.
+	 *
+	 * @param eventType    a short, stable event name, e.g. "LOGIN_SUCCESS",
+	 *                     "LOGIN_FAILURE", "PERMISSION_GRANTED",
+	 *                     "PERMISSION_REVOKED", "ADMIN_ACTION"
+	 * @param actorUserId  the id of the user who performed the action (null if
+	 *                     unauthenticated, e.g. a failed login)
+	 * @param actorUserName the actor's display/login name, for a human-readable
+	 *                      record even if the id later becomes unresolvable
+	 * @param actorIp      the actor's source IP, or null if unavailable
+	 * @param targetType   what kind of thing was acted on, e.g. "USER", "GROUP",
+	 *                     "PROJECT", "ENGINE", "PERMISSION_BATCH" (null if n/a,
+	 *                     e.g. a login event)
+	 * @param targetId     the id of the thing acted on (null if n/a)
+	 * @param targetName   a human-readable name for the target (null if n/a)
+	 * @param success      whether the action succeeded
+	 * @param message      a short human-readable description, e.g.
+	 *                     {@code "add user jdoe to group Sales"}
+	 * @param detailsJson  optional extra detail as a JSON string (e.g. the
+	 *                     before/after permission values), or null
+	 */
+	public static void logSecurityAuditEvent(String eventType, String actorUserId, String actorUserName,
+			String actorIp, String targetType, String targetId, String targetName, boolean success, String message,
+			String detailsJson) {
+		java.util.Map<String, String> mdc = new java.util.HashMap<>(
+				org.apache.logging.log4j.ThreadContext.getImmutableContext());
+		mdc.put(EVENT_TYPE, eventType);
+		putIfNotNull(mdc, ACTOR_USER_ID, actorUserId);
+		putIfNotNull(mdc, ACTOR_USER_NAME, actorUserName);
+		putIfNotNull(mdc, ACTOR_IP, actorIp);
+		putIfNotNull(mdc, TARGET_TYPE, targetType);
+		putIfNotNull(mdc, TARGET_ID, targetId);
+		putIfNotNull(mdc, TARGET_NAME, targetName);
+		mdc.put(IS_SUCCESS, Boolean.toString(success));
+		putIfNotNull(mdc, DETAILS, detailsJson);
+
+		try (org.apache.logging.log4j.CloseableThreadContext.Instance ctc = org.apache.logging.log4j.CloseableThreadContext
+				.putAll(mdc)) {
+			Logger logger = getSecurityAuditLogger();
+			if (success) {
+				logger.info(message);
+			} else {
+				logger.warn(message);
+			}
+		}
+	}
+
+	private static void putIfNotNull(java.util.Map<String, String> mdc, String key, String value) {
+		if (value != null) {
+			mdc.put(key, value);
+		}
 	}
 
 	/**
