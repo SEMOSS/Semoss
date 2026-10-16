@@ -138,6 +138,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// memory recall and tools, and the review of finished chats; null reads as on
 				Pair.with("MEMORY_USE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("MEMORY_LEARN", BOOLEAN_DATATYPE_NAME),
+				// the Outlook folder drafts are left in; null means the mailbox's own Drafts
+				Pair.with("DRAFT_FOLDER_ID", VARCHAR_255),
+				Pair.with("DRAFT_FOLDER_NAME", VARCHAR_255),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// One resumable topic-review draft per owner; only profiles and bounded evidence metadata.
 		addTable("BRAIN_TOPIC_REVIEW", Arrays.asList(

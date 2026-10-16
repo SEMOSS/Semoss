@@ -725,6 +725,25 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
+	 * Move a message to another folder and return the message as it is there.
+	 *
+	 * @param accessToken       the token to write with
+	 * @param mailbox           the mailbox, or null for the signed in user
+	 * @param messageId         the message to move
+	 * @param destinationFolder the folder to move it to, by well known name or id
+	 * @return the moved message, which carries the new id and webLink Graph gave it
+	 */
+	public Map<String, Object> moveMessageDetails(String accessToken, String mailbox, String messageId,
+			String destinationFolder) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/move";
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken),
+				GSON.toJson(Map.of("destinationId", destinationFolder)), ContentType.APPLICATION_JSON, null, null,
+				null);
+		throwOnError(response, "move a message");
+		return readMap(response);
+	}
+
+	/**
 	 * Delete a message. It goes to Deleted Items rather than disappearing, which is
 	 * the one thing Graph does more gently than the mail protocols.
 	 *
@@ -764,6 +783,62 @@ public class MicrosoftOutlookMailHelper {
 		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
 		throwOnError(response, "list the folders of the mailbox");
 		return readList(response);
+	}
+
+	/**
+	 * List the folders directly inside one folder, or at the top of the mailbox
+	 * when no parent is given.
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param parentId    the parent folder id or well known name, or null for the top level
+	 * @return the folders, each with its id, displayName and childFolderCount
+	 */
+	public List<Map<String, Object>> listFolderChildren(String accessToken, String mailbox, String parentId) {
+		String base = userPath(mailbox) + "/mailFolders";
+		String url = (parentId == null ? base : base + "/" + encode(parentId) + "/childFolders")
+				+ "?$top=100&$select=id,displayName,childFolderCount";
+		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		throwOnError(response, "list the folders of the mailbox");
+		return readList(response);
+	}
+
+	/**
+	 * The id of a folder by its well known name, such as {@code drafts}.
+	 *
+	 * @return the folder id, or null when Graph has no such folder
+	 */
+	public String wellKnownFolderId(String accessToken, String mailbox, String wellKnownName) {
+		String url = userPath(mailbox) + "/mailFolders/" + encode(wellKnownName) + "?$select=id";
+		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		if (response == null || response.contains("\"error\"")) {
+			return null;
+		}
+		Map<String, Object> folder = readMap(response);
+		return folder == null ? null : (String) folder.get("id");
+	}
+
+	/**
+	 * Make a folder, or return the one of that name that is already there.
+	 *
+	 * @param accessToken the token to write with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param parentId    the parent folder id or well known name, or null for the top level
+	 * @param name        the folder name
+	 * @return the folder, with its id and displayName
+	 */
+	public Map<String, Object> createFolder(String accessToken, String mailbox, String parentId, String name) {
+		for (Map<String, Object> existing : listFolderChildren(accessToken, mailbox, parentId)) {
+			if (name.equalsIgnoreCase(String.valueOf(existing.get("displayName")))) {
+				return existing;
+			}
+		}
+		String base = userPath(mailbox) + "/mailFolders";
+		String url = parentId == null ? base : base + "/" + encode(parentId) + "/childFolders";
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken),
+				GSON.toJson(Map.of("displayName", name)), ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "create a folder");
+		return readMap(response);
 	}
 
 	/**
