@@ -1027,19 +1027,6 @@ public class Constants {
 	// UTC ZONE
 	public static final String UTC_ZONE = "UTC";
 
-	// keys for engine restrictions
-	public static final String ENGINE_USAGE_RESTRICTION_KEY = "engine_usage_restiction";
-	public static final String ENGINE_USAGE_FREQUENCY_KEY = "engine_usage_frequency";
-	public static final String ENGINE_MAX_TOKEN_KEY = "engine_max_token";
-	public static final String ENGINE_MAX_RESPONSE_TIME_KEY = "engine_max_response_time";
-	public static final String USER_USAGE_RESTRICTION_KEY = "user_model_usage_restriction";
-	public static final String USER_MODEL_USAGE_FREQUENCY_KEY = "user_model_usage_frequency";
-	public static final String USER_MODEL_MAX_TOKEN_KEY = "user_model_max_token";
-	public static final String USER_MODEL_MAX_RESPONSE_TIME_KEY = "user_model_max_response_time";
-	// model restriction types
-	public static final String MODEL_TOKEN_RESTRICTION_VALUE = "token";
-	public static final String MODEL_COMPUTE_TIME_RESTRICTION_VALUE = "compute";
-
 	// External Permission Management
 	public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENABLED = "EXTERNAL_PERMISSION_MANAGEMENT_ENABLED";
 	public static final String EXTERNAL_PERMISSION_MANAGEMENT_URL = "EXTERNAL_PERMISSION_MANAGEMENT_URL";
@@ -1084,11 +1071,13 @@ public class Constants {
 	// collaboration db (Brain and Work)
 	public static final String COLLABORATION_DATABASE_ENABLED = "COLLABORATION_DATABASE_ENABLED";
 	public static final String COLLABORATION_DB = "Collaboration";
-	// one brain classifier model for the whole platform, and its cutoffs per engine id
+	// one brain classifier model for the whole platform, and its cutoffs per engine
+	// id
 	public static final String COLLAB_CLASSIFIER_ENGINE_ID = "COLLAB_CLASSIFIER_ENGINE_ID";
 	public static final String COLLAB_CLASSIFIER_CUTOFFS = "COLLAB_CLASSIFIER_CUTOFFS";
 	public static final String COLLAB_CLASSIFIER_WINDOW = "COLLAB_CLASSIFIER_WINDOW";
-	// a general text model for topic grouping and naming, and thread summaries and action items
+	// a general text model for topic grouping and naming, and thread summaries and
+	// action items
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
 	// threads the classifier sorts at once (default 8)
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";

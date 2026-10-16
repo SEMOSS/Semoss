@@ -28,7 +28,6 @@
 package prerna.reactor.automation.run;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -53,10 +52,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ITypeSafeEngine;
 import prerna.engine.impl.model.RoomUtils;
@@ -77,6 +75,8 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
@@ -87,12 +87,12 @@ import prerna.util.insight.InsightUtility;
  * <p>
  * The calling reactor performs access checks and resolves the run scope, a
  * project ID or the caller's inline run scope; {@link #start} then atomically
- * creates submitted run history. This class claims that
- * individual run, creates a run-local {@link Insight}, traverses the validated
- * control path, executes the immutable source snapshot one node at a time,
- * persists each transition, and binds interactive run Insights to the caller's
- * session lifecycle. Python receives only the selected node source and a
- * read-only scope; it does not own graph traversal or persistence.
+ * creates submitted run history. This class claims that individual run, creates
+ * a run-local {@link Insight}, traverses the validated control path, executes
+ * the immutable source snapshot one node at a time, persists each transition,
+ * and binds interactive run Insights to the caller's session lifecycle. Python
+ * receives only the selected node source and a read-only scope; it does not own
+ * graph traversal or persistence.
  *
  * <p>
  * Keeping this lifecycle independent from the Pixel reactor allows the same
@@ -112,24 +112,8 @@ final class AutomationRunExecutionService {
 	private static final long DEFAULT_AGENT_APPROVAL_TIMEOUT_HOURS = 24L;
 
 	private enum Handler {
-		START,
-		CONDITION,
-		JEV,
-		LOOP,
-		WAIT,
-		APP_PIXEL,
-		FUNCTION,
-		STORAGE_LIST,
-		DATABASE_WRITE,
-		VECTOR_WRITE,
-		MODEL,
-		STORAGE,
-		AGENT,
-		DATABASE_QUERY,
-		VECTOR_SEARCH,
-		STORAGE_DOWNLOAD,
-		DATA_EXTRACT,
-		PYTHON
+		START, CONDITION, JEV, LOOP, WAIT, APP_PIXEL, FUNCTION, STORAGE_LIST, DATABASE_WRITE, VECTOR_WRITE, MODEL,
+		STORAGE, AGENT, DATABASE_QUERY, VECTOR_SEARCH, STORAGE_DOWNLOAD, DATA_EXTRACT, PYTHON
 	}
 
 	private final Insight requestInsight;
@@ -162,8 +146,8 @@ final class AutomationRunExecutionService {
 	/**
 	 * Validates a definition for execution, records it as a submitted run under
 	 * {@code runScope}, then claims and executes it synchronously. This is the one
-	 * start path for project and inline runs; the caller owns the access check
-	 * that produced {@code runScope}.
+	 * start path for project and inline runs; the caller owns the access check that
+	 * produced {@code runScope}.
 	 *
 	 * @param insight      caller's authenticated Insight
 	 * @param streamJobId  live Pixel job that receives progress, or {@code null}
@@ -179,8 +163,8 @@ final class AutomationRunExecutionService {
 			String automationId, AutomationDefinitionService.DefinitionFiles files, Map<String, Object> inputs,
 			String triggerType) {
 		AutomationRunExecutionService service = new AutomationRunExecutionService(insight, streamJobId);
-		AutomationDefinitionValidator.ValidatedDefinition definition =
-				AutomationDefinitionValidator.parseAndValidate(files.definition());
+		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator
+				.parseAndValidate(files.definition());
 		AutomationProjectService.validateDefinitionReferences(definition, insight.getUser());
 		List<Map<String, Object>> runNodes = AutomationRuntime.nodesForRun(definition);
 		validateInputs(inputs);
@@ -190,9 +174,13 @@ final class AutomationRunExecutionService {
 		}
 		Map<String, String> traceRoomIds = allocateTraceRoomIds(runNodes);
 
+		String normalizedTriggerType = triggerType(triggerType);
 		AutomationRunStore.initializeRun(runId, runScope, automationId, AutomationConstants.PYTHON_DOC_CURRENT_VERSION,
-				definition.hash(), definition.snapshot(), effectiveInputs, triggerType(triggerType),
+				definition.hash(), definition.snapshot(), effectiveInputs, normalizedTriggerType,
 				service.currentUserId(), runNodes, traceRoomIds, files.nodeSources());
+		UserAuditTrailUtils.recordAutomationEvent(insight.getUser(), AuditEventType.AUTOMATION_RUN_START, runScope,
+				runId, null, Map.of("triggerType", normalizedTriggerType, "nodeCount", runNodes.size(), "inputKeys",
+						new ArrayList<>(effectiveInputs.keySet())));
 		return service.executeInitializedRun(runId, runScope, definition, runNodes, traceRoomIds);
 	}
 
@@ -214,8 +202,8 @@ final class AutomationRunExecutionService {
 		}
 		for (String key : inputs.keySet()) {
 			if (AutomationConstants.RESERVED_SCOPE_KEYS.contains(key)) {
-				throw new IllegalArgumentException("Automation input '" + key
-						+ "' is reserved for runtime metadata and cannot be overridden.");
+				throw new IllegalArgumentException(
+						"Automation input '" + key + "' is reserved for runtime metadata and cannot be overridden.");
 			}
 		}
 	}
@@ -268,8 +256,8 @@ final class AutomationRunExecutionService {
 			}
 		} catch (Exception e) {
 			String executionInsightId = executionInsight == null ? null : executionInsight.getInsightId();
-			classLogger.error("Automation run failed for project '{}', run '{}', execution Insight '{}'",
-					projectId, runId, executionInsightId, e);
+			classLogger.error("Automation run failed for project '{}', run '{}', execution Insight '{}'", projectId,
+					runId, executionInsightId, e);
 			finishFailedRun(runId, projectId, e);
 			result = Map.of("error", safeMessage(e));
 		} finally {
@@ -365,8 +353,8 @@ final class AutomationRunExecutionService {
 			case VECTOR_SEARCH -> executeVectorSearchNode(projectId, runId, node, context, pixelExecutor);
 			case STORAGE_DOWNLOAD -> executeStorageDownloadNode(projectId, runId, node, context, pixelExecutor);
 			case DATA_EXTRACT -> executeDataExtractNode(projectId, runId, node, context, pixelExecutor);
-			case PYTHON -> executeNodeSource(projectId, runId, node, node,
-					nodeSources.get(nodeId), context, pythonExecutor, traceRoomIds.get(nodeId),
+			case PYTHON -> executeNodeSource(projectId, runId, node, node, nodeSources.get(nodeId), context,
+					pythonExecutor, traceRoomIds.get(nodeId),
 					controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
 			};
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
@@ -412,18 +400,16 @@ final class AutomationRunExecutionService {
 		case AutomationConstants.NODE_APP_PIXEL -> Handler.APP_PIXEL;
 		case AutomationConstants.NODE_FUNCTION_EXECUTE -> Handler.FUNCTION;
 		case AutomationConstants.NODE_STORAGE_LIST -> Handler.STORAGE_LIST;
-		case AutomationConstants.NODE_DATABASE_INSERT,
-				AutomationConstants.NODE_DATABASE_UPDATE,
-				AutomationConstants.NODE_DATABASE_DELETE -> Handler.DATABASE_WRITE;
-		case AutomationConstants.NODE_VECTOR_ADD,
-				AutomationConstants.NODE_VECTOR_DELETE -> Handler.VECTOR_WRITE;
-		case AutomationConstants.NODE_MODEL_CHAT,
-				AutomationConstants.NODE_MODEL_EMBEDDINGS,
-				AutomationConstants.NODE_MODEL_VISION,
-				AutomationConstants.NODE_MODEL_NER -> Handler.MODEL;
-		case AutomationConstants.NODE_STORAGE_READ,
-				AutomationConstants.NODE_STORAGE_UPLOAD,
-				AutomationConstants.NODE_STORAGE_DELETE -> Handler.STORAGE;
+		case AutomationConstants.NODE_DATABASE_INSERT, AutomationConstants.NODE_DATABASE_UPDATE,
+				AutomationConstants.NODE_DATABASE_DELETE ->
+			Handler.DATABASE_WRITE;
+		case AutomationConstants.NODE_VECTOR_ADD, AutomationConstants.NODE_VECTOR_DELETE -> Handler.VECTOR_WRITE;
+		case AutomationConstants.NODE_MODEL_CHAT, AutomationConstants.NODE_MODEL_EMBEDDINGS,
+				AutomationConstants.NODE_MODEL_VISION, AutomationConstants.NODE_MODEL_NER ->
+			Handler.MODEL;
+		case AutomationConstants.NODE_STORAGE_READ, AutomationConstants.NODE_STORAGE_UPLOAD,
+				AutomationConstants.NODE_STORAGE_DELETE ->
+			Handler.STORAGE;
 		case AutomationConstants.NODE_AGENT_RUN -> Handler.AGENT;
 		case AutomationConstants.NODE_DATABASE_QUERY -> Handler.DATABASE_QUERY;
 		case AutomationConstants.NODE_VECTOR_SEARCH -> Handler.VECTOR_SEARCH;
@@ -450,8 +436,8 @@ final class AutomationRunExecutionService {
 		streamNodeProgress(runId, loopNode, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
 		try {
 			Map<String, Object> config = (Map<String, Object>) loopNode.get(AutomationConstants.NODE_FIELD_CONFIG);
-			String loopMode = String.valueOf(config.getOrDefault(AutomationConstants.CONFIG_LOOP_MODE,
-					AutomationConstants.LOOP_MODE_FOR_EACH));
+			String loopMode = String.valueOf(
+					config.getOrDefault(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH));
 			int maximumIterations = ((Number) config.get(AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS)).intValue();
 			int batchSize = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)
 					? ((Number) config.get(AutomationConstants.CONFIG_LOOP_BATCH_SIZE)).intValue()
@@ -462,8 +448,9 @@ final class AutomationRunExecutionService {
 					? AutomationScopeResolver.resolveExactOrLiteral(configuredItems, parentContext.values(),
 							"Loop node '" + loopNodeId + "' items")
 					: null;
-			AutomationFrameOutput.RegisteredFrame frameItems =
-					resolvedItems instanceof AutomationFrameOutput.RegisteredFrame frame ? frame : null;
+			AutomationFrameOutput.RegisteredFrame frameItems = resolvedItems instanceof AutomationFrameOutput.RegisteredFrame frame
+					? frame
+					: null;
 			List<Object> items = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode) && frameItems == null
 					? loopItems(configuredItems, parentContext.values(), loopNodeId)
 					: List.of();
@@ -475,8 +462,8 @@ final class AutomationRunExecutionService {
 			long requiredIterations = itemCount == 0 ? 0 : (itemCount + batchSize - 1) / batchSize;
 			int iterationLimit = switch (loopMode) {
 			case AutomationConstants.LOOP_MODE_FOR_EACH -> Math.toIntExact(requiredIterations);
-			case AutomationConstants.LOOP_MODE_REPEAT -> ((Number) config
-					.get(AutomationConstants.CONFIG_LOOP_COUNT)).intValue();
+			case AutomationConstants.LOOP_MODE_REPEAT ->
+				((Number) config.get(AutomationConstants.CONFIG_LOOP_COUNT)).intValue();
 			case AutomationConstants.LOOP_MODE_WHILE -> maximumIterations;
 			default -> throw new IllegalArgumentException("Unsupported loop mode: " + loopMode);
 			};
@@ -489,9 +476,8 @@ final class AutomationRunExecutionService {
 					AutomationRuntime.loopBodyNodes(loopNode), AutomationRuntime.loopBodyEdges(loopNode));
 			long bodyNodeExecutions = (long) iterationLimit * bodyNodes.size();
 			if (bodyNodeExecutions > AutomationConstants.LOOP_MAX_NODE_EXECUTIONS) {
-				throw new IllegalArgumentException("Loop node '" + loopNodeId + "' would execute "
-						+ bodyNodeExecutions + " body steps, exceeding the maximum of "
-						+ AutomationConstants.LOOP_MAX_NODE_EXECUTIONS
+				throw new IllegalArgumentException("Loop node '" + loopNodeId + "' would execute " + bodyNodeExecutions
+						+ " body steps, exceeding the maximum of " + AutomationConstants.LOOP_MAX_NODE_EXECUTIONS
 						+ ". Reduce the number of passes or the loop body.");
 			}
 			List<Map<String, Object>> bodyEdges = AutomationRuntime.loopBodyEdges(loopNode);
@@ -557,92 +543,94 @@ final class AutomationRunExecutionService {
 						stopLoop = true;
 						break;
 					}
-				Map<String, String> bodyTraceRoomIds = allocateTraceRoomIds(bodyNodes);
-				Map<String, String> executionNodeIds = AutomationRunStore.insertLoopIterationNodes(runId,
-						loopNodeId, iteration, bodyNodes, bodyTraceRoomIds);
+					Map<String, String> bodyTraceRoomIds = allocateTraceRoomIds(bodyNodes);
+					Map<String, String> executionNodeIds = AutomationRunStore.insertLoopIterationNodes(runId,
+							loopNodeId, iteration, bodyNodes, bodyTraceRoomIds);
 
-				Set<String> visited = new HashSet<>();
-				Map<String, Object> outputs = new LinkedHashMap<>();
-				String current = bodyEntry;
-				while (current != null) {
-					if (AutomationRunRegistry.isCancellationRequested(runId)) {
-						throw new IllegalStateException("Run cancelled by user");
+					Set<String> visited = new HashSet<>();
+					Map<String, Object> outputs = new LinkedHashMap<>();
+					String current = bodyEntry;
+					while (current != null) {
+						if (AutomationRunRegistry.isCancellationRequested(runId)) {
+							throw new IllegalStateException("Run cancelled by user");
+						}
+						if (!visited.add(current)) {
+							throw new IllegalStateException("Loop body revisited node '" + current + "'.");
+						}
+						Map<String, Object> canonicalNode = bodyNodesById.get(current);
+						Map<String, Object> executionNode = new LinkedHashMap<>(canonicalNode);
+						executionNode.put(AutomationConstants.NODE_FIELD_ID, executionNodeIds.get(current));
+						executionNode.put(AutomationConstants.SOURCE_NODE_ID, current);
+						executionNode.put(AutomationConstants.PARENT_NODE_ID, loopNodeId);
+						executionNode.put(AutomationConstants.ITERATION_INDEX, iteration);
+						Handler handler = handlerFor(executionNode);
+						Map<String, Object> nodeResult = switch (handler) {
+						case CONDITION -> executeConditionNode(runId, executionNode, iterationContext.values());
+						case JEV -> executeJevDecisionNode(parentContext.insight(), runId, executionNode,
+								iterationContext.values());
+						case WAIT -> executeWaitNode(projectId, runId, executionNode, iterationContext);
+						case APP_PIXEL ->
+							executeAppPixelNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case FUNCTION ->
+							executeFunctionNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case STORAGE_LIST ->
+							executeStorageListNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case DATABASE_WRITE ->
+							executeDatabaseWriteNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case VECTOR_WRITE ->
+							executeVectorWriteNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case MODEL -> executeModelNode(projectId, runId, executionNode, iterationContext, pixelExecutor,
+								bodyTraceRoomIds.get(current));
+						case STORAGE ->
+							executeStorageNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case AGENT -> executeAgentNode(projectId, runId, executionNode, iterationContext, pixelExecutor,
+								bodyTraceRoomIds.get(current), null);
+						case DATABASE_QUERY ->
+							executeDatabaseQueryNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case VECTOR_SEARCH ->
+							executeVectorSearchNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case STORAGE_DOWNLOAD -> executeStorageDownloadNode(projectId, runId, executionNode,
+								iterationContext, pixelExecutor);
+						case DATA_EXTRACT ->
+							executeDataExtractNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case PYTHON ->
+							executeNodeSource(projectId, runId, executionNode, executionNode, nodeSources.get(current),
+									iterationContext, pythonExecutor, bodyTraceRoomIds.get(current), null);
+						case START, LOOP -> throw new IllegalStateException(
+								"Loop body selected unsupported handler '" + handler + "' for node '" + current + "'.");
+						};
+						if (!AutomationConstants.NODE_STATUS_SUCCESS
+								.equals(nodeResult.get(AutomationConstants.STATUS))) {
+							throw new IllegalStateException(
+									"Loop body node '" + current + "' did not complete successfully.");
+						}
+						String outputVar = (String) canonicalNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+						if (outputVar != null) {
+							Object value = nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE);
+							iterationContext.putValue(outputVar, value);
+							outputs.put(outputVar, value);
+						}
+						String selectedPort = AutomationConstants.CONTROL_PORT_OUT;
+						if (handler == Handler.CONDITION || handler == Handler.JEV) {
+							Map<String, Object> decision = (Map<String, Object>) nodeResult
+									.get(AutomationConstants.RESULT_OUTPUT_VALUE);
+							selectedPort = (String) decision.get("branch");
+						}
+						current = bodyTargets.getOrDefault(current, Map.of()).get(selectedPort);
 					}
-					if (!visited.add(current)) {
-						throw new IllegalStateException("Loop body revisited node '" + current + "'.");
+					List<String> skipped = bodyNodesById.keySet().stream().filter(nodeId -> !visited.contains(nodeId))
+							.map(executionNodeIds::get).toList();
+					AutomationRunStore.skipPendingNodes(runId, skipped, "Loop branch was not selected");
+					Map<String, Object> iterationResult = new LinkedHashMap<>();
+					iterationResult.put("index", iteration);
+					iterationResult.put("outputs", persistableValue(outputs));
+					iterationResultsJsonBytes = appendBoundedLoopResult(iterationResults, iterationResult,
+							iterationResultsJsonBytes, AutomationConstants.NODE_OUTPUT_MAX_BYTES,
+							"Automation loop '" + loopNodeId + "' collected results");
+					if (AutomationConstants.LOOP_MODE_WHILE.equals(loopMode)) {
+						carriedOutputs.replaceAll((key, value) -> null);
+						carriedOutputs.putAll(outputs);
 					}
-					Map<String, Object> canonicalNode = bodyNodesById.get(current);
-					Map<String, Object> executionNode = new LinkedHashMap<>(canonicalNode);
-					executionNode.put(AutomationConstants.NODE_FIELD_ID, executionNodeIds.get(current));
-					executionNode.put(AutomationConstants.SOURCE_NODE_ID, current);
-					executionNode.put(AutomationConstants.PARENT_NODE_ID, loopNodeId);
-					executionNode.put(AutomationConstants.ITERATION_INDEX, iteration);
-					Handler handler = handlerFor(executionNode);
-					Map<String, Object> nodeResult = switch (handler) {
-					case CONDITION -> executeConditionNode(runId, executionNode, iterationContext.values());
-					case JEV -> executeJevDecisionNode(parentContext.insight(), runId, executionNode,
-							iterationContext.values());
-					case WAIT -> executeWaitNode(projectId, runId, executionNode, iterationContext);
-					case APP_PIXEL ->
-						executeAppPixelNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-					case FUNCTION ->
-						executeFunctionNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-					case STORAGE_LIST ->
-						executeStorageListNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-					case DATABASE_WRITE ->
-						executeDatabaseWriteNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-					case VECTOR_WRITE ->
-						executeVectorWriteNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-					case MODEL -> executeModelNode(projectId, runId, executionNode, iterationContext, pixelExecutor,
-							bodyTraceRoomIds.get(current));
-					case STORAGE ->
-						executeStorageNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-					case AGENT -> executeAgentNode(projectId, runId, executionNode, iterationContext, pixelExecutor,
-							bodyTraceRoomIds.get(current), null);
-					case DATABASE_QUERY ->
-						executeDatabaseQueryNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-					case VECTOR_SEARCH ->
-						executeVectorSearchNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-					case STORAGE_DOWNLOAD ->
-						executeStorageDownloadNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-					case DATA_EXTRACT ->
-						executeDataExtractNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-					case PYTHON -> executeNodeSource(projectId, runId, executionNode,
-							executionNode, nodeSources.get(current), iterationContext, pythonExecutor,
-							bodyTraceRoomIds.get(current), null);
-					case START, LOOP -> throw new IllegalStateException(
-							"Loop body selected unsupported handler '" + handler + "' for node '" + current + "'.");
-					};
-					if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
-						throw new IllegalStateException("Loop body node '" + current + "' did not complete successfully.");
-					}
-					String outputVar = (String) canonicalNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
-					if (outputVar != null) {
-						Object value = nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE);
-						iterationContext.putValue(outputVar, value);
-						outputs.put(outputVar, value);
-					}
-					String selectedPort = AutomationConstants.CONTROL_PORT_OUT;
-					if (handler == Handler.CONDITION || handler == Handler.JEV) {
-						Map<String, Object> decision = (Map<String, Object>) nodeResult
-								.get(AutomationConstants.RESULT_OUTPUT_VALUE);
-						selectedPort = (String) decision.get("branch");
-					}
-					current = bodyTargets.getOrDefault(current, Map.of()).get(selectedPort);
-				}
-				List<String> skipped = bodyNodesById.keySet().stream().filter(nodeId -> !visited.contains(nodeId))
-						.map(executionNodeIds::get).toList();
-				AutomationRunStore.skipPendingNodes(runId, skipped, "Loop branch was not selected");
-				Map<String, Object> iterationResult = new LinkedHashMap<>();
-				iterationResult.put("index", iteration);
-				iterationResult.put("outputs", persistableValue(outputs));
-				iterationResultsJsonBytes = appendBoundedLoopResult(iterationResults, iterationResult,
-						iterationResultsJsonBytes, AutomationConstants.NODE_OUTPUT_MAX_BYTES,
-						"Automation loop '" + loopNodeId + "' collected results");
-				if (AutomationConstants.LOOP_MODE_WHILE.equals(loopMode)) {
-					carriedOutputs.replaceAll((key, value) -> null);
-					carriedOutputs.putAll(outputs);
-				}
 				} finally {
 					// Child scopes contain immutable values and own no external resources.
 				}
@@ -667,8 +655,8 @@ final class AutomationRunExecutionService {
 			}
 
 			Map<String, Object> value = new LinkedHashMap<>();
-			value.put("processed", AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode) ? itemCount
-					: iterationResults.size());
+			value.put("processed",
+					AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode) ? itemCount : iterationResults.size());
 			value.put("iterations", iterationResults.size());
 			value.put("results", iterationResults);
 			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(value,
@@ -676,8 +664,7 @@ final class AutomationRunExecutionService {
 			Map<String, Object> prospectiveScope = new LinkedHashMap<>(parentContext.values());
 			prospectiveScope.put(loopOutputVar, value);
 			AutomationRuntimeUtils.toBoundedRuntimeJson(normalizeScope(prospectiveScope),
-					AutomationConstants.RUN_SCOPE_MAX_BYTES,
-					"Automation run scope");
+					AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope");
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
 			AutomationRunStore.updateNodeSuccess(runId, loopNodeId, started, duration, loopOutputVar, output, preview,
@@ -713,8 +700,7 @@ final class AutomationRunExecutionService {
 		long resultBytes = singleton.getBytes(StandardCharsets.UTF_8).length - 2L;
 		long nextBytes = currentBytes + (results.isEmpty() ? 0L : 1L) + resultBytes;
 		if (nextBytes > maximumBytes) {
-			throw new IllegalArgumentException(
-					valueName + " exceeds the maximum of " + maximumBytes + " UTF-8 bytes.");
+			throw new IllegalArgumentException(valueName + " exceeds the maximum of " + maximumBytes + " UTF-8 bytes.");
 		}
 		results.add(result);
 		return nextBytes;
@@ -749,7 +735,10 @@ final class AutomationRunExecutionService {
 		return value;
 	}
 
-	/** Resolves a loop's literal list or exact scope reference without string coercion. */
+	/**
+	 * Resolves a loop's literal list or exact scope reference without string
+	 * coercion.
+	 */
 	static List<Object> loopItems(Object configuredItems, Map<String, Object> scope, String loopNodeId) {
 		Object resolved = AutomationScopeResolver.resolveExactOrLiteral(configuredItems, scope,
 				"Loop node '" + loopNodeId + "'");
@@ -777,8 +766,8 @@ final class AutomationRunExecutionService {
 		try {
 			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
 			Object value = AutomationDataExtractExecutor.execute(config, context.values(), nodeId, path -> {
-				String expression = "GetInsightAssetsBase64(filePath="
-						+ AutomationRuntimeUtils.GSON.toJson(path) + ");";
+				String expression = "GetInsightAssetsBase64(filePath=" + AutomationRuntimeUtils.GSON.toJson(path)
+						+ ");";
 				Object encoded = pixelExecutor.execute(expression);
 				if (!(encoded instanceof String text)) {
 					throw new IllegalStateException(
@@ -807,12 +796,12 @@ final class AutomationRunExecutionService {
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
 		try {
 			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
-			AutomationPixelExpressionRenderer.StorageDownload request =
-					AutomationPixelExpressionRenderer.storageDownload(config, context.values(), nodeId);
+			AutomationPixelExpressionRenderer.StorageDownload request = AutomationPixelExpressionRenderer
+					.storageDownload(config, context.values(), nodeId);
 			Object transfer = pixelExecutor.execute(request.transferExpression());
 			Object assets = pixelExecutor.execute(request.searchExpression());
-			Map<String, Object> download =
-					AutomationPixelExpressionRenderer.storageDownloadResult(transfer, assets, request, nodeId);
+			Map<String, Object> download = AutomationPixelExpressionRenderer.storageDownloadResult(transfer, assets,
+					request, nodeId);
 			return persistNativeNodeResult(runId, projectId, node, download, started, startedMs, null, null,
 					context.values(), null);
 		} catch (Exception e) {
@@ -858,15 +847,14 @@ final class AutomationRunExecutionService {
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
 		try {
 			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
-			AutomationDatabaseQueryExecutor.QueryRequest request =
-					AutomationDatabaseQueryExecutor.request(config, context.values(), nodeId);
+			AutomationDatabaseQueryExecutor.QueryRequest request = AutomationDatabaseQueryExecutor.request(config,
+					context.values(), nodeId);
 			AutomationFrameOutput.RegisteredFrame frame = AutomationDatabaseQueryExecutor.execute(context.insight(),
 					pixelExecutor, request, outputVariable, runId, nodeId);
-			AutomationTableCaptureService.TableCapture tableCapture =
-					AutomationTableCaptureService.capture(frame, nodeId);
-			Map<String, Object> result = persistNativeNodeResult(runId, projectId, node, frame.summary(),
-					started, startedMs, null, null, context.values(), AutomationConstants.OUTPUT_KIND_TABLE,
-					tableCapture);
+			AutomationTableCaptureService.TableCapture tableCapture = AutomationTableCaptureService.capture(frame,
+					nodeId);
+			Map<String, Object> result = persistNativeNodeResult(runId, projectId, node, frame.summary(), started,
+					startedMs, null, null, context.values(), AutomationConstants.OUTPUT_KIND_TABLE, tableCapture);
 			if (AutomationConstants.NODE_STATUS_SUCCESS.equals(result.get(AutomationConstants.STATUS))) {
 				result = new LinkedHashMap<>(result);
 				result.put(AutomationConstants.RESULT_OUTPUT_VALUE, frame);
@@ -898,8 +886,8 @@ final class AutomationRunExecutionService {
 			Object result = pixelExecutor.execute(expression);
 			Object value = AutomationPixelExpressionRenderer.agentResult(result, nodeId);
 			value = awaitGeneratedAgentRun(context.insight(), runId, node, value, traceRoomId, context.values());
-			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, traceRoomId,
-					resumeNodeId, context.values(), null);
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, traceRoomId, resumeNodeId,
+					context.values(), null);
 		} catch (Exception e) {
 			long duration = System.currentTimeMillis() - startedMs;
 			String message = safeMessage(e);
@@ -947,8 +935,8 @@ final class AutomationRunExecutionService {
 		try {
 			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
 			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
-			String expression = AutomationPixelExpressionRenderer.model(nodeType, config, context.values(),
-					nodeId, traceRoomId);
+			String expression = AutomationPixelExpressionRenderer.model(nodeType, config, context.values(), nodeId,
+					traceRoomId);
 			Object result = pixelExecutor.execute(expression);
 			Object value = AutomationPixelExpressionRenderer.modelResult(nodeType, result, nodeId);
 			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, traceRoomId, null,
@@ -974,7 +962,8 @@ final class AutomationRunExecutionService {
 		try {
 			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
 			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
-			String expression = AutomationPixelExpressionRenderer.vectorWrite(nodeType, config, context.values(), nodeId);
+			String expression = AutomationPixelExpressionRenderer.vectorWrite(nodeType, config, context.values(),
+					nodeId);
 			Object value = pixelExecutor.execute(expression);
 			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
 					context.values(), null);
@@ -1015,8 +1004,8 @@ final class AutomationRunExecutionService {
 	 * and applies the configured route rules to the complete response.
 	 */
 	@SuppressWarnings("unchecked")
-	private Map<String, Object> executeJevDecisionNode(Insight executionInsight, String runId,
-			Map<String, Object> node, Map<String, Object> scope) {
+	private Map<String, Object> executeJevDecisionNode(Insight executionInsight, String runId, Map<String, Object> node,
+			Map<String, Object> scope) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
 		long startedMs = System.currentTimeMillis();
@@ -1059,7 +1048,10 @@ final class AutomationRunExecutionService {
 		}
 	}
 
-	/** Preserves TypeSafe option types after Gson has materialized JSON numbers as doubles. */
+	/**
+	 * Preserves TypeSafe option types after Gson has materialized JSON numbers as
+	 * doubles.
+	 */
 	static Map<String, Object> jevParameters(Map<String, Object> config) {
 		Object configured = config.get(AutomationConstants.CONFIG_PARAM_VALUES);
 		if (!(configured instanceof Map<?, ?> values)) {
@@ -1082,7 +1074,10 @@ final class AutomationRunExecutionService {
 		return parameters;
 	}
 
-	/** Builds the native TypeSafe question map, retaining legacy single-question graphs. */
+	/**
+	 * Builds the native TypeSafe question map, retaining legacy single-question
+	 * graphs.
+	 */
 	@SuppressWarnings("unchecked")
 	static Map<String, Object> jevQuestions(Map<String, Object> config, Map<String, Object> scope) {
 		Object configuredQuestions = config.get(AutomationConstants.CONFIG_QUESTIONS);
@@ -1104,8 +1099,7 @@ final class AutomationRunExecutionService {
 			return resolved;
 		}
 
-		List<Map<String, Object>> clauses = (List<Map<String, Object>>) config
-				.get(AutomationConstants.CONFIG_CLAUSES);
+		List<Map<String, Object>> clauses = (List<Map<String, Object>>) config.get(AutomationConstants.CONFIG_CLAUSES);
 		String questionType = jevQuestionType(config);
 		Map<String, Object> criteria = new LinkedHashMap<>();
 		for (Map<String, Object> clause : clauses) {
@@ -1171,9 +1165,10 @@ final class AutomationRunExecutionService {
 		}
 
 		Map<String, Object> decision = new LinkedHashMap<>();
-		decision.put("branch", selectedRoute == null ? AutomationConstants.CONTROL_PORT_ELSE
-				: AutomationConstants.CONTROL_PORT_CASE_PREFIX
-						+ selectedRoute.get(AutomationConstants.CONFIG_CLAUSE_ID));
+		decision.put("branch",
+				selectedRoute == null ? AutomationConstants.CONTROL_PORT_ELSE
+						: AutomationConstants.CONTROL_PORT_CASE_PREFIX
+								+ selectedRoute.get(AutomationConstants.CONFIG_CLAUSE_ID));
 		if (selectedRoute != null) {
 			decision.put("routeId", selectedRoute.get(AutomationConstants.CONFIG_CLAUSE_ID));
 			decision.put("route", selectedRoute.get(AutomationConstants.CONFIG_DESCRIPTION));
@@ -1254,8 +1249,8 @@ final class AutomationRunExecutionService {
 	}
 
 	/** Maps an arbitrary choice answer to its stable route identifier. */
-	private static Map<String, Object> jevChoiceDecision(Map<String, Object> providerResponse,
-			Map<?, ?> routeAnswer, List<Map<String, Object>> clauses, Map<String, Object> config) {
+	private static Map<String, Object> jevChoiceDecision(Map<String, Object> providerResponse, Map<?, ?> routeAnswer,
+			List<Map<String, Object>> clauses, Map<String, Object> config) {
 		Set<String> routeIds = new HashSet<>();
 		for (Map<String, Object> clause : clauses) {
 			routeIds.add((String) clause.get(AutomationConstants.CONFIG_CLAUSE_ID));
@@ -1265,9 +1260,8 @@ final class AutomationRunExecutionService {
 			throw new IllegalStateException("Jev response selected an unknown route.");
 		}
 		Object confidenceValue = routeAnswer.get("confidence");
-		if (!(confidenceValue instanceof Number confidenceNumber)
-				|| !Double.isFinite(confidenceNumber.doubleValue()) || confidenceNumber.doubleValue() < 0
-				|| confidenceNumber.doubleValue() > 1) {
+		if (!(confidenceValue instanceof Number confidenceNumber) || !Double.isFinite(confidenceNumber.doubleValue())
+				|| confidenceNumber.doubleValue() < 0 || confidenceNumber.doubleValue() > 1) {
 			throw new IllegalStateException("Jev response route confidence must be a number from 0 through 1.");
 		}
 		double confidence = confidenceNumber.doubleValue();
@@ -1288,12 +1282,11 @@ final class AutomationRunExecutionService {
 	}
 
 	/** Maps a Noul probability to the explicitly configured Yes or No route. */
-	private static Map<String, Object> jevNoulDecision(Map<String, Object> providerResponse,
-			Map<?, ?> routeAnswer, List<Map<String, Object>> clauses, Map<String, Object> config) {
+	private static Map<String, Object> jevNoulDecision(Map<String, Object> providerResponse, Map<?, ?> routeAnswer,
+			List<Map<String, Object>> clauses, Map<String, Object> config) {
 		Object probabilityValue = routeAnswer.get("noul");
-		if (!(probabilityValue instanceof Number probabilityNumber)
-				|| !Double.isFinite(probabilityNumber.doubleValue()) || probabilityNumber.doubleValue() < 0
-				|| probabilityNumber.doubleValue() > 1) {
+		if (!(probabilityValue instanceof Number probabilityNumber) || !Double.isFinite(probabilityNumber.doubleValue())
+				|| probabilityNumber.doubleValue() < 0 || probabilityNumber.doubleValue() > 1) {
 			throw new IllegalStateException("Jev response route.noul must be a number from 0 through 1.");
 		}
 		double probabilityYes = probabilityNumber.doubleValue();
@@ -1324,7 +1317,9 @@ final class AutomationRunExecutionService {
 		return decision;
 	}
 
-	/** Returns the canonical Jev question type, defaulting older graphs to choice. */
+	/**
+	 * Returns the canonical Jev question type, defaulting older graphs to choice.
+	 */
 	private static String jevQuestionType(Map<String, Object> config) {
 		Object value = config.get(AutomationConstants.CONFIG_QUESTION_TYPE);
 		return value instanceof String questionType ? questionType : AutomationConstants.JEV_QUESTION_TYPE_CHOICE;
@@ -1433,8 +1428,7 @@ final class AutomationRunExecutionService {
 		try {
 			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
 			Object configuredSeconds = config.get("durationSeconds");
-			double seconds = configuredSeconds instanceof Number number
-					? number.doubleValue()
+			double seconds = configuredSeconds instanceof Number number ? number.doubleValue()
 					: Double.parseDouble(String.valueOf(configuredSeconds));
 			Object value = AutomationJavaWaitExecutor.execute(runId, seconds);
 			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
@@ -1463,8 +1457,8 @@ final class AutomationRunExecutionService {
 					"App Pixel node '" + nodeId + "' appId");
 			String expression = (String) config.get(AutomationConstants.CONFIG_PIXEL);
 			if (appIdValue != null && !appIdValue.toString().isBlank()) {
-				expression = "LoadApp(project=" + AutomationRuntimeUtils.GSON.toJson(appIdValue.toString())
-						+ "); " + expression;
+				expression = "LoadApp(project=" + AutomationRuntimeUtils.GSON.toJson(appIdValue.toString()) + "); "
+						+ expression;
 			}
 			Object value = pixelExecutor.execute(expression);
 			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
@@ -1537,12 +1531,11 @@ final class AutomationRunExecutionService {
 	 */
 	private Map<String, Object> executeNodeSource(String projectId, String runId,
 			Map<String, Object> executionDescriptor, Map<String, Object> historicalNode, String source,
-			AutomationExecutionContext context, AutomationPythonExecutor pythonExecutor,
-			String traceRoomId, String resumeNodeId) {
+			AutomationExecutionContext context, AutomationPythonExecutor pythonExecutor, String traceRoomId,
+			String resumeNodeId) {
 		if (source == null || source.isBlank()) {
-			throw new IllegalStateException(
-					"Automation node has no persisted Python source: "
-							+ historicalNode.get(AutomationConstants.NODE_FIELD_ID));
+			throw new IllegalStateException("Automation node has no persisted Python source: "
+					+ historicalNode.get(AutomationConstants.NODE_FIELD_ID));
 		}
 		Insight executionInsight = context.insight();
 		String nodeId = (String) historicalNode.get(AutomationConstants.NODE_FIELD_ID);
@@ -1561,11 +1554,11 @@ final class AutomationRunExecutionService {
 			}
 			String nodeType = String.valueOf(executionDescriptor.get(AutomationConstants.NODE_FIELD_TYPE));
 			String assetsFolder = assetsFolder(executionInsight, projectId);
-			AutomationRuntime.NodeResult nodeResult = pythonExecutor.executeNode(executionDescriptor, source,
-					nodeScope, outputVariable, assetsFolder, assetsFolder + File.separator + "py");
+			AutomationRuntime.NodeResult nodeResult = pythonExecutor.executeNode(executionDescriptor, source, nodeScope,
+					outputVariable, assetsFolder, assetsFolder + File.separator + "py");
 			Object value = nodeResult.value();
-			if (AutomationConstants.NODE_DEVELOPER_PYTHON.equals(nodeType)
-					&& mergePythonResultIntoScope(historicalNode) && value instanceof Map<?, ?> values) {
+			if (AutomationConstants.NODE_DEVELOPER_PYTHON.equals(nodeType) && mergePythonResultIntoScope(historicalNode)
+					&& value instanceof Map<?, ?> values) {
 				for (Map.Entry<?, ?> entry : values.entrySet()) {
 					if (entry.getKey() instanceof String name && !context.values().containsKey(name)) {
 						context.putValue(name, entry.getValue());
@@ -1644,7 +1637,8 @@ final class AutomationRunExecutionService {
 	 * Monitors an asynchronous durable agent run while it is actively executing. A
 	 * terminal result is returned for normal node persistence;
 	 * {@code INPUT_REQUIRED} returns immediately so the caller can persist a
-	 * durable Automation wait and release the active execution and run-local Insight.
+	 * durable Automation wait and release the active execution and run-local
+	 * Insight.
 	 */
 	Object awaitGeneratedAgentRun(Insight executionInsight, String automationRunId, Map<String, Object> node,
 			Object value, String traceRoomId, Map<String, Object> scope) throws InterruptedException {
@@ -1668,8 +1662,8 @@ final class AutomationRunExecutionService {
 			return value;
 		}
 
-		AutomationNodeFinalizationService.ClassifiedResult generated =
-				AutomationNodeFinalizationService.classify(node, value);
+		AutomationNodeFinalizationService.ClassifiedResult generated = AutomationNodeFinalizationService.classify(node,
+				value);
 		Map<String, Object> submittedRun = normalizeAgentResult(node, generated.metadata(), traceRoomId);
 		String agentRunId = stringValue(submittedRun.get("runId"));
 		if (agentRunId == null) {
@@ -1912,14 +1906,15 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Opens the deterministic run-local Insight that owns this run's Python session.
-	 * Interactive runs are registered with the current session so the standard
-	 * session cleanup owns their lifetime. Scheduler and other sessionless runs are
-	 * returned with completion cleanup enabled.
+	 * Opens the deterministic run-local Insight that owns this run's Python
+	 * session. Interactive runs are registered with the current session so the
+	 * standard session cleanup owns their lifetime. Scheduler and other sessionless
+	 * runs are returned with completion cleanup enabled.
 	 *
 	 * @param projectId Automation project identifier
 	 * @param runId     durable run identifier
-	 * @return execution Insight and whether this service must clean it on completion
+	 * @return execution Insight and whether this service must clean it on
+	 *         completion
 	 */
 	ExecutionInsightLease openExecutionInsight(String projectId, String runId) {
 		InsightStore insightStore = InsightStore.getInstance();
@@ -1945,8 +1940,8 @@ final class AutomationRunExecutionService {
 			return existingExecutionInsight(existing, projectId);
 		}
 
-		boolean sessionOwned = !requestInsight.isSchedulerMode()
-				&& requestSessionId != null && !requestSessionId.isBlank();
+		boolean sessionOwned = !requestInsight.isSchedulerMode() && requestSessionId != null
+				&& !requestSessionId.isBlank();
 		if (sessionOwned) {
 			insightStore.addToSessionHash(requestSessionId, executionInsightId);
 		}
@@ -2059,8 +2054,9 @@ final class AutomationRunExecutionService {
 	 * The node is terminal rather than successful because the run is no longer
 	 * proceeding, but its output is retained: the node already produced whatever
 	 * side effects it produces, and this row is the only record of what they were.
-	 * The value is kept out of scope because no later node runs. A value that cannot
-	 * be serialized is dropped rather than losing the cancellation record itself.
+	 * The value is kept out of scope because no later node runs. A value that
+	 * cannot be serialized is dropped rather than losing the cancellation record
+	 * itself.
 	 */
 	private Map<String, Object> persistCancelledNodeResult(String runId, Map<String, Object> node, String nodeId,
 			Object value, Timestamp started, long startedMs, String traceRoomId, String outputKind) {
@@ -2111,14 +2107,13 @@ final class AutomationRunExecutionService {
 
 	private Map<String, Object> persistNativeNodeResult(String runId, String projectId, Map<String, Object> node,
 			Object value, Timestamp started, long startedMs, String traceRoomId, String resumeNodeId,
-			Map<String, Object> scope, String outputKind,
-			AutomationTableCaptureService.TableCapture tableCapture) {
+			Map<String, Object> scope, String outputKind, AutomationTableCaptureService.TableCapture tableCapture) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		if (AutomationRunRegistry.isCancellationRequested(runId)) {
 			return persistCancelledNodeResult(runId, node, nodeId, value, started, startedMs, traceRoomId, outputKind);
 		}
-		AutomationNodeFinalizationService.ClassifiedResult generatedResult =
-				AutomationNodeFinalizationService.classify(node, value);
+		AutomationNodeFinalizationService.ClassifiedResult generatedResult = AutomationNodeFinalizationService
+				.classify(node, value);
 		Object persistedValue = generatedResult.value();
 		Object traceMetadata = generatedResult.metadata();
 		String agentRunId = null;
@@ -2154,15 +2149,15 @@ final class AutomationRunExecutionService {
 		String modelMessageId = generatedAgentNode ? null : extractModelMessageId(node, traceMetadata, traceRoomId);
 		if (agentFailure != null) {
 			AutomationRunStore.updateNodeFailedWithResult(runId, nodeId, started, duration,
-					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), outputKind, output, preview, agentRunId,
-					agentFailure);
+					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), outputKind, output, preview,
+					agentRunId, agentFailure);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, preview, agentFailure,
 					traceForNode(node, traceRoomId, null, agentRunId));
 			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_FAILED, persistedValue, agentFailure);
 		}
 		AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration,
-				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), outputKind, output, preview, modelMessageId,
-				agentRunId, tableCapture);
+				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), outputKind, output, preview,
+				modelMessageId, agentRunId, tableCapture);
 		AutomationRunRegistry.nodeCompleted(runId);
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null,
 				traceForNode(node, traceRoomId, modelMessageId, agentRunId));
@@ -2201,18 +2196,16 @@ final class AutomationRunExecutionService {
 		String waitingNodeId = stringValue(wait.get(AutomationConstants.NODE_ID));
 		String message = "Run cancelled by user";
 		AutomationRunStore.updateNodeFailed(runId, waitingNodeId, utcNow(), 0, message);
-		AutomationRunStore.resolveWait(runId, stringValue(wait.get(AutomationConstants.WAIT_ID)),
-				currentUserId());
+		AutomationRunStore.resolveWait(runId, stringValue(wait.get(AutomationConstants.WAIT_ID)), currentUserId());
 		AutomationRunStore.skipPendingNodes(runId, message);
-		AutomationRunStore.completeRun(runId, projectId, AutomationConstants.STATUS_CANCELLED, waitingNodeId,
-				message);
+		AutomationRunStore.completeRun(runId, projectId, AutomationConstants.STATUS_CANCELLED, waitingNodeId, message);
 		return buildResult(runId, projectId, Map.of("error", message));
 	}
 
 	/**
 	 * Continues the same immutable Automation run after a durable agent input flow
-	 * reaches a terminal state. The original execution and run-local Insight are not
-	 * retained across the human wait; scope is reconstructed from the persisted
+	 * reaches a terminal state. The original execution and run-local Insight are
+	 * not retained across the human wait; scope is reconstructed from the persisted
 	 * input and successful node-output snapshots.
 	 *
 	 * @param runId     waiting Automation run
@@ -2228,8 +2221,7 @@ final class AutomationRunExecutionService {
 			return buildCurrentRunResult(runId, projectId);
 		}
 		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator
-				.parseAndValidate(
-						String.valueOf(run.get(AutomationConstants.DEFINITION_SNAPSHOT)));
+				.parseAndValidate(String.valueOf(run.get(AutomationConstants.DEFINITION_SNAPSHOT)));
 		List<Map<String, Object>> runNodes = AutomationRuntime.nodesForRun(definition);
 
 		Map<String, Object> wait = AutomationRunStore.getActiveWait(runId);
@@ -2345,14 +2337,16 @@ final class AutomationRunExecutionService {
 	 * successful node output is replayed under the name that node publishes it as.
 	 *
 	 * <p>
-	 * The trigger is the one node that publishes many names at once, so its map is spread back
-	 * as individual globals. It is identified by node ID rather than by an absent output name,
-	 * because {@code control.if} rows also carry no name: their routing decision is consumed by
-	 * the control loop and must stay out of scope, exactly as it does on a straight-through run.
+	 * The trigger is the one node that publishes many names at once, so its map is
+	 * spread back as individual globals. It is identified by node ID rather than by
+	 * an absent output name, because {@code control.if} rows also carry no name:
+	 * their routing decision is consumed by the control loop and must stay out of
+	 * scope, exactly as it does on a straight-through run.
 	 *
-	 * @param runId       run being resumed
+	 * @param runId            run being resumed
 	 * @param executionInsight run Insight supplying the authenticated user
-	 * @param startNodeId trigger node ID taken from this run's definition snapshot
+	 * @param startNodeId      trigger node ID taken from this run's definition
+	 *                         snapshot
 	 * @return reconstructed Java value scope
 	 */
 	static ReconstructedScope reconstructScope(String runId, Insight executionInsight, String startNodeId) {
@@ -2370,8 +2364,9 @@ final class AutomationRunExecutionService {
 					NounMetadata noun = executionInsight.getVarStore().get(outputVar);
 					if (noun == null || noun.getNounType() != PixelDataType.FRAME
 							|| !(noun.getValue() instanceof ITableDataFrame frame)) {
-						throw new IllegalStateException("Automation run '" + runId + "' cannot resume because frame output '"
-								+ outputVar + "' is no longer available in its execution Insight.");
+						throw new IllegalStateException(
+								"Automation run '" + runId + "' cannot resume because frame output '" + outputVar
+										+ "' is no longer available in its execution Insight.");
 					}
 					value = AutomationFrameOutput.register(executionInsight, outputVar, frame);
 				}
@@ -2388,8 +2383,8 @@ final class AutomationRunExecutionService {
 		Map<String, Object> boundedScope = new LinkedHashMap<>();
 		for (Map.Entry<String, Object> entry : scope.entrySet()) {
 			Object value = entry.getValue();
-			boundedScope.put(entry.getKey(), value instanceof AutomationFrameOutput.RegisteredFrame frame
-					? frame.summary() : value);
+			boundedScope.put(entry.getKey(),
+					value instanceof AutomationFrameOutput.RegisteredFrame frame ? frame.summary() : value);
 		}
 		AutomationRuntimeUtils.toBoundedRuntimeJson(boundedScope, AutomationConstants.RUN_SCOPE_MAX_BYTES,
 				"Reconstructed automation run scope");

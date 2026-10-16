@@ -42,6 +42,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.ValueUtils;
 
 /**
@@ -124,6 +127,8 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 				response.put("dependency_warning",
 						"Skill detached but PROJECTDEPENDENCIES sync failed: " + depEx.getMessage());
 			}
+			UserAuditTrailUtils.recordResourceEvent(user, AuditEventType.SKILL_DETACH, AuditTargetType.SKILL, skillId,
+					null, workspaceId, null, null, Map.of("workspaceId", workspaceId));
 		}
 
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);

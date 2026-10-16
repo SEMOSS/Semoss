@@ -37,11 +37,15 @@ import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.usage.ModelUsageGuard;
+import prerna.engine.impl.model.usage.ModelUsageLimitException;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.comm.PixelJobRunner;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Central dispatch point for executing the {@code LLM(...)} pixel on behalf of
@@ -60,6 +64,14 @@ import prerna.sablecc2.comm.PixelJobRunner;
  * concerns through {@code ModelPixelExecutor}, and
  * {@code OpenAIPassthroughReactor}, which serves the same protocol to python
  * processes over the insight socket instead of over http.
+ *
+ * <p>
+ * A call a usage limit refuses throws {@link ModelUsageLimitException}, so a
+ * caller can answer it as a refusal (429) rather than a bad request:
+ * {@link ModelUsageLimitException#isRateLimit()} and
+ * {@link ModelUsageLimitException#getResetsAt()} say whether and when to try
+ * again, and {@link ModelUsageLimitException#isUnavailable()} that the limits
+ * could not be checked.
  */
 public class ModelPixelInvoker {
 
@@ -109,6 +121,9 @@ public class ModelPixelInvoker {
 	 */
 	public static String startAsyncModelRequest(IModelEngine engine, Insight insight, Room room,
 			Map<String, Object> dataMap, String sessionId) {
+		// a call a usage limit refuses is refused before the job starts, so the
+		// caller can answer it as a refusal
+		ModelUsageGuard.check(insight == null ? null : insight.getUser(), engine);
 		try {
 			PixelJobManager manager = PixelJobManager.getManager();
 			PixelJobRunner jobRunner = manager.makeJob(insight, sessionId, null);
@@ -143,13 +158,22 @@ public class ModelPixelInvoker {
 		String modelPixel = buildModelPixel(engine, room, dataMap);
 		classLogger.info("Dispatching sync model pixel: {}", modelPixel);
 
+		ModelUsageLimitException.clearLastOnThread();
 		PixelRunner runner = insight.runPixel(modelPixel);
 		if (runner.getResults() == null || runner.getResults().isEmpty()) {
 			throw new IllegalStateException(
 					"Model request returned no output for engine '" + engine.getEngineId() + "'");
 		}
 
-		Object payload = runner.getResults().get(0).getValue();
+		NounMetadata result = runner.getResults().get(0);
+		Object payload = result.getValue();
+		// the pixel's error is a usage limit's refusal when it carries the message of
+		// the refusal made on this thread
+		ModelUsageLimitException refused = ModelUsageLimitException.takeLastOnThread();
+		if (refused != null && result.getOpType() != null && result.getOpType().contains(PixelOperationType.ERROR)
+				&& refused.getMessage() != null && refused.getMessage().equals(String.valueOf(payload))) {
+			throw refused;
+		}
 		AskModelEngineResponse<?> response = AskModelEngineResponse.fromObject(payload);
 
 		// fromObject rebuilds the response from the pixel payload but does not carry
