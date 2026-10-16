@@ -36,19 +36,24 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.ModelUsageLimitKey;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditSeverity;
+import prerna.usertracking.AuditStatus;
+import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.usertracking.UserAuditTrailUtils.AuditEvent;
 import prerna.util.Utility;
 
 /**
  * Records changes to model usage limits in the audit trail: one
- * {@value #EVENT_TYPE} event for each limit a change leaves different, with the
- * limit before and after as {@code {"usageLimit": ...}} (null for no limit
- * defined) and which limit it is in {@code details.limitType}.
+ * {@link AuditEventType#USAGE_LIMIT_UPDATE} event for each limit a change
+ * leaves different, with the limit before and after as
+ * {@code {"usageLimit": ...}} (null for no limit defined) and which limit it is
+ * in {@code details.limitType}.
  *
  * <ul>
- * <li>Limits on a model, set through permission batches (a Direct Limit, a
- * Team Limit, the Public Use Limit and the Model Total), are recorded by
+ * <li>Limits on a model, set through permission batches (a Direct Limit, a Team
+ * Limit, the Public Use Limit and the Model Total), are recorded by
  * {@link PermissionBatchAudit} after the batch commits.</li>
  * <li>Limits that span models, set by admins (the General Platform Limit, a
  * Team Total and a User's Total Model Limit), are recorded through
@@ -59,8 +64,6 @@ final class ModelUsageLimitAudit {
 
 	private static final Logger classLogger = LogManager.getLogger(ModelUsageLimitAudit.class);
 
-	/** The event a usage limit change is recorded as */
-	static final String EVENT_TYPE = "USAGE_LIMIT_UPDATE";
 	/** The key of the old and new values that holds the limit */
 	static final String USAGE_LIMIT = "usageLimit";
 
@@ -113,7 +116,7 @@ final class ModelUsageLimitAudit {
 	 *         for a team's limit, the team in its details
 	 */
 	static AuditEvent event(ModelUsageLimitKey key, ModelUsageLimit before, ModelUsageLimit after) {
-		return new AuditEvent().eventType(EVENT_TYPE).action(EVENT_TYPE).status(UserAuditTrailUtils.STATUS_SUCCESS)
+		return new AuditEvent().eventType(AuditEventType.USAGE_LIMIT_UPDATE).status(AuditStatus.SUCCESS)
 				.oldValue(value(before)).newValue(value(after)).details(details(key));
 	}
 
@@ -153,14 +156,15 @@ final class ModelUsageLimitAudit {
 			AuditEvent event = event(key, before, after).actorUser(user).actorIsAdmin(true);
 			switch (key.type()) {
 			case USER:
-				event.subject(key.subjectId(), key.subjectType(), null).target("USER", key.subjectId(), null);
+				event.subject(key.subjectId(), key.subjectType(), null).target(AuditTargetType.USER, key.subjectId(),
+						null);
 				break;
 			case TEAM:
-				event.target("GROUP", key.subjectId(), key.subjectId());
+				event.target(AuditTargetType.GROUP, key.subjectId(), key.subjectId());
 				break;
 			default:
 				// the General Platform Limit applies to everyone with no other limit
-				event.target("PLATFORM", null, null).severity(UserAuditTrailUtils.SEVERITY_HIGH);
+				event.target(AuditTargetType.PLATFORM, null, null).severity(AuditSeverity.HIGH);
 				break;
 			}
 			UserAuditTrailUtils.recordEvent(event);
@@ -170,9 +174,25 @@ final class ModelUsageLimitAudit {
 	}
 
 	/**
-	 * Records the Direct Limits removed with a grant that ended, which SEMOSS removes
-	 * itself when the person next reaches the model. A failure to record is logged,
-	 * since the grant is already removed.
+	 * Reads a model's name for its events.
+	 *
+	 * @param engineId the model
+	 * @return its name, or null when the catalog cannot be read, so the events are
+	 *         still recorded
+	 */
+	private static String modelName(String engineId) {
+		try {
+			return SecurityEngineUtils.getEngineDisplayNameForId(engineId);
+		} catch (RuntimeException e) {
+			classLogger.debug("Unable to read the name of model {} for the audit trail", engineId, e);
+			return null;
+		}
+	}
+
+	/**
+	 * Records the Direct Limits removed with a grant that ended, which SEMOSS
+	 * removes itself when the person next reaches the model. A failure to record is
+	 * logged, since the grant is already removed.
 	 *
 	 * @param engineId the model
 	 * @param removed  the person's Direct Limits on the model, by key, as they were
@@ -183,16 +203,17 @@ final class ModelUsageLimitAudit {
 			if (removed.isEmpty() || !Utility.isUserTrackingEnabled()) {
 				return;
 			}
+			// usage limits are only on models
+			String modelName = modelName(engineId);
 			for (Map.Entry<ModelUsageLimitKey, ModelUsageLimit> entry : removed.entrySet()) {
 				ModelUsageLimitKey key = entry.getKey();
 				Map<String, Object> details = details(key);
 				details.put("removedWithGrant", true);
 				details.put("reason", "EXPIRED");
-				UserAuditTrailUtils.recordEvent(event(key, entry.getValue(), null)
-						.actor(UserAuditTrailUtils.ACTOR_TYPE_SYSTEM, UserAuditTrailUtils.ACTOR_TYPE_SYSTEM,
-								UserAuditTrailUtils.ACTOR_TYPE_SYSTEM)
-						.subject(key.subjectId(), key.subjectType(), null).target("ENGINE", engineId, null)
-						.context(null, engineId, null, null).details(details));
+				UserAuditTrailUtils.recordEvent(event(key, entry.getValue(), null).systemActor()
+						.subject(key.subjectId(), key.subjectType(), null)
+						.target(AuditTargetType.MODEL, engineId, modelName).context(null, engineId, null, null)
+						.details(details));
 			}
 		} catch (Exception e) {
 			classLogger.warn("Unable to audit the usage limits removed with an expired grant", e);

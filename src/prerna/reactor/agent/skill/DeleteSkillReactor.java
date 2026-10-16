@@ -42,6 +42,8 @@ import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.SystemDefaultEngines;
@@ -53,21 +55,27 @@ import prerna.util.Utility;
  * to a workspace, the matching {@code CONFIG_JSON.skills[]} mirror entries, and
  * the underlying skill-project (security rows, DIHelper entry, on-disk folder).
  *
- * <p>Mirrors {@code DeleteWorkspaceReactor}. The generic {@code DeleteProjectReactor}
- * also handles skill cleanup via its {@code PROJECT_TYPE.SKILL} branch, so callers
- * that already have a project-id may use that; this reactor exists for discoverability
- * and so the API surface for skills is symmetric (Create / Update / Delete / Clone).
+ * <p>
+ * Mirrors {@code DeleteWorkspaceReactor}. The generic
+ * {@code DeleteProjectReactor} also handles skill cleanup via its
+ * {@code PROJECT_TYPE.SKILL} branch, so callers that already have a project-id
+ * may use that; this reactor exists for discoverability and so the API surface
+ * for skills is symmetric (Create / Update / Delete / Clone).
  *
- * <p>Built-in platform skill projects cannot be deleted - they are restored from
+ * <p>
+ * Built-in platform skill projects cannot be deleted - they are restored from
  * the distribution on every boot, so deleting one would only leave the install
  * broken until redeploy.
  *
- * <p>Authorization: caller must be the project owner (matches the workspace and
- * project delete reactors), and the global "admin-only delete" toggle is honored.
+ * <p>
+ * Authorization: caller must be the project owner (matches the workspace and
+ * project delete reactors), and the global "admin-only delete" toggle is
+ * honored.
  *
- * <p>Inputs:
+ * <p>
+ * Inputs:
  * <ul>
- *   <li>{@code skillId} - skill / project identifier (required)</li>
+ * <li>{@code skillId} - skill / project identifier (required)</li>
  * </ul>
  */
 public class DeleteSkillReactor extends AbstractReactor {
@@ -98,14 +106,14 @@ public class DeleteSkillReactor extends AbstractReactor {
 		// built-in platform skills ship with the distribution and reload at boot;
 		// deleting one would remove its folder + smss with no way to restore it
 		if (SystemDefaultEngines.getSystemSkills().contains(skillId)) {
-			throw new IllegalArgumentException("Skill " + skillId
-					+ " is a built-in platform skill and cannot be deleted");
+			throw new IllegalArgumentException(
+					"Skill " + skillId + " is a built-in platform skill and cannot be deleted");
 		}
 
 		if (!SecurityProjectUtils.userIsOwner(user, skillId)) {
-			throw new IllegalArgumentException("Skill " + skillId
-					+ " does not exist or user does not have permissions to delete it. "
-					+ "User must be the owner to perform this function.");
+			throw new IllegalArgumentException(
+					"Skill " + skillId + " does not exist or user does not have permissions to delete it. "
+							+ "User must be the owner to perform this function.");
 		}
 
 		// Verify this project is actually a skill before we tear it down, so a stray
@@ -128,8 +136,8 @@ public class DeleteSkillReactor extends AbstractReactor {
 			classLogger.error("Failed to delete skill '{}'.", skillId, e);
 			return getError("Error during skill delete: " + e.getMessage());
 		}
-		UserAuditTrailUtils.recordResourceEvent(user, "SKILL_DELETE", "SKILL", skillId, project.getProjectName(),
-				skillId, null, null, null);
+		UserAuditTrailUtils.recordResourceEvent(user, AuditEventType.SKILL_DELETE, AuditTargetType.SKILL, skillId,
+				project.getProjectName(), skillId, null, null, null);
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 

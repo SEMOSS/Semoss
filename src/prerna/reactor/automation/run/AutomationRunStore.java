@@ -127,6 +127,10 @@ import prerna.reactor.automation.definition.AutomationDefinitionService;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.reactor.scheduler.SchedulerOwlCreator;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.usertracking.AuditErrorCode;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditStatus;
+import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
@@ -943,15 +947,23 @@ public final class AutomationRunStore {
 	}
 
 	private static void auditTerminalRun(String runId, String projectId, String status, boolean recovery) {
-		var event = new UserAuditTrailUtils.AuditEvent().eventType("AUTOMATION_RUN_END")
-				.status("SUCCESS".equals(status) ? "SUCCESS" : "FAILURE")
-				.target("AUTOMATION", projectId, null).context(projectId, null, null, null)
+		boolean succeeded = "SUCCESS".equals(status);
+		var event = new UserAuditTrailUtils.AuditEvent().eventType(AuditEventType.AUTOMATION_RUN_END)
+				.status(succeeded ? AuditStatus.SUCCESS : AuditStatus.FAILURE)
+				.target(AuditTargetType.AUTOMATION, projectId, null).context(projectId, null, null, null)
 				.details(Map.of("runId", runId, "runStatus", status, "recovery", recovery));
 		String actor = org.apache.logging.log4j.ThreadContext.get(prerna.logging.SemossLogUtils.USER_ID);
 		if (recovery || actor == null || Set.of("UNKNOWN", "STARTUP", "SHUTDOWN").contains(actor)) {
-			event.actor("SYSTEM", "SYSTEM", "SYSTEM");
+			event.systemActor();
 		}
-		if (!"SUCCESS".equals(status)) event.error("AUTOMATION_" + status, "Automation run ended with status " + status);
+		if (!succeeded) {
+			AuditErrorCode errorCode = switch (status) {
+			case AutomationConstants.STATUS_FAILED -> AuditErrorCode.AUTOMATION_FAILED;
+			case AutomationConstants.STATUS_CANCELLED -> AuditErrorCode.AUTOMATION_CANCELLED;
+			default -> AuditErrorCode.AUTOMATION_INTERRUPTED;
+			};
+			event.error(errorCode, "Automation run ended with status " + status);
+		}
 		UserAuditTrailUtils.recordEvent(event);
 	}
 

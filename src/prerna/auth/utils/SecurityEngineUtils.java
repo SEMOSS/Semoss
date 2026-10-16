@@ -79,6 +79,8 @@ import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -93,14 +95,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityEngineUtils.class);
 
-	static String getAuditEngineTypeName(String engineId) {
-		IEngine.CATALOG_TYPE engineType = getEngineType(engineId);
-		return engineType == null ? "ENGINE" : engineType.name();
-	}
-
 	private static final String INSUFFICIENT_PRIVILEGES = "Insufficient privileges to modify this engine's permissions.";
 	private static final String NOT_HIGH_ENOUGH = "The user doesn't have the high enough permissions to modify this users engine permission.";
 	private static final String CANNOT_GIVE_OWNER = "Cannot give owner level access to this engine since you are not currently an owner.";
+
 	/**
 	 * Add an entire database into the security db
 	 * 
@@ -428,8 +426,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occurred updating the engine display name");
 		}
 
-		UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_UPDATE", getAuditEngineTypeName(engineId), engineId,
-				newDisplayName, Map.of("field", "displayName", "displayName", newDisplayName));
+		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
+				engineId, newDisplayName, Map.of("field", "displayName", "displayName", newDisplayName));
 		return true;
 	}
 
@@ -1116,7 +1114,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	public static void removeExpiredEngineUser(String userId, String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
-		// read before the removal, so the audit trail records the limits removed with it
+		// read before the removal, so the audit trail records the limits removed with
+		// it
 		Map<ModelUsageLimitKey, ModelUsageLimit> removedLimits = directLimitsOf(engineId, userId);
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
@@ -1135,7 +1134,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to remove expired engine user", e);
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this engine");
 		}
-		UserAuditTrailUtils.recordExpiredPermissionRemoval("ENGINE", engineId, null, engineId, null, userId);
+		UserAuditTrailUtils.recordExpiredPermissionRemoval(getAuditTargetType(engineId), engineId, null, engineId, null,
+				userId);
 		ModelUsageLimitAudit.recordRemovedWithExpiredGrant(engineId, removedLimits);
 	}
 
@@ -1184,19 +1184,24 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setString(2, engineId);
 				ps.setBoolean(3, global);
 			});
-			if (updated == 0 && QueryExecutionUtility.queryOne(securityDb, "SELECT ENGINEID FROM ENGINE WHERE ENGINEID=?",
-					ps -> ps.setString(1, engineId), rs -> rs.getString(1)) != null) return true;
-			if (updated != 1) throw new IllegalArgumentException("Engine not found");
+			if (updated == 0
+					&& QueryExecutionUtility.queryOne(securityDb, "SELECT ENGINEID FROM ENGINE WHERE ENGINEID=?",
+							ps -> ps.setString(1, engineId), rs -> rs.getString(1)) != null) {
+				return true;
+			}
+			if (updated != 1) {
+				throw new IllegalArgumentException("Engine not found");
+			}
 			// public use applies only on a public model
 			SecurityModelUsageLimitUtils.markChanged();
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine global visibility setting", e);
-			UserAuditTrailUtils.recordFailure(user, "ENGINE_UPDATE", "ENGINE", engineId,
+			UserAuditTrailUtils.recordFailure(user, AuditEventType.ENGINE_UPDATE, AuditTargetType.ENGINE, engineId,
 					new IllegalStateException("Unable to update engine global visibility"), null);
 			throw new IllegalStateException("Unable to update engine global visibility", e);
 		}
-		UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_UPDATE", getAuditEngineTypeName(engineId), engineId,
-				getEngineDisplayNameForId(engineId), Map.of("field", "global", "global", global));
+		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
+				engineId, getEngineDisplayNameForId(engineId), Map.of("field", "global", "global", global));
 		return true;
 	}
 
@@ -1249,17 +1254,23 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setString(2, engineId);
 				ps.setBoolean(3, discoverable);
 			});
-			if (updated == 0 && QueryExecutionUtility.queryOne(securityDb, "SELECT ENGINEID FROM ENGINE WHERE ENGINEID=?",
-					ps -> ps.setString(1, engineId), rs -> rs.getString(1)) != null) return true;
-			if (updated != 1) throw new IllegalArgumentException("Engine not found");
+			if (updated == 0
+					&& QueryExecutionUtility.queryOne(securityDb, "SELECT ENGINEID FROM ENGINE WHERE ENGINEID=?",
+							ps -> ps.setString(1, engineId), rs -> rs.getString(1)) != null) {
+				return true;
+			}
+			if (updated != 1) {
+				throw new IllegalArgumentException("Engine not found");
+			}
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine discoverability setting", e);
-			UserAuditTrailUtils.recordFailure(user, "ENGINE_UPDATE", "ENGINE", engineId,
+			UserAuditTrailUtils.recordFailure(user, AuditEventType.ENGINE_UPDATE, AuditTargetType.ENGINE, engineId,
 					new IllegalStateException("Unable to update engine discoverability"), null);
 			throw new IllegalStateException("Unable to update engine discoverability", e);
 		}
-		UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_UPDATE", getAuditEngineTypeName(engineId), engineId,
-				getEngineDisplayNameForId(engineId), Map.of("field", "discoverable", "discoverable", discoverable));
+		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
+				engineId, getEngineDisplayNameForId(engineId),
+				Map.of("field", "discoverable", "discoverable", discoverable));
 		return true;
 	}
 
@@ -1281,8 +1292,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 		setUserPreference(user, "USERENGINEPREFERENCE", List.of(Pair.with("ENGINEID", engineId)), "VISIBILITY",
 				visibility);
-		UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_UPDATE", getAuditEngineTypeName(engineId), engineId,
-					getEngineDisplayNameForId(engineId), Map.of("field", "visibility", "visibility", visibility));
+		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
+				engineId, getEngineDisplayNameForId(engineId), Map.of("field", "visibility", "visibility", visibility));
 	}
 
 	/**
@@ -1335,8 +1346,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update engine name", e);
 			throw new IllegalArgumentException("An error occurred updating the engine name");
 		}
-		UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_UPDATE", getAuditEngineTypeName(engineId), engineId,
-				newEngineName, Map.of("field", "name", "name", newEngineName));
+		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
+				engineId, newEngineName, Map.of("field", "name", "name", newEngineName));
 		return true;
 	}
 
@@ -2810,6 +2821,23 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		return engineMap;
+	}
+
+	/**
+	 * What an engine is, as the audit trail names it: its kind, such as a model.
+	 *
+	 * @param engineId the engine
+	 * @return its target type, or {@link AuditTargetType#ENGINE} when its kind is
+	 *         not known or the catalog does not have it
+	 */
+	static AuditTargetType getAuditTargetType(String engineId) {
+		try {
+			return AuditTargetType.ofEngine(getEngineType(engineId));
+		} catch (RuntimeException e) {
+			// an engine the catalog does not have is recorded as an engine, so the audit
+			// never stops the change
+			return AuditTargetType.ENGINE;
+		}
 	}
 
 }

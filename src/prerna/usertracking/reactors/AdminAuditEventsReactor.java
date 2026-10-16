@@ -28,27 +28,32 @@
 package prerna.usertracking.reactors;
 
 import java.util.HashMap;
+
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AdminAuditReadService;
 
-/** Materialized admin table reads, unlike the legacy composable query reactor. */
+/**
+ * Materialized admin table reads, unlike the legacy composable query reactor.
+ */
 public class AdminAuditEventsReactor extends AbstractReactor {
-    public AdminAuditEventsReactor() {
-        this.keysToGet = new String[] { "page", "snapshot", "export", "eventType", "category", "status", "severity",
-                "actorId", "subjectId", "targetType", "targetId", "projectId", "engineId", "insightId", "from", "to" };
-    }
 
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
-        try {
-            return new NounMetadata(AdminAuditReadService.read(this.insight.getUser(), new HashMap<>(this.keyValue)), PixelDataType.MAP);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new IllegalStateException("Unable to retrieve audit events", e);
-        }
-    }
+	public AdminAuditEventsReactor() {
+		this.keysToGet = new String[] { "page", "snapshot", "export", "eventType", "category", "status", "severity",
+				"actorId", "subjectId", "targetType", "targetId", "projectId", "engineId", "insightId", "from", "to" };
+	}
+
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		try {
+			return new NounMetadata(AdminAuditReadService.read(this.insight.getUser(), new HashMap<>(this.keyValue)),
+					PixelDataType.MAP);
+		} catch (IllegalArgumentException | IllegalStateException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new IllegalStateException("Unable to retrieve audit events", e);
+		}
+	}
 }

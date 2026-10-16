@@ -54,6 +54,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.UploadUtilities;
@@ -153,8 +155,8 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 
 			venv.pullRequirementsFile();
 			venv.createVirtualEnv();
-			UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_CREATE", "VENV", venvId, venvName,
-					Map.of("global", global, "venvType", venvType.getVenvName()));
+			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_CREATE, AuditTargetType.VENV, venvId,
+					venvName, Map.of("global", global, "venvType", venvType.getVenvName()));
 
 			if (ClusterUtil.IS_CLUSTER) {
 				File[] engineSubFiles = specificEngineFolder.listFiles();

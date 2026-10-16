@@ -53,11 +53,15 @@ import prerna.om.Insight;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.project.AutomationProjectService;
 import prerna.sablecc2.om.NounStore;
+import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-/** Covers the Py() switches RunAutomationDefinition applies to caller-written Python. */
+/**
+ * Covers the Py() switches RunAutomationDefinition applies to caller-written
+ * Python.
+ */
 class RunAutomationDefinitionReactorUnitTests {
 
 	private static final String DEFINITION = """
@@ -146,28 +150,34 @@ class RunAutomationDefinitionReactorUnitTests {
 		Insight insight = insight();
 		String ownScope = AutomationProjectService.inlineRunScope(insight.getUser());
 		AtomicBoolean initialized = new AtomicBoolean();
-		try (var utility = mockStatic(Utility.class); var store = mockStatic(AutomationRunStore.class);
+		try (var utility = mockStatic(Utility.class);
+				var store = mockStatic(AutomationRunStore.class);
 				var audit = mockStatic(UserAuditTrailUtils.class)) {
 			store.when(() -> AutomationRunStore.initializeRun(anyString(), eq(ownScope),
 					eq(AutomationConstants.DEFAULT_AUTOMATION_ID), anyInt(), any(), any(), any(),
 					eq(AutomationConstants.TRIGGER_MANUAL), any(), any(), any(), any())).thenAnswer(call -> {
-				if (!initializationSucceeds) throw new IllegalStateException("initialization failed");
-				initialized.set(true);
-				return null;
-			});
+						if (!initializationSucceeds) {
+							throw new IllegalStateException("initialization failed");
+						}
+						initialized.set(true);
+						return null;
+					});
 			audit.when(() -> UserAuditTrailUtils.recordAutomationEvent(eq(insight.getUser()),
-					eq("AUTOMATION_RUN_START"), eq(ownScope), anyString(), isNull(), any())).thenAnswer(call -> {
-				assertTrue(initialized.get());
-				Map<?, ?> details = call.getArgument(5);
-				assertEquals(AutomationConstants.TRIGGER_MANUAL, details.get("triggerType"));
-				assertEquals(2, details.get("nodeCount"));
-				// Stop here to verify start ordering independently of the execution engine.
-				throw new IllegalStateException("audited start");
-			});
+					eq(AuditEventType.AUTOMATION_RUN_START), eq(ownScope), anyString(), isNull(), any()))
+					.thenAnswer(call -> {
+						assertTrue(initialized.get());
+						Map<?, ?> details = call.getArgument(5);
+						assertEquals(AutomationConstants.TRIGGER_MANUAL, details.get("triggerType"));
+						assertEquals(2, details.get("nodeCount"));
+						// Stop here to verify start ordering independently of the execution engine.
+						throw new IllegalStateException("audited start");
+					});
 			IllegalStateException stop = assertThrows(IllegalStateException.class,
 					() -> reactor(insight, generated).execute());
 			assertEquals(initializationSucceeds ? "audited start" : "initialization failed", stop.getMessage());
-			if (!initializationSucceeds) audit.verifyNoInteractions();
+			if (!initializationSucceeds) {
+				audit.verifyNoInteractions();
+			}
 		}
 	}
 }

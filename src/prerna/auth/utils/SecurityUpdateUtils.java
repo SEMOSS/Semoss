@@ -56,6 +56,9 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditSeverity;
+import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
@@ -660,9 +663,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			created.put("admin", admin);
 			created.put("publisher", publisher);
 			created.put("exporter", exporter);
-			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("USER_CREATE")
-					.severity(admin ? UserAuditTrailUtils.SEVERITY_CRITICAL : null).subject(id, type, name)
-					.target("USER", id, name).newValue(created));
+			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType(AuditEventType.USER_CREATE)
+					.severity(admin ? AuditSeverity.CRITICAL : null).subject(id, type, name)
+					.target(AuditTargetType.USER, id, name).newValue(created));
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

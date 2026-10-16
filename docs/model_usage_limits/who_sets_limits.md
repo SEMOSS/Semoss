@@ -125,7 +125,9 @@ and, for the model, `publicUse` (`isPublic`, `usageLimit`) and the `ceilings`.
 ## Audit trail
 
 Every change to a usage limit is recorded in the audit trail as a
-`USAGE_LIMIT_UPDATE` event, in the `USAGE_LIMIT` category, by
+`USAGE_LIMIT_UPDATE` event, in the `USAGE_LIMIT` category (both from
+[AuditEventType](../../src/prerna/usertracking/AuditEventType.java), the list of
+every event the audit trail records), by
 [ModelUsageLimitAudit](../../src/prerna/auth/utils/ModelUsageLimitAudit.java):
 
 | Field | Holds |
@@ -146,6 +148,17 @@ Every change to a usage limit is recorded in the audit trail as a
   its Direct Limits are recorded as removed with it, by SEMOSS
   (`details.reason` is `EXPIRED`).
 - A change that leaves a limit as it is records nothing.
+
+Admins see every event on the admin audit trail. A model's owners see the limit
+changes on that model on its Audit tab
+([ResourceAuditReadService](../../src/prerna/usertracking/ResourceAuditReadService.java)):
+the limit before and after and its details, and nothing else from the event.
+Admins also see the limit changes, beside the access changes and the denied
+requests, on the Access & Limits tab of Enterprise Usage & Activity: the `audit`
+source of
+[EnterpriseUsageUtils](../../src/prerna/auth/utils/EnterpriseUsageUtils.java)
+counts them, lists them by the shared date, user, app and engine filters, and
+reads one event's old and new values when it is opened.
 
 ## Endpoints
 

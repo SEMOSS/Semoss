@@ -60,6 +60,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
@@ -358,7 +359,7 @@ public class UploadProjectReactor extends AbstractReactor {
 		}
 
 		ClusterUtil.pushProject(projectId);
-		UserAuditTrailUtils.recordProjectLifecycle(user, "PROJECT_UPLOAD", projectId, projectName,
+		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_UPLOAD, projectId, projectName,
 				Map.of("global", global));
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), projectId);

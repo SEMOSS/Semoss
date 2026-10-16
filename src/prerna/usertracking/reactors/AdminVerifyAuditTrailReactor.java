@@ -28,33 +28,46 @@
 package prerna.usertracking.reactors;
 
 import java.util.Map;
+
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AuditChainStore;
+import prerna.usertracking.AuditErrorCode;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditSeverity;
+import prerna.usertracking.AuditStatus;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
-/** Checks the sequenced chain; legacy events and external trust anchors are separate. */
+/**
+ * Checks the sequenced chain; legacy events and external trust anchors are
+ * separate.
+ */
 public class AdminVerifyAuditTrailReactor extends AbstractReactor {
-    @Override
-    public NounMetadata execute() {
-        if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) throwFunctionalityOnlyExposedForAdminsError();
-        if (Utility.isUserTrackingDisabled() || !SystemEngineRegistry.isUserTrackingDbLoaded()) {
-            throw new IllegalStateException("Audit tracking is disabled or its database is unavailable");
-        }
-        try {
-            long verified = AuditChainStore.verify(SystemEngineRegistry.getUserTrackingDb());
-            var result = Map.of("verifiedEvents", verified, "scope", "V2_SEQUENCED_EVENTS");
-            UserAuditTrailUtils.recordAuditAccess(this.insight.getUser(), "AUDIT_VERIFY", result);
-            return new NounMetadata(result, PixelDataType.MAP);
-        } catch (Exception e) {
-            UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("AUDIT_VERIFY")
-                    .actorUser(this.insight.getUser()).status("FAILURE").severity("HIGH")
-                    .error("AUDIT_INTEGRITY_CHECK_FAILED", "Audit verification could not certify the sequenced chain"));
-            throw new IllegalStateException("Audit verification failed; investigate the chain and its trusted backup", e);
-        }
-    }
+
+	@Override
+	public NounMetadata execute() {
+		if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
+			throwFunctionalityOnlyExposedForAdminsError();
+		}
+		if (Utility.isUserTrackingDisabled() || !SystemEngineRegistry.isUserTrackingDbLoaded()) {
+			throw new IllegalStateException("Audit tracking is disabled or its database is unavailable");
+		}
+		try {
+			long verified = AuditChainStore.verify(SystemEngineRegistry.getUserTrackingDb());
+			var result = Map.of("verifiedEvents", verified, "scope", "V2_SEQUENCED_EVENTS");
+			UserAuditTrailUtils.recordAuditAccess(this.insight.getUser(), AuditEventType.AUDIT_VERIFY, result);
+			return new NounMetadata(result, PixelDataType.MAP);
+		} catch (Exception e) {
+			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType(AuditEventType.AUDIT_VERIFY)
+					.actorUser(this.insight.getUser()).status(AuditStatus.FAILURE).severity(AuditSeverity.HIGH)
+					.error(AuditErrorCode.AUDIT_INTEGRITY_CHECK_FAILED,
+							"Audit verification could not certify the sequenced chain"));
+			throw new IllegalStateException("Audit verification failed; investigate the chain and its trusted backup",
+					e);
+		}
+	}
 }

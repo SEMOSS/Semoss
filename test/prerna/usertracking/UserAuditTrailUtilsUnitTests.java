@@ -31,10 +31,10 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -72,19 +72,18 @@ class UserAuditTrailUtilsUnitTests {
 				.thenAnswer(invocation -> db.connection.prepareStatement(invocation.getArgument(0, String.class)));
 	}
 
-
 	@Test
 	void functionAndStorageCreationStoreCanonicalEngineContext() throws Exception {
 		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
 			createAuditTable(db);
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
-			for (String type : new String[] { "FUNCTION", "STORAGE" }) {
-				String id = type.toLowerCase() + "-1";
-				UserAuditTrailUtils.recordEngineLifecycle(null, type + "_CREATE", type, id, "Test " + type,
-						Map.of("global", false));
+			for (AuditTargetType type : new AuditTargetType[] { AuditTargetType.FUNCTION, AuditTargetType.STORAGE }) {
+				String id = type.name().toLowerCase() + "-1";
+				UserAuditTrailUtils.recordEngineLifecycle(null, AuditEventType.valueOf(type.name() + "_CREATE"), type,
+						id, "Test " + type, Map.of("global", false));
 				String where = " WHERE ENGINE_ID='" + id + "'";
-				assertEquals(type + "_CREATE", db.value("SELECT EVENT_TYPE FROM USER_AUDIT_EVENTS" + where));
-				assertEquals(type, db.value("SELECT TARGET_TYPE FROM USER_AUDIT_EVENTS" + where));
+				assertEquals(type.name() + "_CREATE", db.value("SELECT EVENT_TYPE FROM USER_AUDIT_EVENTS" + where));
+				assertEquals(type.name(), db.value("SELECT TARGET_TYPE FROM USER_AUDIT_EVENTS" + where));
 				assertEquals(id, db.value("SELECT TARGET_ID FROM USER_AUDIT_EVENTS" + where));
 				assertEquals("SUCCESS", db.value("SELECT STATUS FROM USER_AUDIT_EVENTS" + where));
 			}
@@ -99,7 +98,8 @@ class UserAuditTrailUtilsUnitTests {
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
 			UserAuditTrailUtils.recordPixelFailure(null,
 					"CreatePythonFunctionEngine(function=[\"Test\"],content=[\"private-source\"]);",
-					"CreatePythonFunctionEngineReactor", new IllegalArgumentException("Unable to create function"), null);
+					"CreatePythonFunctionEngineReactor", new IllegalArgumentException("Unable to create function"),
+					null);
 			assertEquals("FUNCTION_CREATE", db.value("SELECT EVENT_TYPE FROM USER_AUDIT_EVENTS"));
 			assertEquals("FAILURE", db.value("SELECT STATUS FROM USER_AUDIT_EVENTS"));
 			assertFalse(String.valueOf(db.value("SELECT DETAILS FROM USER_AUDIT_EVENTS")).contains("private-source"));
@@ -138,8 +138,8 @@ class UserAuditTrailUtilsUnitTests {
 		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
 			createAuditTable(db);
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
-			UserAuditTrailUtils.recordPermissionUpdate(null, "ENGINE", "engine-1", "Model", null, "engine-1",
-					null, "target-user", "NATIVE", "READ_ONLY", "EDIT", Map.of("usageFrequency", "DAY"));
+			UserAuditTrailUtils.recordPermissionUpdate(null, AuditTargetType.ENGINE, "engine-1", "Model", null,
+					"engine-1", null, "target-user", "NATIVE", "READ_ONLY", "EDIT", Map.of("usageFrequency", "DAY"));
 			assertEquals(1, db.count("USER_AUDIT_EVENTS"));
 			assertEquals("PERMISSION_UPDATE", db.value("SELECT EVENT_TYPE FROM USER_AUDIT_EVENTS"));
 			assertEquals("SUCCESS", db.value("SELECT STATUS FROM USER_AUDIT_EVENTS"));
@@ -156,7 +156,8 @@ class UserAuditTrailUtilsUnitTests {
 			createAuditTable(db);
 			db.manual();
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
-			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("PROJECT_CREATE"));
+			UserAuditTrailUtils
+					.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType(AuditEventType.PROJECT_CREATE));
 			verify(db.connection).commit();
 			db.connection.rollback();
 			assertEquals(1, db.count("USER_AUDIT_EVENTS"));
@@ -168,8 +169,8 @@ class UserAuditTrailUtilsUnitTests {
 		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
 			createAuditTable(db);
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
-			UserAuditTrailUtils.recordPermissionAdd(null, "PROJECT", "project-1", "Analytics", "project-1", null,
-					null, "grantee-1", "NATIVE", "EDIT", null);
+			UserAuditTrailUtils.recordPermissionAdd(null, AuditTargetType.PROJECT, "project-1", "Analytics",
+					"project-1", null, null, "grantee-1", "NATIVE", "EDIT", null);
 			assertEquals("grantee-1", db.value("SELECT SUBJECT_USER_ID FROM USER_AUDIT_EVENTS"));
 			assertEquals("NATIVE", db.value("SELECT SUBJECT_USER_TYPE FROM USER_AUDIT_EVENTS"));
 			assertEquals("AUTHZ", db.value("SELECT CATEGORY FROM USER_AUDIT_EVENTS"));
@@ -185,7 +186,7 @@ class UserAuditTrailUtilsUnitTests {
 		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
 			createAuditTable(db);
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
-			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("LOGIN")
+			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType(AuditEventType.LOGIN)
 					.session("raw-session-id", "request-1", "10.0.0.1").httpStatus(200));
 			Object hash = db.value("SELECT SESSION_ID_HASH FROM USER_AUDIT_EVENTS");
 			assertEquals(UserAuditTrailUtils.hashSessionId("raw-session-id"), hash);
@@ -201,9 +202,10 @@ class UserAuditTrailUtilsUnitTests {
 		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
 			createAuditTable(db);
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
-			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("CONFIG_UPDATE")
+			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType(AuditEventType.CONFIG_UPDATE)
 					.details(Map.of("password", "hunter2", "apiKey", "sk-123", "field", "value"))
-					.error("OPERATION_FAILED", "Failed password=hunter2 for jdbc:postgresql://db:5432/x?user=a\n\tat a.b.C.d(C.java:1)"));
+					.error(AuditErrorCode.OPERATION_FAILED,
+							"Failed password=hunter2 for jdbc:postgresql://db:5432/x?user=a\n\tat a.b.C.d(C.java:1)"));
 			String details = String.valueOf(db.value("SELECT DETAILS FROM USER_AUDIT_EVENTS"));
 			assertFalse(details.contains("hunter2"));
 			assertFalse(details.contains("sk-123"));
@@ -220,7 +222,7 @@ class UserAuditTrailUtilsUnitTests {
 		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
 			createAuditTable(db);
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
-			UserAuditTrailUtils.recordFailure(null, "PROJECT_DELETE", "PROJECT", "project-1",
+			UserAuditTrailUtils.recordFailure(null, AuditEventType.PROJECT_DELETE, AuditTargetType.PROJECT, "project-1",
 					new IllegalAccessException("Insufficient privileges to modify this project's permissions."), null);
 			assertEquals("AUTHORIZATION_DENIED", db.value("SELECT EVENT_TYPE FROM USER_AUDIT_EVENTS"));
 			assertEquals("PROJECT_DELETE", db.value("SELECT ACTION FROM USER_AUDIT_EVENTS"));
@@ -243,8 +245,8 @@ class UserAuditTrailUtilsUnitTests {
 			assertEquals("ENGINE_DELETE", db.value("SELECT EVENT_TYPE FROM USER_AUDIT_EVENTS"));
 			assertEquals("FAILURE", db.value("SELECT STATUS FROM USER_AUDIT_EVENTS"));
 			assertFalse(String.valueOf(db.value("SELECT DETAILS FROM USER_AUDIT_EVENTS")).contains("secret-query"));
-			UserAuditTrailUtils.recordPixelFailure(null, "AdminSomething();", "AdminSomethingReactor",
-					null, "Functionality is only exposed for admins");
+			UserAuditTrailUtils.recordPixelFailure(null, "AdminSomething();", "AdminSomethingReactor", null,
+					"Functionality is only exposed for admins");
 			assertEquals(1, ((Number) db.value(
 					"SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE = 'AUTHORIZATION_DENIED' AND ERROR_CODE = 'ADMIN_REQUIRED'"))
 					.intValue());
@@ -256,8 +258,10 @@ class UserAuditTrailUtilsUnitTests {
 		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
 			createAuditTable(db);
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
-			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventId("first").eventType("LOGIN"));
-			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventId("second").eventType("LOGOUT"));
+			UserAuditTrailUtils
+					.recordEvent(new UserAuditTrailUtils.AuditEvent().eventId("first").eventType(AuditEventType.LOGIN));
+			UserAuditTrailUtils.recordEvent(
+					new UserAuditTrailUtils.AuditEvent().eventId("second").eventType(AuditEventType.LOGOUT));
 			Object firstHash = db.value("SELECT HASH_CURRENT FROM USER_AUDIT_EVENTS WHERE EVENT_ID = 'first'");
 			assertNotNull(firstHash);
 			assertEquals(firstHash, db.value("SELECT HASH_PREVIOUS FROM USER_AUDIT_EVENTS WHERE EVENT_ID = 'second'"));
@@ -273,10 +277,12 @@ class UserAuditTrailUtilsUnitTests {
 			for (String message : List.of("Rejected: {\"password\":\"dummy-secret\",\"apiKey\":\"dummy-key\"}",
 					"Rejected: {\\\"access_token\\\":\\\"dummy-secret\\\"}", "client_secret='dummy-secret'")) {
 				assertFalse(AuditSanitizer.sanitizeMessage(message).contains("dummy"));
-				UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("CONFIG_UPDATE")
-						.error("FAILURE", message));
+				UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent()
+						.eventType(AuditEventType.CONFIG_UPDATE).error(AuditErrorCode.OPERATION_FAILED, message));
 			}
-			assertEquals(0, ((Number) db.value("SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE ERROR_MESSAGE LIKE '%dummy%'" )).intValue());
+			assertEquals(0,
+					((Number) db.value("SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE ERROR_MESSAGE LIKE '%dummy%'"))
+							.intValue());
 		}
 	}
 
@@ -287,12 +293,14 @@ class UserAuditTrailUtilsUnitTests {
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
 			org.apache.logging.log4j.ThreadContext.put(prerna.logging.SemossLogUtils.ENDPOINT, "x".repeat(3000));
 			try {
-				UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("LOGIN")
-						.target("USER", "id", "n".repeat(1200)));
+				UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType(AuditEventType.LOGIN)
+						.target(AuditTargetType.USER, "id", "n".repeat(1200)));
 				assertEquals(2000, String.valueOf(db.value("SELECT REQUEST_PATH FROM USER_AUDIT_EVENTS")).length());
 				assertEquals(1000, String.valueOf(db.value("SELECT TARGET_NAME FROM USER_AUDIT_EVENTS")).length());
 				assertEquals(1, AuditChainStore.verify(db.engine));
-			} finally { org.apache.logging.log4j.ThreadContext.clearAll(); }
+			} finally {
+				org.apache.logging.log4j.ThreadContext.clearAll();
+			}
 		}
 	}
 
@@ -308,14 +316,23 @@ class UserAuditTrailUtilsUnitTests {
 					UserAuditTrailUtils.recordHttpErrorResponse(403, "Unrecognized denial wording");
 				}
 				assertEquals(2, db.count("USER_AUDIT_EVENTS"));
-				UserAuditTrailUtils.recordPixelFailure(null, "DeleteEngine();", null, new IllegalStateException("Repeated failure"), null);
-				UserAuditTrailUtils.recordPixelFailure(null, "DeleteEngine();", null, new IllegalStateException("Repeated failure"), null);
+				UserAuditTrailUtils.recordPixelFailure(null, "DeleteEngine();", null,
+						new IllegalStateException("Repeated failure"), null);
+				UserAuditTrailUtils.recordPixelFailure(null, "DeleteEngine();", null,
+						new IllegalStateException("Repeated failure"), null);
 				assertEquals(4, db.count("USER_AUDIT_EVENTS"));
-				org.apache.logging.log4j.ThreadContext.put(prerna.logging.SemossLogUtils.ENDPOINT, "/Monolith/api/auth/engine/editEngineUserPermissions");
+				org.apache.logging.log4j.ThreadContext.put(prerna.logging.SemossLogUtils.ENDPOINT,
+						"/Monolith/api/auth/engine/editEngineUserPermissions");
 				UserAuditTrailUtils.recordHttpErrorResponse(500, "Database error containing untrusted details");
-				assertEquals("ERROR", db.value("SELECT STATUS FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE='PERMISSION_UPDATE'"));
-				assertEquals(500, ((Number) db.value("SELECT HTTP_STATUS FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE='PERMISSION_UPDATE'")).intValue());
-			} finally { org.apache.logging.log4j.ThreadContext.clearAll(); }
+				assertEquals("ERROR",
+						db.value("SELECT STATUS FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE='PERMISSION_UPDATE'"));
+				assertEquals(500,
+						((Number) db.value(
+								"SELECT HTTP_STATUS FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE='PERMISSION_UPDATE'"))
+								.intValue());
+			} finally {
+				org.apache.logging.log4j.ThreadContext.clearAll();
+			}
 		}
 	}
 
@@ -337,15 +354,24 @@ class UserAuditTrailUtilsUnitTests {
 					}
 				}
 				assertEquals(4, db.count("USER_AUDIT_EVENTS"));
-				assertEquals(2, ((Number) db.value("SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE='PERMISSION_BATCH_APPLY' AND STATUS='FAILURE' AND HTTP_STATUS=400")).intValue());
-				assertEquals(2, ((Number) db.value("SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE='PERMISSION_BATCH_APPLY' AND STATUS='ERROR' AND HTTP_STATUS=500")).intValue());
-				assertEquals(0, ((Number) db.value("SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE ERROR_MESSAGE LIKE '%dummy-secret%'")).intValue());
+				assertEquals(2, ((Number) db.value(
+						"SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE='PERMISSION_BATCH_APPLY' AND STATUS='FAILURE' AND HTTP_STATUS=400"))
+						.intValue());
+				assertEquals(2, ((Number) db.value(
+						"SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE='PERMISSION_BATCH_APPLY' AND STATUS='ERROR' AND HTTP_STATUS=500"))
+						.intValue());
+				assertEquals(0,
+						((Number) db.value(
+								"SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE ERROR_MESSAGE LIKE '%dummy-secret%'"))
+								.intValue());
 				org.apache.logging.log4j.ThreadContext.put(prerna.logging.SemossLogUtils.ENDPOINT,
 						"/Monolith/api/auth/permissionBatch/validatePermissionBatches");
 				UserAuditTrailUtils.recordHttpErrorResponse(400, "Invalid input");
 				assertEquals(4, db.count("USER_AUDIT_EVENTS"));
 				assertEquals(4, AuditChainStore.verify(db.engine));
-			} finally { org.apache.logging.log4j.ThreadContext.clearAll(); }
+			} finally {
+				org.apache.logging.log4j.ThreadContext.clearAll();
+			}
 		}
 	}
 
@@ -356,14 +382,17 @@ class UserAuditTrailUtilsUnitTests {
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
 			try {
 				for (int status : List.of(401, 403)) {
-					org.apache.logging.log4j.ThreadContext.put(prerna.logging.SemossLogUtils.REQUEST_ID, "denial-" + status);
+					org.apache.logging.log4j.ThreadContext.put(prerna.logging.SemossLogUtils.REQUEST_ID,
+							"denial-" + status);
 					UserAuditTrailUtils.recordHttpErrorResponse(status, "Access refused");
 				}
-				assertEquals(UserAuditTrailUtils.ERROR_LOGIN_REQUIRED,
+				assertEquals(AuditErrorCode.LOGIN_REQUIRED.name(),
 						db.value("SELECT ERROR_CODE FROM USER_AUDIT_EVENTS WHERE HTTP_STATUS=401"));
-				assertEquals(UserAuditTrailUtils.ERROR_PERMISSION_DENIED,
+				assertEquals(AuditErrorCode.PERMISSION_DENIED.name(),
 						db.value("SELECT ERROR_CODE FROM USER_AUDIT_EVENTS WHERE HTTP_STATUS=403"));
-			} finally { org.apache.logging.log4j.ThreadContext.clearAll(); }
+			} finally {
+				org.apache.logging.log4j.ThreadContext.clearAll();
+			}
 		}
 	}
 
@@ -371,16 +400,20 @@ class UserAuditTrailUtilsUnitTests {
 	void rejectedRequestsPopulateTypedSubjectForBothWriterPaths() throws Exception {
 		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
 			createAuditTable(db);
-			db.execute("CREATE TABLE ENGINEACCESSREQUEST (ID VARCHAR, ENGINEID VARCHAR, REQUEST_USERID VARCHAR, REQUEST_TYPE VARCHAR)",
+			db.execute(
+					"CREATE TABLE ENGINEACCESSREQUEST (ID VARCHAR, ENGINEID VARCHAR, REQUEST_USERID VARCHAR, REQUEST_TYPE VARCHAR)",
 					"INSERT INTO ENGINEACCESSREQUEST VALUES ('request','engine','subject','NATIVE')",
 					"CREATE TABLE SMSS_USER (ID VARCHAR, TYPE VARCHAR, NAME VARCHAR)",
 					"INSERT INTO SMSS_USER VALUES ('subject','NATIVE','Native name'),('subject','LDAP','LDAP name')");
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
-			UserAuditTrailUtils.recordAccessRequestDecision(null, "ACCESS_REQUEST_REJECT", "ENGINE", "engine", null,
-					null, "engine", null, "request", null, null, null, null);
-			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("ACCESS_REQUEST_REJECT")
-					.actorIsAdmin(true).target("ENGINE", "engine", null).details(Map.of("requestId", "request")));
-			assertEquals(2, ((Number) db.value("SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE SUBJECT_USER_ID='subject' AND SUBJECT_USER_TYPE='NATIVE' AND SUBJECT_USER_NAME='Native name'")).intValue());
+			UserAuditTrailUtils.recordAccessRequestDecision(null, AuditEventType.ACCESS_REQUEST_REJECT,
+					AuditTargetType.ENGINE, "engine", null, null, "engine", null, "request", null, null, null, null);
+			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent()
+					.eventType(AuditEventType.ACCESS_REQUEST_REJECT).actorIsAdmin(true)
+					.target(AuditTargetType.ENGINE, "engine", null).details(Map.of("requestId", "request")));
+			assertEquals(2, ((Number) db.value(
+					"SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE SUBJECT_USER_ID='subject' AND SUBJECT_USER_TYPE='NATIVE' AND SUBJECT_USER_NAME='Native name'"))
+					.intValue());
 		}
 	}
 
@@ -389,15 +422,17 @@ class UserAuditTrailUtilsUnitTests {
 		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
 			createAuditTable(db);
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
-			db.execute("ALTER TABLE USER_AUDIT_EVENTS ADD CHECK (EVENT_TYPE<>'REJECT')");
-			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("REJECT"));
+			db.execute("ALTER TABLE USER_AUDIT_EVENTS ADD CHECK (EVENT_TYPE<>'AUDIT_VERIFY')");
+			UserAuditTrailUtils
+					.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType(AuditEventType.AUDIT_VERIFY));
 			assertEquals(0, AuditChainStore.snapshot(db.engine));
-			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("LOGIN"));
+			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType(AuditEventType.LOGIN));
 			AuditChainStore.initialize(db.engine);
-			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("LOGOUT"));
+			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType(AuditEventType.LOGOUT));
 			assertEquals(2, AuditChainStore.verify(db.engine));
 			db.execute("UPDATE USER_AUDIT_EVENTS SET ACTION='modified' WHERE AUDIT_SEQUENCE=1");
-			org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> AuditChainStore.verify(db.engine));
+			org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+					() -> AuditChainStore.verify(db.engine));
 		}
 	}
 
@@ -413,15 +448,20 @@ class UserAuditTrailUtilsUnitTests {
 				for (int i = 0; i < 16; i++) {
 					int number = i;
 					writes.add(pool.submit(() -> {
-						try (var registry = mockStatic(SystemEngineRegistry.class); var workerUtility = mockStatic(Utility.class)) {
+						try (var registry = mockStatic(SystemEngineRegistry.class);
+								var workerUtility = mockStatic(Utility.class)) {
 							registry.when(SystemEngineRegistry::getUserTrackingDb).thenReturn(db.engine);
 							workerUtility.when(Utility::isUserTrackingEnabled).thenReturn(true);
-							workerUtility.when(Utility::getCurrentSqlTimestampUTC).thenReturn(java.sql.Timestamp.from(java.time.Instant.ofEpochSecond(1000 - number)));
-							UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventId("writer-" + number).eventType("LOGIN"));
+							workerUtility.when(Utility::getCurrentSqlTimestampUTC).thenReturn(
+									java.sql.Timestamp.from(java.time.Instant.ofEpochSecond(1000 - number)));
+							UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent()
+									.eventId("writer-" + number).eventType(AuditEventType.LOGIN));
 						}
 					}));
 				}
-				for (var write : writes) write.get(30, java.util.concurrent.TimeUnit.SECONDS);
+				for (var write : writes) {
+					write.get(30, java.util.concurrent.TimeUnit.SECONDS);
+				}
 			}
 			assertEquals(16, db.count("USER_AUDIT_EVENTS"));
 			assertEquals(16, AuditChainStore.verify(db.engine));
@@ -432,7 +472,28 @@ class UserAuditTrailUtilsUnitTests {
 
 	@Test
 	void usageLimitChangesHaveTheirOwnCategory() {
-		assertEquals("USAGE_LIMIT", UserAuditTrailUtils.deriveCategory("USAGE_LIMIT_UPDATE", "ENGINE"));
-		assertEquals("USAGE_LIMIT", UserAuditTrailUtils.deriveCategory("USAGE_LIMIT_UPDATE", "PLATFORM"));
+		assertEquals(AuditCategory.USAGE_LIMIT, AuditEventType.USAGE_LIMIT_UPDATE.getCategory());
+		assertEquals(AuditSeverity.MEDIUM, AuditEventType.USAGE_LIMIT_UPDATE.getSeverity());
+	}
+
+	@Test
+	void eventsThatDoNotSucceedAreRecordedAtLeastAtMedium() {
+		assertEquals(AuditSeverity.LOW, UserAuditTrailUtils.deriveSeverity(AuditEventType.LOGIN, AuditStatus.SUCCESS));
+		assertEquals(AuditSeverity.MEDIUM,
+				UserAuditTrailUtils.deriveSeverity(AuditEventType.LOGIN, AuditStatus.FAILURE));
+		assertEquals(AuditSeverity.HIGH,
+				UserAuditTrailUtils.deriveSeverity(AuditEventType.AUTHORIZATION_DENIED, AuditStatus.DENIED));
+		assertEquals(AuditSeverity.LOW, UserAuditTrailUtils.deriveSeverity(null, AuditStatus.SUCCESS));
+	}
+
+	@Test
+	void eventTypesAreReadBackByTheirStoredName() {
+		for (AuditEventType type : AuditEventType.values()) {
+			assertEquals(type, AuditEventType.find(type.name()));
+			assertNotNull(type.getCategory());
+			assertNotNull(type.getSeverity());
+		}
+		assertNull(AuditEventType.find("NOT_AN_EVENT"));
+		assertNull(AuditEventType.find(null));
 	}
 }

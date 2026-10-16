@@ -36,6 +36,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 
 /** Stops a trace-linked child agent run for an Automation project editor. */
@@ -63,7 +64,7 @@ public class StopAutomationAgentRunReactor extends AbstractReactor {
 		Map<String, Object> auditDetails = new HashMap<>();
 		auditDetails.put("agentRunId", this.keyValue.get(AGENT_RUN_ID_KEY));
 		auditDetails.put("nodeId", this.keyValue.get(NODE_ID_KEY));
-		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), "AUTOMATION_AGENT_STOP",
+		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), AuditEventType.AUTOMATION_AGENT_STOP,
 				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()), this.keyValue.get(AUTOMATION_RUN_ID_KEY), null,
 				auditDetails);
 		return new NounMetadata(run, PixelDataType.MAP, PixelOperationType.OPERATION);

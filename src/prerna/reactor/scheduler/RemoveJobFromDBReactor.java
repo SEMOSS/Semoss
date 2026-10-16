@@ -49,6 +49,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Utility;
 
@@ -135,7 +136,7 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 			// Add jobId in the map based on deletion outcome
 			if (jobDeleted) {
 				jobDeletionResult.get("success").add(jobId);
-				UserAuditTrailUtils.recordJobEvent(user, "JOB_DELETE", jobId, null, jobGroup, null);
+				UserAuditTrailUtils.recordJobEvent(user, AuditEventType.JOB_DELETE, jobId, null, jobGroup, null);
 			} else {
 				jobDeletionResult.get("failed").add(jobId);
 			}

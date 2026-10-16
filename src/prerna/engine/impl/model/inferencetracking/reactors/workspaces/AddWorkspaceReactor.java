@@ -46,6 +46,7 @@ import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Utility;
 
@@ -55,8 +56,8 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 	private static final String CLASS_NAME = AddWorkspaceReactor.class.getName();
 
 	public AddWorkspaceReactor() {
-		this.keysToGet = new String[] { NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.MCP.getKey(), PROMPTS,
-				SKILLS, USE_DEFAULT_AGENT_TOOLS };
+		this.keysToGet = new String[] { NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS,
+				USE_DEFAULT_AGENT_TOOLS };
 		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0 };
 	}
 
@@ -109,8 +110,8 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 					workspaceName, workspaceDescription, workspaceSystemPrompt, workspaceResources);
 			try {
 				mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies,
-						skillIds, false, null, null, null, false, null, false, null,
-						useDefaultToolsProvided, useDefaultTools);
+						skillIds, false, null, null, null, false, null, false, null, useDefaultToolsProvided,
+						useDefaultTools);
 			} catch (Exception mirrorEx) {
 				classLogger.warn(
 						"Created workspace '{}' but failed to mirror system_prompt/mcps/skills into CONFIG_JSON (legacy writes already succeeded)",
@@ -135,7 +136,7 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 			return getError("Failed to create workspace: " + e.getMessage());
 		}
 
-		UserAuditTrailUtils.recordWorkspaceLifecycle(user, "WORKSPACE_CREATE", workspaceId, workspaceName,
+		UserAuditTrailUtils.recordWorkspaceLifecycle(user, AuditEventType.WORKSPACE_CREATE, workspaceId, workspaceName,
 				Map.of("resourceCount", workspaceResources.size(), "dependencyCount", dependencyList.size()));
 		return getSuccess(workspaceId);
 	}

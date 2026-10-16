@@ -38,6 +38,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 
 /**
@@ -76,7 +77,7 @@ public class ResolveAutomationAgentRunActionReactor extends AbstractReactor {
 		auditDetails.put("actionId", this.keyValue.get(ACTION_ID_KEY));
 		auditDetails.put("agentRunId", this.keyValue.get(AGENT_RUN_ID_KEY));
 		auditDetails.put("nodeId", this.keyValue.get(NODE_ID_KEY));
-		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), "AUTOMATION_ACTION_RESOLVE",
+		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), AuditEventType.AUTOMATION_ACTION_RESOLVE,
 				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()), this.keyValue.get(AUTOMATION_RUN_ID_KEY), null,
 				auditDetails);
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.MCP_TOOL_EXECUTION);

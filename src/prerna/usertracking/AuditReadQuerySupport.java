@@ -27,61 +27,136 @@
  *******************************************************************************/
 package prerna.usertracking;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-/** Shared query mechanics; each reader owns its authorization and allowed fields. */
-final class AuditReadQuerySupport {
-    private AuditReadQuerySupport() { }
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.sablecc2.om.PixelDataType;
 
-    static void appendExactFilters(StringBuilder sql, List<Object> parameters,
-            Map<String, String> allowedFields, Map<String, String> options, String lengthError) {
-        for (var field : allowedFields.entrySet()) {
-            String value = options.get(field.getKey());
-            if (value != null && !value.isBlank()) {
-                if (value.length() > 255) throw new IllegalArgumentException(lengthError);
-                sql.append(" AND ").append(field.getValue()).append("=?");
-                parameters.add(value);
-            }
-        }
-    }
+/**
+ * Shared query mechanics for the readers of the audit trail; each reader owns
+ * its authorization and allowed fields. Readers build a
+ * {@link SelectQueryStruct} on {@link UserAuditTrailUtils#TABLE} and run it
+ * with the structured {@code queryList} of
+ * {@link prerna.util.QueryExecutionUtility}, so every value is bound and each
+ * column keeps its own type.
+ */
+public final class AuditReadQuerySupport {
 
-    static void appendDateFilters(StringBuilder sql, List<Object> parameters,
-            Map<String, String> options, String dateError, String rangeError) {
-        LocalDate from = date(options.get("from"), dateError);
-        LocalDate to = date(options.get("to"), dateError);
-        if (from != null && to != null && from.isAfter(to)) {
-            throw new IllegalArgumentException(rangeError);
-        }
-        if (from != null) {
-            sql.append(" AND EVENT_TIME>=?");
-            parameters.add(Timestamp.valueOf(from.atStartOfDay()));
-        }
-        if (to != null) {
-            sql.append(" AND EVENT_TIME<?");
-            parameters.add(Timestamp.valueOf(to.plusDays(1).atStartOfDay()));
-        }
-    }
+	/** The longest read of the audit trail, in seconds */
+	public static final int QUERY_TIMEOUT_SECONDS = 30;
 
-    static void bind(PreparedStatement statement, List<Object> parameters) throws SQLException {
-        for (int i = 0; i < parameters.size(); i++) statement.setObject(i + 1, parameters.get(i));
-    }
+	private AuditReadQuerySupport() {
+	}
 
-    static String utcTimestamp(Timestamp value) {
-        return value == null ? null : value.toLocalDateTime().toInstant(ZoneOffset.UTC).toString();
-    }
+	/**
+	 * Names a column of the audit trail the way a query struct does.
+	 *
+	 * @param name the column, such as {@code EVENT_TIME}
+	 * @return {@code USER_AUDIT_EVENTS__<name>}
+	 */
+	public static String column(String name) {
+		return UserAuditTrailUtils.TABLE + "__" + name;
+	}
 
-    private static LocalDate date(String value, String error) {
-        if (value == null || value.isBlank()) return null;
-        try {
-            if (value.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) return LocalDate.parse(value);
-        } catch (java.time.DateTimeException ignored) { }
-        throw new IllegalArgumentException(error);
-    }
+	/**
+	 * The names the audit trail stores values by, for a filter on them.
+	 *
+	 * @param values event types, target types or other audit values
+	 * @return their names, in the collection's order
+	 */
+	public static List<String> names(Collection<? extends Enum<?>> values) {
+		return values.stream().map(Enum::name).toList();
+	}
+
+	/**
+	 * Adds an exact match for each allowed filter the options give a value for.
+	 *
+	 * @param qs            the read to filter
+	 * @param allowedFields the option names a reader accepts, by the column each
+	 *                      matches
+	 * @param options       the reader's options, with blank values ignored
+	 * @param lengthError   the message for a value longer than 255 characters
+	 */
+	static void addExactFilters(SelectQueryStruct qs, Map<String, String> allowedFields, Map<String, String> options,
+			String lengthError) {
+		for (var field : allowedFields.entrySet()) {
+			String value = options.get(field.getKey());
+			if (value != null && !value.isBlank()) {
+				if (value.length() > 255) {
+					throw new IllegalArgumentException(lengthError);
+				}
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column(field.getValue()), "==", value));
+			}
+		}
+	}
+
+	/**
+	 * Keeps a read to the events recorded on and between the options' {@code from}
+	 * and {@code to} dates, in UTC; either can be left out.
+	 *
+	 * @param qs         the read to filter
+	 * @param options    the reader's options
+	 * @param dateError  the message for a date that is not a real
+	 *                   {@code YYYY-MM-DD}
+	 * @param rangeError the message for a {@code from} after the {@code to}
+	 */
+	static void addDateFilters(SelectQueryStruct qs, Map<String, String> options, String dateError, String rangeError) {
+		LocalDate from = date(options.get("from"), dateError);
+		LocalDate to = date(options.get("to"), dateError);
+		if (from != null && to != null && from.isAfter(to)) {
+			throw new IllegalArgumentException(rangeError);
+		}
+		addTimeRange(qs, from == null ? null : Timestamp.valueOf(from.atStartOfDay()),
+				to == null ? null : Timestamp.valueOf(to.plusDays(1).atStartOfDay()));
+	}
+
+	/**
+	 * Keeps a read to the events recorded at or after the start and before the end,
+	 * both UTC times as the audit trail stores them; either can be null for no
+	 * bound.
+	 *
+	 * @param qs    the read to filter
+	 * @param start the first time included, or null
+	 * @param end   the first time left out, or null
+	 */
+	public static void addTimeRange(SelectQueryStruct qs, Timestamp start, Timestamp end) {
+		if (start != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column("EVENT_TIME"), ">=", start,
+					PixelDataType.CONST_TIMESTAMP));
+		}
+		if (end != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column("EVENT_TIME"), "<", end,
+					PixelDataType.CONST_TIMESTAMP));
+		}
+	}
+
+	/**
+	 * Reads a time the audit trail stores, a UTC time with no zone, as an instant.
+	 *
+	 * @param value the stored time, or null
+	 * @return the ISO-8601 instant, such as {@code 2026-10-13T23:59:59.999Z}, or
+	 *         null
+	 */
+	public static String utcTimestamp(Timestamp value) {
+		return value == null ? null : value.toLocalDateTime().toInstant(ZoneOffset.UTC).toString();
+	}
+
+	private static LocalDate date(String value, String error) {
+		if (value == null || value.isBlank()) {
+			return null;
+		}
+		try {
+			if (value.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
+				return LocalDate.parse(value);
+			}
+		} catch (java.time.DateTimeException ignored) {
+		}
+		throw new IllegalArgumentException(error);
+	}
 }
-

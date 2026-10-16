@@ -39,6 +39,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 
 /**
@@ -73,8 +74,9 @@ public class SaveAutomationReactor extends AbstractReactor {
 		projectId = AutomationProjectService.getEditableAutomationProject(this.insight.getUser(), projectId)
 				.getProjectId();
 
-		AutomationDefinitionService.DefinitionFiles files = AutomationProjectService.saveDefinition(projectId, definition,
-				nodeSources, this.keyValue.get(AutomationConstants.EXPECTED_REVISION_KEY), this.insight.getUser());
+		AutomationDefinitionService.DefinitionFiles files = AutomationProjectService.saveDefinition(projectId,
+				definition, nodeSources, this.keyValue.get(AutomationConstants.EXPECTED_REVISION_KEY),
+				this.insight.getUser());
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("saved", true);
@@ -82,14 +84,13 @@ public class SaveAutomationReactor extends AbstractReactor {
 		result.put(AutomationConstants.RESULT_REVISION,
 				AutomationDefinitionService.calculateRevision(files.definition(), files.nodeSources()));
 		// only the revision hash and node count are audited, never the workflow source
-		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), "AUTOMATION_UPDATE", projectId, null, null,
-				Map.of("revision", String.valueOf(result.get(AutomationConstants.RESULT_REVISION)), "nodeSourceCount",
-						files.nodeSources() == null ? 0 : files.nodeSources().size()));
+		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), AuditEventType.AUTOMATION_UPDATE, projectId,
+				null, null, Map.of("revision", String.valueOf(result.get(AutomationConstants.RESULT_REVISION)),
+						"nodeSourceCount", files.nodeSources() == null ? 0 : files.nodeSources().size()));
 		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
 				.parseAndValidateForAuthoring(files.definition());
 		result.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(validated));
-		result.put(AutomationConstants.RESULT_SCOPE_VARIABLES,
-				AutomationScopeCatalog.variablesByNode(validated));
+		result.put(AutomationConstants.RESULT_SCOPE_VARIABLES, AutomationScopeCatalog.variablesByNode(validated));
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

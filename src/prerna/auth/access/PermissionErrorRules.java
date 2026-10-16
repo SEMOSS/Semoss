@@ -118,8 +118,8 @@ public final class PermissionErrorRules {
 	}
 
 	/**
-	 * {@link #illegalArgument(PermissionProblem.ErrorCode, String)} for a message that
-	 * reads the current rows, which is built only when the problem is found.
+	 * {@link #illegalArgument(PermissionProblem.ErrorCode, String)} for a message
+	 * that reads the current rows, which is built only when the problem is found.
 	 */
 	public PermissionErrorRules illegalArgument(PermissionProblem.ErrorCode errorCode, Supplier<String> message) {
 		rules.put(errorCode, problems -> new IllegalArgumentException(message.get()));
@@ -127,9 +127,9 @@ public final class PermissionErrorRules {
 	}
 
 	/**
-	 * {@link #illegalArgument(PermissionProblem.ErrorCode, String)} for a bulk method:
-	 * the message is followed by the ids of everyone with the problem, joined with
-	 * commas.
+	 * {@link #illegalArgument(PermissionProblem.ErrorCode, String)} for a bulk
+	 * method: the message is followed by the ids of everyone with the problem,
+	 * joined with commas.
 	 */
 	public PermissionErrorRules illegalArgumentWithIds(PermissionProblem.ErrorCode errorCode, String message) {
 		rules.put(errorCode, problems -> new IllegalArgumentException(message + idsWith(problems, errorCode)));

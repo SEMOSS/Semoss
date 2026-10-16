@@ -35,6 +35,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.UploadInputUtility;
 
@@ -61,8 +62,8 @@ public class SetProjectMetadataReactor extends AbstractSetMetadataReactor {
 		}
 
 		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
-		UserAuditTrailUtils.recordProjectLifecycle(this.insight.getUser(), "PROJECT_UPDATE",
-				projectId, null, Map.of("changedFields", new ArrayList<>(metadata.keySet())));
+		UserAuditTrailUtils.recordProjectLifecycle(this.insight.getUser(), AuditEventType.PROJECT_UPDATE, projectId,
+				null, Map.of("changedFields", new ArrayList<>(metadata.keySet())));
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(
 				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the project"));

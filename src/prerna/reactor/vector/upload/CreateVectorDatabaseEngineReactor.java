@@ -56,6 +56,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.UploadUtilities;
@@ -218,7 +220,8 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			}
 
 			ClusterUtil.pushEngine(vectorDbId);
-			UserAuditTrailUtils.recordEngineLifecycle(user, "VECTOR_CREATE", "VECTOR", vectorDbId, vectorDbName,
+			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.VECTOR_CREATE, AuditTargetType.VECTOR,
+					vectorDbId, vectorDbName,
 					Map.of("global", global, "vectorType", vectorDbType.getVectorDatabaseName()));
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);

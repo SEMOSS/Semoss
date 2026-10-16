@@ -45,6 +45,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Utility;
 
@@ -99,7 +100,7 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 			// reschedule job
 			if (scheduler.checkExists(jobKey)) {
 				scheduler.resumeTrigger(triggerKey);
-				UserAuditTrailUtils.recordJobEvent(user, "JOB_RESUME", jobId, null, jobGroup, null);
+				UserAuditTrailUtils.recordJobEvent(user, AuditEventType.JOB_RESUME, jobId, null, jobGroup, null);
 			}
 		} catch (SchedulerException se) {
 			classLogger.error("Failed to resume job trigger for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,

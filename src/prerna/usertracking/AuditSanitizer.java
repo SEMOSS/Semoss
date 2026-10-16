@@ -61,8 +61,9 @@ public final class AuditSanitizer {
 	private static final Set<String> SENSITIVE_KEYS = Set.of("password", "passwd", "pwd", "pass", "newpassword",
 			"oldpassword", "currentpassword", "confirmpassword", "secret", "token", "salt", "hash", "otp", "pin",
 			"credential", "credentials", "authorization", "cookie", "cookies", "sessionid", "jsessionid", "apikey",
-			"accesskey", "secretkey", "privatekey", "accesstoken", "refreshtoken", "idtoken", "bearertoken", "authtoken",
-			"clientsecret", "connectionurl", "connectionstring", "jdbcurl", "connectionstr", "awssecretaccesskey");
+			"accesskey", "secretkey", "privatekey", "accesstoken", "refreshtoken", "idtoken", "bearertoken",
+			"authtoken", "clientsecret", "connectionurl", "connectionstring", "jdbcurl", "connectionstr",
+			"awssecretaccesskey");
 
 	/** Normalized key suffixes that indicate a secret value. */
 	private static final String[] SENSITIVE_SUFFIXES = { "password", "passwd", "secret", "apikey", "accesskey",
@@ -70,9 +71,8 @@ public final class AuditSanitizer {
 			"clientsecret", "connectionstring", "connectionurl", "jdbcurl", "sessionid" };
 
 	private static final Pattern BEARER = Pattern.compile("(?i)(bearer\\s+)[A-Za-z0-9._~+/=-]+");
-	private static final Pattern KEY_VALUE_SECRET = Pattern.compile(
-			"(?i)([\"']?)([a-z][a-z0-9_.-]*)\\1(\\s*[=:]\\s*)"
-					+ "(\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|[^\\s,;&\"'}]+)");
+	private static final Pattern KEY_VALUE_SECRET = Pattern.compile("(?i)([\"']?)([a-z][a-z0-9_.-]*)\\1(\\s*[=:]\\s*)"
+			+ "(\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|[^\\s,;&\"'}]+)");
 	private static final Pattern ESCAPED_KEY = Pattern.compile("\\\\+[\"']([a-zA-Z][a-zA-Z0-9_.-]*)\\\\+[\"']\\s*:");
 	private static final Pattern JDBC_URL = Pattern.compile("(?i)jdbc:[^\\s\"'<>]+");
 	private static final Pattern URL_USER_INFO = Pattern
@@ -171,17 +171,19 @@ public final class AuditSanitizer {
 		}
 		String scrubbed = PRIVATE_KEY.matcher(text).replaceAll(Matcher.quoteReplacement(REDACTED));
 		scrubbed = BEARER.matcher(scrubbed).replaceAll("$1" + Matcher.quoteReplacement(REDACTED));
-		// Nested encoded JSON has ambiguous quoting: omit it rather than risk partial redaction.
+		// Nested encoded JSON has ambiguous quoting: omit it rather than risk partial
+		// redaction.
 		Matcher escaped = ESCAPED_KEY.matcher(scrubbed);
 		while (escaped.find()) {
-			if (isSensitiveKey(escaped.group(1))) return REDACTED;
+			if (isSensitiveKey(escaped.group(1))) {
+				return REDACTED;
+			}
 		}
 		Matcher assignments = KEY_VALUE_SECRET.matcher(scrubbed);
 		StringBuffer safe = new StringBuffer();
 		while (assignments.find()) {
-			String replacement = isSensitiveKey(assignments.group(2))
-					? assignments.group(1) + assignments.group(2) + assignments.group(1) + assignments.group(3) + REDACTED
-					: assignments.group();
+			String replacement = isSensitiveKey(assignments.group(2)) ? assignments.group(1) + assignments.group(2)
+					+ assignments.group(1) + assignments.group(3) + REDACTED : assignments.group();
 			assignments.appendReplacement(safe, Matcher.quoteReplacement(replacement));
 		}
 		assignments.appendTail(safe);
@@ -196,7 +198,9 @@ public final class AuditSanitizer {
 			return value;
 		}
 		String marker = "...[TRUNCATED]";
-		if (maxLength <= marker.length()) return marker.substring(0, Math.max(0, maxLength));
+		if (maxLength <= marker.length()) {
+			return marker.substring(0, Math.max(0, maxLength));
+		}
 		return value.substring(0, maxLength - marker.length()) + marker;
 	}
 

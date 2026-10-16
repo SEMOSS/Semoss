@@ -27,30 +27,45 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 import org.junit.jupiter.api.Test;
+
 import prerna.auth.User;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.JdbcTestDatabase;
 
 class EngineSettingsAuditTest {
-    @Test
-    void missingAndRejectedEngineUpdatesNeverEmitSuccess() throws Exception {
-        try (var db = new JdbcTestDatabase(); var owners = mockStatic(SecurityUserEngineUtils.class);
-                var audit = mockStatic(UserAuditTrailUtils.class)) {
-            User user = mock(User.class);
-            owners.when(() -> SecurityUserEngineUtils.userIsOwner(user, "engine")).thenReturn(true);
-            db.execute("CREATE TABLE ENGINE (ENGINEID VARCHAR, GLOBAL BOOLEAN, DISCOVERABLE BOOLEAN)");
-            assertThrows(IllegalStateException.class, () -> SecurityEngineUtils.setEngineGlobal(user, "engine", true));
-            db.execute("INSERT INTO ENGINE VALUES ('engine',false,false)", "ALTER TABLE ENGINE ADD CHECK (DISCOVERABLE=false)");
-            assertTrue(SecurityEngineUtils.setEngineGlobal(user, "engine", false));
-            assertTrue(SecurityEngineUtils.setEngineDiscoverable(user, "engine", false));
-            assertThrows(IllegalStateException.class, () -> SecurityEngineUtils.setEngineDiscoverable(user, "engine", true));
-            audit.verify(() -> UserAuditTrailUtils.recordEngineLifecycle(any(), anyString(), any(), any(), any(), any()), never());
-            audit.verify(() -> UserAuditTrailUtils.recordFailure(eq(user), eq("ENGINE_UPDATE"), eq("ENGINE"), eq("engine"), any(), isNull()), times(2));
-        }
-    }
+
+	@Test
+	void missingAndRejectedEngineUpdatesNeverEmitSuccess() throws Exception {
+		try (var db = new JdbcTestDatabase();
+				var owners = mockStatic(SecurityUserEngineUtils.class);
+				var audit = mockStatic(UserAuditTrailUtils.class)) {
+			User user = mock(User.class);
+			owners.when(() -> SecurityUserEngineUtils.userIsOwner(user, "engine")).thenReturn(true);
+			db.execute("CREATE TABLE ENGINE (ENGINEID VARCHAR, GLOBAL BOOLEAN, DISCOVERABLE BOOLEAN)");
+			assertThrows(IllegalStateException.class, () -> SecurityEngineUtils.setEngineGlobal(user, "engine", true));
+			db.execute("INSERT INTO ENGINE VALUES ('engine',false,false)",
+					"ALTER TABLE ENGINE ADD CHECK (DISCOVERABLE=false)");
+			assertTrue(SecurityEngineUtils.setEngineGlobal(user, "engine", false));
+			assertTrue(SecurityEngineUtils.setEngineDiscoverable(user, "engine", false));
+			assertThrows(IllegalStateException.class,
+					() -> SecurityEngineUtils.setEngineDiscoverable(user, "engine", true));
+			audit.verify(() -> UserAuditTrailUtils.recordEngineLifecycle(any(), any(), any(), any(), any(), any()),
+					never());
+			audit.verify(() -> UserAuditTrailUtils.recordFailure(eq(user), eq(AuditEventType.ENGINE_UPDATE),
+					eq(AuditTargetType.ENGINE), eq("engine"), any(), isNull()), times(2));
+		}
+	}
 }

@@ -44,6 +44,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AssetUtility;
 
@@ -184,8 +186,8 @@ public class UpdateSkillReactor extends AbstractReactor {
 		response.put("name", canonicalName);
 		response.put("description", newDescription);
 		response.put("content_updated", hasContent);
-		UserAuditTrailUtils.recordResourceEvent(user, "SKILL_UPDATE", "SKILL", skillId, canonicalName, skillId, null,
-				null, Map.of("contentUpdated", hasContent));
+		UserAuditTrailUtils.recordResourceEvent(user, AuditEventType.SKILL_UPDATE, AuditTargetType.SKILL, skillId,
+				canonicalName, skillId, null, null, Map.of("contentUpdated", hasContent));
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

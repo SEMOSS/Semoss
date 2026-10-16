@@ -63,6 +63,8 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
@@ -83,8 +85,8 @@ public class AdminUserAuditEventsReactor extends AbstractQueryStructReactor {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
 		if (Utility.isUserTrackingDisabled()) {
-			throw new IllegalArgumentException("User tracking is disabled. Enable USER_TRACKING_ENABLED to query "
-					+ TABLE + ".");
+			throw new IllegalArgumentException(
+					"User tracking is disabled. Enable USER_TRACKING_ENABLED to query " + TABLE + ".");
 		}
 		if (!SystemEngineRegistry.isUserTrackingDbLoaded()) {
 			throw new IllegalStateException("User tracking database is not loaded. Confirm "
@@ -92,11 +94,13 @@ public class AdminUserAuditEventsReactor extends AbstractQueryStructReactor {
 		}
 		boolean export = isExport();
 		NounMetadata result = super.execute();
-		// This legacy API prepares a query; it cannot attest to later Collect/export completion.
-		UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("AUDIT_QUERY_REQUEST")
-				.action(export ? "AUDIT_EXPORT" : "AUDIT_QUERY").actorUser(this.insight.getUser())
-				.target("AUDIT", TABLE, null).details(Map.of("phase", "QUERY_PREPARED",
-						"insightId", String.valueOf(this.insight.getInsightId()))));
+		// This legacy API prepares a query; it cannot attest to later Collect/export
+		// completion.
+		UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent()
+				.eventType(AuditEventType.AUDIT_QUERY_REQUEST)
+				.action((export ? AuditEventType.AUDIT_EXPORT : AuditEventType.AUDIT_QUERY).name())
+				.actorUser(this.insight.getUser()).target(AuditTargetType.AUDIT, TABLE, null)
+				.details(Map.of("phase", "QUERY_PREPARED", "insightId", String.valueOf(this.insight.getInsightId()))));
 		return result;
 	}
 

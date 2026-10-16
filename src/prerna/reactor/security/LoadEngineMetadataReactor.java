@@ -47,8 +47,9 @@ import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
-import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
@@ -68,30 +69,16 @@ public class LoadEngineMetadataReactor extends AbstractSetMetadataReactor {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
 
-		Map<String, Object> metadata = null;
-		JsonReader jReader = null;
-		BufferedReader fReader = null;
-		try {
-			fReader = Files.newBufferedReader(Paths.get(fileLocation), StandardCharsets.UTF_8);
-			jReader = new JsonReader(fReader);
+		Map<String, Object> metadata;
+		try (BufferedReader fReader = Files.newBufferedReader(Paths.get(fileLocation), StandardCharsets.UTF_8);
+				JsonReader jReader = new JsonReader(fReader)) {
 			metadata = GSON.fromJson(jReader, Map.class);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (fReader != null) {
-				try {
-					fReader.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (jReader != null) {
-				try {
-					jReader.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Unable to read the engine metadata file", e);
+			throw new IllegalArgumentException("Unable to read the metadata file", e);
+		}
+		if (metadata == null) {
+			throw new IllegalArgumentException("The metadata file is empty");
 		}
 
 		String engineId = (String) metadata.remove("engineId");
@@ -117,9 +104,8 @@ public class LoadEngineMetadataReactor extends AbstractSetMetadataReactor {
 
 		SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
 		IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
-		UserAuditTrailUtils.recordEngineLifecycle(this.insight.getUser(), "ENGINE_UPDATE",
-				engineType == null ? "ENGINE" : engineType.name(), engineId,
-				SecurityEngineUtils.getEngineDisplayNameForId(engineId),
+		UserAuditTrailUtils.recordEngineLifecycle(this.insight.getUser(), AuditEventType.ENGINE_UPDATE,
+				AuditTargetType.ofEngine(engineType), engineId, SecurityEngineUtils.getEngineDisplayNameForId(engineId),
 				Map.of("field", "metadata", "metadataKeys", List.copyOf(metadata.keySet()), "source", "load"));
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(

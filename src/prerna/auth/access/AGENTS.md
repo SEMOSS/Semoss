@@ -395,7 +395,9 @@ a Team Limit). A grant's removal records its limit removed with it
 (`removedWithGrant`), and so does a grant that ended, removed by SEMOSS
 (`removeExpiredEngineUser`, `reason` `EXPIRED`). Changes to a model's public use
 or total record only this event, since they change no access. `PermissionChangeValidation` keeps the limit
-before the change (`getCurrentUsageLimit`) for it.
+before the change (`getCurrentUsageLimit`) for it. A model's owners read its limit changes on its
+Audit tab (`ResourceAuditReadService`); admins read them with the access changes and denied requests in
+Enterprise Usage & Activity (the `audit` source of `EnterpriseUsageUtils`).
 
 ### Reads
 

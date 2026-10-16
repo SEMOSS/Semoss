@@ -53,6 +53,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.EngineSyncUtility;
@@ -106,8 +108,8 @@ public class DeleteEngineReactor extends AbstractReactor {
 			}
 
 			deleteEngines(engine, engineId, engineName, engineType);
-			UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_DELETE",
-					engineType == null ? "ENGINE" : engineType.name(), engineId, engineName, null);
+			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_DELETE,
+					AuditTargetType.ofEngine(engineType), engineId, engineName, null);
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
 				Thread.ofVirtual().start(new DeleteEngineRunner(engineId, engineType));
