@@ -3949,6 +3949,42 @@ public final class Utility {
 	}
 
 	/**
+	 * Determine if the security audit log (logins, permission/role/group
+	 * changes, admin actions) is enabled. Independent of
+	 * {@link #isAuditLogsDatabaseEnabled()}.
+	 *
+	 * @return
+	 */
+	public static boolean isSecurityAuditLogsEnabled() {
+		String securityAuditLogs = Utility.getDIHelperProperty(Constants.SECURITY_AUDIT_LOGS_ENABLED);
+		if (securityAuditLogs == null) {
+			// default configuration is false
+			return false;
+		}
+
+		return Boolean.parseBoolean(securityAuditLogs);
+	}
+
+	/**
+	 * Retention window, in days, for the SECURITY_AUDIT_LOGS table. A value
+	 * <= 0 means never purge.
+	 *
+	 * @return
+	 */
+	public static int getSecurityAuditLogsRetentionDays() {
+		String days = Utility.getDIHelperProperty(Constants.SECURITY_AUDIT_LOGS_RETENTION_DAYS);
+		if (days == null) {
+			// default configuration: never purge, until a site sets a policy
+			return 0;
+		}
+		try {
+			return Integer.parseInt(days.trim());
+		} catch (NumberFormatException e) {
+			return 0;
+		}
+	}
+
+	/**
 	 * Determine if user tracking enabled
 	 * 
 	 * @return

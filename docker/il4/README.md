@@ -689,6 +689,83 @@ Repeat acceptance on the actual host/orchestrator, ingress, IdP, and storage.
 This local exercise does not complete site checklist items, test SSO/production
 login, approve vulnerability dispositions, or resolve the FIPS evidence hold.
 
+## Security audit logging
+
+Separate from the engine-invocation `AUDIT_LOGS` table covered above, this
+image carries a dedicated security audit trail: logins, permission/role/group
+changes, and admin actions. It is off by default; enable it with the
+`SECURITY_AUDIT_LOGS_ENABLED` DIHelper property (independent of
+`AUDIT_LOGS_DATABASE_ENABLED`, which only gates the engine-invocation tables).
+Rows land in `SECURITY_AUDIT_LOGS`, in the same configured audit database as
+`AUDIT_LOGS`/`SERVER_LOGS`, not a separate database.
+
+### What is captured
+
+- Every endpoint routed through `ResourceUtility.respondAsAdmin` (all of
+  `Admin*AuthorizationResource` and `AdminPermissionBatchResource`) is audited
+  automatically as `ADMIN_ACTION`, including read-only admin endpoints - this
+  was a deliberate choice: knowing an admin viewed a management screen is
+  itself a security-relevant fact under most audit regimes, not noise.
+- The non-admin "owner" permission-change surface (a project/engine/insight
+  owner or a group manager granting, modifying, or revoking another user's
+  access, approving/denying access requests, applying a permission batch) is
+  audited explicitly at each such call site with a specific event type
+  (`PERMISSION_GRANTED`, `PERMISSION_MODIFIED`, `PERMISSION_REVOKED`,
+  `PERMISSION_BATCH_APPLIED`, `ACCESS_REQUEST_DENIED`) and target
+  (`PROJECT`/`ENGINE`/`GROUP`/`INSIGHT` + id).
+- Native username/password login (`UserResource.loginNative`) is audited as
+  `LOGIN_SUCCESS`/`LOGIN_FAILURE`. The OAuth/SSO login endpoints
+  (ADFS/Google/GitHub/etc.) are not instrumented in this pass.
+- Ordinary reads and writes with no distinct security classification (most of
+  `respond`/`respondAllowingAnonymous`) are **not** audited here - that is the
+  point of this being separate from `SERVER_LOGS`, which already carries every
+  request's outcome for ordinary operational logging.
+
+This is a meaningful first pass, not an exhaustive instrumentation of every
+permission-adjacent code path in the application - a new admin endpoint is
+covered automatically by virtue of using `respondAsAdmin`, but a new
+non-admin "owner" mutation needs its own explicit
+`ResourceUtility.SecurityAuditEvent` the way the existing ones do.
+
+### Tamper-evident hash chain
+
+Each row carries a SHA-256 hash of its own fields plus the previous row's
+hash, scoped **per writer node** (`NODE_ID`, the same container-IP identifier
+`ZKClusterSynchronizer` uses) - not a single cluster-wide ledger. Altering,
+deleting, or reordering a row breaks the chain for that node from that point
+forward. Verify a node's chain with
+`AuditLogsDbUtils.verifySecurityAuditLogChain(nodeId)`, which returns the
+`LOG_ID`s of any rows whose stored hash no longer matches a recomputation (empty
+means intact). This detects tampering after the fact; it does not prevent a
+write, and it does not coordinate or order writes across multiple nodes -
+cross-node ordering would need external infrastructure (a distributed
+log/consensus system), which is out of scope for an in-process appender.
+
+### Retention
+
+Unset by default (rows are kept indefinitely). Set
+`SECURITY_AUDIT_LOGS_RETENTION_DAYS` to a positive integer to purge rows older
+than that many days once a day; `<= 0` (or unset) never purges. Purging does
+not touch `AUDIT_LOGS`/`SERVER_LOGS`, which have no retention policy here
+either.
+
+### SIEM forwarding
+
+`log4j2.xml` includes a standards-based (RFC 5424 over TLS) `Syslog` appender
+on the security audit logger, so a site can point the stream at its own
+SIEM/log collector without this project integrating a specific product. It
+carries the human-readable message plus the RFC5424 envelope, not the full
+structured/hash-chained record, which stays in `SECURITY_AUDIT_LOGS` as the
+system of record. Set `SECURITY_AUDIT_SIEM_HOST`/`SECURITY_AUDIT_SIEM_PORT` to
+point it at a collector. **It will not establish real TLS trust until you also
+add a nested `<Ssl><TrustStore .../></Ssl>` (and `<KeyStore>` for mutual TLS)
+in `log4j2.xml` pointed at your collector's actual certificate** - the
+default JVM trust store is not appropriate for this per log4j2's own
+documentation, so it is deliberately left unconfigured here rather than
+guessed at. With no listener configured, log4j2 logs periodic connection
+warnings to its own internal status logger; it does not fail application
+startup or block the database appender.
+
 ## FIPS boundaries
 
 ### Alternative-provider feasibility (2026-10-01)

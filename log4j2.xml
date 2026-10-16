@@ -39,6 +39,47 @@
 				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] [reqId=%X{requestId}] %maskMsg%n</Pattern>
 			</PatternLayout>
         </AuditLogsJDBCAppender>
+
+        <!-- Security audit trail: logins, permission/role/group changes, admin
+             actions. Separate from AuditLogsJDBCAppender above, whose AUDIT_LOGS
+             table is shaped for LLM pipeline invocations. Gated by
+             SECURITY_AUDIT_LOGS_ENABLED (see Utility.isSecurityAuditLogsEnabled),
+             independent of AUDIT_LOGS_DATABASE_ENABLED. -->
+        <SecurityAuditLogsJDBCAppender name="SecurityAuditLogsJDBCAppender" batchSize="1" ignoreExceptions="false">
+       		<PatternLayout>
+				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [actor=%X{actorUserId}] [event=%X{eventType}] [target=%X{targetType}:%X{targetId}] %maskMsg%n</Pattern>
+			</PatternLayout>
+        </SecurityAuditLogsJDBCAppender>
+
+        <!-- Standards-based (RFC 5424 over TLS) forwarding so a site can point the
+             security audit stream at its own SIEM/log collector, without this
+             project integrating any specific SIEM product. Carries the readable
+             message plus the RFC5424 envelope (timestamp/host/app/facility); the
+             full structured, hash-chained record stays in SECURITY_AUDIT_LOGS via
+             SecurityAuditLogsJDBCAppender above - this is a notification stream,
+             not a replacement for the database as the system of record.
+
+             Inert until a site both sets SECURITY_AUDIT_SIEM_HOST and adds a
+             nested <Ssl><TrustStore .../></Ssl> (and <KeyStore> for mutual TLS)
+             pointed at its collector's actual certificate - log4j2's own default
+             JVM trust store is not appropriate for this per the appender's own
+             documentation, so this is deliberately left for the deploying site to
+             supply rather than guessed at here. With no listener at host:port,
+             log4j2 logs periodic connection warnings to its own internal status
+             logger (see the status="INFO" Configuration attribute above); it does
+             not fail application startup or block logging to the other appenders.
+             The appender is only reached from SecurityAuditLogger below, so it
+             only ever carries security audit events, never general app logs. -->
+        <Syslog name="SecurityAuditSiemAppender"
+        	host="${env:SECURITY_AUDIT_SIEM_HOST:-localhost}"
+        	port="${env:SECURITY_AUDIT_SIEM_PORT:-6514}"
+        	protocol="SSL"
+        	format="RFC5424"
+        	appName="semoss-security-audit"
+        	facility="AUTH"
+        	id="semoss"
+        	newLineEscape="\n"
+        	ignoreExceptions="true" />
 	</Appenders>
 	<Loggers>
 		<AsyncLogger name="EngineLogger" level="INFO" additivity="false" includeLocation="false">
@@ -46,6 +87,12 @@
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="RollingRandomAccessFile" />
 			<AppenderRef ref="ServerLogsJDBCAppender" />
+		</AsyncLogger>
+		<AsyncLogger name="SecurityAuditLogger" level="INFO" additivity="false" includeLocation="false">
+			<AppenderRef ref="SecurityAuditLogsJDBCAppender" />
+			<AppenderRef ref="SecurityAuditSiemAppender" />
+			<AppenderRef ref="Console" />
+			<AppenderRef ref="RollingRandomAccessFile" />
 		</AsyncLogger>
 		<AsyncLogger name="prerna" level="INFO" additivity="false" includeLocation="true">
 		    <AppenderRef ref="Console"/>

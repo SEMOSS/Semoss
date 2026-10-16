@@ -99,6 +99,34 @@ public class AuditLogsDbOwlCreator extends AbstractOwlCreator {
 				Pair.with("THREAD_NAME", VARCHAR_255),
 				Pair.with("LOG_TIMESTAMP", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("MESSAGE", CLOB_DATATYPE_NAME)));
+
+		// Separate from AUDIT_LOGS above, which is shaped for LLM pipeline
+		// invocations (engine id, token counts, guardrail actions). This table is
+		// the security audit trail: logins, permission/role/group changes, admin
+		// actions. NODE_ID/PREV_HASH/ROW_HASH give each writer node its own
+		// tamper-evident hash chain (see SecurityAuditLogsJDBCAppender) - a altered
+		// or deleted row breaks the chain for that node from that point forward.
+		addTable("SECURITY_AUDIT_LOGS", Arrays.asList(
+				Pair.with("LOG_ID", VARCHAR_255),
+				Pair.with("NODE_ID", VARCHAR_255),
+				Pair.with("PREV_HASH", "VARCHAR(64)"),
+				Pair.with("ROW_HASH", "VARCHAR(64)"),
+				Pair.with("EVENT_TYPE", VARCHAR_255),
+				Pair.with("IS_SUCCESS", BOOLEAN_DATATYPE_NAME),
+				Pair.with("ACTOR_USER_ID", VARCHAR_255),
+				Pair.with("ACTOR_USER_NAME", VARCHAR_255),
+				Pair.with("ACTOR_IP", VARCHAR_255),
+				Pair.with("TARGET_TYPE", VARCHAR_255),
+				Pair.with("TARGET_ID", VARCHAR_255),
+				Pair.with("TARGET_NAME", VARCHAR_255),
+				Pair.with("SESSION_ID", VARCHAR_255),
+				Pair.with("REQUEST_ID", VARCHAR_255),
+				Pair.with("MESSAGE", CLOB_DATATYPE_NAME),
+				Pair.with("DETAILS", CLOB_DATATYPE_NAME),
+				Pair.with("LOG_LEVEL", VARCHAR_255),
+				Pair.with("LOG_TIMESTAMP", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("LOGGER_NAME", VARCHAR_255),
+				Pair.with("LOGGER_LOCATION", VARCHAR_255)));
 		// @formatter:on
 	}
 }
