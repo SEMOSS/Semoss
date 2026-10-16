@@ -695,6 +695,73 @@ guessed at. With no listener configured, log4j2 logs periodic connection
 warnings to its own internal status logger; it does not fail application
 startup or block the database appender.
 
+## CAC/PIV authentication
+
+Monolith's `CACFilter`/`PIVFilter` (DoD Common Access Card / PIV client-certificate
+authentication) are active by default - this is a change from the general
+Monolith template, where they ship commented out of `web.xml`. They are
+positioned early in the filter chain (right after `StartUpSuccessFilter`, before
+`NoUserExistsFilter`/`SessionCounterExceededFilter`/`MemoryCheckFilter`/
+`ShareSessionFilter`/`TrustedTokenFilter`/`UserAccessKeyFilter`) so a CAC/PIV
+identity is established before anything downstream that might care whether a
+user is present - running them later, where the commented-out template left
+them, would authenticate too late for a new user's first request.
+
+### Why this is safe by default
+
+Being active in `web.xml` does not, by itself, do anything: both filters read
+`jakarta.servlet.request.X509Certificate[]` off the request, which is only
+populated when the TLS connector both requested *and received* a client
+certificate. `server.xml`'s connector has `clientAuth="${cac.piv.client.auth:-false}"`,
+defaulting to `false` unless a site sets `CAC_PIV_CLIENT_AUTH=true` (see
+`setenv.sh`) - so by default no client certificate is ever requested, the
+attribute is never populated, and both filters are a harmless no-op on every
+request. Native and OAuth/SSO login continue to work completely unchanged in
+this state.
+
+### Enabling it
+
+Two things, both left to the deploying site rather than guessed at here:
+
+1. Set `CAC_PIV_CLIENT_AUTH=true` so the connector requests a client
+   certificate (`clientAuth="want"` - optional, not required, so a client
+   with no certificate still connects and falls back to native/OAuth login).
+2. Add a `<TrustStore>` (and `<CertificateVerification/>` if you need
+   something other than the default revocation/trust policy) inside
+   `server.xml`'s `<SSLHostConfig>`, pointed at your own mounted DoD PKI
+   root/intermediate CA bundle. This is deliberately not included in the
+   image, the same way the server's own TLS certificate is a mounted secret
+   (`/run/secrets/server.bcfks`/`.p12`) rather than baked in - `clientAuth`
+   alone, with nothing to validate a presented certificate against, cannot
+   authenticate anyone.
+
+### What happens once enabled
+
+`CACFilter` expects a CAC certificate's CN to end in a period-separated DoD
+ID (10+ digits) and pulls the email from the certificate's subject
+alternative names; `PIVFilter` expects a UID (email) and CN (name) pair, or
+falls back to subject alternative names for the email. Both set
+`AuthProvider.CAC` - there is no separate `PIV` value in `AuthProvider`; PIV
+is treated as the same "DoD PKI certificate" category as CAC, not a
+copy-paste bug. `autoAdd=true` (both filters' default) means a certificate
+that parses into a valid identity auto-provisions a security-db user the
+first time it's seen - deliberate for a DoD PKI identity a site's own CA
+already vouches for, but worth knowing before enabling against a trust store
+broader than intended.
+
+Both a successful parse and a presented-but-unparseable certificate are
+written to the security audit trail (`LOGIN_SUCCESS`/`LOGIN_FAILURE`, see
+"Security audit logging" above) via the same
+`SemossLogUtils.logSecurityAuditEvent` path `UserResource.loginNative` uses.
+
+### Not in this pass
+
+`CACReader.java`/`PIVReader.java` (fully dead, commented-out PKCS#11-smartcard
+stub files) and a stray `opensc-pkcs11.dll` proof-of-concept were removed as
+unused clutter, not revived - the live path here is server-side TLS client-cert
+validation (Tomcat/the connector), not a client-side PKCS#11 smart-card reader
+running in the browser or on the app server itself.
+
 ## Cryptographic boundaries: NONVALIDATED experiment
 
 ACCP is first in the provider list and SunJSSE supplies TLS. Native loading and
