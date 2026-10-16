@@ -39,73 +39,71 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /**
- * Scans a working directory for Anthropic-style skills and returns a deduplicated
- * catalog of {@code {name, path, directory, description}}.
+ * Scans a working directory for Anthropic-style skills and returns a
+ * deduplicated catalog of {@code {name, path, directory, description}}.
  *
- * <p>This is the single reusable home for the discovery logic that used to live inside
- * the {@code Agent_Tools} {@code ListSkill} reactor. Under each base folder (root,
- * {@code client/}, {@code java/}, {@code py/}) it checks {@code .skills/},
- * {@code .agents/skills/}, {@code .agents/skill/}, {@code .claude/skills/}, and
- * {@code .claude/skill/} for a {@code <name>/SKILL.md}. Skills are deduplicated by folder
- * name with the same first-match-wins precedence as the {@code LoadSkill} tool.
+ * <p>
+ * This is the single reusable home for the discovery logic that used to live
+ * inside the {@code Agent_Tools} {@code ListSkill} reactor. Under each base
+ * folder (root, {@code client/}, {@code java/}, {@code py/}) it checks
+ * {@code .skills/}, {@code .agents/skills/}, {@code .agents/skill/},
+ * {@code .claude/skills/}, and {@code .claude/skill/} for a
+ * {@code <name>/SKILL.md}. Skills are deduplicated by folder name with the same
+ * first-match-wins precedence as the {@code LoadSkill} tool.
  *
- * <p>Two consumers render the same catalog differently: the SEMOSS harness
- * default {@code ListSkill} tool emits a markdown tool result, while
+ * <p>
+ * Two consumers render the same catalog differently: the SEMOSS harness default
+ * {@code ListSkill} tool emits a markdown tool result, while
  * {@link prerna.reactor.agent.runtime.SemossAgentHarness} emits an
  * {@code <available_skills>} system-prompt block. Registry skills are
  * materialized into the working directory by {@link SkillStager} before this
  * scan runs, so both paths agree on what is available.
  *
- * <p>Paths are canonicalized with forward slashes and reported relative to the
+ * <p>
+ * Paths are canonicalized with forward slashes and reported relative to the
  * working directory.
  */
 public final class SkillScanner {
 
 	private static final int DESCRIPTION_PREVIEW_BYTES = 4 * 1024;
-	private static final int DESCRIPTION_MAX_CHARS     = 200;
+	private static final int DESCRIPTION_MAX_CHARS = 200;
 
 	/** Base folders searched for skills, in priority order - first match wins. */
-	public static final String[] SKILL_BASE_DIRS = {
-			"",
-			"client",
-			"java",
-			"py"
-	};
+	public static final String[] SKILL_BASE_DIRS = { "", "client", "java", "py" };
 
 	/**
-	 * Skill host folders checked under each base folder. Plural paths come first to match
-	 * existing rooms; singular aliases follow for users who naturally create
+	 * Skill host folders checked under each base folder. Plural paths come first to
+	 * match existing rooms; singular aliases follow for users who naturally create
 	 * {@code .agents/skill} or {@code .claude/skill}.
 	 */
-	public static final String[] SKILL_HOST_DIRS = {
-			".skills",
-			".agents/skills",
-			".agents/skill",
-			".claude/skills",
-			".claude/skill"
-	};
+	public static final String[] SKILL_HOST_DIRS = { ".skills", ".agents/skills", ".agents/skill", ".claude/skills",
+			".claude/skill" };
 
-	private SkillScanner() {}
+	private SkillScanner() {
+	}
 
 	/**
-	 * Discovers every skill under the conventional host directories of {@code workingDir},
-	 * deduplicated by name (first-match-wins). Returns an empty list when {@code workingDir}
-	 * is blank or no skills are present. Never throws - unreadable entries are skipped.
+	 * Discovers every skill under the conventional host directories of
+	 * {@code workingDir}, deduplicated by name (first-match-wins). Returns an empty
+	 * list when {@code workingDir} is blank or no skills are present. Never throws
+	 * - unreadable entries are skipped.
 	 *
-	 * @param workingDir the agent's working directory (the same path {@link SkillStager}
-	 *                   stages into)
+	 * @param workingDir the agent's working directory (the same path
+	 *                   {@link SkillStager} stages into)
 	 */
 	public static List<DiscoveredSkill> scan(String workingDir) {
 		return scan(workingDir, false);
 	}
 
 	/**
-	 * Variant of {@link #scan(String)} that optionally also reads each skill's body content
-	 * (everything after the YAML frontmatter; the whole file when there is no frontmatter) into
-	 * {@link DiscoveredSkill#getContent()}. When {@code includeContent} is {@code false} no
-	 * full-file read is performed and the content is left {@code null}.
+	 * Variant of {@link #scan(String)} that optionally also reads each skill's body
+	 * content (everything after the YAML frontmatter; the whole file when there is
+	 * no frontmatter) into {@link DiscoveredSkill#getContent()}. When
+	 * {@code includeContent} is {@code false} no full-file read is performed and
+	 * the content is left {@code null}.
 	 *
-	 * @param workingDir     the agent's working directory (the same path {@link SkillStager} stages into)
+	 * @param workingDir     the agent's working directory (the same path
+	 *                       {@link SkillStager} stages into)
 	 * @param includeContent whether to also read each skill's body content
 	 */
 	public static List<DiscoveredSkill> scan(String workingDir, boolean includeContent) {
@@ -113,11 +111,12 @@ public final class SkillScanner {
 	}
 
 	/**
-	 * Variant of {@link #scan(String, boolean)} that, when {@code includeAll} is {@code true}, also
-	 * crawls every other file under each skill's directory into {@link DiscoveredSkill#getFiles()}
-	 * (each file's path/directory relative to the working directory, with full content).
-	 * {@code includeAll} implies content: each {@link DiscoveredSkill#getContent()} is populated
-	 * regardless of {@code includeContent}.
+	 * Variant of {@link #scan(String, boolean)} that, when {@code includeAll} is
+	 * {@code true}, also crawls every other file under each skill's directory into
+	 * {@link DiscoveredSkill#getFiles()} (each file's path/directory relative to
+	 * the working directory, with full content). {@code includeAll} implies
+	 * content: each {@link DiscoveredSkill#getContent()} is populated regardless of
+	 * {@code includeContent}.
 	 *
 	 * @param workingDir     the agent's working directory
 	 * @param includeContent whether to read each skill's SKILL.md body
@@ -151,7 +150,7 @@ public final class SkillScanner {
 						continue;
 					}
 					String relPath = toRelative(root, skillMd.getAbsolutePath());
-					String relDir  = toRelative(root, child.getAbsolutePath());
+					String relDir = toRelative(root, child.getAbsolutePath());
 					String description = readDescription(skillMd);
 					boolean readContent = includeContent || includeAll;
 					String content = readContent ? readBody(skillMd) : null;
@@ -165,8 +164,8 @@ public final class SkillScanner {
 	}
 
 	/**
-	 * The relative host paths {@link #scan} probes, in scan order (every base x host
-	 * combination). Useful for "no skills found, checked: ..." diagnostics.
+	 * The relative host paths {@link #scan} probes, in scan order (every base x
+	 * host combination). Useful for "no skills found, checked: ..." diagnostics.
 	 */
 	public static List<String> candidateHostPaths() {
 		List<String> paths = new ArrayList<>(SKILL_BASE_DIRS.length * SKILL_HOST_DIRS.length);
@@ -180,9 +179,13 @@ public final class SkillScanner {
 
 	// ---- path helpers ----
 
-	/** Normalizes a filesystem path: canonical, forward slashes, no trailing slash. */
+	/**
+	 * Normalizes a filesystem path: canonical, forward slashes, no trailing slash.
+	 */
 	private static String normalizePath(String path) {
-		if (path == null) return "";
+		if (path == null) {
+			return "";
+		}
 		try {
 			String normalized = new File(path).getCanonicalPath().replace("\\", "/");
 			if (normalized.endsWith("/") && normalized.length() > 1) {
@@ -194,7 +197,10 @@ public final class SkillScanner {
 		}
 	}
 
-	/** Returns {@code absolutePath} relative to {@code root}, or the normalized absolute path if outside. */
+	/**
+	 * Returns {@code absolutePath} relative to {@code root}, or the normalized
+	 * absolute path if outside.
+	 */
 	private static String toRelative(String root, String absolutePath) {
 		String normalized = normalizePath(absolutePath);
 		if (normalized.startsWith(root + "/")) {
@@ -207,11 +213,16 @@ public final class SkillScanner {
 	}
 
 	private static String joinHostPath(String baseDir, String hostDir) {
-		if (baseDir == null || baseDir.isEmpty()) return hostDir;
+		if (baseDir == null || baseDir.isEmpty()) {
+			return hostDir;
+		}
 		return baseDir + "/" + hostDir;
 	}
 
-	/** Reads the head of SKILL.md and pulls a one-liner from frontmatter or the first body line. */
+	/**
+	 * Reads the head of SKILL.md and pulls a one-liner from frontmatter or the
+	 * first body line.
+	 */
 	private static String readDescription(File skillMd) {
 		try {
 			byte[] bytes;
@@ -253,10 +264,14 @@ public final class SkillScanner {
 			for (int i = inFrontmatter ? 1 : 0; i < lines.length; i++) {
 				String trimmed = lines[i].trim();
 				if (!closedFrontmatter) {
-					if ("---".equals(trimmed)) closedFrontmatter = true;
+					if ("---".equals(trimmed)) {
+						closedFrontmatter = true;
+					}
 					continue;
 				}
-				if (trimmed.isEmpty()) continue;
+				if (trimmed.isEmpty()) {
+					continue;
+				}
 				if (trimmed.startsWith("#")) {
 					if (!sawH1 && trimmed.startsWith("# ")) {
 						sawH1 = true;
@@ -273,16 +288,21 @@ public final class SkillScanner {
 	}
 
 	private static String clip(String s) {
-		if (s == null) return "";
-		if (s.length() <= DESCRIPTION_MAX_CHARS) return s;
+		if (s == null) {
+			return "";
+		}
+		if (s.length() <= DESCRIPTION_MAX_CHARS) {
+			return s;
+		}
 		return s.substring(0, DESCRIPTION_MAX_CHARS - 1) + "...";
 	}
 
 	/**
-	 * Reads the full body of SKILL.md - everything after the closing {@code ---} of the YAML
-	 * frontmatter, or the entire file when there is no frontmatter. Leading blank lines after the
-	 * frontmatter are dropped and trailing whitespace trimmed. Returns {@code ""} on read failure
-	 * or when the frontmatter is opened but never closed.
+	 * Reads the full body of SKILL.md - everything after the closing {@code ---} of
+	 * the YAML frontmatter, or the entire file when there is no frontmatter.
+	 * Leading blank lines after the frontmatter are dropped and trailing whitespace
+	 * trimmed. Returns {@code ""} on read failure or when the frontmatter is opened
+	 * but never closed.
 	 */
 	private static String readBody(File skillMd) {
 		try {
@@ -322,12 +342,14 @@ public final class SkillScanner {
 	}
 
 	/**
-	 * Crawls every file under {@code skillDir} (recursively, excluding the top-level {@code SKILL.md},
-	 * which is already exposed via {@link DiscoveredSkill#getContent()}) into a list of
-	 * {@link SkillFile}s. Each file's {@link SkillFile#getPath()} and {@link SkillFile#getDirectory()}
-	 * are relative to the working directory {@code root} (forward slashes), mirroring the top-level
-	 * skill fields; content is the full UTF-8 file. Directories are not emitted on their own, so a
-	 * genuinely empty directory is not represented. Best-effort; symlinks are not followed.
+	 * Crawls every file under {@code skillDir} (recursively, excluding the
+	 * top-level {@code SKILL.md}, which is already exposed via
+	 * {@link DiscoveredSkill#getContent()}) into a list of {@link SkillFile}s. Each
+	 * file's {@link SkillFile#getPath()} and {@link SkillFile#getDirectory()} are
+	 * relative to the working directory {@code root} (forward slashes), mirroring
+	 * the top-level skill fields; content is the full UTF-8 file. Directories are
+	 * not emitted on their own, so a genuinely empty directory is not represented.
+	 * Best-effort; symlinks are not followed.
 	 */
 	private static List<SkillFile> crawlFiles(File skillDir, String root) {
 		List<SkillFile> files = new ArrayList<>();
@@ -337,14 +359,14 @@ public final class SkillScanner {
 				if (p.equals(skillRoot) || Files.isDirectory(p)) {
 					return;
 				}
-				// skip the main SKILL.md at the skill-folder root - it is already in getContent()
-				if (Skill.SKILL_FILE.equals(p.getFileName().toString())
-						&& skillRoot.equals(p.getParent())) {
+				// skip the main SKILL.md at the skill-folder root - it is already in
+				// getContent()
+				if (Skill.SKILL_FILE.equals(p.getFileName().toString()) && skillRoot.equals(p.getParent())) {
 					return;
 				}
 				File f = p.toFile();
 				String filePath = toRelative(root, f.getAbsolutePath());
-				String fileDir  = toRelative(root, f.getParentFile().getAbsolutePath());
+				String fileDir = toRelative(root, f.getParentFile().getAbsolutePath());
 				files.add(new SkillFile(filePath, fileDir, readFile(f)));
 			});
 		} catch (Exception e) {
@@ -363,9 +385,9 @@ public final class SkillScanner {
 	}
 
 	/**
-	 * A skill discovered on disk. {@link #getPath()} is the working-dir-relative path to the
-	 * skill's {@code SKILL.md}; {@link #getDirectory()} is the relative path to its containing
-	 * folder (e.g. {@code .claude/skills/pdf}).
+	 * A skill discovered on disk. {@link #getPath()} is the working-dir-relative
+	 * path to the skill's {@code SKILL.md}; {@link #getDirectory()} is the relative
+	 * path to its containing folder (e.g. {@code .claude/skills/pdf}).
 	 */
 	public static final class DiscoveredSkill {
 		private final String name;
@@ -393,20 +415,43 @@ public final class SkillScanner {
 			this.files = files;
 		}
 
-		public String getName()        { return name; }
-		public String getPath()        { return path; }
-		public String getDirectory()   { return directory; }
-		public String getDescription() { return description; }
-		/** Body content - everything after the frontmatter; {@code null} when not requested. */
-		public String getContent()     { return content; }
-		/** Other files under the skill directory; {@code null} when not requested (includeAll). */
-		public List<SkillFile> getFiles() { return files; }
+		public String getName() {
+			return name;
+		}
+
+		public String getPath() {
+			return path;
+		}
+
+		public String getDirectory() {
+			return directory;
+		}
+
+		public String getDescription() {
+			return description;
+		}
+
+		/**
+		 * Body content - everything after the frontmatter; {@code null} when not
+		 * requested.
+		 */
+		public String getContent() {
+			return content;
+		}
+
+		/**
+		 * Other files under the skill directory; {@code null} when not requested
+		 * (includeAll).
+		 */
+		public List<SkillFile> getFiles() {
+			return files;
+		}
 	}
 
 	/**
-	 * A file discovered under a skill directory by {@code includeAll}. {@link #getPath()} and
-	 * {@link #getDirectory()} are relative to the working directory (forward slashes), mirroring the
-	 * top-level skill fields.
+	 * A file discovered under a skill directory by {@code includeAll}.
+	 * {@link #getPath()} and {@link #getDirectory()} are relative to the working
+	 * directory (forward slashes), mirroring the top-level skill fields.
 	 */
 	public static final class SkillFile {
 		private final String path;
@@ -419,8 +464,16 @@ public final class SkillScanner {
 			this.content = content;
 		}
 
-		public String getPath()      { return path; }
-		public String getDirectory() { return directory; }
-		public String getContent()   { return content; }
+		public String getPath() {
+			return path;
+		}
+
+		public String getDirectory() {
+			return directory;
+		}
+
+		public String getContent() {
+			return content;
+		}
 	}
 }

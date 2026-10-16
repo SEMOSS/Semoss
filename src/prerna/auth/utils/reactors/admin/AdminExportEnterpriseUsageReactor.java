@@ -91,11 +91,14 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AdminExportEnterpriseUsageReactor.class);
 
-	private static final String NOTES = "Requests Count INPUT Rows; Token Totals Sum Recorded INPUT And RESPONSE Token Counts. "
-			+ "Raw Latency Is In Milliseconds. Cache And Thinking Tokens Are Provider-Reported Detail, Not Additional Total Tokens. "
-			+ "Activity Events Are Separate From Model Requests. Missing Values Are Unavailable. "
-			+ "Coverage Depends On Enabled Logging And Retention. No Message Bodies Or Billed Spend Are Included. "
-			+ "When Period Lengths Differ, Volume Comparisons Use Daily Averages; Distinct Counts Are Not Normalized.";
+	private static final String NOTES = """
+			Requests Count INPUT Rows; Token Totals Sum Recorded INPUT And RESPONSE Token Counts. \
+			Raw Latency Is In Milliseconds. Cache And Thinking Tokens Are Provider-Reported Detail, \
+			Not Additional Total Tokens. Activity Events Are Separate From Model Requests. \
+			Audit Logs List Access Changes, Denied Requests And Usage Limit Changes, In UTC, \
+			Without Their Old Or New Values Or Denial Reasons. Missing Values Are Unavailable. \
+			Coverage Depends On Enabled Logging And Retention. No Message Bodies Or Billed Spend Are Included. \
+			When Period Lengths Differ, Volume Comparisons Use Daily Averages; Distinct Counts Are Not Normalized.""";
 
 	public AdminExportEnterpriseUsageReactor() {
 		this.keysToGet = new String[] { "source", "view", "format", "startDate", "endDate", "user", "app", "model",
@@ -126,6 +129,9 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Unsupported Export Format Or View");
 			}
 			Source source = EnterpriseUsageUtils.option(Source.class, keyValue.getOrDefault("source", "model"));
+			if (source == Source.AUDIT && !view.equals("logs")) {
+				throw new IllegalArgumentException("Audit Exports Include The Change Log Only");
+			}
 			keyValue.put("format", format);
 			keyValue.put("view", view);
 			keyValue.put("source", source.name().toLowerCase(Locale.ROOT));

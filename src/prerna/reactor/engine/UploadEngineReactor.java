@@ -60,6 +60,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
@@ -334,7 +337,8 @@ public class UploadEngineReactor extends AbstractReactor {
 								}.getType());
 						SecurityModelMetadataUtils.restoreModelMetadata(engineId, modelMetadata);
 					} catch (Exception e) {
-						classLogger.error("Failed to apply the model metadata for engine {}. The engine is uploaded without it",
+						classLogger.error(
+								"Failed to apply the model metadata for engine {}. The engine is uploaded without it",
 								Utility.cleanLogString(engineId), e);
 					}
 					modelMetadataFile.delete();
@@ -371,6 +375,8 @@ public class UploadEngineReactor extends AbstractReactor {
 		}
 
 		ClusterUtil.pushEngine(engineId);
+		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_CREATE,
+				AuditTargetType.ofEngine(engineType), engineId, engineName, Map.of("global", global));
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), engineId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);

@@ -78,6 +78,8 @@ import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.parser.ParserException;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -1379,11 +1381,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						.add(PermissionSubject.ofUser(newUserId, null), new PermissionGrant(permission, endDate))),
 				PermissionBatchOptions.userMode(),
 				new PermissionErrorRules(endDate)
-						.illegalArgument(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						.illegalArgument(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 								"This user already has access to this insight. Please edit the existing permission level.")
-						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding user permissions for this insight"));
 	}
 
@@ -1406,11 +1408,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						PermissionSubject.ofUser(existingUserId, null), new PermissionGrant(newPermission, endDate))),
 				PermissionBatchOptions.userMode(),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.Code.NO_ACCESS, NO_ACCESS)
-						.illegalAccess(PermissionProblem.Code.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
-						.illegalAccess(PermissionProblem.Code.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS, NO_ACCESS)
+						.illegalAccess(PermissionProblem.ErrorCode.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
+						.illegalAccess(PermissionProblem.ErrorCode.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred updating the user permissions for this insight"));
 	}
 
@@ -1432,15 +1434,15 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				PermissionBatchUtils.peopleChanges(PermissionChange.Action.CHANGE, requests, endDate),
 				PermissionBatchOptions.userMode(),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.Code.NO_PERMISSION,
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION,
 								"Insufficient privileges to modify insight permissions.")
-						.illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+						.illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
 								"Attempting to modify user permission for the following users who do not currently have access to the insight: ")
-						.illegalArgument(PermissionProblem.Code.CHANGES_AUTHOR,
+						.illegalArgument(PermissionProblem.ErrorCode.CHANGES_AUTHOR,
 								"As a non-owner, you cannot edit access of an owner.")
-						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR,
+						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR,
 								"As a non-owner, you cannot give a user access as an owner.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred updating the user permissions for this insight"));
 	}
 
@@ -1459,10 +1461,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.insight(projectId, insightId),
 				List.of(PermissionChange.remove(PermissionSubject.ofUser(existingUserId, null))),
 				PermissionBatchOptions.userMode(),
-				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.Code.NO_ACCESS, NO_ACCESS)
-						.illegalAccess(PermissionProblem.Code.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules()
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS, NO_ACCESS)
+						.illegalAccess(PermissionProblem.ErrorCode.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing the user permissions for this insight"));
 	}
 
@@ -2709,12 +2712,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				PermissionBatchUtils.peopleChanges(PermissionChange.Action.ADD, permission, endDate),
 				PermissionBatchOptions.userMode(),
 				new PermissionErrorRules(endDate)
-						.illegalArgument(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgumentWithIds(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						.illegalArgument(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 								"The following users already have access to this insight. Please edit the existing permission level: ")
-						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR,
+						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR,
 								"As a non-owner, you cannot add owner user access.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding user permissions for this insight"));
 	}
 
@@ -2733,12 +2736,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.insight(projectId, insightId),
 				PermissionChange.forPeople(PermissionChange.Action.REMOVE, existingUserIds, null),
 				PermissionBatchOptions.userMode(),
-				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules()
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
 								"Attempting to modify user permission for the following users who do not currently have access to the insight: ")
-						.illegalArgument(PermissionProblem.Code.CHANGES_AUTHOR,
+						.illegalArgument(PermissionProblem.ErrorCode.CHANGES_AUTHOR,
 								"As a non-owner, you cannot remove access of an owner.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing the user permissions for this insight"));
 	}
 
@@ -2764,6 +2768,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight");
 		}
+		UserAuditTrailUtils.recordExpiredPermissionRemoval(AuditTargetType.INSIGHT, insightId, projectId, null,
+				insightId, userId);
 	}
 
 	/**
@@ -2785,7 +2791,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		PermissionTargetResource target = PermissionTargetResource.insight(projectId, insightId);
 		PermissionBatchUtils.saveChanges(user, target, PermissionBatchUtils.approvalChanges(target, requests, endDate),
 				PermissionBatchOptions.userMode().approving(target, requests),
-				PermissionErrorRules.forApprovals(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION,
+				PermissionErrorRules.forApprovals(endDate).illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION,
 						"Insufficient privileges to modify this project's permissions."));
 	}
 
@@ -2805,11 +2811,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.denyRequests(user, PermissionTargetResource.insight(projectId, insightId), requestIdList,
 				PermissionBatchOptions.userMode(),
 				new PermissionErrorRules()
-						.illegalAccess(PermissionProblem.Code.NO_PERMISSION,
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION,
 								"Insufficient privileges to modify insight permissions.")
-						.illegalArgument(PermissionProblem.Code.OWNERS_ONLY,
+						.illegalArgument(PermissionProblem.ErrorCode.OWNERS_ONLY,
 								"Insufficient privileges to deny user access requests.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred while updating user access request"));
 	}
 

@@ -60,6 +60,6 @@ public class AdminGetEnterpriseUsageReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Administrator-only enterprise usage summary, daily trends, latency, feedback, rankings, or paginated metadata from model/activity logs. Dates are inclusive; filters match name/ID fragments or =exact IDs. No SQL input is accepted.";
+		return "Administrator-only enterprise usage summary, daily trends, latency, feedback, rankings, or paginated metadata from model/activity logs, or a summary and paginated metadata of the audit trail's access changes, denied requests and usage limit changes. Dates are inclusive; filters match name/ID fragments or =exact IDs. No SQL input is accepted.";
 	}
 }

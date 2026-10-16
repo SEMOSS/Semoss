@@ -697,7 +697,7 @@ public abstract class AbstractSecurityUtils {
 			final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 			final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 			final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
-			final String DOBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
+			final String VARCHAR_20 = "VARCHAR(20)";
 			final String VARCHAR_255 = "VARCHAR(255)";
 			final String VARCHAR_500 = "VARCHAR(500)";
 
@@ -965,14 +965,108 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(sql);
 			}
 
+			// MODELUSAGELIMIT
+			// one row for each source that has a model usage limit defined, with its rules
+			// in MODELUSAGELIMITRULE; made before ENGINEPERMISSION and SMSS_USER, whose old
+			// limit columns are copied into it
+			colNames = new String[] { "ID", "ENGINEID", "LIMITTYPE", "SUBJECTID", "SUBJECTTYPE", "UNLIMITED",
+					"DATEADDED", "ADDEDBYID", "ADDEDBYTYPE", "DATEMODIFIED", "MODIFIEDBYID", "MODIFIEDBYTYPE" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_20, VARCHAR_255, VARCHAR_255,
+					BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME,
+					VARCHAR_255, VARCHAR_255 };
+			{
+				Object[] constraints = new Object[colNames.length];
+				constraints[0] = "PRIMARY KEY";
+				if (allowIfExistsTable) {
+					String sql = queryUtil.createTableIfNotExistsWithCustomConstraints("MODELUSAGELIMIT", colNames,
+							types, constraints);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				} else if (!queryUtil.tableExists(conn, "MODELUSAGELIMIT", database, schema)) {
+					String sql = queryUtil.createTableWithCustomConstraints("MODELUSAGELIMIT", colNames, types,
+							constraints);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "MODELUSAGELIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("MODELUSAGELIMIT", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			{
+				// SUBJECTTYPE is left out, so the key fits the 3072 bytes MySQL allows an
+				// index with utf8mb4; the three columns find a key's rows already
+				List<String> indexColumns = List.of("ENGINEID", "LIMITTYPE", "SUBJECTID");
+				if (allowIfExistsIndexs) {
+					String sql = queryUtil.createIndexIfNotExists("MODELUSAGELIMIT_SUBJECT_INDEX", "MODELUSAGELIMIT",
+							indexColumns);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				} else if (!queryUtil.indexExists(securityDb, "MODELUSAGELIMIT_SUBJECT_INDEX", "MODELUSAGELIMIT",
+						database, schema)) {
+					String sql = queryUtil.createIndex("MODELUSAGELIMIT_SUBJECT_INDEX", "MODELUSAGELIMIT",
+							indexColumns);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+
+			// MODELUSAGELIMITRULE
+			// the rules of a model usage limit; LIMITWINDOW, since WINDOW is a reserved
+			// word
+			// in postgres; WINDOWLENGTH is how many minutes or hours a minute or hour
+			// window
+			// is, null for 1
+			colNames = new String[] { "LIMITID", "METRIC", "AMOUNT", "LIMITWINDOW", "WINDOWLENGTH", "COUNTS" };
+			types = new String[] { VARCHAR_255, VARCHAR_20, "BIGINT", VARCHAR_20, INTEGER_DATATYPE_NAME, VARCHAR_20 };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("MODELUSAGELIMITRULE", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else if (!queryUtil.tableExists(conn, "MODELUSAGELIMITRULE", database, schema)) {
+				String sql = queryUtil.createTable("MODELUSAGELIMITRULE", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "MODELUSAGELIMITRULE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("MODELUSAGELIMITRULE", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("MODELUSAGELIMITRULE_LIMITID_INDEX",
+						"MODELUSAGELIMITRULE", "LIMITID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else if (!queryUtil.indexExists(securityDb, "MODELUSAGELIMITRULE_LIMITID_INDEX", "MODELUSAGELIMITRULE",
+					database, schema)) {
+				String sql = queryUtil.createIndex("MODELUSAGELIMITRULE_LIMITID_INDEX", "MODELUSAGELIMITRULE",
+						"LIMITID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			}
+
 			// ENGINEPERMISSION
 			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "PERMISSIONGRANTEDBY",
-					"PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE", "USAGERESTRICTION", "MAXTOKENS",
-					"MAXRESPONSETIME", "USAGEFREQUENCY" };
+					"PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
 			types = new String[] { VARCHAR_255, INTEGER_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255,
-					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, INTEGER_DATATYPE_NAME,
-					DOBLE_DATATYPE_NAME, VARCHAR_255 };
-			defaultValues = new Object[] { null, null, null, null, null, null, null, null, null, null, null };
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+			defaultValues = new Object[] { null, null, null, null, null, null, null };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types,
 						defaultValues);
@@ -1023,6 +1117,10 @@ public abstract class AbstractSecurityUtils {
 						securityDb.insertData(dropColumnSql);
 					}
 				}
+				// a person's limits on models move from the four limit columns to
+				// MODELUSAGELIMIT
+				moveModelUsageLimitColumns(securityDb, conn, "ENGINEPERMISSION", allCols, allowIfExistsIndexs, database,
+						schema);
 			}
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION",
@@ -1897,13 +1995,11 @@ public abstract class AbstractSecurityUtils {
 			// SMSS_USER
 			colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", "ADMIN",
 					"PUBLISHER", "EXPORTER", "DATECREATED", "LASTLOGIN", "LASTPASSWORDRESET", "LOCKED", "PHONE",
-					"PHONEEXTENSION", "COUNTRYCODE", "MODELUSAGERESTRICTION", "MODELMAXTOKENS", "MODELMAXRESPONSETIME",
-					"MODELUSAGEFREQUENCY" };
+					"PHONEEXTENSION", "COUNTRYCODE" };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255,
 					VARCHAR_255, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
 					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, INTEGER_DATATYPE_NAME, DOBLE_DATATYPE_NAME,
-					VARCHAR_255 };
+					VARCHAR_255, VARCHAR_255, VARCHAR_255 };
 			// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
 			// but some rdbms types (postgres) does not allow it
 			// so i am going ahead and moving over user to smss_user
@@ -1939,7 +2035,15 @@ public abstract class AbstractSecurityUtils {
 						securityDb.insertData(addColumnSql);
 					}
 				}
+				// a person's all-models default moves from the four limit columns to
+				// MODELUSAGELIMIT, with their login type
+				moveModelUsageLimitColumns(securityDb, conn, "SMSS_USER", smssUserCols, allowIfExistsIndexs, database,
+						schema);
 			}
+			// a person's limit on a model is kept with their login type, though
+			// ENGINEPERMISSION keeps only the user id; the limits kept with none get it
+			// from SMSS_USER where the user id has one login
+			SecurityModelUsageLimitUtils.fillDirectLimitLoginTypes(securityDb);
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("SMSS_USER_ID_INDEX", "SMSS_USER", "ID");
 				classLogger.info("Running sql {}", sql);
@@ -2054,6 +2158,9 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			}
+			// every membership has a date, which orders the teams a person's model calls
+			// are billed to
+			setMissingDatesAdded(securityDb, "CUSTOMGROUPASSIGNMENT");
 
 			// GROUP MANAGERS TABLE
 			// the users who manage the members of a custom group
@@ -2121,6 +2228,10 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			}
+			// every team grant has a date, which orders the teams a person's model calls
+			// are
+			// billed to
+			setMissingDatesAdded(securityDb, "GROUPENGINEPERMISSION");
 
 			// GROUP PROJECT PERMISSION
 			// TODO::: look into how we want to allow user hiding of projects that are
@@ -2872,8 +2983,8 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			}
-			if (allowIfExistsIndexs
-					|| !queryUtil.indexExists(securityDb, "IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL", database, schema)) {
+			if (allowIfExistsIndexs || !queryUtil.indexExists(securityDb, "IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL",
+					database, schema)) {
 				String sql = allowIfExistsIndexs
 						? queryUtil.createIndexIfNotExists("IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL", "USER_ID")
 						: queryUtil.createIndex("IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL", "USER_ID");
@@ -2934,6 +3045,37 @@ public abstract class AbstractSecurityUtils {
 			if (conn != null && securityDb.isConnectionPooling()) {
 				conn.close();
 			}
+		}
+	}
+
+	/**
+	 * Moves the model usage limits a security database from before MODELUSAGELIMIT
+	 * keeps in a table's four limit columns, through the deprecated
+	 * {@link ModelUsageLimitColumnMigration}, which is safe when several servers
+	 * start at the same time.
+	 *
+	 * @param table ENGINEPERMISSION or SMSS_USER
+	 */
+	@SuppressWarnings("deprecation")
+	private static void moveModelUsageLimitColumns(IRDBMSEngine securityDb, Connection conn, String table,
+			List<String> columns, boolean allowIfExistsIndexs, String database, String schema) throws Exception {
+		ModelUsageLimitColumnMigration.move(securityDb, conn, table, columns, allowIfExistsIndexs, database, schema);
+	}
+
+	/**
+	 * Gives the rows of a team table with no DATEADDED the current UTC time, so
+	 * every team grant and membership has a place in the order a person's model
+	 * calls are billed to their teams.
+	 *
+	 * @param securityDb the security database
+	 * @param table      GROUPENGINEPERMISSION or CUSTOMGROUPASSIGNMENT
+	 */
+	private static void setMissingDatesAdded(IRDBMSEngine securityDb, String table) throws Exception {
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+		int updated = QueryExecutionUtility.executeUpdate(securityDb,
+				"UPDATE " + table + " SET DATEADDED = ? WHERE DATEADDED IS NULL", ps -> ps.setTimestamp(1, now));
+		if (updated > 0) {
+			classLogger.info("Set DATEADDED on {} rows of {} that had none", updated, table);
 		}
 	}
 
@@ -3151,6 +3293,8 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
+	 * Whether an engine with this name exists in the security database. Also true
+	 * when ignoreDatabase leaves the name out of security.
 	 * 
 	 * @param engineName
 	 * @return
@@ -3177,6 +3321,7 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
+	 * Whether a project with this name exists in the security database.
 	 * 
 	 * @param projectName
 	 * @return
@@ -3781,6 +3926,9 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
+	 * The sanitized ids of the teams the user is in across all their logins: each
+	 * login's provider teams from its access token plus the custom teams it is
+	 * assigned to, for use as query filter values.
 	 * 
 	 * @param user
 	 * @return
@@ -3851,6 +3999,8 @@ public abstract class AbstractSecurityUtils {
 	////////////////////////////////////////////////////////////////////////
 
 	/**
+	 * Checks that the email is well formed and, for a new user, that no account
+	 * uses it yet. Throws IllegalArgumentException when a check fails.
 	 * 
 	 * @param email
 	 * @param isNewUser
@@ -3866,6 +4016,8 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
+	 * Checks that the password is not empty, meets the password requirements, and
+	 * is not one of the user's recent passwords. Throws when a check fails.
 	 * 
 	 * @param userId
 	 * @param type
@@ -3883,6 +4035,9 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
+	 * Checks a phone number and strips it to its digits. It may hold only digits,
+	 * spaces, dots, parentheses and dashes, and must have 8 to 12 digits; a null or
+	 * empty number comes back as is.
 	 * 
 	 * @param phone
 	 * @return
@@ -3903,6 +4058,7 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
+	 * Checks that the username is not empty and is not taken yet.
 	 * 
 	 * @param username
 	 * @throws IllegalArgumentException

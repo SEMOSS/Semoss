@@ -47,6 +47,7 @@ public class SemossLogUtils {
 	public static final String METHOD = "method";
 	public static final String ENDPOINT = "endpoint";
 	public static final String HOST = "host";
+	public static final String USER_AGENT = "userAgent";
 
 	public static final String IS_SUCCESS = "isSuccess";
 	public static final String FILTER_NAME = "filterName";
