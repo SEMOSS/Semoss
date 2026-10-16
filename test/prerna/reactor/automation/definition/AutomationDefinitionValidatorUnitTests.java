@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.automation.definition;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -121,11 +122,63 @@ public class AutomationDefinitionValidatorUnitTests {
 		return AutomationRuntimeUtils.GSON.toJson(definition);
 	}
 
+	@Test
+	void validatesCleanSourcesColumnsAndPurgeFilters() {
+		for (String operation : List.of("trim", "replace", "filterEmpty", "imputeNulls", "dropColumn")) {
+			Map<String, Object> config = new LinkedHashMap<>();
+			config.put("source", "${table}");
+			config.put("operation", operation);
+			config.put("columns", List.of("NAME"));
+			assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+					definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS, config))));
+			Map<String, Object> missingSource = new LinkedHashMap<>(config);
+			missingSource.put("source", "table");
+			assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+					definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS, missingSource))));
+			Map<String, Object> missingColumns = new LinkedHashMap<>(config);
+			missingColumns.put("columns", List.of());
+			assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+					definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS, missingColumns))));
+		}
+		assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "removeDuplicates")))));
+		assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "purge", "filters",
+						List.of(Map.of("column", "AGE", "operator", ">=", "value", 18)))))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "purge", "filters", List.of())))));
+		assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "changeType", "column", "AGE", "dataType", "DOUBLE")))));
+		assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "renameColumn", "column", "AGE", "newColumn", "AGE_YEARS")))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "changeType", "column", "AGE", "dataType", "INVALID")))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "changeType", "column", "AGE", "dataType", "INT")))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "renameColumn", "column", "AGE", "newColumn", "AGE YEARS")))));
+	}
+
 	private static Map<String, Object> databaseConfig(String query) {
+
 		Map<String, Object> config = new LinkedHashMap<>();
 		config.put("engineId", "engine-1");
 		config.put("query", query);
 		return config;
+	}
+
+	@Test
+	void validatesPurgeMembershipListsBeforeSaving() {
+		for (String comparator : List.of("==", "!=")) {
+			assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+					workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "purge", "filters", List.of(Map.of("column", "ID", "operator", comparator, "value", java.util.Arrays.asList(1, 2, null))))))));
+		}
+		for (Object value : List.of(List.of(), List.of(List.of(1)), java.util.Collections.nCopies(101, 1))) {
+			assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+					workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "purge", "filters", List.of(Map.of("column", "ID", "operator", "==", "value", value)))))));
+		}
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "purge", "filters", List.of(Map.of("column", "ID", "operator", ">", "value", List.of(1, 2))))))));
 	}
 
 	private static Map<String, Object> databaseQueryConfig() {

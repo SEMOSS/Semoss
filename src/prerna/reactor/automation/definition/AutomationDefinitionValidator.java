@@ -288,6 +288,7 @@ public final class AutomationDefinitionValidator {
 			validateOptionalConfigString(nodeId, config, "version");
 		}
 		case DATA_EXTRACT -> validateDataExtractConfig(nodeId, config);
+		case CLEAN_PROCESS -> validateCleanProcessConfig(nodeId, config);
 		case VECTOR_SEARCH -> {
 			requireConfigString(nodeId, config, "value");
 			validateOptionalConfigObject(nodeId, config, "filters");
@@ -319,6 +320,66 @@ public final class AutomationDefinitionValidator {
 		case TRIGGER_START, DEVELOPER_PYTHON -> {
 			// These node types have no additional required configuration here.
 		}
+		}
+	}
+
+	private static void validateCleanProcessConfig(String nodeId, Map<String, Object> config) {
+		requireConfigString(nodeId, config, "operation");
+		AutomationCleanOperation operation = AutomationCleanOperation.fromValue((String) config.get("operation"));
+		validateCleanConfig(nodeId, operation, config);
+	}
+
+	private static void validateCleanConfig(String nodeId, AutomationCleanOperation type, Map<String, Object> config) {
+		requireConfigString(nodeId, config, "source");
+		if (!isScopePlaceholder(((String) config.get("source")).trim())) {
+			throw new IllegalArgumentException("Clean node '" + nodeId + "' source must be an exact upstream table reference.");
+		}
+		if (type == AutomationCleanOperation.PURGE) {
+			if (!(config.get("filters") instanceof List<?> filters) || filters.isEmpty() || filters.size() > 100) {
+				throw new IllegalArgumentException("Clean node '" + nodeId + "' requires 1 to 100 row filters.");
+			}
+			for (Object item : filters) {
+				if (!(item instanceof Map<?, ?> filter) || !(filter.get("column") instanceof String column)
+						|| column.isBlank() || !List.of("==", "!=", ">", ">=", "<", "<=").contains(filter.get("operator"))
+						|| !filter.containsKey("value") || filter.get("value") instanceof Map<?, ?>
+						) {
+					throw new IllegalArgumentException("Clean node '" + nodeId + "' has an invalid row filter.");
+				}
+				Object value = filter.get("value");
+				boolean equality = "==".equals(filter.get("operator")) || "!=".equals(filter.get("operator"));
+				if (value instanceof List<?> values) {
+					if (!equality || values.isEmpty() || values.size() > 100 || values.stream().anyMatch(itemValue ->
+							itemValue != null && !(itemValue instanceof String || itemValue instanceof Boolean
+									|| itemValue instanceof Number number && Double.isFinite(number.doubleValue())))) {
+						throw new IllegalArgumentException("Clean node '" + nodeId + "' value lists require == or != and 1 to 100 scalar values.");
+					}
+				} else if (value == null ? !equality : !(value instanceof String || value instanceof Boolean
+						|| value instanceof Number number && Double.isFinite(number.doubleValue()))) {
+					throw new IllegalArgumentException("Clean node '" + nodeId + "' has an invalid filter value.");
+				}
+			}
+		} else if (type == AutomationCleanOperation.IMPUTE_NULLS
+				|| type == AutomationCleanOperation.DROP_COLUMN) {
+			requireConfigStringListOrPlaceholder(nodeId, config, "columns");
+		} else if (type == AutomationCleanOperation.CHANGE_TYPE) {
+			requireConfigString(nodeId, config, "column");
+			Object dataType = config.get("dataType");
+			if (!(dataType instanceof String value)
+					|| !List.of("STRING", "FACTOR", "DOUBLE", "DATE").contains(value)) {
+				throw new IllegalArgumentException("Clean node '" + nodeId + "' dataType is unsupported.");
+			}
+		} else if (type == AutomationCleanOperation.RENAME_COLUMN) {
+			requireConfigString(nodeId, config, "column");
+			requireConfigString(nodeId, config, "newColumn");
+			if (!((String) config.get("newColumn")).matches("[A-Za-z_][A-Za-z0-9_]*")) {
+				throw new IllegalArgumentException("Clean node '" + nodeId + "' newColumn must contain only letters, digits, and underscores.");
+			}
+		} else if (type != AutomationCleanOperation.REMOVE_DUPLICATES) {
+			requireConfigStringListOrPlaceholder(nodeId, config, "columns");
+		}
+		if (type == AutomationCleanOperation.REPLACE) {
+			validateOptionalConfigString(nodeId, config, "value");
+			validateOptionalConfigString(nodeId, config, "newValue");
 		}
 	}
 

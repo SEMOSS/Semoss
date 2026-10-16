@@ -129,6 +129,7 @@ final class AutomationRunExecutionService {
 		VECTOR_SEARCH,
 		STORAGE_DOWNLOAD,
 		DATA_EXTRACT,
+		CLEAN,
 		PYTHON
 	}
 
@@ -365,6 +366,7 @@ final class AutomationRunExecutionService {
 			case VECTOR_SEARCH -> executeVectorSearchNode(projectId, runId, node, context, pixelExecutor);
 			case STORAGE_DOWNLOAD -> executeStorageDownloadNode(projectId, runId, node, context, pixelExecutor);
 			case DATA_EXTRACT -> executeDataExtractNode(projectId, runId, node, context, pixelExecutor);
+			case CLEAN -> executeCleanNode(projectId, runId, node, context);
 			case PYTHON -> executeNodeSource(projectId, runId, node, node,
 					nodeSources.get(nodeId), context, pythonExecutor, traceRoomIds.get(nodeId),
 					controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
@@ -429,6 +431,7 @@ final class AutomationRunExecutionService {
 		case AutomationConstants.NODE_VECTOR_SEARCH -> Handler.VECTOR_SEARCH;
 		case AutomationConstants.NODE_STORAGE_DOWNLOAD -> Handler.STORAGE_DOWNLOAD;
 		case AutomationConstants.NODE_DATA_EXTRACT -> Handler.DATA_EXTRACT;
+		case AutomationConstants.NODE_CLEAN_PROCESS -> Handler.CLEAN;
 		case AutomationConstants.NODE_DEVELOPER_PYTHON -> Handler.PYTHON;
 		default -> throw new IllegalArgumentException("Unsupported Automation node type: " + type);
 		};
@@ -607,6 +610,7 @@ final class AutomationRunExecutionService {
 						executeStorageDownloadNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
 					case DATA_EXTRACT ->
 						executeDataExtractNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+					case CLEAN -> executeCleanNode(projectId, runId, executionNode, iterationContext);
 					case PYTHON -> executeNodeSource(projectId, runId, executionNode,
 							executionNode, nodeSources.get(current), iterationContext, pythonExecutor,
 							bodyTraceRoomIds.get(current), null);
@@ -764,6 +768,37 @@ final class AutomationRunExecutionService {
 			return items;
 		}
 		throw new IllegalArgumentException("Loop node '" + loopNodeId + "' items must resolve to an array or list.");
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeCleanNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		String outputVariable = (String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			AutomationFrameOutput.RegisteredFrame frame = AutomationCleanExecutor.execute(context.insight(),
+					outputVariable, prerna.reactor.automation.definition.AutomationNodeType.fromType(
+							(String) node.get(AutomationConstants.NODE_FIELD_TYPE)), config, context.values(), nodeId);
+			AutomationTableCaptureService.TableCapture capture = AutomationTableCaptureService.capture(frame, nodeId);
+			Map<String, Object> result = persistNativeNodeResult(runId, projectId, node, frame.summary(), started,
+					startedMs, null, null, context.values(), AutomationConstants.OUTPUT_KIND_TABLE, capture);
+			if (AutomationConstants.NODE_STATUS_SUCCESS.equals(result.get(AutomationConstants.STATUS))) {
+				result = new LinkedHashMap<>(result);
+				result.put(AutomationConstants.RESULT_OUTPUT_VALUE, frame);
+			}
+			return result;
+		} catch (Exception error) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(error);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw error instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(error);
+		}
 	}
 
 	@SuppressWarnings("unchecked")

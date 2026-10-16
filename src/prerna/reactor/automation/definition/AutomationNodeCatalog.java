@@ -172,6 +172,7 @@ public final class AutomationNodeCatalog {
 						field(AutomationConstants.CONFIG_NULL_VALUE, ConfigFieldType.JSON, "If the value is null", false,
 								null)),
 				controlInputs(), controlAndResultOutputs()));
+		definitions.add(cleanProcessDefinition());
 		definitions.add(vectorDefinition(AutomationNodeType.VECTOR_SEARCH, "Search vectors",
 				"Search records in a vector database.", true));
 		definitions.add(vectorDefinition(AutomationNodeType.VECTOR_ADD, "Add vector documents",
@@ -258,6 +259,25 @@ public final class AutomationNodeCatalog {
 				"Run custom Python for advanced transformations.", AutomationConstants.NODE_CODE_MODE_CUSTOM, Map.of(),
 				List.of(), List.of(), controlInputs(), controlAndResultOutputs()));
 		return Collections.unmodifiableList(definitions);
+	}
+
+	private static AutomationNodeDefinition cleanProcessDefinition() {
+		Map<String, Object> defaults = orderedConfig("source", "", "operation", "purge", "columns", List.of(),
+				"column", "", "newColumn", "", "dataType", "STRING", "value", "", "newValue", "", "filters",
+				List.of());
+		List<ConfigField> fields = List.of(
+				field("source", ConfigFieldType.STRING, "Input table", true, ""),
+				field("operation", ConfigFieldType.STRING, "Operation", true, "purge"),
+				field("columns", ConfigFieldType.STRING_LIST, "Columns", false, List.of()),
+				field("column", ConfigFieldType.STRING, "Column", false, ""),
+				field("newColumn", ConfigFieldType.STRING, "New column name", false, ""),
+				field("dataType", ConfigFieldType.STRING, "New type", false, "STRING"),
+				field("value", ConfigFieldType.STRING, "Find value", false, ""),
+				field("newValue", ConfigFieldType.STRING, "Replacement", false, ""),
+				field("filters", ConfigFieldType.JSON, "Rows to remove", false, List.of()));
+		return definition(AutomationNodeType.CLEAN_PROCESS, "Clean data",
+				"Apply a selected cleaning operation to an upstream table.", defaults, fields, controlInputs(),
+				List.of(CONTROL_OUTPUT, port("result", "Cleaned table", PortKind.DATA, PortDirection.OUTPUT, "table")));
 	}
 
 	private static AutomationNodeDefinition databaseWriteDefinition(AutomationNodeType nodeType, String label,

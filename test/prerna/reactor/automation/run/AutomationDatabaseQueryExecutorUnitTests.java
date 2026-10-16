@@ -47,6 +47,8 @@ import org.mockito.MockedStatic;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.OwlTemporalEngineMeta;
+import prerna.ds.py.PandasFrame;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.automation.AutomationConstants;
@@ -121,13 +123,34 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 	}
 
 	@Test
+	void normalizesOnlyMetadataTypedDateColumnsInImportedPythonFrames() {
+		PandasFrame frame = mock(PandasFrame.class);
+		OwlTemporalEngineMeta metadata = mock(OwlTemporalEngineMeta.class);
+		when(frame.getName()).thenReturn("query_result");
+		when(frame.getWrapperName()).thenReturn("query_resultw");
+		when(frame.getColumnHeaders()).thenReturn(new String[] { "MISSING_DATE", "CREATED_AT", "NAME", "DATE \"TEXT\"" });
+		when(frame.getMetaData()).thenReturn(metadata);
+		when(metadata.getHeaderTypeAsString("query_result__MISSING_DATE")).thenReturn("DATE");
+		when(metadata.getHeaderTypeAsString("query_result__CREATED_AT")).thenReturn("TIMESTAMP");
+		when(metadata.getHeaderTypeAsString("query_result__NAME")).thenReturn("STRING");
+		when(metadata.getHeaderTypeAsString("query_result__DATE \"TEXT\"")).thenReturn("DATE");
+
+		assertEquals(List.of(
+				"query_resultw.cache['data'][\"MISSING_DATE\"] = pd.to_datetime(query_resultw.cache['data'][\"MISSING_DATE\"])",
+				"query_resultw.cache['data'][\"CREATED_AT\"] = pd.to_datetime(query_resultw.cache['data'][\"CREATED_AT\"])",
+				"query_resultw.cache['data'][\"DATE \\\"TEXT\\\"\"] = pd.to_datetime(query_resultw.cache['data'][\"DATE \\\"TEXT\\\"\"])") ,
+				AutomationDatabaseQueryExecutor.dateNormalizationScripts(frame));
+	}
+
+	@Test
 	void importsTheAuthorizedSqlTaskIntoTheRunFrame() throws Exception {
 		Insight insight = new Insight();
 		insight.setInsightId("automation-run-1");
 		AutomationPixelExecutor pixelExecutor = mock(AutomationPixelExecutor.class);
 		BasicIteratorTask task = mock(BasicIteratorTask.class);
 		SelectQueryStruct queryStruct = new SelectQueryStruct();
-		ITableDataFrame frame = mock(ITableDataFrame.class);
+		PandasFrame frame = mock(PandasFrame.class);
+		OwlTemporalEngineMeta metadata = mock(OwlTemporalEngineMeta.class);
 		IImporter importer = mock(IImporter.class);
 		when(task.getQueryStruct()).thenReturn(queryStruct);
 		when(pixelExecutor.executeTask("SqlQuery(database=\"engine-1\",query=\"SELECT 1\",limit=50);"))
@@ -135,6 +158,11 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 		when(frame.size("query_result")).thenReturn(2L);
 		when(frame.getQsHeaders()).thenReturn(new String[] { "QUERY_RESULT__ID", "QUERY_RESULT__STATUS" });
 		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
+		when(frame.getName()).thenReturn("query_result");
+		when(frame.getWrapperName()).thenReturn("query_resultw");
+		when(frame.getColumnHeaders()).thenReturn(new String[] { "CREATED_AT" });
+		when(frame.getMetaData()).thenReturn(metadata);
+		when(metadata.getHeaderTypeAsString("query_result__CREATED_AT")).thenReturn("DATE");
 
 		try (MockedStatic<FrameFactory> frames = mockStatic(FrameFactory.class);
 				MockedStatic<ImportFactory> importers = mockStatic(ImportFactory.class)) {
@@ -146,6 +174,8 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 					request(), "query_result", "run-1", "node-1");
 
 			assertEquals(Map.of("dataType", "table", "rowCount", 2L, "columnCount", 2), output.summary());
+			verify(frame).runScript(
+					"query_resultw.cache['data'][\"CREATED_AT\"] = pd.to_datetime(query_resultw.cache['data'][\"CREATED_AT\"])");
 			assertSame(frame, insight.getVarStore().get("query_result").getValue());
 			verify(pixelExecutor).executeTask("SqlQuery(database=\"engine-1\",query=\"SELECT 1\",limit=50);");
 			verify(importer).setInsight(insight);

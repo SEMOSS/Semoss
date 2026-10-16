@@ -81,6 +81,25 @@ public class AutomationNodeCatalogUnitTests {
 	}
 
 	@Test
+	void cleanOperationsAdvertiseNativeTableOutputs() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_CLEAN_PROCESS);
+		assertNotNull(definition);
+		assertEquals("clean", definition.toMap().get("category"));
+		assertEquals(false, definition.nodeType().supportsCustomCode());
+		assertEquals("", definition.defaultConfig().get("source"));
+	}
+
+	@Test
+	void genericCleanAdvertisesAllOperationSettings() {
+		Map<String, Object> config = find(AutomationConstants.NODE_CLEAN_PROCESS).defaultConfig();
+		assertEquals("purge", config.get("operation"));
+		assertTrue(config.containsKey("columns"));
+		assertTrue(config.containsKey("filters"));
+		assertEquals("STRING", config.get("dataType"));
+		assertEquals("", config.get("newColumn"));
+	}
+
+	@Test
 	void databaseQueryAdvertisesEditableLimit() {
 		AutomationNodeDefinition definition = find(AutomationConstants.NODE_DATABASE_QUERY);
 		assertNotNull(definition);

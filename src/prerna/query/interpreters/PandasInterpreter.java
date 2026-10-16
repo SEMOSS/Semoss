@@ -1858,6 +1858,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			filterBuilder = null;
 		}
 
+		if (addNullCheck && objects.isEmpty()) {
+			return filterBuilder;
+		}
+
 		if (leftDataType == SemossDataType.STRING || leftDataType == SemossDataType.FACTOR
 				|| leftDataType == SemossDataType.DATE || leftDataType == SemossDataType.TIMESTAMP) {
 			String myFilterFormatted = PandasSyntaxHelper.createPandasColVec(objects, leftDataType);
@@ -1941,7 +1945,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			}
 			for (int i = 0; i < objects.size(); i++) {
 				if (retBuilder.length() > 0) {
-					retBuilder.append(" | ");
+					retBuilder.append(thisComparator.equals("!=") ? " & " : " | ");
 				}
 				retBuilder.append("(").append(wrapperFrameName).append("[").append(leftSelectorExpression)
 						.append("].apply(lambda x: x").append(thisComparator);
@@ -1955,7 +1959,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 
 		if (filterBuilder != null) {
 			if (retBuilder.length() > 0) {
-				retBuilder = new StringBuilder("(").append(filterBuilder).append(" & ").append(retBuilder).append(")");
+				retBuilder = new StringBuilder("(").append(filterBuilder)
+						.append(thisComparator.equals("==") ? " | " : " & ").append(retBuilder).append(")");
 			}
 		}
 		return retBuilder;
