@@ -62,19 +62,26 @@ final class BrainTopicOnboarding {
 	static Result propose(User user, String engineId, String ownerId, String ownerType,
 			Map<String, BrainTopicSuggest.Thread> eligible, String self, Map<String, String> emails, Set<String> vips,
 			BrainOrgDomains.Org ownOrg, Set<String> takenNames, CollaborationJobUtils.Job job) {
+		return propose(user,engineId,ownerId,ownerType,eligible,self,emails,vips,ownOrg,takenNames,job,false);
+	}
+
+	/** Review uses the same grouping/votes, but includes synced headers and has no onboarding engagement gate. */
+	static Result propose(User user, String engineId, String ownerId, String ownerType,
+			Map<String, BrainTopicSuggest.Thread> eligible, String self, Map<String, String> emails, Set<String> vips,
+			BrainOrgDomains.Org ownOrg, Set<String> takenNames, CollaborationJobUtils.Job job, boolean review) {
 		Map<String, Object> notes = new LinkedHashMap<>();
 		if (job != null) {
 			job.step("grouping", 10);
 		}
 		// stored headers after a sort: per-message To/Cc only fed the engagement gate, which WIDE does not use
 		BrainTopicStructure.Prepared prepared = snapshot(ownerId, ownerType, eligible.keySet(), self, emails, vips,
-				ownOrg, notes);
+				ownOrg, notes, review);
 		if (job != null) {
 			job.count("conversations", prepared.pool().size());
 			job.count("groups", prepared.seeds().size());
 			job.step("naming", 30);
 		}
-		BrainTopicVotes.Result votes = BrainTopicVotes.run(prepared, settings(ownerId, ownerType),
+		BrainTopicVotes.Result votes = BrainTopicVotes.run(prepared, review ? BrainTopicStructure.WIDE : settings(ownerId, ownerType),
 				caller(user, engineId));
 		Map<String, Object> diagnostics = new LinkedHashMap<>();
 		diagnostics.putAll(notes);
@@ -165,7 +172,7 @@ final class BrainTopicOnboarding {
 	// never reach here). No mailbox calls.
 	private static BrainTopicStructure.Prepared snapshot(String ownerId, String ownerType, Set<String> eligible,
 			String self, Map<String, String> emails, Set<String> vips, BrainOrgDomains.Org ownOrg,
-			Map<String, Object> notes) {
+			Map<String, Object> notes, boolean review) {
 		if (self == null || emails.get(self) == null) {
 			throw new IllegalStateException("Import the mailbox before proposing topics");
 		}
@@ -173,7 +180,7 @@ final class BrainTopicOnboarding {
 		if (!Boolean.TRUE.equals(enabled.get("email"))) {
 			throw new IllegalStateException("Email is disabled for this owner");
 		}
-		if (CollaborationJobUtils.anyRunning(ownerId, ownerType, BrainTopicReviewUtils.MAP_KIND)) {
+		if (CollaborationJobUtils.anyRunning(ownerId, ownerType, review ? BrainOptimize.KIND : BrainTopicReviewUtils.MAP_KIND)) {
 			throw new IllegalStateException("Wait for the current mailbox job to finish before proposing topics");
 		}
 		Map<String, Object> window = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
@@ -193,6 +200,7 @@ final class BrainTopicOnboarding {
 		}
 		// job times are stored as UTC wall time (CollaborationDbUtils.now), not JVM
 		// local time
+		if (review) { end = CollaborationDbUtils.now(); start = end; }
 		Instant since = start.toLocalDateTime().toInstant(ZoneOffset.UTC).minus(Duration.ofDays(days.intValue()));
 		boolean teams = Boolean.TRUE.equals(enabled.get("teams"));
 		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
@@ -270,7 +278,7 @@ final class BrainTopicOnboarding {
 		notes.put("chats", byThread.keySet().stream().filter(t -> "teams".equals(sources.get(t))).count());
 		List<BrainTopicStructure.MailThread> input = byThread.entrySet().stream()
 				.map(e -> new BrainTopicStructure.MailThread(e.getKey(), e.getValue())).toList();
-		BrainTopicStructure.Settings settings = settings(ownerId, ownerType);
+		BrainTopicStructure.Settings settings = review ? BrainTopicStructure.WIDE : settings(ownerId, ownerType);
 		notes.put("wide", settings.wide());
 		return BrainTopicStructure.prepare(input, me, ownOrg::isMine, vipEmails, settings, sentHistory);
 	}

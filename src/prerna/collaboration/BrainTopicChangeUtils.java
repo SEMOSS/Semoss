@@ -341,7 +341,7 @@ public final class BrainTopicChangeUtils {
 
 	// column names upper-cased; clobs as text and timestamps as Timestamp.toString
 	// so rows survive JSON
-	private static List<Map<String, Object>> readRows(Connection conn, String sql, Object... params)
+	static List<Map<String, Object>> readRows(Connection conn, String sql, Object... params)
 			throws SQLException {
 		List<Map<String, Object>> rows = new ArrayList<>();
 		try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -370,7 +370,7 @@ public final class BrainTopicChangeUtils {
 
 	// JSON numbers come back as doubles, so each value is converted to its column's
 	// type
-	private static void insertRows(Connection conn, String table, List<Map<String, Object>> rows) throws SQLException {
+	static void insertRows(Connection conn, String table, List<Map<String, Object>> rows) throws SQLException {
 		if (rows == null || rows.isEmpty()) {
 			return;
 		}

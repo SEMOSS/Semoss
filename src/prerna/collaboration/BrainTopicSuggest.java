@@ -94,8 +94,18 @@ public final class BrainTopicSuggest {
 		}
 	}
 
+	/** The onboarding grouping/naming pipeline, restricted to unfiled threads and with no writes. */
+	static Map<String, Object> topicsForReview(User user) {
+		return suggest(user, true, true, null, true);
+	}
+
 	private static Map<String, Object> suggest(User user, boolean writeTopics, boolean dryRun,
 			CollaborationJobUtils.Job job) {
+		return suggest(user, writeTopics, dryRun, job, false);
+	}
+
+	private static Map<String, Object> suggest(User user, boolean writeTopics, boolean dryRun,
+			CollaborationJobUtils.Job job, boolean onlyUnfiled) {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -132,6 +142,10 @@ public final class BrainTopicSuggest {
 						new Thread(rs.getString(1), CollaborationDbUtils.getString(rs, "SUBJECT"),
 								new LinkedHashSet<>())),
 				ownerId, ownerType, false, false, "teams", BrainGraphHeaderSource.CHAT_PREFIX + "%");
+		if (onlyUnfiled) {
+			Set<String> filed = new HashSet<>(CollaborationDbUtils.query("SELECT THREAD_ID FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND SOURCE IN ('you', 'confirmed')", rs -> rs.getString(1), ownerId, ownerType));
+			threads.keySet().removeAll(filed);
+		}
 		// automated and list senders, VIPs, and who wrote on each thread
 		Set<String> automated = new HashSet<>();
 		Set<String> vips = new HashSet<>();
@@ -250,7 +264,7 @@ public final class BrainTopicSuggest {
 			}
 			// The only topic proposer: snapshot -> deterministic groups -> complete model votes, with no writes yet.
 			BrainTopicOnboarding.Result result = BrainTopicOnboarding.propose(user, engineId, ownerId, ownerType,
-					threads, self, emails, vips, ownOrg, topicNames, job);
+					threads, self, emails, vips, ownOrg, topicNames, job, onlyUnfiled);
 			out.putAll(result.diagnostics());
 			if (out.containsKey("modelError")) {
 				out.put("topics", List.of());

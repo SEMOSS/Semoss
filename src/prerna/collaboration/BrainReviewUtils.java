@@ -47,14 +47,14 @@ public final class BrainReviewUtils {
 	public static final String TOPIC_CHOICE = "topic_choice";
 	public static final String ADD_PERSON = "add_person";
 	public static final String UNASSIGNED = "unassigned";
-	public static final Set<String> KINDS = Set.of(NEW_TOPIC, TOPIC_CHOICE, ADD_PERSON, UNASSIGNED);
+	public static final Set<String> KINDS = Set.of(NEW_TOPIC, TOPIC_CHOICE, ADD_PERSON, UNASSIGNED, "merge_topic", "quiet_topic", "unknown_sender", "memory", "wrong_topic");
 
 	public static final String OPEN = "open";
 	public static final String ACCEPTED = "accepted";
 	public static final String DISMISSED = "dismissed";
 	public static final Set<String> STATUSES = Set.of(OPEN, ACCEPTED, DISMISSED);
 
-	public static final Set<String> REF_TYPES = Set.of("thread", "person", "topic");
+	public static final Set<String> REF_TYPES = Set.of("thread", "person", "topic", "memory");
 
 	// a client may answer with a decision instead of a button label
 	public static final String DISMISS = "dismiss";
@@ -228,6 +228,10 @@ public final class BrainReviewUtils {
 		switch (refType) {
 		case "thread" -> BrainThreadUtils.requireThread(ownerId, ownerType, refId);
 		case "person" -> BrainPeopleUtils.requirePerson(ownerId, ownerType, refId);
+		case "memory" -> {
+			if (!CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_MEMORY WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MEMORY_ID = ?", ownerId, ownerType, refId))
+				throw new IllegalArgumentException("Memory not found");
+		}
 		default -> BrainTopicUtils.requireTopic(ownerId, ownerType, refId);
 		}
 	}
@@ -262,7 +266,13 @@ public final class BrainReviewUtils {
 		review.put("createdAt", CollaborationDbUtils.getTimestamp(rs, "CREATED_AT"));
 		review.put("resolvedAt", CollaborationDbUtils.getTimestamp(rs, "RESOLVED_AT"));
 		review.put("resolvedBy", CollaborationDbUtils.getString(rs, "RESOLVED_BY"));
-		review.put("resolution", CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "RESOLUTION_JSON")));
+		Map<String, Object> resolution = CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "RESOLUTION_JSON"));
+		if (resolution != null) {
+			resolution.remove("before");
+			resolution.remove("after");
+			resolution.remove("scopes");
+		}
+		review.put("resolution", resolution);
 		return review;
 	}
 

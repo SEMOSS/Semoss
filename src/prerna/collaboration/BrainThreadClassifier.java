@@ -530,6 +530,9 @@ public final class BrainThreadClassifier {
 				band = "unassigned";
 			}
 		}
+		if (!ctx.dryRun() && "unassigned".equals(band)) {
+			BrainReviewHealth.ensureUnassigned(ctx.ownerId(), ctx.ownerType(), threadId);
+		}
 		return new Filing(topicId, confidence, band);
 	}
 
@@ -584,6 +587,12 @@ public final class BrainThreadClassifier {
 		}
 		return new Window(WIDE_MESSAGES, WIDE_TEXT_CHARS, WIDE_TEXT_CHARS, WIDE_FOOTER_CHARS,
 				n.intValue() / 2 * CHARS_PER_TOKEN, true);
+	}
+
+	/** Shared scoring context for proposal-only Review; never writes Work or topic links. */
+	static java.util.function.Function<String, BrainClassifier.Scores> reviewScorer(User user, Insight insight) {
+		Context ctx = context(user, insight, true);
+		return threadId -> scoreOnly(ctx, threadId);
 	}
 
 	// the same scores classifyOne would ask for, without writing anything; null for a muted or empty thread
