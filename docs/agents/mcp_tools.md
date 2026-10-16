@@ -55,7 +55,7 @@ A room collects tools from its own toolbox, `options.mcp`, and its workspace (le
 
 | Key | Type and values | Generated default | Effect |
 | --- | --- | --- | --- |
-| `SMSS_MCP_EXECUTION` | `"auto"`, `"ask"`, `"disabled"` (lowercase) | Pixel: `auto`. Python: `ask`. Engine: `auto`. | `ask` pauses for user approval; `disabled` hides the tool from the model. |
+| `SMSS_MCP_EXECUTION` | `"auto"`, `"ask"`, `"yesno"`, `"disabled"` (lowercase) | Pixel: `auto`. Python: `ask`. Engine: `auto`. | `ask` and `yesno` both pause for user approval (the harness treats them identically); `yesno` only differs in how the frontend presents the decision. `disabled` hides the tool from the model. |
 | `SMSS_MCP_DEFERRED` | JSON boolean `true` | Absent | Hides the schema in `RunAgent` until the agent loads it with `SearchTools` / `LoadTools`. |
 | `SMSS_MCP_UI` | Object, see below | Pixel reactors: `{ "displayLocation": "sidebar" }` | Frontend hints for the tool view. |
 | `SMSS_FUNCTION_NAME` | String | Stamped with the reactor or function name | The function `InternalMCP` executes. Set by hand only to alias a tool to a differently named function. |
@@ -65,6 +65,7 @@ Constants live in [MCPUtility](../../src/prerna/reactor/agent/mcp/MCPUtility.jav
 ### `SMSS_MCP_EXECUTION`
 
 - Values come from `MCPUtility.MCPExecution`. The runtime treats a missing or unknown value as `ask` when it builds tool-call metadata (`getValidMcpExecution`), so a hand-written tool with no `_meta` asks.
+- `yesno` pauses the harness exactly like `ask` (`MCPUtility.isAskLikeExecution`, used by `HarnessToolExecutor` and `SemossAgentHarness`); the two differ only in the approval UI the frontend renders.
 - The `disabled` filter is an exact, case-sensitive match (`Room.getToolJson`, `DeferredAgentTools.isDisabled`, `PlatformAgentTools`). `"Disabled"` is **not** hidden.
 - `disabled` only hides the tool from the model. `GetMCPTools` still returns it, and `RunMCPTool`, `AddToolExecution`, and the approval handler do not check it. It is not an access control.
 - Remote MCP tools are always `auto`; [RemoteMCP](../../src/prerna/engine/impl/RemoteMCP.java) overwrites the value.
@@ -192,7 +193,7 @@ def get_stock_price(symbol: str) -> float:
 ```
 
 - Use a literal dict. If the driver cannot be imported, the generator falls back to AST parsing, which reads only literals.
-- `execution` matches exactly: anything other than `"auto"` or `"disabled"` becomes `"ask"`, including `"Disabled"`. A function without the decorator is `ask`.
+- `execution` matches exactly: anything other than `"auto"`, `"yesno"`, or `"disabled"` becomes `"ask"`, including `"Disabled"`. A function without the decorator is `ask`.
 - The dict is flat. `execution` and `deferred` become `SMSS_MCP_EXECUTION` and `SMSS_MCP_DEFERRED`; `loadingMessage`, `resourceURI`, `displayLocation`, `component`, and `autoOpen` go into `SMSS_MCP_UI`. Other keys are dropped.
 - `deferred` must be the boolean `True`; the string `"true"` is ignored. `component` is trimmed and dropped when blank. `autoOpen` accepts a boolean or `"true"` / `"false"`.
 - `@mcp_execution("ask")` still works but is deprecated.
@@ -212,6 +213,7 @@ The runtime reads `_meta` from `pixel_mcp.json` and `py_mcp.json` as written, so
 | --- | --- | --- |
 | `disabled` | Hidden from the model | Hidden for room and workspace MCP tools. Explicit `paramValues.tools` are not filtered. |
 | `ask` | [HarnessToolExecutor](../../src/prerna/reactor/agent/runtime/HarnessToolExecutor.java) runs the batch's non-ask tools, then pauses with an `AGENT_RUN_ACTION` row per ask tool. [AgentToolDecisionHandler](../../src/prerna/reactor/agent/mcp/AgentToolDecisionHandler.java) runs the tool on approve or edit. | The server runs nothing. `_meta.SMSS_MCP_EXECUTION` is returned on the tool call and the client decides whether to ask. |
+| `yesno` | Same as `ask` (`MCPUtility.isAskLikeExecution`) | Same as `ask`; the frontend renders a dedicated approve/reject control instead of the generic ask card. |
 | `auto` | Runs immediately | Returned to the client; the client runs it |
 | Deferred | Hidden until loaded with `SearchTools` / `LoadTools` | Sent eagerly |
 | `SMSS_MCP_UI` | Sanitized and attached to tool-call metadata | Same |
