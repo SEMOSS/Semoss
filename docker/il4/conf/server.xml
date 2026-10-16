@@ -6,7 +6,19 @@
                SSLEnabled="true" scheme="https" secure="true"
                sslImplementationName="org.apache.tomcat.util.net.jsse.JSSEImplementation"
                maxThreads="200" connectionTimeout="20000" allowTrace="false"
-               maxParameterCount="1000" maxPostSize="10485760">
+               maxParameterCount="1000" maxPostSize="10485760"
+               clientAuth="${cac.piv.client.auth:-false}">
+      <!-- clientAuth is "want" (optional, not required) only when a site sets
+           CAC_PIV_CLIENT_AUTH=true (see setenv.sh) - a request with no client
+           certificate is accepted either way. To actually authenticate CAC/PIV
+           users, a site must also add a <TrustStore> here (and <CertificateVerification/>
+           if a non-default trust/revocation policy is needed) pointed at its own
+           mounted DoD PKI root/intermediate CA bundle - deliberately not
+           included here, the same way the server's own certificate above is a
+           mounted secret, not something baked into this template. CACFilter.java
+           and PIVFilter.java (Monolith) read the validated certificate from the
+           request; see docker/il4/README.md's CAC/PIV section for the full
+           enablement procedure. -->
       <SSLHostConfig protocols="TLSv1.2,+TLSv1.3" sslProtocol="TLS"
                      keyManagerAlgorithm="PKIX"
                      groups="secp256r1,secp384r1,secp521r1,ffdhe2048,ffdhe3072"
