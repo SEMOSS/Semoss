@@ -42,13 +42,12 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.ModelServingProvider;
 import prerna.util.StaticBuiltinToolsCatalog;
 import prerna.util.StaticModelMetadataCatalog;
 import prerna.util.Utility;
@@ -70,12 +69,6 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 	 * Digits end the qualifiers so version dots ("gpt-5.4") are left alone.
 	 */
 	private static final Pattern QUALIFIER_PREFIX_PATTERN = Pattern.compile("^([a-z][a-z-]*)\\.(?=.)");
-
-	/**
-	 * The SMSS variable some engines use to name who actually hosts the model, as
-	 * in the Anthropic-on-Vertex engines. There is no shared constant for it.
-	 */
-	private static final String SMSS_PROVIDER = "PROVIDER";
 
 	static final String SERVING_PROVIDER_KEY = "servingProvider";
 	static final String MODEL_PROVIDER_KEY = "modelProvider";
@@ -110,7 +103,7 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Engine is not a model engine");
 			}
 			metadata = SecurityModelMetadataUtils.getModelMetadata(engineId);
-			smssProp = loadSmssProperties(engineId);
+			smssProp = ModelServingProvider.loadSmssProperties(engineId);
 		} else if (servingProviderInput == null && modelProviderInput == null && modelIdInput == null) {
 			throw new IllegalArgumentException(
 					"Must input a model engine id, or a serving provider, model provider, or model id");
@@ -119,7 +112,7 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 		String modelId = modelIdInput != null ? modelIdInput : resolveModelId(metadata, smssProp);
 		String servingProvider = servingProviderInput != null
 				? StaticBuiltinToolsCatalog.normalizeProviderKey(servingProviderInput)
-				: resolveServingProvider(metadata, smssProp);
+				: ModelServingProvider.resolve(metadata, smssProp);
 		String modelProvider = modelProviderInput != null
 				? StaticBuiltinToolsCatalog.normalizeProviderKey(modelProviderInput)
 				: resolveModelProvider(metadata, modelId);
@@ -151,26 +144,6 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 			modelId = ValueUtils.trimToNull(smssProp.getProperty(Constants.MODEL));
 		}
 		return modelId;
-	}
-
-	/**
-	 * Who hosts the model, as a lowercase catalog key. The saved metadata wins when
-	 * set; otherwise the smss PROVIDER variable, then the engine's smss MODEL_TYPE,
-	 * which names the client implementation and so tracks the host.
-	 */
-	private static String resolveServingProvider(Map<String, Object> metadata, Properties smssProp) {
-		String servingProvider = metadata == null ? null
-				: StaticBuiltinToolsCatalog
-						.normalizeProviderKey(ValueUtils.trimToNull(metadata.get("servingProvider")));
-		if (servingProvider == null && smssProp != null) {
-			servingProvider = StaticBuiltinToolsCatalog
-					.normalizeProviderKey(ValueUtils.trimToNull(smssProp.getProperty(SMSS_PROVIDER)));
-		}
-		if (servingProvider == null && smssProp != null) {
-			servingProvider = StaticBuiltinToolsCatalog
-					.normalizeProviderKey(ValueUtils.trimToNull(smssProp.getProperty(IModelEngine.MODEL_TYPE)));
-		}
-		return servingProvider;
 	}
 
 	/**
@@ -219,23 +192,6 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 			matcher = QUALIFIER_PREFIX_PATTERN.matcher(remainder);
 		}
 		return qualifier;
-	}
-
-	/**
-	 * The engine's smss properties, or null when they cannot be read - the saved
-	 * metadata row still drives the lookup in that case.
-	 */
-	private static Properties loadSmssProperties(String engineId) {
-		Object smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
-		if (smssFile == null) {
-			return null;
-		}
-		try {
-			return Utility.loadProperties(smssFile.toString());
-		} catch (Exception e) {
-			classLogger.warn("Unable to read the smss file for engine {}", engineId, e);
-			return null;
-		}
 	}
 
 	@Override

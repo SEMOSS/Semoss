@@ -1,4 +1,4 @@
-from typing import Any, Dict, TYPE_CHECKING, Optional, Union
+from typing import Any, Dict, TYPE_CHECKING, Optional, Tuple, Union
 
 if TYPE_CHECKING:
 
@@ -21,6 +21,12 @@ from .openai_image_client import OpenAiImageClient
 from .openai_audio_client import OpenAiAudioClient
 from ..model_engine_exception import ModelEngineException, ErrorDetails
 from ...utils import string_to_bool
+from ...usage_ceiling import (
+    PromptCount,
+    TextCounter,
+    count_prompt_tokens,
+    note_output_stop,
+)
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -155,6 +161,9 @@ class OpenAiClient(AbstractTextGenerationClient):
                 openai_messages = self.message_builder.build_request(semoss_messages)
             except Exception as e:
                 raise ValueError(f"Error building OpenAI messages: {e}") from e
+            # fitted on the finished request, so the prompt counted is the one
+            # sent; a refusal becomes the USAGE_LIMIT_DOES_NOT_FIT error response below
+            self._apply_usage_ceiling(openai_messages, self.chat_type)
             if self.chat_type == "chat-completion":
                 return self.handle_chat_completion_response(
                     openai_messages, prefix=prefix
@@ -169,6 +178,117 @@ class OpenAiClient(AbstractTextGenerationClient):
             return ModelEngineException(
                 error=e, client="openai", model=self.model_settings.model_name
             ).parse_error()
+
+    # Output maximum keys by chat type, in the order they are looked for.
+    _OUTPUT_MAXIMUM_KEYS = {
+        "chat-completion": ("max_completion_tokens", "max_tokens"),
+        "responses": ("max_output_tokens",),
+        "completions": ("max_tokens", "max_completion_tokens", "max_new_tokens"),
+    }
+
+    def _apply_usage_ceiling(self, request: Dict[str, Any], chat_type: str) -> None:
+        """Fit the request to the usage ceiling of the call in progress.
+
+        The output maximum is lowered to what the prompt leaves, never
+        raised. Reasoning tokens count inside the output maximum on OpenAI
+        models, so the effort is left as it is.
+        """
+        keys = self._OUTPUT_MAXIMUM_KEYS.get(chat_type, ("max_tokens",))
+        present = [key for key in keys if request.get(key) is not None]
+        # with more than one maximum set, the smallest is the one that holds
+        requested = min(int(request[key]) for key in present) if present else None
+        fit = self.fit_output_to_usage_ceiling(
+            requested, lambda: self._count_prompt_tokens(request, chat_type)
+        )
+        if fit is None or not fit.lowered:
+            return
+        # every key the caller set is lowered, so none is left above the fit;
+        # with none set, the chat type's main key carries it
+        for key in present or keys[:1]:
+            request[key] = fit.max_tokens
+
+    def _count_prompt_tokens(
+        self, request: Dict[str, Any], chat_type: str
+    ) -> PromptCount:
+        """Count the prompt of a built request: tiktoken for OpenAI and Azure
+        models, the Hugging Face tokenizer for models served elsewhere, and a
+        conservative estimate otherwise. Images and files are estimated."""
+        count_text, exact = self._usage_text_counter()
+        if chat_type == "responses":
+            items = request.get("input")
+            parts = [request.get("instructions"), items]
+            definitions = [request.get("tools"), request.get("text")]
+        elif chat_type == "chat-completion":
+            items = request.get("messages")
+            parts = [items]
+            definitions = [request.get("tools"), request.get("response_format")]
+        else:
+            items = None
+            parts = [request.get("prompt")]
+            definitions = []
+        return count_prompt_tokens(
+            parts,
+            definitions,
+            count_text=count_text,
+            text_exact=exact,
+            message_count=len(items) if isinstance(items, list) else 1,
+        )
+
+    def _usage_text_counter(self) -> Tuple[Optional[TextCounter], bool]:
+        """The text counter for prompts, resolved once per client, and whether
+        it is exact for this model. None means estimate."""
+        resolved = getattr(self, "_usage_text_counter_resolved", None)
+        if resolved is None:
+            resolved = self._resolve_usage_text_counter()
+            self._usage_text_counter_resolved = resolved
+        return resolved
+
+    def _resolve_usage_text_counter(self) -> Tuple[Optional[TextCounter], bool]:
+        model_name = self.model_settings.model_name or ""
+        # a model name tiktoken knows: its own encoding, so the count is exact
+        try:
+            import tiktoken
+
+            encoding = tiktoken.encoding_for_model(model_name)
+            return (
+                lambda text: len(encoding.encode(text, disallowed_special=()))
+            ), True
+        except Exception:
+            pass
+
+        if self._serves_openai_models():
+            # deployment names (Azure) and new model names: current OpenAI models
+            # use o200k_base, so the count is close but not exact
+            try:
+                import tiktoken
+
+                encoding = tiktoken.get_encoding("o200k_base")
+                return (
+                    lambda text: len(encoding.encode(text, disallowed_special=()))
+                ), False
+            except Exception:
+                return None, False
+
+        # a model served elsewhere (vLLM, TGI, NVIDIA): its Hugging Face tokenizer
+        from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+        from ...tokenizers.local_tokenizer import LocalWordCountTokenizer
+
+        try:
+            tokenizer = HuggingfaceTokenizer(encoder_name=model_name, max_tokens=None)
+        except Exception:
+            return None, False
+        if isinstance(tokenizer.tokenizer, LocalWordCountTokenizer):
+            return None, False
+        return tokenizer.count_tokens, True
+
+    def _serves_openai_models(self) -> bool:
+        """True for OpenAI and Azure OpenAI endpoints, False for other servers."""
+        if self.is_azure:
+            return True
+        endpoint = (getattr(self, "endpoint", None) or "").lower()
+        return (
+            not endpoint or "openai.com" in endpoint or "openai.azure.com" in endpoint
+        )
 
     def handle_completions_response(
         self,
@@ -231,8 +351,9 @@ class OpenAiClient(AbstractTextGenerationClient):
             aggregated_content = ""
             aggregated_thinking = ""
             for chunk in response:
-                # Usage info typically comes in the final chunk
-                if "response.completed" in chunk.type:
+                # Usage comes in the final chunk, completed or stopped early
+                if chunk.type in ("response.completed", "response.incomplete"):
+                    note_output_stop(self._stopped_at_output_maximum(chunk.response))
                     response_tokens = chunk.response.usage.output_tokens
                     input_tokens = chunk.response.usage.input_tokens
                     cache_read_tokens = self._extract_cached_tokens(
@@ -467,6 +588,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     ),
                 )
         else:
+            note_output_stop(self._stopped_at_output_maximum(response))
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
             cache_read_tokens = self._extract_cached_tokens(
@@ -658,6 +780,10 @@ class OpenAiClient(AbstractTextGenerationClient):
                     if chunk.choices[0].finish_reason:
                         finish_reason = chunk.choices[0].finish_reason
 
+            # "length" is the output maximum stopping the answer, which marks it
+            # usageCapped when the ceiling set that maximum
+            note_output_stop(finish_reason == "length")
+
             if streamed_tools:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="tool", interim=False)
@@ -746,6 +872,8 @@ class OpenAiClient(AbstractTextGenerationClient):
                 cache_creation_tokens = None
                 thinking_tokens = None
 
+            # "length" is the output maximum stopping the answer
+            note_output_stop(response.choices[0].finish_reason == "length")
             final_content = response.choices[0].message.content
             if self.model_settings.preserve_reasoning_content and final_content is None:
                 # A reasoning-only cutoff must still satisfy Java's CHAT string contract.
@@ -786,6 +914,14 @@ class OpenAiClient(AbstractTextGenerationClient):
                         )
                     ),
                 )
+
+    @staticmethod
+    def _stopped_at_output_maximum(response: Any) -> bool:
+        """True when a Responses API response stopped at max_output_tokens."""
+        if getattr(response, "status", None) != "incomplete":
+            return False
+        details = getattr(response, "incomplete_details", None)
+        return getattr(details, "reason", None) == "max_output_tokens"
 
     def _parse_tools_call_response(
         self,
