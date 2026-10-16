@@ -53,8 +53,13 @@ WorkSaveInboxRoutine(settings=[{
 Save the same settings with `enabled: false` to pause. Both calls return the
 routine settings, `configured`, prerequisite availability, `nextRunAt`, and
 `lastRun`. The latter contains `status` (`running`, `completed`, or `failed`), UTC
-ISO timestamps, `roomId`, `summary`, and `error`. Null-valued fields are omitted
-by the existing Pixel JSON serializer; consumers normalize them to null.
+ISO timestamps, `roomId`, `summary`, optional `html`, and `error`. `html` is the exact
+email body saved by the latest successful delivery node; older runs without it
+keep their Markdown `summary` as the display fallback. Both routines use this
+contract, and the Markdown remains the assistant conversation's initial message.
+The UI must render HTML in its isolated, sanitized email viewer. Null-valued
+fields are omitted by the existing Pixel JSON serializer; consumers normalize
+them to null.
 
 `WorkRunInboxRoutine()` is the scheduler's fixed recipe. It uses the authenticated
 owner and accepts no arbitrary mailbox, user, prompt, or agent parameters. It
@@ -96,11 +101,20 @@ The definition is a linear graph:
    results to the server-held briefing instruction. The `inbox_brief` harness and the owner's
    `COLLAB_LLM_ENGINE_ID` model writes the brief. The harness makes one model
    call, has no tool executor, rejects tool calls, and treats the data as
-   untrusted. The brief is Markdown with Today, Needs your reply, FYI, and
-   Sources sections; links may only point to URLs present in the data.
+   untrusted. The brief is Markdown with Suggested priorities, Needs your reply,
+   Today's meetings, and Open action items sections; links may only point to URLs
+   present in the data.
 5. A Python step converts the Markdown to HTML (raw HTML in the brief is
    escaped, images are dropped, and links to URLs not found in the thread data
    are removed) and sends it with `MicrosoftOutlookSendMail` to the owner only.
+
+Suggested priorities opens the brief with three groups: 🔴 Due today (dated from
+the owner's local day, with overdue items explicitly marked), 🟡 Due soon (the
+next seven calendar days, plus explicitly urgent undated work marked as such),
+and 🟢 Flexible (later or undated next actions). The model is instructed to merge
+duplicate tasks, omit resolved work, and never invent deadlines. The brief input
+includes the owner's time zone and the origin of action-item steps so Brain's
+date-only deadlines stored as midnight UTC keep their original calendar date.
 
 The routine's own exclusion filter no longer applies; only Brain's import gating
 does. The sync spends model calls on classification and thread summaries.

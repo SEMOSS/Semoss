@@ -139,7 +139,8 @@ public final class UserAuditTrailUtils {
 			"PERMISSION_UPDATE", "PERMISSION_DELETE", "ACCESS_REQUEST_APPROVE", "ACCESS_REQUEST_REJECT", "USER_CREATE",
 			"USER_UPDATE", "USER_ACTIVATE", "GROUP_CREATE", "GROUP_UPDATE", "GROUP_MEMBER_ADD", "GROUP_MEMBER_REMOVE",
 			"PROJECT_UPLOAD", "PROJECT_UPDATE", "ENGINE_UPDATE", "WORKSPACE_DELETE", "JOB_CREATE", "JOB_UPDATE",
-			"AUTOMATION_RUN_START", "AUTOMATION_ACTION_RESOLVE", "AGENT_RUN_START", "INSIGHT_DELETE");
+			"AUTOMATION_RUN_START", "AUTOMATION_ACTION_RESOLVE", "AGENT_RUN_START", "INSIGHT_DELETE",
+			"USAGE_LIMIT_UPDATE");
 
 	private static final Pattern DENIAL_PATTERN = Pattern.compile("(?i)(only exposed for admins|must be an admin"
 			+ "|is not an admin|not an admin|insufficient privileges|insufficient permission"
@@ -1501,6 +1502,9 @@ public final class UserAuditTrailUtils {
 		if (eventType.equals("AUTHORIZATION_DENIED") || eventType.startsWith("PERMISSION_")
 				|| eventType.startsWith("ACCESS_REQUEST_")) {
 			return "AUTHZ";
+		}
+		if (eventType.startsWith("USAGE_LIMIT_")) {
+			return "USAGE_LIMIT";
 		}
 		if (eventType.startsWith("USER_")) {
 			return "USER_ADMIN";

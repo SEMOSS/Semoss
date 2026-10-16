@@ -788,6 +788,40 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
+	 * Find a folder inside another one by name, making it when it is not there.
+	 *
+	 * @param accessToken the token to write with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param parent      the folder it sits in, by well known name or id
+	 * @param displayName the folder name
+	 * @return the folder as Graph returned it, with created true when it was made
+	 */
+	public Map<String, Object> ensureChildFolder(String accessToken, String mailbox, String parent,
+			String displayName) {
+		String url = userPath(mailbox) + "/mailFolders/" + encode(parent) + "/childFolders";
+		String response = HttpHelperUtility.getRequest(url + "?$select=id,displayName&$filter="
+				+ encode("displayName eq '" + displayName.replace("'", "''") + "'"), headers(accessToken), null, null,
+				null);
+		throwOnError(response, "find a mail folder");
+		List<Map<String, Object>> found = readList(response);
+		if (!found.isEmpty()) {
+			Map<String, Object> folder = new HashMap<>(found.get(0));
+			folder.put("created", false);
+			return folder;
+		}
+		response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken),
+				GSON.toJson(Map.of("displayName", displayName)), ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "create a mail folder");
+		Map<String, Object> made = readMap(response);
+		if (made == null) {
+			throw new IllegalStateException("Microsoft did not return the new mail folder.");
+		}
+		Map<String, Object> folder = new HashMap<>(made);
+		folder.put("created", true);
+		return folder;
+	}
+
+	/**
 	 * The part of a Graph url that says whose mailbox this is.
 	 *
 	 * @param mailbox the mailbox, or null for the signed in user

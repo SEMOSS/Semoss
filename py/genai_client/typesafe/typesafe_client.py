@@ -72,6 +72,7 @@ class TypeSafeClientWrapper:
         state: JSONContent,
         questions: Mapping[str, Question],
         parameters: Mapping[str, Any] | None = None,
+        usage_ceiling: Any = None,
     ) -> dict[str, Any]:
         """Evaluate named questions and return the complete JSON response body.
 
@@ -79,6 +80,12 @@ class TypeSafeClientWrapper:
         Score criteria are an ordered list (SDK >= 0.6), with levels starting at zero.
         Noul values remain probabilities, and score legend/probability keys are JSON
         strings. SDK/HTTP objects never cross the Java/Python bridge.
+
+        ``usage_ceiling`` is accepted like the text clients' keyword and not
+        used: an evaluation has no output maximum to lower. It rides in the
+        same keyword arguments as the request, since Java sends the whole call
+        as one ``ask(**json.loads(...))`` expression; Java refuses an
+        evaluation that does not fit before it runs, and bills what it used.
         """
         state = self._state_adapter.validate_python(state, strict=True)
         normalized = self._normalize_questions(questions)
@@ -119,7 +126,9 @@ class TypeSafeClientWrapper:
                     raise ValueError(
                         f"Question {name!r} must have type 'choice', 'score', or 'noul'"
                     )
-                parsed = cls._question_types[question_type].model_validate(dict(question))
+                parsed = cls._question_types[question_type].model_validate(
+                    dict(question)
+                )
             else:
                 raise ValueError(f"Question {name!r} must be an SDK question or a map")
 

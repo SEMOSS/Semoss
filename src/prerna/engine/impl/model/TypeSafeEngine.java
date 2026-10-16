@@ -44,6 +44,9 @@ import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.MultiModalEmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
+import prerna.engine.impl.model.usage.ModelUsageLimitException;
+import prerna.engine.impl.model.usage.ModelUsageRequest;
+import prerna.engine.impl.model.usage.ModelUsageTicket;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
@@ -66,33 +69,61 @@ public class TypeSafeEngine extends AbstractPythonModelEngine implements ITypeSa
 			throw new IllegalArgumentException("An insight with a user is required for TypeSafe evaluations");
 		}
 
-		Map<String, Object> restrictions = ModelUsageRestrictionUtility.getModelUsageRestriction(insight.getUser(),
-				this.engineId);
+		// usage limits: refuse the evaluation, or reserve its ceiling, before it runs;
+		// the request is estimated only when a token or cost rule applies
+		ModelUsageTicket usageTicket = orNoLimits(ModelUsageRestrictionUtility.admit(insight.getUser(), this,
+				usageRequestFor(
+						ModelUsageRequest.ask(() -> ModelUsageRequest.estimateTokens(state, questions, parameters),
+								ModelUsageRestrictionUtility.requestedMaxTokens(parameters, getMaxTokens())))));
 		Map<String, Object> request = new LinkedHashMap<>();
 		request.put("state", state);
 		request.put("questions", questions);
 		request.put("parameters", parameters == null ? Map.of() : parameters);
+		// the ceiling goes beside the parameters, which take only evaluation settings
+		Map<String, Object> usageCeiling = usageTicket.pythonCeiling();
+		if (usageCeiling != null) {
+			request.put(ModelUsageTicket.USAGE_CEILING, usageCeiling);
+		}
 		// Encode all caller input as JSON data, including null criteria descriptions.
 		// In particular, parameter names must never be interpolated as Python code.
 		String call = this.varName + ".ask(**__import__('json').loads("
 				+ PyUtils.determineStringType(GSON.toJson(request)) + "))";
-		checkSocketStatus();
 		ZonedDateTime inputTime = ZonedDateTime.now();
-		Object output = this.pyTranslator.runDirectPyNoCancelTrace(insight, call);
-		TypeSafeModelEngineResponse response = TypeSafeModelEngineResponse.fromObject(output);
+		Object output;
+		try {
+			checkSocketStatus();
+			output = this.pyTranslator.runDirectPyNoCancelTrace(insight, call);
+		} catch (RuntimeException e) {
+			usageTicket.release();
+			throw e;
+		}
+		if (ModelUsageTicket.callDoesNotFit(output)) {
+			usageTicket.release();
+			throw usageTicket
+					.doesNotFit(ModelUsageLimitException.doesNotFit(ModelUsageTicket.doesNotFitMessage(output)));
+		}
+		TypeSafeModelEngineResponse response;
+		try {
+			response = TypeSafeModelEngineResponse.fromObject(output);
+		} catch (RuntimeException e) {
+			usageTicket.release();
+			throw e;
+		}
 		ZonedDateTime outputTime = ZonedDateTime.now();
+		Long costMicros = ModelUsageRestrictionUtility.bill(usageTicket, response, inputTime, outputTime);
 
 		if (this.inferenceLogsEnbaled) {
 			String messageId = UUID.randomUUID().toString();
-			Thread recorder = new Thread(new ModelEngineInferenceLogsWorker(messageId, messageId,
-					inferenceLogMessageMethod("system_one"), this, insight.getInsightId(), insight.getContextProjectId(),
-					insight.getProjectId(), insight.getUser(), ThreadStore.getSessionId(), insight.getInsightId(), null,
-					null, request, response.getNumberOfTokensInPrompt(), inputTime, GSON.toJson(response.getResponse()),
-					response.getNumberOfTokensInResponse(), outputTime, response.getNumberOfTokensInPrompt(),
-					response.getNumberOfTokensInResponse(), null, null, null));
+			Thread recorder = new Thread(
+					new ModelEngineInferenceLogsWorker(messageId, messageId, inferenceLogMessageMethod("system_one"),
+							this, insight.getInsightId(), insight.getContextProjectId(), insight.getProjectId(),
+							insight.getUser(), ThreadStore.getSessionId(), insight.getInsightId(), null, null, request,
+							response.getNumberOfTokensInPrompt(), inputTime, GSON.toJson(response.getResponse()),
+							response.getNumberOfTokensInResponse(), outputTime, response.getNumberOfTokensInPrompt(),
+							response.getNumberOfTokensInResponse(), null, null, null)
+							.withBilling(usageTicket.billedTo(), costMicros));
 			recorder.start();
 		}
-		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(restrictions, response, inputTime, outputTime);
 		return response;
 	}
 
@@ -108,7 +139,8 @@ public class TypeSafeEngine extends AbstractPythonModelEngine implements ITypeSa
 	}
 
 	@Override
-	public AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters) {
+	public AskModelEngineResponse ask(String question, String context, Insight insight,
+			Map<String, Object> parameters) {
 		throw unsupportedOperation();
 	}
 
@@ -125,6 +157,7 @@ public class TypeSafeEngine extends AbstractPythonModelEngine implements ITypeSa
 	}
 
 	private UnsupportedOperationException unsupportedOperation() {
-		return new UnsupportedOperationException("TypeSafe models require the TypeSafe reactor with state and questions");
+		return new UnsupportedOperationException(
+				"TypeSafe models require the TypeSafe reactor with state and questions");
 	}
 }

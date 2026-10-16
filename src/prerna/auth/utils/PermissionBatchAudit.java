@@ -36,16 +36,22 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
+import prerna.auth.access.ModelUsageLimitKey;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionGrant;
-import prerna.auth.access.PermissionSubject;
+import prerna.auth.access.PermissionSubject.SubjectCategory;
 import prerna.auth.access.PermissionTargetResource;
+import prerna.auth.access.PermissionTargetResource.TargetResourceType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.usertracking.UserAuditTrailUtils.AuditEvent;
 import prerna.util.Utility;
 import prerna.util.ValueUtils;
 
-/** Adapts committed permission batches to the existing audit event contract. */
+/**
+ * Adapts committed permission batches to the existing audit event contract: one
+ * event per change of access, and one {@link ModelUsageLimitAudit#EVENT_TYPE}
+ * event per usage limit a change sets, changes or removes.
+ */
 final class PermissionBatchAudit {
     private static final Logger LOGGER = LogManager.getLogger(PermissionBatchAudit.class);
 
@@ -54,10 +60,16 @@ final class PermissionBatchAudit {
     static void recordChanges(User user, List<PermissionBatchValidation> batches, PermissionBatchOptions options) {
         try {
             if (!Utility.isUserTrackingEnabled()) return;
-            if (!options.hasSummaryAudit()) {
-                for (PermissionBatchValidation batch : batches) {
-                    for (PermissionChangeValidation change : batch.getChanges()) {
+            for (PermissionBatchValidation batch : batches) {
+                for (PermissionChangeValidation change : batch.getChanges()) {
+                    // a model's public use and total have no access to change, only a limit
+                    if (!options.hasSummaryAudit() && !isModelLimit(change)) {
                         recordChange(user, options, batch.getTarget(), change);
+                    }
+                    // usage limit changes are recorded one by one, even under a summary,
+                    // since each changes what someone may spend
+                    if (change.changesUsageLimit()) {
+                        recordUsageLimitChange(user, options, batch.getTarget(), change);
                     }
                 }
             }
@@ -104,14 +116,14 @@ final class PermissionBatchAudit {
         if (grant != null && grant.getEndDate() != null) details.put("endDate", grant.getEndDate());
         AuditEvent event;
         if (isGroup(target)) {
-            String role = target.getKind() == PermissionTargetResource.Kind.TEAM_MANAGERS ? "MANAGER" : "MEMBER";
+            String role = target.getResourceType() == TargetResourceType.TEAM_MANAGERS ? "MANAGER" : "MEMBER";
             event = event(user, options, "GROUP_" + role + "_"
                     + (change.getAction() == PermissionChange.Action.ADD ? "ADD" : "REMOVE"), target)
                     .subject(validation.getSubjectId(), validation.getSubjectType(), null);
             details.put("groupType", "CUSTOM");
         } else {
             event = event(user, options, eventType, target);
-            if (change.getSubject().getKind() == PermissionSubject.Kind.TEAM) {
+            if (change.getSubject().getCategory() == SubjectCategory.TEAM) {
                 details.put("groupId", validation.getSubjectId());
                 details.put("groupType", validation.getSubjectType());
             } else {
@@ -128,13 +140,6 @@ final class PermissionBatchAudit {
                 event.subject(validation.getSubjectId(), subjectType, null);
                 details.put("granteeId", validation.getSubjectId());
                 if (subjectType != null) details.put("granteeType", subjectType);
-                if (target.getKind() == PermissionTargetResource.Kind.ENGINE && grant != null
-                        && !options.keepsModelLimits()) {
-                    details.put("usageRestriction", grant.getUsageRestriction());
-                    details.put("usageFrequency", grant.getUsageFrequency());
-                    details.put("maxTokens", grant.getMaxTokens());
-                    details.put("maxResponseTime", grant.getMaxResponseTime());
-                }
             }
             if (validation.getCurrentLevelId() != null) {
                 event.oldValue(Map.of("permission",
@@ -148,19 +153,47 @@ final class PermissionBatchAudit {
         UserAuditTrailUtils.recordEvent(event.details(details));
     }
 
+    /**
+     * Records the usage limit a change sets, changes or removes on a model: a
+     * person's Direct Limit or a team's Team Limit on their grant, or the model's
+     * Public Use Limit or Model Total. A grant's removal records its limit removed
+     * with it.
+     */
+    private static void recordUsageLimitChange(User user, PermissionBatchOptions options,
+            PermissionTargetResource target, PermissionChangeValidation validation) {
+        ModelUsageLimitKey key = validation.getLimitKey();
+        AuditEvent event = event(user, options, ModelUsageLimitAudit.EVENT_TYPE, target)
+                .oldValue(ModelUsageLimitAudit.value(validation.getCurrentUsageLimit()))
+                .newValue(ModelUsageLimitAudit.value(validation.getUsageLimit()));
+        Map<String, Object> details = ModelUsageLimitAudit.details(key);
+        if (key.isDirect()) {
+            event.subject(validation.getSubjectId(), validation.getSubjectType(), null);
+        }
+        if (validation.getChange().getAction() == PermissionChange.Action.REMOVE) {
+            details.put("removedWithGrant", true);
+        }
+        UserAuditTrailUtils.recordEvent(event.details(details));
+    }
+
+    /** Whether a change is to a model's public use or total, which have only a usage limit. */
+    private static boolean isModelLimit(PermissionChangeValidation validation) {
+        SubjectCategory category = validation.getChange().getSubject().getCategory();
+        return category == SubjectCategory.PUBLIC || category == SubjectCategory.MODEL;
+    }
+
     private static AuditEvent event(User user, PermissionBatchOptions options, String type,
             PermissionTargetResource target) {
-        String projectId = switch (target.getKind()) {
+        String projectId = switch (target.getResourceType()) {
             case PROJECT -> target.getId();
             case INSIGHT -> target.getProjectId();
             default -> null;
         };
         var event = new AuditEvent().eventType(type).action(type).status("SUCCESS").actorUser(user)
                 .actorIsAdmin(options.isAdminMode() ? true : null)
-                .target(isGroup(target) ? "GROUP" : target.getKind().name(),
+                .target(isGroup(target) ? "GROUP" : target.getResourceType().name(),
                         target.getId(), isGroup(target) ? target.getId() : null)
-                .context(projectId, target.getKind() == PermissionTargetResource.Kind.ENGINE ? target.getId() : null,
-                        target.getKind() == PermissionTargetResource.Kind.INSIGHT ? target.getId() : null, null);
+                .context(projectId, target.getResourceType() == TargetResourceType.ENGINE ? target.getId() : null,
+                        target.getResourceType() == TargetResourceType.INSIGHT ? target.getId() : null, null);
         if (options.getGrantor() != null) {
             event.actor(options.getGrantor().getValue0(), options.getGrantor().getValue1(), null);
         }
@@ -168,7 +201,7 @@ final class PermissionBatchAudit {
     }
 
     private static boolean isGroup(PermissionTargetResource target) {
-        return target.getKind() == PermissionTargetResource.Kind.TEAM
-                || target.getKind() == PermissionTargetResource.Kind.TEAM_MANAGERS;
+        return target.getResourceType() == TargetResourceType.TEAM
+                || target.getResourceType() == TargetResourceType.TEAM_MANAGERS;
     }
 }

@@ -27,20 +27,27 @@
  *******************************************************************************/
 package prerna.reactor.model;
 
-import java.util.Map;
-
 import prerna.auth.User;
+import prerna.auth.access.ModelUsageLimitPath;
+import prerna.auth.utils.ModelUsageLimitResolver;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.impl.model.ModelUsageRestrictionUtility;
+import prerna.engine.impl.model.usage.ModelUsagePathView;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * How usage limits apply to the signed in person on one model: every ceiling
+ * and source in order, which one their calls are billed to, and for each rule
+ * what is used and when it resets. A person over a limit gets the path with
+ * that step reached, not an error. The JSON is {@link ModelUsagePathView}'s.
+ */
 public class GetUserModelUsageRestrictionsReactor extends AbstractReactor {
 
+	private static final String ENGINE = "engine";
+
 	public GetUserModelUsageRestrictionsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
+		this.keysToGet = new String[] { ENGINE };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -48,30 +55,29 @@ public class GetUserModelUsageRestrictionsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = insight.getUser();
-		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		String engineId = this.keyValue.get(ENGINE);
 
-		if (user == null) {
+		if (user == null || user.isAnonymous()) {
 			throw new IllegalArgumentException("You are not properly logged in");
 		}
-
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
 					"Model " + engineId + " does not exist or user does not have access to this model");
 		}
-		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(user, engineId);
-
-		return new NounMetadata(userRestrictionMap, PixelDataType.MAP);
+		ModelUsageLimitPath path = ModelUsageLimitResolver.resolve(ModelUsageLimitResolver.personOf(user), engineId);
+		return new NounMetadata(ModelUsagePathView.toMap(path, true), PixelDataType.MAP);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns model usage restrictions for a user.";
+		return "Returns how model usage limits apply to the signed in user on a model: each limit, what is used, "
+				+ "when it resets, and which limit calls are billed to.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "Engine id for which to check model usage restrictions";
+		if (key.equals(ENGINE)) {
+			return "Engine id of the model whose usage limits to return";
 		}
 		return super.getDescriptionForKey(key);
 	}

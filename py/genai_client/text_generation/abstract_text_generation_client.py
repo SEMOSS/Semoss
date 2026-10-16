@@ -1,4 +1,4 @@
-from typing import Union, Dict, Any, Optional, List
+from typing import Union, Dict, Any, Optional, List, Callable
 import json
 import os
 from string import Template
@@ -15,7 +15,17 @@ from ..message_builders.semoss_base.semoss_models import (
 )
 from ..utils import string_to_bool
 from ..message_builders.semoss_base.document_input import DocumentInputProcessor
-from .model_engine_exception import ErrorDetails
+from ..usage_ceiling import (
+    USAGE_CEILING,
+    CeilingFit,
+    PromptCount,
+    UsageCeiling,
+    UsageLimitDoesNotFitError,
+    current_usage_ceiling,
+    fit_to_usage_ceiling,
+    usage_ceiling_scope,
+)
+from .model_engine_exception import ErrorDetails, ModelEngineException
 
 
 class AbstractTextGenerationClient(ABC):
@@ -68,6 +78,8 @@ class AbstractTextGenerationClient(ABC):
             global_param_override=kwargs.pop("global_param_override", None),
             modalities=kwargs.pop("modalities", None),
             native_document_mime_types=kwargs.pop("native_document_mime_types", None),
+            preserve_reasoning_content=kwargs.pop("preserve_reasoning_content", False),
+            chat_reasoning_mode=kwargs.pop("chat_reasoning_mode", "reasoning_effort"),
         )
 
         self._document_input_processor = DocumentInputProcessor()
@@ -128,7 +140,9 @@ class AbstractTextGenerationClient(ABC):
                 raise ValueError(f"Invalid JSON format in message_json.: {e}")
 
         return self._document_input_processor.prepare(
-            semoss_messages, model_settings, source_messages=message_json,
+            semoss_messages,
+            model_settings,
+            source_messages=message_json,
             input_modalities=input_modalities,
         )
 
@@ -178,7 +192,25 @@ class AbstractTextGenerationClient(ABC):
         return output, substitutions_made
 
     def ask(self, *args: Any, **kwargs: Any) -> Dict:
-        response = self.ask_call(*args, **kwargs)
+        # the usage ceiling is held for this call only and never reaches ask_call
+        ceiling = UsageCeiling.from_value(kwargs.pop(USAGE_CEILING, None))
+        with usage_ceiling_scope(ceiling) as ceiling_call:
+            try:
+                response = self.ask_call(*args, **kwargs)
+            except UsageLimitDoesNotFitError as e:
+                # the refusal goes back as the USAGE_LIMIT_DOES_NOT_FIT error response,
+                # which Java reads to release the call's reservation
+                response = ModelEngineException(
+                    error=e, client=type(self).__name__, model=str(self.model_name)
+                ).parse_error()
+        # usageCapped tells the caller the answer was cut by what is left on a
+        # usage limit, not by its own maximum
+        if (
+            ceiling_call is not None
+            and isinstance(response, AskModelEngineResponse2)
+            and ceiling_call.capped(response.response_tokens)
+        ):
+            response.usage_capped = True
         if isinstance(response, AskModelEngineResponse):
             return response.to_dict()
         if isinstance(response, AskModelEngineResponse2):
@@ -192,7 +224,39 @@ class AbstractTextGenerationClient(ABC):
     def ask_call(self, *args: Any, **kwargs: Any) -> AskModelEngineResponse:
         pass
 
+    def fit_output_to_usage_ceiling(
+        self,
+        requested_max: Optional[int],
+        count_prompt: Callable[[], PromptCount],
+        can_cap: bool = True,
+    ) -> Optional[CeilingFit]:
+        """Fit the call in progress to the usage ceiling of this ask.
+
+        Every provider client applies the cap through this one method, so the
+        rules of ``usage_ceiling`` hold the same way for each.
+
+        Clients call this with their finished provider request: the output
+        maximum it carries and a function that counts its prompt (called only
+        when a ceiling applies). Returns None without a ceiling. Otherwise the
+        returned fit holds the output maximum to send; when ``fit.lowered`` the
+        client sets it on the request and lowers any thinking budget with
+        ``fit_thinking_budget``. Raises UsageLimitDoesNotFitError when the prompt
+        leaves less than ``min_output_tokens``; the client's own error handling
+        or ``ask`` turns it into the USAGE_LIMIT_DOES_NOT_FIT error response.
+        """
+        return fit_to_usage_ceiling(requested_max, count_prompt, can_cap=can_cap)
+
+    @staticmethod
+    def usage_ceiling_min_output_tokens() -> int:
+        """The output the ceiling of the call in progress keeps for the answer,
+        for fitting thinking budgets. 1 without a ceiling, so the budget only has
+        to stay below the output maximum."""
+        call = current_usage_ceiling()
+        return call.ceiling.min_output_tokens if call is not None else 1
+
     def embeddings(self, *args: Any, **kwargs: Any) -> Dict:
+        # accepted so every engine call can pass it; nothing is embedded here
+        kwargs.pop(USAGE_CEILING, None)
         response = "This model does not support embeddings."
 
         numberOfTokensInResponse = 6
@@ -209,6 +273,7 @@ class AbstractTextGenerationClient(ABC):
 
     def multi_modal_embeddings(self, *args: Any, **kwargs: Any) -> Dict:
         """Optional capability. Text generation clients do not embed by default."""
+        kwargs.pop(USAGE_CEILING, None)
         return {
             "response": "This model does not support multi modal embeddings.",
             "implemented": False,

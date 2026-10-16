@@ -429,4 +429,10 @@ class UserAuditTrailUtilsUnitTests {
 			assertEquals(16, AuditChainStore.snapshot(db.engine));
 		}
 	}
+
+	@Test
+	void usageLimitChangesHaveTheirOwnCategory() {
+		assertEquals("USAGE_LIMIT", UserAuditTrailUtils.deriveCategory("USAGE_LIMIT_UPDATE", "ENGINE"));
+		assertEquals("USAGE_LIMIT", UserAuditTrailUtils.deriveCategory("USAGE_LIMIT_UPDATE", "PLATFORM"));
+	}
 }

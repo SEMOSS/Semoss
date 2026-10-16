@@ -514,16 +514,18 @@ public class CollaborationDbUtils {
 		try {
 			// create the tables and columns from the OWL creator schema
 			AbstractOwlCreator.syncSchema(collaborationDb, conn, dbSchema);
-			// A single routine per owner is required for atomic schedule saves and daily-run claims.
+			// A single routine of each kind per owner is required for atomic schedule saves and run claims.
 			var queryUtil = collaborationDb.getQueryUtil();
-			String routineIndex = "WORK_INBOX_ROUTINE_OWNER_UNIQUE";
-			if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, routineIndex,
-					"WORK_INBOX_ROUTINE", collaborationDb.getDatabase(), collaborationDb.getSchema())) {
-				String sql = queryUtil.allowIfExistsIndexSyntax()
-						? queryUtil.createIndexIfNotExists(routineIndex, "WORK_INBOX_ROUTINE", List.of("OWNER_ID", "OWNER_TYPE"))
-						: queryUtil.createIndex(routineIndex, "WORK_INBOX_ROUTINE", List.of("OWNER_ID", "OWNER_TYPE"));
-				try (Statement statement = conn.createStatement()) {
-					statement.execute(sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX"));
+			for (String routineTable : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE")) {
+				String routineIndex = routineTable + "_OWNER_UNIQUE";
+				if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, routineIndex,
+						routineTable, collaborationDb.getDatabase(), collaborationDb.getSchema())) {
+					String sql = queryUtil.allowIfExistsIndexSyntax()
+							? queryUtil.createIndexIfNotExists(routineIndex, routineTable, List.of("OWNER_ID", "OWNER_TYPE"))
+							: queryUtil.createIndex(routineIndex, routineTable, List.of("OWNER_ID", "OWNER_TYPE"));
+					try (Statement statement = conn.createStatement()) {
+						statement.execute(sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX"));
+					}
 				}
 			}
 			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)

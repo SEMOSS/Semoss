@@ -40,10 +40,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
+import prerna.auth.access.ModelUsageLimit;
+import prerna.auth.access.ModelUsageLimitKey;
+import prerna.auth.access.ModelUsageLimitRule;
+import prerna.auth.access.ModelUsageLimitRule.Counts;
+import prerna.auth.access.ModelUsageLimitRule.Metric;
+import prerna.auth.access.ModelUsageLimitRule.Window;
 import prerna.auth.access.PermissionBatch;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionGrant;
 import prerna.auth.access.PermissionSubject;
+import prerna.auth.access.PermissionSubject.SubjectCategory;
 import prerna.auth.access.PermissionTargetResource;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Utility;
@@ -64,6 +71,46 @@ class PermissionBatchAuditUnitTests {
 
     private JsonObject json(Object event) {
         return ProjectPermissionAuditUnitTests.AUDIT_JSON.toJsonTree(event).getAsJsonObject();
+    }
+
+    private static ModelUsageLimit tokensADay(long amount) {
+        return ModelUsageLimit.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, amount, Window.DAY, Counts.EACH_PERSON)));
+    }
+
+    /** Makes the batch's change write a usage limit, as validation does when it differs from the current one. */
+    private static void changesLimit(PermissionBatchValidation batch, ModelUsageLimitKey key, ModelUsageLimit before,
+            ModelUsageLimit after) {
+        PermissionChangeValidation validation = batch.getChanges().get(0);
+        validation.setCurrentUsageLimit(before);
+        validation.setUsageLimit(after);
+        validation.setLimitKey(key);
+    }
+
+    private List<JsonObject> record(PermissionBatchValidation batch, PermissionBatchOptions options) {
+        List<JsonObject> events = new ArrayList<>();
+        try (var utility = mockStatic(Utility.class); var audit = mockStatic(UserAuditTrailUtils.class)) {
+            utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+            audit.when(() -> UserAuditTrailUtils.recordEvent(any())).thenAnswer(call -> {
+                events.add(json(call.getArgument(0)));
+                return null;
+            });
+            PermissionBatchAudit.recordChanges(null, List.of(batch), options);
+        }
+        return events;
+    }
+
+    private static List<String> types(List<JsonObject> events) {
+        return events.stream().map(event -> event.get("eventType").getAsString()).toList();
+    }
+
+    /** The first rule's amount of the limit in an event's old or new value, or null for no limit defined. */
+    private static Long amount(JsonObject event, String value) {
+        JsonObject values = event.getAsJsonObject(value);
+        if (values == null || !values.has("usageLimit") || values.get("usageLimit").isJsonNull()) {
+            return null;
+        }
+        return values.getAsJsonObject("usageLimit").getAsJsonArray("rules").get(0).getAsJsonObject().get("amount")
+                .getAsLong();
     }
 
     @ParameterizedTest
@@ -172,6 +219,84 @@ class PermissionBatchAuditUnitTests {
                     PermissionBatchOptions.userMode());
             audit.verifyNoInteractions();
         }
+    }
+
+    @Test
+    void aGrantChangeThatChangesItsLimitRecordsTheLimitBesideTheAccess() {
+        PermissionBatchValidation batch = batch(PermissionTargetResource.engine("model"), PermissionChange.Action.CHANGE,
+                PermissionSubject.ofUser("member", "NATIVE"));
+        changesLimit(batch, ModelUsageLimitKey.direct("model", "member", "NATIVE"), tokensADay(500), tokensADay(700));
+
+        List<JsonObject> events = record(batch, PermissionBatchOptions.userMode());
+
+        assertEquals(List.of("PERMISSION_UPDATE", "USAGE_LIMIT_UPDATE"), types(events));
+        JsonObject limit = events.get(1);
+        assertEquals("model", limit.get("engineId").getAsString());
+        assertEquals("member", limit.get("subjectUserId").getAsString());
+        assertEquals("DIRECT", limit.getAsJsonObject("detailsRaw").get("limitType").getAsString());
+        assertEquals(500L, amount(limit, "oldValueRaw"));
+        assertEquals(700L, amount(limit, "newValueRaw"));
+    }
+
+    @Test
+    void aGrantChangeThatKeepsItsLimitRecordsOnlyTheAccess() {
+        PermissionBatchValidation batch = batch(PermissionTargetResource.engine("model"), PermissionChange.Action.CHANGE,
+                PermissionSubject.ofUser("member", "NATIVE"));
+        batch.getChanges().get(0).keepUsageLimit(tokensADay(500));
+
+        assertEquals(List.of("PERMISSION_UPDATE"), types(record(batch, PermissionBatchOptions.userMode())));
+    }
+
+    @Test
+    void aTeamLimitNamesTheTeamAndNoAffectedUser() {
+        PermissionBatchValidation batch = batch(PermissionTargetResource.engine("model"), PermissionChange.Action.ADD,
+                PermissionSubject.ofTeam("ops", "CUSTOM"));
+        changesLimit(batch, ModelUsageLimitKey.team("model", "ops", "CUSTOM"), null, tokensADay(1_000));
+
+        JsonObject limit = record(batch, PermissionBatchOptions.userMode()).get(1);
+
+        assertEquals("USAGE_LIMIT_UPDATE", limit.get("eventType").getAsString());
+        assertFalse(limit.has("subjectUserId"));
+        JsonObject details = limit.getAsJsonObject("detailsRaw");
+        assertEquals("TEAM", details.get("limitType").getAsString());
+        assertEquals("ops", details.get("groupId").getAsString());
+        assertNull(amount(limit, "oldValueRaw"));
+        assertEquals(1_000L, amount(limit, "newValueRaw"));
+    }
+
+    @Test
+    void thePublicUseLimitAndTheModelTotalAreRecordedAsLimitChangesOnly() {
+        PermissionBatchValidation publicUse = batch(PermissionTargetResource.engine("model"),
+                PermissionChange.Action.CHANGE, new PermissionSubject(SubjectCategory.PUBLIC, null, null));
+        changesLimit(publicUse, ModelUsageLimitKey.publicUse("model"), null, tokensADay(50_000));
+        PermissionBatchValidation total = batch(PermissionTargetResource.engine("model"),
+                PermissionChange.Action.CHANGE, new PermissionSubject(SubjectCategory.MODEL, null, null));
+        changesLimit(total, ModelUsageLimitKey.modelTotal("model"), tokensADay(9_000_000), null);
+
+        List<JsonObject> publicEvents = record(publicUse, PermissionBatchOptions.userMode());
+        List<JsonObject> totalEvents = record(total, PermissionBatchOptions.userMode());
+
+        assertEquals(List.of("USAGE_LIMIT_UPDATE"), types(publicEvents));
+        assertEquals("PUBLIC", publicEvents.get(0).getAsJsonObject("detailsRaw").get("limitType").getAsString());
+        assertEquals(List.of("USAGE_LIMIT_UPDATE"), types(totalEvents));
+        assertEquals("MODEL_TOTAL", totalEvents.get(0).getAsJsonObject("detailsRaw").get("limitType").getAsString());
+        assertEquals(9_000_000L, amount(totalEvents.get(0), "oldValueRaw"));
+        assertNull(amount(totalEvents.get(0), "newValueRaw"));
+    }
+
+    @Test
+    void aRemovedGrantRecordsItsLimitRemovedWithItEvenUnderASummary() {
+        PermissionBatchValidation batch = batch(PermissionTargetResource.engine("model"), PermissionChange.Action.REMOVE,
+                PermissionSubject.ofUser("member", "NATIVE"));
+        changesLimit(batch, ModelUsageLimitKey.direct("model", "member", "NATIVE"), tokensADay(500), null);
+
+        List<JsonObject> events = record(batch, PermissionBatchOptions.adminMode().withSummaryAudit());
+
+        // the summary replaces the access event, but each limit change is still recorded
+        assertEquals(List.of("USAGE_LIMIT_UPDATE"), types(events));
+        JsonObject details = events.get(0).getAsJsonObject("detailsRaw");
+        assertTrue(details.get("removedWithGrant").getAsBoolean());
+        assertEquals(500L, amount(events.get(0), "oldValueRaw"));
     }
 
     @Test
