@@ -33,6 +33,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,12 +61,11 @@ import com.google.gson.ToNumberPolicy;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.access.ModelUsageLimitRule.Metric;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.MessageFeedback;
-import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.owl.AbstractOwlCreator;
@@ -72,6 +74,7 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -82,12 +85,10 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.selectors.QueryTypedColumnSelector;
-import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -168,6 +169,10 @@ public class ModelInferenceLogsUtils {
 				OwlIndex.of("MESSAGE_ROOM_ID_INDEX", "MESSAGE", "ROOM_ID"),
 				OwlIndex.of("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID"),
 				OwlIndex.of("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED"),
+				// usage limit counters are filled from these
+				OwlIndex.of("MESSAGE_USER_AGENT_DATE_INDEX", "MESSAGE", "USER_ID", "AGENT_ID", "DATE_CREATED"),
+				OwlIndex.of("MESSAGE_BILLED_AGENT_DATE_INDEX", "MESSAGE", "BILLED_SOURCE_TYPE", "BILLED_SUBJECT_ID",
+						"AGENT_ID", "DATE_CREATED"),
 				OwlIndex.of("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID"),
 				OwlIndex.of("ROOM_ROOM_ID_INDEX", "ROOM", "ROOM_ID"),
 				OwlIndex.of("ROOM_USER_ID_INDEX", "ROOM", "USER_ID"),
@@ -385,6 +390,45 @@ public class ModelInferenceLogsUtils {
 			classLogger.warn("Failed to retrieve batch inputs for batch '{}'", providerBatchId, e);
 		}
 		return out;
+	}
+
+	/**
+	 * Reads which results of a batch already have their RESPONSE row, so a read of
+	 * the results neither bills nor records them again. The marks that dedupe reads
+	 * are lost when the in-memory counter store, or a Redis with no persistence,
+	 * restarts; these rows are not.
+	 *
+	 * @param providerBatchId the provider's batch id
+	 * @return the transaction ids ({@code batchId.customId}) of the results already
+	 *         recorded; empty when the inference logs are off or cannot be read
+	 */
+	public static Set<String> getRecordedBatchResults(String providerBatchId) {
+		Set<String> recorded = new HashSet<>();
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			return recorded;
+		}
+		String query = "SELECT TRANSACTION_ID FROM MESSAGE"
+				+ " WHERE ROOM_ID = ? AND MESSAGE_TYPE = 'RESPONSE' AND MESSAGE_METHOD = 'batch'";
+		try {
+			QueryExecutionUtility.read(db, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(query)) {
+					ps.setString(1, "mb_" + providerBatchId);
+					try (ResultSet rs = ps.executeQuery()) {
+						while (rs.next()) {
+							String txnId = rs.getString("TRANSACTION_ID");
+							if (txnId != null) {
+								recorded.add(txnId);
+							}
+						}
+					}
+				}
+				return null;
+			});
+		} catch (Exception e) {
+			classLogger.warn("Failed to read the recorded results of batch '{}'", providerBatchId, e);
+		}
+		return recorded;
 	}
 
 	/**
@@ -1114,6 +1158,33 @@ public class ModelInferenceLogsUtils {
 			Integer cacheCreationTokens, Integer thinkingTokens, Double reponseTime, ZonedDateTime dateCreated,
 			String agentId, String insightId, String sessionId, String roomId, String userId, String userName,
 			String userEmail) {
+		doRecordMessage(messageId, transactionId, messageType, messageData, messageMethod, tokenSize, inputTokens,
+				outputTokens, cacheReadTokens, cacheCreationTokens, thinkingTokens, reponseTime, dateCreated, agentId,
+				insightId, sessionId, roomId, userId, null, userName, userEmail, null, null, null, null);
+	}
+
+	/**
+	 * Records a message row with granular, nullable per-transaction token counts,
+	 * the primary login's id and type, and the usage limit source the call was
+	 * billed to. THINKING_TOKENS, RESPONSE_TIME and COST_MICROS are intended for
+	 * the RESPONSE row only; pass null for the INPUT row.
+	 *
+	 * @param userType          the primary login's type
+	 * @param billedSourceType  the source billed, for {@code BILLED_SOURCE_TYPE}:
+	 *                          {@code USER}, {@code TEAM}, {@code PUBLIC},
+	 *                          {@code ALL_MODELS} or {@code PLATFORM}, or null when
+	 *                          no limit applied
+	 * @param billedSubjectId   the id of the source billed, or null
+	 * @param billedSubjectType the type of the source billed, or null
+	 * @param costMicros        the call's cost in millionths of a dollar, or null
+	 *                          when the model has no known prices
+	 */
+	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
+			String messageMethod, Integer tokenSize, Integer inputTokens, Integer outputTokens, Integer cacheReadTokens,
+			Integer cacheCreationTokens, Integer thinkingTokens, Double reponseTime, ZonedDateTime dateCreated,
+			String agentId, String insightId, String sessionId, String roomId, String userId, String userType,
+			String userName, String userEmail, String billedSourceType, String billedSubjectId,
+			String billedSubjectType, Long costMicros) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		// convert the time to UTC
 		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
@@ -1122,8 +1193,9 @@ public class ModelInferenceLogsUtils {
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS,"
 				+ " INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS, RESPONSE_TIME,"
-				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
-				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID,"
+				+ " USER_TYPE, BILLED_SOURCE_TYPE, BILLED_SUBJECT_ID, BILLED_SUBJECT_TYPE, COST_MICROS) "
+				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		try {
 			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
 				QueryExecutionUtility.executeUpdate(connection, query, ps -> {
@@ -1180,6 +1252,15 @@ public class ModelInferenceLogsUtils {
 					ps.setString(index++, userId);
 					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userName);
 					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userEmail);
+					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userType);
+					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, billedSourceType);
+					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, billedSubjectId);
+					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, billedSubjectType);
+					if (costMicros != null) {
+						ps.setLong(index++, costMicros);
+					} else {
+						ps.setNull(index++, java.sql.Types.BIGINT);
+					}
 				});
 				return null;
 			});
@@ -1757,7 +1838,10 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 
-	/** Same write as {@link #setRoomOptions}, but throws and returns the updated row count. */
+	/**
+	 * Same write as {@link #setRoomOptions}, but throws and returns the updated row
+	 * count.
+	 */
 	public static int updateRoomOptions(String roomId, String userId, Map<String, Object> options) throws Exception {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND ROOM_ID = ?";
@@ -1856,171 +1940,128 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Calculates total token usage or response time for one user and one engine for
-	 * a frequency window.
+	 * Adds up the usage of the {@code MESSAGE} rows a usage limit counter is filled
+	 * from, in a window. Tokens are every row's {@code MESSAGE_TOKENS}, prompt and
+	 * response; compute time is the RESPONSE rows' {@code RESPONSE_TIME}, so each
+	 * call counts once; cost is {@code COST_MICROS}.
 	 *
-	 * @param restrictionMode usage mode ({@code MAXTOKENS} or
-	 *                        {@code MAXRESPONSETIME})
-	 * @param user            user to evaluate
-	 * @param engineId        engine identifier
-	 * @param currentDateTime reference date/time
-	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
-	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
-	 * @return aggregate usage value, or {@code null} if unavailable
+	 * @param metric what to add up
+	 * @param filter which rows
+	 * @param start  the window's start, inclusive
+	 * @param end    the window's end, exclusive
+	 * @return the total, 0 when there are no rows
+	 * @throws Exception when the logs cannot be read
 	 */
-	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, User user, String engineId,
-			ZonedDateTime currentDateTime, String frequency) {
+	public static long sumModelUsage(Metric metric, ModelUsageLogFilter filter, Instant start, Instant end)
+			throws Exception {
+		String sum;
+		switch (metric) {
+		case TOKENS:
+			sum = "SUM(MESSAGE_TOKENS)";
+			break;
+		case COST:
+			sum = "SUM(COST_MICROS)";
+			break;
+		case COMPUTE_TIME:
+			sum = "SUM(RESPONSE_TIME)";
+			break;
+		default:
+			throw new IllegalArgumentException("Unknown usage metric " + metric);
+		}
+		List<Object> values = new ArrayList<>();
+		String where = usageWhere(filter, start, end, values);
+		if (metric == Metric.COMPUTE_TIME) {
+			where += " AND MESSAGE_TYPE = 'RESPONSE'";
+		}
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		if (restrictionMode == null) {
-			throw new IllegalArgumentException("Must pass in a valid restriction mode");
-		}
-
-		// Get the date range based on the frequency specification
-		// Supports: WEEK, MONTH, YEAR, ALL_TIME
-		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
-				currentDateTime);
-
-		// Extract start and end dates from the map
-		ZonedDateTime startDate = dates.get("start");
-		ZonedDateTime endDate = dates.get("end");
-
-		String sumColumn = null;
-		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(MESSAGE_TOKENS) ";
-		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(RESPONSE_TIME) ";
-		}
-
-		// SQL query to fetch the total tokens or response time
-		String query = "SELECT " + sumColumn
-				+ " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND AGENT_ID=? AND DATE_CREATED BETWEEN ? AND ?";
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int psIndex = 1;
-			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
-			ps.setString(psIndex++, engineId);
-			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(startDate.toLocalDateTime()));
-			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(endDate.toLocalDateTime()));
-
-			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
-					ps.getConnection(), ps, query, false);
-
-			if (wrapper.hasNext()) {
-				Number retNum = (Number) wrapper.next().getValues()[0];
-				// if this is null
-				// that means there are no logs currently for this model
-				// we will treat this as 0 usage
-				if (retNum == null) {
-					return 0;
-				}
-				return retNum;
-			}
-		} catch (Exception e) {
-			classLogger.error(
-					"Failed to calculate usage for userId '{}', engineId '{}', restrictionMode '{}', frequency '{}'.",
-					user.getAccessToken(user.getLogins().get(0)).getId(), engineId, restrictionMode, frequency, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
-		}
-		return null;
+		Number total = QueryExecutionUtility.queryOne(modelInferenceLogsDb,
+				"SELECT " + sum + " AS USAGE_TOTAL FROM MESSAGE" + where, ps -> bindUsageValues(ps, values),
+				rs -> (Number) rs.getObject(1));
+		return total == null ? 0 : (long) Math.ceil(total.doubleValue());
 	}
 
 	/**
-	 * Calculates total token usage or response time for a user across engines while
-	 * excluding restricted engines.
+	 * Adds up, for each model, the token counts of the {@code MESSAGE} rows a usage
+	 * limit counter is filled from that were written before calls recorded their
+	 * login type and cost, so their cost can be worked out at current prices.
 	 *
-	 * @param restrictionMode usage mode ({@code MAXTOKENS} or
-	 *                        {@code MAXRESPONSETIME})
-	 * @param user            user to evaluate
-	 * @param engineId        current engine id used to derive exclusions
-	 * @param currentDateTime reference date/time
-	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
-	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
-	 * @return aggregate usage value, or {@code null} if unavailable
+	 * @param filter which rows
+	 * @param start  the window's start, inclusive
+	 * @param end    the window's end, exclusive
+	 * @return the totals, one for each model
+	 * @throws Exception when the logs cannot be read
 	 */
-	public static Number getTotalUsageForUser(String restrictionMode, User user, String engineId,
-			ZonedDateTime currentDateTime, String frequency) {
+	public static List<ModelUsageLogTotals> sumModelUsageBeforeCost(ModelUsageLogFilter filter, Instant start,
+			Instant end) throws Exception {
+		List<Object> values = new ArrayList<>();
+		String where = usageWhere(filter, start, end, values) + " AND USER_TYPE IS NULL AND COST_MICROS IS NULL";
+		String sql = "SELECT AGENT_ID, "
+				+ "SUM(CASE WHEN MESSAGE_TYPE = 'INPUT' THEN MESSAGE_TOKENS ELSE 0 END) AS PROMPT_TOKENS, "
+				+ "SUM(CASE WHEN MESSAGE_TYPE = 'RESPONSE' THEN MESSAGE_TOKENS ELSE 0 END) AS RESPONSE_TOKENS, "
+				+ "SUM(CASE WHEN MESSAGE_TYPE = 'INPUT' THEN CACHE_READ_TOKENS ELSE 0 END) AS CACHE_READ, "
+				+ "SUM(CASE WHEN MESSAGE_TYPE = 'INPUT' THEN CACHE_CREATION_TOKENS ELSE 0 END) AS CACHE_WRITE, "
+				+ "SUM(CASE WHEN MESSAGE_TYPE = 'RESPONSE' THEN THINKING_TOKENS ELSE 0 END) AS THINKING "
+				+ "FROM MESSAGE" + where + " GROUP BY AGENT_ID";
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		if (restrictionMode == null) {
-			throw new IllegalArgumentException("Must pass in a valid restriction mode");
-		}
+		return QueryExecutionUtility.queryList(modelInferenceLogsDb, sql, ps -> bindUsageValues(ps, values),
+				rs -> new ModelUsageLogTotals(rs.getString("AGENT_ID"), rs.getLong("PROMPT_TOKENS"),
+						rs.getLong("CACHE_READ"), rs.getLong("CACHE_WRITE"), rs.getLong("RESPONSE_TOKENS"),
+						rs.getLong("THINKING")));
+	}
 
-		// Step 1: Get the list of Engine IDs with MAXRESPONSETIME or MAXTOKENS for the
-		// specific user
-		List<String> engineIdExcludeList = SecurityEngineUtils.getModelEngineIdsWithRestrictions(user, engineId);
-		String excludePSString = "";
-		if (engineIdExcludeList != null && !engineIdExcludeList.isEmpty()) {
-			StringBuilder excludeSB = new StringBuilder("AND AGENT_ID NOT IN (");
-			for (int i = 0; i < engineIdExcludeList.size(); i++) {
-				if (i > 0) {
-					excludeSB.append(",");
-				}
-				excludeSB.append("?");
+	/**
+	 * Builds the WHERE clause that picks the {@code MESSAGE} rows a usage limit
+	 * counter counts in a window, from the counter's filter.
+	 *
+	 * @return the WHERE clause for a usage limit counter's rows, with its values
+	 *         added to {@code values} in order
+	 */
+	private static String usageWhere(ModelUsageLogFilter filter, Instant start, Instant end, List<Object> values) {
+		StringBuilder where = new StringBuilder(" WHERE DATE_CREATED >= ? AND DATE_CREATED < ?");
+		values.add(Timestamp.valueOf(LocalDateTime.ofInstant(start, ZoneOffset.UTC)));
+		values.add(Timestamp.valueOf(LocalDateTime.ofInstant(end, ZoneOffset.UTC)));
+		if (filter.engineId() != null) {
+			where.append(" AND AGENT_ID = ?");
+			values.add(filter.engineId());
+		}
+		if (filter.userId() != null) {
+			where.append(" AND USER_ID = ?");
+			values.add(filter.userId());
+			if (filter.userType() != null) {
+				// rows written before USER_TYPE existed belong to the same id
+				where.append(" AND (USER_TYPE = ? OR USER_TYPE IS NULL)");
+				values.add(filter.userType());
 			}
-			excludeSB.append(")");
-			excludePSString = excludeSB.toString();
 		}
-
-		// Step 2: Get the date range based on the frequency specification
-		// Supports: WEEK, MONTH, YEAR, ALL_TIME
-		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
-				currentDateTime);
-		// Extract start and end dates from the map
-		ZonedDateTime startDate = dates.get("start");
-		ZonedDateTime endDate = dates.get("end");
-
-		// Step 3: Determine which column to sum (tokens or response time) based on
-		// restrictionMode
-		String sumColumn = null;
-		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(MESSAGE_TOKENS) ";
-		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(RESPONSE_TIME) ";
+		if (filter.billedSourceType() != null) {
+			where.append(" AND BILLED_SOURCE_TYPE = ?");
+			values.add(filter.billedSourceType());
 		}
+		if (filter.billedSubjectId() != null) {
+			where.append(" AND BILLED_SUBJECT_ID = ?");
+			values.add(filter.billedSubjectId());
+		}
+		if (filter.billedSubjectType() != null) {
+			where.append(" AND BILLED_SUBJECT_TYPE = ?");
+			values.add(filter.billedSubjectType());
+		}
+		if (filter.skipRouterRows()) {
+			// a router writes route_ask and route_embeddings rows for itself; the model
+			// it routes to writes the call again
+			where.append(" AND (MESSAGE_METHOD IS NULL OR MESSAGE_METHOD NOT LIKE 'route_%')");
+		}
+		return where.toString();
+	}
 
-		// Step 4: Get total usage for the user excluding the engines in the
-		// engineIdList
-		String query = "SELECT " + sumColumn
-				+ " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND DATE_CREATED BETWEEN ? AND ? "
-				+ excludePSString;
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-
-		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int psIndex = 1;
-			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
-			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
-			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
-			if (engineIdExcludeList != null && !engineIdExcludeList.isEmpty()) {
-				for (String excludeEngineId : engineIdExcludeList) {
-					ps.setString(psIndex++, excludeEngineId);
-				}
+	private static void bindUsageValues(PreparedStatement ps, List<Object> values) throws SQLException {
+		for (int i = 0; i < values.size(); i++) {
+			Object value = values.get(i);
+			if (value instanceof Timestamp) {
+				ps.setTimestamp(i + 1, (Timestamp) value);
+			} else {
+				ps.setString(i + 1, String.valueOf(value));
 			}
-
-			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
-					ps.getConnection(), ps, query, false);
-
-			if (wrapper.hasNext()) {
-				Number retNum = (Number) wrapper.next().getValues()[0];
-				// if this is null
-				// that means there are no logs currently for this model
-				// we will treat this as 0 usage
-				if (retNum == null) {
-					return 0;
-				}
-				return retNum;
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to calculate total usage for userId '{}', restrictionMode '{}', frequency '{}'.",
-					user.getAccessToken(user.getLogins().get(0)).getId(), restrictionMode, frequency, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
 		}
-
-		return null;
 	}
 
 	/* -------- ROOM PIECES ------- */
@@ -2169,7 +2210,8 @@ public class ModelInferenceLogsUtils {
 	 *
 	 * @param userId  user identifier
 	 * @param roomIds room identifiers
-	 * @return one map per open room: ROOM_ID, ROOM_NAME, PROJECT_ID, OPTIONS (JSON text), UPDATED_AT (Timestamp)
+	 * @return one map per open room: ROOM_ID, ROOM_NAME, PROJECT_ID, OPTIONS (JSON
+	 *         text), UPDATED_AT (Timestamp)
 	 */
 	public static List<Map<String, Object>> getActiveRoomSummaries(String userId, List<String> roomIds) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
@@ -2207,7 +2249,8 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * The user's open rooms in a project, with their options and without their messages.
+	 * The user's open rooms in a project, with their options and without their
+	 * messages.
 	 *
 	 * @param userId    user identifier
 	 * @param projectId project identifier
@@ -3420,9 +3463,17 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, requestIf, "TOTAL_REQUESTS"));
 
-		// Filter by user ID
-		String userId = user.getPrimaryLoginToken().getId();
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", userId));
+		// usage belongs to the primary login, by its id and type; rows written before
+		// USER_TYPE existed belong to the same id
+		Pair<String, String> primary = User.getPrimaryUserIdAndTypePair(user);
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", primary.getValue0()));
+		OrQueryFilter typeFilter = new OrQueryFilter();
+		typeFilter.addFilter(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_TYPE", "==", primary.getValue1()));
+		typeFilter.addFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_TYPE", "==", null,
+				PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(typeFilter);
 
 		// Filter by engine IDs
 		if (engineIds != null && !engineIds.isEmpty()) {

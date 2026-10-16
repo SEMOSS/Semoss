@@ -141,6 +141,7 @@ class AutomationRunStoreUnitTests {
 	@Test
 	void nodeResultsAndWaitContinuationRetainStatePredicatesAndTrace() throws Exception {
 		try (var db = new JdbcTestDatabase();
+				var audit = mockStatic(prerna.usertracking.UserAuditTrailUtils.class);
 				var queries = mockStatic(prerna.util.QueryExecutionUtility.class, CALLS_REAL_METHODS)) {
 			schema(db);
 			db.execute(
@@ -186,6 +187,25 @@ class AutomationRunStoreUnitTests {
 			assertEquals("SKIPPED", db.value("SELECT STATUS FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='skipped'"));
 			assertThrows(IllegalStateException.class,
 					() -> AutomationRunStore.updateNodeAgentRunTrace("run", "missing", "agent"));
+			AutomationRunStore.completeRun("run", "project", "FAILED", "node", "failure");
+			audit.verify(() -> prerna.usertracking.UserAuditTrailUtils.recordEvent(any()));
+			assertThrows(IllegalStateException.class, () -> AutomationRunStore.completeRun("run", "project", "FAILED", "node", "failure"));
+			audit.verifyNoMoreInteractions();
+		}
+	}
+
+	@Test
+	void terminalOutcomesAreAuditedOnlyAfterTheirStateCommits() throws Exception {
+		try (var db = new JdbcTestDatabase(); var audit = mockStatic(prerna.usertracking.UserAuditTrailUtils.class)) {
+			schema(db);
+			for (String status : List.of("SUCCESS", "FAILED", "CANCELLED", "INTERRUPTED")) {
+				initialize(status, Map.of());
+				assertTrue(AutomationRunStore.claimRun(status));
+				AutomationRunStore.completeRun(status, "project", status, null, null);
+			}
+			audit.verify(() -> prerna.usertracking.UserAuditTrailUtils.recordEvent(any()), org.mockito.Mockito.times(4));
+			assertThrows(IllegalStateException.class, () -> AutomationRunStore.completeRun("absent", "project", "SUCCESS", null, null));
+			audit.verifyNoMoreInteractions();
 		}
 	}
 
