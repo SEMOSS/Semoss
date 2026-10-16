@@ -46,6 +46,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AssetUtility;
 
 /**
@@ -69,8 +72,8 @@ import prerna.util.AssetUtility;
  * when supplied; frontmatter is the fallback only when the param is omitted
  * entirely.</li>
  * <li>{@code description} - same rule as {@code name}: wins over the
- * frontmatter's {@code description} when supplied; frontmatter is the
- * fallback only when the param is omitted entirely.</li>
+ * frontmatter's {@code description} when supplied; frontmatter is the fallback
+ * only when the param is omitted entirely.</li>
  * </ul>
  *
  * <p>
@@ -154,6 +157,8 @@ public class CreateSkillReactor extends AbstractReactor {
 		response.put("project_id", skillId);
 		response.put("slug", slug);
 		response.put("name", name);
+		UserAuditTrailUtils.recordResourceEvent(user, AuditEventType.SKILL_CREATE, AuditTargetType.SKILL, skillId, name,
+				skillId, null, null, Map.of("slug", slug));
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

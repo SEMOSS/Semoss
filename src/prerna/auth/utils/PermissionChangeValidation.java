@@ -90,6 +90,11 @@ final class PermissionChangeValidation {
 	 */
 	private ModelUsageLimit usageLimit;
 	/**
+	 * The usage limit before the change, on a model's grant, public use or total,
+	 * or null for no limit defined; the audit trail records it beside the new one
+	 */
+	private ModelUsageLimit currentUsageLimit;
+	/**
 	 * Whether the change leaves the current usage limit as it is, so it writes no
 	 * limit and needs no permission to set one. This is how an editor's change of
 	 * level passes, since only owners set usage limits.
@@ -229,6 +234,36 @@ final class PermissionChangeValidation {
 	void setUsageLimit(ModelUsageLimit usageLimit) {
 		this.usageLimit = usageLimit;
 		this.keepsUsageLimit = false;
+	}
+
+	/**
+	 * The usage limit the grant, public use or total has before the change.
+	 *
+	 * @return the usage limit before the change, or null for no limit defined
+	 */
+	ModelUsageLimit getCurrentUsageLimit() {
+		return currentUsageLimit;
+	}
+
+	/**
+	 * Notes the usage limit before the change, as read for the change.
+	 *
+	 * @param currentUsageLimit the usage limit now, or null for no limit defined
+	 */
+	void setCurrentUsageLimit(ModelUsageLimit currentUsageLimit) {
+		this.currentUsageLimit = currentUsageLimit;
+	}
+
+	/**
+	 * Whether the change leaves a usage limit different from the one before it,
+	 * which the audit trail records: a limit set, changed or removed, a grant's
+	 * removal with it included.
+	 *
+	 * @return whether the change writes a limit and the limit before or after it is
+	 *         defined
+	 */
+	boolean changesUsageLimit() {
+		return limitKey != null && !keepsUsageLimit && (currentUsageLimit != null || usageLimit != null);
 	}
 
 	/**

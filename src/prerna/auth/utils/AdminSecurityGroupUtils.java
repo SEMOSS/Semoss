@@ -62,6 +62,8 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -99,7 +101,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * The group utilities without an admin check, for callers in this package that
 	 * check the user's permissions themselves, such as
 	 * {@link SecurityGroupManagerUtils} for a group's managers.
-	 * 
+	 *
 	 * @return the group utilities
 	 */
 	static AdminSecurityGroupUtils getUncheckedInstance() {
@@ -210,6 +212,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 				return null;
 			});
+			UserAuditTrailUtils.recordGroupAdmin(user, true, AuditEventType.GROUP_CREATE, groupId, groupType, null,
+					null, null, description == null ? null : Map.of("description", description), null);
 		} catch (Exception e) {
 			classLogger.error("Unable to add group.", e);
 			throw e;
@@ -264,6 +268,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				SecurityModelUsageLimitUtils.deleteTeamLimits(conn, groupId, groupType);
 				return null;
 			});
+			UserAuditTrailUtils.recordGroupAdmin(null, true, AuditEventType.GROUP_DELETE, groupId, groupType, null,
+					null, null, null, null);
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
@@ -346,6 +352,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				return null;
 			});
 			SecurityModelUsageLimitUtils.markChanged();
+			Map<String, Object> newDetails = new HashMap<>();
+			newDetails.put("groupId", newGroupId);
+			newDetails.put("description", newDescription);
+			UserAuditTrailUtils.recordGroupAdmin(user, true, AuditEventType.GROUP_UPDATE, newGroupId, curGroupType,
+					null, null, Map.of("groupId", curGroupId), newDetails, null);
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;

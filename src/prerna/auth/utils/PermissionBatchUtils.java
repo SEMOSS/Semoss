@@ -448,6 +448,8 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		// commit and cache them under the new version.
 		SecurityModelUsageLimitUtils.markChanged();
 
+		PermissionBatchAudit.recordChanges(user, toSave, options);
+
 		// Step 6: after the save, the people given access to a project or an engine,
 		// or whose access to one changed, are notified as the options say, so nobody
 		// hears of access that was not saved. Then the save is logged and its counts
@@ -721,6 +723,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 					"The access requests could not be denied", target, null);
 			throw exceptionFor(errors, List.of(failed), new IllegalArgumentException(failed.getMessage(), e));
 		}
+		PermissionBatchAudit.recordDenials(user, target, requestIds, options);
 		classLogger.info("User {} denied {} access requests to {}", User.getSingleLogginName(user), requestIds.size(),
 				target.describe());
 	}
@@ -1582,6 +1585,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		// Step 4: a limit sent back as it is writes nothing, so it needs no owner to
 		// write to
 		ModelUsageLimit current = limits.current(key);
+		validation.setCurrentUsageLimit(current);
 		if (sameLimit(current, limit)) {
 			validation.keepUsageLimit(current);
 		} else {
@@ -1620,6 +1624,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 				// limit is written
 				: ModelUsageLimitKey.direct(target.getId(), validation.getSubjectId(), validation.getSubjectType());
 		ModelUsageLimit current = limits.current(key);
+		validation.setCurrentUsageLimit(current);
 
 		// Step 1: what limit does the change leave? A removal leaves none, since the
 		// limit belongs to the grant.

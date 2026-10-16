@@ -209,6 +209,29 @@ class AdminExportEnterpriseUsageReactorUnitTests {
 	}
 
 	@Test
+	void auditExportsTheChangeLogOnly() {
+		try (var security = admin();
+				var policy = mockStatic(AbstractSecurityUtils.class);
+				var usage = mockUsage();
+				var audit = mockStatic(SemossLogUtils.class)) {
+			audit.when(SemossLogUtils::getEngineLevelLogger).thenReturn(classLogger);
+			usage.when(() -> EnterpriseUsageUtils.option(Source.class, "audit")).thenReturn(Source.AUDIT);
+			reactor.keyValue.put("source", "audit");
+			for (String view : List.of("overview", "ranking")) {
+				reactor.keyValue.put("view", view);
+				assertThrows(IllegalArgumentException.class, reactor::execute);
+			}
+			reactor.keyValue.put("view", "logs");
+			usage.when(() -> EnterpriseUsageUtils.report(Source.AUDIT, View.LOGS, "2024-03-01", "2024-03-31",
+					"=target-user", "", "", "model", 5000, 0)).thenReturn(Map.of("rows", List.of()));
+			reactor.execute();
+			usage.verify(() -> EnterpriseUsageUtils.report(Source.AUDIT, View.LOGS, "2024-03-01", "2024-03-31",
+					"=target-user", "", "", "model", 5000, 0));
+			verify(insight, times(1)).addExportFile(anyString(), any());
+		}
+	}
+
+	@Test
 	void generatesPdfForOnlyTheSelectedSourceWithExplicitBenchmark() throws Exception {
 		try (var security = admin();
 				var policy = mockStatic(AbstractSecurityUtils.class);

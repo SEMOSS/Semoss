@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +84,10 @@ import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditSeverity;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -102,6 +107,40 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	private SecurityAdminUtils() {
 
+	}
+
+	/**
+	 * Every method on this class is only reachable by an admin (see
+	 * {@link #getInstance(User)}), so admin audit events mark the actor as an
+	 * admin.
+	 */
+	private static UserAuditTrailUtils.AuditEvent adminAudit(User actor, AuditEventType eventType) {
+		return new UserAuditTrailUtils.AuditEvent().eventType(eventType).actorUser(actor).actorIsAdmin(true);
+	}
+
+	private static void auditEngineUpdate(String engineId, Map<String, Object> details) {
+		UserAuditTrailUtils.recordEvent(adminAudit(null, AuditEventType.ENGINE_UPDATE)
+				.target(SecurityEngineUtils.getAuditTargetType(engineId), engineId,
+						SecurityEngineUtils.getEngineDisplayNameForId(engineId))
+				.context(null, engineId, null, null).details(details));
+	}
+
+	private static void auditProjectUpdate(String projectId, Map<String, Object> details) {
+		UserAuditTrailUtils.recordEvent(
+				adminAudit(null, AuditEventType.PROJECT_UPDATE).target(AuditTargetType.PROJECT, projectId, null)
+						.context(projectId, null, null, null).details(details));
+	}
+
+	private static void auditAccountLock(String action, int numDaysSinceLastLogin, int accountsUpdated) {
+		UserAuditTrailUtils.recordEvent(adminAudit(null, AuditEventType.USER_DEACTIVATE).action(action)
+				.target(AuditTargetType.USER, null, null)
+				.details(Map.of("daysSinceLastLogin", numDaysSinceLastLogin, "accountsUpdated", accountsUpdated)));
+	}
+
+	private static void auditUserAdmin(User actor, AuditEventType eventType, String userId, String userType,
+			Object oldValue, Object newValue, Object details) {
+		UserAuditTrailUtils.recordUserAdmin(actor, true, eventType, userId, userType, null, oldValue, newValue,
+				details);
 	}
 
 	public static SecurityAdminUtils getInstance(User user) {
@@ -1026,6 +1065,10 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER",
 				columnsToUpdate, whereCol);
+		Map<String, Object> auditBefore = getUserAuditSnapshot(userId, type);
+		// read before the write, so the audit trail records the limit it replaces
+		ModelUsageLimit allModelsBefore = changeAllModelsDefault ? SecurityModelUsageLimitUtils.getLimit(allModelsKey)
+				: null;
 		try {
 			Boolean boundAdminValue = adminValue;
 			Boolean boundPublisherValue = publisherValue;
@@ -1065,6 +1108,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		if (changeAllModelsDefault) {
 			SecurityModelUsageLimitUtils.markChanged();
+			// the limit as saved: it is written only when the user's row is updated
+			ModelUsageLimitAudit.recordAdminChange(null, allModelsKey, allModelsBefore,
+					SecurityModelUsageLimitUtils.getLimit(allModelsKey));
 		}
 
 		/**
@@ -1078,7 +1124,88 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 				classLogger.error("Failed to update user account information in the security database", e);
 			}
 		}
+		auditEditUser(userId, type, auditBefore, getUserAuditSnapshot(userId, type), updatePassword);
 		return true;
+	}
+
+	/**
+	 * Non-sensitive user fields compared before and after an admin edit.
+	 */
+	private static Map<String, Object> getUserAuditSnapshot(String userId, String type) {
+		Map<String, Object> snapshot = new LinkedHashMap<>();
+		try {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN", "admin"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER", "publisher"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER", "exporter"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", type));
+			List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(SystemEngineRegistry.getSecurityDb(),
+					qs);
+			if (rows != null && !rows.isEmpty()) {
+				snapshot.putAll(rows.get(0));
+			}
+		} catch (Exception e) {
+			classLogger.debug("Unable to read the user before/after values for the audit trail", e);
+		}
+		return snapshot;
+	}
+
+	/**
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param before
+	 * @param after
+	 * @param passwordReset
+	 */
+	private static void auditEditUser(String userId, String type, Map<String, Object> before, Map<String, Object> after,
+			boolean passwordReset) {
+		Set<String> roleFields = Set.of("admin", "publisher", "exporter");
+		Map<String, Object> oldProfile = new LinkedHashMap<>();
+		Map<String, Object> newProfile = new LinkedHashMap<>();
+		Map<String, Object> oldRoles = new LinkedHashMap<>();
+		Map<String, Object> newRoles = new LinkedHashMap<>();
+		Set<String> keys = new HashSet<>(before.keySet());
+		keys.addAll(after.keySet());
+		for (String key : keys) {
+			Object oldValue = normalizeAuditValue(before.get(key));
+			Object newValue = normalizeAuditValue(after.get(key));
+			if (Objects.equals(oldValue, newValue)) {
+				continue;
+			}
+			if (roleFields.contains(key)) {
+				oldRoles.put(key, oldValue);
+				newRoles.put(key, newValue);
+			} else {
+				oldProfile.put(key, oldValue);
+				newProfile.put(key, newValue);
+			}
+		}
+		auditUserAdmin(null, AuditEventType.USER_UPDATE, userId, type, oldProfile, newProfile,
+				Map.of("changedFields", new ArrayList<>(newProfile.keySet())));
+		if (!newRoles.isEmpty()) {
+			boolean grantedAdmin = Boolean.TRUE.equals(newRoles.get("admin"));
+			UserAuditTrailUtils.recordEvent(adminAudit(null, AuditEventType.USER_ROLE_UPDATE)
+					.severity(grantedAdmin ? AuditSeverity.CRITICAL : null).subject(userId, type, null)
+					.target(AuditTargetType.USER, userId, null).oldValue(oldRoles).newValue(newRoles));
+		}
+		if (passwordReset) {
+			auditUserAdmin(null, AuditEventType.USER_PASSWORD_RESET, userId, type, null, null, null);
+		}
+	}
+
+	private static Object normalizeAuditValue(Object value) {
+		if (value instanceof Number number && !(value instanceof Double || value instanceof Float)) {
+			return number.longValue();
+		}
+		if (value instanceof String text && text.isEmpty()) {
+			return null;
+		}
+		return value;
 	}
 
 	/**
@@ -1194,6 +1321,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 //				}
 //			}
 //		}
+		auditUserAdmin(null, AuditEventType.USER_DELETE, userIdToDelete, userTypeToDelete, null, null, null);
 		return true;
 	}
 
@@ -1222,6 +1350,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update user email", e);
 			throw new IllegalArgumentException("An error occurred updating this user's email");
 		}
+		auditUserAdmin(null, AuditEventType.USER_UPDATE, userId, userType, null,
+				Map.of("email", String.valueOf(newEmail)), Map.of("changedFields", List.of("email")));
 	}
 
 	/**
@@ -1246,6 +1376,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update user publisher privilege", e);
 			throw new IllegalArgumentException("An error occurred setting this user as a publisher");
 		}
+		auditUserAdmin(null, AuditEventType.USER_ROLE_UPDATE, userId, null, null, Map.of("publisher", isPublisher),
+				null);
 	}
 
 	/**
@@ -1270,6 +1402,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update user exporter privilege", e);
 			throw new IllegalArgumentException("An error occurred setting this user as an exporter");
 		}
+		auditUserAdmin(null, AuditEventType.USER_ROLE_UPDATE, userId, null, null, Map.of("exporter", isExporter), null);
 	}
 
 	/**
@@ -1305,6 +1438,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update user lock status", e);
 			throw new IllegalArgumentException("An error occurred setting this user as locked/unlocked");
 		}
+		auditUserAdmin(null, isLocked ? AuditEventType.USER_DEACTIVATE : AuditEventType.USER_ACTIVATE, userId, type,
+				null, Map.of("locked", isLocked), null);
 	}
 
 	/**
@@ -1361,6 +1496,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 				});
 				return null;
 			});
+			auditUserAdmin(null, AuditEventType.USER_UPDATE, userId, userType == null ? null : userType.toString(),
+					null, null, Map.of("field", "metadata", "metadataKeys", new ArrayList<>(metadata.keySet())));
 		} catch (Exception e) {
 			classLogger.error("Failed to update user metadata", e);
 		}
@@ -1833,6 +1970,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update engine global visibility setting", e);
 			throw new IllegalArgumentException("An error occurred setting the engine public");
 		}
+		auditEngineUpdate(engineId, Map.of("field", "global", "global", global));
 		return true;
 	}
 
@@ -1856,6 +1994,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update engine discoverability setting", e);
 			throw new IllegalArgumentException("An error occurred setting the engine discoverable flag");
 		}
+		auditEngineUpdate(engineId, Map.of("field", "discoverable", "discoverable", discoverable));
 		return true;
 	}
 
@@ -1876,6 +2015,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update project global visibility setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project public");
 		}
+		auditProjectUpdate(projectId, Map.of("field", "global", "global", global));
 		return true;
 	}
 
@@ -1909,6 +2049,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update project template setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project template flag", e);
 		}
+		auditProjectUpdate(projectId, Map.of("field", "template", "template", isTemplate));
 		return true;
 	}
 
@@ -1933,6 +2074,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update project discoverability setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project discoverable flag");
 		}
+		auditProjectUpdate(projectId, Map.of("field", "discoverable", "discoverable", discoverable));
 		return true;
 	}
 
@@ -2181,9 +2323,15 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 						PermissionChange.Action.CHANGE, List.of(userId), new PermissionGrant(permission, null))));
 			}
 		}
-		PermissionBatchUtils.saveChangesNoCheckedException(user, batches, PermissionBatchOptions.adminMode(),
+		if (batches.isEmpty()) {
+			return;
+		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, batches,
+				PermissionBatchOptions.adminMode().withSummaryAudit(),
 				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred granting the user permission for all the projects"));
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "GRANT_ALL_PROJECTS", AuditTargetType.PROJECT, null, null,
+				null, null, userId, null, permission, Map.of("isAddNew", isAddNew));
 	}
 
 	/**
@@ -2241,9 +2389,15 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 						PermissionChange.Action.CHANGE, List.of(userId), new PermissionGrant(permission, null))));
 			}
 		}
-		PermissionBatchUtils.saveChangesNoCheckedException(user, batches, PermissionBatchOptions.adminMode(),
+		if (batches.isEmpty()) {
+			return;
+		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, batches,
+				PermissionBatchOptions.adminMode().withSummaryAudit(),
 				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred granting the user permission for all the engines of type " + logETypes));
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "GRANT_ALL_ENGINES", AuditTargetType.ENGINE, null, null,
+				null, null, userId, null, permission, Map.of("isAddNew", isAddNew, "engineTypes", logETypes));
 	}
 
 	/**
@@ -2261,10 +2415,13 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 				PermissionChange.forPeople(PermissionChange.Action.ADD,
 						distinctIds(getEngineUsersNoCredentials(engineId, null, -1, -1)),
 						new PermissionGrant(permission, endDate)),
-				PermissionBatchOptions.adminMode(),
+				PermissionBatchOptions.adminMode().withSummaryAudit(),
 				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred adding user permissions for engine " + engineId + " with permission "
 								+ permission));
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "GRANT_ENGINE_TO_ALL_USERS", AuditTargetType.ENGINE,
+				engineId, null, engineId, null, null, null, permission,
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -2282,9 +2439,12 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 				PermissionChange.forPeople(PermissionChange.Action.ADD,
 						distinctIds(getProjectUsersNoCredentials(projectId, null, -1, -1)),
 						new PermissionGrant(permission, endDate)),
-				PermissionBatchOptions.adminMode(),
+				PermissionBatchOptions.adminMode().withSummaryAudit(),
 				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred adding user permissions for this project"));
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "GRANT_PROJECT_TO_ALL_USERS", AuditTargetType.PROJECT,
+				projectId, projectId, null, null, null, null, permission,
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -2306,9 +2466,12 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			batches.add(new PermissionBatch(PermissionTargetResource.insight(projectId, insightId),
 					PermissionChange.forPeople(action, List.of(userId), new PermissionGrant(permission, null))));
 		}
-		PermissionBatchUtils.saveChangesNoCheckedException(user, batches, PermissionBatchOptions.adminMode(),
+		PermissionBatchUtils.saveChangesNoCheckedException(user, batches,
+				PermissionBatchOptions.adminMode().withSummaryAudit(),
 				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred granting the user permission for all the projects"));
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "GRANT_ALL_PROJECT_INSIGHTS", AuditTargetType.PROJECT,
+				projectId, projectId, null, null, userId, null, permission, null);
 	}
 
 	/**
@@ -2612,6 +2775,10 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 				+ "'";
 		securityDb.insertData(query);
 		securityDb.commit();
+		for (String insightId : insightIds) {
+			UserAuditTrailUtils.recordEvent(adminAudit(null, AuditEventType.INSIGHT_DELETE)
+					.target(AuditTargetType.INSIGHT, insightId, null).context(projectId, null, insightId, null));
+		}
 	}
 
 	/**
@@ -2734,9 +2901,12 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		changes.addAll(PermissionChange.forPeople(PermissionChange.Action.CHANGE,
 				getInsightUserIdsWithAccess(projectId, insightId), new PermissionGrant(permission, null)));
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
-				changes, PermissionBatchOptions.adminMode(),
+				changes, PermissionBatchOptions.adminMode().withSummaryAudit(),
 				new PermissionErrorRules().illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred adding all users for this insight"));
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "ADD_ALL_INSIGHT_USERS", AuditTargetType.INSIGHT,
+				insightId, projectId, null, insightId, null, null, permission,
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -2802,6 +2972,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update insight global within project", e);
 			throw new IllegalArgumentException("An error occurred setting this insight global");
 		}
+		UserAuditTrailUtils.recordEvent(adminAudit(null, AuditEventType.INSIGHT_UPDATE)
+				.target(AuditTargetType.INSIGHT, insightId, null).context(projectId, null, insightId, null)
+				.details(Map.of("field", "global", "global", isPublic)));
 	}
 
 	/**
@@ -2946,9 +3119,12 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
 				PermissionChange.forPeople(PermissionChange.Action.CHANGE, getEngineUserIdsWithAccess(engineId),
 						new PermissionGrant(newPermission, endDate)),
-				PermissionBatchOptions.adminMode().keepingModelLimits(),
+				PermissionBatchOptions.adminMode().withSummaryAudit().keepingModelLimits(),
 				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred editing user permissions for this engine"));
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "UPDATE_ALL_ENGINE_USERS", AuditTargetType.ENGINE,
+				engineId, null, engineId, null, null, null, newPermission,
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -2965,9 +3141,12 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
 				PermissionChange.forPeople(PermissionChange.Action.CHANGE, getProjectUserIdsWithAccess(projectId),
 						new PermissionGrant(newPermission, endDate)),
-				PermissionBatchOptions.adminMode(),
+				PermissionBatchOptions.adminMode().withSummaryAudit(),
 				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred editing user permissions for this project"));
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "UPDATE_ALL_PROJECT_USERS", AuditTargetType.PROJECT,
+				projectId, projectId, null, null, null, null, newPermission,
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -2990,9 +3169,11 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		changes.addAll(PermissionChange.forPeople(PermissionChange.Action.CHANGE, getEngineUserIdsWithAccess(engineId),
 				new PermissionGrant(permission, endDate)));
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId), changes,
-				PermissionBatchOptions.adminMode().keepingModelLimits(),
+				PermissionBatchOptions.adminMode().withSummaryAudit().keepingModelLimits(),
 				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred adding all users to this engine"));
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "ADD_ALL_ENGINE_USERS", AuditTargetType.ENGINE, engineId,
+				null, engineId, null, null, null, permission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -3015,9 +3196,12 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		changes.addAll(PermissionChange.forPeople(PermissionChange.Action.CHANGE,
 				getProjectUserIdsWithAccess(projectId), new PermissionGrant(permission, endDate)));
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId), changes,
-				PermissionBatchOptions.adminMode(),
+				PermissionBatchOptions.adminMode().withSummaryAudit(),
 				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred adding user permissions for this project"));
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "ADD_ALL_PROJECT_USERS", AuditTargetType.PROJECT,
+				projectId, projectId, null, null, null, null, permission,
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -3036,9 +3220,12 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
 				PermissionChange.forPeople(PermissionChange.Action.CHANGE,
 						getInsightUserIdsWithAccess(projectId, insightId), new PermissionGrant(newPermission, endDate)),
-				PermissionBatchOptions.adminMode(),
+				PermissionBatchOptions.adminMode().withSummaryAudit(),
 				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred updating the permissions for this insight"));
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "UPDATE_ALL_INSIGHT_USERS", AuditTargetType.INSIGHT,
+				insightId, projectId, null, insightId, null, null, newPermission,
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -3073,9 +3260,12 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 				PermissionChange.forPeople(PermissionChange.Action.ADD,
 						distinctIds(getInsightUsersNoCredentials(projectId, insightId, null, -1, -1)),
 						new PermissionGrant(permission, endDate)),
-				PermissionBatchOptions.adminMode(),
+				PermissionBatchOptions.adminMode().withSummaryAudit(),
 				new PermissionErrorRules(endDate).illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 						"An error occurred granting the user permission for all the projects"));
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "GRANT_INSIGHT_TO_ALL_USERS", AuditTargetType.INSIGHT,
+				insightId, projectId, null, insightId, null, null, permission,
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -3109,6 +3299,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 
 		classLogger.info("Number of accounts locked = {}", numUpdated);
+		auditAccountLock("LOCK_INACTIVE_ACCOUNTS", numDaysSinceLastLogin, numUpdated);
 		return numUpdated;
 	}
 
@@ -3247,6 +3438,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 
 		classLogger.info("Number of accounts locked = {}", numUpdated);
+		auditAccountLock("RECALCULATE_ACCOUNT_LOCKS", numDaysSinceLastLogin, numUpdated);
 		return numUpdated;
 	}
 

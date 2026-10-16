@@ -671,11 +671,14 @@ public final class SecurityModelUsageLimitUtils {
 		requireAdmin(adminUtils);
 		ModelUsageLimit valid = requireValid(limit, key, true);
 		Pair<String, String> by = User.getPrimaryUserIdAndTypePair(user);
+		// read before the write, so the audit trail records what it replaces
+		ModelUsageLimit before = getLimit(key);
 		QueryExecutionUtility.write(SystemEngineRegistry.getSecurityDb(), connection -> {
 			setLimit(connection, key, valid, by);
 			return null;
 		});
 		markChanged();
+		ModelUsageLimitAudit.recordAdminChange(user, key, before, valid);
 	}
 
 	private static void requireAdmin(SecurityAdminUtils adminUtils) {

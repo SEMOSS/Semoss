@@ -55,6 +55,8 @@ final class PermissionBatchOptions {
 	 * allow is allowed
 	 */
 	private boolean adminMode;
+	/** Whether the caller records one bulk audit summary after the shared save. */
+	private boolean summaryAudit;
 	/** Whether people given access to a project or engine are notified */
 	private boolean notifyAdds = true;
 	/** Whether people whose access to a project or engine changes are notified */
@@ -286,6 +288,16 @@ final class PermissionBatchOptions {
 
 	boolean isAdminMode() {
 		return adminMode;
+	}
+
+	/** Keep the existing bulk event instead of also recording each permission row. */
+	PermissionBatchOptions withSummaryAudit() {
+		this.summaryAudit = true;
+		return this;
+	}
+
+	boolean hasSummaryAudit() {
+		return summaryAudit;
 	}
 
 	boolean notifiesAdds() {

@@ -231,8 +231,12 @@ where Dana edits the project, Alice has Read-Only access and Bob has none.
    currently have access to the project: bob".
 
 When no change is blocked, `save` adds Microsoft directory accounts for anyone
-who needs one, validates again, writes every change in one transaction, sends the
-notifications, and the error rules are never used. A database failure rolls the
+who needs one, validates again, writes every change in one transaction, records
+the audit trail (`PermissionBatchAudit`), sends the notifications, and the error
+rules are never used. The audit trail gets one event per change of access, or a
+summary the caller records when the options say `withSummaryAudit()`, and one
+`USAGE_LIMIT_UPDATE` event per usage limit a change sets, changes or removes,
+summary or not. A database failure rolls the
 transaction back, and `saveChanges` reports it as a `WRITE_FAILED` problem.
 
 Bulk Access Management takes the same path from step 3, through
@@ -381,6 +385,20 @@ Each refusal is a reason on the change, following the no-leak rules:
 - `NOT_WELL_FORMED`: a `PUBLIC` or `MODEL` change that is not a `CHANGE` on an
   engine, or that carries a level or an end date.
 
+### Audit trail
+
+Every usage limit a save leaves different is recorded as a `USAGE_LIMIT_UPDATE`
+event (`ModelUsageLimitAudit`), in the `USAGE_LIMIT` category: the limit before
+and after as `{"usageLimit": ...}` (null for no limit defined), and
+`details.limitType` (`DIRECT`, `TEAM`, `PUBLIC` or `MODEL_TOTAL`, with the team for
+a Team Limit). A grant's removal records its limit removed with it
+(`removedWithGrant`), and so does a grant that ended, removed by SEMOSS
+(`removeExpiredEngineUser`, `reason` `EXPIRED`). Changes to a model's public use
+or total record only this event, since they change no access. `PermissionChangeValidation` keeps the limit
+before the change (`getCurrentUsageLimit`) for it. A model's owners read its limit changes on its
+Audit tab (`ResourceAuditReadService`); admins read them with the access changes and denied requests in
+Enterprise Usage & Activity (the `audit` source of `EnterpriseUsageUtils`).
+
 ### Reads
 
 - `getPermissions` gives each grant on an engine its `usageLimit`. On a model
@@ -415,9 +433,9 @@ always thrown:
 
 ```java
 new PermissionErrorRules(endDate)
-        .illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-        .illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS, "This user already has access ...")
-        .illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS, "... the following users ...: ")
+        .illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+        .illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS, "This user already has access ...")
+        .illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS, "... the following users ...: ")
 ```
 
 - `illegalAccess(code, text)` and `illegalArgument(code, text)` give one text.

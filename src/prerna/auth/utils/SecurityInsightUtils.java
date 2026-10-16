@@ -78,6 +78,8 @@ import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.parser.ParserException;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -2766,6 +2768,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight");
 		}
+		UserAuditTrailUtils.recordExpiredPermissionRemoval(AuditTargetType.INSIGHT, insightId, projectId, null,
+				insightId, userId);
 	}
 
 	/**

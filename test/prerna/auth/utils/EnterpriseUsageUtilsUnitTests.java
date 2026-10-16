@@ -47,6 +47,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,8 +63,12 @@ import prerna.auth.utils.EnterpriseUsageUtils.FilterDimension;
 import prerna.auth.utils.EnterpriseUsageUtils.Source;
 import prerna.auth.utils.EnterpriseUsageUtils.View;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.QueryExecutionUtility.ParameterizedQuery;
 import prerna.util.SystemEngineRegistry;
+import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 /** Real H2 integration tests of the server-owned, bound query plans. */
 class EnterpriseUsageUtilsUnitTests {
@@ -375,6 +381,127 @@ class EnterpriseUsageUtilsUnitTests {
 		}
 	}
 
+	/**
+	 * Adds an audit trail with usage limit and access changes and denied requests
+	 * in the report's dates, a login the audit source leaves out, and a change
+	 * after the dates. The first and last days' events are far enough from UTC
+	 * midnight to fall on the same days in any server's time zone.
+	 *
+	 * @return the user tracking database, read with no OWL
+	 */
+	private IRDBMSEngine auditTrail() throws Exception {
+		org.h2.tools.RunScript.execute(connection, new java.io.StringReader(
+				"""
+						CREATE TABLE USER_AUDIT_EVENTS (EVENT_ID VARCHAR, EVENT_TIME TIMESTAMP, EVENT_TYPE VARCHAR,
+								ACTION VARCHAR, STATUS VARCHAR, SEVERITY VARCHAR, ACTOR_USER_ID VARCHAR,
+								ACTOR_USER_TYPE VARCHAR, ACTOR_USER_NAME VARCHAR, SUBJECT_USER_ID VARCHAR,
+								SUBJECT_USER_TYPE VARCHAR, SUBJECT_USER_NAME VARCHAR, TARGET_TYPE VARCHAR, TARGET_ID VARCHAR,
+								TARGET_NAME VARCHAR, PROJECT_ID VARCHAR, ENGINE_ID VARCHAR, OLD_VALUE CLOB, NEW_VALUE CLOB,
+								DETAILS CLOB, ERROR_CODE VARCHAR, ERROR_MESSAGE CLOB);
+						INSERT INTO USER_AUDIT_EVENTS (EVENT_ID, EVENT_TIME, EVENT_TYPE, STATUS, ACTOR_USER_ID, ACTOR_USER_NAME,
+								SUBJECT_USER_ID, SUBJECT_USER_NAME, TARGET_TYPE, TARGET_ID, PROJECT_ID, ENGINE_ID, OLD_VALUE,
+								NEW_VALUE, DETAILS) VALUES
+						 ('limit-1','2024-03-01 12:00:00','USAGE_LIMIT_UPDATE','SUCCESS','owner-1','Owner','u-1','O''Brien','ENGINE','model-1',NULL,'model-1','{"usageLimit":null}','{"usageLimit":{"unlimited":true,"rules":[]}}','{"limitType":"DIRECT"}'),
+						 ('grant-1','2024-03-31 09:00:00.123456','PERMISSION_ADD','SUCCESS','owner-1','Owner','u-2','Other','PROJECT','app-1','app-1',NULL,NULL,'{"permission":"READ_ONLY"}',NULL),
+						 ('platform-1','2024-03-15 12:00:00','USAGE_LIMIT_UPDATE','SUCCESS','admin-1','Admin',NULL,NULL,'PLATFORM',NULL,NULL,NULL,NULL,NULL,'{"limitType":"PLATFORM"}'),
+						 ('login-1','2024-03-02 00:00:00','LOGIN','SUCCESS','u-1','O''Brien',NULL,NULL,'USER','u-1',NULL,NULL,NULL,NULL,NULL),
+						 ('outside','2024-04-01 12:00:00','PERMISSION_ADD','SUCCESS','owner-1','Owner','u-1','O''Brien','ENGINE','model-1',NULL,'model-1',NULL,NULL,NULL);
+						INSERT INTO USER_AUDIT_EVENTS (EVENT_ID, EVENT_TIME, EVENT_TYPE, ACTION, STATUS, ACTOR_USER_ID,
+								ACTOR_USER_NAME, TARGET_TYPE, TARGET_ID, ENGINE_ID, ERROR_CODE, ERROR_MESSAGE) VALUES
+						 ('denied-1','2024-03-10 09:00:00','AUTHORIZATION_DENIED','SetEngineGlobal','DENIED','u-3','Third','ENGINE','model-1','model-1','PERMISSION_DENIED','User does not have permission'),
+						 ('read-denied-1','2024-03-05 09:00:00','AUDIT_QUERY','AUDIT_QUERY','DENIED','u-1','O''Brien','ENGINE','model-1','model-1','AUDIT_ACCESS_DENIED','Resource audit access denied.');
+						"""));
+		var engine = mock(IRDBMSEngine.class);
+		when(engine.getConnection()).thenReturn(connection);
+		when(engine.isBasic()).thenReturn(true);
+		when(engine.getQueryUtil()).thenReturn(SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB));
+		return engine;
+	}
+
+	private static List<?> auditIds(String user, String app, String engine, int limit, int offset) {
+		var rows = (List<?>) EnterpriseUsageUtils
+				.report(Source.AUDIT, View.LOGS, "2024-03-01", "2024-03-31", user, app, engine, null, limit, offset)
+				.get("rows");
+		return rows.stream().map(row -> ((Map<?, ?>) row).get("EVENT_ID")).toList();
+	}
+
+	@Test
+	void auditSourceCountsAndPagesOnlyChangesAndDeniedRequests() throws Exception {
+		var engine = auditTrail();
+		try (MockedStatic<SystemEngineRegistry> registry = mockStatic(SystemEngineRegistry.class);
+				MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			registry.when(SystemEngineRegistry::isUserTrackingDbLoaded).thenReturn(true);
+			registry.when(SystemEngineRegistry::getUserTrackingDb).thenReturn(engine);
+			var summary = EnterpriseUsageUtils.report(Source.AUDIT, View.SUMMARY, "2024-03-01", "2024-03-31", "", "",
+					"", null, 1, 0);
+			assertEquals("audit", summary.get("source"));
+			// people making changes count only the changes' actors, and people denied
+			// only the denied requests'
+			assertEquals(Map.of("EVENTS", 5L, "USAGE_LIMIT_CHANGES", 2L, "ACCESS_CHANGES", 1L, "DENIALS", 2L, "ACTORS",
+					2L, "PEOPLE_DENIED", 2L, "PEOPLE_AFFECTED", 2L), ((List<?>) summary.get("rows")).get(0));
+			assertEquals(List.of("grant-1", "platform-1"), auditIds("", "", "", 2, 0));
+			assertEquals(List.of("denied-1", "read-denied-1"), auditIds("", "", "", 2, 2));
+			assertEquals(List.of("limit-1"), auditIds("", "", "", 2, 4));
+			var newest = (Map<?, ?>) ((List<?>) EnterpriseUsageUtils
+					.report(Source.AUDIT, View.LOGS, "2024-03-01", "2024-03-31", "", "", "", null, 1, 0).get("rows"))
+							.get(0);
+			// the audit trail keeps UTC times, which are read to the microsecond
+			assertEquals("2024-03-31T09:00:00.123456Z", newest.get("EVENT_TIME"));
+			assertFalse(newest.containsKey("NEW_VALUE"));
+			var change = (List<?>) EnterpriseUsageUtils.detail(Source.AUDIT, "limit-1").get("rows");
+			assertEquals("{\"usageLimit\":null}", ((Map<?, ?>) change.get(0)).get("OLD_VALUE"));
+			assertEquals("{\"limitType\":\"DIRECT\"}", ((Map<?, ?>) change.get(0)).get("DETAILS"));
+			var denial = (Map<?, ?>) ((List<?>) EnterpriseUsageUtils.detail(Source.AUDIT, "denied-1").get("rows"))
+					.get(0);
+			assertEquals("PERMISSION_DENIED", denial.get("ERROR_CODE"));
+			assertEquals("User does not have permission", denial.get("ERROR_MESSAGE"));
+			assertTrue(((List<?>) EnterpriseUsageUtils.detail(Source.AUDIT, "login-1").get("rows")).isEmpty());
+		}
+	}
+
+	@Test
+	void auditFiltersMatchEitherPersonAndTheAppOrEngineOfTheEvent() throws Exception {
+		var engine = auditTrail();
+		try (MockedStatic<SystemEngineRegistry> registry = mockStatic(SystemEngineRegistry.class);
+				MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			registry.when(SystemEngineRegistry::isUserTrackingDbLoaded).thenReturn(true);
+			registry.when(SystemEngineRegistry::getUserTrackingDb).thenReturn(engine);
+			// u-1 was denied a read, and is the person a limit was set for
+			assertEquals(List.of("read-denied-1", "limit-1"), auditIds("=u-1", "", "", 25, 0));
+			assertEquals(List.of("grant-1", "limit-1"), auditIds("=owner-1", "", "", 25, 0));
+			assertEquals(List.of("read-denied-1", "limit-1"), auditIds("BRIEN", "", "", 25, 0));
+			assertEquals(List.of("grant-1"), auditIds("", "=app-1", "", 25, 0));
+			assertEquals(List.of("denied-1", "read-denied-1", "limit-1"), auditIds("", "", "=model-1", 25, 0));
+			assertTrue(auditIds("=' OR 1=1 --", "", "", 25, 0).isEmpty());
+			utility.when(Utility::isUserTrackingDisabled).thenReturn(true);
+			assertThrows(IllegalArgumentException.class, () -> auditIds("", "", "", 25, 0));
+		}
+	}
+
+	@Test
+	void auditDatesAreTheServersDays() throws Exception {
+		var engine = auditTrail();
+		// New York is five hours behind UTC on 1 March 2024 and four on 31 March
+		org.h2.tools.RunScript.execute(connection, new java.io.StringReader(
+				"""
+						INSERT INTO USER_AUDIT_EVENTS (EVENT_ID, EVENT_TIME, EVENT_TYPE, STATUS, ACTOR_USER_ID, TARGET_TYPE,
+								TARGET_ID, PROJECT_ID) VALUES
+						 ('evening-before','2024-03-01 04:59:59','PERMISSION_ADD','SUCCESS','owner-1','PROJECT','app-2','app-2'),
+						 ('first-midnight','2024-03-01 05:00:00','PERMISSION_ADD','SUCCESS','owner-1','PROJECT','app-2','app-2'),
+						 ('last-evening','2024-04-01 03:59:59.999999','PERMISSION_ADD','SUCCESS','owner-1','PROJECT','app-2','app-2'),
+						 ('next-midnight','2024-04-01 04:00:00','PERMISSION_ADD','SUCCESS','owner-1','PROJECT','app-2','app-2');
+						"""));
+		var newYork = EnterpriseUsageUtils.auditQuery(View.LOGS, "2024-03-01", "2024-03-31", "", "=app-2", "", 25, 0,
+				ZoneId.of("America/New_York"));
+		// a change made late on the last day is on the next UTC day, and still counts
+		assertEquals(List.of("last-evening", "first-midnight"),
+				QueryExecutionUtility.queryList(engine, newYork, rs -> rs.getString("EVENT_ID")));
+		var utc = EnterpriseUsageUtils.auditQuery(View.LOGS, "2024-03-01", "2024-03-31", "", "=app-2", "", 25, 0,
+				ZoneOffset.UTC);
+		assertEquals(List.of("first-midnight", "evening-before"),
+				QueryExecutionUtility.queryList(engine, utc, rs -> rs.getString("EVENT_ID")));
+	}
+
 	@Test
 	void rejectsUnsupportedViewsAndUnboundedRequests() {
 		assertThrows(IllegalArgumentException.class, () -> query(Source.ACTIVITY, View.LATENCY, "", "", null, 1, 0));
@@ -387,5 +514,11 @@ class EnterpriseUsageUtilsUnitTests {
 		assertThrows(IllegalArgumentException.class,
 				() -> EnterpriseUsageUtils.option(Source.class, "externalDatabase"));
 		assertThrows(IllegalArgumentException.class, () -> EnterpriseUsageUtils.detailQuery(Source.MODEL, ""));
+		assertThrows(IllegalArgumentException.class, () -> query(Source.AUDIT, View.SUMMARY, "", "", null, 1, 0));
+		assertThrows(IllegalArgumentException.class, () -> EnterpriseUsageUtils.auditQuery(View.TREND, "2024-03-01",
+				"2024-03-31", "", "", "", 366, 0, ZoneOffset.UTC));
+		assertThrows(IllegalArgumentException.class, () -> EnterpriseUsageUtils.auditQuery(View.LOGS, "2024-03-01",
+				"2024-03-31", "", "", "", 5001, 0, ZoneOffset.UTC));
+		assertThrows(IllegalArgumentException.class, () -> EnterpriseUsageUtils.auditDetailQuery(""));
 	}
 }
