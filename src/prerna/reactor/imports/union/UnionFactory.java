@@ -29,6 +29,7 @@ package prerna.reactor.imports.union;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PolarsFrame;
 import prerna.ds.r.RDataTable;
 
 /**
@@ -44,6 +45,8 @@ public abstract class UnionFactory {
 			return new RUnion();
 		}else if(frame instanceof PandasFrame) {
 			return new PyUnion();
+		}else if(frame instanceof PolarsFrame) {
+			return new PolarsUnion();
 		}else 
 			throw new IllegalArgumentException("This frame type is not supported for union as of now. "
 					+ "Please convert frame to R or Python frame.");

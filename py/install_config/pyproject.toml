@@ -86,6 +86,7 @@ dependencies = [
     "websocket-client>=1.9.0",
     "xlrd>=2.0.2",
     "typesafe-sdk>=0.7.1",
+    "polars==2.0.0",
 ]
 
 [project.optional-dependencies]

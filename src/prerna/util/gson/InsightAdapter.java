@@ -52,6 +52,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.cache.InsightCacheUtility;
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PolarsFrame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
@@ -349,6 +350,9 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				// need to set the exector for pandas
 				if(className.equalsIgnoreCase(PandasFrame.class.getName())) {
 					frame = new PandasFrame(insight.getPyTranslator());
+				}
+				else if(className.equalsIgnoreCase(PolarsFrame.class.getName())) {
+					frame = new PolarsFrame(insight.getPyTranslator());
 				}
 				else if(className.equalsIgnoreCase(RDataTable.class.getName())) {
 					frame = new RDataTable(insight.getRJavaTranslator(CLASS_NAME));
