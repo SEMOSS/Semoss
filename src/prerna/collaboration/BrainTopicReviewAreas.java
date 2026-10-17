@@ -43,7 +43,7 @@ final class BrainTopicReviewAreas {
 	// the owner sees this many areas first; only these start kept
 	static final int FIRST = 5;
 	private static final List<String> OWN = List.of("name", "description", "about", "threadIds", "memberIds", "people",
-			"domains", "sampleSubjects", "suggestedTerms", "youWrote", "vipThreads");
+			"domains", "sampleSubjects", "suggestedTerms", "youWrote", "vipThreads", "folders");
 
 	private BrainTopicReviewAreas() {
 	}
@@ -100,6 +100,7 @@ final class BrainTopicReviewAreas {
 		Map<String, Map<String, Object>> people = new LinkedHashMap<>();
 		Set<String> domains = new LinkedHashSet<>();
 		Set<String> terms = new LinkedHashSet<>();
+		Set<String> folders = new LinkedHashSet<>();
 		List<String> subjects = new ArrayList<>();
 		int wrote = 0;
 		int vip = 0;
@@ -109,6 +110,7 @@ final class BrainTopicReviewAreas {
 			maps(source.get("people")).forEach(person -> people.putIfAbsent((String) person.get("id"), person));
 			domains.addAll(strings(source.get("domains")));
 			terms.addAll(strings(source.get("suggestedTerms")));
+			folders.addAll(strings(source.get("folders")));
 			wrote += number(source.get("youWrote"));
 			vip += number(source.get("vipThreads"));
 		}
@@ -138,6 +140,7 @@ final class BrainTopicReviewAreas {
 		target.put("people", new ArrayList<>(people.values()));
 		target.put("domains", domains.stream().limit(3).toList());
 		target.put("suggestedTerms", terms.stream().limit(8).toList());
+		target.put("folders", new ArrayList<>(folders));
 		target.put("sampleSubjects", subjects);
 		target.put("youWrote", wrote);
 		target.put("vipThreads", vip);

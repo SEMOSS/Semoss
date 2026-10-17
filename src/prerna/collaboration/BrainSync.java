@@ -132,6 +132,9 @@ public final class BrainSync {
 			run.refreshThreads();
 		}
 
+		// mail the owner moved into a folder a topic stands for is filed under that topic
+		job.count("filedByFolder", BrainThreadClassifier.fileByFolder(ownerId, ownerType, run.refiled));
+
 		// the owner answered: reply items received before the send are done
 		job.step("replies", 88);
 		Set<String> closed = new LinkedHashSet<>();
@@ -208,9 +211,14 @@ public final class BrainSync {
 		Instant last = toInstant(lastRun(ownerId, ownerType));
 		Instant since = later((read != null && read.isAfter(last) ? read : last).minus(OVERLAP),
 				now.minus(PULL_REACH));
-		List<Map<String, Object>> headers = new ArrayList<>(
-				source.topicHeaders(user, BrainMailHeaderSource.INBOX, since, PULL_MAX));
-		headers.addAll(source.list(user, BrainMailHeaderSource.SENT, since, PULL_MAX));
+		List<Map<String, Object>> headers;
+		if (BrainMailFolders.load(ownerId, ownerType).isEmpty()) {
+			headers = new ArrayList<>(source.topicHeaders(user, BrainMailHeaderSource.INBOX, since, PULL_MAX));
+			headers.addAll(source.list(user, BrainMailHeaderSource.SENT, since, PULL_MAX));
+		} else {
+			// every folder the owner's Outlook rules may have filed new mail in
+			headers = source.allMail(user, since, 2 * PULL_MAX, false);
+		}
 		Set<String> threads = importHeaders(user, ownerId, ownerType, source, headers);
 		PULL_READ.put(owner, now);
 		return threads;
@@ -247,13 +255,20 @@ public final class BrainSync {
 		if (unseen.isEmpty() || !canIngest(ownerId, ownerType)) {
 			return Set.of();
 		}
+		// no drafts, Deleted Items or Junk: a webhook on all mail hears about those too
+		BrainMailFolders.Tree tree = BrainMailFolders.current(user, source, ownerId, ownerType);
+		tree = BrainMailFolders.covering(user, source, ownerId, ownerType, tree, new ArrayList<>(unseen.values()));
+		List<Map<String, Object>> kept = BrainMailFolders.keep(tree, new ArrayList<>(unseen.values()));
+		if (kept.isEmpty()) {
+			return Set.of();
+		}
 		Map<String, Object> me = source.me(user);
 		String myAddress = BrainRulesGate.norm(BrainMailImport.first(me, "mail", "userPrincipalName"));
 		if (myAddress == null) {
 			throw new IllegalStateException("The signed-in mailbox has no address");
 		}
 		List<String> aliases = source.aliases(user);
-		List<Map<String, Object>> fresh = new ArrayList<>(unseen.values());
+		List<Map<String, Object>> fresh = new ArrayList<>(kept);
 		// oldest first, so a new thread takes its first subject
 		fresh.sort(Comparator.comparing(header -> String.valueOf(header.get("receivedDateTime"))));
 		BrainMailImport.Run run;

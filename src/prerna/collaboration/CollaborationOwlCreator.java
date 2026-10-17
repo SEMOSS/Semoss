@@ -249,6 +249,24 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("STATE", VARCHAR_20),
 				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// Outlook folders a topic stands for; mail in one of them is filed under the topic
+		addTable("BRAIN_TOPIC_FOLDER", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("TOPIC_ID", VARCHAR_50),
+				Pair.with("FOLDER_ID", VARCHAR_255),
+				// outlook when onboarding found it from the folder, you when the owner linked it
+				Pair.with("ORIGIN", VARCHAR_20),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// the owner's Outlook folder tree; KIND is inbox, sentitems, archive, custom (one the owner made) or skipped
+		addTable("BRAIN_MAIL_FOLDER", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("FOLDER_ID", VARCHAR_255),
+				Pair.with("PARENT_ID", VARCHAR_255),
+				Pair.with("NAME", VARCHAR_255),
+				Pair.with("PATH", CLOB_DATATYPE_NAME),
+				Pair.with("KIND", VARCHAR_20),
+				Pair.with("TOTAL", INTEGER_DATATYPE_NAME),
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 
 		// --- Brain: threads ---
 		// topics and participants live in the link tables; one IS_PRIMARY topic per thread
@@ -340,7 +358,12 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// a calendar message: invite, reply, or cancellation
 				Pair.with("MEETING", BOOLEAN_DATATYPE_NAME),
 				// the sending system marked it machine-sent (Auto-Submitted, List-Unsubscribe, Precedence bulk)
-				Pair.with("AUTO", BOOLEAN_DATATYPE_NAME)));
+				Pair.with("AUTO", BOOLEAN_DATATYPE_NAME),
+				// the owner's Outlook categories on it, their follow-up flag, the sender's importance, attachments
+				Pair.with("CATEGORIES_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("FLAGGED", BOOLEAN_DATATYPE_NAME),
+				Pair.with("IMPORTANCE", VARCHAR_20),
+				Pair.with("ATTACHMENTS", BOOLEAN_DATATYPE_NAME)));
 
 		// --- Brain: control ---
 		addTable("BRAIN_RULE", Arrays.asList(

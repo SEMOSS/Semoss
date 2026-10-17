@@ -82,6 +82,7 @@ final class BrainTopicOnboarding {
 		diagnostics.put("poolThreads", prepared.pool().size());
 		diagnostics.put("gatedThreads", prepared.gated());
 		diagnostics.put("seedTopics", prepared.seeds().size());
+		diagnostics.put("folderTopics", prepared.folders().stream().filter(java.util.Objects::nonNull).count());
 		diagnostics.put("droppedTopics", votes.dropped().size());
 		diagnostics.put("modelCalls", votes.calls());
 		diagnostics.put("failedVotes", votes.failedVotes());
@@ -112,8 +113,10 @@ final class BrainTopicOnboarding {
 			// diagnostics
 			// no name-word keywords: a rename would leave the old words behind for the
 			// classifier
+			String folder = prepared.folders().get(i);
 			candidates.add(new BrainTopicSuggest.Candidate(key, name, members, List.of(), null, votes.abouts().get(i),
-					BrainTopicStructure.terms(prepared, i, 8)));
+					BrainTopicStructure.terms(prepared, i, 8), folder,
+					folder == null ? null : (String) prepared.cards().get(i).get("outlookFolder")));
 		}
 		diagnostics.put("groupedThreads", grouped.size());
 		diagnostics.put("unsortedThreads", prepared.pool().size() - grouped.size());
@@ -233,7 +236,10 @@ final class BrainTopicOnboarding {
 		Map<String, List<BrainTopicStructure.Message>> byThread = new LinkedHashMap<>();
 		Set<String> sentHistory = new HashSet<>();
 		int[] read = { 0 };
-		CollaborationDbUtils.query("SELECT THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT, BULK, FOLDER FROM BRAIN_MESSAGE "
+		// the owner's own folders by id, with their paths; system folders say nothing about the work
+		BrainMailFolders.Tree tree = BrainMailFolders.load(ownerId, ownerType);
+		Map<String, String> folderPaths = new HashMap<>();
+		CollaborationDbUtils.query("SELECT THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT, BULK, FOLDER, CATEGORIES_JSON FROM BRAIN_MESSAGE "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND DECISION = ? AND RECEIVED_AT >= ? AND RECEIVED_AT <= ? "
 				+ "ORDER BY RECEIVED_AT", rs -> {
 					String thread = rs.getString(1);
@@ -259,10 +265,16 @@ final class BrainTopicOnboarding {
 						sentHistory.addAll(to);
 					}
 					read[0]++;
+					String path = tree.custom(folder);
+					if (path != null) {
+						folderPaths.put(folder, path);
+					}
 					byThread.computeIfAbsent(thread, k -> new ArrayList<>())
 							.add(new BrainTopicStructure.Message(subjects.get(thread),
 									at.toLocalDateTime().toInstant(ZoneOffset.UTC).toString(), from, to, List.of(),
-									Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "BULK"))));
+									Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "BULK")),
+									path == null ? null : folder, CollaborationDbUtils.toStringList(CollaborationDbUtils
+											.parseList(CollaborationDbUtils.getString(rs, "CATEGORIES_JSON")))));
 					return null;
 				}, ownerId, ownerType, BrainRulesGate.INGESTED,
 				Timestamp.valueOf(LocalDateTime.ofInstant(since, ZoneOffset.UTC)), end);
@@ -272,7 +284,8 @@ final class BrainTopicOnboarding {
 				.map(e -> new BrainTopicStructure.MailThread(e.getKey(), e.getValue())).toList();
 		BrainTopicStructure.Settings settings = settings(ownerId, ownerType);
 		notes.put("wide", settings.wide());
-		return BrainTopicStructure.prepare(input, me, ownOrg::isMine, vipEmails, settings, sentHistory);
+		notes.put("folders", folderPaths.size());
+		return BrainTopicStructure.prepare(input, me, ownOrg::isMine, vipEmails, settings, sentHistory, folderPaths);
 	}
 
 	// the person's address when they are an included participant no keep-out rule covers here

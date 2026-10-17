@@ -269,7 +269,8 @@ public final class BrainTopicReviewUtils {
 		if (!fresh.isEmpty()) {
 			job.step("areas", 80);
 			List<BrainTopicAreas.Topic> named = fresh.stream().map(topic -> new BrainTopicAreas.Topic(
-					(String) topic.get("name"), nullableText(topic.get("about")), strings(topic.get("threadIds")).size())).toList();
+					(String) topic.get("name"), nullableText(topic.get("about")), strings(topic.get("threadIds")).size(),
+					strings(topic.get("folders")).stream().findFirst().orElse(null))).toList();
 			String engineId = BrainTopicModel.engine(user);
 			List<BrainTopicAreas.Area> grouped = engineId == null ? BrainTopicAreas.single(named)
 					: BrainTopicAreas.group(BrainTopicOnboarding.caller(user, engineId), named);

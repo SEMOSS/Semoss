@@ -69,20 +69,32 @@ public final class BrainTopicStructure {
 			Pattern.CASE_INSENSITIVE);
 	private static final Pattern WORD = Pattern.compile("(?U)\\b\\w\\w+\\b");
 
-	public record Message(String subject, String at, String sender, List<String> to, List<String> cc, boolean bulk) {
+	// folder: the Outlook folder the owner (or their rules) filed it in, only one they made; categories: theirs
+	public record Message(String subject, String at, String sender, List<String> to, List<String> cc, boolean bulk,
+			String folder, List<String> categories) {
+
+		public Message(String subject, String at, String sender, List<String> to, List<String> cc, boolean bulk) {
+			this(subject, at, sender, to, cc, bulk, null, List.of());
+		}
 	}
 
 	public record MailThread(String id, List<Message> messages) {
 	}
 
 	public record Facts(String id, String subject, String at, List<String> people, Set<String> senders, boolean wrote,
-			boolean bulk, boolean vip, boolean outside, int messages, boolean engaged) {
+			boolean bulk, boolean vip, boolean outside, int messages, boolean engaged, String folder,
+			Set<String> categories) {
 	}
 
 	// Indices refer to pool entries and seed topics. filed is discovery membership,
-	// never BRAIN_THREAD_TOPIC.
+	// never BRAIN_THREAD_TOPIC. folders: the owner's folder each topic is, null for a discovered one.
 	public record Prepared(List<Facts> pool, List<List<Integer>> seeds, Map<Integer, Integer> filed,
-			List<Map<String, Object>> cards, int gated) {
+			List<Map<String, Object>> cards, int gated, List<String> folders) {
+
+		public Prepared(List<Facts> pool, List<List<Integer>> seeds, Map<Integer, Integer> filed,
+				List<Map<String, Object>> cards, int gated) {
+			this(pool, seeds, filed, cards, gated, java.util.Collections.nCopies(seeds.size(), null));
+		}
 	}
 
 	private BrainTopicStructure() {
@@ -95,6 +107,16 @@ public final class BrainTopicStructure {
 
 	static Prepared prepare(List<MailThread> input, String owner, Predicate<String> ownDomain, Set<String> vips,
 			Settings settings, Set<String> sentHistory) {
+		return prepare(input, owner, ownDomain, vips, settings, sentHistory, Map.of());
+	}
+
+	/**
+	 * folderPaths: the owner's folders by id. Each one holding at least two real threads of the pool is a topic as
+	 * the owner made it; a discovered group whose people match a folder's joins it, and threads in no folder are
+	 * discovered and attached as before.
+	 */
+	static Prepared prepare(List<MailThread> input, String owner, Predicate<String> ownDomain, Set<String> vips,
+			Settings settings, Set<String> sentHistory, Map<String, String> folderPaths) {
 		// Engagement uses all permitted Sent contacts, not just the threads that
 		// survive the pool limit.
 		Set<String> sentTo = new HashSet<>(sentHistory);
@@ -127,8 +149,20 @@ public final class BrainTopicStructure {
 			boolean outside = people.stream().anyMatch(p -> !ownDomain.test(domain(p)));
 			boolean vip = people.stream().anyMatch(vips::contains);
 			people.remove(owner);
+			// the folder most of its mail is in, the newest on a tie
+			Map<String, Integer> inFolder = new LinkedHashMap<>();
+			Set<String> categories = new LinkedHashSet<>();
+			for (Message m : messages.reversed()) {
+				if (m.folder() != null) {
+					inFolder.merge(m.folder(), 1, Integer::sum);
+				}
+				categories.addAll(m.categories() == null ? List.of() : m.categories());
+			}
+			String folder = inFolder.entrySet().stream().reduce((a, b) -> b.getValue() > a.getValue() ? b : a)
+					.map(Map.Entry::getKey).orElse(null);
 			pool.add(new Facts(thread.id(), subject(messages.getFirst().subject()), messages.getLast().at(),
-					new ArrayList<>(people), senders, wrote, bulk, vip, outside, messages.size(), engaged));
+					new ArrayList<>(people), senders, wrote, bulk, vip, outside, messages.size(), engaged, folder,
+					categories));
 		}
 		pool.sort(Comparator.comparing(Facts::bulk)
 				.thenComparing(Comparator.comparingInt(BrainTopicStructure::rank).reversed())
@@ -149,10 +183,30 @@ public final class BrainTopicStructure {
 		for (int i = 0; i < pool.size(); i++) {
 			for (int j = 0; j <= i; j++) {
 				double days = Math.abs(day(pool.get(i).at()) - day(pool.get(j).at()));
-				sim[i][j] = sim[j][i] = (0.5 * dot(text[i], text[j]) + 0.5 * dot(people[i], people[j]))
-						* (0.5 + 0.5 * Math.exp(-days / 60));
+				// an Outlook category the owner put on both is their own grouping too
+				double shared = shared(pool.get(i).categories(), pool.get(j).categories());
+				sim[i][j] = sim[j][i] = Math.min(1, (0.5 * dot(text[i], text[j]) + 0.5 * dot(people[i], people[j]))
+						* (0.5 + 0.5 * Math.exp(-days / 60)) + 0.25 * shared);
 			}
 		}
+		// the owner's folders first: real threads only, at most three quarters of the topics
+		Map<String, List<Integer>> byFolder = new LinkedHashMap<>();
+		for (int j = 0; j < pool.size(); j++) {
+			Facts t = pool.get(j);
+			if (t.folder() != null && folderPaths.containsKey(t.folder()) && !t.bulk()) {
+				byFolder.computeIfAbsent(t.folder(), k -> new ArrayList<>()).add(j);
+			}
+		}
+		List<List<Integer>> folderGroups = new ArrayList<>();
+		List<String> groupFolders = new ArrayList<>();
+		byFolder.entrySet().stream().filter(e -> e.getValue().size() >= 2)
+				.sorted(Comparator.<Map.Entry<String, List<Integer>>>comparingInt(e -> e.getValue().size()).reversed())
+				.limit(Math.max(1, settings.topics() * 3 / 4)).forEach(e -> {
+					folderGroups.add(new ArrayList<>(e.getValue()));
+					groupFolders.add(e.getKey());
+				});
+		Set<Integer> foldered = new HashSet<>();
+		folderGroups.forEach(foldered::addAll);
 		// Seed coherent groups first; only then apply engagement/non-bulk eligibility
 		// and the seed cap.
 		List<List<Integer>> groups = linkage(sim, 0.9);
@@ -160,42 +214,75 @@ public final class BrainTopicStructure {
 		groups.sort(Comparator.<List<Integer>>comparingInt(List::size).reversed());
 		List<List<Integer>> seeds = new ArrayList<>();
 		for (List<Integer> group : groups) {
-			List<Integer> kept = group.stream()
+			List<Integer> kept = group.stream().filter(j -> !foldered.contains(j))
 					.filter(j -> settings.wide() ? !ranked.get(j).bulk() : ranked.get(j).engaged()).toList();
 			if (kept.size() >= 3 && seeds.size() < settings.seeds()) {
 				seeds.add(kept);
 			}
 		}
-		if (seeds.isEmpty()) {
+		if (seeds.isEmpty() && folderGroups.isEmpty()) {
 			return new Prepared(pool, List.of(), Map.of(), List.of(), gated);
 		}
 		// Merge seeds by their normalized participant centroid. mergeCut is distance (1
-		// - cosine), not similarity.
-		double[][] centroids = new double[seeds.size()][people[0].length];
+		// - cosine), not similarity. A seed close enough to one of the owner's folders joins that folder.
+		double[][] centroids = new double[seeds.size()][];
 		for (int i = 0; i < seeds.size(); i++) {
-			for (int j : seeds.get(i)) {
-				for (int k = 0; k < centroids[i].length; k++) {
-					centroids[i][k] += people[j][k];
+			centroids[i] = centroid(seeds.get(i), people);
+		}
+		double[][] folderCentroids = new double[folderGroups.size()][];
+		for (int f = 0; f < folderGroups.size(); f++) {
+			folderCentroids[f] = centroid(folderGroups.get(f), people);
+		}
+		List<List<Integer>> joined = new ArrayList<>();
+		for (List<Integer> group : folderGroups) {
+			joined.add(new ArrayList<>(group));
+		}
+		List<List<Integer>> open = new ArrayList<>();
+		List<double[]> openCentroids = new ArrayList<>();
+		for (int i = 0; i < seeds.size(); i++) {
+			int best = -1;
+			double closest = 1 - settings.mergeCut();
+			for (int f = 0; f < folderGroups.size(); f++) {
+				double similarity = dot(centroids[i], folderCentroids[f]);
+				if (similarity >= closest) {
+					closest = similarity;
+					best = f;
 				}
 			}
-			normalize(centroids[i]);
+			if (best >= 0) {
+				joined.get(best).addAll(seeds.get(i));
+			} else {
+				open.add(seeds.get(i));
+				openCentroids.add(centroids[i]);
+			}
 		}
+		seeds = open;
+		centroids = openCentroids.toArray(double[][]::new);
 		double[][] mergeSim = new double[seeds.size()][seeds.size()];
 		for (int i = 0; i < seeds.size(); i++) {
 			for (int j = 0; j <= i; j++) {
 				mergeSim[i][j] = mergeSim[j][i] = dot(centroids[i], centroids[j]);
 			}
 		}
-		List<List<Integer>> merged = new ArrayList<>();
-		for (List<Integer> group : linkage(mergeSim, settings.mergeCut())) {
+		List<List<Integer>> discovered = new ArrayList<>();
+		for (List<Integer> group : seeds.isEmpty() ? List.<List<Integer>>of() : linkage(mergeSim, settings.mergeCut())) {
 			List<Integer> members = new ArrayList<>();
 			for (int i : group) {
 				members.addAll(seeds.get(i));
 			}
-			merged.add(members);
+			discovered.add(members);
 		}
-		merged.sort(Comparator.<List<Integer>>comparingInt(List::size).reversed());
-		merged = new ArrayList<>(merged.subList(0, Math.min(settings.topics(), merged.size())));
+		discovered.sort(Comparator.<List<Integer>>comparingInt(List::size).reversed());
+		// the owner's folders, then the largest discovered groups up to the topic cap
+		List<List<Integer>> merged = new ArrayList<>(joined);
+		List<String> folders = new ArrayList<>(groupFolders);
+		for (List<Integer> group : discovered) {
+			if (merged.size() >= settings.topics()) {
+				break;
+			}
+			merged.add(group);
+			folders.add(null);
+		}
 		// Extend discovery groups using each remaining thread's three closest seed
 		// members; cards stay seed-only.
 		Map<Integer, Integer> filed = new LinkedHashMap<>();
@@ -227,7 +314,47 @@ public final class BrainTopicStructure {
 				filed.put(j, best);
 			}
 		}
-		return new Prepared(pool, merged, filed, cards(pool, merged, sim), gated);
+		List<Map<String, Object>> cards = cards(pool, merged, sim);
+		for (int i = 0; i < cards.size(); i++) {
+			// the folder the owner made and their categories, as they named them
+			if (folders.get(i) != null) {
+				cards.get(i).put("outlookFolder", folderPaths.get(folders.get(i)));
+			}
+			Map<String, Integer> categories = new HashMap<>();
+			for (int j : merged.get(i)) {
+				pool.get(j).categories().forEach(c -> categories.merge(c, 1, Integer::sum));
+			}
+			List<String> common = categories.entrySet().stream().filter(e -> e.getValue() >= 2)
+					.sorted(Map.Entry.<String, Integer>comparingByValue().reversed()).limit(3).map(Map.Entry::getKey)
+					.toList();
+			if (!common.isEmpty()) {
+				cards.get(i).put("outlookCategories", common);
+			}
+		}
+		return new Prepared(pool, merged, filed, cards, gated, folders);
+	}
+
+	private static double[] centroid(List<Integer> members, double[][] vectors) {
+		double[] out = new double[vectors.length == 0 ? 0 : vectors[0].length];
+		for (int j : members) {
+			for (int k = 0; k < out.length; k++) {
+				out[k] += vectors[j][k];
+			}
+		}
+		normalize(out);
+		return out;
+	}
+
+	// the share of categories two threads have in common (Jaccard); 0 when either has none
+	private static double shared(Set<String> a, Set<String> b) {
+		if (a.isEmpty() || b.isEmpty()) {
+			return 0;
+		}
+		int both = 0;
+		for (String c : a) {
+			both += b.contains(c) ? 1 : 0;
+		}
+		return (double) both / (a.size() + b.size() - both);
 	}
 
 	/** Distinctive subject words and phrases of one group, offered to the owner as optional clues. */
