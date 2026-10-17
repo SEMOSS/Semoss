@@ -51,7 +51,7 @@ public final class WorkAgendaRoutine {
 	static final WorkRoutine.Kind KIND = new WorkRoutine.Kind(ID, "WORK_AGENDA_ROUTINE", "WorkRunAgendaRoutine();",
 			"Weekly meeting agendas", "weekly-meeting-agendas.automation.json", "agendas", "weekly agenda", "agenda",
 			Map.of("time", "08:00", "days", List.of("MON"), "timezone", "UTC", "meetings", List.of(), "ignored", List.of()),
-			WorkAgendaRoutine::meetings, WorkAgendaRoutine::inputs);
+			WorkAgendaRoutine::meetings, WorkAgendaRoutine::inputs, null);
 
 	private WorkAgendaRoutine() { }
 

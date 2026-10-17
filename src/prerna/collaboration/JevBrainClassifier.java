@@ -117,6 +117,10 @@ final class JevBrainClassifier implements BrainClassifier {
 		Map<String, Object> state = new LinkedHashMap<>();
 		state.put("subject", thread.subject());
 		state.put("participants", thread.participants());
+		// the owner's own folders, categories and flag, only when there are some
+		if (thread.outlook() != null) {
+			state.put("outlook", thread.outlook());
+		}
 		state.put("messageCount", thread.messages().size());
 		List<Message> messages = thread.messages();
 		if (!messages.isEmpty()) {

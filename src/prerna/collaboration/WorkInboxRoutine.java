@@ -43,7 +43,7 @@ public final class WorkInboxRoutine {
 	static final WorkRoutine.Kind KIND = new WorkRoutine.Kind(ID, "WORK_INBOX_ROUTINE", "WorkRunInboxRoutine();",
 			"Daily inbox brief", "inbox-daily-brief.automation.json", "brief", "inbox brief", "brief",
 			Map.of("time", "08:00", "days", WorkRoutine.WEEKDAYS.subList(0, 5), "timezone", "UTC", "emailCount", 25),
-			WorkInboxRoutine::emailCount, WorkInboxRoutine::inputs);
+			WorkInboxRoutine::emailCount, WorkInboxRoutine::inputs, null);
 
 	private WorkInboxRoutine() { }
 

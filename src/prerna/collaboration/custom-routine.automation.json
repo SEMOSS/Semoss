@@ -1,0 +1,87 @@
+{
+  "formatVersion": 2,
+  "description": "Collaboration custom routine: the owner's agent does the owner's instructions with read-only tools, then the answer goes to the owner by email or Teams.",
+  "triggerBindings": [
+    {
+      "id": "manual",
+      "type": "manual"
+    }
+  ],
+  "graph": {
+    "nodes": [
+      {
+        "id": "start",
+        "type": "trigger.start",
+        "label": "Start",
+        "codeMode": "generated",
+        "config": {
+          "globals": [
+            {
+              "name": "owner_email",
+              "defaultValue": "",
+              "description": "Owner mailbox address, set by Collaboration"
+            },
+            {
+              "name": "timezone",
+              "defaultValue": "UTC",
+              "description": "Owner time zone, set by Collaboration"
+            },
+            {
+              "name": "delivery",
+              "defaultValue": "email",
+              "description": "email, teams or none, set by Collaboration"
+            },
+            {
+              "name": "routine_name",
+              "defaultValue": "Routine",
+              "description": "The routine's name, set by Collaboration"
+            }
+          ]
+        }
+      },
+      {
+        "id": "answer",
+        "type": "agent.run",
+        "label": "Do the routine",
+        "outputVar": "answer",
+        "codeMode": "generated",
+        "config": {
+          "engineId": "",
+          "command": "",
+          "collaborationRoutine": true,
+          "wait": true,
+          "waitTimeoutMs": "600000"
+        }
+      },
+      {
+        "id": "deliver",
+        "type": "developer.python",
+        "label": "Deliver to me",
+        "outputVar": "delivery_result",
+        "codeMode": "custom",
+        "config": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "start-answer",
+        "kind": "control",
+        "source": "start",
+        "sourcePort": "out",
+        "target": "answer",
+        "targetPort": "in"
+      },
+      {
+        "id": "answer-deliver",
+        "kind": "control",
+        "source": "answer",
+        "sourcePort": "out",
+        "target": "deliver",
+        "targetPort": "in"
+      }
+    ]
+  },
+  "nodeSources": {
+    "deliver": "# Deliver the routine's Markdown answer to the owner only, by email or as a Teams message to themselves.\nimport html\nimport json\nfrom urllib.parse import urlparse\n\nimport bs4\nimport markdown\nfrom semoss import Insight\n\nFONT = \"Arial, Helvetica, sans-serif\"\nTEAMS_LIMIT = 24000\n# Links the agent writes can come from mail it read; keep only Microsoft 365 ones.\nLINK_HOSTS = (\"outlook.office.com\", \"outlook.office365.com\", \"outlook.live.com\", \"teams.microsoft.com\",\n              \"sharepoint.com\", \"onedrive.live.com\", \"office.com\")\nSTYLES = {\n    \"h1\": \"margin:18px 0 8px; font-size:20px; font-weight:bold;\",\n    \"h2\": \"margin:18px 0 8px; font-size:17px; font-weight:bold;\",\n    \"h3\": \"margin:14px 0 6px; font-size:15px; font-weight:bold;\",\n    \"p\": \"margin:0 0 10px;\",\n    \"ul\": \"margin:0 0 12px; padding:0 0 0 20px;\",\n    \"ol\": \"margin:0 0 12px; padding:0 0 0 20px;\",\n    \"li\": \"margin:0 0 6px;\",\n    \"table\": \"border-collapse:collapse; margin:0 0 12px;\",\n    \"th\": \"padding:6px 8px; border:1px solid #D0D0CE; text-align:left;\",\n    \"td\": \"padding:6px 8px; border:1px solid #D0D0CE;\",\n}\n\n\ndef _allowed(href):\n    try:\n        url = urlparse(str(href or \"\"))\n    except ValueError:\n        return False\n    host = (url.hostname or \"\").lower()\n    return url.scheme == \"https\" and any(host == h or host.endswith(\".\" + h) for h in LINK_HOSTS)\n\n\ndef _pixel_value(name, value):\n    # Pixel decodes \\u escapes, so model text can never open an <encode> tag in the Pixel.\n    return name + \"=[\" + json.dumps(value).replace(\"<\", \"\\\\u003c\") + \"]\"\n\n\ndef _run(pixel, what):\n    ret = Insight().run_pixel(pixel, raw=True)\n    last = ret[0][\"pixelReturn\"][-1]\n    if \"ERROR\" in str(last.get(\"operationType\")):\n        raise RuntimeError(what + \" failed: \" + str(last.get(\"output\")))\n\n\ndef run(scope):\n    recipient = str(scope.get(\"owner_email\") or \"\").strip()\n    delivery = str(scope.get(\"delivery\") or \"email\").strip().lower()\n    name = str(scope.get(\"routine_name\") or \"Routine\").strip()\n    # Escape raw HTML first, so only Markdown formatting reaches the message.\n    escaped = str(scope[\"answer\"]).replace(\"&\", \"&amp;\").replace(\"<\", \"&lt;\")\n    soup = bs4.BeautifulSoup(markdown.markdown(escaped, extensions=[\"tables\"]), \"html.parser\")\n    for image in soup.find_all(\"img\"):\n        image.decompose()\n    for link in soup.find_all(\"a\"):\n        if not _allowed(link.get(\"href\")):\n            link.unwrap()\n    for tag in soup.find_all(list(STYLES)):\n        tag[\"style\"] = STYLES[tag.name]\n    content = str(soup)\n    if delivery == \"none\":\n        return {\"sent\": False, \"to\": None, \"html\": content}\n    if not recipient:\n        raise ValueError(\"There is no owner address to deliver to.\")\n    if delivery == \"teams\":\n        message = \"<p><strong>\" + html.escape(name) + \"</strong></p>\" + content\n        if len(message) > TEAMS_LIMIT:\n            message = message[:TEAMS_LIMIT] + \"<p>(Shortened. Open Routines for the full result.)</p>\"\n        _run(\"MicrosoftTeamsSendChatMessage(\" + \", \".join([\n            _pixel_value(\"recipients\", [recipient]),\n            _pixel_value(\"message\", message),\n            _pixel_value(\"html\", True),\n        ]) + \");\", \"Sending the Teams message\")\n    else:\n        body = ('<div style=\"font-family:' + FONT + '; font-size:14px; line-height:1.5; color:#000000;\">'\n                + content + '<p style=\"margin-top:18px; font-size:12px; color:#53565A;\">Sent to you by your routine \"'\n                + html.escape(name) + '\". Change or pause it in Routines.</p></div>')\n        _run(\"MicrosoftOutlookSendMail(\" + \", \".join([\n            _pixel_value(\"to\", [recipient]),\n            _pixel_value(\"subject\", name),\n            _pixel_value(\"body\", body),\n            _pixel_value(\"html\", True),\n        ]) + \");\", \"Sending the email\")\n    return {\"sent\": True, \"to\": recipient, \"html\": content}\n"
+  }
+}

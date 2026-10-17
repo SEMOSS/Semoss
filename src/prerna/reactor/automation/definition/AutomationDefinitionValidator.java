@@ -305,6 +305,16 @@ public final class AutomationDefinitionValidator {
 			validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
 			validateOptionalConfigObject(nodeId, config, "paramMap");
 			validateOptionalConfigObject(nodeId, config, "agentParams");
+			Object skills = config.get(AutomationConstants.CONFIG_SKILLS);
+			if (skills != null && !(skills instanceof List<?> list && list.stream().allMatch(String.class::isInstance))) {
+				throw new IllegalArgumentException(
+						"Automation agent node '" + nodeId + "' skills configuration must be a list of skill ids.");
+			}
+			Object routine = config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE);
+			if (routine != null && !(routine instanceof Boolean)) {
+				throw new IllegalArgumentException("Automation agent node '" + nodeId
+						+ "' collaborationRoutine configuration must be a boolean when provided.");
+			}
 			Object wait = config.get(AutomationConstants.CONFIG_WAIT);
 			if (wait != null && !(wait instanceof Boolean)) {
 				throw new IllegalArgumentException(
