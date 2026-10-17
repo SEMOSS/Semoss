@@ -65,7 +65,8 @@ public final class BrainMailFolders {
 	private static final Duration REREAD_AFTER = Duration.ofMinutes(10);
 	private static final int MAX_PATH = 1000;
 
-	record Folder(String id, String parentId, String name, String path, String kind, int total) {
+	// role: what a folder the owner made is for (FolderRoles), null until judged
+	record Folder(String id, String parentId, String name, String path, String kind, int total, String role) {
 	}
 
 	/** One owner's folders by id; empty when the mail source has none (fixtures) or it was never read. */
@@ -95,6 +96,13 @@ public final class BrainMailFolders {
 			return folder != null && CUSTOM.equals(folder.kind()) ? folder.path() : null;
 		}
 
+		// what a folder the owner made is for; other when not judged yet, null for system folders
+		String role(String folderId) {
+			Folder folder = folderId == null ? null : byId.get(folderId);
+			return folder == null || !CUSTOM.equals(folder.kind()) ? null
+					: folder.role() == null ? BrainFolderRoles.OTHER : folder.role();
+		}
+
 		String path(String folderId) {
 			Folder folder = folderId == null ? null : byId.get(folderId);
 			return folder == null ? null : folder.path();
@@ -118,16 +126,22 @@ public final class BrainMailFolders {
 		if (rows == null || rows.isEmpty()) {
 			return null;
 		}
-		Tree tree = build(rows, CollaborationDbUtils.now());
+		Tree built = build(rows, CollaborationDbUtils.now());
+		// what each folder is for survives a re-read
+		Map<String, Folder> withRoles = new LinkedHashMap<>();
+		Tree before = load(ownerId, ownerType);
+		built.byId().forEach((id, f) -> withRoles.put(id, new Folder(f.id(), f.parentId(), f.name(), f.path(), f.kind(),
+				f.total(), before.byId().containsKey(id) ? before.byId().get(id).role() : null)));
+		Tree tree = new Tree(withRoles, built.updatedAt());
 		CollaborationDbUtils.batch(conn -> {
 			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_MAIL_FOLDER WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 					ownerId, ownerType);
 			for (Folder f : tree.byId().values()) {
 				CollaborationDbUtils.update(conn,
 						"INSERT INTO BRAIN_MAIL_FOLDER (OWNER_ID, OWNER_TYPE, FOLDER_ID, PARENT_ID, NAME, PATH, KIND, "
-								+ "TOTAL, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+								+ "TOTAL, ROLE, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 						ownerId, ownerType, f.id(), f.parentId(), clip(f.name(), 255), f.path(), f.kind(), f.total(),
-						tree.updatedAt());
+						f.role(), tree.updatedAt());
 			}
 		});
 		return tree;
@@ -147,11 +161,12 @@ public final class BrainMailFolders {
 	static Tree load(String ownerId, String ownerType) {
 		Map<String, Folder> byId = new LinkedHashMap<>();
 		Timestamp[] at = { null };
-		CollaborationDbUtils.query("SELECT FOLDER_ID, PARENT_ID, NAME, PATH, KIND, TOTAL, UPDATED_AT FROM "
+		CollaborationDbUtils.query("SELECT FOLDER_ID, PARENT_ID, NAME, PATH, KIND, TOTAL, UPDATED_AT, ROLE FROM "
 				+ "BRAIN_MAIL_FOLDER WHERE OWNER_ID = ? AND OWNER_TYPE = ? ORDER BY PATH", rs -> {
 					Integer total = CollaborationDbUtils.getInteger(rs, "TOTAL");
 					byId.put(rs.getString(1), new Folder(rs.getString(1), rs.getString(2), rs.getString(3),
-							CollaborationDbUtils.getString(rs, "PATH"), rs.getString(5), total == null ? 0 : total));
+							CollaborationDbUtils.getString(rs, "PATH"), rs.getString(5), total == null ? 0 : total,
+							rs.getString(8)));
 					at[0] = rs.getTimestamp(7);
 					return null;
 				}, ownerId, ownerType);
@@ -185,7 +200,7 @@ public final class BrainMailFolders {
 			String path = clip(String.join(" / ", names), MAX_PATH);
 			int total = self.get("totalItemCount") instanceof Number n ? n.intValue() : 0;
 			byId.put(id, new Folder(id, self.get("parentFolderId") instanceof String p ? p : null,
-					Objects.toString(self.get("displayName"), ""), path, kind, total));
+					Objects.toString(self.get("displayName"), ""), path, kind, total, null));
 		}
 		return new Tree(byId, at);
 	}
@@ -318,20 +333,25 @@ public final class BrainMailFolders {
 	}
 
 	/**
-	 * What the mailbox says about a thread, for the classifier: the folders the owner filed it in (theirs, newest
-	 * first), their categories, whether they flagged it, and whether a sender marked it important or attached
-	 * files. Null when there is nothing to say.
+	 * What the mailbox says about a thread, for the classifier, as clues: the folders the owner filed it in (theirs,
+	 * newest first; a folder they keep to track state or to hold automated mail is named as such), their
+	 * categories, whether they flagged it, and whether a sender marked it important or attached files. Null when
+	 * there is nothing to say.
 	 */
 	static Map<String, Object> facts(String ownerId, String ownerType, String threadId, Tree tree) {
 		Set<String> folders = new LinkedHashSet<>();
+		Set<String> status = new LinkedHashSet<>();
+		Set<String> automated = new LinkedHashSet<>();
 		Set<String> categories = new LinkedHashSet<>();
 		boolean[] flags = new boolean[3];
 		CollaborationDbUtils.query("SELECT FOLDER, CATEGORIES_JSON, FLAGGED, IMPORTANCE, ATTACHMENTS FROM "
 				+ "BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? ORDER BY RECEIVED_AT DESC",
 				rs -> {
 					String path = tree.custom(rs.getString(1));
+					String role = tree.role(rs.getString(1));
 					if (path != null) {
-						folders.add(path);
+						(BrainFolderRoles.STATUS.equals(role) ? status
+								: BrainFolderRoles.AUTOMATED.equals(role) ? automated : folders).add(path);
 					}
 					categories.addAll(CollaborationDbUtils
 							.toStringList(CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "CATEGORIES_JSON"))));
@@ -343,6 +363,12 @@ public final class BrainMailFolders {
 		Map<String, Object> out = new LinkedHashMap<>();
 		if (!folders.isEmpty()) {
 			out.put("folders", folders.stream().limit(3).toList());
+		}
+		if (!status.isEmpty()) {
+			out.put("statusFolder", status.iterator().next());
+		}
+		if (!automated.isEmpty()) {
+			out.put("automatedFolder", automated.iterator().next());
 		}
 		if (!categories.isEmpty()) {
 			out.put("categories", categories.stream().limit(5).toList());
@@ -357,6 +383,26 @@ public final class BrainMailFolders {
 			out.put("hasAttachments", true);
 		}
 		return out.isEmpty() ? null : out;
+	}
+
+	/**
+	 * Onboarding's choice for a kept topic: file new mail from its folders here, or not. Links the owner made on
+	 * the topic page are left as they are.
+	 */
+	static void fileFrom(String ownerId, String ownerType, String topicId, List<String> folderIds, boolean file) {
+		for (String folderId : folderIds) {
+			boolean linked = CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_TOPIC_FOLDER WHERE OWNER_ID = ? AND "
+					+ "OWNER_TYPE = ? AND TOPIC_ID = ? AND FOLDER_ID = ?", ownerId, ownerType, topicId, folderId);
+			if (file && !linked) {
+				CollaborationDbUtils.update("INSERT INTO BRAIN_TOPIC_FOLDER (OWNER_ID, OWNER_TYPE, TOPIC_ID, FOLDER_ID, "
+						+ "ORIGIN, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?)", ownerId, ownerType, topicId, folderId,
+						FROM_OUTLOOK, CollaborationDbUtils.now());
+			} else if (!file && linked) {
+				CollaborationDbUtils.update("DELETE FROM BRAIN_TOPIC_FOLDER WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND "
+						+ "TOPIC_ID = ? AND FOLDER_ID = ? AND ORIGIN = ?", ownerId, ownerType, topicId, folderId,
+						FROM_OUTLOOK);
+			}
+		}
 	}
 
 	/** A topic's folders: id and path, oldest link first. */

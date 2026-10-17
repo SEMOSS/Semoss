@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -67,15 +68,15 @@ final class BrainTopicOnboarding {
 			job.step("grouping", 10);
 		}
 		// stored headers after a sort: per-message To/Cc only fed the engagement gate, which WIDE does not use
+		BrainTopicVotes.Caller caller = caller(user, engineId);
 		BrainTopicStructure.Prepared prepared = snapshot(ownerId, ownerType, eligible.keySet(), self, emails, vips,
-				ownOrg, notes);
+				ownOrg, notes, caller);
 		if (job != null) {
 			job.count("conversations", prepared.pool().size());
 			job.count("groups", prepared.seeds().size());
 			job.step("naming", 30);
 		}
-		BrainTopicVotes.Result votes = BrainTopicVotes.run(prepared, settings(ownerId, ownerType),
-				caller(user, engineId));
+		BrainTopicVotes.Result votes = BrainTopicVotes.run(prepared, settings(ownerId, ownerType), caller);
 		Map<String, Object> diagnostics = new LinkedHashMap<>();
 		diagnostics.putAll(notes);
 		diagnostics.put("status", votes.status());
@@ -91,6 +92,7 @@ final class BrainTopicOnboarding {
 			return new Result(List.of(), diagnostics);
 		}
 		List<BrainTopicSuggest.Candidate> candidates = new ArrayList<>();
+		BrainMailFolders.Tree folderTree = BrainMailFolders.load(ownerId, ownerType);
 		Set<String> names = new HashSet<>(takenNames);
 		Set<Integer> grouped = new HashSet<>();
 		// Apply votes after discovery assignment so rejected groups do not spill their
@@ -113,10 +115,12 @@ final class BrainTopicOnboarding {
 			// diagnostics
 			// no name-word keywords: a rename would leave the old words behind for the
 			// classifier
+			// filing from the folder is offered only for a project folder; any other folder is a naming hint
 			String folder = prepared.folders().get(i);
+			String path = folder == null ? null : (String) prepared.cards().get(i).get("outlookFolder");
 			candidates.add(new BrainTopicSuggest.Candidate(key, name, members, List.of(), null, votes.abouts().get(i),
-					BrainTopicStructure.terms(prepared, i, 8), folder,
-					folder == null ? null : (String) prepared.cards().get(i).get("outlookFolder")));
+					BrainTopicStructure.terms(prepared, i, 8),
+					BrainFolderRoles.PROJECT.equals(folderTree.role(folder)) ? folder : null, path));
 		}
 		diagnostics.put("groupedThreads", grouped.size());
 		diagnostics.put("unsortedThreads", prepared.pool().size() - grouped.size());
@@ -168,7 +172,7 @@ final class BrainTopicOnboarding {
 	// never reach here). No mailbox calls.
 	private static BrainTopicStructure.Prepared snapshot(String ownerId, String ownerType, Set<String> eligible,
 			String self, Map<String, String> emails, Set<String> vips, BrainOrgDomains.Org ownOrg,
-			Map<String, Object> notes) {
+			Map<String, Object> notes, BrainTopicVotes.Caller caller) {
 		if (self == null || emails.get(self) == null) {
 			throw new IllegalStateException("Import the mailbox before proposing topics");
 		}
@@ -239,6 +243,8 @@ final class BrainTopicOnboarding {
 		// the owner's own folders by id, with their paths; system folders say nothing about the work
 		BrainMailFolders.Tree tree = BrainMailFolders.load(ownerId, ownerType);
 		Map<String, String> folderPaths = new HashMap<>();
+		Map<String, Set<String>> folderThreads = new HashMap<>();
+		Map<String, Set<String>> folderWrote = new HashMap<>();
 		CollaborationDbUtils.query("SELECT THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT, BULK, FOLDER, CATEGORIES_JSON FROM BRAIN_MESSAGE "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND DECISION = ? AND RECEIVED_AT >= ? AND RECEIVED_AT <= ? "
 				+ "ORDER BY RECEIVED_AT", rs -> {
@@ -268,6 +274,10 @@ final class BrainTopicOnboarding {
 					String path = tree.custom(folder);
 					if (path != null) {
 						folderPaths.put(folder, path);
+						folderThreads.computeIfAbsent(folder, k -> new LinkedHashSet<>()).add(thread);
+						if (me.equals(from)) {
+							folderWrote.computeIfAbsent(folder, k -> new HashSet<>()).add(thread);
+						}
 					}
 					byThread.computeIfAbsent(thread, k -> new ArrayList<>())
 							.add(new BrainTopicStructure.Message(subjects.get(thread),
@@ -280,12 +290,70 @@ final class BrainTopicOnboarding {
 				Timestamp.valueOf(LocalDateTime.ofInstant(since, ZoneOffset.UTC)), end);
 		notes.put("messages", read[0]);
 		notes.put("chats", byThread.keySet().stream().filter(t -> "teams".equals(sources.get(t))).count());
+		// what each folder the owner made is for; only project, area and other folders steer grouping, and mail
+		// in a folder kept for automated mail counts as bulk. No folders: the plain discovery, no model call
+		Map<String, String> roles = folderRoles(caller, tree, folderThreads, folderWrote, byThread, subjects, me);
+		BrainFolderRoles.save(ownerId, ownerType, roles);
+		Map<String, String> guides = new HashMap<>();
+		folderPaths.forEach((id, path) -> {
+			if (BrainFolderRoles.guides(roles.getOrDefault(id, BrainFolderRoles.OTHER))) {
+				guides.put(id, path);
+			}
+		});
 		List<BrainTopicStructure.MailThread> input = byThread.entrySet().stream()
-				.map(e -> new BrainTopicStructure.MailThread(e.getKey(), e.getValue())).toList();
+				.map(e -> new BrainTopicStructure.MailThread(e.getKey(), e.getValue().stream()
+						.map(m -> new BrainTopicStructure.Message(m.subject(), m.at(), m.sender(), m.to(), m.cc(),
+								m.bulk() || BrainFolderRoles.AUTOMATED.equals(roles.get(m.folder())),
+								guides.containsKey(m.folder()) ? m.folder() : null, m.categories()))
+						.toList()))
+				.toList();
 		BrainTopicStructure.Settings settings = settings(ownerId, ownerType);
 		notes.put("wide", settings.wide());
 		notes.put("folders", folderPaths.size());
-		return BrainTopicStructure.prepare(input, me, ownOrg::isMine, vipEmails, settings, sentHistory, folderPaths);
+		notes.put("guideFolders", guides.size());
+		notes.put("folderRoles", roles.values().stream()
+				.collect(java.util.stream.Collectors.groupingBy(r -> r, LinkedHashMap::new,
+						java.util.stream.Collectors.counting())));
+		return BrainTopicStructure.prepare(input, me, ownOrg::isMine, vipEmails, settings, sentHistory, guides);
+	}
+
+	// one card per folder with two or more conversations in the window, judged in one model call
+	private static Map<String, String> folderRoles(BrainTopicVotes.Caller caller, BrainMailFolders.Tree tree,
+			Map<String, Set<String>> folderThreads, Map<String, Set<String>> folderWrote,
+			Map<String, List<BrainTopicStructure.Message>> byThread, Map<String, String> subjects, String me) {
+		List<Map<String, Object>> cards = new ArrayList<>();
+		Map<String, String> byCard = new HashMap<>();
+		folderThreads.entrySet().stream().filter(e -> e.getValue().size() >= 2)
+				.sorted(java.util.Comparator.<Map.Entry<String, Set<String>>>comparingInt(e -> e.getValue().size())
+						.reversed())
+				.forEach(e -> {
+					String folder = e.getKey();
+					Map<String, Integer> people = new HashMap<>();
+					int bulk = 0;
+					for (String thread : e.getValue()) {
+						List<BrainTopicStructure.Message> messages = byThread.getOrDefault(thread, List.of());
+						bulk += messages.stream().anyMatch(BrainTopicStructure.Message::bulk) ? 1 : 0;
+						Set<String> seen = new HashSet<>();
+						messages.forEach(m -> seen.add(m.sender()));
+						seen.remove(me);
+						seen.forEach(p -> people.merge(p, 1, Integer::sum));
+					}
+					int children = (int) tree.byId().values().stream().filter(f -> folder.equals(f.parentId()))
+							.count();
+					String id = "f" + (cards.size() + 1);
+					byCard.put(id, folder);
+					cards.add(BrainFolderRoles.card(id, tree.path(folder), children, e.getValue().size(),
+							folderWrote.getOrDefault(folder, Set.of()).size(), bulk,
+							people.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+									.limit(3).map(Map.Entry::getKey).toList(),
+							e.getValue().stream().map(subjects::get).filter(x -> x != null && !x.isBlank()).distinct()
+									.limit(8).toList()));
+				});
+		Map<String, String> roles = new HashMap<>();
+		if (!cards.isEmpty()) {
+			BrainFolderRoles.judge(caller, cards).forEach((card, role) -> roles.put(byCard.get(card), role));
+		}
+		return roles;
 	}
 
 	// the person's address when they are an included participant no keep-out rule covers here

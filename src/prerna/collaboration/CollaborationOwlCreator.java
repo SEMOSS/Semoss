@@ -266,6 +266,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("PATH", CLOB_DATATYPE_NAME),
 				Pair.with("KIND", VARCHAR_20),
 				Pair.with("TOTAL", INTEGER_DATATYPE_NAME),
+				// what a folder the owner made is for, judged at onboarding: project, area, status, automated,
+				// person, time or other; null until judged
+				Pair.with("ROLE", VARCHAR_20),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 
 		// --- Brain: threads ---

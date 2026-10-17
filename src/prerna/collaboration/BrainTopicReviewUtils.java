@@ -460,6 +460,8 @@ public final class BrainTopicReviewUtils {
 							}
 						}
 						topic.put("appliedAddedPeople", strings(topic.get("addedPeople")));
+						BrainMailFolders.fileFrom(ownerId, ownerType, savedId, strings(topic.get("folderIds")),
+								Boolean.TRUE.equals(topic.get("fileFromFolder")));
 						topic.put("accepted", true);
 						topic.put("id", savedId);
 						topic.put("name", saved.get("name"));
@@ -602,6 +604,10 @@ public final class BrainTopicReviewUtils {
 			BrainTopicReviewProfiles.terms(clues);
 			topic.put("terms", clues);
 			topic.put("keep", edit.get("keep"));
+			// filing new mail from the topic's project folder: the owner's choice, offered only with a folder
+			if (edit.get("fileFromFolder") instanceof Boolean file) {
+				topic.put("fileFromFolder", file && !strings(topic.get("folderIds")).isEmpty());
+			}
 			Set<String> allowedPeople = new HashSet<>();
 			maps(topic.get("people")).forEach(person -> allowedPeople.add((String) person.get("id")));
 			List<String> removed = strings(edit.get("removedPeople"));

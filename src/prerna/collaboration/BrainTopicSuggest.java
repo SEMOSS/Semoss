@@ -332,11 +332,6 @@ public final class BrainTopicSuggest {
 							+ "CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType,
 							topicId, c.name(), c.name(), c.about() != null ? c.about() : description(samples(c, mailThreads, writers, self)), kind, accountId, CollaborationDbUtils.toJson(c.keywords()),
 							BrainTopicUtils.SUGGESTED, "brain", c.reason(), now, now, now);
-					if (c.folderId() != null) {
-						CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_TOPIC_FOLDER (OWNER_ID, OWNER_TYPE, TOPIC_ID, "
-								+ "FOLDER_ID, ORIGIN, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?)", ownerId, ownerType, topicId,
-								c.folderId(), BrainMailFolders.FROM_OUTLOOK, now);
-					}
 					for (String p : members) {
 						CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, "
 								+ "PERSON_ID, STATE, ORIGIN, REASON, CHANGED_BY, CHANGED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -365,8 +360,11 @@ public final class BrainTopicSuggest {
 						.sorted((x, y) -> y.getValue() - x.getValue()).map(Map.Entry::getKey).limit(3)
 						.collect(Collectors.toList()));
 				row.put("about", c.about());
-				// the Outlook folder it came from, shown on its card
+				// the Outlook folder most of its mail is in, shown on its card; filing new mail from a project folder
+				// is offered and on by default, and made only when the owner keeps the topic
 				row.put("folders", c.folderPath() == null ? List.of() : List.of(c.folderPath()));
+				row.put("folderIds", c.folderId() == null ? List.of() : List.of(c.folderId()));
+				row.put("fileFromFolder", c.folderId() != null);
 				// optional clues the owner can turn on; never saved as keywords on their own
 				row.put("suggestedTerms", c.suggestedTerms());
 				row.put("sampleSubjects", samples(c, mailThreads, writers, self).stream().limit(3)
@@ -375,8 +373,8 @@ public final class BrainTopicSuggest {
 				int withVip = (int) c.threads().stream().filter(t -> t.people().stream().anyMatch(vips::contains)).count();
 				row.put("youWrote", mine);
 				row.put("vipThreads", withVip);
-				// pre-checked on screen: you took part, a VIP is on it, or it is a folder you made
-				row.put("suggested", mine > 0 || withVip > 0 || c.folderId() != null);
+				// pre-checked on screen: you took part, or a VIP is on it
+				row.put("suggested", mine > 0 || withVip > 0);
 				written.add(row);
 			}
 		};
@@ -410,7 +408,8 @@ public final class BrainTopicSuggest {
 	}
 
 	// about: the topic model's one line on what the topic covers, stored as its description
-	// folderId: the owner's Outlook folder the topic was found from, linked to it once saved; null when discovered
+	// folderPath: the Outlook folder most of its mail is in; folderId only when that is a project folder, which the
+	// owner may then file new mail from
 	record Candidate(String key, String name, List<Thread> threads, List<String> keywords, String reason, String about,
 			List<String> suggestedTerms, String folderId, String folderPath) {
 	}
