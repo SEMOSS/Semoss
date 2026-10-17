@@ -36,10 +36,12 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,6 +51,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.model.usage.ModelUsageCost;
+import prerna.engine.impl.model.usage.ModelUsageReport;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -133,8 +137,26 @@ public final class EnterpriseUsageUtils {
 			 SUM(m.CACHE_CREATION_TOKENS) AS CACHE_CREATION_TOKENS,
 			 COALESCE(SUM(m.THINKING_TOKENS), 0) AS THINKING_TOKENS,
 			 COUNT(m.THINKING_TOKENS) AS THINKING_ROWS,
+			 SUM(m.COST_MICROS) AS RECORDED_COST_MICROS, COUNT(m.COST_MICROS) AS COSTED_REQUESTS,
 			 AVG(CASE WHEN m.MESSAGE_TYPE = 'RESPONSE' AND m.RESPONSE_TIME >= 0 THEN m.RESPONSE_TIME ELSE NULL END) AS LATENCY_MS
 			        """;
+
+	/**
+	 * The requests and token counts of the model messages logged before calls
+	 * recorded their login type and cost, the parts {@link ModelUsageCost} prices a
+	 * call by, as the usage limits' cost counters read them
+	 */
+	private static final String BEFORE_COST_TOTALS = """
+			COALESCE(SUM(CASE WHEN m.MESSAGE_TYPE = 'INPUT' THEN 1 ELSE 0 END), 0) AS REQUESTS,
+			 COALESCE(SUM(CASE WHEN m.MESSAGE_TYPE = 'INPUT' THEN m.MESSAGE_TOKENS ELSE 0 END), 0) AS PROMPT_TOKENS,
+			 COALESCE(SUM(CASE WHEN m.MESSAGE_TYPE = 'RESPONSE' THEN m.MESSAGE_TOKENS ELSE 0 END), 0) AS RESPONSE_TOKENS,
+			 COALESCE(SUM(CASE WHEN m.MESSAGE_TYPE = 'INPUT' THEN m.CACHE_READ_TOKENS ELSE 0 END), 0) AS CACHE_READ_TOKENS,
+			 COALESCE(SUM(CASE WHEN m.MESSAGE_TYPE = 'INPUT' THEN m.CACHE_CREATION_TOKENS ELSE 0 END), 0) AS CACHE_WRITE_TOKENS,
+			 COALESCE(SUM(CASE WHEN m.MESSAGE_TYPE = 'RESPONSE' THEN m.THINKING_TOKENS ELSE 0 END), 0) AS THINKING_TOKENS
+			        """;
+
+	/** The model views that report a cost */
+	private static final Set<View> COSTED_VIEWS = EnumSet.of(View.SUMMARY, View.TREND, View.RANKING);
 
 	private static final String ACTIVITY_METRICS = """
 			COUNT(*) AS EVENTS, COUNT(DISTINCT l.USER_ID) AS USERS,
@@ -328,7 +350,7 @@ public final class EnterpriseUsageUtils {
 			bound = 1;
 		}
 		case TREND -> {
-			String day = "CAST(" + (source == Source.MODEL ? "m.DATE_CREATED" : "l.LOG_TIMESTAMP") + " AS DATE)";
+			String day = day(source);
 			sql = "SELECT " + day + " AS DAY, " + metrics + " " + scope + " GROUP BY " + day + " ORDER BY " + day;
 			bound = 366;
 		}
@@ -346,11 +368,7 @@ public final class EnterpriseUsageUtils {
 		}
 		case RANKING -> {
 			Dimension group = option(Dimension.class, dimension);
-			String id = switch (group) {
-			case USER -> "m.USER_ID";
-			case APP -> "r.PROJECT_ID";
-			case MODEL -> "m.AGENT_ID";
-			};
+			String id = rankingId(group);
 			String name = switch (group) {
 			case USER -> "m.USER_NAME";
 			case APP -> "r.PROJECT_NAME";
@@ -362,7 +380,7 @@ public final class EnterpriseUsageUtils {
 		}
 		case LOGS -> {
 			String columns = source == Source.MODEL
-					? "m.DATE_CREATED AS TIME, m.MESSAGE_ID, m.TRANSACTION_ID, m.MESSAGE_TYPE, m.USER_ID, m.USER_NAME, m.AGENT_ID AS MODEL_ID, a.AGENT_NAME AS MODEL_NAME, r.PROJECT_ID AS APP_ID, r.PROJECT_NAME AS APP_NAME, m.ROOM_ID, m.MESSAGE_METHOD AS METHOD, m.MESSAGE_TOKENS AS TOKENS, m.RESPONSE_TIME AS LATENCY_MS"
+					? "m.DATE_CREATED AS TIME, m.MESSAGE_ID, m.TRANSACTION_ID, m.MESSAGE_TYPE, m.USER_ID, m.USER_NAME, m.AGENT_ID AS MODEL_ID, a.AGENT_NAME AS MODEL_NAME, r.PROJECT_ID AS APP_ID, r.PROJECT_NAME AS APP_NAME, m.ROOM_ID, m.MESSAGE_METHOD AS METHOD, m.MESSAGE_TOKENS AS TOKENS, m.CACHE_READ_TOKENS, m.CACHE_CREATION_TOKENS, m.THINKING_TOKENS, m.RESPONSE_TIME AS LATENCY_MS, m.COST_MICROS, m.USER_TYPE, m.BILLED_SOURCE_TYPE, m.BILLED_SUBJECT_ID, m.BILLED_SUBJECT_TYPE"
 					: "l.LOG_TIMESTAMP AS TIME, l.LOG_ID, l.REQUEST_ID, l.USER_ID, l.USER_NAME, l.PROJECT_ID AS APP_ID, l.PROJECT_NAME AS APP_NAME, l.ENGINE_ID, l.ENGINE_NAME, l.ENGINE_TYPE, l.ROOM_ID, l.METHOD_NAME AS METHOD, l.IS_SUCCESS, l.LOG_LEVEL";
 			String order = source == Source.MODEL
 					? "m.DATE_CREATED DESC, m.MESSAGE_ID, m.MESSAGE_TYPE, m.AGENT_ID, m.USER_ID"
@@ -378,7 +396,10 @@ public final class EnterpriseUsageUtils {
 		return new ParameterizedQuery(sql, params, bound);
 	}
 
-	/** Executes a fixed analytics view, with a capped result and timeout. */
+	/**
+	 * Executes a fixed analytics view, with a capped result and timeout. A model
+	 * summary, trend or ranking also says what its calls cost ({@link #addCost}).
+	 */
 	public static Map<String, Object> report(Source source, View view, String from, String to, String user, String app,
 			String engineFilter, String dimension, int limit, int offset) {
 		if (source == Source.AUDIT) {
@@ -396,7 +417,127 @@ public final class EnterpriseUsageUtils {
 				return rows;
 			});
 		}
-		return execute(source, reportQuery(source, view, from, to, user, app, engineFilter, dimension, limit, offset));
+		ParameterizedQuery query = reportQuery(source, view, from, to, user, app, engineFilter, dimension, limit,
+				offset);
+		if (source == Source.MODEL && COSTED_VIEWS.contains(view)) {
+			return execute(source, query.limit(), engine -> {
+				List<Map<String, Object>> rows = readRows(engine, query);
+				ParameterizedQuery beforeCost = beforeCostQuery(view, from, to, user, app, engineFilter, dimension,
+						rows);
+				addCost(rows, view == View.SUMMARY ? null : view == View.TREND ? "DAY" : "ENTITY_ID",
+						beforeCost == null ? List.of() : readRows(engine, beforeCost));
+				return rows;
+			});
+		}
+		return execute(source, query);
+	}
+
+	/**
+	 * The day a model message or an activity event is grouped by in a trend, the
+	 * date of the time its log keeps.
+	 */
+	private static String day(Source source) {
+		return "CAST(" + (source == Source.MODEL ? "m.DATE_CREATED" : "l.LOG_TIMESTAMP") + " AS DATE)";
+	}
+
+	/** The id a ranking groups the model messages by. */
+	private static String rankingId(Dimension group) {
+		return switch (group) {
+		case USER -> "m.USER_ID";
+		case APP -> "r.PROJECT_ID";
+		case MODEL -> "m.AGENT_ID";
+		};
+	}
+
+	/**
+	 * Builds the read of the model messages a summary, trend or ranking covers that
+	 * were logged before calls recorded their login type and cost: for each model,
+	 * and each day of a trend or each consumer ranked, their requests and the token
+	 * counts a call is priced by. A ranking reads only the consumers it ranks.
+	 *
+	 * @param ranked the rows of the report, whose consumers a ranking reads
+	 * @return the read, or null for a ranking with no rows
+	 * @throws IllegalArgumentException for another view, or invalid dates or
+	 *                                  filters
+	 */
+	static ParameterizedQuery beforeCostQuery(View view, String from, String to, String user, String app,
+			String engineFilter, String dimension, List<Map<String, Object>> ranked) {
+		List<Object> params = new ArrayList<>();
+		StringBuilder scope = new StringBuilder(scope(Source.MODEL, from, to, user, app, engineFilter, params));
+		scope.append(" AND m.USER_TYPE IS NULL AND m.COST_MICROS IS NULL");
+		String group = switch (view) {
+		case SUMMARY -> null;
+		case TREND -> day(Source.MODEL);
+		case RANKING -> rankingId(option(Dimension.class, dimension));
+		default -> throw new IllegalArgumentException("Only a summary, trend or ranking reports a cost");
+		};
+		if (view == View.RANKING) {
+			if (ranked.isEmpty()) {
+				return null;
+			}
+			List<Object> ids = ranked.stream().map(row -> row.get("ENTITY_ID")).filter(id -> id != null).toList();
+			List<String> matches = new ArrayList<>();
+			if (!ids.isEmpty()) {
+				matches.add(group + " IN (" + ids.stream().map(id -> "?").collect(Collectors.joining(", ")) + ")");
+				params.addAll(ids);
+			}
+			if (ids.size() < ranked.size()) {
+				matches.add(group + " IS NULL");
+			}
+			scope.append(" AND (").append(String.join(" OR ", matches)).append(")");
+		}
+		String sql = "SELECT " + (group == null ? "" : group + " AS GROUP_KEY, ") + "m.AGENT_ID AS MODEL_ID, "
+				+ BEFORE_COST_TOTALS + " " + scope + " GROUP BY " + (group == null ? "" : group + ", ") + "m.AGENT_ID";
+		return new ParameterizedQuery(sql, params, 0);
+	}
+
+	/**
+	 * Adds each row's cost, in millionths of a dollar:
+	 * {@code RECORDED_COST_MICROS}, what its calls recorded when they were billed;
+	 * {@code ESTIMATED_COST_MICROS}, the calls logged before costs were recorded,
+	 * priced at their model's current base rates, as the usage limits' cost
+	 * counters price them; and {@code COST_MICROS}, the two together. Each is null
+	 * when nothing in the row was priced. {@code PRICED_REQUESTS} counts the
+	 * requests either covers; the calls of a model with no known prices have no
+	 * cost.
+	 *
+	 * @param rows       the report's rows
+	 * @param key        the column each row is matched to the messages logged
+	 *                   before costs were recorded by, or null for a summary
+	 * @param beforeCost those messages' totals, by {@code GROUP_KEY} and model
+	 */
+	static void addCost(List<Map<String, Object>> rows, String key, List<Map<String, Object>> beforeCost) {
+		Map<String, long[]> estimates = new HashMap<>();
+		for (Map<String, Object> totals : beforeCost) {
+			Map<String, Object> prices = ModelUsageCost.priceEntry(Objects.toString(totals.get("MODEL_ID"), null));
+			if (prices == null) {
+				continue;
+			}
+			// the rows are added up per model, so the base rates are used, as no
+			// one call's prompt picks a tier
+			long micros = ModelUsageCost.costMicrosAtBaseRates(prices,
+					new ModelUsageReport(count(totals, "PROMPT_TOKENS"), count(totals, "RESPONSE_TOKENS"),
+							count(totals, "CACHE_READ_TOKENS"), count(totals, "CACHE_WRITE_TOKENS"),
+							count(totals, "THINKING_TOKENS"), 0));
+			estimates.merge(Objects.toString(totals.get("GROUP_KEY"), null),
+					new long[] { micros, count(totals, "REQUESTS") },
+					(a, b) -> new long[] { a[0] + b[0], a[1] + b[1] });
+		}
+		for (Map<String, Object> row : rows) {
+			long[] estimate = estimates.get(key == null ? null : Objects.toString(row.get(key), null));
+			Long recorded = row.get("RECORDED_COST_MICROS") instanceof Number number ? number.longValue() : null;
+			Long estimated = estimate == null ? null : estimate[0];
+			row.put("RECORDED_COST_MICROS", recorded);
+			row.put("ESTIMATED_COST_MICROS", estimated);
+			row.put("COST_MICROS", recorded == null && estimated == null ? null
+					: (recorded == null ? 0 : recorded) + (estimated == null ? 0 : estimated));
+			row.put("PRICED_REQUESTS", count(row, "COSTED_REQUESTS") + (estimate == null ? 0 : estimate[1]));
+		}
+	}
+
+	/** A count in a row, 0 when it has none. */
+	private static long count(Map<String, Object> row, String column) {
+		return row.get(column) instanceof Number number ? number.longValue() : 0;
 	}
 
 	/**
