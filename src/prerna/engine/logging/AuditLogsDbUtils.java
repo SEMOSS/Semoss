@@ -164,6 +164,9 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__GUARDRAIL_ACTION"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_CACHE_READ_TOKENS"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_CACHE_CREATION_TOKENS"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__BILLED_SOURCE_TYPE"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__BILLED_SUBJECT_ID"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__BILLED_SUBJECT_TYPE"));
 
 		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
@@ -216,11 +219,14 @@ public class AuditLogsDbUtils {
 			String guardrailAction = getOrDefault(map.get("GUARDRAIL_ACTION"), null);
 			int cacheReadTokens = getIntValue(map.get("NUMBER_OF_CACHE_READ_TOKENS"));
 			int cacheCreationTokens = getIntValue(map.get("NUMBER_OF_CACHE_CREATION_TOKENS"));
+			String billedSourceType = getOrDefault(map.get("BILLED_SOURCE_TYPE"), null);
+			String billedSubjectId = getOrDefault(map.get("BILLED_SUBJECT_ID"), null);
+			String billedSubjectType = getOrDefault(map.get("BILLED_SUBJECT_TYPE"), null);
 
 			activityList.add(new LogActivityRecord(requestId, startTime, endTime, request, response, tokens, latency,
 					status, engineName, engineType, methodName, userNameFromRow, userIdFromRow, sessionIdFromRow,
 					spanIdFromRow, logTimestamp, guardrailAction, cacheReadTokens, cacheCreationTokens, promptTokens,
-					responseTokens));
+					responseTokens, billedSourceType, billedSubjectId, billedSubjectType));
 
 		}
 		return activityList;

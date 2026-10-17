@@ -83,6 +83,34 @@ public record ModelUsageBilledTo(String sourceType, String subjectId, String sub
 	}
 
 	/**
+	 * What the source is called, as the usage limits UI names it, for reports and
+	 * exports.
+	 *
+	 * @return the source's name, such as "Direct Limit", "Ops Team Limit" or
+	 *         "General Platform Limit", or the source type itself when it is not
+	 *         one of the known sources
+	 */
+	public String label() {
+		if (sourceType == null) {
+			return null;
+		}
+		switch (sourceType) {
+		case USER:
+			return "Direct Limit";
+		case TEAM:
+			return subjectId == null ? "Team Limit" : subjectId + " Team Limit";
+		case PUBLIC:
+			return "Public Use Limit";
+		case ALL_MODELS:
+			return "User's Total Model Limit";
+		case PLATFORM:
+			return "General Platform Limit";
+		default:
+			return sourceType;
+		}
+	}
+
+	/**
 	 * The source as a JSON-ready map, for the {@code billedTo} of the usage limits
 	 * put on a model's response.
 	 *
