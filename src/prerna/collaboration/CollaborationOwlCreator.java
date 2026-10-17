@@ -97,9 +97,11 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("FINISHED_AT", TIMESTAMP_DATATYPE_NAME)));
 
 		// one table per routine kind (WorkRoutine.Kind), same columns
-		for (String routine : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE")) {
+		// WORK_CUSTOM_ROUTINE holds many per owner, told apart by ROUTINE_ID (null in the others)
+		for (String routine : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE", "WORK_CUSTOM_ROUTINE")) {
 			addTable(routine, Arrays.asList(
 					OWNER_ID, OWNER_TYPE,
+					Pair.with("ROUTINE_ID", VARCHAR_50),
 					Pair.with("SETTINGS_JSON", CLOB_DATATYPE_NAME),
 					Pair.with("ENABLED", BOOLEAN_DATATYPE_NAME),
 					Pair.with("LAST_DATE", VARCHAR_20),
@@ -141,6 +143,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// the Outlook folder drafts are left in; null means the mailbox's own Drafts
 				Pair.with("DRAFT_FOLDER_ID", VARCHAR_255),
 				Pair.with("DRAFT_FOLDER_NAME", VARCHAR_255),
+				// ids of the owner's own Collaboration skills staged in their assistant chats
+				Pair.with("ASSISTANT_SKILLS_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// One resumable topic-review draft per owner; only profiles and bounded evidence metadata.
 		addTable("BRAIN_TOPIC_REVIEW", Arrays.asList(

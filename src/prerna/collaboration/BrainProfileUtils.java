@@ -269,7 +269,8 @@ public final class BrainProfileUtils {
 	public static Map<String, Object> getSettings(String ownerId, String ownerType) {
 		ensureSettings(ownerId, ownerType);
 		Map<String, Object> settings = CollaborationDbUtils.queryOne(
-				"SELECT FILE_AT, ASK_AT, VERSION, MEMORY_USE, MEMORY_LEARN, DRAFT_FOLDER_ID, DRAFT_FOLDER_NAME "
+				"SELECT FILE_AT, ASK_AT, VERSION, MEMORY_USE, MEMORY_LEARN, DRAFT_FOLDER_ID, DRAFT_FOLDER_NAME, "
+						+ "ASSISTANT_SKILLS_JSON "
 						+ "FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> {
 					Map<String, Object> row = new LinkedHashMap<>();
@@ -287,6 +288,7 @@ public final class BrainProfileUtils {
 					memory.put("use", !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "MEMORY_USE")));
 					memory.put("learn", !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "MEMORY_LEARN")));
 					row.put("memory", memory);
+					row.put("assistantSkills", skillIds(CollaborationDbUtils.getString(rs, "ASSISTANT_SKILLS_JSON")));
 					return row;
 				}, ownerId, ownerType);
 		settings.put("sourcesJson", CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType));
@@ -345,6 +347,13 @@ public final class BrainProfileUtils {
 			CollaborationDbUtils.addSet(sets, params, "DRAFT_FOLDER_ID", folderId);
 			CollaborationDbUtils.addSet(sets, params, "DRAFT_FOLDER_NAME", folderId == null ? null : folderName);
 		}
+		if (changes.containsKey("assistantSkills")) {
+			if (!(changes.get("assistantSkills") instanceof List<?> skills)) {
+				throw new IllegalArgumentException("assistantSkills must be a list of skill ids");
+			}
+			CollaborationDbUtils.addSet(sets, params, "ASSISTANT_SKILLS_JSON",
+					CollaborationDbUtils.toJson(CollaborationSkills.requireMine(user, skills)));
+		}
 		CollaborationDbUtils.addSet(sets, params, "VERSION", currentVersion + 1);
 		CollaborationDbUtils.addSet(sets, params, "UPDATED_AT", CollaborationDbUtils.now());
 		params.add(ownerId);
@@ -381,6 +390,35 @@ public final class BrainProfileUtils {
 			classLogger.warn("Could not read the draft folder setting: {}", e.getMessage());
 			return null;
 		}
+	}
+
+	/** Skill ids the owner turned on for their assistant; empty when Collaboration is off or nothing is set. */
+	public static List<String> assistantSkills(User user) {
+		try {
+			if (user == null || !Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
+				return List.of();
+			}
+			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+			List<String> ids = CollaborationDbUtils.queryOne(
+					"SELECT ASSISTANT_SKILLS_JSON FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+					rs -> skillIds(CollaborationDbUtils.getString(rs, "ASSISTANT_SKILLS_JSON")), owner.getValue0(),
+					owner.getValue1());
+			return ids == null ? List.of() : ids;
+		} catch (Exception e) {
+			// the chat still runs, without the owner's skills, when the setting cannot be read
+			classLogger.warn("Could not read the assistant skills setting: {}", e.getMessage());
+			return List.of();
+		}
+	}
+
+	private static List<String> skillIds(String json) {
+		List<String> ids = new ArrayList<>();
+		if (json != null && !json.isBlank()) {
+			for (Object id : CollaborationDbUtils.parseList(json)) {
+				ids.add(String.valueOf(id));
+			}
+		}
+		return ids;
 	}
 
 	private static String trimToNull(Object value) {
