@@ -57,7 +57,12 @@ public class WorkManageCustomRoutineReactor extends AbstractCollaborationReactor
 			return mapResult(WorkCustomRoutine.setEnabled(user, routineId, true));
 		case "run":
 			WorkCustomRoutine.runNow(user, routineId);
-			return mapResult(Map.of("routineId", routineId, "status", "started"));
+			// a routine is not a sub-agent of this chat; say so, or the model waits on it with sub-agent tools
+			return mapResult(Map.of("routineId", routineId, "status", "started", "note",
+					"The routine now runs on its own, apart from this chat, and usually takes a few minutes. It is "
+							+ "not a sub-agent: do not wait for it or check it with sub-agent tools. Tell the owner "
+							+ "it started and where the result will go. To see whether it finished, use ListRoutines "
+							+ "later, only if the owner asks."));
 		case "delete":
 			WorkCustomRoutine.delete(user, routineId);
 			return mapResult(Map.of("routineId", routineId, "deleted", true));
@@ -79,7 +84,9 @@ public class WorkManageCustomRoutineReactor extends AbstractCollaborationReactor
 		return "Pauses, resumes, runs now, or deletes one of the owner's routines, by its id from ListRoutines. When "
 				+ "the owner asks to run, test, try or preview a routine, call this with action run right away: the "
 				+ "owner approves it on a card, so never tell them to do it themselves. A run uses today's data and "
-				+ "starts in the background; its result shows in Routines and goes where the routine delivers.";
+				+ "runs on its own, apart from this chat, for a few minutes; it is not a sub-agent, so do not wait "
+				+ "for it. Its result shows in Routines and goes where the routine delivers; ListRoutines shows "
+				+ "whether it is still running.";
 	}
 
 	@Override

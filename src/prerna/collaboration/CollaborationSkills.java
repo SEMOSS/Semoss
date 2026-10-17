@@ -27,6 +27,10 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -44,6 +48,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.agent.skill.CreateSkillReactor;
+import prerna.reactor.agent.skill.DeleteSkillReactor;
 import prerna.reactor.agent.skill.SkillProjects;
 
 /**
@@ -55,27 +60,88 @@ public final class CollaborationSkills {
 	private static final Logger classLogger = LogManager.getLogger(CollaborationSkills.class);
 
 	public static final String TAG = "collaboration";
-	static final int MAX_CONTENT_CHARS = 20_000;
+	static final int MAX_READ_CHARS = 30_000;
 
 	private CollaborationSkills() {
 	}
 
-	/** Creates a private skill owned by the user and tags it for Collaboration. */
-	public static Map<String, Object> create(User user, String name, String description, String content) {
+	/**
+	 * Creates a private skill owned by the user, tagged for Collaboration, with a placeholder SKILL.md the skill
+	 * builder then writes.
+	 */
+	public static Map<String, Object> create(User user, String name, String description) {
 		if (AbstractSecurityUtils.adminOnlySkillAdd() && !Boolean.TRUE.equals(SecurityAdminUtils.userIsAdmin(user))) {
 			throw new IllegalArgumentException("Only an administrator can create skills on this server");
 		}
-		if (content == null || content.isBlank()) {
-			throw new IllegalArgumentException("The skill needs its instructions");
+		if (name == null || name.isBlank() || description == null || description.isBlank()) {
+			throw new IllegalArgumentException("A new skill needs a name and a description");
 		}
-		if (content.length() > MAX_CONTENT_CHARS) {
-			throw new IllegalArgumentException("A skill can be at most " + MAX_CONTENT_CHARS + " characters");
-		}
-		Map<String, Object> created = CreateSkillReactor.create(user, content, name, description);
+		Map<String, Object> created = CreateSkillReactor.create(user,
+				"# " + name.trim() + "\n\n" + description.trim() + "\n", name.trim(), description.trim());
 		String skillId = String.valueOf(created.get("skill_id"));
 		SecurityProjectUtils.updateProjectMetadata(skillId,
 				Map.of("tag", List.of(ProjectHelper.SKILL_PROJECT_TAG, TAG)));
 		return describe(skillId);
+	}
+
+	/** The files of one of the user's own skills, as paths relative to its folder with their sizes. */
+	public static List<Map<String, Object>> files(User user, String skillId) {
+		Path dir = requireDir(user, skillId);
+		List<Map<String, Object>> files = new ArrayList<>();
+		for (String path : CollaborationSkillBuilder.snapshot(dir).keySet()) {
+			Map<String, Object> file = new LinkedHashMap<>();
+			file.put("path", path);
+			try {
+				file.put("bytes", Files.size(dir.resolve(path)));
+			} catch (IOException e) {
+				file.put("bytes", null);
+			}
+			files.add(file);
+		}
+		return files;
+	}
+
+	/** One text file of one of the user's own skills, cut at the read limit. */
+	public static Map<String, Object> read(User user, String skillId, String path) {
+		Path dir = requireDir(user, skillId);
+		Path file = dir.resolve(path == null ? "" : path.trim()).normalize();
+		if (!file.startsWith(dir) || !Files.isRegularFile(file) || dir.relativize(file).toString().startsWith(".")) {
+			throw new IllegalArgumentException("The skill has no file " + path + "; list its files first");
+		}
+		try {
+			String text = Files.readString(file, StandardCharsets.UTF_8);
+			Map<String, Object> out = new LinkedHashMap<>();
+			out.put("path", dir.relativize(file).toString().replace('\\', '/'));
+			out.put("truncated", text.length() > MAX_READ_CHARS);
+			out.put("content", text.length() > MAX_READ_CHARS ? text.substring(0, MAX_READ_CHARS) : text);
+			return out;
+		} catch (IOException | RuntimeException e) {
+			throw new IllegalArgumentException("Could not read " + path + " as text: " + e.getMessage());
+		}
+	}
+
+	/** Deletes one of the user's own skills; routines and the assistant drop it on their next run. */
+	public static void delete(User user, String skillId) {
+		if (!isMine(user, skillId)) {
+			throw new IllegalArgumentException("Pick one of your own Collaboration skills; " + skillId
+					+ " is not one of them");
+		}
+		if (AbstractSecurityUtils.adminOnlySkillDelete() && !Boolean.TRUE.equals(SecurityAdminUtils.userIsAdmin(user))) {
+			throw new IllegalArgumentException("Only an administrator can delete skills on this server");
+		}
+		DeleteSkillReactor.delete(user, skillId);
+	}
+
+	private static Path requireDir(User user, String skillId) {
+		if (!isMine(user, skillId)) {
+			throw new IllegalArgumentException("Pick one of your own Collaboration skills; " + skillId
+					+ " is not one of them");
+		}
+		Path dir = SkillProjects.resolve(skillId).skillDir;
+		if (dir == null) {
+			throw new IllegalStateException("The skill has no files yet");
+		}
+		return dir.normalize();
 	}
 
 	/** The user's own Collaboration skills, by name. */

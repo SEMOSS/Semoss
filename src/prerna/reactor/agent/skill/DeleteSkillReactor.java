@@ -103,6 +103,22 @@ public class DeleteSkillReactor extends AbstractReactor {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
 
+		try {
+			delete(user, skillId);
+		} catch (IllegalStateException e) {
+			return getError(e.getMessage());
+		}
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
+
+	/**
+	 * Deletes a skill the user owns, with its workspace refs, after the same checks the reactor makes. Admin-only
+	 * deletion is the caller's to check.
+	 *
+	 * @throws IllegalArgumentException when the skill is built in, not the user's, or not a skill
+	 * @throws IllegalStateException    when the delete itself fails
+	 */
+	public static void delete(User user, String skillId) {
 		// built-in platform skills ship with the distribution and reload at boot;
 		// deleting one would remove its folder + smss with no way to restore it
 		if (SystemDefaultEngines.getSystemSkills().contains(skillId)) {
@@ -134,14 +150,13 @@ public class DeleteSkillReactor extends AbstractReactor {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to delete skill '{}'.", skillId, e);
-			return getError("Error during skill delete: " + e.getMessage());
+			throw new IllegalStateException("Error during skill delete: " + e.getMessage(), e);
 		}
 		UserAuditTrailUtils.recordResourceEvent(user, AuditEventType.SKILL_DELETE, AuditTargetType.SKILL, skillId,
 				project.getProjectName(), skillId, null, null, null);
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	private boolean deleteProject(IProject project) {
+	private static boolean deleteProject(IProject project) {
 		String projectId = project.getProjectId();
 		UploadUtilities.removeProjectFromDIHelper(projectId);
 		SecurityProjectUtils.deleteProject(projectId);

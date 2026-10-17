@@ -1,6 +1,6 @@
 ---
 name: collaboration
-description: Use for Teamwork tasks involving room files, documents, sources, email drafts, or action items. For document text, load documents/read-and-extract.md and use the shared Docling wrapper smssutil.get_document_markdown on the actual file path. Load relevant references before doing the work. Python and PPTX are separate skills.
+description: Use for Teamwork tasks involving room files, documents, sources, email drafts, action items, or scheduled routines. For document text, load documents/read-and-extract.md and use the shared Docling wrapper smssutil.get_document_markdown on the actual file path. Load relevant references before doing the work. Python and PPTX are separate skills.
 ---
 
 # Collaboration work
@@ -31,6 +31,7 @@ parent-directory segments.
 | Attach a room file, request sending, or handle a rejection | [email/attachments-and-send.md](references/email/attachments-and-send.md) |
 | Identify actions and avoid duplicate work | [actions/identify-and-deduplicate.md](references/actions/identify-and-deduplicate.md) |
 | Update an action and report its actual state | [actions/update-and-report.md](references/actions/update-and-report.md) |
+| Schedule or change a routine, or give its result a lasting format | [routines/schedule-a-routine.md](references/routines/schedule-a-routine.md) |
 
 For Python execution, load the separate `python` skill. For creating, inspecting,
 or editing a presentation, load `pptx` only when it is listed as available. Use this

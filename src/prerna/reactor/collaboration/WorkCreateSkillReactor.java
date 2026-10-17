@@ -29,26 +29,36 @@ package prerna.reactor.collaboration;
 
 import java.util.Map;
 
+import prerna.auth.User;
+import prerna.collaboration.CollaborationSkillBuilder;
 import prerna.collaboration.CollaborationSkills;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// WorkCreateSkill(name=["client-summaries"], description=["..."], content=["..."]);
+// WorkCreateSkill(name=["client-summaries"], description=["..."], brief=["..."]);
 public class WorkCreateSkillReactor extends AbstractCollaborationReactor {
 
 	private static final String NAME = "name";
 	private static final String DESCRIPTION = "description";
-	private static final String CONTENT = "content";
+	private static final String BRIEF = "brief";
 
 	public WorkCreateSkillReactor() {
-		this.keysToGet = new String[] { NAME, DESCRIPTION, CONTENT };
+		this.keysToGet = new String[] { NAME, DESCRIPTION, BRIEF };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		return mapResult(CollaborationSkills.create(getUser(), getString(NAME), getString(DESCRIPTION),
-				getString(CONTENT)));
+		User user = getUser();
+		Map<String, Object> created = CollaborationSkills.create(user, getString(NAME), getString(DESCRIPTION));
+		String skillId = String.valueOf(created.get("id"));
+		try {
+			return mapResult(CollaborationSkillBuilder.build(user, this.insight, skillId, getString(BRIEF), true));
+		} catch (RuntimeException e) {
+			// the skill exists with its placeholder; say so, so the next step is EditSkill rather than a duplicate
+			throw new IllegalStateException("The skill " + created.get("name") + " (" + skillId + ") was created but "
+					+ "building its files failed: " + e.getMessage() + " Use EditSkill with this skillId to retry.", e);
+		}
 	}
 
 	@Override
@@ -61,23 +71,28 @@ public class WorkCreateSkillReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Saves a skill for the owner: reusable instructions (how they like a summary written, what to check "
-				+ "for a client, a report layout) that their routines and, if they turn it on, their assistant load "
-				+ "when relevant. The skill is private to the owner. Use it when the owner asks to remember a way of "
-				+ "doing something as a skill, or a routine needs longer standing instructions. Then attach it with "
-				+ "CreateRoutine (skills) or UseSkillInAssistant.";
+		return "Creates a skill for the owner and has a skill builder write it: SKILL.md plus any references, HTML "
+				+ "templates and Python scripts it needs, the same as building a skill in the platform's workbench. "
+				+ "Use it when the owner asks to keep a way of doing something, or a routine's result has a fixed "
+				+ "shape they read again and again. The skill is private to the owner. It takes a few minutes and "
+				+ "returns the files it wrote. Then attach it with CreateRoutine (skills) or UseSkillInAssistant. "
+				+ "To change a skill later use EditSkill, never a second CreateSkill. Load "
+				+ "collaboration/references/routines/schedule-a-routine.md first when the skill is for a routine.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (NAME.equals(key)) {
-			return "Short lowercase name with hyphens, such as client-summaries.";
+			return "Short lowercase name with hyphens, such as client-summaries. It cannot change later.";
 		}
 		if (DESCRIPTION.equals(key)) {
-			return "One sentence on when to use the skill; agents read it to decide whether to load it.";
+			return "One or two sentences on when an agent should load the skill.";
 		}
-		if (CONTENT.equals(key)) {
-			return "The skill's instructions in Markdown, without frontmatter. At most 20000 characters.";
+		if (BRIEF.equals(key)) {
+			return "Everything the builder needs, since it cannot see this chat: what the skill is for, the rules "
+					+ "and preferences the owner gave, what the result contains, its sections and order, what to "
+					+ "write when there is nothing, and whether it needs an HTML template (describe its columns or "
+					+ "sections) or a script. At most 8000 characters.";
 		}
 		return super.getDescriptionForKey(key);
 	}
