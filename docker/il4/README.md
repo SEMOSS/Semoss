@@ -185,6 +185,9 @@ Python 3.14 requires these explicitly documented compatibility changes:
 | datasets | 2.14.3 | 4.4.0 | Arrow API and Python 3.14 pickling compatibility |
 | pipecat-ai | 0.0.103 | 1.0.0 | Compatible ONNX Runtime, Numba, and soxr dependencies |
 | pipecat-ai | 1.0.0 | 1.4.0 | Closes CVE-2026-44716, CVE-2026-54695 (AWS Inspector2 findings) |
+| claude-agent-sdk | 0.2.116 | 0.2.168 | Closes CVE-2026-96620 (CRITICAL, AWS Inspector2 finding) |
+| pipecat-ai | 1.4.0 | 1.13.0 | Closes CVE-2026-102682 (AWS Inspector2 finding) |
+| fsspec | 2023.10.0 (incidental) | 2023.10.0 (now explicit) | Had no pin anywhere; the above two bumps would have silently floated it to 2025.10.0, breaking the hash-guarded patch below |
 
 Additional constraints are `dill>=0.4.0` and `protobuf<7`; the upstream security
 overrides remain applied. Exact pins, failed older candidates, source references,
@@ -195,7 +198,10 @@ before migrating production data.
 
 `fsspec` stays pinned at 2023.10.0 rather than bumped to 2026.6.0: reaching
 that version needs `datasets>=5.1.0`, which needs `pyarrow>=24.0.0`, reopening
-the pyarrow pin above. CVE-2026-104851 (GHSA-27vj-qcqg-25rc, RCE via
+the pyarrow pin above. This pin is now explicit in `pyproject.toml` - it was
+previously only incidental (held down by some other package's then-current
+transitive constraint), and bumping claude-agent-sdk/pipecat-ai to close
+unrelated CVEs silently floated it to 2025.10.0 before this was caught. CVE-2026-104851 (GHSA-27vj-qcqg-25rc, RCE via
 `ReferenceFileSystem`'s Kerchunk template parsing, a feature SEMOSS does not
 use) is closed instead with a targeted, hash-guarded source patch
 ([fsspec_compat.py](./python-dependencies/fsspec_compat.py)) applying the

@@ -20,13 +20,20 @@ dependencies = [
     "boto3>=1.43.9",
     "beautifulsoup4>=4.15.0",
     "chonky==0.1.7",
-    "claude-agent-sdk==0.2.116",
+    "claude-agent-sdk==0.2.168",
     "github-copilot-sdk==0.3.0",
     "datasets==4.4.0",
     "deepdiff>=9.1.0",
     "detoxify>=0.5.2",
     "faiss-cpu==1.14.3",
     "flask>=3.1.0",
+    # Was only incidentally 2023.10.0 via some other package's now-looser
+    # transitive constraint (no explicit pin existed anywhere before this),
+    # discovered when bumping claude-agent-sdk/pipecat-ai silently floated it
+    # to 2025.10.0. Pinned explicitly because fsspec_compat.py's CVE-2026-104851
+    # patch is hash-guarded against 2023.10.0's exact source - see
+    # docker/il4/README.md and compatibility.json's applied_source_patches.
+    "fsspec==2023.10.0",
     "gliner>=0.2.22",
     "google-auth>=2.55.2",
     "google-genai==2.11.0",
@@ -55,7 +62,7 @@ dependencies = [
     "pandasql>=0.7.3",
     "pdfplumber>=0.11.10",
     "pip-system-certs>=5.3",
-    "pipecat-ai==1.4.0",
+    "pipecat-ai==1.13.0",
     "protobuf>=6.33.5",
     "pyarrow==23.0.1",
     "pydantic>=2.13.4",
