@@ -280,7 +280,7 @@ public final class AutomationNodeCatalog {
 	private static AutomationNodeDefinition transformDefinition() {
 		Map<String, Object> defaults = orderedConfig("source", "", "operation", "changeType", "columns", List.of(),
 				"column", "", "dataType", "STRING", "newColumn", "", "delimiter", " ", "pivotColumn", "",
-				"valueColumn", "", "maintainColumns", List.of(), "aggregateFunction", "", "naReplace", "",
+				"valueColumn", "", "maintainColumns", List.of(), "aggregateFunction", "",
 				"includeTime", false, "sigDigits", 2, "by100", false, "rightSource", "", "rightColumn", "",
 				"joinType", "inner.join");
 		List<ConfigField> fields = List.of(
@@ -295,7 +295,6 @@ public final class AutomationNodeCatalog {
 				field("valueColumn", ConfigFieldType.STRING, "Value column", false, ""),
 				field("maintainColumns", ConfigFieldType.STRING_LIST, "Columns to keep", false, List.of()),
 				field("aggregateFunction", ConfigFieldType.STRING, "Aggregate function", false, ""),
-				field("naReplace", ConfigFieldType.STRING, "Replace missing pivot values", false, ""),
 				field("includeTime", ConfigFieldType.BOOLEAN, "Include time", false, false),
 				optionalBoundedIntegerField("sigDigits", "Significant digits", 2, 0, 20),
 				field("by100", ConfigFieldType.BOOLEAN, "Multiply by 100", false, false),

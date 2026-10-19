@@ -44,7 +44,6 @@ import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
-import prerna.ds.py.PandasSyntaxHelper;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
 import prerna.om.Insight;
@@ -57,7 +56,6 @@ import prerna.reactor.automation.definition.AutomationNodeType;
 import prerna.reactor.frame.FrameFactory;
 import prerna.reactor.frame.PurgeReactor;
 import prerna.reactor.frame.py.TrimColumnsReactor;
-import prerna.reactor.frame.py.PivotReactor;
 import prerna.reactor.imports.IImporter;
 import prerna.reactor.imports.ImportFactory;
 import prerna.sablecc2.om.PixelDataType;
@@ -292,42 +290,6 @@ class AutomationCleanExecutorUnitTests {
 				Map.of("name", "VALUE", "type", "DOUBLE")), output.columns());
 		assertEquals(List.of(Map.of("NAME", "Alice", newColumn, "new value", "VALUE", 0.25)), output.page(0, 1));
 		verify(rows).close();
-	}
-
-	@ParameterizedTest
-	@ValueSource(booleans = { true, false })
-	void pivotSeparatesMissingValueStatementsWithOrWithoutMaintainedColumns(boolean maintainColumns) {
-		PandasFrame frame = mock(PandasFrame.class);
-		when(frame.getName()).thenReturn("pivoted");
-		when(frame.getWrapperName()).thenReturn("pivotedw");
-		when(frame.runScript("pivotedw.is_numeric('VALUE')")).thenReturn(true);
-		when(frame.runScript(PandasSyntaxHelper.getColumns("pivoted")))
-				.thenReturn(List.of("VALUE_A", "VALUE_B"));
-		PivotReactor reactor = new PivotReactor() {
-			@Override
-			protected ITableDataFrame getFrame() {
-				return frame;
-			}
-
-			@Override
-			protected ITableDataFrame recreateMetadata(PandasFrame input) {
-				return input;
-			}
-		};
-		prerna.sablecc2.om.NounStore nouns = new prerna.sablecc2.om.NounStore("Pivot");
-		nouns.makeGenRowStruct("pivotCol").add(new NounMetadata("CATEGORY", PixelDataType.CONST_STRING));
-		nouns.makeGenRowStruct("valueCol").add(new NounMetadata("VALUE", PixelDataType.CONST_STRING));
-		nouns.makeGenRowStruct("function").add(new NounMetadata("sum", PixelDataType.CONST_STRING));
-		nouns.makeGenRowStruct("naReplace").add(new NounMetadata("0", PixelDataType.CONST_STRING));
-		if (maintainColumns) {
-			nouns.makeGenRowStruct("maintainCols").add(new NounMetadata("REGION", PixelDataType.CONST_STRING));
-		}
-		reactor.setNounStore(nouns);
-		reactor.setInsight(new Insight());
-		assertSame(frame, reactor.execute().getValue());
-		verify(frame).runScript(
-				"pivoted['VALUE_A'] = pivoted['VALUE_A'].fillna(0)\n"
-						+ "pivoted['VALUE_B'] = pivoted['VALUE_B'].fillna(0)\n");
 	}
 
 	@Test

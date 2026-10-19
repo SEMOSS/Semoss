@@ -415,7 +415,6 @@ public final class AutomationDefinitionValidator {
 			if (!List.of("", "sum", "mean", "median").contains(aggregate)) {
 				throw new IllegalArgumentException("Transform node '" + nodeId + "' aggregateFunction is unsupported.");
 			}
-			validateTransformScriptLiteral(nodeId, config, "naReplace", false);
 		} else if (type == AutomationFrameOperation.SPLIT
 				|| type == AutomationFrameOperation.SPLIT_UNPIVOT) {
 			validateTransformColumns(nodeId, config, "columns", true);

@@ -172,7 +172,6 @@ final class AutomationCleanExecutor {
 			if (!List.of("", "sum", "mean", "median").contains(function.toLowerCase(java.util.Locale.ROOT))) {
 				throw new IllegalArgumentException("Choose a supported pivot aggregate.");
 			}
-			String naReplace = safeOptionalScriptLiteral(config.get("naReplace"), scope, nodeId);
 			addString(nouns, "pivotCol", pivotColumn);
 			addString(nouns, "valueCol", valueColumn);
 			if (!maintained.isEmpty()) {
@@ -182,8 +181,6 @@ final class AutomationCleanExecutor {
 			}
 			if (!function.isEmpty())
 				addString(nouns, "function", function);
-			if (naReplace != null)
-				addString(nouns, "naReplace", naReplace);
 		} else if (operation == AutomationFrameOperation.LOWER_CASE
 				|| operation == AutomationFrameOperation.PROPER_CASE
 				|| operation == AutomationFrameOperation.UPPER_CASE) {
@@ -430,21 +427,6 @@ final class AutomationCleanExecutor {
 		if (value.length() > 100 || value.contains("'") || value.contains("\"") || value.contains("\\")
 				|| value.chars().anyMatch(Character::isISOControl)) {
 			throw new IllegalArgumentException(key + " contains characters unsupported by the BI reactor.");
-		}
-		return value;
-	}
-
-	private static String safeOptionalScriptLiteral(Object configured, Map<String, Object> scope, String nodeId) {
-		if (configured == null)
-			return null;
-		Object resolved = AutomationScopeResolver.resolveExactOrLiteral(configured, scope,
-				"Pivot replacement value for node '" + nodeId + "'");
-		if (!(resolved instanceof String value)) {
-			throw new IllegalArgumentException("Pivot replacement value must resolve to a string.");
-		}
-		if (value.length() > 100 || value.contains("'") || value.contains("\"") || value.contains("\\")
-				|| value.chars().anyMatch(Character::isISOControl)) {
-			throw new IllegalArgumentException("Pivot replacement value contains unsupported characters.");
 		}
 		return value;
 	}

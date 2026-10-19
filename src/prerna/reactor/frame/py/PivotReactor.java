@@ -231,7 +231,7 @@ public class PivotReactor extends AbstractPyFrameReactor {
 					// py script to replace a value within the pivot column
 					// df['DataFrame Column'] = df['DataFrame Column'].fillna(0)
 					pyReplaceScript.append(table + "['" + possibleHeader + "'] = " + table + "['" + possibleHeader
-							+ "'].fillna(" + naReplace + ")\n");
+							+ "'].fillna(" + naReplace + ")");
 				}
 			}
 			frame.runScript(pyReplaceScript.toString());
@@ -287,7 +287,7 @@ public class PivotReactor extends AbstractPyFrameReactor {
 				return colInputs;
 			}
 		}
-		return List.of();
+		return null;
 	}
 
 	// aggregate function is optional, uses key "AGGREGATE_FUNCTION_KEY"

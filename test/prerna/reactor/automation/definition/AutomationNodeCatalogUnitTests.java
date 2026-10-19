@@ -123,7 +123,7 @@ public class AutomationNodeCatalogUnitTests {
 		assertTrue(definition.defaultConfig().containsKey("newColumn"));
 		assertEquals("STRING", definition.defaultConfig().get("dataType"));
 		for (String key : List.of("delimiter", "pivotColumn", "valueColumn", "maintainColumns",
-				"aggregateFunction", "naReplace", "includeTime", "sigDigits", "by100", "rightSource",
+				"aggregateFunction", "includeTime", "sigDigits", "by100", "rightSource",
 				"rightColumn", "joinType")) {
 			assertTrue(definition.defaultConfig().containsKey(key), key + " is missing from Transform defaults");
 		}
