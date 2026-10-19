@@ -59,12 +59,14 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IModelRouterEngine;
+import prerna.engine.api.ITypeSafeEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.engine.impl.model.usage.ModelUsageRequest;
 import prerna.om.Insight;
 import prerna.util.EngineUtility;
@@ -113,8 +115,9 @@ import prerna.util.Utility;
  * <li><b>keyword</b>: The first route with a whole-word keyword match on the
  * latest input wins. Otherwise, the default route is used.</li>
  * <li><b>llm</b>: The classifier engine selects a route from each route's
- * description. Every route requires a description. Keyword matching is used as
- * a fallback when classification fails.</li>
+ * description. Chat models receive a prompt; TypeSafe decision models receive a
+ * structured choice question. Every route requires a description. Keyword
+ * matching is used as a fallback when classification fails.</li>
  * <li><b>weighted</b>: Deterministic weighted round-robin is applied across
  * routes whose weight is greater than zero. For example, weights of 30 and 70
  * produce an exact 30/70 split during each cycle.</li>
@@ -835,50 +838,78 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	}
 
 	/**
-	 * LLM routing: sends a compact classification prompt to the classifier engine,
-	 * expects exactly one route name back, then resolves it. Gracefully degrades to
-	 * keyword routing if the LLM call fails or returns an unrecognised name.
+	 * Classification routing: chat models return a route name from a prompt, while
+	 * TypeSafe decision models answer a structured choice question. Both paths
+	 * validate the selected name and fall back to keyword routing on failure.
 	 */
 	private String selectRouteByLLM(String routingText, Insight insight, Room room) {
 		try {
-			StringBuilder routeList = new StringBuilder();
-			for (Route r : this.routes) {
-				routeList.append("- ").append(r.name);
-				if (r.description != null) {
-					routeList.append(": ").append(r.description);
-				} else if (!r.keywords.isEmpty()) {
-					// defensive only - llm mode validates descriptions at open
-					routeList.append(" (for questions about: ").append(String.join(", ", r.keywords)).append(")");
-				}
-				routeList.append("\n");
-			}
-
-			String classificationPrompt = "You are a routing classifier. Given the user question below, "
-					+ "reply with ONLY the single route name that best matches - no explanation, no punctuation, no quotes.\n\n"
-					+ "Available routes:\n" + routeList + "\nUser question: " + routingText + "\n\nRoute name:";
-
 			IModelEngine classifierEngine = resolveEngine(this.classifierEngineId);
-
-			Map<String, Object> params = new HashMap<>();
-			InputMessage msg = InputMessage.builder(room).withText(classificationPrompt)
-					.withModelType(classifierEngine.getModelType()).withParamMap(params).build();
-			params.put(MESSAGE_JSON, MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg)));
-			AskModelEngineResponse response = classifierEngine.askRoom(msg, room, params);
-
-			String routeName = response.getStringResponse();
+			String routeName;
+			if (classifierEngine instanceof ITypeSafeEngine decisionClassifier) {
+				routeName = classifyRouteWithTypeSafe(decisionClassifier, routingText, insight);
+			} else {
+				routeName = classifyRouteWithChatModel(classifierEngine, routingText, room);
+			}
 			routeName = routeName != null ? routeName.trim() : "";
 
 			for (Route route : this.routes) {
 				if (route.name.equalsIgnoreCase(routeName)) {
-					classLogger.info("ModelRouterEngine: LLM classified question as route '{}'", routeName);
+					classLogger.info("ModelRouterEngine: classifier selected route '{}'", routeName);
 					return route.engineId;
 				}
 			}
-			classLogger.warn("ModelRouterEngine: LLM returned unknown route '{}', falling back to keyword", routeName);
+			classLogger.warn("ModelRouterEngine: classifier returned unknown route '{}', falling back to keyword", routeName);
 		} catch (Exception e) {
-			classLogger.error("ModelRouterEngine: LLM classification failed, falling back to keyword", e);
+			classLogger.error("ModelRouterEngine: classification failed, falling back to keyword", e);
 		}
 		return selectRouteByKeyword(routingText);
+	}
+
+	/** Sends route descriptions as choice criteria, without creating chat messages. */
+	private String classifyRouteWithTypeSafe(ITypeSafeEngine classifier, String routingText, Insight insight) {
+		Map<String, Object> criteria = new LinkedHashMap<>();
+		for (Route route : this.routes) {
+			criteria.put(route.name, route.description);
+		}
+		Map<String, Object> question = Map.of("type", "choice",
+				"instructions", "Choose the route that best matches the user's request.", "criteria", criteria);
+		TypeSafeModelEngineResponse response = classifier.evaluate(routingText, Map.of("route", question), insight,
+				Map.of());
+		if (response == null || response.getResponse() == null
+				|| !(response.getResponse().get("answers") instanceof Map<?, ?> answers)
+				|| !(answers.get("route") instanceof Map<?, ?> answer)
+				|| !"choice".equals(answer.get("type")) || !(answer.get("choice") instanceof String choice)
+				|| choice.isBlank()) {
+			throw new IllegalArgumentException("ModelRouterEngine: decision classifier did not return a route choice");
+		}
+		return choice;
+	}
+
+	/** Retains the existing prompt and chat transport for ordinary LLM classifiers. */
+	private String classifyRouteWithChatModel(IModelEngine classifierEngine, String routingText, Room room) {
+		StringBuilder routeList = new StringBuilder();
+		for (Route r : this.routes) {
+			routeList.append("- ").append(r.name);
+			if (r.description != null) {
+				routeList.append(": ").append(r.description);
+			} else if (!r.keywords.isEmpty()) {
+				// defensive only - llm mode validates descriptions at open
+				routeList.append(" (for questions about: ").append(String.join(", ", r.keywords)).append(")");
+			}
+			routeList.append("\n");
+		}
+
+		String classificationPrompt = "You are a routing classifier. Given the user question below, "
+				+ "reply with ONLY the single route name that best matches - no explanation, no punctuation, no quotes.\n\n"
+				+ "Available routes:\n" + routeList + "\nUser question: " + routingText + "\n\nRoute name:";
+
+		Map<String, Object> params = new HashMap<>();
+		InputMessage msg = InputMessage.builder(room).withText(classificationPrompt)
+				.withModelType(classifierEngine.getModelType()).withParamMap(params).build();
+		params.put(MESSAGE_JSON, MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg)));
+		AskModelEngineResponse response = classifierEngine.askRoom(msg, room, params);
+		return response.getStringResponse();
 	}
 
 	// -------------------------------------------------------------------------
