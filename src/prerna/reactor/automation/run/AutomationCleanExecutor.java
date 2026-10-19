@@ -29,16 +29,15 @@ package prerna.reactor.automation.run;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
@@ -46,9 +45,10 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.automation.definition.AutomationNodeType;
-import prerna.reactor.automation.definition.AutomationCleanOperation;
 import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.definition.AutomationCleanOperation;
+import prerna.reactor.automation.definition.AutomationNodeType;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.reactor.frame.FrameFactory;
 import prerna.reactor.frame.PurgeReactor;
 import prerna.reactor.imports.IImporter;
@@ -60,23 +60,29 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /** Applies existing BI cleaning reactors to an isolated, run-owned table. */
 final class AutomationCleanExecutor {
 	private static final Logger LOGGER = LogManager.getLogger(AutomationCleanExecutor.class);
-	private static final Set<AutomationCleanOperation> PYTHON_ONLY_OPERATIONS = EnumSet.of(
-			AutomationCleanOperation.FILTER_EMPTY,
-			AutomationCleanOperation.IMPUTE_NULLS,
-			AutomationCleanOperation.CHANGE_TYPE,
-			AutomationCleanOperation.DROP_COLUMN,
-			AutomationCleanOperation.RENAME_COLUMN);
-
 	private AutomationCleanExecutor() {
 	}
 
+	/**
+	 * Copies an upstream Automation frame, applies one existing BI cleaning reactor,
+	 * and registers the isolated result in the execution Insight.
+	 *
+	 * @param insight        execution Insight that owns the input and output frames
+	 * @param outputVariable output alias registered in the Insight
+	 * @param type           persisted Automation node type
+	 * @param config         immutable node configuration
+	 * @param scope          current Automation scope
+	 * @param nodeId         executing node identifier used for diagnostics
+	 * @return internal reference to the registered cleaned frame
+	 */
 	static AutomationFrameOutput.RegisteredFrame execute(Insight insight, String outputVariable,
 			AutomationNodeType type, Map<String, Object> config, Map<String, Object> scope, String nodeId) {
 		AutomationCleanOperation operation = operationType(type, config, scope, nodeId);
 		Object source = AutomationScopeResolver.resolveExactOrLiteral(config.get("source"), scope,
 				"Clean node '" + nodeId + "'");
 		if (!(source instanceof AutomationFrameOutput.RegisteredFrame input)) {
-			throw new IllegalArgumentException("Clean node '" + nodeId + "' requires a live upstream table, not JSON or a preview.");
+			throw new IllegalArgumentException(
+					"Clean node '" + nodeId + "' requires a live upstream table, not JSON or a preview.");
 		}
 		if (input.rowCount() > AutomationConstants.SAVED_RESULT_MAX_ROWS) {
 			throw new IllegalArgumentException("Clean input exceeds the supported table row limit.");
@@ -137,7 +143,10 @@ final class AutomationCleanExecutor {
 			synchronizePythonFrame(resultFrame, outputVariable);
 			resultFrame.clearCachedMetrics();
 			resultFrame.clearQueryCache();
-			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable, resultFrame);
+			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable,
+					resultFrame);
+			LOGGER.debug("Cleaned frame '{}' for Automation node '{}' in execution Insight '{}': {} rows, {} columns",
+					outputVariable, nodeId, insight.getInsightId(), output.rowCount(), output.summary().get("columnCount"));
 			completed = true;
 			return output;
 		} catch (Exception error) {
@@ -187,24 +196,14 @@ final class AutomationCleanExecutor {
 	}
 
 	static AbstractReactor reactor(AutomationCleanOperation type, DataFrameTypeEnum frameType) {
-		if (type == AutomationCleanOperation.PURGE) {
-			return new PurgeReactor();
-		}
 		boolean python = frameType == DataFrameTypeEnum.PYTHON;
-		if (PYTHON_ONLY_OPERATIONS.contains(type) && !python) {
+		if (!python) {
 			throw new IllegalArgumentException("clean." + type.getValue() + " requires a Python frame.");
 		}
-		if (!python && frameType != DataFrameTypeEnum.R) {
-			throw new IllegalArgumentException("Only Purge supports database frames. clean." + type.getValue()
-					+ " requires an R or Python frame; convert the input explicitly first.");
-		}
 		return switch (type) {
-		case TRIM -> python ? new prerna.reactor.frame.py.TrimColumnsReactor()
-				: new prerna.reactor.frame.r.TrimColumnsReactor();
-		case REPLACE -> python ? new prerna.reactor.frame.py.ReplaceColumnValueReactor()
-				: new prerna.reactor.frame.r.ReplaceColumnValueReactor();
-		case REMOVE_DUPLICATES -> python ? new prerna.reactor.frame.py.RemoveDuplicateRowsReactor()
-				: new prerna.reactor.frame.r.RemoveDuplicateRowsReactor();
+		case TRIM -> new prerna.reactor.frame.py.TrimColumnsReactor();
+		case REPLACE -> new prerna.reactor.frame.py.ReplaceColumnValueReactor();
+		case REMOVE_DUPLICATES -> new prerna.reactor.frame.py.RemoveDuplicateRowsReactor();
 		case FILTER_EMPTY -> {
 			yield new prerna.reactor.frame.py.FilterEmptyValuesReactor();
 		}
@@ -251,14 +250,9 @@ final class AutomationCleanExecutor {
 			}
 			columns(List.of(column), frame);
 			Object value = AutomationScopeResolver.resolveConfig(filter.get("value"), scope, "Purge filter value");
-			boolean equality = "==".equals(operator) || "!=".equals(operator);
-			List<?> values = value instanceof List<?> items ? items : java.util.Collections.singletonList(value);
-			if (value instanceof List<?> && (!equality || values.isEmpty() || values.size() > 100)) {
-				throw new IllegalArgumentException("Purge value lists require == or != and 1 to 100 values.");
-			}
-			if (values.stream().anyMatch(itemValue -> itemValue != null && !(itemValue instanceof String || itemValue instanceof Boolean
-					|| itemValue instanceof Number number && Double.isFinite(number.doubleValue())))) {
-				throw new IllegalArgumentException("Purge filter values must be scalars, null, or bounded lists of scalars.");
+			if (!(value instanceof String || value instanceof Boolean
+					|| value instanceof Number number && Double.isFinite(number.doubleValue()))) {
+				throw new IllegalArgumentException("Purge filter values must be non-null scalars.");
 			}
 			String inverse = switch (operator) {
 			case "==" -> "!=";
@@ -269,13 +263,7 @@ final class AutomationCleanExecutor {
 			case "<=" -> ">";
 			default -> throw new IllegalArgumentException("Invalid Purge comparator.");
 			};
-			if (value == null && !("==".equals(operator) || "!=".equals(operator))) {
-				throw new IllegalArgumentException("Purge null filters require == or !=.");
-			}
 			retainedRows.addFilter(SimpleQueryFilter.makeColToValFilter(column, inverse, value));
-			if (!values.contains(null)) {
-				retainedRows.addFilter(SimpleQueryFilter.makeColToValFilter(column, "==", null));
-			}
 		}
 		query.addExplicitFilter(retainedRows);
 		return query;
@@ -287,7 +275,8 @@ final class AutomationCleanExecutor {
 			throw new IllegalArgumentException("Replacement values must resolve to strings.");
 		}
 		if (text.contains("\"") || text.contains("\\") || text.chars().anyMatch(Character::isISOControl)) {
-			throw new IllegalArgumentException("The BI replacement routine does not safely support quotes, backslashes, or control characters.");
+			throw new IllegalArgumentException(
+					"The BI replacement routine does not safely support quotes, backslashes, or control characters.");
 		}
 		return text;
 	}
@@ -304,7 +293,8 @@ final class AutomationCleanExecutor {
 				}
 			} else if ("STRING".equals(type) && "null".equalsIgnoreCase(value)
 					&& frame.getFrameType() == DataFrameTypeEnum.PYTHON) {
-				throw new IllegalArgumentException("The BI Python replacement routine does not support safe null replacement for text columns.");
+				throw new IllegalArgumentException(
+						"The BI Python replacement routine does not support safe null replacement for text columns.");
 			}
 		}
 	}
@@ -321,13 +311,27 @@ final class AutomationCleanExecutor {
 				importer.setInsight(insight);
 				importer.insertData();
 				if (target instanceof PandasFrame pythonFrame) {
-					AutomationDatabaseQueryExecutor.normalizeDateColumns(pythonFrame);
+					normalizeDateColumns(pythonFrame);
 				}
 			}
 			return target;
 		} catch (Exception error) {
 			close(insight, alias, target);
 			throw error;
+		}
+	}
+
+	/** Restores DATE and TIMESTAMP dtypes only on the isolated Clean working frame. */
+	private static void normalizeDateColumns(PandasFrame frame) {
+		String tableName = frame.getName();
+		String data = frame.getWrapperName() + ".cache['data']";
+		for (String column : frame.getColumnHeaders()) {
+			String metadataType = frame.getMetaData().getHeaderTypeAsString(tableName + "__" + column);
+			SemossDataType dataType = SemossDataType.convertStringToDataType(metadataType);
+			if (dataType == SemossDataType.DATE || dataType == SemossDataType.TIMESTAMP) {
+				String dataColumn = data + "[" + AutomationRuntimeUtils.GSON.toJson(column) + "]";
+				frame.runScript(dataColumn + " = pd.to_datetime(" + dataColumn + ")");
+			}
 		}
 	}
 

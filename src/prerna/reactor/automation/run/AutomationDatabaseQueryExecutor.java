@@ -37,15 +37,12 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.algorithm.api.SemossDataType;
-import prerna.ds.py.PandasFrame;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.om.Insight;
 import prerna.query.interpreters.sql.ParameterizedSqlInterpreter.CompiledQuery;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.rdf.engine.wrappers.RawPreparedRDBMSSelectWrapper;
 import prerna.reactor.automation.AutomationConstants;
-import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.reactor.frame.FrameFactory;
 import prerna.reactor.imports.IImporter;
 import prerna.reactor.imports.ImportFactory;
@@ -75,8 +72,7 @@ final class AutomationDatabaseQueryExecutor {
 				scope, "Database query node '" + nodeId + "' engineId");
 		Object query = AutomationScopeResolver.resolveExactOrLiteral(config.get("query"), scope,
 				"Database query node '" + nodeId + "' query");
-		Object limit = AutomationScopeResolver.resolveExactOrLiteral(config.get(AutomationConstants.CONFIG_LIMIT),
-				scope,
+		Object limit = AutomationScopeResolver.resolveExactOrLiteral(config.get(AutomationConstants.CONFIG_LIMIT), scope,
 				"Database query node '" + nodeId + "' limit");
 		Object parameters = AutomationScopeResolver.resolveConfig(
 				config.getOrDefault(AutomationConstants.CONFIG_QUERY_PARAMETERS, List.of()), scope,
@@ -91,8 +87,7 @@ final class AutomationDatabaseQueryExecutor {
 	/**
 	 * Executes one typed request and registers the resulting frame.
 	 *
-	 * @param insight        run Insight that owns database access and frame
-	 *                       lifetime
+	 * @param insight        run Insight that owns database access and frame lifetime
 	 * @param pixelExecutor  authenticated Pixel boundary for the run Insight
 	 * @param request        typed request resolved from immutable node config
 	 * @param outputVariable node output alias and Python variable name
@@ -113,12 +108,8 @@ final class AutomationDatabaseQueryExecutor {
 			}
 			importer.setInsight(insight);
 			importer.insertData();
-			if (!(frame instanceof PandasFrame pandasFrame)) {
-				throw new IllegalStateException("Automation database query did not create a Pandas frame.");
-			}
-			normalizeDateColumns(pandasFrame);
-			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable,
-					frame);
+			AutomationFrameOutput.RegisteredFrame output =
+					AutomationFrameOutput.register(insight, outputVariable, frame);
 			registered = true;
 			classLogger.debug(
 					"Loaded database frame '{}' for Automation run '{}', node '{}', execution Insight '{}': "
@@ -133,27 +124,6 @@ final class AutomationDatabaseQueryExecutor {
 			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
 		} finally {
 			closeTask(task, runId, nodeId);
-		}
-	}
-
-	static List<String> dateNormalizationScripts(PandasFrame frame) {
-		String tableName = frame.getName();
-		String data = frame.getWrapperName() + ".cache['data']";
-		List<String> scripts = new ArrayList<>();
-		for (String column : frame.getColumnHeaders()) {
-			String metadataType = frame.getMetaData().getHeaderTypeAsString(tableName + "__" + column);
-			SemossDataType dataType = SemossDataType.convertStringToDataType(metadataType);
-			if (dataType == SemossDataType.DATE || dataType == SemossDataType.TIMESTAMP) {
-				String dataColumn = data + "[" + AutomationRuntimeUtils.GSON.toJson(column) + "]";
-				scripts.add(dataColumn + " = pd.to_datetime(" + dataColumn + ")");
-			}
-		}
-		return scripts;
-	}
-
-	static void normalizeDateColumns(PandasFrame frame) {
-		for (String script : dateNormalizationScripts(frame)) {
-			frame.runScript(script);
 		}
 	}
 
@@ -176,8 +146,8 @@ final class AutomationDatabaseQueryExecutor {
 				throw new IllegalStateException("Parameterized database query requires a relational database.");
 			}
 			try {
-				ParameterizedQuery data = new ParameterizedQuery(request.query(), request.parameters(),
-						request.limit());
+				ParameterizedQuery data =
+						new ParameterizedQuery(request.query(), request.parameters(), request.limit());
 				ParameterizedQuery count = new ParameterizedQuery(
 						"SELECT COUNT(*) FROM (" + request.query() + ") AUTOMATION_BOUND_COUNT",
 						request.parameters(), 1);

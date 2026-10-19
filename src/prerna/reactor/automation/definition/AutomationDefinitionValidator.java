@@ -356,16 +356,10 @@ public final class AutomationDefinitionValidator {
 					throw new IllegalArgumentException("Clean node '" + nodeId + "' has an invalid row filter.");
 				}
 				Object value = filter.get("value");
-				boolean equality = "==".equals(filter.get("operator")) || "!=".equals(filter.get("operator"));
-				if (value instanceof List<?> values) {
-					if (!equality || values.isEmpty() || values.size() > 100 || values.stream().anyMatch(itemValue ->
-							itemValue != null && !(itemValue instanceof String || itemValue instanceof Boolean
-									|| itemValue instanceof Number number && Double.isFinite(number.doubleValue())))) {
-						throw new IllegalArgumentException("Clean node '" + nodeId + "' value lists require == or != and 1 to 100 scalar values.");
-					}
-				} else if (value == null ? !equality : !(value instanceof String || value instanceof Boolean
+				if (!(value instanceof String || value instanceof Boolean
 						|| value instanceof Number number && Double.isFinite(number.doubleValue()))) {
-					throw new IllegalArgumentException("Clean node '" + nodeId + "' has an invalid filter value.");
+					throw new IllegalArgumentException(
+							"Clean node '" + nodeId + "' filter values must be non-null scalars.");
 				}
 			}
 		} else if (type == AutomationCleanOperation.IMPUTE_NULLS

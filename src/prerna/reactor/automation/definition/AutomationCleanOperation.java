@@ -45,10 +45,20 @@ public enum AutomationCleanOperation {
 		this.value = value;
 	}
 
+	/**
+	 * @return stable operation value persisted in the node configuration
+	 */
 	public String getValue() {
 		return value;
 	}
 
+	/**
+	 * Resolves a persisted operation value.
+	 *
+	 * @param value persisted operation value
+	 * @return matching Clean operation
+	 * @throws IllegalArgumentException when the value is unsupported
+	 */
 	public static AutomationCleanOperation fromValue(String value) {
 		for (AutomationCleanOperation operation : values()) {
 			if (operation.value.equals(value)) {

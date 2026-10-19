@@ -168,17 +168,18 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
-	void validatesPurgeMembershipListsBeforeSaving() {
-		for (String comparator : List.of("==", "!=")) {
-			assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
-					workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "purge", "filters", List.of(Map.of("column", "ID", "operator", comparator, "value", java.util.Arrays.asList(1, 2, null))))))));
-		}
-		for (Object value : List.of(List.of(), List.of(List.of(1)), java.util.Collections.nCopies(101, 1))) {
+	void rejectsPurgeListsAndNullsBeforeSaving() {
+		for (Object value : List.of(List.of(1, 2), Map.of("invalid", true))) {
 			assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
 					workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "purge", "filters", List.of(Map.of("column", "ID", "operator", "==", "value", value)))))));
 		}
-		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
-				workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "purge", "filters", List.of(Map.of("column", "ID", "operator", ">", "value", List.of(1, 2))))))));
+		Map<String, Object> nullFilter = new LinkedHashMap<>();
+		nullFilter.put("column", "ID");
+		nullFilter.put("operator", "==");
+		nullFilter.put("value", null);
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS,
+						Map.of("source", "${table}", "operation", "purge", "filters", List.of(nullFilter))))));
 	}
 
 	private static Map<String, Object> databaseQueryConfig() {
