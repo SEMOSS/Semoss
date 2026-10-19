@@ -204,6 +204,13 @@ public class AutomationDefinitionValidatorUnitTests {
 	void rejectsUnsafeOrIncompleteTransformSettings() {
 		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
 				definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM,
+						Map.of("source", "${table}", "operation", "dropColumn", "columns", "${column_names}")))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS,
+						Map.of("source", "${table}", "operation", "purge", "filters",
+								List.of(Map.of("column", "bad column", "operator", "==", "value", "x")))))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM,
 						Map.of("source", "${table}", "operation", "addColumn", "newColumn", "bad name", "dataType", "STRING")))));
 		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
 				definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM,

@@ -70,10 +70,23 @@ public enum AutomationFrameOperation {
 		return value;
 	}
 
+	/**
+	 * Reports which Automation node category owns this operation.
+	 *
+	 * @return {@code true} for Transform operations; {@code false} for Clean
+	 *         operations
+	 */
 	public boolean isTransform() {
 		return transform;
 	}
 
+	/**
+	 * Resolves the stable operation value stored in an Automation definition.
+	 *
+	 * @param value persisted operation value
+	 * @return matching frame operation
+	 * @throws IllegalArgumentException when the value is unsupported
+	 */
 	public static AutomationFrameOperation fromValue(String value) {
 		for (AutomationFrameOperation operation : values()) {
 			if (operation.value.equals(value)) {

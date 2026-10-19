@@ -27,9 +27,24 @@
  *******************************************************************************/
 package prerna.reactor.automation.run;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
@@ -51,6 +66,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.definition.AutomationFrameOperation;
 import prerna.reactor.automation.definition.AutomationNodeType;
 import prerna.reactor.frame.FrameFactory;
@@ -297,7 +313,16 @@ class AutomationCleanExecutorUnitTests {
 		exerciseCopy(true, false);
 	}
 
+	@Test
+	void rejectsAndClosesAnOversizedSingleFrameResultBeforeRegistration() throws Exception {
+		exerciseCopy(false, false, AutomationConstants.SAVED_RESULT_MAX_ROWS + 1);
+	}
+
 	private void exerciseCopy(boolean fail, boolean replaceFrame) throws Exception {
+		exerciseCopy(fail, replaceFrame, 2L);
+	}
+
+	private void exerciseCopy(boolean fail, boolean replaceFrame, long resultRows) throws Exception {
 		Insight insight = new Insight();
 		ITableDataFrame source = mock(ITableDataFrame.class);
 		OwlTemporalEngineMeta metadata = mock(OwlTemporalEngineMeta.class);
@@ -327,7 +352,7 @@ class AutomationCleanExecutorUnitTests {
 		when(returnedFrame.size("cleaned")).thenAnswer(invocation -> {
 			if (!bindingPresent.get())
 				throw new IllegalStateException("NameError: cleanedw is not defined");
-			return 2L;
+			return resultRows;
 		});
 		when(returnedFrame.getQsHeaders()).thenReturn(new String[] { "cleaned__NAME" });
 		when(returnedFrame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
@@ -348,7 +373,8 @@ class AutomationCleanExecutorUnitTests {
 			imports.when(() -> ImportFactory.getImporter(copied, query, rows)).thenReturn(importer);
 			Map<String, Object> config = Map.of(
 					"source", "${input}", "operation", "trim", "columns", List.of("NAME"));
-			if (fail) {
+			boolean oversized = resultRows > AutomationConstants.SAVED_RESULT_MAX_ROWS;
+			if (fail || oversized) {
 				assertThrows(IllegalStateException.class, () -> AutomationCleanExecutor.execute(insight, "cleaned",
 						AutomationNodeType.CLEAN_PROCESS, config, Map.of("input", input), "clean"));
 				verify(copied).close();
@@ -360,7 +386,7 @@ class AutomationCleanExecutorUnitTests {
 				assertSame(returnedFrame, insight.getVarStore().get("cleaned").getValue());
 				verify(copied, never()).close();
 				assertTrue(bindingPresent.get());
-				assertEquals(2L, output.frame().size("cleaned"));
+				assertEquals(resultRows, output.frame().size("cleaned"));
 			}
 			assertFalse(query.isDistinct());
 			verify(importer).setInsight(insight);

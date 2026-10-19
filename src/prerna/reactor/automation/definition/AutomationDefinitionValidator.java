@@ -356,7 +356,8 @@ public final class AutomationDefinitionValidator {
 			Map<String, Object> config) {
 		requireConfigString(nodeId, config, "source");
 		if (!isScopePlaceholder(((String) config.get("source")).trim())) {
-			throw new IllegalArgumentException("Clean node '" + nodeId + "' source must be an exact upstream table reference.");
+			throw new IllegalArgumentException("Automation frame node '" + nodeId
+					+ "' source must be an exact upstream table reference.");
 		}
 		if (type == AutomationFrameOperation.PURGE) {
 			if (!(config.get("filters") instanceof List<?> filters) || filters.isEmpty() || filters.size() > 100) {
@@ -364,9 +365,9 @@ public final class AutomationDefinitionValidator {
 			}
 			for (Object item : filters) {
 				if (!(item instanceof Map<?, ?> filter) || !(filter.get("column") instanceof String column)
-						|| column.isBlank() || !List.of("==", "!=", ">", ">=", "<", "<=").contains(filter.get("operator"))
-						|| !filter.containsKey("value") || filter.get("value") instanceof Map<?, ?>
-						) {
+						|| !column.matches("[A-Za-z_][A-Za-z0-9_]*")
+						|| !List.of("==", "!=", ">", ">=", "<", "<=").contains(filter.get("operator"))
+						|| !filter.containsKey("value") || filter.get("value") instanceof Map<?, ?>) {
 					throw new IllegalArgumentException("Clean node '" + nodeId + "' has an invalid row filter.");
 				}
 				Object value = filter.get("value");
@@ -485,7 +486,6 @@ public final class AutomationDefinitionValidator {
 	private static void validateTransformColumns(String nodeId, Map<String, Object> config, String key,
 			boolean required) {
 		Object value = config.get(key);
-		if (value instanceof String placeholder && isScopePlaceholder(placeholder)) return;
 		if (!(value instanceof List<?> columns) || required && columns.isEmpty() || columns.size() > 1000) {
 			throw new IllegalArgumentException("Transform node '" + nodeId + "' config." + key
 					+ " must be " + (required ? "a non-empty" : "an") + " array of valid column names.");

@@ -45,9 +45,9 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.definition.AutomationFrameOperation;
 import prerna.reactor.automation.definition.AutomationNodeType;
-import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.reactor.frame.FrameFactory;
 import prerna.reactor.frame.PurgeReactor;
@@ -60,16 +60,15 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** Applies existing BI cleaning reactors to an isolated, run-owned table. */
+/** Applies supported BI frame operations to an isolated, run-owned table. */
 final class AutomationCleanExecutor {
-	private static final Logger LOGGER = LogManager.getLogger(AutomationCleanExecutor.class);
+	private static final Logger classLogger = LogManager.getLogger(AutomationCleanExecutor.class);
 
 	private AutomationCleanExecutor() {
 	}
 
 	/**
-	 * Copies an upstream Automation frame, applies one existing BI cleaning
-	 * reactor,
+	 * Copies an upstream Automation frame, applies one existing BI frame reactor,
 	 * and registers the isolated result in the execution Insight.
 	 *
 	 * @param insight        execution Insight that owns the input and output frames
@@ -78,19 +77,19 @@ final class AutomationCleanExecutor {
 	 * @param config         immutable node configuration
 	 * @param scope          current Automation scope
 	 * @param nodeId         executing node identifier used for diagnostics
-	 * @return internal reference to the registered cleaned frame
+	 * @return internal reference to the registered result frame
 	 */
 	static AutomationFrameOutput.RegisteredFrame execute(Insight insight, String outputVariable,
 			AutomationNodeType type, Map<String, Object> config, Map<String, Object> scope, String nodeId) {
 		AutomationFrameOperation operation = operationType(type, config, scope, nodeId);
 		Object source = AutomationScopeResolver.resolveExactOrLiteral(config.get("source"), scope,
-				"Clean node '" + nodeId + "'");
+				"Automation frame node '" + nodeId + "'");
 		if (!(source instanceof AutomationFrameOutput.RegisteredFrame input)) {
 			throw new IllegalArgumentException(
-					"Clean node '" + nodeId + "' requires a live upstream table, not JSON or a preview.");
+					"Automation frame node '" + nodeId + "' requires a live upstream table, not JSON or a preview.");
 		}
 		if (input.rowCount() > AutomationConstants.SAVED_RESULT_MAX_ROWS) {
-			throw new IllegalArgumentException("Clean input exceeds the supported table row limit.");
+			throw new IllegalArgumentException("Frame input exceeds the supported table row limit.");
 		}
 		DataFrameTypeEnum frameType = input.frame().getFrameType();
 		if (frameType == DataFrameTypeEnum.R
@@ -179,8 +178,9 @@ final class AutomationCleanExecutor {
 					addString(nouns, ReactorKeysEnum.MAINTAIN_COLUMNS.getKey(), column);
 				}
 			}
-			if (!function.isEmpty())
+			if (!function.isEmpty()) {
 				addString(nouns, "function", function);
+			}
 		} else if (operation == AutomationFrameOperation.LOWER_CASE
 				|| operation == AutomationFrameOperation.PROPER_CASE
 				|| operation == AutomationFrameOperation.UPPER_CASE) {
@@ -210,8 +210,9 @@ final class AutomationCleanExecutor {
 				throw new IllegalArgumentException("Significant digits must be between 0 and 20.");
 			}
 			Object by100 = config.getOrDefault("by100", Boolean.FALSE);
-			if (!(by100 instanceof Boolean))
+			if (!(by100 instanceof Boolean)) {
 				throw new IllegalArgumentException("by100 must be a boolean.");
+			}
 			addString(nouns, ReactorKeysEnum.COLUMN.getKey(), column);
 			nouns.makeGenRowStruct("sigDigits").add(new NounMetadata(number.intValue(), PixelDataType.CONST_INT));
 			nouns.makeGenRowStruct("by100").add(new NounMetadata(by100, PixelDataType.BOOLEAN));
@@ -223,8 +224,9 @@ final class AutomationCleanExecutor {
 			List<String> columns = columns(AutomationScopeResolver.resolveExactOrLiteral(config.get("columns"), scope,
 					"Clean columns"), input.frame());
 			if (operation == AutomationFrameOperation.REPLACE) {
-				for (String column : columns)
+				for (String column : columns) {
 					addString(nouns, ReactorKeysEnum.COLUMN.getKey(), column);
+				}
 			} else {
 				addColumns(nouns, columns);
 			}
@@ -247,12 +249,14 @@ final class AutomationCleanExecutor {
 				throw new IllegalStateException("Clean node '" + nodeId + "' did not return a table.");
 			}
 			resultFrame = frame;
+			validateOutputSize(resultFrame, outputVariable);
 			synchronizePythonFrame(resultFrame, outputVariable);
 			resultFrame.clearCachedMetrics();
 			resultFrame.clearQueryCache();
 			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable,
 					resultFrame);
-			LOGGER.debug("Cleaned frame '{}' for Automation node '{}' in execution Insight '{}': {} rows, {} columns",
+			classLogger.debug(
+					"Processed frame '{}' for Automation node '{}' in execution Insight '{}': {} rows, {} columns",
 					outputVariable, nodeId, insight.getInsightId(), output.rowCount(),
 					output.summary().get("columnCount"));
 			completed = true;
@@ -261,10 +265,10 @@ final class AutomationCleanExecutor {
 			if (resultFrame != null && resultFrame != copy) {
 				close(insight, outputVariable, resultFrame);
 			}
-			if (copy != null && !sharesPythonBindings(copy, resultFrame)) {
+			if (copy != null && (copy == resultFrame || !sharesPythonBindings(copy, resultFrame))) {
 				close(insight, outputVariable, copy);
 			}
-			throw new IllegalStateException("Unable to clean table for node '" + nodeId + "': " + error.getMessage(),
+			throw new IllegalStateException("Unable to process table for node '" + nodeId + "': " + error.getMessage(),
 					error);
 		} finally {
 			if (completed && copy != null && copy != resultFrame && !sharesPythonBindings(copy, resultFrame)) {
@@ -307,8 +311,9 @@ final class AutomationCleanExecutor {
 				.get(0);
 		if (operation == AutomationFrameOperation.JOIN) {
 			String joinType = optionalString(config.get("joinType"), "joinType");
-			if (joinType.isEmpty())
+			if (joinType.isEmpty()) {
 				joinType = "inner.join";
+			}
 			return executeStandardJoin(insight, outputVariable, left.frame(), right.frame(), leftColumn, rightColumn,
 					joinType, nodeId);
 		}
@@ -352,10 +357,12 @@ final class AutomationCleanExecutor {
 			completed = true;
 			return output;
 		} catch (Exception error) {
-			if (resultFrame != null && resultFrame != working)
+			if (resultFrame != null && resultFrame != working) {
 				close(insight, outputVariable, resultFrame);
-			if (working != null && !sharesPythonBindings(working, resultFrame))
+			}
+			if (working != null && !sharesPythonBindings(working, resultFrame)) {
 				close(insight, outputVariable, working);
+			}
 			throw new IllegalStateException(
 					"Unable to join tables for node '" + nodeId + "': " + error.getMessage(), error);
 		} finally {
@@ -375,16 +382,17 @@ final class AutomationCleanExecutor {
 
 	private static void validateOutputSize(ITableDataFrame frame, String outputVariable) {
 		if (frame.size(outputVariable) > AutomationConstants.SAVED_RESULT_MAX_ROWS) {
-			throw new IllegalArgumentException("Transform output exceeds the supported table row limit.");
+			throw new IllegalArgumentException("Frame output exceeds the supported table row limit.");
 		}
 	}
 
 	private static String resolveRequiredString(Map<String, Object> config, String key, Map<String, Object> scope,
 			String nodeId) {
 		Object resolved = AutomationScopeResolver.resolveExactOrLiteral(config.get(key), scope,
-				"Clean node '" + nodeId + "' " + key);
+				"Automation frame node '" + nodeId + "' " + key);
 		if (!(resolved instanceof String value) || value.isBlank()) {
-			throw new IllegalArgumentException("Clean node '" + nodeId + "' requires a nonblank " + key + ".");
+			throw new IllegalArgumentException(
+					"Automation frame node '" + nodeId + "' requires a nonblank " + key + ".");
 		}
 		return value.trim();
 	}
@@ -432,8 +440,9 @@ final class AutomationCleanExecutor {
 	}
 
 	private static String optionalString(Object configured, String key) {
-		if (configured == null)
+		if (configured == null) {
 			return "";
+		}
 		if (!(configured instanceof String value)) {
 			throw new IllegalArgumentException(key + " must be a string.");
 		}
@@ -441,13 +450,15 @@ final class AutomationCleanExecutor {
 	}
 
 	private static List<String> optionalColumns(Object configured, ITableDataFrame frame) {
-		if (configured == null)
+		if (configured == null) {
 			return List.of();
+		}
 		if (!(configured instanceof List<?> selected) || selected.size() > 1000) {
 			throw new IllegalArgumentException("maintainColumns must be a list of at most 1000 column names.");
 		}
-		if (selected.isEmpty())
+		if (selected.isEmpty()) {
 			return List.of();
+		}
 		return columns(selected, frame);
 	}
 
@@ -658,7 +669,7 @@ final class AutomationCleanExecutor {
 		try {
 			frame.close();
 		} catch (RuntimeException error) {
-			LOGGER.warn("Unable to close failed or superseded Clean frame '{}'", alias, error);
+			classLogger.warn("Unable to close failed or superseded Automation frame '{}'", alias, error);
 		} finally {
 			insight.getVarStore().getAllCreatedFrames().remove(frame);
 		}
