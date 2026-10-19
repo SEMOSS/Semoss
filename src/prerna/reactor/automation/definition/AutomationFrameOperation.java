@@ -27,34 +27,54 @@
  *******************************************************************************/
 package prerna.reactor.automation.definition;
 
-/** Operations selectable on the single Automation Clean node. */
-public enum AutomationCleanOperation {
-	PURGE("purge"),
-	TRIM("trim"),
-	REPLACE("replace"),
-	REMOVE_DUPLICATES("removeDuplicates"),
-	FILTER_EMPTY("filterEmpty"),
-	IMPUTE_NULLS("imputeNulls"),
-	CHANGE_TYPE("changeType"),
-	DROP_COLUMN("dropColumn"),
-	RENAME_COLUMN("renameColumn");
+/** BI frame operations exposed through Automation's Clean and Transform nodes. */
+public enum AutomationFrameOperation {
+	PURGE("purge", false),
+	TRIM("trim", false),
+	REPLACE("replace", false),
+	REMOVE_DUPLICATES("removeDuplicates", false),
+	FILTER_EMPTY("filterEmpty", false),
+	IMPUTE_NULLS("imputeNulls", false),
+	CHANGE_TYPE("changeType", true),
+	DROP_COLUMN("dropColumn", true),
+	RENAME_COLUMN("renameColumn", true),
+	ADD_COLUMN("addColumn", true),
+	DUPLICATE_COLUMN("duplicateColumn", true),
+	CONCATENATE("concatenate", true),
+	PIVOT("pivot", true),
+	LOWER_CASE("lowerCase", true),
+	PROPER_CASE("properCase", true),
+	SPLIT("split", true),
+	SPLIT_UNPIVOT("splitUnpivot", true),
+	TIMESTAMP_DATA("timestampData", true),
+	TO_PERCENT("toPercent", true),
+	TRANSPOSE("transpose", true),
+	UNPIVOT("unpivot", true),
+	UPPER_CASE("upperCase", true),
+JOIN("join", true);
 
 	private final String value;
+	private final boolean transform;
 
-	AutomationCleanOperation(String value) {
+	AutomationFrameOperation(String value, boolean transform) {
 		this.value = value;
+		this.transform = transform;
 	}
 
 	public String getValue() {
 		return value;
 	}
 
-	public static AutomationCleanOperation fromValue(String value) {
-		for (AutomationCleanOperation operation : values()) {
+	public boolean isTransform() {
+		return transform;
+	}
+
+	public static AutomationFrameOperation fromValue(String value) {
+		for (AutomationFrameOperation operation : values()) {
 			if (operation.value.equals(value)) {
 				return operation;
 			}
 		}
-		throw new IllegalArgumentException("Unsupported Automation Clean operation: " + value);
+		throw new IllegalArgumentException("Unsupported Automation frame operation: " + value);
 	}
 }

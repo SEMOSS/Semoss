@@ -72,6 +72,7 @@ public enum AutomationNodeType {
 	STORAGE_DELETE(AutomationConstants.NODE_STORAGE_DELETE, Category.STORAGE, IEngine.CATALOG_TYPE.STORAGE,
 			Permission.EDIT, true, true),
 	DATA_EXTRACT(AutomationConstants.NODE_DATA_EXTRACT, Category.DATA, null, Permission.NONE, true, false),
+	DATA_TRANSFORM(AutomationConstants.NODE_DATA_TRANSFORM, Category.DATA, null, Permission.NONE, true, false),
 	CLEAN_PROCESS(AutomationConstants.NODE_CLEAN_PROCESS, Category.CLEAN, null, Permission.NONE, true, false),
 	VECTOR_SEARCH(AutomationConstants.NODE_VECTOR_SEARCH, Category.VECTOR, IEngine.CATALOG_TYPE.VECTOR, Permission.VIEW,
 			true, true),

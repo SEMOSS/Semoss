@@ -29,10 +29,8 @@ package prerna.reactor.automation.run;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,33 +44,30 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.automation.definition.AutomationFrameOperation;
 import prerna.reactor.automation.definition.AutomationNodeType;
-import prerna.reactor.automation.definition.AutomationCleanOperation;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.frame.FrameFactory;
 import prerna.reactor.frame.PurgeReactor;
+import prerna.reactor.imports.MergeReactor;
 import prerna.reactor.imports.IImporter;
 import prerna.reactor.imports.ImportFactory;
+import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /** Applies existing BI cleaning reactors to an isolated, run-owned table. */
 final class AutomationCleanExecutor {
 	private static final Logger LOGGER = LogManager.getLogger(AutomationCleanExecutor.class);
-	private static final Set<AutomationCleanOperation> PYTHON_ONLY_OPERATIONS = EnumSet.of(
-			AutomationCleanOperation.FILTER_EMPTY,
-			AutomationCleanOperation.IMPUTE_NULLS,
-			AutomationCleanOperation.CHANGE_TYPE,
-			AutomationCleanOperation.DROP_COLUMN,
-			AutomationCleanOperation.RENAME_COLUMN);
 
 	private AutomationCleanExecutor() {
 	}
 
 	static AutomationFrameOutput.RegisteredFrame execute(Insight insight, String outputVariable,
 			AutomationNodeType type, Map<String, Object> config, Map<String, Object> scope, String nodeId) {
-		AutomationCleanOperation operation = operationType(type, config, scope, nodeId);
+		AutomationFrameOperation operation = operationType(type, config, scope, nodeId);
 		Object source = AutomationScopeResolver.resolveExactOrLiteral(config.get("source"), scope,
 				"Clean node '" + nodeId + "'");
 		if (!(source instanceof AutomationFrameOutput.RegisteredFrame input)) {
@@ -81,15 +76,24 @@ final class AutomationCleanExecutor {
 		if (input.rowCount() > AutomationConstants.SAVED_RESULT_MAX_ROWS) {
 			throw new IllegalArgumentException("Clean input exceeds the supported table row limit.");
 		}
+		DataFrameTypeEnum frameType = input.frame().getFrameType();
+		if (frameType == DataFrameTypeEnum.R
+				|| operation != AutomationFrameOperation.PURGE && operation != AutomationFrameOperation.JOIN
+						&& frameType != DataFrameTypeEnum.PYTHON) {
+			throw new IllegalArgumentException("Automation Clean and Transform operations require a Python frame.");
+		}
+		if (operation == AutomationFrameOperation.JOIN) {
+			return executeJoin(insight, outputVariable, operation, input, config, scope, nodeId);
+		}
 		AbstractReactor reactor = reactor(operation, input.frame().getFrameType());
-		NounStore nouns = new NounStore("clean." + operation.getValue());
+		NounStore nouns = new NounStore(type.getType());
 		reactor.setInsight(insight);
 		reactor.setNounStore(nouns);
 		reactor.In();
-		if (operation == AutomationCleanOperation.PURGE) {
+		if (operation == AutomationFrameOperation.PURGE) {
 			SelectQueryStruct filters = purgeFilters(config.get("filters"), input.frame(), scope);
 			reactor.getCurRow().add(new NounMetadata(filters, PixelDataType.QUERY_STRUCT));
-		} else if (operation == AutomationCleanOperation.CHANGE_TYPE) {
+		} else if (operation == AutomationFrameOperation.CHANGE_TYPE) {
 			String column = columns(List.of(resolveRequiredString(config, "column", scope, nodeId)), input.frame()).get(0);
 			String dataType = resolveRequiredString(config, "dataType", scope, nodeId);
 			if (!List.of("STRING", "FACTOR", "DOUBLE", "DATE").contains(dataType)) {
@@ -97,7 +101,7 @@ final class AutomationCleanExecutor {
 			}
 			nouns.makeGenRowStruct("column").add(new NounMetadata(column, PixelDataType.CONST_STRING));
 			nouns.makeGenRowStruct("dataType").add(new NounMetadata(dataType, PixelDataType.CONST_STRING));
-		} else if (operation == AutomationCleanOperation.RENAME_COLUMN) {
+		} else if (operation == AutomationFrameOperation.RENAME_COLUMN) {
 			String column = columns(List.of(resolveRequiredString(config, "column", scope, nodeId)), input.frame()).get(0);
 			String newColumn = resolveRequiredString(config, "newColumn", scope, nodeId);
 			if (!newColumn.matches("[A-Za-z_][A-Za-z0-9_]*")) {
@@ -108,14 +112,103 @@ final class AutomationCleanExecutor {
 			}
 			nouns.makeGenRowStruct("column").add(new NounMetadata(column, PixelDataType.CONST_STRING));
 			nouns.makeGenRowStruct("newCol").add(new NounMetadata(newColumn, PixelDataType.CONST_STRING));
-		} else if (operation != AutomationCleanOperation.REMOVE_DUPLICATES) {
+		} else if (operation == AutomationFrameOperation.ADD_COLUMN) {
+			String newColumn = newColumn(config, scope, nodeId, input.frame());
+			String dataType = resolveRequiredString(config, "dataType", scope, nodeId);
+			if (!List.of("STRING", "FACTOR", "DOUBLE", "DATE").contains(dataType)) {
+				throw new IllegalArgumentException("Unsupported new column type: " + dataType);
+			}
+			addString(nouns, ReactorKeysEnum.NEW_COLUMN.getKey(), newColumn);
+			addString(nouns, ReactorKeysEnum.DATA_TYPE.getKey(), dataType);
+		} else if (operation == AutomationFrameOperation.DUPLICATE_COLUMN) {
+			String column = columns(List.of(resolveRequiredString(config, "column", scope, nodeId)), input.frame())
+					.get(0);
+			String newColumn = newColumn(config, scope, nodeId, input.frame());
+			addString(nouns, ReactorKeysEnum.COLUMN.getKey(), column);
+			addString(nouns, ReactorKeysEnum.NEW_COLUMN.getKey(), newColumn);
+		} else if (operation == AutomationFrameOperation.CONCATENATE) {
+			List<String> selected = columns(config.get("columns"), input.frame());
+			String newColumn = newColumn(config, scope, nodeId, input.frame());
+			String delimiter = safeScriptLiteral(config, "delimiter", scope, nodeId, " ");
+			addString(nouns, ReactorKeysEnum.NEW_COLUMN.getKey(), newColumn);
+			addString(nouns, ReactorKeysEnum.DELIMITER.getKey(), delimiter);
+			if (input.frame().getFrameType() == DataFrameTypeEnum.R) {
+				for (String column : selected) {
+					nouns.makeGenRowStruct(ReactorKeysEnum.VALUES.getKey())
+							.add(new NounMetadata(column, PixelDataType.COLUMN));
+				}
+			} else {
+				addColumns(nouns, selected);
+			}
+		} else if (operation == AutomationFrameOperation.PIVOT) {
+			String pivotColumn = columns(List.of(resolveRequiredString(config, "pivotColumn", scope, nodeId)),
+					input.frame()).get(0);
+			String valueColumn = columns(List.of(resolveRequiredString(config, "valueColumn", scope, nodeId)),
+					input.frame()).get(0);
+			if (pivotColumn.equals(valueColumn)) {
+				throw new IllegalArgumentException("Pivot and value columns must be different.");
+			}
+			List<String> maintained = optionalColumns(config.get("maintainColumns"), input.frame());
+			String function = optionalString(config.get("aggregateFunction"), "aggregateFunction");
+			if (!List.of("", "sum", "mean", "median").contains(function.toLowerCase(java.util.Locale.ROOT))) {
+				throw new IllegalArgumentException("Choose a supported pivot aggregate.");
+			}
+			String naReplace = safeOptionalScriptLiteral(config.get("naReplace"), scope, nodeId);
+			addString(nouns, "pivotCol", pivotColumn);
+			addString(nouns, "valueCol", valueColumn);
+			if (!maintained.isEmpty()) {
+				for (String column : maintained) {
+					addString(nouns, ReactorKeysEnum.MAINTAIN_COLUMNS.getKey(), column);
+				}
+			}
+			if (!function.isEmpty()) addString(nouns, "function", function);
+			if (naReplace != null) addString(nouns, "naReplace", naReplace);
+		} else if (operation == AutomationFrameOperation.LOWER_CASE
+				|| operation == AutomationFrameOperation.PROPER_CASE
+				|| operation == AutomationFrameOperation.UPPER_CASE) {
+			addColumns(nouns, stringColumns(config.get("columns"), input.frame()));
+		} else if (operation == AutomationFrameOperation.SPLIT) {
+			addColumns(nouns, columns(config.get("columns"), input.frame()));
+			addString(nouns, ReactorKeysEnum.DELIMITER.getKey(), safeScriptLiteral(config, "delimiter", scope, nodeId));
+			addString(nouns, "search", "Regex");
+		} else if (operation == AutomationFrameOperation.SPLIT_UNPIVOT) {
+			addColumns(nouns, columns(config.get("columns"), input.frame()));
+			addString(nouns, ReactorKeysEnum.DELIMITER.getKey(), safeScriptLiteral(config, "delimiter", scope, nodeId));
+		} else if (operation == AutomationFrameOperation.TIMESTAMP_DATA) {
+			String newColumn = newColumn(config, scope, nodeId, input.frame());
+			Object includeTime = config.getOrDefault("includeTime", Boolean.FALSE);
+			if (!(includeTime instanceof Boolean)) {
+				throw new IllegalArgumentException("includeTime must be a boolean.");
+			}
+			addString(nouns, ReactorKeysEnum.NEW_COLUMN.getKey(), newColumn);
+			addString(nouns, "time", includeTime.toString());
+		} else if (operation == AutomationFrameOperation.TO_PERCENT) {
+			String column = columns(List.of(resolveRequiredString(config, "column", scope, nodeId)), input.frame())
+					.get(0);
+			validateNumericColumn(input.frame(), column);
+			String newColumn = newColumn(config, scope, nodeId, input.frame());
+			Object significantDigits = config.get("sigDigits");
+			if (!(significantDigits instanceof Number number) || number.intValue() < 0 || number.intValue() > 20) {
+				throw new IllegalArgumentException("Significant digits must be between 0 and 20.");
+			}
+			Object by100 = config.getOrDefault("by100", Boolean.FALSE);
+			if (!(by100 instanceof Boolean)) throw new IllegalArgumentException("by100 must be a boolean.");
+			addString(nouns, ReactorKeysEnum.COLUMN.getKey(), column);
+			nouns.makeGenRowStruct("sigDigits").add(new NounMetadata(number.intValue(), PixelDataType.CONST_INT));
+			nouns.makeGenRowStruct("by100").add(new NounMetadata(by100, PixelDataType.BOOLEAN));
+			addString(nouns, ReactorKeysEnum.NEW_COLUMN.getKey(), newColumn);
+		} else if (operation == AutomationFrameOperation.UNPIVOT) {
+			addColumns(nouns, columns(config.get("columns"), input.frame()));
+		} else if (operation != AutomationFrameOperation.REMOVE_DUPLICATES
+				&& operation != AutomationFrameOperation.TRANSPOSE) {
 			List<String> columns = columns(AutomationScopeResolver.resolveExactOrLiteral(config.get("columns"), scope,
 					"Clean columns"), input.frame());
-			String key = operation == AutomationCleanOperation.REPLACE ? "column" : "columns";
-			for (String column : columns) {
-				nouns.makeGenRowStruct(key).add(new NounMetadata(column, PixelDataType.CONST_STRING));
+			if (operation == AutomationFrameOperation.REPLACE) {
+				for (String column : columns) addString(nouns, ReactorKeysEnum.COLUMN.getKey(), column);
+			} else {
+				addColumns(nouns, columns);
 			}
-			if (operation == AutomationCleanOperation.REPLACE) {
+			if (operation == AutomationFrameOperation.REPLACE) {
 				String value = replacement(config.getOrDefault("value", ""), scope);
 				String newValue = replacement(config.getOrDefault("newValue", ""), scope);
 				validateReplacement(columns, input.frame(), value, newValue);
@@ -155,12 +248,107 @@ final class AutomationCleanExecutor {
 		}
 	}
 
-	static AutomationCleanOperation operationType(AutomationNodeType type, Map<String, Object> config,
+	static AutomationFrameOperation operationType(AutomationNodeType type, Map<String, Object> config,
 			Map<String, Object> scope, String nodeId) {
-		if (type != AutomationNodeType.CLEAN_PROCESS) {
-			throw new IllegalArgumentException("Unsupported Clean node type: " + type.getType());
+		if (type != AutomationNodeType.CLEAN_PROCESS && type != AutomationNodeType.DATA_TRANSFORM) {
+			throw new IllegalArgumentException("Unsupported frame operation node type: " + type.getType());
 		}
-		return AutomationCleanOperation.fromValue(resolveRequiredString(config, "operation", scope, nodeId));
+		AutomationFrameOperation operation = AutomationFrameOperation.fromValue(
+				resolveRequiredString(config, "operation", scope, nodeId));
+		if (operation.isTransform() != (type == AutomationNodeType.DATA_TRANSFORM)) {
+			throw new IllegalArgumentException("The selected operation does not belong to this node category.");
+		}
+		return operation;
+	}
+
+	private static AutomationFrameOutput.RegisteredFrame executeJoin(Insight insight, String outputVariable,
+			AutomationFrameOperation operation, AutomationFrameOutput.RegisteredFrame left,
+			Map<String, Object> config, Map<String, Object> scope, String nodeId) {
+		Object rightValue = AutomationScopeResolver.resolveExactOrLiteral(config.get("rightSource"), scope,
+				"Transform node '" + nodeId + "' rightSource");
+		if (!(rightValue instanceof AutomationFrameOutput.RegisteredFrame right)) {
+			throw new IllegalArgumentException("Transform node '" + nodeId + "' requires a live right-side table.");
+		}
+		if (right.frame().getFrameType() == DataFrameTypeEnum.R) {
+			throw new IllegalArgumentException("Automation Join operations do not support R frames.");
+		}
+		if (right.rowCount() > AutomationConstants.SAVED_RESULT_MAX_ROWS) {
+			throw new IllegalArgumentException("Join input exceeds the supported table row limit.");
+		}
+		String leftColumn = columns(List.of(resolveRequiredString(config, "column", scope, nodeId)), left.frame()).get(0);
+		String rightColumn = columns(List.of(resolveRequiredString(config, "rightColumn", scope, nodeId)), right.frame())
+				.get(0);
+		if (operation == AutomationFrameOperation.JOIN) {
+			String joinType = optionalString(config.get("joinType"), "joinType");
+			if (joinType.isEmpty()) joinType = "inner.join";
+			return executeStandardJoin(insight, outputVariable, left.frame(), right.frame(), leftColumn, rightColumn,
+					joinType, nodeId);
+		}
+		throw new IllegalArgumentException("Unsupported multi-frame Transform operation: " + operation.getValue());
+	}
+
+	private static AutomationFrameOutput.RegisteredFrame executeStandardJoin(Insight insight, String outputVariable,
+			ITableDataFrame left, ITableDataFrame right, String leftColumn, String rightColumn, String joinType,
+			String nodeId) {
+		if (!List.of("inner.join", "left.outer.join", "right.outer.join").contains(joinType)) {
+			throw new IllegalArgumentException("Unsupported Join type: " + joinType);
+		}
+		ITableDataFrame working = null;
+		ITableDataFrame resultFrame = null;
+		boolean completed = false;
+		try {
+			working = copy(insight, left, outputVariable);
+			SelectQueryStruct rightQuery = frameQuery(right);
+			NounStore nouns = new NounStore("Merge");
+			nouns.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey())
+					.add(new NounMetadata(working, PixelDataType.FRAME));
+			nouns.makeGenRowStruct(ReactorKeysEnum.QUERY_STRUCT.getKey())
+					.add(new NounMetadata(rightQuery, PixelDataType.QUERY_STRUCT));
+			nouns.makeGenRowStruct(ReactorKeysEnum.JOINS.getKey())
+					.add(new NounMetadata(new Join(leftColumn, joinType, rightColumn), PixelDataType.JOIN));
+			MergeReactor reactor = new MergeReactor();
+			reactor.setInsight(insight);
+			reactor.setNounStore(nouns);
+			reactor.In();
+			NounMetadata result = reactor.execute();
+			if (!(result.getValue() instanceof ITableDataFrame frame)) {
+				throw new IllegalStateException("Join did not return a table.");
+			}
+			resultFrame = frame;
+			validateOutputSize(resultFrame, outputVariable);
+			synchronizePythonFrame(resultFrame, outputVariable);
+			resultFrame.clearCachedMetrics();
+			resultFrame.clearQueryCache();
+			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable,
+					resultFrame);
+			completed = true;
+			return output;
+		} catch (Exception error) {
+			if (resultFrame != null && resultFrame != working) close(insight, outputVariable, resultFrame);
+			if (working != null && !sharesPythonBindings(working, resultFrame)) close(insight, outputVariable, working);
+			throw new IllegalStateException(
+					"Unable to join tables for node '" + nodeId + "': " + error.getMessage(), error);
+		} finally {
+			if (completed && working != null && working != resultFrame && !sharesPythonBindings(working, resultFrame)) {
+				close(insight, outputVariable, working);
+			}
+		}
+	}
+
+
+
+	private static SelectQueryStruct frameQuery(ITableDataFrame frame) {
+		SelectQueryStruct query = frame.getMetaData().getFlatTableQs(false);
+		query.setFrame(frame);
+		query.setDistinct(false);
+		query.setExplicitFilters(frame.getFrameFilters().copy());
+		return query;
+	}
+
+	private static void validateOutputSize(ITableDataFrame frame, String outputVariable) {
+		if (frame.size(outputVariable) > AutomationConstants.SAVED_RESULT_MAX_ROWS) {
+			throw new IllegalArgumentException("Transform output exceeds the supported table row limit.");
+		}
 	}
 
 	private static String resolveRequiredString(Map<String, Object> config, String key, Map<String, Object> scope,
@@ -173,38 +361,124 @@ final class AutomationCleanExecutor {
 		return value.trim();
 	}
 
+	private static void addString(NounStore nouns, String key, String value) {
+		nouns.makeGenRowStruct(key).add(new NounMetadata(value, PixelDataType.CONST_STRING));
+	}
+
+	private static void addColumns(NounStore nouns, List<String> columns) {
+		for (String column : columns) {
+			addString(nouns, ReactorKeysEnum.COLUMNS.getKey(), column);
+		}
+	}
+
+	private static String newColumn(Map<String, Object> config, Map<String, Object> scope, String nodeId,
+			ITableDataFrame frame) {
+		String name = resolveRequiredString(config, "newColumn", scope, nodeId);
+		if (!name.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+			throw new IllegalArgumentException("New column name must contain only letters, digits, and underscores.");
+		}
+		if (Arrays.asList(frame.getColumnHeaders()).contains(name)) {
+			throw new IllegalArgumentException("A column named '" + name + "' already exists.");
+		}
+		return name;
+	}
+
+	private static String safeScriptLiteral(Map<String, Object> config, String key, Map<String, Object> scope,
+			String nodeId) {
+		return safeScriptLiteral(config, key, scope, nodeId, null);
+	}
+
+	private static String safeScriptLiteral(Map<String, Object> config, String key, Map<String, Object> scope,
+			String nodeId, String fallback) {
+		Object configured = config.containsKey(key) ? config.get(key) : fallback;
+		Object resolved = AutomationScopeResolver.resolveExactOrLiteral(configured, scope,
+				"Transform " + key + " for node '" + nodeId + "'");
+		if (!(resolved instanceof String value) || value.isBlank()) {
+			throw new IllegalArgumentException("Transform node '" + nodeId + "' requires a nonblank " + key + ".");
+		}
+		if (value.length() > 100 || value.contains("'") || value.contains("\"") || value.contains("\\")
+				|| value.chars().anyMatch(Character::isISOControl)) {
+			throw new IllegalArgumentException(key + " contains characters unsupported by the BI reactor.");
+		}
+		return value;
+	}
+
+	private static String safeOptionalScriptLiteral(Object configured, Map<String, Object> scope, String nodeId) {
+		if (configured == null) return null;
+		Object resolved = AutomationScopeResolver.resolveExactOrLiteral(configured, scope,
+				"Pivot replacement value for node '" + nodeId + "'");
+		if (!(resolved instanceof String value)) {
+			throw new IllegalArgumentException("Pivot replacement value must resolve to a string.");
+		}
+		if (value.length() > 100 || value.contains("'") || value.contains("\"") || value.contains("\\")
+				|| value.chars().anyMatch(Character::isISOControl)) {
+			throw new IllegalArgumentException("Pivot replacement value contains unsupported characters.");
+		}
+		return value;
+	}
+
+	private static String optionalString(Object configured, String key) {
+		if (configured == null) return "";
+		if (!(configured instanceof String value)) {
+			throw new IllegalArgumentException(key + " must be a string.");
+		}
+		return value.trim();
+	}
+
+	private static List<String> optionalColumns(Object configured, ITableDataFrame frame) {
+		if (configured == null) return List.of();
+		if (!(configured instanceof List<?> selected) || selected.size() > 1000) {
+			throw new IllegalArgumentException("maintainColumns must be a list of at most 1000 column names.");
+		}
+		if (selected.isEmpty()) return List.of();
+		return columns(selected, frame);
+	}
+
+	private static List<String> stringColumns(Object configured, ITableDataFrame frame) {
+		List<String> selected = columns(configured, frame);
+		for (String column : selected) {
+			String type = frame.getMetaData().getHeaderTypeAsString(frame.getName() + "__" + column);
+			if (!"STRING".equalsIgnoreCase(type)) {
+				throw new IllegalArgumentException("Case conversion requires string columns; '" + column + "' is " + type + ".");
+			}
+		}
+		return selected;
+	}
+
+	private static void validateNumericColumn(ITableDataFrame frame, String column) {
+		String type = frame.getMetaData().getHeaderTypeAsString(frame.getName() + "__" + column);
+		if (!"INT".equalsIgnoreCase(type) && !"DOUBLE".equalsIgnoreCase(type)) {
+			throw new IllegalArgumentException("To Percent requires a numeric column; '" + column + "' is " + type + ".");
+		}
+	}
 	private static boolean sharesPythonBindings(ITableDataFrame first, ITableDataFrame second) {
 		return first instanceof PandasFrame original && second instanceof PandasFrame replacement
 				&& ((original.getName() != null && original.getName().equals(replacement.getName()))
 						|| (original.getWrapperName() != null && original.getWrapperName().equals(replacement.getWrapperName())));
 	}
 
-	/** Keeps row-count and Python scope bindings aligned with the BI wrapper after row filtering. */
+	/** Keeps bindings and cached query selectors aligned with the BI result before publication. */
 	static void synchronizePythonFrame(ITableDataFrame frame, String outputVariable) {
 		if (frame instanceof PandasFrame python) {
 			python.runScript(outputVariable + " = " + python.getWrapperName() + ".cache['data']");
+			python.syncHeaders();
 		}
 	}
 
-	static AbstractReactor reactor(AutomationCleanOperation type, DataFrameTypeEnum frameType) {
-		if (type == AutomationCleanOperation.PURGE) {
+	static AbstractReactor reactor(AutomationFrameOperation type, DataFrameTypeEnum frameType) {
+		if (frameType == DataFrameTypeEnum.R) {
+			throw new IllegalArgumentException(type.getValue() + " does not support R frames in Automation.");
+		}
+		if (type == AutomationFrameOperation.PURGE) {
 			return new PurgeReactor();
 		}
-		boolean python = frameType == DataFrameTypeEnum.PYTHON;
-		if (PYTHON_ONLY_OPERATIONS.contains(type) && !python) {
-			throw new IllegalArgumentException("clean." + type.getValue() + " requires a Python frame.");
-		}
-		if (!python && frameType != DataFrameTypeEnum.R) {
-			throw new IllegalArgumentException("Only Purge supports database frames. clean." + type.getValue()
-					+ " requires an R or Python frame; convert the input explicitly first.");
+		if (frameType != DataFrameTypeEnum.PYTHON) {
+			throw new IllegalArgumentException(type.getValue() + " requires a Python frame.");
 		}
 		return switch (type) {
-		case TRIM -> python ? new prerna.reactor.frame.py.TrimColumnsReactor()
-				: new prerna.reactor.frame.r.TrimColumnsReactor();
-		case REPLACE -> python ? new prerna.reactor.frame.py.ReplaceColumnValueReactor()
-				: new prerna.reactor.frame.r.ReplaceColumnValueReactor();
-		case REMOVE_DUPLICATES -> python ? new prerna.reactor.frame.py.RemoveDuplicateRowsReactor()
-				: new prerna.reactor.frame.r.RemoveDuplicateRowsReactor();
+		case TRIM -> new prerna.reactor.frame.py.TrimColumnsReactor();
+		case REPLACE -> new prerna.reactor.frame.py.ReplaceColumnValueReactor();
+		case REMOVE_DUPLICATES -> new prerna.reactor.frame.py.RemoveDuplicateRowsReactor();
 		case FILTER_EMPTY -> {
 			yield new prerna.reactor.frame.py.FilterEmptyValuesReactor();
 		}
@@ -212,6 +486,19 @@ final class AutomationCleanExecutor {
 		case CHANGE_TYPE -> new prerna.reactor.frame.py.ChangeColumnTypeReactor();
 		case DROP_COLUMN -> new prerna.reactor.frame.py.DropColumnReactor();
 		case RENAME_COLUMN -> new prerna.reactor.frame.py.RenameColumnReactor();
+		case ADD_COLUMN -> new prerna.reactor.frame.py.AddColumnReactor();
+		case DUPLICATE_COLUMN -> new prerna.reactor.frame.py.DuplicateColumnReactor();
+		case CONCATENATE -> new prerna.reactor.frame.py.JoinColumnsReactor();
+		case PIVOT -> new prerna.reactor.frame.py.PivotReactor();
+		case LOWER_CASE -> new prerna.reactor.frame.py.ToLowerCaseReactor();
+		case PROPER_CASE -> new prerna.reactor.frame.py.ToProperCaseReactor();
+		case SPLIT -> new prerna.reactor.frame.py.SplitColumnsReactor();
+		case SPLIT_UNPIVOT -> new prerna.reactor.frame.py.SplitUnpivotReactor();
+		case TIMESTAMP_DATA -> new prerna.reactor.frame.py.TimestampDataReactor();
+		case TO_PERCENT -> new prerna.reactor.frame.py.ToPercentReactor();
+		case TRANSPOSE -> new prerna.reactor.frame.py.TransposeReactor();
+		case UNPIVOT -> new prerna.reactor.frame.py.UnpivotReactor();
+		case UPPER_CASE -> new prerna.reactor.frame.py.ToUpperCaseReactor();
 		case PURGE -> new PurgeReactor();
 		default -> throw new IllegalArgumentException("Unsupported clean operation: " + type);
 		};

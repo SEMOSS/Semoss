@@ -35,6 +35,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
@@ -42,78 +44,116 @@ import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PandasSyntaxHelper;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.HeadersDataRow;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.reactor.automation.definition.AutomationCleanOperation;
+import prerna.reactor.automation.definition.AutomationFrameOperation;
 import prerna.reactor.automation.definition.AutomationNodeType;
 import prerna.reactor.frame.FrameFactory;
 import prerna.reactor.frame.PurgeReactor;
 import prerna.reactor.frame.py.TrimColumnsReactor;
+import prerna.reactor.frame.py.PivotReactor;
 import prerna.reactor.imports.IImporter;
 import prerna.reactor.imports.ImportFactory;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 class AutomationCleanExecutorUnitTests {
-	private static final List<AutomationCleanOperation> CLEAN_OPERATIONS = List.of(AutomationCleanOperation.values());
-	private static final List<AutomationCleanOperation> PYTHON_ONLY_OPERATIONS = List.of(
-			AutomationCleanOperation.FILTER_EMPTY,
-			AutomationCleanOperation.IMPUTE_NULLS,
-			AutomationCleanOperation.CHANGE_TYPE,
-			AutomationCleanOperation.DROP_COLUMN,
-			AutomationCleanOperation.RENAME_COLUMN);
+	private static final List<AutomationFrameOperation> FRAME_OPERATIONS = List.of(AutomationFrameOperation.values());
 
 	@Test
-	void databaseFramesOnlyAllowPurge() {
+	void databaseFramesSupportPurgeOutsideTheMergePath() {
 		for (DataFrameTypeEnum frame : List.of(DataFrameTypeEnum.GRID, DataFrameTypeEnum.NATIVE)) {
-			for (AutomationCleanOperation operation : CLEAN_OPERATIONS) {
-				if (operation == AutomationCleanOperation.PURGE) {
+			for (AutomationFrameOperation operation : FRAME_OPERATIONS) {
+				if (operation == AutomationFrameOperation.JOIN) continue;
+				if (operation == AutomationFrameOperation.PURGE) {
 					assertInstanceOf(PurgeReactor.class, AutomationCleanExecutor.reactor(operation, frame));
-					continue;
+				} else {
+					assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.reactor(operation, frame));
 				}
-				assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.reactor(operation, frame));
 			}
 		}
+		assertInstanceOf(PurgeReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.PURGE, DataFrameTypeEnum.PYTHON));
 	}
 
 	@Test
-	void preservesExistingRuntimeRestrictions() {
-		assertInstanceOf(TrimColumnsReactor.class,
-				AutomationCleanExecutor.reactor(AutomationCleanOperation.TRIM, DataFrameTypeEnum.PYTHON));
-		assertInstanceOf(prerna.reactor.frame.r.TrimColumnsReactor.class,
-				AutomationCleanExecutor.reactor(AutomationCleanOperation.TRIM, DataFrameTypeEnum.R));
-		assertInstanceOf(prerna.reactor.frame.py.FilterEmptyValuesReactor.class,
-				AutomationCleanExecutor.reactor(AutomationCleanOperation.FILTER_EMPTY, DataFrameTypeEnum.PYTHON));
-		for (DataFrameTypeEnum frame : List.of(DataFrameTypeEnum.R, DataFrameTypeEnum.PYTHON)) {
-			assertNotNull(AutomationCleanExecutor.reactor(AutomationCleanOperation.REPLACE, frame));
-			assertNotNull(AutomationCleanExecutor.reactor(AutomationCleanOperation.REMOVE_DUPLICATES, frame));
-		}
-		assertInstanceOf(prerna.reactor.frame.py.ImputeNullValuesReactor.class,
-				AutomationCleanExecutor.reactor(AutomationCleanOperation.IMPUTE_NULLS, DataFrameTypeEnum.PYTHON));
-		assertInstanceOf(prerna.reactor.frame.py.ChangeColumnTypeReactor.class,
-				AutomationCleanExecutor.reactor(AutomationCleanOperation.CHANGE_TYPE, DataFrameTypeEnum.PYTHON));
-		assertInstanceOf(prerna.reactor.frame.py.DropColumnReactor.class,
-				AutomationCleanExecutor.reactor(AutomationCleanOperation.DROP_COLUMN, DataFrameTypeEnum.PYTHON));
-		assertInstanceOf(prerna.reactor.frame.py.RenameColumnReactor.class,
-				AutomationCleanExecutor.reactor(AutomationCleanOperation.RENAME_COLUMN, DataFrameTypeEnum.PYTHON));
-		for (AutomationCleanOperation operation : PYTHON_ONLY_OPERATIONS) {
+	void rFramesAreRejected() {
+		for (AutomationFrameOperation operation : FRAME_OPERATIONS) {
 			assertThrows(IllegalArgumentException.class,
 					() -> AutomationCleanExecutor.reactor(operation, DataFrameTypeEnum.R));
 		}
 	}
 
 	@Test
+	void preservesExistingRuntimeRestrictions() {
+		assertInstanceOf(TrimColumnsReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.TRIM, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.FilterEmptyValuesReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.FILTER_EMPTY, DataFrameTypeEnum.PYTHON));
+		assertNotNull(AutomationCleanExecutor.reactor(AutomationFrameOperation.REPLACE, DataFrameTypeEnum.PYTHON));
+		assertNotNull(AutomationCleanExecutor.reactor(AutomationFrameOperation.REMOVE_DUPLICATES, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.ImputeNullValuesReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.IMPUTE_NULLS, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.ChangeColumnTypeReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.CHANGE_TYPE, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.DropColumnReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.DROP_COLUMN, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.RenameColumnReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.RENAME_COLUMN, DataFrameTypeEnum.PYTHON));
+	}
+
+	@Test
 	void resolvesGenericCleanOperationsToExistingBiNodeTypes() {
-		assertEquals(AutomationCleanOperation.TRIM, AutomationCleanExecutor.operationType(
+		assertEquals(AutomationFrameOperation.TRIM, AutomationCleanExecutor.operationType(
 				AutomationNodeType.CLEAN_PROCESS, Map.of("operation", "trim"), Map.of(), "clean"));
-		assertEquals(AutomationCleanOperation.PURGE, AutomationCleanExecutor.operationType(
+		assertEquals(AutomationFrameOperation.PURGE, AutomationCleanExecutor.operationType(
 				AutomationNodeType.CLEAN_PROCESS, Map.of("operation", "purge"), Map.of(), "clean"));
+		assertEquals(AutomationFrameOperation.CHANGE_TYPE, AutomationCleanExecutor.operationType(
+				AutomationNodeType.DATA_TRANSFORM, Map.of("operation", "changeType"), Map.of(), "transform"));
+		assertEquals(AutomationFrameOperation.JOIN, AutomationCleanExecutor.operationType(
+			AutomationNodeType.DATA_TRANSFORM, Map.of("operation", "join"), Map.of(), "join"));
 		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.operationType(
 				AutomationNodeType.CLEAN_PROCESS, Map.of("operation", "unknown"), Map.of(), "clean"));
+		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.operationType(
+				AutomationNodeType.CLEAN_PROCESS, Map.of("operation", "changeType"), Map.of(), "clean"));
+		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.operationType(
+				AutomationNodeType.DATA_TRANSFORM, Map.of("operation", "trim"), Map.of(), "transform"));
+	}
+
+	@Test
+	void resolvesNewSingleFrameTransformsToExistingBiReactors() {
+		assertInstanceOf(prerna.reactor.frame.py.AddColumnReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.ADD_COLUMN, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.DuplicateColumnReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.DUPLICATE_COLUMN, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.JoinColumnsReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.CONCATENATE, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.PivotReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.PIVOT, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.ToLowerCaseReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.LOWER_CASE, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.ToProperCaseReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.PROPER_CASE, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.SplitColumnsReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.SPLIT, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.SplitUnpivotReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.SPLIT_UNPIVOT, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.TimestampDataReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.TIMESTAMP_DATA, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.ToPercentReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.TO_PERCENT, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.TransposeReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.TRANSPOSE, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.UnpivotReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.UNPIVOT, DataFrameTypeEnum.PYTHON));
+		assertInstanceOf(prerna.reactor.frame.py.ToUpperCaseReactor.class,
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.UPPER_CASE, DataFrameTypeEnum.PYTHON));
 	}
 
 	@Test
@@ -217,6 +257,87 @@ class AutomationCleanExecutorUnitTests {
 		when(frame.getWrapperName()).thenReturn("cleanedw");
 		AutomationCleanExecutor.synchronizePythonFrame(frame, "cleaned");
 		verify(frame).runScript("cleaned = cleanedw.cache['data']");
+		verify(frame).syncHeaders();
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "NAME_COPY", "NAME_REGION", "TAGS_0" })
+	void publishesNewColumnsWithMatchingSelectorsTypesAndValues(String newColumn) throws Exception {
+		PandasFrame frame = mock(PandasFrame.class);
+		OwlTemporalEngineMeta metadata = mock(OwlTemporalEngineMeta.class);
+		when(metadata.getFrameSelectors()).thenReturn(List.of("cleaned__NAME", "cleaned__VALUE"));
+		doCallRealMethod().when(frame).setMetaData(metadata);
+		doCallRealMethod().when(frame).syncHeaders();
+		doCallRealMethod().when(frame).getSelectors();
+		doCallRealMethod().when(frame).getQsHeaders();
+		frame.setMetaData(metadata);
+		assertArrayEquals(new String[] { "cleaned__NAME", "cleaned__VALUE" }, frame.getQsHeaders());
+
+		List<String> selectors = List.of("cleaned__NAME", "cleaned__" + newColumn, "cleaned__VALUE");
+		when(metadata.getFrameSelectors()).thenReturn(selectors);
+		when(frame.getColumnHeaders()).thenReturn(new String[] { "NAME", newColumn, "VALUE" });
+		when(frame.getMetaData()).thenReturn(metadata);
+		when(metadata.getHeaderTypeAsString("cleaned__NAME")).thenReturn("STRING");
+		when(metadata.getHeaderTypeAsString("cleaned__" + newColumn)).thenReturn("STRING");
+		when(metadata.getHeaderTypeAsString("cleaned__VALUE")).thenReturn("DOUBLE");
+		when(frame.getWrapperName()).thenReturn("cleanedw");
+		AutomationCleanExecutor.synchronizePythonFrame(frame, "cleaned");
+		assertArrayEquals(selectors.toArray(String[]::new), frame.getQsHeaders());
+
+		IRawSelectWrapper rows = mock(IRawSelectWrapper.class);
+		when(rows.hasNext()).thenReturn(true, false);
+		when(rows.next()).thenReturn(new HeadersDataRow(
+				new String[] { "NAME", newColumn, "VALUE" }, new Object[] { "Alice", "new value", 0.25 }));
+		when(frame.query(any(SelectQueryStruct.class))).thenAnswer(invocation -> {
+			SelectQueryStruct query = invocation.getArgument(0);
+			assertEquals(3, query.getSelectors().size());
+			assertFalse(query.isDistinct());
+			return rows;
+		});
+		AutomationFrameOutput.RegisteredFrame output = new AutomationFrameOutput.RegisteredFrame(
+				"cleaned", frame, Map.of("rowCount", 1L), "PY");
+		assertEquals(List.of(
+				Map.of("name", "NAME", "type", "STRING"),
+				Map.of("name", newColumn, "type", "STRING"),
+				Map.of("name", "VALUE", "type", "DOUBLE")), output.columns());
+		assertEquals(List.of(Map.of("NAME", "Alice", newColumn, "new value", "VALUE", 0.25)), output.page(0, 1));
+		verify(rows).close();
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = { true, false })
+	void pivotSeparatesMissingValueStatementsWithOrWithoutMaintainedColumns(boolean maintainColumns) {
+		PandasFrame frame = mock(PandasFrame.class);
+		when(frame.getName()).thenReturn("pivoted");
+		when(frame.getWrapperName()).thenReturn("pivotedw");
+		when(frame.runScript("pivotedw.is_numeric('VALUE')")).thenReturn(true);
+		when(frame.runScript(PandasSyntaxHelper.getColumns("pivoted")))
+				.thenReturn(List.of("VALUE_A", "VALUE_B"));
+		PivotReactor reactor = new PivotReactor() {
+			@Override
+			protected ITableDataFrame getFrame() {
+				return frame;
+			}
+
+			@Override
+			protected ITableDataFrame recreateMetadata(PandasFrame input) {
+				return input;
+			}
+		};
+		prerna.sablecc2.om.NounStore nouns = new prerna.sablecc2.om.NounStore("Pivot");
+		nouns.makeGenRowStruct("pivotCol").add(new NounMetadata("CATEGORY", PixelDataType.CONST_STRING));
+		nouns.makeGenRowStruct("valueCol").add(new NounMetadata("VALUE", PixelDataType.CONST_STRING));
+		nouns.makeGenRowStruct("function").add(new NounMetadata("sum", PixelDataType.CONST_STRING));
+		nouns.makeGenRowStruct("naReplace").add(new NounMetadata("0", PixelDataType.CONST_STRING));
+		if (maintainColumns) {
+			nouns.makeGenRowStruct("maintainCols").add(new NounMetadata("REGION", PixelDataType.CONST_STRING));
+		}
+		reactor.setNounStore(nouns);
+		reactor.setInsight(new Insight());
+		assertSame(frame, reactor.execute().getValue());
+		verify(frame).runScript(
+				"pivoted['VALUE_A'] = pivoted['VALUE_A'].fillna(0)\n"
+						+ "pivoted['VALUE_B'] = pivoted['VALUE_B'].fillna(0)\n");
 	}
 
 	@Test

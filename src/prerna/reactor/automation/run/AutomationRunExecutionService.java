@@ -418,6 +418,7 @@ final class AutomationRunExecutionService {
 			case AutomationConstants.NODE_VECTOR_SEARCH -> Handler.VECTOR_SEARCH;
 			case AutomationConstants.NODE_STORAGE_DOWNLOAD -> Handler.STORAGE_DOWNLOAD;
 			case AutomationConstants.NODE_DATA_EXTRACT -> Handler.DATA_EXTRACT;
+			case AutomationConstants.NODE_DATA_TRANSFORM -> Handler.CLEAN;
 			case AutomationConstants.NODE_CLEAN_PROCESS -> Handler.CLEAN;
 			case AutomationConstants.NODE_DEVELOPER_PYTHON -> Handler.PYTHON;
 			default -> throw new IllegalArgumentException("Unsupported Automation node type: " + type);

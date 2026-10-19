@@ -95,8 +95,8 @@ public class AutomationNodeCatalogUnitTests {
 		assertEquals("purge", config.get("operation"));
 		assertTrue(config.containsKey("columns"));
 		assertTrue(config.containsKey("filters"));
-		assertEquals("STRING", config.get("dataType"));
-		assertEquals("", config.get("newColumn"));
+		assertEquals(false, config.containsKey("column"));
+		assertEquals(false, config.containsKey("newColumn"));
 	}
 
 	@Test
@@ -110,6 +110,23 @@ public class AutomationNodeCatalogUnitTests {
 				definition.defaultConfig().get(AutomationConstants.CONFIG_LIMIT));
 		assertEquals(AutomationConstants.DB_QUERY_MAX_LIMIT,
 				fieldsByKey.get(AutomationConstants.CONFIG_LIMIT).get("maximum"));
+	}
+
+	@Test
+	void transformNodeIsInTheDataCategory() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_DATA_TRANSFORM);
+		assertNotNull(definition);
+		assertEquals("data", definition.toMap().get("category"));
+		assertEquals("changeType", definition.defaultConfig().get("operation"));
+		assertTrue(definition.defaultConfig().containsKey("columns"));
+		assertTrue(definition.defaultConfig().containsKey("column"));
+		assertTrue(definition.defaultConfig().containsKey("newColumn"));
+		assertEquals("STRING", definition.defaultConfig().get("dataType"));
+		for (String key : List.of("delimiter", "pivotColumn", "valueColumn", "maintainColumns",
+				"aggregateFunction", "naReplace", "includeTime", "sigDigits", "by100", "rightSource",
+				"rightColumn", "joinType")) {
+			assertTrue(definition.defaultConfig().containsKey(key), key + " is missing from Transform defaults");
+		}
 	}
 
 	@Test
