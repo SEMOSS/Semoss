@@ -211,6 +211,7 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	/** Response metadata keys describing the routing decision. */
 	public static final String METADATA_ROUTER_ENGINE_ID = "router_engine_id";
 	public static final String METADATA_ROUTED_ENGINE_ID = "routed_engine_id";
+	public static final String METADATA_ROUTED_ENGINE_NAME = "routed_engine_name";
 	public static final String METADATA_ROUTED_ROUTE_NAME = "routed_route_name";
 
 	private static final String MODE_KEYWORD = "keyword";
@@ -701,7 +702,7 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 				if (this.sticky && roomId != null) {
 					roomRoutePins.put(roomId, candidateId);
 				}
-				attachRouteMetadata(response, candidateId);
+				attachRouteMetadata(response, candidateId, targetEngine);
 				return response;
 			} catch (Exception e) {
 				classLogger.warn(
@@ -928,14 +929,19 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		}
 	}
 
-	private void attachRouteMetadata(AskModelEngineResponse<?> response, String targetEngineId) {
+	private void attachRouteMetadata(AskModelEngineResponse<?> response, String targetEngineId, IModelEngine targetEngine) {
 		try {
 			Map<String, Object> metadata = response.getMetadata();
 			if (metadata == null) {
 				metadata = new HashMap<>();
 			}
 			metadata.put(METADATA_ROUTER_ENGINE_ID, this.engineId);
-			metadata.put(METADATA_ROUTED_ENGINE_ID, targetEngineId);
+			// A nested router already identifies the final serving engine.
+			if (!metadata.containsKey(METADATA_ROUTED_ENGINE_ID)) {
+				metadata.put(METADATA_ROUTED_ENGINE_ID, targetEngineId);
+				metadata.put(METADATA_ROUTED_ENGINE_NAME, targetEngine.getDisplayName());
+			}
+			metadata.remove(METADATA_ROUTED_ROUTE_NAME);
 			String routeName = routeNameForEngine(targetEngineId);
 			if (routeName != null) {
 				metadata.put(METADATA_ROUTED_ROUTE_NAME, routeName);
