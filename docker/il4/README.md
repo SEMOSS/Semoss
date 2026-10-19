@@ -833,6 +833,50 @@ unused clutter, not revived - the live path here is server-side TLS client-cert
 validation (Tomcat/the connector), not a client-side PKCS#11 smart-card reader
 running in the browser or on the app server itself.
 
+## Mobile code (Content-Security-Policy)
+
+DoD mobile-code policy (SC-18, DoDI 8552.01) categorizes active content by
+risk: Category 1 (signed/unsigned ActiveX, Windows Script Host - largely
+prohibited), Category 2 (sandboxed signed code - allowed with controls), and
+Category 3 (JavaScript, HTML5 running in a standard browser sandbox with no
+ability to perform unmediated actions - generally permitted). SEMOSS's own
+frontends are plain JavaScript/TypeScript (React, bundled via Vite) - squarely
+Category 3, not the ActiveX/Java-applet-era content SC-18 was originally
+written against.
+
+The actual technical question isn't whether first-party JavaScript is
+allowed (it is), but whether this platform could be made to load or serve
+*unauthorized* mobile code. SEMOSS is an app-building platform - users
+publish their own small apps (`project/platform__*`) that get served under
+this origin, not just one fixed admin UI, so this is a real question, not a
+formality. A survey of every shipped template's `index.html` found zero
+external `<script src="...">` references anywhere; the only external
+reference at all is a Google Fonts stylesheet in `platform__database-maker`.
+User-customized published apps, built on these templates via the App Builder
+workflow, are outside what any static survey can cover.
+
+`ContentSecurityPolicyFilter` (`web.xml`, alongside `HeaderSecurityFilter` -
+Tomcat's own `HttpHeaderSecurityFilter` does not support CSP) adds a
+Content-Security-Policy header to every response: `script-src 'self'` and
+`object-src 'none'` are the directives that matter for mobile code -
+restricting executable content to this origin and blocking plugin-based
+content (Flash, Java applets - Category 1/2) entirely. **It ships in
+report-only mode** (`Content-Security-Policy-Report-Only` - logs violations
+to the browser console, blocks nothing) because an enforcing policy that's
+only been checked against shipped templates, not arbitrary user-published
+apps, could break a real customer's published app in a way this repository
+has no way to detect. A site enables enforcement by setting the filter's
+`reportOnly` init-param to `false` in `web.xml`, after reviewing what the
+report-only policy actually would have blocked in its own usage. There is no
+report-collection endpoint here (violations only reach whoever has the
+browser console open); wiring one up is a reasonable next step but is itself
+a judgment call about where reports should go, not a fixed default.
+
+Subresource Integrity (SRI) does not apply here: it protects externally-hosted
+resources whose content you don't control, and this survey found none to
+protect - if a site later adds a genuine CDN dependency, it should get an SRI
+hash at that point, not a placeholder one now.
+
 ## FIPS boundaries
 
 ### Alternative-provider feasibility (2026-10-01)
