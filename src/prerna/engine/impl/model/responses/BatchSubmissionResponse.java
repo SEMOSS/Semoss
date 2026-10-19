@@ -46,6 +46,15 @@ public class BatchSubmissionResponse {
 		return providerBatchId;
 	}
 
+	/**
+	 * Lets a caller rewrite the id after the fact -- e.g. ModelBatchManager
+	 * prepending a storage-engine locator onto a Vertex job name once it has
+	 * uploaded the batch's input file through it.
+	 */
+	public void setProviderBatchId(String providerBatchId) {
+		this.providerBatchId = providerBatchId;
+	}
+
 	public String getStatus() {
 		return status;
 	}
