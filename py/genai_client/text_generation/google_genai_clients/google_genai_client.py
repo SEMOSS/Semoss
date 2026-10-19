@@ -434,9 +434,12 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         nested under "generationConfig".
 
         NOTE: depends on google.genai.models._GenerateContentParameters_to_vertex,
-        an unstable/private SDK internal -- if a google-genai upgrade removes
-        or reshapes it, batch request bodies for Gemini will need to be
-        rebuilt here.
+        an unstable/private SDK internal, kept so a batch line is exactly what a
+        regular ask sends: the public Schema.from_json_schema drops
+        additionalProperties and property ordering from response schemas.
+        google-genai is pinned in install_config/pyproject.toml, and
+        tests/test_vertex_batch_client.py fails if an upgrade removes or
+        reshapes it.
         """
         from google.genai.models import _GenerateContentParameters_to_vertex
 
@@ -482,10 +485,14 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         # _GenerateContentParameters_to_vertex doesn't recursively convert every
         # nested SDK type (e.g. ThinkingConfig) to a plain dict -- fall back to
-        # each object's own model_dump for anything json.dumps can't handle.
+        # each object's own model_dump for anything json.dumps can't handle, and
+        # to base64, as the SDK sends it, for bytes it leaves raw (a function
+        # call's thought signature).
         def _json_default(obj):
             if hasattr(obj, "model_dump"):
                 return obj.model_dump(mode="json", by_alias=True, exclude_none=True)
+            if isinstance(obj, bytes):
+                return base64.urlsafe_b64encode(obj).decode("ascii")
             return str(obj)
 
         jsonl_content = "\n".join(
@@ -516,26 +523,20 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         }
 
     def get_batch_results(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
-        """rawBlobs here is the raw text content of every output shard Java
-        already downloaded through the storage engine -- this method only
-        normalizes lines into the SEMOSS shape; it never touches GCS itself."""
+        """outputFiles are the local copies of every output shard Java already
+        downloaded through the storage engine -- this method only normalizes
+        their lines into the SEMOSS shape; it never touches GCS itself. jobId is
+        the bare Vertex job id; provider_batch_id is the SEMOSS id the results
+        are billed and logged under."""
         from ...clients.vertex_batch_client import (
             normalize_gemini_result_line,
             normalize_job_state,
+            read_output_files,
         )
 
         self._ensure_batch_supported()
-        job_name = provider_batch_id.split(".", 1)[-1]
-        raw_blobs = kwargs.pop("rawBlobs", None) or []
-        if isinstance(raw_blobs, str):
-            raw_blobs = json.loads(raw_blobs)
-
-        items = []
-        for blob_text in raw_blobs:
-            for raw_line in blob_text.splitlines():
-                raw_line = raw_line.strip()
-                if raw_line:
-                    items.append(normalize_gemini_result_line(json.loads(raw_line)))
+        job_name = kwargs.pop("jobId", None) or provider_batch_id.split(".", 1)[-1]
+        items = read_output_files(kwargs.pop("outputFiles", None) or [], normalize_gemini_result_line)
 
         genai_client = self._vertex_genai_client()
         job = genai_client.batches.get(name=job_name)

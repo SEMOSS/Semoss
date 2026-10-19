@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -119,6 +120,8 @@ public class ModelBatchManager {
 	private static final Duration ITEM_MARK_TIME = Duration.ofDays(30);
 	private static final String BILLED_MARK = "batch|billed|";
 	private static final String RECORDED_MARK = "batch|recorded|";
+	/** MESSAGE.TRANSACTION_ID is VARCHAR(50) */
+	private static final int TRANSACTION_ID_MAX_LENGTH = 50;
 	/** The batch statuses after which no more results come in */
 	private static final Set<String> ENDED_STATUSES = Set.of("COMPLETED", "FAILED", "EXPIRED", "CANCELED", "CANCELLED",
 			"ENDED");
@@ -185,10 +188,10 @@ public class ModelBatchManager {
 	}
 
 	// VERTEX-only: providerBatchId is "<storageToken>:<folderToken>.<jobIdToken>".
-	// MESSAGE.TRANSACTION_ID is VARCHAR(50) -- and per-request rows key off
-	// "<providerBatchId>.<customId>" (see recordBatchSubmission /
-	// recordBatchResultsUsage), so the id itself must leave real headroom for
-	// that suffix, not just fit alone. Each piece is packed accordingly:
+	// MESSAGE.TRANSACTION_ID is VARCHAR(50) -- and per-request rows keep the
+	// readable "<providerBatchId>.<customId>" only while it fits (see
+	// batchTransactionId), so the id itself leaves real headroom for that
+	// suffix, not just fits alone. Each piece is packed accordingly:
 	// storageToken is the storage engine's UUID base64url-encoded (22 chars vs.
 	// 36), folderToken is a short random token identifying this batch's GCS
 	// subfolder (5 chars), and jobIdToken is the bare numeric Vertex job id (the
@@ -415,7 +418,7 @@ public class ModelBatchManager {
 			// whose marks a restart lost
 			Set<String> recorded = ModelInferenceLogsUtils.getRecordedBatchResults(providerBatchId);
 			for (BatchResultItem item : items) {
-				String transactionId = providerBatchId + "." + item.getCustomId();
+				String transactionId = batchTransactionId(providerBatchId, item.getCustomId());
 				// results are read again and again, on any server: the mark bills each
 				// result once
 				if (recorded.contains(transactionId) || !marks.markOnce(BILLED_MARK + transactionId)) {
@@ -478,6 +481,21 @@ public class ModelBatchManager {
 
 	private static String batchKey(String engineId, String providerBatchId) {
 		return engineId + COMPOSITE_DELIM + providerBatchId;
+	}
+
+	/**
+	 * The TRANSACTION_ID of one batch request's log rows: "batchId.customId", or a
+	 * UUID named after it when that is longer than the column holds, so a long batch
+	 * or custom id still logs. Submit, billing and results all key a request by it.
+	 *
+	 * @param providerBatchId the batch id the caller holds
+	 * @param customId        the request's custom id
+	 * @return the request's transaction id, at most 50 characters
+	 */
+	public static String batchTransactionId(String providerBatchId, Object customId) {
+		String id = providerBatchId + COMPOSITE_DELIM + (customId == null ? "" : customId);
+		return id.length() <= TRANSACTION_ID_MAX_LENGTH ? id
+				: UUID.nameUUIDFromBytes(id.getBytes(StandardCharsets.UTF_8)).toString();
 	}
 
 	private static long tokens(Integer tokens) {
@@ -594,18 +612,19 @@ public class ModelBatchManager {
 	@SuppressWarnings("unchecked")
 	static Map<String, Object> withMaxOutput(Map<String, Object> request, long cap, ModelTypeEnum modelType) {
 		Map<String, Object> copy = new LinkedHashMap<>(request);
-		boolean anthropic = modelType == ModelTypeEnum.ANTHROPIC;
+		// both Vertex clients take max_tokens; Claude on Vertex refuses max_completion_tokens
+		boolean usesMaxTokens = modelType == ModelTypeEnum.ANTHROPIC || modelType == ModelTypeEnum.VERTEX;
 		for (String bodyKey : NATIVE_BODY_KEYS) {
 			if (copy.get(bodyKey) instanceof Map) {
 				Map<String, Object> body = new LinkedHashMap<>((Map<String, Object>) copy.get(bodyKey));
-				String added = anthropic ? "max_tokens"
+				String added = usesMaxTokens ? "max_tokens"
 						: body.containsKey("input") ? "max_output_tokens" : "max_completion_tokens";
 				capMaxOutput(body, cap, added);
 				copy.put(bodyKey, body);
 				return copy;
 			}
 		}
-		String added = copy.containsKey("message_json") || anthropic ? "max_tokens" : "max_completion_tokens";
+		String added = copy.containsKey("message_json") || usesMaxTokens ? "max_tokens" : "max_completion_tokens";
 		capMaxOutput(copy, cap, added);
 		return copy;
 	}
@@ -665,13 +684,16 @@ public class ModelBatchManager {
 
 	/**
 	 * Resolves and authorizes a GCS storage engine, mirroring StorageReactor's
-	 * own STORAGE key handling.
+	 * own STORAGE key handling. Submitting writes the batch's input into the
+	 * bucket, so it needs edit access, as PushToStorage does; reading the results
+	 * needs view access.
 	 */
-	public static IStorageEngine resolveStorage(User user, String storageEngineId) {
+	public static IStorageEngine resolveStorage(User user, String storageEngineId, boolean edit) {
 		String storageId = SecurityQueryUtils.testUserEngineIdForAlias(user, storageEngineId);
-		if (!SecurityEngineUtils.userCanViewEngine(user, storageId)) {
-			throw new IllegalArgumentException(
-					"Storage " + storageId + " does not exist or user does not have access to storage");
+		if (edit ? !SecurityEngineUtils.userCanEditEngine(user, storageId)
+				: !SecurityEngineUtils.userCanViewEngine(user, storageId)) {
+			throw new IllegalArgumentException("Storage " + storageId + " does not exist or user does not have "
+					+ (edit ? "edit " : "") + "access to storage");
 		}
 		return Utility.getStorage(storageId);
 	}
@@ -687,7 +709,11 @@ public class ModelBatchManager {
 	 * gs:// URIs.
 	 */
 	public static BatchSubmissionResponse submitVertexBatch(IModelEngine engine, IStorageEngine storage,
-			String storageEngineId, List<Map<String, Object>> requests, Map<String, Object> parameters) {
+			List<Map<String, Object>> requests, Map<String, Object> parameters) {
+		// the resolved id, not an alias the caller passed, encoded before anything is
+		// uploaded or a job is created so a failure here leaves no paid job behind
+		String storageEngineId = storage.getEngineId();
+		String storageToken = encodeStorageToken(storageEngineId);
 		BatchSubmissionResponse built = engine.submitBatch(requests, parameters);
 		Object jsonlObj = built.getRaw() == null ? null : built.getRaw().get("jsonl_content");
 		if (!(jsonlObj instanceof String) || ((String) jsonlObj).isEmpty()) {
@@ -726,7 +752,7 @@ public class ModelBatchManager {
 		// (projects/.../locations/.../batchPredictionJobs/<id>); only the
 		// trailing numeric id is needed to poll/cancel/fetch it later
 		String bareJobId = fullJobName.substring(fullJobName.lastIndexOf('/') + 1);
-		jobResponse.setProviderBatchId(encodeStorageToken(storageEngineId) + VERTEX_STORAGE_DELIM + folderToken
+		jobResponse.setProviderBatchId(storageToken + VERTEX_STORAGE_DELIM + folderToken
 				+ COMPOSITE_DELIM + encodeJobIdToken(bareJobId));
 		return jobResponse;
 	}
@@ -734,36 +760,51 @@ public class ModelBatchManager {
 	/**
 	 * providerBatchId here is "<storageEngineId>:<batchUuid>.<vertexJobName>"
 	 * (see {@link #submitVertexBatch}). Splits it back apart, re-resolves and
-	 * re-authorizes the storage engine, and downloads the output itself under
+	 * re-authorizes the storage engine, and downloads the output files under
 	 * the exact same relative prefix it originally chose at submit time --
 	 * recursing one level to find whatever shard files Vertex wrote there --
-	 * before asking the engine to normalize their content. The engine is only
-	 * asked for the plain job name and never touches the bucket.
+	 * into a temp folder, deleted after, that the engine reads and normalizes.
+	 * The engine is asked under the caller's id, which the results are billed
+	 * and logged under, is given the plain job id as jobId and the downloaded
+	 * files as outputFiles, and never touches the bucket.
 	 */
 	private static BatchResultsResponse fetchVertexBatchResults(User user, IModelEngine engine,
 			String providerBatchId, Map<String, Object> parameters) {
 		VertexBatchId decoded = decodeVertexBatchId(providerBatchId);
-		IStorageEngine storage = resolveStorage(user, decoded.storageEngineId);
+		IStorageEngine storage = resolveStorage(user, decoded.storageEngineId, false);
 		String outputPrefix = VERTEX_BATCH_ROOT + decoded.folderToken + "/output/";
 
-		List<String> rawBlobs = new ArrayList<>();
+		Path localFolder = null;
 		try {
-			List<String> jsonlPaths = new ArrayList<>();
-			collectJsonlBlobPaths(storage, outputPrefix, jsonlPaths, 0);
-			for (String path : jsonlPaths) {
-				byte[] bytes = storage.readBlobToMemory(path);
-				rawBlobs.add(new String(bytes, StandardCharsets.UTF_8));
+			// python reads the output from disk, so it is never sent in the call itself
+			List<String> outputFiles = new ArrayList<>();
+			try {
+				List<String> jsonlPaths = new ArrayList<>();
+				collectJsonlBlobPaths(storage, outputPrefix, jsonlPaths, 0);
+				localFolder = Files.createTempDirectory("semoss-batch-results-");
+				for (String path : jsonlPaths) {
+					// a folder each, since files in different output folders can share a name
+					Path fileFolder = localFolder.resolve(String.valueOf(outputFiles.size()));
+					storage.copyToLocal(path, fileFolder.toString());
+					outputFiles.add(fileFolder.resolve(path.substring(path.lastIndexOf('/') + 1)).toString());
+				}
+			} catch (Exception e) {
+				throw new IllegalStateException("Failed to read batch output from storage " + decoded.storageEngineId,
+						e);
 			}
-		} catch (Exception e) {
-			throw new IllegalStateException("Failed to read batch output from storage " + decoded.storageEngineId, e);
-		}
 
-		Map<String, Object> effectiveParams = new HashMap<>();
-		if (parameters != null) {
-			effectiveParams.putAll(parameters);
+			Map<String, Object> effectiveParams = new HashMap<>();
+			if (parameters != null) {
+				effectiveParams.putAll(parameters);
+			}
+			effectiveParams.put("outputFiles", outputFiles);
+			effectiveParams.put("jobId", decoded.bareJobId);
+			return engine.getBatchResults(providerBatchId, effectiveParams);
+		} finally {
+			if (localFolder != null) {
+				FileUtils.deleteQuietly(localFolder.toFile());
+			}
 		}
-		effectiveParams.put("rawBlobs", rawBlobs);
-		return engine.getBatchResults(decoded.bareJobId, effectiveParams);
 	}
 
 	/**
@@ -771,7 +812,7 @@ public class ModelBatchManager {
 	 * prefix a job was given (e.g. "prediction-<model>-<timestamp>/predictions_
 	 * 00001.jsonl"), so a plain single-level listing of the output prefix
 	 * itself would only see that subfolder, not the files in it. Recurses to
-	 * find every ".jsonl" file, bounded in depth since Vertex only nests one
+	 * find the ".jsonl" files, bounded in depth since Vertex only nests one
 	 * level today but this shouldn't break if that ever changes.
 	 */
 	private static void collectJsonlBlobPaths(IStorageEngine storage, String prefix, List<String> out, int depth)
@@ -779,13 +820,21 @@ public class ModelBatchManager {
 		if (depth > 5) {
 			return;
 		}
-		for (Map<String, Object> detail : storage.listDetails(prefix)) {
+		List<Map<String, Object>> details = storage.listDetails(prefix);
+		// Vertex also writes the predictions in chunks as the job runs; once the final
+		// file is beside them they only repeat it, and reading both lists results twice
+		boolean hasFinal = details.stream().anyMatch(detail -> !Boolean.TRUE.equals(detail.get("IsDir"))
+				&& String.valueOf(detail.get("Name")).endsWith(".jsonl"));
+		for (Map<String, Object> detail : details) {
 			Object nameObj = detail.get("Name");
 			if (nameObj == null) {
 				continue;
 			}
 			String childPath = prefix.endsWith("/") ? prefix + nameObj : prefix + "/" + nameObj;
 			if (Boolean.TRUE.equals(detail.get("IsDir"))) {
+				if (hasFinal && "incremental_predictions".equals(nameObj)) {
+					continue;
+				}
 				collectJsonlBlobPaths(storage, childPath + "/", out, depth + 1);
 			} else if (childPath.endsWith(".jsonl")) {
 				out.add(childPath);
@@ -844,7 +893,7 @@ public class ModelBatchManager {
 		// time skips them
 		List<ResultRow> rows = new ArrayList<>();
 		for (BatchResultItem item : results.getItems()) {
-			String txnId = providerBatchId + "." + item.getCustomId();
+			String txnId = batchTransactionId(providerBatchId, item.getCustomId());
 			// each result is written once, however often and wherever the results are read
 			if (recorded.contains(txnId) || !marks.markOnce(RECORDED_MARK + txnId)) {
 				continue;
@@ -924,7 +973,7 @@ public class ModelBatchManager {
 				for (Map<String, Object> req : requests) {
 					Object customId = req.get("custom_id");
 					Object command = req.get("command");
-					String txnId = providerBatchId + "." + (customId != null ? customId.toString() : "");
+					String txnId = batchTransactionId(providerBatchId, customId);
 					String commandText = command != null ? command.toString() : null;
 					ModelInferenceLogsUtils.doRecordMessage(GUID.v7().toUUID().toString(), txnId, "INPUT", commandText,
 							"batch", null, null, null, null, null, null, null, now, engine.getEngineId(), insightId,
@@ -950,8 +999,9 @@ public class ModelBatchManager {
 	}
 
 	/**
-	 * Look up the stored input prompts for a batch. Returns customId -> command
-	 * map. Returns empty map if logging is disabled or no submission row exists.
+	 * Look up the stored input prompts for a batch. Returns transactionId -> command
+	 * map, keyed by {@link #batchTransactionId}. Returns empty map if logging is
+	 * disabled or no submission row exists.
 	 */
 	public static Map<String, String> getBatchInputs(User user, String providerBatchId) {
 		if (!Utility.isModelInferenceLogsEnabled()) {

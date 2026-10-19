@@ -7,12 +7,14 @@ Claude; only the per-line request/response JSON shape differs.
 
 This module never touches Cloud Storage directly -- Java drives all GCS I/O
 through the SEMOSS storage engine that already holds the credentials for it
-(see ModelBatchManager's submitVertexBatch/fetchVertexBatchResults), handing
-this side plain JSONL text to build/parse. That keeps a storage engine's
-credentials from ever crossing into this out-of-process Python runtime.
+(see ModelBatchManager's submitVertexBatch/fetchVertexBatchResults), having
+this side build plain JSONL text and parse local copies of the output. That
+keeps a storage engine's credentials from ever crossing into this
+out-of-process Python runtime.
 """
 
-from typing import Any, Dict, Optional
+import json
+from typing import Any, Callable, Dict, List, Optional
 
 
 # Vertex AI JobState values -> the SEMOSS batch-status vocabulary
@@ -68,36 +70,36 @@ def normalize_result_line(line: Dict[str, Any]) -> Dict[str, Any]:
     """Normalizes one output JSONL line for an Anthropic-on-Vertex batch item to
     {"custom_id", "ok", "message", "error", "input_tokens", "output_tokens"}.
 
-    NOTE: the exact key the prediction body is nested under (tried below in
-    order) has not been confirmed against a live batch job output sample --
-    adjust to match once one is available.
+    The line (checked against a live batch job) is {"custom_id", "status",
+    "processed_time", "response"}, the same envelope as Gemini's: "status" is
+    an empty string on success and the provider's error otherwise, and
+    "response" is the Anthropic Message, empty when the request failed.
     """
     custom_id = line.get("custom_id")
-    body = line.get("response") or line.get("result") or line.get("prediction") or line
+    status = line.get("status")
+    message = line.get("response")
 
-    error = line.get("error") or (body.get("error") if isinstance(body, dict) else None)
-    if error:
+    if status or not isinstance(message, dict) or not message:
         return {
             "custom_id": custom_id,
             "ok": False,
             "message": None,
-            "error": error,
+            "error": status or "No response returned for this request",
             "input_tokens": None,
             "output_tokens": None,
         }
 
-    message = body.get("message") if isinstance(body, dict) and "message" in body else body
-    usage = (message or {}).get("usage") if isinstance(message, dict) else None
+    usage = message.get("usage") or {}
     return {
         "custom_id": custom_id,
         "ok": True,
         "message": {
-            "role": (message or {}).get("role"),
-            "content": (message or {}).get("content"),
+            "role": message.get("role"),
+            "content": message.get("content"),
         },
         "error": None,
-        "input_tokens": (usage or {}).get("input_tokens"),
-        "output_tokens": (usage or {}).get("output_tokens"),
+        "input_tokens": usage.get("input_tokens"),
+        "output_tokens": usage.get("output_tokens"),
     }
 
 
@@ -135,18 +137,41 @@ def normalize_gemini_result_line(line: Dict[str, Any]) -> Dict[str, Any]:
         content = candidates[0].get("content") or {}
         role = content.get("role")
         for part in content.get("parts") or []:
-            if isinstance(part, dict) and "text" in part:
+            # thought summaries are not the answer, same as a regular ask
+            if isinstance(part, dict) and "text" in part and not part.get("thought"):
                 text_parts.append(part["text"])
 
+    text = "".join(text_parts)
     usage = response.get("usageMetadata") or {}
+    # Gemini counts thoughts apart from the answer; fold them in so output_tokens
+    # is all billed output, the same as a regular ask
+    output_tokens = usage.get("candidatesTokenCount")
+    if usage.get("thoughtsTokenCount"):
+        output_tokens = (output_tokens or 0) + usage["thoughtsTokenCount"]
     return {
         "custom_id": custom_id,
         "ok": True,
         "message": {
             "role": role,
-            "content": "".join(text_parts),
+            # content blocks, the shape BatchResultItem reads from every provider
+            "content": [{"type": "text", "text": text}] if text else [],
         },
         "error": None,
         "input_tokens": usage.get("promptTokenCount"),
-        "output_tokens": usage.get("candidatesTokenCount"),
+        "output_tokens": output_tokens,
     }
+
+
+def read_output_files(
+    paths: List[str], normalize: Callable[[Dict[str, Any]], Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """Normalizes every line of the output files Java downloaded for a batch,
+    one line at a time, so a large output is never held as one string."""
+    items = []
+    for path in paths:
+        with open(path, encoding="utf-8") as output:
+            for raw_line in output:
+                raw_line = raw_line.strip()
+                if raw_line:
+                    items.append(normalize(json.loads(raw_line)))
+    return items

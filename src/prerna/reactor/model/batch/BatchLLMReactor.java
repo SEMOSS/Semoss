@@ -104,8 +104,8 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 			if (engine.getModelType() != ModelTypeEnum.VERTEX) {
 				throw new IllegalArgumentException("The storage key is only applicable to Vertex-hosted engines");
 			}
-			IStorageEngine storage = ModelBatchManager.resolveStorage(getUser(), storageId);
-			response = ModelBatchManager.submitVertexBatch(engine, storage, storageId, requests, batchParams);
+			IStorageEngine storage = ModelBatchManager.resolveStorage(getUser(), storageId, true);
+			response = ModelBatchManager.submitVertexBatch(engine, storage, requests, batchParams);
 		} else {
 			if (engine.getModelType() == ModelTypeEnum.VERTEX) {
 				// Vertex has no hosted batch API -- it requires staging the requests

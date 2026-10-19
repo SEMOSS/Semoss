@@ -71,7 +71,7 @@ public class GetModelBatchResultsReactor extends AbstractModelBatchReactor {
 		Map<String, String> inputs = ModelBatchManager.getBatchInputs(getUser(), batchId);
 		if (!inputs.isEmpty() && response.getItems() != null) {
 			for (BatchResultItem item : response.getItems()) {
-				String input = inputs.get(item.getCustomId());
+				String input = inputs.get(ModelBatchManager.batchTransactionId(batchId, item.getCustomId()));
 				if (input != null) {
 					item.setInputText(input);
 				}

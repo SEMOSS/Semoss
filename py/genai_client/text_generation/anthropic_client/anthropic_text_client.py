@@ -1358,22 +1358,19 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         }
 
     def _get_batch_results_vertex(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
-        """rawBlobs here is the raw text content of every output shard Java
-        already downloaded through the storage engine -- this method only
-        normalizes lines into the SEMOSS shape; it never touches GCS itself."""
-        from ...clients.vertex_batch_client import normalize_job_state, normalize_result_line
+        """outputFiles are the local copies of every output shard Java already
+        downloaded through the storage engine -- this method only normalizes
+        their lines into the SEMOSS shape; it never touches GCS itself. jobId is
+        the bare Vertex job id; provider_batch_id is the SEMOSS id the results
+        are billed and logged under."""
+        from ...clients.vertex_batch_client import (
+            normalize_job_state,
+            normalize_result_line,
+            read_output_files,
+        )
 
-        job_name = provider_batch_id.split(".", 1)[-1]
-        raw_blobs = kwargs.pop("rawBlobs", None) or []
-        if isinstance(raw_blobs, str):
-            raw_blobs = json.loads(raw_blobs)
-
-        items = []
-        for blob_text in raw_blobs:
-            for raw_line in blob_text.splitlines():
-                raw_line = raw_line.strip()
-                if raw_line:
-                    items.append(normalize_result_line(json.loads(raw_line)))
+        job_name = kwargs.pop("jobId", None) or provider_batch_id.split(".", 1)[-1]
+        items = read_output_files(kwargs.pop("outputFiles", None) or [], normalize_result_line)
 
         genai_client = self._vertex_genai_client()
         job = genai_client.batches.get(name=job_name)
