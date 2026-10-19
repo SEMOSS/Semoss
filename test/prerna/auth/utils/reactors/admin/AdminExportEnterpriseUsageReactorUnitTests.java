@@ -165,6 +165,8 @@ class AdminExportEnterpriseUsageReactorUnitTests {
 			row.put("USER_NAME", unicodeName);
 			row.put("TOKENS", 42);
 			row.put("LATENCY_MS", null);
+			row.put("COST_MICROS", 1_234_567L);
+			row.put("ESTIMATED_COST_MICROS", null);
 			usage.when(() -> EnterpriseUsageUtils.report(Source.MODEL, View.RANKING, "2024-03-01", "2024-03-31",
 					"=target-user", "", "", "model", 20, 0)).thenReturn(Map.of("rows", List.of(row)));
 			var noun = reactor.execute();
@@ -177,6 +179,11 @@ class AdminExportEnterpriseUsageReactorUnitTests {
 			assertTrue(csv.contains("\"'=SUM(1,2)\""));
 			assertTrue(csv.contains("\"Entity Name\""));
 			assertTrue(csv.contains("\"42\""));
+			// costs are exported in dollars, not millionths of a dollar
+			assertTrue(csv.contains("\"Cost (USD)\""));
+			assertTrue(csv.contains("\"Estimated Cost (USD)\""));
+			assertTrue(csv.contains("\"1.234567\""));
+			assertFalse(csv.contains("Micros"));
 			assertTrue(csv.contains("2024-03-01"));
 			assertTrue(csv.contains("target-user"));
 			var event = auditEvent();

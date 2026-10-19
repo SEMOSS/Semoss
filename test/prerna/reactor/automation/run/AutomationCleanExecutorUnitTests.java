@@ -70,11 +70,13 @@ class AutomationCleanExecutorUnitTests {
 	void databaseFramesSupportPurgeOutsideTheMergePath() {
 		for (DataFrameTypeEnum frame : List.of(DataFrameTypeEnum.GRID, DataFrameTypeEnum.NATIVE)) {
 			for (AutomationFrameOperation operation : FRAME_OPERATIONS) {
-				if (operation == AutomationFrameOperation.JOIN) continue;
+				if (operation == AutomationFrameOperation.JOIN)
+					continue;
 				if (operation == AutomationFrameOperation.PURGE) {
 					assertInstanceOf(PurgeReactor.class, AutomationCleanExecutor.reactor(operation, frame));
 				} else {
-					assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.reactor(operation, frame));
+					assertThrows(IllegalArgumentException.class,
+							() -> AutomationCleanExecutor.reactor(operation, frame));
 				}
 			}
 		}
@@ -97,7 +99,8 @@ class AutomationCleanExecutorUnitTests {
 		assertInstanceOf(prerna.reactor.frame.py.FilterEmptyValuesReactor.class,
 				AutomationCleanExecutor.reactor(AutomationFrameOperation.FILTER_EMPTY, DataFrameTypeEnum.PYTHON));
 		assertNotNull(AutomationCleanExecutor.reactor(AutomationFrameOperation.REPLACE, DataFrameTypeEnum.PYTHON));
-		assertNotNull(AutomationCleanExecutor.reactor(AutomationFrameOperation.REMOVE_DUPLICATES, DataFrameTypeEnum.PYTHON));
+		assertNotNull(
+				AutomationCleanExecutor.reactor(AutomationFrameOperation.REMOVE_DUPLICATES, DataFrameTypeEnum.PYTHON));
 		assertInstanceOf(prerna.reactor.frame.py.ImputeNullValuesReactor.class,
 				AutomationCleanExecutor.reactor(AutomationFrameOperation.IMPUTE_NULLS, DataFrameTypeEnum.PYTHON));
 		assertInstanceOf(prerna.reactor.frame.py.ChangeColumnTypeReactor.class,
@@ -117,7 +120,7 @@ class AutomationCleanExecutorUnitTests {
 		assertEquals(AutomationFrameOperation.CHANGE_TYPE, AutomationCleanExecutor.operationType(
 				AutomationNodeType.DATA_TRANSFORM, Map.of("operation", "changeType"), Map.of(), "transform"));
 		assertEquals(AutomationFrameOperation.JOIN, AutomationCleanExecutor.operationType(
-			AutomationNodeType.DATA_TRANSFORM, Map.of("operation", "join"), Map.of(), "join"));
+				AutomationNodeType.DATA_TRANSFORM, Map.of("operation", "join"), Map.of(), "join"));
 		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.operationType(
 				AutomationNodeType.CLEAN_PROCESS, Map.of("operation", "unknown"), Map.of(), "clean"));
 		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.operationType(
@@ -159,7 +162,8 @@ class AutomationCleanExecutorUnitTests {
 	@Test
 	void rejectsOrdinaryJsonMasqueradingAsAFrame() {
 		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.execute(new Insight(), "cleaned",
-				AutomationNodeType.CLEAN_PROCESS, Map.of("source", "${input}", "operation", "trim", "columns", List.of("NAME")),
+				AutomationNodeType.CLEAN_PROCESS,
+				Map.of("source", "${input}", "operation", "trim", "columns", List.of("NAME")),
 				Map.of("input", Map.of("dataType", "table", "rows", List.of())), "clean"));
 	}
 
@@ -170,15 +174,17 @@ class AutomationCleanExecutorUnitTests {
 		assertEquals(List.of("NAME"), AutomationCleanExecutor.columns(List.of("NAME", "NAME"), frame));
 		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.columns(List.of(), frame));
 		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.columns(List.of("MISSING"), frame));
-		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.columns(List.of("NAME');exec('x"), frame));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationCleanExecutor.columns(List.of("NAME');exec('x"), frame));
 		SelectQueryStruct filters = AutomationCleanExecutor.purgeFilters(
-				List.of(Map.of("column", "AGE", "operator", ">=", "value", "${minimum}")), frame, Map.of("minimum", 18));
+				List.of(Map.of("column", "AGE", "operator", ">=", "value", "${minimum}")), frame,
+				Map.of("minimum", 18));
 		assertEquals(1, filters.getCombinedFilters().getFilters().size());
 		OrQueryFilter retained = (OrQueryFilter) filters.getCombinedFilters().getFilters().get(0);
 		assertEquals("<", ((SimpleQueryFilter) retained.getFilterList().get(0)).getComparator());
 		assertEquals(18, ((SimpleQueryFilter) retained.getFilterList().get(0)).getRComparison().getValue());
-		assertNull(((SimpleQueryFilter) retained.getFilterList().get(1)).getRComparison().getValue());
-		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.purgeFilters(List.of(), frame, Map.of()));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationCleanExecutor.purgeFilters(List.of(), frame, Map.of()));
 		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.purgeFilters(
 				List.of(Map.of("column", "AGE", "operator", "execute", "value", 1)), frame, Map.of()));
 		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.purgeFilters(
@@ -193,52 +199,36 @@ class AutomationCleanExecutorUnitTests {
 				Map.of("column", "NAME", "operator", "==", "value", "inactive"),
 				Map.of("column", "AGE", "operator", ">", "value", 18)), frame, Map.of());
 		OrQueryFilter retained = (OrQueryFilter) query.getCombinedFilters().getFilters().get(0);
-		assertEquals(4, retained.getFilterList().size());
+		assertEquals(2, retained.getFilterList().size());
 		assertEquals("!=", ((SimpleQueryFilter) retained.getFilterList().get(0)).getComparator());
-		assertEquals("<=", ((SimpleQueryFilter) retained.getFilterList().get(2)).getComparator());
+		assertEquals("<=", ((SimpleQueryFilter) retained.getFilterList().get(1)).getComparator());
 	}
 
 	@Test
-	void purgeSupportsBoundedMembershipAndResolvesReferencesInsideValueLists() {
+	void purgeRejectsListsAndNullsAtTheAutomationBoundary() {
 		ITableDataFrame frame = mock(ITableDataFrame.class);
 		when(frame.getColumnHeaders()).thenReturn(new String[] { "ID" });
-		for (String comparator : List.of("==", "!=")) {
-			SelectQueryStruct query = AutomationCleanExecutor.purgeFilters(
-					List.of(Map.of("column", "ID", "operator", comparator, "value", List.of(1, "${second}"))), frame, Map.of("second", 2));
-			OrQueryFilter retained = (OrQueryFilter) query.getCombinedFilters().getFilters().get(0);
-			SimpleQueryFilter membership = (SimpleQueryFilter) retained.getFilterList().get(0);
-			assertEquals(comparator.equals("==") ? "!=" : "==", membership.getComparator());
-			assertEquals(List.of(1, 2), membership.getRComparison().getValue());
-			assertEquals(2, retained.getFilterList().size());
-		}
-		SelectQueryStruct explicitNull = AutomationCleanExecutor.purgeFilters(List.of(Map.of("column", "ID", "operator", "==", "value", java.util.Arrays.asList(1, null))), frame, Map.of());
-		assertEquals(1, ((OrQueryFilter) explicitNull.getCombinedFilters().getFilters().get(0)).getFilterList().size());
-		for (Object invalid : List.of(List.of(), List.of(List.of(1)), java.util.Collections.nCopies(101, 1))) {
-			assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.purgeFilters(List.of(Map.of("column", "ID", "operator", "==", "value", invalid)), frame, Map.of()));
-		}
-		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.purgeFilters(List.of(Map.of("column", "ID", "operator", ">", "value", List.of(1, 2))), frame, Map.of()));
+		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.purgeFilters(
+				List.of(Map.of("column", "ID", "operator", "==", "value", List.of(1, 2))), frame, Map.of()));
+		Map<String, Object> nullRule = new java.util.LinkedHashMap<>();
+		nullRule.put("column", "ID");
+		nullRule.put("operator", "==");
+		nullRule.put("value", null);
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationCleanExecutor.purgeFilters(List.of(nullRule), frame, Map.of()));
 	}
 
 	@Test
-	void purgeInvertsAllComparisonBoundariesAndSupportsExplicitNullRemoval() {
+	void purgeInvertsAllComparisonBoundaries() {
 		ITableDataFrame frame = mock(ITableDataFrame.class);
 		when(frame.getColumnHeaders()).thenReturn(new String[] { "AGE" });
-		for (Map.Entry<String, String> comparison : Map.of("==", "!=", "!=", "==", ">", "<=", ">=", "<", "<", ">=", "<=", ">").entrySet()) {
+		for (Map.Entry<String, String> comparison : Map
+				.of("==", "!=", "!=", "==", ">", "<=", ">=", "<", "<", ">=", "<=", ">").entrySet()) {
 			SelectQueryStruct query = AutomationCleanExecutor.purgeFilters(
 					List.of(Map.of("column", "AGE", "operator", comparison.getKey(), "value", 18)), frame, Map.of());
 			OrQueryFilter retained = (OrQueryFilter) query.getCombinedFilters().getFilters().get(0);
 			assertEquals(comparison.getValue(), ((SimpleQueryFilter) retained.getFilterList().get(0)).getComparator());
 		}
-		Map<String, Object> nullRule = new java.util.LinkedHashMap<>();
-		nullRule.put("column", "AGE");
-		nullRule.put("operator", "==");
-		nullRule.put("value", null);
-		SelectQueryStruct query = AutomationCleanExecutor.purgeFilters(List.of(nullRule), frame, Map.of());
-		OrQueryFilter retained = (OrQueryFilter) query.getCombinedFilters().getFilters().get(0);
-		assertEquals(1, retained.getFilterList().size());
-		assertEquals("!=", ((SimpleQueryFilter) retained.getFilterList().get(0)).getComparator());
-		nullRule.put("operator", ">");
-		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.purgeFilters(List.of(nullRule), frame, Map.of()));
 	}
 
 	@Test
@@ -359,7 +349,10 @@ class AutomationCleanExecutorUnitTests {
 		when(returnedFrame.getName()).thenReturn("cleaned");
 		when(returnedFrame.getWrapperName()).thenReturn("cleanedw");
 		java.util.concurrent.atomic.AtomicBoolean bindingPresent = new java.util.concurrent.atomic.AtomicBoolean(true);
-		doAnswer(invocation -> { bindingPresent.set(false); return null; }).when(copied).close();
+		doAnswer(invocation -> {
+			bindingPresent.set(false);
+			return null;
+		}).when(copied).close();
 		IRawSelectWrapper rows = mock(IRawSelectWrapper.class);
 		IImporter importer = mock(IImporter.class);
 		SelectQueryStruct query = new SelectQueryStruct();
@@ -370,7 +363,8 @@ class AutomationCleanExecutorUnitTests {
 		when(source.getFrameFilters()).thenReturn(new GenRowFilters());
 		when(source.query(query)).thenReturn(rows);
 		when(returnedFrame.size("cleaned")).thenAnswer(invocation -> {
-			if (!bindingPresent.get()) throw new IllegalStateException("NameError: cleanedw is not defined");
+			if (!bindingPresent.get())
+				throw new IllegalStateException("NameError: cleanedw is not defined");
 			return 2L;
 		});
 		when(returnedFrame.getQsHeaders()).thenReturn(new String[] { "cleaned__NAME" });
@@ -384,7 +378,8 @@ class AutomationCleanExecutorUnitTests {
 							if (fail) {
 								when(reactor.execute()).thenThrow(new IllegalStateException("BI failure"));
 							} else {
-								when(reactor.execute()).thenReturn(new NounMetadata(returnedFrame, PixelDataType.FRAME));
+								when(reactor.execute())
+										.thenReturn(new NounMetadata(returnedFrame, PixelDataType.FRAME));
 							}
 						})) {
 			factory.when(() -> FrameFactory.getFrame(insight, "PY", "cleaned")).thenReturn(copied);
@@ -408,8 +403,8 @@ class AutomationCleanExecutorUnitTests {
 			assertFalse(query.isDistinct());
 			verify(importer).setInsight(insight);
 			verify(importer).insertData();
-				verify(copied).runScript(
-						"cleanedw.cache['data'][\"MISSING_DATE\"] = pd.to_datetime(cleanedw.cache['data'][\"MISSING_DATE\"])");
+			verify(copied).runScript(
+					"cleanedw.cache['data'][\"MISSING_DATE\"] = pd.to_datetime(cleanedw.cache['data'][\"MISSING_DATE\"])");
 			verify(rows).close();
 			verify(source, never()).close();
 			verify(reactors.constructed().get(0)).setNounStore(any());

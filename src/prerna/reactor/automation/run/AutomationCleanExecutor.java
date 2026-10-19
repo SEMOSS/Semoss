@@ -37,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
@@ -47,6 +48,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.definition.AutomationFrameOperation;
 import prerna.reactor.automation.definition.AutomationNodeType;
 import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.reactor.frame.FrameFactory;
 import prerna.reactor.frame.PurgeReactor;
 import prerna.reactor.imports.MergeReactor;
@@ -65,13 +67,27 @@ final class AutomationCleanExecutor {
 	private AutomationCleanExecutor() {
 	}
 
+	/**
+	 * Copies an upstream Automation frame, applies one existing BI cleaning
+	 * reactor,
+	 * and registers the isolated result in the execution Insight.
+	 *
+	 * @param insight        execution Insight that owns the input and output frames
+	 * @param outputVariable output alias registered in the Insight
+	 * @param type           persisted Automation node type
+	 * @param config         immutable node configuration
+	 * @param scope          current Automation scope
+	 * @param nodeId         executing node identifier used for diagnostics
+	 * @return internal reference to the registered cleaned frame
+	 */
 	static AutomationFrameOutput.RegisteredFrame execute(Insight insight, String outputVariable,
 			AutomationNodeType type, Map<String, Object> config, Map<String, Object> scope, String nodeId) {
 		AutomationFrameOperation operation = operationType(type, config, scope, nodeId);
 		Object source = AutomationScopeResolver.resolveExactOrLiteral(config.get("source"), scope,
 				"Clean node '" + nodeId + "'");
 		if (!(source instanceof AutomationFrameOutput.RegisteredFrame input)) {
-			throw new IllegalArgumentException("Clean node '" + nodeId + "' requires a live upstream table, not JSON or a preview.");
+			throw new IllegalArgumentException(
+					"Clean node '" + nodeId + "' requires a live upstream table, not JSON or a preview.");
 		}
 		if (input.rowCount() > AutomationConstants.SAVED_RESULT_MAX_ROWS) {
 			throw new IllegalArgumentException("Clean input exceeds the supported table row limit.");
@@ -94,7 +110,8 @@ final class AutomationCleanExecutor {
 			SelectQueryStruct filters = purgeFilters(config.get("filters"), input.frame(), scope);
 			reactor.getCurRow().add(new NounMetadata(filters, PixelDataType.QUERY_STRUCT));
 		} else if (operation == AutomationFrameOperation.CHANGE_TYPE) {
-			String column = columns(List.of(resolveRequiredString(config, "column", scope, nodeId)), input.frame()).get(0);
+			String column = columns(List.of(resolveRequiredString(config, "column", scope, nodeId)), input.frame())
+					.get(0);
 			String dataType = resolveRequiredString(config, "dataType", scope, nodeId);
 			if (!List.of("STRING", "FACTOR", "DOUBLE", "DATE").contains(dataType)) {
 				throw new IllegalArgumentException("Unsupported target column type: " + dataType);
@@ -102,10 +119,12 @@ final class AutomationCleanExecutor {
 			nouns.makeGenRowStruct("column").add(new NounMetadata(column, PixelDataType.CONST_STRING));
 			nouns.makeGenRowStruct("dataType").add(new NounMetadata(dataType, PixelDataType.CONST_STRING));
 		} else if (operation == AutomationFrameOperation.RENAME_COLUMN) {
-			String column = columns(List.of(resolveRequiredString(config, "column", scope, nodeId)), input.frame()).get(0);
+			String column = columns(List.of(resolveRequiredString(config, "column", scope, nodeId)), input.frame())
+					.get(0);
 			String newColumn = resolveRequiredString(config, "newColumn", scope, nodeId);
 			if (!newColumn.matches("[A-Za-z_][A-Za-z0-9_]*")) {
-				throw new IllegalArgumentException("New column name must contain only letters, digits, and underscores.");
+				throw new IllegalArgumentException(
+						"New column name must contain only letters, digits, and underscores.");
 			}
 			if (!column.equals(newColumn) && Arrays.asList(input.frame().getColumnHeaders()).contains(newColumn)) {
 				throw new IllegalArgumentException("A column named '" + newColumn + "' already exists.");
@@ -161,8 +180,10 @@ final class AutomationCleanExecutor {
 					addString(nouns, ReactorKeysEnum.MAINTAIN_COLUMNS.getKey(), column);
 				}
 			}
-			if (!function.isEmpty()) addString(nouns, "function", function);
-			if (naReplace != null) addString(nouns, "naReplace", naReplace);
+			if (!function.isEmpty())
+				addString(nouns, "function", function);
+			if (naReplace != null)
+				addString(nouns, "naReplace", naReplace);
 		} else if (operation == AutomationFrameOperation.LOWER_CASE
 				|| operation == AutomationFrameOperation.PROPER_CASE
 				|| operation == AutomationFrameOperation.UPPER_CASE) {
@@ -192,7 +213,8 @@ final class AutomationCleanExecutor {
 				throw new IllegalArgumentException("Significant digits must be between 0 and 20.");
 			}
 			Object by100 = config.getOrDefault("by100", Boolean.FALSE);
-			if (!(by100 instanceof Boolean)) throw new IllegalArgumentException("by100 must be a boolean.");
+			if (!(by100 instanceof Boolean))
+				throw new IllegalArgumentException("by100 must be a boolean.");
 			addString(nouns, ReactorKeysEnum.COLUMN.getKey(), column);
 			nouns.makeGenRowStruct("sigDigits").add(new NounMetadata(number.intValue(), PixelDataType.CONST_INT));
 			nouns.makeGenRowStruct("by100").add(new NounMetadata(by100, PixelDataType.BOOLEAN));
@@ -204,7 +226,8 @@ final class AutomationCleanExecutor {
 			List<String> columns = columns(AutomationScopeResolver.resolveExactOrLiteral(config.get("columns"), scope,
 					"Clean columns"), input.frame());
 			if (operation == AutomationFrameOperation.REPLACE) {
-				for (String column : columns) addString(nouns, ReactorKeysEnum.COLUMN.getKey(), column);
+				for (String column : columns)
+					addString(nouns, ReactorKeysEnum.COLUMN.getKey(), column);
 			} else {
 				addColumns(nouns, columns);
 			}
@@ -230,7 +253,11 @@ final class AutomationCleanExecutor {
 			synchronizePythonFrame(resultFrame, outputVariable);
 			resultFrame.clearCachedMetrics();
 			resultFrame.clearQueryCache();
-			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable, resultFrame);
+			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable,
+					resultFrame);
+			LOGGER.debug("Cleaned frame '{}' for Automation node '{}' in execution Insight '{}': {} rows, {} columns",
+					outputVariable, nodeId, insight.getInsightId(), output.rowCount(),
+					output.summary().get("columnCount"));
 			completed = true;
 			return output;
 		} catch (Exception error) {
@@ -240,7 +267,8 @@ final class AutomationCleanExecutor {
 			if (copy != null && !sharesPythonBindings(copy, resultFrame)) {
 				close(insight, outputVariable, copy);
 			}
-			throw new IllegalStateException("Unable to clean table for node '" + nodeId + "': " + error.getMessage(), error);
+			throw new IllegalStateException("Unable to clean table for node '" + nodeId + "': " + error.getMessage(),
+					error);
 		} finally {
 			if (completed && copy != null && copy != resultFrame && !sharesPythonBindings(copy, resultFrame)) {
 				close(insight, outputVariable, copy);
@@ -275,12 +303,15 @@ final class AutomationCleanExecutor {
 		if (right.rowCount() > AutomationConstants.SAVED_RESULT_MAX_ROWS) {
 			throw new IllegalArgumentException("Join input exceeds the supported table row limit.");
 		}
-		String leftColumn = columns(List.of(resolveRequiredString(config, "column", scope, nodeId)), left.frame()).get(0);
-		String rightColumn = columns(List.of(resolveRequiredString(config, "rightColumn", scope, nodeId)), right.frame())
+		String leftColumn = columns(List.of(resolveRequiredString(config, "column", scope, nodeId)), left.frame())
+				.get(0);
+		String rightColumn = columns(List.of(resolveRequiredString(config, "rightColumn", scope, nodeId)),
+				right.frame())
 				.get(0);
 		if (operation == AutomationFrameOperation.JOIN) {
 			String joinType = optionalString(config.get("joinType"), "joinType");
-			if (joinType.isEmpty()) joinType = "inner.join";
+			if (joinType.isEmpty())
+				joinType = "inner.join";
 			return executeStandardJoin(insight, outputVariable, left.frame(), right.frame(), leftColumn, rightColumn,
 					joinType, nodeId);
 		}
@@ -324,8 +355,10 @@ final class AutomationCleanExecutor {
 			completed = true;
 			return output;
 		} catch (Exception error) {
-			if (resultFrame != null && resultFrame != working) close(insight, outputVariable, resultFrame);
-			if (working != null && !sharesPythonBindings(working, resultFrame)) close(insight, outputVariable, working);
+			if (resultFrame != null && resultFrame != working)
+				close(insight, outputVariable, resultFrame);
+			if (working != null && !sharesPythonBindings(working, resultFrame))
+				close(insight, outputVariable, working);
 			throw new IllegalStateException(
 					"Unable to join tables for node '" + nodeId + "': " + error.getMessage(), error);
 		} finally {
@@ -334,8 +367,6 @@ final class AutomationCleanExecutor {
 			}
 		}
 	}
-
-
 
 	private static SelectQueryStruct frameQuery(ITableDataFrame frame) {
 		SelectQueryStruct query = frame.getMetaData().getFlatTableQs(false);
@@ -404,7 +435,8 @@ final class AutomationCleanExecutor {
 	}
 
 	private static String safeOptionalScriptLiteral(Object configured, Map<String, Object> scope, String nodeId) {
-		if (configured == null) return null;
+		if (configured == null)
+			return null;
 		Object resolved = AutomationScopeResolver.resolveExactOrLiteral(configured, scope,
 				"Pivot replacement value for node '" + nodeId + "'");
 		if (!(resolved instanceof String value)) {
@@ -418,7 +450,8 @@ final class AutomationCleanExecutor {
 	}
 
 	private static String optionalString(Object configured, String key) {
-		if (configured == null) return "";
+		if (configured == null)
+			return "";
 		if (!(configured instanceof String value)) {
 			throw new IllegalArgumentException(key + " must be a string.");
 		}
@@ -426,11 +459,13 @@ final class AutomationCleanExecutor {
 	}
 
 	private static List<String> optionalColumns(Object configured, ITableDataFrame frame) {
-		if (configured == null) return List.of();
+		if (configured == null)
+			return List.of();
 		if (!(configured instanceof List<?> selected) || selected.size() > 1000) {
 			throw new IllegalArgumentException("maintainColumns must be a list of at most 1000 column names.");
 		}
-		if (selected.isEmpty()) return List.of();
+		if (selected.isEmpty())
+			return List.of();
 		return columns(selected, frame);
 	}
 
@@ -439,7 +474,8 @@ final class AutomationCleanExecutor {
 		for (String column : selected) {
 			String type = frame.getMetaData().getHeaderTypeAsString(frame.getName() + "__" + column);
 			if (!"STRING".equalsIgnoreCase(type)) {
-				throw new IllegalArgumentException("Case conversion requires string columns; '" + column + "' is " + type + ".");
+				throw new IllegalArgumentException(
+						"Case conversion requires string columns; '" + column + "' is " + type + ".");
 			}
 		}
 		return selected;
@@ -448,16 +484,22 @@ final class AutomationCleanExecutor {
 	private static void validateNumericColumn(ITableDataFrame frame, String column) {
 		String type = frame.getMetaData().getHeaderTypeAsString(frame.getName() + "__" + column);
 		if (!"INT".equalsIgnoreCase(type) && !"DOUBLE".equalsIgnoreCase(type)) {
-			throw new IllegalArgumentException("To Percent requires a numeric column; '" + column + "' is " + type + ".");
+			throw new IllegalArgumentException(
+					"To Percent requires a numeric column; '" + column + "' is " + type + ".");
 		}
 	}
+
 	private static boolean sharesPythonBindings(ITableDataFrame first, ITableDataFrame second) {
 		return first instanceof PandasFrame original && second instanceof PandasFrame replacement
 				&& ((original.getName() != null && original.getName().equals(replacement.getName()))
-						|| (original.getWrapperName() != null && original.getWrapperName().equals(replacement.getWrapperName())));
+						|| (original.getWrapperName() != null
+								&& original.getWrapperName().equals(replacement.getWrapperName())));
 	}
 
-	/** Keeps bindings and cached query selectors aligned with the BI result before publication. */
+	/**
+	 * Keeps bindings and cached query selectors aligned with the BI result before
+	 * publication.
+	 */
 	static void synchronizePythonFrame(ITableDataFrame frame, String outputVariable) {
 		if (frame instanceof PandasFrame python) {
 			python.runScript(outputVariable + " = " + python.getWrapperName() + ".cache['data']");
@@ -476,31 +518,31 @@ final class AutomationCleanExecutor {
 			throw new IllegalArgumentException(type.getValue() + " requires a Python frame.");
 		}
 		return switch (type) {
-		case TRIM -> new prerna.reactor.frame.py.TrimColumnsReactor();
-		case REPLACE -> new prerna.reactor.frame.py.ReplaceColumnValueReactor();
-		case REMOVE_DUPLICATES -> new prerna.reactor.frame.py.RemoveDuplicateRowsReactor();
-		case FILTER_EMPTY -> {
-			yield new prerna.reactor.frame.py.FilterEmptyValuesReactor();
-		}
-		case IMPUTE_NULLS -> new prerna.reactor.frame.py.ImputeNullValuesReactor();
-		case CHANGE_TYPE -> new prerna.reactor.frame.py.ChangeColumnTypeReactor();
-		case DROP_COLUMN -> new prerna.reactor.frame.py.DropColumnReactor();
-		case RENAME_COLUMN -> new prerna.reactor.frame.py.RenameColumnReactor();
-		case ADD_COLUMN -> new prerna.reactor.frame.py.AddColumnReactor();
-		case DUPLICATE_COLUMN -> new prerna.reactor.frame.py.DuplicateColumnReactor();
-		case CONCATENATE -> new prerna.reactor.frame.py.JoinColumnsReactor();
-		case PIVOT -> new prerna.reactor.frame.py.PivotReactor();
-		case LOWER_CASE -> new prerna.reactor.frame.py.ToLowerCaseReactor();
-		case PROPER_CASE -> new prerna.reactor.frame.py.ToProperCaseReactor();
-		case SPLIT -> new prerna.reactor.frame.py.SplitColumnsReactor();
-		case SPLIT_UNPIVOT -> new prerna.reactor.frame.py.SplitUnpivotReactor();
-		case TIMESTAMP_DATA -> new prerna.reactor.frame.py.TimestampDataReactor();
-		case TO_PERCENT -> new prerna.reactor.frame.py.ToPercentReactor();
-		case TRANSPOSE -> new prerna.reactor.frame.py.TransposeReactor();
-		case UNPIVOT -> new prerna.reactor.frame.py.UnpivotReactor();
-		case UPPER_CASE -> new prerna.reactor.frame.py.ToUpperCaseReactor();
-		case PURGE -> new PurgeReactor();
-		default -> throw new IllegalArgumentException("Unsupported clean operation: " + type);
+			case TRIM -> new prerna.reactor.frame.py.TrimColumnsReactor();
+			case REPLACE -> new prerna.reactor.frame.py.ReplaceColumnValueReactor();
+			case REMOVE_DUPLICATES -> new prerna.reactor.frame.py.RemoveDuplicateRowsReactor();
+			case FILTER_EMPTY -> {
+				yield new prerna.reactor.frame.py.FilterEmptyValuesReactor();
+			}
+			case IMPUTE_NULLS -> new prerna.reactor.frame.py.ImputeNullValuesReactor();
+			case CHANGE_TYPE -> new prerna.reactor.frame.py.ChangeColumnTypeReactor();
+			case DROP_COLUMN -> new prerna.reactor.frame.py.DropColumnReactor();
+			case RENAME_COLUMN -> new prerna.reactor.frame.py.RenameColumnReactor();
+			case ADD_COLUMN -> new prerna.reactor.frame.py.AddColumnReactor();
+			case DUPLICATE_COLUMN -> new prerna.reactor.frame.py.DuplicateColumnReactor();
+			case CONCATENATE -> new prerna.reactor.frame.py.JoinColumnsReactor();
+			case PIVOT -> new prerna.reactor.frame.py.PivotReactor();
+			case LOWER_CASE -> new prerna.reactor.frame.py.ToLowerCaseReactor();
+			case PROPER_CASE -> new prerna.reactor.frame.py.ToProperCaseReactor();
+			case SPLIT -> new prerna.reactor.frame.py.SplitColumnsReactor();
+			case SPLIT_UNPIVOT -> new prerna.reactor.frame.py.SplitUnpivotReactor();
+			case TIMESTAMP_DATA -> new prerna.reactor.frame.py.TimestampDataReactor();
+			case TO_PERCENT -> new prerna.reactor.frame.py.ToPercentReactor();
+			case TRANSPOSE -> new prerna.reactor.frame.py.TransposeReactor();
+			case UNPIVOT -> new prerna.reactor.frame.py.UnpivotReactor();
+			case UPPER_CASE -> new prerna.reactor.frame.py.ToUpperCaseReactor();
+			case PURGE -> new PurgeReactor();
+			default -> throw new IllegalArgumentException("Unsupported clean operation: " + type);
 		};
 	}
 
@@ -538,31 +580,20 @@ final class AutomationCleanExecutor {
 			}
 			columns(List.of(column), frame);
 			Object value = AutomationScopeResolver.resolveConfig(filter.get("value"), scope, "Purge filter value");
-			boolean equality = "==".equals(operator) || "!=".equals(operator);
-			List<?> values = value instanceof List<?> items ? items : java.util.Collections.singletonList(value);
-			if (value instanceof List<?> && (!equality || values.isEmpty() || values.size() > 100)) {
-				throw new IllegalArgumentException("Purge value lists require == or != and 1 to 100 values.");
-			}
-			if (values.stream().anyMatch(itemValue -> itemValue != null && !(itemValue instanceof String || itemValue instanceof Boolean
-					|| itemValue instanceof Number number && Double.isFinite(number.doubleValue())))) {
-				throw new IllegalArgumentException("Purge filter values must be scalars, null, or bounded lists of scalars.");
+			if (!(value instanceof String || value instanceof Boolean
+					|| value instanceof Number number && Double.isFinite(number.doubleValue()))) {
+				throw new IllegalArgumentException("Purge filter values must be non-null scalars.");
 			}
 			String inverse = switch (operator) {
-			case "==" -> "!=";
-			case "!=" -> "==";
-			case ">" -> "<=";
-			case ">=" -> "<";
-			case "<" -> ">=";
-			case "<=" -> ">";
-			default -> throw new IllegalArgumentException("Invalid Purge comparator.");
+				case "==" -> "!=";
+				case "!=" -> "==";
+				case ">" -> "<=";
+				case ">=" -> "<";
+				case "<" -> ">=";
+				case "<=" -> ">";
+				default -> throw new IllegalArgumentException("Invalid Purge comparator.");
 			};
-			if (value == null && !("==".equals(operator) || "!=".equals(operator))) {
-				throw new IllegalArgumentException("Purge null filters require == or !=.");
-			}
 			retainedRows.addFilter(SimpleQueryFilter.makeColToValFilter(column, inverse, value));
-			if (!values.contains(null)) {
-				retainedRows.addFilter(SimpleQueryFilter.makeColToValFilter(column, "==", null));
-			}
 		}
 		query.addExplicitFilter(retainedRows);
 		return query;
@@ -574,24 +605,27 @@ final class AutomationCleanExecutor {
 			throw new IllegalArgumentException("Replacement values must resolve to strings.");
 		}
 		if (text.contains("\"") || text.contains("\\") || text.chars().anyMatch(Character::isISOControl)) {
-			throw new IllegalArgumentException("The BI replacement routine does not safely support quotes, backslashes, or control characters.");
+			throw new IllegalArgumentException(
+					"The BI replacement routine does not safely support quotes, backslashes, or control characters.");
 		}
 		return text;
 	}
 
-	private static void validateReplacement(List<String> columns, ITableDataFrame frame, String value, String newValue) {
+	private static void validateReplacement(List<String> columns, ITableDataFrame frame, String value,
+			String newValue) {
 		for (String column : columns) {
 			String type = frame.getMetaData().getHeaderTypeAsString(frame.getName() + "__" + column);
 			if ("INT".equals(type) || "DOUBLE".equals(type)) {
 				for (String literal : List.of(value, newValue)) {
 					if (!literal.isEmpty() && !literal.matches("-?\\d+(\\.\\d+)?")
-						&& !List.of("null", "na", "nan").contains(literal.toLowerCase(java.util.Locale.ROOT))) {
+							&& !List.of("null", "na", "nan").contains(literal.toLowerCase(java.util.Locale.ROOT))) {
 						throw new IllegalArgumentException("Numeric replacement values must be numeric or null.");
 					}
 				}
 			} else if ("STRING".equals(type) && "null".equalsIgnoreCase(value)
 					&& frame.getFrameType() == DataFrameTypeEnum.PYTHON) {
-				throw new IllegalArgumentException("The BI Python replacement routine does not support safe null replacement for text columns.");
+				throw new IllegalArgumentException(
+						"The BI Python replacement routine does not support safe null replacement for text columns.");
 			}
 		}
 	}
@@ -608,13 +642,29 @@ final class AutomationCleanExecutor {
 				importer.setInsight(insight);
 				importer.insertData();
 				if (target instanceof PandasFrame pythonFrame) {
-					AutomationDatabaseQueryExecutor.normalizeDateColumns(pythonFrame);
+					normalizeDateColumns(pythonFrame);
 				}
 			}
 			return target;
 		} catch (Exception error) {
 			close(insight, alias, target);
 			throw error;
+		}
+	}
+
+	/**
+	 * Restores DATE and TIMESTAMP dtypes only on the isolated Clean working frame.
+	 */
+	private static void normalizeDateColumns(PandasFrame frame) {
+		String tableName = frame.getName();
+		String data = frame.getWrapperName() + ".cache['data']";
+		for (String column : frame.getColumnHeaders()) {
+			String metadataType = frame.getMetaData().getHeaderTypeAsString(tableName + "__" + column);
+			SemossDataType dataType = SemossDataType.convertStringToDataType(metadataType);
+			if (dataType == SemossDataType.DATE || dataType == SemossDataType.TIMESTAMP) {
+				String dataColumn = data + "[" + AutomationRuntimeUtils.GSON.toJson(column) + "]";
+				frame.runScript(dataColumn + " = pd.to_datetime(" + dataColumn + ")");
+			}
 		}
 	}
 

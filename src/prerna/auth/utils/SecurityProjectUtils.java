@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -2816,6 +2817,29 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECTMETA__METAORDER"));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return wrapper;
+	}
+
+	/**
+	 * Ids of the projects with a metadata value, such as every project tagged
+	 * {@code collaboration}. METAVALUE is a CLOB, which not every database compares
+	 * with =, so the values are matched here.
+	 */
+	public static List<String> getProjectIdsWithMetaValue(String metaKey, String metaValue) {
+		try {
+			List<String[]> rows = QueryExecutionUtility.queryList(SystemEngineRegistry.getSecurityDb(),
+					"SELECT PROJECTID, METAVALUE FROM PROJECTMETA WHERE METAKEY = ?", ps -> ps.setString(1, metaKey),
+					rs -> new String[] { rs.getString(1), rs.getString(2) });
+			Set<String> ids = new LinkedHashSet<>();
+			for (String[] row : rows) {
+				if (row[1] != null && metaValue.equals(row[1].trim())) {
+					ids.add(row[0]);
+				}
+			}
+			return new ArrayList<>(ids);
+		} catch (Exception e) {
+			classLogger.error("Failed to read projects by metadata value", e);
+			throw new IllegalStateException("Unable to read project metadata", e);
+		}
 	}
 
 	/**

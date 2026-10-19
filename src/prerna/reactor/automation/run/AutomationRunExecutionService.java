@@ -54,6 +54,7 @@ import org.apache.logging.log4j.ThreadContext;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ITypeSafeEngine;
@@ -1678,7 +1679,30 @@ final class AutomationRunExecutionService {
 				: Map.of();
 		String workspaceId = stringValue(config.get(AutomationConstants.CONFIG_WORKSPACE_ID));
 		RoomUtils.createRoomIfNotExists(roomId, executionInsight, null, null,
-				workspaceId == null ? null : workspaceId.trim(), null, null, null, null);
+				workspaceId == null ? null : workspaceId.trim(), generatedAgentRoomOptions(config), null, null, null);
+	}
+
+	/**
+	 * Room options a generated agent node asks for: extra skills (access is checked
+	 * when the run loads them) and the
+	 * Collaboration routine flag, which only narrows what the run may do.
+	 */
+	private static Map<String, Object> generatedAgentRoomOptions(Map<String, Object> config) {
+		Map<String, Object> options = new LinkedHashMap<>();
+		if (config.get(AutomationConstants.CONFIG_SKILLS) instanceof List<?> skills && !skills.isEmpty()) {
+			List<Map<String, Object>> refs = new ArrayList<>();
+			for (Object skill : skills) {
+				String skillId = stringValue(skill);
+				if (skillId != null && !skillId.isBlank()) {
+					refs.add(Map.of("skill_id", skillId.trim()));
+				}
+			}
+			options.put("skills", refs);
+		}
+		if (Boolean.TRUE.equals(config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE))) {
+			options.put(CollaborationUtils.ROOM_OPTION_ROUTINE, true);
+		}
+		return options.isEmpty() ? null : options;
 	}
 
 	/**

@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.automation.definition;
 
-/** BI frame operations exposed through Automation's Clean and Transform nodes. */
+/**
+ * BI frame operations exposed through Automation's Clean and Transform nodes.
+ */
 public enum AutomationFrameOperation {
 	PURGE("purge", false),
 	TRIM("trim", false),
@@ -51,7 +53,7 @@ public enum AutomationFrameOperation {
 	TRANSPOSE("transpose", true),
 	UNPIVOT("unpivot", true),
 	UPPER_CASE("upperCase", true),
-JOIN("join", true);
+	JOIN("join", true);
 
 	private final String value;
 	private final boolean transform;
@@ -61,6 +63,9 @@ JOIN("join", true);
 		this.transform = transform;
 	}
 
+	/**
+	 * @return stable operation value persisted in the node configuration
+	 */
 	public String getValue() {
 		return value;
 	}

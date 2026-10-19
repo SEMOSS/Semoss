@@ -90,6 +90,11 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractReplyMailReactor {
 	}
 
 	@Override
+	protected ComposedMail leaveDraft(User user, ComposedMail draft) {
+		return MicrosoftOutlookDraftFolder.place(user, draft);
+	}
+
+	@Override
 	protected ComposedMail sendDraft(User user, ComposedMail draft) throws Exception {
 		new MicrosoftOutlookMailHelper().sendDraft(MicrosoftLoginUtils.getValidAccessToken(user), null, draft.id());
 		// a sent draft moves to Sent Items under a new id, which Graph does not report

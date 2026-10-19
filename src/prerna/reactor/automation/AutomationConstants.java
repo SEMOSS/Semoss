@@ -284,6 +284,8 @@ public final class AutomationConstants {
 	public static final String CONFIG_PYTHON_SOURCE = "pythonSource";
 	public static final String CONFIG_HARNESS_TYPE = "harnessType";
 	public static final String CONFIG_WORKSPACE_ID = "workspaceId";
+	public static final String CONFIG_SKILLS = "skills";
+	public static final String CONFIG_COLLABORATION_ROUTINE = "collaborationRoutine";
 	public static final String CONFIG_MAX_TURNS = "maxTurns";
 	public static final String CONFIG_MAX_REFLECTIONS = "maxReflections";
 	public static final String CONFIG_WAIT = "wait";

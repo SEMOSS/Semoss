@@ -41,15 +41,23 @@ public final class WorkRoutineRoom {
 
 	public static Map<String, Object> open(Insight insight, String routineId, String startedAt) {
 		WorkRoutine.Kind kind;
+		// any other id names one of the owner's own routines
+		String customId = null;
 		if (WorkInboxRoutine.ID.equals(routineId)) {
 			kind = WorkInboxRoutine.KIND;
 		} else if (WorkAgendaRoutine.ID.equals(routineId)) {
 			kind = WorkAgendaRoutine.KIND;
+		} else if (routineId != null && !routineId.isBlank()) {
+			kind = WorkCustomRoutine.KIND;
+			customId = routineId.trim();
 		} else {
 			throw new IllegalArgumentException("Unknown routine");
 		}
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(insight.getUser());
-		Map<String, Object> row = WorkRoutine.stored(kind, owner);
+		Map<String, Object> row = WorkRoutine.stored(new WorkRoutine.Slot(kind, owner, customId));
+		if (row == null && customId != null) {
+			throw new IllegalArgumentException("Unknown routine");
+		}
 		if (row == null || !"completed".equals(row.get("status"))
 				|| !(row.get("summary") instanceof String summary) || summary.isBlank()
 				|| !(row.get("startedAt") instanceof String runStarted)) {
@@ -58,13 +66,18 @@ public final class WorkRoutineRoom {
 		if (startedAt != null && !runStarted.equals(startedAt)) {
 			throw new IllegalArgumentException("The routine output has changed. Refresh Routines and open the latest output.");
 		}
-		String roomId = CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(),
-				"routine-discussion", kind.id(), runStarted);
+		String roomId = customId == null
+				? CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), "routine-discussion",
+						kind.id(), runStarted)
+				: CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), "routine-discussion",
+						kind.id(), customId, runStarted);
+		String title = customId != null && row.get("settings") instanceof Map<?, ?> settings
+				&& settings.get("name") instanceof String name && !name.isBlank() ? name : kind.jobName();
 		String messageId = CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), roomId, "output");
 		String modelId = BrainTopicModel.engine(insight.getUser());
 		Map<String, Object> options = modelId == null ? Map.of() : Map.of("modelId", modelId);
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {
-			RoomUtils.createRoomIfNotExists(roomId, insight, null, kind.jobName() + " - " + runStarted.substring(0, 10),
+			RoomUtils.createRoomIfNotExists(roomId, insight, null, title + " - " + runStarted.substring(0, 10),
 					null, options, null, CollaborationUtils.COLLABORATION_PROJECT_ID, null);
 			// A deterministic message makes retries safe even if the room was created before persistence failed.
 			RoomMessageStore.appendPlatformMessageIfAbsent(roomId, insight.getUser().getPrimaryLoginToken().getId(),
