@@ -82,14 +82,13 @@ import prerna.reactor.collaboration.BrainSearchMemoriesReactor;
 import prerna.reactor.collaboration.BrainSearchThreadsReactor;
 import prerna.reactor.collaboration.BrainTagTopicReactor;
 import prerna.reactor.collaboration.WorkComposeEmailReactor;
-import prerna.reactor.collaboration.WorkCreateSkillReactor;
 import prerna.reactor.collaboration.WorkDeleteMySkillReactor;
 import prerna.reactor.collaboration.WorkDownloadAttachmentReactor;
-import prerna.reactor.collaboration.WorkEditSkillReactor;
 import prerna.reactor.collaboration.WorkListCustomRoutinesReactor;
 import prerna.reactor.collaboration.WorkListMySkillsReactor;
 import prerna.reactor.collaboration.WorkManageCustomRoutineReactor;
-import prerna.reactor.collaboration.WorkReadMySkillReactor;
+import prerna.reactor.collaboration.WorkOpenSkillReactor;
+import prerna.reactor.collaboration.WorkPublishSkillReactor;
 import prerna.reactor.collaboration.WorkSaveCustomRoutineReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
 import prerna.reactor.collaboration.WorkUseSkillInAssistantReactor;
@@ -165,11 +164,10 @@ public final class CollaborationAgentTools {
 		REACTORS.put("CreateRoutine", WorkSaveCustomRoutineReactor.class);
 		REACTORS.put("ListRoutines", WorkListCustomRoutinesReactor.class);
 		REACTORS.put("ManageRoutine", WorkManageCustomRoutineReactor.class);
-		REACTORS.put("CreateSkill", WorkCreateSkillReactor.class);
 		REACTORS.put("ListMySkills", WorkListMySkillsReactor.class);
+		REACTORS.put("OpenSkill", WorkOpenSkillReactor.class);
+		REACTORS.put("PublishSkill", WorkPublishSkillReactor.class);
 		REACTORS.put("UseSkillInAssistant", WorkUseSkillInAssistantReactor.class);
-		REACTORS.put("EditSkill", WorkEditSkillReactor.class);
-		REACTORS.put("ReadMySkill", WorkReadMySkillReactor.class);
 		REACTORS.put("DeleteMySkill", WorkDeleteMySkillReactor.class);
 	}
 
@@ -183,11 +181,10 @@ public final class CollaborationAgentTools {
 
 	// the owner's routines and skills: only for their own assistant at the root of the run, never in a routine
 	private static final Set<String> OWNER_TOOLS = Set.of("CreateRoutine", "ListRoutines", "ManageRoutine",
-			"CreateSkill", "ListMySkills", "UseSkillInAssistant", "EditSkill", "ReadMySkill", "DeleteMySkill");
+			"ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant", "DeleteMySkill");
 
-	// tools the model loads on demand: direct Microsoft 365 mail, after Brain's own search, and managing an
-	// existing skill
-	private static final Set<String> DEFERRED = Set.of("ListM365Mail", "EditSkill", "ReadMySkill", "DeleteMySkill");
+	// tools the model loads on demand: direct Microsoft 365 mail, after Brain's own search, and deleting a skill
+	private static final Set<String> DEFERRED = Set.of("ListM365Mail", "DeleteMySkill");
 
 	// said first in a mail tool's description, so the model knows which side of Brain it is on
 	private static final Map<String, String> SOURCE_NOTES = Map.of(

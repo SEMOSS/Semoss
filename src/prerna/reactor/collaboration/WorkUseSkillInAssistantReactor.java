@@ -83,7 +83,7 @@ public class WorkUseSkillInAssistantReactor extends AbstractCollaborationReactor
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (SKILL_ID.equals(key)) {
-			return "Id of the skill, from ListMySkills or CreateSkill.";
+			return "Id of the skill, from ListMySkills or PublishSkill.";
 		}
 		if (USE.equals(key)) {
 			return "true to turn it on (default), false to turn it off.";

@@ -27,49 +27,39 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import prerna.collaboration.CollaborationSkills;
+import prerna.collaboration.CollaborationSkillFiles;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// WorkReadMySkill(skillId=["..."]);  WorkReadMySkill(skillId=["..."], path=["references/format.md"]);
-public class WorkReadMySkillReactor extends AbstractCollaborationReactor {
+// WorkOpenSkill(skillId=["..."]);
+public class WorkOpenSkillReactor extends AbstractCollaborationReactor {
 
 	private static final String SKILL_ID = "skillId";
-	private static final String PATH = "path";
 
-	public WorkReadMySkillReactor() {
-		this.keysToGet = new String[] { SKILL_ID, PATH };
-		this.keyRequired = new int[] { 1, 0 };
+	public WorkOpenSkillReactor() {
+		this.keysToGet = new String[] { SKILL_ID };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		String skillId = getString(SKILL_ID).trim();
-		String path = getString(PATH);
-		if (path == null || path.isBlank()) {
-			Map<String, Object> result = new LinkedHashMap<>();
-			result.put("skillId", skillId);
-			result.put("files", CollaborationSkills.files(getUser(), skillId));
-			return mapResult(result);
+		String skillId = getString(SKILL_ID);
+		if (skillId == null || skillId.isBlank()) {
+			throw new IllegalArgumentException("Say which skill to open, by its id from ListMySkills");
 		}
-		return mapResult(CollaborationSkills.read(getUser(), skillId, path));
+		return mapResult(CollaborationSkillFiles.open(getUser(), this.insight.getRoomId(), skillId.trim()));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists the files of one of the owner's skills, or reads one of them when a path is given. Use it "
-				+ "to show the owner what a skill says or to see what is there before EditSkill.";
+		return "Copies one of the owner's skills into this chat's folder as " + CollaborationSkillFiles.DRAFTS
+				+ "/<name>/ so you can read or change it with the file tools, and returns its SKILL.md and file "
+				+ "list. Replaces any older copy there. Nothing changes for the owner until PublishSkill.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (SKILL_ID.equals(key)) {
 			return "Id of the owner's skill, from ListMySkills.";
-		}
-		if (PATH.equals(key)) {
-			return "A file path from the list, such as SKILL.md or templates/report.html. Leave out to list the files.";
 		}
 		return super.getDescriptionForKey(key);
 	}

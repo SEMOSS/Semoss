@@ -40,22 +40,16 @@ table of meetings, a digest grouped by client, or a status report, offer to make
 skill for it and attach it through the routine's `skills`. A skill keeps the format
 the same on every run and lets the task stay short.
 
-`CreateSkill` hands a brief to a skill builder that works in the skill's own folder
-and writes the files: `SKILL.md`, and when useful `references/` for longer rules,
-`templates/` for an email-safe HTML layout the run fills in, and `scripts/` for a
-mechanical step. The builder cannot see this chat, so the `brief` must carry
-everything: what the skill is for, the owner's rules and preferences, what the
-result contains, its sections or columns and their order, what to write when there
-is nothing, and whether it needs a template. Building takes a few minutes and
-returns the files it wrote; tell the owner what the skill now does.
+Write it by following [skills/write-a-skill.md](../skills/write-a-skill.md): the
+files go in this chat's folder and `PublishSkill` saves them. A fixed layout goes
+in an HTML template so every run looks the same.
 
 Skip the skill for a one-line answer.
 
 When the owner later wants a routine's result to look or work differently, change
-its skill with `EditSkill` (the skill's id from `ListMySkills`) rather than
-lengthening the routine's task, and never create a second skill for the same job.
-`ReadMySkill` lists a skill's files or reads one, to show the owner what it says or
-to check before editing. `DeleteMySkill` removes one for good.
+its skill (`OpenSkill`, edit, `PublishSkill`) rather than lengthening the
+routine's task, and never create a second skill for the same job. `DeleteMySkill`
+removes one for good.
 
 ## After saving
 

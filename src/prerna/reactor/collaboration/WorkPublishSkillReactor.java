@@ -29,30 +29,28 @@ package prerna.reactor.collaboration;
 
 import java.util.Map;
 
-import prerna.collaboration.CollaborationSkillBuilder;
+import prerna.collaboration.CollaborationSkillFiles;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// WorkEditSkill(skillId=["..."], brief=["Add a column for the meeting organizer"]);
-public class WorkEditSkillReactor extends AbstractCollaborationReactor {
+// WorkPublishSkill(path=["skills/meeting-digest"]);
+public class WorkPublishSkillReactor extends AbstractCollaborationReactor {
 
-	private static final String SKILL_ID = "skillId";
-	private static final String BRIEF = "brief";
+	private static final String PATH = "path";
 
-	public WorkEditSkillReactor() {
-		this.keysToGet = new String[] { SKILL_ID, BRIEF };
-		this.keyRequired = new int[] { 1, 1 };
+	public WorkPublishSkillReactor() {
+		this.keysToGet = new String[] { PATH };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		return mapResult(CollaborationSkillBuilder.build(getUser(), this.insight, getString(SKILL_ID).trim(),
-				getString(BRIEF), false));
+		return mapResult(CollaborationSkillFiles.publish(getUser(), this.insight.getRoomId(), getString(PATH)));
 	}
 
 	@Override
 	public Map<String, String> getMcpToolMetadata() {
-		// changes instructions the owner's agents follow, so it waits for their approval
+		// saves instructions the owner's agents will follow, so it waits for their approval
 		Map<String, String> meta = super.getMcpToolMetadata();
 		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
 		return meta;
@@ -60,21 +58,18 @@ public class WorkEditSkillReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Changes one of the owner's skills: a skill builder reads its files and edits, adds or removes "
-				+ "SKILL.md, references, HTML templates and scripts as the brief asks. Use it when the owner wants "
-				+ "a skill or a routine's result to work or look different. Read the skill with ReadMySkill first "
-				+ "when you need to know what is there. It takes a few minutes and returns what changed; each "
-				+ "change is kept as a version.";
+		return "Publishes a skill folder you wrote in this chat's folder as one of the owner's private skills: a "
+				+ "new skill the first time, else the skill it was opened from with OpenSkill. The skill's files "
+				+ "become exactly the folder's. Writing or editing the folder changes nothing for the owner until "
+				+ "this runs, so after any change to a skill's files, call it before saying the change is done. "
+				+ "Before writing one, call "
+				+ "LoadSkill(skill_name=\"collaboration/references/skills/write-a-skill.md\").";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (SKILL_ID.equals(key)) {
-			return "Id of the owner's skill, from ListMySkills.";
-		}
-		if (BRIEF.equals(key)) {
-			return "What to change and why, with everything the builder needs, since it cannot see this chat. At "
-					+ "most 8000 characters.";
+		if (PATH.equals(key)) {
+			return "The folder, such as " + CollaborationSkillFiles.DRAFTS + "/meeting-digest.";
 		}
 		return super.getDescriptionForKey(key);
 	}
