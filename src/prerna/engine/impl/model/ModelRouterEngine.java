@@ -61,9 +61,11 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IModelRouterEngine;
 import prerna.engine.api.ITypeSafeEngine;
+import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageInputMedia;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
@@ -134,6 +136,12 @@ import prerna.util.Utility;
  * route, and later turns in that room reuse it. This keeps a conversation on one model and
  * avoids repeated classifier calls in {@code llm} mode. In {@code weighted}
  * mode, traffic is therefore divided by conversation rather than by request.
+ * </p>
+ *
+ * <p>
+ * Tool results are never routed on: whatever the sticky setting, a tool-result
+ * continuation goes to the engine that served the room last, so one agent turn
+ * stays on one model.
  * </p>
  *
  * <p>
@@ -267,7 +275,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	 */
 	private final AtomicInteger rrCounter = new AtomicInteger(0);
 	/**
-	 * LRU of roomId -> engineId that last served the room, used when sticky is on.
+	 * LRU of roomId -> engineId that last served the room, read for every input
+	 * when sticky is on and for tool-result continuations always.
 	 */
 	private final Map<String, String> roomRoutePins = Collections
 			.synchronizedMap(new LinkedHashMap<String, String>(128, 0.75f, true) {
@@ -673,19 +682,21 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		trace.put("routing_mode", this.routingMode);
 		trace.put("classifier_status", "not_used");
 		String primaryEngineId = null;
-		if (this.sticky && roomId != null) {
+		boolean toolContinuation = inputMessage.hasToolResultPart();
+		if ((this.sticky || toolContinuation) && roomId != null) {
 			String pinned = roomRoutePins.get(roomId);
 			if (pinned != null && userCanUseTarget(user, pinned)) {
 				primaryEngineId = pinned;
-				trace.put("selection_source", "sticky");
-				trace.put("classifier_status", "skipped_sticky");
+				trace.put("selection_source", toolContinuation ? "turn" : "sticky");
+				trace.put("classifier_status", toolContinuation ? "skipped_turn" : "skipped_sticky");
 				classLogger.debug("ModelRouterEngine '{}' room {} reusing pinned engineId={}", this.engineId, roomId,
 						pinned);
 			}
 		}
 		if (primaryEngineId == null) {
-			String routingText = extractRoutingText(inputMessage, room);
-			primaryEngineId = selectRoute(routingText, insight, room, trace);
+			InputMessage routingMessage = routingMessage(inputMessage, room);
+			String routingText = routingMessage == null ? "" : promptText(routingMessage);
+			primaryEngineId = selectRoute(routingText, routingMessage, insight, room, trace);
 			if (classLogger.isDebugEnabled()) {
 				classLogger.debug("ModelRouterEngine '{}' routing text: {}", this.engineId, truncate(routingText, 200));
 			}
@@ -731,7 +742,7 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 				Map<String, Object> params = hyperParameters != null ? new HashMap<>(hyperParameters) : new HashMap<>();
 				AskModelEngineResponse response = targetEngine.askRoom(inputMessage, room, params);
 
-				if (this.sticky && roomId != null) {
+				if (roomId != null) {
 					roomRoutePins.put(roomId, candidateId);
 				}
 				attempt.put("status", "success");
@@ -751,7 +762,7 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 						this.engineId, candidateId, e);
 				lastFailure = e;
 				attempt.put("status", "failed");
-				if (this.sticky && roomId != null) {
+				if (roomId != null) {
 					roomRoutePins.remove(roomId);
 				}
 			}
@@ -792,43 +803,44 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Routes on the resolved input message, preferring the UI prompt when present.
-	 * Falls back to the latest input in the room when the resolved message has no
-	 * text.
+	 * The user turn to route on: the resolved input message when the user wrote
+	 * it, otherwise the latest user-written input in the room. Tool results are
+	 * agent output, not the user's request. Null when no user input has text.
 	 */
-	private static String extractRoutingText(InputMessage inputMessage, Room room) {
-		String raw = inputMessage.getInputUIPrompt();
-		if (raw == null || raw.trim().isEmpty()) {
-			raw = inputMessage.getFullInputPrompt();
-		}
-		if (raw != null && !raw.trim().isEmpty()) {
-			return raw.trim();
+	private static InputMessage routingMessage(InputMessage inputMessage, Room room) {
+		if (isUserInput(inputMessage)) {
+			return inputMessage;
 		}
 		List<AbstractMessage> messages = room.getMessages();
 		for (int i = messages.size() - 1; i >= 0; i--) {
-			if (messages.get(i) instanceof InputMessage) {
-				InputMessage im = (InputMessage) messages.get(i);
-				// the UI prompt is only set on user-authored turns, which skips
-				// tool-result input messages in agent loops
-				String text = im.getInputUIPrompt();
-				if (text == null || text.trim().isEmpty()) {
-					text = im.getFullInputPrompt();
-				}
-				if (text != null && !text.trim().isEmpty()) {
-					return text.trim();
-				}
+			if (messages.get(i) instanceof InputMessage im && isUserInput(im)) {
+				return im;
 			}
 		}
-		return "";
+		return null;
 	}
 
-	private String selectRoute(String routingText, Insight insight, Room room, Map<String, Object> trace) {
+	private static boolean isUserInput(InputMessage message) {
+		return !message.hasToolResultPart() && !promptText(message).isEmpty();
+	}
+
+	/** The UI prompt when present, otherwise the full prompt; trimmed, never null. */
+	private static String promptText(InputMessage message) {
+		String text = message.getInputUIPrompt();
+		if (text == null || text.trim().isEmpty()) {
+			text = message.getFullInputPrompt();
+		}
+		return text == null ? "" : text.trim();
+	}
+
+	private String selectRoute(String routingText, InputMessage routingMessage, Insight insight, Room room,
+			Map<String, Object> trace) {
 		if (MODE_WEIGHTED.equals(this.routingMode)) {
 			trace.put("selection_source", "weighted");
 			return selectRouteByWeight();
 		}
 		if (isClassificationMode(this.routingMode)) {
-			return selectRouteByLLM(routingText, insight, room, trace);
+			return selectRouteByLLM(routingText, routingMessage, insight, room, trace);
 		}
 		return selectRouteByKeyword(routingText, trace);
 	}
@@ -888,7 +900,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	 * TypeSafe decision models answer a structured choice question. Both paths
 	 * validate the selected name and fall back to keyword routing on failure.
 	 */
-	private String selectRouteByLLM(String routingText, Insight insight, Room room, Map<String, Object> trace) {
+	private String selectRouteByLLM(String routingText, InputMessage routingMessage, Insight insight, Room room,
+			Map<String, Object> trace) {
 		trace.put("classifier_engine_id", this.classifierEngineId);
 		long started = System.nanoTime();
 		try {
@@ -904,7 +917,7 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 					throw new IllegalArgumentException("TypeSafe classifiers require decision classification mode");
 				}
 				trace.put("classifier_kind", "typesafe");
-				routeName = classifyRouteWithTypeSafe(decisionClassifier, routingText, insight, trace);
+				routeName = classifyRouteWithTypeSafe(decisionClassifier, routingText, routingMessage, insight, trace);
 			} else {
 				if (MODE_TYPESAFE.equals(this.routingMode)) {
 					throw new IllegalArgumentException("Decision classification requires a TYPESAFE classifier engine");
@@ -938,22 +951,34 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		return selectRouteByKeyword(routingText, trace);
 	}
 
-	/** Sends route descriptions as choice criteria, without creating chat messages. */
-	private String classifyRouteWithTypeSafe(ITypeSafeEngine classifier, String routingText, Insight insight,
-			Map<String, Object> trace) {
+	/**
+	 * Sends route descriptions as choice criteria, without creating chat messages.
+	 * Images on the routed turn go along when the classifier's configured input
+	 * modalities allow them.
+	 */
+	private String classifyRouteWithTypeSafe(ITypeSafeEngine classifier, String routingText,
+			InputMessage routingMessage, Insight insight, Map<String, Object> trace) {
 		Map<String, Object> criteria = new LinkedHashMap<>();
 		for (Route route : this.routes) {
 			criteria.put(route.name, route.description);
 		}
 		Map<String, Object> question = Map.of("type", "choice",
 				"instructions", "Choose the route that best matches the user's request.", "criteria", criteria);
+		Map<String, String> images = classifierImages(classifier, routingMessage);
+		Object state = routingText;
+		if (!images.isEmpty()) {
+			// the state refers to each image by its alias, ahead of the text
+			List<Object> parts = new ArrayList<>(images.keySet());
+			parts.add(routingText);
+			state = parts;
+		}
 		Map<String, Object> request = new LinkedHashMap<>();
-		request.put("state", routingText);
+		request.put("state", state);
 		request.put("questions", Map.of("route", question));
 		if (trace.containsKey("classifier_model")) request.put("model", trace.get("classifier_model"));
 		trace.put("classifier_request", request);
-		TypeSafeModelEngineResponse response = classifier.evaluate(routingText, Map.of("route", question), insight,
-				Map.of());
+		TypeSafeModelEngineResponse response = classifier.evaluate(state, Map.of("route", question), images,
+				insight, Map.of());
 		if (response != null && response.getResponse() != null) {
 			Map<String, Object> result = new LinkedHashMap<>();
 			for (String key : List.of("model", "answers", "usage")) {
@@ -970,6 +995,32 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 			throw new IllegalArgumentException("ModelRouterEngine: decision classifier did not return a route choice");
 		}
 		return choice;
+	}
+
+	/**
+	 * Images on the routed turn, keyed by the alias the TypeSafe state refers to
+	 * them by. Empty unless the classifier's configured input modalities include
+	 * IMAGE: an unconfigured classifier stays text-only, since TypeSafe image input
+	 * is opt-in.
+	 */
+	private static Map<String, String> classifierImages(IModelEngine classifier, InputMessage routingMessage) {
+		Map<String, String> images = new LinkedHashMap<>();
+		Set<ModelModalityEnum> modalities = classifier.getInputModalities();
+		if (routingMessage == null || modalities == null || !modalities.contains(ModelModalityEnum.IMAGE)) {
+			return images;
+		}
+		// shortcut: TypeSafe assets are images with bytes only, so other media and
+		// URL images are skipped; pass them once the SDK accepts them
+		for (MessageInputMedia media : routingMessage.getMediaInfos()) {
+			if (ModelModalityEnum.fromMimeType(media.resolveMimeType()) != ModelModalityEnum.IMAGE) {
+				continue;
+			}
+			String data = media.getBase64Data();
+			if (data != null && !data.isBlank()) {
+				images.put("<image_" + (images.size() + 1) + ">", data);
+			}
+		}
+		return images;
 	}
 
 	/** Retains the existing prompt and chat transport for ordinary LLM classifiers. */
