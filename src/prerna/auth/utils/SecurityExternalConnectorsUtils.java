@@ -622,6 +622,21 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	/** Forgets one Microsoft account's background credentials; true when a row was removed. */
+	public static boolean deleteMicrosoftGraphCredential(String userId) {
+		if (userId == null || userId.isBlank()) {
+			return false;
+		}
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			return QueryExecutionUtility.executeUpdate(securityDb,
+					"DELETE FROM " + MS_GRAPH_CREDENTIAL_TABLE + " WHERE USER_ID = ?",
+					ps -> ps.setString(1, userId)) > 0;
+		} catch (Exception e) {
+			throw new IllegalStateException("Unable to remove Microsoft background credentials.");
+		}
+	}
+
 	/**
 	 * Replaces delegated credentials after explicit opt-in or token refresh, while
 	 * preserving creation time. Secrets remain in the security database.

@@ -60,6 +60,18 @@ public abstract class AbstractDraftDeliveryReactor extends AbstractMailReactor {
 	protected abstract ComposedMail sendDraft(User user, ComposedMail draft) throws Exception;
 
 	/**
+	 * Where a draft that is left rather than sent ends up. The mailbox's own Drafts folder unless a provider
+	 * moves it.
+	 *
+	 * @param user  the signed in user
+	 * @param draft the draft, as saved
+	 * @return the draft under the ids it has where it was left
+	 */
+	protected ComposedMail leaveDraft(User user, ComposedMail draft) {
+		return draft;
+	}
+
+	/**
 	 * Send the draft, or leave it in Drafts, and say which.
 	 *
 	 * @param draft the draft, as saved
@@ -71,7 +83,7 @@ public abstract class AbstractDraftDeliveryReactor extends AbstractMailReactor {
 		Map<String, Object> output = new LinkedHashMap<>();
 		if (!send) {
 			output.put("draft", true);
-			output.putAll(draft.toMap());
+			output.putAll(leaveDraft(this.insight.getUser(), draft).toMap());
 			return output;
 		}
 		User user = this.insight.getUser();

@@ -539,6 +539,10 @@ public class CollaborationDbUtils {
 					OwlIndex.of("SOURCE_CONNECTION_SOURCE_INDEX", "SOURCE_CONNECTION", "OWNER_ID", "OWNER_TYPE",
 							"SOURCE"),
 
+					// custom routines, many per owner
+					OwlIndex.of("WORK_CUSTOM_ROUTINE_OWNER_INDEX", "WORK_CUSTOM_ROUTINE", "OWNER_ID", "OWNER_TYPE",
+							"ROUTINE_ID"),
+
 					// brain: you
 					OwlIndex.of("BRAIN_PROFILE_OWNER_INDEX", "BRAIN_PROFILE", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_SETTINGS_OWNER_INDEX", "BRAIN_SETTINGS", "OWNER_ID", "OWNER_TYPE"),
@@ -571,6 +575,11 @@ public class CollaborationDbUtils {
 							"ROOM_ID"),
 					OwlIndex.of("BRAIN_TOPIC_ROOM_TOPIC_ID_INDEX", "BRAIN_TOPIC_ROOM", "OWNER_ID", "OWNER_TYPE",
 							"TOPIC_ID"),
+					OwlIndex.of("BRAIN_TOPIC_FOLDER_TOPIC_ID_INDEX", "BRAIN_TOPIC_FOLDER", "OWNER_ID", "OWNER_TYPE",
+							"TOPIC_ID"),
+					OwlIndex.of("BRAIN_TOPIC_FOLDER_FOLDER_ID_INDEX", "BRAIN_TOPIC_FOLDER", "OWNER_ID", "OWNER_TYPE",
+							"FOLDER_ID"),
+					OwlIndex.of("BRAIN_MAIL_FOLDER_OWNER_INDEX", "BRAIN_MAIL_FOLDER", "OWNER_ID", "OWNER_TYPE"),
 
 					// brain: threads
 					OwlIndex.of("BRAIN_THREAD_OWNER_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE"),
