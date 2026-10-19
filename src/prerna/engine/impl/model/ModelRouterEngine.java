@@ -97,7 +97,7 @@ import prerna.util.Utility;
  * <pre>
  * {
  *   "mode": "keyword",                 // "keyword" | "llm" | "typesafe" | "weighted"
- *   "sticky": true,                    // pin a room to its first route (default true)
+ *   "sticky": false,                   // pin a room to its first route (default false)
  *   "default_route": "&lt;engineId&gt;",     // used when no route matches (defaults to route 0)
  *   "fallbacks": ["&lt;engineId&gt;"],       // tried in order when the chosen target fails
  *   "classifier_engine": "&lt;engineId&gt;", // required for "llm" and "typesafe" modes
@@ -117,9 +117,9 @@ import prerna.util.Utility;
  * <li><b>keyword</b>: The first route with a whole-word keyword match on the
  * latest input wins. Otherwise, the default route is used.</li>
  * <li><b>llm</b>: The classifier engine selects a route from each route's
- * description. Chat models receive a prompt; TypeSafe decision models receive a
- * structured choice question. Every route requires a description. Keyword
- * matching is used as a fallback when classification fails.</li>
+ * description. Only chat models are supported; decision models require typesafe
+ * mode. Every route requires a description. Keyword matching is used as a
+ * fallback when classification fails.</li>
  * <li><b>typesafe</b>: Decision-only classification through ITypeSafeEngine.
  * Route descriptions become choice criteria; failed evaluations use keyword fallback.</li>
  * <li><b>weighted</b>: Deterministic weighted round-robin is applied across
@@ -130,8 +130,8 @@ import prerna.util.Utility;
  * <h3>Sticky routing</h3>
  *
  * <p>
- * Sticky routing is enabled by default. The first turn selects a route, and
- * later turns in that room reuse it. This keeps a conversation on one model and
+ * Sticky routing is disabled by default. When enabled, the first turn selects a
+ * route, and later turns in that room reuse it. This keeps a conversation on one model and
  * avoids repeated classifier calls in {@code llm} mode. In {@code weighted}
  * mode, traffic is therefore divided by conversation rather than by request.
  * </p>
@@ -256,7 +256,7 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 
 	private volatile List<Route> routes = Collections.emptyList();
 	private volatile String routingMode = MODE_KEYWORD;
-	private volatile boolean sticky = true;
+	private volatile boolean sticky = false;
 	private volatile String defaultRouteEngineId;
 	private volatile List<String> fallbackEngineIds = Collections.emptyList();
 	private volatile String classifierEngineId;
@@ -551,7 +551,7 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		this.routes = Collections.unmodifiableList(newRoutes);
 		this.fallbackEngineIds = Collections.unmodifiableList(newFallbacks);
 		this.routingMode = resolvedMode(cfg);
-		this.sticky = cfg.sticky == null || cfg.sticky.booleanValue();
+		this.sticky = Boolean.TRUE.equals(cfg.sticky);
 		this.defaultRouteEngineId = trimOrNull(cfg.default_route);
 		this.classifierEngineId = trimOrNull(cfg.classifier_engine);
 		this.embeddingsEngineId = trimOrNull(cfg.embeddings_engine);
@@ -900,6 +900,9 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 			}
 			String routeName;
 			if (classifierEngine instanceof ITypeSafeEngine decisionClassifier) {
+				if (!MODE_TYPESAFE.equals(this.routingMode)) {
+					throw new IllegalArgumentException("TypeSafe classifiers require decision classification mode");
+				}
 				trace.put("classifier_kind", "typesafe");
 				routeName = classifyRouteWithTypeSafe(decisionClassifier, routingText, insight, trace);
 			} else {
