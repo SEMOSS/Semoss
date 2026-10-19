@@ -351,6 +351,9 @@ public class ResponseMessage extends AbstractMessage {
 						routing.put(key, value);
 					}
 				}
+				if (metadata.get(ModelRouterEngine.METADATA_ROUTING_TRACE) instanceof Map<?, ?> trace) {
+					routing.put("trace", trace);
+				}
 				builder.withMetadata("routing", routing);
 			}
 

@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -69,6 +70,7 @@ import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.engine.impl.model.usage.ModelUsageRequest;
 import prerna.om.Insight;
+import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
@@ -94,11 +96,11 @@ import prerna.util.Utility;
  *
  * <pre>
  * {
- *   "mode": "keyword",                 // "keyword" | "llm" | "weighted"
+ *   "mode": "keyword",                 // "keyword" | "llm" | "typesafe" | "weighted"
  *   "sticky": true,                    // pin a room to its first route (default true)
  *   "default_route": "&lt;engineId&gt;",     // used when no route matches (defaults to route 0)
  *   "fallbacks": ["&lt;engineId&gt;"],       // tried in order when the chosen target fails
- *   "classifier_engine": "&lt;engineId&gt;", // required for "llm" mode
+ *   "classifier_engine": "&lt;engineId&gt;", // required for "llm" and "typesafe" modes
  *   "embeddings_engine": "&lt;engineId&gt;", // required for the router to serve embeddings
  *   "routes": [
  *     { "name": "code", "engine_id": "aa876e7e-...", "keywords": ["java", "python", "debug"],
@@ -118,6 +120,8 @@ import prerna.util.Utility;
  * description. Chat models receive a prompt; TypeSafe decision models receive a
  * structured choice question. Every route requires a description. Keyword
  * matching is used as a fallback when classification fails.</li>
+ * <li><b>typesafe</b>: Decision-only classification through ITypeSafeEngine.
+ * Route descriptions become choice criteria; failed evaluations use keyword fallback.</li>
  * <li><b>weighted</b>: Deterministic weighted round-robin is applied across
  * routes whose weight is greater than zero. For example, weights of 30 and 70
  * produce an exact 30/70 split during each cycle.</li>
@@ -216,9 +220,11 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	public static final String METADATA_ROUTED_ENGINE_ID = "routed_engine_id";
 	public static final String METADATA_ROUTED_ENGINE_NAME = "routed_engine_name";
 	public static final String METADATA_ROUTED_ROUTE_NAME = "routed_route_name";
+	public static final String METADATA_ROUTING_TRACE = "routing_trace";
 
 	private static final String MODE_KEYWORD = "keyword";
 	private static final String MODE_LLM = "llm";
+	private static final String MODE_TYPESAFE = "typesafe";
 	private static final String MODE_WEIGHTED = "weighted";
 
 	private static final String MESSAGE_JSON = "message_json";
@@ -451,9 +457,9 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		}
 
 		String mode = resolvedMode(cfg);
-		if (!MODE_KEYWORD.equals(mode) && !MODE_LLM.equals(mode) && !MODE_WEIGHTED.equals(mode)) {
+		if (!MODE_KEYWORD.equals(mode) && !isClassificationMode(mode) && !MODE_WEIGHTED.equals(mode)) {
 			throw new IllegalArgumentException("ModelRouterEngine: unknown mode '" + mode + "' in " + configName
-					+ ". Valid modes are: " + MODE_KEYWORD + ", " + MODE_LLM + ", " + MODE_WEIGHTED);
+					+ ". Valid modes are: " + MODE_KEYWORD + ", " + MODE_LLM + ", " + MODE_TYPESAFE + ", " + MODE_WEIGHTED);
 		}
 
 		Set<String> seenNames = new HashSet<>();
@@ -474,16 +480,19 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 			totalWeight += Math.max(0, rc.weight);
 			anyKeywords = anyKeywords || (rc.keywords != null && !rc.keywords.isEmpty());
 
-			if (MODE_LLM.equals(mode) && trimOrNull(rc.description) == null) {
+			if (isClassificationMode(mode) && trimOrNull(rc.description) == null) {
 				throw new IllegalArgumentException(
-						"ModelRouterEngine: mode 'llm' requires a description on every route - route '" + name + "' in "
+						"ModelRouterEngine: classification mode requires a description on every route - route '" + name + "' in "
 								+ configName + " is missing one");
 			}
 		}
 
-		if (MODE_LLM.equals(mode) && trimOrNull(cfg.classifier_engine) == null) {
+		if (isClassificationMode(mode) && trimOrNull(cfg.classifier_engine) == null) {
 			throw new IllegalArgumentException(
-					"ModelRouterEngine: mode 'llm' requires classifier_engine in " + configName);
+					"ModelRouterEngine: classification mode requires classifier_engine in " + configName);
+		}
+		if (MODE_TYPESAFE.equals(mode) && cfg.routes.size() < 2) {
+			throw new IllegalArgumentException("ModelRouterEngine: decision classification requires at least two routes");
 		}
 		if (MODE_WEIGHTED.equals(mode) && totalWeight <= 0) {
 			throw new IllegalArgumentException(
@@ -550,6 +559,10 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 
 		this.rrCounter.set(0);
 		this.roomRoutePins.clear();
+	}
+
+	private static boolean isClassificationMode(String mode) {
+		return MODE_LLM.equals(mode) || MODE_TYPESAFE.equals(mode);
 	}
 
 	private static String resolvedMode(RouterConfig cfg) {
@@ -655,30 +668,45 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		Room room = RoomUtils.createRoomForStatelessAsk(roomId, insight, this, null);
 		User user = insight != null ? insight.getUser() : null;
 
+		Map<String, Object> trace = new LinkedHashMap<>();
+		trace.put("trace_id", UUID.randomUUID().toString());
+		trace.put("routing_mode", this.routingMode);
+		trace.put("classifier_status", "not_used");
 		String primaryEngineId = null;
 		if (this.sticky && roomId != null) {
 			String pinned = roomRoutePins.get(roomId);
 			if (pinned != null && userCanUseTarget(user, pinned)) {
 				primaryEngineId = pinned;
+				trace.put("selection_source", "sticky");
+				trace.put("classifier_status", "skipped_sticky");
 				classLogger.debug("ModelRouterEngine '{}' room {} reusing pinned engineId={}", this.engineId, roomId,
 						pinned);
 			}
 		}
 		if (primaryEngineId == null) {
 			String routingText = extractRoutingText(inputMessage, room);
-			primaryEngineId = selectRoute(routingText, insight, room);
+			primaryEngineId = selectRoute(routingText, insight, room, trace);
 			if (classLogger.isDebugEnabled()) {
 				classLogger.debug("ModelRouterEngine '{}' routing text: {}", this.engineId, truncate(routingText, 200));
 			}
 		}
 
+		trace.put("selected_engine_id", primaryEngineId);
+		String selectedRoute = routeNameForEngine(primaryEngineId);
+		if (selectedRoute != null) trace.putIfAbsent("selected_route_name", selectedRoute);
+		List<Map<String, Object>> attempts = new ArrayList<>();
+		trace.put("attempts", attempts);
 		List<String> candidates = buildCandidateList(primaryEngineId);
 		Exception lastFailure = null;
 		for (String candidateId : candidates) {
+			Map<String, Object> attempt = new LinkedHashMap<>();
+			attempt.put("engine_id", candidateId);
+			attempts.add(attempt);
 			if (!userCanUseTarget(user, candidateId)) {
 				classLogger.warn(
 						"ModelRouterEngine '{}': user does not have access to engineId={} - skipping candidate",
 						this.engineId, candidateId);
+				attempt.put("status", "access_denied");
 				continue;
 			}
 
@@ -689,6 +717,7 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 				classLogger.warn("ModelRouterEngine '{}': could not load engineId={} - trying next candidate",
 						this.engineId, candidateId, e);
 				lastFailure = e;
+				attempt.put("status", "unavailable");
 				continue;
 			}
 
@@ -705,19 +734,32 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 				if (this.sticky && roomId != null) {
 					roomRoutePins.put(roomId, candidateId);
 				}
-				attachRouteMetadata(response, candidateId, targetEngine);
+				attempt.put("status", "success");
+				attempt.put("engine_name", targetEngine.getDisplayName());
+				trace.put("fallback_used", !candidateId.equals(primaryEngineId));
+				attachRouteMetadata(response, candidateId, targetEngine, trace);
+				classLogger.info("ModelRouterEngine '{}' trace={} source={} classifierEngine={} classifierStatus={} selected={} served={} ({})",
+						this.engineId, trace.get("trace_id"), trace.get("selection_source"), trace.get("classifier_engine_id"),
+						trace.get("classifier_status"), primaryEngineId, trace.get("served_engine_id"), trace.get("served_engine_name"));
+				if (classLogger.isDebugEnabled()) {
+					classLogger.debug("ModelRouterEngine routing trace: {}", new Gson().toJson(trace));
+				}
 				return response;
 			} catch (Exception e) {
 				classLogger.warn(
 						"ModelRouterEngine '{}': engineId={} failed to serve the request - trying next candidate",
 						this.engineId, candidateId, e);
 				lastFailure = e;
+				attempt.put("status", "failed");
 				if (this.sticky && roomId != null) {
 					roomRoutePins.remove(roomId);
 				}
 			}
 		}
 
+		classLogger.warn("ModelRouterEngine '{}' trace={}: no destination succeeded; classifier={}, source={}",
+				this.engineId, trace.get("trace_id"), trace.get("classifier_status"), trace.get("selection_source"));
+		if (classLogger.isDebugEnabled()) classLogger.debug("ModelRouterEngine routing trace: {}", new Gson().toJson(trace));
 		if (lastFailure instanceof RuntimeException) {
 			throw (RuntimeException) lastFailure;
 		}
@@ -780,14 +822,15 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		return "";
 	}
 
-	private String selectRoute(String routingText, Insight insight, Room room) {
+	private String selectRoute(String routingText, Insight insight, Room room, Map<String, Object> trace) {
 		if (MODE_WEIGHTED.equals(this.routingMode)) {
+			trace.put("selection_source", "weighted");
 			return selectRouteByWeight();
 		}
-		if (MODE_LLM.equals(this.routingMode)) {
-			return selectRouteByLLM(routingText, insight, room);
+		if (isClassificationMode(this.routingMode)) {
+			return selectRouteByLLM(routingText, insight, room, trace);
 		}
-		return selectRouteByKeyword(routingText);
+		return selectRouteByKeyword(routingText, trace);
 	}
 
 	/**
@@ -822,17 +865,20 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	 * Keyword routing: returns the first route with a whole-word keyword match in
 	 * the routing text. Falls back to the default engine.
 	 */
-	private String selectRouteByKeyword(String routingText) {
+	private String selectRouteByKeyword(String routingText, Map<String, Object> trace) {
 		for (Route route : this.routes) {
 			if (route.keywordPattern == null) {
 				continue;
 			}
 			Matcher matcher = route.keywordPattern.matcher(routingText);
 			if (matcher.find()) {
+				trace.put("selection_source", trace.containsKey("classifier_engine_id") ? "keyword_fallback" : "keyword");
+				trace.put("selected_route_name", route.name);
 				classLogger.info("ModelRouterEngine keyword '{}' matched route '{}'", matcher.group(1), route.name);
 				return route.engineId;
 			}
 		}
+		trace.put("selection_source", trace.containsKey("classifier_engine_id") ? "default_fallback" : "default");
 		classLogger.info("ModelRouterEngine: no keyword matched - using fallback engine");
 		return fallbackEngineId();
 	}
@@ -842,40 +888,77 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	 * TypeSafe decision models answer a structured choice question. Both paths
 	 * validate the selected name and fall back to keyword routing on failure.
 	 */
-	private String selectRouteByLLM(String routingText, Insight insight, Room room) {
+	private String selectRouteByLLM(String routingText, Insight insight, Room room, Map<String, Object> trace) {
+		trace.put("classifier_engine_id", this.classifierEngineId);
+		long started = System.nanoTime();
 		try {
 			IModelEngine classifierEngine = resolveEngine(this.classifierEngineId);
+			trace.put("classifier_engine_name", classifierEngine.getDisplayName());
+			Properties properties = classifierEngine.getSmssProp();
+			if (properties != null && properties.getProperty(Constants.MODEL) != null) {
+				trace.put("classifier_model", properties.getProperty(Constants.MODEL));
+			}
 			String routeName;
 			if (classifierEngine instanceof ITypeSafeEngine decisionClassifier) {
-				routeName = classifyRouteWithTypeSafe(decisionClassifier, routingText, insight);
+				trace.put("classifier_kind", "typesafe");
+				routeName = classifyRouteWithTypeSafe(decisionClassifier, routingText, insight, trace);
 			} else {
-				routeName = classifyRouteWithChatModel(classifierEngine, routingText, room);
+				if (MODE_TYPESAFE.equals(this.routingMode)) {
+					throw new IllegalArgumentException("Decision classification requires a TYPESAFE classifier engine");
+				}
+				trace.put("classifier_kind", "llm");
+				routeName = classifyRouteWithChatModel(classifierEngine, routingText, room, trace);
 			}
 			routeName = routeName != null ? routeName.trim() : "";
 
 			for (Route route : this.routes) {
 				if (route.name.equalsIgnoreCase(routeName)) {
+					trace.put("selection_source", "classifier");
+					trace.put("classifier_status", "success");
+					trace.put("classifier_choice", route.name);
+					trace.put("selected_route_name", route.name);
 					classLogger.info("ModelRouterEngine: classifier selected route '{}'", routeName);
 					return route.engineId;
 				}
 			}
+			trace.put("classifier_status", "invalid_choice");
+			trace.put("classifier_error", "Classifier returned a name outside the configured routes");
 			classLogger.warn("ModelRouterEngine: classifier returned unknown route '{}', falling back to keyword", routeName);
 		} catch (Exception e) {
-			classLogger.error("ModelRouterEngine: classification failed, falling back to keyword", e);
+			trace.put("classifier_status", "error");
+			trace.put("classifier_error", e.getClass().getSimpleName());
+			classLogger.error("ModelRouterEngine '{}' trace={}: classification failed, falling back to keyword",
+					this.engineId, trace.get("trace_id"), e);
+		} finally {
+			trace.put("classifier_duration_ms", (System.nanoTime() - started) / 1_000_000);
 		}
-		return selectRouteByKeyword(routingText);
+		return selectRouteByKeyword(routingText, trace);
 	}
 
 	/** Sends route descriptions as choice criteria, without creating chat messages. */
-	private String classifyRouteWithTypeSafe(ITypeSafeEngine classifier, String routingText, Insight insight) {
+	private String classifyRouteWithTypeSafe(ITypeSafeEngine classifier, String routingText, Insight insight,
+			Map<String, Object> trace) {
 		Map<String, Object> criteria = new LinkedHashMap<>();
 		for (Route route : this.routes) {
 			criteria.put(route.name, route.description);
 		}
 		Map<String, Object> question = Map.of("type", "choice",
 				"instructions", "Choose the route that best matches the user's request.", "criteria", criteria);
+		Map<String, Object> request = new LinkedHashMap<>();
+		request.put("state", routingText);
+		request.put("questions", Map.of("route", question));
+		if (trace.containsKey("classifier_model")) request.put("model", trace.get("classifier_model"));
+		trace.put("classifier_request", request);
 		TypeSafeModelEngineResponse response = classifier.evaluate(routingText, Map.of("route", question), insight,
 				Map.of());
+		if (response != null && response.getResponse() != null) {
+			Map<String, Object> result = new LinkedHashMap<>();
+			for (String key : List.of("model", "answers", "usage")) {
+				if (response.getResponse().containsKey(key)) result.put(key, response.getResponse().get(key));
+			}
+			trace.put("classifier_response", result);
+			if (result.get("model") instanceof String model) trace.put("classifier_model", model);
+		}
 		if (response == null || response.getResponse() == null
 				|| !(response.getResponse().get("answers") instanceof Map<?, ?> answers)
 				|| !(answers.get("route") instanceof Map<?, ?> answer)
@@ -887,7 +970,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	}
 
 	/** Retains the existing prompt and chat transport for ordinary LLM classifiers. */
-	private String classifyRouteWithChatModel(IModelEngine classifierEngine, String routingText, Room room) {
+	private String classifyRouteWithChatModel(IModelEngine classifierEngine, String routingText, Room room,
+			Map<String, Object> trace) {
 		StringBuilder routeList = new StringBuilder();
 		for (Route r : this.routes) {
 			routeList.append("- ").append(r.name);
@@ -904,11 +988,16 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 				+ "reply with ONLY the single route name that best matches - no explanation, no punctuation, no quotes.\n\n"
 				+ "Available routes:\n" + routeList + "\nUser question: " + routingText + "\n\nRoute name:";
 
+		Map<String, Object> request = new LinkedHashMap<>();
+		request.put("prompt", classificationPrompt);
+		if (trace.containsKey("classifier_model")) request.put("model", trace.get("classifier_model"));
+		trace.put("classifier_request", request);
 		Map<String, Object> params = new HashMap<>();
 		InputMessage msg = InputMessage.builder(room).withText(classificationPrompt)
 				.withModelType(classifierEngine.getModelType()).withParamMap(params).build();
 		params.put(MESSAGE_JSON, MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg)));
 		AskModelEngineResponse response = classifierEngine.askRoom(msg, room, params);
+		trace.put("classifier_response", response.getStringResponse());
 		return response.getStringResponse();
 	}
 
@@ -960,12 +1049,17 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		}
 	}
 
-	private void attachRouteMetadata(AskModelEngineResponse<?> response, String targetEngineId, IModelEngine targetEngine) {
+	private void attachRouteMetadata(AskModelEngineResponse<?> response, String targetEngineId, IModelEngine targetEngine,
+			Map<String, Object> trace) {
 		try {
 			Map<String, Object> metadata = response.getMetadata();
 			if (metadata == null) {
 				metadata = new HashMap<>();
 			}
+			if (metadata.get(METADATA_ROUTING_TRACE) instanceof Map<?, ?> downstream) {
+				trace.put("downstream", downstream);
+			}
+			metadata.put(METADATA_ROUTING_TRACE, trace);
 			metadata.put(METADATA_ROUTER_ENGINE_ID, this.engineId);
 			// A nested router already identifies the final serving engine.
 			if (!metadata.containsKey(METADATA_ROUTED_ENGINE_ID)) {
@@ -973,7 +1067,10 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 				metadata.put(METADATA_ROUTED_ENGINE_NAME, targetEngine.getDisplayName());
 			}
 			metadata.remove(METADATA_ROUTED_ROUTE_NAME);
-			String routeName = routeNameForEngine(targetEngineId);
+			trace.put("served_engine_id", metadata.get(METADATA_ROUTED_ENGINE_ID));
+			trace.put("served_engine_name", metadata.get(METADATA_ROUTED_ENGINE_NAME));
+			String routeName = targetEngineId.equals(trace.get("selected_engine_id"))
+					&& trace.get("selected_route_name") instanceof String selected ? selected : routeNameForEngine(targetEngineId);
 			if (routeName != null) {
 				metadata.put(METADATA_ROUTED_ROUTE_NAME, routeName);
 			}
