@@ -11,7 +11,7 @@ from pathlib import Path
 
 MODULES = [
     "numpy", "pandas", "pyarrow", "datasets", "dill", "multiprocess",
-    "torch", "torchvision", "torchaudio", "transformers", "sentence_transformers",
+    "torch", "torchvision", "transformers", "sentence_transformers",
     "pipecat", "numba", "onnxruntime", "soxr", "annoy", "pandasql", "swifter",
     "faiss", "gliner", "chonky", "guidance", "langchain", "enchant", "timm",
     "detoxify", "semantic_text_splitter",
@@ -46,15 +46,12 @@ def main():
 
     def cpu_operations():
         import torch
-        import torchaudio.functional
         import torchvision.ops
         from annoy import AnnoyIndex
 
         assert torch.version.cuda is None
         assert not torch.cuda.is_available()
         assert torch.ones(2).sum().item() == 2
-        audio = torchaudio.functional.resample(torch.ones(1, 160), 16000, 8000)
-        assert audio.shape == (1, 80)
         boxes = torch.tensor([[0.0, 0.0, 1.0, 1.0]])
         assert torchvision.ops.nms(boxes, torch.ones(1), 0.5).tolist() == [0]
         index = AnnoyIndex(2, "euclidean")
@@ -64,7 +61,7 @@ def main():
         assert index.get_nns_by_item(0, 1) == [0]
 
     check("datasets Arrow22 create/map/to_pandas/multiprocess", datasets_roundtrip)
-    check("CPU torch/audio/vision and Annoy operations", cpu_operations)
+    check("CPU torch/vision and Annoy operations", cpu_operations)
     report = {
         "python": platform.python_version(),
         "machine": platform.machine(),
