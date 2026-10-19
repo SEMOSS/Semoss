@@ -568,7 +568,7 @@ public class ModelZKServer implements Watcher, CuratorCacheListener {
 		// TODO verify this is correct.
 		String loggerLevel = this.prop.getProperty(Settings.LOGGER_LEVEL, "WARNING");
 		Object[] outputs = ClientProcessWrapper.startTCPServerNativePy(this.workingDirectoryBasePath, port, null,
-				timeout, loggerLevel);
+				timeout, loggerLevel, true);
 		this.process = (Process) outputs[0];
 		this.prefix = (String) outputs[1];
 

@@ -31,6 +31,8 @@ import java.util.Properties;
 
 import org.apache.commons.lang3.math.NumberUtils;
 
+import prerna.util.ValueUtils;
+
 /**
  * Which mail server a Jakarta store connects to, and how.
  *
@@ -94,7 +96,7 @@ public record JakartaStoreConfig(String protocol, String secureProtocol, String 
 			String defaultPort, String defaultSecurePort, boolean passwordRequired) {
 		Properties properties = MailProperties.normalize(source);
 		String security = MailProperties
-				.firstNonNull(MailProperties.trimToNull(properties.getProperty(protocol.toUpperCase() + "_SECURITY")),
+				.firstNonNull(ValueUtils.trimToNull(properties.getProperty(protocol.toUpperCase() + "_SECURITY")),
 						MailProperties.SSL_SECURITY)
 				.toLowerCase();
 		if (!MailProperties.SSL_SECURITY.equals(security) && !MailProperties.STARTTLS_SECURITY.equals(security)
@@ -103,24 +105,24 @@ public record JakartaStoreConfig(String protocol, String secureProtocol, String 
 		}
 
 		String storeProtocol = MailProperties.firstNonNull(
-				MailProperties.trimToNull(properties.getProperty(MailProperties.STORE_PROTOCOL)),
+				ValueUtils.trimToNull(properties.getProperty(MailProperties.STORE_PROTOCOL)),
 				MailProperties.SSL_SECURITY.equals(security) ? secureProtocol : protocol);
 		String host = MailProperties.firstNonNull(
-				MailProperties.trimToNull(properties.getProperty(protocol.toUpperCase() + "_HOST")),
-				MailProperties.trimToNull(properties.getProperty(MailProperties.rawProperty(storeProtocol, "host"))),
-				MailProperties.trimToNull(properties.getProperty(MailProperties.rawProperty(protocol, "host"))),
-				MailProperties.trimToNull(properties.getProperty(MailProperties.rawProperty(secureProtocol, "host"))),
+				ValueUtils.trimToNull(properties.getProperty(protocol.toUpperCase() + "_HOST")),
+				ValueUtils.trimToNull(properties.getProperty(MailProperties.rawProperty(storeProtocol, "host"))),
+				ValueUtils.trimToNull(properties.getProperty(MailProperties.rawProperty(protocol, "host"))),
+				ValueUtils.trimToNull(properties.getProperty(MailProperties.rawProperty(secureProtocol, "host"))),
 				defaultHost);
 		if (host == null) {
 			throw new IllegalArgumentException("Must define " + protocol.toUpperCase()
 					+ "_HOST or a Jakarta Mail host property to know which mail server to read");
 		}
 		String port = MailProperties.firstNonNull(
-				MailProperties.trimToNull(properties.getProperty(protocol.toUpperCase() + "_PORT")),
-				MailProperties.trimToNull(properties.getProperty(MailProperties.rawProperty(storeProtocol, "port"))),
+				ValueUtils.trimToNull(properties.getProperty(protocol.toUpperCase() + "_PORT")),
+				ValueUtils.trimToNull(properties.getProperty(MailProperties.rawProperty(storeProtocol, "port"))),
 				secureProtocol.equalsIgnoreCase(storeProtocol) ? defaultSecurePort : defaultPort);
-		String username = MailProperties.trimToNull(properties.getProperty(protocol.toUpperCase() + "_USERNAME"));
-		String password = MailProperties.trimToNull(properties.getProperty(protocol.toUpperCase() + "_PASSWORD"));
+		String username = ValueUtils.trimToNull(properties.getProperty(protocol.toUpperCase() + "_USERNAME"));
+		String password = ValueUtils.trimToNull(properties.getProperty(protocol.toUpperCase() + "_PASSWORD"));
 		if (username == null) {
 			throw new IllegalArgumentException(
 					"Must define " + protocol.toUpperCase() + "_USERNAME to know which mailbox to open");
@@ -132,7 +134,7 @@ public record JakartaStoreConfig(String protocol, String secureProtocol, String 
 
 		return new JakartaStoreConfig(protocol, secureProtocol, storeProtocol, host, NumberUtils.toInt(port, -1),
 				username, password, security,
-				MailProperties.parseBoolean(properties.getProperty(MailProperties.ONLY_CUSTOM_PROPERTIES), false),
+				ValueUtils.parseBoolean(properties.getProperty(MailProperties.ONLY_CUSTOM_PROPERTIES), false),
 				NumberUtils.toInt(properties.getProperty(MailProperties.CONNECTION_TIMEOUT), 10_000),
 				NumberUtils.toInt(properties.getProperty(MailProperties.READ_TIMEOUT), 30_000), properties);
 	}

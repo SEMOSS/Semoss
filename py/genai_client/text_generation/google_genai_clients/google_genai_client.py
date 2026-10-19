@@ -1,5 +1,5 @@
 import json, base64, uuid
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from types import SimpleNamespace
 from pydantic import BaseModel
 from google.genai import types
@@ -24,6 +24,13 @@ from smss_thread_local import get_smss_stream
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ..model_engine_exception import ModelEngineException
 from ...utils import string_to_bool
+from ...usage_ceiling import (
+    PromptCount,
+    count_prompt_tokens,
+    fit_thinking_budget,
+    note_output_stop,
+    to_json_text,
+)
 from .google_video_client import GoogleGenAiVideoClient
 
 
@@ -125,6 +132,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     f"Failed to build messages from SEMOSS messages: {e}"
                 )
 
+            # fitted on the finished request; a refusal becomes the
+            # USAGE_LIMIT_DOES_NOT_FIT error response below
+            self._apply_usage_ceiling(google_messages, provider_config)
+
             if stream:
 
                 def streaming_call():
@@ -146,6 +157,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 )
 
             model_response = self.generate_with_retry(call_generate_content)
+            # stopped by max_output_tokens, which marks the response usageCapped
+            # when the ceiling set it
+            note_output_stop(self._stopped_at_output_maximum(model_response))
 
             text_response = model_response.text if model_response.text else ""
             if web_search_enabled and inline_citations_enabled:
@@ -223,6 +237,98 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             return ModelEngineException(
                 error=e, client="google", model=self.model_name
             ).parse_error()
+
+    def _apply_usage_ceiling(
+        self, contents: List[types.Content], config: types.GenerateContentConfig
+    ) -> None:
+        """Fit the request to the usage ceiling of the call in progress.
+
+        max_output_tokens, which counts thinking, is lowered to what the
+        prompt leaves, never raised. A thinking_budget is lowered below it,
+        leaving part of it for the answer, and set to 0 (off) when even the model's
+        smallest budget does not fit; Gemini 2.5 Pro cannot turn thinking off
+        and keeps its smallest budget. Gemini 3 thinking levels and dynamic
+        budgets have no number to lower and count inside the maximum.
+        """
+        fit = self.fit_output_to_usage_ceiling(
+            config.max_output_tokens,
+            lambda: self._count_prompt_tokens(contents, config),
+        )
+        if fit is None or not fit.lowered:
+            return
+        config.max_output_tokens = fit.max_tokens
+
+        thinking = config.thinking_config
+        budget = getattr(thinking, "thinking_budget", None) if thinking else None
+        # no budget, dynamic (-1) and off (0) have no number to lower
+        if budget is None or budget <= 0:
+            return
+        smallest, can_turn_off = self._smallest_thinking_budget()
+        fitted = fit_thinking_budget(
+            budget,
+            fit.max_tokens,
+            self.usage_ceiling_min_output_tokens(),
+            smallest,
+            can_turn_off=can_turn_off,
+        )
+        # too small a budget runs the call without thinking rather than refusing it
+        if fitted is None:
+            config.thinking_config = types.ThinkingConfig(
+                include_thoughts=False, thinking_budget=0
+            )
+        else:
+            thinking.thinking_budget = fitted
+
+    def _smallest_thinking_budget(self) -> Tuple[int, bool]:
+        """The model's smallest thinking budget, and whether 0 turns thinking off."""
+        name = (self.model_name or "").lower()
+        if "2.5-pro" in name:
+            return 128, False
+        if "flash-lite" in name:
+            return 512, True
+        return 1, True
+
+    def _count_prompt_tokens(
+        self, contents: List[types.Content], config: types.GenerateContentConfig
+    ) -> PromptCount:
+        """Count the prompt with the count_tokens endpoint, sending the system
+        instruction and tool declarations as text since the Gemini API counts
+        contents only. Tool declarations make the count an estimate. Falls back
+        to a conservative estimate when the count fails."""
+        system = config.system_instruction
+        definitions = [config.tools, config.response_schema]
+        extra: List[types.Content] = []
+        if system:
+            text = system if isinstance(system, str) else to_json_text(system)
+            extra.append(
+                types.Content(role="user", parts=[types.Part.from_text(text=text)])
+            )
+        has_definitions = any(definitions)
+        if has_definitions:
+            text = to_json_text([d for d in definitions if d])
+            extra.append(
+                types.Content(role="user", parts=[types.Part.from_text(text=text)])
+            )
+        try:
+            total = self.google_client.models.count_tokens(
+                model=self.model_name, contents=list(contents) + extra
+            ).total_tokens
+            return PromptCount(tokens=int(total or 0), estimated=has_definitions)
+        except Exception:
+            return count_prompt_tokens(
+                [system, contents], definitions, message_count=len(contents)
+            )
+
+    @staticmethod
+    def _stopped_at_output_maximum(response: Any) -> bool:
+        """True when a response (or stream chunk) stopped at max_output_tokens."""
+        candidates = getattr(response, "candidates", None) or []
+        if not candidates:
+            return False
+        reason = getattr(candidates[0], "finish_reason", None)
+        return reason == types.FinishReason.MAX_TOKENS or str(reason).endswith(
+            "MAX_TOKENS"
+        )
 
     def generate_with_retry(self, generate_func, *args, **kwargs):
         """Helper to run a generation call with retry."""
@@ -498,10 +604,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             for p in response.candidates[0].content.parts:
                 if getattr(p, "function_call", None) is not None:
                     parts_with_fc.append(p)
-                elif (
-                    getattr(p, "text", None)
-                    and not getattr(p, "thought", False)
-                ):
+                elif getattr(p, "text", None) and not getattr(p, "thought", False):
                     preamble_text += p.text
 
         for i, function_call in enumerate(response.function_calls):
@@ -520,9 +623,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     )
             tools_result.append(tool_entry)
 
-        text_parts = (
-            [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
-        )
+        text_parts = [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
 
         return AskModelEngineResponse2(
             response=tools_result,
@@ -564,6 +665,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         for event in stream:
             parts_with_fc = []
+            if self._stopped_at_output_maximum(event):
+                note_output_stop(True)
             if getattr(event, "usage_metadata", None):
                 latest_usage_metadata = event.usage_metadata
             if hasattr(event, "candidates") and event.candidates:

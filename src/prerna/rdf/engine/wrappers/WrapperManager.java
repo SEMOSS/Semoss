@@ -38,6 +38,7 @@ import prerna.auth.User;
 import prerna.ds.RawGemlinSelectWrapper;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.json.JsonWrapper;
@@ -46,6 +47,7 @@ import prerna.engine.impl.web.WebWrapper;
 import prerna.om.ThreadStore;
 import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.ParameterizedSqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.usertracking.UserQueryTrackingThread;
@@ -94,7 +96,73 @@ public final class WrapperManager {
 		return manager;
 	}
 
-	// TODO >>>timb: REST - here add another engine type REMOTE or REST
+	/**
+	 * Compiles structured SQL and executes it in a prepared wrapper with no JDBC
+	 * statement timeout. The caller must close the returned wrapper.
+	 *
+	 * @param engine relational engine supplying the dialect and connections
+	 * @param qs     structured SELECT containing the values to bind
+	 * @return an executed wrapper exposing the usual rows, headers, and types
+	 * @throws Exception if compilation, execution, or result initialization fails
+	 */
+	public RawPreparedRDBMSSelectWrapper getPreparedWrapper(IRDBMSEngine engine, SelectQueryStruct qs)
+			throws Exception {
+		return getPreparedWrapper(engine, qs, false, 0);
+	}
+
+	/**
+	 * Creates a prepared wrapper retaining SQL templates and bindings for data,
+	 * count, and reset. Deferred execution acquires no connection until execute is
+	 * called; otherwise execution starts immediately. The caller must close the
+	 * wrapper after use.
+	 *
+	 * @param engine         relational engine supplying the dialect and connections
+	 * @param qs             structured SELECT containing the values to bind
+	 * @param delayExecution true to compile now and execute later
+	 * @param timeoutSeconds non-negative timeout for data and count statements;
+	 *                       zero disables the JDBC statement timeout
+	 * @return a prepared wrapper, executed unless delayExecution is true
+	 * @throws Exception if arguments are invalid or compilation/execution fails
+	 */
+	public RawPreparedRDBMSSelectWrapper getPreparedWrapper(IRDBMSEngine engine, SelectQueryStruct qs,
+			boolean delayExecution, int timeoutSeconds) throws Exception {
+		var compiled = new ParameterizedSqlInterpreter(engine).compile(qs);
+		var wrapper = RawPreparedRDBMSSelectWrapper.prepareParameterized(engine, compiled, timeoutSeconds);
+		if (!delayExecution) {
+			wrapper.execute();
+		}
+		return wrapper;
+	}
+
+	/**
+	 * Track templates at actual execution time, including reset and deferred reads.
+	 */
+	static UserQueryTrackingThread preparedQueryTracker(IDatabaseEngine engine, String template) {
+		String engineId = engine.getEngineId();
+		if (engineId == null) {
+			return null;
+		}
+		getInstance();
+		if (ignoreDatabases.contains(engineId) || engineId.endsWith(Constants.OWL_ENGINE_SUFFIX)
+				|| engineId.endsWith(Constants.RDBMS_INSIGHTS_ENGINE_SUFFIX)) {
+			return null;
+		}
+		var tracker = new UserQueryTrackingThread(ThreadStore.getUser(), engineId);
+		tracker.setQuery(template);
+		return tracker;
+	}
+
+	static void finishPreparedQueryTracking(UserQueryTrackingThread tracker) {
+		if (tracker != null) {
+			try {
+				tracker.setEndTimeNow();
+				Thread.ofVirtual().start(tracker);
+			} catch (RuntimeException failure) {
+				classLogger.warn("Unable to finish prepared query tracking", failure);
+			}
+		}
+	}
+
 	public IRawSelectWrapper getRawWrapper(IDatabaseEngine engine, SelectQueryStruct qs) throws Exception {
 		return getRawWrapper(engine, qs, false);
 	}

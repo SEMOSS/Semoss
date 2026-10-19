@@ -27,11 +27,18 @@
  *******************************************************************************/
 package prerna.reactor.agent.run;
 
+/**
+ * Lifecycle of an agent run, persisted in the {@code STATUS} column of
+ * {@code AGENT_RUN}.
+ *
+ * <p>
+ * A run is inserted as {@code SUBMITTED} and picked up by the worker, which
+ * moves it to {@code RUNNING}. From there it settles in {@code COMPLETED},
+ * {@code FAILED}, or {@code CANCELLED}. {@code INPUT_REQUIRED} is the one
+ * non-terminal resting state: the harness paused on a tool that needs user
+ * approval, and answering the pending actions returns the run to
+ * {@code SUBMITTED} so the worker resumes it.
+ */
 public enum AgentRunStatus {
-	SUBMITTED,
-	RUNNING,
-	INPUT_REQUIRED,
-	COMPLETED,
-	FAILED,
-	CANCELLED
+	SUBMITTED, RUNNING, INPUT_REQUIRED, COMPLETED, FAILED, CANCELLED
 }

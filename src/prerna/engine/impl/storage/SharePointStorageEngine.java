@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.StorageTypeEnum;
 import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 import prerna.io.connector.ms.MicrosoftGraphDriveClient;
+import prerna.util.ValueUtils;
 
 /**
  * Storage engine backed by a SharePoint document library.
@@ -126,7 +127,7 @@ public class SharePointStorageEngine extends AbstractMicrosoftGraphStorageEngine
 		String site = smssProp.getProperty(SP_SITE);
 		String library = smssProp.getProperty(SP_LIBRARY);
 		String folder = smssProp.getProperty(SP_FOLDER);
-		if (isBlank(site)) {
+		if (ValueUtils.isBlank(site)) {
 			throw new IllegalArgumentException(SP_SITE + " is required, as either the site url, for example "
 					+ "https://contoso.sharepoint.com/sites/Marketing, or a Graph site id.");
 		}
@@ -141,8 +142,9 @@ public class SharePointStorageEngine extends AbstractMicrosoftGraphStorageEngine
 	protected String describeTarget(Properties smssProp) {
 		String library = smssProp.getProperty(SP_LIBRARY);
 		String folder = smssProp.getProperty(SP_FOLDER);
-		return "site '" + smssProp.getProperty(SP_SITE) + "' library '" + (isBlank(library) ? "<default>" : library)
-				+ "'" + (isBlank(folder) ? "" : " folder '" + folder + "'");
+		return "site '" + smssProp.getProperty(SP_SITE) + "' library '"
+				+ (ValueUtils.isBlank(library) ? "<default>" : library) + "'"
+				+ (ValueUtils.isBlank(folder) ? "" : " folder '" + folder + "'");
 	}
 
 	/**
@@ -217,7 +219,7 @@ public class SharePointStorageEngine extends AbstractMicrosoftGraphStorageEngine
 	@Override
 	protected String describeSiteLookup(Properties smssProp) {
 		String site = smssProp.getProperty(SP_SITE);
-		if (isBlank(site)) {
+		if (ValueUtils.isBlank(site)) {
 			return super.describeSiteLookup(smssProp);
 		}
 		if (site.trim().contains(SITE_ID_DELIMITER)) {
@@ -229,7 +231,7 @@ public class SharePointStorageEngine extends AbstractMicrosoftGraphStorageEngine
 		// that the path form reports back is not always the one the permissions
 		// endpoint wants, while search reports the id to use as it stands
 		String siteName = lastPathSegment(site);
-		return isBlank(siteName) ? super.describeSiteLookup(smssProp)
+		return ValueUtils.isBlank(siteName) ? super.describeSiteLookup(smssProp)
 				: "GET " + GRAPH_BASE + "/sites?search=" + siteName;
 	}
 
@@ -251,7 +253,7 @@ public class SharePointStorageEngine extends AbstractMicrosoftGraphStorageEngine
 	 * default library when none is named.
 	 */
 	private String resolveDriveId(String resolvedSiteId, String library) throws Exception {
-		if (isBlank(library)) {
+		if (ValueUtils.isBlank(library)) {
 			Map<String, Object> defaultDrive = graphGet(
 					GRAPH_BASE + "/sites/" + resolvedSiteId + "/drive?$select=id,name");
 			if (defaultDrive == null) {
@@ -296,7 +298,7 @@ public class SharePointStorageEngine extends AbstractMicrosoftGraphStorageEngine
 	 */
 	private String resolveRootItemId(String resolvedDriveId, String folder) throws Exception {
 		String url;
-		if (isBlank(folder)) {
+		if (ValueUtils.isBlank(folder)) {
 			url = GRAPH_BASE + "/drives/" + resolvedDriveId + "/root?$select=id,name";
 		} else {
 			String relativePath = folder.trim().replace('\\', '/');
@@ -315,7 +317,7 @@ public class SharePointStorageEngine extends AbstractMicrosoftGraphStorageEngine
 			throw new IllegalArgumentException(
 					"No folder found at " + SP_FOLDER + " = " + folder + " in the configured document library.");
 		}
-		if (!isBlank(folder) && !MicrosoftGraphDriveClient.isFolder(item)) {
+		if (!ValueUtils.isBlank(folder) && !MicrosoftGraphDriveClient.isFolder(item)) {
 			throw new IllegalArgumentException(
 					SP_FOLDER + " = " + folder + " names a file rather than a folder. It has to be a folder, since it "
 							+ "becomes the root of this engine.");

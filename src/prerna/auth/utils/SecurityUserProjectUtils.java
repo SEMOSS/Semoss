@@ -45,6 +45,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -123,14 +124,7 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
 
-		// check if user has groups
-		Collection<String> userGroups = getUserGroupFiltersQs(user);
-		if (!userGroups.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", userGroups));
-		} else {
-			// If no groups - return empty list
-			return new ArrayList<>();
-		}
+		qs.addExplicitFilter(getUserGroupPermissionFilter(user, "GROUPPROJECTPERMISSION__"));
 
 		List<String> permissions = new ArrayList<>();
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
@@ -307,8 +301,12 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-		orFilter.addFilter(
+		AndQueryFilter directAccess = new AndQueryFilter();
+		directAccess.addFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		directAccess.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "!=", null,
+				PixelDataType.CONST_INT));
+		orFilter.addFilter(directAccess);
 		qs.addExplicitFilter(orFilter);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
 		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");

@@ -34,6 +34,7 @@ import prerna.auth.User;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.agent.runtime.AgentCodeExecutionContext;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -53,6 +54,9 @@ public class RemoveUserRoomReactor extends AbstractReactor {
 		}
 		String roomId = this.keyValue.get(this.keysToGet[0]);
 		boolean result = ModelInferenceLogsUtils.doSetRoomToInactive(user.getPrimaryLoginToken().getId(), roomId);
+		if (result) {
+			AgentCodeExecutionContext.removeForRoom(user, roomId);
+		}
 		return new NounMetadata(result, PixelDataType.BOOLEAN);
 	}
 

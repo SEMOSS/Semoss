@@ -42,17 +42,22 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
+/**
+ * Creates a standard SEMOSS project after applying authentication, naming, and
+ * project-type policy checks.
+ *
+ * <p>
+ * Project types that require additional scaffolding are rejected and must be
+ * created through their dedicated reactors.
+ */
 public class CreateProjectReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = CreateProjectReactor.class.getName();
-
-	/*
-	 * This class is used to construct a new project This project only contains
-	 * insights
-	 */
 
 	public CreateProjectReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_TYPE.getKey(),
@@ -131,6 +136,11 @@ public class CreateProjectReactor extends AbstractReactor {
 						+ "Use CreateNotebook(project='...') instead — it scaffolds the sample .ipynb "
 						+ "file that CreateProject skips.");
 			}
+			if (projectType == IProject.PROJECT_TYPE.AUTOMATION) {
+				throw new IllegalArgumentException("CreateProject cannot create AUTOMATION-type projects. "
+						+ "Use CreateAutomation(projectName='...') instead — it scaffolds the automation "
+						+ "definition, configuration, and MCP tool metadata.");
+			}
 		}
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
 		String gitCloneUrl = this.keyValue.get(this.keysToGet[index++]);
@@ -140,6 +150,8 @@ public class CreateProjectReactor extends AbstractReactor {
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),
 				project.getProjectId());
+		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_CREATE, project.getProjectId(),
+				projectName, Map.of("projectType", projectType.name(), "global", global));
 		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP,
 				PixelOperationType.MARKET_PLACE_ADDITION);
 		if (warning != null) {

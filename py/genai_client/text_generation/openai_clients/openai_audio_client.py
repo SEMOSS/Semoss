@@ -53,11 +53,26 @@ _FORMAT_TO_MIME = {
 _RESERVED_KWARGS = {
     "message_json",
     "tools",
+    "tool_choice",
+    "stream_options",
     "schema",
     "full_prompt",
     "prefix",
     "template",
     "template_name",
+    "system_prompt",
+    "history",
+    "use_history",
+    "model_name",
+    "chat_type",
+    "built_in_tools",
+    "max_tokens",
+    "max_new_tokens",
+    "max_completion_tokens",
+    "max_output_tokens",
+    "thinking",
+    "thinking_budget",
+    "effort",
 }
 
 

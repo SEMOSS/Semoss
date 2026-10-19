@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.model.inferencetracking.reactors;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -34,10 +35,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.AgentRunner;
+import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -66,10 +71,30 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 		// Create Room in memory if doesn't exist, add options
 		Room room = RoomUtils.createRoomIfNotExists(roomId, this.insight, null, null);
 		Map<String, Object> roomOptions = getRoomOptionsMap();
-		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptions);
-
-		room.setOptionsMap(roomOptions);
+		if (roomOptions == null) {
+			roomOptions = new HashMap<>();
+		}
+		try (var ignored = RoomMessageStore.acquireOptionsLock(room)) {
+			// Preserve server-owned state while serializing settings updates with tool loads.
+			preserveInternalOption(roomOptions, room.getOptionsMap(), AgentRunner.ROOM_OPTION_WORKING_DIR);
+			preserveInternalOption(roomOptions, room.getOptionsMap(), AgentRunner.ROOM_OPTION_WORKING_DIR_SOURCE_ROOM);
+			for (String key : CollaborationUtils.SERVER_OWNED_ROOM_OPTIONS) {
+				preserveInternalOption(roomOptions, room.getOptionsMap(), key);
+			}
+			DeferredAgentTools.preserveLoadedState(room, roomOptions);
+			ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptions);
+			room.setOptionsMap(roomOptions);
+		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
+
+	private static void preserveInternalOption(Map<String, Object> requestedOptions,
+			Map<String, Object> existingOptions, String key) {
+		if (existingOptions != null && existingOptions.containsKey(key)) {
+			requestedOptions.put(key, existingOptions.get(key));
+		} else {
+			requestedOptions.remove(key);
+		}
 	}
 
 	/**

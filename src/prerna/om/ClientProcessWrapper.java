@@ -39,7 +39,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +77,10 @@ public class ClientProcessWrapper {
 	private static final Logger classLogger = LogManager.getLogger(ClientProcessWrapper.class);
 	private static final Logger pyLogger = LogManager.getLogger(Constants.PY_LOGGER_NAME);
 
+	private static final String ENGINE_OWNED_FLAG = "--engine_owned";
+	private static final String[] NAMESPACE_DEFAULT_RO_PATHS = new String[] { "/usr", "/bin", "/sbin", "/lib",
+			"/lib64", "/lib32", "/libx32", "/etc" };
+
 	// After spawning a python server process, poll briefly to catch an immediate
 	// crash (import / syntax errors surface within a few ms) without blocking long
 	// on the common healthy case. ~150ms total (5 x 30ms).
@@ -95,8 +100,8 @@ public class ClientProcessWrapper {
 	private static final String[] DEFAULT_CP_ENTRIES = new String[] { "fst-3.0.4-jdk17.jar", "objenesis-3.3.jar",
 			"javassist-3.30.2-GA.jar", "log4j-api-2.25.4.jar", "log4j-core-2.25.4.jar", "gson-2.13.2.jar",
 			"jackson-core-2.22.0.jar", "commons-io-2.21.0.jar", "commons-lang3-3.20.0.jar",
-			"jakarta.ws.rs-api-4.0.0.jar", "netty-handler-4.1.133.Final.jar", "netty-common-4.1.133.Final.jar",
-			"netty-buffer-4.1.133.Final.jar", "netty-transport-4.1.133.Final.jar", "classes" };
+			"jakarta.ws.rs-api-4.0.0.jar", "netty-handler-4.1.137.Final.jar", "netty-common-4.1.137.Final.jar",
+			"netty-buffer-4.1.137.Final.jar", "netty-transport-4.1.137.Final.jar", "classes" };
 
 	private final ReentrantLock lockCreate = new ReentrantLock();
 	private final ReentrantLock lockDestroy = new ReentrantLock();
@@ -117,11 +122,24 @@ public class ClientProcessWrapper {
 	private String sandboxControlDir;
 
 	private boolean nativePyServer;
+	// true when this wrapper owns a node.js worker (gaas_node_worker.js) instead
+	// of a python one; reconnect() re-dispatches on this. The node worker speaks
+	// the same JSON protocol, so it reuses NativePySocketClient.
+	private boolean nodeServer = false;
 	private SymlinkHelper chrootSymlinkHelper;
 	private String classPath;
 	private boolean debug;
 	private String timeout;
 	private String loggerLevel;
+
+	/**
+	 * Whether this process runs an engine's own python - a model, vector, function
+	 * or guardrail engine - rather than a user's python code. Passed to the python
+	 * server so it can skip the adapters that only make sense for user code, most
+	 * notably routing the openai SDK back into the platform: an engine builds its
+	 * own openai client to call the service it is fronting.
+	 */
+	private boolean engineOwned = false;
 
 	private Map<String, String> threadLoggerCtx;
 
@@ -206,7 +224,7 @@ public class ClientProcessWrapper {
 			if (!serverRunning) {
 				if (nativePyServer) {
 					if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isInjectMode()) {
-						String insightCache = Utility.getDIHelperProperty(prerna.util.Constants.INSIGHT_CACHE_DIR);
+						String insightCache = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 						Path serverDirectoryPath = Files.createTempDirectory(Paths.get(insightCache), "a");
 						this.serverDirectory = serverDirectoryPath.toString();
 						ClientProcessWrapper.writeLogConfigurationFile(this.serverDirectory);
@@ -254,7 +272,7 @@ public class ClientProcessWrapper {
 
 						Object[] ret = ClientProcessWrapper.startTCPServerNativePyChroot(
 								this.chrootSymlinkHelper.getUserChrootFolder(), relative, this.port + "", this.timeout,
-								this.loggerLevel);
+								this.loggerLevel, this.engineOwned);
 						this.process = (Process) ret[0];
 						this.prefix = (String) ret[1];
 					} else {
@@ -262,7 +280,7 @@ public class ClientProcessWrapper {
 						ClientProcessWrapper.writeLogConfigurationFile(this.serverDirectory);
 
 						Object[] ret = ClientProcessWrapper.startTCPServerNativePy(this.serverDirectory, this.port + "",
-								this.venvPath, this.timeout, this.loggerLevel);
+								this.venvPath, this.timeout, this.loggerLevel, this.engineOwned);
 						this.process = (Process) ret[0];
 						this.prefix = (String) ret[1];
 					}
@@ -451,6 +469,10 @@ public class ClientProcessWrapper {
 	 *                   never becomes ready
 	 */
 	public void reconnect() throws Exception {
+		if (nodeServer) {
+			createNodeProcessAndClient(port, serverDirectory, debug, timeout, loggerLevel, threadLoggerCtx);
+			return;
+		}
 		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug,
 				timeout, loggerLevel, threadLoggerCtx);
 	}
@@ -465,6 +487,11 @@ public class ClientProcessWrapper {
 	 *                   never becomes ready
 	 */
 	public void reconnect(String venvEngineId) throws Exception {
+		if (nodeServer) {
+			// venvs do not apply to the node worker
+			createNodeProcessAndClient(port, serverDirectory, debug, timeout, loggerLevel, threadLoggerCtx);
+			return;
+		}
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug,
 				timeout, loggerLevel, threadLoggerCtx);
@@ -498,6 +525,24 @@ public class ClientProcessWrapper {
 	 */
 	public void setSocketClient(SocketClient socketClient) {
 		this.socketClient = socketClient;
+	}
+
+	/**
+	 * @return whether an engine owns this process rather than a user's python code
+	 */
+	public boolean isEngineOwned() {
+		return this.engineOwned;
+	}
+
+	/**
+	 * Declare that this process serves an engine rather than a user's python code.
+	 * Must be set before the process is created, since it is passed on the python
+	 * server's command line.
+	 *
+	 * @param engineOwned whether an engine owns this process
+	 */
+	public void setEngineOwned(boolean engineOwned) {
+		this.engineOwned = engineOwned;
 	}
 
 	/**
@@ -597,15 +642,9 @@ public class ClientProcessWrapper {
 			if (tcpWorker == null || (tcpWorker = tcpWorker.trim()).isEmpty()) {
 				tcpWorker = prerna.tcp.SocketServer.class.getName();
 			}
-			String[] commands = null;
-			if (port == null) {
-				commands = new String[6];
-			} else {
-				commands = new String[7];
-				commands[6] = port;
-			}
+			List<String> commands = new ArrayList<>();
 			String finalDir = insightFolder.replace("\\", "/");
-			commands[0] = java;
+			commands.add(java);
 
 			// compose for memory
 			String xms = Utility.getDIHelperProperty("Xms");
@@ -614,11 +653,11 @@ public class ClientProcessWrapper {
 			if (xms != null && xmx != null) {
 				memory = "-Xms" + xms + " -Xmx" + xmx;
 			}
-			commands[1] = memory + " -cp";
-			commands[2] = specificPath;
-			commands[3] = tcpWorker;
-			commands[4] = finalDir;
-			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
+			Collections.addAll(commands, memory + " -cp", specificPath, tcpWorker, finalDir,
+					DIHelper.getInstance().getRDFMapFileLocation());
+			if (port != null) {
+				commands.add(port);
+			}
 
 			classLogger.debug("Trying to create file in .. {}", finalDir);
 			File file = new File(finalDir + "/init");
@@ -628,17 +667,16 @@ public class ClientProcessWrapper {
 
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS
-					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
-				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
-				StringBuilder sb = new StringBuilder();
-				for (String str : commands) {
-					sb.append(str).append(" ");
-				}
-				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS)))) {
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS);
+				// these commands are written into starter.sh and run by a shell, so the
+				// quotes are shell syntax there and are required: without them bash
+				// reads "-c ulimit" alone and the real command runs with no limit
+				commands = List.of("/bin/bash", "-c",
+						"\"ulimit -v " + ulimit + " && " + String.join(" ", commands) + "\"");
 			}
 
-			classLogger.info("Starting user process with ::: {}", Arrays.toString(commands));
+			classLogger.info("Starting user process with ::: {}", commands);
 			String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			pb.redirectError();
@@ -700,15 +738,9 @@ public class ClientProcessWrapper {
 			if (tcpWorker == null || (tcpWorker = tcpWorker.trim()).isEmpty()) {
 				tcpWorker = prerna.tcp.SocketServer.class.getName();
 			}
-			String[] commands = null;
-			if (port == null) {
-				commands = new String[6];
-			} else {
-				commands = new String[7];
-				commands[6] = port;
-			}
+			List<String> commands = new ArrayList<>();
 			String finalDir = insightFolder.replace("\\", "/");
-			commands[0] = java;
+			commands.add(java);
 			// compose for memory
 			String xms = Utility.getDIHelperProperty("Xms");
 			String xmx = Utility.getDIHelperProperty("Xmx");
@@ -718,11 +750,11 @@ public class ClientProcessWrapper {
 				memory = "-Xms" + xms + " -Xmx" + xmx;
 			}
 
-			commands[1] = memory + " -cp";
-			commands[2] = specificPath;
-			commands[3] = tcpWorker;
-			commands[4] = finalDir;
-			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
+			Collections.addAll(commands, memory + " -cp", specificPath, tcpWorker, finalDir,
+					DIHelper.getInstance().getRDFMapFileLocation());
+			if (port != null) {
+				commands.add(port);
+			}
 
 			classLogger.debug("Trying to create file in .. {}", finalDir);
 			File file = new File(chrootDir + finalDir + "/init");
@@ -732,17 +764,16 @@ public class ClientProcessWrapper {
 
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS
-					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
-				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
-				StringBuilder sb = new StringBuilder();
-				for (String str : commands) {
-					sb.append(str).append(" ");
-				}
-				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS)))) {
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS);
+				// these commands are written into starter.sh and run by a shell, so the
+				// quotes are shell syntax there and are required: without them bash
+				// reads "-c ulimit" alone and the real command runs with no limit
+				commands = List.of("/bin/bash", "-c",
+						"\"ulimit -v " + ulimit + " && " + String.join(" ", commands) + "\"");
 			}
 
-			classLogger.info("Starting user process with ::: {}", Arrays.toString(commands));
+			classLogger.info("Starting user process with ::: {}", commands);
 			String[] starterFile = writeStarterFile(commands, chrootDir, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			pb.redirectError();
@@ -764,19 +795,16 @@ public class ClientProcessWrapper {
 	}
 
 	/**
-	 * Spawn the native Python TCP server (gaas_tcp_socket_server.py), optionally
-	 * under {@code sudo -u <PY_SERVER_USER>} and/or a memory ulimit. After
-	 * starting, it polls briefly for an immediate crash and, if the process exited,
-	 * parses the console output for a Python traceback to surface as the failure.
+	 * Drain one of a spawned process's output streams on a daemon thread, logging
+	 * each line to the python logger and optionally keeping a copy. A process whose
+	 * stdout/stderr is never read blocks once the pipe buffer fills, so every
+	 * spawned process needs one of these per stream.
 	 *
-	 * @param insightFolder working directory for the process
-	 * @param port          port to bind
-	 * @param py            path to the Python executable, or null/empty to resolve
-	 *                      the configured base Python
-	 * @param timeout       idle timeout in minutes ("-1" for none)
-	 * @param loggerLevel   log level for the spawned process (e.g. INFO)
-	 * @return a two-element array: { the spawned {@link Process} (or null on
-	 *         failure), the process prefix string }
+	 * @param stream        the process stream to drain
+	 * @param isError       true to log the lines as errors rather than info
+	 * @param capturedLines collects the lines for later inspection, or null to only
+	 *                      log them
+	 * @return the started daemon thread
 	 */
 	private static Thread startPyGobbler(InputStream stream, boolean isError, List<String> capturedLines) {
 		Thread t = new Thread(() -> {
@@ -801,8 +829,26 @@ public class ClientProcessWrapper {
 		return t;
 	}
 
+	/**
+	 * Spawn the native Python TCP server (gaas_tcp_socket_server.py), optionally
+	 * under {@code sudo -u <PY_SERVER_USER>} and/or a memory ulimit. After
+	 * starting, it polls briefly for an immediate crash and, if the process exited,
+	 * parses the console output for a Python traceback to surface as the failure.
+	 *
+	 * @param insightFolder working directory for the process
+	 * @param port          port to bind
+	 * @param py            path to the Python executable, or null/empty to resolve
+	 *                      the configured base Python
+	 * @param timeout       idle timeout in minutes ("-1" for none)
+	 * @param loggerLevel   log level for the spawned process (e.g. INFO)
+	 * @param engineOwned   true when an engine owns this process rather than a
+	 *                      user's python code, which tells the python server to
+	 *                      skip the adapters meant for user code
+	 * @return a two-element array: { the spawned {@link Process} (or null on
+	 *         failure), the process prefix string }
+	 */
 	public static Object[] startTCPServerNativePy(String insightFolder, String port, String py, String timeout,
-			String loggerLevel) {
+			String loggerLevel, boolean engineOwned) {
 		String prefix = "";
 		Process thisProcess = null;
 		String finalDir = insightFolder.replace("\\", "/");
@@ -822,18 +868,11 @@ public class ClientProcessWrapper {
 
 			String outputFile = finalDir + "/console.txt";
 
-			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
-			String[] baseCommand = new String[] { py, gaasServer, "--port", port, "--max_count", "1", "--py_folder",
-					pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level",
-					loggerLevel };
+			List<String> commands = new ArrayList<>();
 
-			String[] commands;
+			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
 			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
-				commands = new String[baseCommand.length + 3];
-				commands[0] = "sudo";
-				commands[1] = "-u";
-				commands[2] = pythonUser;
-				System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
+				Collections.addAll(commands, "sudo", "-u", pythonUser);
 
 				File pythonProcessFolder = new File(finalDir);
 				if (pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
@@ -841,23 +880,26 @@ public class ClientProcessWrapper {
 					pythonProcessFolder.setWritable(true, false);
 					pythonProcessFolder.setExecutable(true, false);
 				}
-			} else {
-				commands = baseCommand;
+			}
+
+			Collections.addAll(commands, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase,
+					"--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level",
+					loggerLevel);
+			if (engineOwned) {
+				commands.add(ENGINE_OWNED_FLAG);
 			}
 
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS
-					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
-				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
-				StringBuilder sb = new StringBuilder();
-				for (String str : commands) {
-					sb.append(str).append(" ");
-				}
-				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS)))) {
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS);
+				// ProcessBuilder passes this straight to bash as one argument, so it
+				// must not be wrapped in quotes: bash would read the whole thing as a
+				// single command word and fail with "command not found"
+				commands = List.of("/bin/bash", "-c", "ulimit -v " + ulimit + " && " + String.join(" ", commands));
 			}
 
-			classLogger.info("Starting user/engine process with ::: {}", Arrays.toString(commands));
+			classLogger.info("Starting user/engine process with ::: {}", commands);
 			ProcessBuilder pb = new ProcessBuilder(commands);
 			boolean pyLogCapture = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.PY_LOG_CAPTURE_ENABLED));
 			List<String> capturedLines = null;
@@ -942,7 +984,7 @@ public class ClientProcessWrapper {
 
 	/**
 	 * Chroot variant of
-	 * {@link #startTCPServerNativePy(String, String, String, String, String)}:
+	 * {@link #startTCPServerNativePy(String, String, String, String, String, boolean)}:
 	 * spawns the native Python TCP server inside a chroot via
 	 * {@code fakechroot fakeroot chroot}. {@code chrootDir} is usually something
 	 * like {@code /opt/kunal__abc123123}, under which lives the full (fake) OS.
@@ -953,11 +995,14 @@ public class ClientProcessWrapper {
 	 * @param port          port to bind
 	 * @param timeout       idle timeout in minutes ("-1" for none)
 	 * @param loggerLevel   log level for the spawned process (e.g. INFO)
+	 * @param engineOwned   true when an engine owns this process rather than a
+	 *                      user's python code, which tells the python server to
+	 *                      skip the adapters meant for user code
 	 * @return a two-element array: { the spawned {@link Process} (or null on
 	 *         failure), the process prefix string }
 	 */
 	public static Object[] startTCPServerNativePyChroot(String chrootDir, String insightFolder, String port,
-			String timeout, String loggerLevel) {
+			String timeout, String loggerLevel, boolean engineOwned) {
 		String prefix = "";
 		Process thisProcess = null;
 		String finalDir = insightFolder.replace("\\", "/");
@@ -972,24 +1017,31 @@ public class ClientProcessWrapper {
 
 			String outputFile = chrootDir + finalDir + "/console.txt";
 
-			String[] commands = new String[] { "fakechroot", "fakeroot", "chroot", "--userspec=1001:1001", "/", "env",
-					"-i", py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder",
+			List<String> commands = new ArrayList<>();
+			Collections.addAll(commands, "fakechroot", "fakeroot", "chroot", "--userspec=1001:1001", "/", "env", "-i");
+			String sandboxPath = getConfiguredSandboxPath();
+			if (!sandboxPath.isEmpty()) {
+				commands.add("PATH=" + sandboxPath);
+			}
+			Collections.addAll(commands, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase,
+					"--insight_folder",
 					finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level", loggerLevel,
-					"--userChrootFolder", chrootDir };
+					"--userChrootFolder", chrootDir);
+			if (engineOwned) {
+				commands.add(ENGINE_OWNED_FLAG);
+			}
 
 			// need to make sure we are not windows cause ulimit will not work
 			if (!SystemUtils.IS_OS_WINDOWS
-					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
-				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
-				StringBuilder sb = new StringBuilder();
-				for (String str : commands) {
-					sb.append(str).append(" ");
-				}
-				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS)))) {
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS);
+				// ProcessBuilder passes this straight to bash as one argument, so it
+				// must not be wrapped in quotes: bash would read the whole thing as a
+				// single command word and fail with "command not found"
+				commands = List.of("/bin/bash", "-c", "ulimit -v " + ulimit + " && " + String.join(" ", commands));
 			}
 
-			classLogger.info("Starting user process with ::: {}", Arrays.toString(commands));
+			classLogger.info("Starting user process with ::: {}", commands);
 			ProcessBuilder pb = new ProcessBuilder(commands);
 			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
 			pb.redirectError(redirector);
@@ -1040,6 +1092,7 @@ public class ClientProcessWrapper {
 
 		try {
 			String py = getPythonExecutable();
+			String sandboxPath = getConfiguredSandboxPath();
 			String baseFolder = Utility.getBaseFolder().replace("\\", "/");
 			String pyBase = baseFolder + "/" + Constants.PY_BASE_FOLDER;
 			String launcher = pyBase + "/sandbox_launcher.py";
@@ -1071,7 +1124,7 @@ public class ClientProcessWrapper {
 
 			String outputFile = ioDir + "/console.txt";
 
-			java.util.List<String> commands = new java.util.ArrayList<>();
+			List<String> commands = new ArrayList<>();
 			commands.add(py);
 			commands.add(launcher);
 			commands.add("--py-folder");
@@ -1086,6 +1139,7 @@ public class ClientProcessWrapper {
 			commands.add(injectRoot);
 			commands.add("--jail-root");
 			commands.add(jailDir);
+			addSandboxPathMounts(commands);
 			commands.add("--");
 			commands.add("--port");
 			commands.add(port);
@@ -1104,21 +1158,20 @@ public class ClientProcessWrapper {
 			commands.add("--uds-path");
 			commands.add(udsPath);
 
-			String[] commandArray = commands.toArray(new String[0]);
-
 			if (!SystemUtils.IS_OS_WINDOWS
-					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
-				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
-				StringBuilder sb = new StringBuilder();
-				for (String str : commandArray) {
-					sb.append(str).append(" ");
-				}
-				commandArray = new String[] { "/bin/bash", "-c",
-						"\"ulimit -v " + ulimit + " && " + sb.toString().trim() + "\"" };
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS)))) {
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS);
+				// ProcessBuilder passes this straight to bash as one argument, so it
+				// must not be wrapped in quotes: bash would read the whole thing as a
+				// single command word and fail with "command not found"
+				commands = List.of("/bin/bash", "-c", "ulimit -v " + ulimit + " && " + String.join(" ", commands));
 			}
 
-			classLogger.info("Starting namespace-sandboxed user process with ::: {}", Arrays.toString(commandArray));
-			ProcessBuilder pb = new ProcessBuilder(commandArray);
+			classLogger.info("Starting namespace-sandboxed user process with ::: {}", commands);
+			ProcessBuilder pb = new ProcessBuilder(commands);
+			if (!sandboxPath.isEmpty()) {
+				pb.environment().put("PATH", sandboxPath);
+			}
 			boolean pyLogCapture = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.PY_LOG_CAPTURE_ENABLED));
 			File consoleFile = new File(outputFile);
 			List<String> capturedLines = null;
@@ -1163,6 +1216,337 @@ public class ClientProcessWrapper {
 			thisProcess = p;
 		} catch (IOException ioe) {
 			throw new IllegalStateException("Failed to start namespace sandbox process", ioe);
+		}
+
+		return new Object[] { thisProcess, prefix, udsPath, controlSocketPath, ioDir, jailDir, controlDir };
+	}
+
+	/**
+	 * Spawn the agent node.js worker (js/gaas_node_worker.js) and connect a socket
+	 * client to it, blocking until the client reports ready. This is the node
+	 * analog of
+	 * {@link #createProcessAndClient(boolean, SymlinkHelper, int, String, String, String, boolean, String, String, Map)}.
+	 * On non-Windows hosts with {@code SANDBOX_MODE=NAMESPACE} (or legacy
+	 * {@code NSJAIL}) the worker is launched inside its own unprivileged namespace
+	 * jail; otherwise it is launched as a plain child process.
+	 *
+	 * @param port            port to connect on; negative to auto-allocate
+	 * @param serverDirectory working/scratch directory for the worker process
+	 * @param debug           true to attach to an already-running worker on the
+	 *                        given port instead of spawning one
+	 * @param timeout         idle timeout in minutes (null/"-1" for none)
+	 * @param loggerLevel     log level for the spawned process (e.g. INFO)
+	 * @param threadLoggerCtx log4j MDC context to propagate onto the socket client
+	 *                        thread
+	 * @throws Exception if the process cannot be started or the socket client never
+	 *                   becomes ready
+	 */
+	public void createNodeProcessAndClient(int port, String serverDirectory, boolean debug, String timeout,
+			String loggerLevel, Map<String, String> threadLoggerCtx) throws Exception {
+		lockCreate.lock();
+		try {
+			// the node worker speaks the same JSON protocol as the native python
+			// server, so the connection layer below reuses NativePySocketClient
+			this.nativePyServer = true;
+			this.nodeServer = true;
+			this.chrootSymlinkHelper = null;
+			this.classPath = null;
+			this.venvPath = null;
+			this.port = calculatePort(port);
+			this.serverDirectory = serverDirectory;
+			this.debug = debug;
+			this.loggerLevel = loggerLevel;
+			this.threadLoggerCtx = threadLoggerCtx;
+			this.timeout = timeout;
+			if (this.timeout == null) {
+				this.timeout = "-1";
+			}
+			this.udsPath = null;
+
+			boolean serverRunning = debug && port > 0;
+			if (!serverRunning) {
+				String sandboxMode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
+				boolean namespaceSandbox = !SystemUtils.IS_OS_WINDOWS
+						&& ("NAMESPACE".equalsIgnoreCase(sandboxMode) || "NSJAIL".equalsIgnoreCase(sandboxMode));
+				if (namespaceSandbox) {
+					Object[] ret = ClientProcessWrapper.startTCPServerNodeSandbox(this.serverDirectory, this.port + "",
+							this.timeout, this.loggerLevel, null);
+					this.process = (Process) ret[0];
+					this.prefix = (String) ret[1];
+					this.udsPath = (String) ret[2];
+					this.controlSocketPath = (String) ret[3];
+					this.sandboxIoDir = (String) ret[4];
+					this.sandboxJailDir = (String) ret[5];
+					this.sandboxControlDir = (String) ret[6];
+				} else {
+					Object[] ret = ClientProcessWrapper.startTCPServerNode(this.serverDirectory, this.port + "",
+							this.timeout, this.loggerLevel);
+					this.process = (Process) ret[0];
+					this.prefix = (String) ret[1];
+				}
+			}
+
+			try {
+				this.socketClient = new NativePySocketClient(threadLoggerCtx);
+				this.socketClient.setCpw(this);
+				if (this.udsPath != null) {
+					this.socketClient.connectUds(this.udsPath);
+				} else {
+					this.socketClient.connect("127.0.0.1", this.port, false);
+				}
+				Thread t = new Thread(socketClient);
+				t.start();
+				socketClient.awaitReadyOrKill(SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS,
+						SOCKET_CLIENT_READY_WAIT_INTERVAL_MS);
+				classLogger.info("Setting the node socket client");
+			} catch (Exception e) {
+				if (debug) {
+					throw new IllegalArgumentException("Could not connect to node process - note force port is on "
+							+ port + " and your server might not be started");
+				}
+				classLogger.error("Failed to initialize socket client for the node worker on port {}", this.port, e);
+				throw e;
+			}
+		} finally {
+			lockCreate.unlock();
+		}
+	}
+
+	/**
+	 * Spawn the node worker as a plain (non-sandboxed) child process. Mirrors
+	 * {@link #startTCPServerNativePy} minus the python-specific pieces. Optional
+	 * {@code NODE_PERMISSION_FLAGS} are inserted before the script so admins can
+	 * apply the node permission model matching their installed node version.
+	 *
+	 * @param insightFolder working directory for the process
+	 * @param port          port to bind
+	 * @param timeout       idle timeout in minutes ("-1" for none)
+	 * @param loggerLevel   log level for the spawned process (e.g. INFO)
+	 * @return a two-element array: { the spawned {@link Process} (or null on
+	 *         failure), the process prefix string }
+	 */
+	public static Object[] startTCPServerNode(String insightFolder, String port, String timeout, String loggerLevel) {
+		String prefix = "";
+		Process thisProcess = null;
+		String finalDir = insightFolder.replace("\\", "/");
+
+		try {
+			String node = prerna.ds.node.NodeUtils.getNodeExecutable();
+			String jsBase = prerna.ds.node.NodeUtils.getJsBaseFolder();
+			String nodeWorker = jsBase + "/gaas_node_worker.js";
+			String nodeEnvDir = prerna.ds.node.NodeUtils.getNodeEnvDir();
+
+			prefix = "p_" + Utility.getRandomString(5);
+			String outputFile = finalDir + "/console.txt";
+
+			List<String> commands = new ArrayList<>();
+			commands.add(node);
+			String permissionFlags = Utility.getDIHelperProperty(Settings.NODE_PERMISSION_FLAGS);
+			if (permissionFlags != null && !permissionFlags.trim().isEmpty()) {
+				for (String flag : permissionFlags.trim().split("\\s+")) {
+					commands.add(flag);
+				}
+			}
+			commands.add(nodeWorker);
+			commands.add("--port");
+			commands.add(port);
+			commands.add("--insight_folder");
+			commands.add(finalDir);
+			commands.add("--prefix");
+			commands.add(prefix);
+			commands.add("--timeout");
+			commands.add(timeout);
+			commands.add("--logger_level");
+			commands.add(loggerLevel);
+			commands.add("--node_env");
+			commands.add(nodeEnvDir);
+
+			// need to make sure we are not windows cause ulimit will not work
+			if (!SystemUtils.IS_OS_WINDOWS
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS)))) {
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS);
+				// ProcessBuilder passes this straight to bash as one argument, so it
+				// must not be wrapped in quotes: bash would read the whole thing as a
+				// single command word and fail with "command not found"
+				commands = List.of("/bin/bash", "-c", "ulimit -v " + ulimit + " && " + String.join(" ", commands));
+			}
+
+			classLogger.info("Starting node agent process with ::: {}", commands);
+			ProcessBuilder pb = new ProcessBuilder(commands);
+			// agent code runs in worker_threads, where process.chdir() throws
+			// ERR_WORKER_UNSUPPORTED_OPERATION - the process itself must start in
+			// the insight folder for relative paths to resolve there (worker
+			// threads inherit the process cwd)
+			pb.directory(new File(finalDir));
+			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
+			pb.redirectError(redirector);
+			pb.redirectOutput(redirector);
+			Process p = pb.start();
+			// brief poll for an immediate crash (bad NODE_HOME, syntax error)
+			for (int i = 0; i < PROCESS_CRASH_POLL_ATTEMPTS && p.isAlive(); i++) {
+				try {
+					if (p.waitFor(PROCESS_CRASH_POLL_INTERVAL_MS, TimeUnit.MILLISECONDS)) {
+						break;
+					}
+				} catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					classLogger.error("Interrupted while polling for an early node process crash", ie);
+					break;
+				}
+			}
+			if (!p.isAlive()) {
+				throw new IllegalStateException("Node worker exited during startup with code " + p.exitValue() + ". "
+						+ readSandboxStartupLog(new File(outputFile)));
+			}
+			thisProcess = p;
+		} catch (IOException ioe) {
+			classLogger.error("Failed to start the node worker process", ioe);
+		}
+
+		return new Object[] { thisProcess, prefix };
+	}
+
+	/**
+	 * Start the node worker inside its own unprivileged Linux namespace sandbox via
+	 * py/sandbox_launcher.py with the {@code --exec-cmd} override. The jail
+	 * additionally binds the js folder (worker + curated node_env) and, when
+	 * configured, the {@code NODE_HOME} install root read-only. Unlike the python
+	 * sandbox, this jail is self-contained: no injector is wired into a user
+	 * SymlinkHelper, so agent code sees only the jail plus its insight scratch
+	 * folder.
+	 *
+	 * @param insightFolder working directory for the worker process
+	 * @param port          port passed to the worker (it listens on a unix domain
+	 *                      socket inside the sandbox)
+	 * @param timeout       idle timeout in minutes ("-1" for none)
+	 * @param loggerLevel   log level for the spawned process (e.g. INFO)
+	 * @param ioDirName     name for this worker's io-dir / jail folder; a random
+	 *                      name is generated when null/empty
+	 * @return { Process, prefix, udsPath, controlSocketPath, ioDir, jailDir,
+	 *         controlDir }
+	 */
+	public static Object[] startTCPServerNodeSandbox(String insightFolder, String port, String timeout,
+			String loggerLevel, String ioDirName) {
+		String prefix = "";
+		Process thisProcess = null;
+		String udsPath = null;
+		String controlSocketPath = null;
+		String ioDir = null;
+		String jailDir = null;
+		String controlDir = null;
+		String finalDir = insightFolder.replace("\\", "/");
+
+		try {
+			// the sandbox launcher itself runs on the platform python
+			String py = getPythonExecutable();
+			String node = prerna.ds.node.NodeUtils.getNodeExecutable();
+			String jsBase = prerna.ds.node.NodeUtils.getJsBaseFolder();
+			String nodeWorker = jsBase + "/gaas_node_worker.js";
+			String nodeEnvDir = prerna.ds.node.NodeUtils.getNodeEnvDir();
+			String baseFolder = Utility.getBaseFolder().replace("\\", "/");
+			String pyBase = baseFolder + "/" + Constants.PY_BASE_FOLDER;
+			String launcher = pyBase + "/sandbox_launcher.py";
+
+			prefix = "p_" + Utility.getRandomString(5);
+
+			String ioRoot = Utility.getDIHelperProperty(Constants.SANDBOX_IO_DIR);
+			if (Strings.isNullOrEmpty(ioRoot)) {
+				ioRoot = System.getProperty("java.io.tmpdir") + "/semoss-sandbox";
+			}
+			// AF_UNIX socket paths are limited by sockaddr_un.sun_path, so keep
+			// runtime folder/socket names short (same convention as the py path)
+			String sourceName = Strings.isNullOrEmpty(ioDirName) ? prefix
+					: ioDirName.replaceAll("[^a-zA-Z0-9._-]", "_");
+			String folderName = prefix + "_" + Integer.toUnsignedString(sourceName.hashCode(), 36);
+			ioDir = ioRoot + "/" + folderName;
+			jailDir = ioRoot + "/" + folderName + "_j";
+			controlDir = ioRoot + "/" + folderName + "_c";
+			new File(Utility.normalizePath(ioDir)).mkdirs();
+			new File(Utility.normalizePath(jailDir)).mkdirs();
+			new File(Utility.normalizePath(controlDir)).mkdirs();
+			udsPath = ioDir + "/w.sock";
+			controlSocketPath = controlDir + "/c.sock";
+
+			String outputFile = ioDir + "/console.txt";
+
+			List<String> commands = new ArrayList<>();
+			commands.add(py);
+			commands.add(launcher);
+			// bind the js folder (worker script + node_env) read-only
+			commands.add("--py-folder");
+			commands.add(jsBase);
+			commands.add("--insight-folder");
+			commands.add(finalDir);
+			commands.add("--io-dir");
+			commands.add(ioDir);
+			commands.add("--control-socket");
+			commands.add(controlSocketPath);
+			commands.add("--inject-root");
+			commands.add(baseFolder);
+			commands.add("--jail-root");
+			commands.add(jailDir);
+			commands.add("--exec-cmd");
+			commands.add(node);
+			commands.add("--exec-script");
+			commands.add(nodeWorker);
+			// a NODE_HOME outside the default /usr,/bin,/lib mounts must be
+			// visible inside the jail for the execv to work
+			String nodeHome = System.getenv(Settings.NODE_HOME);
+			if (nodeHome == null) {
+				nodeHome = Utility.getDIHelperProperty(Settings.NODE_HOME);
+			}
+			if (nodeHome != null && !nodeHome.trim().isEmpty()) {
+				commands.add("--extra-ro");
+				commands.add(nodeHome.trim().replace("\\", "/"));
+			}
+			if (!nodeEnvDir.startsWith(jsBase)) {
+				commands.add("--extra-ro");
+				commands.add(nodeEnvDir);
+			}
+			commands.add("--");
+			commands.add("--port");
+			commands.add(port);
+			commands.add("--insight_folder");
+			commands.add(finalDir);
+			commands.add("--prefix");
+			commands.add(prefix);
+			commands.add("--timeout");
+			commands.add(timeout);
+			commands.add("--logger_level");
+			commands.add(loggerLevel);
+			commands.add("--uds-path");
+			commands.add(udsPath);
+			commands.add("--node_env");
+			commands.add(nodeEnvDir);
+
+			if (!SystemUtils.IS_OS_WINDOWS
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS)))) {
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS);
+				// ProcessBuilder passes this straight to bash as one argument, so it
+				// must not be wrapped in quotes: bash would read the whole thing as a
+				// single command word and fail with "command not found"
+				commands = List.of("/bin/bash", "-c", "ulimit -v " + ulimit + " && " + String.join(" ", commands));
+			}
+
+			classLogger.info("Starting namespace-sandboxed node agent process with ::: {}", commands);
+			ProcessBuilder pb = new ProcessBuilder(commands);
+			File consoleFile = new File(outputFile);
+			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(consoleFile);
+			pb.redirectError(redirector);
+			pb.redirectOutput(redirector);
+			Process p = pb.start();
+			try {
+				if (p.waitFor(500, TimeUnit.MILLISECONDS)) {
+					throw new IllegalStateException("Node sandbox exited during startup with code " + p.exitValue()
+							+ ". " + readSandboxStartupLog(consoleFile));
+				}
+			} catch (InterruptedException ie) {
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException("Interrupted while waiting for node sandbox startup", ie);
+			}
+			thisProcess = p;
+		} catch (IOException ioe) {
+			throw new IllegalStateException("Failed to start node sandbox process", ioe);
 		}
 
 		return new Object[] { thisProcess, prefix, udsPath, controlSocketPath, ioDir, jailDir, controlDir };
@@ -1229,6 +1613,35 @@ public class ClientProcessWrapper {
 		return py;
 	}
 
+	private static String getConfiguredSandboxPath() {
+		String sandboxPath = Utility.getDIHelperProperty(Constants.SANDBOX_PATH);
+		return sandboxPath == null ? "" : sandboxPath.trim();
+	}
+
+	private static void addSandboxPathMounts(List<String> commands) {
+		String sandboxPath = getConfiguredSandboxPath();
+		if (sandboxPath.isEmpty()) {
+			return;
+		}
+		for (String entry : sandboxPath.split(File.pathSeparator)) {
+			String path = entry.trim().replace("\\", "/");
+			if (path.isEmpty() || !new File(path).isAbsolute() || isNamespaceDefaultRoPath(path)) {
+				continue;
+			}
+			commands.add("--extra-ro");
+			commands.add(path);
+		}
+	}
+
+	private static boolean isNamespaceDefaultRoPath(String path) {
+		for (String defaultPath : NAMESPACE_DEFAULT_RO_PATHS) {
+			if (path.equals(defaultPath) || path.startsWith(defaultPath + "/")) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Write the given command tokens to a {@code starter.sh}/{@code starter.bat}
 	 * script in {@code dir} (chmod 777 on unix) and return the command array used
@@ -1239,7 +1652,7 @@ public class ClientProcessWrapper {
 	 * @param dir      the directory to write the starter script into
 	 * @return the command array that launches the starter script
 	 */
-	public static String[] writeStarterFile(String[] commands, String dir) {
+	public static String[] writeStarterFile(List<String> commands, String dir) {
 		// check if the os is unix and if so make it .sh
 		String osName = System.getProperty("os.name").toLowerCase();
 
@@ -1260,8 +1673,8 @@ public class ClientProcessWrapper {
 		try {
 			File starterFile = new File(starter);
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			for (int cmdIndex = 0; cmdIndex < commands.length; cmdIndex++) {
-				baos.write(commands[cmdIndex].getBytes());
+			for (String command : commands) {
+				baos.write(command.getBytes());
 				baos.write("  ".getBytes());
 			}
 			FileUtils.writeByteArrayToFile(starterFile, baos.toByteArray());
@@ -1291,10 +1704,9 @@ public class ClientProcessWrapper {
 	}
 
 	/**
-	 * Chroot variant of {@link #writeStarterFile(String[], String)}: writes the
-	 * starter script and, when {@code CHROOT_ENABLE} is set on unix, returns a
-	 * command array that runs it under
-	 * {@code fakechroot fakeroot chroot <chrootDir>}.
+	 * Chroot variant of {@link #writeStarterFile(List, String)}: writes the starter
+	 * script and, when {@code CHROOT_ENABLE} is set on unix, returns a command
+	 * array that runs it under {@code fakechroot fakeroot chroot <chrootDir>}.
 	 *
 	 * @param commands  the process command tokens to write into the starter script
 	 * @param chrootDir the chroot root the script is launched inside
@@ -1302,7 +1714,7 @@ public class ClientProcessWrapper {
 	 *                  script into
 	 * @return the command array that launches the starter script
 	 */
-	public static String[] writeStarterFile(String[] commands, String chrootDir, String dir) {
+	public static String[] writeStarterFile(List<String> commands, String chrootDir, String dir) {
 		// check if the os is unix and if so make it .sh
 		String osName = System.getProperty("os.name").toLowerCase();
 
@@ -1336,8 +1748,8 @@ public class ClientProcessWrapper {
 		try {
 			File starterFile = new File(starter);
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			for (int cmdIndex = 0; cmdIndex < commands.length; cmdIndex++) {
-				baos.write(commands[cmdIndex].getBytes());
+			for (String command : commands) {
+				baos.write(command.getBytes());
 				baos.write("  ".getBytes());
 			}
 			FileUtils.writeByteArrayToFile(starterFile, baos.toByteArray());

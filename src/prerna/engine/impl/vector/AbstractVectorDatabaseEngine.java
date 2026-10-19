@@ -836,9 +836,9 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 			setVectorFolderPermissions();
 
 			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
-											// python
+			boolean nativePyServer = true;
 			try {
+				cpwToInit.setEngineOwned(true);
 				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
 						debug, timeout, loggerLevel);
 			} catch (Exception e) {

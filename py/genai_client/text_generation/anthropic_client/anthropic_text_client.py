@@ -34,6 +34,12 @@ from ..model_engine_exception import (
     AnthropicRefusalError,
 )
 from ...utils import string_to_bool
+from ...usage_ceiling import (
+    PromptCount,
+    count_prompt_tokens,
+    fit_thinking_budget,
+    note_output_stop,
+)
 
 
 class ToolCall(BaseModel):
@@ -48,6 +54,12 @@ class Usage(BaseModel):
 
 
 class AnthropicTextClient(AbstractTextGenerationClient):
+
+    # Anthropic's smallest extended thinking budget
+    MIN_THINKING_BUDGET = 1024
+
+    # providers whose client supports messages.count_tokens
+    _COUNT_TOKENS_PROVIDERS = ("anthropic", "google", "azure")
 
     def __init__(
         self,
@@ -396,6 +408,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     self._apply_cache_to_system(request_config)
                     self._apply_cache_to_last_block(request_config.messages)
 
+            # fitted on the finished request; since this client marks the prompt
+            # for caching, the prompt is priced at the higher of the input and
+            # cache write rates
+            self._apply_usage_ceiling(request_config)
+
             if streaming:
                 return self._handle_streaming(
                     request_config,
@@ -417,6 +434,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 raise AnthropicRefusalError(
                     "The model refused to complete the request."
                 )
+
+            # stopped by max_tokens, which marks the response usageCapped when
+            # the ceiling set it
+            note_output_stop(response.stop_reason == "max_tokens")
 
             if response.stop_reason == "tool_use":
                 _cache_read = (
@@ -499,6 +520,96 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             return ModelEngineException(
                 error=e, client="anthropic", model=self.model_name
             ).parse_error()
+
+    def _apply_usage_ceiling(self, request_config: AnthropicRequestConfig) -> None:
+        """Fit the request to the usage ceiling of the call in progress.
+
+        max_tokens is lowered to what the prompt leaves, never raised. A
+        budget_tokens thinking budget is lowered below it, leaving part of it for
+        the answer, and thinking is turned off when even 1,024 tokens do not fit.
+        Adaptive thinking has no budget and counts inside max_tokens, so it is
+        left as it is.
+        """
+        fit = self.fit_output_to_usage_ceiling(
+            request_config.max_tokens,
+            lambda: self._count_prompt_tokens(request_config),
+        )
+        if fit is None or not fit.lowered:
+            return
+        request_config.max_tokens = fit.max_tokens
+
+        thinking = request_config.thinking
+        if not thinking or thinking.get("type") != "enabled":
+            return
+        # Anthropic refuses a budget that is not below max_tokens, and thinking
+        # counts inside max_tokens, so the budget follows the lowered maximum
+        budget = fit_thinking_budget(
+            int(thinking.get("budget_tokens") or self.MIN_THINKING_BUDGET),
+            fit.max_tokens,
+            self.usage_ceiling_min_output_tokens(),
+            self.MIN_THINKING_BUDGET,
+        )
+        if budget is None:
+            request_config.thinking = None
+        else:
+            request_config.thinking = {**thinking, "budget_tokens": budget}
+
+    def _count_prompt_tokens(
+        self, request_config: AnthropicRequestConfig
+    ) -> PromptCount:
+        """Count the prompt with messages.count_tokens where the provider's
+        client supports it, and estimate it otherwise (Bedrock) or when the
+        count fails."""
+        if self.provider in self._COUNT_TOKENS_PROVIDERS and not getattr(
+            self, "_count_tokens_unavailable", False
+        ):
+            params: Dict[str, Any] = {
+                "model": request_config.model,
+                "messages": request_config.messages,
+            }
+            if request_config.system:
+                params["system"] = request_config.system
+            if request_config.tools:
+                params["tools"] = request_config.tools
+            if request_config.thinking:
+                params["thinking"] = request_config.thinking
+            try:
+                if self.use_beta_header and request_config.betas:
+                    result = self.client.beta.messages.count_tokens(
+                        betas=request_config.betas, **params
+                    )
+                else:
+                    result = self.client.messages.count_tokens(**params)
+                return PromptCount(tokens=int(result.input_tokens), estimated=False)
+            except Exception as e:
+                # remembered for the client, so an endpoint without count_tokens
+                # is not asked again on every call
+                if self._count_tokens_unsupported(e):
+                    self._count_tokens_unavailable = True
+
+        return count_prompt_tokens(
+            [request_config.system, request_config.messages],
+            [request_config.tools, request_config.output_config],
+            message_count=len(request_config.messages or []),
+        )
+
+    @staticmethod
+    def _count_tokens_unsupported(error: Exception) -> bool:
+        """True when count_tokens cannot work for this client at all, as
+        opposed to failing for one request or for a moment."""
+        from anthropic import (
+            APIConnectionError,
+            APIStatusError,
+            NotFoundError,
+            PermissionDeniedError,
+            AnthropicError,
+        )
+
+        if isinstance(error, (NotFoundError, PermissionDeniedError)):
+            return True
+        if isinstance(error, (APIStatusError, APIConnectionError)):
+            return False
+        return isinstance(error, (AnthropicError, AttributeError, NotImplementedError))
 
     def _parse_tools_call_response(
         self,
@@ -808,6 +919,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             data = StreamUtil.create_finish_reason_chunk("refusal")
             smss_stream(data, stream_type="content", interim=False)
             raise AnthropicRefusalError("The model refused to complete the request.")
+
+        note_output_stop(stop_reason == "max_tokens")
 
         if tool_result:
             data = StreamUtil.create_finish_reason_chunk("tool_use")
@@ -1471,6 +1584,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
         return {
             "provider_batch_id": provider_batch_id,
+            # results can only be read once the batch has ended
+            "status": self._normalize_batch_status("ended"),
             "count": len(items),
             "results": items,
             "raw_jsonl": "\n".join(raw_lines),

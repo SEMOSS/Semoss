@@ -38,7 +38,8 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import net.snowflake.client.jdbc.internal.google.gson.Gson;
+import com.google.gson.Gson;
+
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.SmssUtilities;
@@ -384,7 +385,8 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 				              "maxLength": 512
 				            },
 				            "blockOnGuardrailFailure": true,
-				            "blockErrorMessage": "The request was blocked because it may contain prompt-injection instructions."
+				            "blockErrorMessage": "The request was blocked because it may contain prompt-injection instructions.",
+				            "skipOnToolContinuationForTools": ["a<engineid>_search"]
 				          }
 				        }
 				      ]
@@ -394,6 +396,8 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 				```
 
 				The classifier sees the text from the actual `InputMessage`, and a failed check prevents the model call. This guardrail returns the original prompt, so use it to block rather than mask.
+
+				`askRoom` also carries the agent loop's tool results, which a classifier trained on user-typed text tends to score as attacks. `skipOnToolContinuationForTools` lists the tools whose results this mount leaves alone, named as the model sees them; `skipOnToolContinuationForAllTools` skips all of them. Leave both off unless false positives are actually breaking tool calling, because tool output is exactly the untrusted content this classifier is for. A turn carrying user-written text is screened either way.
 				"""
 				.formatted(getEngineId());
 	}

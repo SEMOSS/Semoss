@@ -30,66 +30,77 @@ package prerna.reactor.agent.subagent;
 /**
  * Per-spawn metadata recorded by {@link AgentSubAgentRegistry}.
  *
- * <p>Heavy state (queueing, status, execution, interrupt) lives in
- * {@link prerna.reactor.agent.run.AgentRuntimeManager}; this record is just the
- * parent/alias/workspace context needed to assemble a subagent tree and
- * address stream events.
+ * <p>
+ * Heavy state (queueing, status, execution, interrupt) lives in
+ * {@link prerna.reactor.agent.run.AgentRunService}; this record is just the
+ * parent/alias/workspace context needed to assemble a subagent tree and address
+ * stream events.
  *
- * <p>Immutable.
+ * <p>
+ * Immutable.
  */
 public final class SubAgentMeta {
 
-    private final String jobId;
-    private final String parentJobId;
-    private final String alias;
-    private final String workspaceId;
-    private final String childRoomId;
-    private final long   spawnedAt;
-    // Root=0, direct children=1, etc.
-    private final int    spawnDepth;
+	private final String jobId;
+	private final String parentJobId;
+	private final String alias;
+	private final String workspaceId;
+	private final String childRoomId;
+	private final long spawnedAt;
+	// Root=0, direct children=1, etc.
+	private final int spawnDepth;
 
-    public SubAgentMeta(String jobId, String parentJobId, String alias, String workspaceId,
-            String childRoomId, long spawnedAt, int spawnDepth) {
-        this.jobId       = jobId;
-        this.parentJobId = parentJobId;
-        this.alias       = alias;
-        this.workspaceId = workspaceId;
-        this.childRoomId = childRoomId;
-        this.spawnedAt   = spawnedAt;
-        this.spawnDepth  = spawnDepth;
-    }
+	public SubAgentMeta(String jobId, String parentJobId, String alias, String workspaceId, String childRoomId,
+			long spawnedAt, int spawnDepth) {
+		this.jobId = jobId;
+		this.parentJobId = parentJobId;
+		this.alias = alias;
+		this.workspaceId = workspaceId;
+		this.childRoomId = childRoomId;
+		this.spawnedAt = spawnedAt;
+		this.spawnDepth = spawnDepth;
+	}
 
-    /** Async pixel job id assigned to this subagent run; doubles as the model-facing handle. */
-    public String getJobId() {
-        return jobId;
-    }
+	/**
+	 * Async pixel job id assigned to this subagent run; doubles as the model-facing
+	 * handle.
+	 */
+	public String getJobId() {
+		return jobId;
+	}
 
-    /** Job id of the parent run that spawned this child; {@code null} when no parent context. */
-    public String getParentJobId() {
-        return parentJobId;
-    }
+	/**
+	 * Job id of the parent run that spawned this child; {@code null} when no parent
+	 * context.
+	 */
+	public String getParentJobId() {
+		return parentJobId;
+	}
 
-    /** Alias generated from the target agent's name; {@code null} for anonymous spawns. */
-    public String getAlias() {
-        return alias;
-    }
+	/**
+	 * Alias generated from the target agent's name; {@code null} for anonymous
+	 * spawns.
+	 */
+	public String getAlias() {
+		return alias;
+	}
 
-    /** Target child workspace id; {@code null} for anonymous (clone) spawns. */
-    public String getWorkspaceId() {
-        return workspaceId;
-    }
+	/** Target child workspace id; {@code null} for anonymous (clone) spawns. */
+	public String getWorkspaceId() {
+		return workspaceId;
+	}
 
-    /** Room id of the freshly created child room. */
-    public String getChildRoomId() {
-        return childRoomId;
-    }
+	/** Room id of the freshly created child room. */
+	public String getChildRoomId() {
+		return childRoomId;
+	}
 
-    /** Wall-clock spawn timestamp (epoch ms). */
-    public long getSpawnedAt() {
-        return spawnedAt;
-    }
+	/** Wall-clock spawn timestamp (epoch ms). */
+	public long getSpawnedAt() {
+		return spawnedAt;
+	}
 
-    public int getSpawnDepth() {
-        return spawnDepth;
-    }
+	public int getSpawnDepth() {
+		return spawnDepth;
+	}
 }

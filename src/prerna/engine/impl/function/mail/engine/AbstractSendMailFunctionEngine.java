@@ -265,29 +265,12 @@ public abstract class AbstractSendMailFunctionEngine extends AbstractFunctionEng
 	}
 
 	/**
-	 * @param value        the configured value
-	 * @param defaultValue what it is when nothing was configured
-	 * @return the value
-	 */
-	protected static boolean parseBoolean(String value, boolean defaultValue) {
-		return MailProperties.parseBoolean(value, defaultValue);
-	}
-
-	/**
 	 * @param recipients the addresses, which may be null or empty
 	 * @return them as an array, or null when there are none, which is what the mail
 	 *         libraries read as "none"
 	 */
 	protected static String[] toArray(List<String> recipients) {
 		return recipients == null || recipients.isEmpty() ? null : recipients.toArray(String[]::new);
-	}
-
-	/**
-	 * @param value the value to trim
-	 * @return it without surrounding space, or null when there is nothing left
-	 */
-	protected static String trimToNull(String value) {
-		return MailProperties.trimToNull(value);
 	}
 
 	/**

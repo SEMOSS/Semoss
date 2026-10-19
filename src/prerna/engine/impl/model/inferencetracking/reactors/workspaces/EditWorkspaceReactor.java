@@ -45,28 +45,36 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.SystemDefaultEngines;
 
 public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(EditWorkspaceReactor.class);
 
+	/** Max length for the agent's scripted opening message. */
+	private static final int MAX_GREETING_LENGTH = 2000;
+
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
 				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, MODEL_ID, MAX_TURNS, MAX_SUBAGENT_DEPTH,
 				MAX_REFLECTIONS, MAX_SECONDS, MAX_SUBAGENTS_PER_RUN, MAX_SPAWNS_PER_TURN, SUBAGENTS, HOOKS,
-				USE_DEFAULT_AGENT_TOOLS, DISABLED_DEFAULT_TOOLS };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				USE_DEFAULT_AGENT_TOOLS, DISABLED_DEFAULT_TOOLS, GREETING, GREETING_ENABLED };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	/**
-	 * Presence-detects {@code reactorKey} (via {@link #getGenRowStruct(String)}); if present,
-	 * stages it into {@code updates} under {@code jsonKey}. A present-but-blank value stages a
-	 * {@code null}, which {@link AbstractWorkspaceReactor#mirrorCoreFieldsIntoConfigJson} reads
-	 * as "clear this field" (falls back to the run-time default/cap) rather than a validation
-	 * failure - mirrors the blank-clears-{@code modelId} convention above.
+	 * Presence-detects {@code reactorKey} (via {@link #getGenRowStruct(String)});
+	 * if present, stages it into {@code updates} under {@code jsonKey}. A
+	 * present-but-blank value stages a {@code null}, which
+	 * {@link AbstractWorkspaceReactor#mirrorCoreFieldsIntoConfigJson} reads as
+	 * "clear this field" (falls back to the run-time default/cap) rather than a
+	 * validation failure - mirrors the blank-clears-{@code modelId} convention
+	 * above.
 	 *
-	 * @throws IllegalArgumentException if a non-blank value isn't a parseable integer &gt;= minValue
+	 * @throws IllegalArgumentException if a non-blank value isn't a parseable
+	 *                                  integer &gt;= minValue
 	 */
 	private void stageIntUpdate(Map<String, Integer> updates, String reactorKey, String jsonKey, int minValue) {
 		if (getGenRowStruct(reactorKey) == null) {
@@ -136,9 +144,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 		Set<String> curDepList = SecurityProjectUtils.getProjectDependencies(workspaceId, false).stream()
 				.map(map -> (String) map.get("engine_id")).collect(Collectors.toSet());
-		Set<String> curSkillList = ModelInferenceLogsUtils
-				.getWorkspaceResources(workspaceId, SKILL_RESOURCE_TYPE, null).stream()
-				.map(map -> (String) map.get("resource_id")).collect(Collectors.toSet());
+		Set<String> curSkillList = ModelInferenceLogsUtils.getWorkspaceResources(workspaceId, SKILL_RESOURCE_TYPE, null)
+				.stream().map(map -> map.get("resource_id")).collect(Collectors.toSet());
 
 		Set<String> engines = new HashSet<>();
 		Set<String> projectDependencies = new HashSet<>();
@@ -192,6 +199,24 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 				? new ArrayList<>(new LinkedHashSet<>(getListString(DISABLED_DEFAULT_TOOLS)))
 				: null;
 
+		// Presence-detected: omitting the key leaves CONFIG_JSON.greeting
+		// untouched, passing it blank clears it.
+		boolean greetingProvided = getGenRowStruct(GREETING) != null;
+		String greeting = greetingProvided ? this.keyValue.get(GREETING) : null;
+		// Trimmed, to match what actually gets stored.
+		if (greetingProvided && greeting != null && greeting.trim().length() > MAX_GREETING_LENGTH) {
+			return getError(GREETING + " must be " + MAX_GREETING_LENGTH + " characters or fewer");
+		}
+		boolean greetingEnabledProvided = getGenRowStruct(GREETING_ENABLED) != null;
+		Boolean greetingEnabled = null;
+		if (greetingEnabledProvided) {
+			String raw = this.keyValue.get(GREETING_ENABLED);
+			if (!"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw)) {
+				return getError(GREETING_ENABLED + " must be true or false");
+			}
+			greetingEnabled = Boolean.valueOf(raw);
+		}
+
 		try {
 			ModelInferenceLogsUtils.updateWorkspaceEntry(workspaceId, workspaceName, workspaceDescription,
 					workspaceSystemPrompt, isActive, workspaceResources);
@@ -202,7 +227,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 		// Dual-write CONFIG_JSON: mirror system_prompt + MCP engine/project refs +
 		// skill refs into WORKSPACE.CONFIG_JSON. Preserve any other CONFIG_JSON fields
-		// (e.g. hooks) the workspace already has. Best-effort - a failure here is logged
+		// (e.g. hooks) the workspace already has. Best-effort - a failure here is
+		// logged
 		// but does not fail the reactor, since the legacy SYSTEM_PROMPT column +
 		// WORKSPACE_RESOURCE rows already landed and AgentConfigLoader still resolves
 		// correctly from those.
@@ -210,7 +236,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
 					modelIdProvided, workspaceModelId, budgetUpdates, spawnPolicyUpdates, subagentsProvided,
 					subagentUpdates, hooksProvided, hookUpdates, useDefaultToolsProvided, useDefaultTools,
-					disabledDefaultToolsProvided, disabledDefaultTools);
+					disabledDefaultToolsProvided, disabledDefaultTools, greetingProvided, greeting,
+					greetingEnabledProvided, greetingEnabled);
 		} catch (Exception e) {
 			classLogger.warn(
 					"Failed to mirror system_prompt/mcps/skills into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",
@@ -221,6 +248,9 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			return new NounMetadata(partial, PixelDataType.MAP);
 		}
 
+		UserAuditTrailUtils.recordWorkspaceLifecycle(user, AuditEventType.WORKSPACE_UPDATE, workspaceId, workspaceName,
+				Map.of("isActive", isActive, "resourceCount", workspaceResources.size(), "dependencyCount",
+						dependencyList.size()));
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 

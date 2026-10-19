@@ -1,0 +1,227 @@
+---
+name: workflow-automation
+description: "Use when authoring, changing, running, or troubleshooting a SEMOSS Automation workflow. Covers the automation project MCP (GetAutomation, GetAutomationNodeDefinitions, AddAutomationStep, UpdateAutomationStep, UpdateAutomationCustomStep, RemoveAutomationStep, TriggerAutomation), the typed node graph, Java-executed generated nodes, the developer.python run(scope) contract, trigger inputs, and save-time validation."
+---
+
+# Automations in SEMOSS
+
+An automation is a typed graph the platform executes node by node. The graph lives in
+the project's `automation-workflow.json`; only `developer.python` nodes have source
+files under `automation-nodes/`. You never touch either location. The active
+automation project's MCP is the authority for reading, changing, or running it.
+
+Two kinds of node exist, and the difference governs every edit:
+
+- **Generated** nodes hold configuration only. Java executes them through typed
+  handlers and existing SEMOSS Pixel/reactor/engine paths. Change them with
+  `UpdateAutomationStep` by sending configuration.
+- **Custom** nodes are `developer.python` nodes and hold hand-written Python.
+  Change them with `UpdateAutomationCustomStep` by sending source. Typed generated
+  nodes cannot be switched to custom mode.
+
+Sending source to a generated node, or configuration to a custom node, is rejected.
+
+## Authoring sequence
+
+Always in this order. Skipping step 1 or 2 is the most common cause of a rejected edit.
+
+1. `GetAutomation` - the current graph, node IDs, configuration, node sources,
+   `sourceHashes`, globals, and revision. Call it before every decision, and again
+   after any change you did not make yourself.
+2. `GetAutomationNodeDefinitions` - the versioned catalog of every supported node type
+   with its configuration fields, defaults, engine category, ports, and capabilities.
+   This is the schema source of truth. Do not guess a field name from this document.
+3. Discover real identifiers with the catalog tools before using them. Never invent an
+   engine, app, reactor, function, workspace, node, or output-variable ID.
+4. Make one change per call: `AddAutomationStep`, `UpdateAutomationStep`,
+   `UpdateAutomationCustomStep`, or `RemoveAutomationStep`.
+5. Run it with `TriggerAutomation` **only when the user explicitly asks you to**.
+   It is never a way to inspect the automation.
+
+Never claim an operation succeeded unless the tool confirmed it. If a save is rejected,
+read the error: the validator states the exact rule that failed.
+
+## The developer Python run(scope) contract
+
+Every `developer.python` node must bind a module-level `run`:
+
+```python
+def run(scope):
+    return {"total": 4}
+```
+
+The custom-computation bridge imports the module and calls `run(scope)`. A `run`
+nested inside a class or another function does not count, and a module with no
+top-level `run` is rejected at save time. The return becomes the node output under
+its output variable. It may be a bounded JSON-shaped value or a supported pandas
+frame. Generated nodes do not use this source contract.
+
+`scope` is a read-only mapping of the run's values, not a plain dict you can assign to:
+
+- `date`, `triggered_at`, `run_id` - seeded by the runtime on every run.
+- every trigger global input, by name.
+- every earlier node's output, under that node's output variable.
+
+Read with `scope["name"]` when the value is required, `scope.get("name")` when optional.
+Assigning to `scope` raises. To pass data on, return it.
+
+**`${...}` is resolved by Java in supported generated-node configuration fields.** It
+has no meaning in custom Python. In custom source read `scope["prior_output"]`
+directly. Exact references preserve maps, lists, table rows, scalars, and nulls.
+
+## Output variables
+
+Every node except `trigger.start` and `control.if` needs one, and it must be:
+
+- a valid Python identifier, not a Python keyword;
+- unique across the whole graph; the validator rejects duplicates before execution;
+- not `date`, `triggered_at`, `run_id`, or `_automation_room_id`, which the runtime owns.
+
+The canvas rewrites `${...}` references when a person renames a variable in the UI.
+Nothing rewrites them for you. If you rename one through `UpdateAutomationStep`, find
+every `${old_name}` in generated configuration and every `scope["old_name"]` in custom
+source and update each one in the same pass, or those nodes will read a value that is
+no longer in scope.
+
+## Graph shape
+
+- Exactly one `trigger.start`. It takes no incoming control edge and produces no output
+  variable.
+- Every node must be reachable from `trigger.start` by control edges. An orphan is
+  rejected rather than silently skipped.
+- `AddAutomationStep` takes `afterNodeId` to insert after an existing node. Omit it to
+  append.
+- `control.if` is the decision node. It evaluates ordered clauses and routes to the
+  first match, with an `else` fallback. To attach a node to one of its branches, pass
+  `afterNodeId` as the `control.if` node plus `branchPort` as either `case:<clause-id>`
+  or `else`. `branchPort` is required there and must be omitted for every other parent.
+
+## Node types and their rules
+
+Read `GetAutomationNodeDefinitions` for the full field list. These are the constraints
+the save-time validator enforces that the field list alone will not tell you.
+
+### Database
+
+Four operations, each of which uses the existing SEMOSS database execution path:
+
+| Node | Execution path | Statement it must contain |
+|---|---|---|
+| `database.query` | Guarded `SqlQuery` task imported once into an Insight-owned table | `SELECT` or `WITH` |
+| `database.insert` | `insertData` | `INSERT` |
+| `database.update` | `updateData` | `UPDATE`, **and a `WHERE` clause** |
+| `database.delete` | `removeData` | `DELETE`, **and a `WHERE` clause** |
+
+Java carries the database table under the query node's output variable. Generated
+configuration may reference an indexed row such as `${query_result[0].ID}`, and a
+for-each loop may iterate the table. A downstream `developer.python` node receives a
+pandas `DataFrame`; use DataFrame operations or `to_dict("records")` only when a
+specific downstream API needs row dictionaries. Database query nodes may run inside
+loop bodies. The statement type must match the node type; a `SELECT` in a delete node is rejected. The
+`WHERE` requirement on update and delete exists because an automation runs unattended
+and an unqualified statement rewrites or empties the whole table.
+
+A generated database node cannot contain an unresolved `${...}` placeholder in its
+query, and must contain exactly one statement. `database.query` also takes a bounded
+`limit`.
+
+### Vector
+
+`vector.search`, `vector.add`, and `vector.delete` each persist a single required
+`value`, which means a different thing per operation: the search text, the path to add,
+or the comma-separated names to remove.
+
+### Model, storage, function, app, agent
+
+Configuration-driven; take their required fields from the catalog. Use
+`function.execute` for a registered function and `app.pixel` for a pixel, rather than
+reimplementing either in Python.
+
+### Control
+
+`control.wait` pauses for a bounded number of seconds. `control.if` is described above
+and is always generated - it has no Python source of its own.
+
+### developer.python
+
+The escape hatch, and the last resort. Use it only for custom computation or an
+integration no supported node provides. Prefer a supported generated node: it is
+validated, rendered, and understood by the canvas, and a custom node is none of those.
+
+It is also the one node type whose Python is supplied through `AddAutomationStep`.
+Every other node takes configuration; this one takes its **source**, in a `source`
+key inside `config`:
+
+```json
+{
+  "nodeType": "developer.python",
+  "label": "Total open claims",
+  "outputVar": "open_claims",
+  "config": "{\"source\": \"def run(scope):\\n    return {\\\"count\\\": len(scope[\\\"claims\\\"])}\\n\"}"
+}
+```
+
+`config` is a JSON string, so the source is a JSON string nested inside it and its
+newlines and quotes are escaped twice. The server lifts `source` out of `config`,
+writes it as the node's file, and stores the node with an empty `config` and
+`codeMode: "custom"` - so the response showing `"config":{}` is success, not a
+dropped field. Omitting `source`, or supplying one with no top-level `run(scope)`,
+is rejected.
+
+After creation, change it with `UpdateAutomationCustomStep` and its
+`expectedSourceHash`, never by sending `config` again.
+
+## Trigger inputs and setup Python
+
+The `trigger.start` node is the automation's parameter list. Its configuration holds
+two things:
+
+- **`globals`** - declared inputs, each with a `name` and a `defaultValue`. They are
+  seeded into scope before any node runs, and the caller can override them per run
+  through `TriggerAutomation`'s `inputs` argument. This is what makes an automation
+  reusable instead of hardcoded.
+- **`pythonSource`** - optional setup that runs once, before the first node. Its
+  module-level variables, and anything its `run(scope)` returns, are added to scope for
+  every node to read.
+
+Use a global for a value a person should be able to change per run; use setup Python
+for a value that must be computed when the run starts. A default is a static string
+typed at design time, so "the last 7 days" cannot be one:
+
+```python
+import datetime
+
+def run(scope):
+    days = int(scope["lookback_days"])
+    cutoff = datetime.date.today() - datetime.timedelta(days=days)
+    return {"cutoff_date": cutoff.isoformat()}
+```
+
+With `lookback_days` declared as a global, every downstream node can now use
+`${cutoff_date}` in generated configuration or `scope["cutoff_date"]` in custom source.
+
+Unlike every other node, the trigger has no file under `automation-nodes/` - its setup
+source lives in the node configuration itself.
+
+## Editing custom source safely
+
+`UpdateAutomationCustomStep` requires `expectedSourceHash`, which must be the exact
+`sourceHashes[nodeId]` value from your most recent `GetAutomation`. If it does not
+match, someone changed that node after you read it and the edit is rejected. Call
+`GetAutomation` again, re-read the source, and reapply your change on top of the
+current version. Never retry with a stale hash.
+
+Send complete source, not a fragment: it replaces the file.
+
+## Removing a node
+
+`RemoveAutomationStep` deletes one node and reconnects an unambiguous sequential
+control path around it. It is rejected when another node still references the removed
+node's output, so clear those references first. Remove a node only when the user asked
+for it.
+
+## Finishing
+
+Close with a short summary of what was confirmed changed, and say plainly whether the
+automation was run. If anything was rejected and you could not resolve it, say what the
+validator refused and why rather than describing the intent as done.

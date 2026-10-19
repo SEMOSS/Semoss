@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.util.UUID;
@@ -46,7 +45,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -133,28 +132,27 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		String shareToken = UUID.randomUUID().toString();
 
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.bulkInsertPreparedStatement(new Object[] { SESSION_SHARE_TABLE_NAME, SHARE_VAL, SESSION_VAL,
-					ROUTE_VAL, DATE_ADDED, SESSION_SHARE, AUTH_SHARE, USERID, TYPE });
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, shareToken);
-			ps.setString(parameterIndex++, sessionId);
-			ps.setString(parameterIndex++, routeId);
-			ps.setTimestamp(parameterIndex++, timestamp);
-			ps.setBoolean(parameterIndex++, sessionToken);
-			ps.setBoolean(parameterIndex++, authToken);
-			ps.setString(parameterIndex++, loginDetails.getValue0());
-			ps.setString(parameterIndex++, loginDetails.getValue1());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.executeUpdate(securityDb,
+					securityDb.getQueryUtil()
+							.createInsertPreparedStatementString(SESSION_SHARE_TABLE_NAME, new String[] { SHARE_VAL,
+									SESSION_VAL, ROUTE_VAL, DATE_ADDED, SESSION_SHARE, AUTH_SHARE, USERID, TYPE }),
+					ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, shareToken);
+						ps.setString(parameterIndex++, sessionId);
+						ps.setString(parameterIndex++, routeId);
+						ps.setTimestamp(parameterIndex++, timestamp);
+						ps.setBoolean(parameterIndex++, sessionToken);
+						ps.setBoolean(parameterIndex++, authToken);
+						ps.setString(parameterIndex++, loginDetails.getValue0());
+						ps.setString(parameterIndex++, loginDetails.getValue1());
+					});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to create a share-session authentication token.", e);
 			throw new IllegalArgumentException("Error occurred inserting to create a new token");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
 		return shareToken;
@@ -233,23 +231,19 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	 */
 	public static String logSessionUsed(String shareToken, ZonedDateTime zdt, boolean success) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("UPDATE " + SESSION_SHARE_TABLE_NAME + " SET " + DATE_USED + "=?, "
-					+ USE_VALID + "=? " + "WHERE " + SHARE_VAL + "=?");
-			int parameterIndex = 1;
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.from(zdt.toInstant()));
-			ps.setBoolean(parameterIndex++, success);
-			ps.setString(parameterIndex++, shareToken);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE " + SESSION_SHARE_TABLE_NAME + " SET " + DATE_USED
+					+ "=?, " + USE_VALID + "=? " + "WHERE " + SHARE_VAL + "=?", ps -> {
+						int parameterIndex = 1;
+						ps.setTimestamp(parameterIndex++, java.sql.Timestamp.from(zdt.toInstant()));
+						ps.setBoolean(parameterIndex++, success);
+						ps.setString(parameterIndex++, shareToken);
+					});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to record share-session usage.", e);
 			throw new IllegalArgumentException("Error occurred logging the session share result");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
 		return shareToken;

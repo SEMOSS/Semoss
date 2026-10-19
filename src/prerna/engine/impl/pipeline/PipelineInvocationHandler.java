@@ -33,14 +33,8 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -48,8 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-import javax.sql.DataSource;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.CloseableThreadContext;
@@ -77,6 +69,9 @@ import prerna.logging.IgnoreEngineLogging;
 import prerna.logging.LoggingEngineSerializer;
 import prerna.logging.LoggingIReactorSerializer;
 import prerna.logging.LoggingInsightAdapter;
+import prerna.logging.LoggingJenaTypeAdapterFactory;
+import prerna.logging.LoggingOpenRdfTypeAdapterFactory;
+import prerna.logging.LoggingRdf4jTypeAdapterFactory;
 import prerna.logging.LoggingRoomAdapter;
 import prerna.logging.LoggingSQLConnectionSerializer;
 import prerna.logging.LoggingSQLDataSourceSerializer;
@@ -117,17 +112,20 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.registerTypeHierarchyAdapter(IEngine.class, new LoggingEngineSerializer())
 			.registerTypeHierarchyAdapter(IReactor.class, new LoggingIReactorSerializer())
-			.registerTypeHierarchyAdapter(Connection.class, new LoggingSQLConnectionSerializer())
-			.registerTypeHierarchyAdapter(DataSource.class, new LoggingSQLDataSourceSerializer())
-			.registerTypeHierarchyAdapter(Statement.class, new LoggingSQLStatementSerializer())
-			.registerTypeHierarchyAdapter(ResultSet.class, new LoggingSQLResultSetSerializer())
+			.registerTypeHierarchyAdapter(java.sql.Connection.class, new LoggingSQLConnectionSerializer())
+			.registerTypeHierarchyAdapter(javax.sql.DataSource.class, new LoggingSQLDataSourceSerializer())
+			.registerTypeHierarchyAdapter(java.sql.Statement.class, new LoggingSQLStatementSerializer())
+			.registerTypeHierarchyAdapter(java.sql.ResultSet.class, new LoggingSQLResultSetSerializer())
 			.registerTypeHierarchyAdapter(Throwable.class, new LoggingThrowableSerializer())
+			.registerTypeAdapterFactory(new LoggingJenaTypeAdapterFactory())
+			.registerTypeAdapterFactory(new LoggingRdf4jTypeAdapterFactory())
+			.registerTypeAdapterFactory(new LoggingOpenRdfTypeAdapterFactory())
 			.registerTypeAdapter(Room.class, new LoggingRoomAdapter())
 			.registerTypeHierarchyAdapter(ZoneId.class, new ZoneIdTypeAdapter())
-			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter())
+			.registerTypeAdapter(java.time.ZoneOffset.class, new ZoneOffsetTypeAdapter())
 			.registerTypeAdapter(Insight.class, new LoggingInsightAdapter())
-			.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
-			.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter()).create();
+			.registerTypeAdapter(java.time.LocalDateTime.class, new LocalDateTimeAdapter())
+			.registerTypeAdapter(java.time.ZonedDateTime.class, new ZonedDateTimeAdapter()).create();
 
 	private final String REQUEST_NOT_TRACKED = "REQUEST NOT TRACKED";
 	private final String RESPONSE_NOT_TRACKED = "RESPONSE NOT TRACKED";
@@ -279,7 +277,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					}
 
 					logEngineCall(engineSpecificLogger, start, end, success, request, response, null, null,
-							tokensInPrompt, tokensInResponse, cacheReadTokens, cacheCreationTokens, null);
+							tokensInPrompt, tokensInResponse, cacheReadTokens, cacheCreationTokens, null,
+							billedTo(result));
 				}
 			}
 
@@ -405,7 +404,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					}
 
 					logEngineCall(engineSpecificLogger, start, end, success, request, response, null, null,
-							tokensInPrompt, tokensInResponse, cacheReadTokens, cacheCreationTokens, null);
+							tokensInPrompt, tokensInResponse, cacheReadTokens, cacheCreationTokens, null,
+							billedTo(result));
 				}
 			}
 
@@ -514,12 +514,32 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			String request, String response, String inputReactorName, String outputReactorName, Integer tokensInPrompt,
 			Integer tokensInResponse, String guardrailAction) {
 		logEngineCall(engineSpecificLogger, start, end, isSuccess, request, response, inputReactorName,
-				outputReactorName, tokensInPrompt, tokensInResponse, null, null, guardrailAction);
+				outputReactorName, tokensInPrompt, tokensInResponse, null, null, guardrailAction, null);
+	}
+
+	/**
+	 * The usage limit source a model call was billed to, from the usage limits its
+	 * engine put on its response ({@code usageLimits.billedTo}, the map
+	 * {@code ModelUsageBilledTo.toMap} makes).
+	 *
+	 * @param result what the engine method returned
+	 * @return the source, or null for a result that is not a model response or a
+	 *         call no limit was billed to
+	 */
+	static Map<?, ?> billedTo(Object result) {
+		if (result instanceof AbstractModelEngineResponse<?> modelResponse) {
+			Map<String, Object> usageLimits = modelResponse.getUsageLimits();
+			if (usageLimits != null && usageLimits.get("billedTo") instanceof Map<?, ?> billedTo) {
+				return billedTo;
+			}
+		}
+		return null;
 	}
 
 	private void logEngineCall(Logger engineSpecificLogger, Instant start, Instant end, Boolean isSuccess,
 			String request, String response, String inputReactorName, String outputReactorName, Integer tokensInPrompt,
-			Integer tokensInResponse, Integer cacheReadTokens, Integer cacheCreationTokens, String guardrailAction) {
+			Integer tokensInResponse, Integer cacheReadTokens, Integer cacheCreationTokens, String guardrailAction,
+			Map<?, ?> billedTo) {
 		Logger logger = null;
 		if (engineSpecificLogger != null) {
 			logger = engineSpecificLogger;
@@ -550,7 +570,21 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			if (cacheCreationTokens != null) {
 				auditMap.put(SemossLogUtils.NUMBER_OF_CACHE_CREATION_TOKENS, cacheCreationTokens);
 			}
+			if (billedTo != null) {
+				putText(auditMap, SemossLogUtils.BILLED_SOURCE_TYPE, billedTo.get("sourceType"));
+				putText(auditMap, SemossLogUtils.BILLED_SUBJECT_ID, billedTo.get("subjectId"));
+				putText(auditMap, SemossLogUtils.BILLED_SUBJECT_TYPE, billedTo.get("subjectType"));
+			}
 			logger.info(auditMap);
+		}
+	}
+
+	/**
+	 * Puts a text value on the audit map, leaving out one that is missing or blank.
+	 */
+	private static void putText(Map<String, Object> auditMap, String key, Object value) {
+		if (value instanceof String text && !text.isBlank()) {
+			auditMap.put(key, text);
 		}
 	}
 
@@ -688,8 +722,15 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private <T extends IReactor> T createReactor(JSONObject config, Class<T> reactorType) {
 		String className = config.getString("reactorClass");
 		try {
-			Class<?> clazz = Class.forName(className);
-			T reactor = reactorType.cast(clazz.getDeclaredConstructor().newInstance());
+			IReactor configuredReactor;
+			if (GenericGuardrailInputReactor.class.getName().equals(className)) {
+				configuredReactor = new GenericGuardrailInputReactor();
+			} else if (GenericGuardrailOutputReactor.class.getName().equals(className)) {
+				configuredReactor = new GenericGuardrailOutputReactor();
+			} else {
+				throw new IllegalArgumentException("Unsupported pipeline reactor: " + className);
+			}
+			T reactor = reactorType.cast(configuredReactor);
 			GenRowStruct grs = new GenRowStruct();
 			if (config.has("params")) {
 				NounStore nounStore = new NounStore("Reactor-params");

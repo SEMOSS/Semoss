@@ -53,6 +53,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -69,7 +70,6 @@ import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.redis.RedisConnectionConfig;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -209,8 +209,9 @@ public final class RoomUtils {
 			projectId = insight.getProjectId();
 		}
 		String projectName = null;
-		// ignore playground project id
-		if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)) {
+		// ignore playground project id; collaboration rooms have no backing project either
+		if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)
+				&& !projectId.equals(CollaborationUtils.COLLABORATION_PROJECT_ID)) {
 			IProject project = Utility.getProject(projectId);
 			projectName = project != null ? project.getProjectName() : null;
 		}
@@ -259,7 +260,7 @@ public final class RoomUtils {
 				try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
 					// Attach the current caller before any room operation uses transient context.
 					room.setInsight(insight);
-					refreshCachedRoomMessagesIfRedisEnabled(room, insight);
+					refreshCachedRoomMessages(room, insight);
 					ensureRoomMessagesUpToDate(room, insight);
 				}
 				symlinkRoomFolderIfNeeded(room, insight);
@@ -330,8 +331,8 @@ public final class RoomUtils {
 		return room;
 	}
 
-	private static void refreshCachedRoomMessagesIfRedisEnabled(Room room, Insight insight) {
-		if (room == null || insight == null || insight.getUser() == null || !RedisConnectionConfig.isRedisEnabled()) {
+	private static void refreshCachedRoomMessages(Room room, Insight insight) {
+		if (room == null || insight == null || insight.getUser() == null) {
 			return;
 		}
 		RoomMessageStore.refreshFromLatestProjection(room, insight.getUser().getPrimaryLoginToken().getId());

@@ -33,8 +33,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -133,7 +134,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			// merge the lNoun with the rNoun
 
 			// take the left hand side for the existing values
-			Object myLFilter = this.rComparison.getValue();
+			Object myLFilter = this.lComparison.getValue();
 			// take the right hand side for the new values
 			Object otherRFilter = otherFilter.rComparison.getValue();
 			// merge them based on the comparator type
@@ -377,7 +378,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 		}
 
 		if (regexPattern1 != null) {
-			Pattern p = Pattern.compile(".*" + regexPattern1 + ".*", Pattern.CASE_INSENSITIVE);
+			Pattern p = compileRegexSearchPattern(regexPattern1);
 			for (Object value : list1) {
 				Matcher match = p.matcher(value + "");
 				if (match.matches()) {
@@ -386,7 +387,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			}
 		}
 		if (biDirectional && regexPattern2 != null) {
-			Pattern p = Pattern.compile(".*" + regexPattern2 + ".*", Pattern.CASE_INSENSITIVE);
+			Pattern p = compileRegexSearchPattern(regexPattern2);
 			for (Object value : list2) {
 				Matcher match = p.matcher(value + "");
 				if (match.matches()) {
@@ -803,12 +804,9 @@ public class SimpleQueryFilter implements IQueryFilter {
 		return false;
 	}
 
-	////////////////////////////////////////////////////
-	////////////////////////////////////////////////////
-	////////////////////////////////////////////////////
-	////////////////////////////////////////////////////
-
-	// PARENT METHODS
+	/**
+	 * PARENT METHODS
+	 */
 
 	@Override
 	public QUERY_FILTER_TYPE getQueryFilterType() {
@@ -998,10 +996,17 @@ public class SimpleQueryFilter implements IQueryFilter {
 							+ IQueryFilter.getReverseNumericalComparator(this.comparator) + " " + ((List) lObj).get(0);
 				} else {
 					StringBuilder builder = new StringBuilder("[");
-					for (int i = 0; i < size || i < 5; i++) {
-						builder.append(((List) lObj).get(i)).append(", ");
+					int maxSize = 5;
+					for (int i = 0; i < size && i < maxSize; i++) {
+						if (i > 0) {
+							builder.append(", ");
+						}
+						builder.append(((List) lObj).get(i));
 					}
-					builder.append("... ]");
+					if (size > maxSize) {
+						builder.append(", ...");
+					}
+					builder.append(" ]");
 					return ((IQuerySelector) this.rComparison.getValue()).getQueryStructName() + " "
 							+ IQueryFilter.getReverseNumericalComparator(this.comparator) + " " + builder.toString();
 				}
@@ -1017,11 +1022,19 @@ public class SimpleQueryFilter implements IQueryFilter {
 		}
 	}
 
-	////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////
-	/////////////////////// STATIC METHODS /////////////////////////
-	////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////
+	/**
+	 * STATIC METHODS
+	 */
+
+	/**
+	 * Compile a case insensitive regex pattern match for the input
+	 * 
+	 * @param regexPattern
+	 * @return
+	 */
+	private static Pattern compileRegexSearchPattern(String regexPattern) {
+		return Pattern.compile(".*" + regexPattern + ".*", Pattern.CASE_INSENSITIVE);
+	}
 
 	/**
 	 * Determine the filter type
