@@ -225,45 +225,75 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
-	 * Sends a message whose files are over the single send limit: a draft without
-	 * them, each file attached on its own (an upload session for the large ones),
-	 * then the draft is sent. A draft that fails part way is deleted.
+	 * Sends a message whose files are over the single send limit: saved as a draft
+	 * with its files added one by one, then sent. A draft that fails part way is
+	 * deleted.
 	 */
-	@SuppressWarnings("unchecked")
 	private void sendWithLargeAttachments(String accessToken, String mailbox, Map<String, Object> message,
-			boolean saveToSentItems) throws IOException {
-		Map<String, Object> bare = new LinkedHashMap<>(message);
-		List<Map<String, Object>> files = (List<Map<String, Object>>) bare.remove("attachments");
+			boolean saveToSentItems) {
 		if (!saveToSentItems) {
 			classLogger.info("A large message is sent from a draft, so a copy stays in Sent Items");
 		}
-		Map<String, Object> draft = createDraft(accessToken, mailbox, bare);
-		if (!(draft.get("id") instanceof String draftId) || draftId.isBlank()) {
-			throw new IOException("Microsoft Graph did not return the draft to attach the files to");
-		}
+		String draftId = draftId(createDraft(accessToken, mailbox, message));
 		boolean sent = false;
 		try {
-			String attachmentsUrl = userPath(mailbox) + "/messages/" + encode(draftId) + "/attachments";
-			for (Map<String, Object> file : files) {
-				byte[] bytes = Base64.getDecoder().decode(String.valueOf(file.get("contentBytes")));
-				if (bytes.length < SMALL_ATTACHMENT_BYTES) {
-					String response = HttpHelperUtility.postRequestStringBody(attachmentsUrl, headers(accessToken),
-							GSON.toJson(file), ContentType.APPLICATION_JSON, null, null, null);
-					throwOnError(response, "attach a file to the email");
-				} else {
-					uploadAttachment(accessToken, attachmentsUrl, String.valueOf(file.get("name")), bytes);
-				}
-			}
 			sendDraft(accessToken, mailbox, draftId);
 			sent = true;
 		} finally {
 			if (!sent) {
-				try {
-					deleteMessage(accessToken, mailbox, draftId);
-				} catch (RuntimeException e) {
-					classLogger.warn("Could not delete the unsent draft {}", draftId, e);
-				}
+				deleteQuietly(accessToken, mailbox, draftId);
 			}
+		}
+	}
+
+	/**
+	 * Adds files to a draft one request each, through an upload session for the
+	 * ones too large for a single request.
+	 */
+	private void addAttachments(String accessToken, String mailbox, String draftId, List<Map<String, Object>> files) {
+		String attachmentsUrl = userPath(mailbox) + "/messages/" + encode(draftId) + "/attachments";
+		for (Map<String, Object> file : files) {
+			byte[] bytes = Base64.getDecoder().decode(String.valueOf(file.get("contentBytes")));
+			if (bytes.length >= SMALL_ATTACHMENT_BYTES) {
+				uploadAttachment(accessToken, attachmentsUrl, String.valueOf(file.get("name")), bytes);
+				continue;
+			}
+			String response = HttpHelperUtility.postRequestStringBody(attachmentsUrl, headers(accessToken),
+					GSON.toJson(file), ContentType.APPLICATION_JSON, null, null, null);
+			throwOnError(response, "attach a file to the draft email");
+			if (!(readMap(response).get("id") instanceof String attachmentId) || attachmentId.isBlank()) {
+				throw new IllegalArgumentException(
+						"The draft attachment could not be confirmed. Check the draft in Outlook.");
+			}
+		}
+	}
+
+	// refuses files that, encoded, are over the one message limit
+	private static void checkAttachmentSize(List<Map<String, Object>> files) {
+		long encoded = 0;
+		for (Map<String, Object> file : files) {
+			encoded += String.valueOf(file.get("contentBytes")).length();
+		}
+		long max = maxMessageBytes() - MESSAGE_HEADROOM_BYTES;
+		if (encoded > max) {
+			throw new IllegalArgumentException("The email's files are " + (encoded / 4 * 3 / (1024 * 1024))
+					+ " MB, over the " + (maxAttachmentBytes() / (1024 * 1024)) + " MB that fit in one message ("
+					+ MAX_MESSAGE_MB_SETTING + ")");
+		}
+	}
+
+	private static String draftId(Map<String, Object> draft) {
+		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
+			throw new IllegalStateException("Microsoft Graph did not return the draft to attach the files to");
+		}
+		return id;
+	}
+
+	private void deleteQuietly(String accessToken, String mailbox, String draftId) {
+		try {
+			deleteMessage(accessToken, mailbox, draftId);
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not delete the unsent draft {}", draftId, e);
 		}
 	}
 
@@ -309,15 +339,40 @@ public class MicrosoftOutlookMailHelper {
 	 * @return the draft as Graph created it, which carries the id it was given and
 	 *         a webLink that opens it in Outlook
 	 */
+	@SuppressWarnings("unchecked")
 	public Map<String, Object> createDraft(String accessToken, String mailbox, Map<String, Object> message) {
 		String url = userPath(mailbox) + "/messages";
 		classLogger.info("Saving a draft email through {}", url);
+		String body = GSON.toJson(message);
+		List<Map<String, Object>> files = null;
+		if (message.get("attachments") instanceof List<?> attached && !attached.isEmpty()
+				&& body.getBytes(StandardCharsets.UTF_8).length > MAX_SEND_BYTES) {
+			// too large for one request: save it bare, then add the files one by one
+			files = (List<Map<String, Object>>) attached;
+			checkAttachmentSize(files);
+			Map<String, Object> bare = new LinkedHashMap<>(message);
+			bare.remove("attachments");
+			body = GSON.toJson(bare);
+		}
 		// unlike sendMail, this answers with the message it created, since the id it
 		// was given is the only way to find it again
-		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), GSON.toJson(message),
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), body,
 				ContentType.APPLICATION_JSON, null, null, null);
 		throwOnError(response, "save a draft email");
-		return readMap(response);
+		Map<String, Object> draft = readMap(response);
+		if (files != null) {
+			String draftId = draftId(draft);
+			boolean attached = false;
+			try {
+				addAttachments(accessToken, mailbox, draftId, files);
+				attached = true;
+			} finally {
+				if (!attached) {
+					deleteQuietly(accessToken, mailbox, draftId);
+				}
+			}
+		}
+		return draft;
 	}
 
 	/**
@@ -629,17 +684,8 @@ public class MicrosoftOutlookMailHelper {
 		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
 			throw new IllegalArgumentException("The saved draft attachment target could not be confirmed.");
 		}
-		String url = userPath(null) + "/messages/" + encode((String) draft.get("id")) + "/attachments";
-		for (Map<String, Object> file : files) {
-			String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), GSON.toJson(file),
-					ContentType.APPLICATION_JSON, null, null, null);
-			throwOnError(response, "attach a file to the draft email");
-			Map<String, Object> receipt = readMap(response);
-			if (!(receipt.get("id") instanceof String attachmentId) || attachmentId.isBlank()) {
-				throw new IllegalArgumentException(
-						"The draft attachment could not be confirmed. Check the draft in Outlook.");
-			}
-		}
+		checkAttachmentSize(files);
+		addAttachments(accessToken, null, id, files);
 	}
 
 	/**
