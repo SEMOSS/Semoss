@@ -64,8 +64,12 @@ class EngineSettingsAuditTest {
 					() -> SecurityEngineUtils.setEngineDiscoverable(user, "engine", true));
 			audit.verify(() -> UserAuditTrailUtils.recordEngineLifecycle(any(), any(), any(), any(), any(), any()),
 					never());
-			audit.verify(() -> UserAuditTrailUtils.recordFailure(eq(user), eq(AuditEventType.ENGINE_UPDATE),
-					eq(AuditTargetType.ENGINE), eq("engine"), any(), isNull()), times(2));
+			audit.verify(() -> UserAuditTrailUtils.recordFailure(eq(user), eq(AuditEventType.ENGINE_GLOBAL_UPDATE),
+					eq(AuditTargetType.ENGINE), eq("engine"), any(), isNull()), times(1));
+			audit.verify(
+					() -> UserAuditTrailUtils.recordFailure(eq(user), eq(AuditEventType.ENGINE_DISCOVERABLE_UPDATE),
+							eq(AuditTargetType.ENGINE), eq("engine"), any(), isNull()),
+					times(1));
 		}
 	}
 }

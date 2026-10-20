@@ -396,8 +396,20 @@ a Team Limit). A grant's removal records its limit removed with it
 (`removeExpiredEngineUser`, `reason` `EXPIRED`). Changes to a model's public use
 or total record only this event, since they change no access. `PermissionChangeValidation` keeps the limit
 before the change (`getCurrentUsageLimit`) for it. A model's owners read its limit changes on its
-Audit tab (`ResourceAuditReadService`); admins read them with the access changes and denied requests in
-Enterprise Usage & Activity (the `audit` source of `EnterpriseUsageUtils`).
+Audit tab (`ResourceAuditReadService`); admins read them with the access changes, the app and engine
+setting changes and the denied requests in Enterprise Usage & Activity (the `audit` source of
+`EnterpriseUsageUtils`).
+
+Each change to an app's or engine's own settings records an event of its own: renamed
+(`PROJECT_RENAME`, `ENGINE_RENAME`), display name (`..._DISPLAY_NAME_UPDATE`), made public or private
+(`..._GLOBAL_UPDATE`), discoverable (`..._DISCOVERABLE_UPDATE`), an app made a template
+(`PROJECT_TEMPLATE_UPDATE`) and metadata set or loaded (`..._METADATA_UPDATE`), from the owner's and
+the admin's paths alike, with the setting and its new value in `details`.
+`AuditEventType.SETTING_CHANGES` lists them; Enterprise Usage counts them as `SETTING_CHANGES`. Saving
+an app's blocks (`PROJECT_BLOCKS_UPDATE`), replacing an app by upload (`PROJECT_REPLACE`) and a user
+showing or hiding an engine in their own lists (`ENGINE_VISIBILITY_UPDATE`) have their own events too,
+on the Audit tab only. No code records `PROJECT_UPDATE` or `ENGINE_UPDATE`; they are kept so stored
+events of those types still read.
 
 ### Reads
 

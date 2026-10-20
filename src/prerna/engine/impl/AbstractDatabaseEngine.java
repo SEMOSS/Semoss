@@ -52,7 +52,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.owl.OWLEngineFactory;
-import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.SparqlInterpreter;
@@ -103,11 +102,6 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	private String baseUri;
 
 	private Hashtable<String, String> baseDataHash;
-
-	/**
-	 * This is used for tracking audit modifications
-	 */
-	private AuditDatabase auditDatabase = null;
 
 	protected ZoneId databaseZoneId;
 
@@ -186,8 +180,7 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 		// service
 		boolean externalDatabaseMetadata = Boolean
 				.parseBoolean(Utility.getDIHelperProperty(Constants.EXTERNAL_DATABASE_MANAGEMENT_ENABLED) + "");
-		if (externalDatabaseMetadata
-				&& !SystemDefaultEngines.getDatabasesWithGeneratedOwl().contains(this.engineId)) {
+		if (externalDatabaseMetadata && !SystemDefaultEngines.getDatabasesWithGeneratedOwl().contains(this.engineId)) {
 			try {
 				// store in the OWL
 				// so that the local master can pick up the OWL
@@ -257,10 +250,6 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 		if (this.baseDataEngine != null) {
 			classLogger.debug("Closing the owl engine");
 			this.baseDataEngine.close();
-		}
-		if (auditDatabase != null) {
-			classLogger.debug("Closing the audit database engine");
-			auditDatabase.close();
 		}
 	}
 
@@ -748,22 +737,6 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	@Override
 	public CaseInsensitiveProperties getOrigSmssProp() {
 		return this.origSmssProp;
-	}
-
-	/**
-	 * Get an audit database for making modifications in a database
-	 */
-	@Override
-	public synchronized AuditDatabase generateAudit() {
-		if (this.auditDatabase == null) {
-			this.auditDatabase = new AuditDatabase();
-			try {
-				this.auditDatabase.init(this, this.engineId, this.engineName);
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		return this.auditDatabase;
 	}
 
 	/*

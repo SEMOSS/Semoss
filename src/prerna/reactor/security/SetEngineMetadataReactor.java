@@ -72,7 +72,7 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 			SecurityModelMetadataUtils.updateModelMetadata(engineId, capabilityUpdates);
 		}
 		IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
-		UserAuditTrailUtils.recordEngineLifecycle(this.insight.getUser(), AuditEventType.ENGINE_UPDATE,
+		UserAuditTrailUtils.recordEngineLifecycle(this.insight.getUser(), AuditEventType.ENGINE_METADATA_UPDATE,
 				AuditTargetType.ofEngine(engineType), engineId, SecurityEngineUtils.getEngineDisplayNameForId(engineId),
 				Map.of("field", "metadata", "metadataKeys", List.copyOf(metadata.keySet())));
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);

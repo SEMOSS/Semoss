@@ -439,8 +439,10 @@ class EnterpriseUsageUtilsUnitTests {
 			assertEquals("audit", summary.get("source"));
 			// people making changes count only the changes' actors, and people denied
 			// only the denied requests'
-			assertEquals(Map.of("EVENTS", 5L, "USAGE_LIMIT_CHANGES", 2L, "ACCESS_CHANGES", 1L, "DENIALS", 2L, "ACTORS",
-					2L, "PEOPLE_DENIED", 2L, "PEOPLE_AFFECTED", 2L), ((List<?>) summary.get("rows")).get(0));
+			assertEquals(
+					Map.of("EVENTS", 5L, "USAGE_LIMIT_CHANGES", 2L, "ACCESS_CHANGES", 1L, "SETTING_CHANGES", 0L,
+							"DENIALS", 2L, "ACTORS", 2L, "PEOPLE_DENIED", 2L, "PEOPLE_AFFECTED", 2L),
+					((List<?>) summary.get("rows")).get(0));
 			assertEquals(List.of("grant-1", "platform-1"), auditIds("", "", "", 2, 0));
 			assertEquals(List.of("denied-1", "read-denied-1"), auditIds("", "", "", 2, 2));
 			assertEquals(List.of("limit-1"), auditIds("", "", "", 2, 4));
@@ -477,6 +479,32 @@ class EnterpriseUsageUtilsUnitTests {
 			assertTrue(auditIds("=' OR 1=1 --", "", "", 25, 0).isEmpty());
 			utility.when(Utility::isUserTrackingDisabled).thenReturn(true);
 			assertThrows(IllegalArgumentException.class, () -> auditIds("", "", "", 25, 0));
+		}
+	}
+
+	@Test
+	void auditSourceCountsAppAndEngineSettingChangesButNotAppSaves() throws Exception {
+		var engine = auditTrail();
+		org.h2.tools.RunScript.execute(connection, new java.io.StringReader(
+				"""
+						INSERT INTO USER_AUDIT_EVENTS (EVENT_ID, EVENT_TIME, EVENT_TYPE, STATUS, ACTOR_USER_ID, ACTOR_USER_NAME,
+								TARGET_TYPE, TARGET_ID, PROJECT_ID, DETAILS) VALUES
+						 ('public-1','2024-03-20 12:00:00','PROJECT_GLOBAL_UPDATE','SUCCESS','owner-2','Second','PROJECT','app-1','app-1','{"field":"global","global":true}'),
+						 ('saved-1','2024-03-21 12:00:00','PROJECT_BLOCKS_UPDATE','SUCCESS','owner-2','Second','PROJECT','app-1','app-1',NULL);
+						"""));
+		try (MockedStatic<SystemEngineRegistry> registry = mockStatic(SystemEngineRegistry.class);
+				MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			registry.when(SystemEngineRegistry::isUserTrackingDbLoaded).thenReturn(true);
+			registry.when(SystemEngineRegistry::getUserTrackingDb).thenReturn(engine);
+			var summary = (Map<?, ?>) ((List<?>) EnterpriseUsageUtils
+					.report(Source.AUDIT, View.SUMMARY, "2024-03-01", "2024-03-31", "", "", "", null, 1, 0).get("rows"))
+					.get(0);
+			assertEquals(1L, summary.get("SETTING_CHANGES"));
+			assertEquals(6L, summary.get("EVENTS"));
+			// the person who made the app public counts as someone making changes
+			assertEquals(3L, summary.get("ACTORS"));
+			// saving an app's blocks is not a setting change, so the logs leave it out
+			assertEquals(List.of("grant-1", "public-1"), auditIds("", "=app-1", "", 25, 0));
 		}
 	}
 
