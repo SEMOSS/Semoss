@@ -63,7 +63,7 @@ public class GetDatabaseCategoryReactor extends AbstractReactor {
 		NounMetadata engineMetadataResult = metadataReactor.execute();
 		if (engineMetadataResult != null && engineMetadataResult.getValue() instanceof Map) {
 			Map<String, Object> engineMetadata = (Map<String, Object>) engineMetadataResult.getValue();
-			Object rdbmsType = engineMetadata.get("database_subtype");
+			Object rdbmsType = engineMetadata.get("engine_subtype");
 			classLogger.info("rdbms type: {}", rdbmsType);
 			if (rdbmsType != null) {
 				category = DatabaseCategoryEnum.getCategoryFromRdbmsType(rdbmsType.toString());

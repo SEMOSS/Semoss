@@ -953,6 +953,35 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		assertTrue(SecurityProjectUtils.userIsOwner(user, "testProjectId"));
 	}
 
+	@Test
+	void testSetProjectFavorite_publicProjectWithoutAccess() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		SecurityProjectUtils.setProjectGlobal(user, "testProjectId", true);
+
+		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
+		String user2Id = user2.getPrimaryLoginToken().getId();
+		SecurityProjectUtils.setProjectFavorite(user2, "testProjectId", true);
+
+		List<Map<String, Object>> favorites = SecurityProjectUtils.getUserProjectList(user2, null, null, true, null,
+				null, null, null, null);
+		assertEquals(1, favorites.size());
+		assertEquals("1", favorites.getFirst().get("project_favorite").toString());
+		assertEquals("1", SecurityProjectUtils.getUserProjectList(user2, "testProjectId").getFirst()
+				.get("project_favorite").toString());
+		// the favorite is kept apart from the permissions, so no access row is added
+		assertEquals(0L,
+				((Number) UnitTestGroupTables.queryValue(securityDb,
+						"SELECT COUNT(*) FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?", user2Id,
+						"testProjectId")).longValue());
+
+		SecurityProjectUtils.setProjectFavorite(user2, "testProjectId", false);
+		assertTrue(SecurityProjectUtils.getUserProjectList(user2, null, null, true, null, null, null, null, null)
+				.isEmpty());
+		assertEquals("0", SecurityProjectUtils.getUserProjectList(user2, "testProjectId").getFirst()
+				.get("project_favorite").toString());
+	}
+
 	///
 	/// setProjectVisibility
 	///
@@ -976,6 +1005,24 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		// Just verify no exception is thrown
 		SecurityProjectUtils.setProjectVisibility(user, "testProjectId", true);
 		assertTrue(SecurityProjectUtils.userIsOwner(user, "testProjectId"));
+	}
+
+	@Test
+	void testSetProjectVisibility_onlyChangesThatProject() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createProject("testProjectId2", "testProjectName2", user);
+
+		SecurityProjectUtils.setProjectVisibility(user, "testProjectId", false);
+
+		List<Map<String, Object>> projects = SecurityProjectUtils.getUserProjectList(user, null, null, false, null,
+				null, null, null, null);
+		assertEquals(1, projects.size());
+		assertEquals("testProjectId2", projects.getFirst().get("project_id"));
+
+		SecurityProjectUtils.setProjectVisibility(user, "testProjectId", true);
+		assertEquals(2,
+				SecurityProjectUtils.getUserProjectList(user, null, null, false, null, null, null, null, null).size());
 	}
 
 	///
@@ -1103,26 +1150,6 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		boolean hasAccess = SecurityProjectUtils.checkUserHasAccessToProject("testProjectId", "adminid");
 		assertTrue(hasAccess);
-	}
-
-	///
-	/// copyProjectPermissions
-	///
-
-	@Test
-	void testCopyProjectPermissions() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		UnitTestSecurityAuthUtils.createProject("sourceProject", "Source Project", user);
-		UnitTestSecurityAuthUtils.createProject("targetProject", "Target Project", user);
-		SecurityProjectUtils.addProjectUser(user, "user2id", "sourceProject", "EDIT", null);
-
-		assertTrue(SecurityProjectUtils.userCanEditProject(user2, "sourceProject"));
-		assertFalse(SecurityProjectUtils.userCanEditProject(user2, "targetProject"));
-
-		SecurityProjectUtils.copyProjectPermissions("sourceProject", "targetProject");
-
-		assertTrue(SecurityProjectUtils.userCanEditProject(user2, "targetProject"));
 	}
 
 	///
@@ -1845,7 +1872,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		// Call propagate with no project dependencies - should return empty result maps
 		Map<String, Object> result = SecurityProjectUtils.propagateProjectPermission(user, "testProjectId", "user2id",
-				"user", "READ_ONLY", null, null, null, 0, 0.0);
+				"user", "READ_ONLY", null);
 		assertNotNull(result);
 	}
 

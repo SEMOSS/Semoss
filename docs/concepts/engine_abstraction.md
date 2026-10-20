@@ -1,44 +1,36 @@
 # Engine Abstraction in SEMOSS
 
-The "Engine" is a fundamental concept in SEMOSS, representing a connection to an external data source, a service, or a computational environment. The `prerna.engine.api.IEngine` interface is the root of the engine abstraction, providing a standardized way for the SEMOSS core to manage and interact with these diverse resources.
+An engine is a configured resource with identity, lifecycle, and an implementation appropriate to its catalog type. [IEngine](../../src/prerna/engine/api/IEngine.java) supplies the shared contract. Specialized interfaces define resource-specific operations; a database query, model call, and file transfer are not the same interface operation.
 
-## `IEngine.java`: The Core Engine Interface
+## Catalog types
 
-`IEngine.java` defines the basic contract for all engine types within SEMOSS. It focuses on the lifecycle, configuration, and identification of an engine.
+| Type | Resource | Guide |
+| --- | --- | --- |
+| `DATABASE` | Relational, graph, RDF, and other supported data sources | [Database engines](../engines/database_engines.md) |
+| `MODEL` | Generation, embedding, and other model services | [Model engines](../engines/model_engines.md) |
+| `VECTOR` | Document ingestion and vector retrieval | [Vector engines](../engines/vector_engines.md) |
+| `STORAGE` | Object storage and file-transfer services | [Storage engines](../engines/storage_engines.md) |
+| `FUNCTION` | Callable functions and integrations | [Function engines](../engines/function_engines.md) |
+| `GUARDRAIL` | Configured validation/guardrail services | [Engine implementations](../../src/prerna/engine/impl/) |
+| `PROJECT` | Applications, agents, skills, and other project assets | [Project types](../engines/project_engines.md) |
+| `VENV` | Virtual-environment category retained in the engine enum | [IEngine catalog definition](../../src/prerna/engine/api/IEngine.java) |
 
-**Key Responsibilities and Methods:**
+## Lifecycle and configuration
 
-*   **Identity:**
-    *   `getEngineId()` / `setEngineId(String engineId)`: Manages a unique identifier for the engine instance.
-    *   `getEngineName()` / `setEngineName(String engineName)`: Manages a user-friendly name for the engine.
-*   **Lifecycle Management:**
-    *   `open(String smssFilePath)` / `open(Properties smssProp)`: Core initialization method using `.smss` (Java Properties) files for configuration.
-    *   `close()`: Inherited from `java.io.Closeable`, for releasing resources.
-    *   `delete()`: For removing the engine and its configuration.
-*   **Configuration Access:**
-    *   `getSmssFilePath()`, `getSmssProp()`, `getOrigSmssProp()`: Access to configuration.
-*   **Engine Typing:**
-    *   `getCatalogType()`: Returns an `IEngine.CATALOG_TYPE` enum (DATABASE, STORAGE, MODEL, VECTOR, FUNCTION, GUARDRAIL, PROJECT, VENV).
-    *   `getCatalogSubType(Properties smssProp)`: More granular classification.
-*   **Other Utilities:**
-    *   `holdsFileLocks()`: Indicates if the engine's operation might lock files.
-    *   `buildOpenAIFunctionEngineToolMap()`: For AI tool integration.
+`IEngine` provides identity (`getEngineId`, `getEngineName`), initialization from `.smss` properties, configuration access, catalog typing, and resource cleanup. Engine implementations can hold connections, clients, files, or language runtime state.
 
-The `IEngine` interface itself is generic. Specific data processing capabilities are defined by more specialized interfaces (e.g., `IDatabaseEngine`, `IModelEngine`) that concrete implementations also adopt.
+A resource's `.smss` file identifies its implementation and connection/configuration properties. Do not assume every catalog type uses the same property names. Use the relevant creation reactor and a matching example rather than manually copying unrelated connection fields.
 
-## Engine Management
+`Utility` and runtime registries resolve engines and projects as needed. `DIHelper` holds shared configuration and runtime lookup state. Loading an engine is separate from authorizing its use: reactors and service methods must perform the access checks required by their operation.
 
-Managing the lifecycle, configuration, and accessibility of engines is critical.
+## Security and metadata
 
-*   **Configuration (`.smss` files):** Each engine instance is defined by a `.smss` file containing properties like `ENGINE_CLASS`, `ENGINE_ALIAS`, `ENGINE_ID`, and type-specific connection details.
-*   **Registration and Metadata (`SecurityEngineUtils`, `securityDb`):**
-    *   `prerna.auth.utils.SecurityEngineUtils.java` and a security database manage engine metadata (ID, name, type, SMSS path, permissions).
-    *   `SecurityEngineUtils.addEngine(...)` registers new engines, reading the SMSS, determining type, and storing metadata.
-*   **Instantiation and Runtime Access (`DIHelper`):**
-    *   `prerna.util.DIHelper` acts as a runtime cache for engine configurations (like SMSS file paths) and sometimes instantiated engine objects.
-    *   Engines are typically instantiated via `Class.forName(engineClassName).newInstance()` followed by `engine.open(smssProperties)`.
-*   **Usage in Pixel:**
-    *   Pixel scripts refer to engines by ID/alias (e.g., `Database("myDb")`).
-    *   `PixelRunner`/`PixelPlanner` resolve the ID, check permissions (via `SecurityEngineUtils`), ensure instantiation, and delegate operations to the `IEngine` instance.
+[SecurityEngineUtils](../../src/prerna/auth/utils/SecurityEngineUtils.java) and related utilities manage engine catalog metadata and user/group permissions. Projects have their own [SecurityProjectUtils](../../src/prerna/auth/utils/SecurityProjectUtils.java) path.
 
-This system allows for dynamic loading, configuration, and secure access to a wide variety of backend resources through a unified engine abstraction.
+Internal system engines use [SystemEngineRegistry](../../src/prerna/util/SystemEngineRegistry.java); they should not be treated as ordinary user-created database engines. See [internal databases](../platform_services/internal_databases.md).
+
+## Engines in agent runs
+
+The native harness selects an accessible text-generation model engine for its conversation. Resource tools can expose operations on additional engines through configured MCP resources and generated room tools. Workbenches supply context and tools for the current engine; attached skills teach the model how to use them.
+
+An agent, a model engine, and a skill are separate catalog concepts. An engine appearing in an instruction or skill does not grant access or automatically attach its tools. See [agents](../agents/README.md) and [agent configuration](../agents/agent_configuration.md).

@@ -172,13 +172,28 @@ public interface IStorageEngine extends IEngine {
 
 	/**
 	 * Update the metadata for a specific blob/file.
-	 * 
+	 *
 	 * @param storagePath the path to the file in storage
 	 * @param metadata    the metadata to add to the blob/file
 	 * @throws Exception if the operation is not supported or fails
 	 */
 	default void updateBlobMetadata(String storagePath, Map<String, Object> metadata) throws Exception {
 		throw new UnsupportedOperationException("updateBlobMetadata is not supported by this storage engine");
+	}
+
+	/**
+	 * The externally-addressable URI for a path in this storage (e.g.
+	 * "gs://bucket/path" for GCS), for handing to a third party that needs to
+	 * read/write the location directly rather than through this engine (e.g.
+	 * Vertex AI's own batch prediction service). Not a credential -- just this
+	 * storage's own non-secret location identifier.
+	 *
+	 * @param storagePath the path to the file/folder in storage
+	 * @return the external URI for that path
+	 * @throws Exception if the operation is not supported or fails
+	 */
+	default String toExternalUri(String storagePath) throws Exception {
+		throw new UnsupportedOperationException("toExternalUri is not supported by this storage engine");
 	}
 
 }

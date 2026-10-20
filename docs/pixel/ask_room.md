@@ -5,6 +5,12 @@ and response messages used by room clients. It is the generic counterpart to
 `AskPlayground`: it does not force the Playground project or apply Playground
 theme filtering.
 
+## AskRoom versus RunAgent
+
+`AskRoom` performs a persistent model turn and leaves tool-result submission to its caller. [RunAgent](../agents/agent_runs.md) schedules a durable run whose selected [harness](../agents/semoss_harness.md) owns tool execution and continuation. Use the latter when the server should carry out the agent loop, track lifecycle status, and persist approval pauses.
+
+Both use rooms, but an Insight, a room, and an agent run are separate objects. See [backend architecture](../01_backend_architecture_overview.md) for their state boundaries.
+
 ## Pixel Syntax
 
 ```pixel

@@ -47,6 +47,7 @@ public class SemossLogUtils {
 	public static final String METHOD = "method";
 	public static final String ENDPOINT = "endpoint";
 	public static final String HOST = "host";
+	public static final String USER_AGENT = "userAgent";
 
 	public static final String IS_SUCCESS = "isSuccess";
 	public static final String FILTER_NAME = "filterName";
@@ -78,9 +79,15 @@ public class SemossLogUtils {
 	public static final String SPAN_ID = "spanId";
 	public static final String INPUT_REACTOR_NAME = "inputReactorName";
 	public static final String OUTPUT_REACTOR_NAME = "outputReactorName";
-	// notable action a guardrail took on a row: MASK / BLOCK (null when it ran
-	// clean)
+	// notable action a guardrail took on a row: MASK / BLOCK
+	// (null when it ran clean)
 	public static final String GUARDRAIL_ACTION = "guardrailAction";
+	// the usage limit source a model call was billed to, as the inference logs
+	// record it: USER, TEAM, PUBLIC, ALL_MODELS or PLATFORM, with the person's
+	// login or the team billed; null when no limit was billed
+	public static final String BILLED_SOURCE_TYPE = "billedSourceType";
+	public static final String BILLED_SUBJECT_ID = "billedSubjectId";
+	public static final String BILLED_SUBJECT_TYPE = "billedSubjectType";
 	public static final String REQUEST_START_TIME = "requestStartTime";
 	public static final String RESPONSE_END_TIME = "responseEndTime";
 

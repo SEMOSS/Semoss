@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -46,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,15 +59,25 @@ import org.junit.jupiter.params.provider.ValueSource;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.ModelUsageLimit;
+import prerna.auth.access.ModelUsageLimitKey;
+import prerna.auth.access.ModelUsageLimitRule;
+import prerna.auth.access.ModelUsageLimitRule.Counts;
+import prerna.auth.access.ModelUsageLimitRule.Metric;
+import prerna.auth.access.ModelUsageLimitRule.Window;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.project.api.IProject;
+import prerna.query.interpreters.sql.ParameterizedSqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
+import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -296,6 +308,129 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	void testInitialize_alreadyInitialized() throws Exception {
 		// just testing no errors thrown
 		AbstractSecurityUtils.initialize();
+	}
+
+	@Test
+	void testInitialize_copiesOldModelUsageLimitsAndDropsTheirColumns() throws Exception {
+		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
+		String[][] oldEngineColumns = { { "USAGERESTRICTION", "VARCHAR(255)" }, { "USAGEFREQUENCY", "VARCHAR(255)" },
+				{ "MAXTOKENS", "INTEGER" }, { "MAXRESPONSETIME", "DOUBLE" } };
+		for (String[] column : oldEngineColumns) {
+			securityDb.insertData(queryUtil.alterTableAddColumn("ENGINEPERMISSION", column[0], column[1]));
+		}
+		String[][] oldUserColumns = { { "MODELUSAGERESTRICTION", "VARCHAR(255)" },
+				{ "MODELUSAGEFREQUENCY", "VARCHAR(255)" }, { "MODELMAXTOKENS", "INTEGER" },
+				{ "MODELMAXRESPONSETIME", "DOUBLE" } };
+		for (String[] column : oldUserColumns) {
+			securityDb.insertData(queryUtil.alterTableAddColumn("SMSS_USER", column[0], column[1]));
+		}
+		String insertGrant = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, USAGERESTRICTION, "
+				+ "USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES (?,?,?,?,?,?,?)";
+		execute(insertGrant, "tokens", 3, "model", "token", "ALL_TIME", 5000, null);
+		execute(insertGrant, "compute", 3, "model", "compute", "WEEK", null, 1500.0);
+		execute(insertGrant, "blank", 3, "model", "token", "", 200, null);
+		execute(insertGrant, "zero", 3, "model", "token", "DAY", 0, null);
+		execute(insertGrant, "unknown", 3, "model", "bogus", "DAY", 10, null);
+		execute(insertGrant, "none", 3, "model", null, null, null, null);
+		execute("INSERT INTO SMSS_USER (ID, TYPE, NAME, MODELUSAGERESTRICTION, MODELUSAGEFREQUENCY, MODELMAXTOKENS) "
+				+ "VALUES (?,?,?,?,?,?)", "jdoe", "NATIVE", "jdoe", "token", "MONTH", 100);
+		execute("INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION) VALUES (?,?,?,?)", "data", "CUSTOM",
+				"model", 3);
+		execute("INSERT INTO CUSTOMGROUPASSIGNMENT (GROUPID, USERID, TYPE) VALUES (?,?,?)", "data", "jdoe", "NATIVE");
+
+		AbstractSecurityUtils.initialize();
+
+		// all time is a year; a direct limit whose user id has no login in SMSS_USER
+		// keeps no login type
+		assertOneRule(ModelUsageLimitKey.direct("model", "tokens", null), Metric.TOKENS, 5000L, Window.YEAR);
+		assertOneRule(ModelUsageLimitKey.direct("model", "compute", null), Metric.COMPUTE_TIME, 1500L, Window.WEEK);
+		// a blank frequency is a day
+		assertOneRule(ModelUsageLimitKey.direct("model", "blank", null), Metric.TOKENS, 200L, Window.DAY);
+		// 0, an unknown restriction and no restriction are no limit defined
+		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct("model", "zero", null)));
+		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct("model", "unknown", null)));
+		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct("model", "none", null)));
+		// the all-models default keeps the login type
+		assertOneRule(ModelUsageLimitKey.allModels("jdoe", "NATIVE"), Metric.TOKENS, 100L, Window.MONTH);
+
+		for (String[] column : oldEngineColumns) {
+			assertFalse(hasColumn("ENGINEPERMISSION", column[0]), column[0]);
+		}
+		for (String[] column : oldUserColumns) {
+			assertFalse(hasColumn("SMSS_USER", column[0]), column[0]);
+		}
+		assertEquals(0L, count("SELECT COUNT(*) FROM GROUPENGINEPERMISSION WHERE DATEADDED IS NULL"));
+		assertEquals(0L, count("SELECT COUNT(*) FROM CUSTOMGROUPASSIGNMENT WHERE DATEADDED IS NULL"));
+
+		// it runs only while the old columns exist, so a second start changes nothing
+		AbstractSecurityUtils.initialize();
+		assertOneRule(ModelUsageLimitKey.direct("model", "tokens", null), Metric.TOKENS, 5000L, Window.YEAR);
+		assertOneRule(ModelUsageLimitKey.allModels("jdoe", "NATIVE"), Metric.TOKENS, 100L, Window.MONTH);
+	}
+
+	@Test
+	void testInitialize_oldModelUsageLimitsKeepALimitAlreadyDefined() throws Exception {
+		ModelUsageLimitKey key = ModelUsageLimitKey.direct("model", "jdoe", null);
+		ModelUsageLimit current = ModelUsageLimit
+				.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, 1000L, Window.MINUTE, Counts.EACH_PERSON),
+						new ModelUsageLimitRule(Metric.TOKENS, 50000L, Window.DAY, Counts.EACH_PERSON)));
+		QueryExecutionUtility.write(securityDb, connection -> {
+			SecurityModelUsageLimitUtils.setLimit(connection, key, current, null);
+			return null;
+		});
+		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
+		securityDb.insertData(queryUtil.alterTableAddColumn("ENGINEPERMISSION", "USAGERESTRICTION", "VARCHAR(255)"));
+		securityDb.insertData(queryUtil.alterTableAddColumn("ENGINEPERMISSION", "MAXTOKENS", "INTEGER"));
+		execute("INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, USAGERESTRICTION, MAXTOKENS) "
+				+ "VALUES (?,?,?,?,?)", "jdoe", 3, "model", "token", 10);
+
+		AbstractSecurityUtils.initialize();
+
+		assertEquals(2, SecurityModelUsageLimitUtils.getLimit(key).getRules().size());
+		assertFalse(hasColumn("ENGINEPERMISSION", "USAGERESTRICTION"));
+		assertFalse(hasColumn("ENGINEPERMISSION", "MAXTOKENS"));
+	}
+
+	@Test
+	void testInitialize_indexesModelUsageLimitsByEngineLimitTypeAndSubjectId() throws Exception {
+		List<String> columns = QueryExecutionUtility.queryList(securityDb,
+				"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME = 'MODELUSAGELIMIT_SUBJECT_INDEX' "
+						+ "ORDER BY ORDINAL_POSITION",
+				ps -> {
+				}, rs -> rs.getString(1));
+
+		// SUBJECTTYPE is left out, so the key fits the index size MySQL allows with
+		// utf8mb4
+		assertEquals(List.of("ENGINEID", "LIMITTYPE", "SUBJECTID"), columns);
+	}
+
+	private void execute(String sql, Object... values) throws Exception {
+		QueryExecutionUtility.executeUpdate(securityDb, sql, ps -> {
+			for (int i = 0; i < values.length; i++) {
+				ps.setObject(i + 1, values[i]);
+			}
+		});
+	}
+
+	private boolean hasColumn(String table, String column) throws Exception {
+		return count("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + table
+				+ "' AND COLUMN_NAME = '" + column + "'") > 0;
+	}
+
+	private long count(String sql) throws Exception {
+		return ((Number) UnitTestGroupTables.queryValue(securityDb, sql)).longValue();
+	}
+
+	private static void assertOneRule(ModelUsageLimitKey key, Metric metric, long amount, Window window) {
+		ModelUsageLimit limit = SecurityModelUsageLimitUtils.getLimit(key);
+		assertNotNull(limit, key.toString());
+		assertFalse(limit.isUnlimited());
+		assertEquals(1, limit.getRules().size());
+		ModelUsageLimitRule rule = limit.getRules().get(0);
+		assertEquals(metric, rule.getMetric());
+		assertEquals(Long.valueOf(amount), rule.getAmount());
+		assertEquals(window, rule.getWindow());
+		assertEquals(Counts.EACH_PERSON, rule.getCounts());
 	}
 
 	@Test
@@ -638,7 +773,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	void testCalculateEndDate() {
 		ZonedDateTime now = ZonedDateTime.now();
 		String nowString = now.toString();
-		java.sql.Timestamp ts = AbstractSecurityUtils.calculateEndDate(nowString);
+		Timestamp ts = AbstractSecurityUtils.calculateEndDate(nowString);
 		// probably figure out a better way to test the timestamp is in utc.
 		assertNotNull(ts);
 	}
@@ -658,6 +793,40 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	void testEndDateIsExpired_false() throws Exception {
 		SemossDate semossDate = new SemossDate(LocalDateTime.now().plusDays(2), ZoneId.of("UTC"));
 		assertFalse(AbstractSecurityUtils.endDateIsExpired(semossDate));
+	}
+
+	@Test
+	void preparedIdentityFiltersRetainOriginalValuesWithoutSqlSanitizers() {
+		try (var sanitizerGuard = org.mockito.Mockito.mockStatic(Utility.class, invocation -> {
+			String method = invocation.getMethod().getName();
+			if (method.equals("inputSQLSanitizer") || method.equals("inputSanitizer")) {
+				throw new AssertionError("Prepared queries must not call Utility." + method);
+			}
+			return invocation.callRealMethod();
+		})) {
+			String id = "O'Brien\\path";
+			User user = new User();
+			AccessToken token = new AccessToken();
+			token.setId(id);
+			token.setProvider(AuthProvider.MICROSOFT);
+			user.setPrimaryLogin(AuthProvider.MICROSOFT);
+			user.setAccessToken(token);
+			assertEquals(List.of(id), AbstractSecurityUtils.getUserFilterValues(user));
+			assertTrue(AbstractSecurityUtils.getUserFilterValues(null).isEmpty());
+			assertTrue(AbstractSecurityUtils.getUserFilterValues(new User()).isEmpty());
+			var creators = List.of(Pair.with(id, "provider'type"), Pair.with("other", "MICROSOFT"));
+			var qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "id"));
+			qs.addExplicitFilter(AbstractSecurityUtils.getPreparedCreatedByFilter("ENGINE__CREATEDBY",
+					"ENGINE__CREATEDBYTYPE", creators));
+			var compiled = new ParameterizedSqlInterpreter(securityDb).compile(qs);
+			assertEquals(List.of(id, "provider'type", "other", "MICROSOFT"), compiled.parameters());
+			assertFalse(compiled.sql().contains(id));
+			assertThrows(IllegalArgumentException.class, () -> AbstractSecurityUtils
+					.getPreparedCreatedByFilter("ENGINE__CREATEDBY", "ENGINE__CREATEDBYTYPE", List.of()));
+			assertThrows(IllegalArgumentException.class, () -> AbstractSecurityUtils
+					.getPreparedCreatedByFilter("ENGINE__CREATEDBY", "ENGINE__CREATEDBYTYPE", null));
+		}
 	}
 
 }

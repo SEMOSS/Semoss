@@ -1,0 +1,2903 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+package prerna.reactor.automation.run;
+
+import java.io.File;
+import java.lang.reflect.Array;
+import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
+
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.collaboration.CollaborationUtils;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ITypeSafeEngine;
+import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
+import prerna.logging.SemossLogUtils;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
+import prerna.project.api.IProject;
+import prerna.reactor.agent.run.AgentRunService;
+import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.AutomationRuntime;
+import prerna.reactor.automation.definition.AutomationConditionEvaluator;
+import prerna.reactor.automation.definition.AutomationDefinitionService;
+import prerna.reactor.automation.definition.AutomationDefinitionValidator;
+import prerna.reactor.automation.project.AutomationProjectService;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
+import prerna.sablecc2.comm.PixelJobManager;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
+import prerna.util.EngineUtility;
+import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
+
+/**
+ * Owns execution of one already initialized Automation run.
+ *
+ * <p>
+ * The calling reactor performs access checks and resolves the run scope, a
+ * project ID or the caller's inline run scope; {@link #start} then atomically
+ * creates submitted run history. This class claims that individual run, creates
+ * a run-local {@link Insight}, traverses the validated control path, executes
+ * the immutable source snapshot one node at a time, persists each transition,
+ * and binds interactive run Insights to the caller's session lifecycle. Python
+ * receives only the selected node source and a read-only scope; it does not own
+ * graph traversal or persistence.
+ *
+ * <p>
+ * Keeping this lifecycle independent from the Pixel reactor allows the same
+ * executor to be called by a Quartz job without duplicating execution behavior.
+ */
+final class AutomationRunExecutionService {
+
+	private static final Logger classLogger = LogManager.getLogger(AutomationRunExecutionService.class);
+
+	private static final String AUTOMATION_STREAM_TYPE = "automation";
+	private static final String AUTOMATION_RUN_STARTED_KIND = "run-start";
+	private static final String AUTOMATION_NODE_STATUS_KIND = "node-status";
+	private static final String EXECUTION_INSIGHT_PREFIX = "automation-";
+	private static final long AGENT_RUN_POLL_INTERVAL_MS = 500L;
+	private static final String AGENT_RUN_WAIT_TIMEOUT_PROPERTY = "AGENT_RUN_WAIT_TIMEOUT_MS";
+	private static final long DEFAULT_AGENT_RUN_WAIT_TIMEOUT_MS = 3600000L;
+	private static final long DEFAULT_AGENT_APPROVAL_TIMEOUT_HOURS = 24L;
+
+	private enum Handler {
+		START, CONDITION, JEV, LOOP, WAIT, APP_PIXEL, FUNCTION, STORAGE_LIST, DATABASE_WRITE, VECTOR_WRITE, MODEL,
+		STORAGE, AGENT, DATABASE_QUERY, VECTOR_SEARCH, STORAGE_DOWNLOAD, DATA_EXTRACT, PYTHON
+	}
+
+	private final Insight requestInsight;
+	private final String requestSessionId;
+	private final String streamJobId;
+
+	/**
+	 * Binds this service to the caller's authenticated Insight and, when the caller
+	 * is a live Pixel job, to the job that streams progress back to it. The request
+	 * Insight supplies the user, base URL, and scheduler mode for every run-local
+	 * Insight created here; it never executes node Python itself.
+	 */
+	AutomationRunExecutionService(Insight requestInsight, String streamJobId) {
+		if (requestInsight == null || requestInsight.getUser() == null) {
+			throw new IllegalArgumentException("Automation execution requires an authenticated Insight.");
+		}
+		this.requestInsight = requestInsight;
+		this.requestSessionId = currentSessionId();
+		this.streamJobId = streamJobId;
+	}
+
+	private static String currentSessionId() {
+		String sessionId = ThreadStore.getSessionId();
+		if (sessionId == null || sessionId.isBlank()) {
+			sessionId = ThreadContext.get(SemossLogUtils.SESSION_ID);
+		}
+		return sessionId == null || sessionId.isBlank() ? null : sessionId;
+	}
+
+	/**
+	 * Validates a definition for execution, records it as a submitted run under
+	 * {@code runScope}, then claims and executes it synchronously. This is the one
+	 * start path for project and inline runs; the caller owns the access check that
+	 * produced {@code runScope}.
+	 *
+	 * @param insight      caller's authenticated Insight
+	 * @param streamJobId  live Pixel job that receives progress, or {@code null}
+	 * @param runId        new durable run identifier
+	 * @param runScope     Automation project ID or the caller's inline run scope
+	 * @param automationId logical automation stored in {@code AUTOMATION_ID}
+	 * @param files        definition and the source of each Python-backed node
+	 * @param inputs       optional values overriding trigger globals
+	 * @param triggerType  MANUAL (default), PLAYGROUND, or SCHEDULED
+	 * @return persisted run detail and node results
+	 */
+	static Map<String, Object> start(Insight insight, String streamJobId, String runId, String runScope,
+			String automationId, AutomationDefinitionService.DefinitionFiles files, Map<String, Object> inputs,
+			String triggerType) {
+		AutomationRunExecutionService service = new AutomationRunExecutionService(insight, streamJobId);
+		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator
+				.parseAndValidate(files.definition());
+		AutomationProjectService.validateDefinitionReferences(definition, insight.getUser());
+		List<Map<String, Object>> runNodes = AutomationRuntime.nodesForRun(definition);
+		validateInputs(inputs);
+		Map<String, Object> effectiveInputs = new LinkedHashMap<>(AutomationRuntime.declaredGlobals(definition));
+		if (inputs != null) {
+			effectiveInputs.putAll(inputs);
+		}
+		Map<String, String> traceRoomIds = allocateTraceRoomIds(runNodes);
+
+		String normalizedTriggerType = triggerType(triggerType);
+		AutomationRunStore.initializeRun(runId, runScope, automationId, AutomationConstants.PYTHON_DOC_CURRENT_VERSION,
+				definition.hash(), definition.snapshot(), effectiveInputs, normalizedTriggerType,
+				service.currentUserId(), runNodes, traceRoomIds, files.nodeSources());
+		UserAuditTrailUtils.recordAutomationEvent(insight.getUser(), AuditEventType.AUTOMATION_RUN_START, runScope,
+				runId, null, Map.of("triggerType", normalizedTriggerType, "nodeCount", runNodes.size(), "inputKeys",
+						new ArrayList<>(effectiveInputs.keySet())));
+		return service.executeInitializedRun(runId, runScope, definition, runNodes, traceRoomIds);
+	}
+
+	private static String triggerType(String triggerType) {
+		if (triggerType == null || triggerType.isBlank()) {
+			return AutomationConstants.TRIGGER_MANUAL;
+		}
+		if (!AutomationConstants.TRIGGER_MANUAL.equals(triggerType)
+				&& !AutomationConstants.TRIGGER_PLAYGROUND.equals(triggerType)
+				&& !AutomationConstants.TRIGGER_SCHEDULED.equals(triggerType)) {
+			throw new IllegalArgumentException("triggerType must be MANUAL, PLAYGROUND, or SCHEDULED.");
+		}
+		return triggerType;
+	}
+
+	private static void validateInputs(Map<String, Object> inputs) {
+		if (inputs == null) {
+			return;
+		}
+		for (String key : inputs.keySet()) {
+			if (AutomationConstants.RESERVED_SCOPE_KEYS.contains(key)) {
+				throw new IllegalArgumentException(
+						"Automation input '" + key + "' is reserved for runtime metadata and cannot be overridden.");
+			}
+		}
+	}
+
+	/**
+	 * Claims and executes a run whose graph, node rows, and source snapshot already
+	 * exist in the scheduler database. A caller that loses the claim receives the
+	 * current durable state without executing the run again.
+	 *
+	 * @param runId        durable run identifier
+	 * @param projectId    Automation project identifier
+	 * @param definition   validated graph snapshot for this run
+	 * @param runNodes     nodes in deterministic history order
+	 * @param traceRoomIds preallocated room identifiers keyed by traceable node ID
+	 * @return persisted run detail and node results
+	 */
+	Map<String, Object> executeInitializedRun(String runId, String projectId,
+			AutomationDefinitionValidator.ValidatedDefinition definition, List<Map<String, Object>> runNodes,
+			Map<String, String> traceRoomIds) {
+		Map<String, Object> submittedRun = AutomationRunStore.getRunDetail(runId);
+		if (submittedRun == null) {
+			throw new IllegalStateException("Automation run '" + runId + "' does not exist.");
+		}
+		if (!AutomationConstants.STATUS_SUBMITTED.equals(submittedRun.get(AutomationConstants.STATUS))) {
+			return buildCurrentRunResult(runId, projectId);
+		}
+		if (!AutomationRunStore.claimRun(runId)) {
+			return buildCurrentRunResult(runId, projectId);
+		}
+		streamRunStarted(runId, definition);
+
+		Map<String, Object> result;
+		ExecutionInsightLease executionInsightLease = null;
+		Insight executionInsight = null;
+		try {
+			executionInsightLease = openExecutionInsight(projectId, runId);
+			executionInsight = executionInsightLease.insight();
+			AutomationRunRegistry.register(runId, executionInsight, streamJobId);
+			AutomationPythonExecutor pythonExecutor = new AutomationPythonExecutor(executionInsight, runId);
+			AutomationPixelExecutor pixelExecutor = new AutomationPixelExecutor(executionInsight, runId);
+
+			AutomationExecutionContext context = new AutomationExecutionContext(executionInsight,
+					AutomationRuntimeUtils.buildInitialScope(runId, executionInsight.getUser()));
+			context.putValues(AutomationRunStore.getRunInputs(runId));
+			Map<String, String> runNodeSources = AutomationRunStore.getRunNodeSources(runId);
+			result = executeInControlOrder(projectId, runId, definition, runNodes, runNodeSources, context,
+					pythonExecutor, pixelExecutor, traceRoomIds, AutomationRuntime.startNodeId(definition));
+			if (!Boolean.TRUE.equals(result.get("waitingForInput"))) {
+				finishRun(runId, projectId);
+			}
+		} catch (Exception e) {
+			String executionInsightId = executionInsight == null ? null : executionInsight.getInsightId();
+			classLogger.error("Automation run failed for project '{}', run '{}', execution Insight '{}'", projectId,
+					runId, executionInsightId, e);
+			finishFailedRun(runId, projectId, e);
+			result = Map.of("error", safeMessage(e));
+		} finally {
+			AutomationRunRegistry.unregister(runId);
+			releaseExecutionInsight(executionInsight,
+					executionInsightLease == null || executionInsightLease.cleanupOnCompletion());
+		}
+		return buildResult(runId, projectId, result);
+	}
+
+	/**
+	 * Returns the durable state of a run this caller did not claim, in the same
+	 * shape a claimed execution returns. A caller that lost the claim, or that
+	 * asked again after the run settled, sees node results and any active wait
+	 * rather than an error.
+	 */
+	private static Map<String, Object> buildCurrentRunResult(String runId, String projectId) {
+		Map<String, Object> persisted = AutomationRunStore.getRunDetail(runId);
+		if (persisted == null) {
+			throw new IllegalStateException(
+					"Automation run '" + runId + "' no longer exists for project '" + projectId + "'.");
+		}
+		Map<String, Object> result = new LinkedHashMap<>(persisted);
+		result.put(AutomationConstants.RESULT_NODE_RESULTS,
+				AutomationRunStore.buildNodeResults(AutomationRunStore.getNodeOutputsForRun(runId)));
+		String executionInsightId = getAvailableExecutionInsightId(runId);
+		if (executionInsightId != null) {
+			result.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsightId);
+		}
+		Map<String, Object> wait = AutomationRunStore.getActiveWait(runId);
+		if (wait != null) {
+			result.put("wait", wait);
+		}
+		return result;
+	}
+
+	/**
+	 * Walks the control path one node at a time starting at {@code initialNodeId},
+	 * publishing each node's output into scope and following the port that node
+	 * selected.
+	 *
+	 * <p>
+	 * The loop ends when the path runs out of edges, a node does not reach SUCCESS,
+	 * or cancellation is observed at a node boundary. Nodes left pending are marked
+	 * skipped only when the path ran to its end, so an interrupted run keeps its
+	 * unreached nodes pending for the caller to see.
+	 */
+	private Map<String, Object> executeInControlOrder(String projectId, String runId,
+			AutomationDefinitionValidator.ValidatedDefinition definition, List<Map<String, Object>> runNodes,
+			Map<String, String> nodeSources, AutomationExecutionContext context,
+			AutomationPythonExecutor pythonExecutor, AutomationPixelExecutor pixelExecutor,
+			Map<String, String> traceRoomIds, String initialNodeId) {
+		Map<String, Object> result = new LinkedHashMap<>();
+		Map<String, Map<String, Object>> nodesById = new LinkedHashMap<>();
+		for (Map<String, Object> node : runNodes) {
+			nodesById.put((String) node.get(AutomationConstants.NODE_FIELD_ID), node);
+		}
+		Map<String, Map<String, String>> controlTargets = AutomationRuntime.controlTargets(definition);
+		Set<String> visited = new HashSet<>();
+		String currentNodeId = initialNodeId;
+		boolean pathCompleted = true;
+		while (currentNodeId != null) {
+			if (AutomationRunRegistry.isCancellationRequested(runId)) {
+				pathCompleted = false;
+				break;
+			}
+			if (!visited.add(currentNodeId)) {
+				throw new IllegalStateException("Automation control traversal revisited node '" + currentNodeId + "'.");
+			}
+			Map<String, Object> node = nodesById.get(currentNodeId);
+			if (node == null) {
+				throw new IllegalStateException(
+						"Automation control edge selected unknown node '" + currentNodeId + "'.");
+			}
+			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+			Handler handler = handlerFor(node);
+			Map<String, Object> nodeResult = switch (handler) {
+			case START -> executeStartNode(context, runId, node);
+			case CONDITION -> executeConditionNode(runId, node, context.values());
+			case JEV -> executeJevDecisionNode(context.insight(), runId, node, context.values());
+			case LOOP -> executeLoopNode(projectId, runId, node, nodeSources, context, pythonExecutor, pixelExecutor);
+			case WAIT -> executeWaitNode(projectId, runId, node, context);
+			case APP_PIXEL -> executeAppPixelNode(projectId, runId, node, context, pixelExecutor);
+			case FUNCTION -> executeFunctionNode(projectId, runId, node, context, pixelExecutor);
+			case STORAGE_LIST -> executeStorageListNode(projectId, runId, node, context, pixelExecutor);
+			case DATABASE_WRITE -> executeDatabaseWriteNode(projectId, runId, node, context, pixelExecutor);
+			case VECTOR_WRITE -> executeVectorWriteNode(projectId, runId, node, context, pixelExecutor);
+			case MODEL -> executeModelNode(projectId, runId, node, context, pixelExecutor, traceRoomIds.get(nodeId));
+			case STORAGE -> executeStorageNode(projectId, runId, node, context, pixelExecutor);
+			case AGENT -> executeAgentNode(projectId, runId, node, context, pixelExecutor, traceRoomIds.get(nodeId),
+					controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
+			case DATABASE_QUERY -> executeDatabaseQueryNode(projectId, runId, node, context, pixelExecutor);
+			case VECTOR_SEARCH -> executeVectorSearchNode(projectId, runId, node, context, pixelExecutor);
+			case STORAGE_DOWNLOAD -> executeStorageDownloadNode(projectId, runId, node, context, pixelExecutor);
+			case DATA_EXTRACT -> executeDataExtractNode(projectId, runId, node, context, pixelExecutor);
+			case PYTHON -> executeNodeSource(projectId, runId, node, node, nodeSources.get(nodeId), context,
+					pythonExecutor, traceRoomIds.get(nodeId),
+					controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
+			};
+			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
+				if (AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT
+						.equals(nodeResult.get(AutomationConstants.STATUS))) {
+					result.put("waitingForInput", true);
+				}
+				pathCompleted = false;
+				break;
+			}
+			if (handler == Handler.START) {
+				result.put(AutomationConstants.RESULT_GLOBALS,
+						nodeResult.getOrDefault(AutomationConstants.RESULT_GLOBALS, Map.of()));
+			}
+			String outputVar = (String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+			if (handler != Handler.START && outputVar != null) {
+				context.putValue(outputVar, nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE));
+			}
+			String selectedPort = AutomationConstants.CONTROL_PORT_OUT;
+			if (handler == Handler.CONDITION || handler == Handler.JEV) {
+				@SuppressWarnings("unchecked")
+				Map<String, Object> decision = (Map<String, Object>) nodeResult
+						.get(AutomationConstants.RESULT_OUTPUT_VALUE);
+				selectedPort = (String) decision.get("branch");
+			}
+			currentNodeId = controlTargets.getOrDefault(nodeId, Map.of()).get(selectedPort);
+		}
+		if (pathCompleted) {
+			AutomationRunStore.skipPendingNodes(runId, "Control branch was not selected");
+		}
+		result.put("scope", context.values());
+		return result;
+	}
+
+	private static Handler handlerFor(Map<String, Object> node) {
+		String type = String.valueOf(node.get(AutomationConstants.NODE_FIELD_TYPE));
+		return switch (type) {
+		case AutomationConstants.NODE_START -> Handler.START;
+		case AutomationConstants.NODE_CONTROL_IF -> Handler.CONDITION;
+		case AutomationConstants.NODE_CONTROL_JEV -> Handler.JEV;
+		case AutomationConstants.NODE_CONTROL_LOOP -> Handler.LOOP;
+		case AutomationConstants.NODE_CONTROL_WAIT -> Handler.WAIT;
+		case AutomationConstants.NODE_APP_PIXEL -> Handler.APP_PIXEL;
+		case AutomationConstants.NODE_FUNCTION_EXECUTE -> Handler.FUNCTION;
+		case AutomationConstants.NODE_STORAGE_LIST -> Handler.STORAGE_LIST;
+		case AutomationConstants.NODE_DATABASE_INSERT, AutomationConstants.NODE_DATABASE_UPDATE,
+				AutomationConstants.NODE_DATABASE_DELETE ->
+			Handler.DATABASE_WRITE;
+		case AutomationConstants.NODE_VECTOR_ADD, AutomationConstants.NODE_VECTOR_DELETE -> Handler.VECTOR_WRITE;
+		case AutomationConstants.NODE_MODEL_CHAT, AutomationConstants.NODE_MODEL_EMBEDDINGS,
+				AutomationConstants.NODE_MODEL_VISION, AutomationConstants.NODE_MODEL_NER ->
+			Handler.MODEL;
+		case AutomationConstants.NODE_STORAGE_READ, AutomationConstants.NODE_STORAGE_UPLOAD,
+				AutomationConstants.NODE_STORAGE_DELETE ->
+			Handler.STORAGE;
+		case AutomationConstants.NODE_AGENT_RUN -> Handler.AGENT;
+		case AutomationConstants.NODE_DATABASE_QUERY -> Handler.DATABASE_QUERY;
+		case AutomationConstants.NODE_VECTOR_SEARCH -> Handler.VECTOR_SEARCH;
+		case AutomationConstants.NODE_STORAGE_DOWNLOAD -> Handler.STORAGE_DOWNLOAD;
+		case AutomationConstants.NODE_DATA_EXTRACT -> Handler.DATA_EXTRACT;
+		case AutomationConstants.NODE_DEVELOPER_PYTHON -> Handler.PYTHON;
+		default -> throw new IllegalArgumentException("Unsupported Automation node type: " + type);
+		};
+	}
+
+	/**
+	 * Executes a bounded, sequential loop container. The parent graph remains
+	 * acyclic; each pass materializes independent child history rows and runs the
+	 * loop body's own validated acyclic control path against an isolated scope.
+	 */
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeLoopNode(String projectId, String runId, Map<String, Object> loopNode,
+			Map<String, String> nodeSources, AutomationExecutionContext parentContext,
+			AutomationPythonExecutor pythonExecutor, AutomationPixelExecutor pixelExecutor) {
+		String loopNodeId = (String) loopNode.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, loopNodeId);
+		streamNodeProgress(runId, loopNode, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) loopNode.get(AutomationConstants.NODE_FIELD_CONFIG);
+			String loopMode = String.valueOf(
+					config.getOrDefault(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH));
+			int maximumIterations = ((Number) config.get(AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS)).intValue();
+			int batchSize = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)
+					? ((Number) config.get(AutomationConstants.CONFIG_LOOP_BATCH_SIZE)).intValue()
+					: 1;
+			long maximumItems = (long) maximumIterations * batchSize;
+			Object configuredItems = config.get(AutomationConstants.CONFIG_LOOP_ITEMS);
+			Object resolvedItems = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)
+					? AutomationScopeResolver.resolveExactOrLiteral(configuredItems, parentContext.values(),
+							"Loop node '" + loopNodeId + "' items")
+					: null;
+			AutomationFrameOutput.RegisteredFrame frameItems = resolvedItems instanceof AutomationFrameOutput.RegisteredFrame frame
+					? frame
+					: null;
+			List<Object> items = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode) && frameItems == null
+					? loopItems(configuredItems, parentContext.values(), loopNodeId)
+					: List.of();
+			long itemCount = frameItems != null ? frameItems.rowCount() : items.size();
+			if (itemCount > maximumItems) {
+				throw new IllegalArgumentException("Loop node '" + loopNodeId + "' frame input exceeds its configured "
+						+ "maximum of " + maximumItems + " items.");
+			}
+			long requiredIterations = itemCount == 0 ? 0 : (itemCount + batchSize - 1) / batchSize;
+			int iterationLimit = switch (loopMode) {
+			case AutomationConstants.LOOP_MODE_FOR_EACH -> Math.toIntExact(requiredIterations);
+			case AutomationConstants.LOOP_MODE_REPEAT ->
+				((Number) config.get(AutomationConstants.CONFIG_LOOP_COUNT)).intValue();
+			case AutomationConstants.LOOP_MODE_WHILE -> maximumIterations;
+			default -> throw new IllegalArgumentException("Unsupported loop mode: " + loopMode);
+			};
+			if (iterationLimit > maximumIterations) {
+				throw new IllegalArgumentException("Loop node '" + loopNodeId + "' requires " + iterationLimit
+						+ " iterations, exceeding its maxIterations value of " + maximumIterations + ".");
+			}
+
+			List<Map<String, Object>> bodyNodes = AutomationRuntime.nodesForGraph(
+					AutomationRuntime.loopBodyNodes(loopNode), AutomationRuntime.loopBodyEdges(loopNode));
+			long bodyNodeExecutions = (long) iterationLimit * bodyNodes.size();
+			if (bodyNodeExecutions > AutomationConstants.LOOP_MAX_NODE_EXECUTIONS) {
+				throw new IllegalArgumentException("Loop node '" + loopNodeId + "' would execute " + bodyNodeExecutions
+						+ " body steps, exceeding the maximum of " + AutomationConstants.LOOP_MAX_NODE_EXECUTIONS
+						+ ". Reduce the number of passes or the loop body.");
+			}
+			List<Map<String, Object>> bodyEdges = AutomationRuntime.loopBodyEdges(loopNode);
+			Map<String, Map<String, String>> bodyTargets = AutomationRuntime.controlTargets(bodyEdges);
+			String bodyEntry = AutomationRuntime.graphEntryNodeId(bodyNodes, bodyEdges);
+			String loopOutputVar = (String) loopNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+			List<Map<String, Object>> iterationResults = new ArrayList<>();
+			long iterationResultsJsonBytes = 2L;
+			Map<String, Map<String, Object>> bodyNodesById = new LinkedHashMap<>();
+			Map<String, Object> carriedOutputs = new LinkedHashMap<>();
+			for (Map<String, Object> bodyNode : bodyNodes) {
+				bodyNodesById.put((String) bodyNode.get(AutomationConstants.NODE_FIELD_ID), bodyNode);
+				Object outputVar = bodyNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+				if (AutomationConstants.LOOP_MODE_WHILE.equals(loopMode) && outputVar instanceof String value) {
+					carriedOutputs.put(value, null);
+				}
+			}
+			String whileCondition = AutomationConstants.LOOP_MODE_WHILE.equals(loopMode)
+					? (String) config.get(AutomationConstants.CONFIG_LOOP_CONDITION)
+					: null;
+			for (int iteration = 0; iteration < iterationLimit; iteration++) {
+				if (AutomationRunRegistry.isCancellationRequested(runId)) {
+					throw new IllegalStateException("Run cancelled by user");
+				}
+				Map<String, Object> loopContext = new LinkedHashMap<>();
+				loopContext.put("index", iteration);
+				loopContext.put("number", iteration + 1);
+				loopContext.put("isFirst", iteration == 0);
+				if (AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)) {
+					long from = (long) iteration * batchSize;
+					int currentBatchSize = (int) Math.min(batchSize, itemCount - from);
+					List<Object> batch;
+					if (frameItems != null) {
+						batch = frameItems.page(from, currentBatchSize);
+					} else {
+						int start = Math.toIntExact(from);
+						batch = new ArrayList<>(items.subList(start, start + currentBatchSize));
+					}
+					loopContext.put("batch", batch);
+					loopContext.put("total", iterationLimit);
+					loopContext.put("isLast", iteration == iterationLimit - 1);
+					if (batch.size() == 1) {
+						loopContext.put("item", batch.get(0));
+					}
+				} else if (AutomationConstants.LOOP_MODE_REPEAT.equals(loopMode)) {
+					loopContext.put("total", iterationLimit);
+					loopContext.put("isLast", iteration == iterationLimit - 1);
+				} else {
+					loopContext.put("previous", new LinkedHashMap<>(carriedOutputs));
+					loopContext.put("maximum", maximumIterations);
+				}
+
+				Map<String, Object> iterationOverrides = new LinkedHashMap<>();
+				if (AutomationConstants.LOOP_MODE_WHILE.equals(loopMode)) {
+					iterationOverrides.putAll(carriedOutputs);
+				}
+				iterationOverrides.put(loopOutputVar, loopContext);
+				boolean stopLoop = false;
+				AutomationExecutionContext iterationContext = parentContext.child(iterationOverrides);
+				try {
+					if (whileCondition != null
+							&& !AutomationConditionEvaluator.evaluate(whileCondition, iterationContext.values())) {
+						stopLoop = true;
+						break;
+					}
+					Map<String, String> bodyTraceRoomIds = allocateTraceRoomIds(bodyNodes);
+					Map<String, String> executionNodeIds = AutomationRunStore.insertLoopIterationNodes(runId,
+							loopNodeId, iteration, bodyNodes, bodyTraceRoomIds);
+
+					Set<String> visited = new HashSet<>();
+					Map<String, Object> outputs = new LinkedHashMap<>();
+					String current = bodyEntry;
+					while (current != null) {
+						if (AutomationRunRegistry.isCancellationRequested(runId)) {
+							throw new IllegalStateException("Run cancelled by user");
+						}
+						if (!visited.add(current)) {
+							throw new IllegalStateException("Loop body revisited node '" + current + "'.");
+						}
+						Map<String, Object> canonicalNode = bodyNodesById.get(current);
+						Map<String, Object> executionNode = new LinkedHashMap<>(canonicalNode);
+						executionNode.put(AutomationConstants.NODE_FIELD_ID, executionNodeIds.get(current));
+						executionNode.put(AutomationConstants.SOURCE_NODE_ID, current);
+						executionNode.put(AutomationConstants.PARENT_NODE_ID, loopNodeId);
+						executionNode.put(AutomationConstants.ITERATION_INDEX, iteration);
+						Handler handler = handlerFor(executionNode);
+						Map<String, Object> nodeResult = switch (handler) {
+						case CONDITION -> executeConditionNode(runId, executionNode, iterationContext.values());
+						case JEV -> executeJevDecisionNode(parentContext.insight(), runId, executionNode,
+								iterationContext.values());
+						case WAIT -> executeWaitNode(projectId, runId, executionNode, iterationContext);
+						case APP_PIXEL ->
+							executeAppPixelNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case FUNCTION ->
+							executeFunctionNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case STORAGE_LIST ->
+							executeStorageListNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case DATABASE_WRITE ->
+							executeDatabaseWriteNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case VECTOR_WRITE ->
+							executeVectorWriteNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case MODEL -> executeModelNode(projectId, runId, executionNode, iterationContext, pixelExecutor,
+								bodyTraceRoomIds.get(current));
+						case STORAGE ->
+							executeStorageNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case AGENT -> executeAgentNode(projectId, runId, executionNode, iterationContext, pixelExecutor,
+								bodyTraceRoomIds.get(current), null);
+						case DATABASE_QUERY ->
+							executeDatabaseQueryNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case VECTOR_SEARCH ->
+							executeVectorSearchNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case STORAGE_DOWNLOAD -> executeStorageDownloadNode(projectId, runId, executionNode,
+								iterationContext, pixelExecutor);
+						case DATA_EXTRACT ->
+							executeDataExtractNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case PYTHON ->
+							executeNodeSource(projectId, runId, executionNode, executionNode, nodeSources.get(current),
+									iterationContext, pythonExecutor, bodyTraceRoomIds.get(current), null);
+						case START, LOOP -> throw new IllegalStateException(
+								"Loop body selected unsupported handler '" + handler + "' for node '" + current + "'.");
+						};
+						if (!AutomationConstants.NODE_STATUS_SUCCESS
+								.equals(nodeResult.get(AutomationConstants.STATUS))) {
+							throw new IllegalStateException(
+									"Loop body node '" + current + "' did not complete successfully.");
+						}
+						String outputVar = (String) canonicalNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+						if (outputVar != null) {
+							Object value = nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE);
+							iterationContext.putValue(outputVar, value);
+							outputs.put(outputVar, value);
+						}
+						String selectedPort = AutomationConstants.CONTROL_PORT_OUT;
+						if (handler == Handler.CONDITION || handler == Handler.JEV) {
+							Map<String, Object> decision = (Map<String, Object>) nodeResult
+									.get(AutomationConstants.RESULT_OUTPUT_VALUE);
+							selectedPort = (String) decision.get("branch");
+						}
+						current = bodyTargets.getOrDefault(current, Map.of()).get(selectedPort);
+					}
+					List<String> skipped = bodyNodesById.keySet().stream().filter(nodeId -> !visited.contains(nodeId))
+							.map(executionNodeIds::get).toList();
+					AutomationRunStore.skipPendingNodes(runId, skipped, "Loop branch was not selected");
+					Map<String, Object> iterationResult = new LinkedHashMap<>();
+					iterationResult.put("index", iteration);
+					iterationResult.put("outputs", persistableValue(outputs));
+					iterationResultsJsonBytes = appendBoundedLoopResult(iterationResults, iterationResult,
+							iterationResultsJsonBytes, AutomationConstants.NODE_OUTPUT_MAX_BYTES,
+							"Automation loop '" + loopNodeId + "' collected results");
+					if (AutomationConstants.LOOP_MODE_WHILE.equals(loopMode)) {
+						carriedOutputs.replaceAll((key, value) -> null);
+						carriedOutputs.putAll(outputs);
+					}
+				} finally {
+					// Child scopes contain immutable values and own no external resources.
+				}
+				if (stopLoop) {
+					break;
+				}
+			}
+			if (whileCondition != null && iterationResults.size() == maximumIterations) {
+				Map<String, Object> nextContext = new LinkedHashMap<>();
+				nextContext.put("index", maximumIterations);
+				nextContext.put("number", maximumIterations + 1);
+				nextContext.put("isFirst", false);
+				nextContext.put("previous", new LinkedHashMap<>(carriedOutputs));
+				nextContext.put("maximum", maximumIterations);
+				Map<String, Object> nextScope = new LinkedHashMap<>(parentContext.values());
+				nextScope.putAll(carriedOutputs);
+				nextScope.put(loopOutputVar, nextContext);
+				if (AutomationConditionEvaluator.evaluate(whileCondition, nextScope)) {
+					throw new IllegalArgumentException("Loop node '" + loopNodeId + "' reached its maximum of "
+							+ maximumIterations + " iterations while its condition was still true.");
+				}
+			}
+
+			Map<String, Object> value = new LinkedHashMap<>();
+			value.put("processed",
+					AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode) ? itemCount : iterationResults.size());
+			value.put("iterations", iterationResults.size());
+			value.put("results", iterationResults);
+			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(value,
+					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation loop '" + loopNodeId + "' output");
+			Map<String, Object> prospectiveScope = new LinkedHashMap<>(parentContext.values());
+			prospectiveScope.put(loopOutputVar, value);
+			AutomationRuntimeUtils.toBoundedRuntimeJson(normalizeScope(prospectiveScope),
+					AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope");
+			long duration = System.currentTimeMillis() - startedMs;
+			String preview = AutomationRuntimeUtils.generatePreview(output);
+			AutomationRunStore.updateNodeSuccess(runId, loopNodeId, started, duration, loopOutputVar, output, preview,
+					null, null);
+			AutomationRunRegistry.nodeCompleted(runId);
+			streamNodeProgress(runId, loopNode, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
+			return nodeResult(loopNodeId, AutomationConstants.NODE_STATUS_SUCCESS, value, null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, loopNodeId, started, duration, message);
+			streamNodeProgress(runId, loopNode, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Adds one loop result while maintaining the exact encoded size of the JSON
+	 * array. Only the new result is serialized, avoiding repeated serialization of
+	 * every prior iteration.
+	 *
+	 * @param results      accumulated durable iteration results
+	 * @param result       next durable iteration result
+	 * @param currentBytes encoded UTF-8 size of {@code results}
+	 * @param maximumBytes maximum encoded result size
+	 * @param valueName    contextual value name used in validation errors
+	 * @return encoded UTF-8 size after appending {@code result}
+	 * @throws IllegalArgumentException when the append would exceed the bound
+	 */
+	static long appendBoundedLoopResult(List<Map<String, Object>> results, Map<String, Object> result,
+			long currentBytes, int maximumBytes, String valueName) {
+		String singleton = AutomationRuntimeUtils.toBoundedRuntimeJson(List.of(result), maximumBytes, valueName);
+		long resultBytes = singleton.getBytes(StandardCharsets.UTF_8).length - 2L;
+		long nextBytes = currentBytes + (results.isEmpty() ? 0L : 1L) + resultBytes;
+		if (nextBytes > maximumBytes) {
+			throw new IllegalArgumentException(valueName + " exceeds the maximum of " + maximumBytes + " UTF-8 bytes.");
+		}
+		results.add(result);
+		return nextBytes;
+	}
+
+	/**
+	 * Replaces live frame references with their durable summaries before a value is
+	 * written to run history. Live values remain available in the execution scope.
+	 *
+	 * @param value live execution value
+	 * @return recursively normalized, JSON-safe history value
+	 */
+	static Object persistableValue(Object value) {
+		if (value instanceof AutomationFrameOutput.RegisteredFrame frame) {
+			return frame.summary();
+		}
+		if (value instanceof Map<?, ?> map) {
+			Map<Object, Object> normalized = new LinkedHashMap<>();
+			map.forEach((key, item) -> normalized.put(key, persistableValue(item)));
+			return normalized;
+		}
+		if (value instanceof Collection<?> collection) {
+			return collection.stream().map(AutomationRunExecutionService::persistableValue).toList();
+		}
+		if (value != null && value.getClass().isArray()) {
+			List<Object> normalized = new ArrayList<>(Array.getLength(value));
+			for (int index = 0; index < Array.getLength(value); index++) {
+				normalized.add(persistableValue(Array.get(value, index)));
+			}
+			return normalized;
+		}
+		return value;
+	}
+
+	/**
+	 * Resolves a loop's literal list or exact scope reference without string
+	 * coercion.
+	 */
+	static List<Object> loopItems(Object configuredItems, Map<String, Object> scope, String loopNodeId) {
+		Object resolved = AutomationScopeResolver.resolveExactOrLiteral(configuredItems, scope,
+				"Loop node '" + loopNodeId + "'");
+		if (resolved instanceof Collection<?> collection) {
+			return new ArrayList<>(collection);
+		}
+		if (resolved != null && resolved.getClass().isArray()) {
+			List<Object> items = new ArrayList<>(Array.getLength(resolved));
+			for (int index = 0; index < Array.getLength(resolved); index++) {
+				items.add(Array.get(resolved, index));
+			}
+			return items;
+		}
+		throw new IllegalArgumentException("Loop node '" + loopNodeId + "' items must resolve to an array or list.");
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeDataExtractNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context, AutomationPixelExecutor pixelExecutor) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			Object value = AutomationDataExtractExecutor.execute(config, context.values(), nodeId, path -> {
+				String expression = "GetInsightAssetsBase64(filePath=" + AutomationRuntimeUtils.GSON.toJson(path)
+						+ ");";
+				Object encoded = pixelExecutor.execute(expression);
+				if (!(encoded instanceof String text)) {
+					throw new IllegalStateException(
+							"Data extract node '" + nodeId + "' asset read did not return Base64 text.");
+				}
+				return new String(Base64.getDecoder().decode(text), StandardCharsets.UTF_8);
+			});
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeStorageDownloadNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context, AutomationPixelExecutor pixelExecutor) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			AutomationPixelExpressionRenderer.StorageDownload request = AutomationPixelExpressionRenderer
+					.storageDownload(config, context.values(), nodeId);
+			Object transfer = pixelExecutor.execute(request.transferExpression());
+			Object assets = pixelExecutor.execute(request.searchExpression());
+			Map<String, Object> download = AutomationPixelExpressionRenderer.storageDownloadResult(transfer, assets,
+					request, nodeId);
+			return persistNativeNodeResult(runId, projectId, node, download, started, startedMs, null, null,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeVectorSearchNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context, AutomationPixelExecutor pixelExecutor) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			String expression = AutomationPixelExpressionRenderer.vectorSearch(config, context.values(), nodeId);
+			Object value = pixelExecutor.execute(expression);
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeDatabaseQueryNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context, AutomationPixelExecutor pixelExecutor) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		String outputVariable = (String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			AutomationDatabaseQueryExecutor.QueryRequest request = AutomationDatabaseQueryExecutor.request(config,
+					context.values(), nodeId);
+			AutomationFrameOutput.RegisteredFrame frame = AutomationDatabaseQueryExecutor.execute(context.insight(),
+					pixelExecutor, request, outputVariable, runId, nodeId);
+			AutomationTableCaptureService.TableCapture tableCapture = AutomationTableCaptureService.capture(frame,
+					nodeId);
+			Map<String, Object> result = persistNativeNodeResult(runId, projectId, node, frame.summary(), started,
+					startedMs, null, null, context.values(), AutomationConstants.OUTPUT_KIND_TABLE, tableCapture);
+			if (AutomationConstants.NODE_STATUS_SUCCESS.equals(result.get(AutomationConstants.STATUS))) {
+				result = new LinkedHashMap<>(result);
+				result.put(AutomationConstants.RESULT_OUTPUT_VALUE, frame);
+			}
+			return result;
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeAgentNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context, AutomationPixelExecutor pixelExecutor, String traceRoomId,
+			String resumeNodeId) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null,
+				traceForNode(node, traceRoomId, null, null));
+		try {
+			prepareGeneratedAgentRoom(context.insight(), node, traceRoomId);
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			String expression = AutomationPixelExpressionRenderer.agent(config, context.values(), nodeId, traceRoomId);
+			Object result = pixelExecutor.execute(expression);
+			Object value = AutomationPixelExpressionRenderer.agentResult(result, nodeId);
+			value = awaitGeneratedAgentRun(context.insight(), runId, node, value, traceRoomId, context.values());
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, traceRoomId, resumeNodeId,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message,
+					traceForNode(node, traceRoomId, null, null));
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeStorageNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context, AutomationPixelExecutor pixelExecutor) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+			String expression = AutomationPixelExpressionRenderer.storageOperation(nodeType, config, context.values(),
+					nodeId);
+			Object value = pixelExecutor.execute(expression);
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeModelNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context, AutomationPixelExecutor pixelExecutor, String traceRoomId) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null,
+				traceForNode(node, traceRoomId, null, null));
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+			String expression = AutomationPixelExpressionRenderer.model(nodeType, config, context.values(), nodeId,
+					traceRoomId);
+			Object result = pixelExecutor.execute(expression);
+			Object value = AutomationPixelExpressionRenderer.modelResult(nodeType, result, nodeId);
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, traceRoomId, null,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message,
+					traceForNode(node, traceRoomId, null, null));
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeVectorWriteNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context, AutomationPixelExecutor pixelExecutor) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+			String expression = AutomationPixelExpressionRenderer.vectorWrite(nodeType, config, context.values(),
+					nodeId);
+			Object value = pixelExecutor.execute(expression);
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeDatabaseWriteNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context, AutomationPixelExecutor pixelExecutor) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			String expression = AutomationPixelExpressionRenderer.databaseWrite(config, context.values(), nodeId);
+			Object value = pixelExecutor.execute(expression);
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Evaluates typed routing questions through the configured TypeSafe/Jev engine
+	 * and applies the configured route rules to the complete response.
+	 */
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeJevDecisionNode(Insight executionInsight, String runId, Map<String, Object> node,
+			Map<String, Object> scope) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			String engineId = (String) config.get(AutomationConstants.CONFIG_ENGINE_ID);
+			if (!SecurityEngineUtils.userCanViewEngine(executionInsight.getUser(), engineId)) {
+				throw new IllegalArgumentException(
+						"Model " + engineId + " does not exist or user does not have access to this model");
+			}
+			IModelEngine model = Utility.getModel(engineId);
+			if (!(model instanceof ITypeSafeEngine engine)) {
+				throw new IllegalArgumentException("Jev decision nodes require a TYPESAFE model engine.");
+			}
+
+			List<Map<String, Object>> clauses = (List<Map<String, Object>>) config
+					.get(AutomationConstants.CONFIG_CLAUSES);
+			Map<String, Object> questions = jevQuestions(config, scope);
+			Map<String, Object> parameters = jevParameters(config);
+			Object state = resolveJevState(config.get(AutomationConstants.CONFIG_STATE), scope);
+			TypeSafeModelEngineResponse response = engine.evaluate(state, questions, executionInsight, parameters);
+			Map<String, Object> decision = jevDecision(response, clauses, config);
+
+			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(decision,
+					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation Jev decision '" + nodeId + "' output");
+			long duration = System.currentTimeMillis() - startedMs;
+			String preview = AutomationRuntimeUtils.generatePreview(output);
+			AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview, null, null);
+			AutomationRunRegistry.nodeCompleted(runId);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
+			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, decision, null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Preserves TypeSafe option types after Gson has materialized JSON numbers as
+	 * doubles.
+	 */
+	static Map<String, Object> jevParameters(Map<String, Object> config) {
+		Object configured = config.get(AutomationConstants.CONFIG_PARAM_VALUES);
+		if (!(configured instanceof Map<?, ?> values)) {
+			return Map.of();
+		}
+		Map<String, Object> parameters = new LinkedHashMap<>();
+		for (Map.Entry<?, ?> entry : values.entrySet()) {
+			if (entry.getKey() instanceof String key) {
+				parameters.put(key, entry.getValue());
+			}
+		}
+		Object retries = parameters.get("max_retries");
+		if (retries instanceof Number number) {
+			double value = number.doubleValue();
+			if (Double.isFinite(value) && value == Math.rint(value) && value >= Integer.MIN_VALUE
+					&& value <= Integer.MAX_VALUE) {
+				parameters.put("max_retries", (int) value);
+			}
+		}
+		return parameters;
+	}
+
+	/**
+	 * Builds the native TypeSafe question map, retaining legacy single-question
+	 * graphs.
+	 */
+	@SuppressWarnings("unchecked")
+	static Map<String, Object> jevQuestions(Map<String, Object> config, Map<String, Object> scope) {
+		Object configuredQuestions = config.get(AutomationConstants.CONFIG_QUESTIONS);
+		if (configuredQuestions instanceof List<?> questions) {
+			Map<String, Object> resolved = new LinkedHashMap<>();
+			for (Object value : questions) {
+				Map<String, Object> question = (Map<String, Object>) value;
+				String key = (String) question.get(AutomationConstants.CONFIG_KEY);
+				Map<String, Object> typedQuestion = new LinkedHashMap<>();
+				typedQuestion.put(AutomationConstants.CONFIG_TYPE, question.get(AutomationConstants.CONFIG_TYPE));
+				typedQuestion.put("instructions",
+						resolveJevText(question.get(AutomationConstants.CONFIG_INSTRUCTIONS), scope));
+				Object criteria = question.get(AutomationConstants.CONFIG_CRITERIA);
+				if (criteria instanceof Map<?, ?> || criteria instanceof List<?>) {
+					typedQuestion.put("criteria", criteria);
+				}
+				resolved.put(key, typedQuestion);
+			}
+			return resolved;
+		}
+
+		List<Map<String, Object>> clauses = (List<Map<String, Object>>) config.get(AutomationConstants.CONFIG_CLAUSES);
+		String questionType = jevQuestionType(config);
+		Map<String, Object> criteria = new LinkedHashMap<>();
+		for (Map<String, Object> clause : clauses) {
+			Object criterion = AutomationConstants.JEV_QUESTION_TYPE_NOUL.equals(questionType)
+					? String.valueOf(clause.get(AutomationConstants.CONFIG_ANSWER))
+					: clause.get(AutomationConstants.CONFIG_CLAUSE_ID);
+			criteria.put(String.valueOf(criterion), clause.get(AutomationConstants.CONFIG_DESCRIPTION));
+		}
+		Map<String, Object> routeQuestion = new LinkedHashMap<>();
+		routeQuestion.put("type", questionType);
+		routeQuestion.put("instructions", resolveJevText(config.get(AutomationConstants.CONFIG_QUESTION), scope));
+		routeQuestion.put("criteria", criteria);
+		return Map.of("route", routeQuestion);
+	}
+
+	/**
+	 * Resolves an exact scope reference while preserving its native value. Literal
+	 * state remains unchanged so maps and lists are not coerced to text.
+	 */
+	private static Object resolveJevState(Object configuredState, Map<String, Object> scope) {
+		return AutomationScopeResolver.resolveExactOrLiteral(configuredState, scope, "Jev decision state");
+	}
+
+	/** Resolves the optional Jev instruction text from the current run scope. */
+	private static String resolveJevText(Object configuredText, Map<String, Object> scope) {
+		Object resolved = resolveJevState(configuredText, scope);
+		return resolved == null ? "" : String.valueOf(resolved);
+	}
+
+	/**
+	 * Validates a typed response and maps it to a configured graph port.
+	 * Low-confidence responses use the explicit fallback instead of guessing.
+	 */
+	static Map<String, Object> jevDecision(TypeSafeModelEngineResponse response, List<Map<String, Object>> clauses,
+			Map<String, Object> config) {
+		Map<String, Object> providerResponse = response.getResponse();
+		if (config.containsKey(AutomationConstants.CONFIG_QUESTIONS)) {
+			return jevRuleDecision(providerResponse, clauses);
+		}
+		Object rawAnswers = providerResponse.get("answers");
+		if (!(rawAnswers instanceof Map<?, ?> answers) || !(answers.get("route") instanceof Map<?, ?> routeAnswer)) {
+			throw new IllegalStateException("Jev response did not include answers.route.");
+		}
+		return AutomationConstants.JEV_QUESTION_TYPE_NOUL.equals(jevQuestionType(config))
+				? jevNoulDecision(providerResponse, routeAnswer, clauses, config)
+				: jevChoiceDecision(providerResponse, routeAnswer, clauses, config);
+	}
+
+	/** Applies ordered All/Any route rules to the complete typed Jev response. */
+	private static Map<String, Object> jevRuleDecision(Map<String, Object> providerResponse,
+			List<Map<String, Object>> routes) {
+		Object rawAnswers = providerResponse.get("answers");
+		if (!(rawAnswers instanceof Map<?, ?> answers)) {
+			throw new IllegalStateException("Jev response did not include answers.");
+		}
+
+		Map<String, Object> selectedRoute = null;
+		for (Map<String, Object> route : routes) {
+			if (jevRouteMatches(route, answers)) {
+				selectedRoute = route;
+				break;
+			}
+		}
+
+		Map<String, Object> decision = new LinkedHashMap<>();
+		decision.put("branch",
+				selectedRoute == null ? AutomationConstants.CONTROL_PORT_ELSE
+						: AutomationConstants.CONTROL_PORT_CASE_PREFIX
+								+ selectedRoute.get(AutomationConstants.CONFIG_CLAUSE_ID));
+		if (selectedRoute != null) {
+			decision.put("routeId", selectedRoute.get(AutomationConstants.CONFIG_CLAUSE_ID));
+			decision.put("route", selectedRoute.get(AutomationConstants.CONFIG_DESCRIPTION));
+			decision.put("routeMatch", selectedRoute.getOrDefault(AutomationConstants.CONFIG_MATCH,
+					AutomationConstants.JEV_ROUTE_MATCH_ALL));
+			decision.put("matchedConditions", selectedRoute.get(AutomationConstants.CONFIG_CONDITIONS));
+		}
+		decision.put("answers", answers);
+		decision.put("model", providerResponse.get("model"));
+		decision.put("usage", providerResponse.getOrDefault("usage", Map.of()));
+		return decision;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static boolean jevRouteMatches(Map<String, Object> route, Map<?, ?> answers) {
+		List<Map<String, Object>> conditions = (List<Map<String, Object>>) route
+				.get(AutomationConstants.CONFIG_CONDITIONS);
+		boolean matchAny = AutomationConstants.JEV_ROUTE_MATCH_ANY.equals(route.get(AutomationConstants.CONFIG_MATCH));
+		for (Map<String, Object> condition : conditions) {
+			boolean matches = jevConditionMatches(condition, answers);
+			if (matchAny && matches) {
+				return true;
+			}
+			if (!matchAny && !matches) {
+				return false;
+			}
+		}
+		return !matchAny;
+	}
+
+	private static boolean jevConditionMatches(Map<String, Object> condition, Map<?, ?> answers) {
+		String questionKey = (String) condition.get(AutomationConstants.CONFIG_QUESTION_KEY);
+		Object rawAnswer = answers.get(questionKey);
+		if (!(rawAnswer instanceof Map<?, ?> answer)) {
+			throw new IllegalStateException("Jev response did not include answers." + questionKey + ".");
+		}
+		String field = (String) condition.get(AutomationConstants.CONFIG_FIELD);
+		Object actual;
+		if (AutomationConstants.JEV_FIELD_PROBABILITY.equals(field)) {
+			Object rawProbabilities = answer.get("probabilities");
+			String option = (String) condition.get(AutomationConstants.CONFIG_OPTION);
+			if (!(rawProbabilities instanceof Map<?, ?> probabilities) || !probabilities.containsKey(option)) {
+				throw new IllegalStateException(
+						"Jev response did not include answers." + questionKey + ".probabilities." + option + ".");
+			}
+			actual = probabilities.get(option);
+		} else {
+			if (!answer.containsKey(field)) {
+				throw new IllegalStateException(
+						"Jev response did not include answers." + questionKey + "." + field + ".");
+			}
+			actual = answer.get(field);
+		}
+		return compareJevValues(actual, condition.get(AutomationConstants.CONFIG_VALUE),
+				(String) condition.get(AutomationConstants.CONFIG_OPERATOR));
+	}
+
+	private static boolean compareJevValues(Object actual, Object expected, String operator) {
+		if (AutomationConstants.JEV_OPERATOR_EQUALS.equals(operator)) {
+			return actual instanceof Number && expected instanceof Number
+					? Double.compare(((Number) actual).doubleValue(), ((Number) expected).doubleValue()) == 0
+					: java.util.Objects.equals(actual, expected);
+		}
+		if (AutomationConstants.JEV_OPERATOR_NOT_EQUALS.equals(operator)) {
+			return !compareJevValues(actual, expected, AutomationConstants.JEV_OPERATOR_EQUALS);
+		}
+		if (!(actual instanceof Number actualNumber) || !(expected instanceof Number expectedNumber)) {
+			throw new IllegalStateException("Jev numeric route condition received a non-numeric answer.");
+		}
+		int comparison = Double.compare(actualNumber.doubleValue(), expectedNumber.doubleValue());
+		return switch (operator) {
+		case AutomationConstants.JEV_OPERATOR_GREATER_THAN -> comparison > 0;
+		case AutomationConstants.JEV_OPERATOR_GREATER_THAN_OR_EQUAL -> comparison >= 0;
+		case AutomationConstants.JEV_OPERATOR_LESS_THAN -> comparison < 0;
+		case AutomationConstants.JEV_OPERATOR_LESS_THAN_OR_EQUAL -> comparison <= 0;
+		default -> throw new IllegalStateException("Unsupported Jev route operator: " + operator + ".");
+		};
+	}
+
+	/** Maps an arbitrary choice answer to its stable route identifier. */
+	private static Map<String, Object> jevChoiceDecision(Map<String, Object> providerResponse, Map<?, ?> routeAnswer,
+			List<Map<String, Object>> clauses, Map<String, Object> config) {
+		Set<String> routeIds = new HashSet<>();
+		for (Map<String, Object> clause : clauses) {
+			routeIds.add((String) clause.get(AutomationConstants.CONFIG_CLAUSE_ID));
+		}
+		Object choiceValue = routeAnswer.get("choice");
+		if (!(choiceValue instanceof String choice) || !routeIds.contains(choice)) {
+			throw new IllegalStateException("Jev response selected an unknown route.");
+		}
+		Object confidenceValue = routeAnswer.get("confidence");
+		if (!(confidenceValue instanceof Number confidenceNumber) || !Double.isFinite(confidenceNumber.doubleValue())
+				|| confidenceNumber.doubleValue() < 0 || confidenceNumber.doubleValue() > 1) {
+			throw new IllegalStateException("Jev response route confidence must be a number from 0 through 1.");
+		}
+		double confidence = confidenceNumber.doubleValue();
+		double threshold = config.get(AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD) instanceof Number number
+				? number.doubleValue()
+				: 0.0;
+		String branch = confidence >= threshold ? AutomationConstants.CONTROL_PORT_CASE_PREFIX + choice
+				: AutomationConstants.CONTROL_PORT_ELSE;
+		Map<String, Object> decision = new LinkedHashMap<>();
+		decision.put("branch", branch);
+		decision.put("choice", choice);
+		decision.put("confidence", confidence);
+		decision.put("confidenceThreshold", threshold);
+		decision.put("probabilities",
+				routeAnswer.containsKey("probabilities") ? routeAnswer.get("probabilities") : Map.of());
+		decision.put("model", providerResponse.get("model"));
+		return decision;
+	}
+
+	/** Maps a Noul probability to the explicitly configured Yes or No route. */
+	private static Map<String, Object> jevNoulDecision(Map<String, Object> providerResponse, Map<?, ?> routeAnswer,
+			List<Map<String, Object>> clauses, Map<String, Object> config) {
+		Object probabilityValue = routeAnswer.get("noul");
+		if (!(probabilityValue instanceof Number probabilityNumber) || !Double.isFinite(probabilityNumber.doubleValue())
+				|| probabilityNumber.doubleValue() < 0 || probabilityNumber.doubleValue() > 1) {
+			throw new IllegalStateException("Jev response route.noul must be a number from 0 through 1.");
+		}
+		double probabilityYes = probabilityNumber.doubleValue();
+		boolean answer = probabilityYes >= 0.5;
+		double confidence = answer ? probabilityYes : 1 - probabilityYes;
+		double threshold = config.get(AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD) instanceof Number number
+				? number.doubleValue()
+				: 0.5;
+		String routeId = null;
+		for (Map<String, Object> clause : clauses) {
+			if (Boolean.valueOf(answer).equals(clause.get(AutomationConstants.CONFIG_ANSWER))) {
+				routeId = (String) clause.get(AutomationConstants.CONFIG_CLAUSE_ID);
+				break;
+			}
+		}
+		if (routeId == null) {
+			throw new IllegalStateException("Jev Noul decision has no route for answer=" + answer + ".");
+		}
+		Map<String, Object> decision = new LinkedHashMap<>();
+		decision.put("branch", confidence >= threshold ? AutomationConstants.CONTROL_PORT_CASE_PREFIX + routeId
+				: AutomationConstants.CONTROL_PORT_ELSE);
+		decision.put("answer", answer);
+		decision.put("probabilityYes", probabilityYes);
+		decision.put("confidence", confidence);
+		decision.put("confidenceThreshold", threshold);
+		decision.put("probabilities", Map.of("true", probabilityYes, "false", 1 - probabilityYes));
+		decision.put("model", providerResponse.get("model"));
+		return decision;
+	}
+
+	/**
+	 * Returns the canonical Jev question type, defaulting older graphs to choice.
+	 */
+	private static String jevQuestionType(Map<String, Object> config) {
+		Object value = config.get(AutomationConstants.CONFIG_QUESTION_TYPE);
+		return value instanceof String questionType ? questionType : AutomationConstants.JEV_QUESTION_TYPE_CHOICE;
+	}
+
+	/**
+	 * Evaluates an if node's ordered clauses in Java and persists the port it
+	 * selected. The first clause whose expression is true wins; with no match the
+	 * else port is selected. No Python runs for this node, and its decision is
+	 * consumed by the control loop rather than entering scope.
+	 */
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeConditionNode(String runId, Map<String, Object> node,
+			Map<String, Object> scope) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			List<Map<String, Object>> clauses = (List<Map<String, Object>>) config
+					.get(AutomationConstants.CONFIG_CLAUSES);
+			String selectedPort = AutomationConstants.CONTROL_PORT_ELSE;
+			boolean matched = false;
+			for (Map<String, Object> clause : clauses) {
+				String expression = (String) clause.get(AutomationConstants.CONFIG_CONDITION);
+				if (AutomationConditionEvaluator.evaluate(expression, scope)) {
+					selectedPort = AutomationConstants.CONTROL_PORT_CASE_PREFIX
+							+ clause.get(AutomationConstants.CONFIG_CLAUSE_ID);
+					matched = true;
+					break;
+				}
+
+			}
+			Map<String, Object> decision = Map.of("branch", selectedPort, "value", matched);
+			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(decision,
+					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation condition '" + nodeId + "' output");
+			long duration = System.currentTimeMillis() - startedMs;
+			String preview = AutomationRuntimeUtils.generatePreview(output);
+			AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration,
+					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview, null, null);
+			AutomationRunRegistry.nodeCompleted(runId);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
+			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, decision, null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Seeds the trigger's declared global defaults into scope without overwriting
+	 * supplied inputs. Trigger nodes never own or execute Python.
+	 */
+	private Map<String, Object> executeStartNode(AutomationExecutionContext context, String runId,
+			Map<String, Object> node) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> declaredGlobals = AutomationRuntime.triggerGlobalDefaults(node);
+			for (Map.Entry<String, Object> entry : declaredGlobals.entrySet()) {
+				if (!context.values().containsKey(entry.getKey())) {
+					context.putValue(entry.getKey(), entry.getValue());
+				}
+			}
+			Map<String, Object> globals = new LinkedHashMap<>();
+			for (String name : declaredGlobals.keySet()) {
+				globals.put(name, context.values().get(name));
+			}
+			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(globals,
+					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation trigger output");
+			AutomationRuntimeUtils.toBoundedRuntimeJson(context.values(), AutomationConstants.RUN_SCOPE_MAX_BYTES,
+					"Automation run scope");
+			long duration = System.currentTimeMillis() - startedMs;
+			String preview = AutomationRuntimeUtils.generatePreview(output);
+			AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview, null, null);
+			AutomationRunRegistry.nodeCompleted(runId);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
+			Map<String, Object> result = nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, output, null);
+			result.put(AutomationConstants.RESULT_GLOBALS, globals);
+			return result;
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeWaitNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			Object configuredSeconds = config.get("durationSeconds");
+			double seconds = configuredSeconds instanceof Number number ? number.doubleValue()
+					: Double.parseDouble(String.valueOf(configuredSeconds));
+			Object value = AutomationJavaWaitExecutor.execute(runId, seconds);
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeAppPixelNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context, AutomationPixelExecutor pixelExecutor) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			Object appIdValue = AutomationScopeResolver.resolveExactOrLiteral(
+					config.get(AutomationConstants.CONFIG_APP_ID), context.values(),
+					"App Pixel node '" + nodeId + "' appId");
+			String expression = (String) config.get(AutomationConstants.CONFIG_PIXEL);
+			if (appIdValue != null && !appIdValue.toString().isBlank()) {
+				expression = "LoadApp(project=" + AutomationRuntimeUtils.GSON.toJson(appIdValue.toString()) + "); "
+						+ expression;
+			}
+			Object value = pixelExecutor.execute(expression);
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeFunctionNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context, AutomationPixelExecutor pixelExecutor) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			String expression = AutomationPixelExpressionRenderer.functionExecute(config, context.values(), nodeId);
+			Object value = pixelExecutor.execute(expression);
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeStorageListNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context, AutomationPixelExecutor pixelExecutor) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			String expression = AutomationPixelExpressionRenderer.storageList(config, context.values(), nodeId);
+			Object result = pixelExecutor.execute(expression);
+			Object value = AutomationPixelExpressionRenderer.storagePaths(result, config.get("extensions"),
+					context.values(), nodeId);
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Executes one node's persisted Python against a scope snapshot and persists
+	 * the outcome.
+	 *
+	 * <p>
+	 * A node allocated a run-local room receives it as private scope metadata. When
+	 * the node starts a durable child agent, this waits for that child to settle or
+	 * to ask for human input before the result is persisted.
+	 */
+	private Map<String, Object> executeNodeSource(String projectId, String runId,
+			Map<String, Object> executionDescriptor, Map<String, Object> historicalNode, String source,
+			AutomationExecutionContext context, AutomationPythonExecutor pythonExecutor, String traceRoomId,
+			String resumeNodeId) {
+		if (source == null || source.isBlank()) {
+			throw new IllegalStateException("Automation node has no persisted Python source: "
+					+ historicalNode.get(AutomationConstants.NODE_FIELD_ID));
+		}
+		Insight executionInsight = context.insight();
+		String nodeId = (String) historicalNode.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, historicalNode, AutomationConstants.NODE_STATUS_RUNNING, null, null, null,
+				traceForNode(historicalNode, traceRoomId, null, null));
+		try {
+			prepareGeneratedAgentRoom(executionInsight, historicalNode, traceRoomId);
+			String outputVariable = (String) historicalNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+			Map<String, Object> nodeScope = context.values();
+			if (traceRoomId != null) {
+				nodeScope = new LinkedHashMap<>(context.values());
+				nodeScope.put(AutomationConstants.SCOPE_ROOM_ID, traceRoomId);
+			}
+			String nodeType = String.valueOf(executionDescriptor.get(AutomationConstants.NODE_FIELD_TYPE));
+			String assetsFolder = assetsFolder(executionInsight, projectId);
+			AutomationRuntime.NodeResult nodeResult = pythonExecutor.executeNode(executionDescriptor, source, nodeScope,
+					outputVariable, assetsFolder, assetsFolder + File.separator + "py");
+			Object value = nodeResult.value();
+			if (AutomationConstants.NODE_DEVELOPER_PYTHON.equals(nodeType) && mergePythonResultIntoScope(historicalNode)
+					&& value instanceof Map<?, ?> values) {
+				for (Map.Entry<?, ?> entry : values.entrySet()) {
+					if (entry.getKey() instanceof String name && !context.values().containsKey(name)) {
+						context.putValue(name, entry.getValue());
+					}
+				}
+			}
+			boolean pythonFrame = value instanceof AutomationFrameOutput.RegisteredFrame;
+			String outputKind = null;
+			AutomationTableCaptureService.TableCapture tableCapture = null;
+			AutomationFrameOutput.RegisteredFrame runtimeFrame = null;
+			if (pythonFrame) {
+				AutomationFrameOutput.RegisteredFrame frame = (AutomationFrameOutput.RegisteredFrame) value;
+				outputKind = AutomationConstants.OUTPUT_KIND_TABLE;
+				tableCapture = AutomationTableCaptureService.capture(frame, nodeId);
+				runtimeFrame = frame;
+				value = frame.summary();
+			}
+			value = awaitGeneratedAgentRun(executionInsight, runId, historicalNode, value, traceRoomId,
+					context.values());
+			Map<String, Object> result = persistNativeNodeResult(runId, projectId, historicalNode, value, started,
+					startedMs, traceRoomId, resumeNodeId, context.values(), outputKind, tableCapture);
+			if (runtimeFrame != null
+					&& AutomationConstants.NODE_STATUS_SUCCESS.equals(result.get(AutomationConstants.STATUS))) {
+				result = new LinkedHashMap<>(result);
+				result.put(AutomationConstants.RESULT_OUTPUT_VALUE, runtimeFrame);
+			}
+			return result;
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, historicalNode, AutomationConstants.NODE_STATUS_FAILED, duration, null, message,
+					traceForNode(historicalNode, traceRoomId, null, null));
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static boolean mergePythonResultIntoScope(Map<String, Object> node) {
+		Object config = node.get(AutomationConstants.NODE_FIELD_CONFIG);
+		return config instanceof Map<?, ?>
+				&& Boolean.TRUE.equals(((Map<String, Object>) config).get("mergeResultIntoScope"));
+	}
+
+	/**
+	 * The validator treats every codeMode except the literal "custom" as generated,
+	 * including an absent value. Matching that convention here (rather than
+	 * requiring the literal "generated") keeps live agent-run tracking from
+	 * silently no-oping on a node that omits the field.
+	 */
+	private static boolean isGeneratedAgentRunNode(Map<String, Object> node) {
+		return AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))
+				&& !AutomationConstants.NODE_CODE_MODE_CUSTOM
+						.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
+	}
+
+	/**
+	 * Creates the run-local room a generated agent node posts into, before its
+	 * Python submits the child run, so the room exists for the trace the node is
+	 * about to return.
+	 */
+	@SuppressWarnings("unchecked")
+	private void prepareGeneratedAgentRoom(Insight executionInsight, Map<String, Object> node, String roomId) {
+		if (roomId == null || !isGeneratedAgentRunNode(node)) {
+			return;
+		}
+		Map<String, Object> config = node.get(AutomationConstants.NODE_FIELD_CONFIG) instanceof Map<?, ?> map
+				? (Map<String, Object>) map
+				: Map.of();
+		String workspaceId = stringValue(config.get(AutomationConstants.CONFIG_WORKSPACE_ID));
+		RoomUtils.createRoomIfNotExists(roomId, executionInsight, null, null,
+				workspaceId == null ? null : workspaceId.trim(), generatedAgentRoomOptions(config), null, null, null);
+	}
+
+	/**
+	 * Room options a generated agent node asks for: extra skills (access is checked when the run loads them) and the
+	 * Collaboration routine flag, which only narrows what the run may do.
+	 */
+	private static Map<String, Object> generatedAgentRoomOptions(Map<String, Object> config) {
+		Map<String, Object> options = new LinkedHashMap<>();
+		if (config.get(AutomationConstants.CONFIG_SKILLS) instanceof List<?> skills && !skills.isEmpty()) {
+			List<Map<String, Object>> refs = new ArrayList<>();
+			for (Object skill : skills) {
+				String skillId = stringValue(skill);
+				if (skillId != null && !skillId.isBlank()) {
+					refs.add(Map.of("skill_id", skillId.trim()));
+				}
+			}
+			options.put("skills", refs);
+		}
+		if (Boolean.TRUE.equals(config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE))) {
+			options.put(CollaborationUtils.ROOM_OPTION_ROUTINE, true);
+		}
+		return options.isEmpty() ? null : options;
+	}
+
+	/**
+	 * Monitors an asynchronous durable agent run while it is actively executing. A
+	 * terminal result is returned for normal node persistence;
+	 * {@code INPUT_REQUIRED} returns immediately so the caller can persist a
+	 * durable Automation wait and release the active execution and run-local
+	 * Insight.
+	 */
+	Object awaitGeneratedAgentRun(Insight executionInsight, String automationRunId, Map<String, Object> node,
+			Object value, String traceRoomId, Map<String, Object> scope) throws InterruptedException {
+		return awaitGeneratedAgentRun(executionInsight, automationRunId, node, value, traceRoomId, scope,
+				System::nanoTime, Thread::sleep);
+	}
+
+	/**
+	 * Polls a durable child agent run until it settles or asks for human input,
+	 * streaming each status change and cascading cancellation down to the child.
+	 *
+	 * <p>
+	 * The clock and sleep are supplied by the caller so the poll loop can be driven
+	 * without real time. Time the child spends waiting on a human does not count
+	 * against the wait timeout.
+	 */
+	Object awaitGeneratedAgentRun(Insight executionInsight, String automationRunId, Map<String, Object> node,
+			Object value, String traceRoomId, Map<String, Object> scope, LongSupplier monotonicTime,
+			AgentRunSleeper sleeper) throws InterruptedException {
+		if (!isGeneratedAgentRunNode(node)) {
+			return value;
+		}
+
+		AutomationNodeFinalizationService.ClassifiedResult generated = AutomationNodeFinalizationService.classify(node,
+				value);
+		Map<String, Object> submittedRun = normalizeAgentResult(node, generated.metadata(), traceRoomId);
+		String agentRunId = stringValue(submittedRun.get("runId"));
+		if (agentRunId == null) {
+			throw missingAgentTrace(node);
+		}
+		long waitStartedAt = monotonicTime.getAsLong();
+		AutomationRunStore.updateNodeAgentRunTrace(automationRunId,
+				(String) node.get(AutomationConstants.NODE_FIELD_ID), agentRunId);
+
+		String previousStatus = stringValue(submittedRun.get("status"));
+		ActiveAgentWaitTimeout waitTimeout = new ActiveAgentWaitTimeout(configuredAgentWaitTimeoutMs(node, scope),
+				previousStatus, waitStartedAt);
+		boolean cancellationSignalled = false;
+		try {
+			streamNodeProgress(automationRunId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null,
+					traceForNode(node, traceRoomId, null, agentRunId, previousStatus));
+			while (true) {
+				if (AutomationRunRegistry.isCancellationRequested(automationRunId) && !cancellationSignalled) {
+					cancellationSignalled = true;
+					AgentRunService.get().cancelRun(agentRunId, "Automation run cancelled");
+				}
+
+				Map<String, Object> durableRun = AgentRunService.get().getRun(agentRunId, executionInsight);
+				Map<String, Object> currentRun = normalizeAgentResult(node, durableRun, traceRoomId);
+				String status = stringValue(currentRun.get("status"));
+				if (status == null) {
+					throw new IllegalStateException("Agent run '" + agentRunId + "' returned no durable status.");
+				}
+				boolean statusChanged = previousStatus == null || !status.equalsIgnoreCase(previousStatus);
+				previousStatus = status;
+				if (statusChanged) {
+					streamNodeProgress(automationRunId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null,
+							traceForNode(node, traceRoomId, null, agentRunId, status));
+				}
+
+				if (isInputRequiredStatus(status) || isAgentRunTerminalStatus(status)) {
+					return generatedAgentRunResult(currentRun);
+				}
+
+				waitTimeout.observe(status, monotonicTime.getAsLong());
+				if (waitTimeout.isExpired()) {
+					if (!cancellationSignalled) {
+						cancellationSignalled = true;
+						AgentRunService.get().cancelRun(agentRunId, "Automation agent wait timeout");
+					}
+					currentRun.put("status", "FAILED");
+					currentRun.put("waitTimedOut", true);
+					return generatedAgentRunResult(currentRun);
+				}
+
+				sleeper.sleep(waitTimeout.nextPollDelayMs());
+			}
+		} catch (InterruptedException e) {
+			if (!cancellationSignalled && !isAgentRunTerminalStatus(previousStatus)) {
+				cancellationSignalled = true;
+				cancelAgentRunAfterMonitoringFailure(agentRunId, traceRoomId, "Automation agent monitoring interrupted",
+						e);
+			}
+			Thread.currentThread().interrupt();
+			throw e;
+		} catch (RuntimeException e) {
+			if (!cancellationSignalled && !isAgentRunTerminalStatus(previousStatus)) {
+				cancellationSignalled = true;
+				cancelAgentRunAfterMonitoringFailure(agentRunId, traceRoomId, "Automation agent monitoring failed", e);
+			}
+			throw e;
+		}
+	}
+
+	/**
+	 * Returns whether a durable agent run has settled and will not change again.
+	 */
+	static boolean isAgentRunTerminalStatus(String status) {
+		return "COMPLETED".equalsIgnoreCase(status) || "FAILED".equalsIgnoreCase(status)
+				|| "CANCELLED".equalsIgnoreCase(status);
+	}
+
+	/**
+	 * Sleep strategy for the agent-monitor poll loop, injected so the loop's timing
+	 * can be controlled by the caller.
+	 */
+	@FunctionalInterface
+	interface AgentRunSleeper {
+		/**
+		 * Pauses the poll loop for the requested duration, or throws when the waiting
+		 * thread is interrupted so cancellation still propagates.
+		 */
+		void sleep(long durationMs) throws InterruptedException;
+	}
+
+	/**
+	 * Repackages a settled child agent run into the internal envelope generated
+	 * agent nodes return, with finalText as the business value and the run's
+	 * identifiers kept as trace metadata.
+	 */
+	private static Map<String, Object> generatedAgentRunResult(Map<String, Object> currentRun) {
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		for (String key : List.of("runId", AutomationConstants.TRACE_ROOM_ID, AutomationConstants.TRACE_WORKSPACE_ID,
+				"status", "waitTimedOut", "errorMessage")) {
+			metadata.put(key, currentRun.get(key));
+		}
+		Map<String, Object> completed = new LinkedHashMap<>();
+		completed.put(AutomationConstants.INTERNAL_RESULT_VALUE, currentRun.get("finalText"));
+		completed.put(AutomationConstants.INTERNAL_RESULT_METADATA, metadata);
+		return completed;
+	}
+
+	/**
+	 * Cancels the child agent after monitoring fails, so a child is never left
+	 * running without a parent watching it. A cancellation failure is attached to
+	 * the original error rather than replacing it.
+	 */
+	private static void cancelAgentRunAfterMonitoringFailure(String agentRunId, String traceRoomId, String reason,
+			Throwable monitoringFailure) {
+		try {
+			AgentRunService.get().cancelRun(agentRunId, reason);
+		} catch (RuntimeException cancellationFailure) {
+			monitoringFailure.addSuppressed(cancellationFailure);
+		}
+	}
+
+	/**
+	 * Resolves how long this node may wait on its child agent. A configured value
+	 * that is an exact {@code ${name}} reference is read from scope; anything
+	 * absent or not positive falls back to the platform default.
+	 */
+	@SuppressWarnings("unchecked")
+	private static long configuredAgentWaitTimeoutMs(Map<String, Object> node, Map<String, Object> scope) {
+		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
+		Object configured = rawConfig instanceof Map<?, ?> config
+				? ((Map<String, Object>) config).get(AutomationConstants.CONFIG_WAIT_TIMEOUT_MS)
+				: null;
+		String referencePath = AutomationScopeResolver.exactReferencePath(configured);
+		if (referencePath != null && scope != null && scope.containsKey(referencePath)) {
+			configured = scope.get(referencePath);
+		}
+		long timeoutMs = positiveLong(configured);
+		return timeoutMs > 0 ? timeoutMs : configuredAgentRunDefaultWaitTimeoutMs();
+	}
+
+	/**
+	 * Returns the platform-wide agent wait timeout from
+	 * {@code AGENT_RUN_WAIT_TIMEOUT_MS}, or the built-in default when it is unset
+	 * or invalid.
+	 */
+	private static long configuredAgentRunDefaultWaitTimeoutMs() {
+		long timeoutMs = positiveLong(Utility.getDIHelperProperty(AGENT_RUN_WAIT_TIMEOUT_PROPERTY));
+		return timeoutMs > 0 ? timeoutMs : DEFAULT_AGENT_RUN_WAIT_TIMEOUT_MS;
+	}
+
+	/**
+	 * Parses a positive millisecond value, returning zero for anything absent,
+	 * unparseable, or not positive, so callers can treat zero as "not configured".
+	 */
+	private static long positiveLong(Object value) {
+		if (value == null) {
+			return 0L;
+		}
+		try {
+			long parsed = Long.parseLong(value.toString().trim());
+			return parsed > 0 ? parsed : 0L;
+		} catch (NumberFormatException e) {
+			return 0L;
+		}
+	}
+
+	/**
+	 * Wait budget that advances only while the child agent is working.
+	 *
+	 * <p>
+	 * Time the child spends in {@code INPUT_REQUIRED} is not charged against the
+	 * timeout, so a person taking hours to approve an action never causes the node
+	 * to time out, while an agent that hangs while working still does.
+	 */
+	private static final class ActiveAgentWaitTimeout {
+
+		private final long timeoutNanos;
+		private long activeNanos;
+		private long lastObservedNanos;
+		private boolean paused;
+
+		/**
+		 * Starts the budget from the child's current status, so a child that is already
+		 * waiting on a human begins paused. A timeout large enough to overflow
+		 * nanoseconds is clamped rather than wrapping negative.
+		 */
+		private ActiveAgentWaitTimeout(long timeoutMs, String initialStatus, long initialObservedNanos) {
+			this.timeoutNanos = timeoutMs > Long.MAX_VALUE / 1000000L ? Long.MAX_VALUE
+					: TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+			this.lastObservedNanos = initialObservedNanos;
+			this.paused = isInputRequiredStatus(initialStatus);
+		}
+
+		/**
+		 * Charges elapsed time against the budget unless the child was paused for
+		 * input, then records the status this observation saw as the new pause state.
+		 */
+		private void observe(String status, long observedNanos) {
+			if (!this.paused && this.activeNanos < this.timeoutNanos) {
+				long elapsed = observedNanos - this.lastObservedNanos;
+				if (elapsed > 0) {
+					long remainingNanos = this.timeoutNanos - this.activeNanos;
+					this.activeNanos = elapsed >= remainingNanos ? this.timeoutNanos : this.activeNanos + elapsed;
+				}
+			}
+			this.lastObservedNanos = observedNanos;
+			this.paused = isInputRequiredStatus(status);
+		}
+
+		/**
+		 * Returns whether the working budget is exhausted while the child is not
+		 * waiting on a human.
+		 */
+		private boolean isExpired() {
+			return !this.paused && this.activeNanos >= this.timeoutNanos;
+		}
+
+		/**
+		 * Returns the next poll delay, shortened so the loop never sleeps past the
+		 * remaining budget.
+		 */
+		private long nextPollDelayMs() {
+			if (this.paused) {
+				return AGENT_RUN_POLL_INTERVAL_MS;
+			}
+			long remainingNanos = this.timeoutNanos - this.activeNanos;
+			if (remainingNanos <= 0) {
+				return 1L;
+			}
+			long remainingMs = TimeUnit.NANOSECONDS.toMillis(remainingNanos);
+			return Math.min(AGENT_RUN_POLL_INTERVAL_MS, Math.max(1L, remainingMs));
+		}
+	}
+
+	/**
+	 * Returns whether the child agent has paused itself for a human decision.
+	 */
+	private static boolean isInputRequiredStatus(String status) {
+		return "INPUT_REQUIRED".equalsIgnoreCase(status);
+	}
+
+	/**
+	 * Opens the deterministic run-local Insight that owns this run's Python
+	 * session. Interactive runs are registered with the current session so the
+	 * standard session cleanup owns their lifetime. Scheduler and other sessionless
+	 * runs are returned with completion cleanup enabled.
+	 *
+	 * @param projectId Automation project identifier
+	 * @param runId     durable run identifier
+	 * @return execution Insight and whether this service must clean it on
+	 *         completion
+	 */
+	ExecutionInsightLease openExecutionInsight(String projectId, String runId) {
+		InsightStore insightStore = InsightStore.getInstance();
+		String executionInsightId = executionInsightId(runId);
+		Insight existing = insightStore.get(executionInsightId);
+		if (existing != null) {
+			return existingExecutionInsight(existing, projectId);
+		}
+
+		Insight executionInsight = new Insight();
+		executionInsight.setInsightId(executionInsightId);
+		executionInsight.setUser(requestInsight.getUser());
+		executionInsight.setBaseURL(requestInsight.getBaseURL());
+		executionInsight.setSchedulerMode(requestInsight.isSchedulerMode());
+		String insightProjectId = insightProjectId(projectId);
+		executionInsight.setProjectId(insightProjectId);
+		IProject project = insightProjectId == null ? null : Utility.getProject(insightProjectId);
+		if (project != null) {
+			executionInsight.setProjectName(project.getProjectName());
+		}
+		existing = insightStore.putIfAbsent(executionInsightId, executionInsight);
+		if (existing != null) {
+			return existingExecutionInsight(existing, projectId);
+		}
+
+		boolean sessionOwned = !requestInsight.isSchedulerMode() && requestSessionId != null
+				&& !requestSessionId.isBlank();
+		if (sessionOwned) {
+			insightStore.addToSessionHash(requestSessionId, executionInsightId);
+		}
+		return new ExecutionInsightLease(executionInsight, !sessionOwned);
+	}
+
+	private static ExecutionInsightLease existingExecutionInsight(Insight executionInsight, String projectId) {
+		if (!Objects.equals(insightProjectId(projectId), executionInsight.getProjectId())) {
+			throw new IllegalStateException("Automation run Insight belongs to a different project.");
+		}
+		return new ExecutionInsightLease(executionInsight, false);
+	}
+
+	/**
+	 * Returns the project an execution Insight carries for a run scope. An inline
+	 * scope is not a project, so its Insight carries none and its Pixel calls never
+	 * look one up.
+	 *
+	 * @param runScope Automation project ID or inline run scope
+	 * @return project ID, or {@code null} for an inline scope
+	 */
+	static String insightProjectId(String runScope) {
+		return AutomationProjectService.isInlineRunScope(runScope) ? null : runScope;
+	}
+
+	/**
+	 * Returns the execution Insight identifier only while that exact run workspace
+	 * remains live in the platform Insight store.
+	 *
+	 * @param runId durable run identifier
+	 * @return live execution Insight identifier, or {@code null} when unavailable
+	 */
+	static String getAvailableExecutionInsightId(String runId) {
+		String executionInsightId = executionInsightId(runId);
+		return InsightStore.getInstance().containsKey(executionInsightId) ? executionInsightId : null;
+	}
+
+	/**
+	 * Returns the live run-owned Insight without exposing its deterministic naming
+	 * convention to callers.
+	 *
+	 * @param runId durable run identifier
+	 * @return live execution Insight, or {@code null} after its workspace closes
+	 */
+	static Insight getAvailableExecutionInsight(String runId) {
+		return InsightStore.getInstance().get(executionInsightId(runId));
+	}
+
+	private static String executionInsightId(String runId) {
+		return EXECUTION_INSIGHT_PREFIX + runId;
+	}
+
+	/**
+	 * Drops a sessionless run-local Insight and its Python session. Session-owned
+	 * Insights are instead released by the platform's standard session cleanup.
+	 * When normal teardown fails the Insight is still removed from the store.
+	 */
+	private static void cleanupExecutionInsight(Insight executionInsight) {
+		if (executionInsight == null) {
+			return;
+		}
+		try {
+			InsightUtility.dropInsight(executionInsight);
+		} catch (Exception e) {
+			classLogger.warn("Unable to fully clean up Automation execution insight '{}': {}",
+					executionInsight.getInsightId(), e.getMessage(), e);
+			InsightStore.getInstance().remove(executionInsight.getInsightId());
+		}
+	}
+
+	/**
+	 * Releases a service-owned execution Insight after any terminal execution path.
+	 * Session-owned and pre-existing Insights remain under their existing platform
+	 * owner.
+	 *
+	 * @param executionInsight run-local Insight, when opening completed
+	 * @param cleanupRequired  whether this service owns the Insight teardown
+	 */
+	static void releaseExecutionInsight(Insight executionInsight, boolean cleanupRequired) {
+		if (cleanupRequired) {
+			cleanupExecutionInsight(executionInsight);
+		}
+	}
+
+	/**
+	 * Allocates one run-local room for each generated conversational node.
+	 *
+	 * @param runNodes validated nodes in run-history order
+	 * @return room IDs keyed by node ID
+	 */
+	static Map<String, String> allocateTraceRoomIds(List<Map<String, Object>> runNodes) {
+		Map<String, String> roomIds = new LinkedHashMap<>();
+		for (Map<String, Object> node : runNodes) {
+			String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+			boolean generated = !AutomationConstants.NODE_CODE_MODE_CUSTOM
+					.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
+			if (generated && (AutomationConstants.NODE_MODEL_CHAT.equals(type)
+					|| AutomationConstants.NODE_MODEL_VISION.equals(type)
+					|| AutomationConstants.NODE_AGENT_RUN.equals(type))) {
+				roomIds.put((String) node.get(AutomationConstants.NODE_FIELD_ID), UUID.randomUUID().toString());
+			}
+		}
+		return roomIds;
+	}
+
+	/**
+	 * Records a node whose work finished after cancellation was requested.
+	 *
+	 * <p>
+	 * The node is terminal rather than successful because the run is no longer
+	 * proceeding, but its output is retained: the node already produced whatever
+	 * side effects it produces, and this row is the only record of what they were.
+	 * The value is kept out of scope because no later node runs. A value that
+	 * cannot be serialized is dropped rather than losing the cancellation record
+	 * itself.
+	 */
+	private Map<String, Object> persistCancelledNodeResult(String runId, Map<String, Object> node, String nodeId,
+			Object value, Timestamp started, long startedMs, String traceRoomId, String outputKind) {
+		long duration = System.currentTimeMillis() - startedMs;
+		String message = "Run cancelled by user";
+		Object persistedValue = null;
+		String output = null;
+		try {
+			persistedValue = AutomationNodeFinalizationService.classify(node, value).value();
+			output = AutomationNodeFinalizationService.prepare(nodeId,
+					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), persistedValue, Map.of(), false)
+					.output();
+		} catch (RuntimeException e) {
+			classLogger.warn("Unable to retain the output of cancelled automation node '{}': {}", nodeId,
+					e.getMessage());
+		}
+		String preview = AutomationRuntimeUtils.generatePreview(output);
+		if (output == null) {
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+		} else {
+			// A null agent run id preserves the one recorded when the child run started.
+			AutomationRunStore.updateNodeFailedWithResult(runId, nodeId, started, duration,
+					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), outputKind, output, preview, null,
+					message);
+		}
+		streamNodeProgress(runId, node, AutomationConstants.STATUS_CANCELLED, duration, preview, message,
+				traceForNode(node, traceRoomId, null, null));
+		return nodeResult(nodeId, AutomationConstants.STATUS_CANCELLED, persistedValue, message);
+	}
+
+	/**
+	 * Persists one node's outcome and returns what the control loop needs to
+	 * continue.
+	 *
+	 * <p>
+	 * Generated conversational nodes have their internal envelope split into value
+	 * and trace. A child agent that asked for input becomes a durable wait instead
+	 * of a result, which releases the active execution. The prospective scope is
+	 * size-checked before a success is recorded, so a node cannot succeed into a
+	 * scope the next node could not carry.
+	 */
+	private Map<String, Object> persistNativeNodeResult(String runId, String projectId, Map<String, Object> node,
+			Object value, Timestamp started, long startedMs, String traceRoomId, String resumeNodeId,
+			Map<String, Object> scope, String outputKind) {
+		return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, traceRoomId, resumeNodeId,
+				scope, outputKind, null);
+	}
+
+	private Map<String, Object> persistNativeNodeResult(String runId, String projectId, Map<String, Object> node,
+			Object value, Timestamp started, long startedMs, String traceRoomId, String resumeNodeId,
+			Map<String, Object> scope, String outputKind, AutomationTableCaptureService.TableCapture tableCapture) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		if (AutomationRunRegistry.isCancellationRequested(runId)) {
+			return persistCancelledNodeResult(runId, node, nodeId, value, started, startedMs, traceRoomId, outputKind);
+		}
+		AutomationNodeFinalizationService.ClassifiedResult generatedResult = AutomationNodeFinalizationService
+				.classify(node, value);
+		Object persistedValue = generatedResult.value();
+		Object traceMetadata = generatedResult.metadata();
+		String agentRunId = null;
+		String agentFailure = null;
+		boolean generatedAgentNode = isGeneratedAgentRunNode(node);
+		if (generatedAgentNode) {
+			Map<String, Object> agentResult = normalizeAgentResult(node, traceMetadata, traceRoomId);
+			agentRunId = stringValue(agentResult.get("runId"));
+			if (isInputRequiredStatus(stringValue(agentResult.get("status")))) {
+				String output = AutomationRuntimeUtils.toBoundedRuntimeJson(persistedValue,
+						AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation node '" + nodeId + "' waiting output");
+				long duration = System.currentTimeMillis() - startedMs;
+				String preview = AutomationRuntimeUtils.generatePreview(output);
+				AutomationRunStore.persistAgentWait(runId, projectId, nodeId,
+						(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview, agentRunId,
+						traceRoomId, resumeNodeId, currentUserId(),
+						Instant.now().plus(DEFAULT_AGENT_APPROVAL_TIMEOUT_HOURS, ChronoUnit.HOURS), duration);
+				streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT, duration, preview,
+						null, traceForNode(node, traceRoomId, null, agentRunId, "INPUT_REQUIRED"));
+				return nodeResult(nodeId, AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT, persistedValue, null);
+			}
+			agentFailure = agentFailureMessage(agentResult, agentRunId);
+			if (agentFailure == null && stringValue(persistedValue) == null) {
+				agentFailure = "Agent run '" + agentRunId + "' completed without final output.";
+			}
+		}
+		AutomationNodeFinalizationService.PreparedValue prepared = AutomationNodeFinalizationService.prepare(nodeId,
+				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), persistedValue, scope,
+				agentFailure == null);
+		String output = prepared.output();
+		long duration = System.currentTimeMillis() - startedMs;
+		String preview = prepared.preview();
+		String modelMessageId = generatedAgentNode ? null : extractModelMessageId(node, traceMetadata, traceRoomId);
+		if (agentFailure != null) {
+			AutomationRunStore.updateNodeFailedWithResult(runId, nodeId, started, duration,
+					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), outputKind, output, preview,
+					agentRunId, agentFailure);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, preview, agentFailure,
+					traceForNode(node, traceRoomId, null, agentRunId));
+			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_FAILED, persistedValue, agentFailure);
+		}
+		AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration,
+				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), outputKind, output, preview,
+				modelMessageId, agentRunId, tableCapture);
+		AutomationRunRegistry.nodeCompleted(runId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null,
+				traceForNode(node, traceRoomId, modelMessageId, agentRunId));
+		return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, persistedValue, null);
+	}
+
+	/**
+	 * Terminally cancels a run parked on a durable agent wait.
+	 *
+	 * <p>
+	 * The caller authorizes the trace, records the durable cancellation request,
+	 * and stops the child agent before entering this boundary. This method owns
+	 * only the parent run's terminal transition, and unlike
+	 * {@link #resumeWaitingRun} it never continues the remaining graph - a child
+	 * that settled as COMPLETED while the user was cancelling must not extend the
+	 * run.
+	 *
+	 * @param runId     waiting Automation run
+	 * @param projectId owning Automation project
+	 * @return cancelled or current run detail
+	 */
+	Map<String, Object> cancelWaitingRun(String runId, String projectId) {
+		Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
+		if (run == null || !projectId.equals(run.get(AutomationConstants.PROJECT_ID))) {
+			throw new IllegalArgumentException("Automation run not found: " + runId);
+		}
+		if (!AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(run.get(AutomationConstants.STATUS))) {
+			return buildCurrentRunResult(runId, projectId);
+		}
+		Map<String, Object> wait = AutomationRunStore.claimWaitingRun(runId, projectId);
+		if (wait == null) {
+			// A concurrent resume owns the run. It observes the durable cancellation
+			// request before its next node and completes the run as CANCELLED.
+			return buildCurrentRunResult(runId, projectId);
+		}
+		String waitingNodeId = stringValue(wait.get(AutomationConstants.NODE_ID));
+		String message = "Run cancelled by user";
+		AutomationRunStore.updateNodeFailed(runId, waitingNodeId, utcNow(), 0, message);
+		AutomationRunStore.resolveWait(runId, stringValue(wait.get(AutomationConstants.WAIT_ID)), currentUserId());
+		AutomationRunStore.skipPendingNodes(runId, message);
+		AutomationRunStore.completeRun(runId, projectId, AutomationConstants.STATUS_CANCELLED, waitingNodeId, message);
+		return buildResult(runId, projectId, Map.of("error", message));
+	}
+
+	/**
+	 * Continues the same immutable Automation run after a durable agent input flow
+	 * reaches a terminal state. The original execution and run-local Insight are
+	 * not retained across the human wait; scope is reconstructed from the persisted
+	 * input and successful node-output snapshots.
+	 *
+	 * @param runId     waiting Automation run
+	 * @param projectId owning Automation project
+	 * @return current or resumed run detail
+	 */
+	Map<String, Object> resumeWaitingRun(String runId, String projectId) {
+		Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
+		if (run == null || !projectId.equals(run.get(AutomationConstants.PROJECT_ID))) {
+			throw new IllegalArgumentException("Automation run not found: " + runId);
+		}
+		if (!AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(run.get(AutomationConstants.STATUS))) {
+			return buildCurrentRunResult(runId, projectId);
+		}
+		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator
+				.parseAndValidate(String.valueOf(run.get(AutomationConstants.DEFINITION_SNAPSHOT)));
+		List<Map<String, Object>> runNodes = AutomationRuntime.nodesForRun(definition);
+
+		Map<String, Object> wait = AutomationRunStore.getActiveWait(runId);
+		if (wait == null) {
+			throw new IllegalStateException("Automation run has no active input boundary: " + runId);
+		}
+		String waitingNodeId = stringValue(wait.get(AutomationConstants.NODE_ID));
+		String agentRunId = stringValue(wait.get(AutomationConstants.AGENT_RUN_ID));
+		Map<String, Object> agent = AgentRunService.get().getRunForAutomation(agentRunId, requestInsight, false);
+		if (!String.valueOf(wait.get(AutomationConstants.ROOM_ID)).equals(stringValue(agent.get("roomId")))) {
+			throw new IllegalStateException("Agent run room does not match the Automation wait reference.");
+		}
+		String agentStatus = stringValue(agent.get("status"));
+		if (!isAgentRunTerminalStatus(agentStatus)) {
+			throw new IllegalStateException(
+					"Agent run '" + agentRunId + "' has not completed its input flow (" + agentStatus + ").");
+		}
+
+		wait = AutomationRunStore.claimWaitingRun(runId, projectId);
+		if (wait == null) {
+			return buildCurrentRunResult(runId, projectId);
+		}
+		String waitId = stringValue(wait.get(AutomationConstants.WAIT_ID));
+		if (!"COMPLETED".equalsIgnoreCase(agentStatus)) {
+			return finishTerminalAgentWait(runId, projectId, waitingNodeId, agentRunId, agentStatus, agent, waitId);
+		}
+
+		ExecutionInsightLease executionInsightLease = null;
+		Insight executionInsight = null;
+		Map<String, Object> continuation = new LinkedHashMap<>();
+		try {
+			Map<String, Object> waitingNode = runNodes.stream()
+					.filter(node -> waitingNodeId.equals(node.get(AutomationConstants.NODE_FIELD_ID))).findFirst()
+					.orElseThrow(() -> new IllegalStateException(
+							"Saved waiting node is absent from the run snapshot: " + waitingNodeId));
+			Object finalText = agent.get("finalText");
+			if (stringValue(finalText) == null) {
+				throw new IllegalStateException("Agent run '" + agentRunId + "' completed without final output.");
+			}
+			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(finalText,
+					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation agent result");
+			AutomationRunStore.updateNodeSuccess(runId, waitingNodeId, utcNow(), 0,
+					(String) waitingNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output,
+					AutomationRuntimeUtils.generatePreview(output), null, agentRunId);
+			AutomationRunStore.resolveWait(runId, waitId, currentUserId());
+
+			executionInsightLease = openExecutionInsight(projectId, runId);
+			executionInsight = executionInsightLease.insight();
+			int completedNodes = (int) AutomationRunStore.getNodeOutputsForRun(runId).stream()
+					.filter(row -> AutomationConstants.NODE_STATUS_SUCCESS.equals(row.get(AutomationConstants.STATUS))
+							|| AutomationConstants.NODE_STATUS_SKIPPED.equals(row.get(AutomationConstants.STATUS)))
+					.count();
+			AutomationRunRegistry.register(runId, executionInsight, streamJobId, completedNodes);
+			AutomationPythonExecutor pythonExecutor = new AutomationPythonExecutor(executionInsight, runId);
+			AutomationPixelExecutor pixelExecutor = new AutomationPixelExecutor(executionInsight, runId);
+			ReconstructedScope reconstructed = reconstructScope(runId, executionInsight,
+					AutomationRuntime.startNodeId(definition));
+			Map<String, Object> scope = reconstructed.scope();
+			String resumeNodeId = stringValue(wait.get(AutomationConstants.RESUME_NODE_ID));
+			if (resumeNodeId != null) {
+				AutomationExecutionContext context = new AutomationExecutionContext(executionInsight, scope);
+				continuation = executeInControlOrder(projectId, runId, definition, runNodes,
+						AutomationRunStore.getRunNodeSources(runId), context, pythonExecutor, pixelExecutor,
+						traceRoomIds(runId), resumeNodeId);
+			} else {
+				continuation.put("scope", scope);
+			}
+			if (!Boolean.TRUE.equals(continuation.get("waitingForInput"))) {
+				finishRun(runId, projectId);
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to resume Automation run '{}' after agent input", runId, e);
+			finishFailedRun(runId, projectId, e);
+			continuation = Map.of("error", safeMessage(e));
+		} finally {
+			AutomationRunRegistry.unregister(runId);
+			releaseExecutionInsight(executionInsight,
+					executionInsightLease == null || executionInsightLease.cleanupOnCompletion());
+		}
+		return buildResult(runId, projectId, continuation);
+	}
+
+	/**
+	 * Terminally reconciles a waiting run whose child agent settled as FAILED or
+	 * CANCELLED: records the node result, resolves the wait, skips the remainder,
+	 * and completes the run without executing any further node.
+	 */
+	private Map<String, Object> finishTerminalAgentWait(String runId, String projectId, String waitingNodeId,
+			String agentRunId, String agentStatus, Map<String, Object> agent, String waitId) {
+		String message = stringValue(agent.get("errorMessage"));
+		if (message == null) {
+			message = "Agent run '" + agentRunId + "' " + agentStatus.toLowerCase() + ".";
+		}
+		String output = AutomationRuntimeUtils.toBoundedRuntimeJson(agent.get("finalText"),
+				AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation agent terminal result");
+		AutomationRunStore.updateNodeFailedWithResult(runId, waitingNodeId, utcNow(), 0, null, output,
+				AutomationRuntimeUtils.generatePreview(output), agentRunId, message);
+		AutomationRunStore.resolveWait(runId, waitId, currentUserId());
+		AutomationRunStore.skipPendingNodes(runId, "Skipped because the agent run did not complete");
+		AutomationRunStore.completeRun(runId, projectId,
+				"CANCELLED".equalsIgnoreCase(agentStatus) ? AutomationConstants.STATUS_CANCELLED
+						: AutomationConstants.STATUS_FAILED,
+				waitingNodeId, message);
+		return buildResult(runId, projectId, Map.of("error", message));
+	}
+
+	/**
+	 * Rebuilds the run scope from durable rows after a human wait, because the
+	 * original in-memory scope was released with its execution.
+	 *
+	 * <p>
+	 * Runtime metadata and the persisted trigger inputs are seeded first, then each
+	 * successful node output is replayed under the name that node publishes it as.
+	 *
+	 * <p>
+	 * The trigger is the one node that publishes many names at once, so its map is
+	 * spread back as individual globals. It is identified by node ID rather than by
+	 * an absent output name, because {@code control.if} rows also carry no name:
+	 * their routing decision is consumed by the control loop and must stay out of
+	 * scope, exactly as it does on a straight-through run.
+	 *
+	 * @param runId            run being resumed
+	 * @param executionInsight run Insight supplying the authenticated user
+	 * @param startNodeId      trigger node ID taken from this run's definition
+	 *                         snapshot
+	 * @return reconstructed Java value scope
+	 */
+	static ReconstructedScope reconstructScope(String runId, Insight executionInsight, String startNodeId) {
+		Map<String, Object> scope = AutomationRuntimeUtils.buildInitialScope(runId, executionInsight.getUser());
+		scope.putAll(AutomationRunStore.getRunInputs(runId));
+		for (Map<String, Object> row : AutomationRunStore.getNodeOutputsForRun(runId)) {
+			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(row.get(AutomationConstants.STATUS))) {
+				continue;
+			}
+			Object raw = row.get(AutomationConstants.OUTPUT_VALUE);
+			Object value = raw == null ? null : AutomationRuntimeUtils.GSON.fromJson(raw.toString(), Object.class);
+			String outputVar = stringValue(row.get(AutomationConstants.OUTPUT_VAR_NAME));
+			if (outputVar != null) {
+				if (AutomationConstants.OUTPUT_KIND_TABLE.equals(row.get(AutomationConstants.OUTPUT_KIND))) {
+					NounMetadata noun = executionInsight.getVarStore().get(outputVar);
+					if (noun == null || noun.getNounType() != PixelDataType.FRAME
+							|| !(noun.getValue() instanceof ITableDataFrame frame)) {
+						throw new IllegalStateException(
+								"Automation run '" + runId + "' cannot resume because frame output '" + outputVar
+										+ "' is no longer available in its execution Insight.");
+					}
+					value = AutomationFrameOutput.register(executionInsight, outputVar, frame);
+				}
+				scope.put(outputVar, value);
+			} else if (startNodeId.equals(stringValue(row.get(AutomationConstants.NODE_ID)))
+					&& value instanceof Map<?, ?> globals) {
+				for (Map.Entry<?, ?> entry : globals.entrySet()) {
+					if (entry.getKey() instanceof String key) {
+						scope.put(key, entry.getValue());
+					}
+				}
+			}
+		}
+		Map<String, Object> boundedScope = new LinkedHashMap<>();
+		for (Map.Entry<String, Object> entry : scope.entrySet()) {
+			Object value = entry.getValue();
+			boundedScope.put(entry.getKey(),
+					value instanceof AutomationFrameOutput.RegisteredFrame frame ? frame.summary() : value);
+		}
+		AutomationRuntimeUtils.toBoundedRuntimeJson(boundedScope, AutomationConstants.RUN_SCOPE_MAX_BYTES,
+				"Reconstructed automation run scope");
+		return new ReconstructedScope(scope);
+	}
+
+	record ReconstructedScope(Map<String, Object> scope) {
+	}
+
+	/**
+	 * Returns the rooms already allocated to this run's nodes, so a resumed run
+	 * reuses them instead of creating new ones for nodes that already posted.
+	 */
+	private static Map<String, String> traceRoomIds(String runId) {
+		Map<String, String> roomIds = new LinkedHashMap<>();
+		for (Map<String, Object> row : AutomationRunStore.getNodeOutputsForRun(runId)) {
+			String roomId = stringValue(row.get(AutomationConstants.ROOM_ID));
+			if (roomId != null) {
+				roomIds.put(String.valueOf(row.get(AutomationConstants.NODE_ID)), roomId);
+			}
+		}
+		return roomIds;
+	}
+
+	/**
+	 * Returns the acting user's ID, or the system user when the request carries no
+	 * login token.
+	 */
+	private String currentUserId() {
+		return requestInsight.getUser().getPrimaryLoginToken() == null ? AutomationConstants.SYSTEM_USER_ID
+				: requestInsight.getUser().getPrimaryLoginToken().getId();
+	}
+
+	/**
+	 * Returns the current UTC timestamp in the form the scheduler tables store.
+	 */
+	private static Timestamp utcNow() {
+		return Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+	}
+
+	/**
+	 * Normalizes a child agent response and proves it belongs to this node: the
+	 * returned room must match the room allocated for this run, and any returned
+	 * workspace must match the agent the node is configured with.
+	 */
+	private static Map<String, Object> normalizeAgentResult(Map<String, Object> node, Object value,
+			String expectedRoomId) {
+		Object response = value;
+		if (response instanceof List<?> values && values.size() == 1) {
+			response = values.get(0);
+		}
+		if (!(response instanceof Map<?, ?> responseMap)) {
+			throw missingAgentTrace(node);
+		}
+		Map<String, Object> normalized = new LinkedHashMap<>();
+		for (Map.Entry<?, ?> entry : responseMap.entrySet()) {
+			if (entry.getKey() instanceof String key) {
+				normalized.put(key, entry.getValue());
+			}
+		}
+
+		String returnedRunId = stringValue(normalized.get("runId"));
+		String returnedRoomId = stringValue(normalized.get(AutomationConstants.TRACE_ROOM_ID));
+		if (returnedRunId == null || expectedRoomId == null || !expectedRoomId.equals(returnedRoomId)) {
+			throw missingAgentTrace(node);
+		}
+
+		String expectedWorkspaceId = AutomationRuntime.configuredAgentWorkspaceId(node);
+		String returnedWorkspaceId = stringValue(normalized.get(AutomationConstants.CONFIG_WORKSPACE_ID));
+		if (returnedWorkspaceId != null && !returnedWorkspaceId.equals(expectedWorkspaceId)) {
+			throw new IllegalStateException("Automation agent node '" + node.get(AutomationConstants.NODE_FIELD_ID)
+					+ "' returned a different workspaceId than the configured agent.");
+		}
+		normalized.put(AutomationConstants.CONFIG_WORKSPACE_ID, expectedWorkspaceId);
+		return normalized;
+	}
+
+	/**
+	 * Returns the message describing why a child agent run is not a usable result,
+	 * or null when it completed.
+	 */
+	private static String agentFailureMessage(Map<String, Object> result, String runId) {
+		String status = stringValue(result.get("status"));
+		if (Boolean.TRUE.equals(result.get("waitTimedOut"))) {
+			return "Agent run '" + runId + "' did not complete before the wait timeout.";
+		}
+		if (status == null) {
+			return "Agent run '" + runId + "' returned no durable status.";
+		}
+		return switch (status.toUpperCase()) {
+		case "COMPLETED" -> null;
+		case "INPUT_REQUIRED" -> "Agent run '" + runId + "' requires user input before the automation can continue.";
+		case "FAILED" -> {
+			String error = stringValue(result.get("errorMessage"));
+			yield error != null ? error : "Agent run '" + runId + "' failed.";
+		}
+		case "CANCELLED" -> "Agent run '" + runId + "' was cancelled.";
+		default -> "Agent run '" + runId + "' did not reach COMPLETED status (" + status + ").";
+		};
+	}
+
+	/**
+	 * Error for a generated agent node whose Python did not return matching runId
+	 * and roomId trace metadata, which is what binds the child run to this node.
+	 */
+	private static IllegalStateException missingAgentTrace(Map<String, Object> node) {
+		return new IllegalStateException("Automation agent node '" + node.get(AutomationConstants.NODE_FIELD_ID)
+				+ "' did not return matching runId and roomId trace metadata.");
+	}
+
+	/**
+	 * Returns the message ID a generated chat or vision node produced, verifying it
+	 * came from the room allocated to this run. Returns null for node types that do
+	 * not post a message.
+	 */
+	private static String extractModelMessageId(Map<String, Object> node, Object value, String expectedRoomId) {
+		String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+		if (expectedRoomId == null || !(AutomationConstants.NODE_MODEL_CHAT.equals(type)
+				|| AutomationConstants.NODE_MODEL_VISION.equals(type))) {
+			return null;
+		}
+		Object response = value;
+		if (value instanceof List<?> values && !values.isEmpty()) {
+			response = values.get(0);
+		}
+		if (!(response instanceof Map<?, ?> responseMap)) {
+			throw missingModelTrace(node);
+		}
+		String returnedRoomId = stringValue(responseMap.get(AutomationConstants.TRACE_ROOM_ID));
+		String messageId = stringValue(responseMap.get("messageId"));
+		if (!expectedRoomId.equals(returnedRoomId)) {
+			throw new IllegalStateException("Automation model node '" + node.get(AutomationConstants.NODE_FIELD_ID)
+					+ "' returned a different roomId than the room assigned to this run.");
+		}
+		if (messageId == null) {
+			throw missingModelTrace(node);
+		}
+		return messageId;
+	}
+
+	/**
+	 * Error for a generated model node whose Python did not return the required
+	 * roomId and messageId.
+	 */
+	private static IllegalStateException missingModelTrace(Map<String, Object> node) {
+		return new IllegalStateException("Automation model node '" + node.get(AutomationConstants.NODE_FIELD_ID)
+				+ "' did not return the required roomId and messageId trace metadata.");
+	}
+
+	/**
+	 * Returns the value as a string, or null when it is absent or blank, so callers
+	 * can treat blank database columns and missing keys the same way.
+	 */
+	private static String stringValue(Object value) {
+		if (value == null || value.toString().isBlank()) {
+			return null;
+		}
+		return value.toString();
+	}
+
+	/**
+	 * Streams a node transition that carries no trace metadata.
+	 */
+	private void streamNodeProgress(String runId, Map<String, Object> node, String status, Long durationMs,
+			String outputPreview, String errorMessage) {
+		streamNodeProgress(runId, node, status, durationMs, outputPreview, errorMessage, null);
+	}
+
+	/**
+	 * Streams the run-start envelope carrying the immutable definition snapshot, so
+	 * a live client renders the graph this run will actually execute rather than
+	 * the one currently being edited.
+	 */
+	private void streamRunStarted(String runId, AutomationDefinitionValidator.ValidatedDefinition definition) {
+		String jobId = streamJobId;
+		if (jobId == null || jobId.isBlank()) {
+			return;
+		}
+		PixelJobManager jobManager = PixelJobManager.getManager();
+		if (jobManager.getJob(jobId) == null) {
+			return;
+		}
+		Map<String, Object> data = new LinkedHashMap<>();
+		data.put("kind", AUTOMATION_RUN_STARTED_KIND);
+		data.put(AutomationConstants.RUN_ID, runId);
+		data.put(AutomationConstants.DEFINITION_VERSION, AutomationConstants.PYTHON_DOC_CURRENT_VERSION);
+		data.put(AutomationConstants.DEFINITION_HASH, definition.hash());
+		data.put(AutomationConstants.DEFINITION_SNAPSHOT, definition.snapshot());
+
+		Map<String, Object> envelope = new LinkedHashMap<>();
+		envelope.put("stream_type", AUTOMATION_STREAM_TYPE);
+		envelope.put("data", data);
+		jobManager.addStreamOut(jobId, envelope);
+	}
+
+	/**
+	 * Streams one node transition to the caller's Pixel job. This is a no-op
+	 * without a live job, so a scheduled run needs no listener and progress
+	 * streaming never affects execution.
+	 */
+	private void streamNodeProgress(String runId, Map<String, Object> node, String status, Long durationMs,
+			String outputPreview, String errorMessage, Map<String, Object> trace) {
+		String jobId = streamJobId;
+		if (jobId == null || jobId.isBlank()) {
+			return;
+		}
+		PixelJobManager jobManager = PixelJobManager.getManager();
+		if (jobManager.getJob(jobId) == null) {
+			return;
+		}
+		Map<String, Object> data = new LinkedHashMap<>();
+		data.put("kind", AUTOMATION_NODE_STATUS_KIND);
+		data.put(AutomationConstants.RUN_ID, runId);
+		data.put(AutomationConstants.NODE_ID, node.get(AutomationConstants.NODE_FIELD_ID));
+		data.put(AutomationConstants.NODE_LABEL, node.get(AutomationConstants.NODE_FIELD_LABEL));
+		data.put(AutomationConstants.STATUS, status);
+		for (String field : List.of(AutomationConstants.SOURCE_NODE_ID, AutomationConstants.PARENT_NODE_ID,
+				AutomationConstants.ITERATION_INDEX)) {
+			if (node.get(field) != null) {
+				data.put(field, node.get(field));
+			}
+		}
+		if (durationMs != null) {
+			data.put(AutomationConstants.DURATION_MS, durationMs);
+		}
+		if (outputPreview != null) {
+			data.put(AutomationConstants.OUTPUT_PREVIEW, outputPreview);
+		}
+		if (errorMessage != null) {
+			data.put(AutomationConstants.ERROR_MESSAGE, errorMessage);
+		}
+		if (trace != null && !trace.isEmpty()) {
+			data.put(AutomationConstants.RESULT_TRACE, trace);
+		}
+
+		Map<String, Object> envelope = new LinkedHashMap<>();
+		envelope.put("stream_type", AUTOMATION_STREAM_TYPE);
+		envelope.put("data", data);
+		jobManager.addStreamOut(jobId, envelope);
+	}
+
+	/**
+	 * Builds a node trace with no agent status attached.
+	 */
+	private static Map<String, Object> traceForNode(Map<String, Object> node, String roomId, String modelMessageId,
+			String agentRunId) {
+		return traceForNode(node, roomId, modelMessageId, agentRunId, null);
+	}
+
+	/**
+	 * Same as {@link #traceForNode(Map, String, String, String)}, additionally
+	 * stamping the durable agent run's current status (e.g. INPUT_REQUIRED) so the
+	 * frontend can distinguish "actively working" from "waiting on a human" without
+	 * any separate plumbing - it flows through the same trace object the node's
+	 * agentRunId already relies on.
+	 */
+	private static Map<String, Object> traceForNode(Map<String, Object> node, String roomId, String modelMessageId,
+			String agentRunId, String agentStatus) {
+		Map<String, Object> trace = trace(roomId, modelMessageId, agentRunId,
+				AutomationRuntime.configuredAgentWorkspaceId(node));
+		Object nodeId = node.get(AutomationConstants.NODE_FIELD_ID);
+		if (nodeId != null) {
+			trace.put(AutomationConstants.TRACE_NODE_ID, nodeId);
+		}
+		if (agentStatus != null) {
+			trace.put(AutomationConstants.TRACE_AGENT_STATUS, agentStatus);
+		}
+		return trace;
+	}
+
+	/**
+	 * Assembles the trace map, omitting every identifier this node does not have so
+	 * a consumer can treat presence as meaning.
+	 */
+	private static Map<String, Object> trace(String roomId, String modelMessageId, String agentRunId,
+			String workspaceId) {
+		Map<String, Object> trace = new LinkedHashMap<>();
+		if (roomId != null) {
+			trace.put(AutomationConstants.TRACE_ROOM_ID, roomId);
+		}
+		if (workspaceId != null) {
+			trace.put(AutomationConstants.TRACE_WORKSPACE_ID, workspaceId);
+		}
+		if (modelMessageId != null) {
+			trace.put(AutomationConstants.TRACE_MODEL_MESSAGE_ID, modelMessageId);
+		}
+		if (agentRunId != null) {
+			trace.put(AutomationConstants.TRACE_AGENT_RUN_ID, agentRunId);
+		}
+		return trace;
+	}
+
+	/**
+	 * Builds the in-memory result the control loop reads to decide whether and
+	 * where to continue.
+	 */
+	private static Map<String, Object> nodeResult(String nodeId, String status, Object output, String error) {
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("nodeId", nodeId);
+		result.put(AutomationConstants.STATUS, status);
+		if (output != null) {
+			result.put(AutomationConstants.RESULT_OUTPUT_VALUE, output);
+		}
+		if (error != null) {
+			result.put(AutomationConstants.ERROR_MESSAGE, error);
+		}
+		return result;
+	}
+
+	/**
+	 * Writes the terminal status for a run whose control path ended.
+	 *
+	 * <p>
+	 * A cancellation request wins over everything. Otherwise the first failed node
+	 * fails the run, and a node still pending or running means its Python returned
+	 * no structured result, which is also a failure. Only a run with every node
+	 * settled is recorded as successful.
+	 */
+	private void finishRun(String runId, String projectId) {
+		List<Map<String, Object>> outputs = AutomationRunStore.getNodeOutputsForRun(runId);
+		if (AutomationRunRegistry.isCancellationRequested(runId)) {
+			AutomationRunStore.skipPendingNodes(runId, "Run cancelled by user");
+			AutomationRunStore.completeRun(runId, projectId, AutomationConstants.STATUS_CANCELLED, null,
+					"Run cancelled by user");
+			return;
+		}
+
+		Map<String, Object> failed = outputs.stream()
+				.filter(output -> AutomationConstants.NODE_STATUS_FAILED.equals(output.get(AutomationConstants.STATUS)))
+				.findFirst().orElse(null);
+		if (failed != null) {
+			String nodeId = (String) failed.get(AutomationConstants.NODE_ID);
+			AutomationRunStore.skipPendingNodes(runId, "Skipped because an earlier node failed");
+			AutomationRunStore.completeRun(runId, projectId, AutomationConstants.STATUS_FAILED, nodeId,
+					(String) failed.get(AutomationConstants.ERROR_MESSAGE));
+			return;
+		}
+
+		Map<String, Object> incomplete = outputs.stream()
+				.filter(output -> AutomationConstants.NODE_STATUS_PENDING.equals(output.get(AutomationConstants.STATUS))
+						|| AutomationConstants.NODE_STATUS_RUNNING.equals(output.get(AutomationConstants.STATUS)))
+				.findFirst().orElse(null);
+		if (incomplete != null) {
+			String nodeId = (String) incomplete.get(AutomationConstants.NODE_ID);
+			String message = "Python source did not return a structured result for node " + nodeId + ".";
+			AutomationRunStore.skipPendingNodes(runId, message);
+			AutomationRunStore.completeRun(runId, projectId, AutomationConstants.STATUS_FAILED, nodeId, message);
+			return;
+		}
+
+		int completed = (int) outputs.stream()
+				.filter(output -> AutomationConstants.NODE_STATUS_SUCCESS.equals(output.get(AutomationConstants.STATUS))
+						|| AutomationConstants.NODE_STATUS_SKIPPED.equals(output.get(AutomationConstants.STATUS)))
+				.count();
+		AutomationRunStore.updateHeartbeat(runId, completed);
+		AutomationRunStore.completeRun(runId, projectId, AutomationConstants.STATUS_SUCCESS, null, null);
+	}
+
+	/**
+	 * Writes the terminal status after execution threw, attributing the failure to
+	 * the first node recorded as failed and reporting cancellation when that is
+	 * what interrupted the run.
+	 */
+	private void finishFailedRun(String runId, String projectId, Exception error) {
+		if (AutomationRunRegistry.isCancellationRequested(runId)) {
+			AutomationRunStore.skipPendingNodes(runId, "Run cancelled by user");
+			AutomationRunStore.completeRun(runId, projectId, AutomationConstants.STATUS_CANCELLED, null,
+					"Run cancelled by user");
+			return;
+		}
+		String failedNodeId = AutomationRunStore.getNodeOutputsForRun(runId).stream()
+				.filter(output -> AutomationConstants.NODE_STATUS_FAILED.equals(output.get(AutomationConstants.STATUS)))
+				.map(output -> (String) output.get(AutomationConstants.NODE_ID)).findFirst().orElse(null);
+		AutomationRunStore.skipPendingNodes(runId, "Python runtime failed before this node executed");
+		AutomationRunStore.completeRun(runId, projectId, AutomationConstants.STATUS_FAILED, failedNodeId,
+				safeMessage(error));
+	}
+
+	/**
+	 * Assembles the reactor response from durable run state plus this execution's
+	 * scope and globals, and persists the human-readable summary alongside it.
+	 */
+	private Map<String, Object> buildResult(String runId, String projectId, Map<String, Object> pythonResult) {
+		Map<String, Object> detail = AutomationRunStore.getRunDetail(runId);
+		if (detail == null) {
+			detail = new LinkedHashMap<>();
+			detail.put(AutomationConstants.RUN_ID, runId);
+			detail.put(AutomationConstants.PROJECT_ID, projectId);
+		}
+		List<Map<String, Object>> nodeResults = AutomationRunStore
+				.buildNodeResults(AutomationRunStore.getNodeOutputsForRun(runId));
+		Map<String, Object> responseResult = normalizeExecutionResult(pythonResult);
+		detail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
+		detail.put("scope", responseResult.getOrDefault("scope", Map.of()));
+		detail.put(AutomationConstants.RESULT_GLOBALS,
+				responseResult.getOrDefault(AutomationConstants.RESULT_GLOBALS, Map.of()));
+		detail.put("pythonResult", responseResult);
+		String executionInsightId = getAvailableExecutionInsightId(runId);
+		if (executionInsightId != null && !executionInsightId.isBlank()) {
+			detail.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsightId);
+		}
+		String summary = AutomationConstants.STATUS_SUCCESS.equals(detail.get(AutomationConstants.STATUS))
+				? "Automation completed successfully (" + nodeResults.size() + " nodes)."
+				: AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(detail.get(AutomationConstants.STATUS))
+						? "Automation paused for agent approval or input."
+						: AutomationConstants.STATUS_CANCELLED.equals(detail.get(AutomationConstants.STATUS))
+								? "Automation cancelled."
+								: buildFailureSummary(detail);
+		detail.put(AutomationConstants.RESULT_SUMMARY, summary);
+		AutomationRunStore.updateRunSummary(runId, summary);
+		return detail;
+	}
+
+	/**
+	 * Copies the execution result into a response-safe shape. Live frame handles
+	 * remain in the execution scope, but reactor responses expose only their
+	 * bounded table summaries so the Pixel stream never serializes frame internals.
+	 */
+	static Map<String, Object> normalizeExecutionResult(Map<String, Object> result) {
+		Map<String, Object> normalized = new LinkedHashMap<>(result);
+		if (result.containsKey("scope")) {
+			normalized.put("scope", normalizeScope(result.get("scope")));
+		}
+		if (result.containsKey(AutomationConstants.RESULT_GLOBALS)) {
+			normalized.put(AutomationConstants.RESULT_GLOBALS,
+					normalizeScope(result.get(AutomationConstants.RESULT_GLOBALS)));
+		}
+		return normalized;
+	}
+
+	/** Couples a run Insight with the component that owns its teardown. */
+	record ExecutionInsightLease(Insight insight, boolean cleanupOnCompletion) {
+	}
+
+	/**
+	 * Returns a string-keyed copy of a scope-shaped value, and an empty map for
+	 * anything that is not a map.
+	 */
+	private static Map<String, Object> normalizeScope(Object value) {
+		Map<String, Object> scope = new LinkedHashMap<>();
+		if (!(value instanceof Map<?, ?> map)) {
+			return scope;
+		}
+		for (Map.Entry<?, ?> entry : map.entrySet()) {
+			if (entry.getKey() instanceof String key) {
+				scope.put(key, persistableValue(entry.getValue()));
+			}
+		}
+		return scope;
+	}
+
+	/**
+	 * Returns the asset folder, which bounds the file access granted to node
+	 * Python: the project's asset folder, or the run Insight's own folder for an
+	 * inline scope. Its {@code py} subfolder is added to the Python path so node
+	 * source can import project modules.
+	 *
+	 * @param executionInsight run-local Insight
+	 * @param runScope         Automation project ID or inline run scope
+	 * @return asset folder for node Python
+	 */
+	static String assetsFolder(Insight executionInsight, String runScope) {
+		if (AutomationProjectService.isInlineRunScope(runScope)) {
+			return executionInsight.getInsightFolder();
+		}
+		IProject project = Utility.getProject(runScope);
+		if (project == null) {
+			throw new IllegalArgumentException("Project was not found: " + runScope);
+		}
+		return EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT, runScope,
+				project.getProjectName());
+	}
+
+	/**
+	 * Returns an error's message, or its class name when the message is null, so a
+	 * persisted failure always says something.
+	 */
+	private static String safeMessage(Exception error) {
+		return error.getMessage() != null ? error.getMessage() : error.getClass().getSimpleName();
+	}
+
+	/**
+	 * Returns the human-readable summary for a run that neither succeeded nor was
+	 * cancelled.
+	 */
+	private static String buildFailureSummary(Map<String, Object> runDetail) {
+		Object failedNodeId = runDetail.get(AutomationConstants.FAILED_NODE_ID);
+		Object errorMessage = runDetail.get(AutomationConstants.ERROR_MESSAGE);
+		return "Automation failed at node " + (failedNodeId != null ? failedNodeId : "unknown") + ": "
+				+ (errorMessage != null ? errorMessage : "no error details available");
+	}
+
+}

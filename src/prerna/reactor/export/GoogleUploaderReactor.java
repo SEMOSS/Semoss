@@ -32,16 +32,13 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.User;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.RemoteItem;
 import prerna.reactor.task.TaskBuilderReactor;
@@ -67,30 +64,12 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 
 	@Override
 	public NounMetadata execute() {
+		String accessToken = requireLogin(AuthProvider.GOOGLE).getAccess_token();
 		organizeKeys();
 		String fileName = this.curRow.get(0).toString();
 
 		if (fileName == null || fileName.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify file name");
-		}
-
-		String accessToken = null;
-		User user = this.insight.getUser();
-		try {
-			if (user == null) {
-				Map<String, Object> retMap = new HashMap<>();
-				retMap.put("type", "google");
-				retMap.put("message", "Please login to your Google account");
-				throwLoginError(retMap);
-			} else {
-				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
-				accessToken = msToken.getAccess_token();
-			}
-		} catch (Exception e) {
-			Map<String, Object> retMap = new HashMap<>();
-			retMap.put("type", "google");
-			retMap.put("message", "Please login to your Google account");
-			throwLoginError(retMap);
 		}
 
 		logger = getLogger(CLASS_NAME);
@@ -101,11 +80,9 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 		// make file
 		buildTask();
 
-		// get access token
-
 		// make post for initial metadata
 		String urlStr = "https://www.googleapis.com/drive/v3/files";
-		Hashtable params = new Hashtable();
+		Map<String, String> params = new HashMap<>();
 		params.put("name", fileName);
 		params.put("mimeType", "text/csv");
 		String output = HttpHelperUtility.makePostCall(urlStr, accessToken, params, true);

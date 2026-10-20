@@ -126,6 +126,28 @@
         "SMSS_FUNCTION_NAME": "create_new_db"
       },
       "_type": "python"
+    },
+    {
+      "name": "add_to_context",
+      "title": "Add To Context",
+      "description": "Forwards a freeform context string (e.g. a schema or metamodel summary) so the SDK's runMCPTool action can post it to the playground when the insight is running in MCP tool mode. Performs no database access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "string",
+            "description": "Freeform context text to forward to the playground."
+          }
+        },
+        "required": ["context"]
+      },
+      "_meta": {
+        "generated_on": "2026-09-28",
+        "SMSS_MCP_EXECUTION": "ask",
+        "SMSS_MCP_UI": {},
+        "SMSS_FUNCTION_NAME": "add_to_context"
+      },
+      "_type": "python"
     }
   ]
 }
