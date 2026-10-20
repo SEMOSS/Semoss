@@ -42,16 +42,18 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 /**
- * Creates a standard SEMOSS project after applying authentication, naming, and project-type
- * policy checks.
+ * Creates a standard SEMOSS project after applying authentication, naming, and
+ * project-type policy checks.
  *
  * <p>
- * Project types that require additional scaffolding are rejected and must be created through
- * their dedicated reactors.
+ * Project types that require additional scaffolding are rejected and must be
+ * created through their dedicated reactors.
  */
 public class CreateProjectReactor extends AbstractReactor {
 
@@ -148,6 +150,8 @@ public class CreateProjectReactor extends AbstractReactor {
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),
 				project.getProjectId());
+		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_CREATE, project.getProjectId(),
+				projectName, Map.of("projectType", projectType.name(), "global", global));
 		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP,
 				PixelOperationType.MARKET_PLACE_ADDITION);
 		if (warning != null) {

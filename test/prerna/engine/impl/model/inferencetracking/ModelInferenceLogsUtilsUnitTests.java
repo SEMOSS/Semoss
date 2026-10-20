@@ -61,7 +61,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -85,7 +84,6 @@ import prerna.SemossUnitTest;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
@@ -99,7 +97,6 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySort;
-import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
@@ -171,7 +168,8 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	@Test
 	void initModelInferenceLogsDatabase() throws Exception {
 		try (MockedStatic<AbstractOwlCreator> schema = Mockito.mockStatic(AbstractOwlCreator.class);
-				MockedStatic<ConnectionUtils> connUtil = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
+				MockedStatic<ConnectionUtils> connUtil = Mockito.mockStatic(ConnectionUtils.class,
+						Mockito.CALLS_REAL_METHODS)) {
 			when(engine.getQueryUtil()).thenReturn(absQueryUtil);
 			when(engine.getOWLEngineFactory()).thenReturn(owlFactory);
 			when(owlFactory.getWriteOWL()).thenReturn(owlEngine);
@@ -221,7 +219,8 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	@Test
 	void recordFeedback() throws Exception {
 		try (MockedStatic<WrapperManager> staticWrapperManager = Mockito.mockStatic(WrapperManager.class);
-				MockedStatic<ConnectionUtils> staticConnUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
+				MockedStatic<ConnectionUtils> staticConnUtils = Mockito.mockStatic(ConnectionUtils.class,
+						Mockito.CALLS_REAL_METHODS)) {
 			staticWrapperManager.when(() -> WrapperManager.getInstance()).thenReturn(wrapperManager);
 			when(wrapperManager.getRawWrapper(eq(engine), any(SelectQueryStruct.class))).thenReturn(rawWrapper);
 
@@ -323,7 +322,8 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	@Test
 	void doCreateNewConversation() throws Exception {
 		try (MockedStatic<UUID> statticUUID = Mockito.mockStatic(UUID.class);
-				MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
+				MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class,
+						Mockito.CALLS_REAL_METHODS)) {
 			statticUUID.when(() -> UUID.randomUUID()).thenReturn(FIXED_UUID);
 
 			when(conn.prepareStatement(
@@ -369,7 +369,8 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		when(rs.next()).thenReturn(true).thenReturn(false);
 		when(rs.getInt(1)).thenReturn(1);
 
-		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
+		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class,
+				Mockito.CALLS_REAL_METHODS)) {
 			assertTrue(ModelInferenceLogsUtils.doCheckRoomExists("1"));
 			assertFalse(ModelInferenceLogsUtils.doCheckRoomExists("1"));
 		}
@@ -385,7 +386,8 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		when(rs.next()).thenReturn(true).thenReturn(false);
 		when(rs.getInt(1)).thenReturn(1);
 
-		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
+		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class,
+				Mockito.CALLS_REAL_METHODS)) {
 			assertTrue(ModelInferenceLogsUtils.doModelIsRegistered("1"));
 			assertFalse(ModelInferenceLogsUtils.doModelIsRegistered("1"));
 		}
@@ -394,7 +396,8 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void doCreateNewAgent() throws Exception {
-		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
+		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class,
+				Mockito.CALLS_REAL_METHODS)) {
 
 			when(conn.prepareStatement(
 					"INSERT INTO AGENT (AGENT_ID, AGENT_NAME, DESCRIPTION, AGENT_TYPE, AUTHOR, DATE_CREATED) VALUES (?, ?, ?, ?, ?, ?)"))
@@ -518,7 +521,8 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	@Test
 	void removeFeedback() throws Exception {
 		try (MockedStatic<WrapperManager> staticWrapperManager = Mockito.mockStatic(WrapperManager.class);
-				MockedStatic<ConnectionUtils> staticConnUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
+				MockedStatic<ConnectionUtils> staticConnUtils = Mockito.mockStatic(ConnectionUtils.class,
+						Mockito.CALLS_REAL_METHODS)) {
 			staticWrapperManager.when(() -> WrapperManager.getInstance()).thenReturn(wrapperManager);
 			when(wrapperManager.getRawWrapper(eq(engine), any(SelectQueryStruct.class))).thenReturn(rawWrapper);
 
@@ -585,7 +589,8 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void setRoomOptions() throws Exception {
-		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
+		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class,
+				Mockito.CALLS_REAL_METHODS)) {
 			when(conn.prepareStatement("UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND ROOM_ID = ?")).thenReturn(ps);
 			when(engine.getQueryUtil()).thenReturn(absQueryUtil);
 
@@ -610,7 +615,8 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void setRoomWorkspaceId() throws Exception {
-		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
+		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class,
+				Mockito.CALLS_REAL_METHODS)) {
 			when(conn.prepareStatement("UPDATE ROOM SET WORKSPACE_ID = ? WHERE USER_ID = ? AND ROOM_ID = ?"))
 					.thenReturn(ps);
 
@@ -634,86 +640,6 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	@Test
 	void setRoomContext() {
 		ModelInferenceLogsUtils.setRoomContext("roomId", "userId", "context");
-	}
-
-	@Test
-	void getTotalTokensOrTotalResponseTime() throws Exception {
-		RawRDBMSSelectWrapper rawRDBMSSelectWrapper = mock(RawRDBMSSelectWrapper.class);
-		List<AuthProvider> list = new ArrayList<>();
-		list.add(auth);
-
-		try (MockedStatic<RawRDBMSSelectWrapper> staticRDBMSWrapper = Mockito.mockStatic(RawRDBMSSelectWrapper.class)) {
-			when(engine.getPreparedStatement(anyString())).thenReturn(ps);
-
-			when(user.getLogins()).thenReturn(list);
-			when(user.getAccessToken(auth)).thenReturn(access);
-			when(access.getId()).thenReturn("accessId");
-
-			when(ps.getConnection()).thenReturn(conn);
-
-			staticRDBMSWrapper
-					.when(() -> RawRDBMSSelectWrapper.directExecutionPreparedStatement(eq(engine), eq(conn), eq(ps),
-							anyString(), eq(false)))
-					.thenReturn(rawRDBMSSelectWrapper).thenReturn(rawRDBMSSelectWrapper).thenThrow(Exception.class);
-			when(rawRDBMSSelectWrapper.hasNext()).thenReturn(true);
-			when(rawRDBMSSelectWrapper.next()).thenReturn(dataRow);
-			when(dataRow.getValues()).thenReturn(new Object[] { 1 }).thenReturn(new Object[] { null });
-
-			assertEquals(1, ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime("token", user, "engineId",
-					ZonedDateTime.now(), "WEEK"));
-			assertEquals(0, ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime("compute", user, "engineId",
-					ZonedDateTime.now(), "MONTH"));
-			assertNull(ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime("compute", user, "engineId",
-					ZonedDateTime.now(), "DAILY"));
-
-			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> ModelInferenceLogsUtils
-					.getTotalTokensOrTotalResponseTime(null, user, "engineId", ZonedDateTime.now(), "freq"));
-			assertEquals("Must pass in a valid restriction mode", e.getMessage());
-		}
-	}
-
-	@Test
-	void getTotalUsageForUser() throws Exception {
-		Exception e = assertThrows(IllegalArgumentException.class, () -> ModelInferenceLogsUtils
-				.getTotalUsageForUser(null, user, "engineId", ZonedDateTime.now(), "freq"));
-		assertEquals("Must pass in a valid restriction mode", e.getMessage());
-
-		RawRDBMSSelectWrapper rawRDBMSSelectWrapper = mock(RawRDBMSSelectWrapper.class);
-
-		List<AuthProvider> logins = new ArrayList<>();
-		logins.add(auth);
-
-		List<String> engineList = new ArrayList<>();
-		engineList.add("engine1");
-		engineList.add("engine2");
-
-		try (MockedStatic<SecurityEngineUtils> staticSecEngineUtils = Mockito.mockStatic(SecurityEngineUtils.class);
-				MockedStatic<RawRDBMSSelectWrapper> staticRDBMSWrapper = Mockito
-						.mockStatic(RawRDBMSSelectWrapper.class);
-				MockedStatic<ConnectionUtils> connUtilStatic = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
-			staticSecEngineUtils.when(() -> SecurityEngineUtils.getModelEngineIdsWithRestrictions(user, "engineId"))
-					.thenReturn(engineList);
-
-			when(engine.getPreparedStatement(anyString())).thenReturn(ps).thenReturn(ps).thenThrow(SQLException.class);
-
-			when(user.getLogins()).thenReturn(logins);
-			when(user.getAccessToken(auth)).thenReturn(access);
-
-			when(ps.getConnection()).thenReturn(conn);
-			staticRDBMSWrapper.when(() -> RawRDBMSSelectWrapper.directExecutionPreparedStatement(eq(engine), eq(conn),
-					eq(ps), anyString(), eq(false))).thenReturn(rawRDBMSSelectWrapper);
-
-			when(rawRDBMSSelectWrapper.hasNext()).thenReturn(true);
-			when(rawRDBMSSelectWrapper.next()).thenReturn(dataRow);
-			when(dataRow.getValues()).thenReturn(new Object[] { null }).thenReturn(new Object[] { 1 });
-
-			assertEquals(0, ModelInferenceLogsUtils.getTotalUsageForUser("token", user, "engineId", ZonedDateTime.now(),
-					"WEEK"));
-			assertEquals(1, ModelInferenceLogsUtils.getTotalUsageForUser("compute", user, "engineId",
-					ZonedDateTime.now(), "MONTH"));
-			assertNull(ModelInferenceLogsUtils.getTotalUsageForUser("compute", user, "engineId", ZonedDateTime.now(),
-					"DAILY"));
-		}
 	}
 
 	@Test

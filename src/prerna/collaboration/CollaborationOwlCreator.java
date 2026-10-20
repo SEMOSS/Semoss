@@ -29,6 +29,7 @@ package prerna.collaboration;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.javatuples.Pair;
 
@@ -95,6 +96,26 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("FINISHED_AT", TIMESTAMP_DATATYPE_NAME)));
 
+		// one table per routine kind (WorkRoutine.Kind), same columns
+		// WORK_CUSTOM_ROUTINE holds many per owner, told apart by ROUTINE_ID (null in the others)
+		for (String routine : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE", "WORK_CUSTOM_ROUTINE")) {
+			addTable(routine, Arrays.asList(
+					OWNER_ID, OWNER_TYPE,
+					Pair.with("ROUTINE_ID", VARCHAR_50),
+					Pair.with("SETTINGS_JSON", CLOB_DATATYPE_NAME),
+					Pair.with("ENABLED", BOOLEAN_DATATYPE_NAME),
+					Pair.with("LAST_DATE", VARCHAR_20),
+					Pair.with("RUN_STATUS", VARCHAR_20),
+					Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
+					Pair.with("FINISHED_AT", TIMESTAMP_DATATYPE_NAME),
+					Pair.with("LAST_SUCCESS_AT", TIMESTAMP_DATATYPE_NAME),
+					Pair.with("ROOM_ID", VARCHAR_50),
+					Pair.with("RUN_ID", VARCHAR_50),
+					Pair.with("SUMMARY", CLOB_DATATYPE_NAME),
+					Pair.with("ERROR", CLOB_DATATYPE_NAME),
+					Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		}
+
 		// --- Brain: you ---
 		addTable("BRAIN_PROFILE", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
@@ -119,6 +140,11 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// memory recall and tools, and the review of finished chats; null reads as on
 				Pair.with("MEMORY_USE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("MEMORY_LEARN", BOOLEAN_DATATYPE_NAME),
+				// the Outlook folder drafts are left in; null means the mailbox's own Drafts
+				Pair.with("DRAFT_FOLDER_ID", VARCHAR_255),
+				Pair.with("DRAFT_FOLDER_NAME", VARCHAR_255),
+				// ids of the owner's own Collaboration skills staged in their assistant chats
+				Pair.with("ASSISTANT_SKILLS_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// One resumable topic-review draft per owner; only profiles and bounded evidence metadata.
 		addTable("BRAIN_TOPIC_REVIEW", Arrays.asList(
@@ -227,6 +253,27 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("STATE", VARCHAR_20),
 				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// Outlook folders a topic stands for; mail in one of them is filed under the topic
+		addTable("BRAIN_TOPIC_FOLDER", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("TOPIC_ID", VARCHAR_50),
+				Pair.with("FOLDER_ID", VARCHAR_255),
+				// outlook when onboarding found it from the folder, you when the owner linked it
+				Pair.with("ORIGIN", VARCHAR_20),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// the owner's Outlook folder tree; KIND is inbox, sentitems, archive, custom (one the owner made) or skipped
+		addTable("BRAIN_MAIL_FOLDER", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("FOLDER_ID", VARCHAR_255),
+				Pair.with("PARENT_ID", VARCHAR_255),
+				Pair.with("NAME", VARCHAR_255),
+				Pair.with("PATH", CLOB_DATATYPE_NAME),
+				Pair.with("KIND", VARCHAR_20),
+				Pair.with("TOTAL", INTEGER_DATATYPE_NAME),
+				// what a folder the owner made is for, judged at onboarding: project, area, status, automated,
+				// person, time or other; null until judged
+				Pair.with("ROLE", VARCHAR_20),
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 
 		// --- Brain: threads ---
 		// topics and participants live in the link tables; one IS_PRIMARY topic per thread
@@ -318,7 +365,12 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// a calendar message: invite, reply, or cancellation
 				Pair.with("MEETING", BOOLEAN_DATATYPE_NAME),
 				// the sending system marked it machine-sent (Auto-Submitted, List-Unsubscribe, Precedence bulk)
-				Pair.with("AUTO", BOOLEAN_DATATYPE_NAME)));
+				Pair.with("AUTO", BOOLEAN_DATATYPE_NAME),
+				// the owner's Outlook categories on it, their follow-up flag, the sender's importance, attachments
+				Pair.with("CATEGORIES_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("FLAGGED", BOOLEAN_DATATYPE_NAME),
+				Pair.with("IMPORTANCE", VARCHAR_20),
+				Pair.with("ATTACHMENTS", BOOLEAN_DATATYPE_NAME)));
 
 		// --- Brain: control ---
 		addTable("BRAIN_RULE", Arrays.asList(

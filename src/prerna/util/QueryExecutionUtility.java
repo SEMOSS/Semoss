@@ -52,6 +52,8 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.interpreters.sql.ParameterizedSqlInterpreter;
+import prerna.query.interpreters.sql.ParameterizedSqlInterpreter.CompiledQuery;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -316,6 +318,61 @@ public class QueryExecutionUtility {
 				return rows;
 			}
 		}
+	}
+
+	/**
+	 * Compiles a structured SELECT into SQL with separate bindings, as
+	 * {@link #flushPreparedRsToMap(IRDBMSEngine, SelectQueryStruct)} does, and maps
+	 * each row with no statement timeout. See
+	 * {@link #queryList(IRDBMSEngine, SelectQueryStruct, RowMapper, int)}.
+	 *
+	 * @param engine relational engine whose dialect and metadata compile the query
+	 * @param qs     structured SELECT, with its filters, ordering and pagination
+	 * @param mapper maps the current row without advancing the cursor
+	 * @return a mutable list of the mapped rows in result order, or an empty list
+	 *         for no rows
+	 * @throws Exception if the query cannot be compiled, or preparing, executing or
+	 *                   mapping fails
+	 */
+	public static <T> List<T> queryList(IRDBMSEngine engine, SelectQueryStruct qs, RowMapper<T> mapper)
+			throws Exception {
+		return queryList(engine, qs, mapper, 0);
+	}
+
+	/**
+	 * Compiles a structured SELECT into SQL with separate bindings, as
+	 * {@link #flushPreparedRsToMap(IRDBMSEngine, SelectQueryStruct)} does, and maps
+	 * each row with the caller's mapper. The mapper reads the JDBC values itself,
+	 * so a column keeps its own type, such as a timestamp's exact value, rather
+	 * than the wrapper's conversion. Values are bound in order with
+	 * {@link PreparedStatement#setObject(int, Object)}. Owns a read transaction and
+	 * closes the statement and result set on all paths.
+	 *
+	 * @param engine              relational engine whose dialect and metadata
+	 *                            compile the query
+	 * @param qs                  structured SELECT, with its filters, ordering and
+	 *                            pagination
+	 * @param mapper              maps the current row without advancing the cursor
+	 * @param queryTimeoutSeconds non-negative JDBC timeout in seconds; zero means
+	 *                            no timeout
+	 * @return a mutable list of the mapped rows in result order, or an empty list
+	 *         for no rows
+	 * @throws IllegalArgumentException if the timeout is negative, or the query
+	 *                                  shape or a value is unsupported
+	 * @throws Exception                if preparing, executing or mapping fails
+	 */
+	public static <T> List<T> queryList(IRDBMSEngine engine, SelectQueryStruct qs, RowMapper<T> mapper,
+			int queryTimeoutSeconds) throws Exception {
+		if (queryTimeoutSeconds < 0) {
+			throw new IllegalArgumentException("The query timeout cannot be negative");
+		}
+		CompiledQuery query = new ParameterizedSqlInterpreter(engine).compile(qs);
+		return queryList(engine, query.sql(), statement -> {
+			statement.setQueryTimeout(queryTimeoutSeconds);
+			for (int i = 0; i < query.parameters().size(); i++) {
+				statement.setObject(i + 1, query.parameters().get(i));
+			}
+		}, mapper);
 	}
 
 	/**

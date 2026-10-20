@@ -30,6 +30,7 @@ package prerna.io.connector.calendar;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import prerna.io.connector.ConnectorOutput;
 
@@ -83,6 +84,31 @@ public record CalendarEvent(String id, String subject, EventTime start, EventTim
 	 *                     to return whatever length it is
 	 * @return the event as a reactor answers with it
 	 */
+	/**
+	 * The event as one row of a listing: at most maxAttendees attendees (with the total), no reminder, and the body,
+	 * when asked for, without the Teams join block (joinUrl carries it) and cut to maxBodyChars.
+	 */
+	public Map<String, Object> toListMap(boolean includeBody, int maxBodyChars, int maxAttendees) {
+		Map<String, Object> output = toMap(false, 0);
+		output.remove("reminderMinutesBeforeStart");
+		if (this.attendees.size() > maxAttendees) {
+			output.put("attendees", this.attendees.stream().limit(maxAttendees).map(EventAttendee::toMap).toList());
+			output.put("attendeeCount", this.attendees.size());
+			output.put("attendeesTruncated", true);
+		}
+		if (includeBody) {
+			ConnectorOutput.putText(output, "body", withoutJoinBlock(this.body), maxBodyChars);
+		}
+		return output;
+	}
+
+	// Outlook appends the Teams join instructions after a line of underscores
+	private static final Pattern JOIN_BLOCK = Pattern.compile("_{10,}\\s*Microsoft Teams[\\s\\S]*$");
+
+	static String withoutJoinBlock(String body) {
+		return body == null ? null : JOIN_BLOCK.matcher(body).replaceFirst("").trim();
+	}
+
 	public Map<String, Object> toMap(boolean includeBody, int maxBodyChars) {
 		Map<String, Object> output = new LinkedHashMap<>();
 		output.put("id", this.id);

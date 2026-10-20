@@ -52,6 +52,7 @@ import com.google.gson.Gson;
 
 import prerna.auth.User;
 import prerna.collaboration.CollaborationAgentTools;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -156,7 +157,9 @@ final class HarnessToolExecutor {
 		// --- Human-in-the-loop pause: split SMSS_MCP_EXECUTION=ask tools ---
 		// Non-ask tools still execute immediately and write their tool results to the
 		// room. Only ask tools become AGENT_RUN_ACTION rows and pause the run.
-		List<Map<String, Object>> askToolCalls = getAskToolCalls(toolCalls);
+		// a routine run has nobody to approve; its ask tools are refused in executeToolSafely instead
+		List<Map<String, Object>> askToolCalls = CollaborationUtils.isRoutineRoom(room) ? List.of()
+				: getAskToolCalls(toolCalls);
 		if (!askToolCalls.isEmpty()) {
 			List<Map<String, Object>> autoToolCalls = new ArrayList<>();
 			for (Map<String, Object> toolCall : toolCalls) {
@@ -347,7 +350,7 @@ final class HarnessToolExecutor {
                 outcome = new ToolExecOutcome(value.toString(), !"incomplete".equals(value.optString("status")));
             } else if (state.pptxWorkflow() != null && ("ExecuteNodeCode".equals(tc.rawToolName) || "InspectPptx".equals(tc.rawToolName)
                     || SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, ctx.getAgentConfig().getSubagents()))) {
-                outcome = new ToolExecOutcome("Managed PPTX workflow: save the generator and call BuildPptx. SEMOSS handles review automatically.", false);
+                outcome = new ToolExecOutcome("Managed PPTX workflow: save the generator and call BuildPptx. SEMOSS handles validation, and visual review when it is enabled, automatically.", false);
             } else {
                 outcome = executeToolSafely(tc, ctx, paramMap, jobId, spawnsRemainingInBatch);
             }
@@ -524,6 +527,10 @@ final class HarnessToolExecutor {
 
 	private static ToolExecOutcome executeToolSafely(ParsedToolCall tc, AgentRunContext ctx,
 			Map<String, Object> paramMap, String parentJobId, AtomicInteger spawnsRemainingInBatch) {
+		if (CollaborationUtils.isRoutineRoom(ctx.getRoom()) && isAskTool(tc.toolCall)) {
+			return new ToolExecOutcome(tc.rawToolName + " needs the owner's approval, and this scheduled routine runs "
+					+ "without them. Nothing was run. Do not retry it; your answer is delivered to the owner.", false);
+		}
 		if (DeferredAgentTools.isControlTool(tc.rawToolName)) {
 			ToolExecutionResult result = DeferredAgentTools.execute(tc.rawToolName, tc.toolParams, ctx.getRoom(), paramMap);
 			return new ToolExecOutcome(result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError(),
