@@ -66,6 +66,30 @@ public final class BrainReviewHealth {
         return links.stream().anyMatch(link -> "you".equals(link.get("source")) || "confirmed".equals(link.get("source")));
     }
 
+    /** Recent mail the classifier filed by itself (same rule as the automatic percentage), newest first. */
+    static List<Map<String, Object>> autoFiled(User user, int days, Map<String, String> topicNames) {
+        Instant since = Instant.now().minus(Duration.ofDays(days));
+        Map<String, List<Map<String, Object>>> links = links(user);
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (var thread : threads(user)) {
+            if (!"email".equals(thread.get("source")) || thread.get("at") == null || Instant.parse((String) thread.get("at")).isBefore(since)) continue;
+            List<Map<String, Object>> on = links.getOrDefault(thread.get("id"), List.of());
+            boolean manual = on.stream().anyMatch(link -> "you".equals(link.get("source")) || BrainTopicOnboarding.VERSION.equals(link.get("version")));
+            if (manual) continue;
+            for (var link : on) {
+                if (!"confirmed".equals(link.get("source"))) continue;
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("threadId", thread.get("id"));
+                row.put("subject", java.util.Objects.toString(thread.get("subject"), "Untitled conversation"));
+                row.put("topic", topicNames.getOrDefault((String) link.get("topicId"), "Unavailable topic"));
+                row.put("confidence", link.get("confidence"));
+                row.put("at", thread.get("at"));
+                out.add(row);
+            }
+        }
+        return out;
+    }
+
     public static Map<String, Object> health(User user, int days) {
         if (days < 1 || days > 180) throw new IllegalArgumentException("days must be 1-180");
         var owner = CollaborationDbUtils.ownerOf(user);
@@ -170,6 +194,7 @@ public final class BrainReviewHealth {
         Map<String,Integer> pendingCounts = new LinkedHashMap<>();
         CollaborationDbUtils.query("SELECT KIND, COUNT(*) FROM BRAIN_REVIEW WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND STATUS = 'open' GROUP BY KIND",rs -> pendingCounts.put(rs.getString(1),rs.getInt(2)),owner.getValue0(),owner.getValue1());
         result.put("pendingCounts",pendingCounts);
+        result.put("autoFiled", autoFiled(user, 7, names));
         result.put("topics", CollaborationDbUtils.query("SELECT TOPIC_ID, NAME FROM BRAIN_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND STATUS IN ('active', 'dormant') ORDER BY LOWER(NAME), TOPIC_ID", rs -> Map.of("id", rs.getString("TOPIC_ID"), "name", rs.getString("NAME")), owner.getValue0(), owner.getValue1()));
         result.put("job", CollaborationJobUtils.latest(user, BrainOptimize.KIND));
         return result;

@@ -39,7 +39,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.om.Insight;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 /** Owner-started proposal generation. This service only writes review questions and job progress. */
 public final class BrainOptimize {
@@ -58,29 +61,151 @@ public final class BrainOptimize {
     public static Map<String, Object> start(User user) {
         var owner = CollaborationDbUtils.ownerOf(user);
         return CollaborationJobUtils.start(owner.getValue0(), owner.getValue1(), KIND, Map.of(), job -> {
+            // Persisted with the job counts; a stage still "running" when the job fails is the one that failed.
+            List<Map<String, Object>> stages = new ArrayList<>();
+            job.count("stages", stages);
             job.step("Checking unfiled conversations", 5);
             BrainReviewHealth.ensureUnassigned(user); BrainReviewHealth.ensureMemories(user);
             Insight insight = new Insight(); insight.setUser(user);
             List<String> ids = candidates(user);
-            Function<String, BrainClassifier.Scores> scorer = ids.isEmpty() || BrainThreadClassifier.topicOptions(owner.getValue0(), owner.getValue1()).isEmpty()
-                    ? id -> null : BrainThreadClassifier.reviewScorer(user, insight);
-            int filings = proposeFilings(user, ids, scorer, (done, total) -> job.step("Checking filing " + done + " of " + total, 5 + (total == 0 ? 0 : 45 * done / total)));
+            boolean noTopics = BrainThreadClassifier.topicOptions(owner.getValue0(), owner.getValue1()).isEmpty();
+            var filingStage = stage(stages, "filing", BrainThreadClassifier.platformEngine());
+            int[] scored = {0};
+            Function<String, BrainClassifier.Scores> scorer;
+            if (ids.isEmpty() || noTopics) {
+                scorer = id -> null;
+            } else {
+                var base = BrainThreadClassifier.reviewScorer(user, insight);
+                scorer = id -> { var s = base.apply(id); if (s != null) scored[0]++; return s; };
+            }
+            Map<String, String> subjects = new HashMap<>();
+            BrainReviewHealth.threads(user).forEach(t -> subjects.put((String) t.get("id"), Objects.toString(t.get("subject"), "Untitled conversation")));
+            Map<String, String> topicNames = new HashMap<>();
+            BrainThreadClassifier.topicOptions(owner.getValue0(), owner.getValue1()).forEach(t -> topicNames.put(t.id(), t.name()));
+            List<Map<String, Object>> filingItems = items(filingStage);
+            Map<String, Integer> filingResults = new LinkedHashMap<>();
+            int filings = proposeFilings(user, ids, scorer, (done, total) -> job.step("Checking filing " + done + " of " + total, 5 + (total == 0 ? 0 : 45 * done / total)),
+                    (id, topicId, confidence, result) -> {
+                        filingResults.merge(result, 1, Integer::sum);
+                        if (filingItems.size() < MAX_ITEMS) filingItems.add(item(subjects.getOrDefault(id, id), topicNames.getOrDefault(topicId, topicId), confidence, result));
+                    });
+            finish(filingStage, ids.isEmpty() ? "No conversations needed checking" : noTopics ? "No topics to file into" : null, scored[0]);
+            filingStage.put("summary", summary(filingResults));
             job.count("filings", filings); job.step("Looking for topics", 55);
-            var preview = candidates(user).size() < 2 ? Map.<String,Object>of("topics",List.of()) : BrainTopicSuggest.topicsForReview(user);
-            if (preview.get("modelError") != null) throw new IllegalArgumentException(String.valueOf(preview.get("modelError")));
-            int newTopics = proposeTopics(user, rows(preview.get("topics")));
+            var topicStage = stage(stages, "newTopics", configured(Constants.COLLAB_LLM_ENGINE_ID));
+            boolean enough = candidates(user).size() >= 2;
+            if (enough) waitForMailboxJobs(job, owner.getValue0(), owner.getValue1());
+            var preview = enough ? BrainTopicSuggest.topicsForReview(user) : Map.<String,Object>of("topics",List.of());
+            int topicCalls = preview.get("modelCalls") instanceof Number n ? n.intValue() : 0;
+            if (preview.get("modelError") != null) {
+                topicStage.put("status", "failed"); topicStage.put("calls", topicCalls); topicStage.put("note", brief(preview.get("modelError")));
+                throw new IllegalArgumentException(String.valueOf(preview.get("modelError")));
+            }
+            finish(topicStage, enough ? null : "Fewer than 2 unfiled conversations", topicCalls);
+            List<Map<String, Object>> topicItems = items(topicStage);
+            int newTopics = proposeTopics(user, rows(preview.get("topics")), (name, threads, result) -> topicItems.add(item(name, null, null, threads + " conversations: " + result)));
+            if (enough) topicStage.put("summary", "Grouped " + Objects.toString(preview.get("poolThreads"), "0") + " unfiled conversations into " + rows(preview.get("topics")).size() + " possible topics");
             job.count("newTopics", newTopics); job.step("Checking overlapping topics", 70);
             List<Map<String, Object>> topics = topics(user);
             List<BrainTopicAreas.Topic> cards = topics.stream().map(t -> new BrainTopicAreas.Topic((String)t.get("name"), (String)t.get("about"), ((Number)t.get("threads")).intValue())).toList();
             String engine = BrainTopicModel.engine(user);
-            List<BrainTopicAreas.Area> areas = engine == null ? BrainTopicAreas.single(cards) : mergeGroups(BrainTopicOnboarding.caller(user, engine), cards);
+            var mergeStage = stage(stages, "merges", engine);
+            int[] calls = {0};
+            String[] error = {null};
+            List<BrainTopicAreas.Area> areas;
+            if (engine == null) {
+                areas = BrainTopicAreas.single(cards);
+            } else {
+                var caller = BrainTopicOnboarding.caller(user, engine);
+                // BrainTopicAreas.group swallows model errors, so record them before they are hidden.
+                areas = mergeGroups((prompt, instructions, params) -> {
+                    calls[0]++;
+                    try { return caller.ask(prompt, instructions, params); }
+                    catch (RuntimeException e) { error[0] = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage(); throw e; }
+                }, cards);
+            }
+            if (error[0] != null) {
+                mergeStage.put("status", "failed"); mergeStage.put("calls", calls[0]); mergeStage.put("note", brief(error[0]));
+            } else {
+                finish(mergeStage, engine == null ? "No text model is set" : cards.size() < 2 ? "Fewer than 2 topics" : null, calls[0]);
+            }
             job.count("merges", proposeMerges(user, topics, areas));
+            List<Map<String, Object>> mergeItems = items(mergeStage);
+            for (var area : areas) if (area.members().size() > 1) {
+                mergeItems.add(item(area.members().stream().map(i -> (String) topics.get(i).get("name")).collect(java.util.stream.Collectors.joining(" + ")), null, null, "Suggested combining"));
+            }
             job.step("Checking topics and people", 85);
-            job.count("quietTopics", proposeQuiet(user));
-            job.count("people", proposePeople(user));
+            var peopleStage = stage(stages, "topicsAndPeople", null);
+            int quiet = proposeQuiet(user), people = proposePeople(user);
+            job.count("quietTopics", quiet);
+            job.count("people", people);
+            finish(peopleStage, null, 0);
+            peopleStage.put("summary", quiet + " new quiet-topic and " + people + " new people suggestions");
             job.step("Review is ready", 99);
         });
     }
+
+    static Map<String, Object> stage(List<Map<String, Object>> stages, String key, String engineId) {
+        Map<String, Object> stage = new LinkedHashMap<>();
+        stage.put("key", key);
+        if (engineId != null) {
+            String alias = SecurityEngineUtils.getEngineAliasForId(engineId);
+            stage.put("model", alias == null || alias.isBlank() ? engineId : alias);
+        }
+        stage.put("status", "running");
+        stages.add(stage);
+        return stage;
+    }
+
+    // a skip note marks the stage skipped; otherwise it completed with this many model answers
+    static void finish(Map<String, Object> stage, String skipped, int calls) {
+        stage.put("status", skipped == null ? "ok" : "skipped");
+        stage.put("calls", calls);
+        if (skipped != null) stage.put("note", skipped);
+    }
+
+    static String configured(String key) {
+        String id = Utility.getDIHelperProperty(key);
+        return id == null || id.isBlank() ? null : id.trim();
+    }
+
+    static String brief(Object message) {
+        String text = String.valueOf(message);
+        return text.length() > 300 ? text.substring(0, 300) + "…" : text;
+    }
+
+    static final int MAX_ITEMS = 200;
+
+    @SuppressWarnings("unchecked")
+    static List<Map<String, Object>> items(Map<String, Object> stage) {
+        return (List<Map<String, Object>>) stage.computeIfAbsent("items", k -> new ArrayList<Map<String, Object>>());
+    }
+
+    static Map<String, Object> item(String label, String topic, Integer confidence, String result) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("label", label);
+        if (topic != null) item.put("topic", topic);
+        if (confidence != null) item.put("confidence", confidence);
+        item.put("result", result);
+        return item;
+    }
+
+    static String summary(Map<String, Integer> results) {
+        return results.entrySet().stream().map(e -> e.getValue() + " " + e.getKey().toLowerCase()).collect(java.util.stream.Collectors.joining(", "));
+    }
+
+    // the page's periodic mail sync also holds the mailbox; topic grouping refuses to read it mid-import
+    static void waitForMailboxJobs(CollaborationJobUtils.Job job, String ownerId, String ownerType) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + Duration.ofMinutes(5).toMillis();
+        while (CollaborationJobUtils.anyRunning(ownerId, ownerType, KIND) && System.currentTimeMillis() < deadline) {
+            job.step("Waiting for mail sync to finish", 55);
+            Thread.sleep(2000);
+        }
+    }
+
+    interface FilingOutcome { void report(String threadId, String topicId, Integer confidence, String result); }
+
+    interface TopicOutcome { void report(String name, int threads, String result); }
 
     interface Progress { void report(int done, int total); }
 
@@ -101,6 +226,10 @@ public final class BrainOptimize {
     }
 
     static int proposeFilings(User user, List<String> ids, Function<String, BrainClassifier.Scores> scorer, Progress progress) {
+        return proposeFilings(user, ids, scorer, progress, (id, topic, confidence, result) -> {});
+    }
+
+    static int proposeFilings(User user, List<String> ids, Function<String, BrainClassifier.Scores> scorer, Progress progress, FilingOutcome outcome) {
         var owner = CollaborationDbUtils.ownerOf(user); int found = 0, done = 0;
         Set<String> valid = new HashSet<>(BrainThreadClassifier.topicOptions(owner.getValue0(), owner.getValue1()).stream().map(BrainClassifier.TopicOption::id).toList());
         var settings = BrainProfileUtils.getSettings(owner.getValue0(), owner.getValue1());
@@ -115,13 +244,19 @@ public final class BrainOptimize {
                 int confidence=ranked.isEmpty() ? 0 : (int)Math.min(100,Math.round(wayOut ? 100*ranked.get(0).getValue() : 900*(ranked.get(0).getValue()-(ranked.size()>1 ? ranked.get(1).getValue() : 0))));
                 int threshold=wayOut ? Math.max(askAt,fileAt-BrainThreadClassifier.WAY_OUT_ASK_BAND) : askAt;
                 List<String> choices=ranked.isEmpty() || BrainThreadClassifier.OTHER_TOPIC.equals(ranked.get(0).getKey()) || confidence<threshold ? List.of() : ranked.stream().filter(e -> !BrainThreadClassifier.OTHER_TOPIC.equals(e.getKey())).limit(confidence>=fileAt ? 1 : 2).map(Map.Entry::getKey).toList();
+                String best = ranked.isEmpty() ? null : ranked.get(0).getKey();
+                if (choices.isEmpty()) {
+                    outcome.report(id, best, confidence, BrainThreadClassifier.OTHER_TOPIC.equals(best) ? "Best match is Something else" : "Not confident enough (needs " + threshold + "%)");
+                }
                 if (!choices.isEmpty()) {
                     // Do not create a second question alongside a pending classifier topic choice.
                     boolean pending = CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_REVIEW WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REF_TYPE = 'thread' AND REF_ID = ? AND KIND = 'topic_choice' AND STATUS = 'open'", owner.getValue0(), owner.getValue1(), id);
+                    if (pending) outcome.report(id, best, confidence, "Already waiting for your answer");
                     if (!pending) {
                         String key = "optimize-filing:" + String.join(":", choices.stream().sorted().toList());
                         var proposal = BrainReviewUtils.addReview(owner.getValue0(), owner.getValue1(), "topic_choice", "thread", id, key, Map.of("candidates", choices, "detail", "Review this filing against your current topics. Nothing has moved."));
                         if (Boolean.TRUE.equals(proposal.get("created"))) found++;
+                        outcome.report(id, best, confidence, Boolean.TRUE.equals(proposal.get("created")) ? "Suggested" : "Suggested earlier");
                         CollaborationDbUtils.update("UPDATE BRAIN_REVIEW SET STATUS = 'dismissed', RESOLVED_BY = 'brain', RESOLVED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND KIND = 'unassigned' AND REF_ID = ? AND STATUS = 'open'",CollaborationDbUtils.now(),owner.getValue0(),owner.getValue1(),id);
                     }
                 }
@@ -132,15 +267,21 @@ public final class BrainOptimize {
     }
 
     static int proposeTopics(User user, List<Map<String, Object>> candidates) {
+        return proposeTopics(user, candidates, (name, threads, result) -> {});
+    }
+
+    static int proposeTopics(User user, List<Map<String, Object>> candidates, TopicOutcome outcome) {
         var owner = CollaborationDbUtils.ownerOf(user); int found = 0;
         var links = BrainReviewHealth.links(user);
         for (var candidate : candidates) {
             List<String> threads = strings(candidate.get("threadIds")).stream().filter(id -> !BrainReviewHealth.filed(links.getOrDefault(id, List.of()))).sorted().toList();
-            if (threads.size() < 2) continue;
+            String name = Objects.toString(candidate.get("name"), "Unnamed group");
+            if (threads.size() < 2) { outcome.report(name, threads.size(), "not suggested, fewer than 2 still unfiled"); continue; }
             Map<String, Object> detail = new LinkedHashMap<>(candidate);
             detail.put("text", "New topic: " + candidate.get("name")); detail.put("detail", "Based on " + threads.size() + " unfiled conversations. Created only if you accept."); detail.put("threadIds", threads);
             var proposal = BrainReviewUtils.addReview(owner.getValue0(), owner.getValue1(), "new_topic", "thread", threads.get(0), "optimize-topic:" + String.join(":", threads), detail);
             if (Boolean.TRUE.equals(proposal.get("created"))) found++;
+            outcome.report(name, threads.size(), Boolean.TRUE.equals(proposal.get("created")) ? "suggested" : "suggested earlier");
         }
         return found;
     }
