@@ -28,6 +28,7 @@
 package prerna.io.connector.calendar;
 
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -122,13 +123,16 @@ public abstract class AbstractListEventsReactor extends AbstractCalendarReactor 
 					window[1], readString(SUBJECT), readCount(LIMIT, DEFAULT_LIMIT, MAX_LIMIT), readOffset(),
 					includeBody);
 			int maxBodyChars = readCount(MAX_BODY_CHARS, LIST_MAX_BODY_CHARS, LIST_BODY_CHARS_CAP);
+			// times come back in the zone the caller named, else UTC as before
+			ZoneId zone = readString(TIME_ZONE) == null ? null : readZone();
 
 			ConnectorPage<CalendarEvent> page = listEvents(this.insight.getUser(), request);
 
 			List<Map<String, Object>> events = new ArrayList<>();
 			int used = 0;
 			for (CalendarEvent event : page.items()) {
-				Map<String, Object> row = event.toListMap(includeBody, maxBodyChars, LIST_MAX_ATTENDEES);
+				Map<String, Object> row = event.inZone(event.toListMap(includeBody, maxBodyChars, LIST_MAX_ATTENDEES),
+						zone);
 				int size = GSON.toJson(row).length();
 				// always keep the first, so a page never comes back empty
 				if (!events.isEmpty() && used + size > LIST_OUTPUT_BUDGET_CHARS) {
@@ -182,6 +186,10 @@ public abstract class AbstractListEventsReactor extends AbstractCalendarReactor 
 			return "Optional end of the window as an ISO 8601 date and time. Defaults to the number of days after the start.";
 		case DAYS:
 			return "Optional number of days the window covers when no end is given. Defaults to " + DEFAULT_DAYS + ".";
+		case TIME_ZONE:
+			return "Optional IANA time zone, such as America/New_York. Start and end without an offset are read in "
+					+ "it, and each event's start and end come back in it with a readable when, such as \"Mon Oct "
+					+ "19, 9:00 AM - 9:05 AM\". Pass the user's zone so no conversion is needed. Defaults to UTC.";
 		case SUBJECT:
 			return "Optional text the subject has to contain, matched without regard to case.";
 		case LIMIT:

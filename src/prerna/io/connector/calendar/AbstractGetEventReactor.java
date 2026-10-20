@@ -36,7 +36,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  */
 public abstract class AbstractGetEventReactor extends AbstractCalendarReactor {
 
-	private static final String[] KEYS = { ID, MAX_BODY_CHARS, CALENDAR_ID, MAILBOX };
+	private static final String[] KEYS = { ID, TIME_ZONE, MAX_BODY_CHARS, CALENDAR_ID, MAILBOX };
 
 	protected AbstractGetEventReactor(String... extraKeys) {
 		this.keysToGet = withExtraKeys(KEYS, extraKeys);
@@ -61,8 +61,8 @@ public abstract class AbstractGetEventReactor extends AbstractCalendarReactor {
 		return run("read the calendar event", () -> {
 			String id = requireEventId("read a calendar event");
 			int maxBodyChars = readCount(MAX_BODY_CHARS, DEFAULT_MAX_BODY_CHARS, Integer.MAX_VALUE);
-			return getEvent(this.insight.getUser(), readString(CALENDAR_ID), readString(MAILBOX), id).toMap(true,
-					maxBodyChars);
+			CalendarEvent event = getEvent(this.insight.getUser(), readString(CALENDAR_ID), readString(MAILBOX), id);
+			return event.inZone(event.toMap(true, maxBodyChars), readString(TIME_ZONE) == null ? null : readZone());
 		});
 	}
 
@@ -83,6 +83,10 @@ public abstract class AbstractGetEventReactor extends AbstractCalendarReactor {
 
 	@Override
 	protected final String describeKey(String key) {
+		if (TIME_ZONE.equals(key)) {
+			return "Optional IANA time zone, such as America/New_York, the event's start and end come back in, with a "
+					+ "readable when. Pass the user's zone so no conversion is needed. Defaults to UTC.";
+		}
 		return super.describeKey(key);
 	}
 }

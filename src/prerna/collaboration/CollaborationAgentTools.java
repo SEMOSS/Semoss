@@ -82,11 +82,13 @@ import prerna.reactor.collaboration.BrainSearchMemoriesReactor;
 import prerna.reactor.collaboration.BrainSearchThreadsReactor;
 import prerna.reactor.collaboration.BrainTagTopicReactor;
 import prerna.reactor.collaboration.WorkComposeEmailReactor;
-import prerna.reactor.collaboration.WorkCreateSkillReactor;
+import prerna.reactor.collaboration.WorkDeleteMySkillReactor;
 import prerna.reactor.collaboration.WorkDownloadAttachmentReactor;
 import prerna.reactor.collaboration.WorkListCustomRoutinesReactor;
 import prerna.reactor.collaboration.WorkListMySkillsReactor;
 import prerna.reactor.collaboration.WorkManageCustomRoutineReactor;
+import prerna.reactor.collaboration.WorkOpenSkillReactor;
+import prerna.reactor.collaboration.WorkPublishSkillReactor;
 import prerna.reactor.collaboration.WorkSaveCustomRoutineReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
 import prerna.reactor.collaboration.WorkUseSkillInAssistantReactor;
@@ -162,22 +164,27 @@ public final class CollaborationAgentTools {
 		REACTORS.put("CreateRoutine", WorkSaveCustomRoutineReactor.class);
 		REACTORS.put("ListRoutines", WorkListCustomRoutinesReactor.class);
 		REACTORS.put("ManageRoutine", WorkManageCustomRoutineReactor.class);
-		REACTORS.put("CreateSkill", WorkCreateSkillReactor.class);
 		REACTORS.put("ListMySkills", WorkListMySkillsReactor.class);
+		REACTORS.put("OpenSkill", WorkOpenSkillReactor.class);
+		REACTORS.put("PublishSkill", WorkPublishSkillReactor.class);
 		REACTORS.put("UseSkillInAssistant", WorkUseSkillInAssistantReactor.class);
+		REACTORS.put("DeleteMySkill", WorkDeleteMySkillReactor.class);
 	}
 
 	private static final Set<String> MEMORY_TOOLS = Set.of("Remember", "Forget", "SearchMemories");
+
+	// calendar reads that take a timeZone, filled in with the owner's when the model leaves it out
+	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent");
 
 	// tools about the chat itself: only for the owner's own assistant at the root of the run
 	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "CompleteGoal");
 
 	// the owner's routines and skills: only for their own assistant at the root of the run, never in a routine
 	private static final Set<String> OWNER_TOOLS = Set.of("CreateRoutine", "ListRoutines", "ManageRoutine",
-			"CreateSkill", "ListMySkills", "UseSkillInAssistant");
+			"ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant", "DeleteMySkill");
 
-	// tools the model loads on demand: direct Microsoft 365 mail, after Brain's own search
-	private static final Set<String> DEFERRED = Set.of("ListM365Mail");
+	// tools the model loads on demand: direct Microsoft 365 mail, after Brain's own search, and deleting a skill
+	private static final Set<String> DEFERRED = Set.of("ListM365Mail", "DeleteMySkill");
 
 	// said first in a mail tool's description, so the model knows which side of Brain it is on
 	private static final Map<String, String> SOURCE_NOTES = Map.of(
@@ -295,6 +302,12 @@ public final class CollaborationAgentTools {
 						params.put(key, selectedEmailId(input));
 					}
 				}
+			}
+			// calendar times come back in the owner's zone unless the model names another, so it never converts
+			if (ZONED_TOOLS.contains(toolName) && (params == null || params.get("timeZone") == null
+					|| String.valueOf(params.get("timeZone")).isBlank())) {
+				params = params == null ? new LinkedHashMap<>() : new LinkedHashMap<>(params);
+				params.put("timeZone", BrainProfileUtils.timeZone(insight.getUser()).getId());
 			}
 			Object output = MCPUtility.runPixelTool(null, insight, meta.getString(MCPUtility.SMSS_FUNCTION_NAME),
 					properties, params);
