@@ -204,7 +204,7 @@ final class WorkRoutine {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		Slot slot = new Slot(kind, owner, routineId);
 		Map<String, Object> row = stored(slot);
-		Map<String, Object> result = new LinkedHashMap<>(row == null ? kind.defaults() : settings(row));
+		Map<String, Object> result = new LinkedHashMap<>(row == null ? kind.defaults() : settings(kind, row));
 		boolean enabled = row != null && Boolean.TRUE.equals(row.get("enabled"));
 		boolean schedulerAvailable = schedulerAvailable();
 		String mailboxId = mailboxId(owner);
@@ -223,6 +223,7 @@ final class WorkRoutine {
 				: !assistantAvailable ? "Ask your administrator to configure a Collaboration text model and grant your primary account access." : null);
 		result.put("nextRunAt", enabled && schedulerAvailable ? nextRun(slot) : null);
 		result.put("lastRun", row == null || row.get("status") == null ? null : lastRun(row));
+		result.put("flow", flow(serverDefinition(kind)));
 		return result;
 	}
 
@@ -348,7 +349,7 @@ final class WorkRoutine {
 		if (row == null || !Boolean.TRUE.equals(row.get("enabled"))) {
 			return Map.of("status", "skipped");
 		}
-		Map<String, Object> config = settings(row);
+		Map<String, Object> config = settings(kind, row);
 		LocalDate today = LocalDate.now(ZoneId.of((String) config.get("timezone")));
 		if (!now && !((List<?>) config.get("days")).contains(WEEKDAYS.get(today.getDayOfWeek().getValue() - 1))) {
 			return Map.of("status", "skipped");
@@ -495,15 +496,7 @@ final class WorkRoutine {
 
 	/** The same, with extra config (agent, skills, instructions) set on every agent step. */
 	static AutomationDefinitionService.DefinitionFiles definition(Kind kind, String engineId, Map<String, Object> agentConfig) {
-		JsonObject definition;
-		try (InputStream in = WorkRoutine.class.getResourceAsStream(kind.definition())) {
-			if (in == null) {
-				throw new IllegalStateException("The " + kind.label() + " definition is missing from this server build");
-			}
-			definition = JsonParser.parseString(new String(in.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
-		} catch (IOException e) {
-			throw new IllegalStateException("Could not read the " + kind.label() + " definition", e);
-		}
+		JsonObject definition = serverDefinition(kind);
 		for (JsonElement element : definition.getAsJsonObject(AutomationConstants.DOC_GRAPH)
 				.getAsJsonArray(AutomationConstants.DOC_NODES)) {
 			JsonObject node = element.getAsJsonObject();
@@ -516,6 +509,52 @@ final class WorkRoutine {
 			}
 		}
 		return AutomationDefinitionService.fromInline(AutomationRuntimeUtils.GSON.toJson(definition), null);
+	}
+
+	private static JsonObject serverDefinition(Kind kind) {
+		JsonObject definition;
+		try (InputStream in = WorkRoutine.class.getResourceAsStream(kind.definition())) {
+			if (in == null) {
+				throw new IllegalStateException("The " + kind.label() + " definition is missing from this server build");
+			}
+			definition = JsonParser.parseString(new String(in.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
+		} catch (IOException e) {
+			throw new IllegalStateException("Could not read the " + kind.label() + " definition", e);
+		}
+		return definition;
+	}
+
+	/** Allowlist the graph's display fields; never return source, config, or run data. */
+	static Map<String, Object> flow(JsonObject definition) {
+		JsonObject graph = definition.getAsJsonObject(AutomationConstants.DOC_GRAPH);
+		List<Map<String, Object>> nodes = new ArrayList<>();
+		for (JsonElement element : graph.getAsJsonArray(AutomationConstants.DOC_NODES)) {
+			JsonObject node = element.getAsJsonObject();
+			Map<String, Object> preview = new LinkedHashMap<>();
+			for (String field : List.of("id", "type", "label")) {
+				preview.put(field, node.get(field).getAsString());
+			}
+			if (node.get("position") instanceof JsonObject position) {
+				JsonElement x = position.get("x");
+				JsonElement y = position.get("y");
+				if (x != null && x.isJsonPrimitive() && x.getAsJsonPrimitive().isNumber()
+						&& y != null && y.isJsonPrimitive() && y.getAsJsonPrimitive().isNumber()
+						&& Double.isFinite(x.getAsDouble()) && Double.isFinite(y.getAsDouble())) {
+					preview.put("position", Map.of("x", x.getAsDouble(), "y", y.getAsDouble()));
+				}
+			}
+			nodes.add(preview);
+		}
+		List<Map<String, Object>> edges = new ArrayList<>();
+		for (JsonElement element : graph.getAsJsonArray(AutomationConstants.DOC_EDGES)) {
+			JsonObject edge = element.getAsJsonObject();
+			Map<String, Object> preview = new LinkedHashMap<>();
+			for (String field : List.of("source", "target", "sourcePort", "targetPort")) {
+				preview.put(field, edge.get(field).getAsString());
+			}
+			edges.add(preview);
+		}
+		return Map.of("nodes", nodes, "edges", edges);
 	}
 
 	private static boolean schedulerAvailable() {
@@ -688,8 +727,12 @@ final class WorkRoutine {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static Map<String, Object> settings(Map<String, Object> row) {
-		return (Map<String, Object>) row.get("settings");
+	private static Map<String, Object> settings(Kind kind, Map<String, Object> row) {
+		// Older rows inherit new defaults and no longer expose retired settings.
+		Map<String, Object> config = new LinkedHashMap<>(kind.defaults());
+		config.putAll((Map<String, Object>) row.get("settings"));
+		config.keySet().retainAll(kind.defaults().keySet());
+		return config;
 	}
 
 	private static Map<String, Object> lastRun(Map<String, Object> row) {

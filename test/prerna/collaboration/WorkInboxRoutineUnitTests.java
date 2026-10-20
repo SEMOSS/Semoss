@@ -50,6 +50,7 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.gson.JsonParser;
 import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -176,7 +177,8 @@ class WorkInboxRoutineUnitTests {
 		Map<String, Object> result = WorkInboxRoutine.get(user);
 		assertEquals(false, result.get("enabled"));
 		assertEquals(false, result.get("configured"));
-		assertEquals(25, result.get("emailCount"));
+		assertEquals(24, result.get("lookbackHours"));
+		assertFalse(result.containsKey("emailCount"));
 		assertNull(result.get("nextRunAt"));
 		assertNull(result.get("lastRun"));
 		assertEquals(0, CollaborationDbUtils.count("SELECT COUNT(*) FROM WORK_INBOX_ROUTINE"));
@@ -203,15 +205,52 @@ class WorkInboxRoutineUnitTests {
 		assertEquals(false, WorkInboxRoutine.get(owner("someone-else")).get("configured"));
 	}
 
+	@ParameterizedTest
+	@ValueSource(ints = { 1, 24, 168, 720 })
+	void lookbackHoursCanBeSavedAcrossTheSupportedRange(int hours) {
+		Map<String, Object> input = config(false);
+		input.put("lookbackHours", hours);
+		Map<String, Object> result = WorkInboxRoutine.save(user, input);
+		assertEquals(hours, ((Number) result.get("lookbackHours")).intValue());
+		assertFalse(result.containsKey("emailCount"));
+	}
+
+	@Test
+	void olderSavedEmailCountUsesADayLookbackWithoutExposingTheRetiredSetting() {
+		Map<String, Object> legacy = config(false);
+		legacy.remove("lookbackHours");
+		legacy.put("emailCount", 100);
+		WorkInboxRoutine.save(user, config(false));
+		CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET SETTINGS_JSON = ?", CollaborationDbUtils.toJson(legacy));
+		Map<String, Object> result = WorkInboxRoutine.get(user);
+		assertEquals(24, result.get("lookbackHours"));
+		assertFalse(result.containsKey("emailCount"));
+		assertEquals(legacy.get("time"), result.get("time"));
+		assertEquals(legacy.get("days"), result.get("days"));
+		assertEquals(legacy.get("timezone"), result.get("timezone"));
+	}
+
+	@Test
+	void savedCustomRoutineKeepsAllOfItsSettingsWhenLoaded() {
+		Map<String, Object> custom = new HashMap<>(WorkCustomRoutine.KIND.defaults());
+		custom.putAll(Map.of("enabled", false, "name", "Project summary", "prompt", "Summarize my project updates",
+				"delivery", "none", "agentId", "chosen-agent", "skills", List.of("chosen-skill")));
+		Map<String, Object> result = WorkRoutine.save(WorkCustomRoutine.KIND, user, "custom-routine", custom);
+		custom.forEach((key, value) -> assertEquals(value, result.get(key), key));
+	}
+
 	@Test
 	void invalidSettingsCannotCreateOrChangeAStoredRoutine() {
 		List<Map<String, Object>> invalid = new ArrayList<>();
 		for (Object days : List.of(List.of(), List.of("MON", "MON"), List.of("MON", "BOGUS"))) {
 			Map<String, Object> input = config(false); input.put("days", days); invalid.add(input);
 		}
-		for (Object count : List.of(0, 101, 1.5, "25")) {
-			Map<String, Object> input = config(false); input.put("emailCount", count); invalid.add(input);
+		for (Object hours : List.of(-1, 0, 721, 1.5, "24", Double.NaN, Double.POSITIVE_INFINITY)) {
+			Map<String, Object> input = config(false); input.put("lookbackHours", hours); invalid.add(input);
 		}
+		Map<String, Object> missingHours = config(false); missingHours.remove("lookbackHours"); invalid.add(missingHours);
+		Map<String, Object> nullHours = config(false); nullHours.put("lookbackHours", null); invalid.add(nullHours);
+		Map<String, Object> retiredCount = config(false); retiredCount.put("emailCount", 25); invalid.add(retiredCount);
 		for (String time : List.of("24:00", "08:60", "8:00", "12:00:30")) {
 			Map<String, Object> input = config(false); input.put("time", time); invalid.add(input);
 		}
@@ -430,9 +469,9 @@ class WorkInboxRoutineUnitTests {
 					.forClass(AutomationDefinitionService.DefinitionFiles.class);
 			automations.verify(() -> RunAutomationDefinitionReactor.runDefinition(eq(insight), anyString(),
 					eq(WorkInboxRoutine.AUTOMATION_ID), files.capture(), eq(Map.of("owner_email", "owner@example.com",
-							"timezone", "America/New_York", "since", "", "email_count", 25)),
+							"timezone", "America/New_York", "lookback_hours", 24)),
 					eq(AutomationConstants.TRIGGER_SCHEDULED), isNull()));
-			assertEquals(2, files.getValue().definition().split("\"text-model\"", -1).length - 1);
+			assertEquals(1, files.getValue().definition().split("\"text-model\"", -1).length - 1);
 		}
 	}
 
@@ -468,14 +507,19 @@ class WorkInboxRoutineUnitTests {
 		}
 	}
 
-	@Test
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
 	@SuppressWarnings("unchecked")
-	void briefUsesTheRoutineEmailCountLastBriefAndOwnerModel() throws Exception {
+	void briefUsesTheLookbackIndependentOfLastSuccessAndOwnerModel(boolean legacyConfig) throws Exception {
 		Insight insight = enabledRoutine();
 		at("2026-10-12T08:00:00Z");
 		Map<String, Object> limited = config(false);
 		limited.put("days", List.of("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"));
-		limited.put("emailCount", 1);
+		limited.put("lookbackHours", 72);
+		if (legacyConfig) {
+			limited.remove("lookbackHours");
+			limited.put("emailCount", 1);
+		}
 		CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET SETTINGS_JSON = ?, LAST_SUCCESS_AT = ?",
 				CollaborationDbUtils.toJson(limited), CollaborationDbUtils.toTimestamp("2026-10-11T08:00:00Z", "last"));
 		finished(AutomationConstants.STATUS_SUCCESS, AutomationConstants.NODE_STATUS_SUCCESS, "Nothing urgent today.");
@@ -487,8 +531,9 @@ class WorkInboxRoutineUnitTests {
 			ArgumentCaptor<Map<String, Object>> inputs = ArgumentCaptor.forClass(Map.class);
 			automations.verify(() -> RunAutomationDefinitionReactor.runDefinition(any(), anyString(), anyString(),
 					files.capture(), inputs.capture(), anyString(), isNull()));
-			assertEquals(1, inputs.getValue().get("email_count"));
-			assertEquals("2026-10-11T08:00:00Z", inputs.getValue().get("since"));
+			assertEquals(legacyConfig ? 24 : 72, inputs.getValue().get("lookback_hours"));
+			assertFalse(inputs.getValue().containsKey("email_count"));
+			assertFalse(inputs.getValue().containsKey("since"));
 			assertTrue(files.getValue().definition().contains("\"text-model\""));
 		}
 	}
@@ -629,10 +674,33 @@ class WorkInboxRoutineUnitTests {
 	@Test
 	void briefDefinitionIsStrictlyValidAndReadsOnlyDeclaredScopeNames() {
 		assertStrictDefinition(WorkInboxRoutine.briefDefinition("engine-1"),
-				List.of("start", "sync", "wait_sync", "gather", "drafts", "save_drafts", "brief", "deliver"),
-				List.of("wait_sync", "gather", "save_drafts", "deliver"), List.of("drafts", "brief"),
-				Set.of("owner_email", "timezone", "since", "email_count"),
-				Set.of("context", "drafts", "saved", "brief", "owner_email", "timezone", "since", "email_count"));
+				List.of("start", "sync", "wait_sync", "gather", "brief", "deliver"),
+				List.of("wait_sync", "gather", "deliver"), List.of("brief"),
+				Set.of("owner_email", "timezone", "lookback_hours"),
+				Set.of("context", "brief", "owner_email", "timezone", "lookback_hours"));
+	}
+
+	@Test
+	void dailyBriefSummarizesRepliesAndOnlyWritesTheBriefEmail() {
+		AutomationDefinitionService.DefinitionFiles files = WorkInboxRoutine.briefDefinition("engine-1");
+		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator
+				.parseAndValidate(files.definition());
+		Set<String> mailOperations = new HashSet<>();
+		Matcher calls = Pattern.compile("MicrosoftOutlook[A-Za-z]+").matcher(
+				files.definition() + String.join("\n", files.nodeSources().values()));
+		while (calls.find()) {
+			mailOperations.add(calls.group());
+		}
+		assertEquals(Set.of("MicrosoftOutlookSendMail"), mailOperations,
+				"The daily brief must only send its summary, without creating replies, drafts, or folders.");
+		Map<String, Object> brief = definition.nodes().stream()
+				.filter(node -> "brief".equals(node.get(AutomationConstants.NODE_FIELD_ID))).findFirst().orElseThrow();
+		Map<?, ?> config = (Map<?, ?>) brief.get(AutomationConstants.NODE_FIELD_CONFIG);
+		String command = (String) config.get(AutomationConstants.CONFIG_COMMAND);
+		assertTrue(command.contains("Needs your reply"));
+		assertTrue(command.contains("${context.briefInput}"));
+		assertFalse(command.contains("Draft:"));
+		assertTrue(files.nodeSources().get("deliver").contains("MicrosoftOutlookSendMail("));
 	}
 
 	@Test
@@ -642,6 +710,77 @@ class WorkInboxRoutineUnitTests {
 				List.of("wait_sync", "gather", "deliver"), List.of("agendas"),
 				Set.of("owner_email", "timezone", "meetings", "days_ahead"),
 				Set.of("context", "agendas", "owner_email", "timezone", "meetings", "days_ahead"));
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	@SuppressWarnings("unchecked")
+	void routineFlowMatchesItsExecutedDefinitionWithoutExposingImplementation(boolean agendas) {
+		WorkRoutine.Kind kind = agendas ? WorkAgendaRoutine.KIND : WorkInboxRoutine.KIND;
+		Map<String, Object> routine = agendas ? WorkAgendaRoutine.get(user) : WorkInboxRoutine.get(user);
+		Map<String, Object> flow = (Map<String, Object>) routine.get("flow");
+		assertEquals(Set.of("nodes", "edges"), flow.keySet());
+		AutomationDefinitionValidator.ValidatedDefinition executed = AutomationDefinitionValidator
+				.parseAndValidate(WorkRoutine.definition(kind, "private-model").definition());
+		List<Map<String, Object>> nodes = (List<Map<String, Object>>) flow.get("nodes");
+		assertEquals(executed.nodes().size(), nodes.size());
+		for (int i = 0; i < nodes.size(); i++) {
+			Map<String, Object> node = nodes.get(i);
+			assertEquals(Set.of("id", "type", "label"), node.keySet());
+			for (String field : node.keySet()) {
+				assertEquals(executed.nodes().get(i).get(field), node.get(field));
+			}
+		}
+		List<Map<String, Object>> edges = (List<Map<String, Object>>) flow.get("edges");
+		assertEquals(executed.edges().size(), edges.size());
+		for (int i = 0; i < edges.size(); i++) {
+			Map<String, Object> edge = edges.get(i);
+			assertEquals(Set.of("source", "target", "sourcePort", "targetPort"), edge.keySet());
+			for (String field : edge.keySet()) {
+				assertEquals(executed.edges().get(i).get(field), edge.get(field));
+			}
+		}
+		Map<String, Object> saved = agendas ? WorkAgendaRoutine.save(user, agendaConfig(false))
+				: WorkInboxRoutine.save(user, config(false));
+		assertEquals(flow, saved.get("flow"));
+		automations.verifyNoInteractions();
+	}
+
+	@Test
+	void flowAllowsOnlyDisplayFieldsIncludingInsidePosition() {
+		Map<String, Object> flow = WorkRoutine.flow(JsonParser.parseString("""
+				{
+				  "nodeSources": {"start": "private source"},
+				  "graph": {
+				    "nodes": [{
+				      "id": "start", "type": "trigger.start", "label": "Start",
+				      "position": {"x": 12, "y": 34, "secret": "private position data"},
+				      "config": {"token": "private credential"}, "outputVar": "private output",
+				      "body": {"nodes": [{"config": "private nested config"}]},
+				      "runId": "private run", "codeMode": "custom"
+				    }],
+				    "edges": [{
+				      "source": "start", "target": "finish", "sourcePort": "out", "targetPort": "in",
+				      "id": "private edge id", "kind": "control", "config": "private edge config"
+				    }],
+				    "runDetails": "private details"
+				  }
+				}
+				""").getAsJsonObject());
+		assertEquals(Map.of("nodes", List.of(Map.of("id", "start", "type", "trigger.start", "label", "Start",
+				"position", Map.of("x", 12.0, "y", 34.0))), "edges", List.of(Map.of(
+				"source", "start", "target", "finish", "sourcePort", "out", "targetPort", "in"))), flow);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "null", "{}", "{\"x\":12}", "{\"x\":\"private\",\"y\":34}",
+			"{\"x\":{},\"y\":34}", "{\"x\":1e400,\"y\":34}" })
+	void invalidPositionsAreOmittedSoThePreviewCanLayOutTheGraph(String position) {
+		Map<String, Object> flow = WorkRoutine.flow(JsonParser.parseString("""
+				{"graph":{"nodes":[{"id":"start","type":"trigger.start","label":"Start","position":%s}],"edges":[]}}
+				""".formatted(position)).getAsJsonObject());
+		assertEquals(Map.of("nodes", List.of(Map.of("id", "start", "type", "trigger.start", "label", "Start")),
+				"edges", List.of()), flow);
 	}
 
 	@ParameterizedTest
@@ -833,7 +972,7 @@ class WorkInboxRoutineUnitTests {
 			Map<String, Object> input = agendaConfig(false); input.put("meetings", meetings); invalid.add(input);
 		}
 		Map<String, Object> none = agendaConfig(true); none.put("meetings", List.of()); invalid.add(none);
-		Map<String, Object> inboxSetting = agendaConfig(false); inboxSetting.put("emailCount", 25); invalid.add(inboxSetting);
+		Map<String, Object> inboxSetting = agendaConfig(false); inboxSetting.put("lookbackHours", 24); invalid.add(inboxSetting);
 		for (Object ignored : List.of("Lunch", List.of("Lunch", "lunch"), List.of("board review"), Collections.nCopies(201, "x"))) {
 			Map<String, Object> input = agendaConfig(false); input.put("ignored", ignored); invalid.add(input);
 		}

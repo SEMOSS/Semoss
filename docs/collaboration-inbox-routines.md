@@ -3,9 +3,21 @@
 The Routines page offers one routine: a private daily brief of the owner's
 Collaboration topics and most recent Brain threads, also emailed to the owner.
 New users are opted out. They choose a 24-hour time, one or more weekdays, an
-IANA time zone, and a thread count from 1 to 100 (stored as `emailCount`). The
-default is 08:00 on Monday through Friday, with 25 threads. The frontend starts
+IANA time zone, and how far back to review email for replies, in hours or days.
+The window is stored as `lookbackHours`, an integer from 1 to 720 (up to 30 days).
+The default is 08:00 on Monday through Friday, reviewing the past 24 hours. The frontend starts
 with the browser's time zone before the first configuration is saved.
+
+Each run reviews pending reply candidates received within that rolling window,
+measured in elapsed hours from the run, regardless of when the previous brief
+succeeded. Wider windows can revisit unanswered mail from an earlier brief.
+The Needs your reply section summarizes those messages and why they need attention.
+The routine does not compose reply text, create or move drafts, or create mailbox
+folders. Its only outgoing email is the daily brief sent to the owner.
+Reply candidates are paged without an email-count cap; a large window on a busy
+mailbox can still exceed the configured model's context limit.
+Existing saved routines that only have `emailCount` use 24 hours; the obsolete
+count is omitted from API responses and removed from storage on the next save.
 
 ## Prerequisites
 
@@ -46,7 +58,7 @@ WorkSaveInboxRoutine(settings=[{
   "time": "08:00",
   "days": ["MON", "TUE", "WED", "THU", "FRI"],
   "timezone": "America/New_York",
-  "emailCount": 25
+  "lookbackHours": 72
 }]);
 ```
 
@@ -60,6 +72,13 @@ contract, and the Markdown remains the assistant conversation's initial message.
 The UI must render HTML in its isolated, sanitized email viewer. Null-valued
 fields are omitted by the existing Pixel JSON serializer; consumers normalize
 them to null.
+
+Daily brief and weekly agenda get/save responses also include `flow`, a read-only
+projection of the same server-held definition used for execution. It contains
+only `nodes` (`id`, `type`, `label`, and optional numeric `position.x`/`position.y`)
+and `edges` (`source`, `target`, `sourcePort`, `targetPort`). Definitions without
+positions use the preview's automatic layout. Source, configuration, and run
+details are excluded from the projection, which is available before opt-in.
 
 `WorkRunInboxRoutine()` is the scheduler's fixed recipe. It uses the authenticated
 owner and accepts no arbitrary mailbox, user, prompt, or agent parameters. It
@@ -95,15 +114,20 @@ The definition is a linear graph:
    error, such as an import still running, does not stop the brief.
 2. A Python step waits up to about five minutes for that sync job and its
    thread summaries.
-3. `BrainListTopics` (active topics) and `BrainListThreads` (the chosen number
-   of recent threads, with participants and summaries).
+3. A Python step collects pending reply candidates with `WorkListItems`, paging
+   through email in received-time order until the `lookback_hours` cutoff, plus
+   today's meetings and open action items. The lookback applies to reply
+   candidates; meeting and action-item collection keep their existing scopes.
+   It supplies reply summaries and the latest message text directly to the brief
+   through `context.briefInput`.
 4. An `agent.run` step uses Automation's Java scope interpolation to add those
    results to the server-held briefing instruction. The `inbox_brief` harness and the owner's
    `COLLAB_LLM_ENGINE_ID` model writes the brief. The harness makes one model
    call, has no tool executor, rejects tool calls, and treats the data as
    untrusted. The brief is Markdown with Suggested priorities, Needs your reply,
    Today's meetings, and Open action items sections; links may only point to URLs
-   present in the data.
+   present in the data. Needs your reply identifies messages that need attention
+   without generating replies or reporting draft locations.
 5. A Python step converts the Markdown to HTML (raw HTML in the brief is
    escaped, images are dropped, and links to URLs not found in the thread data
    are removed) and sends it with `MicrosoftOutlookSendMail` to the owner only.
@@ -149,12 +173,14 @@ mvn -q -DskipTests compile
 mvn -q -Dlicense.skip=true -Dtest=WorkInboxRoutineUnitTests,InboxBriefHarnessUnitTests,MicrosoftOutlookMailHelperUnitTests,BrainMemoryRecallUnitTests test
 ```
 
-Focused tests cover configuration validation, owner isolation, DST-aware cron,
+Focused tests cover lookback validation and saved-setting migration, owner isolation, DST-aware cron,
 credential persistence only on opt-in, runs without a browser or webhook,
 Settings credential reuse, repeat saves, failed scheduling, brief persistence,
 duplicate-day execution, interrupted-run recovery, the JSON null contract,
-token lending and restore, the Python requirement, an unsent brief, and a strict
-validation of the shipped definition and its scope references. No real mailbox was read, no
-model request was submitted, no live schedule was activated, and no application
+token lending and restore, the Python requirement, an unsent brief, strict
+validation of the shipped definition and its scope references, and an invariant
+that the routine's only Outlook operation sends the brief, with no draft or
+folder writes. No real mailbox was read, no model request was submitted, no live
+schedule was activated, and no application
 was deployed or restarted during this work. Live OAuth refresh and clustered
 Quartz execution remain deployment integration checks.
