@@ -233,6 +233,9 @@ public final class WorkCustomRoutine {
 				+ "- Do not mention delivery, sending, or what you could not do in this run. If the task asks you to "
 				+ "send something, that is the delivery already handled.\n"
 				+ "- When nothing matches, say so in one sentence.\n"
+				+ "- Never write room:// links; they do not open outside this room.\n"
+				+ "- Never invent content, such as what a meeting covered or who owes what: take it only from mail, "
+				+ "chats or files you read, and leave it out when you found none.\n"
 				+ "- Keep it short and scannable: lead with what needs attention, then the rest.\n"
 				+ "- Compose the result directly as your final message, once. Do not draft it in a file, re-read it, "
 				+ "or polish it with file tools or code.\n"
@@ -243,7 +246,8 @@ public final class WorkCustomRoutine {
 			command.append("- When the task asks for a file (a deck, a spreadsheet, a document), save it in the \"")
 					.append(WorkRoutineAttachments.FOLDER).append("\" folder of your working folder and it is attached "
 							+ "to the email, up to ").append(MicrosoftOutlookMailHelper.maxAttachmentBytes() / (1024 * 1024))
-					.append(" MB of files in all. Say in one line of the result what is attached.\n");
+					.append(" MB of files in all. Build a deck with BuildPptx, never a script, and save it there "
+							+ "directly. Say in one line of the result what is attached, by file name only.\n");
 		}
 		if (skills.isEmpty()) {
 			command.append("- Write compact Markdown.\n");

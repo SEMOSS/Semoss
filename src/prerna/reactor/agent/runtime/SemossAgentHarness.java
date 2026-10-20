@@ -225,7 +225,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 
 		// a Collaboration run's baseline is the Collaboration Agent's own prompt when it is the agent
-		boolean collaborationRun = CollaborationRunMode.of(room) != null && !agentConfig.hasPptxWorkflow();
+		boolean collaborationRun = collaborationBaseline(ctx, room);
 		String authoredPrompt = agentConfig.getAuthoredPrompt();
 		boolean agentIsBaseline = collaborationRun && Constants.AGENT_COLLABORATION.equals(agentConfig.getWorkspaceId())
 				&& authoredPrompt != null && !authoredPrompt.isBlank();
@@ -1237,27 +1237,9 @@ public class SemossAgentHarness implements IAgentHarness {
 				- Verify generated outputs through working-directory file tools before reporting completion. \
 				Also reopen binary documents with a format-appropriate reader at the exact ROOT destination.\
 				""");
-		if (CollaborationUtils.isCollaborationRoom(room)) {
-			sb.append(
-					"""
-
-							## Collaboration file delivery
-							- Before reading documents, load collaboration/references/documents/read-and-extract.md \
-							and python. For source text, use from smssutil import get_document_markdown, then \
-							get_document_markdown("<actual relative file path>"). The shared Docling wrapper includes \
-							notes/source labels and leaves originals unchanged. Use this route before raw ZIP/XML parsing \
-							or visual inspection for a text-reading task; use visual tools when visuals matter.
-							- Before creating or repairing files, load the relevant collaboration references and the \
-							python or pptx skill for that execution route. Continue truncated reads as needed.
-							- For every verified output saved inside this room, include a Markdown file link in the final answer: \
-							[summary.docx](room://summary.docx). Use the path relative to the room folder, including any subdirectory, \
-							and percent-encode spaces in each path segment. The link opens the file panel with Download. \
-							A bare filename is not a file handoff. Never link an unverified file or one outside the room. \
-							Do not offer email as a substitute for returning the file.
-							- Repair authorized local outputs without another permission turn, preserving the owner's edits. \
-							Ask only for a blocking new decision or unrelated overwrite. Do not bypass an access failure or retry \
-							a rejected external action. Finish with the verified artifact and a concise outcome.\
-							""");
+		// the Collaboration prompt carries this itself; other agents in a Collaboration room get it here
+		if (CollaborationUtils.isCollaborationRoom(room) && !collaborationBaseline(ctx, room)) {
+			sb.append("\n\n").append(CollaborationPrompts.FILES_PROMPT);
 		}
 		if (ctx.getAgentConfig().hasPptxWorkflow()) {
 			sb.append("""
@@ -1581,6 +1563,12 @@ public class SemossAgentHarness implements IAgentHarness {
 			throw new IllegalStateException("Agent model returned no response " + phase);
 		}
 		return response;
+	}
+
+
+	// a Collaboration chat or routine starts from the Collaboration prompt; a PPTX workflow agent keeps its own
+	private static boolean collaborationBaseline(AgentRunContext ctx, Room room) {
+		return CollaborationRunMode.of(room) != null && !ctx.getAgentConfig().hasPptxWorkflow();
 	}
 
 }

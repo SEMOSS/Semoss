@@ -45,7 +45,12 @@ one job the same way every time. Skills are private to the owner.
   fonts. Mark what repeats with comments, such as `<!-- one row per win -->`.
 - `references/<topic>.md` only when `SKILL.md` would get long; one topic per
   file.
-- `scripts/*.py` only when the owner asks for a script.
+- `scripts/*.py` only when the owner asks for a script. A deck, document or
+  sheet is never built by a skill's script: `SKILL.md` says what goes on each
+  slide or section, and the run builds it with its own document tools
+  (`BuildPptx` for a deck).
+- No sample data that looks real (names, dates, action items): a run copies
+  it. Show the shape with placeholders such as `<meeting subject>`.
 
 Nothing else is published. Hidden files and `__pycache__` are left out.
 

@@ -28,8 +28,8 @@
 package prerna.collaboration;
 
 /**
- * System prompt for the owner's assistant rooms (CollaborationUtils.isAssistantRoom);
- * replaces the general agent baseline in those rooms only.
+ * The Collaboration Agent's prompt: the baseline of the owner's chats and routines
+ * (CollaborationRunMode), in place of the general agent baseline.
  */
 public final class CollaborationPrompts {
 
@@ -342,9 +342,33 @@ public final class CollaborationPrompts {
 			read-only: do not run local rendering commands, install packages, or change the helper.
 			""";
 
-	// a thread's assistant; the chosen agent's prompt, if any, follows this one.
-	// Joined at runtime so callers read it here instead of a copy javac inlined into them.
-	public static final String THREAD_PROMPT = String.join("", INTRO, TOOLS, RULES, EMAILS);
+	private static final String FILES = """
+
+			## Collaboration file delivery
+			- Before reading documents, load collaboration/references/documents/read-and-extract.md \
+			and python. For source text, use from smssutil import get_document_markdown, then \
+			get_document_markdown("<actual relative file path>"). The shared Docling wrapper includes \
+			notes/source labels and leaves originals unchanged. Use this route before raw ZIP/XML parsing \
+			or visual inspection for a text-reading task; use visual tools when visuals matter.
+			- Before creating or repairing files, load the relevant collaboration references and the \
+			python or pptx skill for that execution route. Continue truncated reads as needed.
+			- For every verified output saved inside this room, include a Markdown file link in the final answer: \
+			[summary.docx](room://summary.docx). Use the path relative to the room folder, including any subdirectory, \
+			and percent-encode spaces in each path segment. The link opens the file panel with Download. \
+			A bare filename is not a file handoff. Never link an unverified file or one outside the room. \
+			Do not offer email as a substitute for returning the file.
+			- Repair authorized local outputs without another permission turn, preserving the owner's edits. \
+			Ask only for a blocking new decision or unrelated overwrite. Do not bypass an access failure or retry \
+			a rejected external action. Finish with the verified artifact and a concise outcome.
+			""";
+
+	// the Collaboration Agent's prompt, and the baseline of any Collaboration chat or routine;
+	// a picked agent's prompt follows it. Joined at runtime so callers read it here instead of
+	// a copy javac inlined into them.
+	public static final String THREAD_PROMPT = String.join("", INTRO, TOOLS, RULES, EMAILS, FILES);
+
+	// for an agent in a Collaboration room that has its own baseline (a PPTX workflow agent)
+	public static final String FILES_PROMPT = FILES.strip();
 
 	// any collaboration run that may start the managed PPTX workflow (PptxWorkflow.onDemand)
 	public static final String PPTX_PROMPT = PPTX.stripTrailing();
