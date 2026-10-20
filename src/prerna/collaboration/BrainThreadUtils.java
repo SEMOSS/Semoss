@@ -59,7 +59,7 @@ public final class BrainThreadUtils {
 	private static final List<String> ROLE_ORDER = List.of("organizer", "from", "to", "cc", "required", "attendee",
 			"member");
 
-	private static final String THREAD_COLUMNS = "t.THREAD_ID, t.THREAD_KEY, t.SOURCE, t.SUBJECT, t.MUTED, t.AUTOMATED, "
+	private static final String THREAD_COLUMNS = "t.THREAD_ID, t.SOURCE, t.SUBJECT, t.MUTED, t.AUTOMATED, "
 			+ "t.AUTOMATED_OVERRIDE, t.MESSAGE_COUNT, t.LAST_MESSAGE_AT, t.ROOM_ID";
 
 	// an open topic_choice review means two candidate topics were close
@@ -139,29 +139,6 @@ public final class BrainThreadUtils {
 		page.put("items", items);
 		page.put("total", CollaborationDbUtils.count("SELECT COUNT(*) FROM BRAIN_THREAD t" + where, params.toArray()));
 		return page;
-	}
-
-	/** Reads one owned thread with the same metadata as a detailed list row. */
-	public static Map<String, Object> getThread(User user, String threadId) {
-		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		Map<String, Object> thread = CollaborationDbUtils.queryOne(
-				"SELECT " + THREAD_COLUMNS + ", t.SUMMARY, t.SUMMARY_REF, t.SUMMARY_AT, " + OPEN_TOPIC_CHOICE
-				+ " AS NEEDS_CHOICE FROM BRAIN_THREAD t WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.THREAD_ID = ?",
-				rs -> {
-					Map<String, Object> row = mapThread(rs);
-					row.put("summary", CollaborationDbUtils.getString(rs, "SUMMARY"));
-					row.put("summaryRef", CollaborationDbUtils.getString(rs, "SUMMARY_REF"));
-					row.put("summaryAt", CollaborationDbUtils.getTimestamp(rs, "SUMMARY_AT"));
-					return row;
-				}, owner.getValue0(), owner.getValue1(), threadId);
-		if (thread == null) throw new IllegalArgumentException("Thread not found");
-		List<Map<String, Object>> rows = List.of(thread);
-		addLinks(owner.getValue0(), owner.getValue1(), rows);
-		addParticipants(owner.getValue0(), owner.getValue1(), rows);
-		addLatestMessage(owner.getValue0(), owner.getValue1(), rows);
-		thread.put("summaryCurrent", WorkThreadInsights.covers((String) thread.remove("summaryRef"),
-				(String) thread.get("latestMessageId")));
-		return thread;
 	}
 
 	static List<Map<String, Object>> getLinks(String ownerId, String ownerType, String threadId) {
@@ -451,9 +428,6 @@ public final class BrainThreadUtils {
 		Map<String, Object> row = new LinkedHashMap<>();
 		row.put("id", CollaborationDbUtils.getString(rs, "THREAD_ID"));
 		row.put("channel", CollaborationDbUtils.getString(rs, "SOURCE"));
-		String key = CollaborationDbUtils.getString(rs, "THREAD_KEY");
-		String prefix = row.get("channel") + ":";
-		if (key != null && key.startsWith(prefix)) row.put("conversationId", key.substring(prefix.length()));
 		row.put("subject", CollaborationDbUtils.getString(rs, "SUBJECT"));
 		row.put("muted", Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED")));
 		if (Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "AUTOMATED"))) {

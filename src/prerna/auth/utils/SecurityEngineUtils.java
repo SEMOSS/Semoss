@@ -35,7 +35,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -51,8 +50,6 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.access.ModelUsageLimit;
-import prerna.auth.access.ModelUsageLimitKey;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
 import prerna.auth.access.PermissionGrant;
@@ -79,9 +76,7 @@ import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.AuditTargetType;
-import prerna.usertracking.UserAuditTrailUtils;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
@@ -232,9 +227,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Adds an engine to the security database with its name as its display name.
-	 * The engine is not discoverable, and the user, when given, is recorded as its
-	 * creator.
 	 * 
 	 * @param engineId
 	 * @param engineName
@@ -426,8 +418,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occurred updating the engine display name");
 		}
 
-		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
-				engineId, newDisplayName, Map.of("field", "displayName", "displayName", newDisplayName));
 		return true;
 	}
 
@@ -445,7 +435,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Lists the ids of every engine on the server, of any type.
 	 * 
 	 * @return
 	 */
@@ -587,7 +576,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		PermissionTargetResource target = PermissionTargetResource.engine(engineId);
 		PermissionBatchUtils.saveChanges(user, target, PermissionBatchUtils.approvalChanges(target, requests, endDate),
 				PermissionBatchOptions.userMode().approving(target, requests),
-				PermissionErrorRules.forApprovals(endDate).illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION,
+				PermissionErrorRules.forApprovals(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION,
 						"Insufficient privileges to modify this engine's permissions."));
 
 		// notifications and emails go out after the save, and a failure does not
@@ -624,11 +613,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throws IllegalAccessException {
 		PermissionBatchUtils.denyRequests(user, PermissionTargetResource.engine(engineId), requestIds,
 				PermissionBatchOptions.userMode(),
-				new PermissionErrorRules()
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.ErrorCode.OWNERS_ONLY,
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.Code.OWNERS_ONLY,
 								"Insufficient privileges to deny user access requests.")
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred while updating user access request"));
 
 		// notifications go out after the save, and a failure does not undo it
@@ -730,9 +718,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Whether the user is an owner of the engine, which the UI calls Author. Grants
-	 * that have ended do not count.
-	 *
 	 * @return whether the user is an owner of the engine now, directly or through a
 	 *         team; see {@link CurrentPermissionLevel}
 	 */
@@ -741,9 +726,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Whether the user can edit the engine, as an editor or an owner. Grants that
-	 * have ended do not count.
-	 *
 	 * @return whether the user is an editor or an owner of the engine now, directly
 	 *         or through a team; see {@link CurrentPermissionLevel}
 	 */
@@ -783,9 +765,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 
 	/**
-	 * The people to show with the engine: for a global engine, its owners and
-	 * editors plus a PUBLIC DATABASE row at Read-Only; otherwise everyone with
-	 * access to it.
 	 * 
 	 * @param databaseId
 	 * @return
@@ -815,9 +794,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Counts the users who hold a level on the engine, for paging its user list.
-	 * The search matches user id, name, username or email, and the permission keeps
-	 * only users at that level. The user must be able to view the engine.
 	 * 
 	 * @param user
 	 * @param engineId
@@ -860,40 +836,40 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Gives a person access to an engine, as a permission batch. The engine's
-	 * editors can; only its owners give Author access, and only its owners give a
-	 * usage limit.
+	 * editors can; only its owners give Author access. Limits of 0 are no limit.
 	 *
-	 * @param user       the user giving access
-	 * @param newUserId  the person
-	 * @param engineId   the engine
-	 * @param permission the level, by name; anything else is Read-Only
-	 * @param endDate    when the access ends, or null
-	 * @param usageLimit the person's model usage limit on a model engine, or null
-	 *                   for no limit defined
-	 * @throws IllegalAccessException when the user cannot give the access, or is
-	 *                                not an owner and gives a usage limit
+	 * @param user             the user giving access
+	 * @param newUserId        the person
+	 * @param engineId         the engine
+	 * @param permission       the level, by name; anything else is Read-Only
+	 * @param endDate          when the access ends, or null
+	 * @param usageRestriction a model engine's usage restriction, or null
+	 * @param usageFrequency   how often a model engine's limits reset, or null
+	 * @param maxTokens        a model engine's token limit, or 0 for none
+	 * @param maxResponseTime  a model engine's response time limit, or 0 for none
+	 * @throws IllegalAccessException when the user cannot give the access
 	 */
 	public static void addEngineUser(User user, String newUserId, String engineId, String permission, String endDate,
-			ModelUsageLimit usageLimit) throws IllegalAccessException {
+			String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime)
+			throws IllegalAccessException {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
 				List.of(PermissionChange.add(PermissionSubject.ofUser(newUserId, null),
-						new PermissionGrant(permission, endDate).withUsageLimit(usageLimit))),
-				PermissionBatchOptions.userMode(),
+						new PermissionGrant(permission, endDate)
+								.withUsageLimits(usageRestriction, usageFrequency, maxTokens, maxResponseTime))),
+				PermissionBatchOptions.userMode().zeroLimitsAsNone(),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+						.illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
 								"This user already has access to this engine. Please edit the existing permission level.")
-						.illegalAccess(PermissionProblem.ErrorCode.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
-						.illegalAccess(PermissionProblem.ErrorCode.OWNERS_ONLY, PermissionBatchUtils.OWNERS_SET_LIMITS)
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalAccess(PermissionProblem.Code.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred adding the user permissions for this engine"));
 	}
 
 	/**
 	 * Gives many people access to an engine together, as a permission batch, and
 	 * tells them. Each entry has {@code userid}, {@code permission}, and optionally
-	 * {@code type}, {@code endDate} and, on a model, {@code usageLimit}, which only
-	 * the engine's owners give; an entry without it gives no limit.
+	 * {@code type}, {@code endDate} and the model limits.
 	 *
 	 * @param user       the user giving access
 	 * @param engineId   the engine
@@ -905,22 +881,19 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
 				PermissionBatchUtils.engineChanges(PermissionChange.Action.ADD, permission),
 				PermissionBatchOptions.userMode().notifying(true, false),
-				new PermissionErrorRules()
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgumentWithIds(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.Code.ALREADY_HAS_ACCESS,
 								"The following users already have access to this engine. Please edit the existing permission level: ")
-						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR,
+						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR,
 								"As a non-owner, you cannot add owner user access.")
-						.illegalArgument(PermissionProblem.ErrorCode.OWNERS_ONLY,
-								PermissionBatchUtils.OWNERS_SET_LIMITS)
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred adding the user permissions for this engine"));
 	}
 
 	/**
 	 * Changes a person's access to an engine, as a permission batch, and tells
 	 * them. The engine's editors can; only its owners change an Author's access or
-	 * give Author access, and only its owners change a usage limit.
+	 * give Author access. The limits are all set, and limits of 0 are no limit.
 	 *
 	 * @param user             the user changing the access
 	 * @param existingUserId   the person
@@ -928,62 +901,34 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param engineId         the engine
 	 * @param newPermission    the level, by name; anything else is Read-Only
 	 * @param endDate          when the access ends, or null for never
-	 * @param usageLimit       the person's model usage limit on a model engine, or
-	 *                         null for no limit defined
-	 * @throws IllegalAccessException when the user cannot change the access, or is
-	 *                                not an owner and changes the usage limit
-	 */
-	public static void editEngineUserPermission(User user, String existingUserId, String existingUserType,
-			String engineId, String newPermission, String endDate, ModelUsageLimit usageLimit)
-			throws IllegalAccessException {
-		saveEngineUserChange(user, existingUserId, existingUserType, engineId,
-				new PermissionGrant(newPermission, endDate).withUsageLimit(usageLimit),
-				PermissionBatchOptions.userMode().notifying(false, true), endDate);
-	}
-
-	/**
-	 * Changes a person's level and end date on an engine, as a permission batch,
-	 * and tells them. Their model usage limit stays as it is. The engine's editors
-	 * can; only its owners change an Author's access or give Author access.
-	 *
-	 * @param user             the user changing the access
-	 * @param existingUserId   the person
-	 * @param existingUserType the person's login type, for the notification
-	 * @param engineId         the engine
-	 * @param newPermission    the level, by name; anything else is Read-Only
-	 * @param endDate          when the access ends, or null for never
+	 * @param usageRestriction a model engine's usage restriction, or null
+	 * @param usageFrequency   how often a model engine's limits reset, or null
+	 * @param maxTokens        a model engine's token limit, or 0 for none
+	 * @param maxResponseTime  a model engine's response time limit, or 0 for none
 	 * @throws IllegalAccessException when the user cannot change the access
 	 */
 	public static void editEngineUserPermission(User user, String existingUserId, String existingUserType,
-			String engineId, String newPermission, String endDate) throws IllegalAccessException {
-		saveEngineUserChange(user, existingUserId, existingUserType, engineId,
-				new PermissionGrant(newPermission, endDate),
-				PermissionBatchOptions.userMode().notifying(false, true).keepingModelLimits(), endDate);
-	}
-
-	private static void saveEngineUserChange(User user, String existingUserId, String existingUserType, String engineId,
-			PermissionGrant grant, PermissionBatchOptions options, String endDate) throws IllegalAccessException {
+			String engineId, String newPermission, String endDate, String usageRestriction, String usageFrequency,
+			int maxTokens, double maxResponseTime) throws IllegalAccessException {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
-				List.of(PermissionChange.change(PermissionSubject.ofUser(existingUserId, existingUserType), grant)),
-				options,
+				List.of(PermissionChange.change(PermissionSubject.ofUser(existingUserId, existingUserType),
+						new PermissionGrant(newPermission, endDate).withUsageLimits(usageRestriction, usageFrequency,
+								maxTokens, maxResponseTime))),
+				PermissionBatchOptions.userMode().notifying(false, true).zeroLimitsAsNone(),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+						.illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify engine permission for a user who does not currently have access to the engine")
-						.illegalAccess(PermissionProblem.ErrorCode.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
-						.illegalAccess(PermissionProblem.ErrorCode.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
-						.illegalAccess(PermissionProblem.ErrorCode.OWNERS_ONLY, PermissionBatchUtils.OWNERS_SET_LIMITS)
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalAccess(PermissionProblem.Code.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
+						.illegalAccess(PermissionProblem.Code.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred updating the user permissions for this engine"));
 	}
 
 	/**
 	 * Changes many people's access to an engine together, as a permission batch,
 	 * and tells them. Each entry has {@code userid}, {@code permission}, and
-	 * optionally {@code type}, {@code endDate} and, on a model, {@code usageLimit},
-	 * which only the engine's owners change. An entry without {@code usageLimit}
-	 * keeps the person's current limit, and one whose {@code usageLimit} is null
-	 * removes it.
+	 * optionally {@code type}, {@code endDate} and the model limits.
 	 *
 	 * @param user       the user changing the access
 	 * @param engineId   the engine
@@ -994,20 +939,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throws IllegalAccessException {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
 				PermissionBatchUtils.engineChanges(PermissionChange.Action.CHANGE, permission),
-				PermissionBatchOptions.userMode().notifying(false, true).keepingModelLimits(),
-				new PermissionErrorRules()
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
+				PermissionBatchOptions.userMode().notifying(false, true),
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify user permission for the following users who do not currently have access to the engine: ")
-						.illegalArgument(PermissionProblem.ErrorCode.CHANGES_AUTHOR,
+						.illegalArgument(PermissionProblem.Code.CHANGES_AUTHOR,
 								"As a non-owner, you cannot edit access of an owner.")
-						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR,
+						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR,
 								"As a non-owner, you cannot give a user access as an owner.")
-						.illegalArgument(PermissionProblem.ErrorCode.OWNERS_ONLY,
-								PermissionBatchUtils.OWNERS_SET_LIMITS)
-						.illegalArgument(PermissionProblem.ErrorCode.ENDS_LIMITED_ACCESS,
-								PermissionBatchUtils.OWNERS_END_LIMITED_ACCESS)
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred updating the user permissions for this engine"));
 	}
 
@@ -1035,22 +975,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				classLogger.error("Failed to delete engine", e);
 			}
 		}
-		// every model usage limit on the engine: people's, teams', public use and its
-		// total
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				SecurityModelUsageLimitUtils.deleteEngineLimits(connection, engineId);
-				return null;
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to delete the engine's model usage limits", e);
-		} finally {
-			// the grants are gone even when the limits are not, so the cached limits are
-			// read again
-			SecurityModelUsageLimitUtils.markChanged();
-		}
 	}
 
 	/**
@@ -1068,14 +992,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
 				List.of(PermissionChange.remove(PermissionSubject.ofUser(existingUserId, null))),
 				PermissionBatchOptions.userMode().allowingSelfRemoval(),
-				new PermissionErrorRules()
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify engine permission for a user who does not currently have access to the engine")
-						.illegalAccess(PermissionProblem.ErrorCode.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
-						.illegalAccess(PermissionProblem.ErrorCode.ENDS_LIMITED_ACCESS,
-								PermissionBatchUtils.OWNERS_END_LIMITED_ACCESS)
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalAccess(PermissionProblem.Code.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred removing the user permissions for this engine"));
 	}
 
@@ -1092,73 +1013,30 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
 				PermissionChange.forPeople(PermissionChange.Action.REMOVE, existingUserIds, null),
 				PermissionBatchOptions.userMode(),
-				new PermissionErrorRules()
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify engine permission for the following users who do not currently have access to the engine: ")
-						.illegalAccess(PermissionProblem.ErrorCode.CHANGES_AUTHOR,
+						.illegalAccess(PermissionProblem.Code.CHANGES_AUTHOR,
 								"As a non-owner, you cannot remove access of an owner.")
-						.illegalAccess(PermissionProblem.ErrorCode.ENDS_LIMITED_ACCESS,
-								PermissionBatchUtils.OWNERS_END_LIMITED_ACCESS)
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred removing the users from this engine"));
 	}
 
-	/**
-	 * Removes a person's access to an engine once it has ended, with the model
-	 * usage limit on it.
-	 *
-	 * @param userId   the person
-	 * @param engineId the engine
-	 */
 	public static void removeExpiredEngineUser(String userId, String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
-		// read before the removal, so the audit trail records the limits removed with
-		// it
-		Map<ModelUsageLimitKey, ModelUsageLimit> removedLimits = directLimitsOf(engineId, userId);
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				QueryExecutionUtility.executeUpdate(connection, deleteQuery, ps -> {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, engineId);
-				});
-				SecurityModelUsageLimitUtils.deleteDirectLimitsWithoutGrant(connection, userId);
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, engineId);
 			});
-			SecurityModelUsageLimitUtils.markChanged();
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
 			classLogger.error("Failed to remove expired engine user", e);
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this engine");
 		}
-		UserAuditTrailUtils.recordExpiredPermissionRemoval(getAuditTargetType(engineId), engineId, null, engineId, null,
-				userId);
-		ModelUsageLimitAudit.recordRemovedWithExpiredGrant(engineId, removedLimits);
-	}
-
-	/**
-	 * Reads a person's Direct Limits on a model, on every login type, for the audit
-	 * trail of a removal. A read that fails gives none, so it never stops the
-	 * removal.
-	 *
-	 * @return the person's Direct Limits on the model, by key
-	 */
-	private static Map<ModelUsageLimitKey, ModelUsageLimit> directLimitsOf(String engineId, String userId) {
-		Map<ModelUsageLimitKey, ModelUsageLimit> direct = new LinkedHashMap<>();
-		try {
-			for (Map.Entry<ModelUsageLimitKey, ModelUsageLimit> entry : SecurityModelUsageLimitUtils
-					.getEngineLimits(engineId).entrySet()) {
-				if (entry.getKey().isDirect() && userId.equals(entry.getKey().subjectId())) {
-					direct.put(entry.getKey(), entry.getValue());
-				}
-			}
-		} catch (RuntimeException e) {
-			classLogger.warn("Unable to read the usage limits of an expired grant for the audit trail", e);
-		}
-		return direct;
 	}
 
 	/**
@@ -1177,31 +1055,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					"The user doesn't have the permission to set this engine as global. Only the owner can perform this action.");
 		}
 
-		String updateQ = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=? AND (GLOBAL IS NULL OR GLOBAL<>?)";
+		String updateQ = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
 		try {
-			int updated = QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
 				ps.setBoolean(1, global);
 				ps.setString(2, engineId);
-				ps.setBoolean(3, global);
 			});
-			if (updated == 0
-					&& QueryExecutionUtility.queryOne(securityDb, "SELECT ENGINEID FROM ENGINE WHERE ENGINEID=?",
-							ps -> ps.setString(1, engineId), rs -> rs.getString(1)) != null) {
-				return true;
-			}
-			if (updated != 1) {
-				throw new IllegalArgumentException("Engine not found");
-			}
-			// public use applies only on a public model
-			SecurityModelUsageLimitUtils.markChanged();
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine global visibility setting", e);
-			UserAuditTrailUtils.recordFailure(user, AuditEventType.ENGINE_UPDATE, AuditTargetType.ENGINE, engineId,
-					new IllegalStateException("Unable to update engine global visibility"), null);
-			throw new IllegalStateException("Unable to update engine global visibility", e);
 		}
-		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
-				engineId, getEngineDisplayNameForId(engineId), Map.of("field", "global", "global", global));
 		return true;
 	}
 
@@ -1220,8 +1082,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					ps.setBoolean(parameterIndex++, true);
 					ps.setString(parameterIndex++, engineId);
 				});
-				// public use applies only on a public model
-				SecurityModelUsageLimitUtils.markChanged();
 			} catch (RuntimeException e) {
 				throw e;
 			} catch (Exception e) {
@@ -1247,30 +1107,17 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					"The user doesn't have the permission to set this engine as discoverable. Only the owner or an admin can perform this action.");
 		}
 
-		String updateQ = "UPDATE ENGINE SET DISCOVERABLE=? WHERE ENGINEID=? AND (DISCOVERABLE IS NULL OR DISCOVERABLE<>?)";
+		String updateQ = "UPDATE ENGINE SET DISCOVERABLE=? WHERE ENGINEID=?";
 		try {
-			int updated = QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
 				ps.setBoolean(1, discoverable);
 				ps.setString(2, engineId);
-				ps.setBoolean(3, discoverable);
 			});
-			if (updated == 0
-					&& QueryExecutionUtility.queryOne(securityDb, "SELECT ENGINEID FROM ENGINE WHERE ENGINEID=?",
-							ps -> ps.setString(1, engineId), rs -> rs.getString(1)) != null) {
-				return true;
-			}
-			if (updated != 1) {
-				throw new IllegalArgumentException("Engine not found");
-			}
+		} catch (RuntimeException e) {
+			throw e;
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine discoverability setting", e);
-			UserAuditTrailUtils.recordFailure(user, AuditEventType.ENGINE_UPDATE, AuditTargetType.ENGINE, engineId,
-					new IllegalStateException("Unable to update engine discoverability"), null);
-			throw new IllegalStateException("Unable to update engine discoverability", e);
 		}
-		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
-				engineId, getEngineDisplayNameForId(engineId),
-				Map.of("field", "discoverable", "discoverable", discoverable));
 		return true;
 	}
 
@@ -1292,8 +1139,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 		setUserPreference(user, "USERENGINEPREFERENCE", List.of(Pair.with("ENGINEID", engineId)), "VISIBILITY",
 				visibility);
-		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
-				engineId, getEngineDisplayNameForId(engineId), Map.of("field", "visibility", "visibility", visibility));
 	}
 
 	/**
@@ -1346,8 +1191,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update engine name", e);
 			throw new IllegalArgumentException("An error occurred updating the engine name");
 		}
-		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
-				engineId, newEngineName, Map.of("field", "name", "name", newEngineName));
 		return true;
 	}
 
@@ -1360,7 +1203,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 
 	/**
-	 * Lists every metadata key defined for engines.
 	 * 
 	 * @return
 	 */
@@ -1713,9 +1555,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * The level the user asked for in their pending access request on the engine,
-	 * from their primary login's newest request that is not approved, denied or
-	 * old, or -1 when there is none.
 	 * 
 	 * @param user
 	 * @param engineId
@@ -1825,7 +1664,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	public static List<Map<String, Object>> getUserEngineList(User user, List<String> engineTypes,
-			List<String> engineIdFilters, boolean favoritesOnly, Map<String, Object> engineMetadataFilter,
+			List<String> engineIdFilters, Boolean favoritesOnly, Map<String, Object> engineMetadataFilter,
 			List<Integer> permissionFilters, String searchTerm, String limit, String offset) {
 		return getUserEngineList(user, engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter,
 				permissionFilters, searchTerm, limit, offset, null);
@@ -1847,7 +1686,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserEngineList(User user, List<String> engineTypes,
-			List<String> engineIdFilters, boolean favoritesOnly, Map<String, Object> engineMetadataFilter,
+			List<String> engineIdFilters, Boolean favoritesOnly, Map<String, Object> engineMetadataFilter,
 			List<Integer> permissionFilters, String searchTerm, String limit, String offset,
 			Map<String, String> sortFields) {
 		return getUserEngineList(user, engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter,
@@ -1899,7 +1738,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 *                                  {@link prerna.auth.AccessPermissionEnum} id
 	 */
 	public static List<Map<String, Object>> getUserEngineList(User user, List<String> engineTypes,
-			List<String> engineIdFilters, boolean favoritesOnly, Map<String, Object> engineMetadataFilter,
+			List<String> engineIdFilters, Boolean favoritesOnly, Map<String, Object> engineMetadataFilter,
 			List<Integer> permissionFilters, String searchTerm, String limit, String offset,
 			Map<String, String> sortFields, Collection<Integer> effectivePermissions,
 			Collection<Pair<String, String>> createdBy) {
@@ -2623,9 +2462,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Reads the settings of the engine metadata keys: whether each takes one value
-	 * or many, its display order and options, and its default values. Reads only
-	 * the given key when one is passed, or every key otherwise.
 	 * 
 	 * @param metakey
 	 * @return
@@ -2645,9 +2481,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Replaces every engine metadata key definition with the given ones, each with
-	 * its key, single or multi setting, display order and display options, in one
-	 * write.
 	 * 
 	 * @param metaoptions
 	 * @return
@@ -2684,59 +2517,140 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Replaces a person's engine permissions with the ones given, such as their
-	 * login provider's, in one transaction. Engines not yet registered are added
-	 * first. The model usage limits on the grants kept stay as they are, and the
-	 * limits on grants no longer given are removed.
+	 * Get the engine user permission restriction
+	 * 
+	 * @param user
+	 * @param engineId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getEngineUsagePermissionMap(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		if (user == null || engineId == null || engineId.trim().isEmpty()) {
+			return null;
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "type"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addSelector(
+				new QueryColumnSelector("SMSS_USER__MODELUSAGERESTRICTION", Constants.USER_USAGE_RESTRICTION_KEY));
+		qs.addSelector(
+				new QueryColumnSelector("SMSS_USER__MODELUSAGEFREQUENCY", Constants.USER_MODEL_USAGE_FREQUENCY_KEY));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXTOKENS", Constants.USER_MODEL_MAX_TOKEN_KEY));
+		qs.addSelector(
+				new QueryColumnSelector("SMSS_USER__MODELMAXRESPONSETIME", Constants.USER_MODEL_MAX_RESPONSE_TIME_KEY));
+
+		qs.addSelector(
+				new QueryColumnSelector("ENGINEPERMISSION__USAGERESTRICTION", Constants.ENGINE_USAGE_RESTRICTION_KEY));
+		qs.addSelector(
+				new QueryColumnSelector("ENGINEPERMISSION__USAGEFREQUENCY", Constants.ENGINE_USAGE_FREQUENCY_KEY));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXTOKENS", Constants.ENGINE_MAX_TOKEN_KEY));
+		qs.addSelector(
+				new QueryColumnSelector("ENGINEPERMISSION__MAXRESPONSETIME", Constants.ENGINE_MAX_RESPONSE_TIME_KEY));
+
+		// filter to the engine
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userDetails.getValue0()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		// relationship between SMSS_USER and ENGINEPERMISSION tables
+		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "left.outer.join");
+
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Get a list of engine IDs where USAGERESTRICTION is set (not empty or null)
+	 * 
+	 * @param user
+	 * @param engineId
+	 * @return
+	 */
+	public static List<String> getModelEngineIdsWithRestrictions(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		if (user == null || engineId == null || engineId.trim().isEmpty()) {
+			return null;
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "engineId"));
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userDetails.getValue0()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USAGERESTRICTION", "!=",
+				Arrays.asList("", null)));
+		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "left.outer.join");
+
+		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
+
+	/**
+	 * Updates the permissions for a user on specific engines by replacing existing
+	 * permissions.
 	 *
-	 * @param user              the person
-	 * @param enginePermissions each engine's {@code engineId}, {@code engineName},
-	 *                          {@code engineType}, {@code engineSubType} and
-	 *                          {@code permission}
-	 * @return the permissions whose engines were added
-	 * @throws IllegalArgumentException when the permissions cannot be saved
+	 * @param user
+	 * @param enginePermissions
+	 * @throws Exception
 	 */
 	public static List<Map<String, Object>> updateEngineUserPermissions(User user,
 			List<Map<String, Object>> enginePermissions) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> newEngines = new ArrayList<>();
-		List<Map<String, Object>> permissions = enginePermissions == null ? List.of() : enginePermissions;
-		String userId = User.getPrimaryUserIdAndTypePair(user).getValue0();
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		PreparedStatement deletePs = null;
+		PreparedStatement insertPs = null;
 		try {
-			// engines not yet registered are added on their own, before the transaction
-			for (Map<String, Object> permissionMap : permissions) {
-				String engineId = (String) permissionMap.get("engineId");
-				if (!engineExists(engineId)) {
-					newEngines.add(permissionMap);
-					addEngine(engineId, (String) permissionMap.get("engineName"),
-							(IEngine.CATALOG_TYPE) permissionMap.get("engineType"),
-							(String) permissionMap.get("engineSubType"), "", false, null);
+			// Step 1: Delete existing permissions for the engine
+			String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID = ?";
+			deletePs = securityDb.getPreparedStatement(deleteQuery);
+			deletePs.setString(1, userDetails.getValue0());
+			deletePs.execute();
+			if (!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+
+			if (enginePermissions != null && !enginePermissions.isEmpty()) {
+				String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, DATEADDED) VALUES (?, ?, ?, ?)";
+				insertPs = securityDb.getPreparedStatement(insertQuery);
+
+				Timestamp currentTimestamp = Utility.getCurrentSqlTimestampUTC();
+				// loop through to add the new permissions
+				for (Map<String, Object> permissionMap : enginePermissions) {
+					String engineId = (String) permissionMap.get("engineId");
+					String engineName = (String) permissionMap.get("engineName");
+					IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) permissionMap.get("engineType");
+					String engineSubType = (String) permissionMap.get("engineSubType");
+					String permission = (String) permissionMap.get("permission");
+
+					// Step 2: Validate EngineId exist in Engine table or not
+					boolean engineExists = engineExists(engineId);
+					if (!engineExists) {
+						newEngines.add(permissionMap);
+						addEngine(engineId, engineName, engineType, engineSubType, "", false, null);
+					}
+
+					// Step 3: Insert new permissions
+					insertPs.setString(1, userDetails.getValue0());
+					insertPs.setInt(2, AccessPermissionEnum.getIdByPermission(permission));
+					insertPs.setString(3, engineId);
+					insertPs.setTimestamp(4, currentTimestamp);
+					insertPs.addBatch();
+				}
+
+				insertPs.executeBatch();
+				if (!insertPs.getConnection().getAutoCommit()) {
+					insertPs.getConnection().commit();
 				}
 			}
 
-			String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID = ?";
-			String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, DATEADDED) VALUES (?, ?, ?, ?)";
-			Timestamp currentTimestamp = Utility.getCurrentSqlTimestampUTC();
-			QueryExecutionUtility.write(securityDb, connection -> {
-				QueryExecutionUtility.executeUpdate(connection, deleteQuery, ps -> ps.setString(1, userId));
-				if (!permissions.isEmpty()) {
-					QueryExecutionUtility.executeBatch(connection, insertQuery, permissions, (ps, permissionMap) -> {
-						String permission = (String) permissionMap.get("permission");
-						ps.setString(1, userId);
-						ps.setInt(2, AccessPermissionEnum.getIdByPermission(permission));
-						ps.setString(3, (String) permissionMap.get("engineId"));
-						ps.setTimestamp(4, currentTimestamp);
-					});
-				}
-				SecurityModelUsageLimitUtils.deleteDirectLimitsWithoutGrant(connection, userId);
-				return null;
-			});
-			// the grants decide which limits apply, so the cached limits are read again
-			SecurityModelUsageLimitUtils.markChanged();
 			return newEngines;
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine user permissions", e);
 			throw new IllegalArgumentException("An error occurred while updating the user engine permissions in db ");
+		} finally {
+			ConnectionUtils.closeAllDbConnectionsIfPooling(securityDb, deletePs, insertPs);
 		}
 	}
 
@@ -2796,8 +2710,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Maps each of the given engine ids to its engine name. Ids with no engine are
-	 * left out, and no ids give an empty map.
 	 * 
 	 * @param engineIds
 	 * @return
@@ -2821,23 +2733,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		}
 		return engineMap;
-	}
-
-	/**
-	 * What an engine is, as the audit trail names it: its kind, such as a model.
-	 *
-	 * @param engineId the engine
-	 * @return its target type, or {@link AuditTargetType#ENGINE} when its kind is
-	 *         not known or the catalog does not have it
-	 */
-	static AuditTargetType getAuditTargetType(String engineId) {
-		try {
-			return AuditTargetType.ofEngine(getEngineType(engineId));
-		} catch (RuntimeException e) {
-			// an engine the catalog does not have is recorded as an engine, so the audit
-			// never stops the change
-			return AuditTargetType.ENGINE;
-		}
 	}
 
 }

@@ -260,7 +260,7 @@ public final class AutomationMcpSync {
 		JSONObject properties = new JSONObject();
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
 		JSONObject inputs = new JSONObject().put("type", "object").put("description",
-				"Optional values overriding globals declared by trigger configuration.");
+				"Optional values overriding globals declared by trigger Python.");
 		JSONObject inputProperties = new JSONObject();
 		for (Map<String, Object> global : triggerGlobalDefinitions(projectId)) {
 			String name = (String) global.get("name");
@@ -318,14 +318,14 @@ public final class AutomationMcpSync {
 	private static JSONObject updateCustomStepTool(String projectId) {
 		JSONObject properties = new JSONObject();
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
-		properties.put("nodeId", stringProperty("Existing developer.python node with codeMode custom."));
+		properties.put("nodeId", stringProperty("Existing node with codeMode custom."));
 		properties.put("source", stringProperty("""
 				Complete Python source defining run(scope). Read upstream values from scope, for example \
 				scope['prior_output']; ${...} is not resolved in custom source."""));
 		properties.put("expectedSourceHash",
 				stringProperty("Exact sourceHashes[nodeId] value returned by the latest GetAutomation call."));
 		return tool("UpdateAutomationCustomStep", "Update Custom Automation Step", """
-				Call GetAutomation first. Replace source for an explicit developer.python node only when its \
+				Call GetAutomation first. Replace source for an explicitly custom node only when its \
 				current hash matches. Custom source must read upstream values directly from scope; ${...} \
 				is not resolved there.""", properties, new JSONArray().put(ReactorKeysEnum.PROJECT.getKey())
 				.put("nodeId").put("source").put("expectedSourceHash"));

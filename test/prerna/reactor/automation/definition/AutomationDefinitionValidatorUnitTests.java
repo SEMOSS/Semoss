@@ -28,9 +28,7 @@
 package prerna.reactor.automation.definition;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -395,13 +393,12 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
-	void triggerRejectsSetupSourceEvenWhenGlobalsAreValid() {
+	void triggerAcceptsSetupSourceAndGlobals() {
 		Map<String, Object> config = new LinkedHashMap<>();
 		config.put(AutomationConstants.CONFIG_PYTHON_SOURCE, "def run(scope):\n    return {}\n");
 		config.put(AutomationConstants.CONFIG_GLOBALS,
 				List.of(Map.of("name", "lookback_days", AutomationConstants.CONFIG_DEFAULT_VALUE, "7")));
-		assertThrows(IllegalArgumentException.class,
-				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(config)));
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(config));
 	}
 
 	/** Globals become Python identifiers in scope, so the name has to be one. */
@@ -445,14 +442,6 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
-	void acceptsAnAgentRunWithoutAWorkspace() {
-		AutomationDefinitionValidator.parseAndValidate(definition(Map.of(),
-				workNode(AutomationConstants.NODE_AGENT_RUN, Map.of(AutomationConstants.CONFIG_COMMAND, "Summarize"))));
-		AutomationDefinitionValidator.parseAndValidate(definition(Map.of(), workNode(AutomationConstants.NODE_AGENT_RUN,
-				Map.of(AutomationConstants.CONFIG_WORKSPACE_ID, "", AutomationConstants.CONFIG_COMMAND, "Summarize"))));
-	}
-
-	@Test
 	void acceptsABoundedLoopWithAnAcyclicBody() {
 		Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DEVELOPER_PYTHON, Map.of());
 		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-python");
@@ -470,7 +459,7 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
-	void acceptsGeneratedDatabaseQueryInsideExecutableLoop() {
+	void rejectsGeneratedDatabaseQueryInsideExecutableLoop() {
 		Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DATABASE_QUERY, databaseQueryConfig());
 		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-query");
 		bodyNode.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, "query_result");
@@ -484,7 +473,7 @@ public class AutomationDefinitionValidatorUnitTests {
 		String json = definition(Map.of(), loop);
 
 		AutomationDefinitionValidator.parseAndValidateForAuthoring(json);
-		AutomationDefinitionValidator.parseAndValidate(json);
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidate(json));
 	}
 
 	@Test

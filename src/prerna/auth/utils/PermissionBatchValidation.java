@@ -50,13 +50,10 @@ final class PermissionBatchValidation {
 	private final List<PermissionChangeValidation> changes = new ArrayList<>();
 	/** Why the whole batch cannot be made, or null */
 	private String reason;
-	/** The type of problem, when the whole batch cannot be made */
-	private PermissionProblem.ErrorCode errorCode;
+	/** The kind of problem, when the whole batch cannot be made */
+	private PermissionProblem.Code code;
 
 	/**
-	 * Starts the validation of a batch, with a {@link PermissionChangeValidation}
-	 * for each of its changes, in order.
-	 *
 	 * @param batch the batch as sent
 	 */
 	PermissionBatchValidation(PermissionBatch batch) {
@@ -70,18 +67,15 @@ final class PermissionBatchValidation {
 	/**
 	 * Notes why the whole batch cannot be made, so none of it is saved.
 	 *
-	 * @param errorCode the type of problem
-	 * @param reason    the message to show
+	 * @param code   the kind of problem
+	 * @param reason the message to show
 	 */
-	void block(PermissionProblem.ErrorCode errorCode, String reason) {
-		this.errorCode = errorCode;
+	void block(PermissionProblem.Code code, String reason) {
+		this.code = code;
 		this.reason = reason;
 	}
 
 	/**
-	 * Whether a reason has been given to block the whole batch, so none of it is
-	 * saved.
-	 *
 	 * @return whether the whole batch cannot be made
 	 */
 	boolean isBlocked() {
@@ -93,8 +87,6 @@ final class PermissionBatchValidation {
 	}
 
 	/**
-	 * The validations of the batch's changes, which reading and validating fill in.
-	 *
 	 * @return the validation of each change, in the batch's order
 	 */
 	List<PermissionChangeValidation> getChanges() {
@@ -102,19 +94,16 @@ final class PermissionBatchValidation {
 	}
 
 	/**
-	 * Lists a {@link PermissionProblem} for the whole batch, when it is blocked,
-	 * and one for each blocked change, with its index and subject id.
-	 *
 	 * @return every problem found: the whole batch's first, then each change's
 	 */
 	List<PermissionProblem> problems() {
 		List<PermissionProblem> problems = new ArrayList<>();
 		if (reason != null) {
-			problems.add(new PermissionProblem(errorCode, reason, target, null));
+			problems.add(new PermissionProblem(code, reason, target, null));
 		}
 		for (PermissionChangeValidation change : changes) {
 			if (change.isBlocked()) {
-				problems.add(new PermissionProblem(change.getErrorCode(), change.getReason(), target, change.getIndex(),
+				problems.add(new PermissionProblem(change.getCode(), change.getReason(), target, change.getIndex(),
 						change.getSubjectId()));
 			}
 		}
@@ -122,10 +111,6 @@ final class PermissionBatchValidation {
 	}
 
 	/**
-	 * Builds the result {@code validateBatches} returns for the batch. When the
-	 * whole batch is blocked, every change is not allowed and gets the batch's
-	 * reason.
-	 *
 	 * @return the batch's target and, for each change, its index, whether it is
 	 *         allowed, and why not, as Bulk Access Management's preview returns
 	 *         them

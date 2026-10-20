@@ -56,8 +56,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AssetUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -236,9 +234,6 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),
 				newProject.getProjectId());
-		UserAuditTrailUtils.recordProjectLifecycle(this.insight.getUser(), AuditEventType.PROJECT_CREATE,
-				newProject.getProjectId(), newProjectName,
-				Map.of("projectType", projectEnumType.name(), "global", global, "creationMethod", "TEMPLATE"));
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 

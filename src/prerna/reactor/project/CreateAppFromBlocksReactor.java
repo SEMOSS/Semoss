@@ -50,8 +50,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AssetUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -133,8 +131,6 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),
 				newProject.getProjectId());
-		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_CREATE, newProject.getProjectId(),
-				newProjectName, Map.of("projectType", "BLOCKS", "global", global, "creationMethod", "BLOCKS"));
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 

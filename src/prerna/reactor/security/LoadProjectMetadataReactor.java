@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -47,8 +46,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
+import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
@@ -68,16 +66,30 @@ public class LoadProjectMetadataReactor extends AbstractSetMetadataReactor {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
 
-		Map<String, Object> metadata;
-		try (BufferedReader fReader = Files.newBufferedReader(Paths.get(fileLocation), StandardCharsets.UTF_8);
-				JsonReader jReader = new JsonReader(fReader)) {
+		Map<String, Object> metadata = null;
+		JsonReader jReader = null;
+		BufferedReader fReader = null;
+		try {
+			fReader = Files.newBufferedReader(Paths.get(fileLocation), StandardCharsets.UTF_8);
+			jReader = new JsonReader(fReader);
 			metadata = GSON.fromJson(jReader, Map.class);
 		} catch (IOException e) {
-			classLogger.error("Unable to read the project metadata file", e);
-			throw new IllegalArgumentException("Unable to read the metadata file", e);
-		}
-		if (metadata == null) {
-			throw new IllegalArgumentException("The metadata file is empty");
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (fReader != null) {
+				try {
+					fReader.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+			if (jReader != null) {
+				try {
+					jReader.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		String projectId = (String) metadata.remove("projectId");
@@ -102,8 +114,6 @@ public class LoadProjectMetadataReactor extends AbstractSetMetadataReactor {
 		}
 
 		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
-		UserAuditTrailUtils.recordProjectLifecycle(this.insight.getUser(), AuditEventType.PROJECT_UPDATE, projectId,
-				null, Map.of("changedFields", new ArrayList<>(metadata.keySet())));
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(
 				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the engine"));

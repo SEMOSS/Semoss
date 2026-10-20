@@ -55,9 +55,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.AuditTargetType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -179,8 +176,6 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 			}
 
 			ClusterUtil.pushEngine(functionId);
-			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.FUNCTION_CREATE, AuditTargetType.FUNCTION,
-					functionId, functionName, Map.of("functionType", functionType.getFunctionName()));
 		} catch (Exception e) {
 			classLogger.error("Unable to create function engine '{}' ({})", functionName, functionId, e);
 			UploadUtilities.cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineAssetsFolder);

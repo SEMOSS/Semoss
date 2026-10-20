@@ -52,16 +52,14 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.SystemDefaultEngines;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 /**
- * Deletes projects owned by the caller and removes project-type-specific
- * references before the project assets are torn down.
+ * Deletes projects owned by the caller and removes project-type-specific references before the
+ * project assets are torn down.
  */
 public class DeleteProjectReactor extends AbstractReactor {
 
@@ -81,7 +79,7 @@ public class DeleteProjectReactor extends AbstractReactor {
 			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 			if (!isAdmin) {
-				if (AbstractSecurityUtils.adminOnlyProjectDelete(projectId)) {
+					if (AbstractSecurityUtils.adminOnlyProjectDelete(projectId)) {
 					throwFunctionalityOnlyExposedForAdminsError();
 				}
 
@@ -102,11 +100,7 @@ public class DeleteProjectReactor extends AbstractReactor {
 			}
 
 			IProject project = Utility.getProject(projectId);
-			IProject.PROJECT_TYPE projectType = project.getProjectType();
-			String projectName = project.getProjectName();
 			deleteProject(project);
-			UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_DELETE, projectId, projectName,
-					projectType == null ? null : Map.of("projectType", projectType.name()));
 			// also remove this project in case it is the current insight's project id
 			if (projectId.equals(this.insight.getContextProjectId())) {
 				this.insight.setContextProjectId(null);

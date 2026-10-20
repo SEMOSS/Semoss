@@ -61,8 +61,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -409,10 +407,6 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
 			SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, successMap.keySet());
 		}
-
-		UserAuditTrailUtils.recordProjectLifecycle(user,
-				replace ? AuditEventType.PROJECT_UPDATE : AuditEventType.PROJECT_UPLOAD, projectId, projectName,
-				Map.of("global", global, "mode", replace ? REPLACE_MODE : CREATE_MODE));
 
 		// sending the success and failed list of engineIds to FE
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), projectId);

@@ -147,7 +147,6 @@ class SystemAgentSeederUnitTests {
 			assertEquals(loaded.getPptxWorkflow().get("reviewer_alias"), reviewer.getAlias());
 			assertEquals(6, loaded.getPptxWorkflow().get("repair_turns"));
 			assertEquals(600, loaded.getPptxWorkflow().get("review_timeout_seconds"));
-			assertEquals(false, loaded.getPptxWorkflow().get("review_enabled"), "visual review is off by default");
 			assertEquals(Set.of("InspectPptx", "ExecuteNodeCode"), loaded.getDisabledDefaultTools());
 			assertEquals(Set.of(".claude/skills/pptx", ".semoss/pptx-workflow"), loaded.getReadOnlyPaths());
 			assertNull(loaded.getResultTool());

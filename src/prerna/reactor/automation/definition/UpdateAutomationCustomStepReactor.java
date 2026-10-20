@@ -116,12 +116,9 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 		}
 		for (Object value : nodes) {
 			if (value instanceof Map<?, ?> node && nodeId.equals(node.get(AutomationConstants.NODE_FIELD_ID))) {
-				if (!AutomationConstants.NODE_DEVELOPER_PYTHON.equals(
-						node.get(AutomationConstants.NODE_FIELD_TYPE))
-						|| !AutomationConstants.NODE_CODE_MODE_CUSTOM
-								.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
-					throw new IllegalArgumentException(
-							"Only explicit developer.python nodes may receive source updates.");
+				if (!AutomationConstants.NODE_CODE_MODE_CUSTOM
+						.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+					throw new IllegalArgumentException("Only custom automation nodes may receive source updates.");
 				}
 				return;
 			}

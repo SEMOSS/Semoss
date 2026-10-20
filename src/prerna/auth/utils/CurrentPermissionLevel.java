@@ -67,9 +67,6 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
-	 * Whether the user's current level on the target, from {@link #of}, is at least
-	 * editor, as the {@code userCanEdit*} checks read it.
-	 *
 	 * @return whether the user is an editor or an owner of the target now; false
 	 *         when the rows cannot be read
 	 */
@@ -79,9 +76,6 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
-	 * Whether the user's current level on the target, from {@link #of}, is owner,
-	 * as the {@code userIsOwner} checks read it.
-	 *
 	 * @return whether the user is an owner of the target now; false when the rows
 	 *         cannot be read
 	 */
@@ -91,9 +85,6 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
-	 * Reads the user's current level on the target, treating a failed read as no
-	 * access.
-	 *
 	 * @return {@link #of}, or null when the rows cannot be read, which is logged
 	 */
 	private static Integer ofOrNull(User user, PermissionTargetResource target) {
@@ -120,7 +111,7 @@ final class CurrentPermissionLevel {
 		}
 		String userTable;
 		String groupTable;
-		switch (target.getResourceType()) {
+		switch (target.getKind()) {
 		case PROJECT:
 			userTable = "PROJECTPERMISSION";
 			groupTable = "GROUPPROJECTPERMISSION";
@@ -159,9 +150,6 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
-	 * Builds a query for the {@code PERMISSION} column of the target's rows in a
-	 * user or group permission table.
-	 *
 	 * @return a query for the levels on the target in a permission table, leaving
 	 *         out rows with no level and grants that have ended
 	 */
@@ -180,9 +168,9 @@ final class CurrentPermissionLevel {
 	 * engine, or the insight in its project.
 	 */
 	static void filterToTarget(SelectQueryStruct qs, String table, PermissionTargetResource target) {
-		if (target.getResourceType() == PermissionTargetResource.TargetResourceType.ENGINE) {
+		if (target.getKind() == PermissionTargetResource.Kind.ENGINE) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(table + "__ENGINEID", "==", target.getId()));
-		} else if (target.getResourceType() == PermissionTargetResource.TargetResourceType.INSIGHT) {
+		} else if (target.getKind() == PermissionTargetResource.Kind.INSIGHT) {
 			qs.addExplicitFilter(
 					SimpleQueryFilter.makeColToValFilter(table + "__PROJECTID", "==", target.getProjectId()));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(table + "__INSIGHTID", "==", target.getId()));
@@ -192,10 +180,6 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
-	 * Builds a filter on a group permission table for the user's teams, matching
-	 * each login's groups by that login's group type, and the user's custom teams
-	 * by the custom group type.
-	 *
 	 * @return a filter for the rows of the teams the user is in now: the groups
 	 *         their logins carry, and the custom teams whose membership has not
 	 *         ended; or null when they are in none
@@ -228,8 +212,6 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
-	 * Runs the query on the security database and keeps the highest level it reads.
-	 *
 	 * @return the highest level the query reads, where a lower id is a higher
 	 *         level, or null when it reads none
 	 * @throws IllegalArgumentException when the rows cannot be read

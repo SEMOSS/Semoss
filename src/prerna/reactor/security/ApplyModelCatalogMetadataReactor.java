@@ -29,7 +29,6 @@ package prerna.reactor.security;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -37,7 +36,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -47,7 +45,6 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.StaticModelMetadataCatalog;
 import prerna.util.Utility;
@@ -62,9 +59,9 @@ import prerna.util.Utility;
  * <p>
  * Every property the catalog defines for the entry replaces the stored value.
  * Properties the catalog cannot speak to - the serving provider, built-in
- * tools, and description - are left as they are. Pass dryRun to get the list of
- * fields that would change without writing anything, which is what the settings
- * screen shows in its confirmation dialog.
+ * tools, and description - are left as they are. Pass dryRun to get the list
+ * of fields that would change without writing anything, which is what the
+ * settings screen shows in its confirmation dialog.
  */
 public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 
@@ -97,14 +94,6 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 
 		String catalogKey = resolveCatalogKey();
 		boolean dryRun = Boolean.parseBoolean(this.keyValue.get(DRY_RUN_KEY) + "");
-
-		// prices decide how far the model's usage limits go, so only the model's owners
-		// and admins can change them, here as anywhere
-		if (!dryRun && !SecurityEngineUtils.userIsOwner(user, engineId) && SecurityAdminUtils.getInstance(user) == null
-				&& changesPrices(SecurityModelMetadataUtils.applyCatalogMetadata(engineId, catalogKey, true))) {
-			throw new IllegalArgumentException("Only the model's owners can change its prices, and applying the "
-					+ "model catalog would change them");
-		}
 
 		Map<String, Object> result = SecurityModelMetadataUtils.applyCatalogMetadata(engineId, catalogKey, dryRun);
 		String status = String.valueOf(result.get("status"));
@@ -151,8 +140,8 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 
 	/**
 	 * The exact catalog key the requested entry resolves to, or null when the
-	 * caller did not name one. The key is resolved the same way a model id is, so a
-	 * provider id that maps onto a catalog key is accepted and stored in its
+	 * caller did not name one. The key is resolved the same way a model id is, so
+	 * a provider id that maps onto a catalog key is accepted and stored in its
 	 * canonical form.
 	 */
 	private String resolveCatalogKey() {
@@ -189,10 +178,5 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 			return "Report the fields that would change without writing anything. Default false";
 		}
 		return super.getDescriptionForKey(key);
-	}
-
-	private static boolean changesPrices(Map<String, Object> dryRunResult) {
-		Object changed = dryRunResult.get("changedFields");
-		return changed instanceof Collection<?> fields && fields.contains(Constants.PRICING);
 	}
 }

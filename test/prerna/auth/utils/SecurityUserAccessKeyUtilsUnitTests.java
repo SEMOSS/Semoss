@@ -84,6 +84,10 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 	private boolean admin = true;
 	private boolean publisher = false;
 	private boolean exporter = false;
+	private String modelUsageRestriction = null;
+	private String modelUsageFrequency = null;
+	private Integer modelMaxTokens = null;
+	private Double modelMaxResponseTime = null;
 	AccessToken accessToken = null;
 
 	@BeforeEach
@@ -117,7 +121,8 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn, s, null);
 		}
 		boolean success = SecurityUpdateUtils.registerUser(id, name, email, password, type, phone, phoneextension,
-				countrycode, admin, publisher, exporter, null);
+				countrycode, admin, publisher, exporter, modelUsageRestriction, modelUsageFrequency, modelMaxTokens,
+				modelMaxResponseTime);
 		assertTrue(success, "Insertion of new user was not successful");
 	}
 

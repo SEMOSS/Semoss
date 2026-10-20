@@ -56,7 +56,6 @@ import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
-import prerna.util.ValueUtils;
 
 public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 
@@ -85,14 +84,10 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 */
 
 	/**
-	 * Adds a new user to the database with no all-models default, as
-	 * self-registration does. A person an admin added keeps the default the admin
-	 * set.
+	 * Adds a new user to the database
 	 * 
-	 * @param newUser  the person
-	 * @param password their password
-	 * @return whether the person was added
-	 * @throws IllegalArgumentException when the person's information is not valid
+	 * @param userName String representing the name of the user to add
+	 * @throws IllegalArgumentException
 	 */
 	public static Boolean addNativeUser(AccessToken newUser, String password) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -113,11 +108,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		}
 
 		validInformation(newUser, password, true);
-		String newType = ValueUtils.toStringOrNull(newUser.getProvider());
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(USERID_COL));
-		qs.addSelector(new QueryColumnSelector(TYPE_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(NAME_COL, "==", ADMIN_ADDED_USER));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", newUser.getId()));
@@ -126,10 +119,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				// this was the old id and type that was added when the admin
-				Object[] adminAddedValues = wrapper.next().getValues();
-				String oldId = adminAddedValues[0].toString();
-				String oldType = adminAddedValues[1] == null ? null : adminAddedValues[1].toString();
+				// this was the old id that was added when the admin
+				String oldId = wrapper.next().getValues()[0].toString();
 				String newId = newUser.getId();
 
 				// this user was added by the user and we need to update
@@ -139,7 +130,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 				String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, "
-						+ "PASSWORD=?, SALT=?, LASTLOGIN=?, PHONE=?, PHONEEXTENSION=?, COUNTRYCODE=? WHERE ID=?";
+						+ "PASSWORD=?, SALT=?, LASTLOGIN=?, PHONE=?, PHONEEXTENSION=?, COUNTRYCODE=?, "
+						+ "MODELMAXTOKENS=?, MODELMAXRESPONSETIME=?, MODELUSAGEFREQUENCY=?, MODELUSAGERESTRICTION=? "
+						+ "WHERE ID=?";
 				PreparedStatement ps = null;
 				try {
 					int parameterIndex = 1;
@@ -155,6 +148,20 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getPhone());
 					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getPhoneExtension());
 					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getCountryCode());
+					if (newUser.getModelMaxTokens() == 0) {
+						ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
+					} else {
+						ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
+					}
+					if (newUser.getModelMaxResponseTime() == 0.0) {
+						ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
+					} else {
+						ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
+					}
+					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+							newUser.getModelUsageRestriction());
+					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+							newUser.getModelUsageFrequency());
 					// where
 					ps.setString(parameterIndex++, oldId);
 					ps.execute();
@@ -167,9 +174,28 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 
-				// need to update any other permissions that were set for this user, and the
-				// model usage limits the admin set, which are kept
-				SecurityUpdateUtils.moveAdminAddedUser(securityDb, oldId, oldType, newId, newType);
+				// need to update any other permissions that were set for this user
+				if (!oldId.equals(newId)) {
+					String[] updateQueries = new String[] { "UPDATE ENGINEPERMISSION SET USERID=? WHERE USERID=?",
+							"UPDATE PROJECTPERMISSION SET USERID=? WHERE USERID=?",
+							"UPDATE USERINSIGHTPERMISSION SET USERID=? WHERE USERID=?" };
+					for (String uQuery : updateQueries) {
+						try {
+							int parameterIndex = 1;
+							ps = securityDb.getPreparedStatement(uQuery);
+							ps.setString(parameterIndex++, newId);
+							ps.setString(parameterIndex++, oldId);
+							ps.execute();
+							if (!ps.getConnection().getAutoCommit()) {
+								ps.getConnection().commit();
+							}
+						} catch (SQLException e) {
+							classLogger.error("Unable to add native user.", e);
+						} finally {
+							ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+						}
+					}
+				}
 
 				storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp);
 				return true;
@@ -181,7 +207,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 				String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, "
-						+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+						+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE, "
+						+ "MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY, MODELUSAGERESTRICTION) "
+						+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 				PreparedStatement ps = null;
 				try {
@@ -202,6 +230,20 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getPhone());
 					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getPhoneExtension());
 					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getCountryCode());
+					if (newUser.getModelMaxTokens() == 0) {
+						ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
+					} else {
+						ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
+					}
+					if (newUser.getModelMaxResponseTime() == 0.0) {
+						ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
+					} else {
+						ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
+					}
+					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+							newUser.getModelUsageRestriction());
+					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+							newUser.getModelUsageFrequency());
 					ps.execute();
 					if (!ps.getConnection().getAutoCommit()) {
 						ps.getConnection().commit();
@@ -591,8 +633,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Whether the password matches the user's current password, by hashing it with
-	 * the stored salt.
 	 * 
 	 * @param userId
 	 * @param type
@@ -624,9 +664,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Whether the password matches one of the user's newest passwords in the
-	 * password history, as many as the password reuse rule covers. False when the
-	 * reuse count is less than one.
 	 * 
 	 * @param userId
 	 * @param type

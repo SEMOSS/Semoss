@@ -93,7 +93,7 @@ public class MicrosoftOutlookMailHelper {
 	public static final String DEFAULT_GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0";
 
 	/** The fields a message listing asks for when the caller wants the body. */
-	private static final String MESSAGE_FIELDS = "id,parentFolderId,subject,from,replyTo,toRecipients,ccRecipients,bccRecipients,"
+	private static final String MESSAGE_FIELDS = "id,subject,from,replyTo,toRecipients,ccRecipients,bccRecipients,"
 			+ "receivedDateTime,sentDateTime,isRead,hasAttachments,bodyPreview,body,internetMessageId,webLink,"
 			+ "conversationId";
 
@@ -104,7 +104,7 @@ public class MicrosoftOutlookMailHelper {
 	private static final String CONVERSATION_FIELDS = MESSAGE_FIELDS + ",uniqueBody";
 
 	/** The same without the body, for a listing that only wants headers. */
-	private static final String MESSAGE_FIELDS_NO_BODY = "id,parentFolderId,subject,from,toRecipients,ccRecipients,"
+	private static final String MESSAGE_FIELDS_NO_BODY = "id,subject,from,toRecipients,ccRecipients,"
 			+ "receivedDateTime,sentDateTime,isRead,hasAttachments,bodyPreview,internetMessageId,conversationId,"
 			+ "webLink";
 
@@ -562,13 +562,10 @@ public class MicrosoftOutlookMailHelper {
 			List<String> filters = new ArrayList<>();
 			if (query.since != null) {
 				filters.add("receivedDateTime ge " + DateTimeFormatter.ISO_INSTANT.format(query.since.toInstant()));
-			} else if (query.unreadOnly && query.until == null) {
+			} else if (query.unreadOnly) {
 				// graph refuses a filter sorted by a field it does not filter on first, so
 				// the date the listing is sorted by leads the filter even with no cutoff
 				filters.add("receivedDateTime ge 1900-01-01T00:00:00Z");
-			}
-			if (query.until != null) {
-				filters.add("receivedDateTime le " + DateTimeFormatter.ISO_INSTANT.format(query.until.toInstant()));
 			}
 			if (query.unreadOnly) {
 				filters.add("isRead eq false");
@@ -592,9 +589,6 @@ public class MicrosoftOutlookMailHelper {
 					continue;
 				}
 				if (query.since != null && receivedBefore(message, query.since)) {
-					continue;
-				}
-				if (query.until != null && receivedAfter(message, query.until)) {
 					continue;
 				}
 				narrowed.add(message);
@@ -725,25 +719,6 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
-	 * Move a message to another folder and return the message as it is there.
-	 *
-	 * @param accessToken       the token to write with
-	 * @param mailbox           the mailbox, or null for the signed in user
-	 * @param messageId         the message to move
-	 * @param destinationFolder the folder to move it to, by well known name or id
-	 * @return the moved message, which carries the new id and webLink Graph gave it
-	 */
-	public Map<String, Object> moveMessageDetails(String accessToken, String mailbox, String messageId,
-			String destinationFolder) {
-		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/move";
-		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken),
-				GSON.toJson(Map.of("destinationId", destinationFolder)), ContentType.APPLICATION_JSON, null, null,
-				null);
-		throwOnError(response, "move a message");
-		return readMap(response);
-	}
-
-	/**
 	 * Delete a message. It goes to Deleted Items rather than disappearing, which is
 	 * the one thing Graph does more gently than the mail protocols.
 	 *
@@ -786,62 +761,6 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
-	 * List the folders directly inside one folder, or at the top of the mailbox
-	 * when no parent is given.
-	 *
-	 * @param accessToken the token to read with
-	 * @param mailbox     the mailbox, or null for the signed in user
-	 * @param parentId    the parent folder id or well known name, or null for the top level
-	 * @return the folders, each with its id, displayName and childFolderCount
-	 */
-	public List<Map<String, Object>> listFolderChildren(String accessToken, String mailbox, String parentId) {
-		String base = userPath(mailbox) + "/mailFolders";
-		String url = (parentId == null ? base : base + "/" + encode(parentId) + "/childFolders")
-				+ "?$top=100&$select=id,displayName,childFolderCount";
-		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
-		throwOnError(response, "list the folders of the mailbox");
-		return readList(response);
-	}
-
-	/**
-	 * The id of a folder by its well known name, such as {@code drafts}.
-	 *
-	 * @return the folder id, or null when Graph has no such folder
-	 */
-	public String wellKnownFolderId(String accessToken, String mailbox, String wellKnownName) {
-		String url = userPath(mailbox) + "/mailFolders/" + encode(wellKnownName) + "?$select=id";
-		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
-		if (response == null || response.contains("\"error\"")) {
-			return null;
-		}
-		Map<String, Object> folder = readMap(response);
-		return folder == null ? null : (String) folder.get("id");
-	}
-
-	/**
-	 * Make a folder, or return the one of that name that is already there.
-	 *
-	 * @param accessToken the token to write with
-	 * @param mailbox     the mailbox, or null for the signed in user
-	 * @param parentId    the parent folder id or well known name, or null for the top level
-	 * @param name        the folder name
-	 * @return the folder, with its id and displayName
-	 */
-	public Map<String, Object> createFolder(String accessToken, String mailbox, String parentId, String name) {
-		for (Map<String, Object> existing : listFolderChildren(accessToken, mailbox, parentId)) {
-			if (name.equalsIgnoreCase(String.valueOf(existing.get("displayName")))) {
-				return existing;
-			}
-		}
-		String base = userPath(mailbox) + "/mailFolders";
-		String url = parentId == null ? base : base + "/" + encode(parentId) + "/childFolders";
-		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken),
-				GSON.toJson(Map.of("displayName", name)), ContentType.APPLICATION_JSON, null, null, null);
-		throwOnError(response, "create a folder");
-		return readMap(response);
-	}
-
-	/**
 	 * Find the id of a folder by the name a person would call it.
 	 *
 	 * <p>
@@ -860,40 +779,6 @@ public class MicrosoftOutlookMailHelper {
 			}
 		}
 		return null;
-	}
-
-	/**
-	 * Find a folder inside another one by name, making it when it is not there.
-	 *
-	 * @param accessToken the token to write with
-	 * @param mailbox     the mailbox, or null for the signed in user
-	 * @param parent      the folder it sits in, by well known name or id
-	 * @param displayName the folder name
-	 * @return the folder as Graph returned it, with created true when it was made
-	 */
-	public Map<String, Object> ensureChildFolder(String accessToken, String mailbox, String parent,
-			String displayName) {
-		String url = userPath(mailbox) + "/mailFolders/" + encode(parent) + "/childFolders";
-		String response = HttpHelperUtility.getRequest(url + "?$select=id,displayName&$filter="
-				+ encode("displayName eq '" + displayName.replace("'", "''") + "'"), headers(accessToken), null, null,
-				null);
-		throwOnError(response, "find a mail folder");
-		List<Map<String, Object>> found = readList(response);
-		if (!found.isEmpty()) {
-			Map<String, Object> folder = new HashMap<>(found.get(0));
-			folder.put("created", false);
-			return folder;
-		}
-		response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken),
-				GSON.toJson(Map.of("displayName", displayName)), ContentType.APPLICATION_JSON, null, null, null);
-		throwOnError(response, "create a mail folder");
-		Map<String, Object> made = readMap(response);
-		if (made == null) {
-			throw new IllegalStateException("Microsoft did not return the new mail folder.");
-		}
-		Map<String, Object> folder = new HashMap<>(made);
-		folder.put("created", true);
-		return folder;
 	}
 
 	/**
@@ -1012,20 +897,6 @@ public class MicrosoftOutlookMailHelper {
 		}
 	}
 
-	/** Whether a search result arrived after the inclusive upper cutoff. */
-	private static boolean receivedAfter(Map<String, Object> message, Date until) {
-		Object received = message.get("receivedDateTime");
-		if (received == null) {
-			return false;
-		}
-		try {
-			return Instant.parse(received.toString()).isAfter(until.toInstant());
-		} catch (RuntimeException e) {
-			classLogger.debug("Could not read the received date {}", received, e);
-			return false;
-		}
-	}
-
 	/**
 	 * Add one set of recipients in the shape Graph reads them.
 	 *
@@ -1082,9 +953,6 @@ public class MicrosoftOutlookMailHelper {
 		/** The oldest message to return. */
 		public Date since = null;
 
-		/** The newest message to return, including messages received at this time. */
-		public Date until = null;
-
 		/** Whether to return only messages nobody has opened. */
 		public boolean unreadOnly = false;
 
@@ -1093,7 +961,7 @@ public class MicrosoftOutlookMailHelper {
 
 		/**
 		 * The conversation to read, from every folder. When set, the folder, the text
-		 * search, the dates, and the unread filter are not applied.
+		 * search, the date, and the unread filter are not applied.
 		 */
 		public String conversationId = null;
 

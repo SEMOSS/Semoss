@@ -33,8 +33,8 @@ package prerna.auth.access;
  */
 public class PermissionProblem {
 
-	/** The types of problem */
-	public enum ErrorCode {
+	/** The kinds of problem */
+	public enum Code {
 		/** The batch or the change does not say what it needs to */
 		NOT_WELL_FORMED,
 		/** An end date is not a valid date */
@@ -61,52 +61,34 @@ public class PermissionProblem {
 		SAME_LEVEL,
 		/** The person or team does not exist */
 		SUBJECT_MISSING,
-		/**
-		 * The usage limit cannot be defined where the change puts it, such as a limit
-		 * on an engine that is not a model, a cost rule on a model without known
-		 * prices, or a rule the limit cannot have
-		 */
-		INVALID_USAGE_LIMIT,
-		/**
-		 * Someone who is not an owner takes away, or sets an earlier end date on, the
-		 * access of a person whose grant on a model has a usage limit. The limit goes
-		 * with the grant, so the person would fall through to another limit, such as
-		 * the public use limit.
-		 */
-		ENDS_LIMITED_ACCESS,
 		/** The changes could not be saved */
 		WRITE_FAILED
 	}
 
-	private final ErrorCode code;
+	private final Code code;
 	private final String message;
 	private final PermissionTargetResource target;
 	private final Integer index;
 	private final String subjectId;
 
 	/**
-	 * Creates a problem with no subject id, such as one for the whole batch.
-	 *
-	 * @param code    the type of problem
+	 * @param code    the kind of problem
 	 * @param message what to show
 	 * @param target  the target of the batch it is in, or null
 	 * @param index   the change's index in its batch, or null for the whole batch
 	 */
-	public PermissionProblem(ErrorCode code, String message, PermissionTargetResource target, Integer index) {
+	public PermissionProblem(Code code, String message, PermissionTargetResource target, Integer index) {
 		this(code, message, target, index, null);
 	}
 
 	/**
-	 * Creates a problem for one change, with the id of its person or team so a bulk
-	 * method can list everyone with the same problem.
-	 *
-	 * @param code      the type of problem
+	 * @param code      the kind of problem
 	 * @param message   what to show
 	 * @param target    the target of the batch it is in, or null
 	 * @param index     the change's index in its batch, or null for the whole batch
 	 * @param subjectId the id of the person or team the change is for, or null
 	 */
-	public PermissionProblem(ErrorCode code, String message, PermissionTargetResource target, Integer index,
+	public PermissionProblem(Code code, String message, PermissionTargetResource target, Integer index,
 			String subjectId) {
 		this.code = code;
 		this.message = message;
@@ -115,7 +97,7 @@ public class PermissionProblem {
 		this.subjectId = subjectId;
 	}
 
-	public ErrorCode getErrorCode() {
+	public Code getCode() {
 		return code;
 	}
 

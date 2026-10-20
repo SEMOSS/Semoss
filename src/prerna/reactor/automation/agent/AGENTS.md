@@ -5,9 +5,7 @@ Follow the parent `../AGENTS.md` for the complete Automation contract.
 
 ## Invariants
 
-- Apply the Automation project ACL before accessing a child agent run. Without
-  a project, the run must be in the caller's own inline run scope, whose owner
-  may both view and control it.
+- Apply the Automation project ACL before accessing a child agent run.
 - Require the exact persisted project/run/node/agent-run relationship; do not
   accept a caller-provided room or agent run as sufficient authorization.
 - Use the standard Agent run service for retrieval and actions.

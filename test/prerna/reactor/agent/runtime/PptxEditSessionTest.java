@@ -268,7 +268,7 @@ class PptxEditSessionTest {
 	@Test
 	void resumeBeforeFirstToolRetainsBaselineAndCanDeliverAnUnpreparedProposal() throws Exception {
 		var operations = new FakeOperations(); workflow(operations);
-		var resumed = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/controller"), 6, operations, true);
+		var resumed = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/controller"), 6, operations);
 		var restore = PptxWorkflow.class.getDeclaredMethod("restore"); restore.setAccessible(true); restore.invoke(resumed);
 		resumed.build(buildArgs(), 1);
 		assertNull(resumed.completionError());
@@ -288,7 +288,7 @@ class PptxEditSessionTest {
 		assertEquals("proposal", workflow.snapshot().getJSONObject("artifact").getString("disposition"));
 		assertTrue(workflow.completionWarning().contains("separate proposed revision"));
 		assertFalse(java.util.Arrays.equals(original.get(SECOND), PptxEditSession.parts(root.resolve("deck.pptx")).get(SECOND)));
-		var resumed = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/controller"), 6, operations, true);
+		var resumed = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/controller"), 6, operations);
 		var restore = PptxWorkflow.class.getDeclaredMethod("restore"); restore.setAccessible(true); restore.invoke(resumed);
 		assertEquals(workflow.snapshot().getJSONObject("artifact").toString(), resumed.snapshot().getJSONObject("artifact").toString());
 	}
@@ -403,7 +403,7 @@ class PptxEditSessionTest {
 
 	PptxWorkflow workflow(FakeOperations operations) throws Exception {
 		Files.writeString(root.resolve("build-deck.js"), "test generator");
-		var workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/controller"), 6, operations, true);
+		var workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/controller"), 6, operations);
 		workflow.captureInputs();
 		return workflow;
 	}

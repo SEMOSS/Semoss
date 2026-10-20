@@ -73,8 +73,6 @@ public final class BrainTopicChangeUtils {
 	private static final String THREAD_TOPIC = "BRAIN_THREAD_TOPIC";
 	// chats on the topics; in a snapshot only when there are some, so older snapshots still compare
 	private static final String ROOM_TOPIC = "BRAIN_TOPIC_ROOM";
-	// Outlook folders linked to the topics; likewise only when there are some
-	private static final String FOLDER_TOPIC = "BRAIN_TOPIC_FOLDER";
 	// memories linked to the topics, keyed by memory: the rows and every link they have
 	private static final String MEMORY = "BRAIN_MEMORY";
 	private static final String MEMORY_LINK = "BRAIN_MEMORY_LINK";
@@ -251,12 +249,10 @@ public final class BrainTopicChangeUtils {
 								+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
 						params(ownerId, ownerType, topicIds));
 			}
-			for (String table : List.of(ROOM_TOPIC, FOLDER_TOPIC)) {
-				CollaborationDbUtils.update(conn,
-						"DELETE FROM " + table + OWNED + " AND TOPIC_ID IN ("
-								+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
-						params(ownerId, ownerType, topicIds));
-			}
+			CollaborationDbUtils.update(conn,
+					"DELETE FROM " + ROOM_TOPIC + OWNED + " AND TOPIC_ID IN ("
+							+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
+					params(ownerId, ownerType, topicIds));
 			if (!threadIds.isEmpty()) {
 				CollaborationDbUtils.update(conn,
 						"DELETE FROM " + THREAD_TOPIC + OWNED + " AND THREAD_ID IN ("
@@ -332,12 +328,6 @@ public final class BrainTopicChangeUtils {
 				params(ownerId, ownerType, topicIds));
 		if (!chats.isEmpty()) {
 			rows.put(ROOM_TOPIC, chats);
-		}
-		List<Map<String, Object>> folders = readRows(conn, "SELECT * FROM " + FOLDER_TOPIC + OWNED
-				+ " AND TOPIC_ID IN (" + CollaborationDbUtils.placeholders(topicIds.size()) + ") ORDER BY TOPIC_ID, "
-				+ "FOLDER_ID", params(ownerId, ownerType, topicIds));
-		if (!folders.isEmpty()) {
-			rows.put(FOLDER_TOPIC, folders);
 		}
 		if (!memoryIds.isEmpty()) {
 			String inMemories = " AND MEMORY_ID IN (" + CollaborationDbUtils.placeholders(memoryIds.size()) + ")";

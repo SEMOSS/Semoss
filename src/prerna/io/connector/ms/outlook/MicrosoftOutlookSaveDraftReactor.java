@@ -58,17 +58,15 @@ public class MicrosoftOutlookSaveDraftReactor extends AbstractSaveDraftReactor {
 		Map<String, Object> message = MicrosoftOutlookMailHelper.buildMessage(mail.subject(), mail.body(), mail.html(),
 				mail.toArray(), mail.ccArray(), mail.bccArray(), null, null, mail.attachmentPaths());
 		// a null mailbox addresses /me, so the draft is saved in the signed in user's
-		// own mailbox and nowhere else
+		// own Drafts folder and nowhere else
 		Map<String, Object> draft = new MicrosoftOutlookMailHelper()
 				.createDraft(MicrosoftLoginUtils.getValidAccessToken(user), null, message);
 		if (draft == null) {
 			return ComposedMail.of(mail, null, null, null);
 		}
-		// into the folder chosen in Collaboration settings, when there is one
-		return MicrosoftOutlookDraftFolder.place(user,
-				ComposedMail.of(mail, ValueUtils.toStringOrNull(draft.get("id")),
-						ValueUtils.toStringOrNull(draft.get("conversationId")),
-						ValueUtils.toStringOrNull(draft.get("webLink"))));
+		return ComposedMail.of(mail, ValueUtils.toStringOrNull(draft.get("id")),
+				ValueUtils.toStringOrNull(draft.get("conversationId")),
+				ValueUtils.toStringOrNull(draft.get("webLink")));
 	}
 
 }

@@ -52,15 +52,11 @@ import org.mockito.MockedStatic;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.access.ModelUsageLimit;
-import prerna.auth.access.ModelUsageLimitKey;
-import prerna.auth.access.ModelUsageLimitRule;
 import prerna.auth.access.PermissionBatch;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionGrant;
 import prerna.auth.access.PermissionSubject;
 import prerna.auth.access.PermissionTargetResource;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.io.connector.ms.MicrosoftGraphUserLookup;
 import prerna.util.SystemEngineRegistry;
@@ -164,17 +160,17 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 	@Test
 	void readPlans_readsTheJsonTheFrontEndSends() {
 		List<PermissionBatch> batches = SecurityAccessPermissionBatchUtils
-				.readBatches("[{\"target\":{\"resourceType\":\"PROJECT\",\"id\":\"p1\"},"
-						+ "\"changes\":[{\"action\":\"ADD\",\"subject\":{\"category\":\"USER\",\"id\":\"ada\",\"type\":\"NATIVE\"},"
-						+ "\"to\":{\"level\":\"EDIT\",\"endDate\":\"2030-01-01T00:00:00Z\"}}]}]");
+				.readBatches("[{\"target\":{\"kind\":\"PROJECT\",\"id\":\"p1\"},"
+						+ "\"changes\":[{\"action\":\"ADD\",\"subject\":{\"kind\":\"USER\",\"id\":\"ada\",\"type\":\"NATIVE\"},"
+						+ "\"to\":{\"level\":\"EDIT\",\"maxTokens\":100}}]}]");
 
 		assertEquals(1, batches.size());
-		assertEquals(PermissionTargetResource.TargetResourceType.PROJECT, batches.get(0).getTarget().getResourceType());
+		assertEquals(PermissionTargetResource.Kind.PROJECT, batches.get(0).getTarget().getKind());
 		PermissionChange change = batches.get(0).getChanges().get(0);
 		assertEquals(PermissionChange.Action.ADD, change.getAction());
 		assertEquals("ada", change.getSubject().getId());
 		assertEquals("EDIT", change.getTo().getLevel());
-		assertEquals("2030-01-01T00:00:00Z", change.getTo().getEndDate());
+		assertEquals(100, change.getTo().getMaxTokens());
 	}
 
 	@ParameterizedTest
@@ -262,7 +258,7 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 				new PermissionGrant("DISCOVERABLE", null));
 		UnitTestSecurityAuthUtils.createUser("newcomer", false);
 		PermissionChange noType = new PermissionChange(PermissionChange.Action.ADD,
-				new PermissionSubject(PermissionSubject.SubjectCategory.USER, "newcomerid", null),
+				new PermissionSubject(PermissionSubject.Kind.USER, "newcomerid", null),
 				new PermissionGrant("READ_ONLY", null));
 		PermissionBatch batch = projectBatch(badDate, badLevel, noType, remove("readerid"), change("readerid", "EDIT"));
 
@@ -280,9 +276,9 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 	@Test
 	void validateBatches_aTeamMemberNeedsALoginType() {
 		PermissionChange noType = new PermissionChange(PermissionChange.Action.ADD,
-				new PermissionSubject(PermissionSubject.SubjectCategory.USER, "strangerid", null), null);
+				new PermissionSubject(PermissionSubject.Kind.USER, "strangerid", null), null);
 		PermissionChange nobody = new PermissionChange(PermissionChange.Action.ADD,
-				new PermissionSubject(PermissionSubject.SubjectCategory.USER, "nobody", null),
+				new PermissionSubject(PermissionSubject.Kind.USER, "nobody", null),
 				new PermissionGrant("READ_ONLY", null));
 
 		assertBlocked(
@@ -298,8 +294,7 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 	@Test
 	void validateBatches_adminModeReportsATargetThatDoesNotExist() {
 		PermissionBatch batch = new PermissionBatch(
-				new PermissionTargetResource(PermissionTargetResource.TargetResourceType.PROJECT, OTHER_PROJECT_ID,
-						null),
+				new PermissionTargetResource(PermissionTargetResource.Kind.PROJECT, OTHER_PROJECT_ID, null),
 				List.of(add("strangerid", "READ_ONLY")));
 
 		assertBlocked(
@@ -320,7 +315,7 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 	@Test
 	void validateBatches_reportsAnEngineThatDoesNotExistOnItsBatch() {
 		PermissionBatch batch = new PermissionBatch(
-				new PermissionTargetResource(PermissionTargetResource.TargetResourceType.ENGINE, "missingengine", null),
+				new PermissionTargetResource(PermissionTargetResource.Kind.ENGINE, "missingengine", null),
 				List.of(add("strangerid", "READ_ONLY")));
 
 		assertBlocked(changes(SecurityAccessPermissionBatchUtils.validateBatches(editor, List.of(batch)).get(0)).get(0),
@@ -357,7 +352,7 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 	}
 
 	@Test
-	void validateBatches_someoneWithNoPermissionCannotTellWhatTypeOfTeamItIs() throws Exception {
+	void validateBatches_someoneWithNoRightsCannotTellWhatKindOfTeamItIs() throws Exception {
 		String reason = "Only this team's managers can change its members";
 		for (String teamId : List.of(GROUP_ID, NON_CUSTOM_GROUP_ID, "missingteam")) {
 			assertBlocked(
@@ -586,8 +581,7 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 	void saveBatches_savesNothingWhenAnyChangeIsBlocked() {
 		PermissionBatch good = projectBatch(add("strangerid", "EDIT"));
 		PermissionBatch bad = new PermissionBatch(
-				new PermissionTargetResource(PermissionTargetResource.TargetResourceType.PROJECT, OTHER_PROJECT_ID,
-						null),
+				new PermissionTargetResource(PermissionTargetResource.Kind.PROJECT, OTHER_PROJECT_ID, null),
 				List.of(add("managerid", "READ_ONLY")));
 
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
@@ -599,39 +593,27 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 	}
 
 	@Test
-	void saveBatches_savesAModelsEndDateAndUsageLimit() throws Exception {
-		UnitTestSecurityAuthUtils.createEngine(ENGINE_ID, "changed engine", IEngine.CATALOG_TYPE.MODEL, admin);
-		PermissionGrant grant = new PermissionGrant("READ_ONLY", ZonedDateTime.now().plusDays(5).toString())
-				.withUsageLimit(tokensAWeek(1000L));
+	void saveBatches_savesAnEnginesEndDateAndModelLimits() throws Exception {
+		UnitTestSecurityAuthUtils.createEngine(ENGINE_ID, "changed engine", admin);
+		PermissionGrant grant = new PermissionGrant("READ_ONLY", ZonedDateTime.now().plusDays(5).toString());
+		grant.setMaxTokens(1000);
+		grant.setMaxResponseTime(2.5);
+		grant.setUsageRestriction("TOKENS");
+		grant.setUsageFrequency("DAILY");
 		PermissionBatch batch = new PermissionBatch(
-				new PermissionTargetResource(PermissionTargetResource.TargetResourceType.ENGINE, ENGINE_ID, null),
+				new PermissionTargetResource(PermissionTargetResource.Kind.ENGINE, ENGINE_ID, null),
 				List.of(new PermissionChange(PermissionChange.Action.ADD, user("strangerid"), grant)));
 
 		SecurityAccessPermissionBatchUtils.saveBatches(admin, List.of(batch));
 
-		ModelUsageLimit saved = SecurityModelUsageLimitUtils
-				.getLimit(ModelUsageLimitKey.direct(ENGINE_ID, "strangerid", null));
-		assertEquals(1, saved.getRules().size());
-		assertEquals(ModelUsageLimitRule.Metric.TOKENS, saved.getRules().get(0).getMetric());
-		assertEquals(1000L, saved.getRules().get(0).getAmount());
-		assertEquals(ModelUsageLimitRule.Window.WEEK, saved.getRules().get(0).getWindow());
+		assertEquals(1000,
+				((Number) UnitTestGroupTables.queryValue(securityDb,
+						"SELECT MAXTOKENS FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?", "strangerid",
+						ENGINE_ID)).intValue());
+		assertEquals("DAILY", UnitTestGroupTables.queryValue(securityDb,
+				"SELECT USAGEFREQUENCY FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?", "strangerid", ENGINE_ID));
 		assertTrue(UnitTestGroupTables.queryValue(securityDb,
 				"SELECT ENDDATE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?", "strangerid", ENGINE_ID) != null);
-	}
-
-	@Test
-	void saveBatches_refusesALimitOnAnEngineThatIsNotAModel() {
-		UnitTestSecurityAuthUtils.createEngine(ENGINE_ID, "changed engine", admin);
-		PermissionGrant grant = new PermissionGrant("READ_ONLY", null).withUsageLimit(tokensAWeek(1000L));
-		PermissionBatch batch = new PermissionBatch(PermissionTargetResource.engine(ENGINE_ID),
-				List.of(PermissionChange.add(user("strangerid"), grant)));
-
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> SecurityAccessPermissionBatchUtils.saveBatches(admin, List.of(batch)));
-
-		assertTrue(e.getMessage().contains("Only a model's grants can have usage limits"));
-		assertNull(
-				SecurityUserEngineUtils.getUserEnginePermissions(List.of("strangerid"), ENGINE_ID).get("strangerid"));
 	}
 
 	@Test
@@ -661,7 +643,7 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 			return true;
 		});
 		PermissionChange add = new PermissionChange(PermissionChange.Action.ADD,
-				new PermissionSubject(PermissionSubject.SubjectCategory.USER, "directory-user", MICROSOFT),
+				new PermissionSubject(PermissionSubject.Kind.USER, "directory-user", MICROSOFT),
 				new PermissionGrant("READ_ONLY", null));
 
 		SecurityAccessPermissionBatchUtils.saveBatches(admin, List.of(projectBatch(add)));
@@ -681,7 +663,7 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 				ZonedDateTime.now().plusDays(3).toString());
 
 		Map<String, Object> access = SecurityAccessPermissionBatchUtils.getPermissions(editor,
-				new PermissionTargetResource(PermissionTargetResource.TargetResourceType.PROJECT, PROJECT_ID, null));
+				new PermissionTargetResource(PermissionTargetResource.Kind.PROJECT, PROJECT_ID, null));
 
 		Map<String, Object> readerRow = rowFor(list(access.get("people")), "readerid");
 		assertEquals("READ_ONLY", map(readerRow.get("access")).get("level"));
@@ -701,8 +683,8 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 	@Test
 	void getAccess_readsATeamsMembersForItsManagers() throws Exception {
 		UnitTestGroupTables.insertMember(securityDb, GROUP_ID, "readerid", NATIVE);
-		PermissionTargetResource team = new PermissionTargetResource(PermissionTargetResource.TargetResourceType.TEAM,
-				GROUP_ID, null);
+		PermissionTargetResource team = new PermissionTargetResource(PermissionTargetResource.Kind.TEAM, GROUP_ID,
+				null);
 
 		Map<String, Object> access = SecurityAccessPermissionBatchUtils.getPermissions(manager, team);
 
@@ -716,8 +698,8 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 
 	@Test
 	void getAccess_readsATeamsManagersForItsManagers() throws Exception {
-		PermissionTargetResource managers = new PermissionTargetResource(
-				PermissionTargetResource.TargetResourceType.TEAM_MANAGERS, GROUP_ID, null);
+		PermissionTargetResource managers = new PermissionTargetResource(PermissionTargetResource.Kind.TEAM_MANAGERS,
+				GROUP_ID, null);
 
 		Map<String, Object> access = SecurityAccessPermissionBatchUtils.getPermissions(manager, managers);
 
@@ -737,8 +719,8 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 	@Test
 	void getAccess_readsAnyTargetInAdminModeOnly() throws Exception {
 		User otherAdmin = UnitTestSecurityAuthUtils.createUser("otheradmin", true);
-		PermissionTargetResource project = new PermissionTargetResource(
-				PermissionTargetResource.TargetResourceType.PROJECT, PROJECT_ID, null);
+		PermissionTargetResource project = new PermissionTargetResource(PermissionTargetResource.Kind.PROJECT,
+				PROJECT_ID, null);
 
 		assertThrows(IllegalAccessException.class,
 				() -> SecurityAccessPermissionBatchUtils.getPermissions(otherAdmin, project));
@@ -763,9 +745,8 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(admin, OTHER_PROJECT_ID, "strangerid", "EDIT");
 
 		List<Map<String, Object>> rows = SecurityAccessPermissionBatchUtils.getPermissionsToCopy(owner,
-				new PermissionTargetResource(PermissionTargetResource.TargetResourceType.PROJECT, OTHER_PROJECT_ID,
-						null),
-				new PermissionTargetResource(PermissionTargetResource.TargetResourceType.PROJECT, PROJECT_ID, null));
+				new PermissionTargetResource(PermissionTargetResource.Kind.PROJECT, OTHER_PROJECT_ID, null),
+				new PermissionTargetResource(PermissionTargetResource.Kind.PROJECT, PROJECT_ID, null));
 
 		Map<String, Object> strangerRow = rowFor(rows, "strangerid");
 		assertEquals("EDIT", map(strangerRow.get("source")).get("level"));
@@ -779,10 +760,10 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 	@Test
 	void getAccessToCopy_aTeamsMembersNeedItsManagersTheTargetsOwnersOrAccessToTheTarget() throws Exception {
 		UnitTestGroupTables.insertMember(securityDb, GROUP_ID, "strangerid", NATIVE);
-		PermissionTargetResource team = new PermissionTargetResource(PermissionTargetResource.TargetResourceType.TEAM,
-				GROUP_ID, null);
-		PermissionTargetResource project = new PermissionTargetResource(
-				PermissionTargetResource.TargetResourceType.PROJECT, PROJECT_ID, null);
+		PermissionTargetResource team = new PermissionTargetResource(PermissionTargetResource.Kind.TEAM, GROUP_ID,
+				null);
+		PermissionTargetResource project = new PermissionTargetResource(PermissionTargetResource.Kind.PROJECT,
+				PROJECT_ID, null);
 
 		// the project's owners see whom they would bring in; its editors once the
 		// team can use it
@@ -801,12 +782,12 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 		groups.addGroup(admin, "otherteam", CUSTOM, "another team");
 		UnitTestGroupTables.insertManager(securityDb, "otherteam", "managerid", NATIVE);
 		UnitTestGroupTables.insertManager(securityDb, "otherteam", "editorid", NATIVE);
-		PermissionTargetResource from = new PermissionTargetResource(
-				PermissionTargetResource.TargetResourceType.TEAM_MANAGERS, "otherteam", null);
-		PermissionTargetResource to = new PermissionTargetResource(
-				PermissionTargetResource.TargetResourceType.TEAM_MANAGERS, GROUP_ID, null);
-		PermissionTargetResource members = new PermissionTargetResource(
-				PermissionTargetResource.TargetResourceType.TEAM, GROUP_ID, null);
+		PermissionTargetResource from = new PermissionTargetResource(PermissionTargetResource.Kind.TEAM_MANAGERS,
+				"otherteam", null);
+		PermissionTargetResource to = new PermissionTargetResource(PermissionTargetResource.Kind.TEAM_MANAGERS,
+				GROUP_ID, null);
+		PermissionTargetResource members = new PermissionTargetResource(PermissionTargetResource.Kind.TEAM, GROUP_ID,
+				null);
 
 		List<Map<String, Object>> rows = SecurityAccessPermissionBatchUtils.getPermissionsToCopy(manager, from, to);
 
@@ -825,8 +806,8 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 						.get("inTarget"));
 
 		// managers are never copied to or from a project or an engine
-		PermissionTargetResource project = new PermissionTargetResource(
-				PermissionTargetResource.TargetResourceType.PROJECT, PROJECT_ID, null);
+		PermissionTargetResource project = new PermissionTargetResource(PermissionTargetResource.Kind.PROJECT,
+				PROJECT_ID, null);
 		assertThrows(IllegalArgumentException.class,
 				() -> SecurityAccessPermissionBatchUtils.getPermissionsToCopy(manager, to, project));
 		assertThrows(IllegalArgumentException.class,
@@ -835,8 +816,8 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 
 	@Test
 	void getAccessToCopy_rejectsCopyingATargetIntoItself() {
-		PermissionTargetResource project = new PermissionTargetResource(
-				PermissionTargetResource.TargetResourceType.PROJECT, PROJECT_ID, null);
+		PermissionTargetResource project = new PermissionTargetResource(PermissionTargetResource.Kind.PROJECT,
+				PROJECT_ID, null);
 
 		assertThrows(IllegalArgumentException.class,
 				() -> SecurityAccessPermissionBatchUtils.getPermissionsToCopy(owner, project, project));
@@ -847,7 +828,7 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 	///
 
 	private static PermissionSubject user(String id) {
-		return new PermissionSubject(PermissionSubject.SubjectCategory.USER, id, NATIVE);
+		return new PermissionSubject(PermissionSubject.Kind.USER, id, NATIVE);
 	}
 
 	private static PermissionChange add(String userId, String level) {
@@ -864,34 +845,27 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 
 	private static PermissionChange addTeam(String groupId, String level) {
 		return new PermissionChange(PermissionChange.Action.ADD,
-				new PermissionSubject(PermissionSubject.SubjectCategory.TEAM, groupId, CUSTOM),
-				new PermissionGrant(level, null));
+				new PermissionSubject(PermissionSubject.Kind.TEAM, groupId, CUSTOM), new PermissionGrant(level, null));
 	}
 
 	private static PermissionChange addMember(String userId) {
 		return new PermissionChange(PermissionChange.Action.ADD, user(userId), null);
 	}
 
-	private static ModelUsageLimit tokensAWeek(long amount) {
-		return ModelUsageLimit.of(List.of(new ModelUsageLimitRule(ModelUsageLimitRule.Metric.TOKENS, amount,
-				ModelUsageLimitRule.Window.WEEK, ModelUsageLimitRule.Counts.EACH_PERSON)));
-	}
-
 	private static PermissionBatch projectBatch(PermissionChange... changes) {
 		return new PermissionBatch(
-				new PermissionTargetResource(PermissionTargetResource.TargetResourceType.PROJECT, PROJECT_ID, null),
+				new PermissionTargetResource(PermissionTargetResource.Kind.PROJECT, PROJECT_ID, null),
 				List.of(changes));
 	}
 
 	private static PermissionBatch teamBatch(String groupId, PermissionChange... changes) {
-		return new PermissionBatch(
-				new PermissionTargetResource(PermissionTargetResource.TargetResourceType.TEAM, groupId, null),
+		return new PermissionBatch(new PermissionTargetResource(PermissionTargetResource.Kind.TEAM, groupId, null),
 				List.of(changes));
 	}
 
 	private static PermissionBatch managersBatch(String groupId, PermissionChange... changes) {
 		return new PermissionBatch(
-				new PermissionTargetResource(PermissionTargetResource.TargetResourceType.TEAM_MANAGERS, groupId, null),
+				new PermissionTargetResource(PermissionTargetResource.Kind.TEAM_MANAGERS, groupId, null),
 				List.of(changes));
 	}
 

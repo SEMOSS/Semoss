@@ -47,18 +47,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
-import prerna.auth.access.ModelUsageLimit;
-import prerna.auth.access.ModelUsageLimitKey;
-import prerna.auth.access.ModelUsageLimitRule;
-import prerna.auth.access.ModelUsageLimitRule.Counts;
-import prerna.auth.access.ModelUsageLimitRule.Metric;
-import prerna.auth.access.ModelUsageLimitRule.Window;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.util.Constants;
-import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -730,7 +722,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		// user not editor
 		IllegalAccessException ex = assertThrows(IllegalAccessException.class,
-				() -> SecurityEngineUtils.addEngineUser(user2, "user3id", "testId", "OWNER", null, null));
+				() -> SecurityEngineUtils.addEngineUser(user2, "user3id", "testId", "OWNER", null, null, null, 0, 0));
 
 		assertEquals("Insufficient privileges to modify this engine's permissions.", ex.getMessage());
 
@@ -738,18 +730,18 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		// user already has permissions
 		IllegalArgumentException argEx = assertThrows(IllegalArgumentException.class,
-				() -> SecurityEngineUtils.addEngineUser(user, "admin2id", "testId", "OWNER", null, null));
+				() -> SecurityEngineUtils.addEngineUser(user, "admin2id", "testId", "OWNER", null, null, null, 0, 0));
 		assertEquals("This user already has access to this engine. Please edit the existing permission level.",
 				argEx.getMessage());
 
 		// user not owner and tries to give ownership
 		ex = assertThrows(IllegalAccessException.class,
-				() -> SecurityEngineUtils.addEngineUser(user2, "user3id", "testId", "OWNER", null, null));
+				() -> SecurityEngineUtils.addEngineUser(user2, "user3id", "testId", "OWNER", null, null, null, 0, 0));
 		assertEquals("Cannot give owner level access to this engine since you are not currently an owner.",
 				ex.getMessage());
 
 		// user successfully gives edit as edit user
-		SecurityEngineUtils.addEngineUser(user2, "user3id", "testId", "EDIT", null, null);
+		SecurityEngineUtils.addEngineUser(user2, "user3id", "testId", "EDIT", null, null, null, 0, 0);
 
 		assertTrue(SecurityEngineUtils.userCanEditEngine(user3, "testId"));
 
@@ -809,13 +801,13 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		// user not editor
 		IllegalAccessException ex = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils
-				.editEngineUserPermission(user2, "user3id", "NATIVE", "testId", "OWNER", null));
+				.editEngineUserPermission(user2, "user3id", "NATIVE", "testId", "OWNER", null, null, null, 0, 0));
 
 		assertEquals("Insufficient privileges to modify this engine's permissions.", ex.getMessage());
 
 		// user does not have permissions
 		IllegalArgumentException argEx = assertThrows(IllegalArgumentException.class, () -> SecurityEngineUtils
-				.editEngineUserPermission(user, "admin2id", "NATIVE", "testId", "OWNER", null));
+				.editEngineUserPermission(user, "admin2id", "NATIVE", "testId", "OWNER", null, null, null, 0, 0));
 		assertEquals(
 				"Attempting to modify engine permission for a user who does not currently have access to the engine",
 				argEx.getMessage());
@@ -825,19 +817,20 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, "user3id", "testId", "READ_ONLY");
 
 		// edit user tries to edit owner user
-		ex = assertThrows(IllegalAccessException.class,
-				() -> SecurityEngineUtils.editEngineUserPermission(user2, "adminid", "NATIVE", "testId", "EDIT", null));
+		ex = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils.editEngineUserPermission(user2,
+				"adminid", "NATIVE", "testId", "EDIT", null, null, null, 0, 0));
 		assertEquals("The user doesn't have the high enough permissions to modify this users engine permission.",
 				ex.getMessage());
 
 		// user not owner and tries to give ownership
 		ex = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils.editEngineUserPermission(user2,
-				"user3id", "NATIVE", "testId", "OWNER", null));
+				"user3id", "NATIVE", "testId", "OWNER", null, null, null, 0, 0));
 		assertEquals("Cannot give owner level access to this engine since you are not currently an owner.",
 				ex.getMessage());
 
 		// user2 successfully changes user3 to edit as edit user
-		SecurityEngineUtils.editEngineUserPermission(user2, "user3id", "NATIVE", "testId", "EDIT", null);
+		SecurityEngineUtils.editEngineUserPermission(user2, "user3id", "NATIVE", "testId", "EDIT", null, null, null, 0,
+				0);
 
 		assertTrue(SecurityEngineUtils.userCanEditEngine(user3, "testId"));
 
@@ -916,50 +909,6 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		// assert that no longer present in enginemeta table
 		// assert that no longer present in workspaceengine table
 		// assert that no longer present in assetengine table
-	}
-
-	@Test
-	void testDeleteEngine_removesModelUsageLimits() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", IEngine.CATALOG_TYPE.MODEL, user);
-		UnitTestSecurityAuthUtils.createEngine("otherId", "otherAlias", IEngine.CATALOG_TYPE.MODEL, user);
-		saveLimit(ModelUsageLimitKey.direct("testId", "adminid", null), tokensADay(100));
-		saveLimit(ModelUsageLimitKey.team("testId", "data", "CUSTOM"), ModelUsageLimit.unlimited());
-		saveLimit(ModelUsageLimitKey.publicUse("testId"), tokensADay(10));
-		saveLimit(ModelUsageLimitKey.direct("otherId", "adminid", null), tokensADay(100));
-
-		SecurityEngineUtils.deleteEngine("testId");
-
-		assertTrue(SecurityModelUsageLimitUtils.getEngineLimits("testId").isEmpty());
-		assertNotNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct("otherId", "adminid", null)));
-	}
-
-	///
-	/// addEngineUser and editEngineUserPermission with a model usage limit
-	///
-
-	@Test
-	void testAddAndEditEngineUser_usageLimit() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createUser("second", false);
-		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", IEngine.CATALOG_TYPE.MODEL, user);
-		ModelUsageLimitKey key = ModelUsageLimitKey.direct("testId", "secondid", null);
-		ModelUsageLimit twoRules = ModelUsageLimit
-				.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, 1000L, Window.MINUTE, Counts.EACH_PERSON),
-						new ModelUsageLimitRule(Metric.TOKENS, 50000L, Window.DAY, Counts.EACH_PERSON)));
-
-		SecurityEngineUtils.addEngineUser(user, "secondid", "testId", "READ_ONLY", null, twoRules);
-		assertEquals(2, SecurityModelUsageLimitUtils.getLimit(key).getRules().size());
-
-		// a change of level only keeps the limit
-		SecurityEngineUtils.editEngineUserPermission(user, "secondid", "NATIVE", "testId", "EDIT", null);
-		assertEquals(AccessPermissionEnum.EDIT.getId(),
-				SecurityEngineUtils.getUserEnginePermission("secondid", "testId"));
-		assertEquals(2, SecurityModelUsageLimitUtils.getLimit(key).getRules().size());
-
-		SecurityEngineUtils.editEngineUserPermission(user, "secondid", "NATIVE", "testId", "READ_ONLY", null,
-				(ModelUsageLimit) null);
-		assertNull(SecurityModelUsageLimitUtils.getLimit(key));
 	}
 
 	///
@@ -1563,46 +1512,48 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 	}
 
 	///
-	/// updateEngineUserPermissions (the login sync)
+	/// getEngineUsagePermissionMap
 	///
 
 	@Test
-	void testUpdateEngineUserPermissions_keepsTheLimitsOfKeptGrants() throws Exception {
+	void testGetEngineUsagePermissionMap() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("keptId", "keptAlias", IEngine.CATALOG_TYPE.MODEL, user);
-		UnitTestSecurityAuthUtils.createEngine("droppedId", "droppedAlias", IEngine.CATALOG_TYPE.MODEL, user);
-		saveLimit(ModelUsageLimitKey.direct("keptId", "adminid", null), tokensADay(100));
-		saveLimit(ModelUsageLimitKey.direct("droppedId", "adminid", null), tokensADay(200));
 
-		List<Map<String, Object>> updates = new ArrayList<>();
-		Map<String, Object> updatesMap = new HashMap<>();
-		updatesMap.put("engineId", "keptId");
-		updatesMap.put("engineName", "keptAlias");
-		updatesMap.put("engineType", IEngine.CATALOG_TYPE.MODEL);
-		updatesMap.put("permission", "READ_ONLY");
-		updates.add(updatesMap);
-		SecurityEngineUtils.updateEngineUserPermissions(user, updates);
+		// check conditions that immediately return null
+		assertNull(SecurityEngineUtils.getEngineUsagePermissionMap(null, null));
+		assertNull(SecurityEngineUtils.getEngineUsagePermissionMap(user, null));
+		assertNull(SecurityEngineUtils.getEngineUsagePermissionMap(user, ""));
 
-		assertEquals(AccessPermissionEnum.READ_ONLY.getId(),
-				SecurityEngineUtils.getUserEnginePermission("adminid", "keptId"));
-		assertNull(SecurityEngineUtils.getUserEnginePermission("adminid", "droppedId"));
-		ModelUsageLimit kept = SecurityModelUsageLimitUtils
-				.getLimit(ModelUsageLimitKey.direct("keptId", "adminid", null));
-		assertNotNull(kept);
-		assertEquals(100L, kept.getRules().get(0).getAmount());
-		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct("droppedId", "adminid", null)));
+		UnitTestSecurityAuthUtils.createEngine("testId", "ta", user);
+
+		List<Map<String, Object>> vals = SecurityEngineUtils.getEngineUsagePermissionMap(user, "testId");
+
+		assertEquals(1, vals.size());
+		assertEquals("adminid", vals.getFirst().get("id"));
 	}
 
-	private static void saveLimit(ModelUsageLimitKey key, ModelUsageLimit limit) throws Exception {
-		QueryExecutionUtility.write(SystemEngineRegistry.getSecurityDb(), connection -> {
-			SecurityModelUsageLimitUtils.setLimit(connection, key, limit, null);
-			return null;
-		});
-	}
+	///
+	/// getModelEngineIdsWithRestrictions
+	///
 
-	private static ModelUsageLimit tokensADay(long amount) {
-		return ModelUsageLimit
-				.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, amount, Window.DAY, Counts.EACH_PERSON)));
+	@Test
+	void testGetModelEngineIdsWithRestrictions() throws IllegalAccessException {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User user2 = UnitTestSecurityAuthUtils.createUser("second", true);
+
+		// check conditions that immediately return null
+		assertNull(SecurityEngineUtils.getModelEngineIdsWithRestrictions(null, null));
+		assertNull(SecurityEngineUtils.getModelEngineIdsWithRestrictions(user, null));
+		assertNull(SecurityEngineUtils.getModelEngineIdsWithRestrictions(user, ""));
+
+		UnitTestSecurityAuthUtils.createEngine("testId", "ta", user);
+
+		SecurityEngineUtils.addEngineUser(user, "secondid", "testId", "EDIT", null, "restrict", "frequency", 3, 4.0);
+
+		List<String> ids = SecurityEngineUtils.getModelEngineIdsWithRestrictions(user2, "testId");
+
+		assertEquals(1, ids.size());
+		assertEquals("testId", ids.getFirst());
 	}
 
 	///

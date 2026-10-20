@@ -343,7 +343,6 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		if (thinkingTokens != null) {
 			askResponse.setNumberOfThinkingTokens(thinkingTokens);
 		}
-		askResponse.setUsageCapped(isTrue(modelResponse.get(USAGE_CAPPED_KEY)));
 
 		return askResponse;
 	}
@@ -355,10 +354,6 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		}
 		Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
 		return fromMap(modelResponse);
-	}
-
-	private static boolean isTrue(Object value) {
-		return value instanceof Boolean ? (Boolean) value : value != null && "true".equalsIgnoreCase(value.toString());
 	}
 
 	@SuppressWarnings("unchecked")

@@ -54,7 +54,7 @@ public class GetAutomationAgentRunReactor extends AbstractReactor {
 	public GetAutomationAgentRunReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), AUTOMATION_RUN_ID_KEY, NODE_ID_KEY,
 				AGENT_RUN_ID_KEY, INCLUDE_MESSAGES_KEY };
-		this.keyRequired = new int[] { 0, 1, 1, 1, 0 };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 0 };
 	}
 
 	@Override

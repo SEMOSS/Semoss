@@ -32,7 +32,6 @@ import java.awt.Color;
 import java.awt.Font;
 import java.io.BufferedWriter;
 import java.io.OutputStream;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -92,17 +91,11 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AdminExportEnterpriseUsageReactor.class);
 
-	private static final String NOTES = """
-			Requests Count INPUT Rows; Token Totals Sum Recorded INPUT And RESPONSE Token Counts. \
-			Raw Latency Is In Milliseconds. Cache And Thinking Tokens Are Provider-Reported Detail, \
-			Not Additional Total Tokens. Activity Events Are Separate From Model Requests. \
-			Audit Logs List Access Changes, Denied Requests And Usage Limit Changes, In UTC, \
-			Without Their Old Or New Values Or Denial Reasons. Missing Values Are Unavailable. \
-			Coverage Depends On Enabled Logging And Retention. Costs Are In US Dollars: Recorded Costs Are What \
-			Each Call Was Billed At Its Model's Prices Then, And Estimated Costs Price Calls Logged Before Costs \
-			Were Recorded At Their Model's Current Base Rates; Calls Of Models With No Known Prices Have No Cost. \
-			No Message Bodies Are Included. \
-			When Period Lengths Differ, Volume Comparisons Use Daily Averages; Distinct Counts Are Not Normalized.""";
+	private static final String NOTES = "Requests Count INPUT Rows; Token Totals Sum Recorded INPUT And RESPONSE Token Counts. "
+			+ "Raw Latency Is In Milliseconds. Cache And Thinking Tokens Are Provider-Reported Detail, Not Additional Total Tokens. "
+			+ "Activity Events Are Separate From Model Requests. Missing Values Are Unavailable. "
+			+ "Coverage Depends On Enabled Logging And Retention. No Message Bodies Or Billed Spend Are Included. "
+			+ "When Period Lengths Differ, Volume Comparisons Use Daily Averages; Distinct Counts Are Not Normalized.";
 
 	public AdminExportEnterpriseUsageReactor() {
 		this.keysToGet = new String[] { "source", "view", "format", "startDate", "endDate", "user", "app", "model",
@@ -133,9 +126,6 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Unsupported Export Format Or View");
 			}
 			Source source = EnterpriseUsageUtils.option(Source.class, keyValue.getOrDefault("source", "model"));
-			if (source == Source.AUDIT && !view.equals("logs")) {
-				throw new IllegalArgumentException("Audit Exports Include The Change Log Only");
-			}
 			keyValue.put("format", format);
 			keyValue.put("view", view);
 			keyValue.put("source", source.name().toLowerCase(Locale.ROOT));
@@ -212,28 +202,8 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 			start = keyValue.get("comparisonStartDate");
 			end = keyValue.get("comparisonEndDate");
 		}
-		List<Map<String, Object>> rows = (List<Map<String, Object>>) EnterpriseUsageUtils
-				.report(source, view, start, end, keyValue.get("user"), keyValue.get("app"), keyValue.get("engine"),
-						keyValue.get("dimension"), limit, 0)
-				.get("rows");
-		return rows.stream().map(AdminExportEnterpriseUsageReactor::inDollars).toList();
-	}
-
-	/**
-	 * A row with each cost in US dollars, as {@code ..._COST_USD}, in place of its
-	 * millionths of a dollar.
-	 */
-	static Map<String, Object> inDollars(Map<String, Object> row) {
-		Map<String, Object> converted = new LinkedHashMap<>();
-		row.forEach((key, value) -> {
-			if (key.endsWith("COST_MICROS")) {
-				converted.put(key.substring(0, key.length() - "MICROS".length()) + "USD",
-						value instanceof Number micros ? BigDecimal.valueOf(micros.longValue(), 6) : null);
-			} else {
-				converted.put(key, value);
-			}
-		});
-		return converted;
+		return (List<Map<String, Object>>) EnterpriseUsageUtils.report(source, view, start, end, keyValue.get("user"),
+				keyValue.get("app"), keyValue.get("engine"), keyValue.get("dimension"), limit, 0).get("rows");
 	}
 
 	/** Exports the selected dashboard source with its explicit benchmark. */
@@ -246,8 +216,7 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 		long benchmarkDays = ChronoUnit.DAYS.between(LocalDate.parse(keyValue.get("comparisonStartDate")),
 				LocalDate.parse(keyValue.get("comparisonEndDate"))) + 1;
 		Set<String> additive = Set.of("REQUESTS", "TOKENS", "INPUT_TOKENS", "OUTPUT_TOKENS", "CACHE_READ_TOKENS",
-				"CACHE_CREATION_TOKENS", "THINKING_TOKENS", "COST_USD", "RECORDED_COST_USD", "ESTIMATED_COST_USD",
-				"COSTED_REQUESTS", "PRICED_REQUESTS", "EVENTS", "FAILED", "SUCCEEDED");
+				"CACHE_CREATION_TOKENS", "THINKING_TOKENS", "EVENTS", "FAILED", "SUCCEEDED");
 		List<Map<String, Object>> metrics = new ArrayList<>();
 		current.forEach((key, value) -> {
 			Map<String, Object> row = new LinkedHashMap<>();
@@ -272,15 +241,13 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 			metrics.add(metric("Rated Responses", feedback.get("RATINGS")));
 			metrics.add(metric("Positive Feedback (%)", rate(feedback, "POSITIVE", "RATINGS")));
 			metrics.add(metric("Token Coverage (%)", rate(current, "TOKEN_ROWS", "MESSAGE_ROWS")));
-			metrics.add(metric("Cost Coverage (%)", rate(current, "PRICED_REQUESTS", "REQUESTS")));
 		} else {
 			metrics.add(metric("Activity Success Rate (%)", rate(current, "SUCCEEDED", "KNOWN_OUTCOMES")));
 		}
 		sections.put(label, metrics);
 		if (includeTrends) {
 			List<String> keys = source == Source.MODEL
-					? List.of("DAY", "REQUESTS", "USERS", "INPUT_TOKENS", "OUTPUT_TOKENS", "TOKENS", "COST_USD",
-							"LATENCY_MS")
+					? List.of("DAY", "REQUESTS", "USERS", "INPUT_TOKENS", "OUTPUT_TOKENS", "TOKENS", "LATENCY_MS")
 					: List.of("DAY", "EVENTS", "USERS", "FAILED", "KNOWN_OUTCOMES");
 			for (boolean benchmark : List.of(false, true)) {
 				List<Map<String, Object>> daily = new ArrayList<>();
@@ -444,11 +411,10 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 		String reportTitle = label + " Report";
 		List<Map<String, Object>> metrics = new ArrayList<>(sections.getOrDefault(label, List.of()));
 		List<String> metricOrder = model
-				? List.of("Requests", "Tokens", "Input Tokens", "Output Tokens", "Cost (USD)", "Recorded Cost (USD)",
-						"Estimated Cost (USD)", "Priced Requests", "Costed Requests", "Cost Coverage (%)", "Users",
-						"Apps", "Models", "Rooms", "Average Latency (ms)", "P95 Latency (ms)", "Rated Responses",
-						"Positive Feedback (%)", "Token Coverage (%)", "Message Rows", "Token Rows",
-						"Cache Read Tokens", "Cache Creation Tokens", "Thinking Tokens")
+				? List.of("Requests", "Tokens", "Input Tokens", "Output Tokens", "Users", "Apps", "Models", "Rooms",
+						"Average Latency (ms)", "P95 Latency (ms)", "Rated Responses", "Positive Feedback (%)",
+						"Token Coverage (%)", "Message Rows", "Token Rows", "Cache Read Tokens",
+						"Cache Creation Tokens", "Thinking Tokens")
 				: List.of("Events", "Users", "Succeeded", "Failed", "Known Outcomes", "Activity Success Rate (%)");
 		metrics.sort(Comparator.<Map<String, Object>>comparingInt(row -> {
 			int index = metricOrder.indexOf(row.get("Metric"));
@@ -534,9 +500,8 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 		html.append("</div><h2>Executive Summary</h2><table class='kpis'>");
 		String[][] cards = model
 				? new String[][] { { "Requests", "Model Requests" }, { "Tokens", "Recorded Tokens" },
-						{ "Cost (USD)", "Model Cost" }, { "Users", "Active Users" }, { "Apps", "Active Apps" },
-						{ "Models", "Active Models" }, { "Rooms", "Conversations" },
-						{ "Average Latency (ms)", "Average Latency" }, { "P95 Latency (ms)", "P95 Latency" } }
+						{ "Users", "Active Users" }, { "Apps", "Active Apps" }, { "Models", "Active Models" },
+						{ "Average Latency (ms)", "Average Latency" } }
 				: new String[][] { { "Events", "Activity Events" }, { "Users", "Active Platform Users" },
 						{ "Failed", "Failed Events" }, { "Activity Success Rate (%)", "Success Rate" } };
 		int columns = model ? 3 : 2;
@@ -585,7 +550,7 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 				"<div class='page'><div class='eyebrow'>Period Comparison</div><h2>Usage Over Time</h2><p class='muted'>Both Complete Periods Align At Day 1. Blank Segments Mark Unreported Values Or Days Outside A Period. Quiet Days Are Zero For Volume Metrics.</p>");
 		List<Map<String, Object>> daily = sections.getOrDefault("Daily " + label, List.of());
 		List<Map<String, Object>> benchmark = sections.getOrDefault("Daily Benchmark " + label, List.of());
-		for (String metric : model ? List.of("Requests", "Tokens", "Cost (USD)") : List.of("Events", "Failed")) {
+		for (String metric : model ? List.of("Requests", "Tokens") : List.of("Events", "Failed")) {
 			html.append("<div class='chart'><h3>").append(xml(metric.equals("Failed") ? "Failed Events" : metric))
 					.append("</h3><img alt='").append(xml(metric)).append(" Comparison' src='")
 					.append(pdfChart(daily, benchmark, scope, metric)).append("' /></div>");
@@ -602,10 +567,8 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 					.append(prior ? "Benchmark Period" : "Reporting Period").append("</div><h2>Daily ")
 					.append(prior ? "Benchmark " : "").append(xml(label))
 					.append("</h2><p class='muted'>Recorded Daily Aggregates | Dates Use Log Database Time. Dates Without Records Are Omitted From This Table.</p>");
-			pdfTable(
-					html, prior ? benchmark : daily, model
-							? List.of("Day", "Requests", "Input Tokens", "Output Tokens", "Cost (USD)", "Users",
-									"Average Latency (ms)")
+			pdfTable(html, prior ? benchmark : daily,
+					model ? List.of("Day", "Requests", "Input Tokens", "Output Tokens", "Users", "Average Latency (ms)")
 							: List.of("Day", "Events", "Users", "Failed", "Known Outcomes"));
 			html.append("</div>");
 		}
@@ -668,13 +631,6 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 	private static String pdfValue(Object value, String metric) {
 		if (!(value instanceof Number number)) {
 			return value == null ? "-" : value.toString();
-		}
-		if (metric.endsWith("(USD)")) {
-			NumberFormat dollars = NumberFormat.getCurrencyInstance(Locale.US);
-			// a cost under a cent keeps its first digits, rather than reading $0.00
-			double amount = number.doubleValue();
-			dollars.setMaximumFractionDigits(amount != 0 && Math.abs(amount) < 0.01 ? 6 : 2);
-			return dollars.format(amount);
 		}
 		NumberFormat format = NumberFormat.getNumberInstance(Locale.US);
 		format.setMaximumFractionDigits(2);
@@ -751,9 +707,6 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 	private static String title(String value) {
 		if (value.equals("LATENCY_MS")) {
 			return "Average Latency (ms)";
-		}
-		if (value.endsWith("_USD")) {
-			return title(value.substring(0, value.length() - "_USD".length())) + " (USD)";
 		}
 		return java.util.Arrays.stream(value.replaceAll("([a-z])([A-Z])", "$1 $2").replace('_', ' ').split(" "))
 				.map(word -> word.isEmpty() ? ""

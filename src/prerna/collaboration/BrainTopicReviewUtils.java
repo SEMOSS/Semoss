@@ -269,8 +269,7 @@ public final class BrainTopicReviewUtils {
 		if (!fresh.isEmpty()) {
 			job.step("areas", 80);
 			List<BrainTopicAreas.Topic> named = fresh.stream().map(topic -> new BrainTopicAreas.Topic(
-					(String) topic.get("name"), nullableText(topic.get("about")), strings(topic.get("threadIds")).size(),
-					strings(topic.get("folders")).stream().findFirst().orElse(null))).toList();
+					(String) topic.get("name"), nullableText(topic.get("about")), strings(topic.get("threadIds")).size())).toList();
 			String engineId = BrainTopicModel.engine(user);
 			List<BrainTopicAreas.Area> grouped = engineId == null ? BrainTopicAreas.single(named)
 					: BrainTopicAreas.group(BrainTopicOnboarding.caller(user, engineId), named);
@@ -460,8 +459,6 @@ public final class BrainTopicReviewUtils {
 							}
 						}
 						topic.put("appliedAddedPeople", strings(topic.get("addedPeople")));
-						BrainMailFolders.fileFrom(ownerId, ownerType, savedId, strings(topic.get("folderIds")),
-								Boolean.TRUE.equals(topic.get("fileFromFolder")));
 						topic.put("accepted", true);
 						topic.put("id", savedId);
 						topic.put("name", saved.get("name"));
@@ -604,10 +601,6 @@ public final class BrainTopicReviewUtils {
 			BrainTopicReviewProfiles.terms(clues);
 			topic.put("terms", clues);
 			topic.put("keep", edit.get("keep"));
-			// filing new mail from the topic's project folder: the owner's choice, offered only with a folder
-			if (edit.get("fileFromFolder") instanceof Boolean file) {
-				topic.put("fileFromFolder", file && !strings(topic.get("folderIds")).isEmpty());
-			}
 			Set<String> allowedPeople = new HashSet<>();
 			maps(topic.get("people")).forEach(person -> allowedPeople.add((String) person.get("id")));
 			List<String> removed = strings(edit.get("removedPeople"));

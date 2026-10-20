@@ -50,11 +50,6 @@ class VertexCodeChatClient(AbstractVertextAiTextGeneration):
         # Conditionally control the history
         history = history if use_history else []
 
-        # fit the output inside the usage ceiling of this ask, before the provider sees it
-        max_new_tokens = self.fit_max_new_tokens(
-            max_new_tokens, context, history, question, message_count=len(history) + 1
-        )
-
         # convert history to ChatMessage class
         try:
             history = [

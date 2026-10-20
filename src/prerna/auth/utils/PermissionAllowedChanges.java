@@ -27,10 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import prerna.auth.access.PermissionProblem;
 
 /**
@@ -56,29 +52,12 @@ final class PermissionAllowedChanges {
 	/** Why the user cannot change people, for a change that needs it */
 	private String peopleReason;
 	/**
-	 * The type of problem when the user cannot change people: no permission, or a
+	 * The kind of problem when the user cannot change people: no permission, or a
 	 * team that is not a custom team
 	 */
-	private PermissionProblem.ErrorCode peopleCode = PermissionProblem.ErrorCode.NO_PERMISSION;
+	private PermissionProblem.Code peopleCode = PermissionProblem.Code.NO_PERMISSION;
 	/** Why the user cannot change which teams have access */
 	private String teamsReason;
-	/**
-	 * The access levels whose usage limits the user may change on a model, by name:
-	 * every level for owners, none for anyone else, since only owners set usage
-	 * limits. Letting editors set the limits of Read-Only and Editor people would
-	 * let an editor demote another editor, set their limit, and promote them back,
-	 * so editors set none.
-	 */
-	private List<String> limitLevels = new ArrayList<>();
-	/**
-	 * Whether the user may set any usage limit on a model: a person's, a team's,
-	 * the public use limit and the total. Only its owners may, and anyone in admin
-	 * mode. Anyone else may still save a change that leaves a limit as it is, such
-	 * as an editor's change of level.
-	 */
-	private boolean canChangeModelLimits;
-	/** Why the user cannot change a model's public use limit and total */
-	private String modelLimitsReason;
 
 	boolean canChangePeople() {
 		return canChangePeople;
@@ -120,11 +99,11 @@ final class PermissionAllowedChanges {
 		this.peopleReason = peopleReason;
 	}
 
-	PermissionProblem.ErrorCode getPeopleCode() {
+	PermissionProblem.Code getPeopleCode() {
 		return peopleCode;
 	}
 
-	void setPeopleCode(PermissionProblem.ErrorCode peopleCode) {
+	void setPeopleCode(PermissionProblem.Code peopleCode) {
 		this.peopleCode = peopleCode;
 	}
 
@@ -134,35 +113,5 @@ final class PermissionAllowedChanges {
 
 	void setTeamsReason(String teamsReason) {
 		this.teamsReason = teamsReason;
-	}
-
-	/**
-	 * The levels whose usage limits the user may change on a model: every level for
-	 * owners, none for anyone else. The list cannot be modified.
-	 *
-	 * @return the access levels whose usage limits the user may change, by name
-	 */
-	List<String> getLimitLevels() {
-		return Collections.unmodifiableList(limitLevels);
-	}
-
-	void setLimitLevels(List<String> limitLevels) {
-		this.limitLevels = limitLevels == null ? new ArrayList<>() : new ArrayList<>(limitLevels);
-	}
-
-	boolean canChangeModelLimits() {
-		return canChangeModelLimits;
-	}
-
-	void setCanChangeModelLimits(boolean canChangeModelLimits) {
-		this.canChangeModelLimits = canChangeModelLimits;
-	}
-
-	String getModelLimitsReason() {
-		return modelLimitsReason;
-	}
-
-	void setModelLimitsReason(String modelLimitsReason) {
-		this.modelLimitsReason = modelLimitsReason;
 	}
 }

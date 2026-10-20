@@ -360,11 +360,6 @@ public final class BrainTopicSuggest {
 						.sorted((x, y) -> y.getValue() - x.getValue()).map(Map.Entry::getKey).limit(3)
 						.collect(Collectors.toList()));
 				row.put("about", c.about());
-				// the Outlook folder most of its mail is in, shown on its card; filing new mail from a project folder
-				// is offered and on by default, and made only when the owner keeps the topic
-				row.put("folders", c.folderPath() == null ? List.of() : List.of(c.folderPath()));
-				row.put("folderIds", c.folderId() == null ? List.of() : List.of(c.folderId()));
-				row.put("fileFromFolder", c.folderId() != null);
 				// optional clues the owner can turn on; never saved as keywords on their own
 				row.put("suggestedTerms", c.suggestedTerms());
 				row.put("sampleSubjects", samples(c, mailThreads, writers, self).stream().limit(3)
@@ -408,10 +403,8 @@ public final class BrainTopicSuggest {
 	}
 
 	// about: the topic model's one line on what the topic covers, stored as its description
-	// folderPath: the Outlook folder most of its mail is in; folderId only when that is a project folder, which the
-	// owner may then file new mail from
 	record Candidate(String key, String name, List<Thread> threads, List<String> keywords, String reason, String about,
-			List<String> suggestedTerms, String folderId, String folderPath) {
+			List<String> suggestedTerms) {
 	}
 
 	// the organisation's domain: mail.adatum.example is adatum.example

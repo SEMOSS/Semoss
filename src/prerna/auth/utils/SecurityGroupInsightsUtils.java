@@ -380,8 +380,8 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				List.of(PermissionChange.add(PermissionSubject.ofTeam(groupId, groupType),
 						new PermissionGrant(permission, endDate))),
 				PermissionBatchOptions.userMode().withoutTeamExistsCheck().keepingTeamType(),
-				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, OWNERS_ONLY)
-						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
 								"This group already has access to this insight. Please edit the existing permission level."));
 	}
 
@@ -438,8 +438,8 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				List.of(PermissionChange.change(PermissionSubject.ofTeam(groupId, groupType),
 						new PermissionGrant(newPermission, endDate))),
 				PermissionBatchOptions.userMode().keepingTeamType(),
-				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, OWNERS_ONLY)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify insight permission for a group who does not currently have access to the insight"));
 	}
 
@@ -460,8 +460,8 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.insight(projectId, insightId),
 				List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
 				PermissionBatchOptions.userMode().keepingTeamType(),
-				new PermissionErrorRules().illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, OWNERS_ONLY)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify group permission for a user who does not currently have access to the insight"));
 	}
 

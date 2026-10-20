@@ -32,27 +32,12 @@ package prerna.auth.access;
  */
 public class PermissionSubject {
 
-	/**
-	 * The categories of subject: a person, a team, or a model's public use or total
-	 */
-	public enum SubjectCategory {
-		USER, TEAM,
-		/**
-		 * A model's public use, whose usage limit a batch can change. Like
-		 * {@link #MODEL}, it has no id or type, takes only a {@code CHANGE} on a model
-		 * engine, by its owners or in admin mode, and its grant carries only a
-		 * {@code usageLimit}, with no level or end date.
-		 */
-		PUBLIC,
-		/**
-		 * A model's total, for everyone together, whose usage limit a batch can change,
-		 * with the same rules as {@link #PUBLIC}
-		 */
-		MODEL
+	/** The kinds of subject */
+	public enum Kind {
+		USER, TEAM
 	}
 
-	/** What the subject is */
-	private SubjectCategory category;
+	private Kind kind;
 	private String id;
 	/** The user's login type, or the group's type */
 	private String type;
@@ -62,48 +47,37 @@ public class PermissionSubject {
 	}
 
 	/**
-	 * Creates a subject from its category, its id and its type.
-	 *
-	 * @param category a person, a team, or a model's public use or total
-	 * @param id       the user or group id
-	 * @param type     the user's login type, or the group's type
+	 * @param kind a user or a group
+	 * @param id   the user or group id
+	 * @param type the user's login type, or the group's type
 	 */
-	public PermissionSubject(SubjectCategory category, String id, String type) {
-		this.category = category;
+	public PermissionSubject(Kind kind, String id, String type) {
+		this.kind = kind;
 		this.id = id;
 		this.type = type;
 	}
 
 	/**
-	 * Builds the subject for one person.
-	 *
 	 * @param id   the person's user id
 	 * @param type the person's login type, or null when the target keeps only the
 	 *             id, as a project, an engine or an insight does
 	 * @return the person
 	 */
 	public static PermissionSubject ofUser(String id, String type) {
-		return new PermissionSubject(SubjectCategory.USER, id, type);
+		return new PermissionSubject(Kind.USER, id, type);
 	}
 
 	/**
-	 * Builds the subject for a group, by its id and its type.
-	 *
 	 * @param id   the group id
 	 * @param type the group's type, such as {@code CUSTOM}
 	 * @return the group
 	 */
 	public static PermissionSubject ofTeam(String id, String type) {
-		return new PermissionSubject(SubjectCategory.TEAM, id, type);
+		return new PermissionSubject(Kind.TEAM, id, type);
 	}
 
-	/**
-	 * What the subject is: a person, a team, or a model's public use or total.
-	 *
-	 * @return the subject's category
-	 */
-	public SubjectCategory getCategory() {
-		return category;
+	public Kind getKind() {
+		return kind;
 	}
 
 	public String getId() {
@@ -115,21 +89,9 @@ public class PermissionSubject {
 	}
 
 	/**
-	 * Describes the subject as its category and id, or as public use or the model's
-	 * total.
-	 *
 	 * @return the subject in words, for messages, such as "user jdoe"
 	 */
 	public String describe() {
-		switch (category) {
-		case TEAM:
-			return "team " + id;
-		case PUBLIC:
-			return "public use";
-		case MODEL:
-			return "the model's total";
-		default:
-			return "user " + id;
-		}
+		return (kind == Kind.TEAM ? "team " : "user ") + id;
 	}
 }

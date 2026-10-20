@@ -42,8 +42,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
-import prerna.auth.access.ModelUsageLimit;
-import prerna.auth.access.ModelUsageLimitKey;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -58,7 +56,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
-import prerna.util.ValueUtils;
 
 class SecurityUserEngineUtils extends AbstractSecurityUtils {
 
@@ -413,7 +410,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		try {
 			boolean isExpired = enginePermissionIsExpired(userId, engineId);
 			if (isExpired) {
-				SecurityEngineUtils.removeExpiredEngineUser(userId, engineId);
+				SecurityProjectUtils.removeExpiredProjectUser(userId, engineId);
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user has access to the engine.", e);
@@ -476,9 +473,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * The people to show with the engine: for a global engine, its owners and
-	 * editors plus a PUBLIC DATABASE row at Read-Only; otherwise everyone with
-	 * access to it.
 	 * 
 	 * @param engineId
 	 * @return
@@ -522,16 +516,13 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * The people with access to an engine. Each row has the person's model usage
-	 * limit on the engine as {@code usage_limit}, or null for no limit defined.
-	 *
-	 * @param engineId    the engine
-	 * @param searchParam text to find in the person's id, name, username or email,
-	 *                    or null
-	 * @param permission  the level to keep, by name, or null for all
-	 * @param limit       the most rows, or 0 or less for all
-	 * @param offset      the rows to skip
-	 * @return the people
+	 * 
+	 * @param engineId
+	 * @param userId
+	 * @param permission
+	 * @param limit
+	 * @param offset
+	 * @return
 	 */
 	public static List<Map<String, Object>> getEngineUsers(String engineId, String searchParam, String permission,
 			long limit, long offset) {
@@ -551,6 +542,11 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(
 				new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBYTYPE", "permission_granted_by_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED", "date_added"));
+		// usage restriction
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USAGERESTRICTION", "usage_restriction"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXTOKENS", "max_tokens"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXRESPONSETIME", "max_response_time"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USAGEFREQUENCY", "usage_frequency"));
 		// filter to the engine
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		if (hasSearchParam) {
@@ -575,31 +571,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
-		List<Map<String, Object>> users = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-		addUsageLimits(engineId, users);
-		return users;
-	}
-
-	/**
-	 * Adds each person's model usage limit on an engine to their row, as
-	 * {@code usage_limit}.
-	 *
-	 * @param engineId the engine
-	 * @param users    the rows, each with the person's {@code id}
-	 */
-	private static void addUsageLimits(String engineId, List<Map<String, Object>> users) {
-		if (users.isEmpty() || engineId == null || engineId.isBlank()) {
-			return;
-		}
-		Map<ModelUsageLimitKey, ModelUsageLimit> limits = SecurityModelUsageLimitUtils.getEngineLimits(engineId);
-		for (Map<String, Object> row : users) {
-			Object userId = row.get("id");
-			Object type = row.get("type");
-			ModelUsageLimit limit = userId == null ? null
-					: SecurityModelUsageLimitUtils.findDirectLimit(limits, engineId, userId.toString(),
-							ValueUtils.toStringOrNull(type));
-			row.put("usage_limit", limit);
-		}
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 }

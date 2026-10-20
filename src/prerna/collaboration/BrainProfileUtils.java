@@ -43,7 +43,6 @@ import org.javatuples.Pair;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.util.RuntimeTimeContext;
-import prerna.util.Utility;
 
 // Brain "you": BRAIN_PROFILE, BRAIN_SETTINGS, and the overview counts
 public final class BrainProfileUtils {
@@ -269,16 +268,10 @@ public final class BrainProfileUtils {
 	public static Map<String, Object> getSettings(String ownerId, String ownerType) {
 		ensureSettings(ownerId, ownerType);
 		Map<String, Object> settings = CollaborationDbUtils.queryOne(
-				"SELECT FILE_AT, ASK_AT, VERSION, MEMORY_USE, MEMORY_LEARN, DRAFT_FOLDER_ID, DRAFT_FOLDER_NAME, "
-						+ "ASSISTANT_SKILLS_JSON "
-						+ "FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				"SELECT FILE_AT, ASK_AT, VERSION, MEMORY_USE, MEMORY_LEARN FROM BRAIN_SETTINGS "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> {
 					Map<String, Object> row = new LinkedHashMap<>();
-					// blank when drafts stay in the mailbox's Drafts
-					String folderId = CollaborationDbUtils.getString(rs, "DRAFT_FOLDER_ID");
-					row.put("draftFolderId", folderId == null ? "" : folderId);
-					String folderName = CollaborationDbUtils.getString(rs, "DRAFT_FOLDER_NAME");
-					row.put("draftFolderName", folderName == null ? "" : folderName);
 					// read-only: one platform classifier (RDF_Map)
 					row.put("classifierEngineId", BrainThreadClassifier.platformEngine());
 					row.put("fileAt", CollaborationDbUtils.getInteger(rs, "FILE_AT"));
@@ -288,7 +281,6 @@ public final class BrainProfileUtils {
 					memory.put("use", !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "MEMORY_USE")));
 					memory.put("learn", !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "MEMORY_LEARN")));
 					row.put("memory", memory);
-					row.put("assistantSkills", skillIds(CollaborationDbUtils.getString(rs, "ASSISTANT_SKILLS_JSON")));
 					return row;
 				}, ownerId, ownerType);
 		settings.put("sourcesJson", CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType));
@@ -337,23 +329,6 @@ public final class BrainProfileUtils {
 				CollaborationDbUtils.addSet(sets, params, "MEMORY_LEARN", isTrue(memory.get("learn")));
 			}
 		}
-		if (changes.containsKey("draftFolderId") || changes.containsKey("draftFolderName")) {
-			// the id picks the folder; a blank id puts drafts back in Drafts
-			String folderId = trimToNull(changes.get("draftFolderId"));
-			String folderName = trimToNull(changes.get("draftFolderName"));
-			if (folderId != null && (folderId.length() > 255 || (folderName != null && folderName.length() > 255))) {
-				throw new IllegalArgumentException("The folder id or name is too long");
-			}
-			CollaborationDbUtils.addSet(sets, params, "DRAFT_FOLDER_ID", folderId);
-			CollaborationDbUtils.addSet(sets, params, "DRAFT_FOLDER_NAME", folderId == null ? null : folderName);
-		}
-		if (changes.containsKey("assistantSkills")) {
-			if (!(changes.get("assistantSkills") instanceof List<?> skills)) {
-				throw new IllegalArgumentException("assistantSkills must be a list of skill ids");
-			}
-			CollaborationDbUtils.addSet(sets, params, "ASSISTANT_SKILLS_JSON",
-					CollaborationDbUtils.toJson(CollaborationSkills.requireMine(user, skills)));
-		}
 		CollaborationDbUtils.addSet(sets, params, "VERSION", currentVersion + 1);
 		CollaborationDbUtils.addSet(sets, params, "UPDATED_AT", CollaborationDbUtils.now());
 		params.add(ownerId);
@@ -369,64 +344,6 @@ public final class BrainProfileUtils {
 					Boolean.TRUE.equals(source.getValue()));
 		}
 		return getSettings(ownerId, ownerType);
-	}
-
-	/**
-	 * The Outlook folder id the user keeps drafts in, or null for their own Drafts. Read only: it
-	 * creates nothing and answers null when Collaboration is off or the user has no settings yet.
-	 */
-	public static String draftFolderId(User user) {
-		try {
-			if (user == null || !Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
-				return null;
-			}
-			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-			return CollaborationDbUtils.queryOne(
-					"SELECT DRAFT_FOLDER_ID FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
-					rs -> trimToNull(CollaborationDbUtils.getString(rs, "DRAFT_FOLDER_ID")), owner.getValue0(),
-					owner.getValue1());
-		} catch (Exception e) {
-			// a draft still gets saved, in Drafts, when the setting cannot be read
-			classLogger.warn("Could not read the draft folder setting: {}", e.getMessage());
-			return null;
-		}
-	}
-
-	/** Skill ids the owner turned on for their assistant; empty when Collaboration is off or nothing is set. */
-	public static List<String> assistantSkills(User user) {
-		try {
-			if (user == null || !Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
-				return List.of();
-			}
-			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-			List<String> ids = CollaborationDbUtils.queryOne(
-					"SELECT ASSISTANT_SKILLS_JSON FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
-					rs -> skillIds(CollaborationDbUtils.getString(rs, "ASSISTANT_SKILLS_JSON")), owner.getValue0(),
-					owner.getValue1());
-			return ids == null ? List.of() : ids;
-		} catch (Exception e) {
-			// the chat still runs, without the owner's skills, when the setting cannot be read
-			classLogger.warn("Could not read the assistant skills setting: {}", e.getMessage());
-			return List.of();
-		}
-	}
-
-	private static List<String> skillIds(String json) {
-		List<String> ids = new ArrayList<>();
-		if (json != null && !json.isBlank()) {
-			for (Object id : CollaborationDbUtils.parseList(json)) {
-				ids.add(String.valueOf(id));
-			}
-		}
-		return ids;
-	}
-
-	private static String trimToNull(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String text = String.valueOf(value).trim();
-		return text.isEmpty() ? null : text;
 	}
 
 	/** Memories are recalled and the assistant gets its memory tools; on unless the owner turned it off. */

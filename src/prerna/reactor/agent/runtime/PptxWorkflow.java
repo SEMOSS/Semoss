@@ -57,9 +57,9 @@ final class PptxWorkflow {
 	static final String TOOL = "BuildPptx";
 	static final String PROMPT = """
 			SEMOSS manages this PPTX workflow. Save your complete generator as build-deck.js, then call
-			BuildPptx alone with generator, filePath, expectedSlides and instructions. BuildPptx runs the
-			generator, independently validates the saved file, and invokes the configured PPTX reviewer only
-			when visual review is enabled for this agent. ExecuteNodeCode and manual reviewer delegation are unavailable in this workflow.
+			BuildPptx alone with generator, filePath, expectedSlides and review instructions. BuildPptx runs
+			the generator, independently validates the saved file, and automatically invokes the configured
+			PPTX reviewer. ExecuteNodeCode and manual reviewer delegation are unavailable in this workflow.
 			For an existing presentation, FIRST call PreparePptxEdit with its exact filename and only the
 			requested slide numbers (editType=text for wording changes). It returns the original snapshot,
 			slide order, object IDs, local styles and existing text. For text, text-color and background
@@ -91,7 +91,6 @@ final class PptxWorkflow {
 	private final Operations operations;
 	private final PptxEditSession edit;
 	private final int repairTurns;
-	private final boolean reviewEnabled;
 	private final String reviewUnavailable;
 	private String phase = "authoring";
 	private String file;
@@ -131,14 +130,13 @@ final class PptxWorkflow {
 		progress = consumer;
 	}
 
-	PptxWorkflow(Path root, Path stateDirectory, int repairTurns, Operations operations, boolean reviewEnabled) {
+	PptxWorkflow(Path root, Path stateDirectory, int repairTurns, Operations operations) {
 		this.root = root.toAbsolutePath().normalize();
 		this.stateDirectory = stateDirectory;
 		this.repairTurns = Math.max(2, Math.min(12, repairTurns));
 		this.operations = operations;
 		this.edit = new PptxEditSession(this.root, stateDirectory);
-		this.reviewEnabled = reviewEnabled;
-		this.reviewUnavailable = reviewEnabled ? operations.reviewUnavailable() : null;
+		this.reviewUnavailable = operations.reviewUnavailable();
 	}
 
 	/**
@@ -164,10 +162,8 @@ final class PptxWorkflow {
 		if (runId == null || !runId.matches("[A-Za-z0-9_-]+")) {
 			throw new IllegalArgumentException("Managed PPTX workflow requires a run ID");
 		}
-		// visual review is opt-in: pptx_workflow.review_enabled must be true
 		PptxWorkflow workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/" + runId),
-				((Number) config.getOrDefault("repair_turns", 6)).intValue(), new PptxWorkflowOperations(ctx),
-				Boolean.TRUE.equals(config.get("review_enabled")));
+				((Number) config.getOrDefault("repair_turns", 6)).intValue(), new PptxWorkflowOperations(ctx));
 		workflow.configureDelivery(ctx.getParamMap());
 		workflow.roomLinks = onDemand(ctx);
 		if (restore) {
@@ -255,11 +251,11 @@ final class PptxWorkflow {
 						property("integer", "Requested number of slides. Preserve this count on repairs.")
 								.put("minimum", 1).put("maximum", 100))
 				.put("instructions", property("string",
-						"Design requirements and, when visual review is enabled, review criteria. The original user brief is included automatically."))
+						"Visual review criteria and design requirements. The original user brief is included automatically."))
 				.put("engine", property("string",
-						"Optional exact vision engine ID supplied by the caller. Omit to use the regular reviewer's configured default. Ignored when visual review is disabled."));
-		return new JSONObject().put("name", TOOL).put("title", "Build and validate PowerPoint").put("description",
-				"Run a saved generator, validate the PPTX, and visually review it when review is enabled for this agent. Call alone. Returns only bounded repair instructions when needed; otherwise SEMOSS delivers the saved file and actual check results.")
+						"Optional exact vision engine ID supplied by the caller. Omit to use the regular reviewer's configured default."));
+		return new JSONObject().put("name", TOOL).put("title", "Build and review PowerPoint").put("description",
+				"Run a saved generator, validate the PPTX, and automatically review it. Call alone. Returns only bounded repair instructions when needed; otherwise SEMOSS delivers the saved file and actual check results.")
 				.put("inputSchema",
 						new JSONObject().put("type", "object").put("properties", props)
 								.put("required", new JSONArray(List.of("generator", "filePath", "expectedSlides")))
@@ -375,10 +371,7 @@ final class PptxWorkflow {
 	}
 
 	String guidance(int rounds) {
-		String review = !reviewEnabled
-				? " Visual review is disabled for this agent: BuildPptx validates structure only, so keep text within"
-						+ " the documented component limits and do not wait for review findings."
-				: reviewUnavailable == null ? ""
+		String review = reviewUnavailable == null ? ""
 				: " Visual review is unavailable in this run (" + reviewUnavailable
 						+ "). BuildPptx still checks structure, but no reviewer will look at the slides: keep text within"
 						+ " the documented component limits and do not wait for review findings.";
@@ -443,10 +436,6 @@ final class PptxWorkflow {
 			reviewVerified = false;
 			Files.createDirectories(stateDirectory);
 			Files.copy(source, stateDirectory.resolve("saved.pptx"), StandardCopyOption.REPLACE_EXISTING);
-			if (!reviewEnabled) {
-				finish(null);
-				return toolResult();
-			}
 			if (reviews >= 2) {
 				finishReview("Review budget exhausted; this saved version has not been reviewed.");
 				return toolResult();
@@ -808,7 +797,7 @@ final class PptxWorkflow {
 				text.append(significantSlides(report).isEmpty() ? " Advisory visual findings remain."
 						: " Significant visual findings remain; this file has not passed visual review.");
 			}
-		} else if (available && reviewEnabled) {
+		} else if (available) {
 			text.append("\n\nThis file is available, but it has not passed visual review.");
 		}
 		if (report != null && report.optJSONArray("issues") != null && !report.getJSONArray("issues").isEmpty()) {

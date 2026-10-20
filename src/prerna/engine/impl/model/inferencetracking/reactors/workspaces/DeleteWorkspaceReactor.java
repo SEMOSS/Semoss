@@ -43,8 +43,6 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.SystemDefaultEngines;
 import prerna.util.UploadUtilities;
@@ -94,7 +92,6 @@ public class DeleteWorkspaceReactor extends AbstractReactor {
 			classLogger.error("Failed to delete workspace '{}'.", workspaceId, e);
 			return getError("Error during workspace delete: " + e.getMessage());
 		}
-		UserAuditTrailUtils.recordWorkspaceLifecycle(user, AuditEventType.WORKSPACE_DELETE, workspaceId, null, null);
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 

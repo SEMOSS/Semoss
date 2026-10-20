@@ -41,8 +41,6 @@ public class PermissionBatchException extends IllegalArgumentException {
 	private final transient List<PermissionProblem> problems;
 
 	/**
-	 * Creates the exception with its message and a copy of the problems found.
-	 *
 	 * @param message  what to show
 	 * @param problems every problem found, the first one first
 	 */
@@ -52,9 +50,6 @@ public class PermissionBatchException extends IllegalArgumentException {
 	}
 
 	/**
-	 * The problems that kept the batches from being saved, which the caller can
-	 * report or turn into its own exception.
-	 *
 	 * @return every problem found, the first one first
 	 */
 	public List<PermissionProblem> getProblems() {

@@ -1,5 +1,5 @@
 import json, base64, uuid
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any
 from types import SimpleNamespace
 from pydantic import BaseModel
 from google.genai import types
@@ -24,13 +24,6 @@ from smss_thread_local import get_smss_stream
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ..model_engine_exception import ModelEngineException
 from ...utils import string_to_bool
-from ...usage_ceiling import (
-    PromptCount,
-    count_prompt_tokens,
-    fit_thinking_budget,
-    note_output_stop,
-    to_json_text,
-)
 from .google_video_client import GoogleGenAiVideoClient
 
 
@@ -59,8 +52,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         safety_settings: Optional[dict] = None,
-        batch_region: Optional[str] = None,
-        gcp_batch_region: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(
@@ -76,9 +67,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             project=project,
             api_key=api_key,
             base_url=base_url,
-            # Accept either .smss property name -- BATCH_REGION and
-            # GCP_BATCH_REGION have both been used across engines.
-            batch_region=batch_region or gcp_batch_region,
         )
         self.google_client = GoogleClient(config=self.client_config).genai_client
         self.video_client = GoogleGenAiVideoClient(parent_client=self)
@@ -132,10 +120,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     f"Failed to build messages from SEMOSS messages: {e}"
                 )
 
-            # fitted on the finished request; a refusal becomes the
-            # USAGE_LIMIT_DOES_NOT_FIT error response below
-            self._apply_usage_ceiling(google_messages, provider_config)
-
             if stream:
 
                 def streaming_call():
@@ -157,9 +141,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 )
 
             model_response = self.generate_with_retry(call_generate_content)
-            # stopped by max_output_tokens, which marks the response usageCapped
-            # when the ceiling set it
-            note_output_stop(self._stopped_at_output_maximum(model_response))
 
             text_response = model_response.text if model_response.text else ""
             if web_search_enabled and inline_citations_enabled:
@@ -238,350 +219,12 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 error=e, client="google", model=self.model_name
             ).parse_error()
 
-    def _apply_usage_ceiling(
-        self, contents: List[types.Content], config: types.GenerateContentConfig
-    ) -> None:
-        """Fit the request to the usage ceiling of the call in progress.
-
-        max_output_tokens, which counts thinking, is lowered to what the
-        prompt leaves, never raised. A thinking_budget is lowered below it,
-        leaving part of it for the answer, and set to 0 (off) when even the model's
-        smallest budget does not fit; Gemini 2.5 Pro cannot turn thinking off
-        and keeps its smallest budget. Gemini 3 thinking levels and dynamic
-        budgets have no number to lower and count inside the maximum.
-        """
-        fit = self.fit_output_to_usage_ceiling(
-            config.max_output_tokens,
-            lambda: self._count_prompt_tokens(contents, config),
-        )
-        if fit is None or not fit.lowered:
-            return
-        config.max_output_tokens = fit.max_tokens
-
-        thinking = config.thinking_config
-        budget = getattr(thinking, "thinking_budget", None) if thinking else None
-        # no budget, dynamic (-1) and off (0) have no number to lower
-        if budget is None or budget <= 0:
-            return
-        smallest, can_turn_off = self._smallest_thinking_budget()
-        fitted = fit_thinking_budget(
-            budget,
-            fit.max_tokens,
-            self.usage_ceiling_min_output_tokens(),
-            smallest,
-            can_turn_off=can_turn_off,
-        )
-        # too small a budget runs the call without thinking rather than refusing it
-        if fitted is None:
-            config.thinking_config = types.ThinkingConfig(
-                include_thoughts=False, thinking_budget=0
-            )
-        else:
-            thinking.thinking_budget = fitted
-
-    def _smallest_thinking_budget(self) -> Tuple[int, bool]:
-        """The model's smallest thinking budget, and whether 0 turns thinking off."""
-        name = (self.model_name or "").lower()
-        if "2.5-pro" in name:
-            return 128, False
-        if "flash-lite" in name:
-            return 512, True
-        return 1, True
-
-    def _count_prompt_tokens(
-        self, contents: List[types.Content], config: types.GenerateContentConfig
-    ) -> PromptCount:
-        """Count the prompt with the count_tokens endpoint, sending the system
-        instruction and tool declarations as text since the Gemini API counts
-        contents only. Tool declarations make the count an estimate. Falls back
-        to a conservative estimate when the count fails."""
-        system = config.system_instruction
-        definitions = [config.tools, config.response_schema]
-        extra: List[types.Content] = []
-        if system:
-            text = system if isinstance(system, str) else to_json_text(system)
-            extra.append(
-                types.Content(role="user", parts=[types.Part.from_text(text=text)])
-            )
-        has_definitions = any(definitions)
-        if has_definitions:
-            text = to_json_text([d for d in definitions if d])
-            extra.append(
-                types.Content(role="user", parts=[types.Part.from_text(text=text)])
-            )
-        try:
-            total = self.google_client.models.count_tokens(
-                model=self.model_name, contents=list(contents) + extra
-            ).total_tokens
-            return PromptCount(tokens=int(total or 0), estimated=has_definitions)
-        except Exception:
-            return count_prompt_tokens(
-                [system, contents], definitions, message_count=len(contents)
-            )
-
-    @staticmethod
-    def _stopped_at_output_maximum(response: Any) -> bool:
-        """True when a response (or stream chunk) stopped at max_output_tokens."""
-        candidates = getattr(response, "candidates", None) or []
-        if not candidates:
-            return False
-        reason = getattr(candidates[0], "finish_reason", None)
-        return reason == types.FinishReason.MAX_TOKENS or str(reason).endswith(
-            "MAX_TOKENS"
-        )
-
     def generate_with_retry(self, generate_func, *args, **kwargs):
         """Helper to run a generation call with retry."""
         if callable(generate_func):
             wrapped = self.retry_handler.retry(generate_func)
             return wrapped(*args, **kwargs)
         return generate_func
-
-    # ---- Batch (Gemini-on-Vertex) ----
-    #
-    # Gemini has no hosted batch API either; like Anthropic-on-Vertex, batch
-    # means a Cloud Storage-mediated Vertex AI batch prediction job (see
-    # ...clients.vertex_batch_client for the shared job-lifecycle helpers).
-    # This client never touches the bucket directly -- Java drives all GCS
-    # I/O through the SEMOSS storage engine that holds its credentials (see
-    # ModelBatchManager.submitVertexBatch), calling submit_batch twice:
-    #
-    # Phase 1 (no inputUri kwarg): build the input JSONL content only, no
-    # GCS/Vertex touched -- Java uploads what comes back in raw.jsonl_content.
-    # Phase 2 (inputUri/outputUriPrefix kwargs present, requests empty):
-    # Java has already uploaded the input file; just create the job.
-
-    def _ensure_batch_supported(self):
-        """Batch is only supported for Gemini models hosted on Vertex AI
-        (GCS-mediated Vertex batch prediction jobs). The plain Gemini
-        Developer API (api_key mode, no project/region) has its own,
-        unrelated batch mechanism (inline requests or Developer API file
-        uploads) that this client does not implement."""
-        if not (self.client_config.project and self.client_config.region):
-            raise NotImplementedError(
-                "Batch is only supported for Gemini models hosted on Vertex AI "
-                "(this engine has no PROJECT/REGION configured for Vertex)."
-            )
-
-    def _vertex_genai_client(self):
-        """A google.genai.Client configured for Vertex AI .batches.* calls.
-
-        Unlike Anthropic-on-Vertex, batch inference for base (untuned) Gemini
-        models IS supported on the global endpoint -- only tuned Gemini
-        models and Anthropic/OpenMaaS partner models require a real region
-        (per Google's own batch-prediction docs). So reuse
-        self.google_client as-is by default; only build a second client
-        pinned to a different region if BATCH_REGION was explicitly set on
-        the engine (e.g. to satisfy a GCS bucket region requirement, or a
-        model that needs a specific region)."""
-        batch_region = self.client_config.batch_region
-        if not batch_region:
-            return self.google_client
-        config = GoogleClientConfig(
-            type=GoogleClientType.GOOGLE,
-            service_account_credentials=self.client_config.service_account_credentials,
-            service_account_key_file=self.client_config.service_account_key_file,
-            region=batch_region,
-            project=self.client_config.project,
-        )
-        return GoogleClient(config=config).genai_client
-
-    def _build_batch_contents(self, req: Dict[str, Any], idx: int):
-        """Builds (contents, provider_config) for one batch request by
-        reusing the exact same message-building pipeline ask_call() uses for
-        regular, non-batch calls -- so shared params (temperature, max_tokens,
-        etc.) get the same SEMOSS-generic-to-Gemini-specific translation
-        either way, and room-seeded requests (message_json) build identically
-        to how they would for a synchronous ask."""
-        skip = {"command", "context", "custom_id", "message_json"}
-        kwargs = {k: v for k, v in req.items() if k not in skip}
-        if req.get("message_json"):
-            semoss_messages = self.build_semoss_messages(
-                self.model_settings, message_json=req["message_json"], **kwargs
-            )
-        elif "command" in req:
-            # No room/history: wrap the plain prompt in a minimal one-turn
-            # schemaVersion-2 message so it flows through the same
-            # SEMOSSMessageBuilder/GoogleGenAIMessageBuilder pipeline as
-            # every other path, instead of hand-rolling Gemini's wire format.
-            message: Dict[str, Any] = {
-                "type": "INPUT_TEXT",
-                "schemaVersion": 2,
-                "io": "INPUT",
-                "parts": [{"type": "TEXT", "text": req["command"]}],
-            }
-            if req.get("context"):
-                message["context"] = req["context"]
-            semoss_messages = self.build_semoss_messages(
-                self.model_settings, message_json=json.dumps([message]), **kwargs
-            )
-        else:
-            raise ValueError(f"Batch request {idx} is missing 'command' or 'message_json'")
-
-        response = GoogleGenAIMessageBuilder().build_messages(
-            semoss_messages, self.model_settings
-        )
-        return response["messages"], response["provider_config"]
-
-    def _gemini_request_body_for_batch(self, contents, provider_config) -> Dict[str, Any]:
-        """Builds the exact Vertex REST GenerateContentRequest body (contents,
-        systemInstruction, tools, generationConfig, safetySettings as
-        siblings) for one batch JSONL line, by reusing the SDK's own internal
-        Vertex request transform -- the same one non-batch generate_content()
-        calls use -- rather than re-deriving the split ourselves, since a
-        GenerateContentConfig bundles fields (tools, systemInstruction,
-        safety settings) that must land at different top-level keys, not all
-        nested under "generationConfig".
-
-        NOTE: depends on google.genai.models._GenerateContentParameters_to_vertex,
-        an unstable/private SDK internal, kept so a batch line is exactly what a
-        regular ask sends: the public Schema.from_json_schema drops
-        additionalProperties and property ordering from response schemas.
-        google-genai is pinned in install_config/pyproject.toml, and
-        tests/test_vertex_batch_client.py fails if an upgrade removes or
-        reshapes it.
-        """
-        from google.genai.models import _GenerateContentParameters_to_vertex
-
-        body = _GenerateContentParameters_to_vertex(
-            self.google_client._api_client,
-            {"model": self.model_name, "contents": contents, "config": provider_config},
-        )
-        body.pop("_url", None)
-        return body
-
-    def submit_batch(self, requests, **kwargs) -> Dict[str, Any]:
-        self._ensure_batch_supported()
-        input_uri = kwargs.pop("inputUri", None)
-        output_uri_prefix = kwargs.pop("outputUriPrefix", None)
-        if input_uri and output_uri_prefix:
-            from google.genai.types import CreateBatchJobConfig
-            from ...clients.vertex_batch_client import normalize_job_state
-
-            genai_client = self._vertex_genai_client()
-            job = genai_client.batches.create(
-                model=self.model_name,
-                src=input_uri,
-                config=CreateBatchJobConfig(dest=output_uri_prefix),
-            )
-            return {
-                "provider_batch_id": job.name,
-                "status": normalize_job_state(job.state),
-                "raw": {"name": job.name, "state": str(job.state)},
-            }
-
-        if isinstance(requests, str):
-            requests = json.loads(requests)
-        lines = []
-        for idx, req in enumerate(requests or []):
-            if not isinstance(req, dict):
-                raise ValueError(f"Batch request {idx} must be a map")
-            custom_id = req.get("custom_id") or f"req-{idx}"
-            contents, provider_config = self._build_batch_contents(req, idx)
-            body = self._gemini_request_body_for_batch(contents, provider_config)
-            lines.append({"id": str(custom_id), "request": body})
-        if not lines:
-            raise ValueError("submit_batch requires at least one request")
-
-        # _GenerateContentParameters_to_vertex doesn't recursively convert every
-        # nested SDK type (e.g. ThinkingConfig) to a plain dict -- fall back to
-        # each object's own model_dump for anything json.dumps can't handle, and
-        # to base64, as the SDK sends it, for bytes it leaves raw (a function
-        # call's thought signature).
-        def _json_default(obj):
-            if hasattr(obj, "model_dump"):
-                return obj.model_dump(mode="json", by_alias=True, exclude_none=True)
-            if isinstance(obj, bytes):
-                return base64.urlsafe_b64encode(obj).decode("ascii")
-            return str(obj)
-
-        jsonl_content = "\n".join(
-            json.dumps(line, ensure_ascii=False, default=_json_default) for line in lines
-        )
-        return {
-            "status": "BUILT",
-            "request_count": len(lines),
-            "raw": {"jsonl_content": jsonl_content},
-        }
-
-    def get_batch_status(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
-        from ...clients.vertex_batch_client import job_output_uri, normalize_job_state
-
-        self._ensure_batch_supported()
-        job_name = provider_batch_id.split(".", 1)[-1]
-        genai_client = self._vertex_genai_client()
-        job = genai_client.batches.get(name=job_name)
-        return {
-            "provider_batch_id": provider_batch_id,
-            "status": normalize_job_state(job.state),
-            "counts": None,
-            "raw": {
-                "name": job.name,
-                "state": str(job.state),
-                "output_uri": job_output_uri(job),
-            },
-        }
-
-    def get_batch_results(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
-        """outputFiles are the local copies of every output shard Java already
-        downloaded through the storage engine -- this method only normalizes
-        their lines into the SEMOSS shape; it never touches GCS itself. jobId is
-        the bare Vertex job id; provider_batch_id is the SEMOSS id the results
-        are billed and logged under."""
-        from ...clients.vertex_batch_client import (
-            normalize_gemini_result_line,
-            normalize_job_state,
-            read_output_files,
-        )
-
-        self._ensure_batch_supported()
-        job_name = kwargs.pop("jobId", None) or provider_batch_id.split(".", 1)[-1]
-        items = read_output_files(kwargs.pop("outputFiles", None) or [], normalize_gemini_result_line)
-
-        genai_client = self._vertex_genai_client()
-        job = genai_client.batches.get(name=job_name)
-        return {
-            "provider_batch_id": provider_batch_id,
-            "status": normalize_job_state(job.state),
-            "count": len(items),
-            "results": items,
-        }
-
-    def list_batches(self, limit: int = 20, **kwargs) -> Dict[str, Any]:
-        """Lists Vertex AI batch jobs for this project/region. Each returned
-        provider_batch_id is the bare Vertex job name (no storageEngineId
-        prefix), same caveat as AnthropicTextClient._list_batches_vertex."""
-        from ...clients.vertex_batch_client import normalize_job_state
-
-        self._ensure_batch_supported()
-        genai_client = self._vertex_genai_client()
-        resp = genai_client.batches.list(config={"page_size": limit})
-        batches = []
-        for job in resp:
-            batches.append(
-                {
-                    "provider_batch_id": job.name,
-                    "status": normalize_job_state(job.state),
-                    "request_count": None,
-                    "created_at": str(getattr(job, "create_time", None)),
-                }
-            )
-        return {"batches": batches}
-
-    def cancel_batch(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
-        from ...clients.vertex_batch_client import normalize_job_state
-
-        self._ensure_batch_supported()
-        job_name = provider_batch_id.split(".", 1)[-1]
-        genai_client = self._vertex_genai_client()
-        job = genai_client.batches.cancel(name=job_name)
-        if job is None:
-            job = genai_client.batches.get(name=job_name)
-        return {
-            "provider_batch_id": provider_batch_id,
-            "status": normalize_job_state(getattr(job, "state", None)),
-            "raw": {"name": job_name},
-        }
 
     def _parse_tools_call_response(
         self,
@@ -605,7 +248,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             for p in response.candidates[0].content.parts:
                 if getattr(p, "function_call", None) is not None:
                     parts_with_fc.append(p)
-                elif getattr(p, "text", None) and not getattr(p, "thought", False):
+                elif (
+                    getattr(p, "text", None)
+                    and not getattr(p, "thought", False)
+                ):
                     preamble_text += p.text
 
         for i, function_call in enumerate(response.function_calls):
@@ -624,7 +270,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     )
             tools_result.append(tool_entry)
 
-        text_parts = [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
+        text_parts = (
+            [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
+        )
 
         return AskModelEngineResponse2(
             response=tools_result,
@@ -666,8 +314,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         for event in stream:
             parts_with_fc = []
-            if self._stopped_at_output_maximum(event):
-                note_output_stop(True)
             if getattr(event, "usage_metadata", None):
                 latest_usage_metadata = event.usage_metadata
             if hasattr(event, "candidates") and event.candidates:

@@ -169,36 +169,6 @@ public class Room implements Serializable {
 	}
 
 	/**
-	 * Creates an uncached inference snapshot without changing the source room.
-	 * Every message and its parent links are preserved, including media/tool state.
-	 * Callers can overlay attachment context and run auxiliary inference without
-	 * replacing the source history or its tool-name lookup map.
-	 */
-	public Room createInferenceSnapshot() {
-		ReentrantLock lock = getMessageLock();
-		lock.lock();
-		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireOptionsLock(this)) {
-			Room snapshot = new Room();
-			snapshot.room_id = this.room_id;
-			snapshot.userId = this.userId;
-			snapshot.roomName = this.roomName;
-			snapshot.projectId = this.projectId;
-			snapshot.modelId = this.modelId;
-			snapshot.parentRoomId = this.parentRoomId;
-			snapshot.insight = this.insight;
-			snapshot.roomFolderPath = this.roomFolderPath;
-			snapshot.setOptionsMap(GSON.fromJson(GSON.toJson(getOptionsMap()),
-					new TypeToken<Map<String, Object>>() {}.getType()));
-			for (AbstractMessage message : this.messages) {
-				snapshot.messages.add(MessageUtils.deepCopy(message));
-			}
-			return snapshot;
-		} finally {
-			lock.unlock();
-		}
-	}
-
-	/**
 	 * Creates a room from persisted ROOM-table fields.
 	 *
 	 * @param room_id       room identifier

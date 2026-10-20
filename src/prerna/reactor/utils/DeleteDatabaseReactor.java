@@ -50,9 +50,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.AuditTargetType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
@@ -99,11 +96,8 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 			// we may have the alias
 			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 			IDatabaseEngine database = Utility.getDatabase(databaseId);
-			String databaseName = database.getEngineName();
 
 			deleteDatabase(database);
-			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_DELETE, AuditTargetType.DATABASE,
-					databaseId, databaseName, null);
 			EngineSyncUtility.clearEngineCache(databaseId);
 			UserTrackingUtils.deleteEngine(databaseId);
 			// Run the delete thread in the background for removing from cloud storage

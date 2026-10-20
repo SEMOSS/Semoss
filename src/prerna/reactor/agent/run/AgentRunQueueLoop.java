@@ -44,7 +44,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 import prerna.reactor.agent.stream.AgentRunStreamService;
-import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Decides which submitted agent runs start on this node, and when.
@@ -392,10 +391,7 @@ final class AgentRunQueueLoop {
 
 			Room automationResumeRoom = automationResumeRoomsByRun.remove(runId);
 			Thread thread = Thread.ofVirtual().name("agent-run-" + runId).unstarted(() -> {
-				AgentRunRequest request = record.request();
-				try (var ignored = CloseableThreadContext.putAll(insightHandle.log4jContextMap())
-						.putAll(UserAuditTrailUtils.agentContext(request == null ? null : request.getWorkspaceId(),
-								request == null ? null : request.getHarnessType(), runId))) {
+				try (var ignored = CloseableThreadContext.putAll(insightHandle.log4jContextMap())) {
 					AgentRunExecutor.execute(record, insightHandle, activeRun, automationResumeRoom);
 				} finally {
 					cleanupInsight(runId, insightHandle);

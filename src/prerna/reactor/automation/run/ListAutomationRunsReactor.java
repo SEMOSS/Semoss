@@ -43,8 +43,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Lists automation run history for a project.
  *
  * <p>
- * Pixel: {@code ListAutomationRuns(project=["appId"], limit=["25"])}. Without
- * {@code project}, lists the caller's own inline runs.
+ * Pixel: {@code ListAutomationRuns(project=["appId"], limit=["25"])}
  *
  * <p>
  * Reads from AUTOMATION_RUNS in the scheduler DB.
@@ -55,7 +54,7 @@ public class ListAutomationRunsReactor extends AbstractReactor {
 
 	public ListAutomationRunsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.LIMIT.getKey() };
-		this.keyRequired = new int[] { 0, 0 };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
@@ -64,12 +63,16 @@ public class ListAutomationRunsReactor extends AbstractReactor {
 		String projectId = getString(ReactorKeysEnum.PROJECT.getKey());
 		int limit = getInt(ReactorKeysEnum.LIMIT.getKey(), AutomationConstants.DEFAULT_LIST_RUNS_LIMIT);
 
+		if (projectId == null || projectId.isBlank()) {
+			throw new IllegalArgumentException("Must provide a project id");
+		}
 		if (limit <= 0) {
 			throw new IllegalArgumentException("Limit must be greater than 0");
 		}
 		limit = Math.min(limit, MAXIMUM_LIMIT);
 
-		projectId = AutomationProjectService.resolveRunScope(this.insight.getUser(), projectId, false);
+		projectId = AutomationProjectService.getViewableAutomationProject(this.insight.getUser(), projectId)
+				.getProjectId();
 
 		List<Map<String, Object>> runs = AutomationRunStore.getRunsForProject(projectId, limit);
 		if (runs == null) {

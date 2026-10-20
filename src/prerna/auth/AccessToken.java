@@ -70,6 +70,11 @@ public class AccessToken implements Serializable {
 	private String phoneExtension = null;
 	private String countryCode = null;
 
+	private int modelMaxTokens = 0;
+	private double modelMaxResponseTime = 0.0;
+	private String modelUsageFrequency = null;
+	private String modelUsageRestriction = null;
+
 	private Map<String, String> sans = null;
 
 	private Map<String, Collection<String>> meta = null;
@@ -619,6 +624,78 @@ public class AccessToken implements Serializable {
 	}
 
 	/**
+	 * Gets the maximum number of tokens the user can use for model requests.
+	 * 
+	 * @return maximum token count
+	 */
+	public int getModelMaxTokens() {
+		return modelMaxTokens;
+	}
+
+	/**
+	 * Sets the maximum number of tokens for model requests.
+	 * 
+	 * @param modelMaxTokens maximum token count
+	 */
+	public void setModelMaxTokens(int modelMaxTokens) {
+		this.modelMaxTokens = modelMaxTokens;
+	}
+
+	/**
+	 * Gets the maximum response time allowed for model requests in seconds.
+	 * 
+	 * @return maximum response time in seconds
+	 */
+	public double getModelMaxResponseTime() {
+		return modelMaxResponseTime;
+	}
+
+	/**
+	 * Sets the maximum response time allowed for model requests.
+	 * 
+	 * @param modelMaxResponseTime maximum response time in seconds
+	 */
+	public void setModelMaxResponseTime(double modelMaxResponseTime) {
+		this.modelMaxResponseTime = modelMaxResponseTime;
+	}
+
+	/**
+	 * Gets the model usage frequency restriction (e.g., rate limiting).
+	 * 
+	 * @return the usage frequency restriction
+	 */
+	public String getModelUsageFrequency() {
+		return modelUsageFrequency;
+	}
+
+	/**
+	 * Sets the model usage frequency restriction.
+	 * 
+	 * @param modelUsageFrequency the usage frequency restriction
+	 */
+	public void setModelUsageFrequency(String modelUsageFrequency) {
+		this.modelUsageFrequency = modelUsageFrequency;
+	}
+
+	/**
+	 * Gets the model usage restriction policy.
+	 * 
+	 * @return the usage restriction policy
+	 */
+	public String getModelUsageRestriction() {
+		return modelUsageRestriction;
+	}
+
+	/**
+	 * Sets the model usage restriction policy.
+	 * 
+	 * @param modelUsageRestriction the usage restriction policy
+	 */
+	public void setModelUsageRestriction(String modelUsageRestriction) {
+		this.modelUsageRestriction = modelUsageRestriction;
+	}
+
+	/**
 	 * Resolves a usable username for the access token, preferring the username and
 	 * falling back to the display name and then the email. Useful when a single
 	 * identifying label is required (e.g. as a git commit author) but logins vary
@@ -740,6 +817,10 @@ public class AccessToken implements Serializable {
 		this.phone = source.phone;
 		this.phoneExtension = source.phoneExtension;
 		this.countryCode = source.countryCode;
+		this.modelMaxTokens = source.modelMaxTokens;
+		this.modelMaxResponseTime = source.modelMaxResponseTime;
+		this.modelUsageFrequency = source.modelUsageFrequency;
+		this.modelUsageRestriction = source.modelUsageRestriction;
 		this.locked = source.locked;
 		this.lastLogin = source.lastLogin;
 		this.lastPasswordReset = source.lastPasswordReset;
@@ -805,6 +886,12 @@ public class AccessToken implements Serializable {
 		newToken.phoneExtension = token.phoneExtension;
 		newToken.countryCode = token.countryCode;
 		newToken.instance_url = token.instance_url;
+
+		// model-related fields
+		newToken.modelMaxTokens = token.modelMaxTokens;
+		newToken.modelMaxResponseTime = token.modelMaxResponseTime;
+		newToken.modelUsageFrequency = token.modelUsageFrequency;
+		newToken.modelUsageRestriction = token.modelUsageRestriction;
 
 		if (token.userGroups != null) {
 			newToken.userGroups = new ArrayList<>(token.userGroups);

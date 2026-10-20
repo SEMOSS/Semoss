@@ -29,7 +29,6 @@ package prerna.engine.api;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -170,15 +169,6 @@ public interface IModelEngine extends IEngine {
 	@IgnoreEngineLogging
 	default long getMaxTokens() {
 		return 0;
-	}
-
-	/**
-	 * @return configured input modalities, or null when request content is not
-	 *         restricted
-	 */
-	@IgnoreEngineLogging
-	default Set<ModelModalityEnum> getInputModalities() {
-		return null;
 	}
 
 	// ------------------------------------------------------------------

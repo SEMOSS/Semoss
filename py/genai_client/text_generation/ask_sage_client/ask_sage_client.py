@@ -6,7 +6,7 @@ from ...message_builders.ask_sage_builder.ask_sage_message_builder import (
     AskSageMessageBuilder,
 )
 from ...constants import AskModelEngineResponse
-from ...usage_ceiling import count_prompt_tokens
+
 
 _GEN_IMAGES_RE = re.compile(
     r"<gen-images>\s*(\{.*?\})\s*</gen-images>",
@@ -52,20 +52,6 @@ class AskSage(AbstractTextGenerationClient):
         response = None
 
         try:
-            # AskSage has no output maximum: the ceiling can refuse the call
-            # when the prompt leaves nothing for output, but cannot cap the answer. The
-            # refusal goes up to ``ask``, which answers with the
-            # USAGE_LIMIT_DOES_NOT_FIT error response
-            self.fit_output_to_usage_ceiling(
-                None,
-                lambda: count_prompt_tokens(
-                    [request_dict.get("system_prompt"), request_dict.get("message")],
-                    [request_dict.get("tools")],
-                    message_count=len(request_dict.get("message") or []),
-                ),
-                can_cap=False,
-            )
-
             if media_content:
                 response = self.client.query_with_file(
                     file=media_content[0], **request_dict

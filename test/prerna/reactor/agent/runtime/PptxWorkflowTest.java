@@ -81,7 +81,7 @@ class PptxWorkflowTest {
 	void setup() throws Exception {
 		Files.writeString(root.resolve("build-deck.js"), "generator v1");
 		operations = new FakeOperations();
-		workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/test"), 6, operations, true);
+		workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/test"), 6, operations);
 	}
 
 	@Test
@@ -125,7 +125,7 @@ class PptxWorkflowTest {
 	@Test
 	void withoutAVisionModelTheAuthorIsToldAndNoReviewIsAttempted() {
 		operations.unavailable = "Selected model does not support image input";
-		workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/test"), 6, operations, true);
+		workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/test"), 6, operations);
 		assertTrue(workflow.guidance(0).contains("Visual review is unavailable in this run"));
 		workflow.build(Map.of("generator", "build-deck.js", "filePath", "deck.pptx", "expectedSlides", 2), 1);
 		assertEquals(0, operations.reviewCalls);
@@ -135,23 +135,9 @@ class PptxWorkflowTest {
 	}
 
 	@Test
-	void withReviewDisabledAValidBuildIsDeliveredCleanWithoutSpawningTheReviewer() {
-		workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/test"), 6, operations, false);
-		assertTrue(workflow.guidance(0).contains("Visual review is disabled for this agent"));
-		var result = workflow.build(args, 1);
-		assertEquals(0, operations.reviewCalls, "an explicit engine must not force a review either");
-		assertTrue(workflow.isTerminal());
-		assertEquals("complete", result.getString("status"));
-		assertNull(workflow.completionError());
-		assertNull(workflow.completionWarning());
-		assertFalse(workflow.finalText().contains("visual review"), workflow.finalText());
-		assertEquals("not_started", result.getJSONObject("reviewOutcome").getString("status"));
-	}
-
-	@Test
 	void anExplicitVisionEngineIsStillReviewedWhenTheDefaultHasNoVision() {
 		operations.unavailable = "Selected model does not support image input";
-		workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/test"), 6, operations, true);
+		workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/test"), 6, operations);
 		workflow.build(args, 1);
 		assertEquals(1, operations.reviewCalls);
 	}
@@ -375,7 +361,7 @@ class PptxWorkflowTest {
 		assertEquals(result.getJSONObject("artifact").toMap(), saved.getJSONObject("artifact").toMap());
 		assertEquals(workflow.completionWarning(), progress.get().get("warning"));
 		assertEquals(1, operations.reviewCalls);
-		var resumed = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/test"), 6, operations, true);
+		var resumed = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/test"), 6, operations);
 		var restore = PptxWorkflow.class.getDeclaredMethod("restore");
 		restore.setAccessible(true);
 		restore.invoke(resumed);

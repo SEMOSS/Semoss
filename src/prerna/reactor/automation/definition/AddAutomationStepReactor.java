@@ -55,12 +55,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  */
 public class AddAutomationStepReactor extends AbstractReactor {
 
-	private static final String DEFAULT_DEVELOPER_SOURCE = """
-			# scope contains trigger inputs and prior outputs by outputVar.
-			def run(scope):
-			    return {}
-			""";
-
 	private static final String NODE_TYPE_KEY = "nodeType";
 	private static final String CONFIG_KEY = "config";
 	private static final String LABEL_KEY = "label";
@@ -234,13 +228,13 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		}
 		Object value = config.remove("source");
 		if (value == null) {
-			return DEFAULT_DEVELOPER_SOURCE;
+			return AutomationSourceRenderer.defaultDeveloperSource();
 		}
 		if (!(value instanceof String source)) {
 			throw new IllegalArgumentException("developer.python config.source must be a string when provided.");
 		}
 		if (source.isBlank()) {
-			return DEFAULT_DEVELOPER_SOURCE;
+			return AutomationSourceRenderer.defaultDeveloperSource();
 		}
 		if (!AutomationDefinitionService.definesRunEntryPoint(source)) {
 			throw new IllegalArgumentException("developer.python source must define run(scope) at the top level.");

@@ -28,68 +28,96 @@
 package prerna.reactor.automation.run;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IRawSelectWrapper;
-import prerna.om.HeadersDataRow;
+import prerna.ds.py.PyTranslator;
 import prerna.om.Insight;
-import prerna.query.querystruct.SelectQueryStruct;
+import prerna.reactor.frame.py.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** Covers the internal Insight-owned Automation frame reference. */
+/** Covers the shared Insight-owned frame registration boundary. */
 public class AutomationFrameOutputUnitTests {
 
 	@Test
-	void registersExistingFrameWithoutCopyingRows() {
+	void registersExistingFrameWithActualShapeAndBackend() {
 		ITableDataFrame frame = mock(ITableDataFrame.class);
 		when(frame.size("query_result")).thenReturn(25L);
-		when(frame.getQsHeaders()).thenReturn(new String[] { "QUERY_RESULT__ID", "QUERY_RESULT__STATUS" });
+		when(frame.getColumnHeaders()).thenReturn(new String[] { "ID", "STATUS" });
 		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
 		Insight insight = new Insight();
+		insight.setInsightId("automation-run-1");
 
 		AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, "query_result", frame);
 
 		assertEquals(Map.of("dataType", "table", "rowCount", 25L, "columnCount", 2), output.summary());
-		assertSame(frame, output.frame());
 		assertEquals(DataFrameTypeEnum.PYTHON.getTypeAsString(), output.backend());
 		assertEquals(PixelDataType.FRAME, insight.getVarStore().get("query_result").getNounType());
 		assertSame(frame, insight.getVarStore().get("query_result").getValue());
 	}
 
 	@Test
-	void readsBoundedDuplicatePreservingPages() throws Exception {
+	void requiresRegisteredFrameIdentityRatherThanJsonShape() {
+		Insight insight = new Insight();
+		insight.setInsightId("automation-run-1");
+
+		IllegalStateException unavailable = assertThrows(IllegalStateException.class,
+				() -> AutomationFrameOutput.requireBackend(insight, "ordinary_json"));
+
+		assertEquals("Automation frame output 'ordinary_json' was not registered in execution Insight "
+				+ "'automation-run-1'.", unavailable.getMessage());
+	}
+
+	@Test
+	void doesNotRegisterAnExistingFrameWhenDescriptionFails() {
 		ITableDataFrame frame = mock(ITableDataFrame.class);
-		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
-		when(frame.size("query_result")).thenReturn(3L);
-		when(frame.getQsHeaders()).thenReturn(new String[] { "QUERY_RESULT__VALUE" });
-		when(frame.getColumnHeaders()).thenReturn(new String[] { "VALUE" });
-		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
-		when(frame.query(any(SelectQueryStruct.class))).thenReturn(wrapper);
-		when(wrapper.hasNext()).thenReturn(true, true, false);
-		when(wrapper.next()).thenReturn(
-				new HeadersDataRow(new String[] { "VALUE" }, new Object[] { 7 }),
-				new HeadersDataRow(new String[] { "VALUE" }, new Object[] { 7 }));
-		AutomationFrameOutput.RegisteredFrame output =
-				AutomationFrameOutput.register(new Insight(), "query_result", frame);
+		when(frame.size("query_result")).thenThrow(new IllegalStateException("size failed"));
+		Insight insight = new Insight();
+		insight.setInsightId("automation-run-1");
 
-		assertEquals(List.of(Map.of("VALUE", 7), Map.of("VALUE", 7)), output.page(0, 2));
+		assertThrows(IllegalStateException.class,
+				() -> AutomationFrameOutput.register(insight, "query_result", frame));
+		assertNull(insight.getVarStore().get("query_result"));
+	}
 
-		org.mockito.ArgumentCaptor<SelectQueryStruct> query =
-				org.mockito.ArgumentCaptor.forClass(SelectQueryStruct.class);
-		org.mockito.Mockito.verify(frame).query(query.capture());
-		assertFalse(query.getValue().isDistinct());
-		assertEquals(0L, query.getValue().getOffset());
-		assertEquals(2L, query.getValue().getLimit());
+	@Test
+	void registrationFailureRemovesTheAliasAndClosesTheCreatedFrame() {
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		when(frame.size("query_result")).thenThrow(new IllegalStateException("size failed"));
+		Insight insight = new Insight();
+		insight.setInsightId("automation-run-1");
+
+		try (var reactors = mockConstruction(GenerateFrameFromPyVariableReactor.class, (reactor, context) -> when(
+				reactor.execute()).thenAnswer(invocation -> {
+					insight.getVarStore().put("query_result", new NounMetadata(frame, PixelDataType.FRAME));
+					return new NounMetadata(frame, PixelDataType.FRAME);
+				}))) {
+			assertThrows(IllegalStateException.class,
+					() -> AutomationFrameOutput.registerPythonVariable(insight, "query_result"));
+		}
+
+		assertNull(insight.getVarStore().get("query_result"));
+		verify(frame).close();
+	}
+
+	@Test
+	void discardsFailedPythonFrameValueFromTheLiveNamespace() {
+		PyTranslator translator = mock(PyTranslator.class);
+
+		AutomationFrameOutput.discardPythonValue(translator, "query_result", "run-1", "node-1");
+
+		verify(translator).runScript("globals().pop(\"query_result\", None)");
 	}
 }

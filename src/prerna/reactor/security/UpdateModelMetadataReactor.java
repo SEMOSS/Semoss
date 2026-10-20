@@ -55,11 +55,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
-/**
- * Updates a model's editable metadata. The model's editors change every key but
- * {@code PRICING}, which needs one of its owners or an admin; prices can be
- * changed but not removed.
- */
 public class UpdateModelMetadataReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(UpdateModelMetadataReactor.class);
@@ -90,7 +85,7 @@ public class UpdateModelMetadataReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input the model metadata to update");
 		}
 
-		SecurityModelMetadataUtils.updateModelMetadata(user, engineId, updates);
+		SecurityModelMetadataUtils.updateModelMetadata(engineId, updates);
 
 		String reloadWarning = null;
 		if (Utility.engineLoaded(engineId)) {
@@ -123,10 +118,6 @@ public class UpdateModelMetadataReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return """
-				Updates editable provider, capability, modality, token, reasoning, built-in tool and pricing \
-				metadata for a model engine. Its editors can change everything but the prices, which need an \
-				owner or an admin and cannot be removed
-				""";
+		return "Updates editable provider, capability, modality, token, reasoning, and built-in tool metadata for a model engine";
 	}
 }

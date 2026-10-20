@@ -50,14 +50,7 @@ import org.junit.jupiter.api.Test;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.access.ModelUsageLimit;
-import prerna.auth.access.ModelUsageLimitKey;
-import prerna.auth.access.ModelUsageLimitRule;
-import prerna.auth.access.ModelUsageLimitRule.Counts;
-import prerna.auth.access.ModelUsageLimitRule.Metric;
-import prerna.auth.access.ModelUsageLimitRule.Window;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -212,21 +205,6 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		assertNull(SecurityGroupProjectUtils.getGroupProjectPermission("gid", "reg", "pid1"));
 	}
 
-	@Test
-	void testDeleteGroupAndPropagate_removesModelUsageLimits() throws Exception {
-		instance.addGroup(adminUser, "gid", "CUSTOM", "desc");
-		instance.addGroup(adminUser, "other", "CUSTOM", "desc");
-		saveLimit(ModelUsageLimitKey.team("eid1", "gid", "CUSTOM"), ModelUsageLimit.unlimited());
-		saveLimit(ModelUsageLimitKey.teamTotal("gid", "CUSTOM"), sharedTokensADay(1000));
-		saveLimit(ModelUsageLimitKey.team("eid1", "other", "CUSTOM"), ModelUsageLimit.unlimited());
-
-		instance.deleteGroupAndPropagate("gid", "CUSTOM");
-
-		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.team("eid1", "gid", "CUSTOM")));
-		assertNull(SecurityModelUsageLimitUtils.getTeamTotal("gid", "CUSTOM"));
-		assertNotNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.team("eid1", "other", "CUSTOM")));
-	}
-
 	///
 	/// editGroupDetailsAndPropagate
 	///
@@ -280,32 +258,6 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 				.getUserCustomGroups(adminUser.getAccessToken(AuthProvider.NATIVE));
 		assertEquals(1, userCustomGroups.size());
 		assertEquals("newGroupId", userCustomGroups.getFirst());
-	}
-
-	@Test
-	void testEditGroupDetailsAndPropagate_movesModelUsageLimits() throws Exception {
-		instance.addGroup(adminUser, "oldGroupId", "CUSTOM", "desc");
-		saveLimit(ModelUsageLimitKey.team("eid1", "oldGroupId", "CUSTOM"), ModelUsageLimit.unlimited());
-		saveLimit(ModelUsageLimitKey.teamTotal("oldGroupId", "CUSTOM"), sharedTokensADay(1000));
-
-		instance.editGroupDetailsAndPropagate(adminUser, "oldGroupId", "CUSTOM", "newGroupId", "newDesc");
-
-		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.team("eid1", "oldGroupId", "CUSTOM")));
-		assertNull(SecurityModelUsageLimitUtils.getTeamTotal("oldGroupId", "CUSTOM"));
-		assertTrue(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.team("eid1", "newGroupId", "CUSTOM"))
-				.isUnlimited());
-		assertNotNull(SecurityModelUsageLimitUtils.getTeamTotal("newGroupId", "CUSTOM"));
-	}
-
-	private static void saveLimit(ModelUsageLimitKey key, ModelUsageLimit limit) throws Exception {
-		QueryExecutionUtility.write(SystemEngineRegistry.getSecurityDb(), connection -> {
-			SecurityModelUsageLimitUtils.setLimit(connection, key, limit, null);
-			return null;
-		});
-	}
-
-	private static ModelUsageLimit sharedTokensADay(long amount) {
-		return ModelUsageLimit.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, amount, Window.DAY, Counts.SHARED)));
 	}
 
 	///

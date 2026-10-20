@@ -96,7 +96,6 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				INSERT INTO AUDIT_LOGS (
 				    LOG_ID, REQUEST_ID, IS_SUCCESS, SESSION_ID, USER_ID, USER_NAME, USER_TYPE, SPAN_ID, INSIGHT_ID, PROJECT_ID, PROJECT_NAME, ROOM_ID,
 				    ENGINE_ID, ENGINE_NAME, ENGINE_TYPE, METHOD_NAME, ENGINE_SUBTYPE, INPUT_REACTOR_NAME, OUTPUT_REACTOR_NAME, GUARDRAIL_ACTION,
-				    BILLED_SOURCE_TYPE, BILLED_SUBJECT_ID, BILLED_SUBJECT_TYPE,
 				    MESSAGE, REQUEST, RESPONSE,
 				    NUMBER_OF_TOKENS_IN_PROMPT, NUMBER_OF_TOKENS_IN_RESPONSE, NUMBER_OF_CACHE_READ_TOKENS, NUMBER_OF_CACHE_CREATION_TOKENS,
 				    REQUEST_START_TIME, RESPONSE_END_TIME,
@@ -105,7 +104,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
 				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
 				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-				    ?, ?, ?, ?, ?, ?
+				    ?, ?, ?
 				);
 				""";
 
@@ -216,9 +215,6 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.INPUT_REACTOR_NAME, contextData, message)); // input_reactor_name
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.OUTPUT_REACTOR_NAME, contextData, message)); // output_reactor_name
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.GUARDRAIL_ACTION, contextData, message)); // guardrail_action
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.BILLED_SOURCE_TYPE, contextData, message)); // billed_source_type
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.BILLED_SUBJECT_ID, contextData, message)); // billed_subject_id
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.BILLED_SUBJECT_TYPE, contextData, message)); // billed_subject_type
 				queryUtil.handleInsertionOfClob(stmt, event.getMessage().getFormattedMessage(), paramIdx++, GSON); // message
 				queryUtil.handleInsertionOfClob(stmt, getValue(SemossLogUtils.REQUEST, contextData, message),
 						paramIdx++, GSON); // request

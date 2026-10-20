@@ -37,7 +37,6 @@ import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -65,10 +64,6 @@ import prerna.util.git.GitRepoUtils;
  * checks. Mutations hold the project lock while replacing the graph aggregate,
  * regenerating MCP metadata, synchronizing cluster assets, and updating the
  * project edit timestamp.
- *
- * <p>
- * Runs of inline definition JSON have no project. They are stored under the
- * caller's own inline run scope, and only that login can read or control them.
  */
 public final class AutomationProjectService {
 
@@ -101,69 +96,14 @@ public final class AutomationProjectService {
 		return getAutomationProject(user, projectIdOrAlias, true);
 	}
 
-	/**
-	 * Returns the caller's own run scope for runs of inline definition JSON. It is
-	 * derived from the primary login, so every session of one login shares it.
-	 *
-	 * @param user user running or reading inline runs
-	 * @return {@link AutomationConstants#INLINE_RUN_SCOPE_PREFIX} plus a hash of
-	 *         the login type and id
-	 * @throws IllegalArgumentException for a missing, anonymous, or not logged-in
-	 *                                  user
-	 */
-	public static String inlineRunScope(User user) {
-		Pair<String, String> login = User.getPrimaryUserIdAndTypePair(user);
-		if (login.getValue0() == null || login.getValue0().isBlank()) {
-			throw new IllegalArgumentException("User must have primary login");
-		}
-		return AutomationConstants.INLINE_RUN_SCOPE_PREFIX
-				+ AutomationDefinitionService.calculateSourceHash(login.getValue1() + ":" + login.getValue0());
-	}
-
-	/**
-	 * Reports whether a run scope belongs to inline runs rather than a project.
-	 *
-	 * @param id run scope or project id
-	 * @return {@code true} for an inline run scope
-	 */
-	public static boolean isInlineRunScope(String id) {
-		return id != null && id.startsWith(AutomationConstants.INLINE_RUN_SCOPE_PREFIX);
-	}
-
-	/**
-	 * Resolves the run scope a run reactor reads or controls. A blank project
-	 * means the caller's own inline runs; an inline scope is accepted only when it
-	 * is the caller's own; anything else must be an accessible automation project.
-	 *
-	 * @param user             user requesting access
-	 * @param projectIdOrAlias project ID or alias, inline run scope, or blank
-	 * @param requireEdit      whether a project must grant edit access
-	 * @return run scope to match against {@code AUTOMATION_RUNS.PROJECT_ID}
-	 */
-	public static String resolveRunScope(User user, String projectIdOrAlias, boolean requireEdit) {
-		if (projectIdOrAlias == null || projectIdOrAlias.isBlank()) {
-			return inlineRunScope(user);
-		}
-		if (isInlineRunScope(projectIdOrAlias)) {
-			if (!projectIdOrAlias.equals(inlineRunScope(user))) {
-				throw new IllegalArgumentException("Run does not exist or user does not have access.");
-			}
-			return projectIdOrAlias;
-		}
-		return getAutomationProject(user, projectIdOrAlias, requireEdit).getProjectId();
-	}
-
 	private static IProject getAutomationProject(User user, String projectIdOrAlias, boolean requireEdit) {
 		if (projectIdOrAlias == null || projectIdOrAlias.isBlank()) {
 			throw new IllegalArgumentException("Must provide a project id.");
 		}
 
-		String projectId = isInlineRunScope(projectIdOrAlias) ? projectIdOrAlias
-				: SecurityProjectUtils.testUserProjectIdForAlias(user, projectIdOrAlias);
-		// An inline run scope is never a project, even when an uploaded project claims that id.
-		boolean hasAccess = !isInlineRunScope(projectId) && (requireEdit
-				? SecurityProjectUtils.userCanEditProject(user, projectId)
-				: SecurityProjectUtils.userCanViewProject(user, projectId));
+		String projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectIdOrAlias);
+		boolean hasAccess = requireEdit ? SecurityProjectUtils.userCanEditProject(user, projectId)
+				: SecurityProjectUtils.userCanViewProject(user, projectId);
 		if (!hasAccess) {
 			throw new IllegalArgumentException(requireEdit ? "Project does not exist or user does not have edit access."
 					: "Project does not exist or user does not have access.");
@@ -348,11 +288,7 @@ public final class AutomationProjectService {
 			User user) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		Object rawWorkspaceId = config.get(AutomationConstants.CONFIG_WORKSPACE_ID);
-		// Without a workspace the node runs a plain agent with the configured model.
-		if (rawWorkspaceId == null || rawWorkspaceId instanceof String blank && blank.isBlank()) {
-			return;
-		}
-		if (!(rawWorkspaceId instanceof String workspaceId)) {
+		if (!(rawWorkspaceId instanceof String workspaceId) || workspaceId.isBlank()) {
 			throw invalidAgentReference(nodeId, String.valueOf(rawWorkspaceId));
 		}
 		workspaceId = workspaceId.trim();

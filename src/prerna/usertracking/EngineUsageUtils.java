@@ -45,7 +45,6 @@ import prerna.util.SystemEngineRegistry;
 public class EngineUsageUtils extends UserTrackingUtils {
 
 	private static Logger classLogger = LogManager.getLogger(EngineUsageUtils.class);
-
 	private static String EU_TN = "ENGINE_USES";
 	private static String EU_PRE = "ENGINE_USES__";
 

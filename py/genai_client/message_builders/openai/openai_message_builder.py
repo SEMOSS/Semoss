@@ -221,8 +221,13 @@ class OpenAIMessageBuilder:
                         )
 
                     elif p.type == SEMOSSMessagePartType.THINKING:
-                        # Chat reasoning is not a Responses API input item.
-                        continue
+                        thinking_dict = {
+                            "type": "thinking",
+                            "thinking": p.thinking,
+                        }
+                        if self.thinking_signature:
+                            thinking_dict["signature"] = self.thinking_signature
+                        content_parts.append(thinking_dict)
 
                 # this message might be a tool result with no other content
                 # in that case we don't want to add an additional message with empty content
@@ -363,7 +368,6 @@ class OpenAIMessageBuilder:
             if message.parts:
                 content_parts = []
                 tool_call_parts = []
-                reasoning_fields = {}
                 is_assistant = message.io != "INPUT"
                 assistant_media_parts = []
                 for p in message.parts:
@@ -443,40 +447,36 @@ class OpenAIMessageBuilder:
                         )
 
                     elif p.type == SEMOSSMessagePartType.THINKING:
-                        if (
-                            is_assistant
-                            and self.model_settings.preserve_reasoning_content
-                            and p.source in {"reasoning_content", "reasoning"}
-                        ):
-                            reasoning_fields[p.source] = (
-                                reasoning_fields.get(p.source, "") + p.thinking
-                            )
+                        thinking_dict = {
+                            "type": "thinking",
+                            "thinking": p.thinking,
+                        }
+                        if self.thinking_signature:
+                            thinking_dict["signature"] = self.thinking_signature
+                        content_parts.append(thinking_dict)
 
-                if (
-                    len(content_parts) == 1
-                    and isinstance(content_parts[0], OpenAITextContentPart)
-                    and self.simplify_messages
-                ):
-                    content = content_parts[0].text
-                else:
-                    content = content_parts
-
+                # openai does not allow text with tool calls
+                # so if tool call we will drop the text portion
                 if tool_call_parts:
                     openai_messages.append(
                         OpenAIMessage(
                             role="assistant",
-                            content=(
-                                content
-                                if self.model_settings.preserve_reasoning_content
-                                else ""
-                            ),
+                            content="",
                             tool_calls=tool_call_parts,
-                            **reasoning_fields,
                         ),
                     )
                 # this message might be a tool result with no other content
                 # in that case we don't want to add an additional message with empty content
-                elif content_parts or reasoning_fields:
+                elif content_parts:
+                    if (
+                        len(content_parts) == 1
+                        and isinstance(content_parts[0], OpenAITextContentPart)
+                        and self.simplify_messages
+                    ):
+                        content = content_parts[0].text
+                    else:
+                        content = content_parts
+
                     openai_messages.append(
                         OpenAIMessage(
                             role=(
@@ -485,7 +485,6 @@ class OpenAIMessageBuilder:
                                 else OpenAIRoles.ASSISTANT.value
                             ),
                             content=content,
-                            **reasoning_fields,
                         )
                     )
 
@@ -578,26 +577,13 @@ class OpenAIMessageBuilder:
                 if is_last:
                     param_map.update(message.param_map)
 
-        if self.model_settings.chat_reasoning_mode == "chat_template":
-            # Laguna and similar endpoints use a template switch, not OpenAI effort.
-            reasoning = normalize_reasoning(param_map, self.model_settings)
-            extra_body = dict(param_map.get("extra_body") or {})
-            template_kwargs = dict(extra_body.get("chat_template_kwargs") or {})
-            template_kwargs["enable_thinking"] = reasoning is not None
-            extra_body["chat_template_kwargs"] = template_kwargs
-            param_map["extra_body"] = extra_body
-            param_map.pop("reasoning_effort", None)
-        elif self.model_settings.chat_reasoning_mode == "none":
-            normalize_reasoning(param_map, self.model_settings)
-            param_map.pop("reasoning_effort", None)
-        else:
-            try:
-                reasoning_effort = self._resolve_reasoning_effort(param_map)
-                if reasoning_effort:
-                    param_map["reasoning_effort"] = reasoning_effort
-                    param_map.pop("temperature", None)
-            except Exception:
-                pass
+        try:
+            reasoning_effort = self._resolve_reasoning_effort(param_map)
+            if reasoning_effort:
+                param_map["reasoning_effort"] = reasoning_effort
+                param_map.pop("temperature", None)
+        except Exception:
+            pass
 
         has_schema = param_map.get("schema", False)
         if has_schema:

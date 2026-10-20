@@ -91,26 +91,6 @@ public interface BrainMailHeaderSource {
 		return list(user, folder, since, max);
 	}
 
-	/**
-	 * The mailbox's folders, all levels: id, parentFolderId, displayName, totalItemCount, and wellKnownName (inbox,
-	 * sentitems, deleteditems...) on the system folders. Empty when this source has no folders; mail is then read
-	 * from Inbox and Sent only.
-	 */
-	default List<Map<String, Object>> folders(User user) throws Exception {
-		return List.of();
-	}
-
-	/**
-	 * Headers from every folder at once, newest first, at most max, with the internet headers Inbox is read with.
-	 * changed reads what was received or changed (moved, flagged, categorized) at or after since; otherwise what
-	 * was received. Callers drop the folders they skip.
-	 */
-	default List<Map<String, Object>> allMail(User user, Instant since, int max, boolean changed) throws Exception {
-		List<Map<String, Object>> out = new java.util.ArrayList<>(topicHeaders(user, INBOX, since, max));
-		out.addAll(list(user, SENT, since, max));
-		return out;
-	}
-
 	// one message's headers by its Graph id, as Inbox is read; null when this source cannot read one
 	default Map<String, Object> message(User user, String messageId) throws Exception {
 		return null;

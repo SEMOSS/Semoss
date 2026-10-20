@@ -8,11 +8,10 @@ not a sandbox.
 """
 
 import base64
-import copy
 import json
 import re
 import xml.etree.ElementTree as ET
-from collections.abc import Callable, ItemsView, Iterator, KeysView, ValuesView
+from collections.abc import Callable
 from typing import Any
 
 
@@ -30,59 +29,7 @@ _MISSING = object()
 class AutomationScope(dict[str, Any]):
     """Read-only view of one run's inputs, metadata, and prior node outputs."""
 
-    def __init__(
-        self,
-        values: dict[str, Any],
-        retained_values: dict[str, Any] | None = None,
-    ) -> None:
-        super().__init__(values)
-        self._retained_values = retained_values or {}
-
-    def __getitem__(self, name: str) -> Any:
-        if name in self._retained_values:
-            retained = self._retained_values.pop(name)
-            # Each node that actually reads a retained value receives an isolated
-            # snapshot. Nodes that only need a loop-local value never copy the
-            # unchanged upstream collection.
-            dict.__setitem__(self, name, copy.deepcopy(retained))
-        return dict.__getitem__(self, name)
-
-    def get(self, name: str, default: Any = None) -> Any:
-        if name not in self:
-            return default
-        return self[name]
-
-    def keys(self) -> KeysView[str]:
-        # Overriding keys keeps dict(scope) on the mapping protocol so retained
-        # values resolve through __getitem__ instead of copying placeholders.
-        return dict.keys(self)
-
-    def __iter__(self) -> Iterator[str]:
-        return dict.__iter__(self)
-
-    def items(self) -> ItemsView[str, Any]:
-        self._resolve_all()
-        return dict.items(self)
-
-    def values(self) -> ValuesView[Any]:
-        self._resolve_all()
-        return dict.values(self)
-
-    def copy(self) -> dict[str, Any]:
-        self._resolve_all()
-        return dict.copy(self)
-
-    def __repr__(self) -> str:
-        self._resolve_all()
-        return dict.__repr__(self)
-
-    def __eq__(self, other: object) -> bool:
-        self._resolve_all()
-        return dict.__eq__(self, other)
-
-    def _resolve_all(self) -> None:
-        for name in tuple(self._retained_values):
-            self[name]
+    __slots__ = ()
 
     def _raise_read_only(self, *args: Any, **kwargs: Any) -> None:
         raise TypeError(
@@ -325,15 +272,9 @@ def execute_node(
     output_variable: str,
     session_globals: dict[str, Any],
     frame_bindings: dict[str, str],
-    value_bindings: list[str] | None = None,
 ) -> Any:
     """Execute one persisted node module with a fresh module namespace."""
-    scope = _decode_scope(
-        encoded_scope,
-        session_globals,
-        frame_bindings,
-        value_bindings,
-    )
+    scope = _decode_scope(encoded_scope, session_globals, frame_bindings)
     source = _decode(encoded_source)
     module: dict[str, Any] = {
         "__name__": "__automation_node__",
@@ -352,12 +293,40 @@ def execute_node(
     if _retain_supported_frame(value, output_variable, session_globals):
         return {_RESULT_KIND_KEY: _RESULT_KIND_FRAME}
     result = _json_result(value, max_output_bytes)
-    if output_variable:
-        session_globals[output_variable] = result
+    _prepare_row_preview_frame(result, output_variable, session_globals)
     return {
         _RESULT_KIND_KEY: _RESULT_KIND_VALUE,
         _RESULT_VALUE_KEY: result,
     }
+
+
+def execute_trigger(
+    encoded_scope: str, encoded_source: str, max_output_bytes: int
+) -> dict[str, Any]:
+    """Execute trigger setup and return only public JSON-compatible globals."""
+    scope = _decode_scope(encoded_scope)
+    module: dict[str, Any] = {"__name__": "__automation_trigger__"}
+    exec(_decode(encoded_source), module)
+    run = module.get("run")
+    result = run(scope) if callable(run) else None
+    globals_result: dict[str, Any] = {}
+
+    for name, value in module.items():
+        if name.startswith("_") or callable(value):
+            continue
+        if _is_json_compatible(value):
+            globals_result[name] = value
+
+    if isinstance(result, dict):
+        for name, value in result.items():
+            if (
+                isinstance(name, str)
+                and not name.startswith("_")
+                and _is_json_compatible(value)
+            ):
+                globals_result[name] = value
+
+    return _json_result(globals_result, max_output_bytes)
 
 
 def _decode(value: str) -> str:
@@ -368,29 +337,16 @@ def _decode_scope(
     value: str,
     session_globals: dict[str, Any] | None = None,
     frame_bindings: dict[str, str] | None = None,
-    value_bindings: list[str] | None = None,
 ) -> AutomationScope:
-    """Decode scope and bind live Insight-owned values by output alias."""
+    """Decode scope and bind live Insight-owned frames by output alias.
+
+    Frame values follow the existing SEMOSS frame model: they are live mutable
+    objects, not per-node snapshots. In-place changes are therefore visible
+    through every alias bound to that object for the life of the run Insight.
+    """
     decoded = json.loads(_decode(value))
     if not isinstance(decoded, dict):
         raise ValueError("Automation scope must be a JSON object.")
-
-    # Ordinary JSON results stay in the run Insight so unchanged large values do
-    # not cross the Java-to-Python boundary for every later node. Retained values
-    # resolve lazily so a loop node that only reads its current item does not copy
-    # the complete upstream collection on every iteration.
-    retained_names = set(value_bindings or [])
-    frame_names = set((frame_bindings or {}).keys())
-    retained_values: dict[str, Any] = {}
-    for name in retained_names:
-        if name not in decoded:
-            continue
-        retained = (session_globals or {}).get(name, _MISSING)
-        if retained is _MISSING:
-            raise ValueError(
-                f"Automation retained scope value '{name}' is no longer available."
-            )
-        retained_values[name] = retained
     for name, backend in (frame_bindings or {}).items():
         if name not in decoded:
             continue
@@ -401,33 +357,7 @@ def _decode_scope(
                 "is no longer available."
             )
         decoded[name] = frame
-
-    # Retain each freshly transported JSON value before user code receives its
-    # isolated copy. Java sends an unchanged value only once, then names it in
-    # value_bindings on later calls. A changed loop-local value is transported
-    # again and replaces the prior retained binding under the same scope name.
-    if session_globals is not None:
-        for name, item in decoded.items():
-            if name not in retained_names and name not in frame_names:
-                session_globals[name] = copy.deepcopy(item)
-    return AutomationScope(decoded, retained_values)
-
-
-def _is_supported_dataframe(value: Any) -> bool:
-    value_type = type(value)
-    return value_type.__name__ == "DataFrame" and value_type.__module__.split(".", 1)[0] == "pandas"
-
-
-def _retain_supported_frame(
-    value: Any, output_variable: str, session_globals: dict[str, Any]
-) -> bool:
-    """Retain a supported pandas frame in the run Insight namespace."""
-    if not _is_supported_dataframe(value):
-        return False
-    if not output_variable:
-        raise ValueError("Automation frame output requires an output variable.")
-    session_globals[output_variable] = value
-    return True
+    return AutomationScope(decoded)
 
 
 def _is_json_compatible(value: Any) -> bool:
@@ -436,6 +366,42 @@ def _is_json_compatible(value: Any) -> bool:
         return True
     except (TypeError, ValueError):
         return False
+
+
+def _retain_supported_frame(
+    value: Any, output_variable: str, session_globals: dict[str, Any]
+) -> bool:
+    """Retain a supported Python frame in the run Insight's live namespace.
+
+    Pandas is the first supported adapter. Additional SEMOSS Python frame
+    backends can join this boundary without changing node scope or Java
+    orchestration contracts.
+    """
+    import pandas as pd
+
+    if not isinstance(value, pd.DataFrame):
+        return False
+    session_globals[output_variable] = value
+    return True
+
+
+def _prepare_row_preview_frame(
+    value: Any, output_variable: str, session_globals: dict[str, Any]
+) -> None:
+    """Retain row output where the standard SEMOSS Python-frame bridge expects it.
+
+    The JSON result remains the Automation value used by history and downstream
+    scope. The DataFrame is the run-Insight view used for paged UI inspection.
+    """
+    session_globals.pop(output_variable, None)
+    if not value or not isinstance(value, list):
+        return
+    if not all(isinstance(row, dict) for row in value):
+        return
+
+    import pandas as pd
+
+    session_globals[output_variable] = pd.DataFrame.from_records(value)
 
 
 def _json_result(value: Any, max_bytes: int) -> Any:

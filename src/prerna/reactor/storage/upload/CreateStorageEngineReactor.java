@@ -53,9 +53,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.AuditTargetType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -171,8 +168,6 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			}
 
 			ClusterUtil.pushEngine(storageId);
-			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.STORAGE_CREATE, AuditTargetType.STORAGE,
-					storageId, storageName, Map.of("global", global, "storageType", storageType.getStorageName()));
 		} catch (Exception e) {
 			classLogger.error("Failed to create storage engine name={} id={}, cleaning up what was written",
 					storageName, storageId, e);

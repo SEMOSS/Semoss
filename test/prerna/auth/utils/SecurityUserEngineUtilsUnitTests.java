@@ -33,13 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -49,14 +45,7 @@ import org.junit.jupiter.api.Test;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.access.ModelUsageLimit;
-import prerna.auth.access.ModelUsageLimitKey;
-import prerna.auth.access.ModelUsageLimitRule;
-import prerna.auth.access.ModelUsageLimitRule.Counts;
-import prerna.auth.access.ModelUsageLimitRule.Metric;
-import prerna.auth.access.ModelUsageLimitRule.Window;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class SecurityUserEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -197,8 +186,7 @@ public class SecurityUserEngineUtilsUnitTests extends AbstractSecurityUtilsUnitT
 
 	@Test
 	void testGetHighestEnginePermission_UserHigher() {
-		String highest = SecurityUserEngineUtils.getHighestEnginePermission("OWNER",
-				Arrays.asList("READ_ONLY", "EDIT"));
+		String highest = SecurityUserEngineUtils.getHighestEnginePermission("OWNER", Arrays.asList("READ_ONLY", "EDIT"));
 		assertEquals("OWNER", highest);
 	}
 
@@ -445,33 +433,6 @@ public class SecurityUserEngineUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		assertFalse(SecurityUserEngineUtils.checkUserHasAccessToEngine("eid1", user2Id));
 	}
 
-	@Test
-	void testCheckUserHasAccessToEngine_RemovesAnExpiredGrantAndItsLimit() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("eid1", "ename1", user);
-		User user2 = UnitTestSecurityAuthUtils.createUser("notadmin", false);
-		String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
-		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, user2Id, "eid1", "READ_ONLY");
-		ModelUsageLimitKey direct = ModelUsageLimitKey.direct("eid1", user2Id, null);
-		saveLimit(direct, ModelUsageLimit.unlimited());
-		// the grant ended yesterday
-		QueryExecutionUtility.write(securityDb, connection -> {
-			QueryExecutionUtility.executeUpdate(connection,
-					"UPDATE ENGINEPERMISSION SET ENDDATE = ? WHERE USERID = ? AND ENGINEID = ?", ps -> {
-						ps.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now(ZoneOffset.UTC).minusDays(1)));
-						ps.setString(2, user2Id);
-						ps.setString(3, "eid1");
-					});
-			return null;
-		});
-		assertTrue(SecurityUserEngineUtils.enginePermissionIsExpired(user2Id, "eid1"));
-
-		assertFalse(SecurityUserEngineUtils.checkUserHasAccessToEngine("eid1", user2Id));
-		// the expired grant is taken off the engine, and its usage limit with it
-		assertFalse(SecurityUserEngineUtils.enginePermissionIsExpired(user2Id, "eid1"));
-		assertNull(SecurityModelUsageLimitUtils.getLimit(direct));
-	}
-
 	///
 	/// getUserEnginePermissions
 	///
@@ -535,7 +496,8 @@ public class SecurityUserEngineUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		List<Map<String, Object>> users = SecurityUserEngineUtils.getDisplayEngineOwnersAndEditors("eid1");
 		assertNotNull(users);
 		// Should include owner and PUBLIC DATABASE entry
-		boolean hasPublicEntry = users.stream().anyMatch(m -> "PUBLIC DATABASE".equals(m.get("name")));
+		boolean hasPublicEntry = users.stream()
+				.anyMatch(m -> "PUBLIC DATABASE".equals(m.get("name")));
 		assertTrue(hasPublicEntry);
 	}
 
@@ -619,64 +581,5 @@ public class SecurityUserEngineUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		List<Map<String, Object>> users = SecurityUserEngineUtils.getEngineUsers("eid1", null, null, 10, 1);
 		assertNotNull(users);
 		assertEquals(2, users.size()); // 3 total, offset 1, so 2 remaining
-	}
-
-	@Test
-	void testGetEngineUsers_UsageLimits() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("eid1", "ename1", user);
-
-		User user2 = UnitTestSecurityAuthUtils.createUser("editor", false);
-		String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
-		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, user2Id, "eid1", "EDIT");
-
-		User user3 = UnitTestSecurityAuthUtils.createUser("reader", false);
-		String user3Id = user3.getAccessToken(AuthProvider.NATIVE).getId();
-		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, user3Id, "eid1", "READ_ONLY");
-
-		User user4 = UnitTestSecurityAuthUtils.createUser("compute", false);
-		String user4Id = user4.getAccessToken(AuthProvider.NATIVE).getId();
-		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, user4Id, "eid1", "READ_ONLY");
-
-		// one token rule, two token rules, and a compute time rule
-		saveLimit(ModelUsageLimitKey.direct("eid1", user2Id, null), ModelUsageLimit
-				.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, 5000L, Window.WEEK, Counts.EACH_PERSON))));
-		saveLimit(ModelUsageLimitKey.direct("eid1", user3Id, null),
-				ModelUsageLimit
-						.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, 1000L, Window.MINUTE, Counts.EACH_PERSON),
-								new ModelUsageLimitRule(Metric.TOKENS, 50000L, Window.DAY, Counts.EACH_PERSON))));
-		saveLimit(ModelUsageLimitKey.direct("eid1", user4Id, null), ModelUsageLimit
-				.of(List.of(new ModelUsageLimitRule(Metric.COMPUTE_TIME, 1500L, Window.MONTH, Counts.EACH_PERSON))));
-
-		Map<String, Map<String, Object>> byId = new HashMap<>();
-		for (Map<String, Object> row : SecurityUserEngineUtils.getEngineUsers("eid1", null, null, -1, -1)) {
-			byId.put((String) row.get("id"), row);
-		}
-		assertEquals(4, byId.size());
-
-		ModelUsageLimit editor = (ModelUsageLimit) byId.get(user2Id).get("usage_limit");
-		assertEquals(1, editor.getRules().size());
-		assertEquals(Metric.TOKENS, editor.getRules().get(0).getMetric());
-		assertEquals(5000L, editor.getRules().get(0).getAmount());
-		assertEquals(Window.WEEK, editor.getRules().get(0).getWindow());
-
-		assertEquals(2, ((ModelUsageLimit) byId.get(user3Id).get("usage_limit")).getRules().size());
-
-		ModelUsageLimit compute = (ModelUsageLimit) byId.get(user4Id).get("usage_limit");
-		assertEquals(Metric.COMPUTE_TIME, compute.getRules().get(0).getMetric());
-		assertEquals(1500L, compute.getRules().get(0).getAmount());
-		assertEquals(Window.MONTH, compute.getRules().get(0).getWindow());
-
-		// no limit defined
-		Map<String, Object> owner = byId.get("adminid");
-		assertTrue(owner.containsKey("usage_limit"));
-		assertNull(owner.get("usage_limit"));
-	}
-
-	private static void saveLimit(ModelUsageLimitKey key, ModelUsageLimit limit) throws Exception {
-		QueryExecutionUtility.write(SystemEngineRegistry.getSecurityDb(), connection -> {
-			SecurityModelUsageLimitUtils.setLimit(connection, key, limit, null);
-			return null;
-		});
 	}
 }

@@ -90,21 +90,10 @@ package prerna.logging;
  *                            ({@code NUMBER_OF_TOKENS_IN_PROMPT}).
  * @param responseTokens      Response/output tokens for this row
  *                            ({@code NUMBER_OF_TOKENS_IN_RESPONSE}).
- * @param billedSourceType    The usage limit source a model call was billed to
- *                            ({@code BILLED_SOURCE_TYPE}): {@code USER},
- *                            {@code TEAM}, {@code PUBLIC}, {@code ALL_MODELS}
- *                            or {@code PLATFORM}, or {@code null} when no limit
- *                            was billed or the row was logged before calls
- *                            recorded it.
- * @param billedSubjectId     The person's login id or the team billed
- *                            ({@code BILLED_SUBJECT_ID}), or {@code null}.
- * @param billedSubjectType   The matching login type or team type
- *                            ({@code BILLED_SUBJECT_TYPE}), or {@code null}.
  */
 public record LogActivityRecord(String requestId, String startTime, String endTime, String request, String response,
 		int tokens, long latency, boolean status, String engineName, String engineType, String methodName,
 		String userName, String userId, String sessionId, String spanId, String logTimestamp, String guardrailAction,
-		int cacheReadTokens, int cacheCreationTokens, int promptTokens, int responseTokens, String billedSourceType,
-		String billedSubjectId, String billedSubjectType) {
+		int cacheReadTokens, int cacheCreationTokens, int promptTokens, int responseTokens) {
 
 }

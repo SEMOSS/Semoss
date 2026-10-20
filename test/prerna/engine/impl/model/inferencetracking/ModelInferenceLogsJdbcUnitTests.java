@@ -38,7 +38,6 @@ import static org.mockito.Mockito.verify;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -132,23 +131,6 @@ class ModelInferenceLogsJdbcUnitTests {
 			db.connection.rollback();
 			assertEquals(7, db.value("SELECT MESSAGE_TOKENS FROM MESSAGE WHERE TRANSACTION_ID='batch.custom'"));
 			verify(db.connection, atLeast(4)).rollback();
-		}
-	}
-
-	@Test
-	void recordedBatchResultsAreOnlyTheBatchResponseRows() throws Exception {
-		try (var db = new JdbcTestDatabase()) {
-			db.execute(
-					"CREATE TABLE MESSAGE (TRANSACTION_ID VARCHAR, MESSAGE_METHOD VARCHAR, ROOM_ID VARCHAR, MESSAGE_TYPE VARCHAR)",
-					// the batch's recorded result
-					"INSERT INTO MESSAGE VALUES ('b.r1', 'batch', 'mb_b', 'RESPONSE')",
-					// its submit-time input, with no result yet
-					"INSERT INTO MESSAGE VALUES ('b.r2', 'batch', 'mb_b', 'INPUT')",
-					// another batch's result
-					"INSERT INTO MESSAGE VALUES ('c.r1', 'batch', 'mb_c', 'RESPONSE')");
-
-			assertEquals(Set.of("b.r1"), ModelInferenceLogsUtils.getRecordedBatchResults("b"));
-			assertEquals(Set.of(), ModelInferenceLogsUtils.getRecordedBatchResults("missing"));
 		}
 	}
 

@@ -27,21 +27,15 @@
  *******************************************************************************/
 package prerna.reactor.automation.run;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IRawSelectWrapper;
+import prerna.ds.py.PyTranslator;
 import prerna.om.Insight;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.reactor.frame.py.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.om.NounStore;
@@ -51,12 +45,15 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Owns Automation's reference to an Insight-owned SEMOSS frame.
+ * Owns the boundary between an Automation node result and an Insight-owned
+ * SEMOSS frame.
  *
  * <p>
- * The frame remains the live node-to-node value. Java carries this bounded
- * reference, Python binds the existing frame variable, and consumers page only
- * the rows they need. Full table rows are never copied into Automation scope.
+ * Query execution and Python execution remain with their existing owners. This
+ * class only performs the shared frame concerns: registering the frame under the
+ * node output alias, deriving a bounded summary from the registered frame,
+ * resolving a live backend for downstream scope, and cleaning a failed Python
+ * value. The execution Insight remains the sole owner of frame lifetime.
  */
 final class AutomationFrameOutput {
 
@@ -65,7 +62,7 @@ final class AutomationFrameOutput {
 	private AutomationFrameOutput() {
 	}
 
-	/** Registers an existing frame under the node output alias. */
+	/** Registers an existing frame and returns its backend identity and summary. */
 	static RegisteredFrame register(Insight insight, String outputVariable, ITableDataFrame frame) {
 		if (insight == null || frame == null || outputVariable == null || outputVariable.isBlank()) {
 			throw new IllegalArgumentException("Automation frame registration requires an Insight, frame, and alias.");
@@ -77,7 +74,10 @@ final class AutomationFrameOutput {
 		return output;
 	}
 
-	/** Registers a returned pandas variable through the standard SEMOSS bridge. */
+	/**
+	 * Registers a Python variable through the same bridge used by Notebook and
+	 * returns the registered frame's actual shape and backend.
+	 */
 	static RegisteredFrame registerPythonVariable(Insight insight, String outputVariable) {
 		if (insight == null || outputVariable == null || outputVariable.isBlank()) {
 			throw new IllegalArgumentException("Automation Python frame registration requires an Insight and alias.");
@@ -110,17 +110,6 @@ final class AutomationFrameOutput {
 		}
 	}
 
-	private static RegisteredFrame describe(String outputVariable, ITableDataFrame frame) {
-		long rowCount = frame.size(outputVariable);
-		String[] selectors = frame.getQsHeaders();
-		Map<String, Object> summary = new LinkedHashMap<>();
-		summary.put("dataType", "table");
-		summary.put("rowCount", rowCount);
-		summary.put("columnCount", selectors.length);
-		return new RegisteredFrame(outputVariable, frame, Map.copyOf(summary),
-				frame.getFrameType().getTypeAsString());
-	}
-
 	private static void removeFailedRegistration(Insight insight, String outputVariable, ITableDataFrame frame) {
 		NounMetadata registered = insight.getVarStore().get(outputVariable);
 		if (registered != null && registered.getValue() == frame) {
@@ -135,90 +124,37 @@ final class AutomationFrameOutput {
 		}
 	}
 
-	/** Live, internal frame reference carried by Automation scope. */
-	record RegisteredFrame(String outputVariable, ITableDataFrame frame, Map<String, Object> summary, String backend) {
-
-		long rowCount() {
-			return ((Number) summary.get("rowCount")).longValue();
+	/** Returns the backend for a frame registered under an output alias. */
+	static String requireBackend(Insight insight, String outputVariable) {
+		NounMetadata noun = insight.getVarStore().get(outputVariable);
+		if (noun == null || noun.getNounType() != PixelDataType.FRAME
+				|| !(noun.getValue() instanceof ITableDataFrame frame)) {
+			throw new IllegalStateException("Automation frame output '" + outputVariable
+					+ "' was not registered in execution Insight '" + insight.getInsightId() + "'.");
 		}
+		return frame.getFrameType().getTypeAsString();
+	}
 
-		List<Map<String, Object>> columns() {
-			String[] selectors = frame.getQsHeaders();
-			String[] headers = frame.getColumnHeaders();
-			List<Map<String, Object>> columns = new ArrayList<>(selectors.length);
-			for (int index = 0; index < selectors.length; index++) {
-				Map<String, Object> column = new LinkedHashMap<>();
-				column.put("name", index < headers.length ? headers[index] : selectors[index]);
-				column.put("type", frame.getMetaData().getHeaderTypeAsString(selectors[index]));
-				columns.add(column);
-			}
-			return columns;
+	/** Removes a failed or unsupported frame value from the Insight Python session. */
+	static void discardPythonValue(PyTranslator translator, String outputVariable, String runId, String nodeId) {
+		try {
+			translator.runScript("globals().pop(" + AutomationRuntimeUtils.GSON.toJson(outputVariable) + ", None)");
+		} catch (RuntimeException cleanupError) {
+			classLogger.warn("Unable to discard Python frame output '{}' for Automation run '{}', node '{}'",
+					outputVariable, runId, nodeId, cleanupError);
 		}
+	}
 
-		List<Object> page(long offset, int limit) {
-			if (offset < 0 || limit < 0 || offset > rowCount() || limit > rowCount() - offset) {
-				throw new IllegalArgumentException("Frame page is outside the live row range.");
-			}
-			if (limit == 0) {
-				return List.of();
-			}
-			SelectQueryStruct query = new SelectQueryStruct();
-			for (String selector : frame.getQsHeaders()) {
-				query.addSelector(new QueryColumnSelector(selector));
-			}
-			query.setDistinct(false);
-			query.setOffSet(offset);
-			query.setLimit(limit);
-			String[] selectors = frame.getQsHeaders();
-			String[] visibleHeaders = frame.getColumnHeaders();
-			List<Object> rows = new ArrayList<>(limit);
-			try (IRawSelectWrapper wrapper = frame.query(query)) {
-				while (wrapper.hasNext()) {
-					IHeadersDataRow row = wrapper.next();
-					Object[] values = row.getValues();
-					if (values.length != selectors.length) {
-						throw new IllegalStateException(
-								"Automation frame '" + outputVariable + "' returned an inconsistent row schema.");
-					}
-					Map<String, Object> item = new LinkedHashMap<>();
-					for (int index = 0; index < selectors.length; index++) {
-						String header = visibleHeaders != null && index < visibleHeaders.length
-								? visibleHeaders[index]
-								: selectors[index];
-						item.put(header, values[index]);
-					}
-					rows.add(item);
-				}
-			} catch (IOException e) {
-				classLogger.error("Unable to close Automation frame '{}' after reading rows", outputVariable, e);
-				throw new IllegalStateException("Unable to finish reading Automation frame '" + outputVariable + "'.", e);
-			} catch (RuntimeException e) {
-				throw e;
-			} catch (Exception e) {
-				classLogger.error("Unable to read Automation frame '{}'", outputVariable, e);
-				throw new IllegalStateException("Unable to read Automation frame '" + outputVariable + "'.", e);
-			}
-			if (rows.size() != limit) {
-				throw new IllegalStateException("Automation frame '" + outputVariable + "' changed while it was read.");
-			}
-			return rows;
-		}
+	private static RegisteredFrame describe(String outputVariable, ITableDataFrame frame) {
+		long rowCount = frame.size(outputVariable);
+		int columnCount = frame.getColumnHeaders().length;
+		Map<String, Object> summary = new LinkedHashMap<>();
+		summary.put("dataType", "table");
+		summary.put("rowCount", rowCount);
+		summary.put("columnCount", columnCount);
+		return new RegisteredFrame(summary, frame.getFrameType().getTypeAsString());
+	}
 
-		String promptJson() {
-			StringBuilder json = new StringBuilder("[");
-			boolean first = true;
-			for (long offset = 0; offset < rowCount();) {
-				int pageSize = Math.toIntExact(Math.min(1000, rowCount() - offset));
-				for (Object row : page(offset, pageSize)) {
-					if (!first) {
-						json.append(',');
-					}
-					json.append(AutomationRuntimeUtils.toRuntimeJson(row));
-					first = false;
-				}
-				offset += pageSize;
-			}
-			return json.append(']').toString();
-		}
+	record RegisteredFrame(Map<String, Object> summary, String backend) {
 	}
 }

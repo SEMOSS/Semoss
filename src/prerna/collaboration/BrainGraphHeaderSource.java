@@ -54,14 +54,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 
 	private static final String BASE = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0";
 	private static final String SELECT = "id,internetMessageId,conversationId,subject,from,toRecipients,ccRecipients,"
-			+ "receivedDateTime,parentFolderId,sender,inferenceClassification,categories,flag,importance,hasAttachments,"
-			+ "isDraft,lastModifiedDateTime";
-	// system folders by Graph's well-known name; the rest are the owner's own
-	static final List<String> WELL_KNOWN = List.of("inbox", "sentitems", "archive", "deleteditems", "junkemail",
-			"drafts", "outbox", "conversationhistory", "scheduled", "syncissues", "clutter");
-	// a mailbox with more folders than this is read to here
-	private static final int MAX_FOLDERS = 2000;
-	private static final int FOLDER_PAGE = 250;
+			+ "receivedDateTime,parentFolderId,sender,inferenceClassification";
 	// Graph allows up to 1000 messages a page; headers only, so a page stays small
 	private static final int PAGE = 500;
 	private static final int BATCH = 20;
@@ -124,68 +117,11 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		return get(user, BASE + "/me/messages/" + encode(messageId) + "?$select=" + SELECT + ",internetMessageHeaders");
 	}
 
-	@Override
-	public List<Map<String, Object>> folders(User user) throws Exception {
-		String token = MicrosoftLoginUtils.getValidAccessToken(user);
-		// the system folders' ids in one call; a mailbox without one (no Archive) answers 404 for it
-		List<Map<String, Object>> requests = new ArrayList<>();
-		for (int i = 0; i < WELL_KNOWN.size(); i++) {
-			requests.add(Map.of("id", String.valueOf(i), "method", "GET", "url",
-					"/me/mailFolders/" + WELL_KNOWN.get(i) + "?$select=id"));
-		}
-		Map<String, String> wellKnown = new java.util.HashMap<>();
-		Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
-				BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
-				CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null, null,
-				null));
-		for (Object r : reply.get("responses") instanceof List<?> list ? list : List.of()) {
-			if (r instanceof Map<?, ?> response && response.get("body") instanceof Map<?, ?> body
-					&& body.get("id") instanceof String id && response.get("status") instanceof Number status
-					&& status.intValue() == 200) {
-				wellKnown.put(id, WELL_KNOWN.get(Integer.parseInt(String.valueOf(response.get("id")))));
-			}
-		}
-		// breadth first from the top, every page of every level
-		List<Map<String, Object>> out = new ArrayList<>();
-		java.util.Deque<String> pending = new java.util.ArrayDeque<>();
-		pending.add(BASE + "/me/mailFolders?$top=" + FOLDER_PAGE
-				+ "&$select=id,parentFolderId,displayName,totalItemCount,childFolderCount");
-		while (!pending.isEmpty() && out.size() < MAX_FOLDERS) {
-			String url = pending.poll();
-			while (url != null && out.size() < MAX_FOLDERS) {
-				Map<String, Object> page = get(token, url);
-				for (Map<String, Object> folder : values(page)) {
-					Map<String, Object> row = new LinkedHashMap<>(folder);
-					row.put("wellKnownName", wellKnown.get(folder.get("id")));
-					out.add(row);
-					if (folder.get("childFolderCount") instanceof Number children && children.intValue() > 0) {
-						pending.add(BASE + "/me/mailFolders/" + encode(String.valueOf(folder.get("id")))
-								+ "/childFolders?$top=" + FOLDER_PAGE
-								+ "&$select=id,parentFolderId,displayName,totalItemCount,childFolderCount");
-					}
-				}
-				url = (String) page.get("@odata.nextLink");
-			}
-		}
-		return out;
-	}
-
-	@Override
-	public List<Map<String, Object>> allMail(User user, Instant since, int max, boolean changed) throws Exception {
-		String field = changed ? "lastModifiedDateTime" : "receivedDateTime";
-		return page(user, BASE + "/me/messages?$select=" + SELECT + ",internetMessageHeaders&$top=" + PAGE
-				+ "&$orderby=" + field + "%20desc&$filter=" + encode(field + " ge " + since), max);
-	}
-
-	private List<Map<String, Object>> list(User user, String folder, Instant since, int max, String fields) throws Exception {
-		return page(user, BASE + "/me/mailFolders/" + folder + "/messages?$select=" + fields + "&$top=" + PAGE
-				+ "&$orderby=receivedDateTime%20desc&$filter=" + encode("receivedDateTime ge " + since), max);
-	}
-
 	@SuppressWarnings("unchecked")
-	private static List<Map<String, Object>> page(User user, String first, int max) throws Exception {
+	private List<Map<String, Object>> list(User user, String folder, Instant since, int max, String fields) throws Exception {
 		List<Map<String, Object>> out = new ArrayList<>();
-		String url = first;
+		String url = BASE + "/me/mailFolders/" + folder + "/messages?$select=" + fields + "&$top=" + PAGE
+				+ "&$orderby=receivedDateTime%20desc&$filter=" + encode("receivedDateTime ge " + since);
 		while (url != null && out.size() < max) {
 			Map<String, Object> page = get(user, url);
 			if (page.get("value") instanceof List<?> values) {

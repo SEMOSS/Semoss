@@ -45,8 +45,6 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.SystemDefaultEngines;
 
 public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
@@ -65,16 +63,13 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 	}
 
 	/**
-	 * Presence-detects {@code reactorKey} (via {@link #getGenRowStruct(String)});
-	 * if present, stages it into {@code updates} under {@code jsonKey}. A
-	 * present-but-blank value stages a {@code null}, which
-	 * {@link AbstractWorkspaceReactor#mirrorCoreFieldsIntoConfigJson} reads as
-	 * "clear this field" (falls back to the run-time default/cap) rather than a
-	 * validation failure - mirrors the blank-clears-{@code modelId} convention
-	 * above.
+	 * Presence-detects {@code reactorKey} (via {@link #getGenRowStruct(String)}); if present,
+	 * stages it into {@code updates} under {@code jsonKey}. A present-but-blank value stages a
+	 * {@code null}, which {@link AbstractWorkspaceReactor#mirrorCoreFieldsIntoConfigJson} reads
+	 * as "clear this field" (falls back to the run-time default/cap) rather than a validation
+	 * failure - mirrors the blank-clears-{@code modelId} convention above.
 	 *
-	 * @throws IllegalArgumentException if a non-blank value isn't a parseable
-	 *                                  integer &gt;= minValue
+	 * @throws IllegalArgumentException if a non-blank value isn't a parseable integer &gt;= minValue
 	 */
 	private void stageIntUpdate(Map<String, Integer> updates, String reactorKey, String jsonKey, int minValue) {
 		if (getGenRowStruct(reactorKey) == null) {
@@ -144,8 +139,9 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 		Set<String> curDepList = SecurityProjectUtils.getProjectDependencies(workspaceId, false).stream()
 				.map(map -> (String) map.get("engine_id")).collect(Collectors.toSet());
-		Set<String> curSkillList = ModelInferenceLogsUtils.getWorkspaceResources(workspaceId, SKILL_RESOURCE_TYPE, null)
-				.stream().map(map -> map.get("resource_id")).collect(Collectors.toSet());
+		Set<String> curSkillList = ModelInferenceLogsUtils
+				.getWorkspaceResources(workspaceId, SKILL_RESOURCE_TYPE, null).stream()
+				.map(map -> (String) map.get("resource_id")).collect(Collectors.toSet());
 
 		Set<String> engines = new HashSet<>();
 		Set<String> projectDependencies = new HashSet<>();
@@ -227,8 +223,7 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 		// Dual-write CONFIG_JSON: mirror system_prompt + MCP engine/project refs +
 		// skill refs into WORKSPACE.CONFIG_JSON. Preserve any other CONFIG_JSON fields
-		// (e.g. hooks) the workspace already has. Best-effort - a failure here is
-		// logged
+		// (e.g. hooks) the workspace already has. Best-effort - a failure here is logged
 		// but does not fail the reactor, since the legacy SYSTEM_PROMPT column +
 		// WORKSPACE_RESOURCE rows already landed and AgentConfigLoader still resolves
 		// correctly from those.
@@ -248,9 +243,6 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			return new NounMetadata(partial, PixelDataType.MAP);
 		}
 
-		UserAuditTrailUtils.recordWorkspaceLifecycle(user, AuditEventType.WORKSPACE_UPDATE, workspaceId, workspaceName,
-				Map.of("isActive", isActive, "resourceCount", workspaceResources.size(), "dependencyCount",
-						dependencyList.size()));
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 

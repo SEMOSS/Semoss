@@ -54,7 +54,7 @@ import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry.Subscription;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 
 /**
- * New mail by Microsoft Graph webhook. Each owner's mail (every folder) is subscribed to with their Microsoft
+ * New mail by Microsoft Graph webhook. Each owner's Inbox and Sent Items are subscribed to with their Microsoft
  * login when they sync or import; a notification imports the new message through the same gate as a sync, so the
  * chats that include its thread see it on their next turn. Subscriptions are renewed here before they expire. A
  * server Graph cannot reach (localhost, a .local name) makes none, and chats pull their threads instead
@@ -64,11 +64,8 @@ public final class BrainMailWebhook {
 
 	private static final Logger classLogger = LogManager.getLogger(BrainMailWebhook.class);
 
-	// Collaboration's subscription: all of an owner's mail, so mail an Outlook rule files in a folder is heard too;
-	// the import drops drafts, Deleted Items and Junk
-	static final List<String> RESOURCES = List.of("me/messages");
-	// the Inbox and Sent Items subscriptions made before; still heard until the next subscribe stops them
-	private static final List<String> EARLIER = List.of("me/mailFolders('inbox')/messages",
+	// Collaboration's subscriptions: an owner's Inbox and Sent Items, the folders a sync reads
+	static final List<String> RESOURCES = List.of("me/mailFolders('inbox')/messages",
 			"me/mailFolders('sentitems')/messages");
 	private static final String CREATED = "created";
 	// Monolith's mail receiver (MicrosoftGraphSubscriptionService.MESSAGES_PATH)
@@ -89,7 +86,7 @@ public final class BrainMailWebhook {
 
 	/** Whether a Graph subscription is one of Collaboration's. */
 	public static boolean isMailResource(String resource) {
-		return resource != null && (RESOURCES.contains(resource) || EARLIER.contains(resource));
+		return resource != null && RESOURCES.contains(resource);
 	}
 
 	// ---- notifications ----
@@ -163,9 +160,9 @@ public final class BrainMailWebhook {
 	// ---- subscriptions ----
 
 	/**
-	 * Makes sure the owner's mail is subscribed to with their Microsoft login, renewing one close to expiring and
-	 * stopping the earlier Inbox and Sent Items ones. In the background; skipped without a Microsoft login, when
-	 * Graph cannot reach this server, and for an hour after a failed attempt.
+	 * Makes sure the owner's Inbox and Sent Items are subscribed to with their Microsoft login, renewing one close to
+	 * expiring. In the background; skipped without a Microsoft login, when Graph cannot reach this server, and for an
+	 * hour after a failed attempt.
 	 */
 	public static void ensureSubscribed(User user) {
 		AccessToken microsoft = user == null ? null : user.getAccessToken(AuthProvider.MICROSOFT);
@@ -200,7 +197,7 @@ public final class BrainMailWebhook {
 			}
 			boolean live = subscription.getExpiration() != null && subscription.getExpiration().isAfter(Instant.now());
 			if (live && notificationUrl.equals(subscription.getNotificationUrl())
-					&& RESOURCES.contains(subscription.getResource()) && !held.containsKey(subscription.getResource())) {
+					&& !held.containsKey(subscription.getResource())) {
 				held.put(subscription.getResource(), subscription);
 			} else {
 				stop(token, subscription);

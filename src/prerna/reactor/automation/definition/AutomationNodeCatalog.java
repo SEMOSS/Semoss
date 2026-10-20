@@ -94,16 +94,15 @@ public final class AutomationNodeCatalog {
 		List<AutomationNodeDefinition> definitions = new ArrayList<>();
 		definitions.add(definition(AutomationNodeType.TRIGGER_START, "Start",
 				"Begins this automation when it is triggered.", Map.of(),
-				List.of(field("globals", ConfigFieldType.GLOBALS, "Inputs", false, List.of())),
+				List.of(field("globals", ConfigFieldType.GLOBALS, "Inputs", false, List.of()),
+						field("pythonSource", ConfigFieldType.CODE, "Setup Python", false, "")),
 				List.of(), List.of(CONTROL_OUTPUT)));
 
 		definitions.add(definition(AutomationNodeType.DATABASE_QUERY, "Query database",
 				"Retrieve bounded rows with a database query.",
-				orderedConfig("engineId", "", "query", "", "parameters", List.of(), "limit",
-						AutomationConstants.DEFAULT_DB_QUERY_LIMIT),
+				orderedConfig("engineId", "", "query", "", "limit", AutomationConstants.DEFAULT_DB_QUERY_LIMIT),
 				List.of(engineField(IEngine.CATALOG_TYPE.DATABASE),
 						field("query", ConfigFieldType.CODE, "Query", true, ""),
-						field("parameters", ConfigFieldType.JSON, "Parameters", false, List.of()),
 						boundedIntegerField("limit", "Result limit", AutomationConstants.DEFAULT_DB_QUERY_LIMIT,
 								AutomationConstants.DB_QUERY_MIN_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT)),
 				controlInputs(), controlAndResultOutputs()));
@@ -192,7 +191,7 @@ public final class AutomationNodeCatalog {
 		definitions.add(
 				definition(AutomationNodeType.AGENT_RUN, "Run agent", "Run a configured SEMOSS agent with a prompt.",
 						orderedConfig("workspaceId", "", "engineId", "", "command", ""),
-						List.of(field("workspaceId", ConfigFieldType.STRING, "Agent", false, ""),
+						List.of(field("workspaceId", ConfigFieldType.STRING, "Agent", true, ""),
 								engineField(IEngine.CATALOG_TYPE.MODEL),
 								field("command", ConfigFieldType.TEXT, "Instruction", true, "")),
 						controlInputs(), controlAndResultOutputs()));

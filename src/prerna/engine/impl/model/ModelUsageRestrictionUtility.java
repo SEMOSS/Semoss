@@ -27,261 +27,326 @@
  *******************************************************************************/
 package prerna.engine.impl.model;
 
+import java.time.DayOfWeek;
+import java.time.Duration;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
-import com.google.gson.Gson;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.engine.api.IModelEngine;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
-import prerna.engine.impl.model.usage.ModelUsageGuard;
-import prerna.engine.impl.model.usage.ModelUsageReport;
-import prerna.engine.impl.model.usage.ModelUsageRequest;
-import prerna.engine.impl.model.usage.ModelUsageTicket;
-import prerna.util.ValueUtils;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
-/**
- * Where the model engines enter usage limit enforcement: admit a call before it
- * runs, pass its ceiling to the Python call, and bill it when it ends. The
- * rules live in {@link ModelUsageGuard}.
- *
- * <ol>
- * <li>{@link #admit}: refuses the call or reserves for it, and returns its
- * ticket.</li>
- * <li>{@link #withUsageCeiling}: adds the ticket's usage left to the call's
- * parameters as {@code usage_ceiling}, for an engine whose Python client fits
- * the call in it; a router model passes its own on, and the lesser of the two
- * is sent.</li>
- * <li>{@link #bill} or {@link #billEmbeddings} when the call ends, or
- * {@code ticket.release()} when it fails, then the call's usage goes on the
- * response.</li>
- * </ol>
- */
 public final class ModelUsageRestrictionUtility {
 
-	private static final Gson GSON = new Gson();
+	private static final Logger classLogger = LogManager.getLogger(ModelUsageRestrictionUtility.class);
 
-	private static final String[] MAX_TOKENS_PARAMS = { AbstractModelEngine.MAX_TOKENS, "max_completion_tokens",
-			"max_output_tokens", "max_new_tokens" };
-
-	private ModelUsageRestrictionUtility() {
-
-	}
-
-	/**
-	 * Admits a call under the usage limits that apply to the person calling,
-	 * through {@link ModelUsageGuard}: it reserves what the call may use, or
-	 * refuses it.
-	 *
-	 * @param user    the person calling, or null for a call SEMOSS makes itself
-	 * @param engine  the model
-	 * @param request what the call asks for
-	 * @return the call's ticket
-	 * @throws prerna.engine.impl.model.usage.ModelUsageLimitException when a limit
-	 *                                                                 refuses the
-	 *                                                                 call
-	 */
-	public static ModelUsageTicket admit(User user, IModelEngine engine, ModelUsageRequest request) {
-		ModelUsageTicket ticket = ModelUsageGuard.admit(user, engine, request);
-		return ticket == null ? ModelUsageTicket.none() : ticket;
-	}
+	// exception Message for throttle limit
+	public static final String USER_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for user level : You have used %d tokens, but the limit is %d";
+	public static final String USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for user level : You have reached %.2f seconds, but the limit is %.2f seconds.";
+	public static final String ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for engine level: You have used %d tokens, but the limit is %d";
+	public static final String ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for engine level : You have reached %.2f seconds, but the limit is %.2f seconds.";
 
 	/**
-	 * Takes the {@code usage_ceiling} a router model passes on out of the
-	 * parameters. It is taken out, rather than left in, so the engine sends one
-	 * ceiling: the lesser of the one passed on and its own.
-	 *
-	 * @param parameters the call's parameters, or null
-	 * @return the ceiling passed on, or null
+	 * 
+	 * @param user
+	 * @param engineId
+	 * @return
 	 */
-	public static Object takeUsageCeiling(Map<String, Object> parameters) {
-		return parameters == null ? null : parameters.remove(ModelUsageTicket.USAGE_CEILING);
-	}
+	public static Map<String, Object> getModelUsageRestriction(User user, String engineId) {
+		Map<String, Object> userRestrictionMap = new HashMap<>();
 
-	/**
-	 * Adds the call's ceiling to its parameters as {@code usage_ceiling}, for an
-	 * engine whose Python client fits the call's output in it.
-	 *
-	 * @param parameters the call's parameters, or null
-	 * @param ticket     the call's ticket
-	 * @param passedOn   a ceiling a router model passed on, or null
-	 * @return a copy of the parameters with {@code usage_ceiling}, the lesser of
-	 *         the ticket's and the one passed on; the parameters themselves when
-	 *         there is no ceiling
-	 */
-	public static Map<String, Object> withUsageCeiling(Map<String, Object> parameters, ModelUsageTicket ticket,
-			Object passedOn) {
-		Map<String, Object> ceiling = mergeCeilings(ticket == null ? null : ticket.pythonCeiling(),
-				ceilingMap(passedOn));
-		if (ceiling == null) {
-			return parameters;
-		}
-		// a copy, so the ceiling of one call never stays on parameters a caller
-		// reuses
-		Map<String, Object> withCeiling = parameters == null ? new HashMap<>() : new HashMap<>(parameters);
-		withCeiling.put(ModelUsageTicket.USAGE_CEILING, ceiling);
-		return withCeiling;
-	}
+		List<Map<String, Object>> engineUserPermission = SecurityEngineUtils.getEngineUsagePermissionMap(user,
+				engineId);
+		if (engineUserPermission != null && !engineUserPermission.isEmpty()) {
+			// there should only 1 row in this object
+			Map<String, Object> engineUserPermissionMap = engineUserPermission.get(0);
+			// lets see if any restriction is applied
 
-	/**
-	 * Combines this model's ceiling with one a router model passed on, so a routed
-	 * call fits within both. Each safety setting takes the stricter value.
-	 *
-	 * @param ours     this model's ceiling, or null
-	 * @param passedOn a router's ceiling, or null
-	 * @return the lesser of the two for tokens and for cost, with this model's
-	 *         rates, or null when neither has a ceiling
-	 */
-	static Map<String, Object> mergeCeilings(Map<String, Object> ours, Map<String, Object> passedOn) {
-		if (ours == null) {
-			return passedOn;
-		}
-		if (passedOn == null) {
-			return ours;
-		}
-		// the routed call must fit in what both the router and its own model have left,
-		// so each
-		// amount is the lesser and each safety setting the stricter
-		Map<String, Object> merged = new LinkedHashMap<>(ours);
-		merged.put("tokens", lesser(ours.get("tokens"), passedOn.get("tokens")));
-		Object cost = lesser(ours.get("cost_micros"), passedOn.get("cost_micros"));
-		merged.put("cost_micros", cost);
-		// this model's rates price its own call; the router's are used only when
-		// this model has no cost limit of its own
-		if (cost != null && merged.get("rates") == null) {
-			merged.put("rates", passedOn.get("rates"));
-		}
-		merged.put("min_output_tokens", greater(ours.get("min_output_tokens"), passedOn.get("min_output_tokens")));
-		merged.put("margin", greater(ours.get("margin"), passedOn.get("margin")));
-		return merged;
-	}
+			String userLvlModelUsageRestriction = (String) engineUserPermissionMap
+					.get(Constants.USER_USAGE_RESTRICTION_KEY);
+			String userLvlModelUsageFrequency = (String) engineUserPermissionMap
+					.get(Constants.USER_MODEL_USAGE_FREQUENCY_KEY);
+			Number userLvlModelUsageMaxTokens = (Number) engineUserPermissionMap
+					.get(Constants.USER_MODEL_MAX_TOKEN_KEY);
+			Number userLvlModelUsageMaxResponseTime = (Number) engineUserPermissionMap
+					.get(Constants.USER_MODEL_MAX_RESPONSE_TIME_KEY);
 
-	/**
-	 * Reads the {@code usage_ceiling} a router model passed on into a map.
-	 *
-	 * @return the ceiling passed on, as a map, whether it came as a map or as JSON
-	 *         text; null when there is none or it cannot be read
-	 */
-	@SuppressWarnings("unchecked")
-	private static Map<String, Object> ceilingMap(Object ceiling) {
-		if (ceiling instanceof Map) {
-			return (Map<String, Object>) ceiling;
-		}
-		if (ceiling instanceof String && !((String) ceiling).isBlank()) {
-			try {
-				return GSON.fromJson((String) ceiling, Map.class);
-			} catch (RuntimeException e) {
-				return null;
+			String engineLvlModelUsageRestriction = (String) engineUserPermissionMap
+					.get(Constants.ENGINE_USAGE_RESTRICTION_KEY);
+			String engineLvlModelUsageFrequency = (String) engineUserPermissionMap
+					.get(Constants.ENGINE_USAGE_FREQUENCY_KEY);
+			Number engineLvlModelUsageMaxTokens = (Number) engineUserPermissionMap.get(Constants.ENGINE_MAX_TOKEN_KEY);
+			Number engineLvlModelUsageMaxResponseTime = (Number) engineUserPermissionMap
+					.get(Constants.ENGINE_MAX_RESPONSE_TIME_KEY);
+
+			ZonedDateTime currentDateTime = Utility.getCurrentZonedDateTimeUTC();
+
+			Number currentUsage = null;
+			// engine specific restriction
+			if (engineLvlModelUsageRestriction != null && !engineLvlModelUsageRestriction.isEmpty()) {
+				if (!Utility.isModelInferenceLogsEnabled()) {
+					throw new IllegalArgumentException(
+							"Model restrictions have been enabled but not properly configured on the platform. Please reach out to a system administrator");
+				}
+
+				if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
+					currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
+							Constants.MODEL_TOKEN_RESTRICTION_VALUE, user, engineId, currentDateTime,
+							engineLvlModelUsageFrequency);
+
+					if (currentUsage.intValue() > engineLvlModelUsageMaxTokens.intValue()) {
+						throw new IllegalArgumentException(String.format(ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+								currentUsage.intValue(), engineLvlModelUsageMaxTokens.intValue()));
+					}
+
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
+							Constants.MODEL_TOKEN_RESTRICTION_VALUE);
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
+							currentUsage.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
+							engineLvlModelUsageMaxTokens.intValue());
+
+				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE
+						.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
+					currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
+							Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE, user, engineId, currentDateTime,
+							engineLvlModelUsageFrequency);
+
+					if (currentUsage.doubleValue() > engineLvlModelUsageMaxResponseTime.doubleValue()) {
+						throw new IllegalArgumentException(String.format(ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE,
+								currentUsage.doubleValue(), engineLvlModelUsageMaxResponseTime.doubleValue()));
+					}
+
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
+							Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE);
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
+							currentUsage.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
+							engineLvlModelUsageMaxResponseTime.intValue());
+
+				} else {
+					classLogger.warn("Unknown engine level model restriction type = '" + engineLvlModelUsageRestriction
+							+ "' for user = " + User.getSingleLogginName(user));
+				}
 			}
-		}
-		return null;
-	}
+			// user general restriction
+			else if (userLvlModelUsageRestriction != null && !userLvlModelUsageRestriction.isEmpty()) {
+				if (!Utility.isModelInferenceLogsEnabled()) {
+					throw new IllegalArgumentException(
+							"User model restrictions have been enabled but not properly configured on the platform. Please reach out to a system administrator");
+				}
 
-	private static Object lesser(Object a, Object b) {
-		if (!(a instanceof Number)) {
-			return b instanceof Number ? ((Number) b).longValue() : null;
-		}
-		if (!(b instanceof Number)) {
-			return ((Number) a).longValue();
-		}
-		return Math.min(((Number) a).longValue(), ((Number) b).longValue());
-	}
+				if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(userLvlModelUsageRestriction)) {
 
-	private static Object greater(Object a, Object b) {
-		if (!(a instanceof Number)) {
-			return b;
-		}
-		if (!(b instanceof Number)) {
-			return a;
-		}
-		return ((Number) a).doubleValue() >= ((Number) b).doubleValue() ? a : b;
-	}
+					currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(Constants.MODEL_TOKEN_RESTRICTION_VALUE,
+							user, engineId, currentDateTime, userLvlModelUsageFrequency);
 
-	/**
-	 * Bills a call that ended and puts its {@code usageRestriction} and
-	 * {@code usageLimits} on the response.
-	 *
-	 * @param ticket     the call's ticket, or null
-	 * @param response   the model's response, or null when it reported nothing
-	 * @param inputTime  when the call started
-	 * @param outputTime when it ended
-	 * @return the call's cost in millionths of a dollar, or null when the model has
-	 *         no known prices
-	 */
-	public static Long bill(ModelUsageTicket ticket, AbstractModelEngineResponse<?> response, ZonedDateTime inputTime,
-			ZonedDateTime outputTime) {
-		if (ticket == null) {
-			return null;
-		}
-		Long cost = ticket.bill(ModelUsageReport.of(response, inputTime, outputTime));
-		attach(ticket, response);
-		return cost;
-	}
+					if (currentUsage.intValue() > userLvlModelUsageMaxTokens.intValue()) {
+						throw new IllegalArgumentException(String.format(USER_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+								currentUsage.intValue(), userLvlModelUsageMaxTokens.intValue()));
+					}
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
+							Constants.MODEL_TOKEN_RESTRICTION_VALUE);
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
+							currentUsage.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
+							userLvlModelUsageMaxTokens.intValue());
 
-	/**
-	 * Bills an embeddings call that ended, priced per input token, and puts its
-	 * usage on the response.
-	 *
-	 * @param ticket     the call's ticket, or null
-	 * @param response   the model's response
-	 * @param inputTime  when the call started
-	 * @param outputTime when it ended
-	 * @return the call's cost in millionths of a dollar, or null when the model has
-	 *         no known prices
-	 */
-	public static Long billEmbeddings(ModelUsageTicket ticket, AbstractModelEngineResponse<?> response,
-			ZonedDateTime inputTime, ZonedDateTime outputTime) {
-		if (ticket == null) {
-			return null;
-		}
-		Long cost = ticket.bill(ModelUsageReport.of(response, inputTime, outputTime).asEmbeddings());
-		attach(ticket, response);
-		return cost;
-	}
+				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE
+						.equalsIgnoreCase(userLvlModelUsageRestriction)) {
 
-	/**
-	 * Puts a billed call's {@code usageRestriction} and {@code usageLimits} on its
-	 * response, when the ticket has them.
-	 *
-	 * @param ticket   a billed ticket
-	 * @param response the response to put its usage on, or null
-	 */
-	public static void attach(ModelUsageTicket ticket, AbstractModelEngineResponse<?> response) {
-		if (ticket == null || response == null) {
-			return;
-		}
-		Map<String, Object> restriction = ticket.responseUsageRestriction();
-		if (restriction != null) {
-			response.setUsageRestriction(restriction);
-		}
-		Map<String, Object> limits = ticket.responseUsageLimits(response.isUsageCapped());
-		if (limits != null) {
-			response.setUsageLimits(limits);
-		}
-	}
+					currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(
+							Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE, user, engineId, currentDateTime,
+							userLvlModelUsageFrequency);
 
-	/**
-	 * Reads the most output a call asks for from its parameters, which bounds the
-	 * estimate the call is reserved for.
-	 *
-	 * @param parameters      the call's parameters, or null
-	 * @param engineMaxTokens the model's maximum output tokens, or 0 when unknown
-	 * @return the most output the call asks for: the caller's maximum, under any of
-	 *         the names the Python clients accept, or else the model's; null when
-	 *         neither is known
-	 */
-	public static Long requestedMaxTokens(Map<String, Object> parameters, long engineMaxTokens) {
-		if (parameters != null) {
-			for (String key : MAX_TOKENS_PARAMS) {
-				Long value = ValueUtils.toPositiveLongOrNull(parameters.get(key));
-				if (value != null) {
-					return value;
+					if (currentUsage.doubleValue() > userLvlModelUsageMaxResponseTime.doubleValue()) {
+						throw new IllegalArgumentException(String.format(USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE,
+								currentUsage.doubleValue(), userLvlModelUsageMaxResponseTime.doubleValue()));
+					}
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
+							Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE);
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
+							currentUsage.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
+							userLvlModelUsageMaxResponseTime.intValue());
+
+				} else {
+					classLogger.warn("Unknown user level model restriction type = '" + userLvlModelUsageRestriction
+							+ "' for user = " + User.getSingleLogginName(user));
 				}
 			}
 		}
-		return engineMaxTokens > 0 ? engineMaxTokens : null;
+
+		return userRestrictionMap;
+	}
+
+	/**
+	 * 
+	 * @param userRestrictionMap
+	 * @param modelResponse
+	 * @param inputTime
+	 * @param outputTime
+	 */
+	public static void updateRestrictionMapCurrentUsage(Map<String, Object> userRestrictionMap,
+			AbstractModelEngineResponse<?> modelResponse, ZonedDateTime inputTime, ZonedDateTime outputTime) {
+		if (userRestrictionMap != null && !userRestrictionMap.isEmpty()) {
+			String restrictionMode = (String) userRestrictionMap
+					.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE);
+
+			if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(restrictionMode)) {
+				userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
+						// put in the new value of the current usage we calculated + the number of
+						// tokens we just created
+						((Number) userRestrictionMap.get(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE))
+								.intValue() + modelResponse.getNumberOfTokensInPrompt()
+								+ modelResponse.getNumberOfTokensInResponse());
+
+			} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equals(restrictionMode)) {
+
+				Duration duration = Duration.between(inputTime, outputTime);
+				long millisecondsDifference = duration.toMillis();
+				Double millisecondsDouble = (double) millisecondsDifference;
+
+				userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
+						// put in the new value of the current usage we calculated + the time for this
+						// new response
+						((Number) userRestrictionMap.get(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE))
+								.doubleValue() + millisecondsDouble);
+			}
+
+			// now add this to the model response
+			modelResponse.setUsageRestriction(userRestrictionMap);
+		}
+	}
+
+	/**
+	 * Parse a frequency string and return the appropriate date range. Supports
+	 * complex frequency specifications: - Simple: WEEK, MONTH, YEAR, ALL_TIME, DAY
+	 *
+	 * @param frequency       The frequency string
+	 * @param currentDateTime The current date/time
+	 * @return Map containing "start" and "end" ZonedDateTime values
+	 */
+	public static Map<String, ZonedDateTime> getDateRangeFromFrequency(String frequency,
+			ZonedDateTime currentDateTime) {
+		if (frequency == null || frequency.isEmpty()) {
+			// Default to daily
+			return getDayStartEndDate(currentDateTime);
+		}
+
+		String freq = frequency.toUpperCase().trim();
+
+		// Handle simple calendar-based cases
+		if (freq.equals("WEEK")) {
+			return getWeekStartEndDate(currentDateTime);
+		} else if (freq.equals("MONTH")) {
+			return getMonthStartEndDate(currentDateTime);
+		} else if (freq.equals("YEAR")) {
+			return getYearStartEndDate(currentDateTime);
+		} else if (freq.equals("ALL_TIME")) {
+			return getEpochStartEndDate(currentDateTime);
+		}
+
+		// Default to daily
+		return getDayStartEndDate(currentDateTime);
+	}
+
+	/**
+	 * 
+	 * @param utcDateTime
+	 * @return the map containing start and end of the week.
+	 */
+	private static Map<String, ZonedDateTime> getWeekStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> weekDates = new HashMap<>();
+
+		// Find the start of the week (Sunday)
+		ZonedDateTime start = utcDateTime;
+		while (start.getDayOfWeek() != DayOfWeek.SUNDAY) {
+			start = start.minusDays(1);
+		}
+
+		// Find the end of the week (Saturday)
+		ZonedDateTime end = utcDateTime;
+		while (end.getDayOfWeek() != DayOfWeek.SATURDAY) {
+			end = end.plusDays(1);
+		}
+		// Convert ZonedDateTime to LocalDateTime
+		weekDates.put("start", start.toLocalDate().atStartOfDay(utcDateTime.getZone()));
+		weekDates.put("end", end.toLocalDate().atTime(LocalTime.MAX).atZone(utcDateTime.getZone()));
+
+		return weekDates;
+	}
+
+	/**
+	 * 
+	 * @param utcDateTime
+	 * @return the map containing start and end of the month.
+	 */
+	private static Map<String, ZonedDateTime> getMonthStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		// Find the start of the month by setting the day to 1.
+		dates.put("start", utcDateTime.withDayOfMonth(1).toLocalDate().atStartOfDay(utcDateTime.getZone()));
+		// Find the end of the month by setting the day to the last day of the month.
+		dates.put("end", utcDateTime.withDayOfMonth(utcDateTime.toLocalDate().lengthOfMonth()).toLocalDate()
+				.atTime(LocalTime.MAX).atZone(utcDateTime.getZone()));
+
+		return dates;
+	}
+
+	/**
+	 *
+	 * @param utcDateTime
+	 * @return the map containing start and end of the year.
+	 */
+	private static Map<String, ZonedDateTime> getYearStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		// Find the start of the year by setting the day to January 1.
+		dates.put("start", utcDateTime.withDayOfYear(1).toLocalDate().atStartOfDay(utcDateTime.getZone()));
+		// Find the end of the year by setting the day to the last day of the year.
+		dates.put("end", utcDateTime.withDayOfYear(utcDateTime.toLocalDate().lengthOfYear()).toLocalDate()
+				.atTime(LocalTime.MAX).atZone(utcDateTime.getZone()));
+
+		return dates;
+	}
+
+	/**
+	 *
+	 * @param utcDateTime
+	 * @return the map containing start of epoch and current datetime.
+	 */
+	private static Map<String, ZonedDateTime> getEpochStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		dates.put("start", ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC));
+		dates.put("end", utcDateTime);
+		return dates;
+	}
+
+	/**
+	 * Get start and end of the current day in UTC.
+	 *
+	 * @param utcDateTime The current date/time
+	 * @return Map with start (00:00:00) and end (23:59:59.999999999) of the day
+	 */
+	private static Map<String, ZonedDateTime> getDayStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		ZonedDateTime startOfDay = utcDateTime.toLocalDate().atStartOfDay(ZoneOffset.UTC);
+		ZonedDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
+		dates.put("start", startOfDay);
+		dates.put("end", endOfDay);
+		return dates;
+	}
+
+	private ModelUsageRestrictionUtility() {
+
 	}
 }

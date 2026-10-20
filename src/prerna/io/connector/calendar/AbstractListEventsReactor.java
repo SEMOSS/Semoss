@@ -28,12 +28,8 @@
 package prerna.io.connector.calendar;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-
-import com.google.gson.Gson;
 
 import prerna.auth.User;
 import prerna.io.connector.ConnectorPage;
@@ -59,14 +55,6 @@ public abstract class AbstractListEventsReactor extends AbstractCalendarReactor 
 
 	/** The most a caller can ask for, so a pixel cannot pull a whole calendar. */
 	private static final int MAX_LIMIT = 100;
-
-	// a listing is many events at once; GetEvent reads one in full
-	private static final int LIST_MAX_BODY_CHARS = 1_500;
-	private static final int LIST_BODY_CHARS_CAP = 4_000;
-	private static final int LIST_MAX_ATTENDEES = 15;
-	// about 10k tokens; past it the page ends early and says where to continue
-	private static final int LIST_OUTPUT_BUDGET_CHARS = 40_000;
-	private static final Gson GSON = new Gson();
 
 	private static final String[] KEYS = { START, END, DAYS, TIME_ZONE, SUBJECT, LIMIT, OFFSET, INCLUDE_BODY,
 			MAX_BODY_CHARS, CALENDAR_ID, MAILBOX };
@@ -121,35 +109,17 @@ public abstract class AbstractListEventsReactor extends AbstractCalendarReactor 
 			ListEventsRequest request = new ListEventsRequest(readString(CALENDAR_ID), readString(MAILBOX), window[0],
 					window[1], readString(SUBJECT), readCount(LIMIT, DEFAULT_LIMIT, MAX_LIMIT), readOffset(),
 					includeBody);
-			int maxBodyChars = readCount(MAX_BODY_CHARS, LIST_MAX_BODY_CHARS, LIST_BODY_CHARS_CAP);
+			int maxBodyChars = readCount(MAX_BODY_CHARS, DEFAULT_MAX_BODY_CHARS, Integer.MAX_VALUE);
 
 			ConnectorPage<CalendarEvent> page = listEvents(this.insight.getUser(), request);
-
-			List<Map<String, Object>> events = new ArrayList<>();
-			int used = 0;
-			for (CalendarEvent event : page.items()) {
-				Map<String, Object> row = event.toListMap(includeBody, maxBodyChars, LIST_MAX_ATTENDEES);
-				int size = GSON.toJson(row).length();
-				// always keep the first, so a page never comes back empty
-				if (!events.isEmpty() && used + size > LIST_OUTPUT_BUDGET_CHARS) {
-					break;
-				}
-				events.add(row);
-				used += size;
-			}
-			boolean truncated = events.size() < page.items().size();
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put(START, ConnectorTimes.format(request.start()));
 			output.put(END, ConnectorTimes.format(request.end()));
 			output.put(OFFSET, request.offset());
-			output.put("count", events.size());
-			output.put("hasMore", page.hasMore() || truncated);
-			if (truncated) {
-				output.put("truncated", true);
-				output.put("nextOffset", request.offset() + events.size());
-			}
-			output.put("events", events);
+			output.put("count", page.items().size());
+			output.put("hasMore", page.hasMore());
+			output.put("events", page.items().stream().map(event -> event.toMap(includeBody, maxBodyChars)).toList());
 			return output;
 		});
 	}
@@ -167,10 +137,7 @@ public abstract class AbstractListEventsReactor extends AbstractCalendarReactor 
 	@Override
 	protected final String describe() {
 		return "Read the events on a " + calendar()
-				+ ", the signed in user's own or one shared or delegated to them, earliest first, a page at a time. "
-				+ "List first, then read the few events you need in full with GetEvent. A listing shows at most "
-				+ LIST_MAX_ATTENDEES + " attendees per event and short bodies; a large page ends early with "
-				+ "truncated and nextOffset to continue from.";
+				+ ", the signed in user's own or one shared or delegated to them, earliest first, a page at a time.";
 	}
 
 	@Override
@@ -187,13 +154,9 @@ public abstract class AbstractListEventsReactor extends AbstractCalendarReactor 
 		case LIMIT:
 			return "Optional number of events to return. Defaults to " + DEFAULT_LIMIT + " and is capped at "
 					+ MAX_LIMIT + ".";
-		case MAX_BODY_CHARS:
-			return "Optional longest body per event, up to " + LIST_BODY_CHARS_CAP + ". Defaults to "
-					+ LIST_MAX_BODY_CHARS + ".";
 		case INCLUDE_BODY:
-			return "Optional boolean for whether each event's body comes back, cut to " + LIST_MAX_BODY_CHARS
-					+ " characters without the Teams join text. Defaults to false, since a listing is usually about "
-					+ "when rather than what; use GetEvent for a full body.";
+			return "Optional boolean for whether each event's body comes back. Defaults to false, since a listing "
+					+ "is usually about when rather than what.";
 		default:
 			return super.describeKey(key);
 		}
