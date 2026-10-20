@@ -840,8 +840,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occurred updating the project display name");
 		}
 
-		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_UPDATE, projectId, newDisplayName,
-				Map.of("field", "displayName", "displayName", newDisplayName));
+		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_DISPLAY_NAME_UPDATE, projectId,
+				newDisplayName, Map.of("field", "displayName", "displayName", newDisplayName));
 		return true;
 	}
 
@@ -1564,7 +1564,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.setBoolean(1, global);
 				ps.setString(2, projectId);
 			});
-			UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_UPDATE, projectId, null,
+			UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_GLOBAL_UPDATE, projectId, null,
 					Map.of("field", "global", "global", global));
 		} catch (Exception e) {
 			classLogger.error("Failed to update project global visibility setting", e);
@@ -1588,7 +1588,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					"The user doesn't have permission to set this project as a template. Only the owner or an admin can perform this action.");
 		}
 		boolean updated = setProjectTemplate(projectId, isTemplate);
-		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_UPDATE, projectId, null,
+		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_TEMPLATE_UPDATE, projectId, null,
 				Map.of("field", "template", "template", isTemplate));
 		return updated;
 	}
@@ -1690,8 +1690,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						ps.setBoolean(1, discoverable);
 						ps.setString(2, projectId);
 					});
-			UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_UPDATE, projectId, null,
-					Map.of("field", "discoverable", "discoverable", discoverable));
+			UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_DISCOVERABLE_UPDATE, projectId,
+					null, Map.of("field", "discoverable", "discoverable", discoverable));
 		} catch (Exception e) {
 			classLogger.error("Failed to update project discoverability setting", e);
 		}
@@ -1727,7 +1727,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update project name", e);
 			throw new IllegalArgumentException("An error occurred updating the project name");
 		}
-		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_UPDATE, projectId, newProjectName,
+		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_RENAME, projectId, newProjectName,
 				Map.of("field", "name", "name", newProjectName));
 		return true;
 	}

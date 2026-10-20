@@ -118,17 +118,16 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		return new UserAuditTrailUtils.AuditEvent().eventType(eventType).actorUser(actor).actorIsAdmin(true);
 	}
 
-	private static void auditEngineUpdate(String engineId, Map<String, Object> details) {
-		UserAuditTrailUtils.recordEvent(adminAudit(null, AuditEventType.ENGINE_UPDATE)
+	private static void auditEngineChange(AuditEventType eventType, String engineId, Map<String, Object> details) {
+		UserAuditTrailUtils.recordEvent(adminAudit(null, eventType)
 				.target(SecurityEngineUtils.getAuditTargetType(engineId), engineId,
 						SecurityEngineUtils.getEngineDisplayNameForId(engineId))
 				.context(null, engineId, null, null).details(details));
 	}
 
-	private static void auditProjectUpdate(String projectId, Map<String, Object> details) {
-		UserAuditTrailUtils.recordEvent(
-				adminAudit(null, AuditEventType.PROJECT_UPDATE).target(AuditTargetType.PROJECT, projectId, null)
-						.context(projectId, null, null, null).details(details));
+	private static void auditProjectChange(AuditEventType eventType, String projectId, Map<String, Object> details) {
+		UserAuditTrailUtils.recordEvent(adminAudit(null, eventType).target(AuditTargetType.PROJECT, projectId, null)
+				.context(projectId, null, null, null).details(details));
 	}
 
 	private static void auditAccountLock(String action, int numDaysSinceLastLogin, int accountsUpdated) {
@@ -1970,7 +1969,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update engine global visibility setting", e);
 			throw new IllegalArgumentException("An error occurred setting the engine public");
 		}
-		auditEngineUpdate(engineId, Map.of("field", "global", "global", global));
+		auditEngineChange(AuditEventType.ENGINE_GLOBAL_UPDATE, engineId, Map.of("field", "global", "global", global));
 		return true;
 	}
 
@@ -1994,7 +1993,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update engine discoverability setting", e);
 			throw new IllegalArgumentException("An error occurred setting the engine discoverable flag");
 		}
-		auditEngineUpdate(engineId, Map.of("field", "discoverable", "discoverable", discoverable));
+		auditEngineChange(AuditEventType.ENGINE_DISCOVERABLE_UPDATE, engineId,
+				Map.of("field", "discoverable", "discoverable", discoverable));
 		return true;
 	}
 
@@ -2015,7 +2015,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update project global visibility setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project public");
 		}
-		auditProjectUpdate(projectId, Map.of("field", "global", "global", global));
+		auditProjectChange(AuditEventType.PROJECT_GLOBAL_UPDATE, projectId,
+				Map.of("field", "global", "global", global));
 		return true;
 	}
 
@@ -2049,7 +2050,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update project template setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project template flag", e);
 		}
-		auditProjectUpdate(projectId, Map.of("field", "template", "template", isTemplate));
+		auditProjectChange(AuditEventType.PROJECT_TEMPLATE_UPDATE, projectId,
+				Map.of("field", "template", "template", isTemplate));
 		return true;
 	}
 
@@ -2074,7 +2076,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update project discoverability setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project discoverable flag");
 		}
-		auditProjectUpdate(projectId, Map.of("field", "discoverable", "discoverable", discoverable));
+		auditProjectChange(AuditEventType.PROJECT_DISCOVERABLE_UPDATE, projectId,
+				Map.of("field", "discoverable", "discoverable", discoverable));
 		return true;
 	}
 

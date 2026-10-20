@@ -426,8 +426,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occurred updating the engine display name");
 		}
 
-		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
-				engineId, newDisplayName, Map.of("field", "displayName", "displayName", newDisplayName));
+		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_DISPLAY_NAME_UPDATE,
+				getAuditTargetType(engineId), engineId, newDisplayName,
+				Map.of("field", "displayName", "displayName", newDisplayName));
 		return true;
 	}
 
@@ -761,6 +762,33 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	public static boolean userCanViewEngine(User user, String engineId) {
 		return SecurityUserEngineUtils.userCanViewEngine(user, engineId)
 				|| SecurityGroupEngineUtils.userGroupCanViewEngine(user, engineId);
+	}
+
+	/**
+	 * The user's access level on the engine now, for a request that checks several
+	 * things against one reading of it. It is the highest level among the grants in
+	 * effect, given to the user directly or to a team they are in, as
+	 * {@link #userCanEditEngine} reads it, or read-only on a public engine they
+	 * have no grant on, as {@link #userCanViewEngine} allows. A grant that has
+	 * ended does not count, and is not removed.
+	 *
+	 * @param user     the user
+	 * @param engineId the engine
+	 * @return the level, or null when the user has no access to the engine
+	 */
+	public static AccessPermissionEnum getCurrentUserEngineLevel(User user, String engineId) {
+		if (user == null) {
+			return null;
+		}
+		Integer levelId = CurrentPermissionLevel.ofOrNull(user, PermissionTargetResource.engine(engineId));
+		if (levelId != null) {
+			for (AccessPermissionEnum level : AccessPermissionEnum.values()) {
+				if (level.getId() == levelId) {
+					return level;
+				}
+			}
+		}
+		return engineIsGlobal(engineId) ? AccessPermissionEnum.READ_ONLY : null;
 	}
 
 	/**
@@ -1196,12 +1224,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			SecurityModelUsageLimitUtils.markChanged();
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine global visibility setting", e);
-			UserAuditTrailUtils.recordFailure(user, AuditEventType.ENGINE_UPDATE, AuditTargetType.ENGINE, engineId,
-					new IllegalStateException("Unable to update engine global visibility"), null);
+			UserAuditTrailUtils.recordFailure(user, AuditEventType.ENGINE_GLOBAL_UPDATE, AuditTargetType.ENGINE,
+					engineId, new IllegalStateException("Unable to update engine global visibility"), null);
 			throw new IllegalStateException("Unable to update engine global visibility", e);
 		}
-		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
-				engineId, getEngineDisplayNameForId(engineId), Map.of("field", "global", "global", global));
+		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_GLOBAL_UPDATE,
+				getAuditTargetType(engineId), engineId, getEngineDisplayNameForId(engineId),
+				Map.of("field", "global", "global", global));
 		return true;
 	}
 
@@ -1264,12 +1293,12 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine discoverability setting", e);
-			UserAuditTrailUtils.recordFailure(user, AuditEventType.ENGINE_UPDATE, AuditTargetType.ENGINE, engineId,
-					new IllegalStateException("Unable to update engine discoverability"), null);
+			UserAuditTrailUtils.recordFailure(user, AuditEventType.ENGINE_DISCOVERABLE_UPDATE, AuditTargetType.ENGINE,
+					engineId, new IllegalStateException("Unable to update engine discoverability"), null);
 			throw new IllegalStateException("Unable to update engine discoverability", e);
 		}
-		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
-				engineId, getEngineDisplayNameForId(engineId),
+		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_DISCOVERABLE_UPDATE,
+				getAuditTargetType(engineId), engineId, getEngineDisplayNameForId(engineId),
 				Map.of("field", "discoverable", "discoverable", discoverable));
 		return true;
 	}
@@ -1292,8 +1321,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 		setUserPreference(user, "USERENGINEPREFERENCE", List.of(Pair.with("ENGINEID", engineId)), "VISIBILITY",
 				visibility);
-		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
-				engineId, getEngineDisplayNameForId(engineId), Map.of("field", "visibility", "visibility", visibility));
+		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_VISIBILITY_UPDATE,
+				getAuditTargetType(engineId), engineId, getEngineDisplayNameForId(engineId),
+				Map.of("field", "visibility", "visibility", visibility));
 	}
 
 	/**
@@ -1346,7 +1376,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update engine name", e);
 			throw new IllegalArgumentException("An error occurred updating the engine name");
 		}
-		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_UPDATE, getAuditTargetType(engineId),
+		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_RENAME, getAuditTargetType(engineId),
 				engineId, newEngineName, Map.of("field", "name", "name", newEngineName));
 		return true;
 	}

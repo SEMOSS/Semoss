@@ -664,6 +664,24 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		}
 	}
 
+	/**
+	 * Wraps a result set someone else owns, so its rows convert as an engine
+	 * query's do, dates in the database's time zone included. Closing the wrapper,
+	 * or reading past its last row, closes only the result set.
+	 *
+	 * @param rs             the result set
+	 * @param databaseZoneId the database's time zone, for its dates
+	 * @return the wrapper
+	 * @throws SQLException when the driver cannot describe the result set's columns
+	 */
+	public static RawRDBMSSelectWrapper wrapResultSet(ResultSet rs, ZoneId databaseZoneId) throws SQLException {
+		RawRDBMSSelectWrapper wrapper = new RawRDBMSSelectWrapper();
+		wrapper.rs = rs;
+		wrapper.databaseZoneId = databaseZoneId;
+		wrapper.readResultMetadata();
+		return wrapper;
+	}
+
 	@Override
 	public boolean flushable() {
 		return false;

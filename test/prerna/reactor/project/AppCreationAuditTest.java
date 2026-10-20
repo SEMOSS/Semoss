@@ -123,8 +123,10 @@ class AppCreationAuditTest {
 				audit.verifyNoInteractions();
 			} else {
 				reactor.execute();
-				audit.verify(() -> UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_UPDATE,
-						"project", null, Map.of("changedFields", List.of("description"))), times(1));
+				audit.verify(
+						() -> UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_METADATA_UPDATE,
+								"project", null, Map.of("changedFields", List.of("description"))),
+						times(1));
 				audit.verifyNoMoreInteractions();
 			}
 		}
@@ -178,8 +180,9 @@ class AppCreationAuditTest {
 				audit.verifyNoInteractions();
 			} else {
 				reactor.execute();
-				audit.verify(() -> UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_UPDATE,
-						"project", "Existing app", Map.of("changedFields", List.of("blocks", "dependencies"))),
+				audit.verify(
+						() -> UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_BLOCKS_UPDATE,
+								"project", "Existing app", Map.of("changedFields", List.of("blocks", "dependencies"))),
 						times(1));
 				audit.verifyNoMoreInteractions();
 			}
