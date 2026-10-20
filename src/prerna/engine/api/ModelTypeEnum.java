@@ -40,6 +40,7 @@ import prerna.engine.impl.model.NEREngine;
 import prerna.engine.impl.model.OpenAiEngine;
 import prerna.engine.impl.model.TextEmbeddingsEngine;
 import prerna.engine.impl.model.TextGenerationEngine;
+import prerna.engine.impl.model.TypeSafeEngine;
 import prerna.engine.impl.model.VertexEngine;
 import prerna.engine.impl.remotesemoss.RemoteModelEngine;
 
@@ -53,6 +54,7 @@ public enum ModelTypeEnum {
 	BEDROCK("BEDROCK", BedrockEngine.class.getName()),
 	OPEN_AI("OPEN_AI", OpenAiEngine.class.getName()),
 	VERTEX("VERTEX", VertexEngine.class.getName()),
+	TYPESAFE("TYPESAFE", TypeSafeEngine.class.getName()),
 
 	// these are secondary
 	EMBEDDED("EMBEDDED", EmbeddedModelEngine.class.getName()),

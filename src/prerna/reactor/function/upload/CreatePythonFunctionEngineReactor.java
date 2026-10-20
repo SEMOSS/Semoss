@@ -58,6 +58,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -153,6 +156,8 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 			}
 
 			ClusterUtil.pushEngine(functionId);
+			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.FUNCTION_CREATE, AuditTargetType.FUNCTION,
+					functionId, functionName, Map.of("functionType", functionType.getFunctionName()));
 		} catch (Exception e) {
 			classLogger.error("Unable to create Python function engine '{}' ({})", functionName, functionId, e);
 			UploadUtilities.cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineFolder);

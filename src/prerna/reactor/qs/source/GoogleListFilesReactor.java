@@ -29,30 +29,27 @@ package prerna.reactor.qs.source;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.User;
+import prerna.io.connector.google.AbstractGoogleReactor;
 import prerna.om.RemoteItem;
-import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
-public class GoogleListFilesReactor extends AbstractReactor{
-
+public class GoogleListFilesReactor extends AbstractGoogleReactor {
 
 	public GoogleListFilesReactor() {
 		this.keysToGet = new String[] {};
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
+		String accessToken = requireLogin(AuthProvider.GOOGLE).getAccess_token();
 		List<Map<String, Object>> masterList = new ArrayList<Map<String, Object>>();
 
 		// possible properties that can be passed
@@ -65,30 +62,8 @@ public class GoogleListFilesReactor extends AbstractReactor{
 		// spreadsheet -application/vnd.google-apps.spreadsheet
 		// mimeType="text/csv" or mimeType="application/vnd.google-apps.spreadsheet"
 
-		//get access token
-		String accessToken = null;
-		User user = this.insight.getUser();
-		try{
-			if(user==null){
-				Map<String, Object> retMap = new HashMap<String, Object>();
-				retMap.put("type", "google");
-				retMap.put("message", "Please login to your Google account");
-				throwLoginError(retMap);
-			}
-			else if (user != null) {
-				AccessToken googleToken = user.getAccessToken(AuthProvider.GOOGLE);
-				accessToken=googleToken.getAccess_token();
-			}
-		}
-		catch (Exception e) {
-			Map<String, Object> retMap = new HashMap<String, Object>();
-			retMap.put("type", "google");
-			retMap.put("message", "Please login to your Google account");
-			throwLoginError(retMap);
-		}
-
-		//text/csv call
-		Hashtable csvParams = new Hashtable();
+		// text/csv call
+		Map<String, Object> csvParams = new HashMap<>();
 		csvParams.put("access_token", accessToken);
 		csvParams.put("pageSize", "1000");
 		csvParams.put("q=mimeType", "'text/csv'");
@@ -96,7 +71,7 @@ public class GoogleListFilesReactor extends AbstractReactor{
 		gatherResults(accessToken, csvParams, masterList);
 
 		// spreadsheet call
-		Hashtable spreashseetParams = new Hashtable();
+		Map<String, Object> spreashseetParams = new HashMap<>();
 		spreashseetParams.put("access_token", accessToken);
 		spreashseetParams.put("pageSize", "1000");
 		spreashseetParams.put("q=mimeType", "'application/vnd.google-apps.spreadsheet'");
@@ -105,33 +80,34 @@ public class GoogleListFilesReactor extends AbstractReactor{
 
 		return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CLOUD_FILE_LIST);
 	}
-	
+
 	/**
-	 * This makes the call to the google api and populates the results into the master list
+	 * This makes the call to the google api and populates the results into the
+	 * master list
+	 *
 	 * @param accessToken
 	 * @param params
 	 * @param masterList
 	 */
-	private void gatherResults(String accessToken, Hashtable params, List<Map<String, Object>> masterList) {
+	private void gatherResults(String accessToken, Map<String, Object> params, List<Map<String, Object>> masterList) {
 		String url = "https://www.googleapis.com/drive/v3/files";
-		String [] beanProps = {"id", "name", "type"};
+		String[] beanProps = { "id", "name", "type" };
 		String jsonPattern = "files[].{id:id, name:name, type:mimeType}";
-		
+
 		String output = HttpHelperUtility.makeGetCall(url, accessToken, params, false);
-		
+
 		// loop through and aggregate results
 		Object C = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
-		if(C instanceof RemoteItem){
-			RemoteItem fileList2= (RemoteItem) C;
+		if (C instanceof RemoteItem) {
+			RemoteItem fileList2 = (RemoteItem) C;
 			Map<String, Object> tempMap = new HashMap<String, Object>();
 			tempMap.put("name", fileList2.getName());
 			tempMap.put("id", fileList2.getId());
 			tempMap.put("type", fileList2.getType());
 			masterList.add(tempMap);
-		}
-		else{
-			List <RemoteItem> fileList2 = (List<RemoteItem>) C;
-			for(RemoteItem entry : fileList2){
+		} else {
+			List<RemoteItem> fileList2 = (List<RemoteItem>) C;
+			for (RemoteItem entry : fileList2) {
 				Map<String, Object> tempMap = new HashMap<String, Object>();
 				tempMap.put("name", entry.getName());
 				tempMap.put("id", entry.getId());

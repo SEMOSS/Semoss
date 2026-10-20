@@ -42,16 +42,16 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.ModelServingProvider;
 import prerna.util.StaticBuiltinToolsCatalog;
 import prerna.util.StaticModelMetadataCatalog;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * Offer the provider-hosted built-in tools a model engine can use, resolved
@@ -70,12 +70,6 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 	 */
 	private static final Pattern QUALIFIER_PREFIX_PATTERN = Pattern.compile("^([a-z][a-z-]*)\\.(?=.)");
 
-	/**
-	 * The SMSS variable some engines use to name who actually hosts the model,
-	 * as in the Anthropic-on-Vertex engines. There is no shared constant for it.
-	 */
-	private static final String SMSS_PROVIDER = "PROVIDER";
-
 	static final String SERVING_PROVIDER_KEY = "servingProvider";
 	static final String MODEL_PROVIDER_KEY = "modelProvider";
 	static final String MODEL_ID_KEY = "modelId";
@@ -89,10 +83,10 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engineId = trimToNull(this.keyValue.get(ReactorKeysEnum.ENGINE.getKey()));
-		String servingProviderInput = trimToNull(this.keyValue.get(SERVING_PROVIDER_KEY));
-		String modelProviderInput = trimToNull(this.keyValue.get(MODEL_PROVIDER_KEY));
-		String modelIdInput = trimToNull(this.keyValue.get(MODEL_ID_KEY));
+		String engineId = ValueUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.ENGINE.getKey()));
+		String servingProviderInput = ValueUtils.trimToNull(this.keyValue.get(SERVING_PROVIDER_KEY));
+		String modelProviderInput = ValueUtils.trimToNull(this.keyValue.get(MODEL_PROVIDER_KEY));
+		String modelIdInput = ValueUtils.trimToNull(this.keyValue.get(MODEL_ID_KEY));
 
 		// an existing engine resolves everything itself; the explicit inputs
 		// serve the import flow, where the engine does not exist yet
@@ -109,7 +103,7 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Engine is not a model engine");
 			}
 			metadata = SecurityModelMetadataUtils.getModelMetadata(engineId);
-			smssProp = loadSmssProperties(engineId);
+			smssProp = ModelServingProvider.loadSmssProperties(engineId);
 		} else if (servingProviderInput == null && modelProviderInput == null && modelIdInput == null) {
 			throw new IllegalArgumentException(
 					"Must input a model engine id, or a serving provider, model provider, or model id");
@@ -118,7 +112,7 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 		String modelId = modelIdInput != null ? modelIdInput : resolveModelId(metadata, smssProp);
 		String servingProvider = servingProviderInput != null
 				? StaticBuiltinToolsCatalog.normalizeProviderKey(servingProviderInput)
-				: resolveServingProvider(metadata, smssProp);
+				: ModelServingProvider.resolve(metadata, smssProp);
 		String modelProvider = modelProviderInput != null
 				? StaticBuiltinToolsCatalog.normalizeProviderKey(modelProviderInput)
 				: resolveModelProvider(metadata, modelId);
@@ -145,45 +139,27 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 	 * The provider model id, preferring the saved metadata row over the smss.
 	 */
 	private static String resolveModelId(Map<String, Object> metadata, Properties smssProp) {
-		String modelId = metadata == null ? null : trimToNull(metadata.get("modelId"));
+		String modelId = metadata == null ? null : ValueUtils.trimToNull(metadata.get("modelId"));
 		if (modelId == null && smssProp != null) {
-			modelId = trimToNull(smssProp.getProperty(Constants.MODEL));
+			modelId = ValueUtils.trimToNull(smssProp.getProperty(Constants.MODEL));
 		}
 		return modelId;
 	}
 
 	/**
-	 * Who hosts the model, as a lowercase catalog key. The saved metadata wins
-	 * when set; otherwise the smss PROVIDER variable, then the engine's smss
-	 * MODEL_TYPE, which names the client implementation and so tracks the host.
-	 */
-	private static String resolveServingProvider(Map<String, Object> metadata, Properties smssProp) {
-		String servingProvider = metadata == null ? null
-				: StaticBuiltinToolsCatalog.normalizeProviderKey(trimToNull(metadata.get("servingProvider")));
-		if (servingProvider == null && smssProp != null) {
-			servingProvider = StaticBuiltinToolsCatalog
-					.normalizeProviderKey(trimToNull(smssProp.getProperty(SMSS_PROVIDER)));
-		}
-		if (servingProvider == null && smssProp != null) {
-			servingProvider = StaticBuiltinToolsCatalog
-					.normalizeProviderKey(trimToNull(smssProp.getProperty(IModelEngine.MODEL_TYPE)));
-		}
-		return servingProvider;
-	}
-
-	/**
-	 * Who made the model, as a lowercase catalog key. The saved metadata wins
-	 * when set; otherwise the model catalog's provider field, then the vendor
-	 * qualifier that aggregator hosts prefix onto their model ids.
+	 * Who made the model, as a lowercase catalog key. The saved metadata wins when
+	 * set; otherwise the model catalog's provider field, then the vendor qualifier
+	 * that aggregator hosts prefix onto their model ids.
 	 */
 	private static String resolveModelProvider(Map<String, Object> metadata, String modelId) {
 		String modelProvider = metadata == null ? null
-				: StaticBuiltinToolsCatalog.normalizeProviderKey(trimToNull(metadata.get("modelProvider")));
+				: StaticBuiltinToolsCatalog.normalizeProviderKey(ValueUtils.trimToNull(metadata.get("modelProvider")));
 		if (modelProvider == null && modelId != null) {
 			try {
 				Map<String, Object> catalogEntry = StaticModelMetadataCatalog
 						.getFlattenedMetadata(StaticModelMetadataCatalog.getMetadataFile(), modelId);
-				modelProvider = StaticBuiltinToolsCatalog.normalizeProviderKey(trimToNull(catalogEntry.get("provider")));
+				modelProvider = StaticBuiltinToolsCatalog
+						.normalizeProviderKey(ValueUtils.trimToNull(catalogEntry.get("provider")));
 			} catch (RuntimeException e) {
 				classLogger.warn("Unable to read the static model catalog while resolving the provider for model {}",
 						Utility.cleanLogString(modelId), e);
@@ -216,31 +192,6 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 			matcher = QUALIFIER_PREFIX_PATTERN.matcher(remainder);
 		}
 		return qualifier;
-	}
-
-	/**
-	 * The engine's smss properties, or null when they cannot be read - the
-	 * saved metadata row still drives the lookup in that case.
-	 */
-	private static Properties loadSmssProperties(String engineId) {
-		Object smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
-		if (smssFile == null) {
-			return null;
-		}
-		try {
-			return Utility.loadProperties(smssFile.toString());
-		} catch (Exception e) {
-			classLogger.warn("Unable to read the smss file for engine {}", engineId, e);
-			return null;
-		}
-	}
-
-	private static String trimToNull(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String stringValue = value.toString().trim();
-		return stringValue.isEmpty() ? null : stringValue;
 	}
 
 	@Override

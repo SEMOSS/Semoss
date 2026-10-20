@@ -34,6 +34,14 @@ import java.util.Map;
 
 import org.jsoup.Jsoup;
 
+import prerna.io.connector.ConnectorTimes;
+import prerna.io.connector.mail.ComposedMail;
+import prerna.io.connector.mail.MailAttachment;
+import prerna.io.connector.mail.MailFolder;
+import prerna.io.connector.mail.MailMessage;
+import prerna.io.connector.mail.MailRecipients;
+import prerna.util.ValueUtils;
+
 /**
  * Turns the json Graph returns for a message into the map this codebase answers
  * with.
@@ -48,8 +56,11 @@ import org.jsoup.Jsoup;
  * <p>
  * The shape is the one the IMAP and POP3 engines settled on rather than
  * anything Graph suggests, so a caller reading over Graph sees the same keys it
- * would reading over a protocol. The single visible difference is the uid,
- * which is Graph's opaque id rather than a number.
+ * would reading over a protocol. The visible differences are what only Graph
+ * reports: the uid, which is Graph's opaque id rather than a number; the
+ * conversationId, which ties the messages of one thread together; the sender's
+ * display name; and, when a thread is read, each message's unique body, its
+ * text without the earlier messages it quotes.
  */
 public class MicrosoftOutlookMessageMapper {
 
@@ -77,7 +88,9 @@ public class MicrosoftOutlookMessageMapper {
 		// number. it round trips the same way, which is all a caller does with it
 		output.put("uid", message.get("id"));
 		putIfPresent(output, "messageId", message.get("internetMessageId"));
+		putIfPresent(output, "conversationId", message.get("conversationId"));
 		putIfPresent(output, "from", addressOf(message.get("from")));
+		putIfPresent(output, "fromName", nameOf(message.get("from")));
 		putIfPresent(output, "to", addressList(message.get("toRecipients")));
 		putIfPresent(output, "cc", addressList(message.get("ccRecipients")));
 		putIfPresent(output, "subject", message.get("subject"));
@@ -92,8 +105,55 @@ public class MicrosoftOutlookMessageMapper {
 				output.put("bodyTruncated", true);
 			}
 			output.put("body", body);
+
+			// only asked for by a thread read; the text of this message alone
+			if (message.get("uniqueBody") instanceof Map) {
+				String uniqueBody = textOf((Map<?, ?>) message.get("uniqueBody"));
+				if (maxBodyChars > 0 && uniqueBody.length() > maxBodyChars) {
+					uniqueBody = uniqueBody.substring(0, maxBodyChars) + " ... [truncated]";
+					output.put("uniqueBodyTruncated", true);
+				}
+				output.put("uniqueBody", uniqueBody);
+			}
 		}
 		return output;
+	}
+
+	/**
+	 * Describe one attachment, without its bytes.
+	 *
+	 * <p>
+	 * What an attachment is matters more than it might seem. A file attachment
+	 * carries its own bytes and can be written out. An item attachment is another
+	 * message or event embedded in this one, and a reference attachment is a link
+	 * to a file living in a drive, so neither has bytes here to save. That is what
+	 * {@code isFile} says, and it is what
+	 * {@code MicrosoftOutlookDownloadAttachment} checks before writing anything.
+	 * </p>
+	 *
+	 * @param attachment the attachment as Graph returned it
+	 * @return the attachment as a map
+	 */
+	public static Map<String, Object> toAttachment(Map<String, Object> attachment) {
+		Map<String, Object> output = new LinkedHashMap<>();
+		output.put("id", attachment.get("id"));
+		putIfPresent(output, "name", attachment.get("name"));
+		putIfPresent(output, "contentType", attachment.get("contentType"));
+		putIfPresent(output, "size", attachment.get("size"));
+		putIfPresent(output, "lastModifiedDateTime", attachment.get("lastModifiedDateTime"));
+		output.put("isInline", Boolean.TRUE.equals(attachment.get("isInline")));
+		output.put("type", attachment.get("@odata.type"));
+		output.put("isFile", isFileAttachment(attachment));
+		return output;
+	}
+
+	/**
+	 * @param attachment an attachment as Graph returned it
+	 * @return true when the attachment carries bytes of its own that can be written
+	 *         out
+	 */
+	public static boolean isFileAttachment(Map<String, Object> attachment) {
+		return "#microsoft.graph.fileAttachment".equals(String.valueOf(attachment.get("@odata.type")));
 	}
 
 	/**
@@ -109,9 +169,19 @@ public class MicrosoftOutlookMessageMapper {
 			Object preview = message.get("bodyPreview");
 			return preview == null ? "" : preview.toString().trim();
 		}
-		Map<?, ?> bodyMap = (Map<?, ?>) body;
-		String content = bodyMap.get("content") == null ? "" : bodyMap.get("content").toString();
-		if ("html".equalsIgnoreCase(String.valueOf(bodyMap.get("contentType")))) {
+		return textOf((Map<?, ?>) body);
+	}
+
+	/**
+	 * The readable text of one Graph item body, a {@code body} or a
+	 * {@code uniqueBody}.
+	 *
+	 * @param body the item body as Graph returned it
+	 * @return the text, empty when there is none
+	 */
+	private static String textOf(Map<?, ?> body) {
+		String content = body.get("content") == null ? "" : body.get("content").toString();
+		if ("html".equalsIgnoreCase(String.valueOf(body.get("contentType")))) {
 			// the markup is noise to whoever asked what the message says
 			return Jsoup.parse(content).text().trim();
 		}
@@ -134,6 +204,24 @@ public class MicrosoftOutlookMessageMapper {
 		}
 		Object address = ((Map<?, ?>) emailAddress).get("address");
 		return address == null ? null : address.toString();
+	}
+
+	/**
+	 * The display name out of a Graph recipient object.
+	 *
+	 * @param recipient the {@code from} or one entry of a recipient collection
+	 * @return the name, or null when there is none
+	 */
+	public static String nameOf(Object recipient) {
+		if (!(recipient instanceof Map)) {
+			return null;
+		}
+		Object emailAddress = ((Map<?, ?>) recipient).get("emailAddress");
+		if (!(emailAddress instanceof Map)) {
+			return null;
+		}
+		Object name = ((Map<?, ?>) emailAddress).get("name");
+		return name == null || name.toString().trim().isEmpty() ? null : name.toString().trim();
 	}
 
 	/**
@@ -184,6 +272,92 @@ public class MicrosoftOutlookMessageMapper {
 		if (value != null) {
 			output.put(key, value);
 		}
+	}
+
+	/**
+	 * Describe one message the way every mail reactor answers with it.
+	 *
+	 * @param message         the message as Graph returned it
+	 * @param attachments     what is attached, or null when it was not asked for
+	 * @param displayBody     the body for showing to a person, or null
+	 * @param replyRecipients who a reply to everybody goes to, or null
+	 * @return the message
+	 */
+	public static MailMessage toMailMessage(Map<String, Object> message, List<MailAttachment> attachments,
+			Map<String, Object> displayBody, MailRecipients replyRecipients) {
+		String uniqueBody = message.get("uniqueBody") instanceof Map ? textOf((Map<?, ?>) message.get("uniqueBody"))
+				: null;
+		return new MailMessage(ValueUtils.toStringOrNull(message.get("id")),
+				ValueUtils.toStringOrNull(message.get("internetMessageId")),
+				ValueUtils.toStringOrNull(message.get("conversationId")), addressOf(message.get("from")),
+				nameOf(message.get("from")), addresses(message.get("toRecipients")),
+				addresses(message.get("ccRecipients")), ValueUtils.toStringOrNull(message.get("subject")),
+				ConnectorTimes.parseProviderTime(ValueUtils.toStringOrNull(message.get("sentDateTime"))),
+				ConnectorTimes.parseProviderTime(ValueUtils.toStringOrNull(message.get("receivedDateTime"))),
+				!Boolean.TRUE.equals(message.get("isRead")), Boolean.TRUE.equals(message.get("hasAttachments")),
+				bodyOf(message), uniqueBody, ValueUtils.toStringOrNull(message.get("webLink")), attachments,
+				displayBody, replyRecipients);
+	}
+
+	/**
+	 * Describe a draft the way the mail reactors that write answer with it.
+	 *
+	 * @param draft       the draft as Graph returned it
+	 * @param body        the body as the caller wrote it, or null to read it off
+	 *                    the draft
+	 * @param html        whether that body is html
+	 * @param attachments the names of the files attached
+	 * @return the draft
+	 */
+	public static ComposedMail toComposedMail(Map<String, Object> draft, String body, boolean html,
+			List<String> attachments) {
+		return new ComposedMail(ValueUtils.toStringOrNull(draft.get("id")),
+				ValueUtils.toStringOrNull(draft.get("conversationId")), ValueUtils.toStringOrNull(draft.get("webLink")),
+				addresses(draft.get("toRecipients")), addresses(draft.get("ccRecipients")),
+				addresses(draft.get("bccRecipients")), ValueUtils.toStringOrNull(draft.get("subject")),
+				body == null ? bodyOf(draft) : body, body != null && html, attachments);
+	}
+
+	/**
+	 * Describe one attachment the way every mail reactor answers with it.
+	 *
+	 * @param attachment the attachment as Graph returned it
+	 * @return the attachment
+	 */
+	public static MailAttachment toMailAttachment(Map<String, Object> attachment) {
+		String type = String.valueOf(attachment.get("@odata.type"));
+		String kind = type.endsWith("itemAttachment") ? MailAttachment.ITEM
+				: type.endsWith("referenceAttachment") ? MailAttachment.LINK : MailAttachment.FILE;
+		Object size = attachment.get("size");
+		return new MailAttachment(ValueUtils.toStringOrNull(attachment.get("id")),
+				ValueUtils.toStringOrNull(attachment.get("name")),
+				ValueUtils.toStringOrNull(attachment.get("contentType")),
+				size instanceof Number ? ((Number) size).longValue() : null,
+				Boolean.TRUE.equals(attachment.get("isInline")), kind);
+	}
+
+	/**
+	 * Describe one folder the way every mail reactor answers with it.
+	 *
+	 * @param folder the folder as Graph returned it
+	 * @return the folder
+	 */
+	public static MailFolder toMailFolder(Map<String, Object> folder) {
+		Object total = folder.get("totalItemCount");
+		Object unread = folder.get("unreadItemCount");
+		return new MailFolder(ValueUtils.toStringOrNull(folder.get("id")),
+				ValueUtils.toStringOrNull(folder.get("displayName")), MailFolder.FOLDER,
+				total instanceof Number ? ((Number) total).longValue() : null,
+				unread instanceof Number ? ((Number) unread).longValue() : null);
+	}
+
+	/**
+	 * @param recipients a recipient collection as Graph returned it
+	 * @return the addresses, empty when there are none
+	 */
+	public static List<String> addresses(Object recipients) {
+		String[] addresses = addressArray(recipients);
+		return addresses == null ? List.of() : List.of(addresses);
 	}
 
 }

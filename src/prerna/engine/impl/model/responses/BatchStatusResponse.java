@@ -44,6 +44,15 @@ public class BatchStatusResponse {
 		return providerBatchId;
 	}
 
+	/**
+	 * Lets a caller rewrite the id after the fact -- e.g. ModelBatchManager
+	 * restoring the caller-facing composite Vertex batch id after asking the
+	 * engine with just the decoded bare job id.
+	 */
+	public void setProviderBatchId(String providerBatchId) {
+		this.providerBatchId = providerBatchId;
+	}
+
 	public String getStatus() {
 		return status;
 	}

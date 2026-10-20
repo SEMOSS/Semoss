@@ -34,6 +34,10 @@ public class ThinkingMessagePart extends MessagePart {
 	@SerializedName("thinking")
 	private String thinking;
 
+	// Identifies raw provider reasoning separately from display-only summaries.
+	@SerializedName("source")
+	private String source;
+
 	public ThinkingMessagePart() {
 		super(MessagePartType.THINKING);
 	}
@@ -49,6 +53,14 @@ public class ThinkingMessagePart extends MessagePart {
 
 	public void setThinking(String thinking) {
 		this.thinking = thinking;
+	}
+
+	public String getSource() {
+		return source;
+	}
+
+	public void setSource(String source) {
+		this.source = source;
 	}
 }
 

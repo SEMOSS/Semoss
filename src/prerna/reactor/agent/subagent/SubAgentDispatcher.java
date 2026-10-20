@@ -44,6 +44,8 @@ import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.AgentRunStatus;
+import prerna.reactor.agent.run.SubAgentRunCompletionMode;
+import prerna.util.ValueUtils;
 
 /**
  * Tool-call dispatch for synthesized subagent tools.
@@ -124,6 +126,7 @@ public final class SubAgentDispatcher {
 		}
 
 		SpawnRequest req = new SpawnRequest();
+		req.completionMode = completionModeArg(args);
 		req.parentJobId = resolveParentJobId(parentJobId);
 		logger.info(
 				"SubAgentDispatcher.spawnNamed: alias={} parentJobId={} (explicit={}) parentRoomId={} inheritWorkdir={}",
@@ -186,6 +189,7 @@ public final class SubAgentDispatcher {
 		}
 
 		SpawnRequest req = new SpawnRequest();
+		req.completionMode = completionModeArg(args);
 		req.parentJobId = resolveParentJobId(parentJobId);
 		logger.info("SubAgentDispatcher.spawnAnonymous: parentJobId={} (explicit={}) parentRoomId={} inheritWorkdir={}",
 				req.parentJobId, parentJobId, parentRoom.getId(), inheritParentWorkdir);
@@ -280,16 +284,16 @@ public final class SubAgentDispatcher {
 	}
 
 	private static SubAgentResult toSubAgentResult(String jobId, Map<String, Object> run) {
-		String status = stringValue(run.get("status"));
+		String status = ValueUtils.toNonBlankString(run.get("status"));
 		if (AgentRunStatus.COMPLETED.name().equals(status)) {
-			String finalText = stringValue(run.get("finalText"));
+			String finalText = ValueUtils.toNonBlankString(run.get("finalText"));
 			if (finalText == null) {
 				return SubAgentResult.failed(jobId, "Subagent completed but produced no output");
 			}
 			return SubAgentResult.succeeded(jobId, finalText);
 		}
 		if (AgentRunStatus.FAILED.name().equals(status)) {
-			String error = stringValue(run.get("errorMessage"));
+			String error = ValueUtils.toNonBlankString(run.get("errorMessage"));
 			return SubAgentResult.failed(jobId, error == null ? "Subagent failed" : error);
 		}
 		if (AgentRunStatus.CANCELLED.name().equals(status)) {
@@ -332,6 +336,14 @@ public final class SubAgentDispatcher {
 		return Boolean.parseBoolean(String.valueOf(v).trim());
 	}
 
+	private static SubAgentRunCompletionMode completionModeArg(Map<String, Object> args) {
+		try {
+			return SubAgentRunCompletionMode.fromExternalValue(stringArg(args, "completionMode"));
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("completionMode must be WAIT, POST, or POST_AND_CONTINUE");
+		}
+	}
+
 	private static Map<String, Object> error(String msg) {
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("error", msg);
@@ -350,11 +362,4 @@ public final class SubAgentDispatcher {
 		return out;
 	}
 
-	private static String stringValue(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String str = String.valueOf(value);
-		return str.trim().isEmpty() ? null : str;
-	}
 }

@@ -29,6 +29,7 @@ package prerna.engine.api;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -162,6 +163,23 @@ public interface IModelEngine extends IEngine {
 	 */
 	@IgnoreEngineLogging
 	int getContextWindow();
+
+	/**
+	 * @return configured max output tokens, or 0 when unknown
+	 */
+	@IgnoreEngineLogging
+	default long getMaxTokens() {
+		return 0;
+	}
+
+	/**
+	 * @return configured input modalities, or null when request content is not
+	 *         restricted
+	 */
+	@IgnoreEngineLogging
+	default Set<ModelModalityEnum> getInputModalities() {
+		return null;
+	}
 
 	// ------------------------------------------------------------------
 	// Batch model calls (native provider Batch APIs).

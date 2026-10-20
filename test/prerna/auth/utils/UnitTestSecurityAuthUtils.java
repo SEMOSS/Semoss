@@ -259,8 +259,7 @@ public class UnitTestSecurityAuthUtils {
 		user.setAccessToken(at);
 
 		assertTrue(SecurityUpdateUtils.registerUser(at.getId(), at.getName(), at.getEmail(), "Test123!",
-				AuthProvider.NATIVE.getLabel(), "5555555555", "001", "US", admin, false, false, null, null, null,
-				null));
+				AuthProvider.NATIVE.getLabel(), "5555555555", "001", "US", admin, false, false, null));
 
 		return user;
 	}

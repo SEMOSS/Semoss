@@ -27,14 +27,25 @@
  *******************************************************************************/
 package prerna.playground.reactors;
 
+import java.util.Arrays;
+
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.GetUserConversationRoomsReactor;
-import prerna.playground.PlaygroundUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetPlaygroundRoomsReactor extends GetUserConversationRoomsReactor {
+
+	private static final String MODE = "mode";
+
+	public GetPlaygroundRoomsReactor() {
+		super();
+		this.keysToGet = Arrays.copyOf(this.keysToGet, this.keysToGet.length + 1);
+		this.keysToGet[this.keysToGet.length - 1] = MODE;
+		this.keyRequired = Arrays.copyOf(this.keyRequired, this.keyRequired.length + 1);
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -44,7 +55,10 @@ public class GetPlaygroundRoomsReactor extends GetUserConversationRoomsReactor {
 		} else {
 			projectGRS = new GenRowStruct();
 		}
-		projectGRS.add(new NounMetadata(PlaygroundUtils.PLAYGROUND_PROJECT_ID, PixelDataType.CONST_STRING));
+		// mode picks the system project; null lists normal playground rooms
+		GenRowStruct modeGRS = this.store.getNoun(MODE);
+		String mode = modeGRS == null || modeGRS.isEmpty() ? null : String.valueOf(modeGRS.get(0));
+		projectGRS.add(new NounMetadata(CollaborationUtils.projectIdForMode(mode), PixelDataType.CONST_STRING));
 		this.store.addNoun(ReactorKeysEnum.PROJECT.getKey(), projectGRS);
 		return super.execute();
 	}

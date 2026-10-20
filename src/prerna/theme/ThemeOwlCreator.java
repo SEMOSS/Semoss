@@ -38,9 +38,10 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class ThemeOwlCreator extends AbstractOwlCreator {
 
 	public ThemeOwlCreator(AbstractSqlQueryUtil queryUtil) {
-		createColumnsAndTypes(queryUtil);
+		super(queryUtil);
 	}
 
+	@Override
 	public void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();

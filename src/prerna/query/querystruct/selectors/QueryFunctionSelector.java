@@ -265,6 +265,19 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 	}
 
 	/**
+	 * Make coalesce selector for 2 columns
+	 * 
+	 * @param colSelector1
+	 * @param colSelector2
+	 * @param alias
+	 * @return
+	 */
+	public static QueryFunctionSelector makeCoalesceSelector(String colSelector1, String colSelector2, String alias) {
+		return makeCoalesceSelector(new QueryColumnSelector(colSelector1), new QueryColumnSelector(colSelector2),
+				alias);
+	}
+
+	/**
 	 * Helper method to generate a date diff function selector
 	 * 
 	 * @param timeUnit

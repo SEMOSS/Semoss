@@ -218,4 +218,9 @@ The `SelectQueryStruct` provides a structured and flexible way to define complex
     *   Translates `SelectQueryStruct` graph patterns into Gremlin queries.
     *   Interacts with JanusGraph using its TinkerPop API, typically by submitting Gremlin traversals.
 *   **SMSS Configuration**: JanusGraph connection properties, which can be complex and specify the storage backend (e.g., Cassandra, HBase), indexing backend (e.g., Elasticsearch), and graph name. Often points to a JanusGraph properties file.
-```
+
+## Database engines in agent workbenches
+
+The database workbench supplies context and generated tools for the loaded engine. Relational, RDF, and graph implementations do not all accept SQL. Use the actual engine subtype and generated tool schema; the `database` skill provides a reusable exploration workflow rather than a connection or permission grant.
+
+See [workbench default agents](../agents/workbench-default-agents.md), [agent configuration](../agents/agent_configuration.md), and [IDatabaseEngine](../../src/prerna/engine/api/IDatabaseEngine.java). The [local database examples](../../docker-compose-examples/engines/database.md) provide supporting services for development.
