@@ -117,7 +117,7 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Creates or changes one of the owner's routines: an instruction their agent does on a schedule, with "
-				+ "read-only tools, and delivers only to the owner. Use it when the owner asks for something to happen "
+				+ "read tools, and delivers only to the owner; by email, files the run makes are attached. Use it when the owner asks for something to happen "
 				+ "regularly (\"every weekday at 8, summarize what my clients asked for and email it to me\"). Leave "
 				+ "out routineId to create one; pass it, from ListRoutines, to change one, sending only what changes. "
 				+ "The owner approves the exact routine on a card before it is saved. A routine can never send to "
@@ -144,8 +144,8 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 		case TIMEZONE:
 			return "IANA time zone of the time, such as America/New_York. Use the owner's own time zone.";
 		case DELIVERY:
-			return "Where the answer goes, always only to the owner: email (their own inbox), teams (a Teams message "
-					+ "to themselves) or none (kept in Routines). Default email.";
+			return "Where the answer goes, always only to the owner: email (their own inbox, with any files the run "
+					+ "makes attached), teams (a Teams message to themselves, text only) or none (kept in Routines). Default email.";
 		case SKILLS:
 			return "Ids of the owner's own skills the agent loads, from ListMySkills. Optional.";
 		case AGENT_ID:

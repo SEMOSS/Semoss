@@ -44,11 +44,12 @@ import org.javatuples.Pair;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
 import prerna.om.Insight;
 import prerna.reactor.agent.skill.SkillProjects;
 
 /**
- * The owner's own routines: an instruction of theirs, done on a schedule by their agent with read-only tools, the
+ * The owner's own routines: an instruction of theirs, done on a schedule by their agent with read tools, the
  * answer delivered only to them (email, a Teams message to themselves, or kept in Routines). Many per owner, run by
  * {@link WorkRoutine}.
  */
@@ -240,6 +241,13 @@ public final class WorkCustomRoutine {
 				+ "or polish it with file tools or code.\n"
 				+ "- Calendar times come back in the owner's time zone with a readable when; use them as they are, "
 				+ "without converting.\n");
+		if ("email".equals(delivery)) {
+			// WorkRoutineAttachments sends what is saved there with the email
+			command.append("- When the task asks for a file (a deck, a spreadsheet, a document), save it in the \"")
+					.append(WorkRoutineAttachments.FOLDER).append("\" folder of your working folder and it is attached "
+							+ "to the email, up to ").append(MicrosoftOutlookMailHelper.maxAttachmentBytes() / (1024 * 1024))
+					.append(" MB of files in all. Say in one line of the result what is attached.\n");
+		}
 		if (skills.isEmpty()) {
 			command.append("- Write compact Markdown.\n");
 		} else {
