@@ -31,6 +31,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -700,6 +701,11 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		if (messagesBefore != null) {
 			room.setMessages(messagesBefore);
 		}
+	}
+
+	@Override
+	public Set<ModelModalityEnum> getInputModalities() {
+		return this.inputModalities == null ? null : Collections.unmodifiableSet(this.inputModalities);
 	}
 
 	/**

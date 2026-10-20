@@ -57,8 +57,8 @@ public class TypeSafeEngine extends AbstractPythonModelEngine implements ITypeSa
 	private static final Gson GSON = new GsonBuilder().serializeNulls().create();
 
 	@Override
-	public TypeSafeModelEngineResponse evaluate(Object state, Map<String, Object> questions, Insight insight,
-			Map<String, Object> parameters) {
+	public TypeSafeModelEngineResponse evaluate(Object state, Map<String, Object> questions,
+			Map<String, String> images, Insight insight, Map<String, Object> parameters) {
 		if (!(state instanceof String || state instanceof Map || state instanceof List)) {
 			throw new IllegalArgumentException("state must be text, a map, or a list");
 		}
@@ -79,6 +79,9 @@ public class TypeSafeEngine extends AbstractPythonModelEngine implements ITypeSa
 		request.put("state", state);
 		request.put("questions", questions);
 		request.put("parameters", parameters == null ? Map.of() : parameters);
+		if (images != null && !images.isEmpty()) {
+			request.put("assets", images);
+		}
 		// the ceiling goes beside the parameters, which take only evaluation settings
 		Map<String, Object> usageCeiling = usageTicket.pythonCeiling();
 		if (usageCeiling != null) {

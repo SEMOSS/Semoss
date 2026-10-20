@@ -29,6 +29,7 @@ package prerna.engine.impl.model.usage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
@@ -122,6 +123,17 @@ public class ModelBatchUsageUnitTests {
 	}
 
 	@Test
+	void aVertexRequestIsCappedUnderMaxTokens() {
+		// Claude on Vertex refuses max_completion_tokens, and Gemini on Vertex takes max_tokens too
+		when(engine.getModelType()).thenReturn(ModelTypeEnum.VERTEX);
+		BatchUsage usage = admitBatch(List.of(Map.of("custom_id", "r1", "command", "hi")));
+
+		assertEquals(ModelUsageRequest.DEFAULT_MAX_OUTPUT_TOKENS, usage.requests().get(0).get("max_tokens"));
+		assertFalse(usage.requests().get(0).containsKey("max_completion_tokens"));
+		usage.ticket().release();
+	}
+
+	@Test
 	void eachResultIsBilledOnceHoweverOftenItIsRead() {
 		BatchUsage usage = admitBatch(
 				List.of(Map.of("custom_id", "r1", "max_tokens", 100), Map.of("custom_id", "r2", "max_tokens", 100)));
@@ -155,6 +167,23 @@ public class ModelBatchUsageUnitTests {
 		assertTrue(store.markOnce("batch|billed|batch-restart.r1", Duration.ofDays(1)));
 		assertFalse(store.markOnce("batch|billed|batch-restart.r2", Duration.ofDays(1)));
 		usage.ticket().release();
+	}
+
+	@Test
+	void aRequestIdTooLongForTheLogsStillBillsOnce() {
+		// a Vertex batch id is 42 characters, so "<batchId>.<customId>" passes the column's 50 from req-1000
+		String vertexBatchId = "bMRys8aHSpq5nnnv1XN8WA:aXEKW.1kyedurkn96gw";
+		assertEquals(vertexBatchId + ".req-999", ModelBatchManager.batchTransactionId(vertexBatchId, "req-999"));
+		String longId = ModelBatchManager.batchTransactionId(vertexBatchId, "req-1000");
+		assertEquals(36, longId.length());
+		assertEquals(longId, ModelBatchManager.batchTransactionId(vertexBatchId, "req-1000"));
+		assertNotEquals(longId, ModelBatchManager.batchTransactionId(vertexBatchId, "req-1001"));
+
+		BatchUsage usage = admitBatch(List.of(Map.of("custom_id", "req-1000", "max_tokens", 100)));
+		ModelBatchManager.holdBatchUsage(engine, vertexBatchId, usage);
+		ModelBatchManager.billBatchResults(null, engine, vertexBatchId, results("COMPLETED", item("req-1000", 40, 60)));
+		assertEquals(100, used());
+		assertFalse(store.markOnce("batch|billed|" + longId, Duration.ofDays(1)));
 	}
 
 	@Test

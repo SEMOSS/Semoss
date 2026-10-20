@@ -24,6 +24,8 @@ from ...utils import string_to_bool
 from ...usage_ceiling import (
     PromptCount,
     TextCounter,
+    UsageCeiling,
+    UsageLimitDoesNotFitError,
     count_prompt_tokens,
     note_output_stop,
 )
@@ -141,6 +143,55 @@ class OpenAiClient(AbstractTextGenerationClient):
             ),
             timeout=kwargs.pop("timeout", 300.0),
         )
+
+    def decisions(
+        self,
+        input: str | list[dict[str, Any]],
+        questions: list[dict[str, Any]],
+        max_retries: int | None = None,
+        usage_ceiling: Any = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Evaluate native Decisions questions using this client's configured model.
+
+        Returns the provider's JSON shape, including refusals and usage. SDK
+        options pass through directly; chat settings and history do not apply.
+        ``max_retries`` overrides the SDK retry policy for this call only.
+        The platform's usage ceiling is checked locally and never sent to OpenAI.
+        SDK errors propagate to the caller, as with the batch methods.
+        """
+        client = self.client
+        if max_retries is not None:
+            if type(max_retries) is not int or max_retries < 0:
+                raise ValueError("max_retries must be a nonnegative integer")
+            client = client.with_options(max_retries=max_retries)
+        ceiling = UsageCeiling.from_value(usage_ceiling)
+        if ceiling is not None:
+            count_text, exact = self._usage_text_counter()
+            try:
+                # Decisions has no generated output budget to trim.
+                ceiling.require_input_fits(
+                    count_prompt_tokens(
+                        [input],
+                        [questions, kwargs.get("extra_body")],
+                        count_text=count_text,
+                        text_exact=exact,
+                        message_count=len(input) if isinstance(input, list) else 1,
+                    )
+                )
+            except UsageLimitDoesNotFitError as error:
+                return ModelEngineException(
+                    error=error,
+                    client=type(self).__name__,
+                    model=self.model_settings.model_name,
+                ).parse_error().model_dump()
+        decision = client.decisions.create(
+            model=self.model_settings.model_name,
+            input=input,
+            questions=questions,
+            **kwargs,
+        )
+        return decision.model_dump(mode="json", exclude_unset=True)
 
     def ask_call(
         self, prefix: str = "", **kwargs
