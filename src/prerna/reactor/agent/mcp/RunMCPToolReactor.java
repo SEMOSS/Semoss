@@ -98,8 +98,9 @@ public class RunMCPToolReactor extends AbstractReactor {
 
 		String toolName = this.keyValue.get(this.keysToGet[1]);
 		String roomId = this.keyValue.get(ROOM_ID_KEY);
+		Room room = null;
 		if (roomId != null && !roomId.isBlank()) {
-			Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+			room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 			if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
 				this.insight.setRoomForInsight(room);
 			}
@@ -112,8 +113,11 @@ public class RunMCPToolReactor extends AbstractReactor {
 		// these are the params
 		Map<String, Object> paramMap = getMap();
 
-		return new NounMetadata(MCPUtility.executeTool(engineId, toolName, paramMap, this.insight),
-				PixelDataType.MCP_TOOL_EXECUTION, PixelOperationType.MCP_TOOL_EXECUTION);
+		Object toolOutput = MCPUtility.executeTool(engineId, toolName, paramMap, this.insight);
+		if (room != null && toolOutput instanceof String) {
+			toolOutput = MCPUtility.externalizeToolResultMedia((String) toolOutput, room);
+		}
+		return new NounMetadata(toolOutput, PixelDataType.MCP_TOOL_EXECUTION, PixelOperationType.MCP_TOOL_EXECUTION);
 	}
 
 	/**

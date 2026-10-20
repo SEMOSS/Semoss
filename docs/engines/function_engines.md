@@ -85,4 +85,9 @@ To create a new `FUNCTION` engine:
 *   **SMSS Configuration**:
     *   `REACTOR_CLASS_NAME`: The fully qualified class name of the SEMOSS Reactor to wrap.
     *   `FUNCTION_NAME`, `FUNCTION_DESCRIPTION`, `FUNCTION_PARAMETERS` (mapping to the Reactor's expected nouns), `FUNCTION_REQUIRED_PARAMETERS`.
-```
+
+## Functions and agent tools
+
+Function engines are one source of executable integrations; native agent tools and project/MCP tools can also expose operations without being function engines. The harness resolves tool schemas and execution policy, while each resource operation enforces its access requirements. A skill can document an integration without automatically attaching or authorizing it.
+
+Use [IFunctionEngine](../../src/prerna/engine/api/IFunctionEngine.java) and the [function implementations](../../src/prerna/engine/impl/function/) for current signatures and configuration. See [the harness tool flow](../agents/semoss_harness.md#tools-and-execution-policy) and [local function examples](../../docker-compose-examples/engines/functions/README.md).

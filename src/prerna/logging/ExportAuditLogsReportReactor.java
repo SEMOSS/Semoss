@@ -57,6 +57,7 @@ import org.xhtmlrenderer.pdf.ITextRenderer;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.date.SemossDate;
+import prerna.engine.impl.model.usage.ModelUsageBilledTo;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.om.InsightFile;
 import prerna.reactor.AbstractReactor;
@@ -199,7 +200,7 @@ public class ExportAuditLogsReportReactor extends AbstractReactor {
 		try (FileWriter writer = new FileWriter(f); BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			// Write Headers
 			bufferedWriter.write(
-					"\"RequestId\",\"StartTime\",\"EndTime\",\"Request\",\"Response\",\"Tokens\",\"Latency\",\"Status\",\"EngineName\",\"EngineType\",\"MethodName\",\"UserName\",\"UserId\",\"SessionId\",\"SpanId\",\"LogTimestamp\"\n");
+					"\"RequestId\",\"StartTime\",\"EndTime\",\"Request\",\"Response\",\"Tokens\",\"Latency\",\"Status\",\"EngineName\",\"EngineType\",\"MethodName\",\"UserName\",\"UserId\",\"SessionId\",\"SpanId\",\"LogTimestamp\",\"BilledSourceType\",\"BilledSubjectId\",\"BilledSubjectType\"\n");
 
 			// Write Data
 			for (LogActivityRecord record : records) {
@@ -219,7 +220,10 @@ public class ExportAuditLogsReportReactor extends AbstractReactor {
 				builder.append(escapeCsv(record.userId())).append(",");
 				builder.append(escapeCsv(record.sessionId())).append(",");
 				builder.append(escapeCsv(record.spanId())).append(",");
-				builder.append(escapeCsv(record.logTimestamp()));
+				builder.append(escapeCsv(record.logTimestamp())).append(",");
+				builder.append(escapeCsv(record.billedSourceType())).append(",");
+				builder.append(escapeCsv(record.billedSubjectId())).append(",");
+				builder.append(escapeCsv(record.billedSubjectType()));
 				builder.append("\n");
 
 				bufferedWriter.write(builder.toString());
@@ -273,6 +277,12 @@ public class ExportAuditLogsReportReactor extends AbstractReactor {
 			appendMetaRow(htmlBuilder, "Latency (s)", String.valueOf(record.latency()), "Tokens",
 					String.valueOf(record.tokens()));
 			appendMetaRow(htmlBuilder, "Session ID", record.sessionId(), "Span ID", record.spanId());
+			if (record.billedSourceType() != null) {
+				appendMetaRow(
+						htmlBuilder, "Billed To", new ModelUsageBilledTo(record.billedSourceType(),
+								record.billedSubjectId(), record.billedSubjectType()).label(),
+						"Billed Subject", record.billedSubjectId());
+			}
 			htmlBuilder.append("</table>");
 
 			// request / response as full-width, wrapped, newline-preserving blocks

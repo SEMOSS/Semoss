@@ -1027,19 +1027,6 @@ public class Constants {
 	// UTC ZONE
 	public static final String UTC_ZONE = "UTC";
 
-	// keys for engine restrictions
-	public static final String ENGINE_USAGE_RESTRICTION_KEY = "engine_usage_restiction";
-	public static final String ENGINE_USAGE_FREQUENCY_KEY = "engine_usage_frequency";
-	public static final String ENGINE_MAX_TOKEN_KEY = "engine_max_token";
-	public static final String ENGINE_MAX_RESPONSE_TIME_KEY = "engine_max_response_time";
-	public static final String USER_USAGE_RESTRICTION_KEY = "user_model_usage_restriction";
-	public static final String USER_MODEL_USAGE_FREQUENCY_KEY = "user_model_usage_frequency";
-	public static final String USER_MODEL_MAX_TOKEN_KEY = "user_model_max_token";
-	public static final String USER_MODEL_MAX_RESPONSE_TIME_KEY = "user_model_max_response_time";
-	// model restriction types
-	public static final String MODEL_TOKEN_RESTRICTION_VALUE = "token";
-	public static final String MODEL_COMPUTE_TIME_RESTRICTION_VALUE = "compute";
-
 	// External Permission Management
 	public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENABLED = "EXTERNAL_PERMISSION_MANAGEMENT_ENABLED";
 	public static final String EXTERNAL_PERMISSION_MANAGEMENT_URL = "EXTERNAL_PERMISSION_MANAGEMENT_URL";
@@ -1081,6 +1068,24 @@ public class Constants {
 	public static final String NOTIFICATION_DATABASE_ENABLED = "NOTIFICATION_DATABASE_ENABLED";
 	public static final String NOTIFICATION_DB = "Notification";
 
+	// collaboration db (Brain and Work)
+	public static final String COLLABORATION_DATABASE_ENABLED = "COLLABORATION_DATABASE_ENABLED";
+	public static final String COLLABORATION_DB = "Collaboration";
+	// one brain classifier model for the whole platform, and its cutoffs per engine
+	// id
+	public static final String COLLAB_CLASSIFIER_ENGINE_ID = "COLLAB_CLASSIFIER_ENGINE_ID";
+	public static final String COLLAB_CLASSIFIER_CUTOFFS = "COLLAB_CLASSIFIER_CUTOFFS";
+	public static final String COLLAB_CLASSIFIER_WINDOW = "COLLAB_CLASSIFIER_WINDOW";
+	// a general text model for topic grouping and naming, and thread summaries and
+	// action items
+	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
+	// threads the classifier sorts at once (default 8)
+	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
+	// the platform agent (workspace id) that powers a Work thread's assistant
+	public static final String COLLAB_THREAD_AGENT_ID = "COLLAB_THREAD_AGENT_ID";
+	// characters of memories a thread's assistant gets in its prompt (default 4000)
+	public static final String COLLAB_MEMORY_PROMPT_CHARS = "COLLAB_MEMORY_PROMPT_CHARS";
+
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
@@ -1093,10 +1098,13 @@ public class Constants {
 	public static final String SKILL_APP_BOOTSTRAP = "app-bootstrap";
 	public static final String SKILL_APP_DATA = "app-data";
 	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
+	public static final String SKILL_COLLABORATION = "collaboration";
 	public static final String SKILL_DATABASE = "database";
 	public static final String SKILL_EXPORTS = "exports";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";
+	public static final String SKILL_FRONTEND_DESIGN = "frontend-design";
 	public static final String SKILL_FUNCTIONS = "functions";
+	public static final String SKILL_MCP = "mcp";
 	public static final String SKILL_MODEL = "model";
 	public static final String SKILL_PAGINATION = "pagination";
 	public static final String SKILL_PERMISSIONS = "permissions";
@@ -1106,17 +1114,22 @@ public class Constants {
 	public static final String SKILL_STORAGE = "storage";
 	public static final String SKILL_USER = "user";
 	public static final String SKILL_VECTOR = "vector";
+	public static final String SKILL_WORKFLOW_AUTOMATION = "workflow-automation";
 
 	// system (platform) mcp names
-	public static final String MCP_NODE_BUILDER = "node-builder";
-	public static final String MCP_DATABASE_MAKER = "database-maker";
-	public static final String MCP_REACTOR_HELP = "reactor-help";
-	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
 	public static final String MCP_APP_FILESYSTEM = "app-filesystem";
+	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
+	public static final String MCP_DATABASE_MAKER = "database-maker";
+	public static final String MCP_NODE_BUILDER = "node-builder";
+	public static final String MCP_PIXABAY = "pixabay";
+	public static final String MCP_REACTOR_HELP = "reactor-help";
 	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";
+	public static final String AGENT_DATABASE_EXPLORER = "database-explorer";
+	public static final String AGENT_NOTEBOOK_ANALYST = "notebook-analyst";
 	public static final String AGENT_PPTX = "pptx-agent";
 	public static final String AGENT_PPTX_REVIEWER = "pptx-reviewer";
+	public static final String AGENT_WORKFLOW_AUTOMATION_BUILDER = "workflow-automation-builder";
 }

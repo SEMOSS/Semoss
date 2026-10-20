@@ -29,11 +29,8 @@ package prerna.util;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -66,9 +63,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 				try {
 					catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
-					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
-					ensureProjectTags(engineId, "APP", "SYSTEM");
-					ensureTemplateFlag(engineId, folderToWatch + "/platform__" + fileName);
+					SystemProjectSeeder.seed(engineId, folderToWatch + "/platform__" + fileName, "APP", "SYSTEM");
 					Utility.getProject(engineId, false);
 				} catch (Exception e) {
 					classLogger.error("Failed to load and initialize the {}", engineId, e);
@@ -90,13 +85,8 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					// set all as global
 					catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
-					// the global flag passed to catalogProject only lands on the initial
-					// insert - addProject early-returns once the row exists. A skill whose
-					// row was created by any other path first (the generic folder scan, or
-					// a boot before it was registered here) stays non-global and drops out
-					// of MyProjects. Mirror the MCP/agent branches and force it every boot.
-					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
-					ensureProjectTags(engineId, ProjectHelper.SKILL_PROJECT_TAG, "SYSTEM");
+					SystemProjectSeeder.seed(engineId, folderToWatch + "/platform__" + fileName,
+							ProjectHelper.SKILL_PROJECT_TAG, "SYSTEM");
 					// load the project object and don't pull from cloud
 					Utility.getProject(engineId, false);
 				} catch (Exception e) {
@@ -115,8 +105,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 				try {
 					catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
-					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
-					ensureProjectTags(engineId, "MCP", "SYSTEM");
+					SystemProjectSeeder.seed(engineId, folderToWatch + "/platform__" + fileName, "MCP", "SYSTEM");
 					// load the project object and don't pull from cloud
 					Utility.getProject(engineId, false);
 				} catch (Exception e) {
@@ -138,8 +127,8 @@ public class ProjectWatcher extends AbstractFileWatcher {
 				try {
 					catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
-					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
-					ensureProjectTags(engineId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG, "SYSTEM");
+					SystemProjectSeeder.seed(engineId, folderToWatch + "/platform__" + fileName,
+							ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG, "SYSTEM");
 					SystemAgentSeeder.seed(engineId);
 					// load the project object and don't pull from cloud
 					Utility.getProject(engineId, false);
@@ -151,63 +140,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 		}
 	}
 
-	/**
-	 * Ensures a platform project carries each of the given PROJECTMETA tags (e.g.
-	 * "SKILL", "MCP", "SYSTEM"). addProject early-returns when the project already
-	 * exists in the security db, so this runs on every boot; it is idempotent (only
-	 * writes when a tag is missing) and preserves any other tag values already on
-	 * the project. Never blocks project load. The literal "MCP" tag matches
-	 * MCPUtility.addMCPTag.
-	 */
-	private static void ensureProjectTags(String projectId, String... requiredTags) {
-		try {
-			Map<String, Object> meta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, Arrays.asList("tag"),
-					false);
-			List<Object> tags = new ArrayList<>();
-			Object existing = meta.get("tag");
-			if (existing instanceof List) {
-				tags.addAll((List<?>) existing);
-			} else if (existing != null) {
-				tags.add(existing);
-			}
-			boolean changed = false;
-			for (String req : requiredTags) {
-				if (!tags.contains(req)) {
-					tags.add(req);
-					changed = true;
-				}
-			}
-			if (changed) {
-				Map<String, Object> update = new HashMap<>();
-				update.put("tag", tags);
-				SecurityProjectUtils.updateProjectMetadata(projectId, update);
-			}
-		} catch (Exception e) {
-			classLogger.warn("Failed to ensure tags {} on platform project '{}': {}", Arrays.toString(requiredTags),
-					projectId, e.getMessage());
-		}
-	}
 
-	/**
-	 * Heals PROJECT.IS_TEMPLATE from a platform project's smss on every boot.
-	 * addProject only reads IS_TEMPLATE on the initial insert, so a security db
-	 * row created by an older build (or before the flag was added to the smss)
-	 * would otherwise stay non-cloneable forever. One-directional on purpose: an
-	 * smss without IS_TEMPLATE=true leaves the db value alone, so a flag enabled
-	 * at runtime through the REST endpoint is never clobbered. Never blocks
-	 * project load.
-	 */
-	private static void ensureTemplateFlag(String projectId, String smssPath) {
-		try {
-			Properties prop = Utility.loadProperties(smssPath);
-			boolean isTemplate = Boolean.parseBoolean(prop.getProperty(Constants.IS_TEMPLATE, "false"));
-			if (isTemplate) {
-				SecurityProjectUtils.setProjectTemplate(projectId, true);
-			}
-		} catch (Exception e) {
-			classLogger.warn("Failed to ensure template flag on platform project '{}': {}", projectId, e.getMessage());
-		}
-	}
 
 	/**
 	 * Used in the starter class for processing SMSS files.

@@ -131,10 +131,10 @@ public final class OpenAIModelsHelper {
 		for (Map<String, Object> engines : enginesList) {
 			Map<String, Object> newMap = new HashMap<>();
 			newMap.put("object", "model");
-			newMap.put("id", engines.get("database_id"));
-			newMap.put("alias", engines.get("database_name"));
-			newMap.put("owned_by", engines.get("database_created_by"));
-			SemossDate dateCreated = (SemossDate) engines.get("database_date_created");
+			newMap.put("id", engines.get("engine_id"));
+			newMap.put("alias", engines.get("engine_name"));
+			newMap.put("owned_by", engines.get("engine_created_by"));
+			SemossDate dateCreated = (SemossDate) engines.get("engine_date_created");
 			if (dateCreated != null) {
 				ZonedDateTime zdt = dateCreated.getZonedDateTime();
 				if (zdt != null) {

@@ -7,7 +7,10 @@ rendering commands are unnecessary.
 When `BuildPptx` is available, it invokes the attached reviewer and waits for the
 report automatically. Pass your review criteria and optional caller-selected engine
 to BuildPptx. Follow only its bounded repair requests. The manual delegation steps
-below apply when BuildPptx is absent.
+below apply when BuildPptx is absent. For prepared edits, BuildPptx reviews only the
+requested slides, verifies preservation against the original package and supplies
+original advisory warnings separately. Do not broaden the edit scope or repair
+unrelated pre-existing issues. This selected-slide review is not a whole-deck pass.
 
 Use the attached reviewer (normally `agent_pptx_reviewer`) and delegate with `inherit_parent_workdir: true`.
 Its `prompt` should specify the relative filename, optional original slide numbers,
@@ -37,7 +40,7 @@ describes the findings. Passing requires `status: complete`, `verdict: pass` and
 `sourceChanged: false`. A selected-slide pass never proves whole-deck coverage.
 
 Apply fixes only when the reported evidence matches visible content or the deck structure. A format/provider failure, an inconclusive assessment, or missing coverage is not a slide defect and must not trigger edits or a deck rebuild. Do not redesign to satisfy a
-reviewer's taste. Send advisory structural warnings with the initial review brief. Use one whole-deck review and at most one repair pass followed by one targeted recheck. After that, deliver the saved deck and disclose unresolved issues or missing coverage. A targeted recheck does not establish a whole-deck pass for an edited file. Any edit invalidates the prior
+reviewer's taste. Send advisory structural warnings with the initial review brief. For new decks use one whole-deck review and at most one repair pass followed by one targeted recheck. For prepared edits keep both reviews inside the original edit scope. After that, deliver the saved deck and disclose unresolved issues or missing coverage. A targeted recheck does not establish a whole-deck pass for an edited file. Any edit invalidates the prior
 whole-deck review even when the filename stays the same.
 
 A partial/failed/inconclusive review is not a pass. Report missing coverage or the

@@ -27,9 +27,13 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -48,6 +52,8 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.util.Constants;
 import prerna.util.StaticModelMetadataCatalog;
 import prerna.util.SystemEngineRegistry;
+import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 class SecurityModelMetadataUtilsTokenLimitsUnitTests {
 
@@ -71,8 +77,8 @@ class SecurityModelMetadataUtilsTokenLimitsUnitTests {
 					""");
 		}
 		IRDBMSEngine securityDb = mock(IRDBMSEngine.class);
-		when(securityDb.getPreparedStatement(anyString()))
-				.thenAnswer(invocation -> connection.prepareStatement(invocation.getArgument(0, String.class)));
+		when(securityDb.getConnection()).thenReturn(connection);
+		when(securityDb.getQueryUtil()).thenReturn(SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB));
 		registry = mockStatic(SystemEngineRegistry.class);
 		registry.when(SystemEngineRegistry::getSecurityDb).thenReturn(securityDb);
 		catalog = mockStatic(StaticModelMetadataCatalog.class);
@@ -80,9 +86,15 @@ class SecurityModelMetadataUtilsTokenLimitsUnitTests {
 
 	@AfterEach
 	void tearDown() throws Exception {
-		if (catalog != null) catalog.close();
-		if (registry != null) registry.close();
-		if (connection != null) connection.close();
+		if (catalog != null) {
+			catalog.close();
+		}
+		if (registry != null) {
+			registry.close();
+		}
+		if (connection != null) {
+			connection.close();
+		}
 	}
 
 	@Test
@@ -136,8 +148,8 @@ class SecurityModelMetadataUtilsTokenLimitsUnitTests {
 
 		Map<String, Object> properties = SecurityModelMetadataUtils.getModelEngineProperties(details);
 
-		assertEquals(Map.of(Constants.MODEL, "test-model", "INIT_MODEL_ENGINE", "build_model()",
-				"API_KEY", "test-key"), properties);
+		assertEquals(Map.of(Constants.MODEL, "test-model", "INIT_MODEL_ENGINE", "build_model()", "API_KEY", "test-key"),
+				properties);
 		assertTrue(details.containsKey("context_window"));
 		assertTrue(details.containsKey(Constants.MAX_TOKENS));
 	}

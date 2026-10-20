@@ -43,6 +43,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -58,13 +59,16 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.ToNumberPolicy;
 
+import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.ModelCapabilityEnum;
 import prerna.engine.api.ModelModalityEnum;
-import prerna.util.ConnectionUtils;
+import prerna.engine.impl.model.usage.ModelUsageCost;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.QueryExecutionUtility;
+import prerna.util.StaticBuiltinToolsCatalog;
 import prerna.util.StaticModelMetadataCatalog;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -74,6 +78,11 @@ import prerna.util.Utility;
  * Multi-valued and structured fields are stored as JSON in CLOB columns so the
  * security database schema remains portable across supported relational
  * databases.
+ * <p>
+ * A model's prices ({@link Constants#PRICING}) decide how far its cost limits
+ * go, so only its owners and admins change them, and they can be changed but
+ * never removed. A catalog sync, or a new catalog match, replaces them only
+ * with prices of its own.
  */
 public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
@@ -91,9 +100,9 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
 			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS,
 			Constants.MODEL_FAMILY, Constants.ATTACHMENT, Constants.REASONING, Constants.TOOL_CALL,
-			Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE,
-			Constants.KNOWLEDGE_CUTOFF, Constants.RELEASE_DATE, Constants.SUPPORTED_PARAMETERS,
-			Constants.REASONING_CONFIG, Constants.BENCHMARKS, Constants.PRICING, Constants.DESCR);
+			Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE, Constants.KNOWLEDGE_CUTOFF, Constants.RELEASE_DATE,
+			Constants.SUPPORTED_PARAMETERS, Constants.REASONING_CONFIG, Constants.BENCHMARKS, Constants.PRICING,
+			Constants.DESCR);
 
 	private static final Set<String> REMOVED_METADATA_KEYS = Set.of("LICENSE", "LINKS", "WEIGHTS", "OPEN_WEIGHTS",
 			"LAST_UPDATED", Constants.MAX_INPUT_TOKENS);
@@ -101,6 +110,11 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Z][A-Z0-9_]*$");
 	private static final Pattern LOWER_SNAKE_CASE_PATTERN = Pattern.compile("^[a-z][a-z0-9_]*$");
 	private static final int MODEL_METADATA_QUERY_BATCH_SIZE = 500;
+
+	private static final String PRICES_OWNERS_ONLY = "Only the model's owners can change its prices";
+	private static final String PRICES_CANNOT_BE_REMOVED = "A model's prices cannot be removed, only changed";
+	private static final String COST_PRICE_CANNOT_BE_REMOVED = "The price cost limits count this model's calls at "
+			+ "cannot be removed, only changed";
 
 	private SecurityModelMetadataUtils() {
 	}
@@ -221,46 +235,73 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				? "UPDATE MODELMETADATA SET MODELID=?, CATALOGMODELKEY=?, MODELPROVIDER=?, SERVINGPROVIDER=?, CAPABILITY=?, FAMILY=?, INPUTMODALITIES=?, OUTPUTMODALITIES=?, CONTEXTWINDOW=?, MAXOUTPUTTOKENS=?, BUILTINTOOLS=?, ATTACHMENT=?, REASONING=?, TOOLCALL=?, STRUCTUREDOUTPUT=?, TEMPERATURE=?, KNOWLEDGECUTOFF=?, RELEASEDATE=?, SUPPORTEDPARAMETERS=?, REASONINGCONFIG=?, BENCHMARKS=?, PRICING=? WHERE ENGINEID=?"
 				: "INSERT INTO MODELMETADATA (MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, PRICING, ENGINEID) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement(sql);
-			int index = 1;
-			setNullableString(ps, index++, metadata.modelId());
-			setNullableString(ps, index++, metadata.catalogModelKey());
-			setNullableString(ps, index++, metadata.modelProvider());
-			setNullableString(ps, index++, metadata.servingProvider());
-			setNullableString(ps, index++, metadata.capability());
-			setNullableString(ps, index++, metadata.family());
-			setNullableString(ps, index++, metadata.inputModalitiesJson());
-			setNullableString(ps, index++, metadata.outputModalitiesJson());
-			setNullableLong(ps, index++, metadata.contextWindow());
-			setNullableLong(ps, index++, metadata.maxOutputTokens());
-			setNullableString(ps, index++, metadata.builtinToolsJson());
-			setNullableBoolean(ps, index++, metadata.attachment());
-			setNullableBoolean(ps, index++, metadata.reasoning());
-			setNullableBoolean(ps, index++, metadata.toolCall());
-			setNullableBoolean(ps, index++, metadata.structuredOutput());
-			setNullableBoolean(ps, index++, metadata.temperature());
-			setNullableString(ps, index++, metadata.knowledgeCutoff());
-			setNullableString(ps, index++, metadata.releaseDate());
-			setNullableString(ps, index++, metadata.supportedParametersJson());
-			setNullableString(ps, index++, metadata.reasoningConfigJson());
-			setNullableString(ps, index++, metadata.benchmarksJson());
-			setNullableString(ps, index++, metadata.pricingJson());
-			ps.setString(index, metadata.engineId());
-			ps.executeUpdate();
-			ConnectionUtils.commitConnection(ps.getConnection());
-		} catch (SQLException e) {
+			QueryExecutionUtility.executeUpdate(securityDb, sql, ps -> {
+				int index = 1;
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.modelId());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.catalogModelKey());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.modelProvider());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.servingProvider());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.capability());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.family());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.inputModalitiesJson());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.outputModalitiesJson());
+				setNullableLong(ps, index++, metadata.contextWindow());
+				setNullableLong(ps, index++, metadata.maxOutputTokens());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.builtinToolsJson());
+				setNullableBoolean(ps, index++, metadata.attachment());
+				setNullableBoolean(ps, index++, metadata.reasoning());
+				setNullableBoolean(ps, index++, metadata.toolCall());
+				setNullableBoolean(ps, index++, metadata.structuredOutput());
+				setNullableBoolean(ps, index++, metadata.temperature());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.knowledgeCutoff());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.releaseDate());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.supportedParametersJson());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.reasoningConfigJson());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.benchmarksJson());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.pricingJson());
+				ps.setString(index, metadata.engineId());
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to upsert model metadata for engine {}", engineId, e);
 			throw new IllegalArgumentException("Failed to save model metadata", e);
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+			// the price entry the model's cost is worked out with may have changed
+			ModelUsageCost.clearCache(metadata.engineId());
 		}
 	}
 
 	/**
+	 * Update the user-editable metadata for a user who edits the model, which the
+	 * caller checks: {@link Constants#PRICING} needs an owner of the model,
+	 * directly or through a team, or an admin, since the prices decide how far the
+	 * model's cost limits go. Editors change every other key.
+	 *
+	 * @param user     the user, an editor of the model
+	 * @param engineId the model
+	 * @param updates  the metadata to change, by {@link Constants} key
+	 * @throws IllegalArgumentException when the user may not change the prices, the
+	 *                                  prices would be removed, or a value is not
+	 *                                  valid
+	 */
+	public static void updateModelMetadata(User user, String engineId, Map<String, Object> updates) {
+		if (updates != null && updates.containsKey(Constants.PRICING)
+				&& !SecurityEngineUtils.userIsOwner(user, engineId) && SecurityAdminUtils.getInstance(user) == null) {
+			throw new IllegalArgumentException(PRICES_OWNERS_ONLY);
+		}
+		updateModelMetadata(engineId, updates);
+	}
+
+	/**
 	 * Update the user-editable metadata while preserving the provider model id,
-	 * which is part of the engine's runtime configuration.
+	 * which is part of the engine's runtime configuration. Prices can be changed
+	 * but not removed. This checks no permissions; a user's change goes through
+	 * {@link #updateModelMetadata(User, String, Map)}.
+	 *
+	 * @throws IllegalArgumentException when a key cannot be edited, the prices
+	 *                                  would be removed, or a value is not valid
 	 */
 	public static void updateModelMetadata(String engineId, Map<String, Object> updates) {
 		if (updates == null) {
@@ -270,6 +311,14 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			if (!EDITABLE_METADATA_KEYS.contains(key)) {
 				throw new IllegalArgumentException("Unallowed model metadata field " + key);
 			}
+		}
+		if (updates.containsKey(Constants.PRICING) && removesPrices(updates.get(Constants.PRICING))) {
+			throw new IllegalArgumentException(PRICES_CANNOT_BE_REMOVED);
+		}
+		// any other provider's price can be removed, but not the one cost limits use,
+		// so they always keep a price to count at; its rates can change
+		if (updates.containsKey(Constants.PRICING) && removesCostPrice(engineId, updates.get(Constants.PRICING))) {
+			throw new IllegalArgumentException(COST_PRICE_CANNOT_BE_REMOVED);
 		}
 
 		Map<String, Object> merged = toDetails(getModelMetadata(engineId));
@@ -425,6 +474,10 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 		for (Map.Entry<String, Object> entry : defaults.entrySet()) {
 			String key = entry.getKey();
+			// prices are replaced only by prices of the catalog's own, never removed
+			if (Constants.PRICING.equals(key) && nullableString(entry.getValue()) == null) {
+				continue;
+			}
 			Object current = merged.get(key);
 			boolean changed = force ? !sameNormalizedValue(key, current, entry.getValue())
 					: nullableString(current) == null;
@@ -552,22 +605,14 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	public static Map<String, Object> getModelMetadata(String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, PRICING FROM MODELMETADATA WHERE ENGINEID=?";
-		PreparedStatement ps = null;
-		ResultSet rs = null;
 		try {
-			ps = securityDb.getPreparedStatement(sql);
-			ps.setString(1, engineId);
-			rs = ps.executeQuery();
-			if (!rs.next()) {
-				return null;
-			}
-
-			return readModelMetadata(rs);
-		} catch (SQLException e) {
+			return QueryExecutionUtility.queryOne(securityDb, sql, ps -> ps.setString(1, engineId),
+					SecurityModelMetadataUtils::readModelMetadata);
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to retrieve model metadata for engine {}", engineId, e);
 			throw new IllegalArgumentException("Failed to retrieve model metadata", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps, rs);
 		}
 	}
 
@@ -596,23 +641,26 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, PRICING FROM MODELMETADATA WHERE ENGINEID IN ("
 					+ placeholders + ")";
 
-			PreparedStatement ps = null;
-			ResultSet rs = null;
 			try {
-				ps = securityDb.getPreparedStatement(sql);
-				for (int i = 0; i < batch.size(); i++) {
-					ps.setString(i + 1, batch.get(i));
-				}
-				rs = ps.executeQuery();
-				while (rs.next()) {
-					Map<String, Object> metadata = readModelMetadata(rs);
-					metadataByEngine.put((String) metadata.get("engineId"), metadata);
-				}
-			} catch (SQLException e) {
+				QueryExecutionUtility.read(securityDb, connection -> {
+					try (PreparedStatement ps = connection.prepareStatement(sql)) {
+						for (int i = 0; i < batch.size(); i++) {
+							ps.setString(i + 1, batch.get(i));
+						}
+						try (ResultSet rs = ps.executeQuery()) {
+							while (rs.next()) {
+								Map<String, Object> metadata = readModelMetadata(rs);
+								metadataByEngine.put((String) metadata.get("engineId"), metadata);
+							}
+						}
+					}
+					return null;
+				});
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
 				classLogger.error("Failed to retrieve model metadata for engines", e);
 				throw new IllegalArgumentException("Failed to retrieve model metadata", e);
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps, rs);
 			}
 		}
 		return metadataByEngine;
@@ -654,18 +702,72 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	public static void deleteModelMetadata(String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("DELETE FROM MODELMETADATA WHERE ENGINEID=?");
-			ps.setString(1, engineId);
-			ps.executeUpdate();
-			ConnectionUtils.commitConnection(ps.getConnection());
-		} catch (SQLException e) {
+			QueryExecutionUtility.executeUpdate(securityDb, "DELETE FROM MODELMETADATA WHERE ENGINEID=?",
+					ps -> ps.setString(1, engineId));
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to delete model metadata for engine {}", engineId, e);
 			throw new IllegalArgumentException("Failed to delete model metadata", e);
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+			ModelUsageCost.clearCache(engineId);
 		}
+	}
+
+	/**
+	 * Whether a pricing update would leave the model with no prices, which
+	 * {@link #updateModelMetadata(String, Map)} refuses, since prices can be
+	 * changed but not removed.
+	 *
+	 * @param pricing a {@link Constants#PRICING} value as a caller sends it
+	 * @return whether it leaves no prices: empty, or with no entry that names its
+	 *         serving provider and model id
+	 */
+	private static boolean removesPrices(Object pricing) {
+		Map<String, Object> single = new LinkedHashMap<>();
+		single.put(Constants.PRICING, pricing);
+		normalizePricingProperty(single);
+		return single.get(Constants.PRICING) == null;
+	}
+
+	/**
+	 * Whether a pricing update drops the price entry the model's cost limits count
+	 * at, which {@link #updateModelMetadata(String, Map)} refuses so cost limits
+	 * always keep a price.
+	 *
+	 * @param engineId the model
+	 * @param pricing  a {@link Constants#PRICING} value as a caller sends it
+	 * @return whether it leaves out the entry cost limits count the model's calls
+	 *         at now ({@link ModelUsageCost#priceEntry(String)}), matched on its
+	 *         serving provider and model id; false when the model has no such entry
+	 */
+	private static boolean removesCostPrice(String engineId, Object pricing) {
+		Map<String, Object> used = ModelUsageCost.priceEntry(engineId);
+		if (used == null) {
+			return false;
+		}
+		Map<String, Object> single = new LinkedHashMap<>();
+		single.put(Constants.PRICING, pricing);
+		normalizePricingProperty(single);
+		Object json = single.get(Constants.PRICING);
+		List<?> entries = json == null ? null : parseStoredPricing(json.toString());
+		if (entries == null) {
+			return true;
+		}
+		String usedProvider = StaticBuiltinToolsCatalog
+				.normalizeProviderKey(nullableString(used.get("servingProvider")));
+		String usedModelId = nullableString(used.get("modelId"));
+		for (Object element : entries) {
+			if (element instanceof Map<?, ?> entry
+					&& Objects.equals(usedProvider,
+							StaticBuiltinToolsCatalog
+									.normalizeProviderKey(nullableString(entry.get("servingProvider"))))
+					&& Objects.equals(usedModelId, nullableString(entry.get("modelId")))) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static boolean containsMetadata(Map<String, Object> details) {
@@ -1109,25 +1211,14 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	private static boolean modelMetadataExists(IRDBMSEngine securityDb, String engineId) {
-		PreparedStatement ps = null;
-		ResultSet rs = null;
 		try {
-			ps = securityDb.getPreparedStatement("SELECT ENGINEID FROM MODELMETADATA WHERE ENGINEID=?");
-			ps.setString(1, engineId);
-			rs = ps.executeQuery();
-			return rs.next();
-		} catch (SQLException e) {
+			return Boolean.TRUE.equals(
+					QueryExecutionUtility.queryOne(securityDb, "SELECT ENGINEID FROM MODELMETADATA WHERE ENGINEID=?",
+							ps -> ps.setString(1, engineId), rs -> true));
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			throw new IllegalArgumentException("Failed to inspect model metadata", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps, rs);
-		}
-	}
-
-	private static void setNullableString(PreparedStatement ps, int index, String value) throws SQLException {
-		if (value == null) {
-			ps.setNull(index, Types.VARCHAR);
-		} else {
-			ps.setString(index, value);
 		}
 	}
 

@@ -32,10 +32,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,12 +48,14 @@ import org.junit.jupiter.api.Test;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
+import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.util.SystemEngineRegistry;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 
 public class SecurityNativeUserUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -129,19 +133,34 @@ public class SecurityNativeUserUtilsUnitTests extends AbstractSecurityUtilsUnitT
 
 	@Test
 	void testStoreUserPasswords_DeleteOldPasswords() throws Exception {
-		AccessToken newUser = UnitTestSecurityAuthUtils.createAccessToken("test");
-		SecurityNativeUserUtils.addNativeUser(newUser, "Test123!");
+		PasswordRequirements requirements = PasswordRequirements.getInstance();
+		int reuseCount = requirements.getPassReuseCount();
+		requirements.setPassReuseCount(3);
+		try {
+			AccessToken newUser = UnitTestSecurityAuthUtils.createAccessToken("test");
+			SecurityNativeUserUtils.addNativeUser(newUser, "Test123!");
 
-		// default password reset is 10. Add native stores a password. The first 9
-		// iterations adds passwords
-		// the 10th iteration should delete the oldest password. No good way to inspect
-		// database to ensure this happens.
-		// but testing to make sure no error is thrown for deletion query
-		for (int i = 0; i < 10; i++) {
-			Timestamp ts = Timestamp.valueOf(LocalDateTime.now());
-			SecurityNativeUserUtils.storeUserPassword(newUser.getId(), newUser.getProvider().toString(), "hashed",
-					"salt", ts);
+			// each newer than the password the user was added with
+			for (int i = 0; i < 5; i++) {
+				Timestamp ts = Timestamp.valueOf(LocalDateTime.of(2100, 1, 1, 0, i));
+				SecurityNativeUserUtils.storeUserPassword(newUser.getId(), newUser.getProvider().toString(),
+						"hashed" + i, "salt", ts);
+			}
+
+			// the newest three are kept
+			assertEquals(List.of("hashed2", "hashed3", "hashed4"), storedPasswords(newUser.getId()));
+		} finally {
+			requirements.setPassReuseCount(reuseCount);
 		}
+	}
+
+	/**
+	 * @return the user's stored passwords, oldest first
+	 */
+	private List<String> storedPasswords(String userId) throws Exception {
+		return QueryExecutionUtility.queryList(securityDb,
+				"SELECT PASSWORD FROM PASSWORD_HISTORY WHERE USERID=? ORDER BY DATE_ADDED",
+				ps -> ps.setString(1, userId), rs -> rs.getString(1));
 	}
 
 	///
@@ -333,6 +352,46 @@ public class SecurityNativeUserUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		AccessToken newUser = UnitTestSecurityAuthUtils.createAccessToken("test");
 		assertTrue(SecurityNativeUserUtils.addNativeUser(newUser, "Test123!"));
 		assertFalse(SecurityNativeUserUtils.isPreviousPassword(newUser.getId(), newUser.getProvider(), "wrong"));
+	}
+
+	@Test
+	void testIsPreviousPassword_onlyTheNewestPasswordsCount() throws Exception {
+		PasswordRequirements requirements = PasswordRequirements.getInstance();
+		int reuseCount = requirements.getPassReuseCount();
+		requirements.setPassReuseCount(2);
+		try {
+			AccessToken newUser = UnitTestSecurityAuthUtils.createAccessToken("test");
+			assertTrue(SecurityNativeUserUtils.addNativeUser(newUser, "Test123!"));
+			SecurityNativeUserUtils.storeUserPassword(newUser.getId(), newUser.getProvider().toString(),
+					AbstractSecurityUtils.hash("Other123!", "salt"), "salt",
+					Timestamp.valueOf(LocalDateTime.of(2100, 1, 1, 0, 0)));
+
+			// the history now holds more passwords than the rule covers
+			requirements.setPassReuseCount(1);
+			assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
+				assertTrue(SecurityNativeUserUtils.isPreviousPassword(newUser.getId(), newUser.getProvider(),
+						"Other123!"));
+				assertFalse(
+						SecurityNativeUserUtils.isPreviousPassword(newUser.getId(), newUser.getProvider(), "Test123!"));
+			});
+		} finally {
+			requirements.setPassReuseCount(reuseCount);
+		}
+	}
+
+	@Test
+	void testIsPreviousPassword_reuseAllowed() throws Exception {
+		PasswordRequirements requirements = PasswordRequirements.getInstance();
+		int reuseCount = requirements.getPassReuseCount();
+		requirements.setPassReuseCount(0);
+		try {
+			AccessToken newUser = UnitTestSecurityAuthUtils.createAccessToken("test");
+			assertTrue(SecurityNativeUserUtils.addNativeUser(newUser, "Test123!"));
+			assertTimeoutPreemptively(Duration.ofSeconds(10), () -> assertFalse(
+					SecurityNativeUserUtils.isPreviousPassword(newUser.getId(), newUser.getProvider(), "Test123!")));
+		} finally {
+			requirements.setPassReuseCount(reuseCount);
+		}
 	}
 
 	///

@@ -58,6 +58,7 @@ import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
 import prerna.om.Insight;
 import prerna.util.Constants;
+import prerna.util.ValueUtils;
 
 /**
  * What a reading mail engine looks like from outside.
@@ -152,12 +153,12 @@ public abstract class AbstractMailStoreFunctionEngine extends AbstractFunctionEn
 		this.allowedSenderDomains = this.readPolicy.allowedSenderDomains();
 
 		this.transportName = Microsoft365MailOAuth.resolveTransport(properties, getDefaultTransport());
-		this.username = MailProperties.trimToNull(properties.getProperty(key(USERNAME_SUFFIX)));
+		this.username = ValueUtils.trimToNull(properties.getProperty(key(USERNAME_SUFFIX)));
 		if (this.username == null) {
 			throw new IllegalArgumentException(
 					"Must define " + key(USERNAME_SUFFIX) + " to know which mailbox to open");
 		}
-		this.password = MailProperties.trimToNull(properties.getProperty(key(PASSWORD_SUFFIX)));
+		this.password = ValueUtils.trimToNull(properties.getProperty(key(PASSWORD_SUFFIX)));
 
 		openProtocolProperties(properties);
 		if (isGraphTransport()) {
@@ -496,23 +497,6 @@ public abstract class AbstractMailStoreFunctionEngine extends AbstractFunctionEn
 	 */
 	protected static List<String> splitList(String value) {
 		return MailProperties.splitList(value);
-	}
-
-	/**
-	 * @param value        the configured value
-	 * @param defaultValue what it is when nothing was configured
-	 * @return the value
-	 */
-	protected static boolean parseBoolean(String value, boolean defaultValue) {
-		return MailProperties.parseBoolean(value, defaultValue);
-	}
-
-	/**
-	 * @param value the value to trim
-	 * @return it without surrounding space, or null when there is nothing left
-	 */
-	protected static String trimToNull(String value) {
-		return MailProperties.trimToNull(value);
 	}
 
 	/**

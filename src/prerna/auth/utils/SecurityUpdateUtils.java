@@ -33,7 +33,10 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,6 +44,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
+import prerna.auth.access.ModelUsageLimit;
+import prerna.auth.access.ModelUsageLimitKey;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -51,13 +56,37 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditSeverity;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityUpdateUtils.class);
+
+	/** Moves a person's permissions to a new id: new id, then old id */
+	private static final String[] MOVE_PERMISSIONS = new String[] {
+			"UPDATE ENGINEPERMISSION SET USERID=? WHERE USERID=?",
+			"UPDATE PROJECTPERMISSION SET USERID=? WHERE USERID=?",
+			"UPDATE USERINSIGHTPERMISSION SET USERID=? WHERE USERID=?" };
+	/**
+	 * Moves the model usage limits on a person's grants to a new id and login type:
+	 * new id, new type, the key type of a person's limit, old id, then the old type
+	 * when there is one; the limits kept with no login type move too
+	 */
+	private static final String MOVE_DIRECT_LIMITS = "UPDATE MODELUSAGELIMIT SET SUBJECTID=?, SUBJECTTYPE=? "
+			+ "WHERE LIMITTYPE=? AND ENGINEID IS NOT NULL AND SUBJECTID=? AND (SUBJECTTYPE IS NULL";
+	/**
+	 * Moves a person's all-models default to a new id and login type: new id, new
+	 * type, the key type of a person's limit, old id, then the old type's condition
+	 */
+	private static final String MOVE_ALL_MODELS_DEFAULT = "UPDATE MODELUSAGELIMIT SET SUBJECTID=?, SUBJECTTYPE=? "
+			+ "WHERE LIMITTYPE=? AND ENGINEID IS NULL AND SUBJECTID=? AND SUBJECTTYPE";
 
 	/**
 	 * Only used for static references
@@ -87,6 +116,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		// but name is the admin_added_user constant
 		SelectQueryStruct adminAddedUserQs = new SelectQueryStruct();
 		adminAddedUserQs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		adminAddedUserQs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
 		AndQueryFilter nameAndIdMatchFiltre = new AndQueryFilter();
 		{
 			OrQueryFilter or = new OrQueryFilter();
@@ -113,57 +143,27 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		adminAddedUserQs.addExplicitFilter(nameAndIdMatchFiltre);
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, adminAddedUserQs)) {
 			if (wrapper.hasNext()) {
-				// this was the old id that was added when the admin
-				String oldId = wrapper.next().getValues()[0].toString();
+				// this was the old id and type that was added when the admin
+				Object[] adminAddedValues = wrapper.next().getValues();
+				String oldId = adminAddedValues[0].toString();
+				String oldType = adminAddedValues[1] == null ? null : adminAddedValues[1].toString();
 				String newId = newUser.getId();
 				// this user was added by the user
 				// and we need to update
 				{
 					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-					String updateQuery = "UPDATE SMSS_USER SET ID=?, TYPE=?, NAME=?, USERNAME=?, EMAIL=?, LASTLOGIN=?, MODELMAXTOKENS=?, MODELMAXRESPONSETIME=?, MODELUSAGEFREQUENCY=?, MODELUSAGERESTRICTION=? WHERE ID=?";
+					String updateQuery = "UPDATE SMSS_USER SET ID=?, TYPE=?, NAME=?, USERNAME=?, EMAIL=?, LASTLOGIN=? WHERE ID=?";
 					PreparedStatement ps = null;
 					try {
 						int parameterIndex = 1;
 						ps = securityDb.getPreparedStatement(updateQuery);
 						ps.setString(parameterIndex++, newId);
 						ps.setString(parameterIndex++, newUser.getProvider().toString());
-						if (newUser.getName() == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getName());
-						}
-						if (newUser.getUsername() == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getUsername());
-						}
-						if (newUser.getEmail() == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getEmail());
-						}
+						securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getName());
+						securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getUsername());
+						securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getEmail());
 						ps.setTimestamp(parameterIndex++, timestamp);
-						if (newUser.getModelMaxTokens() == 0) {
-							ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-						} else {
-							ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
-						}
-						if (newUser.getModelMaxResponseTime() == 0.0) {
-							ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-						} else {
-							ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
-						}
-						if (newUser.getModelUsageRestriction() == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
-						}
-						if (newUser.getModelUsageFrequency() == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
-						}
 						ps.setString(parameterIndex++, oldId);
 						ps.execute();
 						if (!ps.getConnection().getAutoCommit()) {
@@ -181,32 +181,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					}
 				}
 
-				// need to update any other permissions that were set for this user
-				String[] queries = new String[] { "UPDATE ENGINEPERMISSION SET USERID=? WHERE USERID=?",
-						"UPDATE PROJECTPERMISSION SET USERID=? WHERE USERID=?",
-						"UPDATE USERINSIGHTPERMISSION SET USERID=? WHERE USERID=?", };
-				for (String updateQuery : queries) {
-					PreparedStatement ps = null;
-					try {
-						int parameterIndex = 1;
-						ps = securityDb.getPreparedStatement(updateQuery);
-						ps.setString(parameterIndex++, newId);
-						ps.setString(parameterIndex++, oldId);
-						ps.execute();
-						if (!ps.getConnection().getAutoCommit()) {
-							ps.getConnection().commit();
-						}
-					} catch (SQLException e) {
-						classLogger.error("Unable to add or synchronize OAuth user records.", e);
-					} finally {
-						if (ps != null) {
-							ps.close();
-						}
-						if (ps != null && securityDb.isConnectionPooling()) {
-							ps.getConnection().close();
-						}
-					}
-				}
+				// need to update any other permissions that were set for this user, and the
+				// model usage limits the admin set, which are kept
+				moveAdminAddedUser(securityDb, oldId, oldType, newId, newUser.getProvider().toString());
 
 			} else {
 				// not added by admin
@@ -243,28 +220,16 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					if (!userExists) {
 						java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-						String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY,MODELUSAGERESTRICTION) "
-								+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+						String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN) "
+								+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
 						PreparedStatement ps = null;
 						try {
 							ps = securityDb.getPreparedStatement(insertQuery);
 							int parameterIndex = 1;
 							ps.setString(parameterIndex++, newUser.getId());
-							if (newUser.getName() == null) {
-								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-							} else {
-								ps.setString(parameterIndex++, newUser.getName());
-							}
-							if (newUser.getUsername() == null) {
-								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-							} else {
-								ps.setString(parameterIndex++, newUser.getUsername());
-							}
-							if (newUser.getEmail() == null) {
-								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-							} else {
-								ps.setString(parameterIndex++, newUser.getEmail());
-							}
+							securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getName());
+							securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getUsername());
+							securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getEmail());
 							ps.setString(parameterIndex++, newUser.getProvider().toString());
 							// we never add ADMIN this way
 							ps.setBoolean(parameterIndex++, false);
@@ -272,26 +237,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setBoolean(parameterIndex++, !adminSetExporter());
 							ps.setTimestamp(parameterIndex++, timestamp);
 							ps.setTimestamp(parameterIndex++, timestamp);
-							if (newUser.getModelMaxTokens() == 0) {
-								ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
-							} else {
-								ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
-							}
-							if (newUser.getModelMaxResponseTime() == 0.0) {
-								ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
-							} else {
-								ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
-							}
-							if (newUser.getModelUsageRestriction() == null) {
-								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-							} else {
-								ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
-							}
-							if (newUser.getModelUsageFrequency() == null) {
-								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-							} else {
-								ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
-							}
 							ps.execute();
 							if (!ps.getConnection().getAutoCommit()) {
 								ps.getConnection().commit();
@@ -327,6 +272,69 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Moves what an admin set up for a person to the id and login type they sign in
+	 * with the first time, in one transaction: their permissions, the model usage
+	 * limits on their grants and their all-models default, which keeps the limits
+	 * the admin set.
+	 *
+	 * @param securityDb the security database
+	 * @param oldId      the id the admin added the person with
+	 * @param oldType    the login type the admin added the person with, or null
+	 * @param newId      the id they sign in with
+	 * @param newType    the login type they sign in with
+	 */
+	static void moveAdminAddedUser(IRDBMSEngine securityDb, String oldId, String oldType, String newId,
+			String newType) {
+		boolean idChanges = !oldId.equals(newId);
+		if (!idChanges && Objects.equals(oldType, newType)) {
+			return;
+		}
+		String userKeyType = ModelUsageLimitKey.Type.USER.name();
+		String moveAllModelsDefault = MOVE_ALL_MODELS_DEFAULT + (oldType == null ? " IS NULL" : "=?");
+		String moveDirectLimits = MOVE_DIRECT_LIMITS + (oldType == null ? ")" : " OR SUBJECTTYPE=?)");
+		try {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				if (idChanges) {
+					for (String updateQuery : MOVE_PERMISSIONS) {
+						QueryExecutionUtility.executeUpdate(connection, updateQuery, ps -> {
+							ps.setString(1, newId);
+							ps.setString(2, oldId);
+						});
+					}
+				}
+				QueryExecutionUtility.executeUpdate(connection, moveDirectLimits, ps -> {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, newId);
+					ps.setString(parameterIndex++, newType);
+					ps.setString(parameterIndex++, userKeyType);
+					ps.setString(parameterIndex++, oldId);
+					if (oldType != null) {
+						ps.setString(parameterIndex++, oldType);
+					}
+				});
+				QueryExecutionUtility.executeUpdate(connection, moveAllModelsDefault, ps -> {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, newId);
+					ps.setString(parameterIndex++, newType);
+					ps.setString(parameterIndex++, userKeyType);
+					ps.setString(parameterIndex++, oldId);
+					if (oldType != null) {
+						ps.setString(parameterIndex++, oldType);
+					}
+				});
+				return null;
+			});
+			SecurityModelUsageLimitUtils.markChanged();
+		} catch (Exception e) {
+			classLogger.error("Unable to move the permissions and model usage limits of an admin added user.", e);
+		}
+	}
+
+	/**
+	 * Checks a login against its stored account. It sets the token's locked flag,
+	 * last login and last password reset, and locks the account when its last login
+	 * is older than the configured days to lock. When the login is not locked, it
+	 * records the login time and saves or loads the token's user metadata.
 	 * 
 	 * @param newUser
 	 * @return
@@ -454,41 +462,24 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			return false;
 		}
 		updateQuery.append("WHERE ID=? AND TYPE=?");
-		PreparedStatement ps = null;
 		try {
-			int parameterIndex = 1;
-			ps = securityDb.getPreparedStatement(updateQuery.toString());
-			// loop through the set for the values
-			for (int i = 0; i < hasVal.size(); i++) {
-				if (hasVal.get(i)) {
-					ps.setString(parameterIndex++, values.get(i));
+			QueryExecutionUtility.executeUpdate(securityDb, updateQuery.toString(), ps -> {
+				int parameterIndex = 1;
+				// loop through the set for the values
+				for (int i = 0; i < hasVal.size(); i++) {
+					if (hasVal.get(i)) {
+						ps.setString(parameterIndex++, values.get(i));
+					}
 				}
-			}
-			// always ahve the where clause
-			ps.setString(parameterIndex++, existingToken.getId());
-			ps.setString(parameterIndex++, existingToken.getProvider().toString());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+				// always ahve the where clause
+				ps.setString(parameterIndex++, existingToken.getId());
+				ps.setString(parameterIndex++, existingToken.getProvider().toString());
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to update OAuth user profile information.", e);
 			return false;
-		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					classLogger.error("Unable to update OAuth user profile information.", e);
-				}
-			}
-			if (ps != null && securityDb.isConnectionPooling()) {
-				try {
-					ps.getConnection().close();
-				} catch (SQLException e) {
-					classLogger.error("Unable to update OAuth user profile information.", e);
-				}
-			}
 		}
 
 		return true;
@@ -497,34 +488,18 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	public static void lockUserAccount(boolean isLocked, String userId, AuthProvider type) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String updateQuery = "UPDATE SMSS_USER SET LOCKED=? WHERE ID=? AND TYPE=?";
-		PreparedStatement ps = null;
 		try {
-			int parameterIndex = 1;
-			ps = securityDb.getPreparedStatement(updateQuery);
-			ps.setBoolean(parameterIndex++, isLocked);
-			ps.setString(parameterIndex++, userId);
-			ps.setString(parameterIndex++, type.toString());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			AuthProvider boundType = type;
+			QueryExecutionUtility.executeUpdate(securityDb, updateQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, isLocked);
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, boundType.toString());
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to update the user lock status.", e);
-		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					classLogger.error("Unable to update the user lock status.", e);
-				}
-			}
-			if (ps != null && securityDb.isConnectionPooling()) {
-				try {
-					ps.getConnection().close();
-				} catch (SQLException e) {
-					classLogger.error("Unable to update the user lock status.", e);
-				}
-			}
 		}
 	}
 
@@ -533,40 +508,25 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		// update the user last login
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		String updateQuery = "UPDATE SMSS_USER SET LASTLOGIN=? WHERE ID=? AND TYPE=?";
-		PreparedStatement ps = null;
 		try {
-			int parameterIndex = 1;
-			ps = securityDb.getPreparedStatement(updateQuery);
-			ps.setTimestamp(parameterIndex++, timestamp);
-			ps.setString(parameterIndex++, userId);
-			ps.setString(parameterIndex++, type.toString());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			AuthProvider boundType = type;
+			QueryExecutionUtility.executeUpdate(securityDb, updateQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setTimestamp(parameterIndex++, timestamp);
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, boundType.toString());
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to update the user last-login timestamp.", e);
-		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					classLogger.error("Unable to update the user last-login timestamp.", e);
-				}
-			}
-			if (ps != null && securityDb.isConnectionPooling()) {
-				try {
-					ps.getConnection().close();
-				} catch (SQLException e) {
-					classLogger.error("Unable to update the user last-login timestamp.", e);
-				}
-			}
 		}
 	}
 
 	/**
-	 * Adds a new user to the database. Does not create any relations, simply the
-	 * node.
+	 * Adds a new user to the database, with their all-models default, in one
+	 * transaction. Does not create any relations, simply the node. The default is
+	 * kept when the person signs in for the first time.
 	 * 
 	 * @param id
 	 * @param name
@@ -576,17 +536,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param admin
 	 * @param publisher
 	 * @param exporter
-	 * @param modelMaxResponseTime
-	 * @param modelMaxTokens
-	 * @param modelUsageFrequency
-	 * @param modelUsageRestriction
+	 * @param modelUsageLimit the person's model usage limit across all models, or
+	 *                        null for no limit defined
 	 * @return
-	 * @throws IllegalArgumentException
+	 * @throws IllegalArgumentException when the limit is not valid
 	 */
 	public static boolean registerUser(String id, String name, String email, String password, String type, String phone,
 			String phoneextension, String countrycode, boolean admin, boolean publisher, boolean exporter,
-			String modelUsageRestriction, String modelUsageFrequency, Integer modelMaxTokens,
-			Double modelMaxResponseTime) throws IllegalArgumentException {
+			ModelUsageLimit modelUsageLimit) throws IllegalArgumentException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean isExistingUser = SecurityQueryUtils.checkUserExist(id);
 		if (isExistingUser) {
@@ -654,68 +611,65 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if (countrycode == null) {
 			countrycode = "";
 		}
+		ModelUsageLimitKey allModelsKey = ModelUsageLimitKey.allModels(id, type);
+		ModelUsageLimit allModelsDefault = SecurityModelUsageLimitUtils.requireValid(modelUsageLimit, allModelsKey,
+				true);
 
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 		String query = "INSERT INTO SMSS_USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, "
-				+ "PHONE, PHONEEXTENSION, COUNTRYCODE, " + "ADMIN, PUBLISHER, EXPORTER, "
-				+ "MODELUSAGERESTRICTION, MODELUSAGEFREQUENCY, MODELMAXTOKENS, MODELMAXRESPONSETIME, " + "DATECREATED) "
-				+ "VALUES (?,?,?,?,?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,?," + "?)";
-		PreparedStatement ps = null;
+				+ "PHONE, PHONEEXTENSION, COUNTRYCODE, ADMIN, PUBLISHER, EXPORTER, DATECREATED) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		try {
-			ps = securityDb.getPreparedStatement(query);
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, id);
-			ps.setString(parameterIndex++, userName);
-			ps.setString(parameterIndex++, name);
-			ps.setString(parameterIndex++, email.toLowerCase());
-			ps.setString(parameterIndex++, hashedPassword);
-			ps.setString(parameterIndex++, salt);
-			ps.setString(parameterIndex++, type);
-			ps.setString(parameterIndex++, phone);
-			ps.setString(parameterIndex++, phoneextension);
-			ps.setString(parameterIndex++, countrycode);
-			ps.setBoolean(parameterIndex++, admin);
-			ps.setBoolean(parameterIndex++, publisher);
-			ps.setBoolean(parameterIndex++, exporter);
-			if (modelUsageRestriction != null && !(modelUsageRestriction = modelUsageRestriction.trim()).isEmpty()) {
-				ps.setString(parameterIndex++, modelUsageRestriction);
-			} else {
-				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-			}
-			if (modelUsageFrequency != null && !(modelUsageFrequency = modelUsageFrequency.trim()).isEmpty()) {
-				ps.setString(parameterIndex++, modelUsageFrequency);
-			} else {
-				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-			}
-			if (modelMaxTokens != null && modelMaxTokens > 0) {
-				ps.setInt(parameterIndex++, modelMaxTokens);
-			} else {
-				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-			}
-			if (modelMaxResponseTime != null && modelMaxResponseTime > 0) {
-				ps.setDouble(parameterIndex++, modelMaxResponseTime);
-			} else {
-				ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-			}
-			ps.setTimestamp(parameterIndex++, timestamp);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to update the user last-login timestamp.", e);
-		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-					if (securityDb.isConnectionPooling()) {
-						ps.getConnection().close();
-					}
-				} catch (SQLException e) {
-					classLogger.error("Unable to update the user last-login timestamp.", e);
+			String boundUserName = userName;
+			String boundName = name;
+			String boundEmail = email;
+			String boundHashedPassword = hashedPassword;
+			String boundSalt = salt;
+			String boundType = type;
+			String boundPhone = phone;
+			String boundPhoneextension = phoneextension;
+			String boundCountrycode = countrycode;
+			QueryExecutionUtility.write(securityDb, connection -> {
+				QueryExecutionUtility.executeUpdate(connection, query, ps -> {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, id);
+					ps.setString(parameterIndex++, boundUserName);
+					ps.setString(parameterIndex++, boundName);
+					ps.setString(parameterIndex++, boundEmail.toLowerCase());
+					ps.setString(parameterIndex++, boundHashedPassword);
+					ps.setString(parameterIndex++, boundSalt);
+					ps.setString(parameterIndex++, boundType);
+					ps.setString(parameterIndex++, boundPhone);
+					ps.setString(parameterIndex++, boundPhoneextension);
+					ps.setString(parameterIndex++, boundCountrycode);
+					ps.setBoolean(parameterIndex++, admin);
+					ps.setBoolean(parameterIndex++, publisher);
+					ps.setBoolean(parameterIndex++, exporter);
+					ps.setTimestamp(parameterIndex++, timestamp);
+				});
+				if (allModelsDefault != null) {
+					SecurityModelUsageLimitUtils.setLimit(connection, allModelsKey, allModelsDefault, null);
 				}
+				return null;
+			});
+			if (allModelsDefault != null) {
+				SecurityModelUsageLimitUtils.markChanged();
+				ModelUsageLimitAudit.recordAdminChange(null, allModelsKey, null, allModelsDefault);
 			}
+			Map<String, Object> created = new HashMap<>();
+			created.put("name", name);
+			created.put("email", email);
+			created.put("admin", admin);
+			created.put("publisher", publisher);
+			created.put("exporter", exporter);
+			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType(AuditEventType.USER_CREATE)
+					.severity(admin ? AuditSeverity.CRITICAL : null).subject(id, type, name)
+					.target(AuditTargetType.USER, id, name).newValue(created));
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Unable to update the user last-login timestamp.", e);
 		}
 		return true;
 	}

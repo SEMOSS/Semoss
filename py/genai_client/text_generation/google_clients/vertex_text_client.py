@@ -71,6 +71,9 @@ class VertexTextClient(AbstractVertextAiTextGeneration):
                 "Unable to determine author of the message. No 'author' or 'role' provided."
             )
 
+        # fit the output inside the usage ceiling of this ask, before the provider sees it
+        max_new_tokens = self.fit_max_new_tokens(max_new_tokens, prompt)
+
         # convert ask inputs to vertex ai params
         parameters = {
             "prompt": prompt,
