@@ -1630,8 +1630,13 @@ final class AutomationRunExecutionService {
 				? (Map<String, Object>) map
 				: Map.of();
 		String workspaceId = stringValue(config.get(AutomationConstants.CONFIG_WORKSPACE_ID));
+		// a routine's room is a Collaboration room, so the run gets its skills, prompt and tools
+		String projectId = Boolean.TRUE.equals(config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE))
+				? CollaborationUtils.COLLABORATION_PROJECT_ID
+				: null;
 		RoomUtils.createRoomIfNotExists(roomId, executionInsight, null, null,
-				workspaceId == null ? null : workspaceId.trim(), generatedAgentRoomOptions(config), null, null, null);
+				workspaceId == null ? null : workspaceId.trim(), generatedAgentRoomOptions(config), null, projectId,
+				null);
 	}
 
 	/**

@@ -42,6 +42,7 @@ import prerna.collaboration.BrainMemoryRecall;
 import prerna.collaboration.BrainProfileUtils;
 import prerna.collaboration.CollaborationAgentTools;
 import prerna.collaboration.CollaborationPrompts;
+import prerna.collaboration.CollaborationRunMode;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
@@ -84,6 +85,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.ValueUtils;
 
 /**
@@ -196,7 +198,7 @@ public class SemossAgentHarness implements IAgentHarness {
 					HumanDelegationService.requesterName(ctx.getInsight(), delegationActionId)));
 		} else if (CollaborationUtils.isCollaborationRoom(ctx.getRoom())
 				&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH && !agentConfig.hasPptxWorkflow()) {
-			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
+			// DelegateToPerson is on hold; FindPerson stays for email addresses
 			subAgentTools.add(SubAgentToolSynthesizer.buildFindPersonTool());
 		}
 		// Microsoft 365 tools for every agent in a collaboration room
@@ -222,7 +224,12 @@ public class SemossAgentHarness implements IAgentHarness {
 			}
 		}
 
-		String agentSidePrompt = agentConfig.getComposedAgentPrompt();
+		// a Collaboration run's baseline is the Collaboration Agent's own prompt when it is the agent
+		boolean collaborationRun = CollaborationRunMode.of(room) != null && !agentConfig.hasPptxWorkflow();
+		String authoredPrompt = agentConfig.getAuthoredPrompt();
+		boolean agentIsBaseline = collaborationRun && Constants.AGENT_COLLABORATION.equals(agentConfig.getWorkspaceId())
+				&& authoredPrompt != null && !authoredPrompt.isBlank();
+		String agentSidePrompt = agentConfig.getComposedAgentPrompt(!agentIsBaseline);
 
 		Map<String, Object> opts = room.getOptionsMap();
 		boolean hadInstructions = opts.containsKey("instructions");
@@ -232,10 +239,8 @@ public class SemossAgentHarness implements IAgentHarness {
 
 		// a PPTX workflow run has no collaboration tools, so it keeps the general
 		// baseline
-		StringBuilder composed = new StringBuilder(
-				CollaborationUtils.isAssistantRoom(room) && !agentConfig.hasPptxWorkflow()
-						? CollaborationPrompts.THREAD_PROMPT
-						: SemossHarnessPrompts.SYSTEM_PROMPT);
+		StringBuilder composed = new StringBuilder(agentIsBaseline ? authoredPrompt
+				: collaborationRun ? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
 		composed.append("\n\n").append(DeferredAgentTools.PROMPT);
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
@@ -252,9 +257,9 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
-		// what the owner's thread assistant remembers; after the static parts so they
-		// stay cacheable
-		if (CollaborationUtils.isAssistantRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+		// who the owner is and what they asked to remember, in their chat or routine;
+		// after the static parts so they stay cacheable
+		if (CollaborationRunMode.of(room) != null && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
 				&& !agentConfig.hasPptxWorkflow()) {
 			String ownerBlock = BrainProfileUtils.promptBlock(ctx.getInsight().getUser());
 			if (ownerBlock != null) {

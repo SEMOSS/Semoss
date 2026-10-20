@@ -39,7 +39,6 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.playground.PlaygroundUtils;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 /**
  * Collaboration rooms are playground-style rooms under their own system project
@@ -99,10 +98,11 @@ public final class CollaborationUtils {
 
 	/**
 	 * The owner's own assistant chat: a collaboration room started from the home
-	 * page or opened from a thread. An assignee's delegation room is not one.
+	 * page or opened from a thread. An assignee's delegation room and a routine's
+	 * run room are not one.
 	 */
 	public static boolean isAssistantRoom(Room room) {
-		if (!isCollaborationRoom(room)) {
+		if (!isCollaborationRoom(room) || isRoutineRoom(room)) {
 			return false;
 		}
 		Map<String, Object> options = room.getOptionsMap();
@@ -139,15 +139,14 @@ public final class CollaborationUtils {
 	}
 
 	/**
-	 * The agent (COLLAB_THREAD_AGENT_ID) for a thread's assistant as {id, name,
-	 * modelId}; null when none is set, the user cannot view it, or it is disabled.
+	 * The agent behind a chat's assistant, the Collaboration Agent, as {id, name,
+	 * modelId}; null when the user cannot view it or it is not seeded or disabled.
 	 */
 	public static Map<String, Object> threadAgent(User user) {
-		String id = Utility.getDIHelperProperty(Constants.COLLAB_THREAD_AGENT_ID);
-		if (id == null || id.isBlank() || user == null || !SecurityProjectUtils.userCanViewProject(user, id.trim())) {
+		String id = Constants.AGENT_COLLABORATION;
+		if (user == null || !SecurityProjectUtils.userCanViewProject(user, id)) {
 			return null;
 		}
-		id = id.trim();
 		Map<String, Object> row = ModelInferenceLogsUtils.getWorkspaceEntry(id);
 		if (row == null || Boolean.FALSE.equals(row.get("is_active"))) {
 			return null;

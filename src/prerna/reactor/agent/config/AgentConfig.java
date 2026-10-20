@@ -211,10 +211,17 @@ public final class AgentConfig {
 	 * Returns an empty string (never {@code null}) when no layer is populated.
 	 */
 	public String getComposedAgentPrompt() {
+		return getComposedAgentPrompt(true);
+	}
+
+	/** The same, leaving out the authored prompt when a caller already placed it. */
+	public String getComposedAgentPrompt(boolean includeAuthored) {
 		StringBuilder sb = new StringBuilder();
 		appendLayer(sb, agentAgentsMd);
 		appendLayer(sb, workdirAgentsMd);
-		appendLayer(sb, authoredPrompt);
+		if (includeAuthored) {
+			appendLayer(sb, authoredPrompt);
+		}
 		appendLayer(sb, selectedEnginesPrompt);
 		return sb.toString();
 	}

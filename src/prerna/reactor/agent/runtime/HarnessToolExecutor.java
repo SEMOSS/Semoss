@@ -52,7 +52,7 @@ import com.google.gson.Gson;
 
 import prerna.auth.User;
 import prerna.collaboration.CollaborationAgentTools;
-import prerna.collaboration.CollaborationUtils;
+import prerna.collaboration.CollaborationRunMode;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -158,7 +158,7 @@ final class HarnessToolExecutor {
 		// Non-ask tools still execute immediately and write their tool results to the
 		// room. Only ask tools become AGENT_RUN_ACTION rows and pause the run.
 		// a routine run has nobody to approve; its ask tools are refused in executeToolSafely instead
-		List<Map<String, Object>> askToolCalls = CollaborationUtils.isRoutineRoom(room) ? List.of()
+		List<Map<String, Object>> askToolCalls = CollaborationRunMode.isRoutine(room) ? List.of()
 				: getAskToolCalls(toolCalls);
 		if (!askToolCalls.isEmpty()) {
 			List<Map<String, Object>> autoToolCalls = new ArrayList<>();
@@ -527,7 +527,7 @@ final class HarnessToolExecutor {
 
 	private static ToolExecOutcome executeToolSafely(ParsedToolCall tc, AgentRunContext ctx,
 			Map<String, Object> paramMap, String parentJobId, AtomicInteger spawnsRemainingInBatch) {
-		if (CollaborationUtils.isRoutineRoom(ctx.getRoom()) && isAskTool(tc.toolCall)) {
+		if (CollaborationRunMode.isRoutine(ctx.getRoom()) && isAskTool(tc.toolCall)) {
 			return new ToolExecOutcome(tc.rawToolName + " needs the owner's approval, and this scheduled routine runs "
 					+ "without them. Nothing was run. Do not retry it; your answer is delivered to the owner.", false);
 		}

@@ -117,7 +117,7 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Creates or changes one of the owner's routines: an instruction their agent does on a schedule, with "
-				+ "read tools, and delivers only to the owner; by email, files the run makes are attached. Use it when the owner asks for something to happen "
+				+ "the tools that need no approval, and delivers only to the owner; by email, files the run makes are attached. Use it when the owner asks for something to happen "
 				+ "regularly (\"every weekday at 8, summarize what my clients asked for and email it to me\"). Leave "
 				+ "out routineId to create one; pass it, from ListRoutines, to change one, sending only what changes. "
 				+ "The owner approves the exact routine on a card before it is saved. A routine can never send to "
