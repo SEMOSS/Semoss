@@ -85,4 +85,9 @@ To integrate a new vector database:
     *   Authentication details if required by the ChromaDB instance.
 
 Other implementations in SEMOSS exist for services like PineCone, Milvus, and databases with vector capabilities like PGVector (PostgreSQL) and OpenSearch/Elasticsearch.
-```
+
+## Retrieval in agent workflows
+
+Vector engines supply ingestion and retrieval capabilities; model engines supply embeddings and generation as configured by the integration. An agent combines these resources through its permitted tools. Attaching the `vector` skill supplies guidance, not an automatically created index or engine permission.
+
+Use [IVectorDatabaseEngine](../../src/prerna/engine/api/IVectorDatabaseEngine.java) and the [vector implementations](../../src/prerna/engine/impl/vector/) for current method and configuration details. The [vector Docker examples](../../docker-compose-examples/engines/vector.md) cover development services; [agent configuration](../agents/agent_configuration.md) covers reusable tool/skill attachments.

@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.agent.hooks;
 
-import java.util.Map;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
@@ -43,6 +45,7 @@ import prerna.reactor.agent.IAgentRunHook;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
+import prerna.util.git.GitWorkingTreeSnapshot;
 
 
 /**
@@ -62,44 +65,92 @@ import prerna.util.git.GitRepoUtils;
 public final class GitCommitAgentHook implements IAgentRunHook {
 	
 	private static final Logger classLogger = LogManager.getLogger(GitCommitAgentHook.class);
-	
-    @Override
-    public void afterRun(AgentRunContext ctx, AgentHarnessResult result) {
-        AgentRunTarget target = ctx.getAgentTarget();
-        String commitTarget = target != null ? target.toString() : null;
-        try {
-            if (target != null) {
-                if (target.isInsight()) {
-                    classLogger.info("GitCommitAgentHook: insight/room target has no project repository; skipping git commit");
-                    return;
-                }
-                String gitFolder = target.getGitFolder();
-                String projectId = target.getProjectId();
-                User user = ctx.getInsight().getUser();
-                GitRepoUtils.addAllChangesAndCommit(gitFolder, true, "Coding Agent Edit", user);
-                classLogger.info("GitCommitAgentHook: committed target projectId={}", projectId);
-                return;
-            }
+	private String preRunGitFolder;
+	private GitWorkingTreeSnapshot preRunSnapshot;
 
-            Map<String, Object> paramMap = ctx.getAgentConfig().getModelParams();
-            String projectId = Objects.toString(paramMap.get("project"), null);
-            commitTarget = "projectId=" + projectId;
-            if (projectId == null || projectId.trim().isEmpty()) {
-                classLogger.error("GitCommitAgentHook: missing project id skipping git commit");
-                return;
-            }
-            IEngine projectEngine = Utility.getProject(projectId.trim());
-            if (projectEngine == null) {
-                classLogger.error("GitCommitAgentHook: project not found for id={} skipping git commit", projectId);
-                return;
-            }
-            String projectName = projectEngine.getEngineName();
-            String gitFolder = EngineUtility.getSpecificEngineVersionFolder(CATALOG_TYPE.PROJECT, projectId.trim(),
-                    projectName);
-            User user = ctx.getInsight().getUser();
-            GitRepoUtils.addAllChangesAndCommit(gitFolder, true, "Coding Agent Edit", user);
-        } catch (Exception e) {
-            classLogger.error("GitCommitAgentHook: git commit failed for target={}", commitTarget, e);
-        }
+	/**
+	 * Returns repositories in the order they must be committed. Some project
+	 * workspaces contain an independently cloned {@code assets} repository that
+	 * the outer version repository tracks as a gitlink. Commit the nested
+	 * repository first so the outer commit can record its new HEAD.
+	 */
+	static List<String> getGitFoldersInCommitOrder(String gitFolder) {
+		List<String> folders = new ArrayList<>(2);
+		File assetsFolder = new File(gitFolder, "assets");
+		if (new File(assetsFolder, ".git").exists()) {
+			folders.add(assetsFolder.getAbsolutePath());
+		}
+		folders.add(gitFolder);
+		return folders;
+	}
+
+	private static String resolveGitFolder(AgentRunContext ctx) {
+		AgentRunTarget target = ctx.getAgentTarget();
+		if (target != null) {
+			return target.isInsight() ? null : target.getGitFolder();
+		}
+		String projectId = Objects.toString(ctx.getAgentConfig().getModelParams().get("project"), null);
+		if (projectId == null || projectId.trim().isEmpty()) {
+			return null;
+		}
+		IEngine project = Utility.getProject(projectId.trim());
+		return project == null ? null : EngineUtility.getSpecificEngineVersionFolder(CATALOG_TYPE.PROJECT,
+				projectId.trim(), project.getEngineName());
+	}
+
+	private static void commitProjectRepositories(List<String> folders, User user, String commitMessage) {
+		for (String folder : folders) {
+			GitRepoUtils.addAllChangesAndCommit(folder, true, commitMessage, user);
+		}
+	}
+
+	private static void commitChangedRepositories(String gitFolder, User user, AgentRunContext ctx,
+			AgentHarnessResult result, GitWorkingTreeSnapshot preRunSnapshot) throws Exception {
+		List<String> folders = getGitFoldersInCommitOrder(gitFolder);
+		GitWorkingTreeSnapshot afterRunSnapshot = GitWorkingTreeSnapshot.capture(gitFolder, folders);
+		if (preRunSnapshot != null && preRunSnapshot.equals(afterRunSnapshot)) {
+			classLogger.info("GitCommitAgentHook: working tree unchanged during run; skipping commit");
+			return;
+		}
+		if (!afterRunSnapshot.hasChanges()) {
+			classLogger.info("GitCommitAgentHook: no file changes detected; skipping commit metadata generation");
+			return;
+		}
+		String message = AgentCommitMetadataGenerator.generate(ctx, result, afterRunSnapshot.getChangedFiles());
+		commitProjectRepositories(folders, user, message);
+	}
+
+	@Override
+	public void beforeRun(AgentRunContext ctx) {
+		try {
+			preRunGitFolder = resolveGitFolder(ctx);
+			if (preRunGitFolder != null) {
+				preRunSnapshot = GitWorkingTreeSnapshot.capture(preRunGitFolder,
+						getGitFoldersInCommitOrder(preRunGitFolder));
+			}
+		} catch (Exception e) {
+			preRunSnapshot = null;
+			classLogger.warn("GitCommitAgentHook: unable to snapshot pre-run repository state: {}", e.getMessage());
+		}
+	}
+	
+	@Override
+	public void afterRun(AgentRunContext ctx, AgentHarnessResult result) {
+		AgentRunTarget target = ctx.getAgentTarget();
+		String commitTarget = target != null ? target.toString()
+				: "projectId=" + Objects.toString(ctx.getAgentConfig().getModelParams().get("project"), null);
+		try {
+			String gitFolder = resolveGitFolder(ctx);
+			if (gitFolder == null) {
+				classLogger.info("GitCommitAgentHook: target has no project repository; skipping git commit");
+				return;
+			}
+			User user = ctx.getInsight().getUser();
+			commitChangedRepositories(gitFolder, user, ctx, result,
+					gitFolder.equals(preRunGitFolder) ? preRunSnapshot : null);
+			classLogger.info("GitCommitAgentHook: completed commit processing for target={}", commitTarget);
+		} catch (Exception e) {
+			classLogger.error("GitCommitAgentHook: git commit failed for target={}", commitTarget, e);
+		}
     }
 }

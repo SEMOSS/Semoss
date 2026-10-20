@@ -1,11 +1,17 @@
 from pathlib import Path
-import base64, re, mimetypes, uuid, requests
+import base64, mimetypes, uuid, requests
 from urllib.parse import urlparse
 from typing import List, Optional, Union, Dict, Any, Tuple
 from pydantic import BaseModel
+from ..semoss_base.media_types import (
+    normalize_text_mime_type,
+    prepare_base64_media,
+    resolve_mime_type,
+)
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
+    SEMOSSMessagePartType,
     ModelSettings,
 )
 
@@ -44,6 +50,15 @@ class AskSageMessageBuilder:
         for i, msg in enumerate(semoss_messages):
             message_role: str = self.map_message_role(msg.type)
             msg_content = msg.content if msg.content else ""
+            if msg.parts:
+                msg_content = (
+                    "\n".join(
+                        p.text
+                        for p in msg.parts
+                        if p.type == SEMOSSMessagePartType.TEXT
+                    )
+                    or msg_content
+                )
 
             ask_sage_messages.append(
                 AskSageMessage(user=message_role, message=msg_content)
@@ -156,7 +171,9 @@ class AskSageMessageBuilder:
             tool_choice = self._build_tool_choice(tool_choice_param)
 
         media_paths: Optional[List[str]] = None
-        if getattr(last_semoss_msg, "media_content", None):
+        if last_semoss_msg.media_content or any(
+            p.type == SEMOSSMessagePartType.MEDIA for p in (last_semoss_msg.parts or [])
+        ):
             media_paths = self._handle_input_media(last_semoss_msg)
 
         return (
@@ -178,7 +195,12 @@ class AskSageMessageBuilder:
         )
 
     def _handle_input_media(self, message: SEMOSSMessage) -> List[str]:
-        if not getattr(message, "media_content", None):
+        media_content = [
+            p.media_info
+            for p in (message.parts or [])
+            if p.type == SEMOSSMessagePartType.MEDIA
+        ] or message.media_content
+        if not media_content:
             raise ValueError("No media_content found on message.")
 
         temp_dir = Path(__file__).resolve().parent / "temp_image_dir"
@@ -192,6 +214,7 @@ class AskSageMessageBuilder:
             if not mime:
                 return None
             known = {
+                "text/plain": "txt",
                 "image/png": "png",
                 "image/jpeg": "jpg",
                 "image/jpg": "jpg",
@@ -220,8 +243,8 @@ class AskSageMessageBuilder:
 
         saved_paths: List[str] = []
         errors: List[str] = []
-        if message.media_content:
-            for idx, mc in enumerate(message.media_content):
+        if media_content:
+            for idx, mc in enumerate(media_content):
                 try:
                     mtype = _to_lower_str(getattr(mc, "type", None))
 
@@ -232,30 +255,11 @@ class AskSageMessageBuilder:
                                 "Expected base64 string in media_content[i].data"
                             )
 
-                        mime = getattr(mc, "mime_type", None)
+                        b64_payload, mime = prepare_base64_media(mc)
+                        mime = normalize_text_mime_type(mime)
                         ext = _ext_from_mime(mime) or _ext_from_filename(
                             getattr(mc, "file_name", None)
                         )
-
-                        b64_payload = data
-                        if not ext:
-                            m = re.match(
-                                r"^data:(?P<mime>[^;]+);base64,(?P<payload>.+)$",
-                                data,
-                                re.IGNORECASE,
-                            )
-                            if m:
-                                mime = m.group("mime")
-                                b64_payload = m.group("payload")
-                                ext = _ext_from_mime(mime)
-                        else:
-                            m = re.match(
-                                r"^data:[^;]+;base64,(?P<payload>.+)$",
-                                data,
-                                re.IGNORECASE,
-                            )
-                            if m:
-                                b64_payload = m.group("payload")
 
                         raw = base64.b64decode(b64_payload, validate=True)
                         out_path = _unique_name(ext or "png")
@@ -274,6 +278,13 @@ class AskSageMessageBuilder:
 
                     content_type = resp.headers.get("Content-Type", "")
                     content_type = content_type.split(";")[0].strip() or None
+                    content_type = normalize_text_mime_type(
+                        resolve_mime_type(
+                            content_type or mc.mime_type,
+                            mc.file_name or Path(urlparse(url).path).name,
+                            mc.format,
+                        )
+                    )
                     ext = (
                         _ext_from_mime(content_type)
                         or _ext_from_mime(getattr(mc, "mime_type", None))

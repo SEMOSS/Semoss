@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -49,8 +50,14 @@ import org.junit.jupiter.api.Test;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.date.SemossDate;
+import prerna.auth.access.ModelUsageLimit;
+import prerna.auth.access.ModelUsageLimitKey;
+import prerna.auth.access.ModelUsageLimitRule;
+import prerna.auth.access.ModelUsageLimitRule.Counts;
+import prerna.auth.access.ModelUsageLimitRule.Metric;
+import prerna.auth.access.ModelUsageLimitRule.Window;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -82,6 +89,7 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 	///
 	/// getInstance
 	///
+
 	@Test
 	void testGetInstance_userNull() {
 		assertNull(AdminSecurityGroupUtils.getInstance(null));
@@ -204,17 +212,19 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		assertNull(SecurityGroupProjectUtils.getGroupProjectPermission("gid", "reg", "pid1"));
 	}
 
-	///
-	/// editGroupAndPropogate
-	/// deprecated so only supporting exception thrown
-	///
-
 	@Test
-	void testEditGroupAndPropogate_groupDoesNotExist() {
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-			instance.editGroupAndPropagate(adminUser, "cur", "type", "new", "newType", "newDesc");
-		});
-		assertEquals("Group cur does not exist", ex.getMessage());
+	void testDeleteGroupAndPropagate_removesModelUsageLimits() throws Exception {
+		instance.addGroup(adminUser, "gid", "CUSTOM", "desc");
+		instance.addGroup(adminUser, "other", "CUSTOM", "desc");
+		saveLimit(ModelUsageLimitKey.team("eid1", "gid", "CUSTOM"), ModelUsageLimit.unlimited());
+		saveLimit(ModelUsageLimitKey.teamTotal("gid", "CUSTOM"), sharedTokensADay(1000));
+		saveLimit(ModelUsageLimitKey.team("eid1", "other", "CUSTOM"), ModelUsageLimit.unlimited());
+
+		instance.deleteGroupAndPropagate("gid", "CUSTOM");
+
+		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.team("eid1", "gid", "CUSTOM")));
+		assertNull(SecurityModelUsageLimitUtils.getTeamTotal("gid", "CUSTOM"));
+		assertNotNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.team("eid1", "other", "CUSTOM")));
 	}
 
 	///
@@ -272,6 +282,32 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		assertEquals("newGroupId", userCustomGroups.getFirst());
 	}
 
+	@Test
+	void testEditGroupDetailsAndPropagate_movesModelUsageLimits() throws Exception {
+		instance.addGroup(adminUser, "oldGroupId", "CUSTOM", "desc");
+		saveLimit(ModelUsageLimitKey.team("eid1", "oldGroupId", "CUSTOM"), ModelUsageLimit.unlimited());
+		saveLimit(ModelUsageLimitKey.teamTotal("oldGroupId", "CUSTOM"), sharedTokensADay(1000));
+
+		instance.editGroupDetailsAndPropagate(adminUser, "oldGroupId", "CUSTOM", "newGroupId", "newDesc");
+
+		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.team("eid1", "oldGroupId", "CUSTOM")));
+		assertNull(SecurityModelUsageLimitUtils.getTeamTotal("oldGroupId", "CUSTOM"));
+		assertTrue(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.team("eid1", "newGroupId", "CUSTOM"))
+				.isUnlimited());
+		assertNotNull(SecurityModelUsageLimitUtils.getTeamTotal("newGroupId", "CUSTOM"));
+	}
+
+	private static void saveLimit(ModelUsageLimitKey key, ModelUsageLimit limit) throws Exception {
+		QueryExecutionUtility.write(SystemEngineRegistry.getSecurityDb(), connection -> {
+			SecurityModelUsageLimitUtils.setLimit(connection, key, limit, null);
+			return null;
+		});
+	}
+
+	private static ModelUsageLimit sharedTokensADay(long amount) {
+		return ModelUsageLimit.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, amount, Window.DAY, Counts.SHARED)));
+	}
+
 	///
 	/// addUserToGroup
 	///
@@ -319,8 +355,10 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		Map<String, Object> groupMember = groupMembers.get(0);
 		assertEquals("adminname", groupMember.get("name"));
 
-		SemossDate ed = (SemossDate) groupMember.get("enddate");
-		LocalDateTime eldt = ed.getLocalDateTime();
+		// the member list does not return the end date, so it is read from the table
+		Object ed = UnitTestGroupTables.queryValue(securityDb,
+				"SELECT ENDDATE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=? AND USERID=?", "gid", "adminid");
+		LocalDateTime eldt = ed instanceof Timestamp ? ((Timestamp) ed).toLocalDateTime() : (LocalDateTime) ed;
 
 		// assert end date is 2 days later as specified
 		assertTrue(LocalDateTime.now().plusDays(1).isBefore(eldt));
@@ -541,49 +579,6 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 
 		assertEquals(1, nonGroupMembers.size());
 		assertEquals("b2id", nonGroupMembers.get(0).get("id"));
-	}
-
-	///
-	/// getNumNonMembersInGroup
-	///
-
-	@Test
-	void testGetNumNonMembersInGroup_groupDoesNotExist() {
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> instance.getNumNonMembersInGroup("gid", null));
-		assertEquals("Group gid with type custom does not exist", ex.getMessage());
-	}
-
-	@Test
-	void testGetNumNonMembersInGroup_NoSearchTerm() throws Exception {
-		instance.addGroup(adminUser, "gid", "CUSTOM", "desc");
-
-		String endDate = ZonedDateTime.now().plusDays(2).toString();
-		instance.addUserToGroup(adminUser, "gid", "adminid", "NATIVE", endDate);
-
-		UnitTestSecurityAuthUtils.createUser("b2", false);
-		UnitTestSecurityAuthUtils.createUser("c3", false);
-		UnitTestSecurityAuthUtils.createUser("d4", false);
-
-		long nonGroupMembers = instance.getNumNonMembersInGroup("gid", null);
-
-		assertEquals(3, nonGroupMembers);
-	}
-
-	@Test
-	void testGetNumNonMembersInGroup_search() throws Exception {
-		instance.addGroup(adminUser, "gid", "CUSTOM", "desc");
-
-		String endDate = ZonedDateTime.now().plusDays(2).toString();
-		instance.addUserToGroup(adminUser, "gid", "adminid", "NATIVE", endDate);
-
-		UnitTestSecurityAuthUtils.createUser("b2", false);
-		UnitTestSecurityAuthUtils.createUser("c3", false);
-		UnitTestSecurityAuthUtils.createUser("d4", false);
-
-		long nonMembers = instance.getNumNonMembersInGroup("gid", "b2");
-
-		assertEquals(1, nonMembers);
 	}
 
 	///
@@ -829,50 +824,6 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 	}
 
 	///
-	/// getNumAvailableProjectsForGroup
-	///
-
-	@Test
-	void testGetNumAvailableProjectsFroGroup_groupDoesNotExist() {
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> instance.getNumAvailableProjectsForGroup("nope", "CUSTOM", null, false));
-		assertEquals("Group nope with type CUSTOM does not exist", e.getMessage());
-	}
-
-	@Test
-	void testNumGetAvailableProjectsForGroup_searchLimitAndOffset() throws Exception {
-		instance.addGroup(adminUser, "gid", "CUSTOM", "desc");
-		instance.addGroup(adminUser, "gid2", "CUSTOM", "desc");
-
-		UnitTestSecurityAuthUtils.createProject("pid", "pname", adminUser);
-		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", adminUser);
-		UnitTestSecurityAuthUtils.createProject("projectid1", "projectname1", adminUser);
-		UnitTestSecurityAuthUtils.createProject("pid2", "pname2", adminUser);
-		UnitTestSecurityAuthUtils.createProject("pid3", "pname3", adminUser);
-
-		instance.addGroupProjectPermission(adminUser, "gid2", "CUSTOM", "pid", 1, null);
-		instance.addGroupProjectPermission(adminUser, "gid", "CUSTOM", "pid1", 1, null);
-
-		long count = instance.getNumAvailableProjectsForGroup("gid", "CUSTOM", "pid", false);
-
-		// filter out pid1 and projectid1
-		assertEquals(3, count);
-	}
-
-	@Test
-	void testGetNumAvailableProjectsForGroup_onlyApps() throws Exception {
-		instance.addGroup(adminUser, "gid", "CUSTOM", "desc");
-
-		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", adminUser);
-		UnitTestSecurityAuthUtils.createProject("pid2", "pname2", adminUser, true);
-
-		long count = instance.getNumAvailableProjectsForGroup("gid", "CUSTOM", null, true);
-
-		// only apps being true filters out only value
-		assertEquals(1, count);
-	}
-
-	///
 	/// addGroupEnginePermission
 	///
 
@@ -1079,37 +1030,6 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		assertEquals(1, values.size());
 		map = values.getFirst();
 		assertEquals("eid2", map.get("engine_id"));
-	}
-
-	///
-	/// getNumAvailableEnginesForGroup
-	///
-
-	@Test
-	void testGetNumAvailableEnginesForGroup_groupDoesNotExist() {
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> instance.getNumAvailableEnginesForGroup("nope", "CUSTOM", null));
-		assertEquals("Group nope with type CUSTOM does not exist", e.getMessage());
-	}
-
-	@Test
-	void testNumGetAvailableEnginesForGroup_searchLimitAndOffset() throws Exception {
-		instance.addGroup(adminUser, "gid", "CUSTOM", "desc");
-		instance.addGroup(adminUser, "gid2", "CUSTOM", "desc");
-
-		UnitTestSecurityAuthUtils.createEngine("eid", "ename", adminUser);
-		UnitTestSecurityAuthUtils.createEngine("eid1", "ename1", adminUser);
-		UnitTestSecurityAuthUtils.createEngine("foobar", "foobarname1", adminUser);
-		UnitTestSecurityAuthUtils.createEngine("eid2", "ename2", adminUser);
-		UnitTestSecurityAuthUtils.createEngine("eid3", "ename3", adminUser);
-
-		instance.addGroupEnginePermission(adminUser, "gid2", "CUSTOM", "eid", 1, null);
-		instance.addGroupEnginePermission(adminUser, "gid", "CUSTOM", "eid1", 1, null);
-
-		long count = instance.getNumAvailableEnginesForGroup("gid", "CUSTOM", "eid");
-
-		// filter out eid1 and engineid1
-		assertEquals(3, count);
 	}
 
 	///

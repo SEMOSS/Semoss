@@ -159,7 +159,15 @@ class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	@Test
 	void testSearchForUserReturnsMatchingUser() throws Exception {
 		List<Map<String, Object>> results = SecurityQueryUtils.searchForUser(testDisplayName);
-		assertTrue(results.stream().anyMatch(entry -> testUserId.equalsIgnoreCase(Objects.toString(entry.get("id")))));
+		Map<String, Object> result = results.stream()
+				.filter(entry -> testUserId.equalsIgnoreCase(Objects.toString(entry.get("id")))).findFirst()
+				.orElseThrow();
+		assertEquals("NATIVE", result.get("type"));
+		assertEquals(testUsername, result.get("username"));
+		assertEquals(testDisplayName, result.get("name"));
+		assertEquals(testEmail, result.get("email"));
+		assertTrue(SecurityQueryUtils.searchForUser(testUsername).stream()
+				.anyMatch(entry -> testUserId.equalsIgnoreCase(Objects.toString(entry.get("id")))));
 	}
 
 	@Test
@@ -247,10 +255,8 @@ class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 				"INSERT INTO ENGINE (ENGINEID, ENGINENAME, GLOBAL, DISCOVERABLE, DATECREATED) VALUES (?, ?, ?, ?, ?)",
 				testGlobalEngineId, testGlobalEngineName, Boolean.TRUE, Boolean.TRUE, Timestamp.from(baseInstant));
 
-		executeUpdate(
-				"INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, FAVORITE, DATEADDED) VALUES (?, ?, ?, ?, ?, ?)",
-				testUserId, testEngineId, testPermissionLevel, Boolean.TRUE, Boolean.FALSE,
-				Timestamp.from(baseInstant.plusSeconds(10800)));
+		executeUpdate("INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, DATEADDED) VALUES (?, ?, ?, ?)",
+				testUserId, testEngineId, testPermissionLevel, Timestamp.from(baseInstant.plusSeconds(10800)));
 	}
 
 	private void executeUpdate(String sql, Object... params) throws SQLException {

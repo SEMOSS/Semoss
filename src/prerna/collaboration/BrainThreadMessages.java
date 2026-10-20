@@ -1,0 +1,614 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+package prerna.collaboration;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
+
+import prerna.auth.User;
+import prerna.io.connector.ms.MicrosoftMessageDisplay;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+
+// The filtered thread read behind brain_get_thread. Today's rules run before any body is
+// fetched; bodies come from the source at call time, go through BrainMessageText, and are never stored.
+public final class BrainThreadMessages {
+
+	private static final Logger classLogger = LogManager.getLogger(BrainThreadMessages.class);
+
+	private static final int DEFAULT_LIMIT = 20;
+	private static final int MAX_LIMIT = 100;
+
+	private record Row(String messageKey, String graphId, String personId, String folder, String at, String decision) {
+	}
+
+	// one message that today's rules still show, as the source returned it
+	/** graphId is the stored id, which callers use instead of the one they passed. */
+	record Readable(String source, Map<String, Object> message, Map<String, Object> sender, String at,
+			String graphId) {
+	}
+
+	private BrainThreadMessages() {
+
+	}
+
+	public static Map<String, Object> read(User user, String threadId, Integer limit) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		return read(user, owner.getValue0(), owner.getValue1(), threadId, limit, BrainMessageSource.current());
+	}
+
+	public static Map<String, Object> read(User user, String threadId, Integer limit, boolean includeDisplayBody) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		return read(user, owner.getValue0(), owner.getValue1(), threadId, limit, BrainMessageSource.current(),
+				includeDisplayBody);
+	}
+
+	/**
+	 * Read the next older page without changing legacy callers' first-page
+	 * behavior.
+	 */
+	public static Map<String, Object> read(User user, String threadId, Integer limit, boolean includeDisplayBody,
+			String cursor) {
+		return read(user, threadId, limit, includeDisplayBody, cursor, false);
+	}
+
+	/**
+	 * Same read, and with includeAttachments each email that has attachments lists
+	 * them (no bytes, inline images left out).
+	 */
+	public static Map<String, Object> read(User user, String threadId, Integer limit, boolean includeDisplayBody,
+			String cursor, boolean includeAttachments) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		return read(user, owner.getValue0(), owner.getValue1(), threadId, limit, BrainMessageSource.current(),
+				includeDisplayBody, cursor, includeAttachments);
+	}
+
+	/** An exact email the owner can compose against, with current source and ingestion checks. */
+	public static Map<String, Object> composeSource(User user, String emailId) {
+		if (emailId == null || emailId.isBlank()) {
+			return null;
+		}
+		boolean reference = emailId.startsWith("email:");
+		String id = reference ? emailId.substring("email:".length()) : emailId;
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		String[] stored = CollaborationDbUtils.queryOne(
+				"SELECT m.THREAD_ID, m.GRAPH_ID, m.MESSAGE_KEY FROM BRAIN_MESSAGE m JOIN BRAIN_THREAD t "
+						+ "ON t.OWNER_ID = m.OWNER_ID AND t.OWNER_TYPE = m.OWNER_TYPE AND t.THREAD_ID = m.THREAD_ID "
+						+ "WHERE m.OWNER_ID = ? AND m.OWNER_TYPE = ? AND m."
+						+ (reference ? "MESSAGE_KEY" : "GRAPH_ID") + " = ? AND t.SOURCE = 'email'",
+				rs -> new String[] { rs.getString("THREAD_ID"), rs.getString("GRAPH_ID"), rs.getString("MESSAGE_KEY") },
+				ownerId, ownerType, id);
+		if (stored == null || stored[1] == null || !id.equals(stored[reference ? 2 : 1])) {
+			return null;
+		}
+		String threadId = stored[0];
+		String graphId = stored[1];
+		if (shown(ownerId, ownerType, threadId).stream()
+				.noneMatch(email -> graphId.equals(email.graphId()))) {
+			return null;
+		}
+		Readable email = readable(user, ownerId, ownerType, threadId, graphId, BrainMessageSource.current());
+		if (email == null) {
+			return null;
+		}
+		Map<String, Object> source = new LinkedHashMap<>();
+		source.put("id", email.graphId());
+		String subject = CollaborationDbUtils.asString(email.message().get("subject"));
+		source.put("subject", subject == null ? "" : subject);
+		return source;
+	}
+
+	static Map<String, Object> read(User user, String ownerId, String ownerType, String threadId, Integer limit,
+			BrainMessageSource messages) {
+		return read(user, ownerId, ownerType, threadId, limit, messages, false);
+	}
+
+	static Map<String, Object> read(User user, String ownerId, String ownerType, String threadId, Integer limit,
+			BrainMessageSource messages, boolean includeDisplayBody) {
+		return read(user, ownerId, ownerType, threadId, limit, messages, includeDisplayBody, null);
+	}
+
+	static Map<String, Object> read(User user, String ownerId, String ownerType, String threadId, Integer limit,
+			BrainMessageSource messages, boolean includeDisplayBody, String cursor) {
+		return read(user, ownerId, ownerType, threadId, limit, messages, includeDisplayBody, cursor, false);
+	}
+
+	static Map<String, Object> read(User user, String ownerId, String ownerType, String threadId, Integer limit,
+			BrainMessageSource messages, boolean includeDisplayBody, String cursor, boolean includeAttachments) {
+		String[] thread = CollaborationDbUtils.queryOne(
+				"SELECT SOURCE, THREAD_KEY, MUTED FROM BRAIN_THREAD "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> new String[] { rs.getString("SOURCE"), rs.getString("THREAD_KEY"),
+						String.valueOf(Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED"))) },
+				ownerId, ownerType, threadId);
+		if (thread == null) {
+			throw new IllegalArgumentException("Thread not found");
+		}
+		String source = thread[0];
+		String conversationId = thread[1] != null && thread[1].startsWith(source + ":")
+				? thread[1].substring(source.length() + 1)
+				: null;
+		Set<String> conversations = conversations(ownerId, ownerType, threadId, source, conversationId);
+		int max = limit == null ? DEFAULT_LIMIT : Math.max(1, Math.min(MAX_LIMIT, limit));
+
+		// newest first, so the limit keeps the latest messages
+		List<Row> rows = rows(ownerId, ownerType, threadId);
+		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
+		List<String> topicIds = topicIdsOf(ownerId, ownerType, threadId);
+		Map<String, Boolean> included = includedOf(ownerId, ownerType, threadId);
+		Map<String, List<String>> addresses = addresses(ownerId, ownerType, rows);
+
+		int start = pageStart(rows, threadId, cursor);
+
+		// pass 1, no fetch: drop what today's never-ingest rules cover
+		int hidden = 0;
+		List<Row> candidates = new ArrayList<>();
+		for (Row row : rows.subList(start, rows.size())) {
+			if (isHidden(rules, addresses, row)) {
+				hidden++;
+			} else {
+				candidates.add(row);
+			}
+		}
+
+		// pass 2: fetch newest first until the limit, re-checking the sender address
+		// and keyword rules
+		List<Map<String, Object>> out = new ArrayList<>();
+		// shown emails that Graph says carry attachments; listed once the page is known
+		List<String> withAttachments = new ArrayList<>();
+		int unavailable = 0;
+		int next = 0;
+		Exception firstError = null;
+		while (next < candidates.size() && out.size() < max) {
+			// as many as are still wanted, in one round trip; a login problem is thrown so
+			// the UI can prompt
+			List<Row> part = candidates.subList(next, Math.min(candidates.size(), next + max - out.size()));
+			List<String> ids = new ArrayList<>();
+			for (Row row : part) {
+				ids.add(row.graphId());
+			}
+			List<BrainMessageSource.Fetched> fetched = messages.fetchAll(user, source, conversationId, ids);
+			next += part.size();
+			for (int i = 0; i < part.size(); i++) {
+				Row row = part.get(i);
+				if (fetched.get(i).error() != null) {
+					firstError = firstError == null ? fetched.get(i).error() : firstError;
+					unavailable++;
+					continue;
+				}
+				Map<String, Object> message = fetched.get(i).message();
+				// gone, or no longer in this conversation
+				Object messageConversation = message == null ? null : message.get("conversationId");
+				if (message == null || (messageConversation != null && conversationId != null
+						&& !conversations.contains(messageConversation))) {
+					unavailable++;
+					continue;
+				}
+				Map<String, Object> sender = sender(message);
+				String from = BrainRulesGate.norm(CollaborationDbUtils.asString(sender.get("address")));
+				if (from != null && BrainRulesGate.neverRule(rules, from, row.personId(), row.folder()) != null) {
+					hidden++;
+					continue;
+				}
+				// the oldest message we hold: its quoted history is mail the thread does not
+				// have
+				Map<String, Object> clean = "teams".equals(source)
+						? Map.of("body", MicrosoftMessageDisplay.text(message))
+						: clean(message, row == rows.get(rows.size() - 1));
+				if (BrainRulesGate.keywordRule(rules, (String) clean.get("subject"),
+						(String) clean.get("body")) != null) {
+					hidden++;
+					continue;
+				}
+				Map<String, Object> entry = entry(row, clean, sender, rules, topicIds, source, included);
+				if (includeDisplayBody) {
+					entry.put("displayBody", MicrosoftMessageDisplay.body(message, (String) clean.get("body")));
+				}
+				entry.put("to", recipients(message.get("toRecipients")));
+				entry.put("cc", recipients(message.get("ccRecipients")));
+				if (BrainMailImport.meeting(message)) {
+					entry.put("meeting", true);
+				}
+				// opens the message in Outlook or Teams
+				if (message.get("webLink") instanceof String link && link.startsWith("https://")) {
+					entry.put("webLink", link);
+				}
+				if (includeAttachments && "email".equals(source) && Boolean.TRUE.equals(message.get("hasAttachments"))) {
+					withAttachments.add(row.graphId());
+				}
+				out.add(entry);
+			}
+		}
+		if (!withAttachments.isEmpty()) {
+			attach(user, source, out, withAttachments, messages);
+		}
+		// every fetch failed: surface why (for example no Microsoft login) instead of
+		// an empty thread
+		if (out.isEmpty() && firstError != null) {
+			throw new IllegalStateException("Could not read this thread's messages: " + firstError.getMessage(),
+					firstError);
+		}
+		Collections.reverse(out);
+
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("threadId", threadId);
+		result.put("source", source);
+		result.put("muted", Boolean.parseBoolean(thread[2]));
+		result.put("messages", out);
+		result.put("hiddenCount", hidden);
+		result.put("unavailableCount", unavailable);
+		result.put("hasMore", next < candidates.size());
+		if (next > 0 && next < candidates.size()) {
+			result.put("nextCursor", Base64.getUrlEncoder().withoutPadding().encodeToString(
+					(threadId + "\n" + candidates.get(next - 1).messageKey()).getBytes(StandardCharsets.UTF_8)));
+		}
+		return result;
+	}
+
+	// the listing is extra: when it fails the page still reads, the emails just list no attachments
+	private static void attach(User user, String source, List<Map<String, Object>> entries, List<String> graphIds,
+			BrainMessageSource messages) {
+		Map<String, List<Map<String, Object>>> listed;
+		try {
+			listed = messages.attachments(user, source, graphIds);
+		} catch (Exception e) {
+			classLogger.warn("Could not list the attachments of {} emails", graphIds.size(), e);
+			return;
+		}
+		for (Map<String, Object> entry : entries) {
+			List<Map<String, Object>> attachments = listed.get(entry.get("id"));
+			if (attachments != null && !attachments.isEmpty()) {
+				entry.put("attachments", attachments);
+			}
+		}
+	}
+
+	/**
+	 * One email of the owner's thread, fetched live, only when today's rules still
+	 * show it the way {@link #read} would: never rules before the fetch, the real
+	 * sender and keyword rules after. Null when a rule hides it or it is gone; a
+	 * login problem is thrown so the UI can prompt.
+	 */
+	/** The Graph ids of an email thread's messages, newest first; empty for any other source. */
+	static List<String> emailGraphIds(String ownerId, String ownerType, String threadId) {
+		String source = CollaborationDbUtils.queryOne(
+				"SELECT SOURCE FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> rs.getString("SOURCE"), ownerId, ownerType, threadId);
+		if (!"email".equals(source)) {
+			return List.of();
+		}
+		return CollaborationDbUtils.query(
+				"SELECT GRAPH_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? "
+						+ "AND GRAPH_ID IS NOT NULL ORDER BY RECEIVED_AT DESC, MESSAGE_KEY",
+				rs -> rs.getString("GRAPH_ID"), ownerId, ownerType, threadId);
+	}
+
+	/** One email a chat can show: its Graph id and when it arrived (ISO-8601). */
+	record Shown(String graphId, String at) {
+	}
+
+	/**
+	 * A thread's emails that a chat shows, newest first, judged from Brain alone: never-ingest, off and excluded
+	 * senders are left out, as a chat's import leaves them out. The sender-address and keyword checks that need the
+	 * fetched message are not applied.
+	 */
+	static List<Shown> shown(String ownerId, String ownerType, String threadId) {
+		String source = CollaborationDbUtils.queryOne(
+				"SELECT SOURCE FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> rs.getString("SOURCE"), ownerId, ownerType, threadId);
+		List<Row> rows = source == null ? List.of() : rows(ownerId, ownerType, threadId);
+		if (rows.isEmpty()) {
+			return List.of();
+		}
+		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
+		List<String> topicIds = topicIdsOf(ownerId, ownerType, threadId);
+		Map<String, Boolean> included = includedOf(ownerId, ownerType, threadId);
+		Map<String, List<String>> addresses = addresses(ownerId, ownerType, rows);
+		List<Shown> out = new ArrayList<>();
+		for (Row row : rows) {
+			if (row.graphId() != null && !isHidden(rules, addresses, row)
+					&& !isExcluded(row, rules, topicIds, source, included)) {
+				out.add(new Shown(row.graphId(), row.at()));
+			}
+		}
+		return out;
+	}
+
+	static Readable readable(User user, String ownerId, String ownerType, String threadId, String graphId,
+			BrainMessageSource messages) {
+		String[] thread = CollaborationDbUtils.queryOne(
+				"SELECT SOURCE, THREAD_KEY FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> new String[] { rs.getString("SOURCE"), rs.getString("THREAD_KEY") }, ownerId, ownerType,
+				threadId);
+		if (thread == null) {
+			throw new IllegalArgumentException("Thread not found");
+		}
+		String source = thread[0];
+		String conversationId = thread[1] != null && thread[1].startsWith(source + ":")
+				? thread[1].substring(source.length() + 1)
+				: null;
+		Set<String> conversations = conversations(ownerId, ownerType, threadId, source, conversationId);
+		// newest first, as the read orders them, so the oldest is last
+		List<Row> rows = rows(ownerId, ownerType, threadId);
+		Row row = null;
+		for (Row candidate : rows) {
+			if (graphId != null && graphId.equals(candidate.graphId())) {
+				row = candidate;
+				break;
+			}
+		}
+		// Models copy these 150-character ids with a letter's case flipped; within one thread a
+		// case-insensitive match is still unique.
+		if (row == null && graphId != null) {
+			List<Row> loose = rows.stream().filter(candidate -> graphId.equalsIgnoreCase(candidate.graphId()))
+					.toList();
+			row = loose.size() == 1 ? loose.get(0) : null;
+		}
+		if (row == null) {
+			throw new IllegalArgumentException(
+					"No email with that messageId is on this thread. Copy the id exactly from the thread's messages.");
+		}
+		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
+		if (isHidden(rules, addresses(ownerId, ownerType, List.of(row)), row)) {
+			return null;
+		}
+		Map<String, Object> message;
+		try {
+			message = messages.fetch(user, source, conversationId, row.graphId());
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new IllegalStateException("Could not read this email: " + e.getMessage(), e);
+		}
+		Object messageConversation = message == null ? null : message.get("conversationId");
+		if (message == null || (messageConversation != null && conversationId != null
+				&& !conversations.contains(messageConversation))) {
+			return null;
+		}
+		Map<String, Object> sender = sender(message);
+		String from = BrainRulesGate.norm(CollaborationDbUtils.asString(sender.get("address")));
+		if (from != null && BrainRulesGate.neverRule(rules, from, row.personId(), row.folder()) != null) {
+			return null;
+		}
+		Map<String, Object> clean = "teams".equals(source) ? Map.of("body", MicrosoftMessageDisplay.text(message))
+				: clean(message, row == rows.get(rows.size() - 1));
+		if (BrainRulesGate.keywordRule(rules, (String) clean.get("subject"), (String) clean.get("body")) != null) {
+			return null;
+		}
+		return new Readable(source, message, sender, row.at(), row.graphId());
+	}
+
+	/**
+	 * Locate the last scanned record before applying today's rules, including when
+	 * it is now hidden.
+	 */
+	private static int pageStart(List<Row> rows, String threadId, String cursor) {
+		if (cursor == null || cursor.isBlank()) {
+			return 0;
+		}
+		if (cursor.length() > 8192) {
+			throw new IllegalArgumentException("Invalid thread history cursor");
+		}
+		String decoded;
+		try {
+			decoded = new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8);
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("Invalid thread history cursor", e);
+		}
+		String prefix = threadId + "\n";
+		if (!decoded.startsWith(prefix)) {
+			throw new IllegalArgumentException("Cursor belongs to a different thread");
+		}
+		String key = decoded.substring(prefix.length());
+		for (int i = 0; i < rows.size(); i++) {
+			if (key.equals(rows.get(i).messageKey())) {
+				return i + 1;
+			}
+		}
+		throw new IllegalArgumentException("Thread history changed. Reload the thread before loading older messages.");
+	}
+
+	// the thread's conversation and the ones that joined it (a reply Outlook filed apart, BrainMailImport joinReply)
+	private static Set<String> conversations(String ownerId, String ownerType, String threadId, String source,
+			String conversationId) {
+		Set<String> conversations = new LinkedHashSet<>();
+		conversations.add(conversationId);
+		for (String key : CollaborationDbUtils.query(
+				"SELECT THREAD_KEY FROM BRAIN_THREAD_ALIAS WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> rs.getString("THREAD_KEY"), ownerId, ownerType, threadId)) {
+			if (key != null && key.startsWith(source + ":")) {
+				conversations.add(key.substring(source.length() + 1));
+			}
+		}
+		return conversations;
+	}
+
+	// the thread's messages, newest first
+	private static List<Row> rows(String ownerId, String ownerType, String threadId) {
+		return CollaborationDbUtils.query(
+				"SELECT MESSAGE_KEY, GRAPH_ID, SENDER_PERSON_ID, FOLDER, RECEIVED_AT, DECISION "
+						+ "FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? "
+						+ "ORDER BY RECEIVED_AT DESC, MESSAGE_KEY",
+				rs -> new Row(rs.getString("MESSAGE_KEY"), rs.getString("GRAPH_ID"), rs.getString("SENDER_PERSON_ID"),
+						rs.getString("FOLDER"), CollaborationDbUtils.getTimestamp(rs, "RECEIVED_AT"),
+						rs.getString("DECISION")),
+				ownerId, ownerType, threadId);
+	}
+
+	private static List<String> topicIdsOf(String ownerId, String ownerType, String threadId) {
+		return CollaborationDbUtils.query(
+				"SELECT TOPIC_ID FROM BRAIN_THREAD_TOPIC " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> rs.getString("TOPIC_ID"), ownerId, ownerType, threadId);
+	}
+
+	private static Map<String, Boolean> includedOf(String ownerId, String ownerType, String threadId) {
+		Map<String, Boolean> included = new HashMap<>();
+		CollaborationDbUtils.query(
+				"SELECT PERSON_ID, INCLUDED FROM BRAIN_THREAD_PARTICIPANT "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> included.put(rs.getString("PERSON_ID"), CollaborationDbUtils.getBoolean(rs, "INCLUDED")), ownerId,
+				ownerType, threadId);
+		return included;
+	}
+
+	// never-ingest or off, decided without fetching the message
+	private static boolean isHidden(List<BrainRulesGate.Rule> rules, Map<String, List<String>> addresses, Row row) {
+		return BrainRulesGate.NEVER.equals(row.decision()) || BrainRulesGate.OFF.equals(row.decision())
+				|| isNever(rules, addresses.getOrDefault(row.personId(), List.of()), row);
+	}
+
+	private static boolean isExcluded(Row row, List<BrainRulesGate.Rule> rules, List<String> topicIds, String source,
+			Map<String, Boolean> included) {
+		return BrainRulesGate.EXCLUDED.equals(row.decision()) || Boolean.FALSE.equals(included.get(row.personId()))
+				|| BrainRulesGate.exclusionRule(rules, topicIds, source, row.personId()) != null;
+	}
+
+	private static boolean isNever(List<BrainRulesGate.Rule> rules, List<String> known, Row row) {
+		// an unknown sender has no address yet; the folder rule still applies and the
+		// address is checked after fetch
+		for (String address : known.isEmpty() ? List.of("") : known) {
+			if (BrainRulesGate.neverRule(rules, address, row.personId(), row.folder()) != null) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static Map<String, Object> clean(Map<String, Object> message, boolean keepHistory) {
+		Map<String, Object> unique = content(message.get("uniqueBody"));
+		Map<String, Object> body = content(message.get("body"));
+		return BrainMessageText.extract(CollaborationDbUtils.asString(message.get("subject")),
+				(String) unique.get("content"), (String) unique.get("contentType"), (String) body.get("content"),
+				(String) body.get("contentType"), keepHistory);
+	}
+
+	private static Map<String, Object> entry(Row row, Map<String, Object> clean, Map<String, Object> sender,
+			List<BrainRulesGate.Rule> rules, List<String> topicIds, String source, Map<String, Boolean> included) {
+		// excluded and muted people are still read, only flagged: exclusion is about
+		// attention, not privacy
+		boolean excluded = isExcluded(row, rules, topicIds, source, included);
+		Map<String, Object> entry = new LinkedHashMap<>();
+		entry.put("id", row.graphId());
+		if ("email".equals(source)) {
+			entry.put("emailRef", "email:" + row.messageKey());
+		}
+		entry.put("fromId", row.personId());
+		entry.put("fromName", sender.get("name"));
+		entry.put("fromAddress", sender.get("address"));
+		entry.put("at", row.at());
+		entry.put("subject", clean.get("subject"));
+		entry.put("text", clean.get("body"));
+		String footer = BrainMessageText.footer(clean);
+		if (footer != null) {
+			entry.put("footer", footer);
+		}
+		// forwarded or earlier mail is kept in the text; the UI must not trim it as a
+		// quoted reply
+		if (Boolean.TRUE.equals(clean.get("history"))) {
+			entry.put("history", true);
+		}
+		entry.put("excluded", excluded);
+		entry.put("muted", BrainRulesGate.MUTED.equals(row.decision()));
+		return entry;
+	}
+
+	// every known address of each sender, lowercased, for the never-ingest check
+	// before fetch
+	private static Map<String, List<String>> addresses(String ownerId, String ownerType, List<Row> rows) {
+		Set<String> people = new LinkedHashSet<>();
+		for (Row row : rows) {
+			if (row.personId() != null) {
+				people.add(row.personId());
+			}
+		}
+		Map<String, List<String>> out = new HashMap<>();
+		if (people.isEmpty()) {
+			return out;
+		}
+		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType));
+		params.addAll(people);
+		params.add(ownerId);
+		params.add(ownerType);
+		params.addAll(people);
+		String in = CollaborationDbUtils.placeholders(people.size());
+		CollaborationDbUtils.query("SELECT PERSON_ID, EMAIL_NORM AS ADDRESS FROM BRAIN_PERSON WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ? AND PERSON_ID IN (" + in + ") UNION SELECT PERSON_ID, VALUE_NORM AS ADDRESS "
+				+ "FROM BRAIN_PERSON_ADDRESS WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID IN (" + in + ")",
+				rs -> {
+					String address = BrainRulesGate.norm(rs.getString("ADDRESS"));
+					if (address != null) {
+						out.computeIfAbsent(rs.getString("PERSON_ID"), k -> new ArrayList<>()).add(address);
+					}
+					return null;
+				}, params.toArray());
+		return out;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> sender(Map<String, Object> message) {
+		Object from = message.get("from");
+		Object address = from instanceof Map<?, ?> f ? f.get("emailAddress") : null;
+		return address instanceof Map<?, ?> a ? (Map<String, Object>) a : Map.of();
+	}
+
+	// Graph recipients as name and address; the classifier marks the owner's own
+	// address
+	private static List<Map<String, Object>> recipients(Object value) {
+		List<Map<String, Object>> out = new ArrayList<>();
+		if (value instanceof List<?> list) {
+			for (Object item : list) {
+				Object address = item instanceof Map<?, ?> r ? r.get("emailAddress") : null;
+				if (address instanceof Map<?, ?> a) {
+					Map<String, Object> recipient = new LinkedHashMap<>();
+					recipient.put("name", a.get("name"));
+					recipient.put("address", a.get("address"));
+					out.add(recipient);
+				}
+			}
+		}
+		return out;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> content(Object value) {
+		return value instanceof Map<?, ?> m ? (Map<String, Object>) m : Map.of();
+	}
+}

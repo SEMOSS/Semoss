@@ -29,10 +29,10 @@ package prerna.auth.utils.reactors.admin;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,7 +43,6 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IRDBMSEngine;
 import prerna.poi.main.helper.excel.ExcelBlock;
 import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
@@ -55,8 +54,6 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.ConnectionUtils;
-import prerna.util.SystemEngineRegistry;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
@@ -69,30 +66,6 @@ public class AdminUploadEnginePermissionsReactor extends AbstractReactor {
 	static final String ENGINE_ID_KEY = "ENGINEID";
 	static final String USER_ID_KEY = "USERID";
 	static final String PERMISSION_KEY = "PERMISSION";
-
-	private static String insertQuery = null;
-	private static Map<String, Integer> psIndex = new HashMap<>();
-	static {
-		String[] headers = new String[] { ENGINE_ID_KEY, USER_ID_KEY, PERMISSION_KEY };
-		StringBuilder builder = new StringBuilder("INSERT INTO ENGINEPERMISSION (");
-		for (int i = 0; i < headers.length; i++) {
-			if (i > 0) {
-				builder.append(", ");
-			}
-			builder.append(headers[i]);
-		}
-		builder.append(") VALUES (");
-		for (int i = 0; i < headers.length; i++) {
-			if (i > 0) {
-				builder.append(", ");
-			}
-			builder.append("?");
-
-			// also keep track of header to index for the file uploading
-			psIndex.put(headers[i], (i + 1));
-		}
-		insertQuery = builder.append(")").toString();
-	}
 
 	private Logger logger = null;
 
@@ -116,13 +89,12 @@ public class AdminUploadEnginePermissionsReactor extends AbstractReactor {
 
 		this.logger = getLogger(CLASS_NAME);
 
-		IRDBMSEngine database = SystemEngineRegistry.getSecurityDb();
 		long start = System.currentTimeMillis();
 		{
 			ExcelSheetFileIterator it = null;
 			try {
 				it = getExcelIterator(filePath);
-				loadExcelFile(database, it);
+				adminUtils.addUsersToEngines(readExcelFile(it), user);
 			} catch (Exception e) {
 				classLogger.error("Unable to upload database permissions from the provided file.", e);
 				throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
@@ -173,83 +145,59 @@ public class AdminUploadEnginePermissionsReactor extends AbstractReactor {
 		return it;
 	}
 
-	private void loadExcelFile(IRDBMSEngine database, ExcelSheetFileIterator helper) throws Exception {
-		Connection conn = null;
-		boolean hasInsert = false;
-		PreparedStatement insertPs = null;
-		try {
-			conn = database.getConnection();
-			insertPs = conn.prepareStatement(insertQuery);
+	/**
+	 * Reads the people to give access from the file, leaving out anyone who has
+	 * access to their engine already.
+	 *
+	 * @return for each engine, the people to give access, with {@code userid} and
+	 *         {@code permission}
+	 */
+	private Map<String, List<Map<String, Object>>> readExcelFile(ExcelSheetFileIterator helper) {
+		String[] excelHeaders = helper.getHeaders();
+		List<String> excelHeadersList = Arrays.asList(excelHeaders);
 
-			String[] excelHeaders = helper.getHeaders();
-			List<String> excelHeadersList = Arrays.asList(excelHeaders);
+		int idxEngine = excelHeadersList.indexOf(ENGINE_ID_KEY);
+		int idxUser = excelHeadersList.indexOf(USER_ID_KEY);
+		int idxRole = excelHeadersList.indexOf(PERMISSION_KEY);
 
-			int idxEngine = excelHeadersList.indexOf(ENGINE_ID_KEY);
-			int idxUser = excelHeadersList.indexOf(USER_ID_KEY);
-			int idxRole = excelHeadersList.indexOf(PERMISSION_KEY);
-
-			if (idxEngine < 0 || idxUser < 0 || idxRole < 0) {
-				throw new IllegalArgumentException("One or more headers are missing from the excel");
-			}
-
-			int counter = 0;
-			Object[] row = null;
-			while ((helper.hasNext())) {
-				row = helper.next().getRawValues();
-
-				String engineId = (String) row[idxEngine];
-				String userId = (String) row[idxUser];
-				String role = (String) row[idxRole];
-
-				if (engineId == null || engineId.isEmpty()) {
-					throw new IllegalArgumentException(
-							"Must have the engine id for the user defined - check row " + counter);
-				}
-				if (userId == null || userId.isEmpty()) {
-					throw new IllegalArgumentException(
-							"Must have the user id for the user defined - check row " + counter);
-				}
-				if (role == null || role.isEmpty()) {
-					throw new IllegalArgumentException(
-							"Must have the role for the user defined - check row " + counter);
-				}
-
-				AccessPermissionEnum permission = AccessPermissionEnum.valueOf(role);
-				if (permission == null) {
-					throw new IllegalArgumentException("Must have a valid permission role - check row " + counter);
-				}
-
-				// check if the ID already exists
-				if (SecurityEngineUtils.checkUserHasAccessToDatabase(engineId, userId)) {
-					// TODO: update based on user id instead of continue?
-					logger.info("User id = {} alraedy exists for app = {} - skipping record for upload", userId,
-							engineId);
-					continue;
-				} else {
-					hasInsert = true;
-					// add to insert ps
-					insertPs.setString(psIndex.get(ENGINE_ID_KEY), engineId);
-					insertPs.setString(psIndex.get(USER_ID_KEY), userId);
-					insertPs.setInt(psIndex.get(PERMISSION_KEY), permission.getId());
-
-					insertPs.addBatch();
-				}
-
-				counter++;
-			}
-			// we execute for insert and updates
-			if (hasInsert) {
-				insertPs.executeBatch();
-			}
-			if (conn != null && !conn.getAutoCommit()) {
-				conn.commit();
-			}
-			logger.info("Done with updates, total rows = {}", counter);
-		} catch (Exception e) {
-			logger.error("Unable to read database-permission records from the uploaded Excel file.", e);
-			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(database, conn, insertPs);
+		if (idxEngine < 0 || idxUser < 0 || idxRole < 0) {
+			throw new IllegalArgumentException("One or more headers are missing from the excel");
 		}
+
+		Map<String, List<Map<String, Object>>> permissionsByEngine = new LinkedHashMap<>();
+		int counter = 0;
+		while (helper.hasNext()) {
+			Object[] row = helper.next().getRawValues();
+
+			String engineId = (String) row[idxEngine];
+			String userId = (String) row[idxUser];
+			String role = (String) row[idxRole];
+
+			if (engineId == null || engineId.isEmpty()) {
+				throw new IllegalArgumentException(
+						"Must have the engine id for the user defined - check row " + counter);
+			}
+			if (userId == null || userId.isEmpty()) {
+				throw new IllegalArgumentException("Must have the user id for the user defined - check row " + counter);
+			}
+			if (role == null || role.isEmpty()) {
+				throw new IllegalArgumentException("Must have the role for the user defined - check row " + counter);
+			}
+			AccessPermissionEnum permission = AccessPermissionEnum.valueOf(role);
+
+			// people who have access already keep it
+			if (SecurityEngineUtils.getUserEnginePermission(userId, engineId) != null) {
+				logger.info("User id = {} already has access to engine = {} - skipping record for upload", userId,
+						engineId);
+				continue;
+			}
+			Map<String, Object> entry = new HashMap<>();
+			entry.put("userid", userId);
+			entry.put("permission", permission.getPermission());
+			permissionsByEngine.computeIfAbsent(engineId, id -> new ArrayList<>()).add(entry);
+			counter++;
+		}
+		logger.info("Done reading the file, total rows = {}", counter);
+		return permissionsByEngine;
 	}
 }

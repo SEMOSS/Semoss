@@ -44,6 +44,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.AccessToken;
 import prerna.security.HttpHelperUtility;
+import prerna.util.ValueUtils;
 
 /**
  * Acquires app-only Microsoft Graph access tokens through the OAuth2 client
@@ -103,20 +104,20 @@ public class MicrosoftGraphAppTokenProvider {
 	 * @throws IllegalArgumentException if any required credential is missing
 	 */
 	public MicrosoftGraphAppTokenProvider(String tenantId, String clientId, String clientSecret, String scope) {
-		if (isBlank(tenantId)) {
+		if (ValueUtils.isBlank(tenantId)) {
 			throw new IllegalArgumentException("A tenant is required to request an app-only Microsoft Graph token.");
 		}
-		if (isBlank(clientId)) {
+		if (ValueUtils.isBlank(clientId)) {
 			throw new IllegalArgumentException("A client id is required to request an app-only Microsoft Graph token.");
 		}
-		if (isBlank(clientSecret)) {
+		if (ValueUtils.isBlank(clientSecret)) {
 			throw new IllegalArgumentException(
 					"A client secret is required to request an app-only Microsoft Graph token.");
 		}
 		this.tenantId = tenantId.trim();
 		this.clientId = clientId.trim();
 		this.clientSecret = clientSecret.trim();
-		this.scope = isBlank(scope) ? DEFAULT_SCOPE : scope.trim();
+		this.scope = ValueUtils.isBlank(scope) ? DEFAULT_SCOPE : scope.trim();
 	}
 
 	/**
@@ -186,7 +187,7 @@ public class MicrosoftGraphAppTokenProvider {
 	 * Decodes the {@code roles} claim out of a JWT payload.
 	 */
 	static Set<String> readRoles(String token) {
-		if (isBlank(token)) {
+		if (ValueUtils.isBlank(token)) {
 			return Collections.emptySet();
 		}
 		try {
@@ -232,7 +233,7 @@ public class MicrosoftGraphAppTokenProvider {
 		params.put("grant_type", "client_credentials");
 
 		AccessToken newToken = HttpHelperUtility.getAccessToken(tokenEndpoint, params, true, true);
-		if (newToken == null || isBlank(newToken.getAccess_token())) {
+		if (newToken == null || ValueUtils.isBlank(newToken.getAccess_token())) {
 			throw new IllegalStateException("Unable to acquire an app-only Microsoft Graph token for tenant "
 					+ this.tenantId
 					+ ". Verify the client id, client secret and tenant, and that admin consent has been granted.");
@@ -250,7 +251,4 @@ public class MicrosoftGraphAppTokenProvider {
 		return this.cachedToken;
 	}
 
-	private static boolean isBlank(String value) {
-		return value == null || value.trim().isEmpty();
-	}
 }

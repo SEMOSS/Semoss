@@ -59,9 +59,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import prerna.auth.User;
 import prerna.om.ClientProcessWrapper;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -172,13 +169,6 @@ public class SocketClient implements Runnable, Closeable {
 		classLogger.info("Trying with sleep time {}", SLEEP_TIME);
 		while (!connected && attempt < 6) {
 			try {
-				final SslContext sslCtx;
-				if (SSL) {
-					sslCtx = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-				} else {
-					sslCtx = null;
-				}
-
 				// Configure the client.
 				boolean blocking = Utility.getDIHelperProperty(Settings.BLOCKING) != null
 						&& Utility.getDIHelperProperty(Settings.BLOCKING).equalsIgnoreCase("true");

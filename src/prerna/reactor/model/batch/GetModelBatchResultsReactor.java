@@ -57,7 +57,10 @@ public class GetModelBatchResultsReactor extends AbstractModelBatchReactor {
 		String batchId = this.keyValue.get(ReactorKeysEnum.BATCH_ID.getKey());
 		IModelEngine engine = ModelBatchManager.resolveEngine(getUser(), engineId);
 		ModelBatchManager.assertUserOwnsBatch(getUser(), batchId);
-		BatchResultsResponse response = engine.getBatchResults(batchId, baseParams());
+		// goes through the manager (not engine.getBatchResults directly) since a
+		// VERTEX engine's batchId carries a "<storageEngineId>." prefix that needs
+		// re-resolving/re-authorizing into fresh GCS parameters before the call
+		BatchResultsResponse response = ModelBatchManager.results(getUser(), engineId, batchId, baseParams());
 		ModelBatchManager.recordBatchResultsUsage(
 				getUser(), engine, batchId, response,
 				this.insight.getInsightId(),
@@ -68,7 +71,7 @@ public class GetModelBatchResultsReactor extends AbstractModelBatchReactor {
 		Map<String, String> inputs = ModelBatchManager.getBatchInputs(getUser(), batchId);
 		if (!inputs.isEmpty() && response.getItems() != null) {
 			for (BatchResultItem item : response.getItems()) {
-				String input = inputs.get(item.getCustomId());
+				String input = inputs.get(ModelBatchManager.batchTransactionId(batchId, item.getCustomId()));
 				if (input != null) {
 					item.setInputText(input);
 				}

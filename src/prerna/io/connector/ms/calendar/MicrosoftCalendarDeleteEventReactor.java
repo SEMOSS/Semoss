@@ -27,84 +27,29 @@
  *******************************************************************************/
 package prerna.io.connector.ms.calendar;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
+import prerna.io.connector.calendar.AbstractDeleteEventReactor;
+import prerna.io.connector.calendar.CalendarApp;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Takes an event off the calendar of whoever is signed in.
+ * Deletes an event from a Microsoft 365 calendar, the signed in user's own or
+ * one shared with them to write.
  *
  * <p>
- * Required delegated Microsoft Graph scope:
- * </p>
- * <ul>
- * <li>{@code Calendars.ReadWrite} for {@code DELETE /me/events/{id}}</li>
- * </ul>
- *
- * <p>
- * What this means depends on whose event it is. An event the signed in user
- * organized is cancelled for everybody invited, and one they were only invited
- * to is removed from their own calendar and leaves everybody else's alone. To
- * turn down an invitation and say so, use
- * {@code MicrosoftCalendarRespondToEvent} instead.
+ * Required delegated Microsoft Graph scope: {@code Calendars.ReadWrite}, and
+ * {@code Calendars.ReadWrite.Shared} to write somebody else's.
  * </p>
  */
-public class MicrosoftCalendarDeleteEventReactor extends AbstractMicrosoftCalendarReactor {
+public class MicrosoftCalendarDeleteEventReactor extends AbstractDeleteEventReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(MicrosoftCalendarDeleteEventReactor.class);
-
-	public MicrosoftCalendarDeleteEventReactor() {
-		this.keysToGet = new String[] { EVENT_ID, CALENDAR_ID };
-		this.keyRequired = new int[] { 1, 0 };
+	@Override
+	protected CalendarApp getCalendarApp() {
+		return CalendarApp.MICROSOFT_CALENDAR;
 	}
 
 	@Override
-	public NounMetadata execute() {
-		this.organizeKeys();
-
-		String eventId = trimToNull(this.keyValue.get(EVENT_ID));
-		if (eventId == null) {
-			throw new SemossPixelException("An " + EVENT_ID + " is required to delete a calendar event.");
-		}
-		String calendarId = trimToNull(this.keyValue.get(CALENDAR_ID));
-
-		try {
-			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
-			MicrosoftCalendarHelper.deleteEvent(accessToken, calendarId, eventId);
-
-			Map<String, Object> output = new LinkedHashMap<>();
-			output.put("id", eventId);
-			output.put("deleted", true);
-			return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while deleting calendar event '{}'", eventId, e);
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to delete calendar event '{}'", eventId, e);
-			throw new SemossPixelException(
-					"An error occurred deleting the calendar event. Error message: " + e.getMessage());
-		}
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Delete an event from the signed in user's own Microsoft 365 calendar, cancelling it for the attendees when the user organized it.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(EVENT_ID)) {
-			return "Id of the event to delete, as returned by MicrosoftCalendarListEvents.";
-		}
-		return super.getDescriptionForKey(key);
+	protected void deleteEvent(User user, String calendarId, String mailbox, String id) throws Exception {
+		MicrosoftCalendarHelper.deleteEvent(MicrosoftLoginUtils.getValidAccessToken(user), mailbox, calendarId, id);
 	}
 }

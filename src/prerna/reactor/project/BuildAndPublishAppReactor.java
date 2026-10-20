@@ -116,6 +116,16 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Could not find or load project = " + projectId);
 		}
 
+		return buildAndPublish(project);
+	}
+
+	/**
+	 * Builds and publishes an already-authorized project. Package visibility allows
+	 * project restore to refresh generated portal assets after restoring source.
+	 */
+	NounMetadata buildAndPublish(IProject project) {
+		String projectId = project.getProjectId();
+
 		String buildSvcUrl = Utility.getDIHelperProperty(NODE_SERVER_ENDPOINT);
 		String endpointBase = normalizeBuildServiceUrl(buildSvcUrl);
 

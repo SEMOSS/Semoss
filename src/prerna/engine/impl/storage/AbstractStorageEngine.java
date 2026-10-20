@@ -281,7 +281,7 @@ public abstract class AbstractStorageEngine extends AbstractEngine implements IS
 				try (DirectoryStream<Path> entries = Files.newDirectoryStream(dir)) {
 					if (!entries.iterator().hasNext()) { // Directory is empty
 						Files.delete(dir);
-						classLogger.info("Deleted empty local folder: {}", dir);
+						classLogger.debug("Deleted empty local folder: {}", dir);
 					}
 				} catch (IOException e) {
 					classLogger.error("Failed to delete empty folder: {}", dir, e);

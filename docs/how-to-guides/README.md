@@ -39,6 +39,16 @@ Below is a list of available guides. We will be expanding this section over time
     *   Use cases: parameter passing, chaining, intermediate results.
     *   Best practices for NounStore management.
 
-*(Note: Links to guides will become active as they are completed.)*
+6.  **[Using TypeSafe / Jev Models](./using_typesafe_jev.md)**
+    *   Configuring a TypeSafe model engine.
+    *   Evaluating Choice, Score, and Noul questions from Pixel or Python.
+    *   Structured responses and model usage tracking.
+
+## Build agents and reusable skills
+
+- [Create and configure an agent workspace](../agents/agent_configuration.md).
+- [Submit, inspect, and cancel agent runs](../agents/agent_runs.md).
+- [Author and attach a skill package](../agents/skills/skills_doc.md).
+- [Understand the native model/tool loop](../agents/semoss_harness.md).
 
 We encourage you to explore these guides to deepen your understanding and enhance your productivity with SEMOSS. If you have suggestions for new how-to topics, please let the development team know.

@@ -43,12 +43,10 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -65,13 +63,12 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 	private static final String TYPE = "TYPE";
 	private static final String SESSION_SHARE = "IS_SESSION_SHARE";
 	private static final String AUTH_SHARE = "IS_AUTH_SHARE";
-	
-	
+
 	private User user;
 	private static String id = "test user id";
 	private static String sessionId = "session id";
 	private static String routeId = "routeId";
-	
+
 	@BeforeEach
 	void setUp() throws Exception {
 		user = new User();
@@ -81,23 +78,23 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 		accessToken.setId(id);
 		user.setGlobalAccessToken(accessToken);
 
-		IRDBMSEngine securityDb = (IRDBMSEngine) SystemEngineRegistry.getSecurityDb();
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// clear the session share table before each test
 		securityDb.removeData("DELETE FROM " + SESSION_SHARE_TABLE_NAME);
 
 	}
-	
+
 	@Test
-	void testCreateTokenForInvalidUser(){
+	void testCreateTokenForInvalidUser() {
 		user.setAnonymous(true);
 		// test anonymous user
 		Exception e = assertThrows(IllegalArgumentException.class,
-                () -> SecurityShareSessionUtils.createToken(user, null, null, false, false));
-        assertEquals("Cannot share a session for a user who is not logged in", e.getMessage());
-        // test null user
-        e = assertThrows(IllegalArgumentException.class,
-                () -> SecurityShareSessionUtils.createToken(null, null, null, false, false));
-        assertEquals("Cannot share a session for a user who is not logged in", e.getMessage());
+				() -> SecurityShareSessionUtils.createToken(user, null, null, false, false));
+		assertEquals("Cannot share a session for a user who is not logged in", e.getMessage());
+		// test null user
+		e = assertThrows(IllegalArgumentException.class,
+				() -> SecurityShareSessionUtils.createToken(null, null, null, false, false));
+		assertEquals("Cannot share a session for a user who is not logged in", e.getMessage());
 	}
 
 	@Test
@@ -115,13 +112,13 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 				assertEquals(prerna.auth.AuthProvider.GOOGLE.getLabel(), data.get(TYPE));
 				assertEquals(true, data.get(SESSION_SHARE));
 				assertEquals(false, data.get(AUTH_SHARE));
-				
+
 				rowCount++;
 			}
 			assertEquals(1, rowCount);
 		}
 	}
-	
+
 	@Test
 	void testCreateAuthToken() throws Exception {
 		String token = SecurityShareSessionUtils.createAuthToken(user, sessionId, routeId);
@@ -137,57 +134,58 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 				assertEquals(prerna.auth.AuthProvider.GOOGLE.getLabel(), data.get(TYPE));
 				assertEquals(false, data.get(SESSION_SHARE));
 				assertEquals(true, data.get(AUTH_SHARE));
-				
+
 				rowCount++;
 			}
 			assertEquals(1, rowCount);
 		}
 	}
-	
+
 	@Test
 	void testGetAndValidateShareSessionDetails() throws SQLException {
 		// create the token entry
 		String token = SecurityShareSessionUtils.createShareToken(user, sessionId, routeId);
-		
+
 		// this will contain 10 values for each column in the share session table
 		Object[] sessionDetails = SecurityShareSessionUtils.getShareSessionDetails(token);
 		assertEquals(10, sessionDetails.length);
 		assertEquals(token, sessionDetails[0]);
-		assertEquals(sessionId, sessionDetails[1]); //SESSION_VAL
-		assertEquals(routeId, sessionDetails[2]); //ROUTE_VAL
+		assertEquals(sessionId, sessionDetails[1]); // SESSION_VAL
+		assertEquals(routeId, sessionDetails[2]); // ROUTE_VAL
 		assertNull(sessionDetails[5]); // USE_VALID
-		assertEquals(true, sessionDetails[6]); //SESSION_SHARE
-		assertEquals(false, sessionDetails[7]); //AUTH_SHARE
-		assertEquals(id, sessionDetails[8]); //USERID
-		assertEquals(prerna.auth.AuthProvider.GOOGLE.getLabel(), sessionDetails[9]); //TYPE
-		// since the session has not been used and is less thn 5 minutes old, it is successful
+		assertEquals(true, sessionDetails[6]); // SESSION_SHARE
+		assertEquals(false, sessionDetails[7]); // AUTH_SHARE
+		assertEquals(id, sessionDetails[8]); // USERID
+		assertEquals(prerna.auth.AuthProvider.GOOGLE.getLabel(), sessionDetails[9]); // TYPE
+		// since the session has not been used and is less thn 5 minutes old, it is
+		// successful
 		assertTrue(SecurityShareSessionUtils.validateShareSessionDetails(sessionDetails));
 	}
-	
+
 	@Test
 	void testGetAndValidateShareSessionDetailsFail() throws SQLException {
 		// create the token entry
 		String token = SecurityShareSessionUtils.createShareToken(user, sessionId, routeId);
-		
+
 		// this will contain 10 values for each column in the share session table
 		Object[] sessionDetails = SecurityShareSessionUtils.getShareSessionDetails(token);
 		assertEquals(10, sessionDetails.length);
 		assertEquals(token, sessionDetails[0]);
-		assertEquals(sessionId, sessionDetails[1]); //SESSION_VAL
-		assertEquals(routeId, sessionDetails[2]); //ROUTE_VAL
+		assertEquals(sessionId, sessionDetails[1]); // SESSION_VAL
+		assertEquals(routeId, sessionDetails[2]); // ROUTE_VAL
 		assertNull(sessionDetails[5]); // USE_VALID
-		assertEquals(true, sessionDetails[6]); //SESSION_SHARE
-		assertEquals(false, sessionDetails[7]); //AUTH_SHARE
-		assertEquals(id, sessionDetails[8]); //USERID
-		assertEquals(prerna.auth.AuthProvider.GOOGLE.getLabel(), sessionDetails[9]); //TYPE
+		assertEquals(true, sessionDetails[6]); // SESSION_SHARE
+		assertEquals(false, sessionDetails[7]); // AUTH_SHARE
+		assertEquals(id, sessionDetails[8]); // USERID
+		assertEquals(prerna.auth.AuthProvider.GOOGLE.getLabel(), sessionDetails[9]); // TYPE
 		// set useValid boolean value to true
 		sessionDetails[5] = true;
 		// fails to validate due to boolean indicating session was already used
 		Exception e = assertThrows(IllegalArgumentException.class,
-                () -> SecurityShareSessionUtils.validateShareSessionDetails(sessionDetails));
-        assertEquals("share key has already been used", e.getMessage());
+				() -> SecurityShareSessionUtils.validateShareSessionDetails(sessionDetails));
+		assertEquals("share key has already been used", e.getMessage());
 	}
-	
+
 	@Test
 	void testLogSessionUsed() throws Exception {
 		// create the token entry
@@ -211,13 +209,13 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 			while (wrapper.hasNext()) {
 				Map<String, Object> data = wrapper.next().flushRowToMap();
 				assertTrue(data.containsKey(USE_VALID));
-				assertTrue((Boolean)data.get(USE_VALID));
+				assertTrue((Boolean) data.get(USE_VALID));
 				rowCount++;
 			}
 			assertEquals(1, rowCount);
 		}
 	}
-	
+
 	@Test
 	void testGenerateAccessTokenForShareAuth() throws Exception {
 		// add user to security DB
@@ -231,14 +229,9 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 		boolean admin = true;
 		boolean publisher = false;
 		boolean exporter = false;
-		String modelUsageRestriction = null;
-		String modelUsageFrequency = null;
-		Integer modelMaxTokens = null;
-		Double modelMaxResponseTime = null;
 
 		boolean success = SecurityUpdateUtils.registerUser(id, name, email, password, type, phone, phoneextension,
-				countrycode, admin, publisher, exporter, modelUsageRestriction, modelUsageFrequency, modelMaxTokens,
-				modelMaxResponseTime);
+				countrycode, admin, publisher, exporter, null);
 
 		assertTrue(success, "Insertion of new user was not successful");
 		// create share token
@@ -252,11 +245,11 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 		assertEquals("ADMIN_ADDED_USER", accessToken.getUsername());
 		assertEquals(email, accessToken.getEmail());
 	}
-	
+
 	// used to get a wrapper on the table to validate tests
 	// this wrapper needs to be closed after use
 	private IRawSelectWrapper getSessionSharedTableWrapper(String shareToken) throws Exception {
-		IRDBMSEngine securityDb = (IRDBMSEngine) SystemEngineRegistry.getSecurityDb();
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(SESSION_SHARE_TABLE_NAME + "__" + SHARE_VAL));
 		qs.addSelector(new QueryColumnSelector(SESSION_SHARE_TABLE_NAME + "__" + SESSION_VAL));
