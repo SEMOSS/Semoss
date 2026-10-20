@@ -1,9 +1,10 @@
 # Schedule a routine
 
 A routine is a task the owner's agent repeats on a schedule while they are away.
-Each run has read tools only, nobody can approve anything during it, and the
-platform delivers the final answer to the owner alone, by email, as a Teams message
-to themselves, or only in Routines. Use `CreateRoutine` to save or change one,
+Each run can read the owner's data and make files, but cannot send, post, or
+change anything, and nobody can approve anything during it. The platform delivers
+the final answer to the owner alone, by email, as a Teams message to themselves, or
+only in Routines. Use `CreateRoutine` to save or change one,
 `ListRoutines` to find one, and `ManageRoutine` to pause, resume, run, or delete it.
 
 ## Write the task
@@ -32,6 +33,19 @@ Fill `time`, `days`, and `timezone` from what the owner said; ask only when the
 schedule is missing entirely. Pick `delivery` from their words: email when they
 want to be alerted, Teams for a quiet note in their own chat, none to only keep it
 in Routines. Give the routine a short `name` they will recognize.
+
+## Files with the result
+
+With `delivery` email, a run can make files each time it runs, such as a CSV, a
+document, or a text file, and they are attached to the email, up to the mailbox's
+message size limit; files past it are named in the email instead. Write the file
+into the task as part of the result ("Make a CSV of today's meetings with
+subject, time, and attendees"); the run knows where to save it, and attaching it is
+part of delivery, so never write "attach" or "send". A file made in this chat is
+not carried over: the run makes its own each time.
+
+Teams and Routines-only delivery carry text only for now. When the owner wants a
+file in Teams, say it comes by email instead and offer that.
 
 ## Give a recurring result a skill
 
