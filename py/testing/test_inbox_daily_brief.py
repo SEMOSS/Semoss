@@ -1,4 +1,4 @@
-"""Execute the shipped inbox gather source with mailbox reads stubbed out."""
+"""Execute shipped inbox gather and draft-saving sources with mailbox calls stubbed out."""
 
 import datetime
 import json
@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 import types
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 from urllib.parse import unquote_plus
 
 
@@ -27,13 +27,16 @@ class InboxDailyBriefTests(unittest.TestCase):
         smssutil = types.ModuleType("smssutil")
         smssutil.smss_get_runtime_var = Mock()
         self.gather = {}
+        self.save_drafts = {}
         with patch.dict(sys.modules, {"semoss": semoss, "smssutil": smssutil}):
             exec(compile(definition["nodeSources"]["gather"], str(DEFINITION), "exec"), self.gather)
+            exec(compile(definition["nodeSources"]["save_drafts"], str(DEFINITION), "exec"), self.save_drafts)
         self.gather.update({
             "_optional": Mock(return_value={}),
             "_meetings": Mock(return_value=[]),
             "_action_items": Mock(return_value=[]),
         })
+        self.save_drafts["_pixel"] = Mock()
 
     def queue(self, items, messages=None):
         def read(reactor, **args):
@@ -119,11 +122,11 @@ class InboxDailyBriefTests(unittest.TestCase):
         context = self.run_at(datetime.datetime(2026, 10, 20, 12, tzinfo=UTC), email_count=1)
 
         self.assertEqual(["one", "two"], [reply["threadId"] for reply in context["replies"]])
-        prompt = json.loads(context["briefInput"])
+        prompt = json.loads(context["draftsInput"])
         self.assertEqual(2, len(prompt["replies"]))
         self.assertTrue(all("threadId" not in reply and "messageId" not in reply for reply in prompt["replies"]))
 
-    def test_brief_input_contains_summary_fields_and_preserves_links_after_url_decoding(self):
+    def test_draft_and_brief_inputs_preserve_text_and_links_after_url_decoding(self):
         link = "https://outlook.example/mail/id/item%2Fpart?query=a+b&progress=50%25"
         latest = "Please approve a 10% increase + delivery on Friday."
         self.queue(
@@ -145,7 +148,16 @@ class InboxDailyBriefTests(unittest.TestCase):
         self.gather["_action_items"].return_value = actions
 
         context = self.run_at(datetime.datetime(2026, 10, 20, 12, tzinfo=UTC), timezone="America/New_York")
-        prompt = json.loads(unquote_plus(context["briefInput"]))
+        drafting = json.loads(unquote_plus(context["draftsInput"]))
+        self.assertEqual({"owner", "replies"}, set(drafting))
+        self.assertEqual(context["owner"], drafting["owner"])
+        self.assertEqual(["Earlier discussion.", latest], [message["text"] for message in drafting["replies"][0]["messages"]])
+        for field in ("threadId", "messageId", "webLink"):
+            self.assertNotIn(field, drafting["replies"][0])
+        self.assertNotIn("briefInput", context)
+
+        saved = self.save_drafts["run"]({"context": context, "drafts": '{"drafts": []}'})
+        prompt = json.loads(unquote_plus(saved["briefInput"]))
 
         self.assertEqual({"today", "timezone", "replies", "meetings", "actionItems"}, set(prompt))
         self.assertEqual("2026-10-20", prompt["today"])
@@ -154,17 +166,18 @@ class InboxDailyBriefTests(unittest.TestCase):
             "n": 1, "title": "Approve the estimate", "priority": "P1", "askType": "approve",
             "reasons": ["Due tomorrow"], "due": "2026-10-21", "from": "Dana", "received": "2026-10-20T10:00:00Z",
             "subject": "Estimate", "summary": "Estimate is ready for approval.", "webLink": link,
-            "latestMessage": latest,
+            "latestMessage": latest, "draft": "not written",
         }], prompt["replies"])
         self.assertEqual(meetings, prompt["meetings"])
         self.assertEqual(actions, prompt["actionItems"])
-        self.assertNotIn("draftsInput", context)
+        self.assertEqual(saved["replies"], prompt["replies"])
+        self.save_drafts["_pixel"].assert_not_called()
         self.assertEqual("estimate", context["replies"][0]["threadId"])
         self.assertEqual("latest-id", context["replies"][0]["messageId"])
         self.assertEqual(link, context["replies"][0]["webLink"])
         self.assertEqual(["Earlier discussion.", latest], [message["text"] for message in context["replies"][0]["messages"]])
 
-    def test_uses_both_owner_addresses_without_reading_sent_mail_or_writing_drafts(self):
+    def test_uses_both_owner_addresses_and_supplies_confirmed_style_and_sent_mail_for_drafting(self):
         self.queue(
             [item("scope-owner", "2026-10-20T10:00:00Z"), item("profile-owner", "2026-10-20T10:00:00Z"),
              item("needs-reply", "2026-10-20T10:00:00Z")],
@@ -174,7 +187,11 @@ class InboxDailyBriefTests(unittest.TestCase):
 
         def optional(reactor, **args):
             if reactor == "BrainGetProfile":
-                return {"email": "profile@example.com", "style": {"confirmed": True, "summary": "Private writing style"}}
+                return {"name": "Owner", "email": "profile@example.com",
+                        "role": {"source": "you", "value": "Manager"},
+                        "style": {"confirmed": True, "summary": "Concise and friendly", "examples": ["Thanks, Dana."]}}
+            if reactor == "MicrosoftOutlookListMail":
+                return {"messages": [{"subject": "Prior reply", "body": "Thanks + agreed 100%."}]}
             self.assertEqual("BrainListThreads", reactor)
             return {}
 
@@ -182,22 +199,55 @@ class InboxDailyBriefTests(unittest.TestCase):
         context = self.run_at(datetime.datetime(2026, 10, 20, 12, tzinfo=UTC))
 
         self.assertEqual(["needs-reply"], [reply["threadId"] for reply in context["replies"]])
-        self.assertEqual([("BrainGetProfile",), ("BrainListThreads",)],
-                         [call.args for call in self.gather["_optional"].call_args_list])
+        self.assertEqual([
+            call("BrainGetProfile"),
+            call("MicrosoftOutlookListMail", folder="sentitems", limit=5, includeBody=True, maxBodyChars=1500),
+            call("BrainListThreads", limit=100, offset=0, detail=True),
+        ], self.gather["_optional"].call_args_list)
         self.assertEqual([("WorkListItems",)], [call.args for call in self.gather["_pixel"].call_args_list])
-        self.assertNotIn("owner", json.loads(context["briefInput"]))
-        self.assertNotIn("Private writing style", context["briefInput"])
+        self.assertEqual({
+            "name": "Owner", "email": "profile@example.com", "role": "Manager",
+            "writingStyle": "Concise and friendly", "styleExamples": ["Thanks, Dana."],
+            "recentSentEmails": [{"subject": "Prior reply", "text": "Thanks + agreed 100%."}],
+        }, json.loads(unquote_plus(context["draftsInput"]))["owner"])
 
-    def test_shipped_workflow_writes_only_the_brief_and_keeps_needs_your_reply(self):
+    def test_shipped_workflow_drafts_and_saves_before_writing_the_brief(self):
         agents = [node for node in self.definition["graph"]["nodes"] if node["type"] == "agent.run"]
-        self.assertEqual(["brief"], [node["id"] for node in agents])
-        self.assertIn("Needs your reply", agents[0]["config"]["command"])
-        self.assertIn("${context.briefInput}", agents[0]["config"]["command"])
-        self.assertNotIn("save_drafts", self.definition["nodeSources"])
-        workflow = json.dumps(self.definition)
-        for reactor in ("MicrosoftOutlookReplyMail", "MicrosoftOutlookMoveMail", "MicrosoftOutlookCreateMailFolder",
-                        "MicrosoftOutlookListMail"):
-            self.assertNotIn(reactor, workflow)
+        self.assertEqual(["drafts", "brief"], [node["id"] for node in agents])
+        self.assertIn("${context.draftsInput}", agents[0]["config"]["command"])
+        self.assertIn("Needs your reply", agents[1]["config"]["command"])
+        self.assertIn("${saved.briefInput}", agents[1]["config"]["command"])
+        edges = {(edge["source"], edge["target"]) for edge in self.definition["graph"]["edges"]}
+        self.assertTrue({("gather", "drafts"), ("drafts", "save_drafts"), ("save_drafts", "brief")}.issubset(edges))
+
+    def test_saves_model_bodies_by_reply_number_as_reply_all_drafts_in_the_teamwork_folder(self):
+        self.queue([item("first", "2026-10-20T10:00:00Z"), item("second", "2026-10-20T10:00:00Z"),
+                    item("unwritten", "2026-10-20T10:00:00Z")])
+        context = self.run_at(datetime.datetime(2026, 10, 20, 12, tzinfo=UTC))
+        self.save_drafts["_pixel"].side_effect = [
+            {"id": "teamwork-folder"}, {"id": "draft-first"}, {}, {"id": "draft-second"}, {},
+        ]
+        answer = json.dumps({"drafts": [
+            {"n": 2, "body": "Second <ready> & approved\nThank you."},
+            {"n": 1, "body": "First answer"},
+            {"n": 999, "body": "Unmatched answer"},
+        ]})
+
+        saved = self.save_drafts["run"]({"context": context, "drafts": answer})
+
+        self.assertEqual([
+            call("MicrosoftOutlookCreateMailFolder", name="Teamwork drafts", parent="drafts"),
+            call("MicrosoftOutlookReplyMail", id="message-first", body="First answer", html=True, replyAll=True, asDraft=True),
+            call("MicrosoftOutlookMoveMail", id="draft-first", folder="teamwork-folder"),
+            call("MicrosoftOutlookReplyMail", id="message-second", body="Second &lt;ready&gt; &amp; approved<br>Thank you.",
+                 html=True, replyAll=True, asDraft=True),
+            call("MicrosoftOutlookMoveMail", id="draft-second", folder="teamwork-folder"),
+        ], self.save_drafts["_pixel"].call_args_list)
+        self.assertEqual(["saved", "saved", "not written"], [reply["draft"] for reply in saved["replies"]])
+        self.assertEqual(["Drafts > Teamwork drafts", "Drafts > Teamwork drafts"],
+                         [reply["location"] for reply in saved["replies"][:2]])
+        self.assertEqual(saved["replies"], json.loads(unquote_plus(saved["briefInput"]))["replies"])
+        self.assertTrue(all("draft" not in reply for reply in context["replies"]))
 
     def test_window_uses_elapsed_hours_across_daylight_saving_change(self):
         self.queue([item("boundary", "2026-10-31T07:30:00Z"), item("old", "2026-10-31T07:29:59Z")])
