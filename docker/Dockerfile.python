@@ -1,5 +1,5 @@
 
-# docker build --build-arg CUDA_VERSION=12.4.1  --build-arg PYTHON_VERSION=3.12 -t semoss/pybuilder:ubutunu2204_py3.12  . -f Dockerfile.ubuntu2204
+# docker build --build-arg CUDA_VERSION=12.4.1  --build-arg PYTHON_VERSION=3.14 -t semoss/pybuilder:ubutunu2204_py3.14  . -f Dockerfile.ubuntu2204
 
 # Base image arguments
 #ARG BASE_REGISTRY=docker.io
@@ -53,8 +53,6 @@ ENV PATH=$VIRTUAL_ENV/bin:$PATH
 
 RUN curl -LsSf https://astral.sh/uv/0.13.4/install.sh | sh
 
-#ARG PYTHON_VERSION=3.12
-
 ARG PYTHON_VERSION
 ENV PYTHON_VERSION=${PYTHON_VERSION}
 
@@ -62,7 +60,6 @@ ARG COMPUTE_TYPE
 ENV COMPUTE_TYPE=${COMPUTE_TYPE}
 
 COPY update_ensurepip.py /tmp/update_ensurepip.py
-# The whole managed interpreter is copied into the runtime image, including ensurepip.
 RUN uv python install ${PYTHON_VERSION} --default --preview && \
     base_python="$(uv python find --system ${PYTHON_VERSION})" && \
     uv pip install --python "$base_python" --break-system-packages "pip>=26.2.2" && \

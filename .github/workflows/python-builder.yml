@@ -4,36 +4,36 @@ on:
     inputs:
       # IF WE UPDATE THE DEFAULT HERE, MAKE SURE TO UPDATE THE DEFAULT IN THE env WITHIN THE JOB AS WELL
       python_version:
-        description: 'Python Version to install'
+        description: "Python Version to install"
         required: true
-        default: '3.12'
+        default: "3.14"
       compute_type:
-        description: 'Install either CPU or GPU packages'
+        description: "Install either CPU or GPU packages"
         required: true
-        default: 'cpu'
+        default: "cpu"
       base_registry:
-        description: 'Base registry'
+        description: "Base registry"
         required: true
-        default: 'public.ecr.aws/docker/library'
+        default: "public.ecr.aws/docker/library"
       base_image:
-        description: 'Base Image'
+        description: "Base Image"
         required: true
-        default: 'ubuntu'
+        default: "ubuntu"
       base_tag:
-        description: 'Base tag'
+        description: "Base tag"
         required: true
-        default: '22.04'
+        default: "22.04"
   push:
-    branches: [ "dev", "main" ]
+    branches: ["dev", "main"]
     paths:
-      - 'docker/Dockerfile.python'
-      - 'docker/update_ensurepip.py'
-      - 'py/install_config/pyproject.toml'
-      - '.github/workflows/python-builder.yml'
+      - "docker/Dockerfile.python"
+      - "docker/update_ensurepip.py"
+      - "py/install_config/pyproject.toml"
+      - ".github/workflows/python-builder.yml"
 
 env:
   IMAGE: quay.io/semoss/python-builder
-  PYTHON_VERSION: ${{ github.event.inputs.python_version || '3.12' }}
+  PYTHON_VERSION: ${{ github.event.inputs.python_version || '3.14' }}
   COMPUTE_TYPE: ${{ github.event.inputs.compute_type || 'cpu' }}
   BASE_REGISTRY: ${{ github.event.inputs.base_registry || 'public.ecr.aws/docker/library' }}
   BASE_IMAGE: ${{ github.event.inputs.base_image || 'ubuntu' }}
