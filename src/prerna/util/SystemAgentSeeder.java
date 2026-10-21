@@ -42,7 +42,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.collaboration.CollaborationPrompts;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 
@@ -268,7 +267,6 @@ public class SystemAgentSeeder {
 			return "System agent for building platform apps.";
 		}
 		if (Constants.AGENT_COLLABORATION.equals(agentId)) {
-			// the prompt is rewritten on every boot, so edits belong in CollaborationPrompts
 			return "System agent for Collaboration: the owner's assistant for mail, chats, meetings and files.";
 		}
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
@@ -293,9 +291,8 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return APP_BUILDER_SYSTEM_PROMPT;
 		}
-		if (Constants.AGENT_COLLABORATION.equals(agentId)) {
-			return CollaborationPrompts.THREAD_PROMPT;
-		}
+		// the Collaboration Agent has none of its own: the harness gives every Collaboration
+		// chat and routine CollaborationPrompts.BASE_PROMPT, whichever agent runs it
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return WORKFLOW_AUTOMATION_BUILDER_SYSTEM_PROMPT;
 		}

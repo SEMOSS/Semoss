@@ -62,7 +62,6 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.access.ModelUsageLimitRule.Metric;
-import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -1716,15 +1715,6 @@ public class ModelInferenceLogsUtils {
 		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
 		if (projectId != null) {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
-		}
-		// a routine's run rooms are Collaboration rooms, but not chats
-		if (CollaborationUtils.COLLABORATION_PROJECT_ID.equals(projectId)) {
-			OrQueryFilter notRoutine = new OrQueryFilter();
-			notRoutine.addFilter(SimpleQueryFilter.makeColToValFilter("ROOM__OPTIONS", "==", null,
-					PixelDataType.CONST_STRING));
-			notRoutine.addFilter(SimpleQueryFilter.makeColToValFilter("ROOM__OPTIONS", "?nlike",
-					"\"" + CollaborationUtils.ROOM_OPTION_ROUTINE + "\":true", PixelDataType.CONST_STRING));
-			subQs.addExplicitFilter(notRoutine);
 		}
 		if (!includeUnnamedRooms) {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", null));

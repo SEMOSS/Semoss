@@ -28,8 +28,8 @@
 package prerna.collaboration;
 
 /**
- * The Collaboration Agent's prompt: the baseline of the owner's chats and routines
- * (CollaborationRunMode), in place of the general agent baseline.
+ * The baseline prompt of the owner's chats and routines (CollaborationRunMode), in place of
+ * the general agent baseline, whichever agent runs them.
  */
 public final class CollaborationPrompts {
 
@@ -362,10 +362,9 @@ public final class CollaborationPrompts {
 			a rejected external action. Finish with the verified artifact and a concise outcome.
 			""";
 
-	// the Collaboration Agent's prompt, and the baseline of any Collaboration chat or routine;
-	// a picked agent's prompt follows it. Joined at runtime so callers read it here instead of
-	// a copy javac inlined into them.
-	public static final String THREAD_PROMPT = String.join("", INTRO, TOOLS, RULES, EMAILS, FILES);
+	// the baseline of any Collaboration chat or routine; the agent's own prompt follows it.
+	// Joined at runtime so callers read it here instead of a copy javac inlined into them.
+	public static final String BASE_PROMPT = String.join("", INTRO, TOOLS, RULES, EMAILS, FILES);
 
 	// for an agent in a Collaboration room that has its own baseline (a PPTX workflow agent)
 	public static final String FILES_PROMPT = FILES.strip();

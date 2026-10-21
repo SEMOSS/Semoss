@@ -85,7 +85,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.ValueUtils;
 
 /**
@@ -224,12 +223,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			}
 		}
 
-		// a Collaboration run's baseline is the Collaboration Agent's own prompt when it is the agent
-		boolean collaborationRun = collaborationBaseline(ctx, room);
-		String authoredPrompt = agentConfig.getAuthoredPrompt();
-		boolean agentIsBaseline = collaborationRun && Constants.AGENT_COLLABORATION.equals(agentConfig.getWorkspaceId())
-				&& authoredPrompt != null && !authoredPrompt.isBlank();
-		String agentSidePrompt = agentConfig.getComposedAgentPrompt(!agentIsBaseline);
+		String agentSidePrompt = agentConfig.getComposedAgentPrompt();
 
 		Map<String, Object> opts = room.getOptionsMap();
 		boolean hadInstructions = opts.containsKey("instructions");
@@ -239,8 +233,9 @@ public class SemossAgentHarness implements IAgentHarness {
 
 		// a PPTX workflow run has no collaboration tools, so it keeps the general
 		// baseline
-		StringBuilder composed = new StringBuilder(agentIsBaseline ? authoredPrompt
-				: collaborationRun ? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
+		StringBuilder composed = new StringBuilder(collaborationBaseline(ctx, room)
+				? CollaborationPrompts.BASE_PROMPT
+				: SemossHarnessPrompts.SYSTEM_PROMPT);
 		composed.append("\n\n").append(DeferredAgentTools.PROMPT);
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {

@@ -80,8 +80,9 @@ public final class CollaborationUtils {
 		return COLLABORATION_PROJECT_ID;
 	}
 
+	// a routine's run room sits outside the project, so it stays out of the chat list
 	public static boolean isCollaborationRoom(Room room) {
-		return room != null && COLLABORATION_PROJECT_ID.equals(room.getProjectId());
+		return room != null && (COLLABORATION_PROJECT_ID.equals(room.getProjectId()) || isRoutineRoom(room));
 	}
 
 	/**

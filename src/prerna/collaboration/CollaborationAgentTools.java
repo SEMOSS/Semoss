@@ -209,7 +209,7 @@ public final class CollaborationAgentTools {
 
 	/** Whether agents in this room get the collaboration tools. */
 	public static boolean appliesTo(Room room) {
-		return CollaborationUtils.isCollaborationRoom(room) || CollaborationUtils.isRoutineRoom(room);
+		return CollaborationUtils.isCollaborationRoom(room);
 	}
 
 	/** Fresh copies of the tool definitions, safe for the caller to change; the memory and chat tools are left out. */
