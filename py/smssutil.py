@@ -1018,9 +1018,6 @@ def generate_mcp(
                             cleaned_mcp_ui_map[key] = None
 
                     # same rules as MCPUtility.copyUiHints on the Java side
-                    if key == "component" and isinstance(value, str) and value.strip():
-                        cleaned_mcp_ui_map[key] = value.strip()
-
                     if key == "autoOpen" and isinstance(value, (bool, str)):
                         cleaned_mcp_ui_map[key] = str(value).lower() == "true"
 
@@ -1360,7 +1357,7 @@ def mcp_execution(arg: str):
 def mcp_metadata(_mcp_metadata: dict):
     """
     Decorator factory to add metadata to MCP functions.
-    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden', 'component': 'email-compose', 'autoOpen': True, 'deferred': True})
+    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': 'component://email-compose', 'execution':'auto'|'ask'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden', 'autoOpen': True, 'deferred': True})
     """
 
     def _decorator(func):

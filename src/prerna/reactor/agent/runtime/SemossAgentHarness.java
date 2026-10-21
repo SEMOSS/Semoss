@@ -1147,9 +1147,9 @@ public class SemossAgentHarness implements IAgentHarness {
 			// exposes the action id and tool metadata for UI-driven execution.
 			return null;
 		}
-		if (resourceURI.contains("://")) {
+		if (resourceURI.contains("://") || resourceURI.strip().regionMatches(true, 0, "component:", 0, 10)) {
 			// a component:// or system:// view renders inside the client, so there is
-			// no portal page to point at
+			// no portal page to point at. Malformed component URIs are reserved too.
 			return null;
 		}
 		// Strip any leading slash from resourceURI so the path never gets a double
@@ -1324,8 +1324,8 @@ public class SemossAgentHarness implements IAgentHarness {
 
 	/**
 	 * Room metadata enrichment only covers room/workspace MCP tools. Reattach
-	 * {@code _meta} for explicit ask-mode tools and subagent tools too, since
-	 * neither comes from that enrichment.
+	 * {@code _meta} for explicit ask-mode tools, native component resources, and
+	 * subagent tools too, since none comes from that enrichment.
 	 */
 	@SuppressWarnings("unchecked")
 	private static void restoreAskMetadataForParameterTools(ResponseMessage response, List<Map<String, Object>> tools,
@@ -1346,13 +1346,11 @@ public class SemossAgentHarness implements IAgentHarness {
 			Object execution = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_EXECUTION);
 			boolean isAsk = "ask".equalsIgnoreCase(String.valueOf(execution));
 			boolean isSubAgentTool = SubAgentToolSynthesizer.isSubAgentTool(name, subAgentSpecs);
-			// a tool with a native UI component needs its _meta on the call, auto or not
+			// A native view needs its metadata on both automatic results and approvals.
 			Object ui = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_UI);
-			// so does one whose view is a component the client renders, which shows its
-			// result as well as its approval
 			Object resourceURI = ui instanceof Map ? ((Map<String, Object>) ui).get(MCPUtility.UI_RESOURCE_URI) : null;
-			boolean hasComponent = ui instanceof Map && (((Map<String, Object>) ui).get(MCPUtility.UI_COMPONENT) != null
-					|| (resourceURI != null && String.valueOf(resourceURI).startsWith(MCPUtility.UI_COMPONENT_SCHEME)));
+			boolean hasComponent = resourceURI instanceof String && ((String) resourceURI).strip()
+					.regionMatches(true, 0, MCPUtility.UI_COMPONENT_SCHEME, 0, MCPUtility.UI_COMPONENT_SCHEME.length());
 			if (isAsk || isSubAgentTool || hasComponent) {
 				metaByName.put(name, tool);
 			}

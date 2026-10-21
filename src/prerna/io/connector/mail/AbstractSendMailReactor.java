@@ -81,7 +81,7 @@ public abstract class AbstractSendMailReactor extends AbstractComposeMailReactor
 
 	@Override
 	protected final String getView() {
-		return "mail/compose?intent=send";
+		return "mail-compose?intent=send";
 	}
 
 	@Override

@@ -160,10 +160,10 @@ public abstract class AbstractConnectorAppReactor extends AbstractConnectorReact
 	/**
 	 * The URI a tool names its component view with.
 	 *
-	 * @param view the library and view, with any parameters
+	 * @param view the flat component name, with any parameters
 	 * @param app  the app the view reads from
 	 * @return the URI, such as
-	 *         {@code component://mail/compose?intent=send&provider=google}
+	 *         {@code component://mail-compose?intent=send&provider=google}
 	 */
 	public static String viewUri(String view, IConnectorApp app) {
 		return MCPUtility.UI_COMPONENT_SCHEME + view + (view.contains("?") ? "&" : "?") + PROVIDER_PARAM + "="

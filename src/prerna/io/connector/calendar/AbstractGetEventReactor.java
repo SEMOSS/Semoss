@@ -73,7 +73,7 @@ public abstract class AbstractGetEventReactor extends AbstractCalendarReactor {
 
 	@Override
 	protected final String getView() {
-		return "calendar/event";
+		return "calendar-event";
 	}
 
 	@Override

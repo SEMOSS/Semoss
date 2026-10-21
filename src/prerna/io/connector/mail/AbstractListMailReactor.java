@@ -141,7 +141,7 @@ public abstract class AbstractListMailReactor extends AbstractMailReactor {
 
 	@Override
 	protected final String getView() {
-		return "mail/list";
+		return "mail-list";
 	}
 
 	@Override

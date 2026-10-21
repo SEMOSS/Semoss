@@ -104,7 +104,7 @@ public abstract class AbstractForwardMailReactor extends AbstractDraftDeliveryRe
 
 	@Override
 	protected final String getView() {
-		return "mail/compose?intent=forward";
+		return "mail-compose?intent=forward";
 	}
 
 	@Override
