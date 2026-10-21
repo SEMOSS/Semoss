@@ -59,6 +59,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectPortalsHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -183,8 +184,8 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 						""".formatted(Constants.PORTALS_FOLDER, INDEX_HTML, absoluteAsset, projectId));
 			}
 
-			// 5 - Re-publish and release the project so the public portal is refreshed.
-			this.insight.runPixel("PublishProject(project='" + projectId + "', release=true);");
+			// 5 - Re-publish and release the portal so every container refreshes it.
+			ProjectPortalsHelper.releasePortal(this.insight.getUser(), project);
 
 			// 6 - Push project to central storage so other pods see the changes
 			try {
