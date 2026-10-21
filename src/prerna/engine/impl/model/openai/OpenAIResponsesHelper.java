@@ -118,7 +118,7 @@ public final class OpenAIResponsesHelper {
 		resp.put("id", respId);
 		resp.put("object", "response");
 		resp.put("model", model);
-		resp.put("created_at", (double) ts);
+		resp.put("created_at", ts);
 		resp.put("status", "in_progress");
 		event.put("response", resp);
 		return event;
@@ -158,6 +158,7 @@ public final class OpenAIResponsesHelper {
 		event.put("type", "response.output_item.done");
 		event.put("sequence_number", seq);
 		event.put("response_id", respId);
+		event.put("output_index", idx);
 
 		Map<String, Object> item = new HashMap<>();
 		item.put("id", itemId);
