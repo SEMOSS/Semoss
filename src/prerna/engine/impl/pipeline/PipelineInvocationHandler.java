@@ -33,6 +33,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -536,16 +537,44 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		return null;
 	}
 
+	/**
+	 * Whether an engine's calls to a method pass through guardrails: the engine is
+	 * proxied by a pipeline handler, and the method, or every method ({@code *}),
+	 * has an input or output pipeline.
+	 *
+	 * @param engine     the engine, as callers get it from the engine cache
+	 * @param methodName the engine method, such as {@code insertData}
+	 * @return true when the method's calls are guarded
+	 */
+	public static boolean guardsMethod(Object engine, String methodName) {
+		if (engine == null || !Proxy.isProxyClass(engine.getClass())) {
+			return false;
+		}
+		return Proxy.getInvocationHandler(engine) instanceof PipelineInvocationHandler handler
+				&& handler.hasPipeline(methodName);
+	}
+
+	private boolean hasPipeline(String methodName) {
+		Pipeline pipeline = this.pipelinesMap.get(methodName);
+		if (pipeline == null) {
+			pipeline = this.pipelinesMap.get("*");
+		}
+		return pipeline != null && ((pipeline.getInputPipeline() != null && !pipeline.getInputPipeline().isEmpty())
+				|| (pipeline.getOutputPipeline() != null && !pipeline.getOutputPipeline().isEmpty()));
+	}
+
+	private static Logger callLogger(Logger engineSpecificLogger) {
+		if (engineSpecificLogger != null) {
+			return engineSpecificLogger;
+		}
+		return USE_ENGINE_LOGGER ? SemossLogUtils.getEngineLevelLogger() : null;
+	}
+
 	private void logEngineCall(Logger engineSpecificLogger, Instant start, Instant end, Boolean isSuccess,
 			String request, String response, String inputReactorName, String outputReactorName, Integer tokensInPrompt,
 			Integer tokensInResponse, Integer cacheReadTokens, Integer cacheCreationTokens, String guardrailAction,
 			Map<?, ?> billedTo) {
-		Logger logger = null;
-		if (engineSpecificLogger != null) {
-			logger = engineSpecificLogger;
-		} else if (USE_ENGINE_LOGGER) {
-			logger = SemossLogUtils.getEngineLevelLogger();
-		}
+		Logger logger = callLogger(engineSpecificLogger);
 		if (logger != null) {
 			Map<String, Object> auditMap = new HashMap<>();
 			auditMap.put(SemossLogUtils.REQUEST_START_TIME, start.atZone(UTC_ZONE_ID));

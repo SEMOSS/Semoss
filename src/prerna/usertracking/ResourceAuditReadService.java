@@ -67,28 +67,71 @@ public final class ResourceAuditReadService {
 			"CATEGORY", "SEVERITY", "ACTOR_USER_ID", "ACTOR_USER_TYPE", "ACTOR_USER_NAME", "SUBJECT_USER_ID",
 			"SUBJECT_USER_TYPE", "SUBJECT_USER_NAME", "TARGET_TYPE", "TARGET_ID", "TARGET_NAME", "OLD_VALUE",
 			"NEW_VALUE", "DETAILS");
+
 	private static final Map<String, String> FILTERS = Map.of("eventType", "EVENT_TYPE", "category", "CATEGORY",
 			"status", "STATUS", "severity", "SEVERITY", "actorId", "ACTOR_USER_ID", "subjectId", "SUBJECT_USER_ID");
+
 	private static final Set<String> SORTS = Set.of("EVENT_TIME", "EVENT_TYPE", "STATUS", "SEVERITY",
 			"ACTOR_USER_NAME");
+
 	/** The access changes on a project or an engine its owners see */
 	private static final Set<AuditEventType> COMMON_EVENTS = EnumSet.of(AuditEventType.PERMISSION_ADD,
 			AuditEventType.PERMISSION_UPDATE, AuditEventType.PERMISSION_DELETE, AuditEventType.PERMISSION_BULK_GRANT,
 			AuditEventType.ACCESS_REQUEST_APPROVE, AuditEventType.ACCESS_REQUEST_REJECT);
+
 	private static final Set<AuditEventType> PROJECT_EVENTS = EnumSet.of(AuditEventType.PROJECT_CREATE,
-			AuditEventType.PROJECT_UPDATE, AuditEventType.PROJECT_DELETE, AuditEventType.PROJECT_UPLOAD,
-			AuditEventType.WORKSPACE_CREATE, AuditEventType.WORKSPACE_UPDATE, AuditEventType.WORKSPACE_DELETE,
-			AuditEventType.SKILL_CREATE, AuditEventType.SKILL_UPDATE, AuditEventType.SKILL_DELETE,
-			AuditEventType.AUTOMATION_CREATE, AuditEventType.AUTOMATION_UPDATE);
+			AuditEventType.PROJECT_UPDATE, AuditEventType.PROJECT_RENAME, AuditEventType.PROJECT_DISPLAY_NAME_UPDATE,
+			AuditEventType.PROJECT_GLOBAL_UPDATE, AuditEventType.PROJECT_DISCOVERABLE_UPDATE,
+			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_METADATA_UPDATE,
+			AuditEventType.PROJECT_BLOCKS_UPDATE, AuditEventType.PROJECT_DELETE, AuditEventType.PROJECT_UPLOAD,
+			AuditEventType.PROJECT_REPLACE, AuditEventType.WORKSPACE_CREATE, AuditEventType.WORKSPACE_UPDATE,
+			AuditEventType.WORKSPACE_DELETE, AuditEventType.SKILL_CREATE, AuditEventType.SKILL_UPDATE,
+			AuditEventType.SKILL_DELETE, AuditEventType.AUTOMATION_CREATE, AuditEventType.AUTOMATION_UPDATE);
 	/**
 	 * A usage limit set, changed or removed on a model; its owners set them, so
 	 * they see the limits
 	 */
 	private static final AuditEventType USAGE_LIMIT_EVENT = AuditEventType.USAGE_LIMIT_UPDATE;
+
 	private static final Set<AuditEventType> ENGINE_EVENTS = EnumSet.of(AuditEventType.ENGINE_CREATE,
-			AuditEventType.ENGINE_UPDATE, AuditEventType.ENGINE_DELETE, AuditEventType.MODEL_CREATE,
-			AuditEventType.VECTOR_CREATE, AuditEventType.STORAGE_CREATE, AuditEventType.FUNCTION_CREATE,
-			AuditEventType.GUARDRAIL_CREATE, USAGE_LIMIT_EVENT);
+			AuditEventType.ENGINE_UPDATE, AuditEventType.ENGINE_RENAME, AuditEventType.ENGINE_DISPLAY_NAME_UPDATE,
+			AuditEventType.ENGINE_GLOBAL_UPDATE, AuditEventType.ENGINE_DISCOVERABLE_UPDATE,
+			AuditEventType.ENGINE_METADATA_UPDATE, AuditEventType.ENGINE_VISIBILITY_UPDATE,
+			AuditEventType.ENGINE_DELETE, AuditEventType.MODEL_CREATE, AuditEventType.VECTOR_CREATE,
+			AuditEventType.STORAGE_CREATE, AuditEventType.FUNCTION_CREATE, AuditEventType.GUARDRAIL_CREATE,
+			USAGE_LIMIT_EVENT, AuditEventType.DATABASE_WRITE);
+
+	/**
+	 * The project and engine changes whose details owners see: which setting
+	 * changed and its new value, or which metadata keys and parts of an app
+	 */
+	private static final Set<AuditEventType> SETTING_DETAIL_EVENTS = EnumSet.of(AuditEventType.PROJECT_UPDATE,
+			AuditEventType.PROJECT_RENAME, AuditEventType.PROJECT_DISPLAY_NAME_UPDATE,
+			AuditEventType.PROJECT_GLOBAL_UPDATE, AuditEventType.PROJECT_DISCOVERABLE_UPDATE,
+			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_METADATA_UPDATE,
+			AuditEventType.PROJECT_BLOCKS_UPDATE, AuditEventType.PROJECT_REPLACE, AuditEventType.ENGINE_UPDATE,
+			AuditEventType.ENGINE_RENAME, AuditEventType.ENGINE_DISPLAY_NAME_UPDATE,
+			AuditEventType.ENGINE_GLOBAL_UPDATE, AuditEventType.ENGINE_DISCOVERABLE_UPDATE,
+			AuditEventType.ENGINE_METADATA_UPDATE, AuditEventType.ENGINE_VISIBILITY_UPDATE);
+
+	private static final List<String> SETTING_TEXT_FIELDS = List.of("field", "name", "displayName", "source", "mode");
+	private static final List<String> SETTING_FLAG_FIELDS = List.of("global", "discoverable", "template", "visibility");
+
+	/**
+	 * Lists of names only: metadata keys, or the parts of an app that were saved
+	 */
+	private static final List<String> SETTING_NAME_LIST_FIELDS = List.of("changedFields", "metadataKeys");
+
+	private static final int MAX_LISTED_NAMES = 100;
+
+	/**
+	 * The details of a database write its owners see; none of them hold SQL text
+	 */
+	private static final List<String> DATABASE_WRITE_TEXT_FIELDS = List.of("reactor", "transaction", "outcome",
+			"sqlSha256");
+	private static final List<String> DATABASE_WRITE_NUMBER_FIELDS = List.of("statements", "succeeded",
+			"failedStatement", "timeoutSeconds");
+
 	/**
 	 * The targets that are the project itself, or the engine itself, rather than
 	 * something in it
@@ -98,12 +141,14 @@ public final class ResourceAuditReadService {
 	private static final Set<AuditTargetType> ENGINE_TARGETS = EnumSet.of(AuditTargetType.ENGINE,
 			AuditTargetType.DATABASE, AuditTargetType.MODEL, AuditTargetType.VECTOR, AuditTargetType.STORAGE,
 			AuditTargetType.FUNCTION, AuditTargetType.GUARDRAIL, AuditTargetType.VENV);
+
 	/** The fields of a usage limit rule an owner sees */
 	private static final List<String> RULE_FIELDS = List.of("metric", "amount", "window", "windowLength", "counts");
 	/** The alias of the severity's rank, which a sort by severity orders by */
 	private static final String SEVERITY_RANK = "SEVERITY_RANK";
 
 	private ResourceAuditReadService() {
+
 	}
 
 	public static Map<String, Object> read(User user, String scope, String id, Map<String, String> options)
@@ -316,6 +361,12 @@ public final class ResourceAuditReadService {
 		if (value != null && eventType == USAGE_LIMIT_EVENT) {
 			return usageLimitDetails(value);
 		}
+		if (value != null && eventType == AuditEventType.DATABASE_WRITE) {
+			return databaseWriteDetails(value);
+		}
+		if (value != null && SETTING_DETAIL_EVENTS.contains(eventType)) {
+			return settingDetails(value);
+		}
 		if (value == null || !COMMON_EVENTS.contains(eventType)) {
 			return null;
 		}
@@ -332,6 +383,76 @@ public final class ResourceAuditReadService {
 			if (object.has("reason") && object.get("reason").isJsonPrimitive()
 					&& "EXPIRED".equals(object.get("reason").getAsString())) {
 				safe.addProperty("reason", "EXPIRED");
+			}
+			return safe.size() == 0 ? null : safe.toString();
+		} catch (RuntimeException ignored) {
+			return null;
+		}
+	}
+
+	/**
+	 * Keeps which project or engine setting changed and its new value, and the
+	 * names of the metadata keys or app parts a change touched. Metadata values are
+	 * never kept.
+	 */
+	private static String settingDetails(String value) {
+		try {
+			var object = JsonParser.parseString(value).getAsJsonObject();
+			var safe = new JsonObject();
+			for (String key : SETTING_TEXT_FIELDS) {
+				var item = object.get(key);
+				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isString()
+						&& item.getAsString().length() <= 255) {
+					safe.addProperty(key, item.getAsString());
+				}
+			}
+			for (String key : SETTING_FLAG_FIELDS) {
+				var item = object.get(key);
+				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isBoolean()) {
+					safe.addProperty(key, item.getAsBoolean());
+				}
+			}
+			for (String key : SETTING_NAME_LIST_FIELDS) {
+				var item = object.get(key);
+				if (item == null || !item.isJsonArray()) {
+					continue;
+				}
+				var names = new JsonArray();
+				for (var name : item.getAsJsonArray()) {
+					if (names.size() < MAX_LISTED_NAMES && name.isJsonPrimitive()
+							&& name.getAsJsonPrimitive().isString() && name.getAsString().length() <= 255) {
+						names.add(name.getAsString());
+					}
+				}
+				safe.add(key, names);
+			}
+			return safe.size() == 0 ? null : safe.toString();
+		} catch (RuntimeException ignored) {
+			return null;
+		}
+	}
+
+	/**
+	 * Keeps how a database write ran and ended: the reactor, whether it ran in one
+	 * transaction, the statement counts, the outcome, its time limit and the SQL's
+	 * hash.
+	 */
+	private static String databaseWriteDetails(String value) {
+		try {
+			var object = JsonParser.parseString(value).getAsJsonObject();
+			var safe = new JsonObject();
+			for (String key : DATABASE_WRITE_TEXT_FIELDS) {
+				var item = object.get(key);
+				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isString()
+						&& item.getAsString().length() <= 255) {
+					safe.addProperty(key, item.getAsString());
+				}
+			}
+			for (String key : DATABASE_WRITE_NUMBER_FIELDS) {
+				var item = object.get(key);
+				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isNumber()) {
+					safe.addProperty(key, item.getAsLong());
+				}
 			}
 			return safe.size() == 0 ? null : safe.toString();
 		} catch (RuntimeException ignored) {

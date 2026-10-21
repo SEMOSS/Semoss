@@ -29,12 +29,12 @@
 		</RollingRandomAccessFile>
 
 		<!-- Database Appender -->
-        <ServerLogsJDBCAppender name="ServerLogsJDBCAppender" batchSize="1" ignoreExceptions="false">
+        <ServerLogsJDBCAppender name="ServerLogsJDBCAppender" batchSize="100" flushIntervalMs="1000" maxQueuedRows="20000" maxQueuedMb="32" ignoreExceptions="false">
         	<PatternLayout>
 				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] [reqId=%X{requestId}] %maskMsg%n</Pattern>
 			</PatternLayout>
         </ServerLogsJDBCAppender>
-        <AuditLogsJDBCAppender name="AuditLogsJDBCAppender" batchSize="1" ignoreExceptions="false">
+        <AuditLogsJDBCAppender name="AuditLogsJDBCAppender" batchSize="100" flushIntervalMs="1000" maxQueuedRows="50000" maxQueuedMb="128" ignoreExceptions="false">
        		<PatternLayout>
 				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] [reqId=%X{requestId}] %maskMsg%n</Pattern>
 			</PatternLayout>

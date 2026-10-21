@@ -169,12 +169,22 @@ public final class UserAuditTrailUtils {
 			Map.entry("CreateVenvEngine", new AuditedAction(AuditEventType.ENGINE_CREATE, AuditTargetType.VENV)),
 			Map.entry("DeleteEngine", new AuditedAction(AuditEventType.ENGINE_DELETE, AuditTargetType.ENGINE)),
 			Map.entry("DeleteDatabase", new AuditedAction(AuditEventType.ENGINE_DELETE, AuditTargetType.DATABASE)),
-			Map.entry("SetEngineMetadata", new AuditedAction(AuditEventType.ENGINE_UPDATE, AuditTargetType.ENGINE)),
-			Map.entry("SetProjectMetadata", new AuditedAction(AuditEventType.PROJECT_UPDATE, AuditTargetType.PROJECT)),
-			Map.entry("LoadProjectMetadata", new AuditedAction(AuditEventType.PROJECT_UPDATE, AuditTargetType.PROJECT)),
-			Map.entry("SaveAppBlocksJson", new AuditedAction(AuditEventType.PROJECT_UPDATE, AuditTargetType.PROJECT)),
-			Map.entry("SetDatabaseMetadata", new AuditedAction(AuditEventType.ENGINE_UPDATE, AuditTargetType.DATABASE)),
-			Map.entry("LoadEngineMetadata", new AuditedAction(AuditEventType.ENGINE_UPDATE, AuditTargetType.ENGINE)),
+			Map.entry("SetEngineMetadata",
+					new AuditedAction(AuditEventType.ENGINE_METADATA_UPDATE, AuditTargetType.ENGINE)),
+			Map.entry("SetEngineDisplayName",
+					new AuditedAction(AuditEventType.ENGINE_DISPLAY_NAME_UPDATE, AuditTargetType.ENGINE)),
+			Map.entry("SetProjectMetadata",
+					new AuditedAction(AuditEventType.PROJECT_METADATA_UPDATE, AuditTargetType.PROJECT)),
+			Map.entry("LoadProjectMetadata",
+					new AuditedAction(AuditEventType.PROJECT_METADATA_UPDATE, AuditTargetType.PROJECT)),
+			Map.entry("SetProjectDisplayName",
+					new AuditedAction(AuditEventType.PROJECT_DISPLAY_NAME_UPDATE, AuditTargetType.PROJECT)),
+			Map.entry("SaveAppBlocksJson",
+					new AuditedAction(AuditEventType.PROJECT_BLOCKS_UPDATE, AuditTargetType.PROJECT)),
+			Map.entry("SetDatabaseMetadata",
+					new AuditedAction(AuditEventType.ENGINE_METADATA_UPDATE, AuditTargetType.DATABASE)),
+			Map.entry("LoadEngineMetadata",
+					new AuditedAction(AuditEventType.ENGINE_METADATA_UPDATE, AuditTargetType.ENGINE)),
 			Map.entry("AddWorkspace", new AuditedAction(AuditEventType.WORKSPACE_CREATE, AuditTargetType.WORKSPACE)),
 			Map.entry("EditWorkspace", new AuditedAction(AuditEventType.WORKSPACE_UPDATE, AuditTargetType.WORKSPACE)),
 			Map.entry("DeleteWorkspace", new AuditedAction(AuditEventType.WORKSPACE_DELETE, AuditTargetType.WORKSPACE)),
@@ -963,7 +973,16 @@ public final class UserAuditTrailUtils {
 		return true;
 	}
 
-	private static String sha256Hex(String value) {
+	/**
+	 * The SHA-256 of a value's UTF-8 bytes as lower-case hex. The digest comes from
+	 * the first JCA provider that has SHA-256, which in a FIPS image is BCFIPS, so
+	 * the value is hashed by the validated module.
+	 *
+	 * @param value the value to hash
+	 * @return 64 hex characters
+	 * @throws IllegalStateException when no provider has SHA-256
+	 */
+	static String sha256Hex(String value) {
 		try {
 			MessageDigest digest = MessageDigest.getInstance("SHA-256");
 			return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));

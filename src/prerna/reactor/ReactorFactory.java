@@ -326,7 +326,6 @@ import prerna.reactor.qs.selectors.UniqueCountReactor;
 import prerna.reactor.qs.selectors.UniqueGroupConcatReactor;
 import prerna.reactor.qs.selectors.UniqueSumReactor;
 import prerna.reactor.qs.source.APIReactor;
-import prerna.reactor.qs.source.AuditDatabaseReactor;
 import prerna.reactor.qs.source.DatabaseReactor;
 import prerna.reactor.qs.source.DirectJdbcConnectionReactor;
 import prerna.reactor.qs.source.DropBoxFileRetrieverReactor;
@@ -706,7 +705,6 @@ public class ReactorFactory {
 		// specifies that our pixel operations after this point are dealing with the
 		// specified database
 		reactorHash.put("Database", DatabaseReactor.class);
-		reactorHash.put("AuditDatabase", AuditDatabaseReactor.class);
 		reactorHash.put("API", APIReactor.class);
 		reactorHash.put("FileRead", FileReadReactor.class);
 		reactorHash.put("JdbcSource", JdbcSourceReactor.class);

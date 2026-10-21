@@ -38,6 +38,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -153,6 +154,22 @@ class ResourceAuditReadServiceTest {
 		var row = (Map<?, ?>) ((List<?>) ResourceAuditReadService.read(user, "ENGINE", "a", Map.of()).get("events"))
 				.get(0);
 		assertEquals("{\"groupId\":\"team\",\"groupType\":\"CUSTOM\"}", row.get("DETAILS"));
+	}
+
+	@Test
+	void appSettingChangesShowWhatChangedButNoMetadataValues() throws Exception {
+		projectOwners.when(() -> SecurityProjectUtils.userIsOwner(user, "p")).thenReturn(true);
+		event("public", "PROJECT_GLOBAL_UPDATE", "PROJECT", "p", null, "p");
+		event("metadata", "PROJECT_METADATA_UPDATE", "PROJECT", "p", null, "p");
+		db.execute(
+				"UPDATE USER_AUDIT_EVENTS SET DETAILS='{\"field\":\"global\",\"global\":true,\"token\":\"secret\"}' WHERE EVENT_ID='public'",
+				"UPDATE USER_AUDIT_EVENTS SET DETAILS='{\"changedFields\":[\"description\"],\"description\":\"private text\"}' WHERE EVENT_ID='metadata'");
+		Map<Object, Object> details = new HashMap<>();
+		for (Object row : (List<?>) ResourceAuditReadService.read(user, "PROJECT", "p", Map.of()).get("events")) {
+			details.put(((Map<?, ?>) row).get("EVENT_ID"), ((Map<?, ?>) row).get("DETAILS"));
+		}
+		assertEquals("{\"field\":\"global\",\"global\":true}", details.get("public"));
+		assertEquals("{\"changedFields\":[\"description\"]}", details.get("metadata"));
 	}
 
 	@Test

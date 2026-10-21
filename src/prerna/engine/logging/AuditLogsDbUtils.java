@@ -106,9 +106,12 @@ public class AuditLogsDbUtils {
 			// create the tables and columns from the OWL creator schema
 			AbstractOwlCreator.syncSchema(auditLogsDb, conn, owlCreator.getDBSchema());
 
-			// create the indexes on the tables
+			// create the indexes on the tables; the LOG_ID indexes let the appenders find
+			// the rows a write stored before it failed, so a retry never stores a row twice
 			AbstractOwlCreator.syncIndexes(auditLogsDb, conn,
-					List.of(OwlIndex.of("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID"),
+					List.of(OwlIndex.of("AUDIT_LOGS__LOG_ID_INDEX", "AUDIT_LOGS", "LOG_ID"),
+							OwlIndex.of("SERVER_LOGS__LOG_ID_INDEX", "SERVER_LOGS", "LOG_ID"),
+							OwlIndex.of("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID"),
 							OwlIndex.of("AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS", "PROJECT_ID", "LOG_TIMESTAMP"),
 							OwlIndex.of("AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS", "USER_ID", "LOG_TIMESTAMP"),
 							OwlIndex.of("AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS", "ENGINE_ID", "LOG_TIMESTAMP"),
