@@ -31,12 +31,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -51,12 +51,19 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.DatabaseWriteAudit;
 
 public class ExecQueryReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ExecQueryReactor.class);
 
+	private static final String REACTOR_NAME = "ExecQuery";
+
 	private NounMetadata qStruct = null;
+	private boolean recordedByCaller = false;
+	// the user's level on one engine, read by the calling SqlQuery for its request
+	private String callerEngineId = null;
+	private AccessPermissionEnum callerLevel = null;
 
 	public ExecQueryReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey(), "commit",
@@ -91,14 +98,14 @@ public class ExecQueryReactor extends AbstractReactor {
 					throw new IllegalArgumentException("Query update/deletes only works for rdbms/rdf databases");
 				}
 
-				// If an engine and the user is defined, then grab it for the audit log
+				// the user id fills any <USER_ID> value in an update
 				User user = this.insight.getUser();
 				if (user != null) {
 					userId = user.getAccessToken(user.getLogins().get(0)).getId();
 				}
 
 				// check that the user can edit the engine
-				if (!SecurityEngineUtils.userCanEditEngine(user, engine.getEngineId())) {
+				if (!canEdit(user, engine.getEngineId())) {
 					throw new IllegalArgumentException("User does not have permission to exec query for this app");
 				}
 			} else if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
@@ -113,22 +120,16 @@ public class ExecQueryReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Input to exec query requires a query struct");
 		}
 
-		boolean update = false;
-		boolean custom = false;
 		String query = null;
-		// grab query && determine how to store in audit db
 		if (qs instanceof HardSelectQueryStruct) {
 			query = ((HardSelectQueryStruct) qs).getQuery();
-			custom = true;
 		} else if (qs instanceof UpdateQueryStruct) {
 			UpdateSqlInterpreter interp = new UpdateSqlInterpreter((UpdateQueryStruct) qs);
 			interp.setUserId(userId);
 			query = interp.composeQuery();
-			update = true;
 		} else if (qs instanceof SelectQueryStruct) {
 			DeleteSqlInterpreter interp = new DeleteSqlInterpreter((SelectQueryStruct) qs);
 			query = interp.composeQuery();
-			update = false;
 		}
 
 		classLogger.info("Executing Query {} ", query);
@@ -144,27 +145,24 @@ public class ExecQueryReactor extends AbstractReactor {
 				}
 			} catch (Exception e) {
 				classLogger.error("Failed to execute the query {} in the database", query, e);
+				if (!this.recordedByCaller) {
+					DatabaseWriteAudit.record(this.insight, engine,
+							DatabaseWriteAudit.Write.perStatement(REACTOR_NAME, query, 1, 0, 0, e));
+				}
 				String errorMessage = "An error occurred trying to execute the query in the database";
 				if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage += ": " + e.getMessage();
 				}
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
 			}
-			// store query in audit db
-			AuditDatabase audit = engine.generateAudit();
-			if (audit != null) {
-				if (custom) {
-					audit.storeExactQuery(userId, "CUSTOM", query);
-				} else {
-					if (update) {
-						audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
-					} else {
-						audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
-					}
+			if (!this.recordedByCaller) {
+				DatabaseWriteAudit.record(this.insight, engine,
+						DatabaseWriteAudit.Write.perStatement(REACTOR_NAME, query, 1, 1, 1, null));
+				// only an engine that keeps its data in its own folder has files to push
+				if (engine.holdsFileLocks()) {
+					ClusterUtil.pushEngine(engine.getEngineId());
 				}
 			}
-
-			ClusterUtil.pushEngine(engine.getEngineId());
 		} else {
 			try {
 				if (frame != null) {
@@ -187,6 +185,44 @@ public class ExecQueryReactor extends AbstractReactor {
 			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage(customSuccessMessage));
 		}
 		return noun;
+	}
+
+	/**
+	 * Hands the database write event and the cluster push to the caller. SqlQuery
+	 * sets this so a request with many statements records one event and pushes the
+	 * engine once, after its last statement.
+	 *
+	 * @param recordedByCaller whether the caller records the write and pushes the
+	 *                         engine
+	 */
+	void setRecordedByCaller(boolean recordedByCaller) {
+		this.recordedByCaller = recordedByCaller;
+	}
+
+	/**
+	 * Hands over the user's level on an engine, which SqlQuery reads once at the
+	 * start of a request with many statements. The edit check holds the level to
+	 * the same rule, so this saves reading it again for each statement and skips
+	 * nothing. A query on any other engine reads the level as usual.
+	 * Package-private so only the reactors in this package can call it.
+	 *
+	 * @param engineId the engine the level was read for
+	 * @param level    the user's level on it, or null for no access
+	 */
+	void setCallerLevel(String engineId, AccessPermissionEnum level) {
+		this.callerEngineId = engineId;
+		this.callerLevel = level;
+	}
+
+	/**
+	 * Whether the user can edit the engine, from the level the caller read for it
+	 * when there is one.
+	 */
+	private boolean canEdit(User user, String engineId) {
+		if (engineId != null && engineId.equals(this.callerEngineId)) {
+			return this.callerLevel != null && AccessPermissionEnum.isEditor(this.callerLevel.getId());
+		}
+		return SecurityEngineUtils.userCanEditEngine(user, engineId);
 	}
 
 	/**
@@ -226,4 +262,5 @@ public class ExecQueryReactor extends AbstractReactor {
 	public void setQueryStruct(NounMetadata qs) {
 		this.qStruct = qs;
 	}
+
 }

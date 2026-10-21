@@ -112,6 +112,29 @@ class TypeSafeEngineUnitTests {
 	}
 
 	@Test
+	void sendsImagesAsAssetsBesideTheState() {
+		TestEngine engine = new TestEngine();
+		Insight insight = insight();
+		when(engine.pyTranslator.runDirectPyNoCancelTrace(eq(insight), anyString())).thenReturn(output());
+		List<Object> state = List.of("<image_1>", "What is in this screenshot?");
+		Map<String, String> images = Map.of("<image_1>", "iVBORw0KGgo=");
+		try (MockedStatic<ModelUsageRestrictionUtility> usage = mockStatic(ModelUsageRestrictionUtility.class)) {
+			usage.when(() -> ModelUsageRestrictionUtility.admit(any(), same(engine), any()))
+					.thenReturn(ModelUsageTicket.none());
+			engine.evaluate(state, Map.of("q", Map.of("type", "noul")), images, insight, null);
+		}
+		ArgumentCaptor<String> command = ArgumentCaptor.forClass(String.class);
+		verify(engine.pyTranslator).runDirectPyNoCancelTrace(eq(insight), command.capture());
+		String prefix = "test_model.ask(**__import__('json').loads(";
+		String script = command.getValue();
+		Gson gson = new Gson();
+		String json = gson.fromJson(script.substring(prefix.length(), script.length() - 2), String.class);
+		Map<?, ?> request = gson.fromJson(json, Map.class);
+		assertEquals(state, request.get("state"));
+		assertEquals(images, request.get("assets"));
+	}
+
+	@Test
 	void recordsEvaluationAndTokenUsageWhenInferenceLoggingIsEnabled() {
 		TestEngine engine = new TestEngine();
 		engine.inferenceLogsEnbaled = true;

@@ -89,6 +89,29 @@ import prerna.util.Utility;
  * stored Microsoft credential, run claim, and result are shared; each routine is a {@link Kind}.
  */
 final class WorkRoutine {
+
+	// why a run failed, so Routines can name the fix
+	static final String CAUSE_CONNECTION = "connection";
+	static final String CAUSE_MODEL = "model";
+	static final String CAUSE_AGENT = "agent";
+	static final String CAUSE_DELIVERY = "delivery";
+	static final String CAUSE_INTERRUPTED = "interrupted";
+
+	// how long Run now waits for the job to mark its run: 20 x 250 ms
+	private static final int RUN_NOW_WAIT_STEPS = 20;
+	private static final long RUN_NOW_WAIT_STEP_MS = 250;
+
+	/** A run that cannot start; its message is ours, so it is safe to show the owner. */
+	private static final class RoutineFailure extends IllegalArgumentException {
+		private static final long serialVersionUID = 1L;
+		private final String failureCause;
+
+		RoutineFailure(String failureCause, String message) {
+			super(message);
+			this.failureCause = failureCause;
+		}
+	}
+
 	static final List<String> WEEKDAYS = List.of("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN");
 	private static final String GROUP = "SYSTEM__COLLABORATION_ROUTINES";
 	private static final String OWNED = " WHERE OWNER_ID = ? AND OWNER_TYPE = ?";
@@ -190,7 +213,8 @@ final class WorkRoutine {
 						RunAutomationDefinitionReactor.cancelRun(runId);
 					}
 				} finally {
-					finish(slot, "failed", null, "The " + kind.label() + " was interrupted. The next scheduled run will retry.", null, started);
+					finish(slot, "failed", null, "The " + kind.label() + " was interrupted. The next scheduled run will retry.", null, started,
+							CAUSE_INTERRUPTED);
 				}
 			}
 		}
@@ -204,7 +228,7 @@ final class WorkRoutine {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		Slot slot = new Slot(kind, owner, routineId);
 		Map<String, Object> row = stored(slot);
-		Map<String, Object> result = new LinkedHashMap<>(row == null ? kind.defaults() : settings(row));
+		Map<String, Object> result = new LinkedHashMap<>(row == null ? kind.defaults() : settings(kind, row));
 		boolean enabled = row != null && Boolean.TRUE.equals(row.get("enabled"));
 		boolean schedulerAvailable = schedulerAvailable();
 		String mailboxId = mailboxId(owner);
@@ -223,6 +247,7 @@ final class WorkRoutine {
 				: !assistantAvailable ? "Ask your administrator to configure a Collaboration text model and grant your primary account access." : null);
 		result.put("nextRunAt", enabled && schedulerAvailable ? nextRun(slot) : null);
 		result.put("lastRun", row == null || row.get("status") == null ? null : lastRun(row));
+		result.put("flow", flow(serverDefinition(kind)));
 		return result;
 	}
 
@@ -311,6 +336,20 @@ final class WorkRoutine {
 		} catch (SchedulerException e) {
 			throw new IllegalStateException("Could not start the " + kind.label(), e);
 		}
+		// the job marks the run on its own thread; wait briefly so the caller's next read shows it running
+		Object before = row.get("startedAt");
+		for (int i = 0; i < RUN_NOW_WAIT_STEPS; i++) {
+			Map<String, Object> now = stored(slot);
+			if (now == null || ("running".equals(now.get("status")) && !Objects.equals(before, now.get("startedAt")))) {
+				return;
+			}
+			try {
+				Thread.sleep(RUN_NOW_WAIT_STEP_MS);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return;
+			}
+		}
 	}
 
 	/** Deletes one routine of a many-per-owner kind, with its schedule; its past runs stay in the scheduler history. */
@@ -348,7 +387,7 @@ final class WorkRoutine {
 		if (row == null || !Boolean.TRUE.equals(row.get("enabled"))) {
 			return Map.of("status", "skipped");
 		}
-		Map<String, Object> config = settings(row);
+		Map<String, Object> config = settings(kind, row);
 		LocalDate today = LocalDate.now(ZoneId.of((String) config.get("timezone")));
 		if (!now && !((List<?>) config.get("days")).contains(WEEKDAYS.get(today.getDayOfWeek().getValue() - 1))) {
 			return Map.of("status", "skipped");
@@ -361,7 +400,7 @@ final class WorkRoutine {
 		int claimed = CollaborationDbUtils.update("UPDATE " + kind.table() + " SET LAST_SUCCESS_AT = CASE "
 				+ "WHEN LAST_SUCCESS_AT IS NULL AND RUN_STATUS = 'completed' THEN STARTED_AT ELSE LAST_SUCCESS_AT END, "
 				+ "LAST_DATE = ?, RUN_STATUS = ?, STARTED_AT = ?, "
-				+ "FINISHED_AT = NULL, ROOM_ID = NULL, RUN_ID = NULL, SUMMARY = NULL, ERROR = NULL" + slot.where()
+				+ "FINISHED_AT = NULL, ROOM_ID = NULL, RUN_ID = NULL, SUMMARY = NULL, ERROR = NULL, ERROR_CAUSE = NULL" + slot.where()
 				// a run already going keeps the row; Run now while it runs is skipped
 				+ " AND ENABLED = ?" + (now ? " AND (RUN_STATUS IS NULL OR RUN_STATUS <> 'running')" : ""),
 				slot.args(of(today.toString(), "running", startedAt), true));
@@ -374,14 +413,14 @@ final class WorkRoutine {
 		String attachedToken = null;
 		try {
 			if (SecurityQueryUtils.getUnlockedUser(owner.getValue0(), owner.getValue1()) == null) {
-				throw new IllegalArgumentException("The routine owner account is no longer active");
+				throw new RoutineFailure(CAUSE_CONNECTION, "The routine owner account is no longer active.");
 			}
 			mailboxId = mailboxId(owner);
 			if (!MicrosoftGraphCredentialStore.isRefreshable(MicrosoftGraphCredentialStore.get(mailboxId))) {
 				// Older opted-in routines may still hold their credentials in the subscription registry.
 				AccessToken mailboxToken = mailboxToken(mailboxId, null);
 				if (mailboxToken == null) {
-					throw new IllegalArgumentException(mailboxUnavailable(mailboxId));
+					throw new RoutineFailure(CAUSE_CONNECTION, mailboxUnavailable(mailboxId));
 				}
 				MicrosoftGraphCredentialStore.save(mailboxToken);
 			}
@@ -392,11 +431,11 @@ final class WorkRoutine {
 			user.setPrimaryLogin(AuthProvider.getProviderFromString(owner.getValue1()));
 			String recipient = BrainMailImport.first(BrainMailHeaderSource.current().me(user), "mail", "userPrincipalName");
 			if (recipient == null) {
-				throw new IllegalArgumentException(mailboxUnavailable(mailboxId));
+				throw new RoutineFailure(CAUSE_CONNECTION, mailboxUnavailable(mailboxId));
 			}
 			String engine = model(user);
 			if (engine == null) {
-				throw new IllegalArgumentException("A Collaboration text model is required for " + kind.label() + "s");
+				throw new RoutineFailure(CAUSE_MODEL, "A Collaboration text model is required for " + kind.label() + "s.");
 			}
 			AutomationDefinitionService.DefinitionFiles files = definition(kind, engine,
 					kind.agent() == null ? null : kind.agent().config(user, config));
@@ -409,7 +448,8 @@ final class WorkRoutine {
 			int attached = CollaborationDbUtils.update("UPDATE " + kind.table() + " SET RUN_ID = ?" + slot.where()
 					+ " AND STARTED_AT = ? AND ENABLED = ? AND RUN_STATUS = 'running'", slot.args(of(runId), startedAt, true));
 			if (attached == 0) {
-				finish(slot, "failed", null, "Routine was paused before the " + kind.noun() + " started.", null, started);
+				finish(slot, "failed", null, "Routine was paused before the " + kind.noun() + " started.", null, started,
+						CAUSE_INTERRUPTED);
 				return Map.of("status", "skipped");
 			}
 			RunAutomationDefinitionReactor.runDefinition(insight, runId, slot.automationId(), files, inputs,
@@ -418,8 +458,9 @@ final class WorkRoutine {
 		} catch (Exception e) {
 			boolean interrupted = Thread.interrupted() || e instanceof InterruptedException;
 			try {
-				// Provider errors can contain message bodies or credentials; expose only an action message.
-				finish(slot, "failed", null, kind.failed(), null, started);
+				// Provider errors can contain message bodies or credentials; expose only an action message or our own.
+				String cause = e instanceof RoutineFailure failure ? failure.failureCause : null;
+				finish(slot, "failed", null, cause == null ? kind.failed() : e.getMessage(), null, started, cause);
 			} finally {
 				// Interrupted socket I/O can close a shared database connection; restore after persistence.
 				if (interrupted) {
@@ -495,15 +536,7 @@ final class WorkRoutine {
 
 	/** The same, with extra config (agent, skills, instructions) set on every agent step. */
 	static AutomationDefinitionService.DefinitionFiles definition(Kind kind, String engineId, Map<String, Object> agentConfig) {
-		JsonObject definition;
-		try (InputStream in = WorkRoutine.class.getResourceAsStream(kind.definition())) {
-			if (in == null) {
-				throw new IllegalStateException("The " + kind.label() + " definition is missing from this server build");
-			}
-			definition = JsonParser.parseString(new String(in.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
-		} catch (IOException e) {
-			throw new IllegalStateException("Could not read the " + kind.label() + " definition", e);
-		}
+		JsonObject definition = serverDefinition(kind);
 		for (JsonElement element : definition.getAsJsonObject(AutomationConstants.DOC_GRAPH)
 				.getAsJsonArray(AutomationConstants.DOC_NODES)) {
 			JsonObject node = element.getAsJsonObject();
@@ -516,6 +549,52 @@ final class WorkRoutine {
 			}
 		}
 		return AutomationDefinitionService.fromInline(AutomationRuntimeUtils.GSON.toJson(definition), null);
+	}
+
+	private static JsonObject serverDefinition(Kind kind) {
+		JsonObject definition;
+		try (InputStream in = WorkRoutine.class.getResourceAsStream(kind.definition())) {
+			if (in == null) {
+				throw new IllegalStateException("The " + kind.label() + " definition is missing from this server build");
+			}
+			definition = JsonParser.parseString(new String(in.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
+		} catch (IOException e) {
+			throw new IllegalStateException("Could not read the " + kind.label() + " definition", e);
+		}
+		return definition;
+	}
+
+	/** Allowlist the graph's display fields; never return source, config, or run data. */
+	static Map<String, Object> flow(JsonObject definition) {
+		JsonObject graph = definition.getAsJsonObject(AutomationConstants.DOC_GRAPH);
+		List<Map<String, Object>> nodes = new ArrayList<>();
+		for (JsonElement element : graph.getAsJsonArray(AutomationConstants.DOC_NODES)) {
+			JsonObject node = element.getAsJsonObject();
+			Map<String, Object> preview = new LinkedHashMap<>();
+			for (String field : List.of("id", "type", "label")) {
+				preview.put(field, node.get(field).getAsString());
+			}
+			if (node.get("position") instanceof JsonObject position) {
+				JsonElement x = position.get("x");
+				JsonElement y = position.get("y");
+				if (x != null && x.isJsonPrimitive() && x.getAsJsonPrimitive().isNumber()
+						&& y != null && y.isJsonPrimitive() && y.getAsJsonPrimitive().isNumber()
+						&& Double.isFinite(x.getAsDouble()) && Double.isFinite(y.getAsDouble())) {
+					preview.put("position", Map.of("x", x.getAsDouble(), "y", y.getAsDouble()));
+				}
+			}
+			nodes.add(preview);
+		}
+		List<Map<String, Object>> edges = new ArrayList<>();
+		for (JsonElement element : graph.getAsJsonArray(AutomationConstants.DOC_EDGES)) {
+			JsonObject edge = element.getAsJsonObject();
+			Map<String, Object> preview = new LinkedHashMap<>();
+			for (String field : List.of("source", "target", "sourcePort", "targetPort")) {
+				preview.put(field, edge.get(field).getAsString());
+			}
+			edges.add(preview);
+		}
+		return Map.of("nodes", nodes, "edges", edges);
 	}
 
 	private static boolean schedulerAvailable() {
@@ -683,19 +762,34 @@ final class WorkRoutine {
 			row.put("runId", rs.getString("RUN_ID"));
 			row.put("summary", CollaborationDbUtils.getString(rs, "SUMMARY"));
 			row.put("error", CollaborationDbUtils.getString(rs, "ERROR"));
+			row.put("errorCause", rs.getString("ERROR_CAUSE"));
 			return row;
 		}, slot.args(of()));
 	}
 
 	@SuppressWarnings("unchecked")
-	private static Map<String, Object> settings(Map<String, Object> row) {
-		return (Map<String, Object>) row.get("settings");
+	private static Map<String, Object> settings(Kind kind, Map<String, Object> row) {
+		// Older rows inherit new defaults and no longer expose retired settings.
+		Map<String, Object> config = new LinkedHashMap<>(kind.defaults());
+		config.putAll((Map<String, Object>) row.get("settings"));
+		config.keySet().retainAll(kind.defaults().keySet());
+		return config;
 	}
 
 	private static Map<String, Object> lastRun(Map<String, Object> row) {
 		Map<String, Object> last = new LinkedHashMap<>();
-		for (String field : List.of("status", "startedAt", "finishedAt", "roomId", "summary", "error")) {
+		for (String field : List.of("status", "startedAt", "finishedAt", "roomId", "summary", "error", "errorCause")) {
 			last.put(field, row.get(field));
+		}
+		// a running run's room exists from its start, so Routines can open it to watch
+		if ("running".equals(row.get("status")) && last.get("roomId") == null && row.get("runId") instanceof String runId) {
+			for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(runId)) {
+				if (node.get(AutomationConstants.PARENT_NODE_ID) == null
+						&& node.get(AutomationConstants.ROOM_ID) instanceof String roomId && !roomId.isBlank()) {
+					last.put("roomId", roomId);
+					break;
+				}
+			}
 		}
 		// The owner-scoped row selects the run; never accept a run id from the client.
 		if ("completed".equals(row.get("status")) && row.get("runId") instanceof String runId) {
@@ -741,20 +835,23 @@ final class WorkRoutine {
 			String error = succeeded && kind.agent() != null
 					? "The assistant finished without an answer. Run it again; if it keeps happening, make the task smaller."
 					: kind.failed();
-			finish(slot, "failed", null, error, result == null ? null : (String) result.get(AutomationConstants.ROOM_ID), started);
+			finish(slot, "failed", null, error, result == null ? null : (String) result.get(AutomationConstants.ROOM_ID), started,
+					CAUSE_AGENT);
 			return "failed";
 		}
 		boolean sent = run != null && AutomationConstants.STATUS_SUCCESS.equals(run.get(AutomationConstants.STATUS));
 		finish(slot, "completed", summary, sent ? null : "The " + kind.noun() + " was saved but could not be delivered.",
-				(String) result.get(AutomationConstants.ROOM_ID), started);
+				(String) result.get(AutomationConstants.ROOM_ID), started, sent ? null : CAUSE_DELIVERY);
 		return "completed";
 	}
 
-	private static void finish(Slot slot, String status, String summary, String error, String roomId, String started) {
-		CollaborationDbUtils.update("UPDATE " + slot.kind().table() + " SET RUN_STATUS = ?, SUMMARY = ?, ERROR = ?, ROOM_ID = ?, FINISHED_AT = ?"
+	private static void finish(Slot slot, String status, String summary, String error, String roomId, String started,
+			String cause) {
+		CollaborationDbUtils.update("UPDATE " + slot.kind().table()
+				+ " SET RUN_STATUS = ?, SUMMARY = ?, ERROR = ?, ERROR_CAUSE = ?, ROOM_ID = ?, FINISHED_AT = ?"
 				+ ("completed".equals(status) ? ", LAST_SUCCESS_AT = STARTED_AT" : "") + slot.where()
 				+ " AND STARTED_AT = ? AND RUN_STATUS = 'running'",
-				slot.args(of(status, summary, error, roomId, CollaborationDbUtils.now()),
+				slot.args(of(status, summary, error, cause, roomId, CollaborationDbUtils.now()),
 						CollaborationDbUtils.toTimestamp(started, "startedAt")));
 	}
 }

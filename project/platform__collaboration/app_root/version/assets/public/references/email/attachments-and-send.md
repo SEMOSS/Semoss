@@ -14,8 +14,10 @@ Omit `message`, recipients, and subject when they do not change. Existing attach
 stay. For a new email, include the usual draft fields and the same `attachments`
 array. Never pass absolute paths, raw bytes, base64, or a file on another machine.
 
-The current call limit is 10 files and 2.5 MB total. Check sizes before attempting
-the handoff. When over the limit, explain the constraint and offer a smaller output
+A call takes up to 10 files, and their total must fit the mailbox's message size
+limit; the `attachments` key description gives the current size in MB. Large files
+are fine under that limit, so never split one email into several because of size.
+Check sizes before attempting the handoff. When over the limit, explain the constraint and offer a smaller output
 or an authorized sharing route. Do not silently omit files or report a failed
 handoff as success.
 

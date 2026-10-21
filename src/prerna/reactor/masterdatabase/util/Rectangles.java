@@ -27,133 +27,82 @@
  *******************************************************************************/
 package prerna.reactor.masterdatabase.util;
 
-import java.awt.Point;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
+/**
+ * Separates the rectangles of a metamodel layout so no two overlap.
+ */
 public class Rectangles {
 
-	private static final Logger classLogger = LogManager.getLogger(Rectangles.class);
-	
-    /**The map of rectangles holding x and y coordinates*/
-    private Map<String, Rectangle2D> rectanglesToDraw;
+	/** The space kept between two rectangles, in the layout's units */
+	private static final double MARGIN = 10;
 
-    /**
-     * The main algorithm that attempts to declutter the rectangles.
-     * 
-     * @param rectanglesToFix the map of rectangles to declutter
-     */
-    public Map<String, Rectangle2D> fix(Map<String, Rectangle2D> rectanglesToFix) {
-        rectanglesToDraw = new HashMap<>();
+	/**
+	 * Moves rectangles apart so none overlap, keeping each one's left edge and
+	 * moving it only down. The rectangles are placed from the top down, in one
+	 * pass: each goes at the first height, from its own down, where it fits beside
+	 * the rectangles already placed that share its columns. So the separation
+	 * always finishes, in time that grows with the square of the number of
+	 * rectangles.
+	 *
+	 * @param rectanglesToFix the rectangles to separate, by name; they are not
+	 *                        changed
+	 * @return a separated copy of each rectangle, by name
+	 */
+	public Map<String, Rectangle2D> fix(Map<String, Rectangle2D> rectanglesToFix) {
+		List<Entry<String, Rectangle2D>> fromTheTop = new ArrayList<>(rectanglesToFix.entrySet());
+		fromTheTop.sort(Comparator.comparingDouble((Entry<String, Rectangle2D> entry) -> entry.getValue().getY())
+				.thenComparingDouble(entry -> entry.getValue().getX()).thenComparing(entry -> entry.getKey()));
 
-        //make copies to keep original list unaffected
-        rectanglesToFix.forEach((key,rectangle) -> {
-        	Rectangle2D copyRect = new Rectangle2D.Double();
-            copyRect.setRect(rectangle);
-            rectanglesToDraw.put(key,copyRect);
-        });
+		Map<String, Rectangle2D> fixed = new HashMap<>(rectanglesToFix.size());
+		// the rectangles placed so far, by their top edge
+		List<Rectangle2D> placed = new ArrayList<>(rectanglesToFix.size());
+		for (Entry<String, Rectangle2D> entry : fromTheTop) {
+			Rectangle2D rectangle = entry.getValue();
+			double left = rectangle.getX();
+			double width = rectangle.getWidth();
+			double height = rectangle.getHeight();
+			double top = rectangle.getY();
+			for (Rectangle2D other : placed) {
+				// sorted by top, so once one starts below the spot, every later one does too
+				if (other.getY() >= top + height + MARGIN) {
+					break;
+				}
+				boolean sharesColumns = other.getX() < left + width + MARGIN
+						&& left < other.getX() + other.getWidth() + MARGIN;
+				double otherBottom = other.getY() + other.getHeight();
+				if (sharesColumns && otherBottom + MARGIN > top) {
+					top = otherBottom + MARGIN;
+				}
+			}
+			Rectangle2D moved = new Rectangle2D.Double(left, top, width, height);
+			fixed.put(entry.getKey(), moved);
+			placed.add(insertionPoint(placed, top), moved);
+		}
+		return fixed;
+	}
 
-        // Find the center C of the bounding box of your rectangles.
-        Rectangle2D surroundRect = surroundingRect(rectanglesToDraw);
-        Point center = new Point((int) surroundRect.getCenterX(), (int) surroundRect.getCenterY());
-        int numIterations = 0;
-        int movementFactor = 10; //ideally would be 1
-        boolean hasIntersections = true;
-
-        //keep going until there are no intersections present    
-        while (hasIntersections) {
-            //initialize to false within the loop.  
-            hasIntersections = false;
-
-            for(Entry<String, Rectangle2D> rectangles: rectanglesToDraw.entrySet()) {
-            	Rectangle2D rectangle = rectangles.getValue();
-            	// Find all the rectangles R' that overlap R.
-                List<Rectangle2D> intersectingRects = findIntersections(rectangle, rectanglesToDraw);
-
-                if (intersectingRects.size() > 0) {
-                    // Define a movement vector v.
-                    Point movementVector = new Point(0, 0);
-                    Point centerR = new Point((int) rectangle.getCenterX(), (int) rectangle.getCenterY());
-
-                    // For each rectangle R that overlaps another.
-                    for (Rectangle2D rPrime : intersectingRects) {
-                        Point centerRPrime = new Point((int) rPrime.getCenterX(), (int) rPrime.getCenterY());
-                        int xTrans = (int) (centerR.getX() - centerRPrime.getX());
-                        int yTrans = (int) (centerR.getY() - centerRPrime.getY());
-
-                        // Add a vector to v proportional to the vector between the center of R and R'.
-                        movementVector.translate(xTrans < 0 ? -movementFactor : movementFactor,
-                                yTrans < 0 ? -movementFactor : movementFactor);
-                    }
-
-                    int xTrans = (int) (centerR.getX() - center.getX());
-                    int yTrans = (int) (centerR.getY() - center.getY());
-
-                    // Add a vector to v proportional to the vector between C and the center of R.
-                    movementVector.translate(xTrans < 0 ? -movementFactor : movementFactor,
-                            yTrans < 0 ? -movementFactor : movementFactor);
-
-                    // Move R by v.
-                    rectangle.setRect(rectangle.getX() + movementVector.getX(), rectangle.getY() + movementVector.getY(),
-                    		rectangle.getWidth(), rectangle.getHeight());
-
-                    // Repeat until nothing overlaps.
-                    hasIntersections = true;
-                }
-            }
-
-            numIterations++;
-        }
-        classLogger.info("Decluttering metamodel page took " + numIterations+ " iterations.");
-
-        return rectanglesToDraw;
-    }
-    
-    /**
-     * Given a rectangle, finds the rectangles from the rectMap that intersect with it.
-     * 
-     * @param rect the rectangle to find intersections on
-     * @param rectMap a map of all the rectangles in question
-     */
-    private List<Rectangle2D> findIntersections(Rectangle2D rect, Map<String, Rectangle2D> rectMap) {
-        ArrayList<Rectangle2D> intersections = new ArrayList<Rectangle2D>();
-
-        rectMap.forEach((key, intersectingRect) -> {
-        	 if (!rect.equals(intersectingRect) && intersectingRect.intersects(rect)) {
-                 intersections.add(intersectingRect);
-             }
-        });
-
-        return intersections;
-    }
-
-    /**
-     * Find the bounding rectangle of the list of rectangles by iterating over all
-     * rectangles and finding the top left and bottom right corners
-     * 
-     * @param rectangles map of rectangle names and x and y coordinates
-     */
-    private Rectangle2D surroundingRect(Map<String, Rectangle2D> rectangles) {
-        Point topLeft = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
-        Point bottomRight = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
-
-        rectangles.forEach((key, rectangle) -> {
-        	topLeft.x = Math.min(topLeft.x, (int) rectangle.getMinX());
-            topLeft.y = Math.min(topLeft.y, (int) rectangle.getMinY());
-            bottomRight.x = Math.max(bottomRight.x, (int) rectangle.getMaxX());
-            bottomRight.y = Math.max(bottomRight.y, (int) rectangle.getMaxY());
-        });
-
-        return new Rectangle2D.Double(topLeft.getX(), 
-                                      topLeft.getY(), 
-                                      bottomRight.getX() - topLeft.getX(),
-                                      bottomRight.getY() - topLeft.getY());
-    }
+	/**
+	 * Where a rectangle with the given top edge goes in a list kept in order of top
+	 * edge.
+	 */
+	private static int insertionPoint(List<Rectangle2D> byTop, double top) {
+		int low = 0;
+		int high = byTop.size();
+		while (low < high) {
+			int middle = (low + high) >>> 1;
+			if (byTop.get(middle).getY() <= top) {
+				low = middle + 1;
+			} else {
+				high = middle;
+			}
+		}
+		return low;
+	}
 }

@@ -35,15 +35,18 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLTimeoutException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -54,12 +57,16 @@ import com.zaxxer.hikari.HikariDataSource;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.SqlTransactionException;
+import prerna.engine.api.SqlTransactionResult;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.parsers.SqlScriptSplitter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.rdf.util.SQLQueryParser;
 import prerna.sablecc2.om.PixelDataType;
@@ -78,6 +85,11 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	public static final String USE_FILE = "USE_FILE";
 	public static final String DATA_FILE = "DATA_FILE";
+
+	/** The most results one statement of a script is read for */
+	private static final int MAX_STATEMENT_RESULTS = 10_000;
+	/** The most rows a script's statement asks the driver to fetch at a time */
+	private static final int MAX_FETCH_SIZE = 1_000;
 
 	private boolean engineConnected = false;
 	private boolean datasourceConnected = false;
@@ -111,6 +123,10 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	private String fileDB = null;
 	private Map<String, String> fileConceptAndType = null;
 	private String fileCreateString = null;
+
+	/** The rows kept from one statement */
+	private record RowsRead(List<String> headers, List<Object[]> rows, boolean hasMoreRows) {
+	}
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -569,6 +585,305 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				conn.close();
 			}
 		}
+	}
+
+	@Override
+	public SqlTransactionResult executeInTransaction(List<String> statements, int timeoutSeconds, int maxRows)
+			throws SQLException {
+		if (statements == null || statements.isEmpty()) {
+			throw new IllegalArgumentException("At least one SQL statement is required");
+		}
+		if (timeoutSeconds < 0) {
+			throw new IllegalArgumentException("The timeout cannot be negative");
+		}
+		SqlTransactionResult result = new SqlTransactionResult(statements.size());
+		Connection connection = openTransactionConnection();
+		try {
+			refuseSelfCommittingStatements(connection, statements);
+		} catch (SQLException | RuntimeException e) {
+			// nothing ran and auto-commit is untouched, so the connection goes back as is
+			ConnectionUtils.closeConnection(connection);
+			throw e;
+		}
+		Boolean originalAutoCommit = null;
+		boolean transactionEnded = false;
+		try {
+			originalAutoCommit = connection.getAutoCommit();
+			connection.setAutoCommit(false);
+
+			// the limit covers the statements, so it starts once the connection is ready
+			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds);
+			SQLException failure = runStatements(connection, statements, result, deadline, timeoutSeconds, maxRows);
+			if (failure != null || result.getFailedStatement() != null) {
+				Throwable rollbackFailure = ConnectionUtils.rollbackConnection(connection);
+				transactionEnded = rollbackFailure == null;
+				if (rollbackFailure == null) {
+					result.rolledBack(null);
+				} else {
+					// the connection is closed next, and a driver such as Oracle's commits what
+					// is pending when its connection closes
+					classLogger.error("Failed to roll back the SQL script on database {}", this.engineId,
+							rollbackFailure);
+					result.unknown("A statement failed and the rollback did not report back, so whether the "
+							+ "changes of the statements before it were kept is unknown: "
+							+ rollbackFailure.getMessage());
+				}
+				throw new SqlTransactionException(result, failure);
+			}
+
+			try {
+				connection.commit();
+			} catch (SQLException e) {
+				String sqlState = e.getSQLState();
+				if (sqlState == null || sqlState.startsWith("08")) {
+					// the connection was lost, so the commit may or may not have happened
+					result.unknown("The commit did not report back, so whether the changes were kept is unknown: "
+							+ e.getMessage());
+				} else {
+					// the database rejected the commit, for example for a deferred constraint;
+					// roll back so no part of the transaction can stay open
+					Throwable rollbackFailure = ConnectionUtils.rollbackConnection(connection);
+					if (rollbackFailure == null) {
+						transactionEnded = true;
+						result.rolledBack("The database rejected the commit: " + e.getMessage());
+					} else {
+						classLogger.error("Failed to roll back the SQL script on database {} after its commit failed",
+								this.engineId, rollbackFailure);
+						result.unknown("The database rejected the commit and the rollback failed, so whether the "
+								+ "changes were kept is unknown: " + e.getMessage());
+					}
+				}
+				throw new SqlTransactionException(result, e);
+			}
+			transactionEnded = true;
+			result.committed();
+			return result;
+		} finally {
+			releaseTransactionConnection(connection, transactionEnded, originalAutoCommit);
+		}
+	}
+
+	/**
+	 * Refuses a script of more than one statement with a statement that does not
+	 * only read or change rows, such as CREATE TABLE, LOCK TABLES or CALL, when the
+	 * database commits data definition as soon as it runs. Such a database can
+	 * commit other statements on their own too, and that commit would keep the
+	 * statements before it whatever happened after, so the script could not run in
+	 * one transaction. The driver reports whether the database does this.
+	 *
+	 * @throws SQLFeatureNotSupportedException when the database commits data
+	 *                                         definition on its own and a statement
+	 *                                         does not only read or change rows
+	 * @throws IllegalArgumentException        when the database commits data
+	 *                                         definition on its own and a statement
+	 *                                         cannot be read to tell
+	 */
+	private static void refuseSelfCommittingStatements(Connection connection, List<String> statements)
+			throws SQLException {
+		if (!connection.getMetaData().dataDefinitionCausesTransactionCommit()) {
+			return;
+		}
+		List<List<SqlScriptSplitter.Statement>> parts = new ArrayList<>(statements.size());
+		int partCount = 0;
+		for (int index = 0; index < statements.size(); index++) {
+			try {
+				parts.add(SqlScriptSplitter.split(statements.get(index)));
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException(
+						"Statement " + (index + 1) + " cannot be checked for what it changes: " + e.getMessage(), e);
+			}
+			partCount += parts.get(index).size();
+		}
+		// a script of one statement commits or fails as a whole, whatever the
+		// statement is
+		if (partCount <= 1) {
+			return;
+		}
+		for (int index = 0; index < parts.size(); index++) {
+			for (SqlScriptSplitter.Statement part : parts.get(index)) {
+				if (part.isDataDefinition()) {
+					throw new SQLFeatureNotSupportedException("Statement " + (index + 1) + " changes the database's "
+							+ "structure or permissions, which this database commits as soon as the statement runs, "
+							+ "so it cannot run in one transaction with other statements", "0A000");
+				}
+				if (!part.isRowStatement()) {
+					throw new SQLFeatureNotSupportedException("Statement " + (index + 1) + " is not a query or an "
+							+ "insert, update, delete or merge, and this database can commit such a statement as soon "
+							+ "as it runs, so it cannot run in one transaction with other statements", "0A000");
+				}
+			}
+		}
+	}
+
+	/**
+	 * Runs each statement in order on the transaction's connection, stopping at the
+	 * first failure or when the time limit is reached.
+	 *
+	 * @param deadline       the {@link System#nanoTime()} the statements must end
+	 *                       by, read only when there is a timeout
+	 * @param timeoutSeconds the time limit, or 0 for none
+	 * @param maxRows        the most rows to keep from each statement that returns
+	 *                       rows; 0 keeps none, and a negative number keeps them
+	 *                       all
+	 * @return the error that stopped the statements, or null when they all ran or
+	 *         the time limit stopped them before one ran
+	 */
+	private SQLException runStatements(Connection connection, List<String> statements, SqlTransactionResult result,
+			long deadline, int timeoutSeconds, int maxRows) {
+		boolean timed = timeoutSeconds > 0;
+		for (int index = 0; index < statements.size(); index++) {
+			long startedAt = System.nanoTime();
+			int secondsLeft = 0;
+			if (timed) {
+				long remaining = deadline - startedAt;
+				if (remaining <= 0) {
+					result.failed(index, null,
+							"The script reached its " + timeoutSeconds + " second timeout before this statement ran",
+							0);
+					return null;
+				}
+				// round up so the driver never cancels before the deadline
+				long second = TimeUnit.SECONDS.toNanos(1);
+				secondsLeft = (int) Math.max(1, (remaining + second - 1) / second);
+			}
+			// a plain statement, so a ? in the SQL is never read as a parameter
+			try (Statement statement = connection.createStatement()) {
+				if (secondsLeft > 0) {
+					statement.setQueryTimeout(secondsLeft);
+				}
+				fetchRowsInBatches(statement, maxRows);
+				boolean isResultSet = statement.execute(withoutTerminator(statements.get(index)));
+				boolean returnedRows = isResultSet;
+				Integer updateCount = null;
+				RowsRead rowsRead = isResultSet && maxRows != 0 ? readRows(statement.getResultSet(), maxRows) : null;
+				// read every result, since some drivers report an error in a later result,
+				// such as one a trigger raised, only once it is read
+				for (int read = 0; read < MAX_STATEMENT_RESULTS; read++) {
+					int count = isResultSet ? -1 : statement.getUpdateCount();
+					if (!isResultSet && count == -1) {
+						break;
+					}
+					if (read == 0 && count >= 0) {
+						updateCount = count;
+					}
+					isResultSet = statement.getMoreResults();
+				}
+				result.succeeded(index, returnedRows, updateCount,
+						TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
+				if (rowsRead != null) {
+					result.keptRows(index, rowsRead.headers(), rowsRead.rows(), rowsRead.hasMoreRows());
+				}
+			} catch (SQLException e) {
+				// drivers report a cancelled statement differently, so a failure once the
+				// deadline has passed is the timeout
+				boolean timedOut = timed && System.nanoTime() - deadline >= 0;
+				String message = timedOut
+						? "The script reached its " + timeoutSeconds + " second timeout: " + e.getMessage()
+						: e.getMessage();
+				result.failed(index, e.getSQLState(), message,
+						TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
+				return e;
+			} catch (RuntimeException e) {
+				String message = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+				result.failed(index, null, message, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
+				return new SQLException(message, e);
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * A statement without its final semicolon, which some drivers, such as
+	 * Oracle's, reject.
+	 */
+	private static String withoutTerminator(String sql) {
+		String trimmed = sql.stripTrailing();
+		return trimmed.endsWith(";") ? trimmed.substring(0, trimmed.length() - 1) : sql;
+	}
+
+	/**
+	 * Asks the driver to fetch rows in batches no bigger than what is kept, plus
+	 * one row to tell whether more were left out, so a driver that streams rows, as
+	 * PostgreSQL's does with auto-commit off, never loads a whole result to keep a
+	 * few rows. A driver that does not take the hint runs the statement as it
+	 * would.
+	 */
+	private static void fetchRowsInBatches(Statement statement, int maxRows) {
+		int fetchSize = maxRows < 0 ? MAX_FETCH_SIZE : Math.min(maxRows, MAX_FETCH_SIZE - 1) + 1;
+		try {
+			statement.setFetchSize(fetchSize);
+		} catch (SQLException | RuntimeException e) {
+			classLogger.debug("The driver does not take a fetch size; reading the statement's rows as it sends them",
+					e);
+		}
+	}
+
+	/**
+	 * Keeps up to {@code maxRows} rows of a statement's result, each value
+	 * converted as an engine query converts it, so dates, CLOBs and BLOBs come back
+	 * the same. Only the result set is closed, once its last row is read; the
+	 * statement stays open for the results after it.
+	 *
+	 * @param maxRows the most rows to keep, or a negative number for all of them
+	 */
+	private RowsRead readRows(ResultSet resultSet, int maxRows) throws SQLException {
+		RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.wrapResultSet(resultSet, getDatabaseZoneId());
+		List<Object[]> rows = new ArrayList<>();
+		boolean hasMoreRows = false;
+		while (wrapper.hasNext()) {
+			if (maxRows >= 0 && rows.size() >= maxRows) {
+				hasMoreRows = true;
+				break;
+			}
+			rows.add(wrapper.next().getValues());
+		}
+		return new RowsRead(Arrays.asList(wrapper.getHeaders()), rows, hasMoreRows);
+	}
+
+	/**
+	 * Opens a connection only the transaction uses. A pooled engine lends one from
+	 * its pool; otherwise a new connection is opened with the engine's settings, so
+	 * the shared engine connection is never part of the transaction.
+	 */
+	private Connection openTransactionConnection() throws SQLException {
+		if (this.dataSource != null) {
+			return getConnection();
+		}
+		Connection connection = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, this.smssProp);
+		try {
+			if (this.transactionIsolationType > -1) {
+				connection.setTransactionIsolation(this.transactionIsolationType);
+			}
+			this.queryUtil.enhanceConnection(connection);
+		} catch (SQLException | RuntimeException e) {
+			ConnectionUtils.closeConnection(connection);
+			throw e;
+		}
+		return connection;
+	}
+
+	/**
+	 * Restores and releases the transaction's connection. A pooled connection whose
+	 * transaction did not end cleanly is evicted instead of returned, so no one is
+	 * handed a connection with an open transaction.
+	 */
+	private void releaseTransactionConnection(Connection connection, boolean transactionEnded,
+			Boolean originalAutoCommit) {
+		boolean clean = transactionEnded;
+		if (clean && originalAutoCommit != null) {
+			try {
+				connection.setAutoCommit(originalAutoCommit);
+			} catch (SQLException e) {
+				clean = false;
+				classLogger.error("Failed to restore auto-commit after the SQL script on database {}", this.engineId,
+						e);
+			}
+		}
+		if (!clean && this.dataSource != null) {
+			this.dataSource.evictConnection(connection);
+			return;
+		}
+		ConnectionUtils.closeConnection(connection);
 	}
 
 	/**

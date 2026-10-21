@@ -113,6 +113,7 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 					Pair.with("RUN_ID", VARCHAR_50),
 					Pair.with("SUMMARY", CLOB_DATATYPE_NAME),
 					Pair.with("ERROR", CLOB_DATATYPE_NAME),
+					Pair.with("ERROR_CAUSE", VARCHAR_20),
 					Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		}
 

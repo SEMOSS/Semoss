@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.qs;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +45,6 @@ import prerna.date.SemossDate;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -57,12 +56,15 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.DatabaseWriteAudit;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class InsertReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(InsertReactor.class);
+
+	private static final String REACTOR_NAME = "Insert";
 
 	private NounMetadata qStruct = null;
 
@@ -88,35 +90,34 @@ public class InsertReactor extends AbstractReactor {
 		AbstractSqlQueryUtil queryUtil = null;
 		String userId = "user not defined";
 
-		if (qStruct.getValue() instanceof AbstractQueryStruct) {
-			qs = ((AbstractQueryStruct) qStruct.getValue());
-			if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
-				IDatabaseEngine engine = qs.retrieveQueryStructEngine();
-				if (!(engine instanceof IRDBMSEngine)) {
-					throw new IllegalArgumentException("Insert query only works for rdbms databases");
-				}
-				database = (IRDBMSEngine) engine;
-				queryUtil = database.getQueryUtil();
-				// If an engine and the user is defined, then grab it for the audit log
-				User user = this.insight.getUser();
-				if (user != null) {
-					userId = user.getAccessToken(user.getLogins().get(0)).getId();
-				}
-
-				// check that the user can edit the engine
-				if (!SecurityEngineUtils.userCanEditEngine(user, database.getEngineId())) {
-					throw new IllegalArgumentException(
-							"User does not have permission to insert query for this database");
-				}
-			} else if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
-				frame = qs.getFrame();
-				if (!(frame instanceof AbstractRdbmsFrame)) {
-					throw new IllegalArgumentException("Insert query only works for sql frames");
-				}
-				queryUtil = ((AbstractRdbmsFrame) frame).getQueryUtil();
-			}
-		} else {
+		if (!(qStruct.getValue() instanceof AbstractQueryStruct)) {
 			throw new IllegalArgumentException("Input to exec query requires a query struct");
+		}
+
+		qs = ((AbstractQueryStruct) qStruct.getValue());
+		if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
+			IDatabaseEngine engine = qs.retrieveQueryStructEngine();
+			if (!(engine instanceof IRDBMSEngine)) {
+				throw new IllegalArgumentException("Insert query only works for rdbms databases");
+			}
+			database = (IRDBMSEngine) engine;
+			queryUtil = database.getQueryUtil();
+			// the user id fills any <USER_ID> value in an insert
+			User user = this.insight.getUser();
+			if (user != null) {
+				userId = user.getAccessToken(user.getLogins().get(0)).getId();
+			}
+
+			// check that the user can edit the engine
+			if (!SecurityEngineUtils.userCanEditEngine(user, database.getEngineId())) {
+				throw new IllegalArgumentException("User does not have permission to insert query for this database");
+			}
+		} else if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
+			frame = qs.getFrame();
+			if (!(frame instanceof AbstractRdbmsFrame)) {
+				throw new IllegalArgumentException("Insert query only works for sql frames");
+			}
+			queryUtil = ((AbstractRdbmsFrame) frame).getQueryUtil();
 		}
 
 		StringBuilder prefixSb = new StringBuilder("INSERT INTO ");
@@ -168,7 +169,7 @@ public class InsertReactor extends AbstractReactor {
 		if (ClusterUtil.IS_CLUSTER && database != null) {
 			RdbmsTypeEnum eType = database.getQueryUtil().getDbType();
 			if (eType == RdbmsTypeEnum.H2_DB || eType == RdbmsTypeEnum.SQLITE) {
-				insertFileEngine(database, queryUtil, initial, valueCombinations, selectors, userId);
+				insertFileEngine(database, queryUtil, initial, valueCombinations, userId);
 				NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE,
 						PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
 				String customSuccessMessage = getCustomSuccessMessage();
@@ -182,6 +183,8 @@ public class InsertReactor extends AbstractReactor {
 		// determine if we can insert booleans as true/false
 		boolean allowBooleanType = queryUtil.allowBooleanDataType();
 
+		// the inserts sent to the database, for its write event
+		List<String> sentQueries = new ArrayList<>();
 		// we are a frame
 		// or a tcp/ip rdbms type
 		for (Object[] values : valueCombinations) {
@@ -235,6 +238,8 @@ public class InsertReactor extends AbstractReactor {
 				if (database == null) {
 					throw new NullPointerException("No engine passed in to insert the data");
 				}
+				int inserted = sentQueries.size();
+				sentQueries.add(query);
 				try {
 					database.insertData(query);
 					if (commit) {
@@ -242,14 +247,10 @@ public class InsertReactor extends AbstractReactor {
 					}
 				} catch (Exception e) {
 					classLogger.error("Failed to insert new records into the database with query {}", query, e);
+					recordInsert(database, sentQueries, valueCombinations.size(), inserted, e);
 					throw new SemossPixelException(
 							new NounMetadata("An error occurred trying to insert new records in the database",
 									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-				}
-
-				if (database != null) {
-					AuditDatabase audit = database.generateAudit();
-					audit.auditInsertQuery(selectors, Arrays.asList(values), userId, query);
 				}
 			} else {
 				try {
@@ -263,6 +264,9 @@ public class InsertReactor extends AbstractReactor {
 									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
 			}
+		}
+		if (database != null && !sentQueries.isEmpty()) {
+			recordInsert(database, sentQueries, sentQueries.size(), sentQueries.size(), null);
 		}
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE,
@@ -280,17 +284,18 @@ public class InsertReactor extends AbstractReactor {
 	 * @param database
 	 * @param initial
 	 * @param valueCombinations
-	 * @param selectors
 	 * @param userId
 	 */
 	private void insertFileEngine(IRDBMSEngine database, AbstractSqlQueryUtil queryUtil, String initial,
-			List<Object[]> valueCombinations, List<IQuerySelector> selectors, String userId) {
+			List<Object[]> valueCombinations, String userId) {
 		synchronized (database) {
 			ClusterUtil.pullEngine(database.getEngineId());
 
 			// determine if we can insert booleans as true/false
 			boolean allowBooleanType = queryUtil.allowBooleanDataType();
 
+			// the inserts sent to the database, for its write event
+			List<String> sentQueries = new ArrayList<>();
 			for (Object[] values : valueCombinations) {
 				StringBuilder valuesSb = new StringBuilder();
 				// insert values
@@ -338,20 +343,44 @@ public class InsertReactor extends AbstractReactor {
 				// generate the query
 				String query = initial + valuesSb.toString();
 
+				int inserted = sentQueries.size();
+				sentQueries.add(query);
 				try {
 					database.insertData(query);
-					AuditDatabase audit = database.generateAudit();
-					audit.auditInsertQuery(selectors, Arrays.asList(values), userId, query);
 				} catch (Exception e) {
 					classLogger.error("Failed to insert new records into the database with query {}", query, e);
+					recordInsert(database, sentQueries, valueCombinations.size(), inserted, e);
 					throw new SemossPixelException(
 							new NounMetadata("An error occurred trying to insert new records in the database",
 									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
 			}
+			if (!sentQueries.isEmpty()) {
+				recordInsert(database, sentQueries, sentQueries.size(), sentQueries.size(), null);
+			}
 			// push back to the cluster
 			ClusterUtil.pushEngine(database.getEngineId());
 		}
+	}
+
+	/**
+	 * Records the inserts sent to a database as one write event. Each insert
+	 * commits on its own, so the inserts before a failure stay in the database.
+	 *
+	 * @param database    the database inserted into
+	 * @param sentQueries the inserts sent, including the one that failed
+	 * @param statements  the number of inserts the reactor was asked to run
+	 * @param inserted    the number that succeeded
+	 * @param error       the failure that stopped the inserts, or null
+	 */
+	private void recordInsert(IRDBMSEngine database, List<String> sentQueries, int statements, int inserted,
+			Exception error) {
+		// the SQL is only hashed for an engine that keeps its input, so it is joined
+		// only
+		// then
+		String sql = database.keepInputOutput() ? String.join(";\n", sentQueries) : null;
+		DatabaseWriteAudit.record(this.insight, database,
+				DatabaseWriteAudit.Write.perStatement(REACTOR_NAME, sql, statements, inserted, inserted, error));
 	}
 
 	private NounMetadata getQueryStruct() {
@@ -455,32 +484,6 @@ public class InsertReactor extends AbstractReactor {
 		String physicalUri = engine.getPhysicalUriFromPixelSelector(tableName);
 		return engine.getLegacyPrimKey4Table(physicalUri);
 	}
-
-//	public static void main(String[] args) {
-//		GenRowStruct grs = new GenRowStruct();
-//		grs.add(new NounMetadata(1, PixelDataType.CONST_INT));
-//		List<Object> l1 = new Vector<>();
-//		l1.add("a");
-//		l1.add("b");
-//		l1.add("c");
-//		grs.add(new NounMetadata(l1, PixelDataType.VECTOR));
-//		List<Object> l2 = new Vector<>();
-//		l2.add("d");
-//		l2.add("e");
-//		grs.add(new NounMetadata(l2, PixelDataType.VECTOR));
-//		List<Object> l3 = new Vector<>();
-//		l3.add("x");
-//		l3.add("y");
-//		l3.add("z");
-//		grs.add(new NounMetadata(l3, PixelDataType.VECTOR));
-//		
-//		InsertReactor qir = new InsertReactor();
-//		List<Object[]> combinations = qir.flattenCombinations(grs);
-//		
-//		for(int i = 0; i < combinations.size(); i++) {
-//			logger.debug(Arrays.toString(combinations.get(i)));
-//		}
-//	}
 
 	@Override
 	public String getName() {

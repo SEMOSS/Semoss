@@ -96,8 +96,8 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 			Requests Count INPUT Rows; Token Totals Sum Recorded INPUT And RESPONSE Token Counts. \
 			Raw Latency Is In Milliseconds. Cache And Thinking Tokens Are Provider-Reported Detail, \
 			Not Additional Total Tokens. Activity Events Are Separate From Model Requests. \
-			Audit Logs List Access Changes, Denied Requests And Usage Limit Changes, In UTC, \
-			Without Their Old Or New Values Or Denial Reasons. Missing Values Are Unavailable. \
+			Audit Logs List Access Changes, App And Engine Setting Changes, Denied Requests And Usage Limit \
+			Changes, In UTC, Without Their Old Or New Values Or Denial Reasons. Missing Values Are Unavailable. \
 			Coverage Depends On Enabled Logging And Retention. Costs Are In US Dollars: Recorded Costs Are What \
 			Each Call Was Billed At Its Model's Prices Then, And Estimated Costs Price Calls Logged Before Costs \
 			Were Recorded At Their Model's Current Base Rates; Calls Of Models With No Known Prices Have No Cost. \

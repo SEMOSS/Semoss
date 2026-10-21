@@ -31,14 +31,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectPortalsHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -58,17 +56,16 @@ public class PublishProjectReactor extends AbstractReactor {
 		}
 
 		User user = this.insight.getUser();
-		if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user is not an owner of the project");
+		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have edit access to the project");
 		}
 
 		IProject project = Utility.getProject(projectId);
-		project.setRepublish(true);
 		if (release) {
-			ClusterUtil.pushProjectFolder(project,
-					AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId),
-					Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
-			ProjectPortalsHelper.notePortalChange(user, projectId);
+			ProjectPortalsHelper.releasePortal(user, project);
+		} else {
+			project.setRepublish(true);
 		}
 
 		String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/"

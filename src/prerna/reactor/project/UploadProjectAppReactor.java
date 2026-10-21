@@ -411,7 +411,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		}
 
 		UserAuditTrailUtils.recordProjectLifecycle(user,
-				replace ? AuditEventType.PROJECT_UPDATE : AuditEventType.PROJECT_UPLOAD, projectId, projectName,
+				replace ? AuditEventType.PROJECT_REPLACE : AuditEventType.PROJECT_UPLOAD, projectId, projectName,
 				Map.of("global", global, "mode", replace ? REPLACE_MODE : CREATE_MODE));
 
 		// sending the success and failed list of engineIds to FE

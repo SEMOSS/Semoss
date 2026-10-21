@@ -31,7 +31,6 @@ import java.time.ZoneId;
 import java.util.Vector;
 
 import prerna.engine.impl.owl.OWLEngineFactory;
-import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.logging.IgnoreEngineLogging;
 
 /**
@@ -150,13 +149,6 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 */
 	@IgnoreEngineLogging
 	OWLEngineFactory getOWLEngineFactory();
-
-	/**
-	 * Generate an audit database
-	 * 
-	 */
-	@IgnoreEngineLogging
-	AuditDatabase generateAudit();
 
 	/**
 	 * 

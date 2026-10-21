@@ -62,8 +62,8 @@ public class SetProjectMetadataReactor extends AbstractSetMetadataReactor {
 		}
 
 		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
-		UserAuditTrailUtils.recordProjectLifecycle(this.insight.getUser(), AuditEventType.PROJECT_UPDATE, projectId,
-				null, Map.of("changedFields", new ArrayList<>(metadata.keySet())));
+		UserAuditTrailUtils.recordProjectLifecycle(this.insight.getUser(), AuditEventType.PROJECT_METADATA_UPDATE,
+				projectId, null, Map.of("changedFields", new ArrayList<>(metadata.keySet())));
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(
 				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the project"));

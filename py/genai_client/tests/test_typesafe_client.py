@@ -1,5 +1,6 @@
 """Exercise the real SDK and HTTP serialization without a TypeSafe account."""
 
+import base64
 import json
 from unittest.mock import patch
 
@@ -67,14 +68,14 @@ def questions():
 def make_client():
     clients = []
 
-    def build(handler):
+    def build(handler, **options):
         sdk = TypeSafeClient(
             api_key="test-key",
             model="jev-latest",
             transport=httpx2.MockTransport(handler),
         )
         with patch.object(TypeSafeClientWrapper, "_get_client", return_value=sdk):
-            wrapper = TypeSafeClientWrapper(api_key="test-key")
+            wrapper = TypeSafeClientWrapper(api_key="test-key", **options)
         clients.append(wrapper)
         return wrapper
 
@@ -108,6 +109,61 @@ def test_round_trip_preserves_state_questions_and_every_answer(
     assert json.loads(json.dumps(result)) == result
     assert result["answers"]["is_urgent"]["noul"] == 0.99
     assert result["answers"]["frustration"]["probabilities"]["1"] == 0.75
+
+
+def test_images_are_sent_as_aliased_assets_with_the_opt_in_header(
+    make_client, response_body, questions
+):
+    png = b"\x89PNG\r\n\x1a\nimage-bytes"
+    requests = []
+
+    def handle(request):
+        requests.append(request)
+        return httpx2.Response(200, json=response_body)
+
+    state = ["<image_1>", "What is in this screenshot?"]
+    result = make_client(handle).ask(
+        state, questions, assets={"<image_1>": base64.b64encode(png).decode()}
+    )
+    [request] = requests
+    assert request.headers["TypeSafe-Danger-Zone-Images"] == "true"
+    assert request.headers["content-type"].startswith("multipart/form-data")
+    body = request.content
+    assert json.dumps(state, separators=(",", ":")).encode() in body
+    assert b'"assets":{"<image_1>":{"type":"image","part":"asset-0"}}' in body
+    assert b"Content-Type: image/png" in body and png in body
+    assert result == response_body
+
+
+def test_images_format_sends_data_urls_in_json_without_aliases(
+    make_client, response_body, questions
+):
+    data = base64.b64encode(b"\xff\xd8\xffimage-bytes").decode()
+    requests = []
+
+    def handle(request):
+        requests.append(request)
+        return httpx2.Response(200, json=response_body)
+
+    result = make_client(handle, image_format="images").ask(
+        ["<image_1>", "What is in this screenshot?"],
+        questions,
+        assets={"<image_1>": data},
+    )
+    [request] = requests
+    assert "TypeSafe-Danger-Zone-Images" not in request.headers
+    assert json.loads(request.content) == {
+        "model": "jev-latest",
+        "state": "What is in this screenshot?",
+        "questions": questions,
+        "images": [f"data:image/jpeg;base64,{data}"],
+    }
+    assert result == response_body
+
+
+def test_unknown_image_format_is_rejected():
+    with pytest.raises(ValueError, match="image_format"):
+        TypeSafeClientWrapper(api_key="test-key", image_format="multipart")
 
 
 def test_usage_ceiling_never_reaches_the_request(make_client, response_body, questions):

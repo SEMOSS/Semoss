@@ -353,10 +353,9 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Returns the stored input prompts for a batch as customId -> command map.
+	 * Returns the stored input prompts for a batch as transactionId -> command map.
 	 * Queries INPUT rows in the batch room (ROOM_ID = "mb_<batchId>") written at
-	 * submit time. TRANSACTION_ID has the form "batchId.customId", so customId is
-	 * extracted as the suffix after "batchId.".
+	 * submit time; ModelBatchManager.batchTransactionId gives a request's id.
 	 */
 	public static Map<String, String> getBatchInputs(String userId, String providerBatchId) {
 		Map<String, String> out = new HashMap<>();
@@ -365,7 +364,6 @@ public class ModelInferenceLogsUtils {
 			return out;
 		}
 		String roomId = "mb_" + providerBatchId;
-		String prefix = providerBatchId + ".";
 		String query = "SELECT TRANSACTION_ID, MESSAGE_DATA FROM MESSAGE"
 				+ " WHERE ROOM_ID = ? AND USER_ID = ? AND MESSAGE_TYPE = 'INPUT' AND MESSAGE_METHOD = 'batch'";
 		try {
@@ -378,8 +376,8 @@ public class ModelInferenceLogsUtils {
 						while (rs.next()) {
 							String txnId = rs.getString("TRANSACTION_ID");
 							String command = db.getQueryUtil().handleBlobRetrieval(rs, "MESSAGE_DATA");
-							if (txnId != null && txnId.startsWith(prefix) && command != null) {
-								out.put(txnId.substring(prefix.length()), command);
+							if (txnId != null && command != null) {
+								out.put(txnId, command);
 							}
 						}
 					}

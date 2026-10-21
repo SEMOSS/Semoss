@@ -70,7 +70,7 @@ public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
 
 		SecurityEngineUtils.updateEngineMetadata(databaseId, metadata);
 		IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(databaseId);
-		UserAuditTrailUtils.recordEngineLifecycle(this.insight.getUser(), AuditEventType.ENGINE_UPDATE,
+		UserAuditTrailUtils.recordEngineLifecycle(this.insight.getUser(), AuditEventType.ENGINE_METADATA_UPDATE,
 				engineType == null ? AuditTargetType.DATABASE : AuditTargetType.ofEngine(engineType), databaseId,
 				SecurityEngineUtils.getEngineDisplayNameForId(databaseId),
 				Map.of("field", "metadata", "metadataKeys", List.copyOf(metadata.keySet())));

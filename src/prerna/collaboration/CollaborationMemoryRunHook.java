@@ -48,7 +48,7 @@ public final class CollaborationMemoryRunHook implements IAgentRunHook {
 		}
 		Room room = ctx.getRoom();
 		User user = ctx.getInsight() == null ? null : ctx.getInsight().getUser();
-		if (user != null && CollaborationUtils.isAssistantRoom(room)) {
+		if (user != null && CollaborationRunMode.isChat(room)) {
 			BrainMemoryReview.schedule(user, room.getId(), CollaborationUtils.threadIdOf(room));
 			BrainChatTopics.schedule(user, room.getId());
 		}

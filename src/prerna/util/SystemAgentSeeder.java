@@ -241,6 +241,9 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return "App Building Agent";
 		}
+		if (Constants.AGENT_COLLABORATION.equals(agentId)) {
+			return "Collaboration Agent";
+		}
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return "Automation Building Agent";
 		}
@@ -262,6 +265,9 @@ public class SystemAgentSeeder {
 		}
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return "System agent for building platform apps.";
+		}
+		if (Constants.AGENT_COLLABORATION.equals(agentId)) {
+			return "System agent for Collaboration: the owner's assistant for mail, chats, meetings and files.";
 		}
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return "System agent for authoring and troubleshooting Automation workflows.";
@@ -285,6 +291,8 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return APP_BUILDER_SYSTEM_PROMPT;
 		}
+		// the Collaboration Agent has none of its own: the harness gives every Collaboration
+		// chat and routine CollaborationPrompts.BASE_PROMPT, whichever agent runs it
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return WORKFLOW_AUTOMATION_BUILDER_SYSTEM_PROMPT;
 		}
