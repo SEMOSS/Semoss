@@ -62,6 +62,9 @@
 		<jackson2.version>2.22.3</jackson2.version>
 		<jackson2.annotations.version>2.22</jackson2.annotations.version>
 		<jackson3.version>3.1.7</jackson3.version>
+		<!-- Keep these security pins in sync with Monolith/pom.xml. -->
+		<lz4.version>1.11.4</lz4.version>
+		<rabbitmq.version>5.34.0</rabbitmq.version>
 		<httpcore5.version>5.4.3</httpcore5.version>
 		<docx4j.version>11.5.14</docx4j.version>
 		<sesame.version>2.7.12</sesame.version>
@@ -633,6 +636,12 @@
 	</repositories>
 	<dependencyManagement>
 		<dependencies>
+			<!-- JanusGraph -> metrics-graphite otherwise brings amqp-client 5.26.0. -->
+			<dependency>
+				<groupId>com.rabbitmq</groupId>
+				<artifactId>amqp-client</artifactId>
+				<version>${rabbitmq.version}</version>
+			</dependency>
 			<!-- Source: https://mvnrepository.com/artifact/io.grpc/grpc-bom -->
 			<dependency>
 				<groupId>io.grpc</groupId>
@@ -1766,9 +1775,9 @@
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.lz4/lz4-java -->
 		<dependency>
-	   		<groupId>at.yawk.lz4</groupId>
-	   		<artifactId>lz4-java</artifactId>
-	    	<version>1.11.2</version>
+			<groupId>at.yawk.lz4</groupId>
+			<artifactId>lz4-java</artifactId>
+			<version>${lz4.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-memory -->
 		<dependency>
