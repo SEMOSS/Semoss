@@ -107,9 +107,12 @@ public class AuditLogsDbUtils {
 			// create the tables and columns from the OWL creator schema
 			AbstractOwlCreator.syncSchema(auditLogsDb, conn, owlCreator.getDBSchema());
 
-			// create the indexes on the tables
+			// create the indexes on the tables; the LOG_ID indexes let the appenders find
+			// the rows a write stored before it failed, so a retry never stores a row twice
 			AbstractOwlCreator.syncIndexes(auditLogsDb, conn,
-					List.of(OwlIndex.of("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID"),
+					List.of(OwlIndex.of("AUDIT_LOGS__LOG_ID_INDEX", "AUDIT_LOGS", "LOG_ID"),
+							OwlIndex.of("SERVER_LOGS__LOG_ID_INDEX", "SERVER_LOGS", "LOG_ID"),
+							OwlIndex.of("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID"),
 							OwlIndex.of("AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS", "PROJECT_ID", "LOG_TIMESTAMP"),
 							OwlIndex.of("AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS", "USER_ID", "LOG_TIMESTAMP"),
 							OwlIndex.of("AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS", "ENGINE_ID", "LOG_TIMESTAMP"),
@@ -282,6 +285,9 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__GUARDRAIL_ACTION"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_CACHE_READ_TOKENS"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_CACHE_CREATION_TOKENS"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__BILLED_SOURCE_TYPE"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__BILLED_SUBJECT_ID"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__BILLED_SUBJECT_TYPE"));
 
 		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
@@ -334,11 +340,14 @@ public class AuditLogsDbUtils {
 			String guardrailAction = getOrDefault(map.get("GUARDRAIL_ACTION"), null);
 			int cacheReadTokens = getIntValue(map.get("NUMBER_OF_CACHE_READ_TOKENS"));
 			int cacheCreationTokens = getIntValue(map.get("NUMBER_OF_CACHE_CREATION_TOKENS"));
+			String billedSourceType = getOrDefault(map.get("BILLED_SOURCE_TYPE"), null);
+			String billedSubjectId = getOrDefault(map.get("BILLED_SUBJECT_ID"), null);
+			String billedSubjectType = getOrDefault(map.get("BILLED_SUBJECT_TYPE"), null);
 
 			activityList.add(new LogActivityRecord(requestId, startTime, endTime, request, response, tokens, latency,
 					status, engineName, engineType, methodName, userNameFromRow, userIdFromRow, sessionIdFromRow,
 					spanIdFromRow, logTimestamp, guardrailAction, cacheReadTokens, cacheCreationTokens, promptTokens,
-					responseTokens));
+					responseTokens, billedSourceType, billedSubjectId, billedSubjectType));
 
 		}
 		return activityList;

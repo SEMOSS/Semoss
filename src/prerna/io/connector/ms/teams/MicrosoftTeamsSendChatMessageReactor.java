@@ -39,6 +39,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Sends a message in a Teams chat, as the signed in user.
@@ -75,6 +76,9 @@ public class MicrosoftTeamsSendChatMessageReactor extends AbstractMicrosoftTeams
 
 	private static final String RECIPIENTS = "recipients";
 
+	// the Teams "(You)" chat every user has with themselves
+	static final String SELF_CHAT_ID = "48:notes";
+
 	public MicrosoftTeamsSendChatMessageReactor() {
 		this.keysToGet = new String[] { CHAT_ID, RECIPIENTS, MESSAGE, HTML, MENTIONS, ATTACHMENT_URLS,
 				ATTACHMENT_NAMES };
@@ -84,7 +88,7 @@ public class MicrosoftTeamsSendChatMessageReactor extends AbstractMicrosoftTeams
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String chatId = trimToNull(this.keyValue.get(CHAT_ID));
+		String chatId = ValueUtils.trimToNull(this.keyValue.get(CHAT_ID));
 		String content = this.keyValue.get(MESSAGE);
 		boolean html = Boolean.parseBoolean(this.keyValue.get(HTML));
 		String[] recipients = values(RECIPIENTS);
@@ -103,6 +107,11 @@ public class MicrosoftTeamsSendChatMessageReactor extends AbstractMicrosoftTeams
 			String userEmail = MicrosoftLoginUtils.getMicrosoftEmail(user);
 
 			String chat = chatId;
+			if (chat == null && onlySelf(recipients, userEmail, accessToken)) {
+				// Graph refuses a chat whose only member is the user twice; Teams keeps a
+				// built in chat with yourself under this id
+				chat = SELF_CHAT_ID;
+			}
 			if (chat == null) {
 				// one person means the one on one chat with them, and several means a
 				// group chat of everybody named
@@ -134,6 +143,24 @@ public class MicrosoftTeamsSendChatMessageReactor extends AbstractMicrosoftTeams
 		}
 	}
 
+	/** Whether every recipient is the signed in user, by email or by id. */
+	private static boolean onlySelf(String[] recipients, String userEmail, String accessToken) throws Exception {
+		String selfId = null;
+		for (String recipient : recipients) {
+			String value = recipient.trim();
+			if (userEmail != null && value.equalsIgnoreCase(userEmail.trim())) {
+				continue;
+			}
+			if (selfId == null) {
+				selfId = MicrosoftTeamsMessageHelper.signedInUserId(accessToken);
+			}
+			if (!value.equalsIgnoreCase(selfId)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	@Override
 	public String getReactorDescription() {
 		return "Send a message in a Microsoft Teams chat, either to an existing chat or to the people named.";
@@ -144,7 +171,7 @@ public class MicrosoftTeamsSendChatMessageReactor extends AbstractMicrosoftTeams
 		if (key.equals(CHAT_ID)) {
 			return "Id of the chat to send to, as returned by MicrosoftTeamsListChats. Not needed when recipients are named.";
 		} else if (key.equals(RECIPIENTS)) {
-			return "Email addresses or user ids to message, passed as several values or as one comma separated value. The one on one chat with one person is used or started, and several people are put in a group chat. Not needed when a chat id is given.";
+			return "Email addresses or user ids to message, passed as several values or as one comma separated value. The one on one chat with one person is used or started, several people are put in a group chat, and the user's own address sends to their chat with themselves. Not needed when a chat id is given.";
 		}
 		return super.getDescriptionForKey(key);
 	}

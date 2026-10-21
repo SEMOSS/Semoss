@@ -59,19 +59,22 @@ public final class BrainTopicUtils {
 
 	public static final Set<String> KINDS = Set.of("client", "internal", "event", "personal");
 
-	// BRAIN_TOPIC_NOTE.KIND and the states each kind allows
+	// BRAIN_TOPIC_NOTE.KIND and the states each kind allows; topic notes are Brain memories linked to the topic now
 	public static final String GOAL = "goal";
-	public static final String NOTE = "note";
-	private static final Map<String, List<String>> NOTE_STATES = Map.of(GOAL, List.of("open", "done"), NOTE,
-			List.of("draft", "confirmed"));
+	private static final Map<String, List<String>> NOTE_STATES = Map.of(GOAL, List.of("open", "done"));
 
 	// an active topic with no activity and no owner edit for this long goes dormant
 	static final int DORMANT_AFTER_DAYS = 30;
 
 	public static final int DEFAULT_LIMIT = 30;
+	// open action items listed on one topic in full
+	private static final int OPEN_ITEMS_SHOWN = 20;
 
 	private static final String SUMMARY_COLUMNS = "TOPIC_ID, NAME, SHORT_NAME, ACCOUNT_ID, KIND, COLOR, STATUS, "
 			+ "LAST_ACTIVITY_AT";
+	// a memory's link to one topic: owner, REF_TYPE topic, REF_ID
+	private static final String MEMORY_TOPIC_LINK = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REF_TYPE = ? "
+			+ "AND REF_ID = ?";
 
 	private BrainTopicUtils() {
 
@@ -118,6 +121,19 @@ public final class BrainTopicUtils {
 		return getTopic(owner.getValue0(), owner.getValue1(), topicId);
 	}
 
+	// one topic by id, or by a name that picks exactly one, for the assistant: with its notes, the Brain memories
+	// about it, while the owner has memory on (filtered as SearchMemories filters them)
+	public static Map<String, Object> getTopic(User user, String topicId, String topicName) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String id = BrainThreadFinder.resolveTopic(owner.getValue0(), owner.getValue1(), topicId, topicName);
+		Map<String, Object> topic = getTopic(user, id);
+		topic.put("notes", BrainMemoryUtils.assistantMemoryOn(user)
+				? BrainMemoryUtils.search(user, null, List.of(new BrainMemoryUtils.Ref(BrainMemoryUtils.TOPIC, id)),
+						BrainMemoryUtils.DEFAULT_LIMIT).get("items")
+				: List.of());
+		return topic;
+	}
+
 	public static Map<String, Object> getTopic(String ownerId, String ownerType, String topicId) {
 		Map<String, Integer> threads = Map.of(topicId, countThreads(ownerId, ownerType, topicId));
 		Map<String, Integer> openItems = Map.of(topicId, countOpenItems(ownerId, ownerType, topicId));
@@ -137,39 +153,46 @@ public final class BrainTopicUtils {
 			throw new IllegalArgumentException("Topic not found");
 		}
 
-		// goals and notes share BRAIN_TOPIC_NOTE, split by KIND
+		// the topic's notes are memories linked to it (BrainListMemories)
 		List<Map<String, Object>> goals = new ArrayList<>();
-		List<Map<String, Object>> notes = new ArrayList<>();
-		for (Map<String, Object> note : getNotes(ownerId, ownerType, topicId)) {
-			if (GOAL.equals(note.get("kind"))) {
-				Map<String, Object> goal = new LinkedHashMap<>();
-				goal.put("noteId", note.get("noteId"));
-				goal.put("text", note.get("text"));
-				goal.put("status", note.get("status"));
-				goals.add(goal);
-			} else {
-				notes.add(note);
+		for (Map<String, Object> note : getGoals(ownerId, ownerType, topicId)) {
+			Map<String, Object> goal = new LinkedHashMap<>();
+			goal.put("noteId", note.get("noteId"));
+			goal.put("text", note.get("text"));
+			goal.put("status", note.get("status"));
+			if (note.containsKey("resolution")) {
+				goal.put("resolution", note.get("resolution"));
 			}
+			goals.add(goal);
 		}
 		topic.put("goals", goals);
-		topic.put("notes", notes);
+		topic.put("openActionItems", BrainTopicBrief.openItems(ownerId, ownerType, topicId, OPEN_ITEMS_SHOWN));
 		topic.put("people", getPeople(ownerId, ownerType, topicId));
+		topic.put("folders", BrainMailFolders.ofTopic(ownerId, ownerType, topicId));
 
 		return topic;
 	}
 
-	static List<Map<String, Object>> getNotes(String ownerId, String ownerType, String topicId) {
+	static List<Map<String, Object>> getGoals(String ownerId, String ownerType, String topicId) {
 		return CollaborationDbUtils.query(
-				"SELECT NOTE_ID, KIND, TEXT, STATE, ORIGIN, SOURCE_REF, CREATED_AT FROM BRAIN_TOPIC_NOTE "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? ORDER BY CREATED_AT, NOTE_ID",
-				BrainTopicUtils::mapNote, ownerId, ownerType, topicId);
+				"SELECT NOTE_ID, KIND, TEXT, RESOLUTION, STATE, ORIGIN, SOURCE_REF, CREATED_AT FROM BRAIN_TOPIC_NOTE "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND KIND = ? "
+						+ "ORDER BY CREATED_AT, NOTE_ID",
+				BrainTopicUtils::mapNote, ownerId, ownerType, topicId, GOAL);
 	}
 
 	static List<Map<String, Object>> getPeople(String ownerId, String ownerType, String topicId) {
 		return CollaborationDbUtils.query(
-				"SELECT PERSON_ID, ROLE_LABEL, ENGAGEMENT, STATE, ORIGIN, REASON FROM BRAIN_TOPIC_PERSON "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? ORDER BY PERSON_ID",
-				BrainTopicUtils::mapPerson, ownerId, ownerType, topicId);
+				"SELECT tp.PERSON_ID, tp.ROLE_LABEL, tp.ENGAGEMENT, tp.STATE, tp.ORIGIN, tp.REASON, "
+						+ "p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_TOPIC_PERSON tp LEFT JOIN BRAIN_PERSON p "
+						+ "ON p.OWNER_ID = tp.OWNER_ID AND p.OWNER_TYPE = tp.OWNER_TYPE AND p.PERSON_ID = tp.PERSON_ID "
+						+ "WHERE tp.OWNER_ID = ? AND tp.OWNER_TYPE = ? AND tp.TOPIC_ID = ? ORDER BY tp.PERSON_ID",
+				rs -> {
+					Map<String, Object> person = mapPerson(rs);
+					person.put("name", CollaborationDbUtils.getString(rs, "DISPLAY_NAME"));
+					person.put("email", CollaborationDbUtils.getString(rs, "EMAIL_NORM"));
+					return person;
+				}, ownerId, ownerType, topicId);
 	}
 
 	// ---- write ----
@@ -178,6 +201,13 @@ public final class BrainTopicUtils {
 	// it
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> saveTopic(User user, Map<String, Object> changes) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> saveTopicInReview(user, changes));
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> saveTopicInReview(User user, Map<String, Object> changes) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -243,12 +273,26 @@ public final class BrainTopicUtils {
 		}
 		CollaborationDbUtils.addSet(sets, params, "UPDATED_AT", now);
 		params.addAll(List.of(ownerId, ownerType, topicId));
-		CollaborationDbUtils.update("UPDATE BRAIN_TOPIC SET " + String.join(", ", sets)
-				+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?", params.toArray());
+		String savedId = topicId;
+		boolean archive = ARCHIVED.equals(CollaborationDbUtils.asString(changes.get("status")));
+		CollaborationDbUtils.inTransaction(conn -> {
+			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC SET " + String.join(", ", sets)
+					+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?", params.toArray());
+			// an archived topic leaves its chats
+			if (archive) {
+				BrainTopicRoomUtils.removeRooms(conn, ownerId, ownerType, savedId);
+			}
+		});
 		return getTopic(ownerId, ownerType, topicId);
 	}
 
 	public static Map<String, Object> setTopicStatus(User user, String topicId, String status) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> setTopicStatusInReview(user, topicId, status));
+	}
+
+	private static Map<String, Object> setTopicStatusInReview(User user, String topicId, String status) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -257,21 +301,35 @@ public final class BrainTopicUtils {
 			throw new IllegalArgumentException("A topic cannot be set back to suggested");
 		}
 		requireTopic(ownerId, ownerType, topicId);
-		CollaborationDbUtils.update(
-				"UPDATE BRAIN_TOPIC SET STATUS = ?, UPDATED_AT = ? "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
-				status, CollaborationDbUtils.now(), ownerId, ownerType, topicId);
+		CollaborationDbUtils.inTransaction(conn -> {
+			CollaborationDbUtils.update(conn,
+					"UPDATE BRAIN_TOPIC SET STATUS = ?, UPDATED_AT = ? "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
+					status, CollaborationDbUtils.now(), ownerId, ownerType, topicId);
+			// an archived topic leaves its chats
+			if (ARCHIVED.equals(status)) {
+				BrainTopicRoomUtils.removeRooms(conn, ownerId, ownerType, topicId);
+			}
+		});
 		return getTopic(ownerId, ownerType, topicId);
 	}
 
-	// goals take open|done, notes take draft|confirmed; no noteId creates
+	// goals take open|done; no noteId creates. Topic notes are memories (BrainSaveMemory with a topic link).
 	public static Map<String, Object> saveTopicNote(User user, String topicId, String noteId, String kind, String text,
+			String state) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> saveTopicNoteInReview(user, topicId, noteId, kind, text, state));
+	}
+
+	private static Map<String, Object> saveTopicNoteInReview(User user, String topicId, String noteId, String kind, String text,
 			String state) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
 		if (kind == null || !NOTE_STATES.containsKey(kind)) {
-			throw new IllegalArgumentException("Note kind must be goal or note");
+			throw new IllegalArgumentException(
+					"Kind must be goal; save a topic note as a memory about the topic with BrainSaveMemory");
 		}
 		if (state == null || !NOTE_STATES.get(kind).contains(state)) {
 			throw new IllegalArgumentException("A " + kind + " state must be one of " + NOTE_STATES.get(kind));
@@ -303,12 +361,40 @@ public final class BrainTopicUtils {
 			touchTopic(conn, ownerId, ownerType, topicId, now);
 		});
 		return CollaborationDbUtils.queryOne(
-				"SELECT NOTE_ID, KIND, TEXT, STATE, ORIGIN, SOURCE_REF, CREATED_AT FROM BRAIN_TOPIC_NOTE "
+				"SELECT NOTE_ID, KIND, TEXT, RESOLUTION, STATE, ORIGIN, SOURCE_REF, CREATED_AT FROM BRAIN_TOPIC_NOTE "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND NOTE_ID = ?",
 				BrainTopicUtils::mapNote, ownerId, ownerType, id);
 	}
 
+	static void completeGoal(User user, String topicId, String noteId, String resolution) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		String outcome = resolution == null || resolution.isBlank() ? null : resolution.trim();
+		BrainTopicReviewProfiles.serialized(ownerId, ownerType, () -> {
+			requireTopic(ownerId, ownerType, topicId);
+			Timestamp now = CollaborationDbUtils.now();
+			CollaborationDbUtils.inTransaction(conn -> {
+				int updated = CollaborationDbUtils.update(conn,
+						"UPDATE BRAIN_TOPIC_NOTE SET STATE = ?, RESOLUTION = COALESCE(?, RESOLUTION), UPDATED_AT = ? "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND NOTE_ID = ? AND KIND = ?",
+						"done", outcome, now, ownerId, ownerType, topicId, noteId, GOAL);
+				if (updated == 0) {
+					throw new IllegalArgumentException("This topic has no goal " + noteId + "; take the noteId from ListTopics");
+				}
+				touchTopic(conn, ownerId, ownerType, topicId, now);
+			});
+			return null;
+		});
+	}
+
 	public static Map<String, Object> deleteTopicNote(User user, String topicId, String noteId) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> deleteTopicNoteInReview(user, topicId, noteId));
+	}
+
+	private static Map<String, Object> deleteTopicNoteInReview(User user, String topicId, String noteId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -336,6 +422,13 @@ public final class BrainTopicUtils {
 	// owner sets member, suggested (undo), or removed; a removed row stays so Brain
 	// never re-suggests it
 	public static Map<String, Object> setTopicPerson(User user, String topicId, String personId, String state,
+			String role) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> setTopicPersonInReview(user, topicId, personId, state, role));
+	}
+
+	private static Map<String, Object> setTopicPersonInReview(User user, String topicId, String personId, String state,
 			String role) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
@@ -397,6 +490,12 @@ public final class BrainTopicUtils {
 	// moves thread links, people, notes, keywords, rules, and work-item links into
 	// the target, then drops the source
 	public static Map<String, Object> mergeTopics(User user, String sourceTopicId, String targetTopicId) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> mergeTopicsInReview(user, sourceTopicId, targetTopicId));
+	}
+
+	private static Map<String, Object> mergeTopicsInReview(User user, String sourceTopicId, String targetTopicId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -423,9 +522,10 @@ public final class BrainTopicUtils {
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?)";
 
 		String[] changeId = new String[1];
-		CollaborationDbUtils.inTransaction(conn -> {
+		CollaborationDbUtils.batch(conn -> {
 			BrainTopicChangeUtils.Snapshot snapshot = BrainTopicChangeUtils.capture(conn, ownerId, ownerType,
 					sourceTopicId, targetTopicId);
+			BrainThreadTopicDecisions.merge(conn, ownerId, ownerType, sourceTopicId, targetTopicId);
 			// threads on both topics: the target link inherits primary, the source link
 			// goes
 			CollaborationDbUtils.update(conn,
@@ -442,10 +542,24 @@ public final class BrainTopicUtils {
 			// people already on the target keep the target's row
 			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_TOPIC_PERSON" + owned + personOnTarget, ownerId,
 					ownerType, sourceTopicId, ownerId, ownerType, targetTopicId);
+			// the source's Outlook folders are the target's now; one on both keeps the target's link
+			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_TOPIC_FOLDER" + owned + " AND FOLDER_ID IN (SELECT "
+					+ "FOLDER_ID FROM BRAIN_TOPIC_FOLDER WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?)",
+					ownerId, ownerType, sourceTopicId, ownerId, ownerType, targetTopicId);
+			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC_FOLDER SET TOPIC_ID = ?" + owned, targetTopicId,
+					ownerId, ownerType, sourceTopicId);
 			for (String table : new String[] { "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE", "BRAIN_RULE" }) {
 				CollaborationDbUtils.update(conn, "UPDATE " + table + " SET TOPIC_ID = ?" + owned, targetTopicId,
 						ownerId, ownerType, sourceTopicId);
 			}
+			// memories about the source are about the target now; one already on both keeps a single link
+			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_MEMORY_LINK" + MEMORY_TOPIC_LINK
+					+ " AND MEMORY_ID IN (SELECT MEMORY_ID FROM BRAIN_MEMORY_LINK" + MEMORY_TOPIC_LINK + ")", ownerId,
+					ownerType, BrainMemoryUtils.TOPIC, sourceTopicId, ownerId, ownerType, BrainMemoryUtils.TOPIC,
+					targetTopicId);
+			CollaborationDbUtils.update(conn, "UPDATE BRAIN_MEMORY_LINK SET REF_ID = ?" + MEMORY_TOPIC_LINK,
+					targetTopicId, ownerId, ownerType, BrainMemoryUtils.TOPIC, sourceTopicId);
+			BrainTopicRoomUtils.moveRooms(conn, ownerId, ownerType, sourceTopicId, targetTopicId, now);
 			for (String table : new String[] { "WORK_ITEM", "WORK_THREAD_STEP" }) {
 				CollaborationDbUtils.update(conn,
 						"UPDATE " + table + " SET LINK_TOPIC_ID = ? "
@@ -485,6 +599,12 @@ public final class BrainTopicUtils {
 	// thread that loses
 	// its primary link gets its next most confident link as primary
 	public static Map<String, Object> deleteTopic(User user, String topicId) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> deleteTopicInReview(user, topicId));
+	}
+
+	private static Map<String, Object> deleteTopicInReview(User user, String topicId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -514,10 +634,19 @@ public final class BrainTopicUtils {
 							thread.getValue0());
 				}
 			}
-			for (String table : new String[] { "BRAIN_THREAD_TOPIC", "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE",
-					"BRAIN_RULE", "BRAIN_TOPIC" }) {
+			for (String table : new String[] { "BRAIN_THREAD_TOPIC", "BRAIN_THREAD_TOPIC_REJECTION", "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE",
+					"BRAIN_RULE", "BRAIN_TOPIC_FOLDER", "BRAIN_TOPIC" }) {
 				CollaborationDbUtils.update(conn, "DELETE FROM " + table + owned, ownerId, ownerType, topicId);
 			}
+			// memories only about this topic go with it, as its notes did; the others just lose the link
+			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_MEMORY WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+					+ "AND MEMORY_ID IN (SELECT MEMORY_ID FROM BRAIN_MEMORY_LINK" + MEMORY_TOPIC_LINK + ") "
+					+ "AND MEMORY_ID NOT IN (SELECT MEMORY_ID FROM BRAIN_MEMORY_LINK WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND (REF_TYPE <> ? OR REF_ID <> ?))", ownerId, ownerType, ownerId,
+					ownerType, BrainMemoryUtils.TOPIC, topicId, ownerId, ownerType, BrainMemoryUtils.TOPIC, topicId);
+			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_MEMORY_LINK" + MEMORY_TOPIC_LINK, ownerId,
+					ownerType, BrainMemoryUtils.TOPIC, topicId);
+			BrainTopicRoomUtils.removeRooms(conn, ownerId, ownerType, topicId);
 			for (String table : new String[] { "WORK_ITEM", "WORK_THREAD_STEP" }) {
 				CollaborationDbUtils.update(conn,
 						"UPDATE " + table + " SET LINK_TOPIC_ID = NULL "
@@ -643,6 +772,10 @@ public final class BrainTopicUtils {
 		note.put("noteId", CollaborationDbUtils.getString(rs, "NOTE_ID"));
 		note.put("kind", CollaborationDbUtils.getString(rs, "KIND"));
 		note.put("text", CollaborationDbUtils.getString(rs, "TEXT"));
+		String resolution = CollaborationDbUtils.getString(rs, "RESOLUTION");
+		if (resolution != null) {
+			note.put("resolution", resolution);
+		}
 		note.put("status", CollaborationDbUtils.getString(rs, "STATE"));
 		note.put("by", CollaborationDbUtils.getString(rs, "ORIGIN"));
 		note.put("date", CollaborationDbUtils.getTimestamp(rs, "CREATED_AT"));

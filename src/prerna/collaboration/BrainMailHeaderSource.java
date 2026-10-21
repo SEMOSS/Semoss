@@ -92,6 +92,31 @@ public interface BrainMailHeaderSource {
 	}
 
 	/**
+	 * The mailbox's folders, all levels: id, parentFolderId, displayName, totalItemCount, and wellKnownName (inbox,
+	 * sentitems, deleteditems...) on the system folders. Empty when this source has no folders; mail is then read
+	 * from Inbox and Sent only.
+	 */
+	default List<Map<String, Object>> folders(User user) throws Exception {
+		return List.of();
+	}
+
+	/**
+	 * Headers from every folder at once, newest first, at most max, with the internet headers Inbox is read with.
+	 * changed reads what was received or changed (moved, flagged, categorized) at or after since; otherwise what
+	 * was received. Callers drop the folders they skip.
+	 */
+	default List<Map<String, Object>> allMail(User user, Instant since, int max, boolean changed) throws Exception {
+		List<Map<String, Object>> out = new java.util.ArrayList<>(topicHeaders(user, INBOX, since, max));
+		out.addAll(list(user, SENT, since, max));
+		return out;
+	}
+
+	// one message's headers by its Graph id, as Inbox is read; null when this source cannot read one
+	default Map<String, Object> message(User user, String messageId) throws Exception {
+		return null;
+	}
+
+	/**
 	 * Teams chat messages sent at or after since, in the header shape: id (the
 	 * message), internetMessageId (chat and message), conversationId (the chat),
 	 * subject (the chat's), from, toRecipients (the other members),
@@ -100,6 +125,54 @@ public interface BrainMailHeaderSource {
 	 */
 	default List<Map<String, Object>> chats(User user, Instant since, int maxChats, int maxPerChat) throws Exception {
 		return List.of();
+	}
+
+	/**
+	 * Readable chat headers and partial failures; a skipped chat keeps the sync checkpoint unchanged, an unreadable
+	 * one (no access to it) does not.
+	 */
+	record ChatImport(List<Map<String, Object>> messages, int skippedChats, boolean reauthNeeded,
+			int unreadableChats) {
+
+		ChatImport(List<Map<String, Object>> messages, int skippedChats, boolean reauthNeeded) {
+			this(messages, skippedChats, reauthNeeded, 0);
+		}
+	}
+
+	// Existing sources that only supply headers have no partial failures to report.
+	default ChatImport importChats(User user, Instant since, int maxChats, int maxPerChat) throws Exception {
+		return new ChatImport(chats(user, since, maxChats, maxPerChat), 0, false);
+	}
+
+	/** Chats read so far out of every chat in the window, while a long Teams read runs. */
+	@FunctionalInterface
+	interface ChatProgress {
+		void read(int done, int total);
+	}
+
+	default ChatImport importChats(User user, Instant since, int maxChats, int maxPerChat, ChatProgress progress)
+			throws Exception {
+		return importChats(user, since, maxChats, maxPerChat);
+	}
+
+	// HttpHelperUtility exposes the status in its exception message. A 403 describes access, not expired login.
+	static boolean needsReauth(Throwable error) {
+		for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+			if (String.valueOf(cause.getMessage()).matches("(?s).*returned HTTP 401\\b.*")) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// a chat the owner no longer has access to (often a meeting chat) fails the same way every time
+	static boolean noAccess(Throwable error) {
+		for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+			if (String.valueOf(cause.getMessage()).matches("(?s).*returned HTTP 40[34]\\b.*")) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	static BrainMailHeaderSource current() {

@@ -42,6 +42,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
+import prerna.util.ValueUtils;
 
 /**
  * Detaches a skill from a workspace. Mirrors
@@ -81,7 +85,7 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 		organizeKeys();
 
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-		String skillId = nullIfBlank(this.keyValue.get(SKILL_ID));
+		String skillId = ValueUtils.trimToNull(this.keyValue.get(SKILL_ID));
 
 		if (workspaceId == null || workspaceId.isEmpty()) {
 			throw new IllegalArgumentException("workspaceId is required");
@@ -123,17 +127,11 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 				response.put("dependency_warning",
 						"Skill detached but PROJECTDEPENDENCIES sync failed: " + depEx.getMessage());
 			}
+			UserAuditTrailUtils.recordResourceEvent(user, AuditEventType.SKILL_DETACH, AuditTargetType.SKILL, skillId,
+					null, workspaceId, null, null, Map.of("workspaceId", workspaceId));
 		}
 
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
-
-	private static String nullIfBlank(String s) {
-		if (s == null) {
-			return null;
-		}
-		String t = s.trim();
-		return t.isEmpty() ? null : t;
 	}
 
 	@Override

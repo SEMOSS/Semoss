@@ -52,6 +52,8 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.interpreters.sql.ParameterizedSqlInterpreter;
+import prerna.query.interpreters.sql.ParameterizedSqlInterpreter.CompiledQuery;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -135,7 +137,9 @@ public class QueryExecutionUtility {
 		T map(ResultSet result) throws Exception;
 	}
 
-	/** Executes one prepared DML statement in an owned write transaction. */
+	/**
+	 * Executes one prepared DML statement in an owned write transaction.
+	 */
 	public static int executeUpdate(IRDBMSEngine engine, String sql, StatementBinder binder) throws Exception {
 		return write(engine, connection -> executeUpdate(connection, sql, binder));
 	}
@@ -194,6 +198,54 @@ public class QueryExecutionUtility {
 				statement.addBatch();
 			}
 		});
+	}
+
+	/**
+	 * Binds a batch entry for each row a query reads from the source, and executes
+	 * the batch every {@code flushEvery} rows, all in one owned transaction on the
+	 * target.
+	 *
+	 * @return the number of rows batched
+	 */
+	public static int executeBatchFromQuery(IRDBMSEngine target, String sql, IDatabaseEngine source,
+			SelectQueryStruct qs, int flushEvery, BatchBinder<IHeadersDataRow> binder) throws Exception {
+		return write(target, connection -> executeBatchFromQuery(connection, sql, source, qs, flushEvery, binder));
+	}
+
+	/**
+	 * Binds a batch entry for each row a query reads from the source, and executes
+	 * the batch every {@code flushEvery} rows, so a large source never builds one
+	 * batch in memory. Values that must go in as read, such as a clob, are in
+	 * {@link IHeadersDataRow#getRawValues()}. Closes the wrapper and the statement;
+	 * does not complete the caller's transaction.
+	 *
+	 * @return the number of rows batched
+	 * @throws IllegalArgumentException when {@code flushEvery} is not positive
+	 */
+	public static int executeBatchFromQuery(Connection connection, String sql, IDatabaseEngine source,
+			SelectQueryStruct qs, int flushEvery, BatchBinder<IHeadersDataRow> binder) throws Exception {
+		Objects.requireNonNull(source, "source");
+		Objects.requireNonNull(qs, "qs");
+		Objects.requireNonNull(binder, "binder");
+		if (flushEvery < 1) {
+			throw new IllegalArgumentException("flushEvery must be positive");
+		}
+		int count = 0;
+		try (PreparedStatement statement = connection.prepareStatement(sql);
+				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(source, qs)) {
+			while (wrapper.hasNext()) {
+				statement.clearParameters();
+				binder.bind(statement, wrapper.next());
+				statement.addBatch();
+				if (++count % flushEvery == 0) {
+					statement.executeBatch();
+				}
+			}
+			if (count % flushEvery != 0) {
+				statement.executeBatch();
+			}
+		}
+		return count;
 	}
 
 	/**
@@ -269,6 +321,61 @@ public class QueryExecutionUtility {
 	}
 
 	/**
+	 * Compiles a structured SELECT into SQL with separate bindings, as
+	 * {@link #flushPreparedRsToMap(IRDBMSEngine, SelectQueryStruct)} does, and maps
+	 * each row with no statement timeout. See
+	 * {@link #queryList(IRDBMSEngine, SelectQueryStruct, RowMapper, int)}.
+	 *
+	 * @param engine relational engine whose dialect and metadata compile the query
+	 * @param qs     structured SELECT, with its filters, ordering and pagination
+	 * @param mapper maps the current row without advancing the cursor
+	 * @return a mutable list of the mapped rows in result order, or an empty list
+	 *         for no rows
+	 * @throws Exception if the query cannot be compiled, or preparing, executing or
+	 *                   mapping fails
+	 */
+	public static <T> List<T> queryList(IRDBMSEngine engine, SelectQueryStruct qs, RowMapper<T> mapper)
+			throws Exception {
+		return queryList(engine, qs, mapper, 0);
+	}
+
+	/**
+	 * Compiles a structured SELECT into SQL with separate bindings, as
+	 * {@link #flushPreparedRsToMap(IRDBMSEngine, SelectQueryStruct)} does, and maps
+	 * each row with the caller's mapper. The mapper reads the JDBC values itself,
+	 * so a column keeps its own type, such as a timestamp's exact value, rather
+	 * than the wrapper's conversion. Values are bound in order with
+	 * {@link PreparedStatement#setObject(int, Object)}. Owns a read transaction and
+	 * closes the statement and result set on all paths.
+	 *
+	 * @param engine              relational engine whose dialect and metadata
+	 *                            compile the query
+	 * @param qs                  structured SELECT, with its filters, ordering and
+	 *                            pagination
+	 * @param mapper              maps the current row without advancing the cursor
+	 * @param queryTimeoutSeconds non-negative JDBC timeout in seconds; zero means
+	 *                            no timeout
+	 * @return a mutable list of the mapped rows in result order, or an empty list
+	 *         for no rows
+	 * @throws IllegalArgumentException if the timeout is negative, or the query
+	 *                                  shape or a value is unsupported
+	 * @throws Exception                if preparing, executing or mapping fails
+	 */
+	public static <T> List<T> queryList(IRDBMSEngine engine, SelectQueryStruct qs, RowMapper<T> mapper,
+			int queryTimeoutSeconds) throws Exception {
+		if (queryTimeoutSeconds < 0) {
+			throw new IllegalArgumentException("The query timeout cannot be negative");
+		}
+		CompiledQuery query = new ParameterizedSqlInterpreter(engine).compile(qs);
+		return queryList(engine, query.sql(), statement -> {
+			statement.setQueryTimeout(queryTimeoutSeconds);
+			for (int i = 0; i < query.parameters().size(); i++) {
+				statement.setObject(i + 1, query.parameters().get(i));
+			}
+		}, mapper);
+	}
+
+	/**
 	 * Executes query-only work, rolling back a successful manual read transaction
 	 * before releasing the connection. This is a caller contract: SQL is not
 	 * inspected and the connection is not made read-only. Owns the entire
@@ -326,23 +433,15 @@ public class QueryExecutionUtility {
 				connection.commit();
 			} else if (manualTransaction) {
 				rollbackAttempted = true;
-				try {
-					connection.rollback();
-				} catch (Exception | Error cleanup) {
-					classLogger.error("Error completing JDBC read transaction", cleanup);
-					throw cleanup;
-				}
+				failure = ConnectionUtils.rollbackConnection(connection);
 			}
-			transactionEnded = true;
+			transactionEnded = failure == null;
 		} catch (Exception | Error e) {
 			failure = e;
 			if (!rollbackAttempted && (manualTransaction || changeAttempted)) {
-				try {
-					connection.rollback();
-					transactionEnded = true;
-				} catch (Exception | Error cleanup) {
-					failure = jdbcCleanupFailure(failure, cleanup, "Error rolling back JDBC transaction");
-				}
+				Throwable cleanup = ConnectionUtils.rollbackConnection(connection);
+				transactionEnded = cleanup == null;
+				failure = ConnectionUtils.jdbcCleanupFailure(failure, cleanup);
 			}
 		}
 		// Never enable auto-commit after a failed rollback, or guess an unread state.
@@ -350,14 +449,11 @@ public class QueryExecutionUtility {
 			try {
 				connection.setAutoCommit(originalAutoCommit);
 			} catch (Exception | Error cleanup) {
-				failure = jdbcCleanupFailure(failure, cleanup, "Error restoring JDBC auto-commit");
+				failure = ConnectionUtils.jdbcCleanupFailure(failure, cleanup, "Error restoring JDBC auto-commit");
 			}
 		}
-		try {
-			ConnectionUtils.closeConnectionIfPooling(engine, connection);
-		} catch (Exception | Error cleanup) {
-			failure = jdbcCleanupFailure(failure, cleanup, "Error releasing JDBC connection");
-		}
+		failure = ConnectionUtils.jdbcCleanupFailure(failure,
+				ConnectionUtils.closeConnectionIfPooling(engine, connection));
 		if (failure instanceof Exception) {
 			throw (Exception) failure;
 		}
@@ -365,17 +461,6 @@ public class QueryExecutionUtility {
 			throw (Error) failure;
 		}
 		return result;
-	}
-
-	private static Throwable jdbcCleanupFailure(Throwable failure, Throwable cleanup, String message) {
-		classLogger.error(message, cleanup);
-		if (failure == null) {
-			return cleanup;
-		}
-		if (failure != cleanup) {
-			failure.addSuppressed(cleanup);
-		}
-		return failure;
 	}
 
 	/**
@@ -654,6 +739,19 @@ public class QueryExecutionUtility {
 		} catch (Exception e) {
 			classLogger.error("Error flushing query result set to List<Map>", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Compiles a structured JDBC query with separate bindings and materializes the
+	 * usual wrapper-provided headers and value types. Closes the owned read on all
+	 * paths.
+	 */
+	public static List<Map<String, Object>> flushPreparedRsToMap(IRDBMSEngine engine, SelectQueryStruct qs) {
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getPreparedWrapper(engine, qs)) {
+			return flushWrapperToMap(wrapper);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Error executing prepared query", e);
 		}
 	}
 

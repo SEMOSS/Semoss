@@ -54,7 +54,14 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 
 	private static final String BASE = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0";
 	private static final String SELECT = "id,internetMessageId,conversationId,subject,from,toRecipients,ccRecipients,"
-			+ "receivedDateTime,parentFolderId,sender,inferenceClassification";
+			+ "receivedDateTime,parentFolderId,sender,inferenceClassification,categories,flag,importance,hasAttachments,"
+			+ "isDraft,lastModifiedDateTime";
+	// system folders by Graph's well-known name; the rest are the owner's own
+	static final List<String> WELL_KNOWN = List.of("inbox", "sentitems", "archive", "deleteditems", "junkemail",
+			"drafts", "outbox", "conversationhistory", "scheduled", "syncissues", "clutter");
+	// a mailbox with more folders than this is read to here
+	private static final int MAX_FOLDERS = 2000;
+	private static final int FOLDER_PAGE = 250;
 	// Graph allows up to 1000 messages a page; headers only, so a page stays small
 	private static final int PAGE = 500;
 	private static final int BATCH = 20;
@@ -112,11 +119,73 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		return list(user, folder, since, max, SELECT + ",internetMessageHeaders");
 	}
 
-	@SuppressWarnings("unchecked")
-	private List<Map<String, Object>> list(User user, String folder, Instant since, int max, String fields) throws Exception {
+	@Override
+	public Map<String, Object> message(User user, String messageId) throws Exception {
+		return get(user, BASE + "/me/messages/" + encode(messageId) + "?$select=" + SELECT + ",internetMessageHeaders");
+	}
+
+	@Override
+	public List<Map<String, Object>> folders(User user) throws Exception {
+		String token = MicrosoftLoginUtils.getValidAccessToken(user);
+		// the system folders' ids in one call; a mailbox without one (no Archive) answers 404 for it
+		List<Map<String, Object>> requests = new ArrayList<>();
+		for (int i = 0; i < WELL_KNOWN.size(); i++) {
+			requests.add(Map.of("id", String.valueOf(i), "method", "GET", "url",
+					"/me/mailFolders/" + WELL_KNOWN.get(i) + "?$select=id"));
+		}
+		Map<String, String> wellKnown = new java.util.HashMap<>();
+		Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
+				BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
+				CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null, null,
+				null));
+		for (Object r : reply.get("responses") instanceof List<?> list ? list : List.of()) {
+			if (r instanceof Map<?, ?> response && response.get("body") instanceof Map<?, ?> body
+					&& body.get("id") instanceof String id && response.get("status") instanceof Number status
+					&& status.intValue() == 200) {
+				wellKnown.put(id, WELL_KNOWN.get(Integer.parseInt(String.valueOf(response.get("id")))));
+			}
+		}
+		// breadth first from the top, every page of every level
 		List<Map<String, Object>> out = new ArrayList<>();
-		String url = BASE + "/me/mailFolders/" + folder + "/messages?$select=" + fields + "&$top=" + PAGE
-				+ "&$orderby=receivedDateTime%20desc&$filter=" + encode("receivedDateTime ge " + since);
+		java.util.Deque<String> pending = new java.util.ArrayDeque<>();
+		pending.add(BASE + "/me/mailFolders?$top=" + FOLDER_PAGE
+				+ "&$select=id,parentFolderId,displayName,totalItemCount,childFolderCount");
+		while (!pending.isEmpty() && out.size() < MAX_FOLDERS) {
+			String url = pending.poll();
+			while (url != null && out.size() < MAX_FOLDERS) {
+				Map<String, Object> page = get(token, url);
+				for (Map<String, Object> folder : values(page)) {
+					Map<String, Object> row = new LinkedHashMap<>(folder);
+					row.put("wellKnownName", wellKnown.get(folder.get("id")));
+					out.add(row);
+					if (folder.get("childFolderCount") instanceof Number children && children.intValue() > 0) {
+						pending.add(BASE + "/me/mailFolders/" + encode(String.valueOf(folder.get("id")))
+								+ "/childFolders?$top=" + FOLDER_PAGE
+								+ "&$select=id,parentFolderId,displayName,totalItemCount,childFolderCount");
+					}
+				}
+				url = (String) page.get("@odata.nextLink");
+			}
+		}
+		return out;
+	}
+
+	@Override
+	public List<Map<String, Object>> allMail(User user, Instant since, int max, boolean changed) throws Exception {
+		String field = changed ? "lastModifiedDateTime" : "receivedDateTime";
+		return page(user, BASE + "/me/messages?$select=" + SELECT + ",internetMessageHeaders&$top=" + PAGE
+				+ "&$orderby=" + field + "%20desc&$filter=" + encode(field + " ge " + since), max);
+	}
+
+	private List<Map<String, Object>> list(User user, String folder, Instant since, int max, String fields) throws Exception {
+		return page(user, BASE + "/me/mailFolders/" + folder + "/messages?$select=" + fields + "&$top=" + PAGE
+				+ "&$orderby=receivedDateTime%20desc&$filter=" + encode("receivedDateTime ge " + since), max);
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<Map<String, Object>> page(User user, String first, int max) throws Exception {
+		List<Map<String, Object>> out = new ArrayList<>();
+		String url = first;
 		while (url != null && out.size() < max) {
 			Map<String, Object> page = get(user, url);
 			if (page.get("value") instanceof List<?> values) {
@@ -133,6 +202,18 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 
 	@Override
 	public List<Map<String, Object>> chats(User user, Instant since, int maxChats, int maxPerChat) throws Exception {
+		return importChats(user, since, maxChats, maxPerChat).messages();
+	}
+
+	@Override
+	public ChatImport importChats(User user, Instant since, int maxChats, int maxPerChat) throws Exception {
+		return importChats(user, since, maxChats, maxPerChat, (done, total) -> {
+		});
+	}
+
+	@Override
+	public ChatImport importChats(User user, Instant since, int maxChats, int maxPerChat, ChatProgress progress)
+			throws Exception {
 		// one token for the run, so parallel calls do not race a refresh
 		String token = MicrosoftLoginUtils.getValidAccessToken(user);
 		String selfId = (String) get(token, BASE + "/me?$select=id").get("id");
@@ -161,28 +242,48 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			for (Map<String, Object> chat : chats) {
 				calls.add(pool.submit(() -> chatMessages(token, chat, selfId, since, maxPerChat)));
 			}
-			List<Map<String, Object>> out = new ArrayList<>();
-			int skipped = 0;
-			for (Future<List<Map<String, Object>>> call : calls) {
-				try {
-					out.addAll(call.get());
-				} catch (ExecutionException e) {
-					Exception cause = e.getCause() instanceof Exception c ? c : e;
-					// no permission stops the run; one chat that fails (throttled, gone) is skipped
-					if (String.valueOf(cause.getMessage()).matches("(?s).*returned HTTP 40[13]\\b.*")) {
-						throw cause;
-					}
-					skipped++;
-					classLogger.warn("Skipped a Teams chat for the import: {}", cause.getMessage());
-				}
-			}
-			if (skipped > 0 && out.isEmpty()) {
-				throw new IllegalStateException("No Teams chat could be read (" + skipped + " failed)");
-			}
-			return out;
+			return collectChats(calls, progress);
 		} finally {
 			pool.shutdownNow();
 		}
+	}
+
+	// A failure anywhere in one chat (including members or later pages) leaves the other chats whole.
+	static ChatImport collectChats(List<Future<List<Map<String, Object>>>> calls) throws InterruptedException {
+		return collectChats(calls, (done, total) -> {
+		});
+	}
+
+	static ChatImport collectChats(List<Future<List<Map<String, Object>>>> calls, ChatProgress progress)
+			throws InterruptedException {
+		List<Map<String, Object>> out = new ArrayList<>();
+		int skipped = 0;
+		int unreadable = 0;
+		boolean reauthNeeded = false;
+		int done = 0;
+		progress.read(0, calls.size());
+		for (Future<List<Map<String, Object>>> call : calls) {
+			progress.read(done++, calls.size());
+			try {
+				out.addAll(call.get());
+			} catch (ExecutionException e) {
+				Throwable cause = e.getCause() == null ? e : e.getCause();
+				// retrying a chat the owner cannot open would hold the Teams checkpoint back forever
+				if (BrainMailHeaderSource.noAccess(cause)) {
+					unreadable++;
+					classLogger.info("Teams chat not readable, left out: {}", cause.getMessage());
+					continue;
+				}
+				skipped++;
+				reauthNeeded |= BrainMailHeaderSource.needsReauth(cause);
+				classLogger.warn("Skipped a Teams chat for the import: {}", cause.getMessage());
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw e;
+			}
+		}
+		progress.read(calls.size(), calls.size());
+		return new ChatImport(out, skipped, reauthNeeded, unreadable);
 	}
 
 	// one chat's members, then its messages since the window opened, newest first

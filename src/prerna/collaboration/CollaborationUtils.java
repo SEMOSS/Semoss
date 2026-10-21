@@ -39,7 +39,6 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.playground.PlaygroundUtils;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 /**
  * Collaboration rooms are playground-style rooms under their own system project
@@ -51,12 +50,18 @@ public final class CollaborationUtils {
 	public static final String MODE_COLLABORATION = "collaboration";
 	// Set on an assignee's room; links it to the request it answers.
 	public static final String ROOM_OPTION_DELEGATION_ACTION_ID = "delegation_action_id";
+	// Set on the room a scheduled routine's agent step runs in; nobody is watching it.
+	public static final String ROOM_OPTION_ROUTINE = "collaboration_routine";
 	// Only the server sets these; client option writes cannot add, change, or drop
 	// them.
-	public static final List<String> SERVER_OWNED_ROOM_OPTIONS = List.of(ROOM_OPTION_DELEGATION_ACTION_ID);
+	public static final List<String> SERVER_OWNED_ROOM_OPTIONS = List.of(ROOM_OPTION_DELEGATION_ACTION_ID,
+			ROOM_OPTION_ROUTINE);
 	// Set by Work on a thread's assistant room (threadId, contextRevision,
-	// modelId).
+	// modelId) until rooms opened from a thread switched to ROOM_OPTION_SOURCE.
 	public static final String ROOM_OPTION_WORK_THREAD = "workThread";
+	// Set on a room opened from a thread (threadId, title, channel, file,
+	// messages).
+	public static final String ROOM_OPTION_SOURCE = "source";
 
 	private CollaborationUtils() {
 	}
@@ -75,29 +80,74 @@ public final class CollaborationUtils {
 		return COLLABORATION_PROJECT_ID;
 	}
 
+	// a routine's run room sits outside the project, so it stays out of the chat list
 	public static boolean isCollaborationRoom(Room room) {
-		return room != null && COLLABORATION_PROJECT_ID.equals(room.getProjectId());
-	}
-
-	/** A collaboration room that Work opened for one thread's assistant. */
-	public static boolean isThreadRoom(Room room) {
-		if (!isCollaborationRoom(room)) {
-			return false;
-		}
-		Map<String, Object> options = room.getOptionsMap();
-		return options != null && options.get(ROOM_OPTION_WORK_THREAD) instanceof Map;
+		return room != null && (COLLABORATION_PROJECT_ID.equals(room.getProjectId()) || isRoutineRoom(room));
 	}
 
 	/**
-	 * The agent (COLLAB_THREAD_AGENT_ID) for a thread's assistant as {id, name,
-	 * modelId}; null when none is set, the user cannot view it, or it is disabled.
+	 * A routine's unattended run room: it gets the collaboration read tools, and its ask tools are refused
+	 * rather than paused, since nobody is there to approve them.
 	 */
-	public static Map<String, Object> threadAgent(User user) {
-		String id = Utility.getDIHelperProperty(Constants.COLLAB_THREAD_AGENT_ID);
-		if (id == null || id.isBlank() || user == null || !SecurityProjectUtils.userCanViewProject(user, id.trim())) {
+	public static boolean isRoutineRoom(Room room) {
+		if (room == null) {
+			return false;
+		}
+		Map<String, Object> options = room.getOptionsMap();
+		return options != null && Boolean.TRUE.equals(options.get(ROOM_OPTION_ROUTINE));
+	}
+
+	/**
+	 * The owner's own assistant chat: a collaboration room started from the home
+	 * page or opened from a thread. An assignee's delegation room and a routine's
+	 * run room are not one.
+	 */
+	public static boolean isAssistantRoom(Room room) {
+		if (!isCollaborationRoom(room) || isRoutineRoom(room)) {
+			return false;
+		}
+		Map<String, Object> options = room.getOptionsMap();
+		Object delegation = options == null ? null : options.get(ROOM_OPTION_DELEGATION_ACTION_ID);
+		return delegation == null || String.valueOf(delegation).isBlank();
+	}
+
+	/**
+	 * The thread an assistant room was opened from (its source, or an older
+	 * room's workThread option); null for a chat with no thread and any other
+	 * room.
+	 */
+	public static String threadIdOf(Room room) {
+		if (!isAssistantRoom(room)) {
 			return null;
 		}
-		id = id.trim();
+		return threadIdOf(room.getOptionsMap());
+	}
+
+	// the same, from an assistant room's stored options
+	static String threadIdOf(Map<String, Object> options) {
+		if (options == null) {
+			return null;
+		}
+		for (String key : List.of(ROOM_OPTION_SOURCE, ROOM_OPTION_WORK_THREAD)) {
+			if (options.get(key) instanceof Map<?, ?> link) {
+				Object threadId = link.get("threadId");
+				if (threadId != null && !String.valueOf(threadId).isBlank()) {
+					return String.valueOf(threadId);
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * The agent behind a chat's assistant, the Collaboration Agent, as {id, name,
+	 * modelId}; null when the user cannot view it or it is not seeded or disabled.
+	 */
+	public static Map<String, Object> threadAgent(User user) {
+		String id = Constants.AGENT_COLLABORATION;
+		if (user == null || !SecurityProjectUtils.userCanViewProject(user, id)) {
+			return null;
+		}
 		Map<String, Object> row = ModelInferenceLogsUtils.getWorkspaceEntry(id);
 		if (row == null || Boolean.FALSE.equals(row.get("is_active"))) {
 			return null;

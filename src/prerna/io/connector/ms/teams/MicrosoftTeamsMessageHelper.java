@@ -55,6 +55,7 @@ import prerna.io.connector.ms.MicrosoftMessageDisplay;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveHelper;
 import prerna.security.HttpHelperUtility;
+import prerna.util.ValueUtils;
 
 /**
  * The Teams messaging operations of Microsoft Graph, as plain calls.
@@ -131,6 +132,8 @@ public class MicrosoftTeamsMessageHelper {
 	private static final List<String> CHAT_TYPES = Arrays.asList(ONE_ON_ONE, GROUP);
 
 	private static final String MEMBERS = "members";
+	// members kept per chat in a list of chats; GetChat returns them all
+	private static final int LIST_CHAT_MEMBERS = 5;
 	private static final String LAST_MESSAGE_PREVIEW = "lastMessagePreview";
 	private static final String MEMBERS_AND_PREVIEW = MEMBERS + "," + LAST_MESSAGE_PREVIEW;
 	private static final String HAS_UNREAD = "hasUnread";
@@ -219,7 +222,8 @@ public class MicrosoftTeamsMessageHelper {
 
 				for (Map<String, Object> chat : mapList(json.get(VALUE))) {
 					scanned++;
-					Map<String, Object> described = MicrosoftTeamsMessageMapper.toChat(chat, userEmail);
+					Map<String, Object> described = MicrosoftTeamsMessageMapper.toChat(chat, userEmail,
+							LIST_CHAT_MEMBERS);
 					if (unreadOnly && !Boolean.TRUE.equals(described.get(HAS_UNREAD))) {
 						continue;
 					}
@@ -307,7 +311,7 @@ public class MicrosoftTeamsMessageHelper {
 				throw new IllegalArgumentException(
 						"At least one other person is required to start a Microsoft Teams chat.");
 			}
-			String type = isBlank(chatType) ? ONE_ON_ONE : oneOf(chatType, CHAT_TYPES, "Chat type");
+			String type = ValueUtils.isBlank(chatType) ? ONE_ON_ONE : oneOf(chatType, CHAT_TYPES, "Chat type");
 			if (ONE_ON_ONE.equals(type) && members.length > 1) {
 				throw new IllegalArgumentException(
 						"A one on one chat holds the signed in user and one other person. Ask for a group chat to include "
@@ -322,7 +326,7 @@ public class MicrosoftTeamsMessageHelper {
 
 			Map<String, Object> request = new LinkedHashMap<>();
 			request.put("chatType", type);
-			if (!isBlank(topic)) {
+			if (!ValueUtils.isBlank(topic)) {
 				if (ONE_ON_ONE.equals(type)) {
 					// Graph refuses a topic on a one on one chat, and dropping it is
 					// friendlier than failing a send over a label nobody sees
@@ -538,7 +542,7 @@ public class MicrosoftTeamsMessageHelper {
 			requireValue(channelId, "Channel ID is required to read a Microsoft Teams channel message.");
 			requireValue(messageId, "Message ID is required to read a Microsoft Teams channel message.");
 
-			boolean withReplies = includeReplies && isBlank(replyId);
+			boolean withReplies = includeReplies && ValueUtils.isBlank(replyId);
 			String url = messagePath(teamId, channelId, messageId, replyId) + (withReplies ? "?$expand=replies" : "");
 			return readMessage(accessToken, url, maxBodyChars, withReplies);
 		} catch (Exception e) {
@@ -578,7 +582,7 @@ public class MicrosoftTeamsMessageHelper {
 
 			Map<String, Object> request = buildMessage(accessToken, subject, content, html, mentions, attachmentUrls,
 					attachmentNames);
-			String url = isBlank(replyToId) ? channelPath(teamId, channelId) + "/messages"
+			String url = ValueUtils.isBlank(replyToId) ? channelPath(teamId, channelId) + "/messages"
 					: channelPath(teamId, channelId) + MESSAGES + replyToId.trim() + "/replies";
 			return postMessage(accessToken, url, request, maxBodyChars);
 		} catch (Exception e) {
@@ -657,7 +661,7 @@ public class MicrosoftTeamsMessageHelper {
 			requireValue(messageId, "Message ID is required to download a Microsoft Teams attachment.");
 			requireValue(destination, "A destination path is required to download a Microsoft Teams attachment.");
 
-			String messageUrl = isBlank(chatId) ? messagePath(teamId, channelId, messageId, replyId)
+			String messageUrl = ValueUtils.isBlank(chatId) ? messagePath(teamId, channelId, messageId, replyId)
 					: chatPath(chatId) + MESSAGES + messageId.trim();
 			Map<String, Object> message = readMap(
 					HttpHelperUtility.getRequest(messageUrl, headers(accessToken), null, null, null));
@@ -676,7 +680,7 @@ public class MicrosoftTeamsMessageHelper {
 				// the file lives in a drive, so the drive connector fetches it: the
 				// content url is exactly what its sharing link path takes
 				Map<String, Object> downloaded = MicrosoftOneDriveHelper.downloadFile(accessToken, null, null, null,
-						url, destination, isBlank(fileName) ? name : fileName);
+						url, destination, ValueUtils.isBlank(fileName) ? name : fileName);
 				Map<String, Object> result = new LinkedHashMap<>(downloaded);
 				result.put("attachmentId", attachment.get(ID));
 				return result;
@@ -708,13 +712,13 @@ public class MicrosoftTeamsMessageHelper {
 	private static Map<String, Object> downloadHostedContent(String accessToken, String messageUrl, String contentId,
 			String destination, String fileName, Map<String, Object> message) throws Exception {
 		String hostedContentId = contentId;
-		if (isBlank(hostedContentId)) {
+		if (ValueUtils.isBlank(hostedContentId)) {
 			List<Map<String, Object>> hostedContents = mapList(message.get("hostedContents"));
 			if (hostedContents.size() == 1 && hostedContents.get(0).get(ID) != null) {
 				hostedContentId = hostedContents.get(0).get(ID).toString();
 			}
 		}
-		if (isBlank(hostedContentId)) {
+		if (ValueUtils.isBlank(hostedContentId)) {
 			throw new IllegalArgumentException(
 					"The message holds no attachment of that name or id. Read the message to see what it has on it.");
 		}
@@ -727,7 +731,8 @@ public class MicrosoftTeamsMessageHelper {
 
 		// hosted content is unnamed, so it is written under the name the caller
 		// asked for and under the id it has otherwise
-		String name = isBlank(fileName) ? "hostedContent-" + Math.abs(hostedContentId.trim().hashCode()) : fileName;
+		String name = ValueUtils.isBlank(fileName) ? "hostedContent-" + Math.abs(hostedContentId.trim().hashCode())
+				: fileName;
 		File file = write(bytes, destination, name);
 
 		Map<String, Object> result = new LinkedHashMap<>();
@@ -752,7 +757,7 @@ public class MicrosoftTeamsMessageHelper {
 		if (attachments.isEmpty()) {
 			return null;
 		}
-		if (isBlank(attachmentId)) {
+		if (ValueUtils.isBlank(attachmentId)) {
 			return attachments.size() == 1 ? attachments.get(0) : null;
 		}
 		String wanted = attachmentId.trim();
@@ -787,7 +792,7 @@ public class MicrosoftTeamsMessageHelper {
 			String[] mentions, String[] attachmentUrls, String[] attachmentNames) throws Exception {
 		boolean hasMentions = mentions != null && mentions.length > 0;
 		boolean hasAttachments = attachmentUrls != null && attachmentUrls.length > 0;
-		if (isBlank(content) && !hasAttachments) {
+		if (ValueUtils.isBlank(content) && !hasAttachments) {
 			throw new IllegalArgumentException("A message needs something to say or something attached to it.");
 		}
 
@@ -823,15 +828,14 @@ public class MicrosoftTeamsMessageHelper {
 			List<Map<String, Object>> attached = new ArrayList<>();
 			for (int i = 0; i < attachmentUrls.length; i++) {
 				String url = attachmentUrls[i];
-				if (isBlank(url)) {
+				if (ValueUtils.isBlank(url)) {
 					continue;
 				}
 				// Graph ties the entry to the body by this id, and makes up neither
 				// side of that pairing itself
 				String attachmentId = UUID.randomUUID().toString();
-				String name = attachmentNames != null && attachmentNames.length > i && !isBlank(attachmentNames[i])
-						? attachmentNames[i].trim()
-						: fileNameOf(url);
+				String name = attachmentNames != null && attachmentNames.length > i
+						&& !ValueUtils.isBlank(attachmentNames[i]) ? attachmentNames[i].trim() : fileNameOf(url);
 
 				Map<String, Object> attachment = new LinkedHashMap<>();
 				attachment.put(ID, attachmentId);
@@ -847,7 +851,7 @@ public class MicrosoftTeamsMessageHelper {
 			}
 		}
 
-		if (!isBlank(subject)) {
+		if (!ValueUtils.isBlank(subject)) {
 			request.put("subject", subject.trim());
 		}
 		Map<String, Object> messageBody = new LinkedHashMap<>();
@@ -1013,7 +1017,7 @@ public class MicrosoftTeamsMessageHelper {
 		requireValue(teamId, "Team ID is required to address a Microsoft Teams channel message.");
 		requireValue(channelId, "Channel ID is required to address a Microsoft Teams channel message.");
 		String message = channelPath(teamId, channelId) + MESSAGES + messageId.trim();
-		return isBlank(replyId) ? message : message + REPLIES + replyId.trim();
+		return ValueUtils.isBlank(replyId) ? message : message + REPLIES + replyId.trim();
 	}
 
 	/**
@@ -1113,7 +1117,7 @@ public class MicrosoftTeamsMessageHelper {
 	 * @return the response as a map, or null when there is nothing to read
 	 */
 	private static Map<String, Object> readMap(String response) {
-		if (isBlank(response)) {
+		if (ValueUtils.isBlank(response)) {
 			return null;
 		}
 		return GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
@@ -1144,13 +1148,9 @@ public class MicrosoftTeamsMessageHelper {
 	 * Guards against missing required string inputs.
 	 */
 	private static void requireValue(String value, String message) {
-		if (isBlank(value)) {
+		if (ValueUtils.isBlank(value)) {
 			throw new IllegalArgumentException(message);
 		}
-	}
-
-	private static boolean isBlank(String value) {
-		return value == null || value.trim().isEmpty();
 	}
 
 }

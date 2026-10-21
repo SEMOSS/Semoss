@@ -37,11 +37,19 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import prerna.engine.api.IRDBMSEngine;
+import prerna.query.interpreters.sql.ParameterizedSqlInterpreter;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 
 import prerna.engine.impl.CaseInsensitiveProperties;
 
@@ -77,11 +85,11 @@ class AbstractSqlQueryUtilUnitTests {
 			dialect.setStringEmptyAsNullable(ps, 5, "");
 			dialect.setStringEmptyAsNullable(ps, 6, " 	 ");
 			dialect.setStringEmptyAsNullable(ps, 7, "  café 世界  ");
-			verify(ps).setNull(1, java.sql.Types.VARCHAR);
+			verify(ps).setNull(1, Types.VARCHAR);
 			verify(ps).setString(2, "");
 			verify(ps).setString(3, " 	 ");
-			verify(ps).setNull(4, java.sql.Types.VARCHAR);
-			verify(ps).setNull(5, java.sql.Types.VARCHAR);
+			verify(ps).setNull(4, Types.VARCHAR);
+			verify(ps).setNull(5, Types.VARCHAR);
 			verify(ps).setString(6, " 	 ");
 			verify(ps).setString(7, "  café 世界  ");
 			verifyNoMoreInteractions(ps);
@@ -168,5 +176,22 @@ class AbstractSqlQueryUtilUnitTests {
 		IllegalStateException emptyEx = assertThrows(IllegalStateException.class,
 				() -> util.requireNonBlank("hostname", ""));
 		assertTrue(emptyEx.getMessage().contains("hostname"), "message should name the key: " + emptyEx.getMessage());
+	}
+
+	@Test
+	void dialectSearchContractProducesBoundPatternsThroughTheInterpreter() {
+		for (var type : RdbmsTypeEnum.values()) {
+			AbstractSqlQueryUtil util = SqlQueryUtilFactory.initialize(type);
+			var engine = mock(IRDBMSEngine.class);
+			Mockito.when(engine.isBasic()).thenReturn(true);
+			Mockito.when(engine.getQueryUtil()).thenReturn(util);
+			var query = new SelectQueryStruct();
+			query.addSelector(new QueryColumnSelector("ITEMS__V", "label"));
+			query.addExplicitFilter(util.getPreparedSearchRegexFilter("ITEMS__V", "o'brien"));
+			var compiled = new ParameterizedSqlInterpreter(engine).compile(query);
+			Assertions.assertFalse(compiled.sql().contains("o'brien"));
+			Assertions.assertTrue(compiled.parameters().stream()
+					.anyMatch(value -> value instanceof String pattern && pattern.contains("o'brien")));
+		}
 	}
 }

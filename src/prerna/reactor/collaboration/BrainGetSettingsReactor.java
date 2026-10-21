@@ -44,6 +44,6 @@ public class BrainGetSettingsReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "The signed-in user's Brain settings: classifier, filing bands, sources, version, assistant agent";
+		return "The signed-in user's Brain settings: classifier, filing bands, sources, memory, version, assistant agent";
 	}
 }

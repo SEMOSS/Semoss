@@ -33,6 +33,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -44,14 +49,18 @@ public final class BrainTopicVotes {
 	public static final String INSTRUCTIONS = """
 			You help one person set up their work topics from their email. Below are clusters of their email threads,
 			found from who is on each thread, subject wording and dates. Each cluster has an id, its thread count, first and last
-			month, the people who appear most, and example subjects.
+			month, the people who appear most, and example subjects. "outlookFolder", when given, is an Outlook folder
+			they made whose mail is mostly in this cluster (the path runs from their top folder down);
+			"outlookCategories" are Outlook categories they put on its mail. These are clues to how they sort their
+			work, not answers.
 
 			For every cluster, say whether it is the owner's own work: "work" when it is a project, client, deal, team or piece of
 			work they take part in; "not_work" when it is personal (family, friends, shopping, social plans, personal finances),
 			automated or bulk (notifications, receipts, newsletters, marketing, alerts), or company-wide news and announcements
 			that need nothing from them; "unclear" when you cannot tell. Then name it the way a colleague would, in 2 to 5 words,
 			after the project, client or piece of work (for not_work, say what kind of mail it is). Do not name a topic after a
-			person or a date. Also write "about": one plain sentence, under 25 words, saying what mail belongs in this topic
+			person, and never put a month, date or year in a name. When a cluster has a folder and the folder's name
+			(the last part of the path) names the work its mail is about, use that name. Also write "about": one plain sentence, under 25 words, saying what mail belongs in this topic
 			(the project, client or work it covers and what it involves), so someone could sort a new email into it.
 
 			Answer for every cluster id given, once each.
@@ -65,56 +74,88 @@ public final class BrainTopicVotes {
 	public record Vote(String kind, String name, String about) {
 	}
 
-	public record Result(String status, List<Map<String, Vote>> votes, Set<Integer> dropped,
-			Map<Integer, String> names, Map<Integer, String> abouts, int calls, int failedVotes) {
+	public record Result(String status, List<Map<String, Vote>> votes, Set<Integer> dropped, Map<Integer, String> names,
+			Map<Integer, String> abouts, int calls, int failedVotes) {
 	}
 
 	private BrainTopicVotes() {
 	}
 
 	public static Map<String, Object> schema(List<String> ids) {
-		Map<String, Object> item = Map.of("type", "object", "additionalProperties", false,
-				"required", List.of("id", "kind", "name", "about"), "properties", Map.of(
-						"id", Map.of("type", "string", "enum", ids),
-						"kind", Map.of("type", "string", "enum", List.of("work", "not_work", "unclear")),
-						"name", Map.of("type", "string"),
-						"about", Map.of("type", "string")));
-		return Map.of("type", "object", "additionalProperties", false, "required", List.of("clusters"),
-				"properties", Map.of("clusters", Map.of("type", "array", "minItems", ids.size(),
-						"maxItems", ids.size(), "items", item)));
+		Map<String, Object> item = Map.of("type", "object", "additionalProperties", false, "required",
+				List.of("id", "kind", "name", "about"), "properties",
+				Map.of("id", Map.of("type", "string", "enum", ids), "kind",
+						Map.of("type", "string", "enum", List.of("work", "not_work", "unclear")), "name",
+						Map.of("type", "string"), "about", Map.of("type", "string")));
+		return Map.of("type", "object", "additionalProperties", false, "required", List.of("clusters"), "properties",
+				Map.of("clusters",
+						Map.of("type", "array", "minItems", ids.size(), "maxItems", ids.size(), "items", item)));
 	}
 
-	public static Result run(BrainTopicStructure.Prepared prepared, BrainTopicStructure.Settings settings, Caller caller) {
+	public static Result run(BrainTopicStructure.Prepared prepared, BrainTopicStructure.Settings settings,
+			Caller caller) {
 		if (prepared.cards().isEmpty()) {
 			return new Result("no_topics", List.of(), Set.of(), Map.of(), Map.of(), 0, 0);
 		}
 		List<String> ids = prepared.cards().stream().map(c -> (String) c.get("id")).toList();
 		String prompt = new com.google.gson.Gson().toJson(Map.of("clusters", prepared.cards()));
-		Map<String, Object> parameters = Map.of("temperature", 0, "schema", schema(ids), "max_tokens", settings.maxTokens());
+		Map<String, Object> parameters = Map.of("temperature", 0, "schema", schema(ids), "max_tokens",
+				settings.maxTokens());
 		List<Map<String, Vote>> votes = new ArrayList<>();
-		int calls = 0;
+		AtomicInteger calls = new AtomicInteger();
 		int failed = 0;
-		// A vote counts only with complete card coverage; retries and the spare slot share a bounded budget.
-		for (int slot = 0; slot < settings.votes() + settings.spareVotes() && votes.size() < settings.votes(); slot++) {
-			Map<String, Vote> vote = null;
-			for (int attempt = 0; attempt < settings.attempts() && vote == null; attempt++) {
-				calls++;
+		// A vote counts only with complete card coverage; retries and the spare slot
+		// share a bounded budget. The votes run at the same time, the spare only after.
+		Callable<Map<String, Vote>> slot = () -> {
+			for (int attempt = 0; attempt < settings.attempts(); attempt++) {
+				calls.incrementAndGet();
 				try {
-					vote = validate(caller.ask(prompt, INSTRUCTIONS, parameters), ids);
+					Map<String, Vote> vote = validate(caller.ask(prompt, INSTRUCTIONS, parameters), ids);
+					if (vote != null) {
+						return vote;
+					}
 				} catch (RuntimeException e) {
-					// A failed call consumes its budget; private prompts and replies are never logged here.
+					// A failed call consumes its budget; private prompts and replies are never
+					// logged here.
 				}
 			}
-			if (vote == null) {
-				failed++;
-			} else {
-				votes.add(vote);
+			return null;
+		};
+		ExecutorService pool = Executors.newFixedThreadPool(settings.votes());
+		try {
+			List<Future<Map<String, Vote>>> running = new ArrayList<>();
+			for (int i = 0; i < settings.votes(); i++) {
+				running.add(pool.submit(slot));
 			}
+			for (Future<Map<String, Vote>> future : running) {
+				Map<String, Vote> vote = future.get();
+				if (vote == null) {
+					failed++;
+				} else {
+					votes.add(vote);
+				}
+			}
+			for (int spare = 0; spare < settings.spareVotes() && votes.size() < settings.votes(); spare++) {
+				Map<String, Vote> vote = slot.call();
+				if (vote == null) {
+					failed++;
+				} else {
+					votes.add(vote);
+				}
+			}
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IllegalStateException("Topic voting was interrupted", e);
+		} catch (Exception e) {
+			throw new IllegalStateException("Topic voting failed", e);
+		} finally {
+			pool.shutdownNow();
 		}
 		if (votes.size() != settings.votes()) {
-			return new Result("vote_failed", votes, Set.of(), Map.of(), Map.of(), calls, failed);
+			return new Result("vote_failed", votes, Set.of(), Map.of(), Map.of(), calls.get(), failed);
 		}
-		// Only a not_work majority removes a group; unclear remains available for the owner's review.
+		// Only a not_work majority removes a group; unclear remains available for the
+		// owner's review.
 		Set<Integer> dropped = new HashSet<>();
 		Map<Integer, String> names = new LinkedHashMap<>();
 		Map<Integer, String> abouts = new LinkedHashMap<>();
@@ -131,11 +172,12 @@ public final class BrainTopicVotes {
 			final int index = i;
 			String name = counts.entrySet().stream().max(Map.Entry.comparingByValue()).orElseThrow().getKey();
 			names.put(i, name);
-			// the description from the first vote that gave the winning name, so name and description agree
+			// the description from the first vote that gave the winning name, so name and
+			// description agree
 			votes.stream().map(v -> v.get(id)).filter(v -> v.name().equals(name)).findFirst()
 					.ifPresent(v -> abouts.put(index, v.about()));
 		}
-		return new Result("ok", votes, dropped, names, abouts, calls, failed);
+		return new Result("ok", votes, dropped, names, abouts, calls.get(), failed);
 	}
 
 	public static Map<String, Vote> validate(String reply, List<String> ids) {
@@ -175,8 +217,9 @@ public final class BrainTopicVotes {
 				String id = row.get("id").getAsString();
 				String kind = row.get("kind").getAsString();
 				String name = row.get("name").getAsString().trim();
-				if (!expected.contains(id) || out.containsKey(id) || !Set.of("work", "not_work", "unclear").contains(kind)
-						|| name.isBlank() || name.length() > 60 || name.split("\\s+").length > 5) {
+				if (!expected.contains(id) || out.containsKey(id)
+						|| !Set.of("work", "not_work", "unclear").contains(kind) || name.isBlank() || name.length() > 60
+						|| name.split("\\s+").length > 5) {
 					return null;
 				}
 				String about = row.get("about").getAsString().trim();

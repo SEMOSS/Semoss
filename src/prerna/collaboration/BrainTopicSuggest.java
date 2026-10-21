@@ -70,7 +70,7 @@ public final class BrainTopicSuggest {
 	 * link to saved accounts.
 	 */
 	public static Map<String, Object> accounts(User user) {
-		return suggest(user, false, false);
+		return suggest(user, false, false, null);
 	}
 
 	/**
@@ -82,14 +82,20 @@ public final class BrainTopicSuggest {
 	}
 
 	public static Map<String, Object> topics(User user, boolean dryRun) {
+		return topics(user, dryRun, null);
+	}
+
+	// a job (null outside one) hears how grouping and naming are going
+	static Map<String, Object> topics(User user, boolean dryRun, CollaborationJobUtils.Job job) {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		// Serialize generation through replacement for this owner; accepted topics are never replaced.
-		synchronized (CollaborationDbUtils.ownerLock("topic-onboarding", owner.getValue0(), owner.getValue1())) {
-			return suggest(user, true, dryRun);
+		synchronized (CollaborationDbUtils.ownerLock("topic-suggest", owner.getValue0(), owner.getValue1())) {
+			return suggest(user, true, dryRun, job);
 		}
 	}
 
-	private static Map<String, Object> suggest(User user, boolean writeTopics, boolean dryRun) {
+	private static Map<String, Object> suggest(User user, boolean writeTopics, boolean dryRun,
+			CollaborationJobUtils.Job job) {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -103,11 +109,15 @@ public final class BrainTopicSuggest {
 		BrainOrgDomains.Org ownOrg = BrainOrgDomains.load(ownerId, ownerType, myDomain);
 		Map<String, String> emails = new HashMap<>();
 		Map<String, String> names = new HashMap<>();
+		Map<String, String> accountOfPerson = new HashMap<>();
 		CollaborationDbUtils.query(
-				"SELECT PERSON_ID, EMAIL_NORM, DISPLAY_NAME FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?", rs -> {
+				"SELECT PERSON_ID, EMAIL_NORM, DISPLAY_NAME, ACCOUNT_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?", rs -> {
 					emails.put(rs.getString(1), rs.getString(2));
 					if (rs.getString(3) != null) {
 						names.put(rs.getString(1), rs.getString(3));
+					}
+					if (rs.getString(4) != null) {
+						accountOfPerson.put(rs.getString(1), rs.getString(4));
 					}
 					return null;
 				}, ownerId, ownerType);
@@ -240,7 +250,7 @@ public final class BrainTopicSuggest {
 			}
 			// The only topic proposer: snapshot -> deterministic groups -> complete model votes, with no writes yet.
 			BrainTopicOnboarding.Result result = BrainTopicOnboarding.propose(user, engineId, ownerId, ownerType,
-					threads, self, emails, vips, ownOrg, topicNames);
+					threads, self, emails, vips, ownOrg, topicNames, job);
 			out.putAll(result.diagnostics());
 			if (out.containsKey("modelError")) {
 				out.put("topics", List.of());
@@ -296,7 +306,8 @@ public final class BrainTopicSuggest {
 					for (String p : t.people()) {
 						byPerson.merge(p, 1, Integer::sum);
 						String d = org(BrainMailImport.domain(emails.get(p)));
-						String a = accountByDomain.get(d);
+						// the owner's own link (one outside contact kept by email) beats the domain's account
+						String a = accountOfPerson.getOrDefault(p, accountByDomain.get(d));
 						if (a != null) {
 							accountsHere.add(a);
 						}
@@ -349,6 +360,13 @@ public final class BrainTopicSuggest {
 						.sorted((x, y) -> y.getValue() - x.getValue()).map(Map.Entry::getKey).limit(3)
 						.collect(Collectors.toList()));
 				row.put("about", c.about());
+				// the Outlook folder most of its mail is in, shown on its card; filing new mail from a project folder
+				// is offered and on by default, and made only when the owner keeps the topic
+				row.put("folders", c.folderPath() == null ? List.of() : List.of(c.folderPath()));
+				row.put("folderIds", c.folderId() == null ? List.of() : List.of(c.folderId()));
+				row.put("fileFromFolder", c.folderId() != null);
+				// optional clues the owner can turn on; never saved as keywords on their own
+				row.put("suggestedTerms", c.suggestedTerms());
 				row.put("sampleSubjects", samples(c, mailThreads, writers, self).stream().limit(3)
 						.collect(Collectors.toList()));
 				int mine = (int) c.threads().stream().filter(t -> writers.getOrDefault(t.id(), Set.of()).contains(self)).count();
@@ -390,7 +408,10 @@ public final class BrainTopicSuggest {
 	}
 
 	// about: the topic model's one line on what the topic covers, stored as its description
-	record Candidate(String key, String name, List<Thread> threads, List<String> keywords, String reason, String about) {
+	// folderPath: the Outlook folder most of its mail is in; folderId only when that is a project folder, which the
+	// owner may then file new mail from
+	record Candidate(String key, String name, List<Thread> threads, List<String> keywords, String reason, String about,
+			List<String> suggestedTerms, String folderId, String folderPath) {
 	}
 
 	// the organisation's domain: mail.adatum.example is adatum.example

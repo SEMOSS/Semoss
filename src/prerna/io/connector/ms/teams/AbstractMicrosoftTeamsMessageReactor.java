@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.io.connector.ms.teams;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.util.ValueUtils;
 
 /**
  * What every Teams messaging reactor has in common.
@@ -85,14 +87,15 @@ public abstract class AbstractMicrosoftTeamsMessageReactor extends AbstractMicro
 	 * @return the value
 	 */
 	protected int positiveInt(String key, int fallback, int cap) {
-		String value = trimToNull(this.keyValue.get(key));
+		String value = ValueUtils.trimToNull(this.keyValue.get(key));
 		if (value == null) {
 			return fallback;
 		}
 		int parsed;
 		try {
-			parsed = Integer.parseInt(value);
-		} catch (NumberFormatException e) {
+			// models often send a whole number as 50.0
+			parsed = new BigDecimal(value).intValueExact();
+		} catch (NumberFormatException | ArithmeticException e) {
 			classLogger.error("Invalid {} of '{}' passed to a Microsoft Teams message reactor", key, value, e);
 			throw new SemossPixelException(key + " must be a whole number.");
 		}
@@ -136,18 +139,6 @@ public abstract class AbstractMicrosoftTeamsMessageReactor extends AbstractMicro
 			return null;
 		}
 		return values.toArray(new String[0]);
-	}
-
-	/**
-	 * @param value the value to trim
-	 * @return the value without surrounding space, or null when there is nothing
-	 *         left of it
-	 */
-	protected static String trimToNull(String value) {
-		if (value == null || value.trim().isEmpty()) {
-			return null;
-		}
-		return value.trim();
 	}
 
 	@Override

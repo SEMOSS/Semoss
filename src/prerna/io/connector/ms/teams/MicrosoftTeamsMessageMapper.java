@@ -39,6 +39,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.io.connector.ms.MicrosoftMessageDisplay;
+import prerna.util.ValueUtils;
 
 /**
  * Turns the json Graph returns for Teams chats and messages into the maps the
@@ -190,6 +191,14 @@ public class MicrosoftTeamsMessageMapper {
 	 * @return the chat as a map
 	 */
 	public static Map<String, Object> toChat(Map<String, Object> chat, String userEmail) {
+		return toChat(chat, userEmail, Integer.MAX_VALUE);
+	}
+
+	/**
+	 * The same, keeping at most {@code maxMembers} members and the total in memberCount; a list of chats uses it
+	 * so a large group chat does not fill the result.
+	 */
+	public static Map<String, Object> toChat(Map<String, Object> chat, String userEmail, int maxMembers) {
 		Map<String, Object> output = new LinkedHashMap<>();
 		output.put(ID, chat.get(ID));
 		putIfPresent(output, "chatType", chat.get("chatType"));
@@ -202,7 +211,7 @@ public class MicrosoftTeamsMessageMapper {
 		Object viewpoint = chat.get(VIEWPOINT);
 		if (viewpoint instanceof Map) {
 			Map<?, ?> viewpointMap = (Map<?, ?>) viewpoint;
-			lastReadDateTime = asString(viewpointMap.get(LAST_MESSAGE_READ));
+			lastReadDateTime = ValueUtils.toNonBlankString(viewpointMap.get(LAST_MESSAGE_READ));
 			putIfPresent(output, LAST_MESSAGE_READ, lastReadDateTime);
 			output.put("isHidden", Boolean.TRUE.equals(viewpointMap.get("isHidden")));
 		}
@@ -211,12 +220,17 @@ public class MicrosoftTeamsMessageMapper {
 		if (preview instanceof Map) {
 			Map<String, Object> lastMessage = toMessage(asStringKeyedMap(preview), PREVIEW_BODY_CHARS, false);
 			output.put("lastMessage", lastMessage);
-			output.put("hasUnread", isUnread(asString(lastMessage.get("createdDateTime")), lastReadDateTime));
+			output.put("hasUnread",
+					isUnread(ValueUtils.toNonBlankString(lastMessage.get("createdDateTime")), lastReadDateTime));
 		}
 
 		List<Map<String, Object>> members = new ArrayList<>();
 		List<String> otherNames = new ArrayList<>();
-		for (Map<String, Object> member : mapList(chat.get("members"))) {
+		List<Map<String, Object>> allMembers = mapList(chat.get("members"));
+		for (Map<String, Object> member : allMembers) {
+			if (members.size() >= maxMembers) {
+				break;
+			}
 			Map<String, Object> described = toMember(member);
 			members.add(described);
 			Object address = described.get(EMAIL);
@@ -230,12 +244,16 @@ public class MicrosoftTeamsMessageMapper {
 		if (!members.isEmpty()) {
 			output.put("members", members);
 		}
+		if (allMembers.size() > members.size()) {
+			output.put("memberCount", allMembers.size());
+		}
 
 		Object topic = chat.get(TOPIC);
 		if (topic != null && !topic.toString().trim().isEmpty()) {
 			output.put(DISPLAY_NAME, topic.toString());
 		} else if (!otherNames.isEmpty()) {
-			output.put(DISPLAY_NAME, String.join(", ", otherNames));
+			int others = allMembers.size() - members.size();
+			output.put(DISPLAY_NAME, String.join(", ", otherNames) + (others > 0 ? " and " + others + " others" : ""));
 		}
 		return output;
 	}
@@ -484,17 +502,6 @@ public class MicrosoftTeamsMessageMapper {
 					lastMessageDateTime, e);
 			return true;
 		}
-	}
-
-	/**
-	 * @param value the value to read
-	 * @return the value as a string, or null when there is nothing to read
-	 */
-	private static String asString(Object value) {
-		if (value == null || value.toString().trim().isEmpty()) {
-			return null;
-		}
-		return value.toString();
 	}
 
 	@SuppressWarnings("unchecked")

@@ -33,6 +33,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -277,7 +278,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					}
 
 					logEngineCall(engineSpecificLogger, start, end, success, request, response, null, null,
-							tokensInPrompt, tokensInResponse, cacheReadTokens, cacheCreationTokens, null);
+							tokensInPrompt, tokensInResponse, cacheReadTokens, cacheCreationTokens, null,
+							billedTo(result));
 				}
 			}
 
@@ -403,7 +405,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					}
 
 					logEngineCall(engineSpecificLogger, start, end, success, request, response, null, null,
-							tokensInPrompt, tokensInResponse, cacheReadTokens, cacheCreationTokens, null);
+							tokensInPrompt, tokensInResponse, cacheReadTokens, cacheCreationTokens, null,
+							billedTo(result));
 				}
 			}
 
@@ -512,18 +515,66 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			String request, String response, String inputReactorName, String outputReactorName, Integer tokensInPrompt,
 			Integer tokensInResponse, String guardrailAction) {
 		logEngineCall(engineSpecificLogger, start, end, isSuccess, request, response, inputReactorName,
-				outputReactorName, tokensInPrompt, tokensInResponse, null, null, guardrailAction);
+				outputReactorName, tokensInPrompt, tokensInResponse, null, null, guardrailAction, null);
+	}
+
+	/**
+	 * The usage limit source a model call was billed to, from the usage limits its
+	 * engine put on its response ({@code usageLimits.billedTo}, the map
+	 * {@code ModelUsageBilledTo.toMap} makes).
+	 *
+	 * @param result what the engine method returned
+	 * @return the source, or null for a result that is not a model response or a
+	 *         call no limit was billed to
+	 */
+	static Map<?, ?> billedTo(Object result) {
+		if (result instanceof AbstractModelEngineResponse<?> modelResponse) {
+			Map<String, Object> usageLimits = modelResponse.getUsageLimits();
+			if (usageLimits != null && usageLimits.get("billedTo") instanceof Map<?, ?> billedTo) {
+				return billedTo;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Whether an engine's calls to a method pass through guardrails: the engine is
+	 * proxied by a pipeline handler, and the method, or every method ({@code *}),
+	 * has an input or output pipeline.
+	 *
+	 * @param engine     the engine, as callers get it from the engine cache
+	 * @param methodName the engine method, such as {@code insertData}
+	 * @return true when the method's calls are guarded
+	 */
+	public static boolean guardsMethod(Object engine, String methodName) {
+		if (engine == null || !Proxy.isProxyClass(engine.getClass())) {
+			return false;
+		}
+		return Proxy.getInvocationHandler(engine) instanceof PipelineInvocationHandler handler
+				&& handler.hasPipeline(methodName);
+	}
+
+	private boolean hasPipeline(String methodName) {
+		Pipeline pipeline = this.pipelinesMap.get(methodName);
+		if (pipeline == null) {
+			pipeline = this.pipelinesMap.get("*");
+		}
+		return pipeline != null && ((pipeline.getInputPipeline() != null && !pipeline.getInputPipeline().isEmpty())
+				|| (pipeline.getOutputPipeline() != null && !pipeline.getOutputPipeline().isEmpty()));
+	}
+
+	private static Logger callLogger(Logger engineSpecificLogger) {
+		if (engineSpecificLogger != null) {
+			return engineSpecificLogger;
+		}
+		return USE_ENGINE_LOGGER ? SemossLogUtils.getEngineLevelLogger() : null;
 	}
 
 	private void logEngineCall(Logger engineSpecificLogger, Instant start, Instant end, Boolean isSuccess,
 			String request, String response, String inputReactorName, String outputReactorName, Integer tokensInPrompt,
-			Integer tokensInResponse, Integer cacheReadTokens, Integer cacheCreationTokens, String guardrailAction) {
-		Logger logger = null;
-		if (engineSpecificLogger != null) {
-			logger = engineSpecificLogger;
-		} else if (USE_ENGINE_LOGGER) {
-			logger = SemossLogUtils.getEngineLevelLogger();
-		}
+			Integer tokensInResponse, Integer cacheReadTokens, Integer cacheCreationTokens, String guardrailAction,
+			Map<?, ?> billedTo) {
+		Logger logger = callLogger(engineSpecificLogger);
 		if (logger != null) {
 			Map<String, Object> auditMap = new HashMap<>();
 			auditMap.put(SemossLogUtils.REQUEST_START_TIME, start.atZone(UTC_ZONE_ID));
@@ -548,7 +599,21 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			if (cacheCreationTokens != null) {
 				auditMap.put(SemossLogUtils.NUMBER_OF_CACHE_CREATION_TOKENS, cacheCreationTokens);
 			}
+			if (billedTo != null) {
+				putText(auditMap, SemossLogUtils.BILLED_SOURCE_TYPE, billedTo.get("sourceType"));
+				putText(auditMap, SemossLogUtils.BILLED_SUBJECT_ID, billedTo.get("subjectId"));
+				putText(auditMap, SemossLogUtils.BILLED_SUBJECT_TYPE, billedTo.get("subjectType"));
+			}
 			logger.info(auditMap);
+		}
+	}
+
+	/**
+	 * Puts a text value on the audit map, leaving out one that is missing or blank.
+	 */
+	private static void putText(Map<String, Object> auditMap, String key, Object value) {
+		if (value instanceof String text && !text.isBlank()) {
+			auditMap.put(key, text);
 		}
 	}
 

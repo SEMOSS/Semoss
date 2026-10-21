@@ -33,11 +33,14 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -50,14 +53,21 @@ import prerna.util.Utility;
  * with only the source selected for the current node and a bounded JSON scope.
  * This class never discovers or executes arbitrary project files.
  */
-final class AutomationRuntime {
+public final class AutomationRuntime {
 
 	private AutomationRuntime() {
 	}
 
-	static List<Map<String, Object>> nodesForRun(AutomationDefinitionValidator.ValidatedDefinition definition) {
+	public static List<Map<String, Object>> nodesForRun(
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		return nodesForGraph(definition.nodes(), definition.edges());
+	}
+
+	/** Returns graph nodes in run-history order with runtime defaults applied. */
+	public static List<Map<String, Object>> nodesForGraph(List<Map<String, Object>> graphNodes,
+			List<Map<String, Object>> graphEdges) {
 		List<Map<String, Object>> nodes = new ArrayList<>();
-		for (Map<String, Object> original : controlOrderedNodes(definition)) {
+		for (Map<String, Object> original : controlOrderedNodes(graphNodes, graphEdges)) {
 			Map<String, Object> node = new LinkedHashMap<>(original);
 			node.putIfAbsent(AutomationConstants.NODE_FIELD_LABEL, node.get(AutomationConstants.NODE_FIELD_ID));
 			Object nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE);
@@ -70,6 +80,43 @@ final class AutomationRuntime {
 			nodes.add(node);
 		}
 		return nodes;
+	}
+
+	/**
+	 * Returns canonical nodes from the parent graph and every loop body. Loop-body
+	 * nodes remain ordinary source-owning nodes even though they are materialized
+	 * into run history only when an iteration executes.
+	 */
+	public static List<Map<String, Object>> allNodes(
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		List<Map<String, Object>> nodes = new ArrayList<>();
+		for (Map<String, Object> node : definition.nodes()) {
+			nodes.add(node);
+			nodes.addAll(loopBodyNodes(node));
+		}
+		return nodes;
+	}
+
+	/** Returns the canonical nodes owned by one loop body. */
+	@SuppressWarnings("unchecked")
+	public static List<Map<String, Object>> loopBodyNodes(Map<String, Object> loopNode) {
+		Object body = loopNode.get(AutomationConstants.NODE_FIELD_BODY);
+		if (!(body instanceof Map<?, ?> bodyMap)
+				|| !(((Map<String, Object>) bodyMap).get(AutomationConstants.DOC_NODES) instanceof List<?> nodes)) {
+			return List.of();
+		}
+		return (List<Map<String, Object>>) (List<?>) nodes;
+	}
+
+	/** Returns the canonical edges owned by one loop body. */
+	@SuppressWarnings("unchecked")
+	public static List<Map<String, Object>> loopBodyEdges(Map<String, Object> loopNode) {
+		Object body = loopNode.get(AutomationConstants.NODE_FIELD_BODY);
+		if (!(body instanceof Map<?, ?> bodyMap)
+				|| !(((Map<String, Object>) bodyMap).get(AutomationConstants.DOC_EDGES) instanceof List<?> edges)) {
+			return List.of();
+		}
+		return (List<Map<String, Object>>) (List<?>) edges;
 	}
 
 	private static String defaultOutputVariable(Map<String, Object> node) {
@@ -86,16 +133,23 @@ final class AutomationRuntime {
 	 * initialization. Runtime traversal still selects only one condition path and
 	 * remains Java-owned.
 	 */
-	static List<Map<String, Object>> controlOrderedNodes(AutomationDefinitionValidator.ValidatedDefinition definition) {
+	static List<Map<String, Object>> controlOrderedNodes(
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		return controlOrderedNodes(definition.nodes(), definition.edges());
+	}
+
+	/** Returns a deterministic topological order for an already validated graph. */
+	static List<Map<String, Object>> controlOrderedNodes(List<Map<String, Object>> graphNodes,
+			List<Map<String, Object>> graphEdges) {
 		Map<String, Map<String, Object>> nodes = new LinkedHashMap<>();
 		Map<String, Integer> incoming = new LinkedHashMap<>();
-		for (Map<String, Object> node : definition.nodes()) {
+		for (Map<String, Object> node : graphNodes) {
 			String id = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 			nodes.put(id, node);
 			incoming.put(id, 0);
 		}
 		Map<String, List<String>> outgoing = new HashMap<>();
-		for (Map<String, Object> edge : definition.edges()) {
+		for (Map<String, Object> edge : graphEdges) {
 			if (!AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
 				continue;
 			}
@@ -128,7 +182,7 @@ final class AutomationRuntime {
 		return ordered;
 	}
 
-	static String startNodeId(AutomationDefinitionValidator.ValidatedDefinition definition) {
+	public static String startNodeId(AutomationDefinitionValidator.ValidatedDefinition definition) {
 		for (Map<String, Object> node : definition.nodes()) {
 			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
 				return (String) node.get(AutomationConstants.NODE_FIELD_ID);
@@ -137,10 +191,15 @@ final class AutomationRuntime {
 		throw new IllegalArgumentException("Automation definition has no trigger.start node.");
 	}
 
-	static Map<String, Map<String, String>> controlTargets(
+	public static Map<String, Map<String, String>> controlTargets(
 			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		return controlTargets(definition.edges());
+	}
+
+	/** Indexes each control edge by source node and source port. */
+	public static Map<String, Map<String, String>> controlTargets(List<Map<String, Object>> edges) {
 		Map<String, Map<String, String>> targets = new LinkedHashMap<>();
-		for (Map<String, Object> edge : definition.edges()) {
+		for (Map<String, Object> edge : edges) {
 			if (!AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
 				continue;
 			}
@@ -152,23 +211,40 @@ final class AutomationRuntime {
 		return targets;
 	}
 
-	/**
-	 * Runs one node module with the workflow scope supplied by the Java scheduler.
-	 */
-	static String buildNodeInvocationScript(String source, Map<String, Object> scope) {
-		return buildPythonInvocation("execute_node", source, scope);
+	/** Returns the sole zero-incoming node in an already validated loop body. */
+	public static String graphEntryNodeId(List<Map<String, Object>> nodes, List<Map<String, Object>> edges) {
+		Map<String, Integer> incoming = new LinkedHashMap<>();
+		for (Map<String, Object> node : nodes) {
+			incoming.put((String) node.get(AutomationConstants.NODE_FIELD_ID), 0);
+		}
+		for (Map<String, Object> edge : edges) {
+			if (AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
+				incoming.compute((String) edge.get(AutomationConstants.EDGE_FIELD_TARGET),
+						(ignored, count) -> count + 1);
+			}
+		}
+		return incoming.entrySet().stream().filter(entry -> entry.getValue() == 0).map(Map.Entry::getKey).findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("Loop body has no entry node."));
 	}
 
 	/**
-	 * Executes trigger Python in an isolated module and returns its non-private,
-	 * JSON-compatible globals. A trigger may also return a map from
-	 * {@code run(scope)} to define computed globals.
+	 * Builds the Python invocation for one persisted node source.
+	 *
+	 * <p>
+	 * The logical {@code scope} remains the public node contract. The serialized
+	 * transport contains changed values plus placeholders for aliases rebound to
+	 * live Insight-owned frames or retained JSON values.
+	 *
+	 * @param source             persisted Python source defining {@code run(scope)}
+	 * @param scope              bounded run scope supplied by the Java scheduler
+	 * @param outputVariable     node output alias used in diagnostics
+	 * @param frameBindings      scope aliases backed by live Python frames
+	 * @param valueBindings      scope aliases backed by retained JSON values
+	 * @return Python script that invokes the Automation runtime boundary
+	 * @throws IllegalStateException when the Automation Python runtime is unavailable
 	 */
-	static String buildTriggerInvocationScript(String source, Map<String, Object> scope) {
-		return buildPythonInvocation("execute_trigger", source, scope);
-	}
-
-	private static String buildPythonInvocation(String function, String source, Map<String, Object> scope) {
+	public static String buildNodeInvocationScript(String source, Map<String, Object> scope, String outputVariable,
+			Map<String, String> frameBindings, Collection<String> valueBindings) {
 		Path runtimePath = Path.of(Utility.getBaseFolder(), Constants.PY_BASE_FOLDER, "semoss_automation_runtime.py")
 				.toAbsolutePath().normalize();
 		if (!Files.isRegularFile(runtimePath)) {
@@ -180,18 +256,32 @@ final class AutomationRuntime {
 				    "_semoss_automation_runtime", %s)
 				_automation_runtime = _automation_importlib.module_from_spec(_automation_spec)
 				_automation_spec.loader.exec_module(_automation_runtime)
-				_automation_runtime.%s("%s", "%s", %d)
-				""".formatted(AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()), function,
+				_automation_runtime.execute_node("%s", "%s", %d, %s, globals(), %s, %s)
+				""".formatted(AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()),
 				encode(AutomationRuntimeUtils.toBoundedRuntimeJson(scope != null ? scope : Map.of(),
 						AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope")),
-				encode(source != null ? source : ""), AutomationConstants.NODE_OUTPUT_MAX_BYTES);
+				encode(source != null ? source : ""), AutomationConstants.NODE_OUTPUT_MAX_BYTES,
+				AutomationRuntimeUtils.GSON.toJson(outputVariable),
+				AutomationRuntimeUtils.GSON.toJson(frameBindings != null ? frameBindings : Map.of()),
+				AutomationRuntimeUtils.GSON.toJson(valueBindings != null ? valueBindings : List.of()));
+	}
+
+	/** Builds a node invocation with no retained JSON-backed scope values. */
+	public static String buildNodeInvocationScript(String source, Map<String, Object> scope, String outputVariable,
+			Map<String, String> frameBindings) {
+		return buildNodeInvocationScript(source, scope, outputVariable, frameBindings, List.of());
+	}
+
+	/** Builds a node invocation with no live frame-backed scope values. */
+	public static String buildNodeInvocationScript(String source, Map<String, Object> scope, String outputVariable) {
+		return buildNodeInvocationScript(source, scope, outputVariable, Map.of());
 	}
 
 	/**
 	 * Returns each trigger global's declared default for Get/Save responses and
 	 * playground defaults.
 	 */
-	static Map<String, Object> declaredGlobals(AutomationDefinitionValidator.ValidatedDefinition definition) {
+	public static Map<String, Object> declaredGlobals(AutomationDefinitionValidator.ValidatedDefinition definition) {
 		for (Map<String, Object> node : definition.nodes()) {
 			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
 				return triggerGlobalDefaults(node);
@@ -204,7 +294,7 @@ final class AutomationRuntime {
 	 * Returns the trigger declarations held in
 	 * {@code trigger.start.config.globals}.
 	 */
-	static List<Map<String, Object>> triggerGlobalDefinitions(
+	public static List<Map<String, Object>> triggerGlobalDefinitions(
 			AutomationDefinitionValidator.ValidatedDefinition definition) {
 		for (Map<String, Object> node : definition.nodes()) {
 			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
@@ -231,23 +321,10 @@ final class AutomationRuntime {
 	}
 
 	/**
-	 * Returns the optional setup source held in
-	 * {@code trigger.start.config.pythonSource}.
-	 */
-	@SuppressWarnings("unchecked")
-	static String triggerSource(Map<String, Object> node) {
-		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
-		if (rawConfig instanceof Map<?, ?> raw) {
-			return sourceValue(((Map<String, Object>) raw).get(AutomationConstants.CONFIG_PYTHON_SOURCE));
-		}
-		return null;
-	}
-
-	/**
 	 * Returns the declared default for each trigger global the run should seed into
 	 * scope.
 	 */
-	static Map<String, Object> triggerGlobalDefaults(Map<String, Object> node) {
+	public static Map<String, Object> triggerGlobalDefaults(Map<String, Object> node) {
 		Map<String, Object> globals = new LinkedHashMap<>();
 		for (Map<String, Object> global : triggerGlobalDefinitions(node)) {
 			if (global.get("name") instanceof String name
@@ -264,7 +341,7 @@ final class AutomationRuntime {
 	 * run-history reader compare a child agent's returned workspace against this
 	 * value, so they resolve it the same way.
 	 */
-	static String configuredAgentWorkspaceId(Map<String, Object> node) {
+	public static String configuredAgentWorkspaceId(Map<String, Object> node) {
 		if (!AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
 			return null;
 		}
@@ -283,7 +360,7 @@ final class AutomationRuntime {
 		return value instanceof String source && !source.isBlank() ? source : null;
 	}
 
-	static Object normalizeNodeResult(Object output) {
+	public static Object normalizeNodeResult(Object output) {
 		Object value = output;
 		if (value instanceof String string) {
 			try {
@@ -303,6 +380,42 @@ final class AutomationRuntime {
 			return result;
 		}
 		return value;
+	}
+
+	/**
+	 * Decodes the runtime-owned Python result envelope. User values remain nested in
+	 * the envelope, so ordinary JSON cannot impersonate a retained frame.
+	 *
+	 * @param output raw value returned by the Python translator
+	 * @return decoded ordinary value or retained-frame signal
+	 * @throws IllegalStateException when the runtime envelope is malformed
+	 */
+	public static NodeResult decodeNodeResult(Object output) {
+		Object normalized = normalizeNodeResult(output);
+		if (!(normalized instanceof Map<?, ?> result)
+				|| !(result.get(AutomationConstants.INTERNAL_NODE_RESULT_KIND) instanceof String kind)) {
+			throw new IllegalStateException("Python automation node returned an invalid runtime result.");
+		}
+		if (AutomationConstants.INTERNAL_NODE_RESULT_KIND_VALUE.equals(kind)) {
+			if (result.size() != 2 || !result.containsKey(AutomationConstants.INTERNAL_NODE_RESULT_VALUE)) {
+				throw new IllegalStateException("Python automation value result is missing its value.");
+			}
+			return new NodeResult(result.get(AutomationConstants.INTERNAL_NODE_RESULT_VALUE), false);
+		}
+		if (AutomationConstants.INTERNAL_NODE_RESULT_KIND_FRAME.equals(kind)) {
+			if (result.size() != 1) {
+				throw new IllegalStateException("Python automation frame result contains unexpected values.");
+			}
+			return new NodeResult(null, true);
+		}
+		throw new IllegalStateException("Python automation node returned an unknown runtime result kind.");
+	}
+
+	/** Decoded result returned by the Python Automation runtime. */
+	public record NodeResult(Object value, boolean frame) {
+		public NodeResult(Object value) {
+			this(value, false);
+		}
 	}
 
 	private static String encode(String value) {

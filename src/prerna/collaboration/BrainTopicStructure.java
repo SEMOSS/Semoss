@@ -45,53 +45,81 @@ import java.util.regex.Pattern;
 // Deterministic topic discovery over permitted headers; no model calls, bodies, database writes or embeddings.
 public final class BrainTopicStructure {
 
-	// wide: any real (non-bulk) thread can seed or join a topic, not only threads the owner took part in; for a pool
+	// wide: any real (non-bulk) thread can seed or join a topic, not only threads
+	// the owner took part in; for a pool
 	// the classifier has already cleared of automated mail
-	public record Settings(int pool, int seeds, int topics, double mergeCut, double floor, int votes,
-			int dropAt, int attempts, int spareVotes, int maxTokens, boolean wide) {
+	public record Settings(int pool, int seeds, int topics, double mergeCut, double floor, int votes, int dropAt,
+			int attempts, int spareVotes, int maxTokens, boolean wide) {
 		public Settings {
 			if (pool < 1 || pool > 1000 || seeds < 1 || topics < 1 || topics > 40 || votes < 1 || votes > 9
-					|| dropAt < 1 || dropAt > votes || attempts < 1 || attempts > 2 || spareVotes < 0
-					|| spareVotes > 1 || mergeCut < 0 || mergeCut > 1 || floor < 0 || floor > 1
-					|| maxTokens < 1 || maxTokens > 8000) {
+					|| dropAt < 1 || dropAt > votes || attempts < 1 || attempts > 2 || spareVotes < 0 || spareVotes > 1
+					|| mergeCut < 0 || mergeCut > 1 || floor < 0 || floor > 1 || maxTokens < 1 || maxTokens > 8000) {
 				throw new IllegalArgumentException("Invalid topic onboarding settings");
 			}
 		}
 	}
 
-	// Before a completed sort, require owner engagement; after sort, WIDE trusts the non-automated pool.
+	// Before a completed sort, require owner engagement; after sort, WIDE trusts
+	// the non-automated pool.
 	public static final Settings A1 = new Settings(300, 40, 25, 0.6, 0.1, 3, 2, 2, 1, 4000, false);
-	// after a sort: every real thread, and a longer list for the owner to narrow down
+	// after a sort: every real thread, and a longer list for the owner to narrow
+	// down
 	public static final Settings WIDE = new Settings(1000, 60, 40, 0.6, 0.1, 3, 2, 2, 1, 6000, true);
-	private static final Pattern PREFIX = Pattern.compile("^((\\[EXTERNAL\\] )?(RE|FW|Fwd): )*", Pattern.CASE_INSENSITIVE);
+	private static final Pattern PREFIX = Pattern.compile("^((\\[EXTERNAL\\] )?(RE|FW|Fwd): )*",
+			Pattern.CASE_INSENSITIVE);
 	private static final Pattern WORD = Pattern.compile("(?U)\\b\\w\\w+\\b");
 
-	public record Message(String subject, String at, String sender, List<String> to, List<String> cc, boolean bulk) {
+	// folder: the Outlook folder the owner (or their rules) filed it in, only one they made; categories: theirs
+	public record Message(String subject, String at, String sender, List<String> to, List<String> cc, boolean bulk,
+			String folder, List<String> categories) {
+
+		public Message(String subject, String at, String sender, List<String> to, List<String> cc, boolean bulk) {
+			this(subject, at, sender, to, cc, bulk, null, List.of());
+		}
 	}
 
 	public record MailThread(String id, List<Message> messages) {
 	}
 
-	public record Facts(String id, String subject, String at, List<String> people, Set<String> senders,
-			boolean wrote, boolean bulk, boolean vip, boolean outside, int messages, boolean engaged) {
+	public record Facts(String id, String subject, String at, List<String> people, Set<String> senders, boolean wrote,
+			boolean bulk, boolean vip, boolean outside, int messages, boolean engaged, String folder,
+			Set<String> categories) {
 	}
 
-	// Indices refer to pool entries and seed topics. filed is discovery membership, never BRAIN_THREAD_TOPIC.
+	// Indices refer to pool entries and seed topics. filed is discovery membership,
+	// never BRAIN_THREAD_TOPIC. folders: the owner's folder each topic is, null for a discovered one.
 	public record Prepared(List<Facts> pool, List<List<Integer>> seeds, Map<Integer, Integer> filed,
-			List<Map<String, Object>> cards, int gated) {
+			List<Map<String, Object>> cards, int gated, List<String> folders) {
+
+		public Prepared(List<Facts> pool, List<List<Integer>> seeds, Map<Integer, Integer> filed,
+				List<Map<String, Object>> cards, int gated) {
+			this(pool, seeds, filed, cards, gated, java.util.Collections.nCopies(seeds.size(), null));
+		}
 	}
 
 	private BrainTopicStructure() {
 	}
 
-	public static Prepared prepare(List<MailThread> input, String owner, Predicate<String> ownDomain,
-			Set<String> vips, Settings settings) {
+	public static Prepared prepare(List<MailThread> input, String owner, Predicate<String> ownDomain, Set<String> vips,
+			Settings settings) {
 		return prepare(input, owner, ownDomain, vips, settings, Set.of());
 	}
 
-	static Prepared prepare(List<MailThread> input, String owner, Predicate<String> ownDomain,
-			Set<String> vips, Settings settings, Set<String> sentHistory) {
-		// Engagement uses all permitted Sent contacts, not just the threads that survive the pool limit.
+	static Prepared prepare(List<MailThread> input, String owner, Predicate<String> ownDomain, Set<String> vips,
+			Settings settings, Set<String> sentHistory) {
+		return prepare(input, owner, ownDomain, vips, settings, sentHistory, Map.of());
+	}
+
+	/**
+	 * folderPaths: the owner's folders that may steer grouping, by id. A folder is evidence, not a topic: two threads
+	 * in the same folder (or under the same categories) count as more alike only as far as their people and wording
+	 * already are, so a catch-all folder still splits and a project folder stays together. A group most of whose
+	 * threads sit in one folder carries that folder as a naming hint. Without folders this is the plain discovery.
+	 */
+	static Prepared prepare(List<MailThread> input, String owner, Predicate<String> ownDomain, Set<String> vips,
+			Settings settings, Set<String> sentHistory, Map<String, String> folderPaths) {
+		// Engagement uses all permitted Sent contacts, not just the threads that
+		// survive the pool limit.
 		Set<String> sentTo = new HashSet<>(sentHistory);
 		for (MailThread thread : input) {
 			for (Message m : thread.messages()) {
@@ -122,12 +150,24 @@ public final class BrainTopicStructure {
 			boolean outside = people.stream().anyMatch(p -> !ownDomain.test(domain(p)));
 			boolean vip = people.stream().anyMatch(vips::contains);
 			people.remove(owner);
+			// the folder most of its mail is in, the newest on a tie
+			Map<String, Integer> inFolder = new LinkedHashMap<>();
+			Set<String> categories = new LinkedHashSet<>();
+			for (Message m : messages.reversed()) {
+				if (m.folder() != null) {
+					inFolder.merge(m.folder(), 1, Integer::sum);
+				}
+				categories.addAll(m.categories() == null ? List.of() : m.categories());
+			}
+			String folder = inFolder.entrySet().stream().reduce((a, b) -> b.getValue() > a.getValue() ? b : a)
+					.map(Map.Entry::getKey).orElse(null);
 			pool.add(new Facts(thread.id(), subject(messages.getFirst().subject()), messages.getLast().at(),
-					new ArrayList<>(people), senders, wrote, bulk, vip, outside,
-					messages.size(), engaged));
+					new ArrayList<>(people), senders, wrote, bulk, vip, outside, messages.size(), engaged, folder,
+					categories));
 		}
-		pool.sort(Comparator.comparing(Facts::bulk).thenComparing(Comparator.comparingInt(BrainTopicStructure::rank)
-				.reversed()).thenComparing(Comparator.comparingInt(Facts::messages).reversed())
+		pool.sort(Comparator.comparing(Facts::bulk)
+				.thenComparing(Comparator.comparingInt(BrainTopicStructure::rank).reversed())
+				.thenComparing(Comparator.comparingInt(Facts::messages).reversed())
 				.thenComparing(Comparator.comparing(Facts::at).reversed()));
 		pool = new ArrayList<>(pool.subList(0, Math.min(settings.pool(), pool.size())));
 		final List<Facts> ranked = pool;
@@ -135,19 +175,34 @@ public final class BrainTopicStructure {
 		if (pool.size() < 3) {
 			return new Prepared(pool, List.of(), Map.of(), List.of(), gated);
 		}
-		// Similarity balances subject wording and participants, with less weight across distant dates.
+		// Similarity balances subject wording and participants, with less weight across
+		// distant dates.
 		List<List<String>> words = pool.stream().map(t -> words(t.subject())).toList();
 		double[][] text = tfidf(words, 0.15);
 		double[][] people = tfidf(pool.stream().map(Facts::people).toList(), 0.1);
 		double[][] sim = new double[pool.size()][pool.size()];
+		// a folder holding much of the pool says little (a catch-all); one holding a few threads says a lot
+		Map<String, Integer> inFolder = new HashMap<>();
+		pool.forEach(t -> {
+			if (t.folder() != null) {
+				inFolder.merge(t.folder(), 1, Integer::sum);
+			}
+		});
 		for (int i = 0; i < pool.size(); i++) {
 			for (int j = 0; j <= i; j++) {
 				double days = Math.abs(day(pool.get(i).at()) - day(pool.get(j).at()));
-				sim[i][j] = sim[j][i] = (0.5 * dot(text[i], text[j]) + 0.5 * dot(people[i], people[j]))
+				double base = (0.5 * dot(text[i], text[j]) + 0.5 * dot(people[i], people[j]))
 						* (0.5 + 0.5 * Math.exp(-days / 60));
+				// the owner's own grouping (same folder, shared categories) strengthens what is already there
+				String folder = pool.get(i).folder();
+				double guide = (folder != null && folder.equals(pool.get(j).folder())
+						? Math.max(0, 1 - 2.0 * inFolder.get(folder) / pool.size()) : 0)
+						+ 0.5 * shared(pool.get(i).categories(), pool.get(j).categories());
+				sim[i][j] = sim[j][i] = Math.min(1, base * (1 + guide));
 			}
 		}
-		// Seed coherent groups first; only then apply engagement/non-bulk eligibility and the seed cap.
+		// Seed coherent groups first; only then apply engagement/non-bulk eligibility
+		// and the seed cap.
 		List<List<Integer>> groups = linkage(sim, 0.9);
 		groups.removeIf(g -> g.size() < 3);
 		groups.sort(Comparator.<List<Integer>>comparingInt(List::size).reversed());
@@ -162,15 +217,11 @@ public final class BrainTopicStructure {
 		if (seeds.isEmpty()) {
 			return new Prepared(pool, List.of(), Map.of(), List.of(), gated);
 		}
-		// Merge seeds by their normalized participant centroid. mergeCut is distance (1 - cosine), not similarity.
-		double[][] centroids = new double[seeds.size()][people[0].length];
+		// Merge seeds by their normalized participant centroid. mergeCut is distance (1
+		// - cosine), not similarity.
+		double[][] centroids = new double[seeds.size()][];
 		for (int i = 0; i < seeds.size(); i++) {
-			for (int j : seeds.get(i)) {
-				for (int k = 0; k < centroids[i].length; k++) {
-					centroids[i][k] += people[j][k];
-				}
-			}
-			normalize(centroids[i]);
+			centroids[i] = centroid(seeds.get(i), people);
 		}
 		double[][] mergeSim = new double[seeds.size()][seeds.size()];
 		for (int i = 0; i < seeds.size(); i++) {
@@ -188,7 +239,8 @@ public final class BrainTopicStructure {
 		}
 		merged.sort(Comparator.<List<Integer>>comparingInt(List::size).reversed());
 		merged = new ArrayList<>(merged.subList(0, Math.min(settings.topics(), merged.size())));
-		// Extend discovery groups using each remaining thread's three closest seed members; cards stay seed-only.
+		// Extend discovery groups using each remaining thread's three closest seed
+		// members; cards stay seed-only.
 		Map<Integer, Integer> filed = new LinkedHashMap<>();
 		for (int i = 0; i < merged.size(); i++) {
 			for (int j : merged.get(i)) {
@@ -218,12 +270,112 @@ public final class BrainTopicStructure {
 				filed.put(j, best);
 			}
 		}
-		return new Prepared(pool, merged, filed, cards(pool, merged, sim), gated);
+		List<Map<String, Object>> cards = cards(pool, merged, sim);
+		List<String> folders = new ArrayList<>();
+		for (int i = 0; i < cards.size(); i++) {
+			// the folder whose mail is mostly this group's, as the owner named it
+			String folder = groupFolder(pool, merged.get(i), inFolder);
+			folders.add(folder);
+			if (folder != null) {
+				cards.get(i).put("outlookFolder", folderPaths.get(folder));
+			}
+			Map<String, Integer> categories = new HashMap<>();
+			for (int j : merged.get(i)) {
+				pool.get(j).categories().forEach(c -> categories.merge(c, 1, Integer::sum));
+			}
+			List<String> common = categories.entrySet().stream().filter(e -> e.getValue() >= 2)
+					.sorted(Map.Entry.<String, Integer>comparingByValue().reversed()).limit(3).map(Map.Entry::getKey)
+					.toList();
+			if (!common.isEmpty()) {
+				cards.get(i).put("outlookCategories", common);
+			}
+		}
+		return new Prepared(pool, merged, filed, cards, gated, folders);
+	}
+
+	// the folder with at least 60% of its pool threads (two or more) in the group, making up a third of it or more;
+	// a folder spread over several groups (a catch-all, a broad one) is no group's own
+	private static String groupFolder(List<Facts> pool, List<Integer> group, Map<String, Integer> inFolder) {
+		Map<String, Integer> counts = new HashMap<>();
+		for (int j : group) {
+			if (pool.get(j).folder() != null) {
+				counts.merge(pool.get(j).folder(), 1, Integer::sum);
+			}
+		}
+		return counts.entrySet().stream()
+				.filter(e -> e.getValue() >= 2 && e.getValue() >= 0.6 * inFolder.get(e.getKey())
+						&& 3 * e.getValue() >= group.size())
+				.max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+	}
+
+	private static double[] centroid(List<Integer> members, double[][] vectors) {
+		double[] out = new double[vectors.length == 0 ? 0 : vectors[0].length];
+		for (int j : members) {
+			for (int k = 0; k < out.length; k++) {
+				out[k] += vectors[j][k];
+			}
+		}
+		normalize(out);
+		return out;
+	}
+
+	// the share of categories two threads have in common (Jaccard); 0 when either has none
+	private static double shared(Set<String> a, Set<String> b) {
+		if (a.isEmpty() || b.isEmpty()) {
+			return 0;
+		}
+		int both = 0;
+		for (String c : a) {
+			both += b.contains(c) ? 1 : 0;
+		}
+		return (double) both / (a.size() + b.size() - both);
+	}
+
+	/** Distinctive subject words and phrases of one group, offered to the owner as optional clues. */
+	public static List<String> terms(Prepared prepared, int topic, int limit) {
+		List<Integer> members = prepared.filed().entrySet().stream().filter(e -> e.getValue() == topic)
+				.map(Map.Entry::getKey).toList();
+		if (members.size() < 2) {
+			return List.of();
+		}
+		Map<String, Integer> poolDf = new HashMap<>();
+		for (Facts t : prepared.pool()) {
+			new HashSet<>(words(subject(t.subject()))).forEach(token -> poolDf.merge(token, 1, Integer::sum));
+		}
+		Map<String, Integer> groupDf = new HashMap<>();
+		for (int j : members) {
+			new HashSet<>(words(subject(prepared.pool().get(j).subject()))).forEach(token -> groupDf.merge(token, 1, Integer::sum));
+		}
+		int least = Math.max(2, (int) Math.ceil(members.size() * 0.2));
+		int size = prepared.pool().size();
+		List<Map.Entry<String, Double>> scored = new ArrayList<>();
+		groupDf.forEach((token, df) -> {
+			// digits and very short words are rarely a useful clue
+			if (df < least || token.length() < 3 || token.chars().allMatch(c -> Character.isDigit(c) || c == ' ')) {
+				return;
+			}
+			double coverage = (double) df / members.size();
+			double idf = Math.log((1.0 + size) / (1 + poolDf.getOrDefault(token, 0)));
+			scored.add(Map.entry(token, coverage * idf * (token.contains(" ") ? 1.3 : 1.0)));
+		});
+		scored.sort(Map.Entry.<String, Double>comparingByValue().reversed());
+		List<String> out = new ArrayList<>();
+		for (Map.Entry<String, Double> entry : scored) {
+			String token = entry.getKey();
+			// a phrase and its own words are one clue
+			if (out.stream().anyMatch(kept -> kept.contains(token) || token.contains(kept))) {
+				continue;
+			}
+			out.add(token);
+			if (out.size() >= limit) {
+				break;
+			}
+		}
+		return out;
 	}
 
 	private static int rank(Facts t) {
-		return (t.wrote() ? 1 : 0) + (t.senders().size() >= 2 ? 1 : 0) + (t.vip() ? 1 : 0)
-				+ (t.outside() ? 1 : 0);
+		return (t.wrote() ? 1 : 0) + (t.senders().size() >= 2 ? 1 : 0) + (t.vip() ? 1 : 0) + (t.outside() ? 1 : 0);
 	}
 
 	static String domain(String address) {
@@ -296,7 +448,8 @@ public final class BrainTopicStructure {
 		}
 	}
 
-	// Average linkage by nearest-neighbour chains, with input order resolving equal distances.
+	// Average linkage by nearest-neighbour chains, with input order resolving equal
+	// distances.
 	private static List<List<Integer>> linkage(double[][] sim, double cut) {
 		int n = sim.length;
 		double[][] distance = new double[n][n];
@@ -406,8 +559,9 @@ public final class BrainTopicStructure {
 			card.put("threads", group.size());
 			card.put("from", months.getFirst());
 			card.put("to", months.getLast());
-			card.put("people", counts.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-					.limit(3).map(Map.Entry::getKey).toList());
+			card.put("people",
+					counts.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed()).limit(3)
+							.map(Map.Entry::getKey).toList());
 			card.put("subjects", subjects.stream().limit(6).toList());
 			out.add(card);
 		}

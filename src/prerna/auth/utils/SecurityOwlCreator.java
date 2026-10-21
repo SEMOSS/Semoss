@@ -60,7 +60,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
-		final String DOUBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
+		final String VARCHAR_20 = "VARCHAR(20)";
 		final String VARCHAR_255 = "VARCHAR(255)";
 		final String VARCHAR_500 = "VARCHAR(500)";
 
@@ -116,16 +116,47 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("ENGINEID", VARCHAR_255),
 				Pair.with("USERID", VARCHAR_255),
 				Pair.with("PERMISSION", INTEGER_DATATYPE_NAME),
-				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME),
-				Pair.with("FAVORITE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
 				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255),
 				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("ENDDATE", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("USAGERESTRICTION", VARCHAR_255),
-				Pair.with("USAGEFREQUENCY", VARCHAR_255),
-				Pair.with("MAXTOKENS", INTEGER_DATATYPE_NAME),
-				Pair.with("MAXRESPONSETIME", DOUBLE_DATATYPE_NAME)));
+				Pair.with("ENDDATE", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("USERENGINEPREFERENCE", Arrays.asList(
+				Pair.with("ENGINEID", VARCHAR_255),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("FAVORITE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME)));
+
+		// a model usage limit: one row per key (ModelUsageLimitKey), such as a
+		// person's grant on a model, a team's, a model's public use or total, or a
+		// limit across all models (ENGINEID null). Its rules are in MODELUSAGELIMITRULE.
+		// LIMITTYPE is USER, TEAM, PUBLIC, PLATFORM or MODEL; SUBJECTTYPE is the
+		// login type or team type
+		addTable("MODELUSAGELIMIT", Arrays.asList(
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("ENGINEID", VARCHAR_255),
+				Pair.with("LIMITTYPE", VARCHAR_20),
+				Pair.with("SUBJECTID", VARCHAR_255),
+				Pair.with("SUBJECTTYPE", VARCHAR_255),
+				Pair.with("UNLIMITED", BOOLEAN_DATATYPE_NAME),
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ADDEDBYID", VARCHAR_255),
+				Pair.with("ADDEDBYTYPE", VARCHAR_255),
+				Pair.with("DATEMODIFIED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("MODIFIEDBYID", VARCHAR_255),
+				Pair.with("MODIFIEDBYTYPE", VARCHAR_255)));
+
+		// a limit's rules, which must all have room. AMOUNT is tokens, millionths of a
+		// dollar or milliseconds; LIMITWINDOW avoids the reserved word WINDOW;
+		// WINDOWLENGTH is null for 1 and only set on minute and hour windows
+		addTable("MODELUSAGELIMITRULE", Arrays.asList(
+				Pair.with("LIMITID", VARCHAR_255),
+				Pair.with("METRIC", VARCHAR_20),
+				Pair.with("AMOUNT", "BIGINT"),
+				Pair.with("LIMITWINDOW", VARCHAR_20),
+				Pair.with("WINDOWLENGTH", INTEGER_DATATYPE_NAME),
+				Pair.with("COUNTS", VARCHAR_20)));
 
 		addTable("PROJECT", Arrays.asList(
 				Pair.with("PROJECTID", VARCHAR_255),
@@ -152,12 +183,17 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("PROJECTID", VARCHAR_255),
 				Pair.with("USERID", VARCHAR_255),
 				Pair.with("PERMISSION", INTEGER_DATATYPE_NAME),
-				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME),
-				Pair.with("FAVORITE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
 				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255),
 				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("ENDDATE", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("USERPROJECTPREFERENCE", Arrays.asList(
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("FAVORITE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME)));
 
 		addTable("PROJECTMETA", Arrays.asList(
 				Pair.with("PROJECTID", VARCHAR_255),
@@ -200,11 +236,18 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("USERID", VARCHAR_255),
 				Pair.with("PROJECTID", VARCHAR_255),
 				Pair.with("PERMISSION", INTEGER_DATATYPE_NAME),
-				Pair.with("FAVORITE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
 				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255),
 				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("ENDDATE", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("USERINSIGHTPREFERENCE", Arrays.asList(
+				Pair.with("INSIGHTID", VARCHAR_255),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("FAVORITE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME)));
 
 		addTable("INSIGHTMETA", Arrays.asList(
 				Pair.with("INSIGHTID", VARCHAR_255),
@@ -239,11 +282,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("LOCKED", BOOLEAN_DATATYPE_NAME),
 				Pair.with("PHONE", VARCHAR_255),
 				Pair.with("PHONEEXTENSION", VARCHAR_255),
-				Pair.with("COUNTRYCODE", VARCHAR_255),
-				Pair.with("MODELUSAGERESTRICTION", VARCHAR_255),
-				Pair.with("MODELUSAGEFREQUENCY", VARCHAR_255),
-				Pair.with("MODELMAXTOKENS", INTEGER_DATATYPE_NAME),
-				Pair.with("MODELMAXRESPONSETIME", DOUBLE_DATATYPE_NAME)));
+				Pair.with("COUNTRYCODE", VARCHAR_255)));
 
 		addTable("SMSS_USER_ACCESS_KEYS", Arrays.asList(
 				// TODO: DELETE ID AFTER SOME TIME, REPLACED WITH USERID ... 2023-09-19
@@ -377,6 +416,14 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
 				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255)));
 
+		addTable("GROUPMANAGERS", Arrays.asList(
+				Pair.with("GROUPID", VARCHAR_255),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
+				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255)));
+
 		addTable("GROUPENGINEPERMISSION", Arrays.asList(
 				Pair.with("ID", VARCHAR_255),
 				Pair.with("TYPE", VARCHAR_255),
@@ -455,6 +502,15 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_ON", TIMESTAMP_DATATYPE_NAME)));
 
+		addTable("MS_GRAPH_CREDENTIAL", Arrays.asList(
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("USER_EMAIL", VARCHAR_255),
+				Pair.with("ACCESS_TOKEN", CLOB_DATATYPE_NAME),
+				Pair.with("REFRESH_TOKEN", CLOB_DATATYPE_NAME),
+				Pair.with("TOKEN_EXPIRATION", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_ON", TIMESTAMP_DATATYPE_NAME)));
+
 		addTable("MS_GRAPH_SUBSCRIPTION", Arrays.asList(
 				Pair.with("SUBSCRIPTION_ID", VARCHAR_255),
 				Pair.with("USER_ID", VARCHAR_255),
@@ -492,6 +548,9 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 		owler.addRelation("ENGINE", "ENGINEMETA", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");
 		owler.addRelation("ENGINE", "MODELMETADATA", "ENGINE.ENGINEID.MODELMETADATA.ENGINEID");
 		owler.addRelation("ENGINE", "ENGINEPERMISSION", "ENGINE.ENGINEID.ENGINEPERMISSION.ENGINEID");
+		owler.addRelation("ENGINE", "USERENGINEPREFERENCE", "ENGINE.ENGINEID.USERENGINEPREFERENCE.ENGINEID");
+		owler.addRelation("ENGINE", "MODELUSAGELIMIT", "ENGINE.ENGINEID.MODELUSAGELIMIT.ENGINEID");
+		owler.addRelation("MODELUSAGELIMIT", "MODELUSAGELIMITRULE", "MODELUSAGELIMIT.ID.MODELUSAGELIMITRULE.LIMITID");
 		owler.addRelation("ENGINE", "WORKSPACEENGINE", "ENGINE.ENGINEID.WORKSPACEENGINE.ENGINEID");
 
 		owler.addRelation("PROJECT", "ASSETENGINE", "PROJECT.PROJECTID.ASSETENGINE.PROJECTID");
@@ -499,13 +558,19 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 		owler.addRelation("PROJECT", "INSIGHT", "PROJECT.PROJECTID.INSIGHT.PROJECTID");
 		owler.addRelation("PROJECT", "USERINSIGHTPERMISSION", "PROJECT.PROJECTID.USERINSIGHTPERMISSION.PROJECTID");
 		owler.addRelation("PROJECT", "PROJECTPERMISSION", "PROJECT.PROJECTID.PROJECTPERMISSION.PROJECTID");
+		owler.addRelation("PROJECT", "USERPROJECTPREFERENCE", "PROJECT.PROJECTID.USERPROJECTPREFERENCE.PROJECTID");
 
 		owler.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "INSIGHT.INSIGHTID.USERINSIGHTPERMISSION.INSIGHTID");
 		owler.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "INSIGHT.PROJECTID.USERINSIGHTPERMISSION.PROJECTID");
+		owler.addRelation("INSIGHT", "USERINSIGHTPREFERENCE", "INSIGHT.INSIGHTID.USERINSIGHTPREFERENCE.INSIGHTID");
+		owler.addRelation("INSIGHT", "USERINSIGHTPREFERENCE", "INSIGHT.PROJECTID.USERINSIGHTPREFERENCE.PROJECTID");
 
 		owler.addRelation("SMSS_USER", "USERINSIGHTPERMISSION", "SMSS_USER.ID.USERINSIGHTPERMISSION.USERID");
 		owler.addRelation("SMSS_USER", "ENGINEPERMISSION", "SMSS_USER.ID.ENGINEPERMISSION.USERID");
 		owler.addRelation("SMSS_USER", "PROJECTPERMISSION", "SMSS_USER.ID.PROJECTPERMISSION.USERID");
+		owler.addRelation("SMSS_USER", "USERENGINEPREFERENCE", "SMSS_USER.ID.USERENGINEPREFERENCE.USERID");
+		owler.addRelation("SMSS_USER", "USERPROJECTPREFERENCE", "SMSS_USER.ID.USERPROJECTPREFERENCE.USERID");
+		owler.addRelation("SMSS_USER", "USERINSIGHTPREFERENCE", "SMSS_USER.ID.USERINSIGHTPREFERENCE.USERID");
 		owler.addRelation("SMSS_USER", "USERMETA", "SMSS_USER.ID.USERMETA.USERID");
 
 		owler.addRelation("ENGINEPERMISSION", "PERMISSION", "ENGINEPERMISSION.PERMISSION.PERMISSION.ID");
@@ -520,6 +585,9 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 
 		owler.addRelation("SMSS_USER", "CUSTOMGROUPASSIGNMENT", "SMSS_USER.ID.CUSTOMGROUPASSIGNMENT.USERID");
 		owler.addRelation("SMSS_GROUP", "CUSTOMGROUPASSIGNMENT", "SMSS_GROUP.ID.CUSTOMGROUPASSIGNMENT.GROUPID");
+
+		owler.addRelation("SMSS_USER", "GROUPMANAGERS", "SMSS_USER.ID.GROUPMANAGERS.USERID");
+		owler.addRelation("SMSS_GROUP", "GROUPMANAGERS", "SMSS_GROUP.ID.GROUPMANAGERS.GROUPID");
 
 		owler.addRelation("SMSS_GROUP", "GROUPENGINEPERMISSION", "SMSS_GROUP.ID.GROUPENGINEPERMISSION.ID");
 		owler.addRelation("SMSS_GROUP", "GROUPENGINEPERMISSION", "SMSS_GROUP.TYPE.GROUPENGINEPERMISSION.TYPE");

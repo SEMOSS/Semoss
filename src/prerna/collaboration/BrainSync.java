@@ -32,18 +32,21 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import prerna.auth.User;
 import prerna.om.Insight;
 
 // Refresh (and later the Collaboration webhook): mail and Teams since the last finished import or sync, through the
-// same gate and classifier as onboarding, without its setup steps. One sync job per owner at a time.
+// same gate and classifier as onboarding, without its setup steps, then queues the summaries and action items of the
+// threads with new mail (WorkThreadInsights). One sync job per owner at a time.
 public final class BrainSync {
 
 	public static final String KIND = "sync";
@@ -58,6 +61,20 @@ public final class BrainSync {
 	private static final String QUIET = "quiet";
 	// threads listed on the job for the page; counts cover all of them
 	private static final int MAX_CHANGES = 50;
+	// one import into an owner's Brain at a time on this server (a sync, the onboarding import, a webhook, a chat's
+	// pull): a Run dedupes only against what it loaded when it was built, and the tables have no unique keys
+	static final String INGEST_LOCK = "ingest";
+	// a chat's pull of new mail: at most this many headers a folder, once every PULL_EVERY an owner and purpose, and
+	// no further back than PULL_REACH; when each purpose last tried, and per owner when a pull last read the mailbox
+	private static final int PULL_MAX = 200;
+	// under the chat's 30 s check, so request jitter does not skip every other one
+	private static final Duration PULL_EVERY = Duration.ofSeconds(25);
+	private static final Duration PULL_REACH = Duration.ofDays(2);
+	private static final Map<String, Instant> PULL_TRIED = new ConcurrentHashMap<>();
+	private static final Map<String, Instant> PULL_READ = new ConcurrentHashMap<>();
+	// purposes paced apart, so a chat's polling never uses up the pull of the owner's next turn
+	static final String PULL_FOR_RUN = "run";
+	static final String PULL_FOR_READ = "read";
 
 	private BrainSync() {
 	}
@@ -80,6 +97,8 @@ public final class BrainSync {
 		}
 		// fail here, not inside the job, when no model is set or the caller cannot use it
 		BrainThreadClassifier.requireEngine(user);
+		// from then on new mail also arrives by itself; in the background, skipped when Graph cannot reach this server
+		BrainMailWebhook.ensureSubscribed(user);
 		return CollaborationJobUtils.start(ownerId, ownerType, KIND, Map.of(), job -> run(user, job, last));
 	}
 
@@ -95,20 +114,26 @@ public final class BrainSync {
 		if (myAddress == null) {
 			throw new IllegalStateException("The signed-in mailbox has no address");
 		}
-		BrainMailImport.Run run = new BrainMailImport.Run(ownerId, ownerType);
-		run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"),
-				source.aliases(user));
+		List<String> aliases = source.aliases(user);
 
 		Instant floor = Instant.now().minus(Duration.ofDays(BrainMailImport.MAX_DAYS));
 		Instant since = later(toInstant(last).minus(OVERLAP), floor);
 		boolean withTeams = Boolean.TRUE
 				.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(TEAMS));
 		job.count("since", since.toString());
-		String teamsError = BrainMailImport.importSince(user, source, job, run, since,
-				withTeams ? teamsSince(ownerId, ownerType, since, floor) : null);
+		BrainMailImport.Run run;
+		String teamsError;
+		synchronized (CollaborationDbUtils.ownerLock(INGEST_LOCK, ownerId, ownerType)) {
+			run = new BrainMailImport.Run(ownerId, ownerType);
+			run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"), aliases);
+			teamsError = BrainMailImport.importSince(user, source, job, run, since,
+					withTeams ? teamsSince(ownerId, ownerType, since, floor) : null);
+			job.step("threads", 86);
+			run.refreshThreads();
+		}
 
-		job.step("threads", 86);
-		run.refreshThreads();
+		// mail the owner moved into a folder a topic stands for is filed under that topic
+		job.count("filedByFolder", BrainThreadClassifier.fileByFolder(ownerId, ownerType, run.refiled));
 
 		// the owner answered: reply items received before the send are done
 		job.step("replies", 88);
@@ -144,10 +169,134 @@ public final class BrainSync {
 		}
 		outcomes(job, ownerId, ownerType, touched, verdicts, startedAt);
 
+		// summaries and action items for the threads with new mail, on their own pool: the sync does not wait
+		Set<String> summarize = new LinkedHashSet<>(touched);
+		summarize.removeIf(id -> AUTOMATED.equals(verdicts.get(id)) || "skipped".equals(verdicts.get(id)));
+		WorkThreadInsights.queue(user, ownerId, ownerType, summarize);
+		job.count("summarizing", summarize.size());
+
 		CollaborationSourceUtils.recordSourceEvent(ownerId, ownerType, EMAIL);
 		if (withTeams && teamsError == null) {
 			CollaborationSourceUtils.recordSourceEvent(ownerId, ownerType, TEAMS);
 		}
+	}
+
+	/**
+	 * New mail since Brain last read the mailbox, straight from Graph, so a chat's assistant sees what came after the
+	 * last sync: Inbox and Sent through the same gate as a sync, where a reply Outlook filed in a conversation of its
+	 * own still joins the thread it answers. At most once every 25 seconds an owner and purpose (PULL_FOR_RUN,
+	 * PULL_FOR_READ), never while a sync runs (it brings the mail in itself), and no further back than two days (older
+	 * mail waits for the next sync, whose window this does not move). Returns the threads that got mail.
+	 */
+	public static Set<String> pullNewMail(User user) throws Exception {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return pullNewMail(user, owner.getValue0(), owner.getValue1(), BrainMailHeaderSource.current(), Instant.now(),
+				PULL_FOR_READ);
+	}
+
+	static Set<String> pullNewMail(User user, String ownerId, String ownerType, BrainMailHeaderSource source,
+			Instant now, String purpose) throws Exception {
+		String owner = ownerType + ":" + ownerId;
+		if (!pullDue(purpose, ownerId, ownerType, now) || !canIngest(ownerId, ownerType)) {
+			return Set.of();
+		}
+		// a sync holds the ingest lock for minutes; not marked as tried, so the first pull after it runs
+		Map<String, Object> syncing = CollaborationJobUtils.latest(ownerId, ownerType, KIND);
+		if (syncing != null && CollaborationJobUtils.RUNNING.equals(syncing.get("status"))) {
+			return Set.of();
+		}
+		PULL_TRIED.put(purpose + "|" + owner, now);
+		// from the last pull that read the mailbox, else the last import or sync
+		Instant read = PULL_READ.get(owner);
+		Instant last = toInstant(lastRun(ownerId, ownerType));
+		Instant since = later((read != null && read.isAfter(last) ? read : last).minus(OVERLAP),
+				now.minus(PULL_REACH));
+		List<Map<String, Object>> headers;
+		if (BrainMailFolders.load(ownerId, ownerType).isEmpty()) {
+			headers = new ArrayList<>(source.topicHeaders(user, BrainMailHeaderSource.INBOX, since, PULL_MAX));
+			headers.addAll(source.list(user, BrainMailHeaderSource.SENT, since, PULL_MAX));
+		} else {
+			// every folder the owner's Outlook rules may have filed new mail in
+			headers = source.allMail(user, since, 2 * PULL_MAX, false);
+		}
+		Set<String> threads = importHeaders(user, ownerId, ownerType, source, headers);
+		PULL_READ.put(owner, now);
+		return threads;
+	}
+
+	// whether a pull for this purpose may read the mailbox now; callers check it before handing one to a pool
+	static boolean pullDue(String purpose, String ownerId, String ownerType, Instant now) {
+		Instant tried = PULL_TRIED.get(purpose + "|" + ownerType + ":" + ownerId);
+		return tried == null || !tried.plus(PULL_EVERY).isAfter(now);
+	}
+
+	/**
+	 * Imports the headers Brain does not hold yet, as a sync would: the gate's rules, people and threads; the
+	 * owner's own replies close their reply items and the threads' summaries are queued. Nothing happens before the
+	 * onboarding import or while one runs. The next sync classifies these threads. Returns the threads that got mail.
+	 */
+	static Set<String> importHeaders(User user, String ownerId, String ownerType, BrainMailHeaderSource source,
+			List<Map<String, Object>> headers) throws Exception {
+		Map<String, Map<String, Object>> unseen = new LinkedHashMap<>();
+		for (Map<String, Object> header : headers) {
+			String messageId = BrainMailImport.messageId(header);
+			if (messageId != null) {
+				unseen.putIfAbsent(CollaborationDbUtils.deterministicId(ownerId, ownerType, EMAIL, messageId), header);
+			}
+		}
+		// usually nothing is new: one query and no Run, which loads the owner's whole Brain
+		if (!unseen.isEmpty()) {
+			List<Object> params = new ArrayList<>(List.of(ownerId, ownerType));
+			params.addAll(unseen.keySet());
+			CollaborationDbUtils.query("SELECT MESSAGE_KEY FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+					+ "AND MESSAGE_KEY IN (" + CollaborationDbUtils.placeholders(unseen.size()) + ")",
+					rs -> unseen.remove(rs.getString("MESSAGE_KEY")), params.toArray());
+		}
+		if (unseen.isEmpty() || !canIngest(ownerId, ownerType)) {
+			return Set.of();
+		}
+		// no drafts, Deleted Items or Junk: a webhook on all mail hears about those too
+		BrainMailFolders.Tree tree = BrainMailFolders.current(user, source, ownerId, ownerType);
+		tree = BrainMailFolders.covering(user, source, ownerId, ownerType, tree, new ArrayList<>(unseen.values()));
+		List<Map<String, Object>> kept = BrainMailFolders.keep(tree, new ArrayList<>(unseen.values()));
+		if (kept.isEmpty()) {
+			return Set.of();
+		}
+		Map<String, Object> me = source.me(user);
+		String myAddress = BrainRulesGate.norm(BrainMailImport.first(me, "mail", "userPrincipalName"));
+		if (myAddress == null) {
+			throw new IllegalStateException("The signed-in mailbox has no address");
+		}
+		List<String> aliases = source.aliases(user);
+		List<Map<String, Object>> fresh = new ArrayList<>(kept);
+		// oldest first, so a new thread takes its first subject
+		fresh.sort(Comparator.comparing(header -> String.valueOf(header.get("receivedDateTime"))));
+		BrainMailImport.Run run;
+		synchronized (CollaborationDbUtils.ownerLock(INGEST_LOCK, ownerId, ownerType)) {
+			run = new BrainMailImport.Run(ownerId, ownerType);
+			run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"), aliases);
+			CollaborationDbUtils.batch(conn -> {
+				for (Map<String, Object> header : fresh) {
+					run.importOne(header);
+				}
+			});
+			run.refreshThreads();
+		}
+		for (String[] sent : run.ownerSent) {
+			WorkItemUtils.closeOnReply(ownerId, ownerType, sent[0], sent[1]);
+		}
+		WorkThreadInsights.queue(user, ownerId, ownerType, run.threads);
+		return run.threads;
+	}
+
+	// mail is connected, the onboarding import has finished, and none is running
+	private static boolean canIngest(String ownerId, String ownerType) {
+		if (!Boolean.TRUE.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(EMAIL))) {
+			return false;
+		}
+		Map<String, Object> importing = CollaborationJobUtils.latest(ownerId, ownerType, BrainMailImport.KIND);
+		return (importing == null || !CollaborationJobUtils.RUNNING.equals(importing.get("status")))
+				&& lastRun(ownerId, ownerType) != null;
 	}
 
 	// where each thread with new mail went, so the page can say more than "N new messages": a new card, an
@@ -205,6 +354,21 @@ public final class BrainSync {
 				Instant teamsLast = Instant.parse(at).minus(OVERLAP);
 				return teamsLast.isBefore(since) ? later(teamsLast, floor) : since;
 			}
+		}
+		// When the first Teams import was partial there is no successful Teams checkpoint yet.
+		// Retry its selected window instead of using mail's newer checkpoint and losing skipped chats.
+		Map<String, Object> imported = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
+				"SELECT COUNTS_JSON FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND KIND = ? "
+						+ "AND STATUS = ? ORDER BY STARTED_AT DESC", 1, 0),
+				rs -> CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "COUNTS_JSON")),
+				ownerId, ownerType, BrainMailImport.KIND, CollaborationJobUtils.DONE);
+		return retryTeamsSince(since, floor, imported);
+	}
+
+	static Instant retryTeamsSince(Instant since, Instant floor, Map<String, Object> imported) {
+		if (imported != null && imported.get("teamsSince") instanceof String at) {
+			Instant firstWindow = Instant.parse(at);
+			return firstWindow.isBefore(since) ? later(firstWindow, floor) : since;
 		}
 		return since;
 	}

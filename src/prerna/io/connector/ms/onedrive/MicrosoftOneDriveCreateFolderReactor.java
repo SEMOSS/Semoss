@@ -39,6 +39,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Creates a folder in OneDrive.
@@ -71,11 +72,11 @@ public class MicrosoftOneDriveCreateFolderReactor extends AbstractMicrosoftOneDr
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String name = trimToNull(this.keyValue.get(ReactorKeysEnum.NAME.getKey()));
-		String driveId = trimToNull(this.keyValue.get(DRIVE_ID));
-		String itemId = trimToNull(this.keyValue.get(ITEM_ID));
-		String path = trimToNull(this.keyValue.get(PATH));
-		String conflictBehavior = trimToNull(this.keyValue.get(CONFLICT_BEHAVIOR));
+		String name = ValueUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.NAME.getKey()));
+		String driveId = ValueUtils.trimToNull(this.keyValue.get(DRIVE_ID));
+		String itemId = ValueUtils.trimToNull(this.keyValue.get(ITEM_ID));
+		String path = ValueUtils.trimToNull(this.keyValue.get(PATH));
+		String conflictBehavior = ValueUtils.trimToNull(this.keyValue.get(CONFLICT_BEHAVIOR));
 
 		if (name == null) {
 			throw new SemossPixelException("A folder name is required to create a OneDrive folder.");

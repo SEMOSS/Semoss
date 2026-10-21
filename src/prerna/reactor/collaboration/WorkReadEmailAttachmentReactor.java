@@ -47,7 +47,9 @@ public class WorkReadEmailAttachmentReactor extends AbstractCollaborationReactor
 	@Override
 	public NounMetadata execute() {
 		getUser();
-		if (this.insight.getRoomId() == null) throw new IllegalArgumentException("Open the email's room first.");
+		if (this.insight.getRoomId() == null) {
+			throw new IllegalArgumentException("Open the email's room first.");
+		}
 		String reference = getString("path");
 		if (reference == null || !reference.startsWith(EmailAttachmentFiles.DIRECTORY + "/")) {
 			throw new IllegalArgumentException("Expected a prepared email attachment.");
@@ -60,12 +62,14 @@ public class WorkReadEmailAttachmentReactor extends AbstractCollaborationReactor
 			}
 			byte[] bytes = EmailAttachmentFiles.read(file);
 			if (!EmailAttachmentFiles.digest(bytes).equals(getString("sha256"))) {
-				throw new IllegalArgumentException("The email attachment changed. Ask the assistant to attach it again.");
+				throw new IllegalArgumentException(
+						"The email attachment changed. Ask the assistant to attach it again.");
 			}
 			return mapResult(Map.of("path", reference, "name", file.getFileName().toString(), "size", bytes.length,
 					"contentBase64", Base64.getEncoder().encodeToString(bytes)));
 		} catch (IOException e) {
-			throw new IllegalArgumentException("The email attachment could not be read. Ask the assistant to attach it again.", e);
+			throw new IllegalArgumentException(
+					"The email attachment could not be read. Ask the assistant to attach it again.", e);
 		}
 	}
 }
