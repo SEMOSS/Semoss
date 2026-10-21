@@ -883,6 +883,41 @@ resources whose content you don't control, and this survey found none to
 protect - if a site later adds a genuine CDN dependency, it should get an SRI
 hash at that point, not a placeholder one now.
 
+### Browser automation (Playwright) - inert by omission, not by control
+
+The `dev`-line merge of 2026-10-21 brought in a Playwright-based browser
+automation subsystem (`src/prerna/reactor/playwright/` -
+`GeneratePlaywrightFieldActionsReactor`, `PlanNextPlaywrightActionReactor`,
+`PlaywrightSessionUtility`, and related reactors). `PlaywrightBrowserProvider`
+unconditionally lazy-launches a real headless Chromium process directly on the
+host JVM the first time any of these reactors runs; there is no `_ENABLED`
+flag, config property, or permission check anywhere in that package. An LLM
+selects or generates the next browser action
+(`PlanNextPlaywrightActionReactor`, `GeneratePlaywrightAutomationGoalReactor`),
+which puts this in the same risk family as the Python-pixel-execution surface
+discussed above - server-side code acting on model-directed instructions,
+not a fixed, auditable script.
+
+This is currently a non-issue only because of the pre-existing baseline
+choice recorded above ("browser binaries... are not provisioned"):
+`docker/il4/Dockerfile` has no Playwright/Chromium install step, unlike
+`docker/Dockerfile.ubuntu22.04`/`ubuntu24.04`, which explicitly run
+`install_Playwright_linux_dependencies.sh`. Launching the browser in the
+actual IL4 image would fail today. **That protection is incidental, not a
+control written for this feature** - it predates Playwright's addition to
+SEMOSS and exists for an unrelated reason (R/JEP/browser binaries were never
+needed by anything else this template provisions). Nothing stops a future,
+unrelated Dockerfile change from installing Chromium for some other purpose
+and silently reactivating this unreviewed code path.
+
+**Reassess if**: Playwright, Chromium, or any browser-binary install step is
+added to `docker/il4/Dockerfile` for any reason. At that point this needs an
+actual decision - a feature flag defaulting to disabled, a permission/role
+gate, and a DoDI 8552.01 categorization of LLM-directed browser actions
+(Category 2 or 3 depending on what "sandboxed" means for a server-side
+headless browser, not a browser-sandboxed script) - rather than continuing to
+rely on the binary's absence.
+
 ## FIPS boundaries
 
 ### Alternative-provider feasibility (2026-10-01)
