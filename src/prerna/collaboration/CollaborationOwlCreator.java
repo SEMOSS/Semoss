@@ -276,6 +276,21 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("ROLE", VARCHAR_20),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 
+		// Durable owner-owned sources, immutable versions, and explicit many-to-many topic links.
+		addTable("BRAIN_SOURCE", Arrays.asList(OWNER_ID, OWNER_TYPE,
+				Pair.with("SOURCE_ID", VARCHAR_50), Pair.with("CURRENT_VERSION", INTEGER_DATATYPE_NAME),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME), Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		addTable("BRAIN_SOURCE_VERSION", Arrays.asList(OWNER_ID, OWNER_TYPE,
+				Pair.with("SOURCE_ID", VARCHAR_50), Pair.with("VERSION", INTEGER_DATATYPE_NAME),
+				Pair.with("TITLE", VARCHAR_255), Pair.with("KIND", VARCHAR_20),
+				Pair.with("CONTENT", CLOB_DATATYPE_NAME), Pair.with("FILE_NAME", VARCHAR_255),
+				Pair.with("FILE_PATH", CLOB_DATATYPE_NAME), Pair.with("URL", CLOB_DATATYPE_NAME),
+				Pair.with("CONTENT_HASH", VARCHAR_255), Pair.with("STATUS", VARCHAR_20),
+				Pair.with("TRUNCATED", BOOLEAN_DATATYPE_NAME), Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		addTable("BRAIN_TOPIC_SOURCE", Arrays.asList(OWNER_ID, OWNER_TYPE,
+				Pair.with("TOPIC_ID", VARCHAR_50), Pair.with("SOURCE_ID", VARCHAR_50),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+
 		// --- Brain: threads ---
 		// topics and participants live in the link tables; one IS_PRIMARY topic per thread
 		addTable("BRAIN_THREAD", Arrays.asList(

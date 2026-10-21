@@ -88,6 +88,21 @@ class RoomMessageStoreUnitTests {
 		assertEquals("api_key=[masked]", original.getFullInputPrompt());
 	}
 
+    @Test
+    void sourceScopeBoundaryDropsOldEvidenceOnlyFromProviderContext() {
+        Room room=roomWithId();
+        InputMessage old=InputMessage.builder(room).withText("Old source facts").build();
+        InputMessage boundary=InputMessage.builder(room).withText("Continue after unlink").build();
+        boundary.setOrnament("topicSourcesContextStart",true);
+        InputMessage next=InputMessage.builder(room).withText("Follow up").build();
+        List<AbstractMessage> stored=List.of(old,boundary,next);
+        assertEquals(List.of(boundary,next),RoomMessageStore.providerContext(stored));
+        assertEquals(3,stored.size());
+        assertEquals("Old source facts",stored.getFirst().getParts().stream()
+                .filter(part->part instanceof prerna.engine.impl.model.message.TextMessagePart)
+                .map(part->((prerna.engine.impl.model.message.TextMessagePart)part).getText()).findFirst().orElse(""));
+    }
+
 	private static Room roomWithId() {
 		Room room = new Room();
 		room.setId("room-id");

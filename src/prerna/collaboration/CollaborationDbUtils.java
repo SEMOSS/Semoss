@@ -528,6 +528,22 @@ public class CollaborationDbUtils {
 					}
 				}
 			}
+            // Sources have immutable version keys and one association per topic, including across servers.
+            for (var sourceKey : Map.of(
+                    "BRAIN_SOURCE", List.of("OWNER_ID", "OWNER_TYPE", "SOURCE_ID"),
+                    "BRAIN_SOURCE_VERSION", List.of("OWNER_ID", "OWNER_TYPE", "SOURCE_ID", "VERSION"),
+                    "BRAIN_TOPIC_SOURCE", List.of("OWNER_ID", "OWNER_TYPE", "TOPIC_ID", "SOURCE_ID")).entrySet()) {
+                String index=sourceKey.getKey()+"_KEY_UNIQUE";
+                if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb,index,
+                        sourceKey.getKey(),collaborationDb.getDatabase(),collaborationDb.getSchema())) {
+                    String sql=queryUtil.allowIfExistsIndexSyntax()
+                            ? queryUtil.createIndexIfNotExists(index,sourceKey.getKey(),sourceKey.getValue())
+                            : queryUtil.createIndex(index,sourceKey.getKey(),sourceKey.getValue());
+                    try (Statement statement=conn.createStatement()) {
+                        statement.execute(sql.replaceFirst("(?i)CREATE INDEX","CREATE UNIQUE INDEX"));
+                    }
+                }
+            }
 			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)
 			widenColumn(collaborationDb, conn, "BRAIN_TOPIC_PERSON", "ROLE_LABEL", 255);
 

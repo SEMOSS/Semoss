@@ -366,6 +366,8 @@ final class HarnessToolExecutor {
 			// Let the author correct its arguments without losing the run or saved deck.
 			outcome = new ToolExecOutcome("Edit rejected: " + invalidEdit.getMessage(), false);
 		}
+        if (outcome.success && Set.of("SearchTopicSources", "ReadTopicSource").contains(tc.rawToolName))
+            state.recordTopicEvidence(outcome.content);
 		long durMs = System.currentTimeMillis() - startMs;
         state.progress().endTool(tc.rawToolName, tc.toolParams, outcome.success, outcome.content, durMs);
 

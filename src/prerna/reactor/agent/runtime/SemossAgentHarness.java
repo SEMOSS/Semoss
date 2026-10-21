@@ -366,6 +366,7 @@ public class SemossAgentHarness implements IAgentHarness {
 						.withText(ctx.getInput() + priorRequests + "\n\n" + state.runtimeContext(), ctx.getUserText())
 						.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
 						.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
+				prerna.collaboration.BrainTopicSources.markContextBoundary(ctx.getInsight().getUser(), room, firstMsg);
 				tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
 				// A continuation prompt is platform-authored model context, not something the
 				// user said.
@@ -502,6 +503,7 @@ public class SemossAgentHarness implements IAgentHarness {
 					}
 				}
 			}
+			state.attachTopicCitations(response);
 			persistAgentRunTags(room, ctx);
 
 			logger.info("SemossAgentHarness: done room={} iterations={} reflections={} elapsedMs={}", room.getId(),

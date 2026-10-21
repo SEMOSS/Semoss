@@ -560,6 +560,7 @@ public final class BrainTopicUtils {
 			CollaborationDbUtils.update(conn, "UPDATE BRAIN_MEMORY_LINK SET REF_ID = ?" + MEMORY_TOPIC_LINK,
 					targetTopicId, ownerId, ownerType, BrainMemoryUtils.TOPIC, sourceTopicId);
 			BrainTopicRoomUtils.moveRooms(conn, ownerId, ownerType, sourceTopicId, targetTopicId, now);
+			BrainTopicSources.moveLinks(conn, ownerId, ownerType, sourceTopicId, targetTopicId);
 			for (String table : new String[] { "WORK_ITEM", "WORK_THREAD_STEP" }) {
 				CollaborationDbUtils.update(conn,
 						"UPDATE " + table + " SET LINK_TOPIC_ID = ? "
@@ -635,7 +636,7 @@ public final class BrainTopicUtils {
 				}
 			}
 			for (String table : new String[] { "BRAIN_THREAD_TOPIC", "BRAIN_THREAD_TOPIC_REJECTION", "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE",
-					"BRAIN_RULE", "BRAIN_TOPIC_FOLDER", "BRAIN_TOPIC" }) {
+					"BRAIN_RULE", "BRAIN_TOPIC_FOLDER", "BRAIN_TOPIC_SOURCE", "BRAIN_TOPIC" }) {
 				CollaborationDbUtils.update(conn, "DELETE FROM " + table + owned, ownerId, ownerType, topicId);
 			}
 			// memories only about this topic go with it, as its notes did; the others just lose the link

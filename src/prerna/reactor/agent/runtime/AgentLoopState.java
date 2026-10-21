@@ -84,6 +84,17 @@ public final class AgentLoopState {
             topicUser = runUser;
             topicRoom = ctx.getRoom();
             threadBrief = BrainThreadBrief.prepare(runUser, ctx.getRoom());
+            // Resume of a paused run restores evidence from its persisted, server-owned tool results.
+            for (var message : ctx.getRoom().getMessages()) {
+                var run = message.getAgentRun();
+                if (run == null || !java.util.Objects.equals(ctx.getRunId(),run.getRunId())) continue;
+                for (var part : message.getParts())
+                    if (part instanceof prerna.engine.impl.model.message.ToolResultMessagePart tool
+                            && tool.getToolResult()!=null && java.util.Set.of("SearchTopicSources","ReadTopicSource")
+                                    .contains(tool.getToolResult().getToolName())
+                            && "success".equals(tool.getToolResult().getToolStatus()))
+                        recordTopicEvidence(tool.getToolResult().getOutput());
+            }
         }
         if (ctx.getAgentConfig().hasPptxWorkflow()) {
             startPptxWorkflow(ctx, ctx.isResumeMode());
@@ -104,11 +115,13 @@ public final class AgentLoopState {
     String runtimeContext() {
         String topics = topicRoom == null ? null : BrainTopicBrief.runtimeNote(topicUser, topicRoom);
         String threads = threadBrief == null ? null : threadBrief.next();
+        String sources = topicRoom == null ? null : prerna.collaboration.BrainTopicSources.runtimeNote(topicUser, topicRoom);
         return "[SEMOSS runtime status]\n" + progress.guidance()
                 + (currentTimeZone == null ? "" : "\n" + RuntimeTimeContext.capture(currentTimeZone).guidance())
                 + (pptxWorkflow == null ? "" : "\n" + pptxWorkflow.guidance(iterations))
                 + (topics == null ? "" : "\n" + topics)
                 + (threads == null ? "" : "\n" + threads)
+                + (sources == null ? "" : "\n" + sources)
                 + "\n[/SEMOSS runtime status]";
     }
 
@@ -126,6 +139,42 @@ public final class AgentLoopState {
 
     /** Ordered record of every tool call executed. */
     private final List<AgentHarnessResult.ToolCallRecord> toolCallRecords = new ArrayList<>();
+
+    // Evidence is copied only from the trusted topic-source tool result, never from arbitrary tool JSON.
+    private final java.util.Map<String,java.util.Map<String,Object>> topicEvidence = new java.util.LinkedHashMap<>();
+    synchronized void recordTopicEvidence(String json) {
+        org.json.JSONObject result = new org.json.JSONObject(json);
+        org.json.JSONArray sources = result.optJSONArray("sources");
+        if (sources == null) sources = new org.json.JSONArray().put(result);
+        for (int i=0;i<sources.length();i++) {
+            org.json.JSONObject source = sources.getJSONObject(i);
+            org.json.JSONObject citation = source.optJSONObject("citation");
+            if (citation != null && "ready".equals(source.optString("status"))) {
+                var evidence=citation.toMap();
+                var previous=topicEvidence.get(citation.getString("citationId"));
+                if(previous!=null && !java.util.Objects.equals(previous.get("locator"),evidence.get("locator"))) {
+                    evidence.put("locator",previous.get("locator")+"; "+evidence.get("locator"));
+                    String excerpt=previous.get("excerpt")+" ... "+evidence.get("excerpt");
+                    evidence.put("excerpt",excerpt.substring(0,Math.min(2100,excerpt.length())));
+                }
+                topicEvidence.put(citation.getString("citationId"),evidence);
+            }
+        }
+    }
+    synchronized void attachTopicCitations(prerna.engine.impl.model.message.ResponseMessage response) {
+        String text = response.getContent() == null ? "" : response.getContent();
+        java.util.List<java.util.Map<String,Object>> used = new java.util.ArrayList<>();
+        for (var entry : topicEvidence.entrySet()) {
+            if (!text.contains("[[source:" + entry.getKey() + "]]")) continue;
+            try {
+                if (topicUser != null) prerna.collaboration.BrainTopicSources.readForChat(topicUser,topicRoom.getId(),
+                        String.valueOf(entry.getValue().get("sourceId")),String.valueOf(entry.getValue().get("topicId")),
+                        ((Number)entry.getValue().get("version")).intValue());
+                used.add(entry.getValue());
+            } catch (IllegalArgumentException revoked) { /* A source unlinked during the run is not cited. */ }
+        }
+        if (!used.isEmpty()) response.setOrnament("topicSources", used);
+    }
 
     AgentLoopState() {}
     AgentLoopState(PptxWorkflow workflow) { this.pptxWorkflow = workflow; }

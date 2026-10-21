@@ -178,6 +178,14 @@ public final class RoomMessageStore {
 	 * intact.
 	 */
 	public static List<AbstractMessage> providerContext(List<AbstractMessage> branch) {
+        // Source unlink/archive/version changes invalidate previously supplied source context.
+        // Keep the durable audit transcript, but omit the old branch prefix from future model requests.
+        for (int i=branch.size()-1;i>=0;i--) {
+            if (Boolean.TRUE.equals(branch.get(i).getOrnament("topicSourcesContextStart"))) {
+                branch = new ArrayList<>(branch.subList(i,branch.size()));
+                break;
+            }
+        }
 		for (int i = branch.size() - 1; i >= 0; i--) {
 			AbstractMessage message = branch.get(i);
 			if (message instanceof prerna.engine.impl.model.message.InputMessage && message.hasTextPart()

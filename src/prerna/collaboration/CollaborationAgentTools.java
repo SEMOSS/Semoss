@@ -38,6 +38,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.engine.api.ToolExecutionResult;
@@ -124,6 +125,8 @@ public final class CollaborationAgentTools {
 		REACTORS.put("RespondToEvent", MicrosoftCalendarRespondToEventReactor.class);
 		// mail through Brain first: the owner's classified threads, with never-ingest and exclusions applied
 		REACTORS.put("ListTopics", BrainListTopicsReactor.class);
+        REACTORS.put("SearchTopicSources", prerna.reactor.collaboration.BrainSearchTopicSourcesReactor.class);
+        REACTORS.put("ReadTopicSource", prerna.reactor.collaboration.BrainReadTopicSourceReactor.class);
 		REACTORS.put("SearchMail", BrainSearchThreadsReactor.class);
 		REACTORS.put("ReadThread", BrainGetThreadMessagesReactor.class);
 		// change the owner's Brain; both wait for the owner to approve
@@ -171,13 +174,18 @@ public final class CollaborationAgentTools {
 		REACTORS.put("DeleteMySkill", WorkDeleteMySkillReactor.class);
 	}
 
+    // A topic chat cannot use general provider discovery to bypass explicit document/topic associations.
+    private static final Set<String> UNSCOPED_READS = Set.of("ListM365Mail", "ListTeams", "ListChannels",
+            "ListChannelFiles", "DownloadChannelFile", "ListChats", "GetChat", "ListChatMessages", "GetChatMessage",
+            "DownloadMessageAttachment", "ListDrives", "ListDriveFiles", "ListSharedFiles", "SearchFiles", "GetFile", "DownloadDriveFile");
+
 	private static final Set<String> MEMORY_TOOLS = Set.of("Remember", "Forget", "SearchMemories");
 
 	// calendar reads that take a timeZone, filled in with the owner's when the model leaves it out
 	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent");
 
 	// tools about the chat itself: only for the owner's chat at the root of the run, never a routine
-	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "CompleteGoal");
+	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "CompleteGoal", "SearchTopicSources", "ReadTopicSource");
 
 	// the email editor is open in the owner's chat; a routine has none, its delivery step sends the result
 	private static final Set<String> EDITOR_TOOLS = Set.of("ComposeEmail");
@@ -233,6 +241,8 @@ public final class CollaborationAgentTools {
 			}
 		}
 		List<Map<String, Object>> tools = definitions(memory, owner && mode.chatOnly(), owner);
+        if (owner && mode.chatOnly() && !BrainTopicBrief.chatTopics(user, room).isEmpty())
+            tools.removeIf(tool -> UNSCOPED_READS.contains(String.valueOf(tool.get("name"))));
 		if (mode == CollaborationRunMode.ROUTINE) {
 			// unattended: nothing that would wait for an approval or work on the editor
 			tools.removeIf(tool -> isAsk(tool) || EDITOR_TOOLS.contains(String.valueOf(tool.get("name"))));
@@ -297,8 +307,77 @@ public final class CollaborationAgentTools {
 					+ String.join(", ", properties.keySet()) + ". Nothing was run; call it again with those names.";
 			return ToolExecutionResult.error(message, message);
 		}
-		try {
-			if ("ComposeEmail".equals(toolName) && params != null) {
+        try {
+            List<String> chatTopics = List.of();
+            if (insight.getRoomId() != null) {
+                // Delegation and routine rooms keep their existing contracts; only owner assistant chats are topic-scoped.
+                try { chatTopics = BrainTopicSources.chatTopics(insight.getUser(), insight.getRoomId()); }
+                catch (IllegalArgumentException inaccessible) {
+                    if ("SearchTopicSources".equals(toolName) || "ReadTopicSource".equals(toolName)) throw inaccessible;
+                }
+            }
+            if (!chatTopics.isEmpty()) {
+                if (UNSCOPED_READS.contains(toolName)) throw new IllegalArgumentException("Use this chat's linked topic sources; general provider search is unavailable in a topic chat");
+                Map<String,Object> args=params==null ? Map.of() : params;
+                if ("ReadThread".equals(toolName) || "DownloadAttachment".equals(toolName))
+                    BrainTopicSources.requireChatThread(insight.getUser(),insight.getRoomId(),String.valueOf(args.get("threadId")));
+                if ("ListTopics".equals(toolName)) {
+                    Map<String,Object> one=null;
+                    String requested=stringArg(args,"topicId"), name=stringArg(args,"topic");
+                    if(requested!=null || name!=null) {
+                        Pair<String,String> ownerId=CollaborationDbUtils.ownerOf(insight.getUser());
+                        requested=BrainThreadFinder.resolveTopic(ownerId.getValue0(),ownerId.getValue1(),requested,name);
+                        if(!chatTopics.contains(requested)) throw new IllegalArgumentException("That topic is not included in this chat");
+                        one=BrainTopicUtils.getTopic(insight.getUser(),requested,null);
+                    }
+                    List<Map<String,Object>> items=new ArrayList<>();
+                    if(one==null) for(String topic:chatTopics) items.add(BrainTopicUtils.getTopic(insight.getUser(),topic,null));
+                    return ToolExecutionResult.success(CollaborationDbUtils.toJson(one==null ? Map.of("items",items,"total",items.size()) : one));
+                }
+                if ("SearchMemories".equals(toolName)) {
+                    BrainMemoryUtils.requireAssistantMemory(insight.getUser());
+                    List<BrainMemoryUtils.Ref> refs=chatTopics.stream().map(topic->new BrainMemoryUtils.Ref(BrainMemoryUtils.TOPIC,topic)).toList();
+                    return ToolExecutionResult.success(CollaborationDbUtils.toJson(BrainMemoryUtils.search(insight.getUser(),
+                            stringArg(args,"query"),refs,args.get("limit") instanceof Number n ? n.intValue() : null)));
+                }
+                if ("SearchMail".equals(toolName)) {
+                    Pair<String,String> ownerId=CollaborationDbUtils.ownerOf(insight.getUser());
+                    String chosen=args.get("topicId") instanceof String id ? id : null;
+                    String name=args.get("topic") instanceof String value ? value : null;
+                    List<String> selected=chatTopics;
+                    if(chosen!=null || name!=null) {
+                        chosen=BrainThreadFinder.resolveTopic(ownerId.getValue0(),ownerId.getValue1(),chosen,name);
+                        if(!chatTopics.contains(chosen)) throw new IllegalArgumentException("That topic is not included in this chat");
+                        selected=List.of(chosen);
+                    }
+                    List<Map<String,Object>> items=new ArrayList<>();
+                    Set<String> seen=new java.util.HashSet<>();
+                    for(String topic:selected) {
+                        Map<String,Object> found=BrainThreadFinder.searchTopic(insight.getUser(),topic,null,
+                                stringArg(args,"query"),stringArg(args,"person"),stringArg(args,"from"),stringArg(args,"to"),
+                                args.get("limit") instanceof Number n ? n.intValue() : null);
+                        for(Object item:(List<?>)found.get("items")) {
+                            @SuppressWarnings("unchecked") Map<String,Object> row=(Map<String,Object>)item;
+                            if(seen.add(String.valueOf(row.get("threadId")))) items.add(row);
+                        }
+                    }
+                    return ToolExecutionResult.success(CollaborationDbUtils.toJson(Map.of("items",items)));
+                }
+            }
+            // Direct structured results preserve server-generated evidence without parsing a Pixel transport envelope.
+            if ("SearchTopicSources".equals(toolName) || "ReadTopicSource".equals(toolName)) {
+                Map<String,Object> args = params == null ? Map.of() : params;
+                String topic = args.get("topicId") instanceof String value ? value : null;
+                Object output = "SearchTopicSources".equals(toolName)
+                        ? BrainTopicSources.search(insight.getUser(), insight.getRoomId(),
+                                args.get("query") instanceof String value ? value : null, topic)
+                        : BrainTopicSources.readForChat(insight.getUser(), insight.getRoomId(),
+                                String.valueOf(args.get("sourceId")), topic,
+                                args.get("version") instanceof Number version ? version.intValue() : null,
+                                args.get("offset") instanceof Number offset ? offset.intValue() : null);
+                return ToolExecutionResult.success(CollaborationDbUtils.toJson(output));
+            }
+            if ("ComposeEmail".equals(toolName) && params != null) {
 				for (String key : List.of("replyTo", "forward")) {
 					if (params.get(key) instanceof String value && "selected".equals(value.trim())) {
 						params = new LinkedHashMap<>(params);
@@ -320,6 +399,8 @@ public final class CollaborationAgentTools {
 			return ToolExecutionResult.error(message, message);
 		}
 	}
+
+    private static String stringArg(Map<String,Object> args,String key) { return args.get(key) instanceof String value ? value : null; }
 
 	private static String selectedEmailId(String input) {
 		String header = "[SEMOSS_WORK_CONTEXT_V1]\n";
