@@ -96,7 +96,7 @@ final class CurrentPermissionLevel {
 	 *
 	 * @return {@link #of}, or null when the rows cannot be read, which is logged
 	 */
-	private static Integer ofOrNull(User user, PermissionTargetResource target) {
+	static Integer ofOrNull(User user, PermissionTargetResource target) {
 		try {
 			return of(user, target);
 		} catch (IllegalArgumentException e) {

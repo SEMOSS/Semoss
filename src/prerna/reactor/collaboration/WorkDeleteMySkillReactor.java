@@ -33,27 +33,26 @@ import prerna.collaboration.CollaborationSkills;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// WorkCreateSkill(name=["client-summaries"], description=["..."], content=["..."]);
-public class WorkCreateSkillReactor extends AbstractCollaborationReactor {
+// WorkDeleteMySkill(skillId=["..."]);
+public class WorkDeleteMySkillReactor extends AbstractCollaborationReactor {
 
-	private static final String NAME = "name";
-	private static final String DESCRIPTION = "description";
-	private static final String CONTENT = "content";
+	private static final String SKILL_ID = "skillId";
 
-	public WorkCreateSkillReactor() {
-		this.keysToGet = new String[] { NAME, DESCRIPTION, CONTENT };
-		this.keyRequired = new int[] { 1, 1, 1 };
+	public WorkDeleteMySkillReactor() {
+		this.keysToGet = new String[] { SKILL_ID };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		return mapResult(CollaborationSkills.create(getUser(), getString(NAME), getString(DESCRIPTION),
-				getString(CONTENT)));
+		String skillId = getString(SKILL_ID).trim();
+		CollaborationSkills.delete(getUser(), skillId);
+		return mapResult(Map.of("skillId", skillId, "deleted", true));
 	}
 
 	@Override
 	public Map<String, String> getMcpToolMetadata() {
-		// saves instructions the owner's agents will follow, so it waits for their approval
+		// cannot be undone, so it waits for the owner's approval
 		Map<String, String> meta = super.getMcpToolMetadata();
 		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
 		return meta;
@@ -61,23 +60,14 @@ public class WorkCreateSkillReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Saves a skill for the owner: reusable instructions (how they like a summary written, what to check "
-				+ "for a client, a report layout) that their routines and, if they turn it on, their assistant load "
-				+ "when relevant. The skill is private to the owner. Use it when the owner asks to remember a way of "
-				+ "doing something as a skill, or a routine needs longer standing instructions. Then attach it with "
-				+ "CreateRoutine (skills) or UseSkillInAssistant.";
+		return "Deletes one of the owner's skills for good. Routines and the assistant stop using it on their next "
+				+ "run.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (NAME.equals(key)) {
-			return "Short lowercase name with hyphens, such as client-summaries.";
-		}
-		if (DESCRIPTION.equals(key)) {
-			return "One sentence on when to use the skill; agents read it to decide whether to load it.";
-		}
-		if (CONTENT.equals(key)) {
-			return "The skill's instructions in Markdown, without frontmatter. At most 20000 characters.";
+		if (SKILL_ID.equals(key)) {
+			return "Id of the owner's skill, from ListMySkills.";
 		}
 		return super.getDescriptionForKey(key);
 	}

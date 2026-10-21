@@ -93,7 +93,7 @@ public class SystemDefaultEngines {
 			Constants.MCP_NODE_BUILDER, Constants.MCP_REACTOR_HELP);
 
 	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER,
-			Constants.AGENT_DATABASE_EXPLORER, Constants.AGENT_NOTEBOOK_ANALYST, Constants.AGENT_PPTX,
+			Constants.AGENT_COLLABORATION, Constants.AGENT_DATABASE_EXPLORER, Constants.AGENT_NOTEBOOK_ANALYST, Constants.AGENT_PPTX,
 			Constants.AGENT_PPTX_REVIEWER, Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER);
 
 	public static List<String> getIgnoreDatabaseOwlList() {
@@ -147,6 +147,9 @@ public class SystemDefaultEngines {
 		if (Constants.AGENT_DATABASE_EXPLORER.equals(agentId) || Constants.AGENT_NOTEBOOK_ANALYST.equals(agentId)) {
 			return List.of(Constants.MCP_REACTOR_HELP);
 		}
+		if (Constants.AGENT_COLLABORATION.equals(agentId)) {
+			return COLLABORATION_MCPS;
+		}
 		if (Constants.AGENT_PPTX.equals(agentId)) {
 			return List.of(Constants.MCP_PIXABAY);
 		}
@@ -173,6 +176,9 @@ public class SystemDefaultEngines {
 		}
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return List.of(Constants.SKILL_WORKFLOW_AUTOMATION);
+		}
+		if (Constants.AGENT_COLLABORATION.equals(agentId)) {
+			return COLLABORATION_SKILLS;
 		}
 		if (Constants.AGENT_PPTX.equals(agentId)) {
 			return List.of(Constants.SKILL_PPTX);

@@ -117,11 +117,12 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Creates or changes one of the owner's routines: an instruction their agent does on a schedule, with "
-				+ "read-only tools, and delivers only to the owner. Use it when the owner asks for something to happen "
+				+ "the tools that need no approval, and delivers only to the owner; by email, files the run makes are attached. Use it when the owner asks for something to happen "
 				+ "regularly (\"every weekday at 8, summarize what my clients asked for and email it to me\"). Leave "
 				+ "out routineId to create one; pass it, from ListRoutines, to change one, sending only what changes. "
 				+ "The owner approves the exact routine on a card before it is saved. A routine can never send to "
-				+ "anyone else. To try a saved routine now, use ManageRoutine with action run.";
+				+ "anyone else. To try a saved routine now, use ManageRoutine with action run. Load "
+				+ "collaboration/references/routines/schedule-a-routine.md before creating one.";
 	}
 
 	@Override
@@ -132,10 +133,10 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 		case NAME:
 			return "Short name the owner will recognize, at most 80 characters, such as \"Client asks digest\".";
 		case PROMPT:
-			return "What the agent does each run, written as the task in the owner's words, with what to look at and "
-					+ "what the answer should contain. Describe only the work: delivery is set by the delivery "
-					+ "argument and happens automatically, so do not name a recipient or ask it to send. At most "
-					+ "4000 characters.";
+			return "The owner's request in their own words, a short paragraph: what to look at and what the result "
+					+ "should contain. Do not write steps, tool names, tool options, the time zone, a recipient, or "
+					+ "any instruction to send; delivery is its own argument and happens automatically. Put a lasting "
+					+ "layout in a skill instead. At most 4000 characters.";
 		case TIME:
 			return "Time of day to run, HH:mm in 24-hour format, in the routine's time zone. Default 08:00.";
 		case DAYS:
@@ -143,8 +144,8 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 		case TIMEZONE:
 			return "IANA time zone of the time, such as America/New_York. Use the owner's own time zone.";
 		case DELIVERY:
-			return "Where the answer goes, always only to the owner: email (their own inbox), teams (a Teams message "
-					+ "to themselves) or none (kept in Routines). Default email.";
+			return "Where the answer goes, always only to the owner: email (their own inbox, with any files the run "
+					+ "makes attached), teams (a Teams message to themselves, text only) or none (kept in Routines). Default email.";
 		case SKILLS:
 			return "Ids of the owner's own skills the agent loads, from ListMySkills. Optional.";
 		case AGENT_ID:

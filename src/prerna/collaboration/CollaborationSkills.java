@@ -44,6 +44,8 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.agent.skill.CreateSkillReactor;
+import prerna.reactor.agent.skill.DeleteSkillReactor;
+import prerna.reactor.agent.skill.Skill;
 import prerna.reactor.agent.skill.SkillProjects;
 
 /**
@@ -55,27 +57,42 @@ public final class CollaborationSkills {
 	private static final Logger classLogger = LogManager.getLogger(CollaborationSkills.class);
 
 	public static final String TAG = "collaboration";
-	static final int MAX_CONTENT_CHARS = 20_000;
 
 	private CollaborationSkills() {
 	}
 
-	/** Creates a private skill owned by the user and tags it for Collaboration. */
-	public static Map<String, Object> create(User user, String name, String description, String content) {
+	/** Creates a private skill owned by the user, tagged for Collaboration, with the given SKILL.md body. */
+	public static Map<String, Object> create(User user, String name, String description, String instructions) {
 		if (AbstractSecurityUtils.adminOnlySkillAdd() && !Boolean.TRUE.equals(SecurityAdminUtils.userIsAdmin(user))) {
 			throw new IllegalArgumentException("Only an administrator can create skills on this server");
 		}
-		if (content == null || content.isBlank()) {
-			throw new IllegalArgumentException("The skill needs its instructions");
+		if (name == null || name.isBlank() || description == null || description.isBlank()) {
+			throw new IllegalArgumentException("A new skill needs a name and a description");
 		}
-		if (content.length() > MAX_CONTENT_CHARS) {
-			throw new IllegalArgumentException("A skill can be at most " + MAX_CONTENT_CHARS + " characters");
+		if (instructions == null || instructions.isBlank()) {
+			throw new IllegalArgumentException("A new skill needs its instructions, the body of SKILL.md");
 		}
-		Map<String, Object> created = CreateSkillReactor.create(user, content, name, description);
+		// frontmatter comes from the name and description, never from the body
+		Map<String, Object> created = CreateSkillReactor.create(user,
+				Skill.buildFrontmatter(name.trim(), description.trim()) + Skill.stripFrontmatter(instructions).strip()
+						+ "\n",
+				name.trim(), description.trim());
 		String skillId = String.valueOf(created.get("skill_id"));
 		SecurityProjectUtils.updateProjectMetadata(skillId,
 				Map.of("tag", List.of(ProjectHelper.SKILL_PROJECT_TAG, TAG)));
 		return describe(skillId);
+	}
+
+	/** Deletes one of the user's own skills; routines and the assistant drop it on their next run. */
+	public static void delete(User user, String skillId) {
+		if (!isMine(user, skillId)) {
+			throw new IllegalArgumentException("Pick one of your own Collaboration skills; " + skillId
+					+ " is not one of them");
+		}
+		if (AbstractSecurityUtils.adminOnlySkillDelete() && !Boolean.TRUE.equals(SecurityAdminUtils.userIsAdmin(user))) {
+			throw new IllegalArgumentException("Only an administrator can delete skills on this server");
+		}
+		DeleteSkillReactor.delete(user, skillId);
 	}
 
 	/** The user's own Collaboration skills, by name. */
@@ -140,7 +157,7 @@ public final class CollaborationSkills {
 		return kept;
 	}
 
-	static Map<String, Object> describe(String skillId) {
+	public static Map<String, Object> describe(String skillId) {
 		SkillProjects.SkillInfo info = SkillProjects.resolve(skillId);
 		Map<String, Object> skill = new LinkedHashMap<>();
 		skill.put("id", skillId);

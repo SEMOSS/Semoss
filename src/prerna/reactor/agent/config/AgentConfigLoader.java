@@ -50,6 +50,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.collaboration.BrainProfileUtils;
 import prerna.collaboration.CollaborationMemoryRunHook;
+import prerna.collaboration.CollaborationRunMode;
 import prerna.collaboration.CollaborationSkills;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
@@ -464,8 +465,8 @@ public final class AgentConfigLoader {
 			out.add(entry);
 		}
 
-		// the owner's own Collaboration skills they turned on for their assistant
-		if (user != null && CollaborationUtils.isAssistantRoom(room)) {
+		// the owner's own Collaboration skills they turned on for their assistant, in chats and routines
+		if (user != null && CollaborationRunMode.of(room) != null) {
 			for (String skillId : CollaborationSkills.keepMine(user, BrainProfileUtils.assistantSkills(user))) {
 				if (seen.add(skillId)) {
 					out.add(skillRef(skillId, null));
@@ -817,10 +818,11 @@ public final class AgentConfigLoader {
 	}
 
 	/**
-	 * An assistant room also reviews its finished chats for memories to suggest, whatever its agent configures.
+	 * An owner's chat also reviews its finished runs for memories to suggest, whatever its agent configures; a
+	 * routine's runs are not reviewed.
 	 */
 	private static List<IAgentRunHook> withBuiltInRunHooks(Room room, List<IAgentRunHook> configured) {
-		if (!CollaborationUtils.isAssistantRoom(room)) {
+		if (!CollaborationRunMode.isChat(room)) {
 			return configured;
 		}
 		List<IAgentRunHook> hooks = new ArrayList<>(configured);

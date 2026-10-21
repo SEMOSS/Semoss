@@ -29,7 +29,6 @@ package prerna.collaboration;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import prerna.auth.User;
 import prerna.om.Insight;
@@ -42,8 +41,8 @@ public final class WorkInboxRoutine {
 	public static final String AUTOMATION_ID = "collaboration:" + ID;
 	static final WorkRoutine.Kind KIND = new WorkRoutine.Kind(ID, "WORK_INBOX_ROUTINE", "WorkRunInboxRoutine();",
 			"Daily inbox brief", "inbox-daily-brief.automation.json", "brief", "inbox brief", "brief",
-			Map.of("time", "08:00", "days", WorkRoutine.WEEKDAYS.subList(0, 5), "timezone", "UTC", "emailCount", 25),
-			WorkInboxRoutine::emailCount, WorkInboxRoutine::inputs, null);
+			Map.of("time", "08:00", "days", WorkRoutine.WEEKDAYS.subList(0, 5), "timezone", "UTC", "lookbackHours", 24),
+			WorkInboxRoutine::lookbackHours, WorkInboxRoutine::inputs, null);
 
 	private WorkInboxRoutine() { }
 
@@ -80,19 +79,15 @@ public final class WorkInboxRoutine {
 		return WorkRoutine.definition(KIND, engineId);
 	}
 
-	private static void emailCount(Map<String, Object> input, Map<String, Object> config) {
-		Object count = input.get("emailCount");
-		if (!(count instanceof Number number) || number.doubleValue() != number.intValue() || number.intValue() < 1 || number.intValue() > 100) {
-			throw new IllegalArgumentException("emailCount must be an integer from 1 to 100");
+	private static void lookbackHours(Map<String, Object> input, Map<String, Object> config) {
+		Object hours = input.get("lookbackHours");
+		if (!(hours instanceof Number number) || number.doubleValue() != number.intValue() || number.intValue() < 1 || number.intValue() > 720) {
+			throw new IllegalArgumentException("lookbackHours must be an integer from 1 to 720");
 		}
-		config.put("emailCount", number.intValue());
+		config.put("lookbackHours", number.intValue());
 	}
 
 	private static Map<String, Object> inputs(Map<String, Object> row, Map<String, Object> config) {
-		Map<String, Object> inputs = new LinkedHashMap<>();
-		// Replies are drafted only for mail that came after the last brief, so a day's drafts are not made twice.
-		inputs.put("since", Objects.toString(row.get("lastSuccessAt"), ""));
-		inputs.put("email_count", ((Number) config.get("emailCount")).intValue());
-		return inputs;
+		return Map.of("lookback_hours", ((Number) config.get("lookbackHours")).intValue());
 	}
 }

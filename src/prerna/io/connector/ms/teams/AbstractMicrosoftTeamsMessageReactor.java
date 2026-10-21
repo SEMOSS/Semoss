@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.io.connector.ms.teams;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -92,8 +93,9 @@ public abstract class AbstractMicrosoftTeamsMessageReactor extends AbstractMicro
 		}
 		int parsed;
 		try {
-			parsed = Integer.parseInt(value);
-		} catch (NumberFormatException e) {
+			// models often send a whole number as 50.0
+			parsed = new BigDecimal(value).intValueExact();
+		} catch (NumberFormatException | ArithmeticException e) {
 			classLogger.error("Invalid {} of '{}' passed to a Microsoft Teams message reactor", key, value, e);
 			throw new SemossPixelException(key + " must be a whole number.");
 		}

@@ -38,6 +38,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
 import prerna.reactor.agent.mcp.MCPUtility;
 
 /**
@@ -46,19 +47,27 @@ import prerna.reactor.agent.mcp.MCPUtility;
 public final class EmailAttachmentFiles {
 
 	public static final String DIRECTORY = ".email-attachments";
-	// Inline Graph attachments require small files; leave room for base64 and the
-	// body.
-	public static final int MAX_BYTES = 2_500_000;
 	public static final int MAX_FILES = 10;
 
 	private EmailAttachmentFiles() {
 	}
 
+	// the mail helper's one message limit, MS_MAIL_MAX_MESSAGE_MB
+	public static int maxBytes() {
+		return (int) Math.min(Integer.MAX_VALUE - 1, MicrosoftOutlookMailHelper.maxAttachmentBytes());
+	}
+
+	private static IllegalArgumentException tooLarge() {
+		return new IllegalArgumentException(
+				"Email attachments must total at most " + (maxBytes() / (1024 * 1024)) + " MB.");
+	}
+
 	public static byte[] read(Path path) throws IOException {
+		int max = maxBytes();
 		try (var input = Files.newInputStream(path)) {
-			byte[] bytes = input.readNBytes(MAX_BYTES + 1);
-			if (bytes.length > MAX_BYTES) {
-				throw new IllegalArgumentException("Email attachments must total at most 2.5 MB.");
+			byte[] bytes = input.readNBytes(max + 1);
+			if (bytes.length > max) {
+				throw tooLarge();
 			}
 			return bytes;
 		}
@@ -79,13 +88,14 @@ public final class EmailAttachmentFiles {
 		// Validate and read every input before creating anything.
 		List<Path> sources = new ArrayList<>();
 		List<byte[]> contents = new ArrayList<>();
-		int total = 0;
+		long total = 0;
+		int max = maxBytes();
 		for (String reference : paths) {
 			Path source = MCPUtility.resolveContainedMcpFile(rootFolder, reference);
 			byte[] bytes = read(source);
 			total += bytes.length;
-			if (total > MAX_BYTES) {
-				throw new IllegalArgumentException("Email attachments must total at most 2.5 MB.");
+			if (total > max) {
+				throw tooLarge();
 			}
 			sources.add(source);
 			contents.add(bytes);

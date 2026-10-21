@@ -82,7 +82,6 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.engine.impl.owl.ReadOnlyOWLEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
-import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
@@ -229,17 +228,13 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 	/// Close
 	@Test
 	void closeDBsNotNull() throws IOException {
-		try (MockedConstruction<OWLEngineFactory> factoryMock = mockConstruction(OWLEngineFactory.class);
-				MockedConstruction<AuditDatabase> auditMock = mockConstruction(AuditDatabase.class)) {
+		try (MockedConstruction<OWLEngineFactory> factoryMock = mockConstruction(OWLEngineFactory.class)) {
 			RDFFileSesameEngine rdf = mock(RDFFileSesameEngine.class);
 			engine.setBaseDataEngine(rdf);
-			engine.generateAudit();
 
 			engine.close();
 
 			verify(rdf, times(1)).close();
-			AuditDatabase auditDatabase = auditMock.constructed().get(0);
-			verify(auditDatabase, times(1)).close();
 		}
 	}
 

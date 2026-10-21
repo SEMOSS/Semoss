@@ -47,10 +47,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.DatabaseWriteAudit;
 
 public class AdminExecQueryReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AdminExecQueryReactor.class);
+
+	private static final String REACTOR_NAME = "AdminExecQuery";
 
 	private NounMetadata qStruct = null;
 
@@ -92,23 +95,15 @@ public class AdminExecQueryReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Input to exec query requires a query struct");
 		}
 
-		// used for audit but we dont use this for admin databases
-		boolean update = false;
-		boolean custom = false;
-
 		String query = null;
-		// grab query && determine how to store in audit db
 		if (qs instanceof HardSelectQueryStruct) {
 			query = ((HardSelectQueryStruct) qs).getQuery();
-			custom = true;
 		} else if (qs instanceof UpdateQueryStruct) {
 			UpdateSqlInterpreter interp = new UpdateSqlInterpreter((UpdateQueryStruct) qs);
 			query = interp.composeQuery();
-			update = true;
 		} else if (qs instanceof SelectQueryStruct) {
 			DeleteSqlInterpreter interp = new DeleteSqlInterpreter((SelectQueryStruct) qs);
 			query = interp.composeQuery();
-			update = false;
 		}
 
 		classLogger.info("EXEC QUERY.... {}", query);
@@ -116,30 +111,16 @@ public class AdminExecQueryReactor extends AbstractReactor {
 			engine.insertData(query);
 		} catch (Exception e) {
 			classLogger.error("Unable to execute the admin database query.", e);
+			DatabaseWriteAudit.recordAsAdmin(this.insight, engine,
+					DatabaseWriteAudit.Write.perStatement(REACTOR_NAME, query, 1, 0, 0, e));
 			String errorMessage = "An error occurred trying to execute the query in the database";
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				errorMessage += ": " + e.getMessage();
 			}
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
 		}
-
-//		// store query in audit db
-//		try {
-//			AuditDatabase audit = engine.generateAudit();
-//			if(audit != null) {
-//				if (custom) {
-//					audit.storeQuery(userId, query);
-//				} else {
-//					if (update) {
-//						audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
-//					} else {
-//						audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
-//					}
-//				}
-//			}
-//		} catch(Exception e) {
-//			logger.error(Constants.STACKTRACE, e);
-//		}
+		DatabaseWriteAudit.recordAsAdmin(this.insight, engine,
+				DatabaseWriteAudit.Write.perStatement(REACTOR_NAME, query, 1, 1, 1, null));
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 	}

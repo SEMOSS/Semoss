@@ -46,6 +46,10 @@ import static prerna.usertracking.AuditSeverity.HIGH;
 import static prerna.usertracking.AuditSeverity.LOW;
 import static prerna.usertracking.AuditSeverity.MEDIUM;
 
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
+
 /**
  * Every kind of event the audit trail records, stored in
  * {@code USER_AUDIT_EVENTS.EVENT_TYPE}. Each type names its category and the
@@ -135,12 +139,32 @@ public enum AuditEventType {
 
 	/** A project was created */
 	PROJECT_CREATE(PROJECT, LOW),
-	/** A project was changed */
+	/**
+	 * A project was changed. No code records this type; it is kept so stored events
+	 * of this type still read.
+	 */
+	@Deprecated
 	PROJECT_UPDATE(PROJECT, MEDIUM),
+	/** A project was renamed */
+	PROJECT_RENAME(PROJECT, MEDIUM),
+	/** A project's display name was changed */
+	PROJECT_DISPLAY_NAME_UPDATE(PROJECT, LOW),
+	/** A project was made public or private */
+	PROJECT_GLOBAL_UPDATE(PROJECT, HIGH),
+	/** A project's discoverable setting was turned on or off */
+	PROJECT_DISCOVERABLE_UPDATE(PROJECT, MEDIUM),
+	/** A project was made a template, or stopped being one */
+	PROJECT_TEMPLATE_UPDATE(PROJECT, MEDIUM),
+	/** A project's metadata was set or loaded */
+	PROJECT_METADATA_UPDATE(PROJECT, LOW),
+	/** A project's app blocks were saved */
+	PROJECT_BLOCKS_UPDATE(PROJECT, LOW),
 	/** A project was deleted */
 	PROJECT_DELETE(PROJECT, HIGH),
 	/** A project was uploaded */
 	PROJECT_UPLOAD(PROJECT, MEDIUM),
+	/** An existing project's files were replaced by an upload */
+	PROJECT_REPLACE(PROJECT, MEDIUM),
 	/** A project was opened; recorded when it is refused */
 	PROJECT_VIEW(PROJECT, LOW),
 
@@ -164,8 +188,24 @@ public enum AuditEventType {
 
 	/** An engine was created or uploaded */
 	ENGINE_CREATE(ENGINE, LOW),
-	/** An engine was changed */
+	/**
+	 * An engine was changed. No code records this type; it is kept so stored events
+	 * of this type still read.
+	 */
+	@Deprecated
 	ENGINE_UPDATE(ENGINE, MEDIUM),
+	/** An engine was renamed */
+	ENGINE_RENAME(ENGINE, MEDIUM),
+	/** An engine's display name was changed */
+	ENGINE_DISPLAY_NAME_UPDATE(ENGINE, LOW),
+	/** An engine was made public or private */
+	ENGINE_GLOBAL_UPDATE(ENGINE, HIGH),
+	/** An engine's discoverable setting was turned on or off */
+	ENGINE_DISCOVERABLE_UPDATE(ENGINE, MEDIUM),
+	/** An engine's metadata was set or loaded */
+	ENGINE_METADATA_UPDATE(ENGINE, LOW),
+	/** A user showed or hid an engine in their own lists */
+	ENGINE_VISIBILITY_UPDATE(ENGINE, LOW),
 	/** An engine was deleted */
 	ENGINE_DELETE(ENGINE, HIGH),
 	/** A model engine was created */
@@ -178,6 +218,8 @@ public enum AuditEventType {
 	FUNCTION_CREATE(ENGINE, LOW),
 	/** A guardrail engine was created */
 	GUARDRAIL_CREATE(ENGINE, LOW),
+	/** SQL or a query struct changed a database */
+	DATABASE_WRITE(ENGINE, MEDIUM),
 
 	// automations
 
@@ -239,6 +281,17 @@ public enum AuditEventType {
 	AUDIT_EXPORT(AUDIT, HIGH),
 	/** The audit trail's chain of hashes was verified */
 	AUDIT_VERIFY(AUDIT, LOW);
+
+	/**
+	 * The changes to a project's or an engine's own settings: its name, display
+	 * name, public and discoverable access, template setting and metadata. Saving a
+	 * project's blocks and a user showing or hiding an engine in their own lists
+	 * are not settings of the project or engine.
+	 */
+	public static final Set<AuditEventType> SETTING_CHANGES = Collections.unmodifiableSet(
+			EnumSet.of(PROJECT_RENAME, PROJECT_DISPLAY_NAME_UPDATE, PROJECT_GLOBAL_UPDATE, PROJECT_DISCOVERABLE_UPDATE,
+					PROJECT_TEMPLATE_UPDATE, PROJECT_METADATA_UPDATE, ENGINE_RENAME, ENGINE_DISPLAY_NAME_UPDATE,
+					ENGINE_GLOBAL_UPDATE, ENGINE_DISCOVERABLE_UPDATE, ENGINE_METADATA_UPDATE));
 
 	private final AuditCategory category;
 	private final AuditSeverity severity;

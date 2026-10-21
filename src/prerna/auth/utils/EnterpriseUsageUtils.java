@@ -95,9 +95,14 @@ public final class EnterpriseUsageUtils {
 			AuditEventType.PERMISSION_UPDATE, AuditEventType.PERMISSION_DELETE, AuditEventType.PERMISSION_BULK_GRANT,
 			AuditEventType.PERMISSION_BATCH_APPLY, AuditEventType.ACCESS_REQUEST_APPROVE,
 			AuditEventType.ACCESS_REQUEST_REJECT);
+	/**
+	 * The app and engine setting changes the audit source reads: renames, display
+	 * names, public and discoverable access, templates and metadata
+	 */
+	private static final Set<AuditEventType> SETTING_EVENTS = AuditEventType.SETTING_CHANGES;
 	/** Every change the audit source reads */
 	private static final Set<AuditEventType> CHANGE_EVENTS = Stream
-			.concat(USAGE_LIMIT_EVENTS.stream(), ACCESS_EVENTS.stream())
+			.of(USAGE_LIMIT_EVENTS.stream(), ACCESS_EVENTS.stream(), SETTING_EVENTS.stream()).flatMap(events -> events)
 			.collect(Collectors.toCollection(() -> EnumSet.noneOf(AuditEventType.class)));
 	/**
 	 * What the audit source's logs show of each event, with the action a denied
@@ -116,7 +121,7 @@ public final class EnterpriseUsageUtils {
 			"ERROR_CODE", "ERROR_MESSAGE");
 	/** The counts of the audit source's summary */
 	private static final List<String> AUDIT_METRICS = List.of("EVENTS", "USAGE_LIMIT_CHANGES", "ACCESS_CHANGES",
-			"DENIALS", "ACTORS", "PEOPLE_DENIED", "PEOPLE_AFFECTED");
+			"SETTING_CHANGES", "DENIALS", "ACTORS", "PEOPLE_DENIED", "PEOPLE_AFFECTED");
 
 	private static final String MODEL_FROM = """
 			FROM MESSAGE m
@@ -542,16 +547,17 @@ public final class EnterpriseUsageUtils {
 
 	/**
 	 * Builds the audit source's summary or a page of its logs: the usage limit
-	 * changes, the access changes and the denied requests in the audit trail,
-	 * recorded on the report's dates. The dates are days in the server's time zone,
-	 * as on the activity logs, and the audit trail keeps UTC times, so the dates'
-	 * bounds are read in UTC: a change counts on the server's day it was made, even
-	 * when its UTC time falls on another day. A denied request is any event with
-	 * the {@code DENIED} status, such as {@code AUTHORIZATION_DENIED} or a denied
-	 * audit read. The user filter matches the person who made the change or was
-	 * denied, or the person a change was for; the app and engine filters match the
-	 * app or engine it was on. As on the logs, {@code =id} matches an exact id and
-	 * anything else a fragment of an id or name, case-insensitive.
+	 * changes, the access changes, the app and engine setting changes and the
+	 * denied requests in the audit trail, recorded on the report's dates. The dates
+	 * are days in the server's time zone, as on the activity logs, and the audit
+	 * trail keeps UTC times, so the dates' bounds are read in UTC: a change counts
+	 * on the server's day it was made, even when its UTC time falls on another day.
+	 * A denied request is any event with the {@code DENIED} status, such as
+	 * {@code AUTHORIZATION_DENIED} or a denied audit read. The user filter matches
+	 * the person who made the change or was denied, or the person a change was for;
+	 * the app and engine filters match the app or engine it was on. As on the logs,
+	 * {@code =id} matches an exact id and anything else a fragment of an id or
+	 * name, case-insensitive.
 	 *
 	 * @param zone the server's time zone, which the dates are days in
 	 * @return a structured read with every value bound
@@ -570,6 +576,7 @@ public final class EnterpriseUsageUtils {
 			qs.addSelector(count("EVENTS", new QueryColumnSelector(AuditReadQuerySupport.column("EVENT_ID")), false));
 			qs.addSelector(count("USAGE_LIMIT_CHANGES", when(eventTypeIn(USAGE_LIMIT_EVENTS), "EVENT_ID"), false));
 			qs.addSelector(count("ACCESS_CHANGES", when(eventTypeIn(ACCESS_EVENTS), "EVENT_ID"), false));
+			qs.addSelector(count("SETTING_CHANGES", when(eventTypeIn(SETTING_EVENTS), "EVENT_ID"), false));
 			qs.addSelector(count("DENIALS", when(denied(), "EVENT_ID"), false));
 			qs.addSelector(count("ACTORS", when(eventTypeIn(CHANGE_EVENTS), "ACTOR_USER_ID"), true));
 			qs.addSelector(count("PEOPLE_DENIED", when(denied(), "ACTOR_USER_ID"), true));
