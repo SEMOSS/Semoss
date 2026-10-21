@@ -46,8 +46,8 @@ import prerna.engine.api.GuardrailTypeEnum;
  * instruction</li>
  * <li>{@code BLOCKED_MESSAGE} - override the default message returned when
  * UNSAFE</li>
- * <li>{@code FAIL_OPEN} - allow the guarded call when the judge errors;
- * defaults to false</li>
+ * <li>{@code JUDGE_ERROR_VERDICT} - {@code BLOCK} or {@code PASS}: the verdict
+ * when the judge call fails; defaults to {@code BLOCK}</li>
  * </ul>
  */
 public class AggressiveSelfHarmGuardrailEngine extends PromptGuardrailEngine {
@@ -94,7 +94,7 @@ public class AggressiveSelfHarmGuardrailEngine extends PromptGuardrailEngine {
 
 				This guardrail sends selected text to the configured model engine with a safety-classification system prompt. The judge must answer `SAFE` or `UNSAFE`. An unsafe result stops the guarded call or returns the configured blocked message, depending on the pipeline settings.
 
-				`SYSTEM_PROMPT`, `BLOCKED_MESSAGE`, and `FAIL_OPEN` are optional SMSS settings. Override them to adapt the behavior. `FAIL_OPEN` defaults to `false`, so a judge error blocks the call.
+				`SYSTEM_PROMPT`, `BLOCKED_MESSAGE`, and `JUDGE_ERROR_VERDICT` are optional SMSS settings. Override them to adapt the behavior. `JUDGE_ERROR_VERDICT` is `BLOCK` or `PASS`, the verdict when the judge call fails, and defaults to `BLOCK`.
 
 				## Example: protect model prompts
 
