@@ -29,6 +29,8 @@ A source belongs to the signed-in Collaboration owner. Explicit many-to-many lin
 
 The server derives scope from the owned assistant room's applying topics, using the existing confirmed links, included threads and exclusion rules. The model cannot widen scope by supplying an arbitrary topic ID. Source search is bounded lexical retrieval, with short-term fallback for multiword questions; no vector engine or embeddings service is required. `ReadTopicSource` supports subsequent passages through `nextOffset`.
 
+The per-turn source guidance includes up to eight current source titles/types from those authorized topics, deduplicated across topic links, without preloading source contents. It directs the assistant to search for factual topic questions from the first message even when the user does not mention documents, discover sources without a query when a keyword search is inconclusive, and read further passages as needed. This is model guidance; it does not force tool calls or change search matching/ranking.
+
 Topic-bound owner assistant runs suppress general OneDrive/Teams file discovery/download and direct unclassified Outlook reads. The execution path also rejects those tools when called by stale name. Brain mail search and thread/attachment reads are constrained to the room's topics. `ListTopics` and explicit memory searches in these runs cannot widen to unrelated topics. Existing profile/preferences and automatic memory recall retain their prior independent product semantics; this feature does not convert documents into memories or replace the agent's general code-execution sandbox.
 
 Source link/version and applying-topic changes create a new provider-context boundary at the next ordinary user turn. The stored audit transcript remains intact, but the model receives only messages after that boundary, preventing earlier source tool payloads and assistant paraphrases from silently returning after unlink/archive/update. An already-running model request cannot be retracted; source tools reauthorize every read and final citation attachment rechecks current scope. Paused runs restore evidence from their persisted, server-owned tool results.
@@ -39,10 +41,12 @@ Only evidence actually returned by the trusted topic source tools and referenced
 
 The existing Collaboration schema initializer adds the source, immutable-version and association tables and their unique keys during backend startup. Restart the backend after deployment so schema synchronization and reactor discovery run. Focused tests cover cross-owner access, scoped retrieval, source sharing/unlink, versions/conflicts, durable upload and room imports, path/symlink checks, archive/merge/delete/undo, provider-context boundaries and persisted citation ornaments.
 
-Focused validation completed with 41 tests, zero failures/errors: `BrainTopicSourcesUnitTests` (12), `BrainTopicBriefUnitTests` (6), `BrainThreadRoomDbUnitTests` (15), `RoomMessageStoreUnitTests` (5), `TopicSourceCitationsUnitTests` (2), and `SemossAgentPromptUnitTests` (1). Command from the Semoss checkout:
+Original implementation validation completed with 41 tests, zero failures/errors: `BrainTopicSourcesUnitTests` (12), `BrainTopicBriefUnitTests` (6), `BrainThreadRoomDbUnitTests` (15), `RoomMessageStoreUnitTests` (5), `TopicSourceCitationsUnitTests` (2), and `SemossAgentPromptUnitTests` (1). Command from the Semoss checkout:
 
 ```sh
 JAVA_HOME=/Users/ibrahim/.sdkman/candidates/java/21.0.6-tem ../apache-maven-3.9.12/bin/mvn -q -Dlicense.skip=true -Dtest=BrainTopicSourcesUnitTests,BrainTopicBriefUnitTests,BrainThreadRoomDbUnitTests,RoomMessageStoreUnitTests,TopicSourceCitationsUnitTests,SemossAgentPromptUnitTests test
 ```
 
 The checks use an H2 Collaboration schema and mocked provider/model boundaries. Live Tomcat startup/schema migration, cloud storage synchronization and model-generated tool/citation behavior require deployment validation; these tests do not claim live M365 or model verification.
+
+The source-guidance follow-up adds three runtime-catalog tests. Its focused run passed 24 tests: `BrainTopicSourcesUnitTests` (15), `BrainTopicBriefUnitTests` (6), `TopicSourceCitationsUnitTests` (2), and `SemossAgentPromptUnitTests` (1), with zero failures/errors/skips. This checks scoped metadata and prompt assembly; first-answer retrieval by a real model remains a deployment comparison.

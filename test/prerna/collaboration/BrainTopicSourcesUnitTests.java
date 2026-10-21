@@ -309,6 +309,59 @@ class BrainTopicSourcesUnitTests {
         }
     }
 
+    @Test void runtimeGuidanceExposesScopedDocumentAndNoteTitlesWithoutPreloadingContents() throws Exception {
+        Room chat=room("chat",Map.of());topic("alpha");topic("beta");roomTopic("alpha","linked","you");
+        BrainTopicSources.save(insight(),"alpha",null,"Launch \"plan\"\n2026","note","Private note body",null,null,null,null);
+        BrainTopicSources.save(insight(),"beta",null,"Unrelated source","note","Unrelated body",null,null,null,null);
+        Path input=temp.resolve("budget.txt");Files.writeString(input,"Approved budget is fifty thousand dollars.");
+        Path storage=Files.createDirectory(temp.resolve("runtime-assets"));
+        Insight in=insight();
+        try(var assets=mockStatic(AssetUtility.class)) {
+            assets.when(()->AssetUtility.getRootFolderPath(in,AssetUtility.USER_SPACE_KEY,true)).thenReturn(storage.toString());
+            BrainTopicSources.save(in,"alpha",null,"Budget.txt","document",null,"budget.txt",null,null,null);
+        }
+        String guidance=BrainTopicSources.runtimeNote(user,chat);
+        assertTrue(guidance.contains("first question"));
+        assertTrue(guidance.contains("even when the user does not mention documents or sources"));
+        assertTrue(guidance.contains("SearchTopicSources"));assertTrue(guidance.contains("ReadTopicSource"));
+        assertTrue(guidance.contains("empty or inconclusive"));assertTrue(guidance.contains("omit query"));
+        org.json.JSONArray hints=new org.json.JSONArray(guidance.lines().filter(line->line.startsWith("[{")).findFirst().orElseThrow());
+        assertEquals(2,hints.length());
+        assertEquals("Budget.txt",hints.getJSONObject(0).getString("title"));
+        assertEquals("document",hints.getJSONObject(0).getString("kind"));
+        assertEquals("Launch \"plan\"\n2026",hints.getJSONObject(1).getString("title"));
+        assertEquals("note",hints.getJSONObject(1).getString("kind"));
+        assertFalse(guidance.contains("Private note body"));assertFalse(guidance.contains("fifty thousand dollars"));
+        assertFalse(guidance.contains("Unrelated source"));assertFalse(guidance.contains("Unrelated body"));
+    }
+
+    @Test void runtimeSourceHintsAreBoundedDeduplicatedAndUseCurrentTitles() throws Exception {
+        Room chat=room("chat",Map.of());topic("alpha");topic("beta");
+        roomTopic("alpha","linked","you");roomTopic("beta","linked","you");
+        for(int i=0;i<9;i++) {
+            var saved=BrainTopicSources.save(insight(),"alpha",null,"Source "+i,"note","Saved content",null,null,null,null);
+            BrainTopicSources.link(user,"beta",(String)saved.get("sourceId"),false);
+            if(i==0)BrainTopicSources.save(insight(),"alpha",(String)saved.get("sourceId"),"Current title","note","Updated content",null,null,1,null);
+        }
+        String guidance=BrainTopicSources.runtimeNote(user,chat);
+        org.json.JSONArray hints=new org.json.JSONArray(guidance.lines().filter(line->line.startsWith("[{")).findFirst().orElseThrow());
+        assertEquals(8,hints.length());
+        assertEquals("Current title",hints.getJSONObject(0).getString("title"));
+        assertEquals("Source 7",hints.getJSONObject(7).getString("title"));
+        assertFalse(guidance.contains("Source 0"));assertFalse(guidance.contains("Source 8"));
+    }
+
+    @Test void runtimeGuidanceDisappearsWhenSourcesLeaveTheChatScope() throws Exception {
+        Room chat=room("chat",Map.of());topic("alpha");
+        assertNull(BrainTopicSources.runtimeNote(user,chat));
+        roomTopic("alpha","linked","you");
+        assertNull(BrainTopicSources.runtimeNote(user,chat));
+        String id=(String)note("alpha",null,"Saved content",null).get("sourceId");
+        assertTrue(BrainTopicSources.runtimeNote(user,chat).contains("Reference"));
+        BrainTopicSources.link(user,"alpha",id,true);
+        assertNull(BrainTopicSources.runtimeNote(user,chat));
+    }
+
     @Test void contextBoundaryTracksUnlinksAndSourceVersions() throws Exception {
         Room room=room("chat",Map.of()); topic("alpha"); roomTopic("alpha","linked","you");
         String id=(String)note("alpha",null,"Old facts",null).get("sourceId");
