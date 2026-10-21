@@ -10,10 +10,12 @@ with the browser's time zone before the first configuration is saved.
 
 Each run reviews pending reply candidates received within that rolling window,
 measured in elapsed hours from the run, regardless of when the previous brief
-succeeded. Wider windows can revisit unanswered mail from an earlier brief.
-The Needs your reply section summarizes those messages and why they need attention.
-The routine does not compose reply text, create or move drafts, or create mailbox
-folders. Its only outgoing email is the daily brief sent to the owner.
+succeeded. The routine writes reply-all drafts for the owner to review and saves
+them under Drafts > Teamwork drafts in Outlook. It does not send those replies;
+its only outgoing email is the daily brief sent to the owner. The Needs your
+reply section summarizes each message and reports its draft's status and location.
+Wider windows and repeated runs can revisit unanswered mail from an earlier brief
+and create another draft for it; draft saving does not replace a prior run's draft.
 Reply candidates are paged without an email-count cap; a large window on a busy
 mailbox can still exceed the configured model's context limit.
 Existing saved routines that only have `emailCount` use 24 hours; the obsolete
@@ -30,7 +32,7 @@ count is omitted from API responses and removed from storage on the next save.
 - A renewable Microsoft sign-in for that exact mailbox must be available, either
   in the current session, the security database's `MS_GRAPH_CREDENTIAL` table, or
   an existing Microsoft mail/calendar subscription. It needs both an access token
-  and a refresh token, with delegated `Mail.Read` or `Mail.ReadWrite` permission,
+  and a refresh token, with delegated `Mail.ReadWrite` permission to save drafts,
   and `Mail.Send` to email the brief.
 - Python must be enabled (`USE_PYTHON`): the brief runs as an Automation
   definition whose steps execute in the owner's Python process.
@@ -118,17 +120,24 @@ The definition is a linear graph:
    through email in received-time order until the `lookback_hours` cutoff, plus
    today's meetings and open action items. The lookback applies to reply
    candidates; meeting and action-item collection keep their existing scopes.
-   It supplies reply summaries and the latest message text directly to the brief
-   through `context.briefInput`.
-4. An `agent.run` step uses Automation's Java scope interpolation to add those
+4. An `agent.run` step writes reply text for the pending messages, using the
+   gathered context and examples of the owner's recent sent mail.
+5. A Python step saves each generated reply through `MicrosoftOutlookReplyMail`
+   with `replyAll=True` and `asDraft=True`, leaving Outlook to supply recipients
+   and the quoted original. It creates Drafts > Teamwork drafts when needed and
+   moves the saved drafts there. A failed folder move leaves the draft saved;
+   a failed draft creation is reported in the brief. The step adds draft statuses
+   to the brief input as `saved.briefInput`.
+6. A second `agent.run` step uses Automation's Java scope interpolation to add those
    results to the server-held briefing instruction. The `inbox_brief` harness and the owner's
    `COLLAB_LLM_ENGINE_ID` model writes the brief. The harness makes one model
-   call, has no tool executor, rejects tool calls, and treats the data as
+   call per agent step, has no tool executor, rejects tool calls, and treats the data as
    untrusted. The brief is Markdown with Suggested priorities, Needs your reply,
    Today's meetings, and Open action items sections; links may only point to URLs
    present in the data. Needs your reply identifies messages that need attention
-   without generating replies or reporting draft locations.
-5. A Python step converts the Markdown to HTML (raw HTML in the brief is
+   and ends each item with a `Draft:` bullet reporting where it was saved or
+   that no draft was saved. A saved draft still needs the owner's review.
+7. A Python step converts the Markdown to HTML (raw HTML in the brief is
    escaped, images are dropped, and links to URLs not found in the thread data
    are removed) and sends it with `MicrosoftOutlookSendMail` to the owner only.
 
@@ -179,8 +188,8 @@ Settings credential reuse, repeat saves, failed scheduling, brief persistence,
 duplicate-day execution, interrupted-run recovery, the JSON null contract,
 token lending and restore, the Python requirement, an unsent brief, strict
 validation of the shipped definition and its scope references, and an invariant
-that the routine's only Outlook operation sends the brief, with no draft or
-folder writes. No real mailbox was read, no model request was submitted, no live
+that replies are saved as reply-all drafts while only the owner's brief is sent.
+No real mailbox was read, no model request was submitted, no live
 schedule was activated, and no application
 was deployed or restarted during this work. Live OAuth refresh and clustered
 Quartz execution remain deployment integration checks.
