@@ -108,30 +108,38 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 	 * @param project
 	 */
 	private void clearProjectAssets(IProject project, boolean release) {
+		User user = this.insight.getUser();
+		String projectId = project.getProjectId();
+		// checked before compiling, so a release the user cannot make leaves no build
+		// behind that only this container has
+		if (release && !SecurityProjectUtils.userCanEditProject(user, projectId)) {
+			throw new IllegalArgumentException(
+					"Project '" + projectId + "' does not exist or user does not have edit access to the project.");
+		}
+
 		project.clearClassCache();
 		project.compileReactors();
 		if (release) {
-			User user = this.insight.getUser();
-			String projectId = project.getProjectId();
 			String projectName = project.getProjectName();
-			if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
-				throw new IllegalArgumentException("Project '" + project.getProjectId()
-						+ "' does not exist or user is not an owner of the project.");
-			}
-
-			// push the compiled code
 			String projectVersionFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-			ClusterUtil.pushProjectFolder(project, projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "java");
+			String projectAssetFolder = projectVersionFolder + "/" + Constants.ASSETS_FOLDER;
 
-			// might need to also push the classes folder
-			String projectAssetFolder = AssetUtility.getProjectVersionFolder(projectName, projectId) + "/"
-					+ Constants.ASSETS_FOLDER;
-			File compiledClasses = new File(projectAssetFolder + DIR_SEPARATOR + "classes");
-			if (compiledClasses.exists() && compiledClasses.isDirectory()) {
-				ClusterUtil.pushProjectFolder(project, projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "classes");
+			// a project without a java folder has no reactors to release, and pushing
+			// the missing folder fails in a cluster
+			File javaFolder = new File(projectAssetFolder + DIR_SEPARATOR + "java");
+			if (javaFolder.isDirectory()) {
+				// push the compiled code
+				ClusterUtil.pushProjectFolder(project, projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "java");
+
+				// might need to also push the classes folder
+				File compiledClasses = new File(projectAssetFolder + DIR_SEPARATOR + "classes");
+				if (compiledClasses.exists() && compiledClasses.isDirectory()) {
+					ClusterUtil.pushProjectFolder(project, projectVersionFolder,
+							Constants.ASSETS_FOLDER + "/" + "classes");
+				}
+
+				SecurityProjectUtils.setReactorCompilation(user, projectId);
 			}
-
-			SecurityProjectUtils.setReactorCompilation(user, projectId);
 		}
 
 		// if we are doing reactors on socket side
