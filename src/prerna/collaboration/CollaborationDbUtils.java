@@ -514,6 +514,20 @@ public class CollaborationDbUtils {
 		try {
 			// create the tables and columns from the OWL creator schema
 			AbstractOwlCreator.syncSchema(collaborationDb, conn, dbSchema);
+			// A single routine of each kind per owner is required for atomic schedule saves and run claims.
+			var queryUtil = collaborationDb.getQueryUtil();
+			for (String routineTable : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE")) {
+				String routineIndex = routineTable + "_OWNER_UNIQUE";
+				if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, routineIndex,
+						routineTable, collaborationDb.getDatabase(), collaborationDb.getSchema())) {
+					String sql = queryUtil.allowIfExistsIndexSyntax()
+							? queryUtil.createIndexIfNotExists(routineIndex, routineTable, List.of("OWNER_ID", "OWNER_TYPE"))
+							: queryUtil.createIndex(routineIndex, routineTable, List.of("OWNER_ID", "OWNER_TYPE"));
+					try (Statement statement = conn.createStatement()) {
+						statement.execute(sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX"));
+					}
+				}
+			}
 			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)
 			widenColumn(collaborationDb, conn, "BRAIN_TOPIC_PERSON", "ROLE_LABEL", 255);
 
@@ -524,6 +538,10 @@ public class CollaborationDbUtils {
 					OwlIndex.of("SOURCE_CONNECTION_OWNER_INDEX", "SOURCE_CONNECTION", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("SOURCE_CONNECTION_SOURCE_INDEX", "SOURCE_CONNECTION", "OWNER_ID", "OWNER_TYPE",
 							"SOURCE"),
+
+					// custom routines, many per owner
+					OwlIndex.of("WORK_CUSTOM_ROUTINE_OWNER_INDEX", "WORK_CUSTOM_ROUTINE", "OWNER_ID", "OWNER_TYPE",
+							"ROUTINE_ID"),
 
 					// brain: you
 					OwlIndex.of("BRAIN_PROFILE_OWNER_INDEX", "BRAIN_PROFILE", "OWNER_ID", "OWNER_TYPE"),
@@ -557,6 +575,11 @@ public class CollaborationDbUtils {
 							"ROOM_ID"),
 					OwlIndex.of("BRAIN_TOPIC_ROOM_TOPIC_ID_INDEX", "BRAIN_TOPIC_ROOM", "OWNER_ID", "OWNER_TYPE",
 							"TOPIC_ID"),
+					OwlIndex.of("BRAIN_TOPIC_FOLDER_TOPIC_ID_INDEX", "BRAIN_TOPIC_FOLDER", "OWNER_ID", "OWNER_TYPE",
+							"TOPIC_ID"),
+					OwlIndex.of("BRAIN_TOPIC_FOLDER_FOLDER_ID_INDEX", "BRAIN_TOPIC_FOLDER", "OWNER_ID", "OWNER_TYPE",
+							"FOLDER_ID"),
+					OwlIndex.of("BRAIN_MAIL_FOLDER_OWNER_INDEX", "BRAIN_MAIL_FOLDER", "OWNER_ID", "OWNER_TYPE"),
 
 					// brain: threads
 					OwlIndex.of("BRAIN_THREAD_OWNER_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE"),

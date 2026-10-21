@@ -352,6 +352,7 @@ class SEMOSSThinkingMessagePart(BaseModel):
     """Represents a thinking message content"""
 
     thinking: str
+    source: Optional[str] = None
     type: Literal[SEMOSSMessagePartType.THINKING] = SEMOSSMessagePartType.THINKING
 
 
@@ -449,6 +450,11 @@ class ModelSettings(BaseModel):
     # Legacy/direct-Python fallback when engine input-modalities metadata is absent.
     # Engine metadata takes precedence; platform models need no init argument.
     native_document_mime_types: Optional[List[str]] = None
+    # Opt in for compatible endpoints; OpenAI summaries must not be replayed as raw reasoning.
+    preserve_reasoning_content: bool = False
+    chat_reasoning_mode: Literal["reasoning_effort", "chat_template", "none"] = (
+        "reasoning_effort"
+    )
 
 
 SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY = "SEMOSSMultimodalToolResponse"

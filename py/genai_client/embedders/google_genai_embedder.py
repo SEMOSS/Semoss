@@ -15,6 +15,7 @@ from ..clients.google_clients import (
     GoogleClientType,
 )
 from ..text_generation.model_engine_exception import ModelEngineException, ErrorDetails
+from ..usage_ceiling import USAGE_CEILING
 from ..utils import (
     classify_url,
     URLClassification,
@@ -107,6 +108,13 @@ class GoogleGenAiEmbedder(AbstractEmbedder):
         video: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> Dict:
+        # the ceiling is popped so it never reaches the provider; an input that
+        # does not fit is refused before the provider is called
+        refused = self.multi_modal_input_error(
+            kwargs.pop(USAGE_CEILING, None), text, image, video
+        )
+        if refused is not None:
+            return refused
         response = self.multi_modal_embeddings_call(
             text=text, image=image, video=video, **kwargs
         )

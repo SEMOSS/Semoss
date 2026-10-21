@@ -38,6 +38,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Lets an Automation project editor resolve a pending trace-linked agent
@@ -55,7 +57,7 @@ public class ResolveAutomationAgentRunActionReactor extends AbstractReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), AUTOMATION_RUN_ID_KEY, NODE_ID_KEY,
 				AGENT_RUN_ID_KEY, ACTION_ID_KEY, DECISION_KEY, ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
 				ReactorKeysEnum.MCP_TOOL_RESULT.getKey(), ReactorKeysEnum.MCP_TOOL_STATUS.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 0 };
+		this.keyRequired = new int[] { 0, 1, 1, 1, 1, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -70,6 +72,14 @@ public class ResolveAutomationAgentRunActionReactor extends AbstractReactor {
 				this.keyValue.get(ReactorKeysEnum.MCP_TOOL_STATUS.getKey()), getMap());
 		Map<String, Object> output = new HashMap<>();
 		output.put("result", result);
+		Map<String, Object> auditDetails = new HashMap<>();
+		auditDetails.put("decision", this.keyValue.get(DECISION_KEY));
+		auditDetails.put("actionId", this.keyValue.get(ACTION_ID_KEY));
+		auditDetails.put("agentRunId", this.keyValue.get(AGENT_RUN_ID_KEY));
+		auditDetails.put("nodeId", this.keyValue.get(NODE_ID_KEY));
+		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), AuditEventType.AUTOMATION_ACTION_RESOLVE,
+				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()), this.keyValue.get(AUTOMATION_RUN_ID_KEY), null,
+				auditDetails);
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.MCP_TOOL_EXECUTION);
 	}
 

@@ -29,6 +29,7 @@ package prerna.engine.impl.pipeline;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
@@ -40,6 +41,8 @@ import org.junit.jupiter.api.Test;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
+import prerna.engine.impl.model.usage.ModelUsageBilledTo;
 import prerna.reactor.interceptor.PipelineReactorUtils;
 
 class PipelineInvocationHandlerUnitTests {
@@ -75,6 +78,23 @@ class PipelineInvocationHandlerUnitTests {
 		assertFalse(payload.has(PipelineReactorUtils.CONFIG));
 		assertFalse(payload.has(PipelineReactorUtils.INTERIM_RESULT));
 		assertTrue(snapshot.contains("masked input"));
+	}
+
+	@Test
+	void activityLogsWhomAModelCallWasBilledTo() {
+		var response = new AskStringModelEngineResponse("answer", 10, 5);
+		assertNull(PipelineInvocationHandler.billedTo(response));
+		Map<String, Object> usageLimits = new LinkedHashMap<>();
+		usageLimits.put("billedTo", null);
+		response.setUsageLimits(usageLimits);
+		// limits were checked, but none was billed
+		assertNull(PipelineInvocationHandler.billedTo(response));
+		usageLimits.put("billedTo", new ModelUsageBilledTo(ModelUsageBilledTo.TEAM, "Ops", "CUSTOM").toMap());
+		Map<?, ?> billedTo = PipelineInvocationHandler.billedTo(response);
+		assertEquals("TEAM", billedTo.get("sourceType"));
+		assertEquals("Ops", billedTo.get("subjectId"));
+		assertEquals("CUSTOM", billedTo.get("subjectType"));
+		assertNull(PipelineInvocationHandler.billedTo("not a model response"));
 	}
 
 	private static final class AuditTarget {
