@@ -1081,8 +1081,6 @@ public class Constants {
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
 	// threads the classifier sorts at once (default 8)
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
-	// the platform agent (workspace id) that powers a Work thread's assistant
-	public static final String COLLAB_THREAD_AGENT_ID = "COLLAB_THREAD_AGENT_ID";
 	// characters of memories a thread's assistant gets in its prompt (default 4000)
 	public static final String COLLAB_MEMORY_PROMPT_CHARS = "COLLAB_MEMORY_PROMPT_CHARS";
 
@@ -1127,6 +1125,7 @@ public class Constants {
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";
+	public static final String AGENT_COLLABORATION = "collaboration-agent";
 	public static final String AGENT_DATABASE_EXPLORER = "database-explorer";
 	public static final String AGENT_NOTEBOOK_ANALYST = "notebook-analyst";
 	public static final String AGENT_PPTX = "pptx-agent";
