@@ -51,8 +51,7 @@ ENV UV_INSTALL_DIR="/usr/lib/uv/"
 ENV PATH=$UV_INSTALL_DIR:$PATH
 ENV PATH=$VIRTUAL_ENV/bin:$PATH
 
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN curl -LsSf https://astral.sh/uv/0.13.4/install.sh | sh
 
 #ARG PYTHON_VERSION=3.12
 
@@ -62,7 +61,13 @@ ENV PYTHON_VERSION=${PYTHON_VERSION}
 ARG COMPUTE_TYPE
 ENV COMPUTE_TYPE=${COMPUTE_TYPE}
 
-RUN uv python install ${PYTHON_VERSION} --default --preview
+COPY update_ensurepip.py /tmp/update_ensurepip.py
+# The whole managed interpreter is copied into the runtime image, including ensurepip.
+RUN uv python install ${PYTHON_VERSION} --default --preview && \
+    base_python="$(uv python find --system ${PYTHON_VERSION})" && \
+    uv pip install --python "$base_python" --break-system-packages "pip>=26.2.2" && \
+    "$base_python" /tmp/update_ensurepip.py && \
+    rm /tmp/update_ensurepip.py
 RUN uv venv --seed $VIRTUAL_ENV
 
 RUN echo "COMPUTE_TYPE=${COMPUTE_TYPE}" && echo ".[${COMPUTE_TYPE}]"

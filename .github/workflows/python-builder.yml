@@ -27,6 +27,7 @@ on:
     branches: [ "dev", "main" ]
     paths:
       - 'docker/Dockerfile.python'
+      - 'docker/update_ensurepip.py'
       - 'py/install_config/pyproject.toml'
       - '.github/workflows/python-builder.yml'
 
