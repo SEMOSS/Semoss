@@ -39,6 +39,7 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -48,10 +49,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.storage.LocalFileSystemStorageEngine;
 import prerna.om.Insight;
+import prerna.util.Utility;
 
 /** Topic-owned original files. The database contains metadata, never document text. */
 public final class BrainTopicFiles {
@@ -127,8 +130,10 @@ public final class BrainTopicFiles {
 				String mime = Files.probeContentType(source);
 				if (mime == null) mime = "application/octet-stream";
 				Timestamp at = CollaborationDbUtils.now();
-				operation.undo.add(() -> remove(key));
-				push(source, key);
+				TopicStorage storage = storage();
+				// Initialization must succeed before cleanup can be needed; partial copies still need cleanup.
+				operation.undo.add(() -> remove(storage, key));
+				push(storage, source, key);
 				CollaborationDbUtils.update("INSERT INTO BRAIN_TOPIC_FILE (OWNER_ID, OWNER_TYPE, " + COLUMNS
 							+ ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", owner.getValue0(), owner.getValue1(), id,
 							topicId, name, key, size, mime, at);
@@ -228,7 +233,11 @@ public final class BrainTopicFiles {
 		}
 		if (recoveryFailure != null) {
 			// Preserve the operation backup for recovery if the provider remains unavailable.
-			LOG.error("Topic file recovery failed; temporary originals retained at {}", operation.temporary, recoveryFailure);
+			if (operation.temporary == null) {
+				LOG.error("Topic file cleanup failed", recoveryFailure);
+			} else {
+				LOG.error("Topic file recovery failed; temporary originals retained at {}", operation.temporary, recoveryFailure);
+			}
 			throw recoveryFailure;
 		}
 		if (operation.temporary != null) {
@@ -240,15 +249,16 @@ public final class BrainTopicFiles {
 	private static Map<String, Object> mutate(Operation operation, User user, List<Attachment> files, String targetId,
 			Supplier<Map<String, Object>> change) {
 		var owner = CollaborationDbUtils.ownerOf(user);
+		TopicStorage storage = files.isEmpty() ? null : storage();
 		for (Attachment file : files) {
 			Path backup = operation.backup(file);
 			String destination = targetId == null ? null : key(user, targetId, file.id(), file.name());
 			if (destination != null) {
-				operation.undo.add(() -> remove(destination));
-				push(backup, destination);
+				operation.undo.add(() -> remove(storage, destination));
+				push(storage, backup, destination);
 			}
-			operation.undo.add(() -> push(backup, file.path()));
-			remove(file.path());
+			operation.undo.add(() -> push(storage, backup, file.path()));
+			remove(storage, file.path());
 			if (targetId == null) {
 				CollaborationDbUtils.update("DELETE FROM BRAIN_TOPIC_FILE" + OWNED + " AND FILE_ID = ?",
 						owner.getValue0(), owner.getValue1(), file.id());
@@ -309,18 +319,59 @@ public final class BrainTopicFiles {
 		validateName(file.name());
 		try {
 			Files.createDirectories(folder);
-			CentralCloudStorage.getInstance().pullTopicFile(file.path(), folder.toString());
+			storage().pull(file.path(), folder);
 			Path target = folder.resolve(file.name());
 			if (!Files.isRegularFile(target) || Files.size(target) != file.size()) throw new IOException("Stored file is missing or incomplete");
 			return target;
 		} catch (Exception e) { throw storageFailure(e); }
 	}
-	private static void push(Path local, String key) {
-		try { CentralCloudStorage.getInstance().pushTopicFile(local.toString(), key.substring(0, key.lastIndexOf('/'))); }
+	/** Keep standalone defaults local without changing the central provider's cluster defaults. */
+	private static TopicStorage storage() {
+		try {
+			String provider = ClusterUtil.STORAGE_PROVIDER;
+			if (ClusterUtil.IS_CLUSTER || (provider != null && !provider.isBlank())) {
+				return new TopicStorage(CentralCloudStorage.getInstance(), null);
+			}
+			String baseFolder = Utility.getBaseFolder();
+			if (baseFolder == null || baseFolder.isBlank()) {
+				throw new IllegalStateException("SEMOSS BaseFolder is required for local topic storage");
+			}
+			Properties properties = new Properties();
+			properties.setProperty(LocalFileSystemStorageEngine.PATH_PREFIX, baseFolder);
+			LocalFileSystemStorageEngine local = new LocalFileSystemStorageEngine();
+			// This internal, stateless provider needs no catalog entry or engine asset directory.
+			local.setBasic(true);
+			local.open(properties);
+			return new TopicStorage(null, local);
+		} catch (Exception e) {
+			throw storageFailure(e);
+		}
+	}
+
+	private record TopicStorage(CentralCloudStorage central, LocalFileSystemStorageEngine local) {
+		void push(Path source, String key) throws Exception {
+			String folder = key.substring(0, key.lastIndexOf('/'));
+			if (local != null) local.copyToStorage(source.toString(), folder, null);
+			else central.pushTopicFile(source.toString(), folder);
+		}
+
+		void pull(String key, Path folder) throws Exception {
+			if (local != null) local.copyToLocal(key, folder.toString());
+			else central.pullTopicFile(key, folder.toString());
+		}
+
+		void remove(String key) throws Exception {
+			if (local != null) local.deleteFromStorage(key);
+			else central.deleteTopicFile(key);
+		}
+	}
+
+	private static void push(TopicStorage storage, Path local, String key) {
+		try { storage.push(local, key); }
 		catch (Exception e) { throw storageFailure(e); }
 	}
-	private static void remove(String key) {
-		try { CentralCloudStorage.getInstance().deleteTopicFile(key); }
+	private static void remove(TopicStorage storage, String key) {
+		try { storage.remove(key); }
 		catch (Exception e) { throw storageFailure(e); }
 	}
 	private static IllegalStateException storageFailure(Exception cause) {
