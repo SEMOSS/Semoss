@@ -62,6 +62,7 @@ import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -486,7 +487,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				Room room = (Room) arg;
 				try {
 					String userId = room.getInsight().getUser().getPrimaryLoginToken().getId();
-					ModelInferenceLogsUtils.doSetRoomToInactive(userId, room.getId());
+					if (ModelInferenceLogsUtils.doSetRoomToInactive(userId, room.getId())) {
+						RoomMessageStore.evictRedisProjection(room.getId());
+					}
 					classLogger.warn("Guardrail closed room {} after a block", room.getId());
 				} catch (Exception e) {
 					// never let bookkeeping suppress the block itself
