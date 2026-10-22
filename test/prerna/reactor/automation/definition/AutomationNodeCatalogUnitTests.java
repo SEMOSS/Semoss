@@ -94,6 +94,32 @@ public class AutomationNodeCatalogUnitTests {
 	}
 
 	@Test
+	void transformIsOfferedWithAFieldsList() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_DATA_TRANSFORM);
+		assertNotNull(definition);
+		assertEquals("data", definition.toMap().get("category"));
+		Set<Object> fieldKeys = new HashSet<>();
+		for (AutomationNodeDefinition.ConfigField field : definition.configFields()) {
+			fieldKeys.add(field.key());
+		}
+		assertTrue(fieldKeys.contains("fields"));
+	}
+
+	/** Pulls named fields out of a source JSON object, instead of building Transform's field tree. */
+	@Test
+	void channelVariablesIsOfferedInTheDataCategoryWithASourceAndFieldsList() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_DATA_CHANNEL_VARIABLES);
+		assertNotNull(definition);
+		assertEquals("data", definition.toMap().get("category"));
+		Set<Object> fieldKeys = new HashSet<>();
+		for (AutomationNodeDefinition.ConfigField field : definition.configFields()) {
+			fieldKeys.add(field.key());
+		}
+		assertTrue(fieldKeys.contains("source"));
+		assertTrue(fieldKeys.contains("fields"));
+	}
+
+	@Test
 	void storageDownloadAdvertisesItsStructuredResult() {
 		AutomationNodeDefinition definition = find(AutomationConstants.NODE_STORAGE_DOWNLOAD);
 		assertNotNull(definition);

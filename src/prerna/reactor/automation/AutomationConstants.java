@@ -212,6 +212,8 @@ public final class AutomationConstants {
 	public static final String NODE_FUNCTION_EXECUTE = "function.execute";
 	public static final String NODE_APP_PIXEL = "app.pixel";
 	public static final String NODE_AGENT_RUN = "agent.run";
+	public static final String NODE_DATA_TRANSFORM = "data.transform";
+	public static final String NODE_DATA_DECLARE_VARIABLE = "data.declare-variable";
 	public static final String NODE_CONTROL_WAIT = "control.wait";
 	public static final String NODE_CONTROL_IF = "control.if";
 	public static final String NODE_CONTROL_JEV = "control.jev";
@@ -247,6 +249,7 @@ public final class AutomationConstants {
 	public static final String CONFIG_GLOBALS = "globals";
 	public static final String CONFIG_DEFAULT_VALUE = "defaultValue";
 	public static final String CONFIG_SOURCE = "source";
+	public static final String CONFIG_FIELDS = "fields";
 	public static final String CONFIG_PATH = "path";
 	public static final String CONFIG_FORMAT = "format";
 	public static final String CONFIG_MISSING_VALUE = "missingValue";
@@ -299,6 +302,8 @@ public final class AutomationConstants {
 	public static final String LOOP_MODE_WHILE = "while";
 	public static final String CONFIG_WAIT_TIMEOUT_MS = "waitTimeoutMs";
 	public static final String CONFIG_APP_ID = "appId";
+	public static final String CONFIG_CSV_HAS_HEADER = "csvHasHeader";
+	public static final String DATA_FORMAT_CSV = "csv";
 
 	// -- Node execution defaults / bounds
 	// --------------------------------------------

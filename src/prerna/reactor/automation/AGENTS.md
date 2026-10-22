@@ -66,6 +66,15 @@ references such as `${query_result[0].ID}` are resolved by
 `AutomationScopeResolver` while preserving the underlying Java value. The UI
 and durable history receive bounded presentation contracts, not raw tasks,
 engine objects, provider handles, Python variable names, or Insight internals.
+`data.transform` is a pure scope transform resolved directly by
+`AutomationDataTransformExecutor` - no Pixel call and no generated Python. It
+recursively resolves a configured field tree (nested objects/arrays, literals,
+and `${name.path}` references) into a brand-new JSON object built only from
+that tree; it never merges in any prior scope value. `data.declare-variable`
+builds its field tree the same way; besides its own `outputVar` entry, Java
+also spreads the declared names into scope as individually named variables -
+exactly like trigger globals - so later nodes can reference `${name}` directly
+instead of a dotted path into one output object.
 
 ## Node execution
 

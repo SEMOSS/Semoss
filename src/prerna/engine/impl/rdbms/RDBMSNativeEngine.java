@@ -498,7 +498,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	@Override
-	public Connection getConnection() throws SQLException {
+	// synchronized: concurrent callers were racing to re-establish a closed HikariDataSource
+	public synchronized Connection getConnection() throws SQLException {
 		if (this.dataSource != null) {
 			// re-establish bad connections
 			if (this.dataSource.isClosed()) {

@@ -330,10 +330,79 @@ public final class AutomationDefinitionValidator {
 		case CONTROL_IF -> validateBranchConfig(nodeId, config);
 		case CONTROL_JEV -> validateJevBranchConfig(nodeId, config);
 		case CONTROL_LOOP -> validateLoopConfig(nodeId, config);
+		case DATA_TRANSFORM -> validateDataTransformFields(nodeId, config);
+		case DATA_DECLARE_VARIABLE -> validateDeclareVariableConfig(nodeId, config);
 		case STORAGE_LIST -> validateOptionalStringListOrPlaceholder(nodeId, config, "extensions");
 		case TRIGGER_START, DEVELOPER_PYTHON -> {
 			// These node types have no additional required configuration here.
 		}
+		}
+	}
+
+	/**
+	 * Requires at least one named field so the generated node builds a non-empty
+	 * JSON object. Each field's node is validated recursively since "object" and
+	 * "array" nodes can nest to any depth; "value" nodes are optional and resolve
+	 * to {@code None} when blank.
+	 */
+	private static void validateDataTransformFields(String nodeId, Map<String, Object> config) {
+		validateDataTransformFieldList(config.get("fields"), "Transform node '" + nodeId + "' config.fields");
+	}
+
+	/**
+	 * A {@code data.declare-variable} node builds a field tree exactly like
+	 * {@code data.transform}, but each top-level field is additionally spread into
+	 * scope as its own variable, so every top-level name must be a non-private
+	 * Python identifier, unique, and not a reserved runtime key.
+	 */
+	private static void validateDeclareVariableConfig(String nodeId, Map<String, Object> config) {
+		validateDataTransformFieldList(config.get("fields"), "Declare variable node '" + nodeId + "' config.fields");
+		Set<String> names = new HashSet<>();
+		for (Object fieldObj : (List<?>) config.get("fields")) {
+			Map<String, Object> field = requireMap(fieldObj, "Declare variable node '" + nodeId + "' config.fields");
+			String name = String.valueOf(field.get("name")).trim();
+			if (!name.matches("[A-Za-z][A-Za-z0-9_]*")) {
+				throw new IllegalArgumentException("Declare variable node '" + nodeId + "' variable '" + name
+						+ "' must be a non-private Python identifier.");
+			}
+			if (AutomationConstants.RESERVED_SCOPE_KEYS.contains(name)) {
+				throw new IllegalArgumentException("Declare variable node '" + nodeId + "' variable '" + name
+						+ "' is reserved for automation runtime metadata.");
+			}
+			if (!names.add(name)) {
+				throw new IllegalArgumentException(
+						"Declare variable node '" + nodeId + "' has duplicate variable: " + name + ".");
+			}
+		}
+	}
+
+	private static void validateDataTransformFieldList(Object fields, String path) {
+		if (!(fields instanceof List<?> list) || list.isEmpty()) {
+			throw new IllegalArgumentException(path + " must include at least one field.");
+		}
+		for (int index = 0; index < list.size(); index++) {
+			String fieldPath = path + "[" + index + "]";
+			Map<String, Object> field = requireMap(list.get(index), fieldPath);
+			requireNonblankString(field.get("name"), fieldPath + ".name");
+			validateDataTransformNode(field.get("node"), fieldPath + ".node");
+		}
+	}
+
+	private static void validateDataTransformNode(Object node, String path) {
+		Map<String, Object> map = requireMap(node, path);
+		Object kind = map.get("kind");
+		if ("object".equals(kind)) {
+			validateDataTransformFieldList(map.get("fields"), path + ".fields");
+		} else if ("array".equals(kind)) {
+			if (!(map.get("items") instanceof List<?> items)) {
+				throw new IllegalArgumentException(path + ".items must be an array.");
+			}
+			for (int index = 0; index < items.size(); index++) {
+				validateDataTransformNode(items.get(index), path + ".items[" + index + "]");
+			}
+		} else if (!"value".equals(kind) && !"boolean".equals(kind) && !"null".equals(kind)) {
+			throw new IllegalArgumentException(
+					path + ".kind must be one of value, boolean, null, array, or object.");
 		}
 	}
 
@@ -345,10 +414,12 @@ public final class AutomationDefinitionValidator {
 		}
 		requireConfigString(nodeId, config, AutomationConstants.CONFIG_PATH);
 		String format = config.get(AutomationConstants.CONFIG_FORMAT) instanceof String value ? value : "auto";
-		if (!("auto".equals(format) || "json".equals(format) || "xml".equals(format))) {
+		if (!("auto".equals(format) || "json".equals(format) || "xml".equals(format)
+				|| AutomationConstants.DATA_FORMAT_CSV.equals(format))) {
 			throw new IllegalArgumentException(
-					"Node '" + nodeId + "' config.format must be auto, json, or xml.");
+					"Node '" + nodeId + "' config.format must be auto, json, xml, or csv.");
 		}
+		validateOptionalConfigBoolean(nodeId, config, AutomationConstants.CONFIG_CSV_HAS_HEADER);
 	}
 
 	private static boolean isRoutingNode(AutomationNodeType nodeType) {

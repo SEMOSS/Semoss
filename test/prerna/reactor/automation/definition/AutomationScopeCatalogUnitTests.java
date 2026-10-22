@@ -70,6 +70,36 @@ public class AutomationScopeCatalogUnitTests {
 		assertEquals("scope.get(\"right_result\")", variable(mergeVariables, "right_result").get("pythonExpression"));
 	}
 
+	/**
+	 * A {@code data.channelVariables} node's configured field names appear as
+	 * individually addressable variables downstream, in addition to its own
+	 * outputVar entry - mirroring how trigger globals are advertised.
+	 */
+	@Test
+	void advertisesEachChannelVariableFieldNameDownstream() {
+		Map<String, Object> start = node("start", AutomationConstants.NODE_START, null, Map.of());
+		Map<String, Object> channelVariables = node("vars", AutomationConstants.NODE_DATA_CHANNEL_VARIABLES,
+				"vars_result",
+				Map.of("source", "${request}", "fields", List.of("accountId")));
+		Map<String, Object> next = node("next", AutomationConstants.NODE_DEVELOPER_PYTHON, "next_result", Map.of());
+
+		Map<String, Object> definition = Map.of(AutomationConstants.DOC_FORMAT_VERSION,
+				AutomationConstants.PYTHON_DOC_CURRENT_VERSION, AutomationConstants.DOC_TRIGGER_BINDINGS,
+				List.of(Map.of("id", "manual", "type", "manual")), AutomationConstants.DOC_GRAPH,
+				Map.of(AutomationConstants.DOC_NODES, List.of(start, channelVariables, next),
+						AutomationConstants.DOC_EDGES,
+						List.of(edge("start-vars", "start", "out", "vars"),
+								edge("vars-next", "vars", "out", "next"))));
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidate(AutomationRuntimeUtils.GSON.toJson(definition));
+
+		List<Map<String, Object>> nextVariables = AutomationScopeCatalog.variablesByNode(validated).get("next");
+		assertTrue(hasVariable(nextVariables, "vars_result"));
+		assertTrue(hasVariable(nextVariables, "accountId"));
+		assertEquals("guaranteed", variable(nextVariables, "accountId").get("availability"));
+		assertEquals("${accountId}", variable(nextVariables, "accountId").get("templateExpression"));
+	}
+
 	private static AutomationDefinitionValidator.ValidatedDefinition branchingDefinition() {
 		Map<String, Object> start = node("start", AutomationConstants.NODE_START, null,
 				Map.of(AutomationConstants.CONFIG_GLOBALS,
