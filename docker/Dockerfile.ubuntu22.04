@@ -107,7 +107,7 @@ COPY --from=tomcat_builder /usr/local/bin/copilot /usr/local/bin/copilot
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN	apt-get update -qq \
-	&& apt-get install -y -qq git curl unzip lsof vim nano ca-certificates
+	&& apt-get install -y -qq git curl unzip lsof vim nano ca-certificates openssl libssl3
 
 RUN curl -fsSL https://rclone.org/install.sh | bash \
 	&& chmod 755 /usr/bin/rclone
@@ -120,7 +120,7 @@ RUN curl -fsSL https://rclone.org/install.sh | bash \
 
 
 COPY --from=mavenpuller --chown=1001:0 /opt /opt
-COPY --from=quay.io/semoss/python-builder:3.12-cpu  /usr/lib/python /usr/lib/python
+COPY --from=quay.io/semoss/python-builder:3.14-cpu  /usr/lib/python /usr/lib/python
 
 # ---------------------------------------------------------------------------
 # Node.js runtime for the agent-only ExecuteNodeCode execution environment.
@@ -131,7 +131,7 @@ COPY --from=quay.io/semoss/python-builder:3.12-cpu  /usr/lib/python /usr/lib/pyt
 # assembly includes it). AGENT_DEFAULT_TOOLS_ENABLE_NODE is seeded false so
 # the runtime env passthrough scripts have a line to sed, matching the other
 # agent tool flags.
-ARG NODE_VERSION=24.21.0
+ARG NODE_VERSION=24.22.0
 ENV NODE_HOME=/opt/node
 RUN set -eux; \
 	case "$(uname -m)" in \

@@ -6,7 +6,7 @@ authors = [
     {name = "Ryan Weiler", email = "ryanweiler92@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "accelerate>=1.14.0",
     "aiohttp>=3.14.3",
@@ -20,6 +20,7 @@ dependencies = [
     "bm25s>=0.3.11",
     "boto3>=1.43.114",
     "beautifulsoup4>=4.15.0",
+    "certifi>=2026.10.19",
     "chonky==0.1.7",
     "claude-agent-sdk==0.2.168",
     "cryptography>=50.0.0",
@@ -56,12 +57,13 @@ dependencies = [
     "openai[bedrock]==3.35.1",
     "openpyxl>=3.1.5",
     "ordered-set>=4.1.0",
-    "pandas==2.2.3",
+    "pandas==3.0.6",
     "pandasql>=0.7.3",
     "pdfplumber>=0.11.10",
+    "pip>=26.2.2",
     "pip-system-certs>=5.3",
     "protobuf>=6.33.5",
-    "pyarrow==21.0.0",
+    "pyarrow>=26.0.0",
     "pydantic>=2.13.5",
     "pyenchant>=3.3.0",
     "pyjarowinkler>=2.0.0",
