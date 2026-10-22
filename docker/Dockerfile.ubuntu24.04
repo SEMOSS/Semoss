@@ -131,7 +131,7 @@ COPY --from=quay.io/semoss/python-builder:3.14-cpu  /usr/lib/python /usr/lib/pyt
 # assembly includes it). AGENT_DEFAULT_TOOLS_ENABLE_NODE is seeded false so
 # the runtime env passthrough scripts have a line to sed, matching the other
 # agent tool flags.
-ARG NODE_VERSION=24.22.0
+ARG NODE_VERSION=24.22.1
 ENV NODE_HOME=/opt/node
 RUN set -eux; \
 	case "$(uname -m)" in \
