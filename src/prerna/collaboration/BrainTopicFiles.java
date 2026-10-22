@@ -296,7 +296,7 @@ public final class BrainTopicFiles {
 	private static String key(User user, String topicId, String id, String name) {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		return "collaboration/topic/" + encode(owner.getValue1() + ":" + owner.getValue0()) + "/"
-				+ encode(topicId) + "/" + id + "/" + name;
+				+ encode(topicId) + "/" + id + "/" + name.replace(',', '_');
 	}
 	private static String encode(String value) { return Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8)); }
 	private static void validateName(String name) {
@@ -321,6 +321,8 @@ public final class BrainTopicFiles {
 			Files.createDirectories(folder);
 			storage().pull(file.path(), folder);
 			Path target = folder.resolve(file.name());
+			Path stored = folder.resolve(file.path().substring(file.path().lastIndexOf('/') + 1));
+			if (!stored.equals(target)) Files.move(stored, target);
 			if (!Files.isRegularFile(target) || Files.size(target) != file.size()) throw new IOException("Stored file is missing or incomplete");
 			return target;
 		} catch (Exception e) { throw storageFailure(e); }
@@ -350,9 +352,21 @@ public final class BrainTopicFiles {
 
 	private record TopicStorage(CentralCloudStorage central, LocalFileSystemStorageEngine local) {
 		void push(Path source, String key) throws Exception {
-			String folder = key.substring(0, key.lastIndexOf('/'));
-			if (local != null) local.copyToStorage(source.toString(), folder, null);
-			else central.pushTopicFile(source.toString(), folder);
+			int slash = key.lastIndexOf('/');
+			String folder = key.substring(0, slash), name = key.substring(slash + 1);
+			Path temporary = null;
+			try {
+				// Storage transfer APIs interpret commas as multiple paths. Keep the original
+				// name in metadata, but transfer one safely named file in its UUID namespace.
+				if (source.toString().contains(",") || !source.getFileName().toString().equals(name)) {
+					temporary = Files.createTempDirectory("semoss-topic-upload-");
+					source = Files.copy(source, temporary.resolve(name));
+				}
+				if (local != null) local.copyToStorage(source.toString(), folder, null);
+				else central.pushTopicFile(source.toString(), folder);
+			} finally {
+				if (temporary != null) FileUtils.deleteDirectory(temporary.toFile());
+			}
 		}
 
 		void pull(String key, Path folder) throws Exception {
