@@ -2725,7 +2725,7 @@
 		<dependency>
 			<groupId>org.elasticsearch.plugin</groupId>
 			<artifactId>x-pack-sql-jdbc</artifactId>
-			<version>9.4.2</version>
+			<version>9.5.5</version>
 		</dependency>
 		<!-- self hostged -->
 		<dependency>
