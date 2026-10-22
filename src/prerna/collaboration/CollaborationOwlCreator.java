@@ -262,6 +262,12 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// outlook when onboarding found it from the folder, you when the owner linked it
 				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// Topic-owned original files; document contents stay in the base storage provider.
+		addTable("BRAIN_TOPIC_FILE", Arrays.asList(OWNER_ID, OWNER_TYPE,
+				Pair.with("FILE_ID", VARCHAR_50), Pair.with("TOPIC_ID", VARCHAR_50),
+				Pair.with("NAME", VARCHAR_255), Pair.with("PATH", CLOB_DATATYPE_NAME),
+				Pair.with("SIZE", "BIGINT"), Pair.with("MIME", VARCHAR_255),
+				Pair.with("UPLOADED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// the owner's Outlook folder tree; KIND is inbox, sentitems, archive, custom (one the owner made) or skipped
 		addTable("BRAIN_MAIL_FOLDER", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,

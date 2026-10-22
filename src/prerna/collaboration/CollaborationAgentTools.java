@@ -81,6 +81,8 @@ import prerna.reactor.collaboration.BrainRememberReactor;
 import prerna.reactor.collaboration.BrainSearchMemoriesReactor;
 import prerna.reactor.collaboration.BrainSearchThreadsReactor;
 import prerna.reactor.collaboration.BrainTagTopicReactor;
+import prerna.reactor.collaboration.BrainListTopicFilesReactor;
+import prerna.reactor.collaboration.BrainReadTopicFileReactor;
 import prerna.reactor.collaboration.WorkComposeEmailReactor;
 import prerna.reactor.collaboration.WorkDeleteMySkillReactor;
 import prerna.reactor.collaboration.WorkDownloadAttachmentReactor;
@@ -132,6 +134,8 @@ public final class CollaborationAgentTools {
 		REACTORS.put("CompleteGoal", BrainCompleteGoalReactor.class);
 		// tags the chat it runs in with a topic; no approval, the owner can undo or dismiss it
 		REACTORS.put("TagTopic", BrainTagTopicReactor.class);
+		REACTORS.put("ListTopicFiles", BrainListTopicFilesReactor.class);
+		REACTORS.put("ReadTopicFile", BrainReadTopicFileReactor.class);
 		// then Outlook directly, for what Brain does not hold; Brain's rules do not apply to it
 		REACTORS.put("ListM365Mail", MicrosoftOutlookListMailReactor.class);
 		// the email in the Work editor: written there, sent from it once the owner presses Send
@@ -177,7 +181,7 @@ public final class CollaborationAgentTools {
 	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent");
 
 	// tools about the chat itself: only for the owner's chat at the root of the run, never a routine
-	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "CompleteGoal");
+	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "CompleteGoal", "ListTopicFiles", "ReadTopicFile");
 
 	// the email editor is open in the owner's chat; a routine has none, its delivery step sends the result
 	private static final Set<String> EDITOR_TOOLS = Set.of("ComposeEmail");
@@ -298,6 +302,11 @@ public final class CollaborationAgentTools {
 			return ToolExecutionResult.error(message, message);
 		}
 		try {
+			if ("ListTopicFiles".equals(toolName)) {
+				if (insight.getRoomId() == null) throw new IllegalArgumentException("ListTopicFiles requires a collaboration chat");
+				params = params == null ? new LinkedHashMap<>() : new LinkedHashMap<>(params);
+				params.put("roomId", insight.getRoomId());
+			}
 			if ("ComposeEmail".equals(toolName) && params != null) {
 				for (String key : List.of("replyTo", "forward")) {
 					if (params.get(key) instanceof String value && "selected".equals(value.trim())) {

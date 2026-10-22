@@ -1921,6 +1921,31 @@ public final class CentralCloudStorage implements ICloudClient {
 		throw new IllegalArgumentException("There is no insight database for project: " + project.getProjectName());
 	}
 
+	/** Store a topic attachment through the configured base SEMOSS provider. */
+	public void pushTopicFile(String localFile, String storageFolder) throws IOException, InterruptedException {
+		requireTopicPath(storageFolder);
+		storageCopyToStorage(localFile, storageFolder);
+	}
+
+	/** Materialize one topic attachment in a caller-authorized local folder. */
+	public void pullTopicFile(String storageFile, String localFolder) throws IOException, InterruptedException {
+		requireTopicPath(storageFile);
+		storageCopyToLocal(storageFile, localFolder);
+	}
+
+	/** Permanently remove one topic attachment from the base provider. */
+	public void deleteTopicFile(String storageFile) throws IOException, InterruptedException {
+		requireTopicPath(storageFile);
+		storageDelete(storageFile);
+	}
+
+	private static void requireTopicPath(String path) {
+		if (path == null || !path.startsWith("collaboration/topic/") || path.contains("\\")
+				|| Arrays.stream(path.split("/")).anyMatch(part -> part.equals(".") || part.equals(".."))) {
+			throw new IllegalArgumentException("Invalid Collaboration topic storage path");
+		}
+	}
+
 	@Override
 	public Map<String, List<String>> listAllContainersByBucket() throws IOException, InterruptedException {
 		Map<String, List<String>> allBuckets = new HashMap<String, List<String>>();

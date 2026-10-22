@@ -490,8 +490,7 @@ public final class BrainTopicUtils {
 	// moves thread links, people, notes, keywords, rules, and work-item links into
 	// the target, then drops the source
 	public static Map<String, Object> mergeTopics(User user, String sourceTopicId, String targetTopicId) {
-		var owner = CollaborationDbUtils.ownerOf(user);
-		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+		return BrainTopicFiles.changeTopic(user, sourceTopicId, targetTopicId,
 				() -> mergeTopicsInReview(user, sourceTopicId, targetTopicId));
 	}
 
@@ -599,9 +598,7 @@ public final class BrainTopicUtils {
 	// thread that loses
 	// its primary link gets its next most confident link as primary
 	public static Map<String, Object> deleteTopic(User user, String topicId) {
-		var owner = CollaborationDbUtils.ownerOf(user);
-		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
-				() -> deleteTopicInReview(user, topicId));
+		return BrainTopicFiles.changeTopic(user, topicId, null, () -> deleteTopicInReview(user, topicId));
 	}
 
 	private static Map<String, Object> deleteTopicInReview(User user, String topicId) {

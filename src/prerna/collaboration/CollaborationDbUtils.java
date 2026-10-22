@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -82,6 +83,7 @@ public class CollaborationDbUtils {
 	// the connection of a batch running on this thread; query, update and
 	// inTransaction join it
 	private static final ThreadLocal<Connection> BATCH = new ThreadLocal<>();
+	private static final ThreadLocal<List<Consumer<Boolean>>> COMPLETIONS = new ThreadLocal<>();
 
 	private CollaborationDbUtils() {
 
@@ -286,14 +288,35 @@ public class CollaborationDbUtils {
 			}
 			return;
 		}
-		inTransaction(conn -> {
-			BATCH.set(conn);
-			try {
-				work.run(conn);
-			} finally {
-				BATCH.remove();
+		List<Consumer<Boolean>> completions = new ArrayList<>();
+		COMPLETIONS.set(completions);
+		RuntimeException failure = null;
+		try {
+			inTransaction(conn -> {
+				BATCH.set(conn);
+				try { work.run(conn); }
+				finally { BATCH.remove(); }
+			});
+		} catch (RuntimeException e) {
+			failure = e;
+			throw e;
+		} finally {
+			COMPLETIONS.remove();
+			// Nested topic operations must compensate only after the outermost commit/rollback.
+			for (int i = completions.size() - 1; i >= 0; i--) {
+				try { completions.get(i).accept(failure == null); }
+				catch (RuntimeException e) {
+					if (failure != null) failure.addSuppressed(e);
+					classLogger.error("Collaboration transaction completion failed", e);
+				}
 			}
-		});
+		}
+	}
+
+	static void afterTransaction(Consumer<Boolean> completion) {
+		List<Consumer<Boolean>> callbacks = COMPLETIONS.get();
+		if (callbacks == null) throw new IllegalStateException("Transaction completion requires a batch");
+		callbacks.add(completion);
 	}
 
 	// for use inside inTransaction
@@ -528,6 +551,16 @@ public class CollaborationDbUtils {
 					}
 				}
 			}
+			String fileIndex = "BRAIN_TOPIC_FILE_OWNER_ID_UNIQUE";
+			if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, fileIndex,
+					"BRAIN_TOPIC_FILE", collaborationDb.getDatabase(), collaborationDb.getSchema())) {
+				String sql = queryUtil.allowIfExistsIndexSyntax()
+						? queryUtil.createIndexIfNotExists(fileIndex, "BRAIN_TOPIC_FILE", List.of("OWNER_ID", "OWNER_TYPE", "FILE_ID"))
+						: queryUtil.createIndex(fileIndex, "BRAIN_TOPIC_FILE", List.of("OWNER_ID", "OWNER_TYPE", "FILE_ID"));
+				try (Statement statement = conn.createStatement()) {
+					statement.execute(sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX"));
+				}
+			}
 			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)
 			widenColumn(collaborationDb, conn, "BRAIN_TOPIC_PERSON", "ROLE_LABEL", 255);
 
@@ -580,6 +613,8 @@ public class CollaborationDbUtils {
 					OwlIndex.of("BRAIN_TOPIC_FOLDER_FOLDER_ID_INDEX", "BRAIN_TOPIC_FOLDER", "OWNER_ID", "OWNER_TYPE",
 							"FOLDER_ID"),
 					OwlIndex.of("BRAIN_MAIL_FOLDER_OWNER_INDEX", "BRAIN_MAIL_FOLDER", "OWNER_ID", "OWNER_TYPE"),
+
+					OwlIndex.of("BRAIN_TOPIC_FILE_TOPIC_INDEX", "BRAIN_TOPIC_FILE", "OWNER_ID", "OWNER_TYPE", "TOPIC_ID"),
 
 					// brain: threads
 					OwlIndex.of("BRAIN_THREAD_OWNER_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE"),
