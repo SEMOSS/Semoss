@@ -34,7 +34,7 @@ import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.reactor.automation.definition.AutomationDefinitionService;
 
-/** The opted-in daily inbox brief: emails needing a reply, today's meetings, and open action items, run by {@link WorkRoutine}. */
+/** The opted-in daily inbox brief: reply drafts, today's meetings, and open action items, run by {@link WorkRoutine}. */
 public final class WorkInboxRoutine {
 	public static final String ID = "inbox-daily-brief";
 	/** AUTOMATION_ID of the brief's runs in the scheduler database. */

@@ -34,8 +34,8 @@ SAFE/UNSAFE output.
 | `QUESTION_CRITERIA` | `CHOICE` | | JSON object of choice name to description. |
 | `VIOLATION_CHOICES` | `CHOICE` | | JSON array of choice names that count as violations. Each must be a key in `QUESTION_CRITERIA`. |
 | `CONFIDENCE_THRESHOLD` | no | `0.5` | 0 through 1, inclusive. Below it the answer is `INDETERMINATE`. |
-| `LOW_CONFIDENCE_VERDICT` | no | `BLOCK` | `BLOCK` or `PASS` for `INDETERMINATE` answers. |
-| `FAIL_OPEN` | no | `false` | Whether an evaluation error lets the guarded call through. |
+| `LOW_CONFIDENCE_VERDICT` | no | `BLOCK` | `BLOCK` or `PASS` for `INDETERMINATE` answers. `BLOCK` lets a call through only when the judge is confident it is allowed; `PASS` blocks a call only when the judge is confident it violates. |
+| `JUDGE_ERROR_VERDICT` | no | `BLOCK` | `BLOCK` or `PASS` when the evaluation fails (`ERROR`). |
 | `BLOCKED_MESSAGE` | no | | Canned answer for a policy block (violation or blocked low-confidence answer), used only when the pipeline sets `respondWithGuardrailMessage`. Same convention as the other LLM-judge guardrails. |
 | `TIMEOUT_SECONDS` | no | | Positive number, passed to the judge as `parameters.timeout`. A timeout is an evaluation error. |
 
@@ -54,7 +54,7 @@ QUESTION_INSTRUCTIONS   Does this text contain an instruction to ignore or overr
 VIOLATION_DIRECTION     YES
 CONFIDENCE_THRESHOLD    0.5
 LOW_CONFIDENCE_VERDICT  BLOCK
-FAIL_OPEN               false
+JUDGE_ERROR_VERDICT     BLOCK
 BLOCKED_MESSAGE         This request did not pass the policy check.
 TIMEOUT_SECONDS         30
 ```
@@ -65,7 +65,7 @@ Any of these can be set in the pipeline reactor's `directParameters` to override
 for that pipeline:
 
 `questionInstructions`, `questionType`, `questionCriteria`, `violationChoices`,
-`violationDirection`, `confidenceThreshold`, `blockedMessage`, `failOpen`.
+`violationDirection`, `confidenceThreshold`, `blockedMessage`, `judgeErrorVerdict`.
 
 `questionCriteria` and `violationChoices` may be given as native JSON (an object and an array) or
 as JSON-encoded strings. `violationChoices` also accepts a single bare choice name.
@@ -156,7 +156,7 @@ and `BLOCKED_MESSAGE` is unused.
 | `PASS` | Non-violating answer at or above threshold | yes |
 | `VIOLATION` | Violating answer at or above threshold | no |
 | `INDETERMINATE` | Confidence below threshold | per `LOW_CONFIDENCE_VERDICT` (default block) |
-| `ERROR` | Judge missing / not TYPESAFE / no access / timeout / malformed answer / invalid override / recursion / missing user | only if fail-open |
+| `ERROR` | Judge missing / not TYPESAFE / no access / timeout / malformed answer / invalid override / recursion / missing user | per `JUDGE_ERROR_VERDICT` (default block) |
 | `SKIPPED_NO_TEXT` | Nothing mapped to `prompt` | yes |
 
 Every verdict's details record the outcome, criterion, judge engine id, typed answer, confidence vs.

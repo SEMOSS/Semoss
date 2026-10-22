@@ -471,7 +471,7 @@ class WorkInboxRoutineUnitTests {
 					eq(WorkInboxRoutine.AUTOMATION_ID), files.capture(), eq(Map.of("owner_email", "owner@example.com",
 							"timezone", "America/New_York", "lookback_hours", 24)),
 					eq(AutomationConstants.TRIGGER_SCHEDULED), isNull()));
-			assertEquals(1, files.getValue().definition().split("\"text-model\"", -1).length - 1);
+			assertEquals(2, files.getValue().definition().split("\"text-model\"", -1).length - 1);
 		}
 	}
 
@@ -674,14 +674,14 @@ class WorkInboxRoutineUnitTests {
 	@Test
 	void briefDefinitionIsStrictlyValidAndReadsOnlyDeclaredScopeNames() {
 		assertStrictDefinition(WorkInboxRoutine.briefDefinition("engine-1"),
-				List.of("start", "sync", "wait_sync", "gather", "brief", "deliver"),
-				List.of("wait_sync", "gather", "deliver"), List.of("brief"),
+				List.of("start", "sync", "wait_sync", "gather", "drafts", "save_drafts", "brief", "deliver"),
+				List.of("wait_sync", "gather", "save_drafts", "deliver"), List.of("drafts", "brief"),
 				Set.of("owner_email", "timezone", "lookback_hours"),
-				Set.of("context", "brief", "owner_email", "timezone", "lookback_hours"));
+				Set.of("context", "drafts", "saved", "brief", "owner_email", "timezone", "lookback_hours"));
 	}
 
 	@Test
-	void dailyBriefSummarizesRepliesAndOnlyWritesTheBriefEmail() {
+	void dailyBriefSavesReplyAllDraftsAndOnlySendsTheOwnersBrief() {
 		AutomationDefinitionService.DefinitionFiles files = WorkInboxRoutine.briefDefinition("engine-1");
 		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator
 				.parseAndValidate(files.definition());
@@ -691,16 +691,26 @@ class WorkInboxRoutineUnitTests {
 		while (calls.find()) {
 			mailOperations.add(calls.group());
 		}
-		assertEquals(Set.of("MicrosoftOutlookSendMail"), mailOperations,
-				"The daily brief must only send its summary, without creating replies, drafts, or folders.");
+		assertEquals(Set.of("MicrosoftOutlookListMail", "MicrosoftOutlookReplyMail", "MicrosoftOutlookCreateMailFolder",
+				"MicrosoftOutlookMoveMail", "MicrosoftOutlookSendMail"), mailOperations);
+		String saveDrafts = files.nodeSources().get("save_drafts");
+		assertNotNull(saveDrafts);
+		assertTrue(saveDrafts.contains("MicrosoftOutlookReplyMail"));
+		assertTrue(Pattern.compile("replyAll\\s*=\\s*True\\s*,\\s*asDraft\\s*=\\s*True").matcher(saveDrafts).find(),
+				"Reply-all messages must remain drafts for the owner to review.");
+		assertFalse(saveDrafts.contains("MicrosoftOutlookSendMail"));
+		assertTrue(saveDrafts.contains("Teamwork drafts"));
 		Map<String, Object> brief = definition.nodes().stream()
 				.filter(node -> "brief".equals(node.get(AutomationConstants.NODE_FIELD_ID))).findFirst().orElseThrow();
 		Map<?, ?> config = (Map<?, ?>) brief.get(AutomationConstants.NODE_FIELD_CONFIG);
 		String command = (String) config.get(AutomationConstants.CONFIG_COMMAND);
 		assertTrue(command.contains("Needs your reply"));
-		assertTrue(command.contains("${context.briefInput}"));
-		assertFalse(command.contains("Draft:"));
-		assertTrue(files.nodeSources().get("deliver").contains("MicrosoftOutlookSendMail("));
+		assertTrue(command.contains("${saved.briefInput}"));
+		assertTrue(command.contains("Draft:"));
+		String deliver = files.nodeSources().get("deliver");
+		assertTrue(deliver.contains("MicrosoftOutlookSendMail("));
+		assertTrue(deliver.contains("scope.get(\"owner_email\")"));
+		assertTrue(deliver.contains("_pixel_value(\"to\", [recipient])"));
 	}
 
 	@Test

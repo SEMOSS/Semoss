@@ -119,6 +119,10 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 		String columnType = PandasSyntaxHelper.getColumnType(wrapperName + ".cache['data']", column);
 		String pythonDt = (String) insight.getPyTranslator().runScript(columnType);
 		SemossDataType smssDT = this.insight.getPyTranslator().convertDataType(pythonDt);
+		if (smssDT == null) {
+			throw new IllegalArgumentException(
+					"Column '" + column + "' has python type '" + pythonDt + "', which is not supported here");
+		}
 		return smssDT.toString();
 	}
 
