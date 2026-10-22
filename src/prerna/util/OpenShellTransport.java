@@ -285,6 +285,23 @@ public final class OpenShellTransport {
 		classLogger.info("Starting executor sandbox {} (worker port {})", sandboxName, workerPort);
 		String createOut = run(create, readyTimeout);
 		classLogger.info("Sandbox create output for {}: {}", sandboxName, createOut);
+		if (createOut.toLowerCase().contains("already exists")) {
+			// A sandbox with this name exists, but this transport did not create it in
+			// this call. That is not a reusable state: the worker inside allows one
+			// connection, and whatever forward reached it first still holds that slot,
+			// so a second forward leaves the real client queued and every request
+			// blocks forever. Measured 2026-10-22: a Py() that never returned and a
+			// logout thread stuck in clearInsightGlobals until the sandbox was deleted
+			// by hand. Deleting and recreating is the only safe interpretation --
+			// a sandbox this instance is not driving belongs to a dead session.
+			classLogger.warn("Sandbox {} already exists; deleting and recreating it", sandboxName);
+			run(Arrays.asList(cli, "sandbox", "delete", sandboxName), 60);
+			createOut = run(create, readyTimeout);
+			classLogger.info("Sandbox re-create output for {}: {}", sandboxName, createOut);
+			if (createOut.toLowerCase().contains("already exists")) {
+				throw new IOException("sandbox " + sandboxName + " still exists after delete: " + createOut);
+			}
+		}
 
 		this.forwardedPort = freeLocalPort();
 		List<String> forward = Arrays.asList(cli, "forward", "service", "--target-port", workerPort, "--local",
