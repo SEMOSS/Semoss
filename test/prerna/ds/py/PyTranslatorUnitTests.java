@@ -56,7 +56,19 @@ class PyTranslatorUnitTests {
         @Test
         void pyS_unknown_returnsNull() { assertNull(PyTranslator.pyS.get("unknown")); }
         @Test
-        void pyS_hasSixEntries() { assertEquals(6, PyTranslator.pyS.size()); }
+        void pyS_pandas3Str_mapsToString() { assertEquals(SemossDataType.STRING, PyTranslator.pyS.get("str")); }
+        @Test
+        void pyS_stringDtype_mapsToString() { assertEquals(SemossDataType.STRING, PyTranslator.pyS.get("string")); }
+        @Test
+        void pyS_pandas3DatetimeUnits_mapToTimestamp() {
+            for (String unit : new String[] { "s", "ms", "us" }) {
+                assertEquals(SemossDataType.TIMESTAMP, PyTranslator.pyS.get("datetime64[" + unit + "]"), unit);
+            }
+        }
+        @Test
+        void pyS_bool_mapsToBoolean() { assertEquals(SemossDataType.BOOLEAN, PyTranslator.pyS.get("bool")); }
+        @Test
+        void pyS_hasTwelveEntries() { assertEquals(12, PyTranslator.pyS.size()); }
     }
 
     @Nested
@@ -109,7 +121,7 @@ class PyTranslatorUnitTests {
             SocketClient sc = mock(SocketClient.class);
             Insight insight = mock(Insight.class);
             PyTranslator pt = new PyTranslator(sc, insight);
-            assertNull(pt.convertDataType("bool"));
+            assertNull(pt.convertDataType("complex128"));
         }
     }
 

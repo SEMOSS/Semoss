@@ -60,6 +60,7 @@ import prerna.engine.impl.model.inferencetracking.ModelUsageLogFilter;
 import prerna.engine.impl.model.inferencetracking.ModelUsageLogTotals;
 import prerna.engine.impl.model.usage.ModelUsageEvaluation.RuleCheck;
 import prerna.engine.impl.model.usage.ModelUsageTicket.ChargeTarget;
+import prerna.redis.RedisConnectionConfig;
 import prerna.util.Utility;
 import prerna.util.ValueUtils;
 
@@ -117,7 +118,8 @@ import prerna.util.ValueUtils;
  * A refusal is a {@link ModelUsageLimitException}, which the endpoints answer
  * with 429 and its {@code resetsAt}. Counters are kept by
  * {@link LocalModelUsageCounterStore} on a single node and by
- * {@link RedisModelUsageCounterStore} when SEMOSS runs in a cluster. When the
+ * {@link RedisModelUsageCounterStore} when SEMOSS runs in a cluster with Redis
+ * turned on. When the
  * counters cannot be reached, calls that a limit applies to are refused with
  * {@link ModelUsageLimitException#unavailable()}, which the endpoints answer
  * with 503; calls with no limit still run. Day and longer counters, and sliding
@@ -692,16 +694,16 @@ public final class ModelUsageGuard {
 	/**
 	 * The counter store every usage limit is counted in, made on first use.
 	 *
-	 * @return the counters: in Redis when SEMOSS runs in a cluster, since counters
-	 *         on each server would allow each server the whole limit; otherwise in
-	 *         memory
+	 * @return the counters: in Redis when SEMOSS runs in a cluster with Redis
+	 *         turned on, since counters on each server would allow each server the
+	 *         whole limit; otherwise in memory
 	 */
 	static IModelUsageCounterStore store() {
 		IModelUsageCounterStore current = counterStore;
 		if (current == null) {
 			synchronized (STORE_LOCK) {
 				if (counterStore == null) {
-					counterStore = ClusterUtil.IS_CLUSTER ? new RedisModelUsageCounterStore()
+					counterStore = useRedisStore() ? new RedisModelUsageCounterStore()
 							: new LocalModelUsageCounterStore();
 				}
 				current = counterStore;
@@ -710,9 +712,22 @@ public final class ModelUsageGuard {
 		return current;
 	}
 
+	private static boolean useRedisStore() {
+		if (!ClusterUtil.IS_CLUSTER) {
+			return false;
+		}
+		// a cluster without Redis turned on cannot share counters; fall back to memory
+		if (RedisConnectionConfig.fromDIHelper() == null) {
+			classLogger.warn("SEMOSS runs in a cluster but Redis is not enabled; model usage limits are counted per server");
+			return false;
+		}
+		return true;
+	}
+
 	/**
 	 * Sets the counters every call is counted in; null makes the default store
-	 * again on its next use: Redis on a cluster, memory otherwise.
+	 * again on its next use: Redis on a cluster with Redis turned on, memory
+	 * otherwise.
 	 */
 	static void setCounterStore(IModelUsageCounterStore store) {
 		counterStore = store;

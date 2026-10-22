@@ -108,7 +108,7 @@ RUN	yum update -y \
 	&& chmod 755 /usr/bin/rclone
 
 COPY --from=mavenpuller --chown=1001:0 /opt /opt
-COPY --from=quay.io/semoss/python-builder:3.12-cpu  /usr/lib/python /usr/lib/python
+COPY --from=quay.io/semoss/python-builder:3.14-cpu  /usr/lib/python /usr/lib/python
 
 # ---------------------------------------------------------------------------
 # Node.js runtime for the agent-only ExecuteNodeCode execution environment.
