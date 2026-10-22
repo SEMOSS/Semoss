@@ -180,8 +180,8 @@ tried again after a minute. Shorter windows start at 0.
 
 | Store | When | How |
 | --- | --- | --- |
-| [LocalModelUsageCounterStore](../../src/prerna/engine/impl/model/usage/LocalModelUsageCounterStore.java) | a single server | in memory; every method is synchronized, so checking and holding several counters is one step |
-| [RedisModelUsageCounterStore](../../src/prerna/engine/impl/model/usage/RedisModelUsageCounterStore.java) | a cluster | each counter is a Redis hash (`u` used, `s` filled, `r<minute>` holds by expiry minute); Lua scripts read, reserve and settle several counters at once, and every key shares one hash tag so a script can touch them together on Redis Cluster |
+| [LocalModelUsageCounterStore](../../src/prerna/engine/impl/model/usage/LocalModelUsageCounterStore.java) | a single server, or a cluster without Redis turned on | in memory; every method is synchronized, so checking and holding several counters is one step |
+| [RedisModelUsageCounterStore](../../src/prerna/engine/impl/model/usage/RedisModelUsageCounterStore.java) | a cluster with Redis turned on | each counter is a Redis hash (`u` used, `s` filled, `r<minute>` holds by expiry minute); Lua scripts read, reserve and settle several counters at once, and every key shares one hash tag so a script can touch them together on Redis Cluster |
 
 When the counters cannot be reached, a call that a rule could refuse is refused as
 unavailable: "Usage limits cannot be checked right now". A call no rule can refuse
