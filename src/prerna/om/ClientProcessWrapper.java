@@ -409,11 +409,6 @@ public class ClientProcessWrapper {
 		if (this.openshell == null || this.chrootSymlinkHelper == null) {
 			return 0;
 		}
-		long now = System.currentTimeMillis();
-		if (now - this.lastFetchBackMs < FETCH_BACK_MIN_INTERVAL_MS) {
-			return 0;
-		}
-		this.lastFetchBackMs = now;
 		int total = 0;
 		for (String path : this.chrootSymlinkHelper.getTransportedPaths()) {
 			String normalized = Utility.normalizePath(path);
@@ -433,9 +428,6 @@ public class ClientProcessWrapper {
 		}
 		return total;
 	}
-
-	private volatile long lastFetchBackMs = 0L;
-	private static final long FETCH_BACK_MIN_INTERVAL_MS = 1500L;
 
 	public void shutdown(boolean cleanUpFolder) {
 		lockDestroy.lock();
@@ -496,6 +488,13 @@ public class ClientProcessWrapper {
 			// teardown -- the gateway delete is authoritative and the worker cannot
 			// outlive its sandbox. There is no graceful-shutdown verb to send first.
 			if (this.openshell != null) {
+				try {
+					// Last reconcile before the sandbox disappears: anything written since the
+					// final request would otherwise die with it.
+					fetchBackTransportedRoots();
+				} catch (Exception e) {
+					classLogger.warn("Fetch-back before sandbox teardown failed for port {}", this.port, e);
+				}
 				try {
 					this.openshell.close();
 				} catch (Exception e) {

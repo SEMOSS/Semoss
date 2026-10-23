@@ -129,6 +129,16 @@ public final class OpenShellShellRunner {
 				return new Result(newDir, newDir);
 			}
 			String output = runInSandbox(sandboxName, dir, trimmed);
+			// Shell writes are not requests on the python socket, so they do not pass the
+			// fetch-back hook there. Reconcile here too -- this is the path a `git commit`
+			// or a `cat > file` takes, and losing that work is exactly what we are fixing.
+			try {
+				if (user.getPythonClientProcessWrapper() != null) {
+					user.getPythonClientProcessWrapper().fetchBackTransportedRoots();
+				}
+			} catch (Exception ignored) {
+				// the command itself already ran; a failed reconcile must not fail the shell
+			}
 			return new Result(output, dir);
 		} catch (Exception e) {
 			return new Result("Shell execution in sandbox failed: " + e.getClass().getSimpleName() + ": "

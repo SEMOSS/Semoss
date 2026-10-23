@@ -549,9 +549,15 @@ public final class OpenShellTransport {
 		java.nio.file.Path temp = null;
 		try {
 			String cli = propOr(CLI_PROP, DEFAULT_CLI);
-			byte[] archive = runBytes(
-					Arrays.asList(cli, "sandbox", "exec", "-n", sandboxName, "--", "tar", "-C", parent, "-cf", "-", base),
-					120);
+			// .git is deliberately NOT excluded: a commit made in the sandbox shell is
+			// work the user expects to keep, and git objects are content-addressed so
+			// copying them back is safe. Only regenerable caches are skipped.
+			// Known risk, not yet guarded: a host-side commit and a sandbox-side commit
+			// made concurrently can leave refs diverged; the revision/conflict check that
+			// would catch it is still to come.
+			byte[] archive = runBytes(Arrays.asList(cli, "sandbox", "exec", "-n", sandboxName, "--", "tar", "-C", parent,
+					"--exclude=node_modules", "--exclude=__pycache__", "--exclude=.venv",
+					"-cf", "-", base), 120);
 			if (archive == null || archive.length == 0) {
 				return 0;
 			}
