@@ -284,6 +284,7 @@ public final class AutomationConstants {
 	public static final String CONFIG_WORKSPACE_ID = "workspaceId";
 	public static final String CONFIG_SKILLS = "skills";
 	public static final String CONFIG_COLLABORATION_ROUTINE = "collaborationRoutine";
+	public static final String CONFIG_ROUTINE_ID = "routineId";
 	public static final String CONFIG_MAX_TURNS = "maxTurns";
 	public static final String CONFIG_MAX_REFLECTIONS = "maxReflections";
 	public static final String CONFIG_WAIT = "wait";
