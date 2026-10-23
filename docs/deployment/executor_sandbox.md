@@ -132,10 +132,22 @@ TAG=semoss-executor:0.1 docker/build-executor-image.sh
 
 The build context is `py/`, so the image carries exactly the committed worker;
 `docker/Dockerfile.executor` assembles it. The tag is labelled with `org.semoss.py-sha`, a hash
-of the python tree, so the image can be traced back to its source. Contents: `python:3.12-slim`,
-`git` with a system identity (local repository work only — egress is granted per binary by the
-OpenShell policy), `pandas` and `jsonpickle` for the boot-time imports, the insight and grants
-layout, and uid 1000 ownership of `/opt/semosshome`.
+of the python tree, so the image can be traced back to its source.
+
+Two variants:
+
+| Mode | Contents | Use |
+| --- | --- | --- |
+| `slim` (default) | `python:3.12-slim`, git, `pandas`, `jsonpickle`, `yfinance` | quick iteration; user code can only import those |
+| `full` (`MODE=full`) | the dependency set declared in `py/install_config/pyproject.toml`, installed with uv | parity with the platform runtime — a `Py()` block keeps its imports |
+
+The full build installs into `/usr/local` rather than a virtualenv, because **the sandbox's
+`PATH` belongs to OpenShell, not the image**: a workload starts with
+`/usr/local/bin:/usr/bin:/bin`, so `ENV PATH=/opt/venv/bin:$PATH` is ignored and a venv would be
+invisible. (Symlinking `python3` at the venv does not help either — CPython looks for
+`pyvenv.cfg` relative to the invoked path and silently falls back to the base interpreter.) Any
+smoke test must therefore run under `env -i PATH=/usr/local/bin:/usr/bin:/bin`, or it passes
+while the worker fails at boot.
 
 At session start the launcher also uploads the host's `/opt/semosshome/py` over the image's
 copy, but the worker's first imports happen before that upload, so the baked copy still has to
