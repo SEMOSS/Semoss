@@ -588,16 +588,24 @@ public final class OpenShellTransport {
 			// git's data files are ever written back -- see isWritableGitPath. Regenerable
 			// caches are skipped.
 			java.nio.file.Path archive = temp.resolve("capture.tar");
-			long size = runToFile(Arrays.asList(cli, "sandbox", "exec", "-n", sandboxName, "--", "tar", "-C", parent,
-					"--exclude=node_modules", "--exclude=__pycache__", "--exclude=.venv", "-cf", "-", base), 120,
-					archive);
-			if (size == 0) {
+			Capture capture = runToFile(Arrays.asList(cli, "sandbox", "exec", "-n", sandboxName, "--", "tar", "-C",
+					parent, "--ignore-failed-read", "--exclude=node_modules", "--exclude=__pycache__", "--exclude=.venv",
+					"-cf", "-", base), 120, archive);
+			if (capture.bytes == 0) {
 				return 0;
 			}
 			requireSafeArchive(archive);
 			java.nio.file.Path tree = java.nio.file.Files.createDirectory(temp.resolve("tree"));
 			extractArchive(archive, tree);
-			return reconcile(tree.resolve(base), java.nio.file.Paths.get(normalized), true);
+			// tar warns about anything it could not read (a mode-000 directory, say). What
+			// it skipped is missing from the capture without having been deleted, so a
+			// partial capture writes files back but infers no deletions.
+			boolean complete = capture.warnings.isEmpty();
+			if (!complete) {
+				classLogger.warn("Capture of {} is partial; not propagating deletions this time: {}", absPath,
+						capture.warnings);
+			}
+			return reconcile(tree.resolve(base), java.nio.file.Paths.get(normalized), complete);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new IOException("fetch-back of " + absPath + " interrupted", e);
@@ -659,8 +667,7 @@ public final class OpenShellTransport {
 					"--exclude=__pycache__", "--exclude=.venv", "-cf", "-", "--"));
 			command.addAll(safe);
 			java.nio.file.Path archive = temp.resolve("capture.tar");
-			long size = runToFile(command, 120, archive);
-			if (size == 0) {
+			if (runToFile(command, 120, archive).bytes == 0) {
 				return 0;
 			}
 			requireSafeArchive(archive);
@@ -679,8 +686,9 @@ public final class OpenShellTransport {
 	 * Write files from {@code incoming} onto {@code target}. Content is the authority: a
 	 * differing sandbox file is always written. The host copy is quarantined first when
 	 * it changed since this transport last left it, and the write is skipped if that copy
-	 * cannot be made. When {@code fullTree} is set, paths the sandbox held before but no
-	 * longer has are propagated as deletions.
+	 * cannot be made. {@code fullTree} means {@code incoming} is a complete capture of the
+	 * root: paths the sandbox held before but no longer has are then propagated as
+	 * deletions.
 	 */
 	private int reconcile(java.nio.file.Path incoming, java.nio.file.Path target, boolean fullTree)
 			throws IOException {
@@ -1131,15 +1139,32 @@ public final class OpenShellTransport {
 	 * heap: one session's capture must never be able to exhaust the memory of the JVM
 	 * every other session shares.
 	 *
-	 * @return bytes written
+	 * @return bytes written, and whatever the command wrote to stderr
 	 */
-	private long runToFile(List<String> cmd, int timeoutSeconds, java.nio.file.Path out)
+	private Capture runToFile(List<String> cmd, int timeoutSeconds, java.nio.file.Path out)
 			throws IOException, InterruptedException {
 		ProcessBuilder builder = new ProcessBuilder(cmd);
 		builder.environment().putAll(cliEnv());
-		builder.redirectError(ProcessBuilder.Redirect.DISCARD);
 		builder.redirectInput(ProcessBuilder.Redirect.from(new java.io.File("/dev/null")));
 		Process process = builder.start();
+		StringBuilder errors = new StringBuilder();
+		Thread errorReader = new Thread(() -> {
+			try (java.io.BufferedReader reader = new java.io.BufferedReader(
+					new java.io.InputStreamReader(process.getErrorStream(), java.nio.charset.StandardCharsets.UTF_8))) {
+				String line;
+				while ((line = reader.readLine()) != null) {
+					synchronized (errors) {
+						if (errors.length() < 4096) {
+							errors.append(line).append('\n');
+						}
+					}
+				}
+			} catch (IOException ignored) {
+				// the exit code carries the outcome
+			}
+		}, "openshell-fetchback-errors");
+		errorReader.setDaemon(true);
+		errorReader.start();
 		java.util.concurrent.atomic.AtomicLong written = new java.util.concurrent.atomic.AtomicLong();
 		java.util.concurrent.atomic.AtomicBoolean overCap = new java.util.concurrent.atomic.AtomicBoolean();
 		Thread reader = new Thread(() -> {
@@ -1166,13 +1191,30 @@ public final class OpenShellTransport {
 			throw new IOException("timed out after " + timeoutSeconds + "s: " + String.join(" ", cmd));
 		}
 		reader.join(10_000);
+		errorReader.join(2000);
+		String warnings;
+		synchronized (errors) {
+			warnings = errors.toString().trim();
+		}
 		if (overCap.get()) {
 			throw new IOException("capture passed the " + MAX_FETCH_BYTES + " byte cap: " + String.join(" ", cmd));
 		}
 		if (process.exitValue() != 0) {
-			throw new IOException("command failed (" + process.exitValue() + "): " + String.join(" ", cmd));
+			throw new IOException("command failed (" + process.exitValue() + "): " + String.join(" ", cmd)
+					+ (warnings.isEmpty() ? "" : "\n" + warnings));
 		}
-		return written.get();
+		return new Capture(written.get(), warnings);
+	}
+
+	/** Size of a streamed capture and what the command reported on stderr. */
+	private static final class Capture {
+		private final long bytes;
+		private final String warnings;
+
+		Capture(long bytes, String warnings) {
+			this.bytes = bytes;
+			this.warnings = warnings;
+		}
 	}
 
 	/**
