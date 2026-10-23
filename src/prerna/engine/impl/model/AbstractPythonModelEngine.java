@@ -379,7 +379,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 		callMaker.append(")");
 
-		classLogger.debug("Running model command {}", callMaker.toString());
+		// credentials a subclass rides along on the call (github_token) never reach the log
+		classLogger.debug("Running model command {}",
+				callMaker.toString().replaceAll("(\\w*token\\w*=)\"(?:[^\"\\\\]|\\\\.)*\"", "$1\"***\""));
 
 		Object output = pyTranslator.runDirectPyNoCancelTrace(insight, callMaker.toString());
 		// the client refused the call before the provider saw it: it does not fit in

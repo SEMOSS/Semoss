@@ -102,6 +102,10 @@ def __getattr__(name: str) -> Any:
         from .agents.github_copilot.github_copilot_client import GitHubCopilotClient
 
         return GitHubCopilotClient
+    elif name == "GitHubCopilotModelClient":
+        from .text_generation.github_copilot_model_client import GitHubCopilotModelClient
+
+        return GitHubCopilotModelClient
     else:
         raise AttributeError(f"Could not find: {name}")
 
@@ -212,4 +216,5 @@ __all__ = [
     "BedrockEmbedder",
     "ClaudeCodeClient",
     "GitHubCopilotClient",
+    "GitHubCopilotModelClient",
 ]

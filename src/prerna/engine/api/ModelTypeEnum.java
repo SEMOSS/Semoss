@@ -31,6 +31,7 @@ import prerna.engine.impl.model.AnthropicEngine;
 import prerna.engine.impl.model.AzureOpenAiEngine;
 import prerna.engine.impl.model.BedrockEngine;
 import prerna.engine.impl.model.EmbeddedModelEngine;
+import prerna.engine.impl.model.GitHubCopilotEngine;
 import prerna.engine.impl.model.KServeImageEmbedEngine;
 import prerna.engine.impl.model.KServeImageEngine;
 import prerna.engine.impl.model.KServeTTSEngine;
@@ -52,6 +53,7 @@ public enum ModelTypeEnum {
 	ANTHROPIC("ANTHROPIC", AnthropicEngine.class.getName()),
 	AZURE_OPEN_AI("AZURE_OPEN_AI", AzureOpenAiEngine.class.getName()),
 	BEDROCK("BEDROCK", BedrockEngine.class.getName()),
+	GITHUB_COPILOT("GITHUB_COPILOT", GitHubCopilotEngine.class.getName()),
 	OPEN_AI("OPEN_AI", OpenAiEngine.class.getName()),
 	VERTEX("VERTEX", VertexEngine.class.getName()),
 	TYPESAFE("TYPESAFE", TypeSafeEngine.class.getName()),
