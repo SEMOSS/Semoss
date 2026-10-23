@@ -90,6 +90,15 @@ public class SymlinkHelper {
 	 * re-symlink the same folders; without this the tree would be re-transferred on every request.
 	 */
 	private final Set<String> activeTransports = ConcurrentHashMap.newKeySet();
+
+	/**
+	 * Paths this helper has handed to the sandbox, in the order they were first
+	 * requested. Read-only view: the fetch-back needs to know which roots exist in
+	 * the sandbox so it can reconcile them when the process finishes a block.
+	 */
+	public java.util.List<String> getTransportedPaths() {
+		return new java.util.ArrayList<>(activeTransports);
+	}
 	private SandboxTransporter transporter;
 
 	/**

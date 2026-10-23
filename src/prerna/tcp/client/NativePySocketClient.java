@@ -655,7 +655,18 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					}
 				}
 
-				return responseMap.remove(ps.epoc);
+				PayloadStruct reply = responseMap.remove(ps.epoc);
+				// Execution boundary: a file the block wrote inside the sandbox becomes
+				// visible to the platform here -- asset browser, git, MCP generation --
+				// instead of waiting for logout, where it used to be lost entirely.
+				if (reply != null && this.cpw != null) {
+					try {
+						this.cpw.fetchBackTransportedRoots();
+					} catch (Exception fetchError) {
+						classLogger.warn("Fetch-back after execution failed", fetchError);
+					}
+				}
+				return reply;
 			} finally {
 				ps.unlockResponse();
 			}

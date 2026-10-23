@@ -156,6 +156,9 @@ public final class OpenShellTransport {
 	 */
 	public static final int MAX_SANDBOX_NAME_LENGTH = 19;
 
+	/** Cap for one fetch-back archive; larger trees are pulled path by path or not at all. */
+	private static final long MAX_FETCH_BYTES = 256L * 1024 * 1024;
+
 	private static final String NAME_PREFIX = "pyw-";
 
 	/**
@@ -500,6 +503,234 @@ public final class OpenShellTransport {
 
 	public int getForwardedPort() {
 		return forwardedPort;
+	}
+
+	/**
+	 * Copy one uploaded root back out of the sandbox onto the host.
+	 *
+	 * <p>
+	 * This is the missing half of the data plane: {@link #upload(String)} moves a tree
+	 * in, and without this nothing ever moves back, so a file an agent or a
+	 * {@code Py()} call writes inside the sandbox is destroyed with it.
+	 *
+	 * <p>
+	 * {@code openshell sandbox download} cannot be used directly: it is scoped to the
+	 * sandbox workspace ({@code /opt/semosshome/py}) and refuses project paths with
+	 * "outside the sandbox workspace". So the tree is streamed out through
+	 * {@code sandbox exec -- tar -cf -} instead, which is byte-safe and therefore also
+	 * correct for images and wheels.
+	 *
+	 * <p>
+	 * Reconciliation is per file and deliberately conservative: a file is written back
+	 * only when its content differs <b>and</b> the sandbox copy is newer than the host
+	 * copy. That keeps a stale or half-written sandbox from clobbering a host edit made
+	 * after the upload.
+	 *
+	 * @param absPath a path previously passed to {@link #upload(String)}
+	 * @return number of files written back
+	 */
+	public int fetchBack(String absPath) {
+		if (absPath == null || absPath.trim().isEmpty()) {
+			return 0;
+		}
+		String baseFolder = Utility.getBaseFolder();
+		String normalized = Utility.normalizePath(absPath);
+		if (baseFolder == null || !normalized.startsWith(Utility.normalizePath(baseFolder))) {
+			classLogger.warn("Refusing fetch-back outside the SEMOSS home: {}", absPath);
+			return 0;
+		}
+		java.io.File source = new java.io.File(normalized);
+		String parent = source.getParent();
+		String base = source.getName();
+		if (parent == null) {
+			return 0;
+		}
+
+		java.nio.file.Path temp = null;
+		try {
+			String cli = propOr(CLI_PROP, DEFAULT_CLI);
+			byte[] archive = runBytes(
+					Arrays.asList(cli, "sandbox", "exec", "-n", sandboxName, "--", "tar", "-C", parent, "-cf", "-", base),
+					120);
+			if (archive == null || archive.length == 0) {
+				return 0;
+			}
+			if (archive.length > MAX_FETCH_BYTES) {
+				classLogger.warn("Fetch-back of {} is {} bytes, over the {} byte cap; skipped", absPath, archive.length,
+						MAX_FETCH_BYTES);
+				return 0;
+			}
+			if (!archiveEntriesAreSafe(archive)) {
+				classLogger.warn("Fetch-back of {} contained an absolute or traversing path; skipped", absPath);
+				return 0;
+			}
+			temp = java.nio.file.Files.createTempDirectory("openshell-fetchback-");
+			extractArchive(archive, temp);
+			return reconcile(temp.resolve(base), java.nio.file.Paths.get(normalized));
+		} catch (Exception e) {
+			classLogger.warn("Fetch-back failed for {}", absPath, e);
+			return 0;
+		} finally {
+			if (temp != null) {
+				deleteQuietly(temp);
+			}
+		}
+	}
+
+	/**
+	 * Write files from {@code incoming} onto {@code target} when the sandbox copy is
+	 * newer and differs. Returns how many were written.
+	 */
+	private int reconcile(java.nio.file.Path incoming, java.nio.file.Path target) throws java.io.IOException {
+		if (!java.nio.file.Files.exists(incoming)) {
+			return 0;
+		}
+		int[] copied = { 0 };
+		try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(incoming)) {
+			walk.filter(java.nio.file.Files::isRegularFile).filter(path -> !java.nio.file.Files.isSymbolicLink(path))
+					.forEach(path -> {
+						java.nio.file.Path relative = incoming.relativize(path);
+						java.nio.file.Path destination = target.resolve(relative.toString());
+						try {
+							if (java.nio.file.Files.exists(destination)) {
+								if (sameContent(path, destination)
+										|| java.nio.file.Files.getLastModifiedTime(path).compareTo(
+												java.nio.file.Files.getLastModifiedTime(destination)) <= 0) {
+									return;
+								}
+							}
+							java.nio.file.Path folder = destination.getParent();
+							if (folder != null) {
+								java.nio.file.Files.createDirectories(folder);
+							}
+							java.nio.file.Files.copy(path, destination,
+									java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+									java.nio.file.StandardCopyOption.COPY_ATTRIBUTES);
+							copied[0]++;
+						} catch (java.io.IOException e) {
+							classLogger.warn("Could not write back {}", destination, e);
+						}
+					});
+		}
+		if (copied[0] > 0) {
+			classLogger.info("Fetch-back wrote {} file(s) into {}", copied[0], target);
+		}
+		return copied[0];
+	}
+
+	private static boolean sameContent(java.nio.file.Path left, java.nio.file.Path right) throws java.io.IOException {
+		if (java.nio.file.Files.size(left) != java.nio.file.Files.size(right)) {
+			return false;
+		}
+		return java.util.Arrays.equals(java.nio.file.Files.readAllBytes(left), java.nio.file.Files.readAllBytes(right));
+	}
+
+	private static boolean archiveEntriesAreSafe(byte[] archive) {
+		try {
+			Process process = new ProcessBuilder("tar", "-tf", "-")
+					.redirectErrorStream(true).start();
+			Thread writer = new Thread(() -> {
+				try (java.io.OutputStream stdin = process.getOutputStream()) {
+					stdin.write(archive);
+				} catch (java.io.IOException ignored) {
+					// process may exit early; the exit code carries the outcome
+				}
+			});
+			writer.start();
+			String listing = new String(process.getInputStream().readAllBytes(),
+					java.nio.charset.StandardCharsets.UTF_8);
+			writer.join(5000);
+			process.waitFor(20, TimeUnit.SECONDS);
+			for (String line : listing.split("\\R")) {
+				String entry = line.trim();
+				if (entry.isEmpty()) {
+					continue;
+				}
+				if (entry.startsWith("/") || entry.contains("..")) {
+					return false;
+				}
+			}
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	private static void extractArchive(byte[] archive, java.nio.file.Path destination) throws Exception {
+		Process process = new ProcessBuilder("tar", "-xf", "-", "-C", destination.toString())
+				.redirectErrorStream(true).start();
+		Thread writer = new Thread(() -> {
+			try (java.io.OutputStream stdin = process.getOutputStream()) {
+				stdin.write(archive);
+			} catch (java.io.IOException ignored) {
+				// see above
+			}
+		});
+		writer.start();
+		String output = new String(process.getInputStream().readAllBytes(),
+				java.nio.charset.StandardCharsets.UTF_8);
+		writer.join(10_000);
+		if (!process.waitFor(60, TimeUnit.SECONDS)) {
+			process.destroyForcibly();
+			throw new java.io.IOException("tar extraction timed out");
+		}
+		if (process.exitValue() != 0) {
+			throw new java.io.IOException("tar extraction failed: " + output.trim());
+		}
+	}
+
+	private static void deleteQuietly(java.nio.file.Path root) {
+		try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(root)) {
+			walk.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
+				try {
+					java.nio.file.Files.deleteIfExists(path);
+				} catch (java.io.IOException ignored) {
+					// best effort
+				}
+			});
+		} catch (java.io.IOException ignored) {
+			// best effort
+		}
+	}
+
+	/**
+	 * Run a CLI command and return its raw stdout. {@link #run(List, int)} decodes to
+	 * String and would corrupt any binary payload, which is exactly what a tar stream is.
+	 */
+	private byte[] runBytes(List<String> cmd, int timeoutSeconds) throws IOException, InterruptedException {
+		ProcessBuilder builder = new ProcessBuilder(cmd);
+		builder.environment().putAll(cliEnv());
+		builder.redirectErrorStream(false);
+		builder.redirectInput(ProcessBuilder.Redirect.from(new java.io.File("/dev/null")));
+		Process process = builder.start();
+		java.io.ByteArrayOutputStream collected = new java.io.ByteArrayOutputStream();
+		Thread reader = new Thread(() -> {
+			try (java.io.InputStream stream = process.getInputStream()) {
+				stream.transferTo(collected);
+			} catch (java.io.IOException ignored) {
+				// the exit code carries the outcome
+			}
+		}, "openshell-fetchback-reader");
+		reader.setDaemon(true);
+		reader.start();
+		Thread errors = new Thread(() -> {
+			try (java.io.InputStream stream = process.getErrorStream()) {
+				stream.transferTo(java.io.OutputStream.nullOutputStream());
+			} catch (java.io.IOException ignored) {
+				// discarded
+			}
+		}, "openshell-fetchback-errors");
+		errors.setDaemon(true);
+		errors.start();
+		if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
+			process.destroyForcibly();
+			throw new IOException("timed out after " + timeoutSeconds + "s: " + String.join(" ", cmd));
+		}
+		reader.join(5000);
+		if (process.exitValue() != 0) {
+			throw new IOException("command failed (" + process.exitValue() + "): " + String.join(" ", cmd));
+		}
+		return collected.toByteArray();
 	}
 
 	/**

@@ -393,6 +393,50 @@ public class ClientProcessWrapper {
 	 * @param cleanUpFolder true to also recursively delete the server scratch
 	 *                      directory and any namespace-sandbox folders
 	 */
+	/**
+	 * Reconcile the sandbox copies of this session's transported roots back onto the
+	 * host, so a file written by {@code Py()} or a shell command is visible to the
+	 * platform (asset browser, MCP generators, git) without waiting for logout.
+	 *
+	 * <p>
+	 * Called at the execution boundary. Throttled: a REPL that runs many small blocks
+	 * must not tar its roots per call, and the reconcile itself skips files that are
+	 * identical or where the sandbox copy is older.
+	 *
+	 * @return number of files written back
+	 */
+	public int fetchBackTransportedRoots() {
+		if (this.openshell == null || this.chrootSymlinkHelper == null) {
+			return 0;
+		}
+		long now = System.currentTimeMillis();
+		if (now - this.lastFetchBackMs < FETCH_BACK_MIN_INTERVAL_MS) {
+			return 0;
+		}
+		this.lastFetchBackMs = now;
+		int total = 0;
+		for (String path : this.chrootSymlinkHelper.getTransportedPaths()) {
+			String normalized = Utility.normalizePath(path);
+			// Only the user-facing roots. Engine and runtime trees are never written by
+			// user code, and pulling them back would waste a tar per block.
+			boolean syncable = normalized.contains("/" + Constants.PROJECT_FOLDER + "/")
+					|| normalized.contains("/" + Constants.ROOM_FOLDER + "/")
+					|| normalized.contains("/" + Constants.USER_FOLDER + "/");
+			if (!syncable) {
+				continue;
+			}
+			try {
+				total += this.openshell.fetchBack(path);
+			} catch (Exception e) {
+				classLogger.warn("Fetch-back failed for {}", path, e);
+			}
+		}
+		return total;
+	}
+
+	private volatile long lastFetchBackMs = 0L;
+	private static final long FETCH_BACK_MIN_INTERVAL_MS = 1500L;
+
 	public void shutdown(boolean cleanUpFolder) {
 		lockDestroy.lock();
 		try {
