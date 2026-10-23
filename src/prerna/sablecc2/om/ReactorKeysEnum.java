@@ -292,6 +292,7 @@ public enum ReactorKeysEnum {
 	SHEET_NAME("sheetName",										"The name of the excel sheet"),
 	SLIDE_LAYOUT("slideLayout",									"Name of the slide layout name to use for the capture"),
 	SORT("sort", 												"Sort direction: ascending (\"asc\") or decending (\"desc\")"),
+	SORT_BY("sortBy", 											"Which field to sort by, e.g. \"created\" or \"modified\""),
 	SPACE("space", 												"""
 			This is an optional field to determine the space in which the relative file path exists. \
 			When this parameter is not provided, the space is assumed to be the current insight (when the insight is attached to a room it will be the room space). \

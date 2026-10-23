@@ -53,9 +53,11 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 				ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey(),
 				INCLUDE_UNNAMED_ROOMS,
-				INCLUDE_CHILD_ROOMS
+				INCLUDE_CHILD_ROOMS,
+				ReactorKeysEnum.START_DATE.getKey(),
+				ReactorKeysEnum.END_DATE.getKey()
 		};
-		this.keyRequired = new int[] { 0, 1, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 0, 1, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -105,11 +107,13 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 		long offset = requestedOffset == null ? 0L : requestedOffset;
 		boolean includeUnnamedRooms = getBoolean(INCLUDE_UNNAMED_ROOMS, false);
 		boolean includeChildRooms = getBoolean(INCLUDE_CHILD_ROOMS, false);
+		String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
+		String endDate = this.keyValue.get(ReactorKeysEnum.END_DATE.getKey());
 
 		List<Map<String, Object>> results;
 		try {
 			results = ModelInferenceLogsUtils.searchMessages(userId, projectId, keyword, limit, offset,
-					includeUnnamedRooms, includeChildRooms);
+					includeUnnamedRooms, includeChildRooms, startDate, endDate);
 		} catch (Exception e) {
 			classLogger.error("Error searching room messages", e);
 			throw new RuntimeException("Could not search room messages: " + e.getMessage(), e);
@@ -126,7 +130,8 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 				+ "Unnamed and child rooms are excluded unless explicitly included. "
 				+ "Falls back to the current insight's context/project when projectId is omitted; "
 				+ "if none is available, searches all projects for the user. "
-				+ "Supports limit and offset for pagination over matching rooms.";
+				+ "Supports limit and offset for pagination over matching rooms, "
+				+ "and an optional inclusive DATE_CREATED range filter via startDate/endDate.";
 	}
 
 	@Override
@@ -143,6 +148,10 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 			return "Whether to include rooms with a null or empty name. Defaults to false.";
 		} else if (key.equals(INCLUDE_CHILD_ROOMS)) {
 			return "Whether to include rooms that have a parent room. Defaults to false.";
+		} else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
+			return "Optional inclusive start of a DATE_CREATED range filter. Ignored unless endDate is also provided.";
+		} else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
+			return "Optional inclusive end of a DATE_CREATED range filter. Ignored unless startDate is also provided.";
 		}
 		return super.getDescriptionForKey(key);
 	}

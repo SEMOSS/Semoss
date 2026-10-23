@@ -1383,11 +1383,26 @@ public class ModelInferenceLogsUtils {
 	 *         * the room's date_created)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
-		return searchMessages(userId, projectId, keyword, -1, 0, false, false);
+		return searchMessages(userId, projectId, keyword, -1, 0, false, false, null, null);
 	}
 
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword, long limit,
 			long offset, boolean includeUnnamedRooms, boolean includeChildRooms) {
+		return searchMessages(userId, projectId, keyword, limit, offset, includeUnnamedRooms, includeChildRooms,
+				null, null);
+	}
+
+	/**
+	 * Same as the seven-argument overload, with an additional inclusive
+	 * {@code ROOM__DATE_CREATED} range filter applied when both {@code startDate}
+	 * and {@code endDate} are provided.
+	 *
+	 * @param startDate inclusive lower bound for DATE_CREATED (nullable)
+	 * @param endDate   inclusive upper bound for DATE_CREATED (nullable)
+	 */
+	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword,
+			long limit, long offset, boolean includeUnnamedRooms, boolean includeChildRooms, String startDate,
+			String endDate) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 
 		// Room-only subquery selecting just the room IDs in scope for this user/
@@ -1397,12 +1412,15 @@ public class ModelInferenceLogsUtils {
 		// before the ROOM-side filters ever get applied.
 		SelectQueryStruct roomScopeQs = new SelectQueryStruct();
 		roomScopeQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
-		addRoomScopeFilters(roomScopeQs, userId, projectId, includeUnnamedRooms, includeChildRooms);
+		addRoomScopeFilters(roomScopeQs, userId, projectId, includeUnnamedRooms, includeChildRooms, startDate,
+				endDate);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "room_name"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED", "date_created"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
+				"MESSAGE__MESSAGE_ID", "match_count"));
 
 		// Use the search-specific conversion so malformed searchable content cannot
 		// abort an otherwise unrelated room/project search.
@@ -1410,14 +1428,17 @@ public class ModelInferenceLogsUtils {
 				.getSearchableBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"),
 						"message_text");
 
-		// JOIN, filters, deduplication, and ordering
+		// JOIN, filters, grouping (one row per room with its matching-message
+		// count instead of one row per matching message), and ordering
 		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "inner.join");
-		addRoomScopeFilters(qs, userId, projectId, includeUnnamedRooms, includeChildRooms);
+		addRoomScopeFilters(qs, userId, projectId, includeUnnamedRooms, includeChildRooms, startDate, endDate);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("MESSAGE__ROOM_ID", "==", roomScopeQs));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector, "?like", keyword,
 				PixelDataType.CONST_STRING));
 
-		qs.setDistinct(true);
+		qs.addGroupBy(new QueryColumnSelector("ROOM__ROOM_ID"));
+		qs.addGroupBy(new QueryColumnSelector("ROOM__ROOM_NAME"));
+		qs.addGroupBy(new QueryColumnSelector("ROOM__DATE_CREATED"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("date_created", "DESC"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("room_id", "DESC"));
 		if (limit > 0) {
@@ -1431,6 +1452,17 @@ public class ModelInferenceLogsUtils {
 
 	private static void addRoomScopeFilters(SelectQueryStruct qs, String userId, String projectId,
 			boolean includeUnnamedRooms, boolean includeChildRooms) {
+		addRoomScopeFilters(qs, userId, projectId, includeUnnamedRooms, includeChildRooms, null, null);
+	}
+
+	/**
+	 * Same as the five-argument overload, with an additional inclusive
+	 * {@code ROOM__DATE_CREATED} range filter applied when both {@code startDate}
+	 * and {@code endDate} are provided — matches the range filter convention used
+	 * by {@code getUserConversations}.
+	 */
+	private static void addRoomScopeFilters(SelectQueryStruct qs, String userId, String projectId,
+			boolean includeUnnamedRooms, boolean includeChildRooms, String startDate, String endDate) {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
 		if (projectId != null && !projectId.trim().isEmpty()) {
@@ -1443,6 +1475,13 @@ public class ModelInferenceLogsUtils {
 		}
 		if (!includeChildRooms) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
+		}
+		if ((startDate != null && !startDate.trim().isEmpty())
+				&& (endDate != null && !endDate.trim().isEmpty())) {
+			AndQueryFilter dateRangeFilter = new AndQueryFilter();
+			dateRangeFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ROOM__DATE_CREATED", ">=", startDate));
+			dateRangeFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ROOM__DATE_CREATED", "<=", endDate));
+			qs.addExplicitFilter(dateRangeFilter);
 		}
 	}
 
@@ -1679,6 +1718,8 @@ public class ModelInferenceLogsUtils {
 	 *         <li>{@code ROOM_NAME} (or aliased header for room name)</li>
 	 *         <li>{@code DATE_CREATED} (or aliased header for room create
 	 *         timestamp)</li>
+	 *         <li>{@code UPDATED_AT} (or aliased header for room last-modified
+	 *         timestamp)</li>
 	 *         <li>{@code PINNED} (or aliased header for pinned state)</li>
 	 *         <li>{@code WORKSPACE_ID} (or aliased header for workspace link)</li>
 	 *         </ul>
@@ -1697,11 +1738,32 @@ public class ModelInferenceLogsUtils {
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch,
 			boolean includeUnnamedRooms, boolean includeChildRooms) {
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, roomOptionsSearch,
+				includeUnnamedRooms, includeChildRooms, null, null, null);
+	}
+
+	/**
+	 * Same as the ten-argument overload, with an additional inclusive
+	 * {@code ROOM__DATE_CREATED} range filter applied when both {@code startDate}
+	 * and {@code endDate} are provided, and a choice of which timestamp column to
+	 * order by.
+	 *
+	 * @param startDate inclusive lower bound for DATE_CREATED (nullable)
+	 * @param endDate   inclusive upper bound for DATE_CREATED (nullable)
+	 * @param sortBy    which timestamp to order by: {@code "modified"} orders by
+	 *                  {@code ROOM__UPDATED_AT}; anything else (including null)
+	 *                  orders by {@code ROOM__DATE_CREATED}
+	 */
+	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
+			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch,
+			boolean includeUnnamedRooms, boolean includeChildRooms, String startDate, String endDate,
+			String sortBy) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
+		qs.addSelector(new QueryColumnSelector("ROOM__UPDATED_AT"));
 		qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
 
@@ -1755,6 +1817,19 @@ public class ModelInferenceLogsUtils {
 			}
 		}
 
+		// DATE_CREATED range filter — only applied when both bounds are given,
+		// same convention as addStartDateEndDateFitler above (which targets
+		// MESSAGE__DATE_CREATED for a different query, not reused here).
+		if ((startDate != null && !startDate.trim().isEmpty())
+				&& (endDate != null && !endDate.trim().isEmpty())) {
+			AndQueryFilter dateRangeFilter = new AndQueryFilter();
+			dateRangeFilter.addFilter(
+					SimpleQueryFilter.makeColToValFilter("ROOM__DATE_CREATED", ">=", startDate));
+			dateRangeFilter.addFilter(
+					SimpleQueryFilter.makeColToValFilter("ROOM__DATE_CREATED", "<=", endDate));
+			qs.addExplicitFilter(dateRangeFilter);
+		}
+
 		// LIMIT/OFFSET
 		if (limit > 0) {
 			qs.setLimit(limit);
@@ -1764,7 +1839,8 @@ public class ModelInferenceLogsUtils {
 		}
 		// SORTING
 		sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
-		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", sortDir));
+		String sortColumn = "modified".equalsIgnoreCase(sortBy) ? "ROOM__UPDATED_AT" : "ROOM__DATE_CREATED";
+		qs.addOrderBy(new QueryColumnOrderBySelector(sortColumn, sortDir));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
