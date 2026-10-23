@@ -572,7 +572,7 @@ public final class OpenShellTransport {
 			}
 			temp = java.nio.file.Files.createTempDirectory("openshell-fetchback-");
 			extractArchive(archive, temp);
-			return reconcile(temp.resolve(base), java.nio.file.Paths.get(normalized));
+			return reconcile(temp.resolve(base), java.nio.file.Paths.get(normalized), true);
 		} catch (Exception e) {
 			classLogger.warn("Fetch-back failed for {}", absPath, e);
 			return 0;
@@ -646,7 +646,7 @@ public final class OpenShellTransport {
 			}
 			temp = java.nio.file.Files.createTempDirectory("openshell-fetchback-paths-");
 			extractArchive(archive, temp);
-			return reconcile(temp, java.nio.file.Paths.get(normalized));
+			return reconcile(temp, java.nio.file.Paths.get(normalized), false);
 		} catch (Exception e) {
 			classLogger.warn("Path fetch-back failed for {}", absRoot, e);
 			return 0;
@@ -658,13 +658,18 @@ public final class OpenShellTransport {
 	}
 
 	/**
-	 * Write files from {@code incoming} onto {@code target} when the sandbox copy is
-	 * newer and differs. Returns how many were written.
+	 * Write files from {@code incoming} onto {@code target}. Content is the authority:
+	 * a differing sandbox file is always written, and mtime only decides whether the
+	 * host copy must be preserved first. When {@code fullTree} is set the target is
+	 * also scanned for files the sandbox no longer has, so a full fallback can
+	 * propagate deletions instead of silently resurrecting them.
 	 */
-	private int reconcile(java.nio.file.Path incoming, java.nio.file.Path target) throws java.io.IOException {
+	private int reconcile(java.nio.file.Path incoming, java.nio.file.Path target, boolean fullTree)
+			throws java.io.IOException {
 		if (!java.nio.file.Files.exists(incoming)) {
 			return 0;
 		}
+		java.nio.file.Path store = quarantineStore();
 		int[] copied = { 0 };
 		try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(incoming)) {
 			walk.filter(java.nio.file.Files::isRegularFile).filter(path -> !java.nio.file.Files.isSymbolicLink(path))
@@ -673,10 +678,14 @@ public final class OpenShellTransport {
 						java.nio.file.Path destination = target.resolve(relative.toString());
 						try {
 							if (java.nio.file.Files.exists(destination)) {
-								if (sameContent(path, destination)
-										|| java.nio.file.Files.getLastModifiedTime(path).compareTo(
-												java.nio.file.Files.getLastModifiedTime(destination)) <= 0) {
+								if (sameContent(path, destination)) {
 									return;
+								}
+								// Different bytes. A host copy newer than the sandbox copy may be a
+								// concurrent edit, so keep it rather than silently overwriting it.
+								if (java.nio.file.Files.getLastModifiedTime(destination)
+										.compareTo(java.nio.file.Files.getLastModifiedTime(path)) > 0) {
+									quarantineCopy(destination, target, store);
 								}
 							}
 							java.nio.file.Path folder = destination.getParent();
@@ -692,10 +701,112 @@ public final class OpenShellTransport {
 						}
 					});
 		}
+		if (fullTree) {
+			copied[0] += quarantineStale(target, incoming, store);
+		}
 		if (copied[0] > 0) {
 			classLogger.info("Fetch-back wrote {} file(s) into {}", copied[0], target);
 		}
 		return copied[0];
+	}
+
+	/**
+	 * A full fetch carries survivors, not tombstones. Any host file under the root that
+	 * the sandbox capture no longer contains was deleted inside the sandbox; move it to
+	 * quarantine rather than leaving it to reappear in the project.
+	 */
+	private static int quarantineStale(java.nio.file.Path target, java.nio.file.Path incoming,
+			java.nio.file.Path store) {
+		int[] moved = { 0 };
+		try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(target)) {
+			walk.filter(java.nio.file.Files::isRegularFile).filter(path -> !java.nio.file.Files.isSymbolicLink(path))
+					.filter(path -> !isExcludedFromCapture(target.relativize(path)))
+					.forEach(path -> {
+						java.nio.file.Path relative = target.relativize(path);
+						if (java.nio.file.Files.exists(incoming.resolve(relative.toString()))) {
+							return;
+						}
+						java.nio.file.Path copy = quarantineCopy(path, target, store);
+						if (copy != null) {
+							try {
+								java.nio.file.Files.deleteIfExists(path);
+								moved[0]++;
+							} catch (java.io.IOException e) {
+								classLogger.warn("Could not remove {} after quarantining it", path, e);
+							}
+						}
+					});
+		} catch (java.io.IOException e) {
+			classLogger.warn("Could not scan {} for deletions", target, e);
+		}
+		if (moved[0] > 0) {
+			classLogger.info("Fetch-back moved {} deleted file(s) to {}", moved[0], store);
+		}
+		return moved[0];
+	}
+
+	/**
+	 * Directories the root capture never contains: {@code tar} excludes them, so a file
+	 * missing from the archive under one of these names was never captured rather than
+	 * deleted, and must not be treated as a tombstone.
+	 */
+	private static boolean isExcludedFromCapture(java.nio.file.Path relative) {
+		for (java.nio.file.Path part : relative) {
+			String name = part.toString();
+			if ("node_modules".equals(name) || "__pycache__".equals(name) || ".venv".equals(name)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Timestamped quarantine root, outside every transported root so it is never pushed. */
+	private static java.nio.file.Path quarantineStore() {
+		String base = Utility.getBaseFolder();
+		java.nio.file.Path store = java.nio.file.Paths
+				.get(base == null ? System.getProperty("java.io.tmpdir") : base, "writeback-quarantine");
+		String stamp = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date());
+		return store.resolve(stamp);
+	}
+
+	/** Copy a host file aside before it is overwritten or removed. Returns the copy, or null. */
+	private static java.nio.file.Path quarantineCopy(java.nio.file.Path file, java.nio.file.Path root,
+			java.nio.file.Path store) {
+		try {
+			java.nio.file.Path relative = root.relativize(file);
+			java.nio.file.Path destination = store.resolve(root.getFileName().toString())
+					.resolve(relative.toString());
+			java.nio.file.Files.createDirectories(destination.getParent());
+			java.nio.file.Files.copy(file, destination, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+					java.nio.file.StandardCopyOption.COPY_ATTRIBUTES);
+			classLogger.warn("Write-back preserved the host copy of {} at {}", file, destination);
+			return destination;
+		} catch (Exception e) {
+			classLogger.warn("Could not preserve the host copy of {}", file, e);
+			return null;
+		}
+	}
+
+	/**
+	 * Remove a host file the sandbox deleted, keeping a copy under the quarantine root.
+	 *
+	 * @param path absolute host path reported as deleted
+	 * @param root transported root the path belongs to
+	 */
+	public static void quarantineAndDelete(String path, String root) {
+		java.nio.file.Path file = java.nio.file.Paths.get(path);
+		if (!java.nio.file.Files.exists(file)) {
+			return;
+		}
+		if (quarantineCopy(file, java.nio.file.Paths.get(Utility.normalizePath(root)), quarantineStore()) == null) {
+			classLogger.warn("Delete suppressed for {} because it could not be quarantined", path);
+			return;
+		}
+		try {
+			java.nio.file.Files.deleteIfExists(file);
+		} catch (java.io.IOException e) {
+			classLogger.warn("Could not delete {} after quarantining it", path, e);
+		}
 	}
 
 	private static boolean sameContent(java.nio.file.Path left, java.nio.file.Path right) throws java.io.IOException {

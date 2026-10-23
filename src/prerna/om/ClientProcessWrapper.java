@@ -442,7 +442,7 @@ public class ClientProcessWrapper {
 		roots.sort((first, second) -> second.length() - first.length());
 
 		Map<String, List<String>> writes = new HashMap<>();
-		List<String> deletes = new ArrayList<>();
+		Map<String, String> deletes = new HashMap<>();
 		for (Object entry : changes) {
 			if (!(entry instanceof Map<?, ?> change)) {
 				continue;
@@ -464,7 +464,7 @@ public class ClientProcessWrapper {
 			}
 			String relative = path.substring(root.length() + 1);
 			if ("delete".equals(String.valueOf(change.get("op")))) {
-				deletes.add(path);
+				deletes.put(path, root);
 			} else {
 				List<String> group = writes.get(root);
 				if (group == null) {
@@ -483,11 +483,11 @@ public class ClientProcessWrapper {
 				classLogger.warn("Path fetch-back failed for {}", group.getKey(), e);
 			}
 		}
-		for (String path : deletes) {
+		for (Map.Entry<String, String> entry : deletes.entrySet()) {
 			try {
-				Files.deleteIfExists(Paths.get(path));
+				prerna.util.OpenShellTransport.quarantineAndDelete(entry.getKey(), entry.getValue());
 			} catch (Exception e) {
-				classLogger.warn("Delete after change set failed for {}", path, e);
+				classLogger.warn("Delete after change set failed for {}", entry.getKey(), e);
 			}
 		}
 		if (total > 0 || !deletes.isEmpty()) {

@@ -28,8 +28,12 @@ import ctypes.util
 import errno
 import os
 import select
+import stat
 import struct
 import threading
+
+# Directories whose contents never need write-back; keep the tuple scan cheap.
+_SKIP_DIRS = {"node_modules", "__pycache__", ".venv"}
 
 IN_MODIFY = 0x00000002
 IN_CLOSE_WRITE = 0x00000008
@@ -65,6 +69,8 @@ class ChangeWatcher:
         # inotify events carry a watch descriptor, not a path; this maps it back.
         self._watched = {}
         self._root_ino = {}
+        # path -> (mtime_ns, size, ino, ctime_ns) as of the last checkpoint
+        self._stat_index = {}
 
     # -- lifecycle ---------------------------------------------------------
 
@@ -200,6 +206,41 @@ class ChangeWatcher:
 
     # -- snapshot ----------------------------------------------------------
 
+    def _scan_tuples(self):
+        """Report files whose metadata moved since the last checkpoint.
+
+        inotify cannot see a persistent mmap write, and a missed event is
+        indistinguishable from silence. One stat tuple per file costs ~6 ms for a few
+        hundred files (~0.1-0.3 s at 100k) and turns those writes into reported
+        changes. It is the correctness floor under the event stream, not a
+        replacement for it: the host still decides by content.
+        """
+        index = {}
+        reported = 0
+        for root in list(self.roots):
+            for base, dirs, files in os.walk(root):
+                dirs[:] = [name for name in dirs if name not in _SKIP_DIRS]
+                for name in files:
+                    path = os.path.join(base, name)
+                    try:
+                        info = os.lstat(path)
+                    except OSError:
+                        continue
+                    if not stat.S_ISREG(info.st_mode):
+                        continue
+                    key = (info.st_mtime_ns, info.st_size, info.st_ino, info.st_ctime_ns)
+                    index[path] = key
+                    # The first scan only seeds the index: the tree predates the watch.
+                    if self._stat_index and self._stat_index.get(path) != key:
+                        self._record(path, "modify")
+                        reported += 1
+        for path in self._stat_index:
+            if path not in index:
+                self._record(path, "delete")
+                reported += 1
+        self._stat_index = index
+        return reported
+
     def snapshot(self):
         """Return and clear the accumulated changes.
 
@@ -208,6 +249,7 @@ class ChangeWatcher:
         host materialised it, so reporting it would be noise.
         """
         with self._lock:
+            scanned = self._scan_tuples()
             roots = []
             for root in self.roots:
                 try:
@@ -224,6 +266,7 @@ class ChangeWatcher:
                 "baseline": self._baseline_pending,
                 "watched": self._armed,
                 "events": self._events_seen,
+                "stat_scan": scanned,
                 "roots": roots,
             }
             self._changes = {}
