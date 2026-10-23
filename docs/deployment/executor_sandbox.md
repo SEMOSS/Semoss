@@ -50,11 +50,12 @@ connection; a second connection is accepted and then never served.
 
 ## Session lifecycle
 
-- Created lazily on the first `Py()` or shell command (cold start ≈ 10–13 s).
+- Created lazily on the first `Py()` or shell command; the first call pays the sandbox start
+  and the upload of the session's roots.
 - Deleted on logout, session timeout, and on disconnect, where `ClientProcessWrapper.shutdown`
   reconciles one last time before the sandbox disappears.
-- A sandbox left behind after a crash is removed by `OpenShellSandboxReaper`, which only
-  touches labelled `pyw-*` sandboxes past an age threshold.
+- Nothing removes a sandbox orphaned by a JVM crash yet. They carry the `OPENSHELL_LABEL`
+  label and a `pyw-` name, so `openshell sandbox list` finds them for manual deletion.
 
 ## Write-back pipeline
 
@@ -66,22 +67,38 @@ Every `PYTHON` and `CMD` block ends with a sync. The steps, in order:
 2. **Fail closed on doubt.** If the answer is missing, `overflow` is true, `baseline` is true,
    or `coverage` is false, the host falls back to a full capture of each root instead of
    trusting a partial list.
+   A change set the host drained but could not apply is owed as a full capture on the next
+   block, because the worker has already forgotten those paths.
 3. **Pull only what changed.** Changed paths are tarred inside the sandbox under one
-   `sandbox exec` and extracted to a temporary directory on the host.
-4. **Reconcile.** Content is the authority: a differing sandbox file is written, and `mtime`
-   only decides whether the host copy is preserved first. A host file newer than its sandbox
-   counterpart is copied to quarantine before being replaced.
-5. **Deletes.** A path reported as deleted is quarantine-then-delete, and the delete is
-   suppressed if the quarantine copy fails. Directories emptied by those removals are pruned
-   up to (never including) the transported root.
+   `sandbox exec` and streamed to a temporary file on the host, stopping at a 256 MB cap. The
+   archive is refused if its listing fails or names an absolute path or a `..` segment.
+4. **Reconcile.** Content is the authority: a differing sandbox file is always written. The
+   host copy is quarantined first if it changed since this session last left it (uploaded or
+   written back), and the write is skipped if that copy fails. Sandbox timestamps never
+   decide anything.
+5. **Deletes.** Only a path the sandbox is known to have held — seen in a full capture or
+   written back since — is ever deleted on the host, so a file created and removed within one
+   block cannot take an unrelated host file with it. Deletes are quarantine-then-delete,
+   suppressed if the copy fails, and directories they empty are pruned up to (never including)
+   the transported root.
+
+Every host-side write and delete is contained: a path that leaves the root, or crosses a
+symlink on the way, is refused. Without that, a link committed into a writable project could
+redirect a write or a delete into another space.
+
+Inside `.git`, only git's data is written back — `objects/` (not `objects/info/`), `refs/`,
+`logs/`, `HEAD`, `index`, `packed-refs` and a few state files — so a commit made in the sandbox
+reaches the host. `config`, `hooks/` and `info/` are never written back: host-side git runs or
+obeys them, so a sandbox able to write them could execute commands on the server.
 
 Quarantine lives at `$BASE/writeback-quarantine/<timestamp>/<root>/<relative>`, outside
 `project/`, `room/` and `user/`, so it is never pushed to object storage.
 
-A whole-root fallback carries survivors, not tombstones, so it diffs the host tree against the
-capture and quarantines files the capture no longer contains. Directories the capture excludes
-(`node_modules`, `__pycache__`, `.venv`) are skipped: “absent from the archive” there means
-“never captured”, not “deleted”.
+A full capture carries survivors, not tombstones. A path the sandbox held before and the
+capture no longer contains was deleted there; a host file the sandbox never held — added on the
+host mid-session, or never uploaded — is left alone. If `tar` reports anything it could not
+read (a directory the user made unreadable, say), the capture is partial: files are written
+back and no deletion is inferred.
 
 ## Change detection
 
@@ -97,14 +114,19 @@ Two mechanisms, deliberately:
   the backlog.
 
 Coverage loss is a first-class outcome. `IN_MOVED_FROM`, `IN_MOVE_SELF`, `IN_IGNORED` and
-`IN_UNMOUNT` all mean the path map may be stale, so the watcher reports `coverage: false`,
-drops the tuple index and re-arms; the host takes one full capture for that block and returns
-to the fast path afterwards.
+`IN_UNMOUNT` all mean the path map may be stale; so does a watch that could not be added
+(`max_user_watches` exhausted, an unreadable directory), a directory the scan could not list,
+or a watcher thread that has stopped. In each case the watcher reports `coverage: false`, drops
+the tuple index and re-arms, and the host takes one full capture for that block. A scan that
+could not list part of the tree never reports the unlisted files as deleted.
 
-Excluded from watching, scanning and pulling: `node_modules`, `__pycache__`, `.venv`, `.git`.
-`.git` is static inside the sandbox and dominated a real project (112 directories, 137 of 256
-files); `node_modules` is one install away from exhausting `fs.inotify.max_user_watches`.
-Override with `SEMOSS_SYNC_IGNORE`.
+Roots are re-evaluated on every `CHANGES` request: a root that appears later in the session (a
+room created mid-session, say) is armed and forces one baseline capture.
+
+Excluded from watching and scanning: `node_modules`, `__pycache__`, `.venv`, `.git`.
+`.git` is a large share of a typical project's directories; sandbox commits still reach the
+host through the full capture. `node_modules` is one install away from exhausting
+`fs.inotify.max_user_watches`. Override with `SEMOSS_SYNC_IGNORE`.
 
 ## Who may write back
 
@@ -112,7 +134,7 @@ The worker runs outside the platform's permission checks, so the host decides pe
 
 | Root | Rule |
 | --- | --- |
-| `project/<name>__<uuid>` | `SecurityProjectUtils.getActualUserProjectPermission` must be `OWNER` or `EDIT` |
+| `project/<name>__<uuid>` | `SecurityProjectUtils.userCanEditProject` — the same check that grants the project read-write |
 | `room/<roomId>` | `ModelInferenceLogsUtils.doCheckRoomExistsForUser` — `ROOM.USER_ID` in the model-inference-logs database |
 | `user/Asset__<id>` | the id must equal one of the caller's `User.getAssetProjectId(provider)` values |
 | anything else | refused |
@@ -126,13 +148,14 @@ never reaches the host.
 The sandbox image is built from this repository, not from a staged copy:
 
 ```bash
-docker/build-executor-image.sh                  # tag semoss-executor:dev
-TAG=semoss-executor:0.1 docker/build-executor-image.sh
+docker/build-executor-image.sh                          # slim, tag semoss-executor:dev
+MODE=full TAG=semoss-executor:full docker/build-executor-image.sh
 ```
 
-The build context is `py/`, so the image carries exactly the committed worker;
-`docker/Dockerfile.executor` assembles it. The tag is labelled with `org.semoss.py-sha`, a hash
-of the python tree, so the image can be traced back to its source.
+The script stages the committed `py/` into the build context, so the image carries exactly the
+worker in this repository. The tag is labelled with `org.semoss.py-sha`, a hash of the python
+tree, and the build fails unless the worker tree inside the image hashes to the repository's
+and the worker's interpreter imports the change watcher.
 
 Two variants:
 
@@ -167,29 +190,26 @@ be current — a stale image shows up as code that ignores your latest change.
 
 | Key | Meaning |
 | --- | --- |
-| `SANDBOX_MODE` | `OPENSHELL` enables this path |
+| `SANDBOX_MODE` | `OPENSHELL` enables this path (requires `CHROOT_ENABLE=true`, like every jail) |
 | `OPENSHELL_IMAGE` | image a new sandbox starts from |
-| `OPENSHELL_POLICY` | Landlock paths and per-binary egress rules |
-| `OPENSHELL_LABEL` | label used to identify sandboxes for the reaper |
-| `OPENSHELL_WORKER_PORT` | worker port inside the sandbox |
-| `OPENSHELL_READY_TIMEOUT_SECONDS` | cold-start budget |
+| `OPENSHELL_TEMPLATE` | workload template to create from instead of an image |
+| `OPENSHELL_POLICY` | Landlock paths and per-binary egress rules; required |
+| `OPENSHELL_CLI` | path to the `openshell` CLI (default `openshell`) |
+| `OPENSHELL_CLI_HOME` | `HOME` for CLI children, where the gateway registration and mTLS bundle live |
+| `OPENSHELL_LABEL` | label applied to every executor sandbox (default `app=semoss-executor`) |
+| `OPENSHELL_WORKER_PORT` | worker port inside the sandbox (default `7100`) |
+| `OPENSHELL_READY_TIMEOUT_SECONDS` | cold-start budget (default `180`) |
+| `OPENSHELL_KEEP_SANDBOX` | `true` leaves sandboxes in place on teardown, for debugging |
 
 ## Verifying a deployment
 
-```bash
-# the class actually deployed (never trust the build log)
-cd /tmp && unzip -o -q /opt/tomcat/webapps/Monolith/WEB-INF/lib/semoss-*-shaded-dependencies.jar \
-  'prerna/om/ClientProcessWrapper.class' && javap -p prerna/om/ClientProcessWrapper.class | grep -E 'canWriteBack|quarantine'
-
-# a file written by a block reached the host
-journalctl -u tomcat-semoss | grep -i "Fetch-back wrote"
-
-# the permission gate refuses a read-only member
-sudo -u postgres psql -d semoss_security -c \
-  "UPDATE projectpermission SET permission=3 WHERE projectid='<id>' AND userid='<user>';"
-#   write from Py(), confirm the host file never appears and "Refusing write-back" is logged,
-#   then restore permission=1
-```
+- **The class actually deployed.** Unpack `prerna/om/ClientProcessWrapper.class` from the
+  deployed `semoss-*-shaded-dependencies.jar` and check it with `javap -p` for
+  `fetchBackChangedPaths`; a build log is not proof.
+- **A write reaches the host.** Write a file from `Py()` in a loaded project and look for
+  `Fetch-back wrote` in the server log and the file in the project folder.
+- **The permission gate holds.** Give a test user read-only access to a project, write from
+  `Py()`, and confirm the host file never appears and `Refusing write-back` is logged.
 
 ## Known limits
 

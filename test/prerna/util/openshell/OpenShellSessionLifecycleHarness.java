@@ -77,7 +77,11 @@ public final class OpenShellSessionLifecycleHarness {
 	private static int failed = 0;
 
 	public static void main(String[] args) throws Exception {
-		String rdf = System.getProperty("RDF_MAP", "/opt/semosshome/RDF_Map.prop");
+		String rdf = System.getProperty("RDF_MAP");
+		if (rdf == null || rdf.trim().isEmpty()) {
+			System.err.println("Set -DRDF_MAP=<path to an RDF_Map.prop with SANDBOX_MODE=OPENSHELL>");
+			System.exit(2);
+		}
 		DIHelper.getInstance().loadCoreProp(rdf);
 		System.out.println("RDF: " + rdf);
 		String mode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
