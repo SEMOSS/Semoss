@@ -1,0 +1,79 @@
+# SEMOSS executor sandbox — full-parity build.
+#
+#   docker build -f docker/Dockerfile.executor-full -t semoss-executor:full py
+#   # or: MODE=full docker/build-executor-image.sh
+#
+# Why this exists next to Dockerfile.executor: the minimal image carries three packages, so
+# a Py() block that ran against the platform's own 2.4 GB venv (numpy, boto3, langchain,
+# torch, ...) fails with ImportError the moment it is sandboxed. That is a silent capability
+# regression, not a size trade-off. This build installs the dependency set that
+# py/install_config/pyproject.toml declares, the same one docker/Dockerfile.python installs.
+#
+# The project itself is not installed (.[extra]): that pyproject has no build-system, so it
+# is a dependency manifest, not a package. docker/export_requirements.py flattens it.
+FROM python:3.12-slim AS deps
+
+ARG EXTRAS=cpu
+ENV EXTRAS=${EXTRAS}
+
+# Compilers live in the builder stage only. Several declared dependencies ship no aarch64
+# wheel (annoy is a C++ extension and was the first to fail), so the venv has to be assembled
+# from source here; the final stage still copies just the finished venv.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential cmake \
+ && rm -rf /var/lib/apt/lists/*
+
+# uv, the same installer SEMOSS uses for its own runtime.
+COPY --from=ghcr.io/astral-sh/uv:0.9 /uv /uvx /usr/local/bin/
+
+WORKDIR /build
+
+COPY pyproject.toml ./
+COPY export_requirements.py ./
+
+RUN python3 export_requirements.py pyproject.toml "${EXTRAS}" > /tmp/requirements.txt \
+ && echo "installing $(wc -l < /tmp/requirements.txt) declared dependencies (extra: ${EXTRAS:-none})" \
+ && uv venv /opt/venv --python 3.12 \
+ && case "${EXTRAS}" in \
+      cpu) torch_index=https://download.pytorch.org/whl/cpu ;; \
+      gpu) torch_index=https://download.pytorch.org/whl/cu126 ;; \
+      *)   torch_index= ;; \
+    esac \
+ && if [ -n "$torch_index" ]; then \
+      echo "torch trio from $torch_index (upstream pins this in [tool.uv.sources])"; \
+      uv pip install --python /opt/venv/bin/python --index-url "$torch_index" \
+        torch torchvision torchaudio; \
+    fi \
+ && uv pip install --python /opt/venv/bin/python -r /tmp/requirements.txt \
+ && uv pip install --python /opt/venv/bin/python "levenshtein>=0.27.3"
+
+FROM python:3.12-slim
+
+LABEL maintainer="semoss@semoss.org"
+LABEL org.semoss.component="executor-sandbox-full"
+
+# git: local repository work inside the sandbox. Egress stays closed unless the OpenShell
+# policy grants it per binary and per host.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && git config --system user.name "SEMOSS Sandbox" \
+ && git config --system user.email "sandbox@semoss.local" \
+ && git config --system safe.directory '*'
+
+# The venv the worker and user code import from.
+COPY --from=deps /opt/venv /opt/venv
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH=/opt/venv/bin:$PATH
+
+# The worker source. The build script stages the repo's py/ as the context's py/.
+COPY py/ /opt/semosshome/py/
+
+RUN mkdir -p /opt/semosshome/insight /opt/grants-rw /opt/grants-ro \
+ && touch /opt/semosshome/insight/log.txt \
+ && chown -R 1000:1000 /opt/semosshome /opt/grants-rw /opt/grants-ro /opt/venv \
+ && chmod 755 /opt/grants-rw /opt/grants-ro
+
+# OpenShell refuses to start unless the workspace is writable by the sandbox identity.
+USER 1000:1000
+WORKDIR /opt/semosshome/py
