@@ -106,8 +106,13 @@ public final class OpenShellShellRunner {
 			// Same on-demand rule as Py(): the first shell command in a session is
 			// allowed to create the sandbox.
 			user.getPythonSocketClient(true);
-			String chrootFolder = user.getUserSymlinkHelper().getUserChrootFolder();
-			String sandboxName = OpenShellTransport.sandboxNameFor(chrootFolder);
+			// The sandbox the user's worker is actually in: a user-scoped one is named by the
+			// registry, not derived from this instance's chroot folder.
+			prerna.om.ClientProcessWrapper cpw = user.getPythonClientProcessWrapper();
+			String sandboxName = cpw == null ? null : cpw.getOpenShellSandboxName();
+			if (sandboxName == null) {
+				sandboxName = OpenShellTransport.sandboxNameFor(user.getUserSymlinkHelper().getUserChrootFolder());
+			}
 
 			String trimmed = command == null ? "" : command.trim();
 			if (trimmed.isEmpty()) {

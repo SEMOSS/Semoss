@@ -908,6 +908,15 @@ public class ClientProcessWrapper {
 	}
 
 	/**
+	 * @return the OpenShell sandbox this wrapper's worker runs in, or null outside
+	 *         OPENSHELL mode or before it started
+	 */
+	public String getOpenShellSandboxName() {
+		prerna.util.OpenShellTransport current = this.openshell;
+		return current == null ? null : current.getSandboxName();
+	}
+
+	/**
 	 * @return the socket client connected to the server process, or null if not yet
 	 *         created
 	 */
