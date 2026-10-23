@@ -68,6 +68,7 @@ import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.Settings;
 import prerna.util.SymlinkHelper;
+import prerna.util.openshell.OpenShellUserSandboxes;
 import prerna.util.Utility;
 
 public class User implements Serializable {
@@ -508,6 +509,9 @@ public class User implements Serializable {
 			}
 			return this.pythonCPW.getSocketClient();
 		}
+		if (OpenShellUserSandboxes.enabled()) {
+			return getOpenShellPythonSocketClient();
+		}
 		if (this.pythonCPW == null || this.pythonCPW.getSocketClient() == null) {
 			startPythonSocketServerAndClient(-1, venvEngineId);
 			this.pythonCPW.getSocketClient().setUser(this);
@@ -528,11 +532,47 @@ public class User implements Serializable {
 	}
 
 	/**
-	 * 
+	 * OPENSHELL: the user's python is one persistent worker in their own sandbox, shared
+	 * by every session of theirs. On this instance all of those sessions use one wrapper
+	 * (one connection, one record of what was transported); the wrapper attaches to the
+	 * sandbox if it is running anywhere and creates it otherwise.
+	 */
+	private SocketClient getOpenShellPythonSocketClient() {
+		OpenShellUserSandboxes.Local local = OpenShellUserSandboxes.local(this);
+		synchronized (local) {
+			this.pythonCPW = local.getWrapper();
+			// write-back permission checks run as the session that asked most recently
+			this.pythonCPW.setUser(this);
+			SocketClient client = this.pythonCPW.getSocketClient();
+			if (client == null) {
+				startPythonSocketServerAndClient(-1, null);
+			} else if (!client.isConnected()) {
+				this.pythonCPW.shutdown(false);
+				try {
+					this.pythonCPW.reconnect();
+				} catch (Exception e) {
+					classLogger.error("Failed to reconnect to user python process", e);
+					throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
+				}
+			}
+			this.pythonCPW.getSocketClient().setUser(this);
+		}
+		this.insightSerializedMap.clear();
+		return this.pythonCPW.getSocketClient();
+	}
+
+	/**
+	 *
 	 * @return
 	 */
 	public SymlinkHelper getUserSymlinkHelper() {
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			if (OpenShellUserSandboxes.enabled()) {
+				// shared by the user's sessions on this instance; see getOpenShellPythonSocketClient
+				symlinkHelper = OpenShellUserSandboxes.local(this).getHelper();
+				chrootPath = symlinkHelper.getUserChrootFolder();
+				return symlinkHelper;
+			}
 			if (symlinkHelper != null) {
 				return symlinkHelper;
 			}

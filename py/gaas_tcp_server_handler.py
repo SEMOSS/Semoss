@@ -151,12 +151,16 @@ def _asset_aware_import(name, _globals=None, _locals=None, fromlist=(), level=0)
     return mod
 
 
+# Which client connection the current thread is serving; see TCPServerHandler.current().
+_current_handler = threading.local()
+
+
 def _is_engine_owned_process():
     """
     Whether this process runs an engine's own python rather than a user's
     python code. Set from the --engine_owned flag the engines launch with.
     """
-    handler = TCPServerHandler.da_server
+    handler = TCPServerHandler.current()
     server = getattr(handler, "server", None) if handler is not None else None
     return bool(getattr(server, "engine_owned", False))
 
@@ -236,6 +240,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
     # Class attribute to hold a singleton instance
     da_server = None
+
+    @staticmethod
+    def current():
+        """The handler whose request this thread is serving, else the latest client."""
+        return getattr(_current_handler, "handler", None) or TCPServerHandler.da_server
     CANCELLED_MESSAGE = "The request was cancelled by the user"
 
     def log_level_mapper(self, log_level_name: str) -> int:
@@ -305,6 +314,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.residue = None
 
         TCPServerHandler.da_server = self
+        live = getattr(self.server, "live_handlers", None)
+        if live is not None:
+            live.add(self)
 
         # a lock to serialise all socket writes. HuggingFace (and similar libraries)
         # download files in parallel worker threads that all write tqdm progress to
@@ -585,6 +597,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             epoc (Optional[str]): The epoc associated with the request. Defaults to None.
         """
         self.log_data(data)
+        # Code run for this request calls back to Java over this connection, not over
+        # whichever client connected last: a persistent worker serves several.
+        _current_handler.handler = self
 
         payload = ""
         # payload = data
@@ -978,6 +993,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     def stop_request(self):
         """Stops the request and closes the connection."""
         if not self.stop:
+            live = getattr(self.server, "live_handlers", None)
+            if live is not None:
+                live.discard(self)
+                # A persistent worker keeps serving other clients; callbacks with no
+                # request of their own must not keep pointing at a closed socket.
+                if TCPServerHandler.da_server is self:
+                    TCPServerHandler.da_server = next(iter(live), None)
             self.server.remove_handler()
             self.server.stop_it()
             self.request.close()

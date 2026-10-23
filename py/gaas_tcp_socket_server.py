@@ -6,6 +6,7 @@ import socketserver
 import threading
 import asyncio
 import os
+import time
 
 # Must be imported before anything that can open a TLS connection. Importing it
 # leaves a single truststore owning ssl.SSLContext, without which the openai and
@@ -45,6 +46,7 @@ class Server(socketserver.ThreadingTCPServer):
         logger_level: str = "INFO",
         uds_path=None,
         engine_owned=False,
+        persist=False,
     ):
         self.logger = logging.getLogger("SocketServer")
         self.logger.debug("__init__")
@@ -53,7 +55,14 @@ class Server(socketserver.ThreadingTCPServer):
         self.uds_path = uds_path
         self.max_count = max_count
         self.cur_count = 0
-        self.user_mode = self.max_count == 1
+        # A persistent worker belongs to a user, not to a connection: it outlives any
+        # client, accepts the next one, and exits only after `timeout` minutes with no
+        # client at all. User mode is the opposite and closes with its single client.
+        self.persist = persist
+        self.user_mode = self.max_count == 1 and not persist
+        self.live_handlers = set()
+        self.idle_since = time.monotonic()
+        self.idle_limit = timeout * 60 if timeout > 0 else 0
         self.insight_folder = insight_folder
         self.prefix = prefix
         # engine owned processes run platform code, not a user's python code
@@ -91,7 +100,9 @@ class Server(socketserver.ThreadingTCPServer):
         if timeout > 0:
             timeout = timeout * 60
             print(f"Setting timeout to .. {timeout}")
-            self.timeout = timeout
+            # A persistent worker measures idleness from its last disconnect, so it
+            # wakes every minute to check rather than once per whole idle period.
+            self.timeout = min(timeout, 60) if persist else timeout
             # self.socket.settimeout(timeout*60)
         else:
             print("Setting timeout to None")
@@ -108,6 +119,17 @@ class Server(socketserver.ThreadingTCPServer):
         # no clients.. kill this server, no point keeping it
         # give back the GPU
         self.timed_out = True
+        if self.persist:
+            with self.monitor:
+                idle = self.cur_count == 0 and time.monotonic() - self.idle_since >= self.idle_limit
+            if idle and self.idle_limit > 0:
+                self.logger.info(f"No client for {self.idle_limit / 60} minutes. Shutting down.")
+                self.stop = True
+                socketserver.TCPServer.server_close(self)
+                # Hard exit: a thread user code left running must not keep an abandoned
+                # sandbox alive, and the sandbox ends with this process.
+                os._exit(0)
+            return
         if self.cur_count == 0:
             self.logger.info(
                 f"Server idle for {self.timeout / 60} minutes. No client connected. Shutting down."
@@ -135,22 +157,30 @@ class Server(socketserver.ThreadingTCPServer):
 
                 print("Listening on port " + str(self.port))
                 self.handle_request()
-
-                # also keep count updates synchronized with remove_handler
-                with self.monitor:
-                    self.timed_out = False
-                    self.cur_count += 1
         except Exception as e:
             self.logger.error(f"Error: {e}", exc_info=True)
             self.stop_it()
         return
 
+    def process_request(self, request, client_address):
+        # Count the connection here, not after handle_request() returns: that also
+        # returns on a timeout with no client, which used to count a phantom one.
+        with self.monitor:
+            self.timed_out = False
+            self.cur_count += 1
+        socketserver.ThreadingTCPServer.process_request(self, request, client_address)
+
     def remove_handler(self):
         with self.monitor:
             self.cur_count = self.cur_count - 1
+            self.idle_since = time.monotonic()
             self.monitor.notify()
 
     def stop_it(self):
+        if self.persist:
+            # One client leaving (disconnect, `stop`, logout) never ends a persistent
+            # worker; only idleness or deleting the sandbox does.
+            return
         print(
             f"Max connections = {self.max_count}, Current connections = {self.cur_count}"
         )
@@ -241,6 +271,14 @@ def parse_args():
         "Adapters that only make sense for user code are skipped.",
     )
     parser.add_argument(
+        "--persist",
+        action="store_true",
+        help="Keep serving after a client disconnects and accept the next one, "
+        "up to --max_count at once. The process exits only after --timeout "
+        "minutes with no client connected. Used when one worker belongs to a "
+        "user across sessions and server instances (OpenShell).",
+    )
+    parser.add_argument(
         "--uds-path",
         type=str,
         default=None,
@@ -306,4 +344,5 @@ if __name__ == "__main__":
         start=args.start,
         uds_path=args.uds_path,
         engine_owned=args.engine_owned,
+        persist=args.persist,
     )

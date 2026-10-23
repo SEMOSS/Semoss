@@ -132,6 +132,11 @@ public class ClientProcessWrapper {
 	// OPENSHELL mode: owns the sandbox + port-forward for this worker's lifetime
 	private prerna.util.OpenShellTransport openshell;
 	/**
+	 * The sandbox belongs to the user, not to this wrapper: shutdown detaches and leaves
+	 * it running, and {@code OpenShellUserSandboxes} decides when it is deleted.
+	 */
+	private boolean openshellUserScoped = false;
+	/**
 	 * One write-back at a time: python blocks, shell commands and teardown all reconcile,
 	 * and two reconciles interleaving over the same root would race their writes.
 	 */
@@ -249,10 +254,26 @@ public class ClientProcessWrapper {
 					// client connects to the forwarded port. No udsPath is set, which is
 					// what selects the TCP branch below.
 					if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isExternalSandbox()) {
-						this.openshell = prerna.util.OpenShellTransport.forSession(
-								this.chrootSymlinkHelper.getUserChrootFolder());
 						try {
-							this.port = this.openshell.start();
+							if (this.user != null && prerna.util.openshell.OpenShellUserSandboxes.enabled()) {
+								// The user's own sandbox, shared across their sessions and server
+								// instances: attach if it is running, create it otherwise.
+								prerna.util.openshell.OpenShellUserSandboxes.Attached attached = prerna.util.openshell.OpenShellUserSandboxes
+										.acquire(this.user);
+								this.openshell = attached.transport;
+								this.openshellUserScoped = true;
+								this.port = attached.port;
+								if (attached.reattached) {
+									// Another connection may have drained changes this one never
+									// applied; start this connection's write-back from the whole tree.
+									this.fullCaptureOwed = true;
+								}
+							} else {
+								this.openshell = prerna.util.OpenShellTransport
+										.forSession(this.chrootSymlinkHelper.getUserChrootFolder());
+								this.openshellUserScoped = false;
+								this.port = this.openshell.start();
+							}
 							// Same seam as the namespace injector below: the per-mode collaborator
 							// that receives every path symlinkFolder/symlinkProject would otherwise
 							// have symlinked. Assets registered before the worker existed are
@@ -707,9 +728,9 @@ public class ClientProcessWrapper {
 	public void shutdown(boolean cleanUpFolder) {
 		lockDestroy.lock();
 		try {
-			// OPENSHELL: the last reconcile must run while the sandbox is still alive. The
-			// worker is the sandbox's main process, so stopping the socket below ends the
-			// sandbox, and a capture attempted after that finds it Completed.
+			// OPENSHELL: the last reconcile must run while the sandbox is still alive. A
+			// session-scoped worker is the sandbox's main process, so stopping the socket
+			// below ends the sandbox, and a capture attempted after that finds it Completed.
 			if (this.openshell != null) {
 				try {
 					fetchBackTransportedRoots();
@@ -769,12 +790,16 @@ public class ClientProcessWrapper {
 				}
 			}
 			// OPENSHELL: the worker lives in the sandbox, not in this JVM's process
-			// tree. Killing the local forward and deleting the sandbox is the whole
-			// teardown -- the gateway delete is authoritative and the worker cannot
-			// outlive its sandbox. There is no graceful-shutdown verb to send first.
+			// tree. A user-scoped sandbox is only detached from (the `stop` above closed
+			// this connection, not the persistent worker); a session-scoped one is
+			// deleted, and the gateway delete is authoritative.
 			if (this.openshell != null) {
 				try {
-					this.openshell.close();
+					if (this.openshellUserScoped) {
+						this.openshell.detach();
+					} else {
+						this.openshell.close();
+					}
 				} catch (Exception e) {
 					classLogger.error("Failed to close OpenShell executor sandbox for port {}", this.port, e);
 				} finally {

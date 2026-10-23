@@ -127,16 +127,36 @@ public final class OpenShellTransport {
 	 */
 	public static final String KEEP_SANDBOX_PROP = "OPENSHELL_KEEP_SANDBOX";
 
+	/** Minutes a user's worker may run with no client connected before it exits itself. */
+	public static final String IDLE_EXIT_PROP = "OPENSHELL_IDLE_EXIT_MINUTES";
+	/** How many clients (sessions, server instances) one user's worker serves at once. */
+	public static final String MAX_CLIENTS_PROP = "OPENSHELL_WORKER_MAX_CLIENTS";
+	private static final int DEFAULT_IDLE_EXIT_MINUTES = 180;
+	private static final int DEFAULT_MAX_CLIENTS = 16;
+
+	/** Label naming the user a sandbox belongs to (a digest, never the user id itself). */
+	public static final String OWNER_LABEL = "semoss-owner";
+
 	private final String sandboxName;
 	private final String workerPort;
 	private final boolean keepSandbox;
+	/**
+	 * Set for a user-scoped sandbox: the worker is persistent and the sandbox carries the
+	 * owner label. Null for the session-scoped form, whose worker ends with its client.
+	 */
+	private final String owner;
 	private int forwardedPort = -1;
 	private Process forwardProcess;
 	private StringBuilder forwardLog;
 
 	private OpenShellTransport(String sandboxName, String workerPort) {
+		this(sandboxName, workerPort, null);
+	}
+
+	private OpenShellTransport(String sandboxName, String workerPort, String owner) {
 		this.sandboxName = sandboxName;
 		this.workerPort = workerPort;
+		this.owner = owner;
 		String keep = System.getProperty(KEEP_SANDBOX_PROP);
 		if (keep == null || keep.trim().isEmpty()) {
 			keep = Utility.getDIHelperProperty(KEEP_SANDBOX_PROP);
@@ -220,13 +240,13 @@ public final class OpenShellTransport {
 	 */
 	public static String describeCreateCommand(String sessionKey) {
 		try {
-			return String.join(" ", createCommand(sandboxNameFor(sessionKey)));
+			return String.join(" ", createCommand(sandboxNameFor(sessionKey), null));
 		} catch (Exception e) {
 			return "(cannot build: " + e.getMessage() + ")";
 		}
 	}
 
-	private static List<String> createCommand(String sandboxName) throws IOException {
+	private static List<String> createCommand(String sandboxName, String owner) throws IOException {
 		String cli = propOr(CLI_PROP, DEFAULT_CLI);
 		String template = Utility.getDIHelperProperty(TEMPLATE_PROP);
 		String label = propOr(LABEL_PROP, DEFAULT_LABEL);
@@ -234,6 +254,16 @@ public final class OpenShellTransport {
 
 		List<String> create = new ArrayList<>(Arrays.asList(cli, "sandbox", "create", "--name", sandboxName,
 				"--keep", "--detach", "--label", label));
+		if (owner != null) {
+			create.add("--label");
+			create.add(OWNER_LABEL + "=" + owner);
+		}
+		// A user's worker outlives any one client: it accepts the next session or server
+		// instance, and exits by itself only after a long stretch with nobody connected,
+		// so a sandbox every server lost track of still ends.
+		String workerMode = owner == null ? " --timeout 30"
+				: " --persist --max_count " + intPropOr(MAX_CLIENTS_PROP, DEFAULT_MAX_CLIENTS) + " --timeout "
+						+ intPropOr(IDLE_EXIT_PROP, DEFAULT_IDLE_EXIT_MINUTES);
 		if (template != null && !template.trim().isEmpty()) {
 			create.add("--template");
 			create.add(template.trim());
@@ -281,17 +311,126 @@ public final class OpenShellTransport {
 				+ " --start True" //
 				+ " --py_folder /opt/semosshome/py" //
 				+ " --insight_folder /opt/semosshome/insight" //
-				+ " --timeout 30" //
+				+ workerMode //
 				+ " > " + WORKER_LOG_PATH + " 2>&1");
 		return create;
 	}
 
 	public static OpenShellTransport forSession(String sessionKey) {
-		String workerPort = Utility.getDIHelperProperty(WORKER_PORT_PROP);
-		if (workerPort == null || workerPort.trim().isEmpty()) {
-			workerPort = DEFAULT_WORKER_PORT;
+		return new OpenShellTransport(sandboxNameFor(sessionKey), propOr(WORKER_PORT_PROP, DEFAULT_WORKER_PORT));
+	}
+
+	/**
+	 * A user-scoped sandbox: a persistent worker, labelled with its owner digest, that any
+	 * session or server instance of that user can attach to.
+	 */
+	public static OpenShellTransport forUser(String sandboxName, String owner) {
+		if (owner == null || owner.trim().isEmpty()) {
+			throw new IllegalArgumentException("owner is required for a user-scoped sandbox");
 		}
-		return new OpenShellTransport(sandboxNameFor(sessionKey), workerPort.trim());
+		return new OpenShellTransport(sandboxName, propOr(WORKER_PORT_PROP, DEFAULT_WORKER_PORT), owner);
+	}
+
+	public String getSandboxName() {
+		return sandboxName;
+	}
+
+	/**
+	 * Connect to a sandbox that already runs a persistent worker: forward its port and
+	 * nothing else. Only valid for a user-scoped sandbox; a session-scoped worker allows
+	 * one client, and a second forward would queue behind it forever.
+	 *
+	 * @return the local port to connect to
+	 */
+	public int attach() throws IOException {
+		if (owner == null) {
+			throw new IllegalStateException("only a user-scoped sandbox can be attached to");
+		}
+		int readyTimeout = intPropOr(READY_TIMEOUT_PROP, DEFAULT_READY_TIMEOUT_S);
+		openForward(readyTimeout);
+		if (!awaitWorkerReady(Math.min(30, readyTimeout))) {
+			detach();
+			throw new IOException("worker inside sandbox " + sandboxName + " is not serving");
+		}
+		classLogger.info("Attached to executor sandbox {}; local port {}", sandboxName, this.forwardedPort);
+		return this.forwardedPort;
+	}
+
+	/**
+	 * Stop this instance's forward and leave the sandbox running. The user's worker
+	 * survives for their other sessions and server instances; deleting it is the
+	 * registry's decision, made when the user has no live session anywhere.
+	 */
+	public void detach() {
+		if (forwardProcess != null) {
+			forwardProcess.destroy();
+			try {
+				if (!forwardProcess.waitFor(5, TimeUnit.SECONDS)) {
+					forwardProcess.destroyForcibly();
+				}
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+			forwardProcess = null;
+		}
+	}
+
+	/** The sandbox's phase ({@code Ready}, {@code Completed}, ...), or null when it does not exist. */
+	public static String phaseOf(String sandboxName) {
+		try {
+			String out = run(Arrays.asList(propOr(CLI_PROP, DEFAULT_CLI), "sandbox", "get", sandboxName, "-o",
+					"json"), 30);
+			com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(jsonBody(out)).getAsJsonObject();
+			if (json.has("sandbox") && json.get("sandbox").isJsonObject()) {
+				json = json.getAsJsonObject("sandbox");
+			}
+			return json.has("phase") ? json.get("phase").getAsString() : null;
+		} catch (Exception e) {
+			// "not found" exits non-zero; anything unparseable is treated the same way,
+			// which only ever leads to creating a fresh sandbox.
+			return null;
+		}
+	}
+
+	/** Delete a sandbox by name; best effort. */
+	public static void deleteSandbox(String sandboxName) {
+		try {
+			run(Arrays.asList(propOr(CLI_PROP, DEFAULT_CLI), "sandbox", "delete", sandboxName), 60);
+			classLogger.info("Deleted executor sandbox {}", sandboxName);
+		} catch (Exception e) {
+			classLogger.warn("Failed to delete executor sandbox {}", sandboxName, e);
+		}
+	}
+
+	/**
+	 * Every executor sandbox on the gateway (selected by {@link #LABEL_PROP}), as name,
+	 * phase, creation time ({@code yyyy-MM-dd HH:mm:ss}, UTC) and owner label (or null).
+	 */
+	public static List<String[]> listExecutorSandboxes() throws IOException, InterruptedException {
+		String out = run(Arrays.asList(propOr(CLI_PROP, DEFAULT_CLI), "sandbox", "list", "--selector",
+				propOr(LABEL_PROP, DEFAULT_LABEL), "-o", "json"), 60);
+		List<String[]> rows = new ArrayList<>();
+		com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(jsonBody(out)).getAsJsonObject();
+		if (!json.has("sandboxes")) {
+			return rows;
+		}
+		for (com.google.gson.JsonElement element : json.getAsJsonArray("sandboxes")) {
+			com.google.gson.JsonObject box = element.getAsJsonObject();
+			com.google.gson.JsonObject labels = box.has("labels") && box.get("labels").isJsonObject()
+					? box.getAsJsonObject("labels")
+					: new com.google.gson.JsonObject();
+			rows.add(new String[] { box.get("name").getAsString(),
+					box.has("phase") ? box.get("phase").getAsString() : "",
+					box.has("created_at") ? box.get("created_at").getAsString() : "",
+					labels.has(OWNER_LABEL) ? labels.get(OWNER_LABEL).getAsString() : null });
+		}
+		return rows;
+	}
+
+	/** The CLI may print notices before its JSON; keep from the first brace. */
+	private static String jsonBody(String out) {
+		int brace = out.indexOf('{');
+		return brace < 0 ? "{}" : out.substring(brace);
 	}
 
 	/**
@@ -311,7 +450,7 @@ public final class OpenShellTransport {
 		int readyTimeout = intPropOr(READY_TIMEOUT_PROP, DEFAULT_READY_TIMEOUT_S);
 		// Single source of truth: the argv used here is exactly the one
 		// describeCreateCommand() prints, so a hand-run diff is meaningful.
-		List<String> create = createCommand(sandboxName);
+		List<String> create = createCommand(sandboxName, owner);
 
 		classLogger.info("Starting executor sandbox {} (worker port {})", sandboxName, workerPort);
 		String createOut = run(create, readyTimeout);
@@ -334,6 +473,45 @@ public final class OpenShellTransport {
 			}
 		}
 
+		try {
+			openForward(readyTimeout);
+		} catch (IOException e) {
+			close();
+			throw e;
+		}
+		// Readiness must come from the worker's OWN log, and the worker must write
+		// that log to a FILE, not to the supervisor's stdout pipe.
+		//
+		// Two measured facts (2026-09-28):
+		//  1. With stdout on the supervisor's pipe the worker came up erratically --
+		//     sometimes serving, sometimes never opening the port at all while the
+		//     sandbox still read `Ready`. Redirecting its stdout to a file made it
+		//     reliable, 3 runs out of 3, and fast (~0.66s instead of ~5s). Output
+		//     back-pressure on that pipe is the suspected cause; the file removes it.
+		//  2. The supervisor's `NET:OPEN 127.0.0.1:<port>/tcp` line is a *connection*
+		//     event, not a bind event -- it also marks NET:CLOSE, and it fired only
+		//     because a probe connected. Waiting for it is a mistake; an earlier
+		//     version of this method did exactly that and stalled for the full
+		//     timeout. The worker's own "waiting for request" line is the real signal.
+		//
+		// Never probe the forwarded port to test readiness: a session-scoped worker is
+		// single-connection (--max_count 1), so a probe consumes its only slot and its
+		// disconnect ends the worker.
+		if (!awaitWorkerReady(readyTimeout)) {
+			String detail = readAvailable(forwardProcess);
+			close();
+			throw new IOException("worker inside sandbox " + sandboxName + " did not report ready within "
+					+ readyTimeout + "s (forward alive=" + (forwardProcess != null && forwardProcess.isAlive())
+					+ ")" + (detail.isEmpty() ? "" : ": " + detail));
+		}
+		classLogger.info("Executor sandbox {} ready; worker listening, local port {}", sandboxName,
+				this.forwardedPort);
+		return this.forwardedPort;
+	}
+
+	/** Start {@code openshell forward service} for the worker port and wait until it binds. */
+	private void openForward(int readyTimeout) throws IOException {
+		String cli = propOr(CLI_PROP, DEFAULT_CLI);
 		this.forwardedPort = freeLocalPort();
 		List<String> forward = Arrays.asList(cli, "forward", "service", "--target-port", workerPort, "--local",
 				String.valueOf(this.forwardedPort), sandboxName);
@@ -371,39 +549,11 @@ public final class OpenShellTransport {
 			boolean alive = forwardProcess != null && forwardProcess.isAlive();
 			classLogger.error("Forward for sandbox {} did not become ready on 127.0.0.1:{} (alive={}): {}",
 					sandboxName, this.forwardedPort, alive, detail);
-			close();
+			detach();
 			throw new IOException("port forward for sandbox " + sandboxName + " did not become ready on 127.0.0.1:"
 					+ this.forwardedPort + " within " + readyTimeout + "s (process alive=" + alive + ")"
 					+ (detail.isEmpty() ? "" : ": " + detail));
 		}
-		// Readiness must come from the worker's OWN log, and the worker must write
-		// that log to a FILE, not to the supervisor's stdout pipe.
-		//
-		// Two measured facts (2026-09-28):
-		//  1. With stdout on the supervisor's pipe the worker came up erratically --
-		//     sometimes serving, sometimes never opening the port at all while the
-		//     sandbox still read `Ready`. Redirecting its stdout to a file made it
-		//     reliable, 3 runs out of 3, and fast (~0.66s instead of ~5s). Output
-		//     back-pressure on that pipe is the suspected cause; the file removes it.
-		//  2. The supervisor's `NET:OPEN 127.0.0.1:<port>/tcp` line is a *connection*
-		//     event, not a bind event -- it also marks NET:CLOSE, and it fired only
-		//     because a probe connected. Waiting for it is a mistake; an earlier
-		//     version of this method did exactly that and stalled for the full
-		//     timeout. The worker's own "waiting for request" line is the real signal.
-		//
-		// Never probe the forwarded port to test readiness: the worker is
-		// single-connection (--max_count 1), so a probe consumes its only slot and its
-		// disconnect ends the worker.
-		if (!awaitWorkerReady(readyTimeout)) {
-			String detail = readAvailable(forwardProcess);
-			close();
-			throw new IOException("worker inside sandbox " + sandboxName + " did not report ready within "
-					+ readyTimeout + "s (forward alive=" + (forwardProcess != null && forwardProcess.isAlive())
-					+ ")" + (detail.isEmpty() ? "" : ": " + detail));
-		}
-		classLogger.info("Executor sandbox {} ready; worker listening, local port {}", sandboxName,
-				this.forwardedPort);
-		return this.forwardedPort;
 	}
 
 	/**
@@ -1229,17 +1379,7 @@ public final class OpenShellTransport {
 	 * verb to call first, because the worker cannot outlive its sandbox.
 	 */
 	public void close() {
-		if (forwardProcess != null) {
-			forwardProcess.destroy();
-			try {
-				if (!forwardProcess.waitFor(5, TimeUnit.SECONDS)) {
-					forwardProcess.destroyForcibly();
-				}
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
-			forwardProcess = null;
-		}
+		detach();
 		if (keepSandbox) {
 			classLogger.warn("KEEP_SANDBOX is set; leaving sandbox {} in place for inspection", sandboxName);
 			return;
