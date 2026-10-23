@@ -60,8 +60,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
 				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, MODEL_ID, MAX_TURNS, MAX_SUBAGENT_DEPTH,
 				MAX_REFLECTIONS, MAX_SECONDS, MAX_SUBAGENTS_PER_RUN, MAX_SPAWNS_PER_TURN, SUBAGENTS, HOOKS,
-				USE_DEFAULT_AGENT_TOOLS, DISABLED_DEFAULT_TOOLS, GREETING, GREETING_ENABLED };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				USE_DEFAULT_AGENT_TOOLS, DISABLED_DEFAULT_TOOLS, ENABLED_DEFAULT_TOOLS, GREETING, GREETING_ENABLED };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	/**
@@ -198,6 +198,10 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		List<String> disabledDefaultTools = disabledDefaultToolsProvided
 				? new ArrayList<>(new LinkedHashSet<>(getListString(DISABLED_DEFAULT_TOOLS)))
 				: null;
+		boolean enabledDefaultToolsProvided = getGenRowStruct(ENABLED_DEFAULT_TOOLS) != null;
+		List<String> enabledDefaultTools = enabledDefaultToolsProvided
+				? new ArrayList<>(new LinkedHashSet<>(getListString(ENABLED_DEFAULT_TOOLS)))
+				: null;
 
 		// Presence-detected: omitting the key leaves CONFIG_JSON.greeting
 		// untouched, passing it blank clears it.
@@ -236,7 +240,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
 					modelIdProvided, workspaceModelId, budgetUpdates, spawnPolicyUpdates, subagentsProvided,
 					subagentUpdates, hooksProvided, hookUpdates, useDefaultToolsProvided, useDefaultTools,
-					disabledDefaultToolsProvided, disabledDefaultTools, greetingProvided, greeting,
+					disabledDefaultToolsProvided, disabledDefaultTools, enabledDefaultToolsProvided,
+					enabledDefaultTools, greetingProvided, greeting,
 					greetingEnabledProvided, greetingEnabled);
 		} catch (Exception e) {
 			classLogger.warn(

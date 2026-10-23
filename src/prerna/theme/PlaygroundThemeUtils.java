@@ -27,9 +27,12 @@
  *******************************************************************************/
 package prerna.theme;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -41,6 +44,7 @@ import com.google.gson.JsonParser;
 
 import prerna.engine.api.IRDBMSEngine;
 import prerna.util.Constants;
+import prerna.util.SystemDefaultEngines;
 import prerna.util.SystemEngineRegistry;
 
 /**
@@ -53,6 +57,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	private static volatile String cachedGlobalSystemPrompt = null;
 	private static volatile Map<String, String> cachedSystemPromptVars = null;
 	private static volatile boolean cachedHideSystemMessages = false;
+	private static volatile Set<String> cachedAgentExcludedDefaultTools = Collections.emptySet();
 	private static volatile boolean cacheInitialized = false;
 
 	private PlaygroundThemeUtils() {
@@ -100,6 +105,44 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	}
 
 	/**
+	 * Returns {@code playground.agentHarness.excludedDefaultTools} from the
+	 * currently active theme, or an empty set if not defined. These built-in agent
+	 * tools are off for every agent run unless the agent's workspace lists them in
+	 * {@code tool_policy.default_tools.enabled}.
+	 * <p>
+	 * Expected JSON shape:
+	 * 
+	 * <pre>
+	 * {
+	 *   "playground": {
+	 *     "agentHarness": {
+	 *       "excludedDefaultTools": ["BashCommand", "DeleteFile"]
+	 *     }
+	 *   }
+	 * }
+	 * </pre>
+	 */
+	public static Set<String> getAgentExcludedDefaultTools() {
+		ensureCacheLoaded();
+		return cachedAgentExcludedDefaultTools;
+	}
+
+	/**
+	 * Returns the theme's excluded default tools as they apply to one agent run.
+	 * System agents are curated by the platform and keep their own tool policy, so
+	 * the theme never removes their tools.
+	 *
+	 * @param workspaceId the run's agent workspace, or {@code null} for a plain
+	 *                    agent-mode chat
+	 */
+	public static Set<String> getAgentExcludedDefaultTools(String workspaceId) {
+		if (workspaceId != null && SystemDefaultEngines.getSystemAgents().contains(workspaceId)) {
+			return Collections.emptySet();
+		}
+		return getAgentExcludedDefaultTools();
+	}
+
+	/**
 	 * Refreshes the in-memory cache from the active theme.
 	 */
 	public static void refreshCacheFromActiveTheme() {
@@ -114,6 +157,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 			cachedGlobalSystemPrompt = null;
 			cachedSystemPromptVars = null;
 			cachedHideSystemMessages = false;
+			cachedAgentExcludedDefaultTools = Collections.emptySet();
 			cacheInitialized = false;
 		}
 	}
@@ -129,6 +173,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 		cachedGlobalSystemPrompt = null;
 		cachedSystemPromptVars = new LinkedHashMap<>();
 		cachedHideSystemMessages = false;
+		cachedAgentExcludedDefaultTools = Collections.emptySet();
 		if (themeMapJson == null) {
 			return;
 		}
@@ -142,6 +187,8 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 
 			cachedHideSystemMessages = getBooleanValue(playground, "hide_system_messages",
 					getBooleanValue(playground, "hideSystemMessages", false));
+
+			cachedAgentExcludedDefaultTools = parseAgentExcludedDefaultTools(playground.get("agentHarness"));
 
 			JsonElement globalSystemPromptElem = playground.get("globalSystemPrompt");
 			if (globalSystemPromptElem != null && globalSystemPromptElem.isJsonPrimitive()) {
@@ -167,6 +214,27 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 		} catch (Exception e) {
 			classLogger.debug(Constants.STACKTRACE, e);
 		}
+	}
+
+	private static Set<String> parseAgentExcludedDefaultTools(JsonElement agentHarnessElem) {
+		if (agentHarnessElem == null || !agentHarnessElem.isJsonObject()) {
+			return Collections.emptySet();
+		}
+		JsonElement excludedElem = agentHarnessElem.getAsJsonObject().get("excludedDefaultTools");
+		if (excludedElem == null || !excludedElem.isJsonArray()) {
+			return Collections.emptySet();
+		}
+		Set<String> names = new LinkedHashSet<>();
+		for (JsonElement nameElem : excludedElem.getAsJsonArray()) {
+			if (nameElem == null || !nameElem.isJsonPrimitive()) {
+				continue;
+			}
+			String name = StringUtils.trimToNull(nameElem.getAsString());
+			if (name != null) {
+				names.add(name);
+			}
+		}
+		return names.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(names);
 	}
 
 	private static boolean getBooleanValue(JsonObject obj, String key, boolean defaultValue) {

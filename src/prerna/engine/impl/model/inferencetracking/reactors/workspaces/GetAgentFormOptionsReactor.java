@@ -39,6 +39,7 @@ import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.runtime.PlatformAgentTools;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.theme.PlaygroundThemeUtils;
 
 /**
  * Returns the deployment-level options an agent form needs before an agent
@@ -63,6 +64,9 @@ public class GetAgentFormOptionsReactor extends AbstractReactor {
 			classLogger.warn("Failed to resolve default agent tools: {}", e.getMessage());
 			options.put("default_tools", new ArrayList<>());
 		}
+		// Default tools the theme turns off unless an agent enables them.
+		options.put("theme_excluded_default_tools",
+				new ArrayList<>(PlaygroundThemeUtils.getAgentExcludedDefaultTools()));
 		options.put("known_hook_kinds", new ArrayList<>(AgentHookRegistry.knownKinds()));
 		return new NounMetadata(options, PixelDataType.MAP);
 	}

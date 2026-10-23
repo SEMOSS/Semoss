@@ -89,6 +89,11 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String USE_DEFAULT_AGENT_TOOLS = "useDefaultAgentTools";
 	/** Request key for default-tool names disabled for this workspace. */
 	static final String DISABLED_DEFAULT_TOOLS = "disabledDefaultTools";
+	/**
+	 * Request key for default-tool names this workspace opts into even when the
+	 * active theme excludes them.
+	 */
+	static final String ENABLED_DEFAULT_TOOLS = "enabledDefaultTools";
 	/** Request key for prompt collection input. */
 	static final String PROMPTS = "prompts";
 	/** Request key for skill collection input. */
@@ -380,13 +385,13 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, false, null, null, null,
-				false, null, false, null, false, null, false, null, false, null, false, null);
+				false, null, false, null, false, null, false, null, false, null, false, null, false, null);
 	}
 
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, modelIdProvided, modelId,
-				null, null, false, null, false, null, false, null, false, null, false, null, false, null);
+				null, null, false, null, false, null, false, null, false, null, false, null, false, null, false, null);
 	}
 
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
@@ -396,7 +401,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			boolean useDefaultToolsProvided, Boolean useDefaultTools) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, modelIdProvided, modelId,
 				budgetUpdates, spawnPolicyUpdates, subagentsProvided, subagents, hooksProvided, hooks,
-				useDefaultToolsProvided, useDefaultTools, false, null, false, null, false, null);
+				useDefaultToolsProvided, useDefaultTools, false, null, false, null, false, null, false, null);
 	}
 
 	/**
@@ -447,6 +452,13 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 * @param disabledDefaultTools         exact, validated names to replace the
 	 *                                     stored list with; an empty list clears
 	 *                                     it.
+	 * @param enabledDefaultToolsProvided  whether the caller passed the default
+	 *                                     tools opted into despite the theme's
+	 *                                     exclusions; when {@code false}, it is
+	 *                                     left untouched.
+	 * @param enabledDefaultTools          exact names to replace
+	 *                                     {@code tool_policy.default_tools.enabled}
+	 *                                     with; an empty list clears it.
 	 * @param greetingProvided             whether the caller passed the agent's
 	 *                                     scripted opening message; when
 	 *                                     {@code false},
@@ -470,7 +482,8 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			Map<String, Integer> budgetUpdates, Map<String, Integer> spawnPolicyUpdates, boolean subagentsProvided,
 			List<Map<String, Object>> subagents, boolean hooksProvided, List<Map<String, Object>> hooks,
 			boolean useDefaultToolsProvided, Boolean useDefaultTools, boolean disabledDefaultToolsProvided,
-			List<String> disabledDefaultTools, boolean greetingProvided, String greeting,
+			List<String> disabledDefaultTools, boolean enabledDefaultToolsProvided, List<String> enabledDefaultTools,
+			boolean greetingProvided, String greeting,
 			boolean greetingEnabledProvided, Boolean greetingEnabled) throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
@@ -493,7 +506,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 		if (useDefaultToolsProvided) {
 			cfg.put("use_default_agent_tools", Boolean.TRUE.equals(useDefaultTools));
 		}
-		if (disabledDefaultToolsProvided) {
+		if (disabledDefaultToolsProvided || enabledDefaultToolsProvided) {
 			JSONObject toolPolicy = cfg.optJSONObject("tool_policy");
 			if (toolPolicy == null) {
 				toolPolicy = new JSONObject();
@@ -502,8 +515,14 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			if (defaultTools == null) {
 				defaultTools = new JSONObject();
 			}
-			defaultTools.put("disabled",
-					new JSONArray(disabledDefaultTools != null ? disabledDefaultTools : List.of()));
+			if (disabledDefaultToolsProvided) {
+				defaultTools.put("disabled",
+						new JSONArray(disabledDefaultTools != null ? disabledDefaultTools : List.of()));
+			}
+			if (enabledDefaultToolsProvided) {
+				defaultTools.put("enabled",
+						new JSONArray(enabledDefaultTools != null ? enabledDefaultTools : List.of()));
+			}
 			toolPolicy.put("default_tools", defaultTools);
 			cfg.put("tool_policy", toolPolicy);
 		}

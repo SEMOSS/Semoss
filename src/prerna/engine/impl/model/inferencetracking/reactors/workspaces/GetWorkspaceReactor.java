@@ -54,6 +54,7 @@ import prerna.reactor.agent.skill.SkillProjects;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.theme.PlaygroundThemeUtils;
 import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -203,6 +204,9 @@ public class GetWorkspaceReactor extends AbstractReactor {
 			classLogger.warn("Failed to resolve default tools for workspace '{}': {}", workspaceId, e.getMessage());
 			current.put("default_tools", new ArrayList<>());
 		}
+		// Default tools the theme turns off unless this agent enables them.
+		current.put("theme_excluded_default_tools",
+				new ArrayList<>(PlaygroundThemeUtils.getAgentExcludedDefaultTools(workspaceId)));
 
 		// Server-computed capability list (not stored data, so kept out of config_json)
 		// driving the FE's "add hook" dropdown for CONFIG_JSON.hooks[].

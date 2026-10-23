@@ -65,6 +65,7 @@ import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.runtime.AgentsMdLoader;
 import prerna.reactor.agent.skill.SkillProjects;
+import prerna.theme.PlaygroundThemeUtils;
 import prerna.util.SystemDefaultEngines;
 
 /**
@@ -174,7 +175,7 @@ public final class AgentConfigLoader {
 		b.agentParams(agentParams);
 		b.includeCurrentTime(resolveIncludeCurrentTime(room, cfgJson));
 		b.useDefaultAgentTools(cfgJson == null || cfgJson.optBoolean("use_default_agent_tools", true));
-		b.disabledDefaultTools(resolveDisabledDefaultTools(room, cfgJson));
+		b.disabledDefaultTools(resolveDisabledDefaultTools(room, cfgJson, workspaceId));
 		JSONObject toolPolicy = cfgJson == null ? null : cfgJson.optJSONObject("tool_policy");
 		b.resultTool(toolPolicy == null ? null : StringUtils.trimToNull(toolPolicy.optString("result_tool", null)));
 		b.readOnlyPaths(resolveReadOnlyPaths(toolPolicy));
@@ -286,8 +287,13 @@ public final class AgentConfigLoader {
 		throw new IllegalArgumentException(key + " must be a boolean");
 	}
 
-	/** Combines room defaults with {@code CONFIG_JSON.tool_policy.default_tools.disabled}. */
-	private static Set<String> resolveDisabledDefaultTools(Room room, JSONObject cfgJson) {
+	/**
+	 * Combines room defaults, {@code CONFIG_JSON.tool_policy.default_tools.disabled},
+	 * and the theme's excluded default tools. A theme-excluded tool stays available
+	 * only when the workspace lists it in {@code default_tools.enabled}; system
+	 * agents are never subject to the theme's exclusions.
+	 */
+	static Set<String> resolveDisabledDefaultTools(Room room, JSONObject cfgJson, String workspaceId) {
 		LinkedHashSet<String> names = new LinkedHashSet<>();
 		if (CollaborationUtils.isCollaborationRoom(room)) {
 			// Ordinary document reading uses the shared extraction helper. Managed
@@ -296,16 +302,27 @@ public final class AgentConfigLoader {
 		}
 		JSONObject toolPolicy = cfgJson != null ? cfgJson.optJSONObject("tool_policy") : null;
 		JSONObject defaultTools = toolPolicy != null ? toolPolicy.optJSONObject("default_tools") : null;
-		JSONArray disabled = defaultTools != null ? defaultTools.optJSONArray("disabled") : null;
-		if (disabled != null) {
-			for (int i = 0; i < disabled.length(); i++) {
-				Object value = disabled.opt(i);
+		names.addAll(toolNames(defaultTools != null ? defaultTools.optJSONArray("disabled") : null));
+		Set<String> enabled = toolNames(defaultTools != null ? defaultTools.optJSONArray("enabled") : null);
+		for (String name : PlaygroundThemeUtils.getAgentExcludedDefaultTools(workspaceId)) {
+			if (!enabled.contains(name)) {
+				names.add(name);
+			}
+		}
+		return names.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(names);
+	}
+
+	private static Set<String> toolNames(JSONArray values) {
+		LinkedHashSet<String> names = new LinkedHashSet<>();
+		if (values != null) {
+			for (int i = 0; i < values.length(); i++) {
+				Object value = values.opt(i);
 				if (value instanceof String) {
 					names.add((String) value);
 				}
 			}
 		}
-		return names.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(names);
+		return names;
 	}
 
 	/**
