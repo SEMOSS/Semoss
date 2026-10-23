@@ -1,0 +1,45 @@
+# SEMOSS executor sandbox — the process that runs user code under OpenShell.
+#
+#   docker build -f docker/Dockerfile.executor -t semoss-executor:0.3 py
+#   # or, with the py-source label and a smoke test:
+#   docker/build-executor-image.sh
+#
+# The build context is py/ on purpose. The image must carry the worker source that is
+# in this repo; earlier builds staged py/ into a separate context by hand, and the
+# image silently kept running month-old python while the repo looked fixed.
+FROM python:3.12-slim
+
+LABEL maintainer="semoss@semoss.org"
+LABEL org.semoss.component="executor-sandbox"
+
+# git enables local repository work inside the sandbox (status/diff/commit/branch).
+# Installing it grants no network access: the OpenShell policy keys egress to a binary
+# path, so every remote host needs its own rule before git can leave the sandbox.
+# The identity is system-wide because commits fail without one.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && git config --system user.name "SEMOSS Sandbox" \
+ && git config --system user.email "sandbox@semoss.local" \
+ && git config --system safe.directory '*'
+
+# pandas + jsonpickle are the two modules the handler lazy-imports at boot. yfinance is
+# only here for the Stock MCP example and is not part of SEMOSS's declared dependencies
+# -- the real answer is a per-project venv or a manifest-driven install.
+RUN pip install --no-cache-dir pandas jsonpickle yfinance
+
+# The worker source. Context root is py/, so this is the committed python, verbatim.
+COPY . /opt/semosshome/py/
+
+# The handler appends to {insight_folder}/log.txt during setup(). The grants folders are
+# the read-only / read-write drop points the policy model expects to exist.
+RUN mkdir -p /opt/semosshome/insight /opt/grants-rw /opt/grants-ro \
+ && touch /opt/semosshome/insight/log.txt \
+ && chown -R 1000:1000 /opt/semosshome /opt/grants-rw /opt/grants-ro \
+ && chmod 755 /opt/grants-rw /opt/grants-ro
+
+# OpenShell refuses to start unless the workspace is writable by the sandbox identity:
+#   "workspace path component '<path>' is not writable by the sandbox identity in the
+#    image: Permission denied"
+USER 1000:1000
+WORKDIR /opt/semosshome/py
