@@ -516,7 +516,7 @@ public final class AutomationDefinitionService {
 		return result;
 	}
 
-	static String safeNodeFileName(Map<String, Object> node) {
+	public static String safeNodeFileName(Map<String, Object> node) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		if (nodeId == null || nodeId.isBlank()) {
 			throw new IllegalArgumentException("Automation node id must be nonblank for source persistence.");
