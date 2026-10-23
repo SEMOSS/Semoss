@@ -879,7 +879,11 @@ class FAISSSearcher:
             The unique identifier of the insight from which the call is being made
 
         Returns:
-            `Dict` A dictionary listing which documents have been successfully created
+            `Dict` with `createdDocuments` (artifact paths written) and `documentStatuses`
+            (one SUCCESS/PARTIAL/FAILED entry per input CSV, in input order, with
+            insertedRecords/failedRecords/totalRecords and an error message on failure).
+            Embedding is best-effort: a document that fails is reported FAILED and rolled
+            back while the remaining documents are still processed.
         """
         # make sure they are all in indexed_files dir
         assert {
@@ -887,109 +891,145 @@ class FAISSSearcher:
         } == {"indexed_files"}
 
         # create a list of the documents created so that we can push the files back to the cloud
+        # documentStatuses reports one SUCCESS/PARTIAL/FAILED entry per input CSV so a
+        # single bad document no longer fails the whole batch (best-effort embedding)
         createDocumentsResponse = {
             "createdDocuments": [],
+            "documentStatuses": [],
         }
+        # per-document [(artifact_paths, rows)] aligned with documentStatuses
+        per_document_artifacts = []
 
-        # loop through and embed new docs
+        # Embed each input CSV in one call, then preserve the existing per-Source
+        # dataset/vector artifacts used by removal and master-index rebuilding.
         for document in documentFileLocation:
-            # Create the DataFrame for every file
-            dataset = self._load_dataset(dataset_location=document)
-
-            # Change the unit of work
-            # From being the document
-            # To the individual source inside the document
-            sources = dataset["Source"].unique().tolist()
-            for source_name in sources:
-                source_dataset = dataset[dataset["Source"] == source_name].reset_index(
-                    drop=True
+            file_name = os.path.basename(document)
+            # _append_vectors always rebinds to new arrays, so holding the previous
+            # references is a complete rollback for a failed document
+            snapshot_vectors = self.encoded_vectors
+            snapshot_dimensions = self.vector_dimensions
+            created_artifacts = []
+            total_rows = 0
+            try:
+                dataset = self._load_dataset(dataset_location=document)
+                total_rows = len(dataset)
+                sources = dataset["Source"].unique().tolist()
+                directory = os.path.dirname(document)
+                effective_columns = (
+                    list(dataset.columns)
+                    if columns_to_index is None or len(columns_to_index) == 0
+                    else columns_to_index
                 )
+                keyword_params = dict(keyword_search_params or {})
+                keyword_search = keyword_params.pop("keywordSearch", None) is True
+                prepared_sources = []
 
-                # Get the directory path and the base filename without extension
-                directory, base_filename = os.path.split(document)
-                dataset_extension = ".parquet"
-                vector_extension = ".npy"
-
-                if columns_to_index == None or len(columns_to_index) == 0:
-                    columns_to_index = list(source_dataset.columns)
-
-                # save the dataset, this is for efficiency after removing docs
-                new_file_path = os.path.join(
-                    directory, source_name + "_dataset" + dataset_extension
-                )
-
-                # if applicable, create the concatenated columns
-                if len(source_dataset) > 0:
-                    # vectorized equivalent of mapping `_concatenate_columns`: build a
-                    # target_column whose value for each row is
-                    # `<v0><sep><v1><sep>...<vn-1><sep>` (note trailing separator,
-                    # preserved for parity with the previous Dataset.map behavior).
-                    parts = source_dataset[columns_to_index].astype(str)
+                for source_name in sources:
+                    source_dataset = dataset[
+                        dataset["Source"] == source_name
+                    ].reset_index(drop=True)
+                    if len(source_dataset) == 0:
+                        continue
+                    parts = source_dataset[effective_columns].astype(str)
                     source_dataset[target_column] = parts.apply(
                         lambda row: separator.join(row) + separator, axis=1
                     )
-
-                    # transform chunks into keywords
-                    if (
-                        keyword_search_params != None
-                        and keyword_search_params.pop("keywordSearch", None) is True
-                    ):
-                        keywords_for_target_col = (
+                    if keyword_search:
+                        source_dataset[target_column] = (
                             self.keyword_engine.keyword_extraction(
                                 input=list(source_dataset[target_column]),
                                 insight_id=insight_id,
-                                param_dict=keyword_search_params,
+                                param_dict=keyword_params,
                             )
                         )
-                        source_dataset[target_column] = keywords_for_target_col
-
-                    # get the embeddings for the document
-                    vectors = self.embeddings_engine.embeddings(
-                        strings_to_embed=list(source_dataset[target_column]),
-                        insight_id=insight_id,
-                    )
-                    vectors = np.array(vectors[0]["response"], dtype=np.float32)
-                    assert vectors.ndim == 2
-
-                    columns_to_remove.append(target_column)
-                    columns_to_drop = list(
-                        set(columns_to_remove).intersection(set(source_dataset.columns))
-                    )
-                    source_dataset = source_dataset.drop(columns=columns_to_drop)
-
-                    # Keep per-source files dtype-consistent so subsequent
-                    # `_validateEmbeddingFiles` concatenations don't produce
-                    # mixed-type columns that fail pyarrow serialization.
-                    self._enforce_canonical_schema(source_dataset)
-                    source_dataset.to_parquet(new_file_path, index=False)
-
-                    # add the created source_dataset file path
-                    createDocumentsResponse["createdDocuments"].append(new_file_path)
-
-                    # normalize the vectors if using huggingface
-                    if type(self.tokenizer).__name__ == "HuggingfaceTokenizer":
-                        faiss.normalize_L2(vectors)
-
-                    # write out the vectors as a .npy file (no pickle)
-                    new_file_path = os.path.join(
-                        directory,
-                        source_name + "_vectors" + vector_extension,
-                    )
-                    np.save(new_file_path, vectors, allow_pickle=False)
-
-                    # add the created embeddings file path
-                    createDocumentsResponse["createdDocuments"].append(new_file_path)
-
-                    # TODO need to update the flow for how we instatiate
-                    if self.encoded_vectors is None:
-                        self.encoded_vectors = np.copy(vectors)
-                        self.vector_dimensions = self.encoded_vectors.shape
-                    else:
-                        # make sure the dimensions are the same
-                        assert self.vector_dimensions[1] == vectors.shape[1]
-                        self.encoded_vectors = np.concatenate(
-                            [self.encoded_vectors, vectors], axis=0
+                        vectors = self._embed_and_validate(
+                            list(source_dataset[target_column]), insight_id
                         )
+                        created_artifacts.append(
+                            (
+                                self._persist_source_artifacts(
+                                    directory,
+                                    source_name,
+                                    source_dataset,
+                                    vectors,
+                                    columns_to_remove,
+                                    target_column,
+                                ),
+                                len(source_dataset),
+                            )
+                        )
+                        self._append_vectors(vectors)
+                    else:
+                        prepared_sources.append((source_name, source_dataset))
+
+                if prepared_sources:
+                    all_text = [
+                        value
+                        for _source_name, source_dataset in prepared_sources
+                        for value in source_dataset[target_column].tolist()
+                    ]
+                    all_vectors = self._embed_and_validate(all_text, insight_id)
+                    offset = 0
+                    for source_name, source_dataset in prepared_sources:
+                        source_rows = len(source_dataset)
+                        source_vectors = all_vectors[offset : offset + source_rows]
+                        offset += source_rows
+                        created_artifacts.append(
+                            (
+                                self._persist_source_artifacts(
+                                    directory,
+                                    source_name,
+                                    source_dataset,
+                                    source_vectors,
+                                    columns_to_remove,
+                                    target_column,
+                                ),
+                                source_rows,
+                            )
+                        )
+                    if offset != len(all_vectors):
+                        raise ValueError(
+                            "Embedding rows could not be assigned to their Sources"
+                        )
+                    self._append_vectors(all_vectors)
+            except Exception as error:
+                self.class_logger.exception(
+                    "Embedding failed for document %s", document
+                )
+                for artifact_paths, _rows in created_artifacts:
+                    for artifact_path in artifact_paths:
+                        try:
+                            os.remove(artifact_path)
+                        except OSError:
+                            pass
+                self.encoded_vectors = snapshot_vectors
+                self.vector_dimensions = snapshot_dimensions
+                per_document_artifacts.append([])
+                createDocumentsResponse["documentStatuses"].append(
+                    {
+                        "fileName": file_name,
+                        "status": "FAILED",
+                        "insertedRecords": 0,
+                        "failedRecords": total_rows,
+                        "totalRecords": total_rows,
+                        "error": str(error),
+                    }
+                )
+                continue
+
+            inserted_rows = sum(rows for _paths, rows in created_artifacts)
+            for artifact_paths, _rows in created_artifacts:
+                createDocumentsResponse["createdDocuments"].extend(artifact_paths)
+            per_document_artifacts.append(created_artifacts)
+            createDocumentsResponse["documentStatuses"].append(
+                {
+                    "fileName": file_name,
+                    "status": "SUCCESS",
+                    "insertedRecords": inserted_rows,
+                    "failedRecords": total_rows - inserted_rows,
+                    "totalRecords": total_rows,
+                }
+            )
 
         master_indexClass_files, corrupted_file_sets = self.createMasterFiles(
             path_to_files=os.path.dirname(os.path.dirname(documentFileLocation[0]))
@@ -999,9 +1039,112 @@ class FAISSSearcher:
             for file_path in corrupted_set:
                 createDocumentsResponse["createdDocuments"].remove(file_path)
 
+        # downgrade documents whose artifacts failed post-write validation so the
+        # removal is reported instead of silently shrinking createdDocuments
+        corrupted_paths = {
+            file_path
+            for corrupted_set in corrupted_file_sets
+            for file_path in corrupted_set
+        }
+        if corrupted_paths:
+            for status, created_artifacts in zip(
+                createDocumentsResponse["documentStatuses"], per_document_artifacts
+            ):
+                lost_rows = sum(
+                    rows
+                    for artifact_paths, rows in created_artifacts
+                    if corrupted_paths.intersection(artifact_paths)
+                )
+                if status["status"] != "SUCCESS" or lost_rows == 0:
+                    continue
+                status["insertedRecords"] -= lost_rows
+                status["failedRecords"] += lost_rows
+                status["status"] = (
+                    "FAILED" if status["insertedRecords"] == 0 else "PARTIAL"
+                )
+                status["error"] = (
+                    "Source artifacts failed validation after writing and were removed"
+                )
+
         createDocumentsResponse["createdDocuments"].extend(master_indexClass_files)
 
         return createDocumentsResponse
+
+    def _embed_and_validate(
+        self, strings_to_embed: List[str], insight_id: Optional[str]
+    ) -> np.ndarray:
+        """Embed one bounded CSV batch and validate it before writing artifacts."""
+        response = self.embeddings_engine.embeddings(
+            strings_to_embed=strings_to_embed,
+            insight_id=insight_id,
+        )
+        try:
+            vectors = np.asarray(response[0]["response"], dtype=np.float32)
+        except (IndexError, KeyError, TypeError, ValueError) as error:
+            raise ValueError(
+                "Embedding response does not contain a numeric response matrix"
+            ) from error
+        if (
+            vectors.ndim != 2
+            or vectors.shape[0] != len(strings_to_embed)
+            or vectors.shape[1] == 0
+        ):
+            raise ValueError(
+                "Embedding response shape does not match the submitted rows: "
+                f"expected {len(strings_to_embed)} rows, received {vectors.shape}"
+            )
+        if (
+            self.vector_dimensions is not None
+            and self.vector_dimensions[1] != vectors.shape[1]
+        ):
+            raise ValueError(
+                "Embedding dimensions do not match the existing FAISS index: "
+                f"expected {self.vector_dimensions[1]}, received {vectors.shape[1]}"
+            )
+        if type(self.tokenizer).__name__ == "HuggingfaceTokenizer":
+            faiss.normalize_L2(vectors)
+        return vectors
+
+    def _persist_source_artifacts(
+        self,
+        directory: str,
+        source_name: str,
+        source_dataset: pd.DataFrame,
+        vectors: np.ndarray,
+        columns_to_remove: Optional[List[str]],
+        target_column: str,
+    ) -> List[str]:
+        """Write the stable dataset and vector pair for one Source."""
+        if len(source_dataset) != len(vectors):
+            raise ValueError(
+                f"Source {source_name} has {len(source_dataset)} rows but {len(vectors)} vectors"
+            )
+        columns_to_drop = list(
+            set([*(columns_to_remove or []), target_column]).intersection(
+                set(source_dataset.columns)
+            )
+        )
+        stored_dataset = source_dataset.drop(columns=columns_to_drop)
+        self._enforce_canonical_schema(stored_dataset)
+        dataset_path = os.path.join(directory, source_name + "_dataset.parquet")
+        vector_path = os.path.join(directory, source_name + "_vectors.npy")
+        stored_dataset.to_parquet(dataset_path, index=False)
+        np.save(vector_path, vectors, allow_pickle=False)
+        return [dataset_path, vector_path]
+
+    def _append_vectors(self, vectors: np.ndarray) -> None:
+        """Maintain the in-memory vector shape until master files are rebuilt."""
+        if self.encoded_vectors is None:
+            self.encoded_vectors = np.copy(vectors)
+            self.vector_dimensions = self.encoded_vectors.shape
+            return
+        if self.vector_dimensions[1] != vectors.shape[1]:
+            raise ValueError(
+                "Embedding dimensions do not match the existing FAISS index: "
+                f"expected {self.vector_dimensions[1]}, received {vectors.shape[1]}"
+            )
+        self.encoded_vectors = np.concatenate([self.encoded_vectors, vectors], axis=0)
+        self.vector_dimensions = self.encoded_vectors.shape
 
     def createMasterFiles(self, path_to_files: str) -> Tuple[str]:
         """
