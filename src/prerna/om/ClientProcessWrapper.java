@@ -707,6 +707,16 @@ public class ClientProcessWrapper {
 	public void shutdown(boolean cleanUpFolder) {
 		lockDestroy.lock();
 		try {
+			// OPENSHELL: the last reconcile must run while the sandbox is still alive. The
+			// worker is the sandbox's main process, so stopping the socket below ends the
+			// sandbox, and a capture attempted after that finds it Completed.
+			if (this.openshell != null) {
+				try {
+					fetchBackTransportedRoots();
+				} catch (Exception e) {
+					classLogger.warn("Fetch-back before sandbox teardown failed for port {}", this.port, e);
+				}
+			}
 			if (this.socketClient != null && this.socketClient.isConnected()) {
 				try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 
@@ -763,13 +773,6 @@ public class ClientProcessWrapper {
 			// teardown -- the gateway delete is authoritative and the worker cannot
 			// outlive its sandbox. There is no graceful-shutdown verb to send first.
 			if (this.openshell != null) {
-				try {
-					// Last reconcile before the sandbox disappears: anything written since the
-					// final request would otherwise die with it.
-					fetchBackTransportedRoots();
-				} catch (Exception e) {
-					classLogger.warn("Fetch-back before sandbox teardown failed for port {}", this.port, e);
-				}
 				try {
 					this.openshell.close();
 				} catch (Exception e) {

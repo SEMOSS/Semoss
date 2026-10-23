@@ -605,7 +605,10 @@ public final class OpenShellTransport {
 				classLogger.warn("Capture of {} is partial; not propagating deletions this time: {}", absPath,
 						capture.warnings);
 			}
-			return reconcile(tree.resolve(base), java.nio.file.Paths.get(normalized), complete);
+			int changed = reconcile(tree.resolve(base), java.nio.file.Paths.get(normalized), complete);
+			classLogger.info("Full capture of {}: {} bytes, {} file(s) changed on the host{}", absPath, capture.bytes,
+					changed, complete ? "" : " (partial)");
+			return changed;
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new IOException("fetch-back of " + absPath + " interrupted", e);
