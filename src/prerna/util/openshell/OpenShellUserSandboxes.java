@@ -289,10 +289,19 @@ public final class OpenShellUserSandboxes {
 	}
 
 	/**
-	 * A session ended (logout or timeout). Releases this instance's connection when it was
-	 * the user's last session here, and deletes the sandbox when it was their last anywhere.
+	 * A session left this instance. Releases this instance's connection when it was the
+	 * user's last session here.
+	 *
+	 * <p>
+	 * Only a session that is really over -- an explicit logout, or idle past its timeout --
+	 * gives up its lease, and the sandbox goes when that was the user's last lease anywhere.
+	 * A server stopping also destroys every session (measured 2026-10-23: a Tomcat restart
+	 * fired {@code sessionDestroyed} for each one and deleted the sandbox), but the user has
+	 * not left: their lease stands, so the restarted or another instance reattaches.
+	 *
+	 * @param over true for a logout or a timeout; false when the server is going away
 	 */
-	public static void sessionEnded(User user, String sessionId) {
+	public static void sessionEnded(User user, String sessionId, boolean over) {
 		if (user == null || !user.isLoggedIn()) {
 			return;
 		}
@@ -309,6 +318,10 @@ public final class OpenShellUserSandboxes {
 		if (here == null || here.isEmpty()) {
 			LOCAL_SESSIONS.remove(owner);
 			releaseLocal(owner);
+		}
+		if (!over) {
+			classLogger.info("Session {} left with the server; keeping its sandbox lease", sessionId);
+			return;
 		}
 		boolean anyLive;
 		try {
