@@ -315,6 +315,11 @@ public final class AutomationDefinitionValidator {
 				throw new IllegalArgumentException("Automation agent node '" + nodeId
 						+ "' collaborationRoutine configuration must be a boolean when provided.");
 			}
+			Object routineId = config.get(AutomationConstants.CONFIG_ROUTINE_ID);
+			if (routineId != null && !(routineId instanceof String)) {
+				throw new IllegalArgumentException("Automation agent node '" + nodeId
+						+ "' routineId configuration must be a string when provided.");
+			}
 			Object wait = config.get(AutomationConstants.CONFIG_WAIT);
 			if (wait != null && !(wait instanceof Boolean)) {
 				throw new IllegalArgumentException(
