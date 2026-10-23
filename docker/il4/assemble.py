@@ -226,7 +226,7 @@ def main(output=Path("/out")):
     home = output / "semosshome"
     accp = output / "accp"
     accp.mkdir(parents=True)
-    extract(files["org.apache.tomcat:tomcat:11.0.26:tar.gz"], tomcat, "apache-tomcat-11.0.26")
+    extract(files["org.apache.tomcat:tomcat:11.0.27:tar.gz"], tomcat, "apache-tomcat-11.0.27")
     shutil.rmtree(tomcat / "webapps")
     extract(files["org.semoss:semoss:0.0.1-SNAPSHOT:tar.gz:semosshome"], home, "semoss-0.0.1-SNAPSHOT")
     monolith = tomcat / "webapps/Monolith"
