@@ -615,6 +615,7 @@ public class User implements Serializable {
 				// we do not define the Server Directory here - because it will dynamically
 				// generate in the chroot location
 				try {
+					this.pythonCPW.setUser(this);
 					this.pythonCPW.createProcessAndClient(nativePyServer, this.symlinkHelper, port, null, null,
 							customClassPath, debug, "-1", loggerLevel, ThreadContext.getImmutableContext());
 				} catch (Exception e) {
@@ -635,6 +636,7 @@ public class User implements Serializable {
 				try {
 					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable()
 							: null;
+					this.pythonCPW.setUser(this);
 					this.pythonCPW.createProcessAndClient(nativePyServer, null, port, venvPath,
 							serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel,
 							ThreadContext.getImmutableContext());

@@ -127,6 +127,8 @@ public class ClientProcessWrapper {
 	// the same JSON protocol, so it reuses NativePySocketClient.
 	private boolean nodeServer = false;
 	private SymlinkHelper chrootSymlinkHelper;
+	/** Whose permissions gate write-back; bound by {@code User} when the client is created. */
+	private prerna.auth.User user;
 	// OPENSHELL mode: owns the sandbox + port-forward for this worker's lifetime
 	private prerna.util.OpenShellTransport openshell;
 	private String classPath;
@@ -437,6 +439,9 @@ public class ClientProcessWrapper {
 			if (normalized.contains("/" + Constants.PROJECT_FOLDER + "/")
 					|| normalized.contains("/" + Constants.ROOM_FOLDER + "/")
 					|| normalized.contains("/" + Constants.USER_FOLDER + "/")) {
+				if (!canWriteBack(normalized)) {
+					continue;
+				}
 				roots.add(normalized);
 			}
 		}
@@ -505,6 +510,57 @@ public class ClientProcessWrapper {
 	}
 
 	/**
+	 * Bind the user whose permissions decide whether a root may be written back.
+	 *
+	 * @param user owner of this process
+	 */
+	public void setUser(prerna.auth.User user) {
+		this.user = user;
+	}
+
+	/**
+	 * A read-only member must not be able to modify a project through the sandbox: the
+	 * worker runs outside the platform's permission checks, so without this gate a
+	 * read-only user could write a file with {@code Py()} and have it published to the
+	 * project folder. Project roots are gated on the platform's own permission lookup.
+	 * Room and asset roots have no comparable model in this build and are left alone.
+	 *
+	 * @param normalized absolute transported root
+	 * @return true when write-back into this root is allowed
+	 */
+	private boolean canWriteBack(String normalized) {
+		String marker = "/" + Constants.PROJECT_FOLDER + "/";
+		int at = normalized.indexOf(marker);
+		if (at < 0) {
+			return true;
+		}
+		String rest = normalized.substring(at + marker.length());
+		int slash = rest.indexOf('/');
+		String folder = slash < 0 ? rest : rest.substring(0, slash);
+		int separator = folder.lastIndexOf("__");
+		String projectId = separator < 0 ? folder : folder.substring(separator + 2);
+		if (this.user == null) {
+			classLogger.warn("Refusing write-back into {}: no user is bound to this process", normalized);
+			return false;
+		}
+		try {
+			String permission = prerna.auth.utils.SecurityProjectUtils
+					.getActualUserProjectPermission(this.user, projectId);
+			boolean allowed = prerna.auth.AccessPermissionEnum.OWNER.getPermission().equals(permission)
+					|| prerna.auth.AccessPermissionEnum.EDIT.getPermission().equals(permission);
+			if (!allowed) {
+				classLogger.warn("Refusing write-back into {}: user {} has {} access to project {}", normalized,
+						prerna.auth.User.getSingleLogginName(this.user), permission, projectId);
+			}
+			return allowed;
+		} catch (Exception e) {
+			// Fail closed: an unresolvable permission is not a licence to write.
+			classLogger.warn("Could not resolve permission for {}; refusing write-back", normalized, e);
+			return false;
+		}
+	}
+
+	/**
 	 * Reconcile the sandbox copies of this session's transported roots back onto the
 	 * host, so a file written by {@code Py()} or a shell command is visible to the
 	 * platform (asset browser, MCP generators, git) without waiting for logout.
@@ -528,7 +584,7 @@ public class ClientProcessWrapper {
 			boolean syncable = normalized.contains("/" + Constants.PROJECT_FOLDER + "/")
 					|| normalized.contains("/" + Constants.ROOM_FOLDER + "/")
 					|| normalized.contains("/" + Constants.USER_FOLDER + "/");
-			if (!syncable) {
+			if (!syncable || !canWriteBack(normalized)) {
 				continue;
 			}
 			try {
