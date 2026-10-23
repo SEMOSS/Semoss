@@ -2,6 +2,7 @@
 
 import base64
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -137,21 +138,32 @@ def _run_pixel_checked(pixel):
     return outputs
 
 
-def _load_local_semoss_config():
-    config_path = Path(__file__).resolve().parents[1] / "semoss_config" / "config.json"
-    if not config_path.exists():
-        return {}
-    with config_path.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
+def _encode_sql(statement):
+    """Wrap SQL in Pixel <encode> tags.
+
+    A literal </encode> inside the SQL would close the block early and corrupt the Pixel.
+    """
+    if "</encode>" in statement.lower():
+        raise ValueError("SQL cannot contain the text '</encode>'.")
+    return f"<encode>{statement}</encode>"
 
 
-def _resolve_project_id():
-    config = _load_local_semoss_config()
-    for key in ("project_id", "app_id", "projectId", "appId"):
-        value = config.get(key)
-        if value:
-            return str(value)
-    raise RuntimeError("The canonical database-maker project id is not configured.")
+def _unescape_single_line_sql(sql):
+    """Turn literal \\n and \\t into whitespace when SQL arrives as one escaped line.
+
+    SQL that already contains real newlines is left alone so \\n inside string literals survives.
+    """
+    if "\n" not in sql and "\\n" in sql:
+        return sql.replace("\\n", "\n").replace("\\t", "\t")
+    return sql
+
+
+TABLE_DDL_PREFIXES = ("CREATE TABLE", "DROP TABLE", "ALTER TABLE", "CREATE INDEX", "DROP INDEX")
+
+
+def _is_table_ddl(statement):
+    """Whether a statement starts with a table/index DDL keyword (not merely mentions one)."""
+    return " ".join(statement.upper().split()).startswith(TABLE_DDL_PREFIXES)
 
 
 def _normalize_database(database):
@@ -172,86 +184,6 @@ def _list_databases():
     if not isinstance(databases, list):
         raise RuntimeError("MyEngines returned a malformed database list.")
     return [_normalize_database(database) for database in databases if isinstance(database, dict)]
-
-
-def _exact_database_matches(database_name, databases=None):
-    normalized_name = database_name.strip().casefold()
-    matches = []
-    for database in databases if databases is not None else _list_databases():
-        names = (database.get("database_name"), database.get("database_display_name"))
-        if any(str(name).strip().casefold() == normalized_name for name in names if name is not None):
-            matches.append(database)
-    return matches
-
-
-def _split_sql_script(script):
-    statements = []
-    buffer = []
-    in_single_quote = False
-    in_double_quote = False
-    in_line_comment = False
-    in_block_comment = False
-    index = 0
-
-    while index < len(script):
-        char = script[index]
-        next_char = script[index + 1] if index + 1 < len(script) else ""
-        if in_line_comment:
-            if char == "\n":
-                in_line_comment = False
-                buffer.append(char)
-            index += 1
-            continue
-        if in_block_comment:
-            if char == "*" and next_char == "/":
-                in_block_comment = False
-                index += 2
-            else:
-                index += 1
-            continue
-        if not in_single_quote and not in_double_quote:
-            if char == "-" and next_char == "-":
-                in_line_comment = True
-                index += 2
-                continue
-            if char == "/" and next_char == "*":
-                in_block_comment = True
-                index += 2
-                continue
-        if char == "'" and not in_double_quote:
-            buffer.append(char)
-            if in_single_quote and next_char == "'":
-                buffer.append(next_char)
-                index += 2
-                continue
-            in_single_quote = not in_single_quote
-            index += 1
-            continue
-        if char == '"' and not in_single_quote:
-            buffer.append(char)
-            if in_double_quote and next_char == '"':
-                buffer.append(next_char)
-                index += 2
-                continue
-            in_double_quote = not in_double_quote
-            index += 1
-            continue
-        if char == ";" and not in_single_quote and not in_double_quote:
-            statement = "".join(buffer).strip()
-            if statement:
-                statements.append(statement)
-            buffer = []
-            index += 1
-            continue
-        buffer.append(char)
-        index += 1
-
-    if in_single_quote or in_double_quote or in_block_comment:
-        raise ValueError("SQL script contains an unterminated string or block comment.")
-    trailing = "".join(buffer).strip()
-    if trailing:
-        statements.append(trailing)
-    return statements
 
 
 def _row_count(result):
@@ -389,13 +321,9 @@ def run_script(database_id, script):
     Returns:
         str: JSON string with execution results and ontology refresh status
     """
-    from semoss import Insight
-
     try:
         # Convert literal \n to actual newlines in case the SQL comes with escaped characters
-        normalized_script = (script or "").strip()
-        if '\\n' in normalized_script:
-            normalized_script = normalized_script.replace('\\n', '\n').replace('\\t', '\t')
+        normalized_script = _unescape_single_line_sql((script or "").strip())
 
         if not normalized_script:
             return json.dumps({
@@ -414,22 +342,21 @@ def run_script(database_id, script):
                 "results": []
             })
 
-        insight = Insight()
+        database_literal = json.dumps(str(database_id))
         results = []
 
         for index, statement in enumerate(statements, start=1):
             statement_type = statement.split(None, 1)[0].upper() if statement.split() else "UNKNOWN"
             try:
                 if statement_type in {"SELECT", "WITH", "SHOW", "DESCRIBE", "EXPLAIN"}:
-                    pixel = f'Database(database=["{database_id}"]) | Query("<encode>{statement}</encode>") | Collect(100);'
+                    pixel = f'Database(database=[{database_literal}]) | Query("{_encode_sql(statement)}") | Collect(100);'
                 else:
-                    pixel = f'Database(database=["{database_id}"]) | Query("<encode>{statement}</encode>") | ExecQuery();'
+                    pixel = f'Database(database=[{database_literal}]) | Query("{_encode_sql(statement)}") | ExecQuery();'
 
-                response = insight.run_pixel(pixel)
-                result = extract_pixel_output(response) or {}
-                row_count = 0
-                if isinstance(result, dict):
-                    row_count = len(result.get("values") or [])
+                # run_pixel does not raise on SQL errors; the checked runner does
+                outputs = _run_pixel_checked(pixel)
+                result = (outputs[0] if outputs else None) or {}
+                row_count = _row_count(result)
 
                 results.append({
                     "index": index,
@@ -454,14 +381,7 @@ def run_script(database_id, script):
         }
 
         # Check if any statements were table DDL operations
-        ddl_keywords = ['CREATE TABLE', 'DROP TABLE', 'ALTER TABLE', 'CREATE INDEX', 'DROP INDEX']
-        has_table_ddl = False
-
-        for result in results:
-            statement = result.get("statement", "").upper()
-            if any(keyword in statement for keyword in ddl_keywords):
-                has_table_ddl = True
-                break
+        has_table_ddl = any(_is_table_ddl(result.get("statement", "")) for result in results)
 
         # If we had table DDL operations, auto-refresh ontology
         if has_table_ddl:
@@ -497,24 +417,6 @@ def run_script(database_id, script):
         })
 
 
-def _save_schema_asset(database_id, schema):
-    asset_path = f"schema/schema_{database_id}.json"
-    warnings = []
-    for pixel in (
-        'NewInsightAssetsDirectory(filePath=["schema"]);',
-        f'NewInsightAssetsFile(filePath=[{json.dumps(asset_path)}]);',
-    ):
-        try:
-            _run_pixel_checked(pixel)
-        except RuntimeError as exc:
-            warnings.append(str(exc))
-    content = json.dumps(schema, indent=2, ensure_ascii=False)
-    _run_pixel_checked(
-        f'SaveInsightAssets(filePath=[{json.dumps(asset_path)}], content=["<encode>{content}</encode>"]);'
-    )
-    return asset_path, warnings
-
-
 def get_schema(database_id, playground=True):
     """Retrieves and simplifies the schema for a given database ID.
 
@@ -523,14 +425,15 @@ def get_schema(database_id, playground=True):
         playground (bool): Whether to persist a copy under the current project's assets
 
     Returns:
-        str: A Base64 encoded JSON string representing the simplified schema
+        str: JSON string. The list of tables when playground is False, otherwise
+            {"schema": [...], "file_saved" | "file_save_error": ..., "status": ...}
     """
     from semoss import Insight
 
     i = Insight()
 
     # Get the raw metamodel using Pixel
-    pixel_cmd = f'GetDatabaseMetamodel(database=["{database_id}"], options=["dataTypes", "descriptions"]);'
+    pixel_cmd = f'GetDatabaseMetamodel(database=[{json.dumps(str(database_id))}], options=["dataTypes", "descriptions"]);'
     resp = i.run_pixel(pixel_cmd)
 
     # Extract the output from the pixel response
@@ -581,24 +484,27 @@ def get_schema(database_id, playground=True):
             filename = f"schema/schema_{database_id}.json"
 
             # Use SaveEngineAssets reactor
-            save_pixel = f'SaveEngineAssets(project=["{project_id}"], filePath=["{filename}"], content=["<encode>{schema_json}</encode>"], comment=["Database schema for {database_id}"]);'
+            save_pixel = (
+                f'SaveEngineAssets(project=[{json.dumps(project_id)}], filePath=[{json.dumps(filename)}], '
+                f'content=["<encode>{schema_json}</encode>"], comment=[{json.dumps(f"Database schema for {database_id}")}]);'
+            )
             i.run_pixel(save_pixel)
 
-            return encode_to_string({
+            return json.dumps({
                 "schema": schema_output,
                 "file_saved": filename,
                 "status": "success"
             })
         except Exception as e:
             # If file saving fails, still return the schema data
-            return encode_to_string({
+            return json.dumps({
                 "schema": schema_output,
                 "file_save_error": str(e),
                 "status": "partial_success"
             })
     else:
         # Just return the schema data without saving to file
-        return encode_to_string(schema_json)
+        return schema_json
 
 
 def execute_sql(database_id, sql_statement):
@@ -613,8 +519,6 @@ def execute_sql(database_id, sql_statement):
     Returns:
         str: JSON string with execution results and ontology refresh status
     """
-    from semoss import Insight
-
     try:
         if not database_id or not sql_statement:
             return json.dumps({
@@ -622,26 +526,24 @@ def execute_sql(database_id, sql_statement):
                 "error": "database_id and sql_statement are required"
             })
 
-        insight = Insight()
-
         # Clean up the SQL
-        clean_sql = sql_statement.strip()
-        if '\\n' in clean_sql:
-            clean_sql = clean_sql.replace('\\n', '\n').replace('\\t', '\t')
+        clean_sql = _unescape_single_line_sql(sql_statement.strip())
 
         # Determine if it's a SELECT query or DDL/DML
         sql_upper = clean_sql.upper().strip()
         is_select = sql_upper.startswith(('SELECT', 'WITH', 'SHOW', 'DESCRIBE', 'EXPLAIN'))
 
+        database_literal = json.dumps(str(database_id))
         if is_select:
             # Use Collect for SELECT queries
-            pixel = f'Database(database=["{database_id}"]) | Query("<encode>{clean_sql}</encode>") | Collect(100);'
+            pixel = f'Database(database=[{database_literal}]) | Query("{_encode_sql(clean_sql)}") | Collect(100);'
         else:
             # Use ExecQuery for DDL/DML
-            pixel = f'Database(database=["{database_id}"]) | Query("<encode>{clean_sql}</encode>") | ExecQuery();'
+            pixel = f'Database(database=[{database_literal}]) | Query("{_encode_sql(clean_sql)}") | ExecQuery();'
 
-        response = insight.run_pixel(pixel)
-        result = extract_pixel_output(response)
+        # run_pixel does not raise on SQL errors; the checked runner does
+        outputs = _run_pixel_checked(pixel)
+        result = outputs[0] if outputs else None
 
         response_data = {
             "status": "success",
@@ -654,12 +556,7 @@ def execute_sql(database_id, sql_statement):
         if not is_select:
             try:
                 # Check if this is a table-related DDL operation
-                ddl_keywords = ['CREATE TABLE', 'DROP TABLE', 'ALTER TABLE', 'CREATE INDEX', 'DROP INDEX']
-                sql_upper_clean = ' '.join(sql_upper.split())  # Normalize whitespace
-
-                is_table_ddl = any(keyword in sql_upper_clean for keyword in ddl_keywords)
-
-                if is_table_ddl:
+                if _is_table_ddl(clean_sql):
                     # Auto-refresh the ontology
                     ontology_result = refresh_database_ontology(database_id)
                     ontology_data = json.loads(base64.b64decode(ontology_result).decode('utf-8'))
@@ -726,6 +623,9 @@ def debug_database_tables(database_id):
             'WHERE TABLE_TYPE = \'BASE TABLE\';</encode>") | Collect(500);'
         )
         sql_output = extract_pixel_output(insight.run_pixel(sql_pixel)) or {}
+        # Collect nests headers/values under "data"
+        if isinstance(sql_output, dict) and isinstance(sql_output.get("data"), dict):
+            sql_output = sql_output["data"]
         result["sql_tables"] = {
             "headers": sql_output.get("headers", []) if isinstance(sql_output, dict) else [],
             "values": sql_output.get("values", []) if isinstance(sql_output, dict) else [],
@@ -1013,7 +913,7 @@ def refresh_database_ontology(database_id):
         database_id (str): The unique identifier of the database to refresh
 
     Returns:
-        str: JSON string with status and synchronized table information
+        str: Base64 encoded JSON string with status and synchronized table information
     """
     from semoss import Insight
 
@@ -1101,7 +1001,7 @@ def create_ontology_metadata(database_id):
         database_id (str): The unique identifier of the database to document
 
     Returns:
-        str: JSON string with status and file information
+        str: Base64 encoded JSON string with status and file information
     """
     from semoss import Insight
 
@@ -1109,7 +1009,7 @@ def create_ontology_metadata(database_id):
         insight = Insight()
 
         # Get the current metamodel
-        metamodel_pixel = f'GetDatabaseMetamodel(database=["{database_id}"], options=["dataTypes", "descriptions"]);'
+        metamodel_pixel = f'GetDatabaseMetamodel(database=[{json.dumps(str(database_id))}], options=["dataTypes", "descriptions"]);'
         metamodel_response = insight.run_pixel(metamodel_pixel)
         metamodel = extract_pixel_output(metamodel_response) or {}
 
@@ -1154,13 +1054,16 @@ def create_ontology_metadata(database_id):
         project_id = resolve_project_id()
         owl_filename = f"ontology/{database_id}_metadata.owl"
 
-        save_pixel = f'SaveEngineAssets(project=["{project_id}"], filePath=["{owl_filename}"], content=["<encode>{owl_content}</encode>"], comment=["Database ontology metadata for {database_id}"]);'
+        save_pixel = (
+            f'SaveEngineAssets(project=[{json.dumps(project_id)}], filePath=[{json.dumps(owl_filename)}], '
+            f'content=["<encode>{owl_content}</encode>"], comment=[{json.dumps(f"Database ontology metadata for {database_id}")}]);'
+        )
         insight.run_pixel(save_pixel)
 
         # Also create a JSON summary
         summary = {
             "database_id": database_id,
-            "created_at": "timestamp_placeholder",
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "tables": []
         }
 
@@ -1178,7 +1081,10 @@ def create_ontology_metadata(database_id):
         summary_json = json.dumps(summary, indent=2)
         summary_filename = f"ontology/{database_id}_summary.json"
 
-        summary_pixel = f'SaveEngineAssets(project=["{project_id}"], filePath=["{summary_filename}"], content=["<encode>{summary_json}</encode>"], comment=["Database summary metadata for {database_id}"]);'
+        summary_pixel = (
+            f'SaveEngineAssets(project=[{json.dumps(project_id)}], filePath=[{json.dumps(summary_filename)}], '
+            f'content=["<encode>{summary_json}</encode>"], comment=[{json.dumps(f"Database summary metadata for {database_id}")}]);'
+        )
         insight.run_pixel(summary_pixel)
 
         return encode_to_string({
