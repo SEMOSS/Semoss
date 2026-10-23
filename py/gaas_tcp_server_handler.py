@@ -367,6 +367,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             socket_handler=self,
         )
 
+        # Track filesystem changes so the host can pull back only what a block wrote.
+        # Absent module or an unsupported kernel just means the host falls back to a
+        # full reconcile, so this must never be able to break startup.
+        # The watcher is created lazily on the first CHANGES call: at setup time the
+        # session's project tree has not been materialised into the sandbox yet, so
+        # arming here yields zero roots and pins the host to the slow path forever.
+        self.change_watcher = None
+
         # set the thread local
         TCPServerHandler.thread_local = threading.local()
 
@@ -412,6 +420,52 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         """
         if self.logger:
             self.logger.info(message)
+
+    def _watcher_roots(self):
+        """Project/room/user roots that exist *now* (the worker starts without --prefix)."""
+        bases = []
+        if self.prefix:
+            bases.append(self.prefix)
+        base_folder = os.environ.get("SEMOSS_HOME") or "/opt/semosshome"
+        if base_folder not in bases:
+            bases.append(base_folder)
+        for base in bases:
+            roots = [
+                os.path.join(base, name)
+                for name in ("project", "room", "user")
+                if os.path.isdir(os.path.join(base, name))
+            ]
+            if roots:
+                return roots
+        return []
+
+    def handle_changes(self):
+        """Return the files that changed since the last snapshot.
+
+        The host calls this after operations that can write, then pulls exactly those
+        paths. The watcher is created here rather than in ``setup()`` because the
+        session's project tree is not materialised yet when the first connection is
+        accepted -- arming that early yields zero roots and pins the host to the slow
+        path forever. Overflow, or a set past the cap, is reported so the host falls
+        back to a full reconcile instead of trusting a partial list.
+        """
+        if self.change_watcher is None:
+            try:
+                from gaas_change_watcher import shared_watcher
+
+                self.change_watcher = shared_watcher(self._watcher_roots())
+            except Exception:
+                self.change_watcher = None
+        if self.change_watcher is None:
+            snapshot = {
+                "changes": [],
+                "overflow": True,
+                "baseline": False,
+                "watched": 0,
+            }
+        else:
+            snapshot = self.change_watcher.snapshot()
+        self.send_output(snapshot, operation="CHANGES", response=True)
 
     def handle(self):
         """
@@ -631,6 +685,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             elif payload["operation"] == "PYTHON":
                 insight_id = payload.get("insightId")
                 self.handle_python(command, insight_id)
+            # host asks which files changed since the last snapshot (write-back)
+            elif payload["operation"] == "CHANGES":
+                self.handle_changes()
             # this is when it is a response
             elif payload["response"]:
                 self.handle_response()

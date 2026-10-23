@@ -584,6 +584,80 @@ public final class OpenShellTransport {
 	}
 
 	/**
+	 * Fetch back only the named paths under a root that is already transported.
+	 *
+	 * <p>
+	 * This is the narrow form of {@link #fetchBack(String)}: the sandbox worker
+	 * reports which files a block actually wrote, so the host tars a handful of
+	 * paths instead of the whole tree. Cost becomes proportional to the change
+	 * rather than to the size of the project.
+	 *
+	 * @param absRoot        absolute path of the transported root inside the sandbox
+	 * @param relativePaths  paths relative to that root, as reported by the watcher
+	 * @return number of files written back
+	 */
+	public int fetchBackPaths(String absRoot, java.util.List<String> relativePaths) {
+		if (absRoot == null || relativePaths == null || relativePaths.isEmpty()) {
+			return 0;
+		}
+		String baseFolder = Utility.getBaseFolder();
+		String normalized = Utility.normalizePath(absRoot);
+		if (baseFolder == null || !normalized.startsWith(Utility.normalizePath(baseFolder))) {
+			classLogger.warn("Refusing path fetch-back outside the SEMOSS home: {}", absRoot);
+			return 0;
+		}
+		java.util.List<String> safe = new java.util.ArrayList<>();
+		for (String relative : relativePaths) {
+			if (relative == null || relative.isEmpty()) {
+				continue;
+			}
+			String cleaned = relative.replace('\\', '/');
+			if (cleaned.startsWith("/") || cleaned.contains("../") || cleaned.equals("..")) {
+				classLogger.warn("Refusing traversal in change set: {}", relative);
+				continue;
+			}
+			safe.add(cleaned);
+			if (safe.size() >= 2000) {
+				break;
+			}
+		}
+		if (safe.isEmpty()) {
+			return 0;
+		}
+
+		java.nio.file.Path temp = null;
+		try {
+			String cli = propOr(CLI_PROP, DEFAULT_CLI);
+			java.util.List<String> command = new java.util.ArrayList<>(Arrays.asList(cli, "sandbox", "exec", "-n",
+					sandboxName, "--", "tar", "-C", normalized, "--ignore-failed-read", "--exclude=node_modules",
+					"--exclude=__pycache__", "--exclude=.venv", "-cf", "-"));
+			command.addAll(safe);
+			byte[] archive = runBytes(command, 120);
+			if (archive == null || archive.length == 0) {
+				return 0;
+			}
+			if (archive.length > MAX_FETCH_BYTES) {
+				classLogger.warn("Path fetch-back from {} is {} bytes, over the cap; skipped", absRoot, archive.length);
+				return 0;
+			}
+			if (!archiveEntriesAreSafe(archive)) {
+				classLogger.warn("Path fetch-back from {} contained an absolute or traversing path; skipped", absRoot);
+				return 0;
+			}
+			temp = java.nio.file.Files.createTempDirectory("openshell-fetchback-paths-");
+			extractArchive(archive, temp);
+			return reconcile(temp, java.nio.file.Paths.get(normalized));
+		} catch (Exception e) {
+			classLogger.warn("Path fetch-back failed for {}", absRoot, e);
+			return 0;
+		} finally {
+			if (temp != null) {
+				deleteQuietly(temp);
+			}
+		}
+	}
+
+	/**
 	 * Write files from {@code incoming} onto {@code target} when the sandbox copy is
 	 * newer and differs. Returns how many were written.
 	 */

@@ -82,6 +82,12 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	// the stdout stream
 	private static final String INLINE_IMAGE_PREFIX = "<img src='data:image/";
 
+	/**
+	 * Set while this client is asking the worker for its change set, so the reply to
+	 * that query does not trigger another fetch-back.
+	 */
+	private static final ThreadLocal<Boolean> IN_CHANGE_QUERY = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
 	public NativePySocketClient() {
 		this.startMdc = new HashMap<>();
 	}
@@ -536,6 +542,40 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		interruptInsightJob(insightId, jobId);
 	}
 
+	/**
+	 * Ask the sandbox worker which files changed since its last snapshot.
+	 *
+	 * <p>
+	 * The worker watches the project, room and user roots with inotify and answers
+	 * from its event queue, so this costs one round trip on the socket that is already
+	 * open rather than a stat-walk of the tree or a process spawn. Returns null when
+	 * the worker cannot answer (no watcher, an image that predates the verb, or a
+	 * malformed reply) so the caller falls back to a full reconcile.
+	 *
+	 * @return the worker's change snapshot, or null
+	 */
+	@SuppressWarnings("unchecked")
+	public Map<String, Object> getFileChanges() {
+		PayloadStruct ps = new PayloadStruct();
+		ps.operation = PayloadStruct.OPERATION.CHANGES;
+		ps.methodName = "GET_CHANGES";
+		ps.payload = new Object[] {};
+		ps.hasReturn = true;
+		ps.longRunning = false;
+		IN_CHANGE_QUERY.set(Boolean.TRUE);
+		try {
+			Object reply = executeCommand(ps);
+			if (!(reply instanceof PayloadStruct replyStruct) || replyStruct.payload == null
+					|| replyStruct.payload.length == 0) {
+				return null;
+			}
+			Object first = replyStruct.payload[0];
+			return first instanceof Map ? (Map<String, Object>) first : null;
+		} finally {
+			IN_CHANGE_QUERY.remove();
+		}
+	}
+
 	@Override
 	public Object executeCommand(PayloadStruct ps) {
 		String threadName = Thread.currentThread().getName();
@@ -659,9 +699,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				// Execution boundary: a file the block wrote inside the sandbox becomes
 				// visible to the platform here -- asset browser, git, MCP generation --
 				// instead of waiting for logout, where it used to be lost entirely.
-				if (reply != null && this.cpw != null) {
+				if (reply != null && this.cpw != null && !Boolean.TRUE.equals(IN_CHANGE_QUERY.get())
+						&& (ps.operation == PayloadStruct.OPERATION.PYTHON || ps.operation == PayloadStruct.OPERATION.CMD)) {
 					try {
-						this.cpw.fetchBackTransportedRoots();
+						this.cpw.fetchBackChangedPaths();
 					} catch (Exception fetchError) {
 						classLogger.warn("Fetch-back after execution failed", fetchError);
 					}

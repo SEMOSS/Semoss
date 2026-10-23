@@ -393,6 +393,116 @@ public class ClientProcessWrapper {
 	 * @param cleanUpFolder true to also recursively delete the server scratch
 	 *                      directory and any namespace-sandbox folders
 	 */
+
+	/**
+	 * Reconcile only the files the sandbox worker reports as changed since the last
+	 * snapshot.
+	 *
+	 * <p>
+	 * Cost is proportional to the change: a block that writes three files produces
+	 * three paths and one small tar, instead of a tar per transported root. It falls
+	 * back to {@link #fetchBackTransportedRoots()} whenever the worker's answer cannot
+	 * be trusted — no watcher, the first call after materialise (everything in the tree
+	 * arrived before the watch existed), a kernel queue overflow, or a change set past
+	 * the worker's cap.
+	 *
+	 * @return number of files written back
+	 */
+	public int fetchBackChangedPaths() {
+		if (this.openshell == null || this.chrootSymlinkHelper == null) {
+			return 0;
+		}
+		Map<String, Object> snapshot = null;
+		if (this.socketClient instanceof NativePySocketClient pyClient) {
+			try {
+				snapshot = pyClient.getFileChanges();
+			} catch (Exception e) {
+				classLogger.warn("Change query failed; falling back to a full reconcile", e);
+			}
+		}
+		if (snapshot == null || truthy(snapshot.get("overflow")) || truthy(snapshot.get("baseline"))) {
+			return fetchBackTransportedRoots();
+		}
+		Object raw = snapshot.get("changes");
+		if (!(raw instanceof List<?> changes) || changes.isEmpty()) {
+			return 0;
+		}
+
+		// Only roots this session transported are eligible, longest first so a nested
+		// root wins over its parent.
+		List<String> roots = new ArrayList<>();
+		for (String path : this.chrootSymlinkHelper.getTransportedPaths()) {
+			String normalized = Utility.normalizePath(path);
+			if (normalized.contains("/" + Constants.PROJECT_FOLDER + "/")
+					|| normalized.contains("/" + Constants.ROOM_FOLDER + "/")
+					|| normalized.contains("/" + Constants.USER_FOLDER + "/")) {
+				roots.add(normalized);
+			}
+		}
+		roots.sort((first, second) -> second.length() - first.length());
+
+		Map<String, List<String>> writes = new HashMap<>();
+		List<String> deletes = new ArrayList<>();
+		for (Object entry : changes) {
+			if (!(entry instanceof Map<?, ?> change)) {
+				continue;
+			}
+			Object pathValue = change.get("path");
+			if (pathValue == null) {
+				continue;
+			}
+			String path = Utility.normalizePath(pathValue.toString());
+			String root = null;
+			for (String candidate : roots) {
+				if (path.startsWith(candidate + "/")) {
+					root = candidate;
+					break;
+				}
+			}
+			if (root == null) {
+				continue;
+			}
+			String relative = path.substring(root.length() + 1);
+			if ("delete".equals(String.valueOf(change.get("op")))) {
+				deletes.add(path);
+			} else {
+				List<String> group = writes.get(root);
+				if (group == null) {
+					group = new ArrayList<>();
+					writes.put(root, group);
+				}
+				group.add(relative);
+			}
+		}
+
+		int total = 0;
+		for (Map.Entry<String, List<String>> group : writes.entrySet()) {
+			try {
+				total += this.openshell.fetchBackPaths(group.getKey(), group.getValue());
+			} catch (Exception e) {
+				classLogger.warn("Path fetch-back failed for {}", group.getKey(), e);
+			}
+		}
+		for (String path : deletes) {
+			try {
+				Files.deleteIfExists(Paths.get(path));
+			} catch (Exception e) {
+				classLogger.warn("Delete after change set failed for {}", path, e);
+			}
+		}
+		if (total > 0 || !deletes.isEmpty()) {
+			classLogger.info("Fetch-back wrote {} file(s) from {} changed path(s)", total, changes.size());
+		}
+		return total;
+	}
+
+	private static boolean truthy(Object value) {
+		if (value instanceof Boolean flag) {
+			return flag;
+		}
+		return value != null && Boolean.parseBoolean(value.toString());
+	}
+
 	/**
 	 * Reconcile the sandbox copies of this session's transported roots back onto the
 	 * host, so a file written by {@code Py()} or a shell command is visible to the

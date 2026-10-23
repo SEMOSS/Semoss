@@ -134,7 +134,7 @@ public final class OpenShellShellRunner {
 			// or a `cat > file` takes, and losing that work is exactly what we are fixing.
 			try {
 				if (user.getPythonClientProcessWrapper() != null) {
-					user.getPythonClientProcessWrapper().fetchBackTransportedRoots();
+					user.getPythonClientProcessWrapper().fetchBackChangedPaths();
 				}
 			} catch (Exception ignored) {
 				// the command itself already ran; a failed reconcile must not fail the shell
