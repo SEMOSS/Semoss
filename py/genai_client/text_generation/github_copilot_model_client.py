@@ -8,10 +8,12 @@ CLI runtime is shared per python process (SEMOSS starts one process per engine).
 
 import asyncio
 import queue
+import shutil
+import tempfile
 import threading
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from copilot import CopilotClient, SubprocessConfig
+from copilot import CopilotClient
 from copilot.generated.session_events import (
     AssistantMessageData,
     AssistantMessageDeltaData,
@@ -33,11 +35,22 @@ from .model_engine_exception import ErrorDetails, ModelEngineException
 
 _DONE = object()
 _TURN_TIMEOUT = 600.0
+_DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant."
 
 _loop_lock = threading.Lock()
 _loop: Optional[asyncio.AbstractEventLoop] = None
 _client: Optional[CopilotClient] = None
 _start_lock = asyncio.Lock()
+_base_dir: Optional[str] = None
+
+
+def _runtime_base_dir() -> str:
+    """Scratch storage for the shared runtime: "empty" mode refuses to fall back
+    to ~/.copilot, and every session is deleted after its ask anyway."""
+    global _base_dir
+    if _base_dir is None:
+        _base_dir = tempfile.mkdtemp(prefix="semoss-copilot-")
+    return _base_dir
 
 
 def _sdk_loop() -> asyncio.AbstractEventLoop:
@@ -58,13 +71,45 @@ async def _shared_client() -> CopilotClient:
     global _client
     async with _start_lock:
         if _client is None:
-            # no client-level token: every session carries its own user's token
-            _client = CopilotClient(
-                SubprocessConfig(use_logged_in_user=False), auto_start=False
+            # no client-level token: every session carries its own user's token.
+            # "empty" mode gives a bare chat runtime with no host tools or skills.
+            client = CopilotClient(
+                use_logged_in_user=False,
+                mode="empty",
+                base_directory=_runtime_base_dir(),
             )
-        # a no-op while connected; respawns the CLI after it exited
-        await _client.start()
+            try:
+                await client.start()
+            except Exception:
+                await _stop_quietly(client)
+                raise
+            _client = client
         return _client
+
+
+async def _stop_quietly(client: CopilotClient) -> None:
+    try:
+        await client.stop()
+    except Exception:
+        pass
+
+
+async def _runtime_alive() -> bool:
+    if _client is None:
+        return False
+    try:
+        await asyncio.wait_for(_client.get_status(), 5)
+        return True
+    except Exception:
+        return False
+
+
+async def _forget_client() -> None:
+    """Stop and drop a dead shared runtime so the next ask starts a fresh one."""
+    global _client
+    client, _client = _client, None
+    if client is not None:
+        await _stop_quietly(client)
 
 
 def build_prompt(messages: List[SEMOSSMessage]) -> Tuple[Optional[str], str]:
@@ -128,14 +173,23 @@ async def _turn(
             available_tools=[],
             streaming=True,
             on_event=on_event,
-            system_message=(
-                {"mode": "replace", "content": system_prompt} if system_prompt else None
-            ),
+            # always replaced: without it the runtime answers as "GitHub Copilot,
+            # an AI coding agent" from its own built-in prompt
+            system_message={
+                "mode": "replace",
+                "content": system_prompt or _DEFAULT_SYSTEM_PROMPT,
+            },
         )
         await session.send_and_wait(prompt, timeout=_TURN_TIMEOUT)
         if errors:
             raise RuntimeError("; ".join(errors))
         return "".join(final) or "".join(chunks), int(usage["input"]), int(usage["output"])
+    except Exception:
+        # a failure before the session exists is either the user's (model id,
+        # token) or a dead runtime; only the dead runtime is rebuilt
+        if session is None and not await _runtime_alive():
+            await _forget_client()
+        raise
     finally:
         deltas.put(_DONE)
         if session is not None:
@@ -211,3 +265,47 @@ class GitHubCopilotModelClient(AbstractTextGenerationClient):
             return ModelEngineException(
                 error=e, client="github_copilot", model=str(self.model_name)
             ).parse_error()
+
+
+def list_models(github_token: str) -> List[Dict[str, Any]]:
+    """Models the token's Copilot plan offers, for the Add Model dropdown.
+
+    Runs a short-lived runtime signed in as that user, so it never shares the
+    engine's runtime or its event loop."""
+
+    async def _list() -> List[Dict[str, Any]]:
+        base_dir = tempfile.mkdtemp(prefix="semoss-copilot-models-")
+        client = CopilotClient(
+            github_token=github_token,
+            use_logged_in_user=False,
+            mode="empty",
+            base_directory=base_dir,
+        )
+        await client.start()
+        try:
+            auth = await client.get_auth_status()
+            if not auth.isAuthenticated:
+                # the runtime's own reason (no Copilot seat, blocked by an org
+                # policy, token rejected) is the most useful message to show
+                raise RuntimeError(
+                    "GitHub Copilot did not accept the GitHub login: "
+                    + (auth.statusMessage or "not authenticated")
+                )
+            models = await client.list_models()
+        finally:
+            await client.stop()
+            shutil.rmtree(base_dir, ignore_errors=True)
+        return sorted(
+            (
+                {
+                    "id": model.id,
+                    "name": model.name,
+                    "policy": model.policy.state if model.policy else None,
+                    "multiplier": model.billing.multiplier if model.billing else None,
+                }
+                for model in models
+            ),
+            key=lambda model: model["id"],
+        )
+
+    return asyncio.run(_list())

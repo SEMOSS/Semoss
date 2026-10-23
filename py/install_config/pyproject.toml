@@ -24,7 +24,7 @@ dependencies = [
     "chonky==0.1.7",
     "claude-agent-sdk==0.2.168",
     "cryptography>=50.0.0",
-    "github-copilot-sdk==0.3.0",
+    "github-copilot-sdk==1.0.26",
     "datasets==5.0.1",
     "deepdiff>=9.1.0",
     "detoxify>=0.5.2",
