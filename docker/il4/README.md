@@ -152,6 +152,7 @@ Python 3.14 requires these explicitly documented compatibility changes:
 | claude-agent-sdk | 0.2.116 | 0.2.168 | Closes CVE-2026-96620 (CRITICAL, AWS Inspector2 finding) |
 | pipecat-ai | 1.4.0 | 1.13.0 | Closes CVE-2026-102682 (AWS Inspector2 finding) |
 | fsspec | 2023.10.0 (incidental) | 2023.10.0 (now explicit) | Had no pin anywhere; the above two bumps would have silently floated it to 2025.10.0, breaking the hash-guarded patch below |
+| certifi | 2026.10.18 | 2026.10.23 | Closes GHSA-6q48-6c7w-9gw2 (CRITICAL, AWS Inspector2 finding - a compromised, revoked root CA in the bundled trust store). Hand-edited rather than regenerated; see compatibility.json for why |
 
 Additional constraints are `dill>=0.4.0` and `protobuf<7`; the upstream security
 overrides remain applied. Exact pins, failed older candidates, source references,
