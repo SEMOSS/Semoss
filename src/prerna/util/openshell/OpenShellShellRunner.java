@@ -29,6 +29,8 @@ package prerna.util.openshell;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -64,6 +66,8 @@ import prerna.util.Utility;
 public final class OpenShellShellRunner {
 
 	private static final int DEFAULT_TIMEOUT_SECONDS = 60;
+	/** Most output returned to the terminal for one command. */
+	private static final int MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
 	private static final String CLI = "openshell";
 
 	private OpenShellShellRunner() {
@@ -120,15 +124,17 @@ public final class OpenShellShellRunner {
 				if (target.equals("~")) {
 					target = "/";
 				}
-				String resolved = runInSandbox(sandboxName, dir, "cd " + target + " && pwd");
-				if (resolved == null || resolved.trim().isEmpty() || resolved.startsWith("__ERROR__")) {
-					return new Result(resolved == null ? "Directory doesn't exist: " + target
-							: resolved.replace("__ERROR__", ""), dir);
+				Outcome resolved = runInSandbox(sandboxName, dir, "cd " + target + " && pwd");
+				String newDir = firstLine(resolved.output);
+				// Only a clean exit with an absolute path is a directory change; anything else
+				// is an error message and the working directory stays where it was.
+				if (resolved.exitCode != 0 || !newDir.startsWith("/")) {
+					return new Result(resolved.output.isEmpty() ? "Directory doesn't exist: " + target
+							: resolved.output, dir);
 				}
-				String newDir = firstLine(resolved);
 				return new Result(newDir, newDir);
 			}
-			String output = runInSandbox(sandboxName, dir, trimmed);
+			String output = runInSandbox(sandboxName, dir, trimmed).output;
 			// Shell writes are not requests on the python socket, so they do not pass the
 			// fetch-back hook there. Reconcile here too -- this is the path a `git commit`
 			// or a `cat > file` takes, and losing that work is exactly what we are fixing.
@@ -155,6 +161,17 @@ public final class OpenShellShellRunner {
 		return (newline < 0 ? text : text.substring(0, newline)).trim();
 	}
 
+	/** Exit code and (capped) combined output of one sandbox command. */
+	private static final class Outcome {
+		private final int exitCode;
+		private final String output;
+
+		Outcome(int exitCode, String output) {
+			this.exitCode = exitCode;
+			this.output = output;
+		}
+	}
+
 	/**
 	 * One `openshell sandbox exec` invocation.
 	 *
@@ -164,33 +181,52 @@ public final class OpenShellShellRunner {
 	 * image. The working directory is applied by the shell itself rather than by
 	 * {@code --workdir}, because the directory may be a path that only exists in
 	 * the sandbox after an earlier upload.
+	 *
+	 * <p>
+	 * Output goes to a temp file, not a pipe: a pipe nobody reads while waiting fills at
+	 * 64 KB and blocks the command until the timeout, losing everything it printed.
 	 */
-	private static String runInSandbox(String sandboxName, String workingDir, String command) throws IOException {
-		List<String> argv = new ArrayList<>(Arrays.asList(CLI, "sandbox", "exec", "-n", sandboxName, "--",
+	private static Outcome runInSandbox(String sandboxName, String workingDir, String command) throws IOException {
+		List<String> argv = new ArrayList<>(Arrays.asList(cliPath(), "sandbox", "exec", "-n", sandboxName, "--",
 				"bash", "-lc", "cd " + shellQuote(workingDir) + " 2>/dev/null; " + command));
-		ProcessBuilder builder = new ProcessBuilder(argv);
-		builder.redirectErrorStream(true);
-		builder.redirectInput(ProcessBuilder.Redirect.from(new java.io.File("/dev/null")));
-		// The CLI needs the same environment the transport uses (gateway config,
-		// TLS bundle); inherit it rather than reconstructing it here.
-		Process process = builder.start();
-		String output;
+		Path capture = Files.createTempFile("openshell-shell-", ".out");
 		try {
-			if (!process.waitFor(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+			ProcessBuilder builder = new ProcessBuilder(argv);
+			builder.redirectErrorStream(true);
+			builder.redirectOutput(capture.toFile());
+			builder.redirectInput(ProcessBuilder.Redirect.from(new java.io.File("/dev/null")));
+			// The CLI needs the same environment the transport uses (gateway config,
+			// TLS bundle); inherit it rather than reconstructing it here.
+			Process process = builder.start();
+			try {
+				if (!process.waitFor(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+					process.destroyForcibly();
+					return new Outcome(-1, readCapped(capture) + "\ncommand timed out after " + DEFAULT_TIMEOUT_SECONDS
+							+ "s");
+				}
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 				process.destroyForcibly();
-				return "__ERROR__command timed out after " + DEFAULT_TIMEOUT_SECONDS + "s";
+				return new Outcome(-1, "interrupted");
 			}
-			output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			process.destroyForcibly();
-			return "__ERROR__interrupted";
+			return new Outcome(process.exitValue(), readCapped(capture));
+		} finally {
+			Files.deleteIfExists(capture);
 		}
-		String cleaned = output.replace("\\r", "").trim();
-		if (process.exitValue() != 0 && !cleaned.isEmpty()) {
-			return cleaned;
+	}
+
+	/** The command's output, cut at {@link #MAX_OUTPUT_BYTES} with a note saying so. */
+	private static String readCapped(Path capture) throws IOException {
+		long size = Files.size(capture);
+		byte[] bytes;
+		try (java.io.InputStream in = Files.newInputStream(capture)) {
+			bytes = in.readNBytes((int) Math.min(size, MAX_OUTPUT_BYTES));
 		}
-		return cleaned;
+		String text = new String(bytes, StandardCharsets.UTF_8).replace("\r", "").trim();
+		if (size > MAX_OUTPUT_BYTES) {
+			text += "\n[output truncated: " + size + " bytes, showing the first " + MAX_OUTPUT_BYTES + "]";
+		}
+		return text;
 	}
 
 	private static String shellQuote(String value) {

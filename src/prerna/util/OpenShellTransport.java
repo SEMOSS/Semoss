@@ -158,6 +158,23 @@ public final class OpenShellTransport {
 
 	/** Cap for one fetch-back archive; larger trees are pulled path by path or not at all. */
 	private static final long MAX_FETCH_BYTES = 256L * 1024 * 1024;
+	/** Most paths one change set may name; the worker overflows to a full capture before this. */
+	private static final int MAX_CHANGED_PATHS = 2000;
+
+	/**
+	 * Relative paths, per transported root, that the sandbox is known to have held:
+	 * everything in its last full capture plus every path written back since. Deletions
+	 * are inferred only for these, so a host file the sandbox never received --
+	 * gitignored, added on the host mid-session, missed by a partial upload -- is never
+	 * mistaken for one the sandbox removed.
+	 */
+	private final java.util.Map<String, java.util.Set<String>> seenBySandbox = new java.util.concurrent.ConcurrentHashMap<>();
+	/**
+	 * Size and mtime of each host file as this transport last left it (uploaded or
+	 * written back). A file that no longer matches was changed on the host since, and is
+	 * quarantined before a sandbox copy replaces it.
+	 */
+	private final java.util.Map<String, String> hostStamps = new java.util.concurrent.ConcurrentHashMap<>();
 
 	private static final String NAME_PREFIX = "pyw-";
 
@@ -457,6 +474,12 @@ public final class OpenShellTransport {
 			// `sandbox upload` prints a tick with its result; treat a non-zero exit as failure,
 			// which run() already raises as IOException.
 			classLogger.info("Sandbox upload result for {}: {}", absPath, out.trim());
+			String normalized = Utility.normalizePath(absPath);
+			if (normalized.contains("/" + Constants.PROJECT_FOLDER + "/")
+					|| normalized.contains("/" + Constants.ROOM_FOLDER + "/")
+					|| normalized.contains("/" + Constants.USER_FOLDER + "/")) {
+				recordUploadedStamps(java.nio.file.Paths.get(normalized));
+			}
 			return true;
 		} catch (Exception e) {
 			classLogger.error("Sandbox upload failed for " + absPath + ": " + e.getClass().getSimpleName() + ": "
@@ -532,15 +555,16 @@ public final class OpenShellTransport {
 	 * correct for images and wheels.
 	 *
 	 * <p>
-	 * Reconciliation is per file and deliberately conservative: a file is written back
-	 * only when its content differs <b>and</b> the sandbox copy is newer than the host
-	 * copy. That keeps a stale or half-written sandbox from clobbering a host edit made
-	 * after the upload.
+	 * A full capture also propagates deletions, but only for paths the sandbox is known
+	 * to have held (see {@link #seenBySandbox}); absence alone proves nothing, because
+	 * the upload skips gitignored files and the host can gain files mid-session.
 	 *
 	 * @param absPath a path previously passed to {@link #upload(String)}
-	 * @return number of files written back
+	 * @return number of files written back or removed
+	 * @throws IOException when the capture could not be taken or applied; the caller must
+	 *                     treat the root as unsynced
 	 */
-	public int fetchBack(String absPath) {
+	public int fetchBack(String absPath) throws IOException {
 		if (absPath == null || absPath.trim().isEmpty()) {
 			return 0;
 		}
@@ -557,40 +581,28 @@ public final class OpenShellTransport {
 			return 0;
 		}
 
-		java.nio.file.Path temp = null;
+		java.nio.file.Path temp = java.nio.file.Files.createTempDirectory("openshell-fetchback-");
 		try {
 			String cli = propOr(CLI_PROP, DEFAULT_CLI);
-			// .git is deliberately NOT excluded: a commit made in the sandbox shell is
-			// work the user expects to keep, and git objects are content-addressed so
-			// copying them back is safe. Only regenerable caches are skipped.
-			// Known risk, not yet guarded: a host-side commit and a sandbox-side commit
-			// made concurrently can leave refs diverged; the revision/conflict check that
-			// would catch it is still to come.
-			byte[] archive = runBytes(Arrays.asList(cli, "sandbox", "exec", "-n", sandboxName, "--", "tar", "-C", parent,
-					"--exclude=node_modules", "--exclude=__pycache__", "--exclude=.venv",
-					"-cf", "-", base), 120);
-			if (archive == null || archive.length == 0) {
+			// .git is captured so that a commit made in the sandbox shell survives, but only
+			// git's data files are ever written back -- see isWritableGitPath. Regenerable
+			// caches are skipped.
+			java.nio.file.Path archive = temp.resolve("capture.tar");
+			long size = runToFile(Arrays.asList(cli, "sandbox", "exec", "-n", sandboxName, "--", "tar", "-C", parent,
+					"--exclude=node_modules", "--exclude=__pycache__", "--exclude=.venv", "-cf", "-", base), 120,
+					archive);
+			if (size == 0) {
 				return 0;
 			}
-			if (archive.length > MAX_FETCH_BYTES) {
-				classLogger.warn("Fetch-back of {} is {} bytes, over the {} byte cap; skipped", absPath, archive.length,
-						MAX_FETCH_BYTES);
-				return 0;
-			}
-			if (!archiveEntriesAreSafe(archive)) {
-				classLogger.warn("Fetch-back of {} contained an absolute or traversing path; skipped", absPath);
-				return 0;
-			}
-			temp = java.nio.file.Files.createTempDirectory("openshell-fetchback-");
-			extractArchive(archive, temp);
-			return reconcile(temp.resolve(base), java.nio.file.Paths.get(normalized), true);
-		} catch (Exception e) {
-			classLogger.warn("Fetch-back failed for {}", absPath, e);
-			return 0;
+			requireSafeArchive(archive);
+			java.nio.file.Path tree = java.nio.file.Files.createDirectory(temp.resolve("tree"));
+			extractArchive(archive, tree);
+			return reconcile(tree.resolve(base), java.nio.file.Paths.get(normalized), true);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IOException("fetch-back of " + absPath + " interrupted", e);
 		} finally {
-			if (temp != null) {
-				deleteQuietly(temp);
-			}
+			deleteQuietly(temp);
 		}
 	}
 
@@ -606,8 +618,10 @@ public final class OpenShellTransport {
 	 * @param absRoot        absolute path of the transported root inside the sandbox
 	 * @param relativePaths  paths relative to that root, as reported by the watcher
 	 * @return number of files written back
+	 * @throws IOException when the paths could not be captured or applied; the change set
+	 *                     is then lost and the caller must schedule a full capture
 	 */
-	public int fetchBackPaths(String absRoot, java.util.List<String> relativePaths) {
+	public int fetchBackPaths(String absRoot, java.util.List<String> relativePaths) throws IOException {
 		if (absRoot == null || relativePaths == null || relativePaths.isEmpty()) {
 			return 0;
 		}
@@ -623,97 +637,115 @@ public final class OpenShellTransport {
 				continue;
 			}
 			String cleaned = relative.replace('\\', '/');
-			if (cleaned.startsWith("/") || cleaned.contains("../") || cleaned.equals("..")) {
+			if (!isSafeRelative(cleaned)) {
 				classLogger.warn("Refusing traversal in change set: {}", relative);
 				continue;
 			}
 			safe.add(cleaned);
-			if (safe.size() >= 2000) {
-				break;
-			}
 		}
 		if (safe.isEmpty()) {
 			return 0;
 		}
+		if (safe.size() > MAX_CHANGED_PATHS) {
+			throw new IOException(safe.size() + " changed paths under " + absRoot + " exceed the " + MAX_CHANGED_PATHS
+					+ " path limit");
+		}
 
-		java.nio.file.Path temp = null;
+		java.nio.file.Path temp = java.nio.file.Files.createTempDirectory("openshell-fetchback-paths-");
 		try {
 			String cli = propOr(CLI_PROP, DEFAULT_CLI);
 			java.util.List<String> command = new java.util.ArrayList<>(Arrays.asList(cli, "sandbox", "exec", "-n",
 					sandboxName, "--", "tar", "-C", normalized, "--ignore-failed-read", "--exclude=node_modules",
-					"--exclude=__pycache__", "--exclude=.venv", "-cf", "-"));
+					"--exclude=__pycache__", "--exclude=.venv", "-cf", "-", "--"));
 			command.addAll(safe);
-			byte[] archive = runBytes(command, 120);
-			if (archive == null || archive.length == 0) {
+			java.nio.file.Path archive = temp.resolve("capture.tar");
+			long size = runToFile(command, 120, archive);
+			if (size == 0) {
 				return 0;
 			}
-			if (archive.length > MAX_FETCH_BYTES) {
-				classLogger.warn("Path fetch-back from {} is {} bytes, over the cap; skipped", absRoot, archive.length);
-				return 0;
-			}
-			if (!archiveEntriesAreSafe(archive)) {
-				classLogger.warn("Path fetch-back from {} contained an absolute or traversing path; skipped", absRoot);
-				return 0;
-			}
-			temp = java.nio.file.Files.createTempDirectory("openshell-fetchback-paths-");
-			extractArchive(archive, temp);
-			return reconcile(temp, java.nio.file.Paths.get(normalized), false);
-		} catch (Exception e) {
-			classLogger.warn("Path fetch-back failed for {}", absRoot, e);
-			return 0;
+			requireSafeArchive(archive);
+			java.nio.file.Path tree = java.nio.file.Files.createDirectory(temp.resolve("tree"));
+			extractArchive(archive, tree);
+			return reconcile(tree, java.nio.file.Paths.get(normalized), false);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IOException("path fetch-back from " + absRoot + " interrupted", e);
 		} finally {
-			if (temp != null) {
-				deleteQuietly(temp);
-			}
+			deleteQuietly(temp);
 		}
 	}
 
 	/**
-	 * Write files from {@code incoming} onto {@code target}. Content is the authority:
-	 * a differing sandbox file is always written, and mtime only decides whether the
-	 * host copy must be preserved first. When {@code fullTree} is set the target is
-	 * also scanned for files the sandbox no longer has, so a full fallback can
-	 * propagate deletions instead of silently resurrecting them.
+	 * Write files from {@code incoming} onto {@code target}. Content is the authority: a
+	 * differing sandbox file is always written. The host copy is quarantined first when
+	 * it changed since this transport last left it, and the write is skipped if that copy
+	 * cannot be made. When {@code fullTree} is set, paths the sandbox held before but no
+	 * longer has are propagated as deletions.
 	 */
 	private int reconcile(java.nio.file.Path incoming, java.nio.file.Path target, boolean fullTree)
-			throws java.io.IOException {
-		if (!java.nio.file.Files.exists(incoming)) {
+			throws IOException {
+		if (!java.nio.file.Files.isDirectory(incoming)) {
 			return 0;
 		}
+		java.util.Set<String> seen = seenBySandbox.computeIfAbsent(target.toString(),
+				key -> java.util.concurrent.ConcurrentHashMap.newKeySet());
+		java.util.Set<String> previous = fullTree ? new java.util.HashSet<>(seen) : null;
+		java.util.Set<String> captured = new java.util.HashSet<>();
 		java.nio.file.Path store = quarantineStore();
 		int[] copied = { 0 };
 		try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(incoming)) {
-			walk.filter(java.nio.file.Files::isRegularFile).filter(path -> !java.nio.file.Files.isSymbolicLink(path))
+			walk.filter(path -> java.nio.file.Files.isRegularFile(path, java.nio.file.LinkOption.NOFOLLOW_LINKS))
 					.forEach(path -> {
-						java.nio.file.Path relative = incoming.relativize(path);
-						java.nio.file.Path destination = target.resolve(relative.toString());
+						String relative = incoming.relativize(path).toString().replace('\\', '/');
+						captured.add(relative);
+						if (!isWritableGitPath(relative)) {
+							classLogger.debug("Not writing back git control file {}", relative);
+							return;
+						}
+						java.nio.file.Path destination = containedHostPath(target, relative);
+						if (destination == null) {
+							classLogger.warn("Refusing write-back of {} under {}: path leaves the root or crosses a symlink",
+									relative, target);
+							return;
+						}
 						try {
-							if (java.nio.file.Files.exists(destination)) {
-								if (sameContent(path, destination)) {
+							if (java.nio.file.Files.exists(destination, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+								if (java.nio.file.Files.mismatch(path, destination) == -1L) {
+									recordStamp(destination);
 									return;
 								}
-								// Different bytes. A host copy newer than the sandbox copy may be a
-								// concurrent edit, so keep it rather than silently overwriting it.
-								if (java.nio.file.Files.getLastModifiedTime(destination)
-										.compareTo(java.nio.file.Files.getLastModifiedTime(path)) > 0) {
-									quarantineCopy(destination, target, store);
+								if (hostChangedSinceSync(destination)
+										&& quarantineCopy(destination, target, store) == null) {
+									classLogger.warn("Write-back of {} skipped: the host copy changed and could not be preserved",
+											destination);
+									return;
 								}
 							}
-							java.nio.file.Path folder = destination.getParent();
-							if (folder != null) {
-								java.nio.file.Files.createDirectories(folder);
+							java.nio.file.Files.createDirectories(destination.getParent());
+							// Re-check now that the parents exist: creating them must not have
+							// walked through a link that appeared in between.
+							if (containedHostPath(target, relative) == null) {
+								classLogger.warn("Refusing write-back of {} under {}: path crosses a symlink", relative,
+										target);
+								return;
 							}
 							java.nio.file.Files.copy(path, destination,
 									java.nio.file.StandardCopyOption.REPLACE_EXISTING,
 									java.nio.file.StandardCopyOption.COPY_ATTRIBUTES);
+							recordStamp(destination);
 							copied[0]++;
-						} catch (java.io.IOException e) {
+						} catch (IOException e) {
 							classLogger.warn("Could not write back {}", destination, e);
 						}
 					});
 		}
 		if (fullTree) {
-			copied[0] += quarantineStale(target, incoming, store);
+			copied[0] += removeDeletedFromHost(target, previous, captured, store);
+			// The capture is now the whole truth about what the sandbox holds.
+			seen.clear();
+			seen.addAll(captured);
+		} else {
+			seen.addAll(captured);
 		}
 		if (copied[0] > 0) {
 			classLogger.info("Fetch-back wrote {} file(s) into {}", copied[0], target);
@@ -722,39 +754,83 @@ public final class OpenShellTransport {
 	}
 
 	/**
-	 * A full fetch carries survivors, not tombstones. Any host file under the root that
-	 * the sandbox capture no longer contains was deleted inside the sandbox; move it to
-	 * quarantine rather than leaving it to reappear in the project.
+	 * A full capture carries survivors, not tombstones. A path the sandbox held before and
+	 * the capture no longer contains was deleted inside the sandbox: quarantine the host
+	 * copy, then remove it. Host files the sandbox never held are left alone.
 	 */
-	private static int quarantineStale(java.nio.file.Path target, java.nio.file.Path incoming,
-			java.nio.file.Path store) {
-		int[] moved = { 0 };
-		try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(target)) {
-			walk.filter(java.nio.file.Files::isRegularFile).filter(path -> !java.nio.file.Files.isSymbolicLink(path))
-					.filter(path -> !isExcludedFromCapture(target.relativize(path)))
-					.forEach(path -> {
-						java.nio.file.Path relative = target.relativize(path);
-						if (java.nio.file.Files.exists(incoming.resolve(relative.toString()))) {
-							return;
-						}
-						java.nio.file.Path copy = quarantineCopy(path, target, store);
-						if (copy != null) {
-							try {
-								java.nio.file.Files.deleteIfExists(path);
-								pruneEmptyParents(path, target);
-								moved[0]++;
-							} catch (java.io.IOException e) {
-								classLogger.warn("Could not remove {} after quarantining it", path, e);
-							}
-						}
-					});
-		} catch (java.io.IOException e) {
-			classLogger.warn("Could not scan {} for deletions", target, e);
+	private int removeDeletedFromHost(java.nio.file.Path target, java.util.Set<String> previous,
+			java.util.Set<String> captured, java.nio.file.Path store) {
+		int moved = 0;
+		for (String relative : previous) {
+			if (captured.contains(relative) || !isWritableGitPath(relative)
+					|| isExcludedFromCapture(java.nio.file.Paths.get(relative))) {
+				continue;
+			}
+			java.nio.file.Path file = containedHostPath(target, relative);
+			if (file == null || !java.nio.file.Files.isRegularFile(file, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+				continue;
+			}
+			if (quarantineCopy(file, target, store) == null) {
+				classLogger.warn("Delete suppressed for {} because it could not be quarantined", file);
+				continue;
+			}
+			try {
+				java.nio.file.Files.deleteIfExists(file);
+				hostStamps.remove(file.toString());
+				pruneEmptyParents(file, target);
+				moved++;
+			} catch (IOException e) {
+				classLogger.warn("Could not remove {} after quarantining it", file, e);
+			}
 		}
-		if (moved[0] > 0) {
-			classLogger.info("Fetch-back moved {} deleted file(s) to {}", moved[0], store);
+		if (moved > 0) {
+			classLogger.info("Fetch-back moved {} deleted file(s) to {}", moved, store);
 		}
-		return moved[0];
+		return moved;
+	}
+
+	/**
+	 * Remove a host file the sandbox reported as deleted, keeping a copy under the
+	 * quarantine root. Ignored unless the sandbox is known to have held the path: a file
+	 * created and removed inside one block must not take an unrelated host file with it.
+	 *
+	 * @param root     transported root the path belongs to
+	 * @param relative path relative to that root
+	 * @return true when the host file was removed
+	 */
+	public boolean deleteFromHost(String root, String relative) {
+		java.nio.file.Path rootPath = java.nio.file.Paths.get(Utility.normalizePath(root));
+		java.util.Set<String> seen = seenBySandbox.get(rootPath.toString());
+		if (seen == null || !seen.contains(relative)) {
+			classLogger.debug("Ignoring delete of {} under {}: the sandbox never held it", relative, root);
+			return false;
+		}
+		if (!isWritableGitPath(relative)) {
+			return false;
+		}
+		java.nio.file.Path file = containedHostPath(rootPath, relative);
+		if (file == null) {
+			classLogger.warn("Refusing delete of {} under {}: path leaves the root or crosses a symlink", relative, root);
+			return false;
+		}
+		if (!java.nio.file.Files.isRegularFile(file, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+			seen.remove(relative);
+			return false;
+		}
+		if (quarantineCopy(file, rootPath, quarantineStore()) == null) {
+			classLogger.warn("Delete suppressed for {} because it could not be quarantined", file);
+			return false;
+		}
+		try {
+			java.nio.file.Files.deleteIfExists(file);
+			hostStamps.remove(file.toString());
+			seen.remove(relative);
+			pruneEmptyParents(file, rootPath);
+			return true;
+		} catch (IOException e) {
+			classLogger.warn("Could not delete {} after quarantining it", file, e);
+			return false;
+		}
 	}
 
 	/**
@@ -769,12 +845,12 @@ public final class OpenShellTransport {
 				if (children.findAny().isPresent()) {
 					return;
 				}
-			} catch (java.io.IOException e) {
+			} catch (IOException e) {
 				return;
 			}
 			try {
 				java.nio.file.Files.deleteIfExists(parent);
-			} catch (java.io.IOException e) {
+			} catch (IOException e) {
 				return;
 			}
 			parent = parent.getParent();
@@ -796,6 +872,144 @@ public final class OpenShellTransport {
 		return false;
 	}
 
+	/**
+	 * Inside a {@code .git} directory only git's data is written back: objects, refs,
+	 * reflogs, HEAD and the index -- what a commit made in the sandbox produces.
+	 * Everything else there (config, hooks, info, alternates) is code or configuration
+	 * that host-side git runs or obeys, so a sandbox able to write it could execute
+	 * commands on the server the next time the platform touches the repository. A
+	 * {@code .git} <i>file</i> is refused too: it redirects the repository elsewhere.
+	 */
+	static boolean isWritableGitPath(String relative) {
+		String[] parts = relative.split("/");
+		for (int i = 0; i < parts.length; i++) {
+			if (!".git".equals(parts[i])) {
+				continue;
+			}
+			if (i == parts.length - 1) {
+				return false;
+			}
+			String child = parts[i + 1];
+			if (i + 2 == parts.length) {
+				return GIT_DATA_FILES.contains(child);
+			}
+			if ("objects".equals(child)) {
+				return !"info".equals(parts[i + 2]);
+			}
+			return "refs".equals(child) || "logs".equals(child);
+		}
+		return true;
+	}
+
+	private static final java.util.Set<String> GIT_DATA_FILES = java.util.Set.of("HEAD", "ORIG_HEAD", "FETCH_HEAD",
+			"MERGE_HEAD", "index", "packed-refs", "COMMIT_EDITMSG");
+
+	/** A relative path with no absolute prefix and no {@code ..} segment. */
+	static boolean isSafeRelative(String relative) {
+		if (relative == null || relative.isEmpty() || relative.startsWith("/") || relative.indexOf('\0') >= 0) {
+			return false;
+		}
+		for (String part : relative.split("/")) {
+			if ("..".equals(part)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Resolve {@code relative} under {@code root} for a host-side write or delete, or null
+	 * when it would leave the root. No component between the root and the file may be a
+	 * symlink: a link already in a writable project -- committed to its repository, say --
+	 * would otherwise redirect the write, or the delete, into another user's space.
+	 */
+	static java.nio.file.Path containedHostPath(java.nio.file.Path root, String relative) {
+		if (!isSafeRelative(relative)) {
+			return null;
+		}
+		java.nio.file.Path candidate = root.resolve(relative).normalize();
+		if (!candidate.startsWith(root) || candidate.equals(root)) {
+			return null;
+		}
+		java.nio.file.Path current = root;
+		for (java.nio.file.Path part : root.relativize(candidate)) {
+			current = current.resolve(part);
+			if (java.nio.file.Files.isSymbolicLink(current)) {
+				return null;
+			}
+			if (!java.nio.file.Files.exists(current, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+				break;
+			}
+		}
+		return candidate;
+	}
+
+	/** Remember a host file's state as this transport left it. */
+	private void recordStamp(java.nio.file.Path file) {
+		String stamp = stampOf(file);
+		if (stamp != null) {
+			hostStamps.put(file.toString(), stamp);
+		}
+	}
+
+	/** True unless the host file is exactly as this transport last left it. */
+	private boolean hostChangedSinceSync(java.nio.file.Path file) {
+		String known = hostStamps.get(file.toString());
+		return known == null || !known.equals(stampOf(file));
+	}
+
+	private static String stampOf(java.nio.file.Path file) {
+		try {
+			java.nio.file.attribute.BasicFileAttributes attributes = java.nio.file.Files.readAttributes(file,
+					java.nio.file.attribute.BasicFileAttributes.class, java.nio.file.LinkOption.NOFOLLOW_LINKS);
+			return attributes.size() + ":" + attributes.lastModifiedTime().toMillis();
+		} catch (IOException e) {
+			return null;
+		}
+	}
+
+	/**
+	 * Record the state of every file in a root just uploaded, so that write-back can tell
+	 * a host file nobody touched (overwrite it) from one edited on the host since
+	 * (quarantine it first).
+	 */
+	private void recordUploadedStamps(java.nio.file.Path root) {
+		if (!java.nio.file.Files.isDirectory(root, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+			if (java.nio.file.Files.isRegularFile(root, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+				recordStamp(root);
+			}
+			return;
+		}
+		try {
+			java.nio.file.Files.walkFileTree(root, new java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
+				@Override
+				public java.nio.file.FileVisitResult preVisitDirectory(java.nio.file.Path dir,
+						java.nio.file.attribute.BasicFileAttributes attrs) {
+					String name = dir.getFileName() == null ? "" : dir.getFileName().toString();
+					return isExcludedFromCapture(java.nio.file.Paths.get(name))
+							? java.nio.file.FileVisitResult.SKIP_SUBTREE
+							: java.nio.file.FileVisitResult.CONTINUE;
+				}
+
+				@Override
+				public java.nio.file.FileVisitResult visitFile(java.nio.file.Path file,
+						java.nio.file.attribute.BasicFileAttributes attrs) {
+					if (attrs.isRegularFile()) {
+						hostStamps.put(file.toString(), attrs.size() + ":" + attrs.lastModifiedTime().toMillis());
+					}
+					return java.nio.file.FileVisitResult.CONTINUE;
+				}
+
+				@Override
+				public java.nio.file.FileVisitResult visitFileFailed(java.nio.file.Path file, IOException e) {
+					return java.nio.file.FileVisitResult.CONTINUE;
+				}
+			});
+		} catch (IOException e) {
+			classLogger.debug("Could not record upload state for {}", root, e);
+		}
+	}
+
 	/** Timestamped quarantine root, outside every transported root so it is never pushed. */
 	private static java.nio.file.Path quarantineStore() {
 		String base = Utility.getBaseFolder();
@@ -814,7 +1028,7 @@ public final class OpenShellTransport {
 					.resolve(relative.toString());
 			java.nio.file.Files.createDirectories(destination.getParent());
 			java.nio.file.Files.copy(file, destination, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
-					java.nio.file.StandardCopyOption.COPY_ATTRIBUTES);
+					java.nio.file.StandardCopyOption.COPY_ATTRIBUTES, java.nio.file.LinkOption.NOFOLLOW_LINKS);
 			classLogger.warn("Write-back preserved the host copy of {} at {}", file, destination);
 			return destination;
 		} catch (Exception e) {
@@ -824,140 +1038,141 @@ public final class OpenShellTransport {
 	}
 
 	/**
-	 * Remove a host file the sandbox deleted, keeping a copy under the quarantine root.
-	 *
-	 * @param path absolute host path reported as deleted
-	 * @param root transported root the path belongs to
+	 * Refuse an archive whose listing cannot be read, or that names an absolute path or
+	 * a {@code ..} segment. Checked per segment, so a file called {@code v1..v2.diff} is
+	 * fine.
 	 */
-	public static void quarantineAndDelete(String path, String root) {
-		java.nio.file.Path file = java.nio.file.Paths.get(path);
-		if (!java.nio.file.Files.exists(file)) {
-			return;
-		}
-		if (quarantineCopy(file, java.nio.file.Paths.get(Utility.normalizePath(root)), quarantineStore()) == null) {
-			classLogger.warn("Delete suppressed for {} because it could not be quarantined", path);
-			return;
-		}
-		try {
-			java.nio.file.Files.deleteIfExists(file);
-		} catch (java.io.IOException e) {
-			classLogger.warn("Could not delete {} after quarantining it", path, e);
-		}
-	}
-
-	private static boolean sameContent(java.nio.file.Path left, java.nio.file.Path right) throws java.io.IOException {
-		if (java.nio.file.Files.size(left) != java.nio.file.Files.size(right)) {
-			return false;
-		}
-		return java.util.Arrays.equals(java.nio.file.Files.readAllBytes(left), java.nio.file.Files.readAllBytes(right));
-	}
-
-	private static boolean archiveEntriesAreSafe(byte[] archive) {
-		try {
-			Process process = new ProcessBuilder("tar", "-tf", "-")
-					.redirectErrorStream(true).start();
-			Thread writer = new Thread(() -> {
-				try (java.io.OutputStream stdin = process.getOutputStream()) {
-					stdin.write(archive);
-				} catch (java.io.IOException ignored) {
-					// process may exit early; the exit code carries the outcome
-				}
-			});
-			writer.start();
-			String listing = new String(process.getInputStream().readAllBytes(),
-					java.nio.charset.StandardCharsets.UTF_8);
-			writer.join(5000);
-			process.waitFor(20, TimeUnit.SECONDS);
-			for (String line : listing.split("\\R")) {
-				String entry = line.trim();
-				if (entry.isEmpty()) {
-					continue;
-				}
-				if (entry.startsWith("/") || entry.contains("..")) {
-					return false;
-				}
+	private static void requireSafeArchive(java.nio.file.Path archive) throws IOException, InterruptedException {
+		String listing = runLocal(Arrays.asList("tar", "-tf", archive.toString()), 60);
+		for (String line : listing.split("\\R")) {
+			String entry = line.trim();
+			if (entry.isEmpty()) {
+				continue;
 			}
-			return true;
-		} catch (Exception e) {
-			return false;
-		}
-	}
-
-	private static void extractArchive(byte[] archive, java.nio.file.Path destination) throws Exception {
-		Process process = new ProcessBuilder("tar", "-xf", "-", "-C", destination.toString())
-				.redirectErrorStream(true).start();
-		Thread writer = new Thread(() -> {
-			try (java.io.OutputStream stdin = process.getOutputStream()) {
-				stdin.write(archive);
-			} catch (java.io.IOException ignored) {
-				// see above
+			if (entry.endsWith("/")) {
+				entry = entry.substring(0, entry.length() - 1);
 			}
-		});
-		writer.start();
-		String output = new String(process.getInputStream().readAllBytes(),
-				java.nio.charset.StandardCharsets.UTF_8);
-		writer.join(10_000);
-		if (!process.waitFor(60, TimeUnit.SECONDS)) {
-			process.destroyForcibly();
-			throw new java.io.IOException("tar extraction timed out");
-		}
-		if (process.exitValue() != 0) {
-			throw new java.io.IOException("tar extraction failed: " + output.trim());
-		}
-	}
-
-	private static void deleteQuietly(java.nio.file.Path root) {
-		try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(root)) {
-			walk.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
-				try {
-					java.nio.file.Files.deleteIfExists(path);
-				} catch (java.io.IOException ignored) {
-					// best effort
-				}
-			});
-		} catch (java.io.IOException ignored) {
-			// best effort
+			if (entry.isEmpty() || !isSafeRelative(entry)) {
+				throw new IOException("archive contains an absolute or traversing path: " + line);
+			}
 		}
 	}
 
 	/**
-	 * Run a CLI command and return its raw stdout. {@link #run(List, int)} decodes to
-	 * String and would corrupt any binary payload, which is exactly what a tar stream is.
+	 * Extract, then give the owner access to everything extracted: a directory the
+	 * sandbox left at mode 000 would otherwise be unreadable to the reconcile walk and
+	 * undeletable afterwards.
 	 */
-	private byte[] runBytes(List<String> cmd, int timeoutSeconds) throws IOException, InterruptedException {
+	private static void extractArchive(java.nio.file.Path archive, java.nio.file.Path destination)
+			throws IOException, InterruptedException {
+		runLocal(Arrays.asList("tar", "-xf", archive.toString(), "-C", destination.toString(), "--no-same-owner"),
+				120);
+		makeOwnerAccessible(destination);
+	}
+
+	private static void makeOwnerAccessible(java.nio.file.Path root) {
+		try {
+			runLocal(Arrays.asList("chmod", "-R", "u+rwX", root.toString()), 60);
+		} catch (Exception e) {
+			classLogger.debug("Could not normalise permissions under {}", root, e);
+		}
+	}
+
+	private static void deleteQuietly(java.nio.file.Path root) {
+		if (root == null || !java.nio.file.Files.exists(root)) {
+			return;
+		}
+		makeOwnerAccessible(root);
+		try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(root)) {
+			walk.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
+				try {
+					java.nio.file.Files.deleteIfExists(path);
+				} catch (IOException ignored) {
+					// best effort
+				}
+			});
+		} catch (IOException ignored) {
+			// best effort
+		}
+	}
+
+	/** Run a local helper (tar, chmod) and return its output; a non-zero exit is an error. */
+	private static String runLocal(List<String> cmd, int timeoutSeconds) throws IOException, InterruptedException {
 		ProcessBuilder builder = new ProcessBuilder(cmd);
-		builder.environment().putAll(cliEnv());
-		builder.redirectErrorStream(false);
+		builder.redirectErrorStream(true);
 		builder.redirectInput(ProcessBuilder.Redirect.from(new java.io.File("/dev/null")));
 		Process process = builder.start();
 		java.io.ByteArrayOutputStream collected = new java.io.ByteArrayOutputStream();
 		Thread reader = new Thread(() -> {
 			try (java.io.InputStream stream = process.getInputStream()) {
 				stream.transferTo(collected);
-			} catch (java.io.IOException ignored) {
+			} catch (IOException ignored) {
 				// the exit code carries the outcome
 			}
-		}, "openshell-fetchback-reader");
+		}, "openshell-local-" + cmd.get(0));
 		reader.setDaemon(true);
 		reader.start();
-		Thread errors = new Thread(() -> {
-			try (java.io.InputStream stream = process.getErrorStream()) {
-				stream.transferTo(java.io.OutputStream.nullOutputStream());
-			} catch (java.io.IOException ignored) {
-				// discarded
-			}
-		}, "openshell-fetchback-errors");
-		errors.setDaemon(true);
-		errors.start();
 		if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
 			process.destroyForcibly();
 			throw new IOException("timed out after " + timeoutSeconds + "s: " + String.join(" ", cmd));
 		}
 		reader.join(5000);
+		String output = collected.toString(java.nio.charset.StandardCharsets.UTF_8);
+		if (process.exitValue() != 0) {
+			throw new IOException("command failed (" + process.exitValue() + "): " + String.join(" ", cmd) + "\n"
+					+ output.trim());
+		}
+		return output;
+	}
+
+	/**
+	 * Run a CLI command and stream its raw stdout into {@code out}, stopping it as soon as
+	 * the output passes {@link #MAX_FETCH_BYTES}. The stream goes to disk rather than the
+	 * heap: one session's capture must never be able to exhaust the memory of the JVM
+	 * every other session shares.
+	 *
+	 * @return bytes written
+	 */
+	private long runToFile(List<String> cmd, int timeoutSeconds, java.nio.file.Path out)
+			throws IOException, InterruptedException {
+		ProcessBuilder builder = new ProcessBuilder(cmd);
+		builder.environment().putAll(cliEnv());
+		builder.redirectError(ProcessBuilder.Redirect.DISCARD);
+		builder.redirectInput(ProcessBuilder.Redirect.from(new java.io.File("/dev/null")));
+		Process process = builder.start();
+		java.util.concurrent.atomic.AtomicLong written = new java.util.concurrent.atomic.AtomicLong();
+		java.util.concurrent.atomic.AtomicBoolean overCap = new java.util.concurrent.atomic.AtomicBoolean();
+		Thread reader = new Thread(() -> {
+			byte[] buffer = new byte[64 * 1024];
+			try (java.io.InputStream stream = process.getInputStream();
+					java.io.OutputStream sink = java.nio.file.Files.newOutputStream(out)) {
+				int read;
+				while ((read = stream.read(buffer)) > 0) {
+					if (written.addAndGet(read) > MAX_FETCH_BYTES) {
+						overCap.set(true);
+						process.destroyForcibly();
+						return;
+					}
+					sink.write(buffer, 0, read);
+				}
+			} catch (IOException ignored) {
+				// the exit code carries the outcome
+			}
+		}, "openshell-fetchback-reader");
+		reader.setDaemon(true);
+		reader.start();
+		if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
+			process.destroyForcibly();
+			throw new IOException("timed out after " + timeoutSeconds + "s: " + String.join(" ", cmd));
+		}
+		reader.join(10_000);
+		if (overCap.get()) {
+			throw new IOException("capture passed the " + MAX_FETCH_BYTES + " byte cap: " + String.join(" ", cmd));
+		}
 		if (process.exitValue() != 0) {
 			throw new IOException("command failed (" + process.exitValue() + "): " + String.join(" ", cmd));
 		}
-		return collected.toByteArray();
+		return written.get();
 	}
 
 	/**

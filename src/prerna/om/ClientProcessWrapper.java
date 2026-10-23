@@ -131,6 +131,16 @@ public class ClientProcessWrapper {
 	private prerna.auth.User user;
 	// OPENSHELL mode: owns the sandbox + port-forward for this worker's lifetime
 	private prerna.util.OpenShellTransport openshell;
+	/**
+	 * One write-back at a time: python blocks, shell commands and teardown all reconcile,
+	 * and two reconciles interleaving over the same root would race their writes.
+	 */
+	private final ReentrantLock fetchBackLock = new ReentrantLock();
+	/**
+	 * Set when a change set was drained from the worker but could not be applied. The
+	 * worker has already forgotten those paths, so only a full capture can recover them.
+	 */
+	private volatile boolean fullCaptureOwed = false;
 	private String classPath;
 	private boolean debug;
 	private String timeout;
@@ -414,6 +424,15 @@ public class ClientProcessWrapper {
 		if (this.openshell == null || this.chrootSymlinkHelper == null) {
 			return 0;
 		}
+		fetchBackLock.lock();
+		try {
+			return fetchBackChangedPathsLocked();
+		} finally {
+			fetchBackLock.unlock();
+		}
+	}
+
+	private int fetchBackChangedPathsLocked() {
 		Map<String, Object> snapshot = null;
 		if (this.socketClient instanceof NativePySocketClient pyClient) {
 			try {
@@ -422,8 +441,10 @@ public class ClientProcessWrapper {
 				classLogger.warn("Change query failed; falling back to a full reconcile", e);
 			}
 		}
-		if (snapshot == null || truthy(snapshot.get("overflow")) || truthy(snapshot.get("baseline"))
-				|| Boolean.FALSE.equals(snapshot.get("coverage"))) {
+		// The snapshot is taken even when a full capture is owed: it drains the worker's
+		// pending set, which the full capture is about to cover anyway.
+		if (snapshot == null || this.fullCaptureOwed || truthy(snapshot.get("overflow"))
+				|| truthy(snapshot.get("baseline")) || Boolean.FALSE.equals(snapshot.get("coverage"))) {
 			return fetchBackTransportedRoots();
 		}
 		Object raw = snapshot.get("changes");
@@ -448,7 +469,7 @@ public class ClientProcessWrapper {
 		roots.sort((first, second) -> second.length() - first.length());
 
 		Map<String, List<String>> writes = new HashMap<>();
-		Map<String, String> deletes = new HashMap<>();
+		Map<String, List<String>> deletes = new HashMap<>();
 		for (Object entry : changes) {
 			if (!(entry instanceof Map<?, ?> change)) {
 				continue;
@@ -469,16 +490,8 @@ public class ClientProcessWrapper {
 				continue;
 			}
 			String relative = path.substring(root.length() + 1);
-			if ("delete".equals(String.valueOf(change.get("op")))) {
-				deletes.put(path, root);
-			} else {
-				List<String> group = writes.get(root);
-				if (group == null) {
-					group = new ArrayList<>();
-					writes.put(root, group);
-				}
-				group.add(relative);
-			}
+			boolean delete = "delete".equals(String.valueOf(change.get("op")));
+			(delete ? deletes : writes).computeIfAbsent(root, key -> new ArrayList<>()).add(relative);
 		}
 
 		int total = 0;
@@ -486,20 +499,25 @@ public class ClientProcessWrapper {
 			try {
 				total += this.openshell.fetchBackPaths(group.getKey(), group.getValue());
 			} catch (Exception e) {
-				classLogger.warn("Path fetch-back failed for {}", group.getKey(), e);
+				// The worker has already dropped these paths from its pending set, so they
+				// would never be reported again: recover them with a full capture next block.
+				this.fullCaptureOwed = true;
+				classLogger.warn("Path fetch-back failed for {}; a full capture is owed", group.getKey(), e);
 			}
 		}
-		for (Map.Entry<String, String> entry : deletes.entrySet()) {
-			try {
-				prerna.util.OpenShellTransport.quarantineAndDelete(entry.getKey(), entry.getValue());
-			} catch (Exception e) {
-				classLogger.warn("Delete after change set failed for {}", entry.getKey(), e);
+		int removed = 0;
+		for (Map.Entry<String, List<String>> group : deletes.entrySet()) {
+			for (String relative : group.getValue()) {
+				if (this.openshell.deleteFromHost(group.getKey(), relative)) {
+					removed++;
+				}
 			}
 		}
-		if (total > 0 || !deletes.isEmpty()) {
-			classLogger.info("Fetch-back wrote {} file(s) from {} changed path(s)", total, changes.size());
+		if (total > 0 || removed > 0) {
+			classLogger.info("Fetch-back wrote {} and removed {} file(s) from {} changed path(s)", total, removed,
+					changes.size());
 		}
-		return total;
+		return total + removed;
 	}
 
 	private static boolean truthy(Object value) {
@@ -623,13 +641,12 @@ public class ClientProcessWrapper {
 			return false;
 		}
 		try {
-			String permission = prerna.auth.utils.SecurityProjectUtils
-					.getActualUserProjectPermission(this.user, projectId);
-			boolean allowed = prerna.auth.AccessPermissionEnum.OWNER.getPermission().equals(permission)
-					|| prerna.auth.AccessPermissionEnum.EDIT.getPermission().equals(permission);
+			// The same check SymlinkHelper.symlinkProject uses to grant the project
+			// read-write: write-back must never answer that question differently.
+			boolean allowed = prerna.auth.utils.SecurityProjectUtils.userCanEditProject(this.user, projectId);
 			if (!allowed) {
-				classLogger.warn("Refusing write-back into {}: user {} has {} access to project {}", normalized,
-						prerna.auth.User.getSingleLogginName(this.user), permission, projectId);
+				classLogger.warn("Refusing write-back into {}: user {} cannot edit project {}", normalized,
+						prerna.auth.User.getSingleLogginName(this.user), projectId);
 			}
 			return allowed;
 		} catch (Exception e) {
@@ -655,7 +672,17 @@ public class ClientProcessWrapper {
 		if (this.openshell == null || this.chrootSymlinkHelper == null) {
 			return 0;
 		}
+		fetchBackLock.lock();
+		try {
+			return fetchBackTransportedRootsLocked();
+		} finally {
+			fetchBackLock.unlock();
+		}
+	}
+
+	private int fetchBackTransportedRootsLocked() {
 		int total = 0;
+		boolean failed = false;
 		for (String path : this.chrootSymlinkHelper.getTransportedPaths()) {
 			String normalized = Utility.normalizePath(path);
 			// Only the user-facing roots. Engine and runtime trees are never written by
@@ -669,9 +696,11 @@ public class ClientProcessWrapper {
 			try {
 				total += this.openshell.fetchBack(path);
 			} catch (Exception e) {
-				classLogger.warn("Fetch-back failed for {}", path, e);
+				failed = true;
+				classLogger.warn("Fetch-back failed for {}; retrying with a full capture next block", path, e);
 			}
 		}
+		this.fullCaptureOwed = failed;
 		return total;
 	}
 
