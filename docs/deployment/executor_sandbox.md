@@ -141,13 +141,23 @@ Two variants:
 | `slim` (default) | `python:3.12-slim`, git, `pandas`, `jsonpickle`, `yfinance` | quick iteration; user code can only import those |
 | `full` (`MODE=full`) | the dependency set declared in `py/install_config/pyproject.toml`, installed with uv | parity with the platform runtime — a `Py()` block keeps its imports |
 
-The full build installs into `/usr/local` rather than a virtualenv, because **the sandbox's
-`PATH` belongs to OpenShell, not the image**: a workload starts with
-`/usr/local/bin:/usr/bin:/bin`, so `ENV PATH=/opt/venv/bin:$PATH` is ignored and a venv would be
-invisible. (Symlinking `python3` at the venv does not help either — CPython looks for
-`pyvenv.cfg` relative to the invoked path and silently falls back to the base interpreter.) Any
-smoke test must therefore run under `env -i PATH=/usr/local/bin:/usr/bin:/bin`, or it passes
-while the worker fails at boot.
+The full build keeps a venv at `/usr/lib/python/semossvenv` — the same path
+`docker/Dockerfile.python` uses — and the worker is launched by absolute path, because
+**both the environment and the filesystem inside a sandbox belong to the runtime**:
+
+- **`PATH`**: a workload starts with `/usr/local/bin:/usr/bin:/bin`, so an image's `ENV PATH`
+  is never applied and a bare `python3` resolves to the base interpreter. Symlinking
+  `python3` at the venv does not help either — CPython looks for `pyvenv.cfg` relative to the
+  invoked path and silently falls back to the base interpreter.
+- **Filesystem**: the policy allowlists `/usr`, `/lib`, `/etc`, `/bin`, `/sbin`, `/proc`
+  read-only, plus `/sandbox`, `/tmp`, `/opt/semosshome` read-write. A venv at `/opt/venv` is
+  outside every one of those and dies with `PermissionError: pyvenv.cfg`; `/usr/lib/python`
+  is inside `/usr`, which is exactly why upstream puts it there.
+
+So `OpenShellTransport` resolves `/usr/lib/python/semossvenv/bin/python3` (falling back to
+`command -v python3` for images without a venv) and creates the sandbox with
+`--env PATH=/usr/lib/python/semossvenv/bin:…` so user code gets the same interpreter.
+Smoke tests must reproduce both constraints, or they pass while the worker fails at boot.
 
 At session start the launcher also uploads the host's `/opt/semosshome/py` over the image's
 copy, but the worker's first imports happen before that upload, so the baked copy still has to

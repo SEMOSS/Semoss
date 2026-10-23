@@ -16,8 +16,9 @@
 #
 # The venv is reached by EXPLICIT PATH, never by PATH lookup: OpenShell builds the environment
 # for the processes it spawns, so an image's ENV PATH is not applied inside a sandbox. The
-# worker is launched as /opt/venv/bin/python3 (see OpenShellTransport) and the sandbox is
-# created with `--env PATH=/opt/venv/bin:…` so user code resolves to the same interpreter.
+# worker is launched as /usr/lib/python/semossvenv/bin/python3 (see OpenShellTransport) and the
+# sandbox is created with `--env PATH=/usr/lib/python/semossvenv/bin:…` so user code resolves
+# to the same interpreter.
 ARG UBUNTU_VERSION=24.04
 
 FROM ubuntu:${UBUNTU_VERSION} AS deps
@@ -44,7 +45,7 @@ COPY export_requirements.py ./
 
 RUN python3 export_requirements.py pyproject.toml "${EXTRAS}" > /tmp/requirements.txt \
  && echo "installing $(wc -l < /tmp/requirements.txt) declared dependencies (extra: ${EXTRAS:-none})" \
- && uv venv /opt/venv --python /usr/bin/python3.12 --seed \
+ && uv venv /usr/lib/python/semossvenv --python /usr/bin/python3.12 --seed \
  && case "${EXTRAS}" in \
       cpu) torch_index=https://download.pytorch.org/whl/cpu ;; \
       gpu) torch_index=https://download.pytorch.org/whl/cu126 ;; \
@@ -52,11 +53,11 @@ RUN python3 export_requirements.py pyproject.toml "${EXTRAS}" > /tmp/requirement
     esac \
  && if [ -n "$torch_index" ]; then \
       echo "torch trio from $torch_index (upstream pins this in [tool.uv.sources])"; \
-      uv pip install --python /opt/venv/bin/python --index-url "$torch_index" \
+      uv pip install --python /usr/lib/python/semossvenv/bin/python --index-url "$torch_index" \
         torch torchvision torchaudio; \
     fi \
- && uv pip install --python /opt/venv/bin/python -r /tmp/requirements.txt \
- && uv pip install --python /opt/venv/bin/python "levenshtein>=0.27.3"
+ && uv pip install --python /usr/lib/python/semossvenv/bin/python -r /tmp/requirements.txt \
+ && uv pip install --python /usr/lib/python/semossvenv/bin/python "levenshtein>=0.27.3"
 
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -74,16 +75,18 @@ RUN apt-get update \
  && git config --system user.email "sandbox@semoss.local" \
  && git config --system safe.directory '*'
 
-COPY --from=deps /opt/venv /opt/venv
-ENV VIRTUAL_ENV=/opt/venv
-ENV PATH=/opt/venv/bin:$PATH
+# The venv lives under /usr/lib/python, matching docker/Dockerfile.python. That path is
+# inside the sandbox policy's read-only /usr, which /opt/venv would not be.
+COPY --from=deps /usr/lib/python/semossvenv /usr/lib/python/semossvenv
+ENV VIRTUAL_ENV=/usr/lib/python/semossvenv
+ENV PATH=/usr/lib/python/semossvenv/bin:$PATH
 
 # The worker source. The build script stages the repo's py/ as the context's py/.
 COPY py/ /opt/semosshome/py/
 
 RUN mkdir -p /opt/semosshome/insight /opt/grants-rw /opt/grants-ro \
  && touch /opt/semosshome/insight/log.txt \
- && chown -R 1000:1000 /opt/semosshome /opt/grants-rw /opt/grants-ro /opt/venv \
+ && chown -R 1000:1000 /opt/semosshome /opt/grants-rw /opt/grants-ro \
  && chmod 755 /opt/grants-rw /opt/grants-ro
 
 # OpenShell refuses to start unless the workspace is writable by the sandbox identity.

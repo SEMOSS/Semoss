@@ -242,7 +242,7 @@ public final class OpenShellTransport {
 		// apply the image's ENV PATH, so without this a `Py()` block that shells out to
 		// `python3` gets the bare system interpreter while the worker runs from the venv.
 		create.add("--env");
-		create.add("PATH=/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
+		create.add("PATH=/usr/lib/python/semossvenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
 		create.add("--");
 		// The worker's stdout/stderr MUST go to a file, not to the supervisor's
 		// stdout pipe. With the pipe it came up erratically -- sometimes serving,
@@ -258,7 +258,7 @@ public final class OpenShellTransport {
 		// image ended up running the base interpreter with none of the dependencies.
 		create.add("sh");
 		create.add("-c");
-		create.add("P=/opt/venv/bin/python3; [ -x \"$P\" ] || P=$(command -v python3);"
+		create.add("P=/usr/lib/python/semossvenv/bin/python3; [ -x \"$P\" ] || P=$(command -v python3);"
 				+ " exec \"$P\" /opt/semosshome/py/gaas_tcp_socket_server.py" //
 				+ " --port " + workerPort //
 				+ " --start True" //
