@@ -13,6 +13,28 @@ process that shares the host's filesystem, environment and network namespace. Th
 mode moves that process into a separate container, spawned and reaped with the user's
 session, and keeps the platform's files authoritative on the host.
 
+## Topology at a glance
+
+```
+Tomcat (host) ──CLI──► openshell gateway (host, :17670, mTLS)
+   │                        │ provisions
+   │                        ▼
+   │              supervisor container (uid nobody, trusted side)
+   │                        │ control.sock  (unix socket on a docker volume)
+   │                        ▼
+   │              workload container (network=none)
+   │                PID 1  /.openshell/runtime/openshell-sandbox
+   │                └── python worker  (loopback :7100)
+   │                        ▲
+   └── openshell forward service --target-port 7100 --local <port> ─┘
+          (long-lived child of Tomcat; Java connects to 127.0.0.1:<port>)
+```
+
+Per session there are **two containers**: the workload (your image) and its supervisor (NVIDIA's image).
+The supervisor is the trusted half of the boundary and is never inside the workload. The workload has no
+network interface at all — its only egress is the channel to its supervisor — so a TCP connection to the
+worker has to travel `Tomcat → forward → gateway → supervisor → runtime → loopback`.
+
 ## Process model
 
 | Piece | Runs where | Notes |
