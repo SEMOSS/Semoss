@@ -1372,11 +1372,18 @@ public class Room implements Serializable {
 						List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
 								workspaceId, Arrays.asList(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE,
 										AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE));
-						for (Map<String, Object> tool : tools) {
+						for (Map<String, Object> tool : tools != null ? tools : List.<Map<String, Object>>of()) {
 							String toolId = (String) tool.get("resource_id");
-							if (!ensureUnique.contains(toolId)) {
-								aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM, lookup));
-								ensureUnique.add(toolId);
+							// marked seen even on failure so CONFIG_JSON.mcps doesn't retry it
+							if (toolId != null && ensureUnique.add(toolId)) {
+								// one resource that can't produce tools (e.g. a knowledge base without
+								// MCP enabled) must not drop the workspace's remaining tools
+								try {
+									aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM, lookup));
+								} catch (Exception e) {
+									classLogger.warn("Skipping workspace mcp {} for workspaceId={}: {}", toolId,
+											workspaceId, e.getMessage());
+								}
 							}
 						}
 					} catch (Exception e) {
@@ -1394,9 +1401,14 @@ public class Room implements Serializable {
 									continue;
 								}
 								String toolId = mcp.optString("id", null);
-								if (toolId != null && !toolId.isEmpty() && !ensureUnique.contains(toolId)) {
-									aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM, lookup));
-									ensureUnique.add(toolId);
+								if (toolId != null && !toolId.isEmpty() && ensureUnique.add(toolId)) {
+									try {
+										aggregated.addAll(
+												getToolJson(toolId, maxLength, sanitizeToolNamesForLLM, lookup));
+									} catch (Exception e) {
+										classLogger.warn("Skipping CONFIG_JSON mcp {} for workspaceId={}: {}", toolId,
+												workspaceId, e.getMessage());
+									}
 								}
 							}
 						}
