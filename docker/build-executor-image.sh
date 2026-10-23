@@ -46,7 +46,6 @@ ARGS=(build
 [ "$NO_CACHE" = "1" ] && ARGS+=(--no-cache)
 
 if [ "$MODE" = "slim" ]; then
-  # Context is py/ itself; the Dockerfile copies it verbatim.
   cp "$HERE/Dockerfile.executor" "$CTX/Dockerfile"
   cp -a "$REPO/py" "$CTX/py"
   ARGS+=(-f "$CTX/Dockerfile")
@@ -63,13 +62,18 @@ docker "${ARGS[@]}" "$CTX"
 
 echo "built $TAG ($MODE) from py sha ${PY_SHA:0:12}"
 
-# Prove what landed, rather than trusting the build log. The interpreter is checked by absolute
-# path (what the worker uses) and again through the PATH the sandbox is created with.
-docker run --rm --entrypoint sh "$TAG" -c '
+# Prove what landed, rather than trusting the build log: the worker tree in the image must
+# hash to the repo's, and the worker's interpreter must import the watcher. Any failure
+# fails the build.
+docker run --rm --entrypoint sh -e EXPECT="$PY_SHA" "$TAG" -ec '
+  cd /opt/semosshome/py
+  test -f gaas_tcp_socket_server.py || { echo "worker missing at /opt/semosshome/py" >&2; exit 1; }
+  GOT=$(find . -type f -name "*.py" -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d" " -f1)
+  [ "$GOT" = "$EXPECT" ] || { echo "py tree in image ($GOT) differs from the repo ($EXPECT)" >&2; exit 1; }
+  P=/usr/lib/python/semossvenv/bin/python3; [ -x "$P" ] || P=$(command -v python3)
+  "$P" -c "import gaas_change_watcher" || { echo "$P cannot import the change watcher" >&2; exit 1; }
+  echo "worker tree matches repo; $P imports the watcher"
   git --version
-  /usr/lib/python/semossvenv/bin/python3 -c "import numpy, boto3; print(\"parity imports ok (venv)\")" 2>/dev/null || echo "no venv in this image (slim)"
-  env -i PATH=/usr/lib/python/semossvenv/bin:/usr/local/bin:/usr/bin:/bin python3 -c "import sys; print(\"python3 ->\", sys.executable)" 2>/dev/null || true
-  test -f /opt/semosshome/py/gaas_tcp_socket_server.py && echo "worker present"
-  printf "watcher ignore refs: "; grep -c "_IGNORED_DIRS" /opt/semosshome/py/gaas_change_watcher.py
-  printf "id: "; id -u
+  [ "$(id -u)" = 1000 ] || { echo "image does not run as uid 1000" >&2; exit 1; }
 '
+echo "smoke test passed for $TAG"

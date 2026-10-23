@@ -1,12 +1,11 @@
 # SEMOSS executor sandbox — the process that runs user code under OpenShell.
 #
-#   docker build -f docker/Dockerfile.executor -t semoss-executor:0.3 py
-#   # or, with the py-source label and a smoke test:
-#   docker/build-executor-image.sh
+#   docker/build-executor-image.sh      # stages py/ into the context, labels, smoke-tests
 #
-# The build context is py/ on purpose. The image must carry the worker source that is
-# in this repo; earlier builds staged py/ into a separate context by hand, and the
-# image silently kept running month-old python while the repo looked fixed.
+# The image must carry the worker source that is in this repo; earlier builds staged
+# py/ into a separate context by hand, and the image silently kept running month-old
+# python while the repo looked fixed. The build script copies the committed py/ into
+# the context and checks the result against the repo.
 FROM python:3.12-slim
 
 LABEL maintainer="semoss@semoss.org"
@@ -28,8 +27,8 @@ RUN apt-get update \
 # -- the real answer is a per-project venv or a manifest-driven install.
 RUN pip install --no-cache-dir pandas jsonpickle yfinance
 
-# The worker source. Context root is py/, so this is the committed python, verbatim.
-COPY . /opt/semosshome/py/
+# The worker source: the committed py/, staged into the context by the build script.
+COPY py/ /opt/semosshome/py/
 
 # The handler appends to {insight_folder}/log.txt during setup(). The grants folders are
 # the read-only / read-write drop points the policy model expects to exist.
