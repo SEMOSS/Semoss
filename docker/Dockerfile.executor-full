@@ -7,18 +7,24 @@
 # a Py() block that ran against the platform's own 2.4 GB venv (numpy, boto3, langchain,
 # torch, ...) fails with ImportError the moment it is sandboxed. That is a silent capability
 # regression, not a size trade-off. This build installs the dependency set that
-# py/install_config/pyproject.toml declares, the same one docker/Dockerfile.python installs.
+# py/install_config/pyproject.toml declares — the same one docker/Dockerfile.python installs.
 #
 # The project itself is not installed (.[extra]): that pyproject has no build-system, so it
 # is a dependency manifest, not a package. docker/export_requirements.py flattens it.
+#
+# NO VENV, deliberately. OpenShell starts the workload with its own PATH
+# (/usr/local/bin:/usr/bin:/bin), so an image's ENV PATH never applies, and a venv is only
+# reachable through PATH or through a symlink whose pyvenv.cfg lookup resolves to the real
+# binary — which silently yields the base interpreter with none of the packages. Installing
+# into /usr/local means whatever `python3` the sandbox resolves to already has them.
 FROM python:3.12-slim AS deps
 
 ARG EXTRAS=cpu
 ENV EXTRAS=${EXTRAS}
 
 # Compilers live in the builder stage only. Several declared dependencies ship no aarch64
-# wheel (annoy is a C++ extension and was the first to fail), so the venv has to be assembled
-# from source here; the final stage still copies just the finished venv.
+# wheel (annoy is a C++ extension and was the first to fail), so the tree has to be built
+# from source here; the final stage copies only the finished /usr/local.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends build-essential cmake \
  && rm -rf /var/lib/apt/lists/*
@@ -33,7 +39,6 @@ COPY export_requirements.py ./
 
 RUN python3 export_requirements.py pyproject.toml "${EXTRAS}" > /tmp/requirements.txt \
  && echo "installing $(wc -l < /tmp/requirements.txt) declared dependencies (extra: ${EXTRAS:-none})" \
- && uv venv /opt/venv --python 3.12 \
  && case "${EXTRAS}" in \
       cpu) torch_index=https://download.pytorch.org/whl/cpu ;; \
       gpu) torch_index=https://download.pytorch.org/whl/cu126 ;; \
@@ -41,11 +46,10 @@ RUN python3 export_requirements.py pyproject.toml "${EXTRAS}" > /tmp/requirement
     esac \
  && if [ -n "$torch_index" ]; then \
       echo "torch trio from $torch_index (upstream pins this in [tool.uv.sources])"; \
-      uv pip install --python /opt/venv/bin/python --index-url "$torch_index" \
-        torch torchvision torchaudio; \
+      uv pip install --system --index-url "$torch_index" torch torchvision torchaudio; \
     fi \
- && uv pip install --python /opt/venv/bin/python -r /tmp/requirements.txt \
- && uv pip install --python /opt/venv/bin/python "levenshtein>=0.27.3"
+ && uv pip install --system -r /tmp/requirements.txt \
+ && uv pip install --system "levenshtein>=0.27.3"
 
 FROM python:3.12-slim
 
@@ -61,17 +65,16 @@ RUN apt-get update \
  && git config --system user.email "sandbox@semoss.local" \
  && git config --system safe.directory '*'
 
-# The venv the worker and user code import from.
-COPY --from=deps /opt/venv /opt/venv
-ENV VIRTUAL_ENV=/opt/venv
-ENV PATH=/opt/venv/bin:$PATH
+# The interpreter plus every installed dependency, in the location `python3` already resolves
+# to under the sandbox's PATH. No venv, no PATH dependency.
+COPY --from=deps /usr/local /usr/local
 
 # The worker source. The build script stages the repo's py/ as the context's py/.
 COPY py/ /opt/semosshome/py/
 
 RUN mkdir -p /opt/semosshome/insight /opt/grants-rw /opt/grants-ro \
  && touch /opt/semosshome/insight/log.txt \
- && chown -R 1000:1000 /opt/semosshome /opt/grants-rw /opt/grants-ro /opt/venv \
+ && chown -R 1000:1000 /opt/semosshome /opt/grants-rw /opt/grants-ro \
  && chmod 755 /opt/grants-rw /opt/grants-ro
 
 # OpenShell refuses to start unless the workspace is writable by the sandbox identity.
