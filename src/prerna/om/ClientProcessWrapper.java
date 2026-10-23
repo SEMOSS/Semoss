@@ -519,20 +519,99 @@ public class ClientProcessWrapper {
 	}
 
 	/**
+	 * User assets are per-user by construction: the folder is {@code Asset__<id>}, where the
+	 * id is the user's own asset project id for one of their logins. Anything else under
+	 * {@code user/} belongs to somebody else and must never be written back.
+	 *
+	 * @param normalized absolute user-asset root
+	 * @return true when the asset belongs to this user
+	 */
+	private boolean isOwnUserAsset(String normalized) {
+		String marker = "/" + Constants.USER_FOLDER + "/";
+		String rest = normalized.substring(normalized.indexOf(marker) + marker.length());
+		int slash = rest.indexOf('/');
+		String folder = slash < 0 ? rest : rest.substring(0, slash);
+		int separator = folder.lastIndexOf("__");
+		String assetId = separator < 0 ? folder : folder.substring(separator + 2);
+		if (this.user == null) {
+			classLogger.warn("Refusing write-back into {}: no user is bound to this process", normalized);
+			return false;
+		}
+		try {
+			for (prerna.auth.AuthProvider provider : this.user.getLogins()) {
+				if (assetId.equals(this.user.getAssetProjectId(provider))) {
+					return true;
+				}
+			}
+		} catch (Exception e) {
+			classLogger.warn("Could not resolve asset ownership for {}; refusing write-back", normalized, e);
+			return false;
+		}
+		classLogger.warn("Refusing write-back into {}: asset {} does not belong to {}", normalized, assetId,
+				prerna.auth.User.getSingleLogginName(this.user));
+		return false;
+	}
+
+	/**
+	 * A room is writable only by the member who owns it. Rooms are rows in the model
+	 * inference logs database ({@code ROOM.USER_ID}), not insights in this build, and
+	 * sharing grants participation rather than edit rights.
+	 *
+	 * @param normalized absolute room root
+	 * @return true when the session's user owns the room
+	 */
+	private boolean canWriteRoom(String normalized) {
+		String marker = "/" + Constants.ROOM_FOLDER + "/";
+		int at = normalized.indexOf(marker);
+		String rest = normalized.substring(at + marker.length());
+		int slash = rest.indexOf('/');
+		String roomId = slash < 0 ? rest : rest.substring(0, slash);
+		if (this.user == null) {
+			classLogger.warn("Refusing write-back into room {}: no user is bound to this process", roomId);
+			return false;
+		}
+		try {
+			// A login can be any of the providers the user authenticated with; the room was
+			// created under one of them.
+			for (prerna.auth.AuthProvider provider : this.user.getLogins()) {
+				prerna.auth.AccessToken token = this.user.getAccessToken(provider);
+				if (token != null && prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils
+						.doCheckRoomExistsForUser(roomId, token.getId())) {
+					return true;
+				}
+			}
+			classLogger.warn("Refusing write-back into room {}: user {} does not own it", roomId,
+					prerna.auth.User.getSingleLogginName(this.user));
+			return false;
+		} catch (Exception e) {
+			classLogger.warn("Could not resolve ownership of room {}; refusing write-back", roomId, e);
+			return false;
+		}
+	}
+
+	/**
 	 * A read-only member must not be able to modify a project through the sandbox: the
 	 * worker runs outside the platform's permission checks, so without this gate a
 	 * read-only user could write a file with {@code Py()} and have it published to the
-	 * project folder. Project roots are gated on the platform's own permission lookup.
-	 * Room and asset roots have no comparable model in this build and are left alone.
+	 * project folder. Every root is decided by its own space: projects on the platform
+	 * permission lookup, rooms on {@code ROOM.USER_ID} in the model-inference-logs
+	 * database, user assets on the caller's own asset project id.
 	 *
 	 * @param normalized absolute transported root
 	 * @return true when write-back into this root is allowed
 	 */
 	private boolean canWriteBack(String normalized) {
+		if (normalized.contains("/" + Constants.ROOM_FOLDER + "/")) {
+			return canWriteRoom(normalized);
+		}
+		if (normalized.contains("/" + Constants.USER_FOLDER + "/")) {
+			return isOwnUserAsset(normalized);
+		}
 		String marker = "/" + Constants.PROJECT_FOLDER + "/";
 		int at = normalized.indexOf(marker);
 		if (at < 0) {
-			return true;
+			classLogger.warn("Refusing write-back into {}: unrecognised root space", normalized);
+			return false;
 		}
 		String rest = normalized.substring(at + marker.length());
 		int slash = rest.indexOf('/');
