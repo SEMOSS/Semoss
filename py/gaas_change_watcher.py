@@ -33,8 +33,14 @@ import struct
 import threading
 import time
 
-# Directories whose contents never need write-back; keep the tuple scan cheap.
-_SKIP_DIRS = {"node_modules", "__pycache__", ".venv"}
+# Directories that are never watched, scanned, or pulled back. `.git` is static inside
+# the sandbox (the image has no git binary) yet it was 112 directories and 137 of 256
+# files in a real project - over half the watch set and over half of every scan, for
+# data that cannot move. `node_modules` is worse: one install adds thousands of
+# directories, exhausts fs.inotify.max_user_watches and floods the event queue.
+_DEFAULT_IGNORE = ("node_modules", "__pycache__", ".venv", ".git")
+_env_ignore = os.environ.get("SEMOSS_SYNC_IGNORE", "").strip()
+_IGNORED_DIRS = {name.strip() for name in _env_ignore.split(",") if name.strip()} if _env_ignore else set(_DEFAULT_IGNORE)
 
 # The tuple scan exists to catch changes inotify cannot see (persistent mmap writes).
 # Running it on every block makes an idle session O(files) per block - measured 0.57 s
@@ -150,7 +156,9 @@ class ChangeWatcher:
             self._root_ino[root] = os.stat(root).st_ino
         except OSError:
             pass
-        for current, _dirs, _files in os.walk(root):
+        for current, dirs, _files in os.walk(root):
+            # Prune in place so os.walk never descends into an ignored tree at all.
+            dirs[:] = [name for name in dirs if name not in _IGNORED_DIRS]
             self._arm(current)
 
     # -- event loop --------------------------------------------------------
@@ -218,6 +226,10 @@ class ChangeWatcher:
             self._adopt_directory(path)
 
     def _adopt_directory(self, path):
+        # A directory created during a block is armed and scanned, unless it is one we
+        # ignore - an `npm install` must not pull thousands of watches into the tree.
+        if os.path.basename(path) in _IGNORED_DIRS:
+            return
         self._arm_tree(path)
         with self._lock:
             for current, _dirs, files in os.walk(path):
@@ -250,7 +262,7 @@ class ChangeWatcher:
         reported = 0
         for root in list(self.roots):
             for base, dirs, files in os.walk(root):
-                dirs[:] = [name for name in dirs if name not in _SKIP_DIRS]
+                dirs[:] = [name for name in dirs if name not in _IGNORED_DIRS]
                 for name in files:
                     path = os.path.join(base, name)
                     try:
