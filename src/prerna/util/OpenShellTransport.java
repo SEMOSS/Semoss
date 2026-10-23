@@ -238,6 +238,11 @@ public final class OpenShellTransport {
 		}
 		create.add("--policy");
 		create.add(policy.trim());
+		// Give sandboxed code the same interpreter the worker uses. The runtime does not
+		// apply the image's ENV PATH, so without this a `Py()` block that shells out to
+		// `python3` gets the bare system interpreter while the worker runs from the venv.
+		create.add("--env");
+		create.add("PATH=/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
 		create.add("--");
 		// The worker's stdout/stderr MUST go to a file, not to the supervisor's
 		// stdout pipe. With the pipe it came up erratically -- sometimes serving,
@@ -246,9 +251,15 @@ public final class OpenShellTransport {
 		// ready in ~0.66s. Suspected cause is output back-pressure on that pipe.
 		// The file is also the readiness signal, read via `sandbox exec` so that no
 		// connection is ever made to the single-connection worker.
+		//
+		// The interpreter is resolved explicitly: OpenShell builds the environment for
+		// the processes it spawns, so an image's ENV PATH is not applied and a bare
+		// `python3` means whatever the runtime's PATH points at -- which is how a venv
+		// image ended up running the base interpreter with none of the dependencies.
 		create.add("sh");
 		create.add("-c");
-		create.add("exec python3 /opt/semosshome/py/gaas_tcp_socket_server.py" //
+		create.add("P=/opt/venv/bin/python3; [ -x \"$P\" ] || P=$(command -v python3);"
+				+ " exec \"$P\" /opt/semosshome/py/gaas_tcp_socket_server.py" //
 				+ " --port " + workerPort //
 				+ " --start True" //
 				+ " --py_folder /opt/semosshome/py" //

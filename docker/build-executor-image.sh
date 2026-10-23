@@ -63,12 +63,12 @@ docker "${ARGS[@]}" "$CTX"
 
 echo "built $TAG ($MODE) from py sha ${PY_SHA:0:12}"
 
-# Prove what landed, rather than trusting the build log. The parity check runs with the PATH
-# OpenShell actually gives a sandbox, because the image's ENV PATH is not applied there.
+# Prove what landed, rather than trusting the build log. The interpreter is checked by absolute
+# path (what the worker uses) and again through the PATH the sandbox is created with.
 docker run --rm --entrypoint sh "$TAG" -c '
   git --version
-  python3 -c "import pandas, jsonpickle; print(\"boot imports ok\")"
-  env -i PATH=/usr/local/bin:/usr/bin:/bin python3 -c "import numpy, boto3; print(\"parity imports ok under sandbox PATH\")" 2>/dev/null || echo "parity imports: not installed (slim)"
+  /opt/venv/bin/python3 -c "import numpy, boto3; print(\"parity imports ok (venv)\")" 2>/dev/null || echo "no venv in this image (slim)"
+  env -i PATH=/opt/venv/bin:/usr/local/bin:/usr/bin:/bin python3 -c "import sys; print(\"python3 ->\", sys.executable)" 2>/dev/null || true
   test -f /opt/semosshome/py/gaas_tcp_socket_server.py && echo "worker present"
   printf "watcher ignore refs: "; grep -c "_IGNORED_DIRS" /opt/semosshome/py/gaas_change_watcher.py
   printf "id: "; id -u

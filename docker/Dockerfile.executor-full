@@ -1,35 +1,40 @@
 # SEMOSS executor sandbox — full-parity build.
 #
+#   MODE=full TAG=semoss-executor:full docker/build-executor-image.sh
+#   # or directly:
 #   docker build -f docker/Dockerfile.executor-full -t semoss-executor:full py
-#   # or: MODE=full docker/build-executor-image.sh
 #
-# Why this exists next to Dockerfile.executor: the minimal image carries three packages, so
-# a Py() block that ran against the platform's own 2.4 GB venv (numpy, boto3, langchain,
-# torch, ...) fails with ImportError the moment it is sandboxed. That is a silent capability
-# regression, not a size trade-off. This build installs the dependency set that
-# py/install_config/pyproject.toml declares — the same one docker/Dockerfile.python installs.
+# Why this exists next to Dockerfile.executor: the minimal image carries three packages, so a
+# Py() block that ran against the platform's own runtime (numpy, boto3, langchain, torch, ...)
+# fails with ImportError the moment it is sandboxed. That is a silent capability regression, not
+# a size trade-off.
 #
-# The project itself is not installed (.[extra]): that pyproject has no build-system, so it
-# is a dependency manifest, not a package. docker/export_requirements.py flattens it.
+# Base is Ubuntu, matching docker/Dockerfile.python, so sandbox and platform share a distro,
+# glibc and the native libraries that document/OCR stacks expect. Python comes from apt (24.04
+# ships 3.12) and the declared dependencies install into a venv with uv — the same installer
+# upstream uses for its own runtime.
 #
-# NO VENV, deliberately. OpenShell starts the workload with its own PATH
-# (/usr/local/bin:/usr/bin:/bin), so an image's ENV PATH never applies, and a venv is only
-# reachable through PATH or through a symlink whose pyvenv.cfg lookup resolves to the real
-# binary — which silently yields the base interpreter with none of the packages. Installing
-# into /usr/local means whatever `python3` the sandbox resolves to already has them.
-FROM python:3.12-slim AS deps
+# The venv is reached by EXPLICIT PATH, never by PATH lookup: OpenShell builds the environment
+# for the processes it spawns, so an image's ENV PATH is not applied inside a sandbox. The
+# worker is launched as /opt/venv/bin/python3 (see OpenShellTransport) and the sandbox is
+# created with `--env PATH=/opt/venv/bin:…` so user code resolves to the same interpreter.
+ARG UBUNTU_VERSION=24.04
+
+FROM ubuntu:${UBUNTU_VERSION} AS deps
 
 ARG EXTRAS=cpu
 ENV EXTRAS=${EXTRAS}
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Compilers live in the builder stage only. Several declared dependencies ship no aarch64
-# wheel (annoy is a C++ extension and was the first to fail), so the tree has to be built
-# from source here; the final stage copies only the finished /usr/local.
+# Build toolchain lives in this stage only: several declared dependencies ship no aarch64
+# wheel (annoy is a C++ extension and was the first to fail), so they compile from source.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends build-essential cmake \
+ && apt-get install -y --no-install-recommends \
+      python3 python3.12 python3.12-dev python3.12-venv python3-venv build-essential cmake pkg-config curl ca-certificates \
+      libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libffi-dev \
  && rm -rf /var/lib/apt/lists/*
 
-# uv, the same installer SEMOSS uses for its own runtime.
+# uv, the installer SEMOSS uses for its own runtime.
 COPY --from=ghcr.io/astral-sh/uv:0.9 /uv /uvx /usr/local/bin/
 
 WORKDIR /build
@@ -39,6 +44,7 @@ COPY export_requirements.py ./
 
 RUN python3 export_requirements.py pyproject.toml "${EXTRAS}" > /tmp/requirements.txt \
  && echo "installing $(wc -l < /tmp/requirements.txt) declared dependencies (extra: ${EXTRAS:-none})" \
+ && uv venv /opt/venv --python /usr/bin/python3.12 --seed \
  && case "${EXTRAS}" in \
       cpu) torch_index=https://download.pytorch.org/whl/cpu ;; \
       gpu) torch_index=https://download.pytorch.org/whl/cu126 ;; \
@@ -46,35 +52,38 @@ RUN python3 export_requirements.py pyproject.toml "${EXTRAS}" > /tmp/requirement
     esac \
  && if [ -n "$torch_index" ]; then \
       echo "torch trio from $torch_index (upstream pins this in [tool.uv.sources])"; \
-      uv pip install --system --index-url "$torch_index" torch torchvision torchaudio; \
+      uv pip install --python /opt/venv/bin/python --index-url "$torch_index" \
+        torch torchvision torchaudio; \
     fi \
- && uv pip install --system -r /tmp/requirements.txt \
- && uv pip install --system "levenshtein>=0.27.3"
+ && uv pip install --python /opt/venv/bin/python -r /tmp/requirements.txt \
+ && uv pip install --python /opt/venv/bin/python "levenshtein>=0.27.3"
 
-FROM python:3.12-slim
+FROM ubuntu:${UBUNTU_VERSION}
 
 LABEL maintainer="semoss@semoss.org"
 LABEL org.semoss.component="executor-sandbox-full"
 
-# git: local repository work inside the sandbox. Egress stays closed unless the OpenShell
-# policy grants it per binary and per host.
+ENV DEBIAN_FRONTEND=noninteractive
+
+# python3.12 must exist in this stage too: the venv's interpreter is a symlink to
+# /usr/bin/python3.12. git enables local repository work; egress stays policy-gated.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends git ca-certificates \
+ && apt-get install -y --no-install-recommends python3 python3.12 git ca-certificates \
  && rm -rf /var/lib/apt/lists/* \
  && git config --system user.name "SEMOSS Sandbox" \
  && git config --system user.email "sandbox@semoss.local" \
  && git config --system safe.directory '*'
 
-# The interpreter plus every installed dependency, in the location `python3` already resolves
-# to under the sandbox's PATH. No venv, no PATH dependency.
-COPY --from=deps /usr/local /usr/local
+COPY --from=deps /opt/venv /opt/venv
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH=/opt/venv/bin:$PATH
 
 # The worker source. The build script stages the repo's py/ as the context's py/.
 COPY py/ /opt/semosshome/py/
 
 RUN mkdir -p /opt/semosshome/insight /opt/grants-rw /opt/grants-ro \
  && touch /opt/semosshome/insight/log.txt \
- && chown -R 1000:1000 /opt/semosshome /opt/grants-rw /opt/grants-ro \
+ && chown -R 1000:1000 /opt/semosshome /opt/grants-rw /opt/grants-ro /opt/venv \
  && chmod 755 /opt/grants-rw /opt/grants-ro
 
 # OpenShell refuses to start unless the workspace is writable by the sandbox identity.
