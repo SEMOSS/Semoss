@@ -730,6 +730,7 @@ public final class OpenShellTransport {
 						if (copy != null) {
 							try {
 								java.nio.file.Files.deleteIfExists(path);
+								pruneEmptyParents(path, target);
 								moved[0]++;
 							} catch (java.io.IOException e) {
 								classLogger.warn("Could not remove {} after quarantining it", path, e);
@@ -743,6 +744,30 @@ public final class OpenShellTransport {
 			classLogger.info("Fetch-back moved {} deleted file(s) to {}", moved[0], store);
 		}
 		return moved[0];
+	}
+
+	/**
+	 * Remove directories that our own deletions emptied, walking up to (but never
+	 * including) the transported root. Only empty directories are removed, so a folder
+	 * someone deliberately created stays where it is.
+	 */
+	private static void pruneEmptyParents(java.nio.file.Path file, java.nio.file.Path root) {
+		java.nio.file.Path parent = file.getParent();
+		while (parent != null && parent.startsWith(root) && !parent.equals(root)) {
+			try (java.util.stream.Stream<java.nio.file.Path> children = java.nio.file.Files.list(parent)) {
+				if (children.findAny().isPresent()) {
+					return;
+				}
+			} catch (java.io.IOException e) {
+				return;
+			}
+			try {
+				java.nio.file.Files.deleteIfExists(parent);
+			} catch (java.io.IOException e) {
+				return;
+			}
+			parent = parent.getParent();
+		}
 	}
 
 	/**

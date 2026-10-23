@@ -44,6 +44,8 @@ IN_DELETE = 0x00000200
 IN_DELETE_SELF = 0x00000400
 IN_MOVE_SELF = 0x00000800
 IN_Q_OVERFLOW = 0x00004000
+IN_UNMOUNT = 0x00002000
+IN_IGNORED = 0x00008000
 IN_ISDIR = 0x40000000
 
 _EVENT = struct.Struct("iIII")
@@ -66,6 +68,9 @@ class ChangeWatcher:
         self._baseline_pending = True
         self._armed = 0
         self._events_seen = 0
+        # Set when the watch tree can no longer be trusted (directory rename, watch
+        # removed, unmount): the host must fall back to a full capture for that block.
+        self._coverage_lost = False
         # inotify events carry a watch descriptor, not a path; this maps it back.
         self._watched = {}
         self._root_ino = {}
@@ -162,6 +167,11 @@ class ChangeWatcher:
                 if mask & IN_Q_OVERFLOW:
                     self._overflow = True
                     continue
+                if mask & (IN_IGNORED | IN_UNMOUNT | IN_MOVE_SELF):
+                    # The watch itself is gone, or it moved with its inode: every path
+                    # under it is stale. No event on this descriptor is trustworthy now.
+                    self._coverage_lost = True
+                    continue
                 name = raw.split(b"\0", 1)[0].decode("utf-8", "replace")
                 if not name:
                     continue
@@ -173,6 +183,10 @@ class ChangeWatcher:
                     continue
                 path = os.path.join(directory, name)
                 if mask & IN_ISDIR:
+                    if mask & IN_MOVED_FROM:
+                        # A watched directory left the tree; its descriptor still points
+                        # at the inode and would report the old path forever.
+                        self._coverage_lost = True
                     if mask & (IN_CREATE | IN_MOVED_TO):
                         # A new directory: arm it *and* scan what landed inside before
                         # the watch existed. Without the scan, `mkdir x; write x/f`
@@ -248,6 +262,7 @@ class ChangeWatcher:
         everything already in the tree arrived before the watch existed, and the
         host materialised it, so reporting it would be noise.
         """
+        rearm = False
         with self._lock:
             scanned = self._scan_tuples()
             roots = []
@@ -260,10 +275,14 @@ class ChangeWatcher:
                     })
                 except OSError as exc:
                     roots.append({"path": root, "error": str(exc)})
+            stale = self._coverage_lost
             payload = {
                 "changes": [{"path": path, "op": op} for path, op in self._changes.items()],
                 "overflow": self._overflow,
-                "baseline": self._baseline_pending,
+                # A lost watch cannot report its own gaps, so it is equivalent to a
+                # baseline: the host must take a full capture for this block.
+                "baseline": self._baseline_pending or stale,
+                "coverage": not stale,
                 "watched": self._armed,
                 "events": self._events_seen,
                 "stat_scan": scanned,
@@ -272,7 +291,29 @@ class ChangeWatcher:
             self._changes = {}
             self._overflow = False
             self._baseline_pending = False
-            return payload
+            if stale:
+                self._coverage_lost = False
+                # Paths may have moved underneath us; drop the tuple index so the next
+                # checkpoint reseeds instead of reporting a storm of false deletes.
+                self._stat_index = {}
+                rearm = True
+        if rearm:
+            self._rearm_all()
+        return payload
+
+    def _rearm_all(self):
+        """Rebuild the watch tree after coverage was lost.
+
+        Descriptors left over from the old tree stay in the kernel but are inert once
+        ``_watched`` no longer maps them, so re-arming from the roots restores correct
+        paths without having to tear the old watches down one by one.
+        """
+        with self._lock:
+            self._watched = {}
+            self._armed = 0
+            self._root_ino = {}
+        for root in list(self.roots):
+            self._arm_tree(root)
 
 
 _shared = None

@@ -420,7 +420,8 @@ public class ClientProcessWrapper {
 				classLogger.warn("Change query failed; falling back to a full reconcile", e);
 			}
 		}
-		if (snapshot == null || truthy(snapshot.get("overflow")) || truthy(snapshot.get("baseline"))) {
+		if (snapshot == null || truthy(snapshot.get("overflow")) || truthy(snapshot.get("baseline"))
+				|| Boolean.FALSE.equals(snapshot.get("coverage"))) {
 			return fetchBackTransportedRoots();
 		}
 		Object raw = snapshot.get("changes");
