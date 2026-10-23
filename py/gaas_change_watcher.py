@@ -33,10 +33,10 @@ import struct
 import threading
 import time
 
-# Directories that are never watched, scanned, or pulled back. `.git` is static inside
-# the sandbox (the image has no git binary) yet it was 112 directories and 137 of 256
-# files in a real project - over half the watch set and over half of every scan, for
-# data that cannot move. `node_modules` is worse: one install adds thousands of
+# Directories that are never watched, scanned, or pulled back. `.git` was 112 directories
+# and 137 of 256 files in a real project - over half the watch set and over half of every
+# scan. A commit made in the sandbox still reaches the host: the host's full capture
+# carries git's data files. `node_modules` is worse: one install adds thousands of
 # directories, exhausts fs.inotify.max_user_watches and floods the event queue.
 _DEFAULT_IGNORE = ("node_modules", "__pycache__", ".venv", ".git")
 _env_ignore = os.environ.get("SEMOSS_SYNC_IGNORE", "").strip()
@@ -81,6 +81,9 @@ class ChangeWatcher:
         self._thread = None
         self._stop = threading.Event()
         self._lock = threading.Lock()
+        # Serialises reads of the inotify fd between the loop thread and snapshot(), so
+        # events are consumed in the order the kernel queued them.
+        self._read_lock = threading.Lock()
         self._changes = {}
         self._overflow = False
         self._baseline_pending = True
@@ -133,15 +136,25 @@ class ChangeWatcher:
         try:
             watch = self._libc.inotify_add_watch(self._fd, directory.encode("utf-8"), _MASK)
         except Exception:
+            self._coverage_lost = True
             return False
         if watch >= 0:
             self._watched[watch] = directory
             self._armed += 1
             return True
+        # A directory removed between the walk and the arm is not a gap. Anything else
+        # (ENOSPC at max_user_watches, EACCES on a mode-000 directory) leaves part of the
+        # tree unwatched, and silence there would read as "nothing changed".
+        if ctypes.get_errno() != errno.ENOENT:
+            self._coverage_lost = True
         return False
 
     def add_roots(self, roots):
-        """Arm roots discovered after start (a session materialises its tree late)."""
+        """Arm roots discovered after start (a session materialises its tree late).
+
+        Whatever was uploaded into a new root arrived before its watch, so the next
+        snapshot is a baseline and the host takes a full capture.
+        """
         added = 0
         for root in roots:
             if root in self.roots or not os.path.isdir(root):
@@ -149,6 +162,9 @@ class ChangeWatcher:
             self.roots.append(root)
             self._arm_tree(root)
             added += 1
+        if added:
+            with self._lock:
+                self._baseline_pending = True
         return added
 
     def _arm_tree(self, root):
@@ -156,28 +172,50 @@ class ChangeWatcher:
             self._root_ino[root] = os.stat(root).st_ino
         except OSError:
             pass
-        for current, dirs, _files in os.walk(root):
+        for current, dirs, _files in os.walk(root, onerror=self._walk_failed):
             # Prune in place so os.walk never descends into an ignored tree at all.
             dirs[:] = [name for name in dirs if name not in _IGNORED_DIRS]
             self._arm(current)
 
+    def _walk_failed(self, _error):
+        # An unreadable directory cannot be watched or listed; treat it as a gap.
+        self._coverage_lost = True
+
     # -- event loop --------------------------------------------------------
 
     def _loop(self):
+        # poll, not select: select() raises on any fd >= 1024, which a worker with many
+        # open files reaches, and the watcher would stop while still claiming coverage.
+        poller = select.poll()
+        poller.register(self._fd, select.POLLIN)
         while not self._stop.is_set():
             try:
-                ready, _, _ = select.select([self._fd], [], [], 0.2)
+                ready = poller.poll(200)
+            except InterruptedError:
+                continue
             except (OSError, ValueError):
                 break
-            if not ready:
-                continue
-            try:
-                data = os.read(self._fd, 65536)
-            except OSError as exc:
-                if exc.errno in (errno.EAGAIN, errno.EWOULDBLOCK):
-                    continue
+            if ready and not self._drain():
                 break
-            self._consume(data)
+
+    def _drain(self):
+        """Consume every event queued on the fd. Returns False if the fd is unusable."""
+        with self._read_lock:
+            while True:
+                try:
+                    data = os.read(self._fd, 65536)
+                except OSError as exc:
+                    if exc.errno in (errno.EAGAIN, errno.EWOULDBLOCK):
+                        return True
+                    if exc.errno == errno.EINTR:
+                        continue
+                    return False
+                if not data:
+                    return True
+                self._consume(data)
+
+    def alive(self):
+        return self._thread is not None and self._thread.is_alive()
 
     def _consume(self, data):
         offset = 0
@@ -232,7 +270,8 @@ class ChangeWatcher:
             return
         self._arm_tree(path)
         with self._lock:
-            for current, _dirs, files in os.walk(path):
+            for current, dirs, files in os.walk(path, onerror=self._walk_failed):
+                dirs[:] = [name for name in dirs if name not in _IGNORED_DIRS]
                 for name in files:
                     self._record(os.path.join(current, name), "modify")
 
@@ -260,8 +299,9 @@ class ChangeWatcher:
         """
         index = {}
         reported = 0
+        failures = []
         for root in list(self.roots):
-            for base, dirs, files in os.walk(root):
+            for base, dirs, files in os.walk(root, onerror=failures.append):
                 dirs[:] = [name for name in dirs if name not in _IGNORED_DIRS]
                 for name in files:
                     path = os.path.join(base, name)
@@ -277,10 +317,18 @@ class ChangeWatcher:
                     if self._stat_index and self._stat_index.get(path) != key:
                         self._record(path, "modify")
                         reported += 1
-        for path in self._stat_index:
-            if path not in index:
-                self._record(path, "delete")
-                reported += 1
+        if failures:
+            # Part of the tree could not be listed, so a missing path proves nothing: a
+            # mode-000 directory must not read as "all of its files were deleted". Keep
+            # the old entries and make the host take a capture that knows it is partial.
+            self._coverage_lost = True
+            for path, key in self._stat_index.items():
+                index.setdefault(path, key)
+        else:
+            for path in self._stat_index:
+                if path not in index:
+                    self._record(path, "delete")
+                    reported += 1
         self._stat_index = index
         return reported
 
@@ -292,7 +340,15 @@ class ChangeWatcher:
         host materialised it, so reporting it would be noise.
         """
         rearm = False
+        # Pick up events the kernel has queued but the loop thread has not read yet, so
+        # a write that finished just before this call belongs to this block.
+        if self._fd is not None and not self._drain():
+            with self._lock:
+                self._coverage_lost = True
         with self._lock:
+            if not self.alive():
+                # The loop thread is gone: nothing is being watched any more.
+                self._coverage_lost = True
             now = time.monotonic()
             # Always scan on the first call (seed), after a lost baseline/coverage, and
             # otherwise at most once per interval. Skipping never drops a change: the

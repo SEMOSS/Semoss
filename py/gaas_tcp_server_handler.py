@@ -449,13 +449,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         path forever. Overflow, or a set past the cap, is reported so the host falls
         back to a full reconcile instead of trusting a partial list.
         """
-        if self.change_watcher is None:
-            try:
-                from gaas_change_watcher import shared_watcher
+        try:
+            from gaas_change_watcher import shared_watcher
 
-                self.change_watcher = shared_watcher(self._watcher_roots())
-            except Exception:
-                self.change_watcher = None
+            # Re-evaluated on every call: room/ and user/ appear only when the session
+            # first touches one, which is usually after the first CHANGES.
+            self.change_watcher = shared_watcher(self._watcher_roots())
+        except Exception:
+            self.change_watcher = None
         if self.change_watcher is None:
             snapshot = {
                 "changes": [],
