@@ -31,9 +31,21 @@ import select
 import stat
 import struct
 import threading
+import time
 
 # Directories whose contents never need write-back; keep the tuple scan cheap.
 _SKIP_DIRS = {"node_modules", "__pycache__", ".venv"}
+
+# The tuple scan exists to catch changes inotify cannot see (persistent mmap writes).
+# Running it on every block makes an idle session O(files) per block - measured 0.57 s
+# at 100k files. Bounding it by wall-clock instead keeps staleness under this many
+# seconds while an idle burst of blocks pays for at most one scan.
+_SCAN_MIN_INTERVAL_S = 2.0
+
+# A scan may occupy at most 1/N of wall-clock: the interval stretches to N x the
+# measured duration. At 240 files a scan is ~1 ms (interval stays 2 s); at 100k it is
+# ~0.57 s, so the interval becomes ~11 s and the backstop costs ~5% instead of 100%.
+_SCAN_BUDGET_FACTOR = 20
 
 IN_MODIFY = 0x00000002
 IN_CLOSE_WRITE = 0x00000008
@@ -76,6 +88,11 @@ class ChangeWatcher:
         self._root_ino = {}
         # path -> (mtime_ns, size, ino, ctime_ns) as of the last checkpoint
         self._stat_index = {}
+        self._last_scan = 0.0
+        self._scans_skipped = 0
+        # Grows with the measured cost of a scan so the backstop never takes more than
+        # a few percent of wall-clock, at any tree size.
+        self._scan_interval = _SCAN_MIN_INTERVAL_S
 
     # -- lifecycle ---------------------------------------------------------
 
@@ -264,7 +281,24 @@ class ChangeWatcher:
         """
         rearm = False
         with self._lock:
-            scanned = self._scan_tuples()
+            now = time.monotonic()
+            # Always scan on the first call (seed), after a lost baseline/coverage, and
+            # otherwise at most once per interval. Skipping never drops a change: the
+            # index is untouched, so the next scan reports everything accumulated.
+            due = (self._last_scan == 0.0 or self._baseline_pending or self._coverage_lost
+                   or (now - self._last_scan) >= self._scan_interval)
+            if due:
+                started = time.monotonic()
+                scanned = self._scan_tuples()
+                elapsed = time.monotonic() - started
+                self._scan_interval = max(_SCAN_MIN_INTERVAL_S, elapsed * _SCAN_BUDGET_FACTOR)
+                self._last_scan = now
+                skipped = 0
+                self._scans_skipped = 0
+            else:
+                scanned = 0
+                self._scans_skipped += 1
+                skipped = self._scans_skipped
             roots = []
             for root in self.roots:
                 try:
@@ -286,6 +320,7 @@ class ChangeWatcher:
                 "watched": self._armed,
                 "events": self._events_seen,
                 "stat_scan": scanned,
+                "scan_skipped": skipped,
                 "roots": roots,
             }
             self._changes = {}
