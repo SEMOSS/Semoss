@@ -40,22 +40,34 @@ worker has to travel `Tomcat → forward → gateway → supervisor → runtime 
 | Piece | Runs where | Notes |
 | --- | --- | --- |
 | Java (Tomcat) | host | owns the socket client, decides when to sync |
-| `gaas_tcp_socket_server.py` | sandbox, **main process** | the persistent REPL; one per user session |
+| `gaas_tcp_socket_server.py` | sandbox, **main process** | the persistent REPL; one per **user**, shared by all their sessions |
 | shell commands | sandbox | started by `OpenShellShellRunner`, same write-back rules |
 | user assets / projects / rooms | host | copied in at session start, written back at block boundaries |
 
 The worker is stateful: variables survive between blocks, which is why it cannot be
-restarted to pick up a change. It speaks the existing gaas protocol over a single TCP
-connection; a second connection is accepted and then never served.
+restarted to pick up a change. It runs with `--persist`: a client leaving (disconnect,
+`stop`, logout) does not end it, it serves up to `OPENSHELL_WORKER_MAX_CLIENTS` connections
+at once, and it exits by itself only after `OPENSHELL_IDLE_EXIT_MINUTES` with no client.
+Each server instance holds one connection per user, shared by that user's sessions there.
 
-## Session lifecycle
+## Lifecycle (one sandbox per user)
 
-- Created lazily on the first `Py()` or shell command; the first call pays the sandbox start
-  and the upload of the session's roots.
-- Deleted on logout, session timeout, and on disconnect, where `ClientProcessWrapper.shutdown`
-  reconciles one last time before the sandbox disappears.
-- Nothing removes a sandbox orphaned by a JVM crash yet. They carry the `OPENSHELL_LABEL`
-  label and a `pyw-` name, so `openshell sandbox list` finds them for manual deletion.
+`OpenShellUserSandboxes` keeps a registry of owner → sandbox and owner → live sessions. It uses
+Redis when one is configured (`REDIS_ENABLED`, or the cluster Redis), under `semoss:openshell:*`,
+and an in-memory map otherwise. The in-memory map is only correct for a single server instance,
+and it forgets the sandbox when that instance restarts.
+
+- **Created** lazily on the first `Py()` or shell command of a user who has no running sandbox.
+  Creation is serialised per user with a registry lock, so two instances do not both create one.
+  Any later session, cookie-less API call or server instance of that user **attaches** to it.
+- **Kept alive** by a lease: every authenticated request refreshes the session's entry for the
+  session timeout, at most once a minute. Browsing without python counts.
+- **Deleted** when the user's last live session ends, by logout or timeout. A server stopping
+  destroys every session, but that is not the user leaving: the leases stand, and the
+  restarted or another instance reattaches with the worker's variables intact.
+- **Swept** every five minutes on each instance. That removes sandboxes whose owner has no live
+  lease (a session lost with its server), labelled sandboxes that are no longer running, and,
+  with Redis, running user sandboxes no registry entry names.
 
 ## Write-back pipeline
 
@@ -200,6 +212,8 @@ be current — a stale image shows up as code that ignores your latest change.
 | `OPENSHELL_WORKER_PORT` | worker port inside the sandbox (default `7100`) |
 | `OPENSHELL_READY_TIMEOUT_SECONDS` | cold-start budget (default `180`) |
 | `OPENSHELL_KEEP_SANDBOX` | `true` leaves sandboxes in place on teardown, for debugging |
+| `OPENSHELL_IDLE_EXIT_MINUTES` | a user's worker exits after this long with no client connected (default `180`; keep above the session timeout) |
+| `OPENSHELL_WORKER_MAX_CLIENTS` | connections one user's worker serves at once (default `16`) |
 
 ## Verifying a deployment
 
@@ -220,5 +234,11 @@ be current — a stale image shows up as code that ignores your latest change.
   session is not reflected inward, and the sandbox wins the next write-back for any file it
   touched (recoverable from quarantine). Branch switching belongs on the host, followed by a
   fresh session.
+- Python variables are keyed by insight id, and insight ids live in one instance's memory. After
+  a restart or a move to another instance the worker, its modules and its files are intact, but a
+  new insight does not see the old insight's variables.
+- One change watcher serves every connection to a worker. Two instances connected at once can
+  consume each other's change sets. That is harmless while they share a disk; separate disks per
+  instance need per-connection cursors.
 - Rooms and assets are gated as described above, but the platform has no room-sharing model
   in this build; if one is added, the room branch must resolve the room to its project.
