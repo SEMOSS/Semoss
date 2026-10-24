@@ -235,6 +235,14 @@ public final class OpenShellUserSandboxes {
 					if (store.sandboxFor(owner) != null) {
 						continue;
 					}
+					// No entry, but the gateway may still run the user's sandbox: the in-memory
+					// registry after a restart, or Redis flushed. The owner label finds it.
+					String labelled = runningSandboxLabelled(owner);
+					if (labelled != null) {
+						classLogger.info("Recovered sandbox {} for user {} from its owner label", labelled, owner);
+						store.bind(owner, labelled);
+						continue;
+					}
 					name = OpenShellTransport.sandboxNameFor(owner + ":" + UUID.randomUUID());
 					OpenShellTransport transport = OpenShellTransport.forUser(name, owner);
 					int port = transport.start();
@@ -249,6 +257,20 @@ public final class OpenShellUserSandboxes {
 			Thread.sleep(1000);
 		}
 		throw new IllegalStateException("timed out waiting for the user's sandbox");
+	}
+
+	/** A {@code Ready} sandbox carrying this owner's label, or null. */
+	private static String runningSandboxLabelled(String owner) {
+		try {
+			for (String[] box : OpenShellTransport.listExecutorSandboxes()) {
+				if (owner.equals(box[3]) && "Ready".equalsIgnoreCase(box[1])) {
+					return box[0];
+				}
+			}
+		} catch (Exception e) {
+			classLogger.warn("Could not list sandboxes to recover one by label", e);
+		}
+		return null;
 	}
 
 	// ------------------------------------------------------------------ session leases

@@ -605,6 +605,17 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			addEpocForJob(ps.jobId, ps.epoc);
 		}
 		ps.longRunning = true;
+		// The other half of the execution boundary: before a block runs, host-side changes
+		// (another user's write-back, a cluster pull, the UI) are copied into the sandbox, so
+		// the block sees what the platform holds now rather than its first-use copy.
+		if (!ps.response && this.cpw != null && !Boolean.TRUE.equals(IN_CHANGE_QUERY.get())
+				&& (ps.operation == PayloadStruct.OPERATION.PYTHON || ps.operation == PayloadStruct.OPERATION.CMD)) {
+			try {
+				this.cpw.refreshTransportedRoots();
+			} catch (Exception refreshError) {
+				classLogger.warn("Refresh before execution failed", refreshError);
+			}
+		}
 
 		try {
 			// ReentrantLock + Condition (not synchronized/wait) so a virtual thread

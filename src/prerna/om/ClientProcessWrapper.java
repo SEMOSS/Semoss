@@ -146,6 +146,18 @@ public class ClientProcessWrapper {
 	 * worker has already forgotten those paths, so only a full capture can recover them.
 	 */
 	private volatile boolean fullCaptureOwed = false;
+	/**
+	 * Project roots written back since they were last published to cluster storage. Pushing
+	 * is what lets another server pull the change, and from there its sandboxes refresh.
+	 */
+	private final java.util.Set<String> unpublishedRoots = java.util.concurrent.ConcurrentHashMap.newKeySet();
+	private final Map<String, Long> lastPublished = new java.util.concurrent.ConcurrentHashMap<>();
+	private static final long PUBLISH_INTERVAL_MS = 10_000L;
+	private static final ExecutorService PUBLISHER = Executors.newSingleThreadExecutor(r -> {
+		Thread t = new Thread(r, "openshell-writeback-publisher");
+		t.setDaemon(true);
+		return t;
+	});
 	private String classPath;
 	private boolean debug;
 	private String timeout;
@@ -518,7 +530,10 @@ public class ClientProcessWrapper {
 		int total = 0;
 		for (Map.Entry<String, List<String>> group : writes.entrySet()) {
 			try {
-				total += this.openshell.fetchBackPaths(group.getKey(), group.getValue());
+				if (this.openshell.fetchBackPaths(group.getKey(), group.getValue()) > 0) {
+					this.unpublishedRoots.add(group.getKey());
+					total++;
+				}
 			} catch (Exception e) {
 				// The worker has already dropped these paths from its pending set, so they
 				// would never be reported again: recover them with a full capture next block.
@@ -530,15 +545,111 @@ public class ClientProcessWrapper {
 		for (Map.Entry<String, List<String>> group : deletes.entrySet()) {
 			for (String relative : group.getValue()) {
 				if (this.openshell.deleteFromHost(group.getKey(), relative)) {
+					this.unpublishedRoots.add(group.getKey());
 					removed++;
 				}
 			}
 		}
 		if (total > 0 || removed > 0) {
-			classLogger.info("Fetch-back wrote {} and removed {} file(s) from {} changed path(s)", total, removed,
-					changes.size());
+			classLogger.info("Fetch-back wrote into {} root(s) and removed {} file(s) from {} changed path(s)", total,
+					removed, changes.size());
 		}
+		publishWrittenRoots(false);
 		return total + removed;
+	}
+
+	/**
+	 * Bring host-side changes into the sandbox before a block runs: another user's write-back,
+	 * a cluster pull, an upload in the UI. Without this a sandbox computes on the copy it was
+	 * given at first use for as long as it lives.
+	 */
+	public void refreshTransportedRoots() {
+		if (this.openshell == null || this.chrootSymlinkHelper == null) {
+			return;
+		}
+		fetchBackLock.lock();
+		try {
+			if (this.fullCaptureOwed) {
+				// Unapplied sandbox changes first; a refresh must not overwrite them.
+				fetchBackTransportedRootsLocked();
+			}
+			for (String path : this.chrootSymlinkHelper.getTransportedPaths()) {
+				if (!isUserSpace(Utility.normalizePath(path))) {
+					continue;
+				}
+				try {
+					this.openshell.refreshFromHost(path);
+				} catch (Exception e) {
+					classLogger.warn("Refresh of {} into the sandbox failed; the sandbox keeps its copy", path, e);
+				}
+			}
+		} finally {
+			fetchBackLock.unlock();
+		}
+	}
+
+	private static boolean isUserSpace(String normalized) {
+		return normalized.contains("/" + Constants.PROJECT_FOLDER + "/")
+				|| normalized.contains("/" + Constants.ROOM_FOLDER + "/")
+				|| normalized.contains("/" + Constants.USER_FOLDER + "/");
+	}
+
+	/**
+	 * Push written-back project roots to cluster storage and announce them, so servers that
+	 * have the project loaded pull the change. Batched: a root is pushed at most every ten
+	 * seconds, and whatever is left is pushed when the connection is released.
+	 *
+	 * @param force push everything pending now (teardown)
+	 */
+	private void publishWrittenRoots(boolean force) {
+		if (!prerna.cluster.util.ClusterUtil.IS_CLUSTER || this.unpublishedRoots.isEmpty()) {
+			return;
+		}
+		long now = System.currentTimeMillis();
+		for (String root : new ArrayList<>(this.unpublishedRoots)) {
+			String projectId = projectIdOf(root);
+			if (projectId == null) {
+				// rooms and user assets have their own sync at logout
+				this.unpublishedRoots.remove(root);
+				continue;
+			}
+			if (!force && now - this.lastPublished.getOrDefault(root, 0L) < PUBLISH_INTERVAL_MS) {
+				continue;
+			}
+			this.unpublishedRoots.remove(root);
+			this.lastPublished.put(root, now);
+			Runnable push = () -> {
+				try {
+					prerna.project.api.IProject project = Utility.getProject(projectId);
+					if (project != null) {
+						prerna.cluster.util.ClusterUtil.pushProjectFolder(project, root);
+						classLogger.info("Published write-back of {} to cluster storage", root);
+					}
+				} catch (Exception e) {
+					this.unpublishedRoots.add(root);
+					classLogger.warn("Could not publish write-back of {}; retrying after the next block", root, e);
+				}
+			};
+			if (force) {
+				push.run();
+			} else {
+				PUBLISHER.submit(push);
+			}
+		}
+	}
+
+	/** The project id of a root under {@code project/<name>__<id>/}, or null for other spaces. */
+	private static String projectIdOf(String normalized) {
+		String marker = "/" + Constants.PROJECT_FOLDER + "/";
+		int at = normalized.indexOf(marker);
+		if (at < 0) {
+			return null;
+		}
+		String rest = normalized.substring(at + marker.length());
+		int slash = rest.indexOf('/');
+		String folder = slash < 0 ? rest : rest.substring(0, slash);
+		int separator = folder.lastIndexOf("__");
+		return separator < 0 ? folder : folder.substring(separator + 2);
 	}
 
 	private static boolean truthy(Object value) {
@@ -715,13 +826,18 @@ public class ClientProcessWrapper {
 				continue;
 			}
 			try {
-				total += this.openshell.fetchBack(path);
+				int written = this.openshell.fetchBack(path);
+				if (written > 0) {
+					this.unpublishedRoots.add(normalized);
+				}
+				total += written;
 			} catch (Exception e) {
 				failed = true;
 				classLogger.warn("Fetch-back failed for {}; retrying with a full capture next block", path, e);
 			}
 		}
 		this.fullCaptureOwed = failed;
+		publishWrittenRoots(false);
 		return total;
 	}
 
@@ -734,6 +850,7 @@ public class ClientProcessWrapper {
 			if (this.openshell != null) {
 				try {
 					fetchBackTransportedRoots();
+					publishWrittenRoots(true);
 				} catch (Exception e) {
 					classLogger.warn("Fetch-back before sandbox teardown failed for port {}", this.port, e);
 				}

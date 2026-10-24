@@ -139,6 +139,14 @@ public final class OpenShellShellRunner {
 				}
 				return new Result(newDir, newDir);
 			}
+			// Same boundary as a python block: host-side changes go in first.
+			if (cpw != null) {
+				try {
+					cpw.refreshTransportedRoots();
+				} catch (Exception refreshError) {
+					// a stale copy is better than a refused command
+				}
+			}
 			String output = runInSandbox(sandboxName, dir, trimmed).output;
 			// Shell writes are not requests on the python socket, so they do not pass the
 			// fetch-back hook there. Reconcile here too -- this is the path a `git commit`
