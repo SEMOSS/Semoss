@@ -991,15 +991,39 @@ registry-verified integrity hash) and independently verified with a real
 `npm ci`/`pnpm install --frozen-lockfile` in an isolated copy, confirming
 `undici@7.30.1` resolves cleanly with no other package affected.
 
-These same lockfiles also carry three other packages with findings first
-appearing in the same 2026-10-24 rescan - `zod`, `fast-uri`, and
-`body-parser` - not yet individually investigated or fixed.
+`zod` 3.25.76, present in the same three lockfiles as a peer dependency of
+`@modelcontextprotocol/sdk` and `zod-to-json-schema` (MCP tool-schema
+validation; not imported directly anywhere in this codebase), has a HIGH
+finding (CVE-2023-54404, first appearing in the same 2026-10-24 rescan) left
+unfixed rather than patched like `undici` above: an unbounded `z.array()`/
+`z.set()`/`z.map()` schema accumulates one validation-issue object per
+element with no cap, exhausting memory on a large input. Inspector2
+suggests 4.6.6, but the advisory's own text says that release "only moves
+the `.max()`, `.length()` and `.size()` size checks to run before element
+parsing, so it rejects oversized input for schemas that declare an explicit
+upper bound; per the maintainer, unbounded containers are unchanged" - the
+advisory's text ends there, mid-sentence, but its own documented remediation
+only protects schemas that already declare a bound, not the unbounded
+("default configuration") case the finding itself describes as reachable.
+Migrating major versions (zod's own well-known breaking rewrite of its
+parsing API and error format) for a release that does not fix the actual
+reachable vulnerability is not a trade worth making. Kept as an accepted
+exception: gated behind the same Node.js-runtime absence as `undici` above,
+and no released version remediates the underlying case regardless.
+
+These same lockfiles also carry two other packages with findings first
+appearing in the same 2026-10-24 rescan - `fast-uri` and `body-parser` - not
+yet individually investigated or fixed.
 
 **Reassess if**: Node.js, npm, or pnpm is added to `docker/il4/Dockerfile`
 for any reason - at that point this needs the same actual decision as
 Playwright above (feature flag, permission/role gate, DoDI 8552.01
 categorization of LLM-directed code execution), not continued reliance on
-the toolchain's absence.
+the toolchain's absence. Separately for `zod`: reassess if a future zod
+release actually remediates unbounded array/set/map schemas, or if any
+SEMOSS-authored code (as opposed to MCP SDK's own internal validation, or
+LLM-generated ExecuteNodeCode scripts) comes to construct a zod container
+schema without an explicit size bound over attacker-influenced input.
 
 ## FIPS boundaries
 
