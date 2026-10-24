@@ -952,6 +952,55 @@ gate, and a DoDI 8552.01 categorization of LLM-directed browser actions
 headless browser, not a browser-sandboxed script) - rather than continuing to
 rely on the binary's absence.
 
+### Node.js code execution (ExecuteNodeCode) - also inert by omission
+
+The same pattern applies to a separate subsystem: `NodeUtils.java` resolves a
+`NODE_HOME` environment variable (or RDF_Map property) to a real `node`
+executable, and an agent tool handler (`PlatformAgentToolHandlers`,
+`HarnessToolExecutor`, `PptxWorkflow`) can invoke arbitrary LLM-generated
+JavaScript against a curated dependency set in `js/node_env/` - including a
+self-healing `npm ci --omit=dev` if the installed tree doesn't match
+`package-lock.json`. A related, separately-documented agent workflow
+(`BuildAndPublishApp`, used by the App Builder's React app templates under
+`project/platform__*`) depends on the same `node`/`npm`/`pnpm` toolchain to
+bundle a cloned app's `client/` source via Vite. `docker/il4/Dockerfile` has
+no Node.js install step anywhere (confirmed: zero matches for "node" in the
+whole file), so `NODE_HOME` never resolves and both paths fail closed today -
+the same incidental, not-written-as-a-control protection as Playwright's
+missing Chromium, with the same fragility: any future, unrelated Dockerfile
+change that installs Node.js for some other reason would silently reactivate
+both LLM-directed JavaScript execution and the app-build pipeline.
+
+Despite being currently unreachable, the dependency manifests this feature
+would install from are kept patched rather than left vulnerable, since
+reachability here depends entirely on an incidental Dockerfile omission, not
+a deliberate control: `js/node_env/package-lock.json` and two copies of
+`project/platform__react-template/.../pnpm-lock.yaml` (root workspace and its
+nested `client/`) all pinned `undici` 7.29.1 (a transitive dependency of
+`cheerio`), vulnerable to three HIGH AWS Inspector2 findings first appearing
+in the 2026-10-24 rescan: CVE-2026-109841 (fetch() accepts a response whose
+Subresource Integrity digest doesn't match, due to non-lowercase SRI
+algorithm tokens being silently skipped), CVE-2026-109869 (a malicious
+server can crash the Node process via a crafted five-plus-content-coding
+response that closes the connection early), and CVE-2026-109924 (a
+malicious Server-Sent Events peer can exhaust process memory via the
+EventSource client, bypassing its own byte-based size limits). All three are
+fixed in 7.30.1, a same-major-line patch release that `cheerio`'s own
+`^7.19.0` range already permits; each lockfile was hand-edited (version plus
+registry-verified integrity hash) and independently verified with a real
+`npm ci`/`pnpm install --frozen-lockfile` in an isolated copy, confirming
+`undici@7.30.1` resolves cleanly with no other package affected.
+
+These same lockfiles also carry three other packages with findings first
+appearing in the same 2026-10-24 rescan - `zod`, `fast-uri`, and
+`body-parser` - not yet individually investigated or fixed.
+
+**Reassess if**: Node.js, npm, or pnpm is added to `docker/il4/Dockerfile`
+for any reason - at that point this needs the same actual decision as
+Playwright above (feature flag, permission/role gate, DoDI 8552.01
+categorization of LLM-directed code execution), not continued reliance on
+the toolchain's absence.
+
 ## FIPS boundaries
 
 ### Alternative-provider feasibility (2026-10-01)
