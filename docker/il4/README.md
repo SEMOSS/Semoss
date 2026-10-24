@@ -933,9 +933,28 @@ validation against both a valid and an invalid URI) against the upgraded
 package in an isolated install, independently for the workspace root and
 the standalone `client/` lockfile - not just confirming it resolves.
 
-This same lockfile pair also carries one other package with a finding first
-appearing in the same 2026-10-24 rescan - `body-parser` - not yet
-individually investigated or fixed.
+`body-parser` 2.3.0, a direct dependency of `express` (`^2.2.1`, already
+permitting the fix) in the same lockfile pair, closes CVE-2026-111181
+(HIGH, first appearing in the 2026-10-24 rescan): a single request with a
+`Content-Encoding` such as gzip - one valid compressed frame followed by
+trailing bytes - left the decompression stream without an error listener
+after the body was read, so the trailing bytes hit the finished decoder and
+the resulting error was re-thrown as an uncaught exception, crashing the
+process with no route or application code involved (body parsing runs
+before routing). Fixed in the very next patch release, 2.4.0 - a same-line
+patch, not a major bump. Verified beyond dependency resolution: reproduced
+the exact trigger (a real gzip frame plus trailing garbage bytes sent over
+an actual HTTP request to a real `http.createServer` + `body-parser`
+pipeline, with an `uncaughtException` handler that would fail the test
+process if the crash still occurred) against the upgraded package in an
+isolated install - the process survived and returned a handled 400 response
+instead of crashing, independently for both the workspace root and the
+standalone `client/` lockfile.
+
+This accounts for all five packages with findings first appearing in the
+2026-10-24 rescan across these lockfiles: `undici`, `fast-uri`, and
+`body-parser` fixed; `zod` documented above as an accepted exception since
+no released version remediates its reachable case.
 
 **Reassess if**: Node.js, npm, or pnpm is added to `docker/il4/Dockerfile`
 for any reason - at that point this needs an actual decision (a feature flag
