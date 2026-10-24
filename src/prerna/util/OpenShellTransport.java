@@ -637,6 +637,16 @@ public final class OpenShellTransport {
 		return yaml.toString();
 	}
 
+	/** The interpreter path network rules name ({@link #PYTHON_BINARY_PROP}). */
+	public static String pythonBinary() {
+		return propOr(PYTHON_BINARY_PROP, DEFAULT_PYTHON_BINARY);
+	}
+
+	/** Whether a value is a plain hostname, safe to place in a policy or profile. */
+	public static boolean isValidHost(String host) {
+		return host != null && EGRESS_HOST.matcher(host).matches();
+	}
+
 	/**
 	 * A sandbox resource cap from its property: the default when unset, null for {@code none},
 	 * and an error for anything that is not a quantity the CLI accepts.
@@ -1903,9 +1913,31 @@ public final class OpenShellTransport {
 		}
 	}
 
+	/**
+	 * Run an {@code openshell} subcommand, for collaborators such as the secret broker.
+	 *
+	 * @param args     everything after the CLI name
+	 * @param extraEnv added to the child's environment; how a credential value reaches the CLI
+	 *                 ({@code --credential KEY} reads it from there), so it is never on a command
+	 *                 line or in a process listing
+	 */
+	public static String cli(List<String> args, int timeoutSeconds, Map<String, String> extraEnv)
+			throws IOException, InterruptedException {
+		List<String> cmd = new ArrayList<>();
+		cmd.add(propOr(CLI_PROP, DEFAULT_CLI));
+		cmd.addAll(args);
+		return run(cmd, timeoutSeconds, extraEnv);
+	}
+
 	private static String run(List<String> cmd, int timeoutSeconds) throws IOException, InterruptedException {
+		return run(cmd, timeoutSeconds, Map.of());
+	}
+
+	private static String run(List<String> cmd, int timeoutSeconds, Map<String, String> extraEnv)
+			throws IOException, InterruptedException {
 		ProcessBuilder pb = new ProcessBuilder(cmd);
 		pb.environment().putAll(cliEnv());
+		pb.environment().putAll(extraEnv);
 		pb.redirectErrorStream(true);
 		// Close the child's stdin immediately. Without this it inherits a pipe that
 		// stays open for the JVM's lifetime and any subcommand that reads stdin --

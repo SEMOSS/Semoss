@@ -274,6 +274,39 @@ OPENSHELL_MEMORY   4Gi
   and deletes `os.fork`, `os.kill`, `os.system` and the `exec*`/`spawn*` family. That guard
   predates OpenShell; whether to relax it now that the sandbox is the boundary is open.
 
+## App secrets
+
+A project can give its sandboxed code a secret the code can use but never read. In the project
+`.smss` (project owners edit it):
+
+```
+SANDBOX_SECRETS                     [{"name":"OPENWEATHER_API_KEY","hosts":["api.openweathermap.org"]}]
+SANDBOX_SECRET_OPENWEATHER_API_KEY  <the value>
+```
+
+and in python:
+
+```python
+from smss_secrets import secret
+requests.get(url, params={"appid": secret("OPENWEATHER_API_KEY")})
+```
+
+- The `.smss` never enters a sandbox, so the value stays on the host. Each secret becomes one
+  OpenShell provider; code gets a placeholder, and OpenShell's supervisor swaps it for the value in
+  requests to the declared hosts (headers and query string verified) and refuses it anywhere else
+  (`403 credential_endpoint_mismatch`, logged as a HIGH finding). Any request method is allowed.
+  HTTP(S) only: a database password cannot be brokered.
+- Brokered when a user's sandbox first loads the project (`OpenShellSecrets`, called from the
+  transporter for a project root). The first load waits for the attach to apply (~10 s).
+- Names are per project: two apps may both declare `OPENAI_API_KEY`; with both loaded,
+  `secret(name, project=<id>)` picks one.
+- A changed value is applied on the next load of the project (an edited `.smss` needs a project
+  reload) and reaches code that is already running: `secret()` re-reads the placeholders, which
+  OpenShell replaces on every update and attach.
+- The value property can later come from the secret store, which overlays the same properties.
+- All code in one user's sandbox runs as that user, so any app the user has loaded can use the
+  placeholders of another app they have loaded, at that app's hosts. Isolation is per user.
+
 ## Workstations (BaseFolder is not /opt/semosshome)
 
 Files cross into a sandbox **at the path they have on the host**: a project uploaded from

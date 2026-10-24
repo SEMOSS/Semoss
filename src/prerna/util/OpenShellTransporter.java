@@ -27,6 +27,9 @@
  *******************************************************************************/
 package prerna.util;
 
+import prerna.util.openshell.OpenShellSecrets;
+import prerna.util.openshell.TransportedRoots;
+
 /**
  * {@link SandboxTransporter} for {@link SymlinkHelper.SandboxMode#OPENSHELL}: copies a host path into
  * the sandbox with {@code openshell sandbox upload}.
@@ -57,7 +60,17 @@ public class OpenShellTransporter implements SandboxTransporter {
 		if (absPath == null || absPath.trim().isEmpty()) {
 			return false;
 		}
-		return this.transport.upload(absPath);
+		boolean uploaded = this.transport.upload(absPath);
+		if (uploaded) {
+			// A project root arriving in the sandbox is when its declared secrets are attached:
+			// only users allowed to load the project get here.
+			String normalized = Utility.normalizePath(absPath);
+			String projectId = TransportedRoots.projectIdOf(normalized);
+			if (projectId != null && normalized.matches(".*/" + Constants.PROJECT_FOLDER + "/[^/]+/app_root/?$")) {
+				OpenShellSecrets.ensureForProject(this.transport, projectId);
+			}
+		}
+		return uploaded;
 	}
 
 	@Override
