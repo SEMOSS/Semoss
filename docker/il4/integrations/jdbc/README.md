@@ -56,35 +56,47 @@ published x-pack-sql-jdbc release bundles yet - checked every 9.4.x/9.5.x releas
 through the real current latest, 9.5.5. Verified by resolving the dependency through
 the project's real Maven build (`BUILD SUCCESS`) and inspecting the resolved jar's own
 `META-INF/maven/.../jackson-core/pom.properties`, confirming 2.21.7 landed exactly as
-expected - not assumed from the version number alone.
+expected - not assumed from the version number alone. Converged to 9.5.5 via the
+2026-10-24 `dev` merge, which independently bumped to that exact version (#3185);
+verified it bundles the identical `jackson-core 2.21.7`, so no security difference
+either way - took dev's newer, already-adopted value rather than keeping the
+narrower 9.4.8 this repo had chosen independently.
 
-**`databricks-jdbc`**: stays at 2.7.4, leaving its bundled-vendor Inspector2 findings
-open (log4j-core/log4j-api 2.24.3 and jackson-databind/jackson-core 2.17.1, ~21
-findings including several HIGH). Checked for a fix: the *only* line that removes the
-vulnerable log4j entirely is 3.x, confirmed by downloading and inspecting the real
-3.4.4 jar (no `log4j-core`/`log4j-api` present at all; Databricks also now shades its
-own Jackson copy under `com.databricks.internal.fasterxml.jackson.*`, unlike 2.7.4's
-unshaded bundling). But GitHub's actual release history
+**`databricks-jdbc`**: bumped 2.7.4 -> 2.8.4 via the 2026-10-24 `dev` merge (dev's
+own bare "fix: update databricks and tika" commit gave no reasoning, so this was
+independently re-verified here rather than trusted as-is). Confirmed by downloading
+and inspecting the real 2.8.4 jar: it drops bundled `log4j-core`/`log4j-api`
+entirely (neither is present at all - the same outcome previously found only in the
+3.x rewrite) and bumps bundled Jackson to 2.21.5, closing CVE-2025-68161/34477/
+34478/34480/49844 (log4j) and CVE-2026-18401/68494/59888 (jackson) - roughly a third
+of this jar's ~21 bundled-vendor findings. Still the same Simba-derived 2.x codebase
+as 2.7.4 (identical `com/databricks/client/*` package structure and driver class
+confirmed via direct comparison), not the ground-up 3.x rewrite described below, so
+this carries none of that rewrite's compatibility risk.
+
+The remaining findings (CVE-2026-91777/91776/89425/68497 and others needing
+Jackson>=2.22.x or the real Jackson 3.x line) still require either a newer 2.x
+release Databricks hasn't shipped yet, or the 3.x rewrite, which stays an accepted
+exception for the reasons already established: GitHub's actual release history
 (`databricks/databricks-jdbc`) jumps straight from `v1.0.9-oss` to `v3.0.3` - 2.x was
 never published there at all, meaning 3.x is a ground-up, Databricks-authored OSS
 driver rewrite that happens to share the `com.databricks:databricks-jdbc` Maven
 coordinate with the legacy 2.x line, not an evolutionary version bump. Its own v3.0.7
 changelog documents a real breaking change
 (`PreparedStatement.setTimestamp(int, Timestamp, Calendar)` behavior). Even at the
-latest 3.4.4, bundled Jackson is still only 2.18.11 - below every threshold these
-CVEs need (2.21.4-2.22.3, or the real Jackson 3.x line under the renamed
+latest 3.4.4, bundled Jackson is still only 2.18.11 - below every threshold the
+remaining CVEs need (2.21.4-2.22.3, or the real Jackson 3.x line under the renamed
 `tools.jackson.core` coordinate, which Databricks hasn't adopted) - so a 3.x bump
-would only ever close the log4j-related findings, never the Jackson-related majority.
-SEMOSS's own `DatabricksQueryUtil.java` doesn't call the specific changed API
-directly, but the actual JDBC interaction runs through the generic, shared
-`RDBMSNativeEngine` used by every RDBMS type, which was not verified against the
-rewritten driver - there is no live Databricks workspace available here to test a
-real connection against. Kept as an accepted exception rather than acted on: the
-compatibility risk of a from-scratch driver rewrite, untestable without a live
-Databricks SQL warehouse, outweighs a fix that would close under a quarter of the
-findings even in the best case. Reassess if a live Databricks workspace becomes
-available to validate the 3.x rewrite end to end, or Databricks ships a 2.x-line
-patch instead of continuing only the 3.x rewrite.
+would still not close the Jackson-related majority. SEMOSS's own `DatabricksQueryUtil.java`
+doesn't call the specific changed API directly, but the actual JDBC interaction runs
+through the generic, shared `RDBMSNativeEngine` used by every RDBMS type, which was
+not verified against the rewritten driver - there is no live Databricks workspace
+available here to test a real connection against. Kept as an accepted exception for
+the remaining findings rather than acted on: the compatibility risk of a
+from-scratch driver rewrite, untestable without a live Databricks SQL warehouse,
+outweighs a fix that would close only part of what's left even in the best case.
+Reassess if a live Databricks workspace becomes available to validate the 3.x
+rewrite end to end, or Databricks ships a further 2.x-line patch.
 
 ## Strict connection profiles
 
