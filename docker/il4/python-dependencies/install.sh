@@ -36,4 +36,8 @@ export ANNOY_COMPILER_ARGS="-D_CRT_SECURE_NO_WARNINGS,-fpermissive,-O3,-ffast-ma
 "$UV" --no-config pip sync --python "$VENV/bin/python" \
     --index-url https://pypi.org/simple --torch-backend cpu \
     --require-hashes --no-build-isolation requirements-cpu.lock
+# Correct pipecat-ai's declared Pillow<13 bound to match the independently
+# verified Pillow 13.0.0 override (see compatibility.json); hash-guarded
+# against pipecat-ai 1.13.0's exact METADATA.
+"$VENV/bin/python" pipecat_pillow_compat.py "$VENV"
 "$UV" --no-config pip check --python "$VENV/bin/python"
