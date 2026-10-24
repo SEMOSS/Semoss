@@ -1002,11 +1002,38 @@ build` against the upgraded package in an isolated install with
 `--frozen-lockfile` passing cleanly - independently for the workspace root
 and the standalone `client/` lockfile.
 
-This accounts for all seven packages with findings first appearing in the
+`ip-address` 10.7.1, pinned via the same `pnpm.overrides` mechanism as
+`fast-uri`, closed CVE-2026-111997 (MEDIUM, first appearing in the next
+rescan): many `%` characters in input reaching the `Address6` constructor
+trigger quadratic-complexity parsing, a CPU-exhaustion DoS. Fixed in the
+very next patch, 10.7.4.
+
+`hono` 4.13.7 closed CVE-2026-111757 (MEDIUM, first appearing in the next
+rescan): `serveStatic` decodes a routed request path a second time before
+its filesystem lookup, so a malformed percent-encoded path can survive
+upstream routing middleware's protection for a static prefix and only
+become the protected path on the later decode, disclosing a file upstream
+middleware was meant to block (no traversal outside the configured static
+root). Fixed in 4.13.11. Unlike the other findings in this lockfile pair,
+`hono` had no existing direct declaration or override anywhere to anchor a
+version bump to - `pnpm update hono@4.13.11` silently no-ops against a pure
+transitive dependency with nothing to target, confirmed by checking the
+actually-resolved version stayed at 4.13.7 after running it. Added a new
+`pnpm.overrides` entry instead, the same mechanism already used for
+`fast-uri`/`ip-address`/`@modelcontextprotocol/sdk`.
+
+Both verified the same way as the other overrides above: a full lockfile
+diff confirmed only the target package (plus, for `hono`, its directly
+peer-linked `@hono/node-server`'s resolved key label) moved, `pnpm install
+--frozen-lockfile` passed cleanly, and the project's actual `tsc -b && vite
+build` command still produces the same `portals/` output - independently
+for the workspace root and the standalone `client/` lockfile.
+
+This accounts for all eight packages with findings first appearing in the
 2026-10-24 rescan across these lockfiles: `undici`, `fast-uri`,
-`body-parser`, `vite`, and `@modelcontextprotocol/sdk` fixed; `zod`
-documented above as an accepted exception since no released version
-remediates its reachable case.
+`body-parser`, `vite`, `@modelcontextprotocol/sdk`, `ip-address`, and `hono`
+fixed; `zod` documented above as an accepted exception since no released
+version remediates its reachable case.
 
 **Reassess if**: Node.js, npm, or pnpm is added to `docker/il4/Dockerfile`
 for any reason - at that point this needs an actual decision (a feature flag
