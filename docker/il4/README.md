@@ -84,6 +84,26 @@ installed RPM inventory in `/opt/provenance`. Embedded private/shaded crypto
 outside the `org.bouncycastle` namespace is not exhaustively detected by this
 check; application cryptographic routing still needs review.
 
+**`commons-configuration` 1.10** stays unfixed (CVE-2025-46392, MEDIUM,
+uncontrolled resource consumption loading untrusted configurations) - no
+fixed release exists in the 1.x line at all; Apache's own advisory states
+the 1.x line won't be patched and recommends migrating to 2.x, which is not
+a drop-in replacement (separate Maven coordinate and Java package
+namespace). `pom.xml` already documents why: it's pinned explicitly, with
+all of its own transitive dependencies excluded, solely to satisfy
+`org.janusgraph:janusgraph-core`'s declared requirement - SEMOSS's own code
+never calls `org.apache.commons.configuration.*` directly (confirmed via
+direct search of both this repo and Monolith), and `commons-configuration2`
+is already present in the same `WEB-INF/lib` for anything written against
+the current API. Confirmed via a direct `docker run` against both the
+BC-FIPS and ACCP images that the identical jar (same byte size, same build
+timestamp) is present in both - an earlier Inspector2 scan pair showed this
+finding only against BC-FIPS, which was scan-correlation timing, not a real
+difference between the two builds. Reassess if JanusGraph ever ships a
+release depending on `commons-configuration2` instead, or if any future
+code change has SEMOSS load an untrusted configuration file through this
+library directly.
+
 ## Functional validation and integration status
 
 The localhost-only deployment has passed native administrator login, CSRF-protected
