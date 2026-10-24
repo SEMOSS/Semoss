@@ -95,6 +95,8 @@ public final class OpenShellUserSandboxes {
 
 	private static final Logger classLogger = LogManager.getLogger(OpenShellUserSandboxes.class);
 
+	/** Session attribute holding the owner a session's lease was taken under. */
+	public static final String SESSION_OWNER_ATTR = "OPENSHELL_SANDBOX_OWNER";
 	/** How often a session may refresh its lease; requests in between are free. */
 	private static final long TOUCH_INTERVAL_MS = TimeUnit.SECONDS.toMillis(60);
 	/** How long a creator may hold the per-user create lock. */
@@ -149,6 +151,25 @@ public final class OpenShellUserSandboxes {
 		}
 		AccessToken token = user.getPrimaryLoginToken();
 		return token != null && token.getId() != null;
+	}
+
+	/**
+	 * The owner a session's sandbox lease was taken under, for cleanup when the session is
+	 * destroyed. Read from the session first: logging out of a provider drops its token
+	 * before the session is invalidated, so by then the user may have no login to derive
+	 * the owner from, and the lease would never be released.
+	 *
+	 * @param recorded the session's {@link #SESSION_OWNER_ATTR} value, or null
+	 * @return the owner, or null when this session has no user-scoped sandbox
+	 */
+	public static String ownerForSession(User user, Object recorded) {
+		if (!enabled()) {
+			return null;
+		}
+		if (recorded instanceof String owner && !owner.isEmpty()) {
+			return owner;
+		}
+		return appliesTo(user) ? ownerOf(user) : null;
 	}
 
 	/**
@@ -380,13 +401,14 @@ public final class OpenShellUserSandboxes {
 	 * fired {@code sessionDestroyed} for each one and deleted the sandbox), but the user has
 	 * not left: their lease stands, so the restarted or another instance reattaches.
 	 *
-	 * @param over true for a logout or a timeout; false when the server is going away
+	 * @param owner the owner recorded on the session ({@link #ownerForSession}); a logout
+	 *              may already have dropped the login it was derived from
+	 * @param over  true for a logout or a timeout; false when the server is going away
 	 */
-	public static void sessionEnded(User user, String sessionId, boolean over) {
-		if (!appliesTo(user) || !user.isLoggedIn()) {
+	public static void sessionEnded(String owner, String sessionId, boolean over) {
+		if (owner == null) {
 			return;
 		}
-		String owner = ownerOf(user);
 		synchronized (ownerLock(owner)) {
 			Set<String> here = LOCAL_SESSIONS.get(owner);
 			if (here != null) {

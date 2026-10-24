@@ -1086,7 +1086,9 @@ public class User implements Serializable {
 		}
 
 		AccessToken token = semossUser.accessTokens.get(semossUser.getPrimaryLogin());
-		return token.getId();
+		// null after logging out of the primary provider: the token is dropped before the
+		// session is destroyed, and the session cleanup logs this name
+		return token == null ? "" : token.getId();
 	}
 
 	public static List<Pair<String, String>> getUserIdAndType(User user) {
