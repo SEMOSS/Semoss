@@ -61,6 +61,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
@@ -152,6 +153,34 @@ public final class OpenShellTransport {
 	 */
 	public static final String PYTHON_BINARY_PROP = "OPENSHELL_PYTHON_BINARY";
 	private static final String DEFAULT_PYTHON_BINARY = "/usr/lib/python/cpython/bin/python3.14";
+	/**
+	 * Property listing the hosts sandboxed code may reach, as {@code host[:port]} separated by
+	 * commas or spaces (port 443 when omitted). Unset means pypi, so {@code pip install} works;
+	 * {@code none} means no egress at all. Granted to the sandbox interpreter only, and only
+	 * applied through the {@code ${NETWORK_POLICIES}} placeholder of the policy template.
+	 */
+	public static final String EGRESS_PROP = "OPENSHELL_EGRESS";
+	private static final String DEFAULT_EGRESS = "pypi.org:443, files.pythonhosted.org:443";
+	/** A hostname, nothing a YAML scalar could be broken out of with. */
+	private static final Pattern EGRESS_HOST = Pattern
+			.compile("[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*");
+	/**
+	 * Property capping each sandbox's CPU, in Kubernetes quantity form ({@code 2}, {@code 1.5},
+	 * {@code 500m}); {@code none} for no cap. A cap, not a reservation: idle sandboxes cost nothing.
+	 */
+	public static final String CPU_PROP = "OPENSHELL_CPU";
+	private static final String DEFAULT_CPU = "2";
+	/**
+	 * Property capping each sandbox's memory ({@code 4Gi}, {@code 512Mi}); {@code none} for no
+	 * cap. Past it the kernel kills the largest process in the sandbox, which for a {@code Py()}
+	 * block is the worker: the user gets a fresh python on the next block.
+	 */
+	public static final String MEMORY_PROP = "OPENSHELL_MEMORY";
+	private static final String DEFAULT_MEMORY = "4Gi";
+	private static final Pattern CPU_QUANTITY = Pattern
+			.compile("\\d+(\\.\\d+)?m?");
+	private static final Pattern MEMORY_QUANTITY = Pattern
+			.compile("\\d+(\\.\\d+)?(Ki|Mi|Gi|Ti|K|M|G|T)?");
 	/** The bundled policy template, on the classpath. */
 	private static final String POLICY_RESOURCE = "/prerna/util/openshell/sandbox-policy.yaml";
 	/** The SEMOSS home inside the sandbox image: the worker's py/ and insight folder. */
@@ -334,6 +363,16 @@ public final class OpenShellTransport {
 		}
 		create.add("--policy");
 		create.add(renderPolicy().toString());
+		String cpu = resourceLimit(CPU_PROP, DEFAULT_CPU, CPU_QUANTITY);
+		if (cpu != null) {
+			create.add("--cpu");
+			create.add(cpu);
+		}
+		String memory = resourceLimit(MEMORY_PROP, DEFAULT_MEMORY, MEMORY_QUANTITY);
+		if (memory != null) {
+			create.add("--memory");
+			create.add(memory);
+		}
 		// Give sandboxed code the same interpreter the worker uses. The runtime does not
 		// apply the image's ENV PATH, so without this a `Py()` block that shells out to
 		// `python3` gets the bare system interpreter while the worker runs from the venv.
@@ -542,6 +581,10 @@ public final class OpenShellTransport {
 			if (line.trim().equals("- ${SEMOSS_HOME_ROOT}") && root == null) {
 				continue;
 			}
+			if (line.trim().equals("${NETWORK_POLICIES}")) {
+				rendered.append(networkPolicies(propOr(PYTHON_BINARY_PROP, DEFAULT_PYTHON_BINARY)));
+				continue;
+			}
 			rendered.append(line.replace("${SEMOSS_HOME_ROOT}", root == null ? IMAGE_HOME : root)
 					.replace("${PYTHON}", propOr(PYTHON_BINARY_PROP, DEFAULT_PYTHON_BINARY))).append('\n');
 		}
@@ -560,6 +603,54 @@ public final class OpenShellTransport {
 			Files.move(partial, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 		}
 		return file;
+	}
+
+	/**
+	 * The {@code network_policies} section for {@link #EGRESS_PROP}: one rule granting every
+	 * listed endpoint to the interpreter, or an empty section for {@code none}.
+	 */
+	static String networkPolicies(String python) throws IOException {
+		String configured = Utility.getDIHelperProperty(EGRESS_PROP);
+		String list = configured == null || configured.trim().isEmpty() ? DEFAULT_EGRESS : configured.trim();
+		if (list.equalsIgnoreCase("none")) {
+			return "network_policies: {}\n";
+		}
+		StringBuilder yaml = new StringBuilder("network_policies:\n  semoss_egress:\n    endpoints:\n");
+		for (String entry : list.split("[,\\s]+")) {
+			if (entry.isEmpty()) {
+				continue;
+			}
+			int colon = entry.lastIndexOf(':');
+			String host = colon < 0 ? entry : entry.substring(0, colon);
+			int port;
+			try {
+				port = colon < 0 ? 443 : Integer.parseInt(entry.substring(colon + 1));
+			} catch (NumberFormatException e) {
+				port = -1;
+			}
+			if (!EGRESS_HOST.matcher(host).matches() || port < 1 || port > 65535) {
+				throw new IOException(EGRESS_PROP + " entry '" + entry + "' is not host[:port]");
+			}
+			yaml.append("      - host: ").append(host).append("\n        port: ").append(port).append('\n');
+		}
+		yaml.append("    binaries:\n      - path: ").append(python).append('\n');
+		return yaml.toString();
+	}
+
+	/**
+	 * A sandbox resource cap from its property: the default when unset, null for {@code none},
+	 * and an error for anything that is not a quantity the CLI accepts.
+	 */
+	private static String resourceLimit(String prop, String fallback, Pattern format)
+			throws IOException {
+		String value = propOr(prop, fallback);
+		if (value.equalsIgnoreCase("none")) {
+			return null;
+		}
+		if (!format.matcher(value).matches()) {
+			throw new IOException(prop + " '" + value + "' is not a valid quantity");
+		}
+		return value;
 	}
 
 	/** The platform's SEMOSS home (BaseFolder), normalized and without a trailing slash. */

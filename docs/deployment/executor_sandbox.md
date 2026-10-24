@@ -217,9 +217,9 @@ The venv lives at `/usr/lib/python/semossvenv` and the worker is launched by abs
   read-write. A venv at `/opt/venv` is outside every one of those and dies with
   `PermissionError: pyvenv.cfg`; `/usr/lib/python` is inside `/usr`, which is exactly why
   upstream puts it there.
-- **Egress**: the bundled policy allows only pypi (so `pip install` works), and a network
-  rule names the kernel-reported executable, so it is granted to the interpreter's *real* path.
-  Other egress is not configurable yet beyond supplying a whole `OPENSHELL_POLICY`. uv's directory carries the patch version and
+- **Egress**: `OPENSHELL_EGRESS` lists the hosts sandboxed code may reach (default pypi, so
+  `pip install` works). A network rule names the kernel-reported executable, so the list is
+  granted to the interpreter's *real* path. uv's directory carries the patch version and
   the CPU (`cpython-3.14.8-linux-aarch64-gnu`), so the image moves it to
   `/usr/lib/python/cpython` and leaves the old name as a symlink: the rule is
   `/usr/lib/python/cpython/bin/python3.14` on every build and architecture.
@@ -242,6 +242,32 @@ and `${PYTHON}` with `OPENSHELL_PYTHON_BINARY`, and creates the sandbox with the
 in the temp directory named by its content). On a server the home is the image's own
 `/opt/semosshome`, and that line is dropped. A custom policy may use the same
 placeholders.
+
+## Egress and sizing
+
+Set in `RDF_Map.prop`, applied to every sandbox when it is created (an existing user sandbox keeps
+what it was created with until it is replaced):
+
+```
+OPENSHELL_EGRESS   pypi.org, files.pythonhosted.org, query1.finance.yahoo.com:443
+OPENSHELL_CPU      2
+OPENSHELL_MEMORY   4Gi
+```
+
+- `OPENSHELL_EGRESS` is `host[:port]` separated by commas or spaces, port 443 when omitted.
+  Unset means pypi only; `none` means no egress. Every host is granted to the sandbox
+  interpreter; other programs (`git`, `curl`) get no network. Entries are validated as plain
+  hostnames, so the setting cannot inject policy. It is rendered through the
+  `${NETWORK_POLICIES}` placeholder, so a custom `OPENSHELL_POLICY` without it keeps its own rules.
+- `OPENSHELL_CPU` and `OPENSHELL_MEMORY` are caps, not reservations: an idle sandbox costs
+  little (the worker is about 130 MB with pandas loaded), so the sum of the caps may exceed
+  the host. `none` removes a cap. Defaults are 2 CPUs and 4 GiB.
+- Past the memory cap the kernel kills the largest process in the sandbox. A `Py()` block runs
+  in the worker, so an over-allocating block is expected to take the worker down and the
+  user's next block to start a fresh python: variables lost, files kept. (Measured so far only
+  for a separate process, which was killed while the sandbox stayed up.)
+- Measured through the docker driver: the caps land on the container
+  (`NanoCpus`, `Memory`), and an allocation is killed at the memory cap.
 
 ## Workstations (BaseFolder is not /opt/semosshome)
 
@@ -281,6 +307,9 @@ upload error.
 | `OPENSHELL_IMAGE` | image a new sandbox starts from (default `quay.io/semoss/semoss-sandbox:dev-3.14-cpu`) |
 | `OPENSHELL_TEMPLATE` | workload template to create from instead of an image |
 | `OPENSHELL_POLICY` | policy template to render instead of the bundled one (see Policy); optional |
+| `OPENSHELL_EGRESS` | hosts sandboxed code may reach, `host[:port]` list (default pypi; `none` for no egress) |
+| `OPENSHELL_CPU` | CPU cap per sandbox, e.g. `2`, `1.5`, `500m` (default `2`; `none` for no cap) |
+| `OPENSHELL_MEMORY` | memory cap per sandbox, e.g. `4Gi`, `512Mi` (default `4Gi`; `none` for no cap) |
 | `OPENSHELL_PYTHON_BINARY` | interpreter path the policy's egress rules name (default `/usr/lib/python/cpython/bin/python3.14`) |
 | `OPENSHELL_CLI` | path to the `openshell` CLI (default `openshell`) |
 | `OPENSHELL_CLI_HOME` | `HOME` for CLI children, where the gateway registration and mTLS bundle live |
