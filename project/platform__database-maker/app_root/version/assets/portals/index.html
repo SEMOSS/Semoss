@@ -123,31 +123,6 @@
             gap: 1.5rem;
         }
 
-        .eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            width: fit-content;
-            padding: 0.5rem 0.8rem;
-            border-radius: 999px;
-            background: rgba(255, 250, 242, 0.88);
-            border: 1px solid rgba(67, 50, 33, 0.1);
-            color: var(--secondary-color);
-            font-size: 0.8rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.14em;
-        }
-
-        .eyebrow::before {
-            content: '';
-            width: 0.55rem;
-            height: 0.55rem;
-            border-radius: 999px;
-            background: var(--primary-color);
-            box-shadow: 0 0 0 4px rgba(217, 93, 57, 0.12);
-        }
-
         .header-pills {
             display: flex;
             flex-wrap: wrap;
@@ -554,12 +529,6 @@
             gap: 1.5rem;
         }
 
-        .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-
         /* Tables */
         .table-container {
             width: 100%;
@@ -720,55 +689,6 @@
             font-size: 0.9rem;
         }
 
-        /* Database Cards */
-        .database-selector {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 1.5rem 0;
-        }
-
-        .database-card {
-            background: rgba(255, 251, 245, 0.95);
-            border: 1px solid var(--border-color);
-            border-radius: 18px;
-            padding: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .database-card:hover {
-            border-color: var(--primary-color);
-            background-color: #f8f9fa;
-        }
-
-        .database-card.selected {
-            border-color: var(--primary-color);
-            background-color: #e7f1ff;
-        }
-
-        .database-card-icon {
-            font-size: 1.5rem;
-            color: var(--secondary-color);
-        }
-        
-        .database-card.selected .database-card-icon {
-            color: var(--primary-color);
-        }
-
-        .database-card-info {
-           display: flex;
-           flex-direction: column;
-        }
-
-        .database-card-name {
-            font-weight: 600;
-            color: var(--text-color);
-        }
-
         /* Modal */
         .modal {
             display: none; /* Flex when shown */
@@ -836,24 +756,6 @@
         
         .close-modal:hover { color: var(--text-color); }
         
-        /* Status Badges */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25em 0.6em;
-            font-size: 0.75em;
-            font-weight: 700;
-            line-height: 1;
-            color: #fff;
-            text-align: center;
-            white-space: nowrap;
-            vertical-align: baseline;
-            border-radius: 0.25rem;
-        }
-        .status-success { background-color: var(--success-color); }
-        .status-error { background-color: var(--danger-color); }
-        .status-warning { background-color: var(--warning-color); color: #000; }
-
         /* Code/Pre blocks */
         pre {
             background: rgba(245, 239, 229, 0.92);
@@ -1066,6 +968,168 @@
             display: block;
         }
 
+        .alert-success {
+            background: rgba(47, 125, 74, 0.1);
+            border-color: rgba(47, 125, 74, 0.2);
+            color: #24613a;
+        }
+
+        .alert-warning {
+            background: rgba(217, 164, 65, 0.12);
+            border-color: rgba(217, 164, 65, 0.28);
+            color: #7a5714;
+        }
+
+        /* Keyboard focus for elements that act as buttons */
+        [role="button"]:focus-visible,
+        .tab-btn:focus-visible,
+        .btn:focus-visible,
+        .close-modal:focus-visible {
+            outline: none;
+            box-shadow: var(--ring);
+        }
+
+        /* MCP tool views: the app opened by the host for a single tool call */
+        body.tool-mode {
+            padding: 0.75rem;
+        }
+
+        body.tool-mode::before,
+        body.tool-mode::after,
+        body.tool-mode .header {
+            display: none;
+        }
+
+        body.tool-mode .content {
+            padding: 1.25rem;
+        }
+
+        .tool-view-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.75rem 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .tool-view-header .section-title {
+            margin-bottom: 0.25rem;
+        }
+
+        .tool-view-header .panel-kicker {
+            margin-bottom: 0;
+        }
+
+        .tool-chip {
+            display: inline-flex;
+            flex-direction: column;
+            padding: 0.55rem 0.85rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--surface-strong);
+            font-size: 0.85rem;
+            max-width: 100%;
+        }
+
+        .tool-chip span {
+            color: var(--text-soft);
+            font-size: 0.78rem;
+            overflow-wrap: anywhere;
+        }
+
+        .tool-field-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.75rem;
+        }
+
+        .tool-edited {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #7a5714;
+        }
+
+        .tool-statements {
+            list-style: none;
+            display: grid;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .tool-statement {
+            display: grid;
+            grid-template-columns: auto auto minmax(0, 1fr);
+            align-items: baseline;
+            gap: 0.35rem 0.6rem;
+            padding: 0.6rem 0.8rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 251, 245, 0.92);
+        }
+
+        .tool-statement-index {
+            color: var(--text-soft);
+            font-size: 0.8rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tool-statement-type {
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            color: var(--secondary-color);
+        }
+
+        .tool-statement code {
+            font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            font-size: 0.82rem;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .tool-statement-warning {
+            grid-column: 1 / -1;
+            color: var(--danger-color);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        #tool-view-status:empty {
+            display: none;
+        }
+
+        #tool-view-status {
+            margin-top: 1rem;
+        }
+
+        #tool-view-result {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        #tool-view-result:empty {
+            display: none;
+        }
+
+        #tool-view-result .table-container {
+            margin: 0;
+            max-height: 420px;
+            overflow: auto;
+        }
+
+        #tool-view-result h4 {
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-meta {
+            color: var(--text-soft);
+            font-size: 0.88rem;
+        }
+
     </style>
  </head>
  <body>
@@ -1073,9 +1137,6 @@
    <div class="header">
     <div class="header-copy">
      <div>
-      <div class="eyebrow">
-       SEMOSS Studio
-      </div>
       <h1>Database Maker</h1>
       <p>Shape a database like a working board, not a default admin screen. Draft tables from ideas, load files, inspect structure, and run scripts when the SQL already exists.</p>
      </div>
@@ -1105,11 +1166,28 @@
     </div>
    </div>
    <div class="content">
+    <!-- MCP tool view: shown instead of the workshop when the host opens this app for a tool call -->
+    <section id="tool-view" hidden aria-labelledby="tool-view-title">
+     <div class="tool-view-header">
+      <div>
+       <h2 id="tool-view-title" class="section-title"></h2>
+       <p id="tool-view-subtitle" class="panel-kicker"></p>
+      </div>
+      <div id="tool-view-database" class="tool-chip" hidden></div>
+     </div>
+     <div id="tool-view-body"></div>
+     <div id="tool-view-actions" class="button-group" hidden>
+      <button id="tool-view-run" class="btn btn-primary" type="button">Run</button>
+      <button id="tool-view-reject" class="btn btn-secondary" type="button">Reject</button>
+     </div>
+     <div id="tool-view-status" role="status" aria-live="polite"></div>
+     <div id="tool-view-result"></div>
+    </section>
     <!-- Step 1: Select or Create Database -->
     <div id="step-1-database-selection">
      <h2 class="section-title">Step 1: Choose a starting point</h2>
      <div class="option-buttons">
-      <div class="option-button" id="show-select-db-btn">
+      <div class="option-button" id="show-select-db-btn" role="button" tabindex="0" aria-controls="select-db-container">
        <div class="option-button-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
          <path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
@@ -1122,7 +1200,7 @@
         Pick from a list of your previously created databases.
        </div>
       </div>
-      <div class="option-button" id="show-create-db-btn">
+      <div class="option-button" id="show-create-db-btn" role="button" tabindex="0" aria-controls="create-db-container">
        <div class="option-button-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
@@ -1170,7 +1248,7 @@
      <h2 class="section-title" style="display: flex; align-items: center; justify-content: space-between;"><span>Now working on: <span id="current-db-name" style="color: var(--primary-color);"></span></span>
       <button id="change-db-btn" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8em;">Change Database</button></h2>
      <div id="current-db-meta" style="display: none; margin-bottom: 1.5rem; padding: 0.95rem 1rem; border: 1px solid rgba(12, 71, 112, 0.12); border-radius: 16px; background: rgba(248, 245, 236, 0.9);">
-      <div style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.45rem;">
+      <div style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-soft); margin-bottom: 0.45rem;">
        Active database
       </div>
       <div style="display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center;">
@@ -1178,7 +1256,7 @@
       </div>
      </div>
      <div class="accordion-item">
-      <div class="accordion-header">
+      <div class="accordion-header" role="button" tabindex="0" aria-expanded="false" aria-controls="accordion-schema">
        <h2><span class="accordion-icon">
          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
           <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
@@ -1187,15 +1265,15 @@
          <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" />
         </svg></span>
       </div>
-      <div class="accordion-content">
+      <div class="accordion-content" id="accordion-schema">
        <div class="tab-container">
-        <div class="tab-nav">
-         <button class="tab-btn active" data-tab="natural-language">Natural Language</button>
-         <button class="tab-btn" data-tab="paste-schema">Paste Schema/SQL</button>
+        <div class="tab-nav" role="tablist" aria-label="Schema input">
+         <button class="tab-btn active" data-tab="natural-language" id="tab-natural-language" role="tab" aria-selected="true" aria-controls="natural-language">Natural Language</button>
+         <button class="tab-btn" data-tab="paste-schema" id="tab-paste-schema" role="tab" aria-selected="false" aria-controls="paste-schema" tabindex="-1">Paste Schema/SQL</button>
         </div>
         
         <!-- Natural Language Tab -->
-        <div id="natural-language" class="tab-content active">
+        <div id="natural-language" class="tab-content active" role="tabpanel" aria-labelledby="tab-natural-language">
          <div class="form-group">
           <label for="nl-description">Describe the table(s) you want to create:</label> 
           <textarea id="nl-description" placeholder="e.g., Create a table for customers with fields for id, name, email, and signup date. Also, a table for orders with order_id, customer_id, and order_date."></textarea>
@@ -1206,10 +1284,10 @@
            <select id="llm-selector"></select>
           </div>
           <div class="form-group">
-           <label>Generate Sample Data?</label>
+           <label for="generate-sample-data-toggle">Generate Sample Data?</label>
            <div style="display: flex; align-items: center; gap: 15px;">
             <input type="checkbox" id="generate-sample-data-toggle" style="width: auto;"> 
-            <input type="number" id="sample-data-rows" value="5" min="1" style="width: 80px; display: none;">
+            <input type="number" id="sample-data-rows" aria-label="Number of sample rows" value="5" min="1" style="width: 80px; display: none;">
            </div>
           </div>
          </div>
@@ -1230,7 +1308,7 @@
         </div>
 
         <!-- Paste Schema Tab -->
-        <div id="paste-schema" class="tab-content">
+        <div id="paste-schema" class="tab-content" role="tabpanel" aria-labelledby="tab-paste-schema">
          <div class="form-group">
           <label for="paste-sql-input">Paste your SQL CREATE statements or schema definition:</label>
           <textarea id="paste-sql-input" placeholder="CREATE TABLE users (
@@ -1274,7 +1352,7 @@ CREATE TABLE orders (
       </div>
      </div>
      <div class="accordion-item">
-      <div class="accordion-header">
+      <div class="accordion-header" role="button" tabindex="0" aria-expanded="false" aria-controls="accordion-csv">
        <h2><span class="accordion-icon">
          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
           <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
@@ -1283,7 +1361,7 @@ CREATE TABLE orders (
          <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" />
         </svg></span>
       </div>
-      <div class="accordion-content">
+      <div class="accordion-content" id="accordion-csv">
        <div class="grid-2">
         <div class="form-group">
          <label for="table-name-csv">Table Name:</label> <input type="text" id="table-name-csv" placeholder="e.g., products_2024">
@@ -1305,7 +1383,7 @@ CREATE TABLE orders (
       </div>
      </div>
      <div class="accordion-item">
-      <div class="accordion-header">
+      <div class="accordion-header" role="button" tabindex="0" aria-expanded="false" aria-controls="accordion-query">
        <h2><span class="accordion-icon">
          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
           <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
@@ -1314,7 +1392,7 @@ CREATE TABLE orders (
          <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" />
         </svg></span>
       </div>
-      <div class="accordion-content">
+      <div class="accordion-content" id="accordion-query">
        <div id="database-details">
         <h3 class="section-title">Current Schema</h3>
         <div id="entity-diagram" class="entity-diagram"></div>
@@ -1323,7 +1401,7 @@ CREATE TABLE orders (
           <h4>Run a quick query</h4>
           <p class="panel-kicker">Use this for single statements and result checks.</p>
           <div class="form-group">
-           <textarea id="query-sql" placeholder="SELECT * FROM your_table;"></textarea>
+           <textarea id="query-sql" aria-label="SQL query" placeholder="SELECT * FROM your_table;"></textarea>
           </div>
           <div class="button-group">
            <button id="run-query-btn" class="btn btn-primary">Run Query</button>
@@ -1335,7 +1413,7 @@ CREATE TABLE orders (
           <h4>Run an existing SQL script</h4>
           <p class="panel-kicker">Paste multi-statement SQL when the script is already prepared. Statements execute in order.</p>
           <div class="form-group">
-           <textarea id="query-script" placeholder="CREATE TABLE customers (...);
+           <textarea id="query-script" aria-label="SQL script" placeholder="CREATE TABLE customers (...);
     INSERT INTO customers VALUES (...);"></textarea>
           </div>
           <div class="button-group">
@@ -1344,21 +1422,12 @@ CREATE TABLE orders (
           <div id="script-results" class="script-results"></div>
          </div>
         </div>
-        <div id="sql-confirmation-container" style="display:none; margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 6px; background: #f9f9f9;">
-         <h4>Confirm SQL Execution</h4>
-         <p>Review the SQL below before running it on the database.</p>
-         <pre id="sql-to-execute"></pre>
-         <div class="button-group">
-          <button id="confirm-execute-sql-btn" class="btn btn-success">Confirm &amp; Execute</button>
-          <button id="cancel-execute-sql-btn" class="btn btn-secondary">Cancel</button>
-         </div>
-        </div>
         <div id="query-results" class="query-results"></div>
         <div class="metamodel-section" style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
          <h3 class="section-title">Metamodel Context</h3>
          <p class="text-muted" style="margin-bottom: 10px; color: #666; font-size: 0.9em;">This context can be used to generate web applications.</p>
          <div class="form-group">
-          <textarea id="metamodel-context" readonly style="height: 150px; font-family: monospace; width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;" placeholder="Metamodel OWL will appear here..."></textarea>
+          <textarea id="metamodel-context" aria-label="Metamodel context" readonly style="height: 150px; font-family: monospace; width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;" placeholder="Metamodel OWL will appear here..."></textarea>
          </div>
          <div class="button-group">
           <button id="refresh-metamodel-btn" class="btn btn-secondary">Refresh Metamodel</button>
@@ -1370,17 +1439,16 @@ CREATE TABLE orders (
      </div>
     </div>
    </div>
-   <div id="results"></div>
   </div>
-  <div id="loader" class="loader">
+  <div id="loader" class="loader" role="status" aria-live="polite">
    <div class="spinner"></div>
    <p>Processing...</p>
   </div>
   <div id="sample-data-modal" class="modal">
-   <div class="modal-content">
+   <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="sample-data-modal-title">
     <div class="modal-header">
      <h2 id="sample-data-modal-title">Sample Data</h2>
-     <button class="close-modal" id="close-sample-data-modal">�</button>
+     <button class="close-modal" id="close-sample-data-modal" type="button" aria-label="Close">×</button>
     </div>
     <div id="sample-data-modal-body" class="table-container">
      <!-- Sample data table will be injected here -->
@@ -1388,10 +1456,10 @@ CREATE TABLE orders (
    </div>
   </div>
   <div id="metadata-modal" class="modal">
-   <div class="modal-content">
+   <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="metadata-modal-title">
     <div class="modal-header">
-     <h2>Edit Database Metadata</h2>
-     <button class="close-modal" id="close-metadata-modal">�</button>
+     <h2 id="metadata-modal-title">Edit Database Metadata</h2>
+     <button class="close-modal" id="close-metadata-modal" type="button" aria-label="Close">×</button>
     </div>
     <div class="modal-body">
      <div id="metadata-editor-container"></div>
@@ -1401,9 +1469,28 @@ CREATE TABLE orders (
     </div>
    </div>
   </div>
-  <div id="toast-container"></div>
+  <div id="confirm-modal" class="modal">
+   <div class="modal-content" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-message" style="max-width: 480px;">
+    <div class="modal-header">
+     <h2 id="confirm-modal-title">Please confirm</h2>
+    </div>
+    <div class="modal-body">
+     <p id="confirm-modal-message"></p>
+    </div>
+    <div class="modal-footer">
+     <button id="confirm-modal-cancel" class="btn btn-secondary" type="button">Cancel</button>
+     <button id="confirm-modal-ok" class="btn btn-danger" type="button">Delete</button>
+    </div>
+   </div>
+  </div>
+  <div id="toast-container" aria-live="polite"></div>
   <script type="module">
-        import { Insight, Env } from '@semoss/sdk';
+        // Loaded from the CDN rather than the platform import map's "@semoss/sdk", which
+        // points at a /SemossWeb path that local and Vite-hosted setups don't serve
+        import { Insight, Env } from 'https://cdn.jsdelivr.net/npm/@semoss/sdk@1.0.0-beta.47/+esm';
+
+        // Read by the load check after this script: the SDK import succeeded
+        window.databaseMakerLoaded = true;
 
         const insight = new Insight();
 
@@ -1425,11 +1512,139 @@ CREATE TABLE orders (
         const pixelJson = value => JSON.stringify(String(value ?? ''));
         const encodedSql = sql => `<encode>${String(sql ?? '').replace(/<\/encode>/gi, '< /encode>')}</encode>`;
 
-        const resultsEl = document.getElementById('results');
+        // Escape text before it goes into innerHTML.
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
+
+        // Python source that calls an mcp_driver function with JSON-decoded keyword arguments,
+        // so values are never spliced into the code. "<" is escaped so a "</encode>" inside a
+        // value cannot close the Py(<encode>...</encode>) block early.
+        function pyCall(functionName, kwargs = {}) {
+            const literal = JSON.stringify(JSON.stringify(kwargs)).replace(/</g, '\\u003c');
+            return `import json\nimport mcp_driver\nres = mcp_driver.${functionName}(**json.loads(${literal}))\nres`;
+        }
+
+        // The driver base64-encodes UTF-8 JSON; atob alone garbles non-ASCII text.
+        function decodeBase64Json(encoded) {
+            const binary = atob(String(encoded ?? '').trim());
+            const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+            return JSON.parse(new TextDecoder().decode(bytes));
+        }
+
+        // Port of mcp_driver.split_sql_script: splits on ";" outside quotes and drops comments.
+        function splitSqlStatements(script) {
+            const statements = [];
+            let buffer = '';
+            let inSingle = false, inDouble = false, inLineComment = false, inBlockComment = false;
+            for (let i = 0; i < script.length; i++) {
+                const ch = script[i];
+                const next = script[i + 1] || '';
+                if (inLineComment) {
+                    if (ch === '\n') { inLineComment = false; buffer += ch; }
+                    continue;
+                }
+                if (inBlockComment) {
+                    if (ch === '*' && next === '/') { inBlockComment = false; i++; }
+                    continue;
+                }
+                if (!inSingle && !inDouble) {
+                    if (ch === '-' && next === '-') { inLineComment = true; i++; continue; }
+                    if (ch === '/' && next === '*') { inBlockComment = true; i++; continue; }
+                }
+                if (ch === "'" && !inDouble) {
+                    if (inSingle && next === "'") { buffer += "''"; i++; continue; }
+                    inSingle = !inSingle;
+                } else if (ch === '"' && !inSingle) {
+                    inDouble = !inDouble;
+                } else if (ch === ';' && !inSingle && !inDouble) {
+                    if (buffer.trim()) statements.push(buffer.trim());
+                    buffer = '';
+                    continue;
+                }
+                buffer += ch;
+            }
+            if (buffer.trim()) statements.push(buffer.trim());
+            return statements;
+        }
+
+        function statementType(statement) {
+            return (statement.trim().split(/\s+/)[0] || 'UNKNOWN').toUpperCase();
+        }
+
         const loader = document.getElementById('loader');
         const loaderText = loader.querySelector('p');
         const toastContainer = document.getElementById('toast-container');
-		let playground = "False";
+
+        // --- Modals: Escape and backdrop close, focus kept inside, focus returned on close ---
+        const modalReturnFocus = new Map();
+
+        function openModal(modal) {
+            modalReturnFocus.set(modal, document.activeElement);
+            modal.classList.add('show');
+            const focusTarget = modal.querySelector('[data-autofocus]') || modal.querySelector('.close-modal, button, input, select, textarea');
+            if (focusTarget) focusTarget.focus();
+        }
+
+        function closeModal(modal) {
+            if (!modal.classList.contains('show')) return;
+            modal.classList.remove('show');
+            modal.dispatchEvent(new CustomEvent('modal-closed'));
+            const returnTo = modalReturnFocus.get(modal);
+            modalReturnFocus.delete(modal);
+            if (returnTo && typeof returnTo.focus === 'function') returnTo.focus();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            const openModals = [...document.querySelectorAll('.modal.show')];
+            const modal = openModals[openModals.length - 1];
+            if (!modal) return;
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeModal(modal);
+                return;
+            }
+            if (e.key === 'Tab') {
+                const focusable = [...modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+                    .filter(el => !el.disabled && el.offsetParent !== null);
+                if (!focusable.length) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+            }
+        });
+
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal(modal);
+            });
+        });
+
+        // window.confirm() returns false inside a sandboxed iframe, so ask in the page instead.
+        const confirmModal = document.getElementById('confirm-modal');
+        function confirmDialog(message, confirmLabel = 'Delete') {
+            document.getElementById('confirm-modal-message').textContent = message;
+            const okBtn = document.getElementById('confirm-modal-ok');
+            const cancelBtn = document.getElementById('confirm-modal-cancel');
+            okBtn.textContent = confirmLabel;
+            return new Promise(resolve => {
+                let confirmed = false;
+                const onOk = () => { confirmed = true; closeModal(confirmModal); };
+                const onCancel = () => closeModal(confirmModal);
+                const onClosed = () => {
+                    okBtn.removeEventListener('click', onOk);
+                    cancelBtn.removeEventListener('click', onCancel);
+                    confirmModal.removeEventListener('modal-closed', onClosed);
+                    resolve(confirmed);
+                };
+                okBtn.addEventListener('click', onOk);
+                cancelBtn.addEventListener('click', onCancel);
+                confirmModal.addEventListener('modal-closed', onClosed);
+                openModal(confirmModal);
+                cancelBtn.focus();
+            });
+        }
 
         function showStatus(message, type = 'info') {
             // Create toast element
@@ -1447,10 +1662,12 @@ CREATE TABLE orders (
             }
 
             toast.innerHTML = `
-                <div class="toast-icon">${icon}</div>
-                <div class="toast-message">${message}</div>
-                <button class="toast-close">&times;</button>
+                <div class="toast-icon" aria-hidden="true">${icon}</div>
+                <div class="toast-message"></div>
+                <button class="toast-close" type="button" aria-label="Dismiss notification">&times;</button>
             `;
+            // Messages often carry server or database text, so never parse them as HTML
+            toast.querySelector('.toast-message').textContent = message;
             
             // Close button handler
             toast.querySelector('.toast-close').addEventListener('click', () => {
@@ -1494,25 +1711,520 @@ CREATE TABLE orders (
         let allDatabases = [];
 
         // Accordion functionality
+        function setAccordionOpen(item, open) {
+            item.classList.toggle('active', open);
+            const header = item.querySelector('.accordion-header');
+            if (header) header.setAttribute('aria-expanded', String(open));
+        }
+
         function initializeAccordion() {
             const workspace = document.getElementById('database-workspace');
+            const toggle = (header) => {
+                const item = header.parentElement;
+                // Optional: close other accordions when one is opened
+                // workspace.querySelectorAll('.accordion-item').forEach(i => setAccordionOpen(i, false));
+                setAccordionOpen(item, !item.classList.contains('active'));
+            };
             workspace.addEventListener('click', (e) => {
                 const header = e.target.closest('.accordion-header');
-                if (header) {
-                    const item = header.parentElement;
-                    const isActive = item.classList.contains('active');
-                    // Optional: close other accordions when one is opened
-                    // workspace.querySelectorAll('.accordion-item').forEach(i => i.classList.remove('active'));
-                    if (!isActive) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
+                if (header) toggle(header);
+            });
+            workspace.addEventListener('keydown', (e) => {
+                const header = e.target.closest('.accordion-header');
+                if (header && e.target === header && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    toggle(header);
                 }
             });
         }
-        
+
         initializeAccordion();
+
+        // Option cards are divs styled as buttons; let the keyboard activate them too
+        document.querySelectorAll('.option-button[role="button"]').forEach(card => {
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    card.click();
+                }
+            });
+        });
+
+        // --- MCP tool views ---
+        // The host opens this app (resourceURI "/") for the tools below. Each gets a focused
+        // review-then-result view instead of the workshop; any other load runs the app as usual.
+        const TOOL_KINDS = ['run_query', 'run_script', 'create_new_db', 'get_schema'];
+        let latestToolContext = null;   // newest SMSS_INIT_TOOL payload; keeps _meta, which the SDK drops
+        let activeToolView = null;      // { kind, tool, actionId, decided, pending }
+        let appReady = false;
+
+        const toolView = document.getElementById('tool-view');
+        const toolViewTitle = document.getElementById('tool-view-title');
+        const toolViewSubtitle = document.getElementById('tool-view-subtitle');
+        const toolViewDatabase = document.getElementById('tool-view-database');
+        const toolViewBody = document.getElementById('tool-view-body');
+        const toolViewActions = document.getElementById('tool-view-actions');
+        const toolViewRun = document.getElementById('tool-view-run');
+        const toolViewReject = document.getElementById('tool-view-reject');
+        const toolViewStatus = document.getElementById('tool-view-status');
+        const toolViewResult = document.getElementById('tool-view-result');
+
+        window.addEventListener('message', (event) => {
+            if (event.source !== window.parent || !event.data || event.data.type !== 'SMSS_INIT_TOOL' || !event.data.tool) return;
+            latestToolContext = event.data.tool;
+            if (!appReady) return;
+            if (activeToolView && activeToolView.tool.id === latestToolContext.id) {
+                // Already moved on to the workshop (create_new_db); nothing left to show
+                if (activeToolView.inWorkspace) return;
+                // The host sends the context again once the call has a result
+                activeToolView.tool = latestToolContext;
+                if (latestToolContext.tool_response) showToolResult(latestToolContext.tool_response);
+            } else if (!activeToolView && !currentDatabase.id) {
+                routeToolView(latestToolContext);
+            }
+        });
+
+        function resolveToolKind(tool) {
+            if (!tool) return null;
+            const names = [tool._meta && tool._meta.SMSS_FUNCTION_NAME, tool.original_name, tool.name].filter(Boolean).map(String);
+            for (const name of names) {
+                // Hosts may prefix or alias the name the model saw, e.g. "database-maker__run_query"
+                const kind = TOOL_KINDS.find(k => name === k || name.endsWith(`_${k}`) || name.endsWith(`-${k}`) || name.endsWith(`.${k}`));
+                if (kind) return kind;
+            }
+            return null;
+        }
+
+        const alertHtml = (kind, text) => `<div class="alert alert-${kind}">${escapeHtml(text)}</div>`;
+
+        // Output that isn't the expected shape (plain text, tool errors) is shown as-is
+        function messageHtml(value) {
+            if (value === null || value === undefined || value === '') return alertHtml('info', 'The tool returned no output.');
+            const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+            return /error|exception|failed/i.test(text.slice(0, 200)) ? alertHtml('danger', text) : `<pre>${escapeHtml(text)}</pre>`;
+        }
+
+        // Tool results arrive as JSON (sometimes JSON inside a JSON string), as an MCP content
+        // envelope, or as base64 JSON; unwrap to the payload the tool returned.
+        function parseToolOutput(raw) {
+            let value = raw;
+            for (let depth = 0; depth < 3 && typeof value === 'string'; depth++) {
+                const text = value.trim();
+                if (!text) return null;
+                try {
+                    value = JSON.parse(text);
+                    continue;
+                } catch (e) { /* not JSON */ }
+                if (/^[A-Za-z0-9+/]+=*$/.test(text) && text.length % 4 === 0) {
+                    try {
+                        value = decodeBase64Json(text);
+                        continue;
+                    } catch (e) { /* not base64 JSON */ }
+                }
+                break;
+            }
+            if (value && typeof value === 'object' && Array.isArray(value.content)) {
+                return parseToolOutput(value.content.filter(part => part && part.type === 'text').map(part => part.text).join('\n'));
+            }
+            return value;
+        }
+
+        // SQL from a model sometimes arrives as one line with literal "\n"; the driver unescapes
+        // that case, so show it the same way.
+        function sqlForDisplay(sql) {
+            const text = String(sql ?? '');
+            return !text.includes('\n') && text.includes('\\n') ? text.replace(/\\n/g, '\n').replace(/\\t/g, '\t') : text;
+        }
+
+        function sqlFieldHtml(label) {
+            return `<div class="form-group">
+                        <div class="tool-field-label">
+                            <label for="tool-sql">${escapeHtml(label)}</label>
+                            <span class="tool-edited" hidden>Edited</span>
+                        </div>
+                        <textarea id="tool-sql" class="tool-sql" rows="8" spellcheck="false"></textarea>
+                    </div>`;
+        }
+
+        function bindSqlField(body, original, readOnly) {
+            const textarea = body.querySelector('.tool-sql');
+            const marker = body.querySelector('.tool-edited');
+            textarea.value = sqlForDisplay(original);
+            textarea.dataset.display = textarea.value;
+            textarea.readOnly = readOnly;
+            textarea.addEventListener('input', () => { marker.hidden = textarea.value === textarea.dataset.display; });
+            return textarea;
+        }
+
+        // The SQL to send: the original argument unless the user changed the text
+        function sqlFieldValue(body, original) {
+            const textarea = body.querySelector('.tool-sql');
+            return textarea.value === textarea.dataset.display ? original : textarea.value;
+        }
+
+        function describeStatement(statement) {
+            const type = statementType(statement);
+            if (type === 'DROP' || type === 'TRUNCATE') return { type, warning: 'Permanently removes a table or its data.' };
+            if (type === 'ALTER') return { type, warning: 'Changes the structure of an existing table.' };
+            if ((type === 'DELETE' || type === 'UPDATE') && !/\bWHERE\b/i.test(statement)) {
+                return { type, warning: `${type} without WHERE affects every row.` };
+            }
+            return { type, warning: '' };
+        }
+
+        function statementListHtml(script) {
+            const statements = splitSqlStatements(script || '');
+            if (!statements.length) return '<li class="result-meta">No statements to run.</li>';
+            return statements.map((statement, index) => {
+                const { type, warning } = describeStatement(statement);
+                return `<li class="tool-statement">
+                            <span class="tool-statement-index">${index + 1}</span>
+                            <span class="tool-statement-type">${escapeHtml(type)}</span>
+                            <code>${escapeHtml(statement)}</code>
+                            ${warning ? `<span class="tool-statement-warning">${escapeHtml(warning)}</span>` : ''}
+                        </li>`;
+            }).join('');
+        }
+
+        function renderScriptToolResult(result) {
+            if (!result || typeof result !== 'object' || !Array.isArray(result.results)) return messageHtml(result);
+            let html = '';
+            if (result.status === 'error') {
+                html += alertHtml('danger', `Script stopped: ${result.error || 'a statement failed.'}`);
+                if (result.failed_statement) html += `<pre>${escapeHtml(result.failed_statement)}</pre>`;
+                if (result.results.length) html += '<p class="result-meta">These statements ran before the failure and may already be committed:</p>';
+            } else {
+                const count = result.statement_count ?? result.results.length;
+                html += alertHtml('success', `${count} statement${count === 1 ? '' : 's'} ran.`);
+            }
+            if (result.results.length) html += renderScriptSummary(result);
+            result.results.forEach(item => {
+                const output = item && item.result;
+                const data = output && output.data ? output.data : output;
+                if (data && Array.isArray(data.headers) && Array.isArray(data.values)) {
+                    html += `<div><h4>Statement ${escapeHtml(item.index)} result</h4><div class="table-container">${renderTableHtml(data)}</div></div>`;
+                }
+            });
+            const refresh = result.ontology_refresh;
+            if (refresh) {
+                html += refresh.status === 'success'
+                    ? `<p class="result-meta">Database metadata refreshed (${escapeHtml(refresh.table_count ?? 0)} table(s)).</p>`
+                    : alertHtml('warning', `Metadata refresh failed: ${refresh.error || 'unknown error'}`);
+            }
+            return html;
+        }
+
+        const isTrue = value => value === true || value === 'true';
+
+        const TOOL_VIEWS = {
+            run_query: {
+                title: 'Run query',
+                subtitle: 'Review the SQL before it runs. You can edit it first.',
+                runLabel: 'Run query',
+                renderReview: () => sqlFieldHtml('Query'),
+                bindReview: (body, params, readOnly) => bindSqlField(body, params.query, readOnly),
+                collectParams: (body, params) => ({ ...params, query: sqlFieldValue(body, params.query) }),
+                validate: params => String(params.query || '').trim() ? '' : 'Enter a query to run.',
+                renderResult: (result) => {
+                    if (!result || typeof result !== 'object' || !Array.isArray(result.headers)) return messageHtml(result);
+                    const rows = Array.isArray(result.rows) ? result.rows : [];
+                    return `<p class="result-meta">${rows.length} row${rows.length === 1 ? '' : 's'} returned.</p>
+                            <div class="table-container">${renderTableHtml({ headers: result.headers, values: rows })}</div>`;
+                },
+            },
+            run_script: {
+                title: 'Run script',
+                subtitle: 'Review each statement before the script runs. Statements run in order and stop at the first error.',
+                runLabel: 'Run script',
+                renderReview: () => `${sqlFieldHtml('Script')}<ol class="tool-statements" aria-label="Statements"></ol>`,
+                bindReview: (body, params, readOnly) => {
+                    const textarea = bindSqlField(body, params.script, readOnly);
+                    const list = body.querySelector('.tool-statements');
+                    const update = () => { list.innerHTML = statementListHtml(textarea.value); };
+                    textarea.addEventListener('input', update);
+                    update();
+                },
+                collectParams: (body, params) => ({ ...params, script: sqlFieldValue(body, params.script) }),
+                validate: params => splitSqlStatements(sqlForDisplay(params.script)).length ? '' : 'Enter at least one SQL statement.',
+                renderResult: renderScriptToolResult,
+            },
+            create_new_db: {
+                title: 'Create database',
+                subtitle: 'Creates a new H2 database. If one with this name already exists, it is reused.',
+                runLabel: 'Create database',
+                renderReview: () => `<div class="form-group">
+                        <label for="tool-database-name">Database name</label>
+                        <input type="text" id="tool-database-name">
+                    </div>`,
+                bindReview: (body, params, readOnly) => {
+                    const input = body.querySelector('#tool-database-name');
+                    input.value = params.database_name || '';
+                    input.readOnly = readOnly;
+                },
+                collectParams: (body, params) => {
+                    const name = body.querySelector('#tool-database-name').value.trim();
+                    return name === String(params.database_name || '').trim() ? params : { ...params, database_name: name };
+                },
+                validate: params => String(params.database_name || '').trim() ? '' : 'Enter a database name.',
+                renderResult: (result) => {
+                    if (!result || typeof result !== 'object' || !result.status) return messageHtml(result);
+                    if (result.status !== 'success' && result.status !== 'exists') {
+                        return alertHtml('danger', result.error || 'Database creation failed.');
+                    }
+                    // With an id, showToolResult moves on to the workshop; this stays visible only without one
+                    const message = result.status === 'exists'
+                        ? `Database '${result.database_name}' already exists. Using the existing database.`
+                        : `Database '${result.database_name}' was created.`;
+                    return `${alertHtml('success', message)}
+                            <p class="result-meta">ID: ${escapeHtml(result.database_id || '')}</p>`;
+                },
+            },
+            get_schema: {
+                title: 'Get schema',
+                subtitle: 'Reads the tables and columns of this database.',
+                runLabel: 'Get schema',
+                renderReview: () => `<label for="tool-schema-playground" style="display: flex; align-items: center; gap: 0.6rem;">
+                        <input type="checkbox" id="tool-schema-playground" style="width: auto;">
+                        Also save a copy to the project assets
+                    </label>`,
+                bindReview: (body, params, readOnly) => {
+                    const checkbox = body.querySelector('#tool-schema-playground');
+                    checkbox.checked = isTrue(params.playground);
+                    checkbox.disabled = readOnly;
+                },
+                collectParams: (body, params) => {
+                    const checked = body.querySelector('#tool-schema-playground').checked;
+                    return checked === isTrue(params.playground) ? params : { ...params, playground: checked };
+                },
+                renderResult: (result) => {
+                    const schema = Array.isArray(result) ? result : result && Array.isArray(result.schema) ? result.schema : null;
+                    if (!schema) return messageHtml(result);
+                    const saved = result.file_saved ? `<p class="result-meta">Saved to ${escapeHtml(result.file_saved)}.</p>` : '';
+                    const saveError = result.file_save_error ? alertHtml('warning', `Could not save the schema file: ${result.file_save_error}`) : '';
+                    return `${saved}${saveError}<p class="result-meta">${schema.length} table${schema.length === 1 ? '' : 's'}.</p>
+                            <div class="entity-diagram">${renderSchemaCardsHtml(schema, { editable: false })}</div>`;
+                },
+            },
+        };
+
+        async function renderToolDatabase(databaseId) {
+            if (!databaseId) {
+                toolViewDatabase.hidden = true;
+                return;
+            }
+            let name = '';
+            try {
+                const { pixelReturn } = await runPixel('MyEngines(engineTypes=["DATABASE"]);');
+                const databases = Array.isArray(pixelReturn[0].output) ? pixelReturn[0].output : [];
+                const match = databases.find(db => (db.engine_id || db.database_id) === databaseId);
+                name = match ? (match.engine_display_name || match.engine_name || match.database_name || '') : '';
+            } catch (error) {
+                console.warn('Could not look up the database name:', error);
+            }
+            toolViewDatabase.innerHTML = `<strong>${escapeHtml(name || 'Database')}</strong><span>${escapeHtml(databaseId)}</span>`;
+            toolViewDatabase.hidden = false;
+        }
+
+        async function routeToolView(tool) {
+            const kind = resolveToolKind(tool);
+            if (!kind) return false;
+
+            activeToolView = { kind, tool, actionId: undefined, decided: false, pending: false };
+            const view = TOOL_VIEWS[kind];
+            const params = tool.parameters || {};
+            const hasResult = Boolean(tool.tool_response);
+
+            document.body.classList.add('tool-mode');
+            document.getElementById('step-1-database-selection').style.display = 'none';
+            databaseWorkspace.style.display = 'none';
+            toolView.hidden = false;
+            toolViewTitle.textContent = view.title;
+            toolViewSubtitle.textContent = hasResult ? '' : view.subtitle;
+            toolViewStatus.innerHTML = '';
+            toolViewResult.innerHTML = '';
+            toolViewBody.innerHTML = view.renderReview();
+            view.bindReview(toolViewBody, params, hasResult);
+
+            await renderToolDatabase(params.database_id);
+
+            if (hasResult) {
+                showToolResult(tool.tool_response);
+            } else {
+                toolViewRun.textContent = view.runLabel;
+                setToolButtonsDisabled(false);
+                toolViewActions.hidden = false;
+            }
+            return true;
+        }
+
+        function setToolButtonsDisabled(disabled) {
+            toolViewRun.disabled = disabled;
+            toolViewReject.disabled = disabled;
+        }
+
+        // The call is finished: hide the actions and lock the review fields
+        function finishToolView() {
+            activeToolView.decided = true;
+            toolViewActions.hidden = true;
+            toolViewSubtitle.textContent = '';
+            toolViewBody.querySelectorAll('textarea, input').forEach(el => {
+                el.readOnly = true;
+                if (el.type === 'checkbox') el.disabled = true;
+            });
+        }
+
+        function showToolResult(raw) {
+            if (!activeToolView) return;
+            const result = parseToolOutput(raw);
+            finishToolView();
+            toolViewStatus.innerHTML = '';
+            toolViewResult.innerHTML = TOOL_VIEWS[activeToolView.kind].renderResult(result);
+
+            // A created (or reused) database continues straight into the workshop
+            const createdDatabase = activeToolView.kind === 'create_new_db' && result && typeof result === 'object'
+                && (result.status === 'success' || result.status === 'exists') && result.database_id;
+            if (createdDatabase) openWorkspaceFromTool(result);
+        }
+
+        // Same message the SDK's sendMCPResponseToRoom posts, built from the context this page received
+        function postToolResponse(response, status, executedParameters) {
+            const tool = (activeToolView && activeToolView.tool) || latestToolContext || Env.TOOL;
+            if (!tool || window.parent === window) return;
+            window.parent.postMessage({
+                type: 'SMSS_EXEC_TOOL',
+                tool: {
+                    type: 'MCP',
+                    message: tool.message || '',
+                    id: tool.id || '',
+                    name: tool.name || '',
+                    response,
+                    roomId: tool.roomId || '',
+                    tool_status: status,
+                    executedParameters,
+                },
+            }, '*');
+        }
+
+        // An agent run pauses an "ask" tool as a pending action; find this call's action so the
+        // decision resumes the run. Chat rooms have no action (null).
+        async function findPendingActionId(tool) {
+            const fromUrl = new URLSearchParams(window.location.search).get('actionId');
+            if (fromUrl) return fromUrl;
+            if (!tool || !tool.roomId || !tool.id) return null;
+            const { pixelReturn } = await runPixel(`GetAgentRunsForRoom(roomId=[${pixelJson(tool.roomId)}]);`);
+            const runs = Array.isArray(pixelReturn[0].output) ? pixelReturn[0].output : [];
+            const waiting = runs.filter(run => run && run.status === 'INPUT_REQUIRED').reverse();
+            for (const run of waiting) {
+                const { pixelReturn: runReturn } = await runPixel(`GetAgentRun(runId=[${pixelJson(run.runId)}]);`);
+                const actions = (runReturn[0].output && runReturn[0].output.pendingActions) || [];
+                const action = actions.find(item => item && item.toolCallId === tool.id);
+                if (action) return action.actionId;
+            }
+            return null;
+        }
+
+        async function submitToolDecision(decision) {
+            const state = activeToolView;
+            if (!state || state.decided || state.pending) return;
+            const view = TOOL_VIEWS[state.kind];
+            const originalParams = state.tool.parameters || {};
+            const rejecting = decision === 'reject';
+            const params = rejecting ? originalParams : view.collectParams(toolViewBody, originalParams);
+            if (!rejecting && view.validate) {
+                const problem = view.validate(params);
+                if (problem) {
+                    toolViewStatus.innerHTML = alertHtml('warning', problem);
+                    return;
+                }
+            }
+            const edited = JSON.stringify(params) !== JSON.stringify(originalParams);
+
+            state.pending = true;
+            setToolButtonsDisabled(true);
+            toolViewStatus.innerHTML = alertHtml('info', rejecting ? 'Rejecting...' : 'Running...');
+            try {
+                if (state.actionId === undefined) {
+                    try {
+                        state.actionId = await findPendingActionId(state.tool);
+                    } catch (error) {
+                        console.error('Pending action lookup failed:', error);
+                        throw new Error(`Could not tell whether this call belongs to an agent run, so nothing was run. Use the Allow or Deny controls in the chat instead. (${error.message})`);
+                    }
+                }
+
+                if (state.actionId) {
+                    // Agent run: the server runs (or skips) the call and resumes the run
+                    const pixelDecision = rejecting ? 'reject' : edited ? 'edit' : 'approve';
+                    const paramPart = pixelDecision === 'edit' ? `, paramValues=[${JSON.stringify(params)}]` : '';
+                    const { pixelReturn } = await runPixel(`RunMCPTool(actionId=[${pixelJson(state.actionId)}], decision=[${pixelJson(pixelDecision)}]${paramPart});`);
+                    if (rejecting) {
+                        finishToolView();
+                        toolViewStatus.innerHTML = alertHtml('warning', 'Rejected. The tool did not run.');
+                    } else {
+                        showToolResult(pixelReturn[0].output);
+                    }
+                } else if (rejecting) {
+                    // Chat room: tell the host the call was declined
+                    postToolResponse('The user rejected this tool call.', 'cancelled', originalParams);
+                    finishToolView();
+                    toolViewStatus.innerHTML = alertHtml('warning', 'Rejected. The tool did not run.');
+                } else {
+                    // Chat room: run the tool here and hand the result to the host
+                    const projectId = (state.tool._meta && state.tool._meta.SMSS_ENGINE_ID) || Env.APP;
+                    let output;
+                    try {
+                        const { pixelReturn } = await runPixel(`RunMCPTool(project=[${pixelJson(projectId)}], function=[${pixelJson(state.kind)}], paramValues=[${JSON.stringify(params)}]);`);
+                        const raw = pixelReturn[0].output;
+                        output = typeof raw === 'string' ? raw : JSON.stringify(raw);
+                    } catch (error) {
+                        postToolResponse(`Tool execution error: ${error.message}`, 'error', params);
+                        finishToolView();
+                        throw error;
+                    }
+                    postToolResponse(output, 'success', params);
+                    showToolResult(output);
+                }
+            } catch (error) {
+                console.error('Tool decision failed:', error);
+                toolViewStatus.innerHTML = alertHtml('danger', error.message);
+                if (!state.decided) setToolButtonsDisabled(false);
+            } finally {
+                state.pending = false;
+            }
+        }
+
+        toolViewRun.addEventListener('click', () => submitToolDecision('run'));
+        toolViewReject.addEventListener('click', () => submitToolDecision('reject'));
+
+        // create_new_db result: continue in the full workshop with the new database
+        async function openWorkspaceFromTool(result) {
+            // Once only: the host re-sends the finished call, which must not reset the workshop
+            if (!activeToolView || activeToolView.inWorkspace) return;
+            activeToolView.inWorkspace = true;
+            const params = activeToolView.tool.parameters || {};
+            document.body.classList.remove('tool-mode');
+            toolView.hidden = true;
+            currentDatabase = { name: result.database_name || result.database_id, id: result.database_id };
+            renderCurrentDatabaseDetails();
+            document.getElementById('step-1-database-selection').style.display = 'none';
+            databaseWorkspace.style.display = 'block';
+            showStatus(result.status === 'exists'
+                ? `Database '${currentDatabase.name}' already exists. Using existing database.`
+                : `Database '${currentDatabase.name}' created successfully (${currentDatabase.id}).`, 'success');
+            await loadDatabases(); // fills the selectors and the LLM list the workshop uses
+            await loadDatabaseSchema();
+
+            // Prefill the natural-language description when the call carried an intent
+            if (params.user_intent) {
+                nlDescriptionInput.value = params.user_intent;
+                const accordionItem = nlDescriptionInput.closest('.accordion-item');
+                if (accordionItem) {
+                    setAccordionOpen(accordionItem, true);
+                    accordionItem.scrollIntoView({ behavior: 'smooth' });
+                }
+                nlDescriptionInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
 
         // Initialize SDK
         (async function init() {
@@ -1521,123 +2233,26 @@ CREATE TABLE orders (
                 try {
                     const envConfig = JSON.parse(semossEnvScript.textContent);
                     Env.update(envConfig);
-                    const { tool } = await insight.initialize();
-                    
-					let databaseName = null;
-					
-                    // Determine Database ID: Prioritize MCP Tool Parameters
-                    let databaseId = null;
-                    if (tool && tool.parameters && tool.parameters.database_name) {
-                        console.log("MCP Initialization: Found database_name in parameters");
-                        databaseName = tool.parameters.database_name;
-						playground="True";
-                    } else if (envConfig.database_id || envConfig.VAR_DATABASE_ID) {
-                         databaseId = envConfig.database_id || envConfig.VAR_DATABASE_ID;
+                    const initialized = await insight.initialize();
+                    if (!insight.isReady) {
+                        // initialize() returns nothing when there is no signed-in session
+                        showStatus('Could not connect to SEMOSS. Sign in, then reload this page.', 'error');
+                        return;
                     }
-					
-					// initiailze the mcp driver
-					                            // 1. Set Context and load python
-                            await runPixel(`SetContext(["${envConfig.APP}"])`);
-                            
-                            const pyInitCode = `
-import mcp_driver
-`;
-                            await insight.actions.runPy(pyInitCode);
+                    const { tool } = initialized || {};
 
+                    // Initialize the mcp driver once for the whole page
+                    await runPixel(`SetContext([${pixelJson(envConfig.APP)}])`);
+                    await insight.actions.runPy(`import mcp_driver`);
+                    appReady = true;
 
-                    if (databaseName) {
-						// create the database 
-                        showLoader(true, "Creating Database (MCP)...");
-                        try {
-                            // 1. Set Context
-                            await runPixel(`SetContext(["${envConfig.APP}"])`);
-                            
-                            // 2. Use MCP driver to create database with initial tables based on user intent
-                            const userIntent = tool && tool.parameters && tool.parameters.user_intent ? tool.parameters.user_intent : null;
-                            const pyCreateCode = `
-import mcp_driver
-res = mcp_driver.create_new_db("${databaseName}", ${userIntent ? JSON.stringify(userIntent) : "None"})
-res
-`;
-                            const { output: createResult } = await insight.actions.runPy(pyCreateCode);
-                            console.log("MCP Database creation result:", createResult);
-                            
-                            // Parse and handle the creation result
-                            try {
-                                const resultData = JSON.parse(createResult);
-                                console.log("Parsed creation result:", resultData);
-                                
-                                if (resultData.status === 'success') {
-                                    showStatus(`Database created successfully. SQL execution: ${resultData.sql_execution?.status || 'none'}`, 'success');
-                                    if (resultData.synchronized_tables && resultData.synchronized_tables.length > 0) {
-                                        showStatus(`${resultData.synchronized_tables.length} tables synchronized in database.`, 'info');
-                                    }
-                                } else if (resultData.status === 'exists') {
-                                    showStatus(`Database '${resultData.database_name}' already exists. Using existing database.`, 'info');
-                                } else {
-                                    showStatus(`Database creation had issues: ${resultData.error || 'Unknown error'}`, 'warning');
-                                }
-                            } catch (parseError) {
-                                console.error("Could not parse creation result:", parseError);
-                                showStatus('Database creation completed but result parsing failed.', 'warning');
-                            }
-                            
-                            // Load databases to find the ID reliably
-                            await loadDatabases();
-                            const createdDb = allDatabases.find(d => d.database_name === databaseName);
-                            if (!createdDb) throw new Error(`Database '${databaseName}' created but not found.`);
-                            
-                            currentDatabase = { name: createdDb.database_name, id: createdDb.database_id };
-                            renderCurrentDatabaseDetails();
-                            console.log("Created DB via MCP:", currentDatabase);
-                            
-                            // Hide selection, show workspace
-                            document.getElementById('step-1-database-selection').style.display = 'none';
-                            document.getElementById('database-workspace').style.display = 'block';
-                            
-                            // 4. Pass metadata back to Orchestrator via MCP Tool
-                            // Only if we operate in an MCP context
-							// let us not call this for now.. since it is not created yet. 
-							/*
-                            if (tool) {
-                                await insight.actions.runMCPTool("add_to_context", {
-                                    "context": JSON.stringify(newDbInfo) 
-                                });
-                            }
-							*/
+                    // Opened by the host for one of this app's tools: show that tool's view
+                    if (await routeToolView(latestToolContext || tool)) {
+                        return;
+                    }
 
-                            // Load the UI
-                            await loadDatabaseSchema();
-                            
-                            // Check for user_intent to prepopulate NL input
-                            if (tool && tool.parameters && tool.parameters.user_intent) {
-                                const intent = tool.parameters.user_intent;
-                                const nlInput = document.getElementById('nl-description');
-                                if (nlInput) {
-                                    nlInput.value = intent;
-                                    // Open the accordion
-                                    const accordionItem = nlInput.closest('.accordion-item');
-                                    if (accordionItem) {
-                                        accordionItem.classList.add('active');
-                                        // Scroll to it
-                                        accordionItem.scrollIntoView({ behavior: 'smooth' });
-                                        // Also trigger input event in case there are listeners
-                                        nlInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                    }
-                                }
-                            }
-
-                            showStatus(`Database created and context loaded (${currentDatabase.id}).`, 'success');
-                        } catch (err) {
-                            console.error("Error initializing database context (Creation):", err);
-                            showStatus(`Error creating database: ${err.message}`, 'error');
-                            // Fallback to selection if schema loading fails
-                            await loadDatabases(); 
-                        } finally {
-                            showLoader(false);
-                        }
-                        // removed redundant fallback here as catch handles failure
-                    } else if (databaseId) { // Fallback for envConfig ID or MCP returning ID
+                    const databaseId = envConfig.database_id || envConfig.VAR_DATABASE_ID || null;
+                    if (databaseId) { // Fallback for envConfig ID or MCP returning ID
                          if (tool) {
                               console.log("Initialized with MCP Tool (Existing Database):", tool);
                          }
@@ -1650,32 +2265,14 @@ res
                         
                         showLoader(true, "Initializing Database Context...");
                         try {
-                            // 1. Set Context and load python
-                            await runPixel(`SetContext(["${envConfig.APP}"])`);
+                            // Get the schema via Python; get_schema returns the schema as a JSON string
+                            const { output: schemaJson } = await insight.actions.runPy(pyCall('get_schema', { database_id: databaseId, playground: false }));
                             
-                            const pyInitCode = `
-import mcp_driver
-`;
-                            await insight.actions.runPy(pyInitCode);
-                            
-                            // 2. Get the schema via Python
-                            // mcp_driver.get_schema writes the assets and returns base64 encoded JSON
-                            const pyCode = `
-#res = mcp_driver.get_schema("${databaseId}", playground=${playground} )
-res = mcp_driver.get_schema("${databaseId}", playground=False )
-# The result is already base64 encoded by the python function
-res
-`;
-                            const { output: encodedSchema } = await insight.actions.runPy(pyCode);
-                            
-                            // Decode to string
-                            let decodedSchemaStr = atob(encodedSchema);
-                            
-                            // 3. Pass metadata back to Orchestrator via MCP Tool
+                            // Pass metadata back to Orchestrator via MCP Tool
                             // Only if we operate in an MCP context
                             if (tool) {
                                 await insight.actions.runMCPTool("add_to_context", {
-                                    "context": decodedSchemaStr 
+                                    "context": schemaJson 
                                 });
                             }
 
@@ -1760,10 +2357,10 @@ res
         async function loadDatabases() {
             try {
                 const { pixelReturn } = await runPixel('MyEngines(engineTypes=["DATABASE"]);');
-                allDatabases = pixelReturn[0].output;
+                allDatabases = Array.isArray(pixelReturn[0].output) ? pixelReturn[0].output : [];
                 dbSelectorMain.innerHTML = '<option value="">-- Please select a database --</option>';
                 allDatabases.forEach(db => {
-                    dbSelectorMain.innerHTML += `<option value="${db.database_id}">${db.database_name}</option>`;
+                    dbSelectorMain.add(new Option(db.database_name, db.database_id));
                 });
                 // Also load LLMs
                 loadLLMs();
@@ -1776,7 +2373,7 @@ res
         confirmSelectBtn.addEventListener('click', async () => {
             const selectedDbId = dbSelectorMain.value;
             if (!selectedDbId) {
-                alert('Please select a database.');
+                showStatus('Please select a database.', 'warning');
                 return;
             }
             
@@ -1804,17 +2401,17 @@ res
         deleteDbBtn.addEventListener('click', async () => {
             const selectedDbId = dbSelectorMain.value;
             if (!selectedDbId) {
-                alert('Please select a database to delete.');
+                showStatus('Please select a database to delete.', 'warning');
                 return;
             }
-            
+
             const selectedDb = allDatabases.find(db => db.database_id === selectedDbId);
             if (!selectedDb) return;
 
-            if (confirm(`Are you sure you want to PERMANENTLY DELETE the database '${selectedDb.database_name}'? This action cannot be undone.`)) {
+            if (await confirmDialog(`Are you sure you want to PERMANENTLY DELETE the database '${selectedDb.database_name}'? This action cannot be undone.`, 'Delete database')) {
                 showLoader(true, `Deleting database '${selectedDb.database_name}'...`);
                 try {
-                    await runPixel(`DeleteEngine(engine=["${selectedDbId}"]);`);
+                    await runPixel(`DeleteEngine(engine=[${pixelJson(selectedDbId)}]);`);
                     showStatus(`Database '${selectedDb.database_name}' deleted successfully.`, 'success');
                     await loadDatabases(); // Refresh list
                 } catch (error) {
@@ -1829,46 +2426,44 @@ res
         confirmCreateBtn.addEventListener('click', async () => {
             const dbName = dbNameCreateInput.value;
             if (!dbName) {
-                alert('Please enter a name for the new database.');
+                showStatus('Please enter a name for the new database.', 'warning');
                 return;
             }
 
             showLoader(true, "Creating database...");
             try {
                 // 1. Use MCP driver to create database with potential sample tables
-                const pyCreateCode = `
-import mcp_driver
-res = mcp_driver.create_new_db("${dbName}", None)
-res
-`;
-                const { output: createResult } = await insight.actions.runPy(pyCreateCode);
+                const { output: createResult } = await insight.actions.runPy(pyCall('create_new_db', { database_name: dbName, user_intent: null }));
                 console.log("MCP Database creation result:", createResult);
-                
+
                 // Parse and handle the creation result
+                let resultData = null;
                 try {
-                    const resultData = JSON.parse(createResult);
+                    resultData = JSON.parse(createResult);
                     console.log("Parsed creation result:", resultData);
-                    
-                    if (resultData.status === 'success') {
-                        showStatus(`Database created successfully.`, 'success');
-                    } else if (resultData.status === 'exists') {
-                        showStatus(`Database '${resultData.database_name}' already exists. Using existing database.`, 'info');
-                    } else {
-                        showStatus(`Database creation had issues: ${resultData.error || 'Unknown error'}`, 'warning');
-                    }
                 } catch (parseError) {
                     console.error("Could not parse creation result:", parseError);
                     showStatus('Database creation completed but result parsing failed.', 'warning');
                 }
-                
-                // Refresh list to reliably get ID
+
+                if (resultData && resultData.status === 'success') {
+                    showStatus(`Database created successfully.`, 'success');
+                } else if (resultData && resultData.status === 'exists') {
+                    showStatus(`Database '${resultData.database_name}' already exists. Using existing database.`, 'info');
+                } else if (resultData) {
+                    throw new Error(resultData.error || 'Unknown error');
+                }
+
+                // Refresh the list (also used by the selectors), then prefer the id the driver returned
                 await loadDatabases();
-                const createdDb = allDatabases.find(d => d.database_name === dbName);
-                
+                const createdDb = (resultData && resultData.database_id)
+                    ? { database_id: resultData.database_id, database_name: resultData.database_name || dbName }
+                    : allDatabases.find(d => String(d.database_name).toLowerCase() === dbName.trim().toLowerCase());
+
                 if (!createdDb) {
                      throw new Error(`Database '${dbName}' created but not found in engine list.`);
                 }
-                
+
                 currentDatabase = { name: createdDb.database_name, id: createdDb.database_id };
                 renderCurrentDatabaseDetails();
                 
@@ -1902,9 +2497,9 @@ res
         const tableNameCsvInput = document.getElementById('table-name-csv');
         const csvPreviewSection = document.getElementById('csv-preview-section');
         const csvSchemaContainer = document.getElementById('csv-schema-container');
-        const loadCsvBtn = document.getElementById('load-csv-btn');
 
         const entityDiagram = document.getElementById('entity-diagram');
+        const metamodelContext = document.getElementById('metamodel-context');
         const querySqlInput = document.getElementById('query-sql');
         const queryScriptInput = document.getElementById('query-script');
         const runQueryBtn = document.getElementById('run-query-btn');
@@ -1926,7 +2521,7 @@ res
                 }
 				
                 models.forEach(model => {
-                    llmSelector.innerHTML += `<option value="${model.database_id}">${model.database_name}</option>`;
+                    llmSelector.add(new Option(model.database_name, model.database_id));
                 });
             } catch (error) {
                 console.error('Error loading LLMs:', error);
@@ -1951,12 +2546,12 @@ res
             }
 
             let tableHtml = '<table class="table"><thead><tr>';
-            data.headers.forEach(header => tableHtml += `<th>${header}</th>`);
+            data.headers.forEach(header => tableHtml += `<th>${escapeHtml(header)}</th>`);
             tableHtml += '</tr></thead><tbody>';
 
             data.values.forEach(row => {
                 tableHtml += '<tr>';
-                row.forEach(cell => tableHtml += `<td>${cell}</td>`);
+                (Array.isArray(row) ? row : [row]).forEach(cell => tableHtml += `<td>${escapeHtml(String(cell))}</td>`);
                 tableHtml += '</tr>';
             });
 
@@ -1973,10 +2568,10 @@ res
                 <div class="script-summary">
                     ${payload.results.map(result => `
                         <div class="script-summary-item">
-                            <strong>Statement ${result.index}</strong>
-                            <div>Type: ${result.statement_type || 'UNKNOWN'}</div>
-                            <div>Rows returned: ${result.row_count ?? 0}</div>
-                            <code>${result.statement}</code>
+                            <strong>Statement ${escapeHtml(result.index)}</strong>
+                            <div>Type: ${escapeHtml(result.statement_type || 'UNKNOWN')}</div>
+                            <div>Rows returned: ${escapeHtml(result.row_count ?? 0)}</div>
+                            <code>${escapeHtml(result.statement)}</code>
                         </div>
                     `).join('')}
                 </div>
@@ -1985,20 +2580,18 @@ res
 
         // Helper: Render Schema Editor
         function renderSchemaEditor(container, llmResponse, approveBtnText = "Approve & Generate Final SQL", approveBtnId = "approve-schema-btn") {
-            const standardSqlTypes = ['INTEGER', 'VARCHAR(255)', 'TEXT', 'DATE', 'TIMESTAMP', 'BOOLEAN', 'DOUBLE', 'FLOAT', 'DECIMAL(10, 2)'];
-
             // Build the interactive editor
             let editorHtml = '';
             for (const tableName in llmResponse.schema) {
                 const table = llmResponse.schema[tableName];
                 const hasSampleData = llmResponse.sample_data && llmResponse.sample_data[tableName];
 
-                editorHtml += `<div class="entity-box" data-table-name="${tableName}">
+                editorHtml += `<div class="entity-box" data-table-name="${escapeHtml(tableName)}">
                                  <h4>
-                                    <span>Table: <input type="text" class="table-name-input" value="${tableName}"></span>
+                                    <span>Table: <input type="text" class="table-name-input" aria-label="Table name" value="${escapeHtml(tableName)}"></span>
                                     <span class="header-buttons">
                                         ${hasSampleData ? '<button class="btn btn-secondary btn-small show-sample-data-btn">View Data</button>' : ''}
-                                        <button class="btn btn-primary btn-small add-column-btn">+</button>
+                                        <button class="btn btn-primary btn-small add-column-btn" aria-label="Add column">+</button>
                                         <button class="btn btn-danger btn-small delete-table-btn">Delete</button>
                                     </span>
                                  </h4>
@@ -2006,36 +2599,51 @@ res
                                     <li class="column-header"><span>Column Name</span><span>Data Type</span><span></span></li>`;
                 for (const colName in table.columns) {
                     const colDetails = table.columns[colName];
-                    const suggestedType = (typeof colDetails === 'string' ? colDetails : colDetails.type).toUpperCase();
-                    const description = typeof colDetails === 'object' && colDetails.description ? colDetails.description : '';
-                    
-                    const options = new Set(standardSqlTypes);
-                    options.add(suggestedType);
-
-                    let typeDropdown = `<select class="column-type-select">`;
-                    options.forEach(type => {
-                        typeDropdown += `<option value="${type}" ${type === suggestedType ? 'selected' : ''}>${type}</option>`;
-                    });
-                    typeDropdown += `</select>`;
+                    // The LLM sometimes leaves out the type; fall back to the default text type
+                    const rawType = typeof colDetails === 'string' ? colDetails : colDetails && colDetails.type;
+                    const suggestedType = String(rawType || 'VARCHAR(255)').toUpperCase();
+                    const description = typeof colDetails === 'object' && colDetails && colDetails.description ? colDetails.description : '';
 
                     editorHtml += `<li>
-                                    <input type="text" class="column-name-input" value="${colName}"> 
-                                    ${typeDropdown} 
-                                    <button class="delete-col-btn">&times;</button>
-                                    <input type="text" class="column-description-input" placeholder="Description..." value="${description}">
+                                    <input type="text" class="column-name-input" aria-label="Column name" value="${escapeHtml(colName)}">
+                                    ${columnTypeSelectHtml(suggestedType)}
+                                    <button class="delete-col-btn" aria-label="Remove column">&times;</button>
+                                    <input type="text" class="column-description-input" aria-label="Column description" placeholder="Description..." value="${escapeHtml(description)}">
                                   </li>`;
                 }
                 editorHtml += `</ul></div>`;
             }
             editorHtml += `<div class="button-group"><button id="${approveBtnId}" class="btn btn-secondary">${approveBtnText}</button></div>`;
-            
+
             container.innerHTML = editorHtml;
             container.dataset.llmResponse = JSON.stringify(llmResponse);
+            container.dataset.mode = 'create';
+        }
+
+        const STANDARD_SQL_TYPES = ['INTEGER', 'VARCHAR(255)', 'TEXT', 'DATE', 'TIMESTAMP', 'BOOLEAN', 'DOUBLE', 'FLOAT', 'DECIMAL(10, 2)'];
+
+        // selectedType '' means "existing column whose type is unknown": keep it unless the user picks one
+        function columnTypeSelectHtml(selectedType) {
+            const options = new Set(STANDARD_SQL_TYPES);
+            if (selectedType) options.add(selectedType);
+            let typeDropdown = `<select class="column-type-select" aria-label="Data type">`;
+            if (selectedType === '') typeDropdown += `<option value="" selected>Keep current type</option>`;
+            options.forEach(type => {
+                typeDropdown += `<option value="${escapeHtml(type)}" ${type === selectedType ? 'selected' : ''}>${escapeHtml(type)}</option>`;
+            });
+            return typeDropdown + `</select>`;
+        }
+
+        function newColumnRowHtml() {
+            return `<input type="text" class="column-name-input" aria-label="Column name" placeholder="NewColumn">
+                    ${columnTypeSelectHtml(null)}
+                    <button class="delete-col-btn" aria-label="Remove column">&times;</button>
+                    <input type="text" class="column-description-input" aria-label="Column description" placeholder="Description...">`;
         }
 
         // Helper: Generate SQL from Editor
         function generateSqlFromEditor(container, includeSampleData = true) {
-            const originalResponse = JSON.parse(container.dataset.llmResponse);
+            const originalResponse = container.dataset.llmResponse ? JSON.parse(container.dataset.llmResponse) : {};
             let finalSql = '';
 
             container.querySelectorAll('.entity-box').forEach(box => {
@@ -2094,19 +2702,59 @@ res
             return finalSql;
         }
 
+        // Helper: Generate ALTER statements for an existing table opened with "Edit Schema".
+        // Rows remember the column they started as, so renames, type changes, additions and
+        // removals each become their own statement against the existing table.
+        function generateAlterSqlFromEditor(container) {
+            const box = container.querySelector('.entity-box');
+            if (!box) return '';
+            const sameName = (a, b) => String(a).toUpperCase() === String(b).toUpperCase();
+            const originalTable = box.dataset.tableName;
+            const newTable = (box.querySelector('.table-name-input').value || originalTable).trim().replace(/ /g, '_');
+            const originalColumns = JSON.parse(box.dataset.originalColumns || '[]');
+            const statements = [];
+            const keptColumns = new Set();
+
+            box.querySelectorAll('.entity-columns li:not(.column-header)').forEach(item => {
+                const name = (item.querySelector('.column-name-input').value || '').trim().replace(/ /g, '_');
+                const type = item.querySelector('.column-type-select').value;
+                const originalName = item.dataset.originalName;
+                if (!originalName) {
+                    if (name && type) statements.push(`ALTER TABLE ${originalTable} ADD COLUMN ${name} ${type};`);
+                    return;
+                }
+                // Existing column: only the remove button drops it
+                keptColumns.add(originalName);
+                if (type && type !== item.dataset.originalType) {
+                    statements.push(`ALTER TABLE ${originalTable} ALTER COLUMN ${originalName} ${type};`);
+                }
+                if (name && !sameName(name, originalName)) {
+                    statements.push(`ALTER TABLE ${originalTable} ALTER COLUMN ${originalName} RENAME TO ${name};`);
+                }
+            });
+
+            originalColumns
+                .filter(column => !keptColumns.has(column))
+                .forEach(column => statements.push(`ALTER TABLE ${originalTable} DROP COLUMN ${column};`));
+
+            if (!sameName(newTable, originalTable)) {
+                statements.push(`ALTER TABLE ${originalTable} RENAME TO ${newTable};`);
+            }
+            return statements.join('\n');
+        }
+
         // NL to SQL
         generateSchemaBtn.addEventListener('click', async () => {
             const description = nlDescriptionInput.value;
             const llmId = llmSelector.value;
             if (!description || !llmId) {
-                alert('Please provide a description and select an LLM.');
+                showStatus('Please provide a description and select an LLM.', 'warning');
                 return;
             }
-            
+
             showLoader(true, "Generating schema with LLM...");
             schemaEditorContainer.style.display = 'none';
             finalSqlContainer.style.display = 'none';
-            resultsEl.innerHTML = ''; // Clear previous results
 
             try {
                 const jsonSchema = {
@@ -2214,13 +2862,8 @@ If the tables are related, define the relationships in the "foreign_keys" proper
                     try {
                         llmResponse = JSON.parse(rawResponse);
                     } catch (e) {
-                        // Try parsing the original output just in case
-                        try {
-                           llmResponse = JSON.parse(llmOutput);
-                        } catch (e2) {
-                           console.error("Failed to parse LLM response string:", rawResponse);
-                           throw new Error("LLM returned a malformed JSON string.");
-                        }
+                        console.error("Failed to parse LLM response string:", rawResponse);
+                        throw new Error("LLM returned a malformed JSON string.");
                     }
                 } else if (typeof rawResponse === 'object') {
                     // If it's already an object, use it directly.
@@ -2251,57 +2894,77 @@ If the tables are related, define the relationships in the "foreign_keys" proper
             }
         });
 
-        // Rebuild the database ontology after any DDL changes. The JDBC metamodel is
-        // refreshed in two phases because newly-created tables are not visible to
-        // RdbmsExternalUpload until ExternalUpdateJdbcSchema has run for each table.
-        async function refreshDatabaseOntologyAfterDdl(databaseId) {
-            const options = ['dataTypes', 'physicalTypes', 'additionalDataTypes', 'logicalNames', 'descriptions', 'positions'];
-            const initial = await runPixel(`GetDatabaseMetamodel(database=[${JSON.stringify(databaseId)}], options=${JSON.stringify(options)});`);
-            const initialMeta = initial?.pixelReturn?.[0]?.output || {};
-
-            const discovered = await runPixel(`ExternalUpdateJdbcTablesAndViews(database=[${JSON.stringify(databaseId)}]);`);
-            const discoveredOutput = discovered?.pixelReturn?.[0]?.output || {};
-            const tables = Array.isArray(discoveredOutput.tables) ? discoveredOutput.tables.filter(Boolean) : [];
-
-            for (const tableName of tables) {
-                await runPixel(`ExternalUpdateJdbcSchema(database=[${JSON.stringify(databaseId)}], filters=[${JSON.stringify(tableName)}]);`);
+        // Save column descriptions to the database's ontology (OWL). An empty description
+        // removes the one that was there before.
+        async function saveColumnDescriptions(updates) {
+            const db = pixelJson(currentDatabase.id);
+            for (const { table, column, description, previous } of updates) {
+                const target = `database=[${db}], concept=[${pixelJson(table)}], column=[${pixelJson(column)}]`;
+                if (description) {
+                    await runPixel(`META | EditOwlDescription(${target}, description=["${encodedSql(description)}"]);`);
+                } else if (previous) {
+                    await runPixel(`META | RemoveOwlDescription(${target}, description=["${encodedSql(previous)}"]);`);
+                }
             }
+            if (updates.length) {
+                await runPixel(`SyncDatabaseWithLocalMaster(database=[${db}]);`);
+            }
+        }
 
-            // Read the complete metamodel again after JDBC schema updates so the
-            // upload contains the actual columns and not the pre-DDL snapshot.
-            const refreshed = await runPixel(`GetDatabaseMetamodel(database=[${JSON.stringify(databaseId)}], options=${JSON.stringify(options)});`);
-            const metamodel = refreshed?.pixelReturn?.[0]?.output || initialMeta;
-            const selected = new Set(tables.map(String));
-            const metamodelTables = {};
-            const positionMap = {};
-            (metamodel.nodes || []).forEach((node, index) => {
-                const tableName = node.conceptualName || node.name;
-                if (!tableName || (selected.size && !selected.has(String(tableName)))) return;
-
-                const columns = Array.isArray(node.propSet) ? node.propSet.filter(Boolean) : [];
-                if (!columns.length) return;
-
-                // RdbmsExternalUpload expects the table map key to include the
-                // table's row identifier, e.g. EMPLOYEES.EMPLOYEE_ID.
-                const rowIdentifier = node.primaryKey || node.primaryKeyColumn || columns[0];
-                metamodelTables[`${tableName}.${rowIdentifier}`] = columns;
-                positionMap[tableName] = {
-                    top: 3.9127503633499146 + Math.floor(index / 3) * 3,
-                    left: (index % 3) * 3,
-                };
+        // After the editor's SQL has run, save the descriptions typed in that editor. Engines
+        // store unquoted identifiers in their own case (H2 upper-cases them), so names are
+        // matched against the refreshed schema.
+        async function applyEditorDescriptions(container) {
+            const entries = [];
+            container.querySelectorAll('.entity-box').forEach(box => {
+                const tableInput = box.querySelector('.table-name-input');
+                const table = (tableInput ? tableInput.value : box.dataset.tableName || '').trim().replace(/ /g, '_');
+                box.querySelectorAll('.entity-columns li:not(.column-header)').forEach(item => {
+                    const nameInput = item.querySelector('.column-name-input');
+                    const descriptionInput = item.querySelector('.column-description-input');
+                    const column = (nameInput ? nameInput.value : '').trim().replace(/ /g, '_');
+                    const description = (descriptionInput ? descriptionInput.value : '').trim();
+                    if (table && column && description) entries.push({ table, column, description });
+                });
             });
+            if (!entries.length) return 0;
 
-            // Keep these as a strict sequence: upload the refreshed metamodel,
-            // save its OWL positions, then synchronize the local master ontology.
-            const uploadMetamodel = { relationships: [], tables: metamodelTables };
-            await runPixel(`RdbmsExternalUpload(database=[${JSON.stringify(databaseId)}], metamodel=[${JSON.stringify(uploadMetamodel)}], existing=[true]);`);
-            await runPixel(`META|SaveOwlPositions(database=[${JSON.stringify(databaseId)}], positionMap=[${JSON.stringify(positionMap)}]);`);
-            await runPixel(`SyncDatabaseWithLocalMaster(database=[${JSON.stringify(databaseId)}]);`);
-            return tables;
+            const schema = await getSimplifiedSchemaJS();
+            const tables = new Map(schema.map(t => [String(t.table_name).toLowerCase(), t]));
+            const updates = [];
+            entries.forEach(entry => {
+                const table = tables.get(entry.table.toLowerCase());
+                const column = table && table.columns.find(c => String(c.name).toLowerCase() === entry.column.toLowerCase());
+                if (column && (column.description || '') !== entry.description) {
+                    updates.push({ table: table.table_name, column: column.name, description: entry.description });
+                }
+            });
+            await saveColumnDescriptions(updates);
+            return updates.length;
         }
 
         // Event delegation for the approve button and others in the editor
-        schemaEditorContainer.addEventListener('click', (e) => {
+        // Sample rows (from the LLM or a CSV) shown in the shared modal
+        function showSampleDataModal(tableName, headers, rows) {
+            let tableHtml = '<table class="table"><thead><tr>';
+            headers.forEach(h => tableHtml += `<th>${escapeHtml(h)}</th>`);
+            tableHtml += '</tr></thead><tbody>';
+            rows.forEach(row => {
+                tableHtml += '<tr>';
+                headers.forEach(h => {
+                    const cell = row[h];
+                    tableHtml += `<td>${escapeHtml(cell === null || cell === undefined ? 'NULL' : String(cell))}</td>`;
+                });
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</tbody></table>';
+
+            document.getElementById('sample-data-modal-title').textContent = `Sample Data for ${tableName}`;
+            document.getElementById('sample-data-modal-body').innerHTML = tableHtml;
+            openModal(sampleDataModal);
+        }
+
+        schemaEditorContainer.addEventListener('click', async (e) => {
             // Approve and Generate SQL
             if (e.target.id === 'approve-schema-btn') {
                 const finalSql = generateSqlFromEditor(schemaEditorContainer);
@@ -2309,22 +2972,21 @@ If the tables are related, define the relationships in the "foreign_keys" proper
                 finalSqlContainer.style.display = 'block';
             }
 
+            // Generate ALTER statements for a table opened with "Edit Schema"
+            if (e.target.id === 'generate-update-sql-btn') {
+                const alterSql = generateAlterSqlFromEditor(schemaEditorContainer);
+                if (!alterSql) {
+                    showStatus('No schema changes to apply. Column descriptions are saved when you execute.', 'info');
+                }
+                schemaSqlInput.value = alterSql;
+                finalSqlContainer.style.display = 'block';
+            }
+
             // Add Column
             if (e.target.classList.contains('add-column-btn')) {
                 const columnsList = e.target.closest('.entity-box').querySelector('.entity-columns');
                 const newRow = document.createElement('li');
-                
-                const standardSqlTypes = ['INTEGER', 'VARCHAR(255)', 'TEXT', 'DATE', 'TIMESTAMP', 'BOOLEAN', 'DOUBLE', 'FLOAT', 'DECIMAL(10, 2)'];
-                let typeDropdown = `<select class="column-type-select">`;
-                standardSqlTypes.forEach(type => {
-                    typeDropdown += `<option value="${type}">${type}</option>`;
-                });
-                typeDropdown += `</select>`;
-
-                newRow.innerHTML = `<input type="text" class="column-name-input" placeholder="NewColumn"> 
-                                  ${typeDropdown} 
-                                  <button class="delete-col-btn">&times;</button>
-                                  <input type="text" class="column-description-input" placeholder="Description...">`;
+                newRow.innerHTML = newColumnRowHtml();
                 columnsList.appendChild(newRow);
             }
 
@@ -2336,7 +2998,7 @@ If the tables are related, define the relationships in the "foreign_keys" proper
             // Delete Table (from the editor UI only)
             if (e.target.classList.contains('delete-table-btn')) {
                 const box = e.target.closest('.entity-box');
-                if (confirm(`Are you sure you want to remove this table definition from the editor?`)) {
+                if (await confirmDialog(`Are you sure you want to remove this table definition from the editor?`, 'Remove')) {
                     box.remove();
                 }
             }
@@ -2345,7 +3007,7 @@ If the tables are related, define the relationships in the "foreign_keys" proper
             if (e.target.classList.contains('show-sample-data-btn')) {
                 const box = e.target.closest('.entity-box');
                 const tableName = box.dataset.tableName;
-                const originalResponse = JSON.parse(schemaEditorContainer.dataset.llmResponse);
+                const originalResponse = schemaEditorContainer.dataset.llmResponse ? JSON.parse(schemaEditorContainer.dataset.llmResponse) : {};
                 const sampleData = originalResponse.sample_data;
                 const schema = originalResponse.schema;
 
@@ -2357,27 +3019,10 @@ If the tables are related, define the relationships in the "foreign_keys" proper
                     } else {
                         headers = Object.keys(schema[tableName].columns);
                     }
-
-                    let tableHtml = '<table class="table"><thead><tr>';
-                    headers.forEach(h => tableHtml += `<th>${h}</th>`);
-                    tableHtml += '</tr></thead><tbody>';
-                    
-                    sampleData[tableName].forEach(row => {
-                        tableHtml += '<tr>';
-                        headers.forEach(h => {
-                            let cell = row[h];
-                            tableHtml += `<td>${cell === null || cell === undefined ? 'NULL' : cell}</td>`;
-                        });
-                        tableHtml += '</tr>';
-                    });
-                    tableHtml += '</tbody></table>';
-                    
-                    document.getElementById('sample-data-modal-title').textContent = `Sample Data for ${tableName}`;
-                    document.getElementById('sample-data-modal-body').innerHTML = tableHtml;
-                    document.getElementById('sample-data-modal').classList.add('show');
+                    showSampleDataModal(tableName, headers, sampleData[tableName]);
                 } else {
                     console.error("Could not find sample data or schema for table:", tableName);
-                    alert("Sorry, the sample data for this table could not be displayed.");
+                    showStatus("Sorry, the sample data for this table could not be displayed.", 'error');
                 }
             }
         });
@@ -2385,59 +3030,57 @@ If the tables are related, define the relationships in the "foreign_keys" proper
         // Modal close logic
         const sampleDataModal = document.getElementById('sample-data-modal');
         document.getElementById('close-sample-data-modal').addEventListener('click', () => {
-            sampleDataModal.classList.remove('show');
+            closeModal(sampleDataModal);
         });
-        sampleDataModal.addEventListener('click', (e) => {
-            if (e.target === sampleDataModal) {
-                sampleDataModal.classList.remove('show');
+
+        // Run a multi-statement SQL script through the MCP driver and return its parsed result.
+        // Throws with the driver's error (and failing statement) when the script fails.
+        async function runDriverScript(script) {
+            const { output: encodedResult } = await insight.actions.runPy(pyCall('run_script', { database_id: currentDatabase.id, script }));
+            console.log('Raw runPy output:', encodedResult);
+            if (!encodedResult) {
+                throw new Error('Script runner returned an empty response.');
             }
-        });
+
+            // The result is already JSON from the Python function
+            const result = typeof encodedResult === 'string' ? JSON.parse(encodedResult) : encodedResult;
+            if (result.status !== 'success') {
+                const error = new Error(result.error || 'Script execution failed.');
+                error.result = result;
+                throw error;
+            }
+            return result;
+        }
 
         createTableFromNlBtn.addEventListener('click', async () => {
             const schemaSql = schemaSqlInput.value;
-            if (!schemaSql) {
-                alert('Please generate and approve a schema first.');
+            const isEdit = schemaEditorContainer.dataset.mode === 'edit';
+            if (!schemaSql.trim() && !isEdit) {
+                showStatus('Please generate and approve a schema first.', 'warning');
                 return;
             }
-            showLoader(true, "Creating tables from SQL...");
+            showLoader(true, isEdit ? "Updating table..." : "Creating tables from SQL...");
             try {
-                // Persist the SQL file to the DATABASE's asset folder
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                const filename = `${currentDatabase.name}_${timestamp}.sql`;
-                
-                // Use SaveFile pixel to save to the database's assets
-                //const saveFilePixel = `SaveFile(filePath=["${filename}"], content=["<encode>${schemaSql}</encode>"], space=["${currentDatabase.id}"]);`;
-                //await runPixel(saveFilePixel);
-
                 // Execute the script using the MCP driver's run_script function
                 // This properly handles multi-statement SQL scripts
-                const pyCode = `
-import mcp_driver
-res = mcp_driver.run_script(${JSON.stringify(currentDatabase.id)}, ${JSON.stringify(schemaSql)})
-res
-`;
-                const { output: encodedResult } = await insight.actions.runPy(pyCode);
-                
-                console.log('Raw runPy output:', encodedResult);
-                console.log('Output type:', typeof encodedResult);
-                
-                if (!encodedResult) {
-                    throw new Error('Script runner returned an empty response.');
-                }
-
-                // The result is already JSON from the Python function
-                const result = typeof encodedResult === 'string' ? JSON.parse(encodedResult) : encodedResult;
-                
-                if (result.status !== 'success') {
-                    const errorMessage = result.error || 'Script execution failed.';
-                    throw new Error(errorMessage);
-                }
-
                 // run_script already auto-refreshes the ontology after DDL operations
-                // No need for manual SetColumnDescription or refreshDatabaseOntologyAfterDdl calls
-                
-                const countLabel = result.statement_count === 1 ? 'statement' : 'statements';
-                showStatus(`Table(s) created successfully in '${currentDatabase.name}'. ${result.statement_count} ${countLabel} executed.`, 'success');
+                const result = schemaSql.trim() ? await runDriverScript(schemaSql) : null;
+
+                // Descriptions typed in the editor are not part of the SQL; save them to the ontology
+                try {
+                    await applyEditorDescriptions(schemaEditorContainer);
+                } catch (descriptionError) {
+                    console.error('Error saving column descriptions:', descriptionError);
+                    showStatus(`SQL executed, but saving column descriptions failed: ${descriptionError.message}`, 'warning');
+                }
+
+                if (isEdit) {
+                    const countText = result ? ` ${result.statement_count} ${result.statement_count === 1 ? 'statement' : 'statements'} executed.` : '';
+                    showStatus(`Table updated in '${currentDatabase.name}'.${countText}`, 'success');
+                } else {
+                    const countLabel = result.statement_count === 1 ? 'statement' : 'statements';
+                    showStatus(`Table(s) created successfully in '${currentDatabase.name}'. ${result.statement_count} ${countLabel} executed.`, 'success');
+                }
                 await loadDatabaseSchema();
             } catch (error) {
                 showStatus(`Error during execution: ${error.message}`, 'error');
@@ -2446,22 +3089,69 @@ res
             }
         });
 
-        // Helper: Simple CSV Parser
-        function parseCSV(text) {
-            const lines = text.split(/\r\n|\n/);
-            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-            const data = [];
-            for (let i = 1; i < lines.length; i++) {
-                if (!lines[i].trim()) continue;
-                // Simple split, doesn't handle commas inside quotes perfectly but good for simple CSVs
-                const row = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-                if (row.length === headers.length) {
-                    const rowObj = {};
-                    headers.forEach((h, index) => rowObj[h] = row[index]);
-                    data.push(rowObj);
+        // Helper: CSV records per RFC 4180 (quoted fields may hold commas, "" and line breaks)
+        function parseCSVRecords(text) {
+            const records = [];
+            let record = [];
+            let field = '';
+            let inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                const ch = text[i];
+                if (inQuotes) {
+                    if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
+                    else if (ch === '"') inQuotes = false;
+                    else field += ch;
+                } else if (ch === '"') {
+                    inQuotes = true;
+                } else if (ch === ',') {
+                    record.push(field);
+                    field = '';
+                } else if (ch === '\n' || ch === '\r') {
+                    if (ch === '\r' && text[i + 1] === '\n') i++;
+                    record.push(field);
+                    records.push(record);
+                    record = [];
+                    field = '';
+                } else {
+                    field += ch;
                 }
             }
-            return { headers, data };
+            if (field !== '' || record.length) {
+                record.push(field);
+                records.push(record);
+            }
+            return records;
+        }
+
+        // Turn a CSV header into a column name the SQL generator can use as-is
+        function toColumnName(header, index, usedNames) {
+            let name = String(header).trim().replace(/\W+/g, '_').replace(/^_+|_+$/g, '') || `column_${index + 1}`;
+            if (/^\d/.test(name)) name = `col_${name}`;
+            let unique = name;
+            for (let n = 2; usedNames.has(unique.toLowerCase()); n++) unique = `${name}_${n}`;
+            usedNames.add(unique.toLowerCase());
+            return unique;
+        }
+
+        // Helper: CSV Parser. Rows whose column count doesn't match the header are counted, not loaded.
+        function parseCSV(text) {
+            const records = parseCSVRecords(text.replace(/^﻿/, ''));
+            if (!records.length) return { headers: [], data: [], skipped: 0 };
+            const usedNames = new Set();
+            const headers = records[0].map((h, index) => toColumnName(h, index, usedNames));
+            const data = [];
+            let skipped = 0;
+            for (const row of records.slice(1)) {
+                if (row.every(value => !value.trim())) continue;
+                if (row.length !== headers.length) {
+                    skipped++;
+                    continue;
+                }
+                const rowObj = {};
+                headers.forEach((h, index) => rowObj[h] = row[index].trim());
+                data.push(rowObj);
+            }
+            return { headers, data, skipped };
         }
 
         function inferType(values) {
@@ -2492,13 +3182,12 @@ res
 
             showLoader(true, "Parsing CSV locally...");
             csvPreviewSection.style.display = 'none';
-            resultsEl.innerHTML = '';
 
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const text = e.target.result;
-                    const { headers, data } = parseCSV(text);
+                    const { headers, data, skipped } = parseCSV(text);
                     
                     // Store data for later execution
                     csvSchemaContainer.dataset.csvData = JSON.stringify(data);
@@ -2534,6 +3223,9 @@ res
                     csvPreviewSection.style.display = 'block';
                     document.getElementById('csv-sql-container').style.display = 'none';
                     showStatus('CSV parsed. Please review the schema.', 'success');
+                    if (skipped) {
+                        showStatus(`${skipped} row(s) were skipped because their column count doesn't match the header.`, 'warning');
+                    }
                 } catch (err) {
                     console.error(err);
                     showStatus("Error parsing CSV: " + err.message, "error");
@@ -2551,7 +3243,7 @@ res
         });
 
         // Event delegation for CSV Schema Editor
-        csvSchemaContainer.addEventListener('click', (e) => {
+        csvSchemaContainer.addEventListener('click', async (e) => {
             // Generate SQL
             if (e.target.id === 'generate-csv-sql-btn') {
                 // Get Create Table SQL (exclude sample data from the editor's response, we use full CSV data)
@@ -2618,18 +3310,7 @@ res
             if (e.target.classList.contains('add-column-btn')) {
                 const columnsList = e.target.closest('.entity-box').querySelector('.entity-columns');
                 const newRow = document.createElement('li');
-                
-                const standardSqlTypes = ['INTEGER', 'VARCHAR(255)', 'TEXT', 'DATE', 'TIMESTAMP', 'BOOLEAN', 'DOUBLE', 'FLOAT', 'DECIMAL(10, 2)'];
-                let typeDropdown = `<select class="column-type-select">`;
-                standardSqlTypes.forEach(type => {
-                    typeDropdown += `<option value="${type}">${type}</option>`;
-                });
-                typeDropdown += `</select>`;
-
-                newRow.innerHTML = `<input type="text" class="column-name-input" placeholder="NewColumn"> 
-                                  ${typeDropdown} 
-                                  <button class="delete-col-btn">&times;</button>
-                                  <input type="text" class="column-description-input" placeholder="Description...">`;
+                newRow.innerHTML = newColumnRowHtml();
                 columnsList.appendChild(newRow);
             }
 
@@ -2641,74 +3322,45 @@ res
             // Delete Table (from the editor UI only)
             if (e.target.classList.contains('delete-table-btn')) {
                 const box = e.target.closest('.entity-box');
-                if (confirm(`Are you sure you want to remove this table definition?`)) {
+                if (await confirmDialog(`Are you sure you want to remove this table definition?`, 'Remove')) {
                     box.remove();
                 }
             }
-            
+
             // Show Sample Data
             if (e.target.classList.contains('show-sample-data-btn')) {
                 const box = e.target.closest('.entity-box');
                 const tableName = box.dataset.tableName;
-                const originalResponse = JSON.parse(csvSchemaContainer.dataset.llmResponse);
+                const originalResponse = csvSchemaContainer.dataset.llmResponse ? JSON.parse(csvSchemaContainer.dataset.llmResponse) : {};
                 const sampleData = originalResponse.sample_data;
-                
-                if (sampleData && sampleData[tableName]) {
-                    let headers = Object.keys(sampleData[tableName][0]);
-                    let tableHtml = '<table class="table"><thead><tr>';
-                    headers.forEach(h => tableHtml += `<th>${h}</th>`);
-                    tableHtml += '</tr></thead><tbody>';
-                    
-                    sampleData[tableName].forEach(row => {
-                        tableHtml += '<tr>';
-                        headers.forEach(h => {
-                            let cell = row[h];
-                            tableHtml += `<td>${cell === null || cell === undefined ? 'NULL' : cell}</td>`;
-                        });
-                        tableHtml += '</tr>';
-                    });
-                    tableHtml += '</tbody></table>';
-                    
-                    document.getElementById('sample-data-modal-title').textContent = `Sample Data for ${tableName}`;
-                    document.getElementById('sample-data-modal-body').innerHTML = tableHtml;
-                    document.getElementById('sample-data-modal').classList.add('show');
+
+                if (sampleData && sampleData[tableName] && sampleData[tableName].length) {
+                    showSampleDataModal(tableName, Object.keys(sampleData[tableName][0]), sampleData[tableName]);
                 }
             }
         });
 
         document.getElementById('execute-csv-sql-btn').addEventListener('click', async () => {
             const schemaSql = document.getElementById('csv-schema-sql').value;
-            const tableName = document.getElementById('csv-schema-sql').dataset.tableName;
-            
+
             if (!schemaSql) {
-                alert('Please generate SQL first.');
+                showStatus('Please generate SQL first.', 'warning');
                 return;
             }
 
             showLoader(true, "Executing SQL...");
             try {
                 // Use the MCP driver's run_script function to properly handle multi-statement SQL
-                const pyCode = `
-import mcp_driver
-res = mcp_driver.run_script(${JSON.stringify(currentDatabase.id)}, ${JSON.stringify(schemaSql)})
-res
-`;
-                const { output: encodedResult } = await insight.actions.runPy(pyCode);
-                
-                console.log('Raw runPy output:', encodedResult);
-                
-                if (!encodedResult) {
-                    throw new Error('Script runner returned an empty response.');
+                const result = await runDriverScript(schemaSql);
+
+                // Descriptions typed in the editor are not part of the SQL; save them to the ontology
+                try {
+                    await applyEditorDescriptions(csvSchemaContainer);
+                } catch (descriptionError) {
+                    console.error('Error saving column descriptions:', descriptionError);
+                    showStatus(`SQL executed, but saving column descriptions failed: ${descriptionError.message}`, 'warning');
                 }
 
-                // The result is already JSON from the Python function
-                const result = typeof encodedResult === 'string' ? JSON.parse(encodedResult) : encodedResult;
-                
-                if (result.status !== 'success') {
-                    const errorMessage = result.error || 'Script execution failed.';
-                    throw new Error(errorMessage);
-                }
-                
                 const countLabel = result.statement_count === 1 ? 'statement' : 'statements';
                 showStatus(`SQL executed successfully! ${result.statement_count} ${countLabel} ran.`, 'success');
                 await loadDatabaseSchema();
@@ -2719,17 +3371,16 @@ res
             }
         });
 
+        // get_schema returns the table list as a JSON string. Failures are thrown so callers can
+        // report them instead of showing an empty schema.
         async function getSimplifiedSchemaJS() {
-             const pyCode = `
-res = mcp_driver.get_schema("${currentDatabase.id}", playground=False)
-res
-`;
-            const { output: encodedSchema } = await insight.actions.runPy(pyCode);
+            const { output: schemaJson } = await insight.actions.runPy(pyCall('get_schema', { database_id: currentDatabase.id, playground: false }));
             try {
-                return JSON.parse(atob(encodedSchema));
+                const schema = JSON.parse(schemaJson);
+                return Array.isArray(schema) ? schema : [];
             } catch (e) {
-                console.error("Failed to parse schema from Python", e);
-                return [];
+                console.error("Failed to parse schema from Python", e, schemaJson);
+                throw new Error(`Could not read the database schema: ${typeof schemaJson === 'string' ? schemaJson.slice(0, 200) : e.message}`);
             }
         }
 
@@ -2741,12 +3392,8 @@ res
             console.log("Database Name:", currentDatabase.name);
             
             try {
-                const pyDebugCode = `
-res = mcp_driver.debug_database_tables("${currentDatabase.id}")
-res
-`;
-                const { output: debugResult } = await insight.actions.runPy(pyDebugCode);
-                const debugData = JSON.parse(atob(debugResult));
+                const { output: debugResult } = await insight.actions.runPy(pyCall('debug_database_tables', { database_id: currentDatabase.id }));
+                const debugData = decodeBase64Json(debugResult);
                 console.log("Debug data:", debugData);
                 
                 if (debugData.sql_tables && debugData.sql_tables.values) {
@@ -2784,12 +3431,11 @@ res
 
         async function loadDatabaseSchemaForMetadata(schemaData = null) {
              if (!currentDatabase.id) {
-                alert('Please select a database first.');
+                showStatus('Please select a database first.', 'warning');
                 return;
             }
 
             const metadataEditorContainer = document.getElementById('metadata-editor-container');
-            resultsEl.innerHTML = '';
 
             try {
                 let schema = schemaData;
@@ -2803,18 +3449,18 @@ res
 
                 if (schema && schema.length > 0) {
                     schema.forEach(table => {
-                        editorHtml += `<div class="entity-box" data-table-name="${table.table_name}">
+                        editorHtml += `<div class="entity-box" data-table-name="${escapeHtml(table.table_name)}">
                                             <h4>
                                                 <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                                                     <input type="checkbox" class="table-select-checkbox" checked>
-                                                    ${table.table_name}
+                                                    ${escapeHtml(table.table_name)}
                                                 </label>
                                             </h4>
                                             <ul class="entity-columns">`;
                         table.columns.forEach(col => {
-                            editorHtml += `<li>
-                                            <span class="col-name">${col.name}</span>
-                                            <input type="text" class="column-description-input" placeholder="Description..." value="${col.description || ''}">
+                            editorHtml += `<li data-column-name="${escapeHtml(col.name)}">
+                                            <span class="col-name">${escapeHtml(col.name)}</span>
+                                            <input type="text" class="column-description-input" aria-label="Description for ${escapeHtml(col.name)}" placeholder="Description..." value="${escapeHtml(col.description || '')}" data-original="${escapeHtml(col.description || '')}">
                                           </li>`;
                         });
                         editorHtml += `</ul></div>`;
@@ -2822,9 +3468,9 @@ res
                 } else {
                     editorHtml = '<div class="empty-state"><p>No tables found.</p></div>';
                 }
-                
+
                 metadataEditorContainer.innerHTML = editorHtml;
-                document.getElementById('metadata-modal').classList.add('show');
+                openModal(document.getElementById('metadata-modal'));
                 showStatus('Metadata loaded for editing.', 'info');
 
             } catch (error) {
@@ -2834,44 +3480,48 @@ res
             }
         }
 
+        // Schema cards for the workspace (editable) and the get_schema tool view (read-only)
+        function renderSchemaCardsHtml(schema, { editable = true } = {}) {
+            if (!schema || schema.length === 0) {
+                return '<div class="empty-state"><div style="margin-bottom: 1rem; color: #dee2e6;"><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H4.99c-1.11 0-1.98.89-1.98 2L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10z"/></svg></div><p>No tables found in this database yet.</p></div>';
+            }
+            let diagramHtml = '';
+            schema.forEach(table => {
+                diagramHtml += `<div class="entity-box" data-table-name="${escapeHtml(table.table_name)}">
+                                    <h4>
+                                        <span>${escapeHtml(table.table_name)}</span>
+                                        ${editable ? `<span class="header-buttons">
+                                            <button class="btn btn-secondary btn-small edit-schema-btn">Edit Schema</button>
+                                            <button class="btn btn-danger btn-small delete-table-btn">Delete</button>
+                                        </span>` : ''}
+                                    </h4>
+                                    <ul class="entity-columns">`;
+                (table.columns || []).forEach(col => {
+                    diagramHtml += `<li>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%">
+                                        <span>${escapeHtml(col.name)}</span>
+                                        <span class="column-type" style="font-size: 0.8em; color: #888;">${escapeHtml(col.type)}</span>
+                                    </div>
+                                    ${col.description ? `<div class="column-description" style="font-size: 0.9em; color: #666; margin-top: 4px;">${escapeHtml(col.description)}</div>` : ''}
+                                  </li>`;
+                });
+                diagramHtml += `</ul></div>`;
+            });
+            return diagramHtml;
+        }
+
         // Manage & Query
         async function loadDatabaseSchema(schemaData = null) {
             if (!currentDatabase.id) return;
-            
+
             showLoader(true, "Loading database schema...");
             try {
                 let schema = schemaData;
                 if (!schema) {
                     schema = await getSimplifiedSchemaJS();
                 }
-                
-                let diagramHtml = '';
-                if (schema && schema.length > 0) {
-                    schema.forEach(table => {
-                        diagramHtml += `<div class="entity-box" data-table-name="${table.table_name}">
-                                            <h4>
-                                                <span>${table.table_name}</span>
-                                                <span class="header-buttons">
-                                                    <button class="btn btn-secondary btn-small edit-schema-btn">Edit Schema</button>
-                                                    <button class="btn btn-danger btn-small delete-table-btn">Delete</button>
-                                                </span>
-                                            </h4>
-                                            <ul class="entity-columns">`;
-                        table.columns.forEach(col => {
-                            diagramHtml += `<li>
-                                            <div style="display:flex; justify-content:space-between; align-items:center; width:100%">
-                                                <span>${col.name}</span>
-                                                <span class="column-type" style="font-size: 0.8em; color: #888;">${col.type}</span>
-                                            </div>
-                                            ${col.description ? `<div class="column-description" style="font-size: 0.9em; color: #666; margin-top: 4px;">${col.description}</div>` : ''}
-                                          </li>`;
-                        });
-                        diagramHtml += `</ul></div>`;
-                    });
-                } else {
-                    diagramHtml = '<div class="empty-state"><div style="margin-bottom: 1rem; color: #dee2e6;"><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H4.99c-1.11 0-1.98.89-1.98 2L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10z"/></svg></div><p>No tables found in this database yet.</p></div>';
-                }
-                entityDiagram.innerHTML = diagramHtml;
+
+                entityDiagram.innerHTML = renderSchemaCardsHtml(schema, { editable: true });
                 // Optional: showStatus('Database schema loaded.', 'info');
 
                 // Also update the metadata context since we have the data
@@ -2879,7 +3529,7 @@ res
                 metamodelContext.value = generateContextFromSchema(schema);
 
             } catch (error) {
-                entityDiagram.innerHTML = `<div class="alert alert-danger">Error loading schema: ${error.message}</div>`;
+                entityDiagram.innerHTML = `<div class="alert alert-danger">Error loading schema: ${escapeHtml(error.message)}</div>`;
                 showStatus(`Error loading schema: ${error.message}`, 'error');
             } finally {
                 showLoader(false);
@@ -2904,56 +3554,44 @@ res
         });
 
         const saveMetadataBtn = document.getElementById('save-metadata-btn');
+        const metadataModal = document.getElementById('metadata-modal');
         saveMetadataBtn.addEventListener('click', async () => {
-            showLoader(true, "Saving metadata and updating OWL...");
-            document.getElementById('metadata-modal').classList.remove('show');
-            
-            try {
-                let descriptionPixels = '';
-                const metadataEditorContainer = document.getElementById('metadata-editor-container');
-                
-                // Construct OWL representation
-                let owlContent = `<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:owl="http://www.w3.org/2002/07/owl#">\n`;
-                owlContent += `  <owl:Ontology rdf:about="http://semoss.org/ontologies/${currentDatabase.id}"/>\n`;
+            const metadataEditorContainer = document.getElementById('metadata-editor-container');
+            const updates = [];
+            let hasSelectedTables = false;
 
-                let hasSelectedTables = false;
+            metadataEditorContainer.querySelectorAll('.entity-box').forEach(box => {
+                const checkbox = box.querySelector('.table-select-checkbox');
+                if (!checkbox || !checkbox.checked) return;
 
-                metadataEditorContainer.querySelectorAll('.entity-box').forEach(box => {
-                    const checkbox = box.querySelector('.table-select-checkbox');
-                    if (!checkbox || !checkbox.checked) return;
+                hasSelectedTables = true;
+                const tableName = box.dataset.tableName;
 
-                    hasSelectedTables = true;
-                    const tableName = box.dataset.tableName;
-                    
-                    owlContent += `  <owl:Class rdf:about="#${tableName}">\n    <rdfs:label>${tableName}</rdfs:label>\n  </owl:Class>\n`;
-
-                    box.querySelectorAll('.entity-columns li').forEach(item => {
-                        const colName = item.querySelector('.col-name').textContent;
-                        const colDesc = item.querySelector('.column-description-input').value;
-                        
-                        if (colDesc) {
-                            descriptionPixels += `SetColumnDescription(database=["${currentDatabase.id}"], table=["${tableName}"], column=["${colName}"], description=["${colDesc}"]);`;
-                        }
-                        
-                        owlContent += `  <owl:DatatypeProperty rdf:about="#${tableName}__${colName}">\n    <rdfs:domain rdf:resource="#${tableName}"/>\n    <rdfs:label>${colName}</rdfs:label>\n    ${colDesc ? `<rdfs:comment>${colDesc}</rdfs:comment>` : ''}\n  </owl:DatatypeProperty>\n`;
-                    });
+                box.querySelectorAll('.entity-columns li').forEach(item => {
+                    const input = item.querySelector('.column-description-input');
+                    const description = input.value.trim();
+                    const previous = input.dataset.original || '';
+                    if (description !== previous) {
+                        updates.push({ table: tableName, column: item.dataset.columnName, description, previous });
+                    }
                 });
-                
-                owlContent += `</rdf:RDF>`;
+            });
 
-                if (!hasSelectedTables) {
-                    showStatus('No tables selected for metadata update.', 'info');
-                    return;
-                }
+            closeModal(metadataModal);
 
-                // Note: SetColumnDescription reactor doesn't exist in this platform
-                // Descriptions are captured in the OWL content below
-                
-                // Save the OWL file to assets (currently disabled)
-                // const owlFilename = `${currentDatabase.name}_metadata.owl`;
-                // await runPixel(`SaveFile(filePath=["${owlFilename}"], content=["<encode>${owlContent}</encode>"], space=["${currentDatabase.id}"]);`);
+            if (!hasSelectedTables) {
+                showStatus('No tables selected for metadata update.', 'info');
+                return;
+            }
+            if (!updates.length) {
+                showStatus('No description changes to save.', 'info');
+                return;
+            }
 
-                showStatus(`Metadata updated successfully for selected tables.`, 'success');
+            showLoader(true, "Saving column descriptions...");
+            try {
+                await saveColumnDescriptions(updates);
+                showStatus(`Metadata updated successfully for selected tables (${updates.length} description${updates.length === 1 ? '' : 's'}).`, 'success');
                 await loadDatabaseSchema();
 
             } catch (error) {
@@ -2965,43 +3603,54 @@ res
         });
 
         // Close modal logic
-        const metadataModal = document.getElementById('metadata-modal');
         document.getElementById('close-metadata-modal').addEventListener('click', () => {
-            metadataModal.classList.remove('show');
+            closeModal(metadataModal);
         });
 
         runQueryBtn.addEventListener('click', async () => {
             const query = querySqlInput.value;
             if (!currentDatabase.id || !query) {
-                alert('Please enter a query.');
+                showStatus('Please enter a query.', 'warning');
                 return;
             }
 
             showLoader(true, "Executing query...");
             try {
-                const { pixelReturn } = await runPixel(`Database(database=["${currentDatabase.id}"]) | Query("<encode>${query}</encode>") | Collect(100);`);
-                const data = pixelReturn[0].output;
+                const { pixelReturn } = await runPixel(`Database(database=[${pixelJson(currentDatabase.id)}]) | Query("${encodedSql(query)}") | Collect(100);`);
+                // Collect nests headers/values under "data"
+                const output = pixelReturn[0].output;
+                const data = output && output.data ? output.data : output;
 
                 queryResults.innerHTML = renderTableHtml(data);
-                if (!data.headers || !data.values) {
+                if (!data || !data.headers || !data.values) {
                     showStatus('Query executed successfully, but returned no data.', 'info');
                     return;
                 }
 
                 showStatus('Query executed successfully.', 'success');
-
             } catch (error) {
-                queryResults.innerHTML = `<div class="alert alert-danger">Error running query: ${error.message}</div>`;
+                queryResults.innerHTML = `<div class="alert alert-danger">Error running query: ${escapeHtml(error.message)}</div>`;
                 showStatus(`Error running query: ${error.message}`, 'error');
             } finally {
                 showLoader(false);
             }
         });
 
+        // Last SELECT-style result in a run_script payload ({headers, values} under "data")
+        function lastScriptTable(payload) {
+            const results = payload && Array.isArray(payload.results) ? payload.results : [];
+            for (let i = results.length - 1; i >= 0; i--) {
+                const output = results[i] && results[i].result;
+                const data = output && output.data ? output.data : output;
+                if (data && Array.isArray(data.headers) && Array.isArray(data.values)) return data;
+            }
+            return null;
+        }
+
         runScriptBtn.addEventListener('click', async () => {
             const script = queryScriptInput.value;
             if (!currentDatabase.id || !script.trim()) {
-                alert('Please enter a SQL script.');
+                showStatus('Please enter a SQL script.', 'warning');
                 return;
             }
 
@@ -3009,40 +3658,21 @@ res
             scriptResults.innerHTML = '';
 
             try {
-                const pyCode = `
-import mcp_driver
-res = mcp_driver.run_script(${JSON.stringify(currentDatabase.id)}, ${JSON.stringify(script)})
-res
-`;
-
-                const { output: encodedResult } = await insight.actions.runPy(pyCode);
-                
-                console.log('Raw runPy output:', encodedResult);
-                
-                if (!encodedResult) {
-                    throw new Error('Script runner returned an empty response.');
-                }
-
-                // The result is already JSON from the Python function
-                const result = typeof encodedResult === 'string' ? JSON.parse(encodedResult) : encodedResult;
-
-                if (result.status !== 'success') {
-                    const errorMessage = result.error || 'Script execution failed.';
-                    scriptResults.innerHTML = `<div class="alert alert-danger">${errorMessage}</div>`;
-                    showStatus(errorMessage, 'error');
-                    return;
-                }
+                const result = await runDriverScript(script);
 
                 scriptResults.innerHTML = renderScriptSummary(result);
-                if (result.last_result && result.last_result.headers && result.last_result.values) {
-                    queryResults.innerHTML = renderTableHtml(result.last_result);
+                const lastTable = lastScriptTable(result);
+                if (lastTable) {
+                    queryResults.innerHTML = renderTableHtml(lastTable);
                 }
 
                 const countLabel = result.statement_count === 1 ? 'statement' : 'statements';
                 showStatus(`Script executed successfully. ${result.statement_count} ${countLabel} ran.`, 'success');
                 await loadDatabaseSchema();
             } catch (error) {
-                scriptResults.innerHTML = `<div class="alert alert-danger">Error running script: ${error.message}</div>`;
+                const failed = error.result && error.result.failed_statement
+                    ? `<code>${escapeHtml(error.result.failed_statement)}</code>` : '';
+                scriptResults.innerHTML = `<div class="alert alert-danger">Error running script: ${escapeHtml(error.message)}${failed}</div>`;
                 showStatus(`Error running script: ${error.message}`, 'error');
             } finally {
                 showLoader(false);
@@ -3058,9 +3688,7 @@ res
                 
                 // Find the accordion for NL generation and open it
                 const nlAccordion = generateSchemaBtn.closest('.accordion-item');
-                if (!nlAccordion.classList.contains('active')) {
-                    nlAccordion.classList.add('active');
-                }
+                setAccordionOpen(nlAccordion, true);
                 
                 // Scroll to the editor
                 schemaEditorContainer.scrollIntoView({ behavior: 'smooth' });
@@ -3068,50 +3696,53 @@ res
                 // Re-create the editor with this table's data
                 showLoader(true, "Loading table schema for editing...");
                 try {
-                    const { pixelReturn } = await runPixel(`GetDatabaseMetamodel(database=["${currentDatabase.id}"], options=["dataTypes", "descriptions"]);`);
-                    const metamodel = pixelReturn[0].output;
-                    const tableNode = metamodel.nodes.find(n => n.conceptualName === tableName);
+                    const { pixelReturn } = await runPixel(`GetDatabaseMetamodel(database=[${pixelJson(currentDatabase.id)}], options=["dataTypes", "descriptions"]);`);
+                    const metamodel = pixelReturn[0].output || {};
+                    const dataTypes = metamodel.dataTypes || {};
+                    const descriptions = metamodel.descriptions || {};
+                    const tableNode = (metamodel.nodes || []).find(n => n.conceptualName === tableName);
 
-                    if(tableNode) {
-                        const standardSqlTypes = ['INTEGER', 'VARCHAR(255)', 'TEXT', 'DATE', 'TIMESTAMP', 'BOOLEAN', 'DOUBLE', 'FLOAT', 'DECIMAL(10, 2)'];
-                        let editorHtml = `<div class="entity-box" data-table-name="${tableName}">
-                                        <h4>
-                                            <span>Table: <input type="text" class="table-name-input" value="${tableName}"></span>
-                                            <span class="header-buttons">
-                                                <button class="btn btn-primary btn-small add-column-btn">+</button>
-                                            </span>
-                                        </h4>
-                                        <ul class="entity-columns">
-                                            <li class="column-header"><span>Column Name</span><span>Data Type</span><span></span></li>`;
-                        
-                        tableNode.propSet.forEach(prop => {
-                            const physicalName = `${tableName}__${prop}`;
-                            const suggestedType = metamodel.dataTypes[physicalName];
-                            const description = metamodel.descriptions[physicalName] || '';
-
-                            const options = new Set(standardSqlTypes);
-                            options.add(suggestedType);
-
-                            let typeDropdown = `<select class="column-type-select">`;
-                            options.forEach(type => {
-                                typeDropdown += `<option value="${type}" ${type === suggestedType ? 'selected' : ''}>${type}</option>`;
-                            });
-                            typeDropdown += `</select>`;
-
-                            editorHtml += `<li>
-                                            <input type="text" class="column-name-input" value="${prop}"> 
-                                            ${typeDropdown} 
-                                            <button class="delete-col-btn">&times;</button>
-                                            <input type="text" class="column-description-input" placeholder="Description..." value="${description}">
-                                          </li>`;
-                        });
-
-                        editorHtml += `</ul></div><div class="button-group"><button id="approve-schema-btn" class="btn btn-secondary">Generate Update SQL</button></div>`;
-                        
-                        schemaEditorContainer.innerHTML = editorHtml;
-                        schemaEditorContainer.style.display = 'block';
-                        finalSqlContainer.style.display = 'none';
+                    if (!tableNode) {
+                        throw new Error(`Table '${tableName}' was not found in the database metadata.`);
                     }
+
+                    const columns = tableNode.propSet || [];
+                    // The editor remembers the table and columns it started from so
+                    // "Generate Update SQL" can emit ALTER statements against them.
+                    let editorHtml = `<div class="entity-box" data-table-name="${escapeHtml(tableName)}" data-original-columns="${escapeHtml(JSON.stringify(columns))}">
+                                    <h4>
+                                        <span>Table: <input type="text" class="table-name-input" aria-label="Table name" value="${escapeHtml(tableName)}"></span>
+                                        <span class="header-buttons">
+                                            <button class="btn btn-primary btn-small add-column-btn" aria-label="Add column">+</button>
+                                        </span>
+                                    </h4>
+                                    <ul class="entity-columns">
+                                        <li class="column-header"><span>Column Name</span><span>Data Type</span><span></span></li>`;
+                    
+                    columns.forEach(prop => {
+                        const physicalName = `${tableName}__${prop}`;
+                        const currentType = dataTypes[physicalName] || '';
+                        const description = descriptions[physicalName] || '';
+
+                        editorHtml += `<li data-original-name="${escapeHtml(prop)}" data-original-type="${escapeHtml(currentType)}">
+                                        <input type="text" class="column-name-input" aria-label="Column name" value="${escapeHtml(prop)}"> 
+                                        ${columnTypeSelectHtml(currentType)} 
+                                        <button class="delete-col-btn" aria-label="Remove column">&times;</button>
+                                        <input type="text" class="column-description-input" aria-label="Column description" placeholder="Description..." value="${escapeHtml(description)}">
+                                      </li>`;
+                    });
+
+                    editorHtml += `</ul></div><div class="button-group"><button id="generate-update-sql-btn" class="btn btn-secondary">Generate Update SQL</button></div>`;
+                    
+                    schemaEditorContainer.innerHTML = editorHtml;
+                    // Edit mode has no LLM response; drop any left over from an earlier generation
+                    delete schemaEditorContainer.dataset.llmResponse;
+                    schemaEditorContainer.dataset.mode = 'edit';
+                    schemaEditorContainer.style.display = 'block';
+                    finalSqlContainer.style.display = 'none';
+                } catch (error) {
+                    console.error("Error loading table schema for editing:", error);
+                    showStatus(`Error loading table schema: ${error.message}`, 'error');
                 } finally {
                     showLoader(false);
                 }
@@ -3123,7 +3754,7 @@ res
                 // This listener is for the whole workspace. We only act if the button is on an existing table diagram.
                 if (box && entityDiagram.contains(box)) {
                     const tableName = box.dataset.tableName;
-                    if (confirm(`Are you sure you want to permanently delete the table '${tableName}' from the database? This action cannot be undone.`)) {
+                    if (await confirmDialog(`Are you sure you want to permanently delete the table '${tableName}' from the database? This action cannot be undone.`, 'Delete table')) {
                         dropTable(tableName);
                     }
                 }
@@ -3135,41 +3766,23 @@ res
             try {
                 await runPixel(`Database(database=[${pixelJson(currentDatabase.id)}]) | Query(${JSON.stringify(encodedSql(`DROP TABLE ${tableName};`))}) | ExecQuery();`);
                 
-                // Regenerate and save OWL metadata
+                // Remove the table from the database's metadata (OWL) so it leaves the schema view
+                let metadataError = null;
                 try {
-                    const { pixelReturn } = await runPixel(`GetDatabaseMetamodel(database=["${currentDatabase.id}"], options=["dataTypes", "descriptions"]);`);
-                    const metamodel = pixelReturn[0].output;
-
-                    let owlContent = `<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:owl="http://www.w3.org/2002/07/owl#">\n`;
-                    owlContent += `  <owl:Ontology rdf:about="http://semoss.org/ontologies/${currentDatabase.id}"/>\n`;
-
-                    if (metamodel.nodes && metamodel.nodes.length > 0) {
-                        metamodel.nodes.forEach(node => {
-                            const tName = node.conceptualName;
-                            owlContent += `  <owl:Class rdf:about="#${tName}">\n    <rdfs:label>${tName}</rdfs:label>\n  </owl:Class>\n`;
-
-                            node.propSet.forEach(prop => {
-                                const physicalName = `${tName}__${prop}`;
-                                const description = metamodel.descriptions[physicalName] || '';
-                                
-                                owlContent += `  <owl:DatatypeProperty rdf:about="#${tName}__${prop}">\n    <rdfs:domain rdf:resource="#${tName}"/>\n    <rdfs:label>${prop}</rdfs:label>\n    ${description ? `<rdfs:comment>${description}</rdfs:comment>` : ''}\n  </owl:DatatypeProperty>\n`;
-                            });
-                        });
-                    }
-                    
-                    owlContent += `</rdf:RDF>`;
-
-                    const owlFilename = `${currentDatabase.name}_metadata.owl`;
-                    await runPixel(`SaveFile(filePath=["${owlFilename}"], content=["<encode>${owlContent}</encode>"], space=["${currentDatabase.id}"]);`);
-                    console.log(`Metadata updated after table deletion: ${owlFilename}`);
-
-                } catch (metaError) {
-                    console.error("Error updating metadata after deletion:", metaError);
-                    // Don't fail the whole operation if metadata update fails, but warn the user
-                    showStatus(`Table deleted, but metadata update failed: ${metaError.message}`, 'warning');
+                    const db = pixelJson(currentDatabase.id);
+                    await runPixel(`META | RemoveOwlConcept(database=[${db}], concept=[${pixelJson(tableName)}]);`);
+                    await runPixel(`SyncDatabaseWithLocalMaster(database=[${db}]);`);
+                } catch (error) {
+                    console.error("Error updating metadata after deletion:", error);
+                    metadataError = error;
                 }
 
-                showStatus(`Table '${tableName}' was deleted successfully and metadata updated.`, 'success');
+                if (metadataError) {
+                    // Don't fail the whole operation if metadata update fails, but warn the user
+                    showStatus(`Table '${tableName}' was deleted, but the metadata update failed: ${metadataError.message}`, 'warning');
+                } else {
+                    showStatus(`Table '${tableName}' was deleted successfully and metadata updated.`, 'success');
+                }
                 await loadDatabaseSchema(); // Refresh the view
             } catch (error) {
                 showStatus(`Error deleting table: ${error.message}`, 'error');
@@ -3179,7 +3792,6 @@ res
         }
 
         // Metamodel Context Logic
-        const metamodelContext = document.getElementById('metamodel-context');
         const refreshMetamodelBtn = document.getElementById('refresh-metamodel-btn');
         const sendToPlaygroundBtn = document.getElementById('send-to-playground-btn');
 
@@ -3198,7 +3810,7 @@ res
 
         refreshMetamodelBtn.addEventListener('click', async () => {
             if (!currentDatabase.id) {
-                alert('Please select a database first.');
+                showStatus('Please select a database first.', 'warning');
                 return;
             }
             showLoader(true, "Refreshing metamodel...");
@@ -3217,7 +3829,7 @@ res
         sendToPlaygroundBtn.addEventListener('click', async () => {
             const context = metamodelContext.value;
             if (!context) {
-                alert('Please refresh the metamodel first.');
+                showStatus('Please refresh the metamodel first.', 'warning');
                 return;
             }
             
@@ -3245,13 +3857,28 @@ res
                 const targetTab = e.target.dataset.tab;
                 
                 // Remove active class from all tab buttons and content
-                tabContainer.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                tabContainer.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.setAttribute('aria-selected', 'false');
+                    btn.setAttribute('tabindex', '-1');
+                });
                 tabContainer.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
                 
                 // Add active class to clicked button and corresponding content
                 e.target.classList.add('active');
+                e.target.setAttribute('aria-selected', 'true');
+                e.target.removeAttribute('tabindex');
                 tabContainer.querySelector(`#${targetTab}`).classList.add('active');
             }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (!e.target.classList || !e.target.classList.contains('tab-btn')) return;
+            if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+            const tabs = [...e.target.closest('.tab-nav').querySelectorAll('.tab-btn')];
+            const next = tabs[(tabs.indexOf(e.target) + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+            next.focus();
+            next.click();
         });
 
         // Execute pasted SQL functionality
@@ -3272,26 +3899,7 @@ res
             showLoader(true, "Executing SQL...");
             try {
                 // Use the MCP driver's run_script function to properly handle multi-statement SQL
-                const pyCode = `
-import mcp_driver
-res = mcp_driver.run_script(${JSON.stringify(currentDatabase.id)}, ${JSON.stringify(sql)})
-res
-`;
-                const { output: encodedResult } = await insight.actions.runPy(pyCode);
-                
-                console.log('Raw runPy output:', encodedResult);
-                
-                if (!encodedResult) {
-                    throw new Error('Script runner returned an empty response.');
-                }
-
-                // The result is already JSON from the Python function
-                const result = typeof encodedResult === 'string' ? JSON.parse(encodedResult) : encodedResult;
-                
-                if (result.status !== 'success') {
-                    const errorMessage = result.error || 'Script execution failed.';
-                    throw new Error(errorMessage);
-                }
+                const result = await runDriverScript(sql);
                 
                 const countLabel = result.statement_count === 1 ? 'statement' : 'statements';
                 showStatus(`SQL executed successfully! ${result.statement_count} ${countLabel} ran.`, 'success');
@@ -3320,48 +3928,44 @@ res
                 return;
             }
             
-            // Basic SQL validation
+            // Basic SQL validation, statement by statement (quotes and comments are respected)
             const errors = [];
             const warnings = [];
-            
-            // Check for basic SQL syntax
-            const createTablePattern = /CREATE\s+TABLE\s+\w+/gi;
-            const insertPattern = /INSERT\s+INTO\s+\w+/gi;
-            
-            const createMatches = sql.match(createTablePattern);
-            const insertMatches = sql.match(insertPattern);
-            
-            if (!createMatches && !insertMatches) {
-                errors.push('No CREATE TABLE or INSERT statements found.');
+            const statements = splitSqlStatements(sql);
+            const knownTypes = new Set(['CREATE', 'INSERT', 'ALTER', 'DROP', 'UPDATE', 'DELETE', 'SELECT', 'WITH', 'TRUNCATE', 'MERGE', 'COMMENT', 'GRANT', 'REVOKE', 'SET', 'SHOW', 'DESCRIBE', 'EXPLAIN']);
+            const typed = statements.map((statement, index) => ({ index: index + 1, type: statementType(statement) }));
+            const unknown = typed.filter(item => !knownTypes.has(item.type));
+
+            if (!statements.length || unknown.length === statements.length) {
+                errors.push('No recognizable SQL statements found.');
+            } else if (unknown.length) {
+                warnings.push(`Unrecognized statement type in statement(s) ${unknown.map(item => item.index).join(', ')}.`);
             }
             
             // Check for missing semicolons
-            const statements = sql.split(';').filter(s => s.trim());
             if (statements.length > 1 && !sql.trim().endsWith(';')) {
                 warnings.push('Consider ending statements with semicolons for clarity.');
             }
             
-            // Check for potential SQL injection patterns (basic)
-            const dangerousPatterns = [/drop\s+table/gi, /delete\s+from/gi, /truncate/gi];
-            dangerousPatterns.forEach(pattern => {
-                if (pattern.test(sql)) {
-                    warnings.push('Potentially destructive SQL detected. Please review carefully.');
-                }
-            });
+            // Statements that remove tables or rows
+            const destructive = typed.filter(item => ['DROP', 'DELETE', 'TRUNCATE'].includes(item.type));
+            if (destructive.length) {
+                warnings.push(`Potentially destructive SQL detected in statement(s) ${destructive.map(item => item.index).join(', ')}. Please review carefully.`);
+            }
             
             // Display results
             let resultHTML = '';
             if (errors.length === 0 && warnings.length === 0) {
-                resultHTML = '<div style="color: var(--success-color); font-weight: 500;">? SQL appears valid and ready to execute.</div>';
+                resultHTML = `<div style="color: var(--success-color); font-weight: 500;">\u2713 SQL appears valid and ready to execute (${statements.length} statement${statements.length === 1 ? '' : 's'}).</div>`;
             } else {
                 if (errors.length > 0) {
                     resultHTML += '<div style="color: var(--danger-color); margin-bottom: 10px;"><strong>Errors:</strong><ul>';
-                    errors.forEach(error => resultHTML += `<li>${error}</li>`);
+                    errors.forEach(error => resultHTML += `<li>${escapeHtml(error)}</li>`);
                     resultHTML += '</ul></div>';
                 }
                 if (warnings.length > 0) {
                     resultHTML += '<div style="color: var(--warning-color);"><strong>Warnings:</strong><ul>';
-                    warnings.forEach(warning => resultHTML += `<li>${warning}</li>`);
+                    warnings.forEach(warning => resultHTML += `<li>${escapeHtml(warning)}</li>`);
                     resultHTML += '</ul></div>';
                 }
             }
@@ -3382,20 +3986,15 @@ res
             
             try {
                 // Use MCP driver to refresh ontology
-                const pyCode = `
-import mcp_driver
-result = mcp_driver.refresh_database_ontology("${currentDatabase.id}")
-result
-`;
-                const { output: result } = await insight.actions.runPy(pyCode);
-                const decoded = JSON.parse(atob(result));
+                const { output: result } = await insight.actions.runPy(pyCall('refresh_database_ontology', { database_id: currentDatabase.id }));
+                const decoded = decodeBase64Json(result);
                 
                 if (decoded.status === 'success') {
                     showStatus(`Ontology refreshed successfully! Synchronized ${decoded.table_count} table(s).`, 'success');
                     resultDiv.innerHTML = `
                         <div style="color: var(--success-color); font-weight: 500;">
-                            ? Ontology synchronized successfully
-                            <br>Tables processed: ${decoded.synchronized_tables.join(', ') || 'None'}
+                            ✓ Ontology synchronized successfully
+                            <br>Tables processed: ${escapeHtml((decoded.synchronized_tables || []).join(', ') || 'None')}
                         </div>`;
                     resultDiv.style.display = 'block';
                     
@@ -3403,13 +4002,13 @@ result
                     await loadDatabaseSchema();
                 } else {
                     showStatus(`Ontology refresh failed: ${decoded.error}`, 'error');
-                    resultDiv.innerHTML = `<div style="color: var(--danger-color);">Error: ${decoded.error}</div>`;
+                    resultDiv.innerHTML = `<div style="color: var(--danger-color);">Error: ${escapeHtml(decoded.error)}</div>`;
                     resultDiv.style.display = 'block';
                 }
             } catch (error) {
                 console.error('Error refreshing ontology:', error);
                 showStatus(`Error refreshing ontology: ${error.message}`, 'error');
-                resultDiv.innerHTML = `<div style="color: var(--danger-color);">Error: ${error.message}</div>`;
+                resultDiv.innerHTML = `<div style="color: var(--danger-color);">Error: ${escapeHtml(error.message)}</div>`;
                 resultDiv.style.display = 'block';
             } finally {
                 showLoader(false);
@@ -3428,39 +4027,49 @@ result
             
             try {
                 // Use MCP driver to create metadata
-                const pyCode = `
-import mcp_driver
-result = mcp_driver.create_ontology_metadata("${currentDatabase.id}")
-result
-`;
-                const { output: result } = await insight.actions.runPy(pyCode);
-                const decoded = JSON.parse(atob(result));
+                const { output: result } = await insight.actions.runPy(pyCall('create_ontology_metadata', { database_id: currentDatabase.id }));
+                const decoded = decodeBase64Json(result);
                 
                 if (decoded.status === 'success') {
                     showStatus(`Metadata files generated successfully!`, 'success');
                     resultDiv.innerHTML = `
                         <div style="color: var(--success-color); font-weight: 500;">
-                            ? Metadata files created successfully
-                            <br>OWL File: ${decoded.owl_file}
-                            <br>Summary File: ${decoded.summary_file}
-                            <br>Tables documented: ${decoded.table_count}
+                            ✓ Metadata files created successfully
+                            <br>OWL File: ${escapeHtml(decoded.owl_file)}
+                            <br>Summary File: ${escapeHtml(decoded.summary_file)}
+                            <br>Tables documented: ${escapeHtml(decoded.table_count)}
                         </div>`;
                     resultDiv.style.display = 'block';
                 } else {
                     showStatus(`Metadata generation failed: ${decoded.error}`, 'error');
-                    resultDiv.innerHTML = `<div style="color: var(--danger-color);">Error: ${decoded.error}</div>`;
+                    resultDiv.innerHTML = `<div style="color: var(--danger-color);">Error: ${escapeHtml(decoded.error)}</div>`;
                     resultDiv.style.display = 'block';
                 }
             } catch (error) {
                 console.error('Error generating metadata:', error);
                 showStatus(`Error generating metadata: ${error.message}`, 'error');
-                resultDiv.innerHTML = `<div style="color: var(--danger-color);">Error: ${error.message}</div>`;
+                resultDiv.innerHTML = `<div style="color: var(--danger-color);">Error: ${escapeHtml(error.message)}</div>`;
                 resultDiv.style.display = 'block';
             } finally {
                 showLoader(false);
             }
         });
     </script>
- &gt;
+    <script>
+        // Every control on this page is wired up by the module script above. If its SDK
+        // import fails (module scripts run before "load"), say so instead of leaving a page
+        // whose buttons do nothing.
+        window.addEventListener('load', function () {
+            if (window.databaseMakerLoaded) return;
+            var banner = document.createElement('div');
+            banner.className = 'alert alert-danger';
+            banner.setAttribute('role', 'alert');
+            banner.style.marginBottom = '1.5rem';
+            banner.textContent = 'Database Maker could not load the SEMOSS SDK from cdn.jsdelivr.net, so this page cannot run. '
+                + 'Check that this browser can reach cdn.jsdelivr.net, then reload.';
+            var content = document.querySelector('.content');
+            content.insertBefore(banner, content.firstChild);
+        });
+    </script>
 </body>
 </html>

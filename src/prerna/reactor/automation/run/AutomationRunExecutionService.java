@@ -28,6 +28,7 @@
 package prerna.reactor.automation.run;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -55,9 +56,11 @@ import org.apache.logging.log4j.ThreadContext;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.collaboration.CollaborationUtils;
+import prerna.collaboration.WorkRoutineDocuments;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ITypeSafeEngine;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.logging.SemossLogUtils;
@@ -1632,6 +1635,15 @@ final class AutomationRunExecutionService {
 		String workspaceId = stringValue(config.get(AutomationConstants.CONFIG_WORKSPACE_ID));
 		RoomUtils.createRoomIfNotExists(roomId, executionInsight, null, null,
 				workspaceId == null ? null : workspaceId.trim(), generatedAgentRoomOptions(config), null, null, null);
+		// a Collaboration routine's reference documents go into the room before its agent starts
+		String routineId = stringValue(config.get(AutomationConstants.CONFIG_ROUTINE_ID));
+		if (routineId != null && Boolean.TRUE.equals(config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE))) {
+			try {
+				WorkRoutineDocuments.copyInto(executionInsight.getUser(), routineId, Room.roomFolderPath(roomId));
+			} catch (IOException e) {
+				throw new IllegalStateException("Could not copy the routine's reference documents into its room", e);
+			}
+		}
 	}
 
 	/**

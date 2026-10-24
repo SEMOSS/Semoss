@@ -15,7 +15,8 @@ UTC = datetime.timezone.utc
 
 
 def item(thread_id, received, ask_type="reply", priority="P2"):
-    return {"threadId": thread_id, "received": received, "askType": ask_type, "priority": priority}
+    return {"id": "item-" + thread_id, "threadId": thread_id, "received": received,
+            "askType": ask_type, "priority": priority}
 
 
 class InboxDailyBriefTests(unittest.TestCase):
@@ -31,6 +32,8 @@ class InboxDailyBriefTests(unittest.TestCase):
         with patch.dict(sys.modules, {"semoss": semoss, "smssutil": smssutil}):
             exec(compile(definition["nodeSources"]["gather"], str(DEFINITION), "exec"), self.gather)
             exec(compile(definition["nodeSources"]["save_drafts"], str(DEFINITION), "exec"), self.save_drafts)
+        self.meetings = self.gather["_meetings"]
+        self.action_items = self.gather["_action_items"]
         self.gather.update({
             "_optional": Mock(return_value={}),
             "_meetings": Mock(return_value=[]),
@@ -126,7 +129,7 @@ class InboxDailyBriefTests(unittest.TestCase):
         self.assertEqual(2, len(prompt["replies"]))
         self.assertTrue(all("threadId" not in reply and "messageId" not in reply for reply in prompt["replies"]))
 
-    def test_draft_and_brief_inputs_preserve_text_and_links_after_url_decoding(self):
+    def test_draft_input_and_saved_replies_preserve_text_and_links(self):
         link = "https://outlook.example/mail/id/item%2Fpart?query=a+b&progress=50%25"
         latest = "Please approve a 10% increase + delivery on Friday."
         self.queue(
@@ -152,30 +155,59 @@ class InboxDailyBriefTests(unittest.TestCase):
         self.assertEqual({"owner", "replies"}, set(drafting))
         self.assertEqual(context["owner"], drafting["owner"])
         self.assertEqual(["Earlier discussion.", latest], [message["text"] for message in drafting["replies"][0]["messages"]])
-        for field in ("threadId", "messageId", "webLink"):
+        for field in ("itemId", "threadId", "messageId", "webLink"):
             self.assertNotIn(field, drafting["replies"][0])
         self.assertNotIn("briefInput", context)
 
         saved = self.save_drafts["run"]({"context": context, "drafts": '{"drafts": []}'})
-        prompt = json.loads(unquote_plus(saved["briefInput"]))
-
-        self.assertEqual({"today", "timezone", "replies", "meetings", "actionItems"}, set(prompt))
-        self.assertEqual("2026-10-20", prompt["today"])
-        self.assertEqual("America/New_York", prompt["timezone"])
+        self.assertEqual({"replies"}, set(saved))
         self.assertEqual([{
             "n": 1, "title": "Approve the estimate", "priority": "P1", "askType": "approve",
             "reasons": ["Due tomorrow"], "due": "2026-10-21", "from": "Dana", "received": "2026-10-20T10:00:00Z",
             "subject": "Estimate", "summary": "Estimate is ready for approval.", "webLink": link,
             "latestMessage": latest, "draft": "not written",
-        }], prompt["replies"])
-        self.assertEqual(meetings, prompt["meetings"])
-        self.assertEqual(actions, prompt["actionItems"])
-        self.assertEqual(saved["replies"], prompt["replies"])
+        }], saved["replies"])
+        self.assertEqual(meetings, context["meetings"])
+        self.assertEqual(actions, context["actionItems"])
         self.save_drafts["_pixel"].assert_not_called()
         self.assertEqual("estimate", context["replies"][0]["threadId"])
+        self.assertEqual("item-estimate", context["replies"][0]["itemId"])
         self.assertEqual("latest-id", context["replies"][0]["messageId"])
         self.assertEqual(link, context["replies"][0]["webLink"])
         self.assertEqual(["Earlier discussion.", latest], [message["text"] for message in context["replies"][0]["messages"]])
+
+    def test_gather_keeps_calendar_and_action_identities_for_assembly(self):
+        self.gather["_pixel"] = Mock(return_value={"events": [{
+            "id": "event-1", "subject": "Planning", "start": "2026-10-23T14:00:00Z",
+            "end": "2026-10-23T15:00:00Z", "webLink": "https://outlook.example/event-1"}]})
+        meetings = self.meetings(datetime.date(2026, 10, 23), self.gather["ZoneInfo"]("America/New_York"), {})
+        self.assertEqual("event-1", meetings[0]["eventId"])
+        self.assertEqual(("10:00", "11:00"), (meetings[0]["start"], meetings[0]["end"]))
+        self.gather["_optional"].side_effect = lambda reactor, **args: (
+            {"items": [{"id": "mail-item", "threadId": "mail-thread", "title": "Review the plan"}]}
+            if reactor == "WorkListItems" else {"items": [{"threadId": "step-thread", "steps": [{
+                "id": "step-1", "itemId": "step-item", "status": "open", "text": "Publish checklist"}]}]}
+        )
+        actions = self.action_items(set(), {})
+        self.assertEqual(("mail-item", "mail-thread"), (actions[0]["itemId"], actions[0]["threadId"]))
+        self.assertEqual(("step-1", "step-item", "step-thread"),
+                         (actions[1]["stepId"], actions[1]["itemId"], actions[1]["threadId"]))
+
+    def test_unrelated_threads_cannot_fill_the_pre_read_limit(self):
+        self.gather["_pixel"] = Mock(return_value={"events": [{
+            "id": "event-1", "subject": "AI Core Standup", "start": "2026-10-23T14:00:00Z",
+            "end": "2026-10-23T15:00:00Z"}]})
+        self.gather["_optional"] = Mock(return_value={"items": [
+            {"threadId": "wrong", "subject": "AI cloud tagging", "matchedOn": ["subject"]},
+            {"threadId": "right", "subject": "AI Core technical review", "matchedOn": ["subject"]},
+        ]})
+        self.gather["_messages"] = Mock(return_value=[{"id": "message", "attachments": [
+            {"name": "architecture.docx", "kind": "file"}]}])
+        self.gather["_pre_read"] = Mock(return_value={"threadId": "right", "name": "architecture.docx", "text": "Architecture"})
+        meetings = self.meetings(datetime.date(2026, 10, 23), self.gather["ZoneInfo"]("America/New_York"), {})
+        self.gather["_messages"].assert_called_once_with("right", 3, attachments=True)
+        self.assertEqual("right", meetings[0]["related"][0]["threadId"])
+        self.assertEqual("right", meetings[0]["preReads"][0]["threadId"])
 
     def test_uses_both_owner_addresses_and_supplies_confirmed_style_and_sent_mail_for_drafting(self):
         self.queue(
@@ -213,12 +245,13 @@ class InboxDailyBriefTests(unittest.TestCase):
 
     def test_shipped_workflow_drafts_and_saves_before_writing_the_brief(self):
         agents = [node for node in self.definition["graph"]["nodes"] if node["type"] == "agent.run"]
-        self.assertEqual(["drafts", "brief"], [node["id"] for node in agents])
+        self.assertEqual(["drafts"], [node["id"] for node in agents])
         self.assertIn("${context.draftsInput}", agents[0]["config"]["command"])
-        self.assertIn("Needs your reply", agents[1]["config"]["command"])
-        self.assertIn("${saved.briefInput}", agents[1]["config"]["command"])
+        brief = next(node for node in self.definition["graph"]["nodes"] if node["id"] == "brief")
+        self.assertEqual("developer.python", brief["type"])
         edges = {(edge["source"], edge["target"]) for edge in self.definition["graph"]["edges"]}
-        self.assertTrue({("gather", "drafts"), ("drafts", "save_drafts"), ("save_drafts", "brief")}.issubset(edges))
+        self.assertTrue({("gather", "drafts"), ("drafts", "save_drafts"), ("save_drafts", "prepare"),
+                         ("prepare", "meeting_notes"), ("meeting_notes", "brief"), ("brief", "deliver")}.issubset(edges))
 
     def test_saves_model_bodies_by_reply_number_as_reply_all_drafts_in_the_teamwork_folder(self):
         self.queue([item("first", "2026-10-20T10:00:00Z"), item("second", "2026-10-20T10:00:00Z"),
@@ -246,7 +279,6 @@ class InboxDailyBriefTests(unittest.TestCase):
         self.assertEqual(["saved", "saved", "not written"], [reply["draft"] for reply in saved["replies"]])
         self.assertEqual(["Drafts > Teamwork drafts", "Drafts > Teamwork drafts"],
                          [reply["location"] for reply in saved["replies"][:2]])
-        self.assertEqual(saved["replies"], json.loads(unquote_plus(saved["briefInput"]))["replies"])
         self.assertTrue(all("draft" not in reply for reply in context["replies"]))
 
     def test_window_uses_elapsed_hours_across_daylight_saving_change(self):
