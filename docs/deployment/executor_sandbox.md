@@ -268,6 +268,11 @@ OPENSHELL_MEMORY   4Gi
   for a separate process, which was killed while the sandbox stayed up.)
 - Measured through the docker driver: the caps land on the container
   (`NanoCpus`, `Memory`), and an allocation is killed at the memory cap.
+- `/dev/shm` is granted so POSIX semaphores work for processes in the sandbox (a shell
+  command running a script that uses `multiprocessing`). Inside `Py()` itself, multiprocessing
+  still fails: the worker's import guard (`InsightGlobalStore`) bans `subprocess` and `socket`
+  and deletes `os.fork`, `os.kill`, `os.system` and the `exec*`/`spawn*` family. That guard
+  predates OpenShell; whether to relax it now that the sandbox is the boundary is open.
 
 ## Workstations (BaseFolder is not /opt/semosshome)
 
