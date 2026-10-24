@@ -191,17 +191,19 @@ after every successful Python Builder run. Tags are `<branch>-<python-builder ta
 `dev-3.14-cpu`) plus a `-<short sha>` pin. Each architecture is smoke-tested before anything is
 tagged. Point `OPENSHELL_IMAGE` at one of these tags.
 
-For a local build:
+`OPENSHELL_IMAGE` defaults to `quay.io/semoss/semoss-sandbox:dev-3.14-cpu`, so a deployment or
+a workstation that tracks `dev` sets nothing. To try a `py/` change before CI publishes it:
 
 ```bash
-docker/build-sandbox-image.sh                          # tag semoss-sandbox:dev
-TAG=semoss-sandbox:test NO_CACHE=1 docker/build-sandbox-image.sh
+docker build -f docker/Dockerfile.sandbox -t semoss-sandbox:dev py     # context is py/
+docker/sandbox-smoke-test.sh semoss-sandbox:dev
 ```
 
-The build context is `py/` itself, so a local build carries the checkout's worker, uncommitted
-edits included. Both the script and CI run `docker/sandbox-smoke-test.sh`, which fails unless
-the worker tree in the image hashes to the source `py/`, the venv python imports the worker
-under a bare `PATH`, git is present and the image runs as uid 1000.
+and set `OPENSHELL_IMAGE semoss-sandbox:dev`. The build context is `py/` itself, so a local
+build carries the checkout's worker, uncommitted edits included. CI runs the same
+`docker/sandbox-smoke-test.sh`, which fails unless the worker tree in the image hashes to the
+source `py/`, the venv python imports the worker under a bare `PATH`, the interpreter is at the
+path the policy names, git is present and the image runs as uid 1000.
 
 The venv lives at `/usr/lib/python/semossvenv` and the worker is launched by absolute path, because
 **both the environment and the filesystem inside a sandbox belong to the runtime**:
@@ -211,9 +213,16 @@ The venv lives at `/usr/lib/python/semossvenv` and the worker is launched by abs
   `python3` at the venv does not help either — CPython looks for `pyvenv.cfg` relative to the
   invoked path and silently falls back to the base interpreter.
 - **Filesystem**: the policy allowlists `/usr`, `/lib`, `/etc`, `/bin`, `/sbin`, `/proc`
-  read-only, plus `/sandbox`, `/tmp`, `/opt/semosshome` read-write. A venv at `/opt/venv` is
-  outside every one of those and dies with `PermissionError: pyvenv.cfg`; `/usr/lib/python`
-  is inside `/usr`, which is exactly why upstream puts it there.
+  read-only, plus `/sandbox`, `/tmp`, `/opt/semosshome` and the platform's SEMOSS home
+  read-write. A venv at `/opt/venv` is outside every one of those and dies with
+  `PermissionError: pyvenv.cfg`; `/usr/lib/python` is inside `/usr`, which is exactly why
+  upstream puts it there.
+- **Egress**: the bundled policy allows only pypi (so `pip install` works), and a network
+  rule names the kernel-reported executable, so it is granted to the interpreter's *real* path.
+  Other egress is not configurable yet beyond supplying a whole `OPENSHELL_POLICY`. uv's directory carries the patch version and
+  the CPU (`cpython-3.14.8-linux-aarch64-gnu`), so the image moves it to
+  `/usr/lib/python/cpython` and leaves the old name as a symlink: the rule is
+  `/usr/lib/python/cpython/bin/python3.14` on every build and architecture.
 
 So `OpenShellTransport` resolves `/usr/lib/python/semossvenv/bin/python3` (falling back to
 `command -v python3` for images without a venv) and creates the sandbox with
@@ -224,14 +233,55 @@ At session start the launcher also uploads the host's `/opt/semosshome/py` over 
 copy, but the worker's first imports happen before that upload, so the baked copy still has to
 be current — a stale image shows up as code that ignores your latest change.
 
+## Policy
+
+The policy is generated, not hand-kept. `OpenShellTransport` reads `OPENSHELL_POLICY` if it is
+set, otherwise the template bundled in the jar
+(`src/prerna/util/openshell/sandbox-policy.yaml`), replaces `${SEMOSS_HOME_ROOT}` with the top folder of `BaseFolder` (see below)
+and `${PYTHON}` with `OPENSHELL_PYTHON_BINARY`, and creates the sandbox with the result (a file
+in the temp directory named by its content). On a server the home is the image's own
+`/opt/semosshome`, and that line is dropped. A custom policy may use the same
+placeholders.
+
+## Workstations (BaseFolder is not /opt/semosshome)
+
+Files cross into a sandbox **at the path they have on the host**: a project uploaded from
+`/Users/me/Documents/semoss/project/x__id` is at that same path inside the sandbox. That is what
+keeps the python SEMOSS generates working unchanged: MCP tool loaders, `PySource` and the pandas
+JSON hand-off all embed absolute host paths. Translating paths instead would mean finding and
+rewriting every such string.
+
+Nothing has to be built per developer. The home is taken from `BaseFolder` at runtime:
+
+- the policy grants the top folder of its path (`/Users` for `/Users/me/Documents/semoss`,
+  `/home` for `/home/me/semoss`), and
+- when the sandbox starts, `OpenShellTransport` creates the home under it as the sandbox user.
+
+Both steps need that root to exist in the image when the sandbox starts, writable by uid 1000:
+uploads run as the sandbox user inside the filesystem policy (measured: `ssh tar extract exited
+with status 1` for a path the image did not have), and the policy can only grant a path that
+exists. `docker/Dockerfile.sandbox` makes `/Users` and `/home` for this. A home under any other
+root needs that root added the same way, for example:
+
+```dockerfile
+FROM semoss-sandbox:dev
+USER root
+RUN mkdir -p /data && chown 1000:1000 /data
+USER 1000:1000
+```
+
+If the root is missing, sandbox creation fails with a message saying so, rather than with the
+upload error.
+
 ## Configuration
 
 | Key | Meaning |
 | --- | --- |
 | `SANDBOX_MODE` | `OPENSHELL` enables this path (requires `CHROOT_ENABLE=true`, like every jail) |
-| `OPENSHELL_IMAGE` | image a new sandbox starts from |
+| `OPENSHELL_IMAGE` | image a new sandbox starts from (default `quay.io/semoss/semoss-sandbox:dev-3.14-cpu`) |
 | `OPENSHELL_TEMPLATE` | workload template to create from instead of an image |
-| `OPENSHELL_POLICY` | Landlock paths and per-binary egress rules; required |
+| `OPENSHELL_POLICY` | policy template to render instead of the bundled one (see Policy); optional |
+| `OPENSHELL_PYTHON_BINARY` | interpreter path the policy's egress rules name (default `/usr/lib/python/cpython/bin/python3.14`) |
 | `OPENSHELL_CLI` | path to the `openshell` CLI (default `openshell`) |
 | `OPENSHELL_CLI_HOME` | `HOME` for CLI children, where the gateway registration and mTLS bundle live |
 | `OPENSHELL_LABEL` | label applied to every executor sandbox (default `app=semoss-executor`) |

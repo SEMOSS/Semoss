@@ -25,6 +25,9 @@ docker run --rm --entrypoint bash -e EXPECT="$EXPECT" "$IMAGE" -ec "
   [ \"\$GOT\" = \"\$EXPECT\" ] || { echo \"py tree in image (\$GOT) differs from $PY_DIR (\$EXPECT)\" >&2; exit 1; }
   P=/usr/lib/python/semossvenv/bin/python3
   [ -x \"\$P\" ] || { echo \"no venv python at \$P\" >&2; exit 1; }
+  # the sandbox policy's egress rules name this path (OPENSHELL_PYTHON_BINARY's default)
+  [ \"\$(readlink -f \$P)\" = /usr/lib/python/cpython/bin/python3.14 ] \\
+    || { echo \"interpreter is \$(readlink -f \$P), not /usr/lib/python/cpython/bin/python3.14\" >&2; exit 1; }
   # same launch shape as OpenShellTransport: explicit interpreter, bare PATH
   env -i PATH=/usr/local/bin:/usr/bin:/bin \"\$P\" -c 'import sys, pandas, numpy, jsonpickle, gaas_tcp_server_handler, gaas_change_watcher; print(sys.version)'
   git --version

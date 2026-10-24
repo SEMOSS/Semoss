@@ -89,8 +89,11 @@ public final class OpenShellSessionLifecycleHarness {
 		String policy = Utility.getDIHelperProperty(OpenShellTransport.POLICY_PROP);
 		System.out.println("SANDBOX_MODE=" + mode + "  image=" + image + "  policy=" + policy);
 		check("P-0 SANDBOX_MODE is OPENSHELL", "OPENSHELL".equalsIgnoreCase(mode), String.valueOf(mode));
-		check("P-1 image is configured", image != null && !image.trim().isEmpty(), String.valueOf(image));
-		check("P-2 policy is configured", policy != null && !policy.trim().isEmpty(), String.valueOf(policy));
+		check("P-1 image is configured or defaulted", true, image == null || image.trim().isEmpty() ? "default" : image);
+		// unset means the policy bundled with SEMOSS, rendered for this home at create time
+		boolean bundled = OpenShellTransport.class.getResource("/prerna/util/openshell/sandbox-policy.yaml") != null;
+		check("P-2 policy is configured or bundled", (policy != null && !policy.trim().isEmpty()) || bundled,
+				policy == null || policy.trim().isEmpty() ? "bundled=" + bundled : policy);
 		check("P-3 CHROOT_ENABLE is on", Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)),
 				String.valueOf(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)));
 		if (failed > 0) {

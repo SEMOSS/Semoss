@@ -53,6 +53,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -131,10 +132,30 @@ public final class OpenShellTransport {
 	public static final String CLI_HOME_PROP = "OPENSHELL_CLI_HOME";
 	/** Property naming the sandbox workload template to create from. */
 	public static final String TEMPLATE_PROP = "OPENSHELL_TEMPLATE";
-	/** Property naming the sandbox image (used when no template is set). */
+	/**
+	 * Property naming the sandbox image (used when no template is set). Defaults to the image
+	 * CI publishes from {@code docker/Dockerfile.sandbox} for {@code dev}.
+	 */
 	public static final String IMAGE_PROP = "OPENSHELL_IMAGE";
-	/** Property naming a filesystem-policy YAML applied at creation. */
+	private static final String DEFAULT_IMAGE = "quay.io/semoss/semoss-sandbox:dev-3.14-cpu";
+	/**
+	 * Property naming a sandbox-policy YAML applied at creation. Optional: unset, the policy
+	 * bundled with SEMOSS ({@value #POLICY_RESOURCE}) is used. Either way
+	 * {@code ${SEMOSS_HOME_ROOT}} and {@code ${PYTHON}} are filled in first; see
+	 * {@link #renderPolicy}.
+	 */
 	public static final String POLICY_PROP = "OPENSHELL_POLICY";
+	/**
+	 * Property naming the sandbox interpreter's real path, which the policy's egress rules
+	 * name. The default matches {@code docker/Dockerfile.sandbox}, which moves CPython to a
+	 * fixed directory so the path does not change with the patch version or the CPU.
+	 */
+	public static final String PYTHON_BINARY_PROP = "OPENSHELL_PYTHON_BINARY";
+	private static final String DEFAULT_PYTHON_BINARY = "/usr/lib/python/cpython/bin/python3.14";
+	/** The bundled policy template, on the classpath. */
+	private static final String POLICY_RESOURCE = "/prerna/util/openshell/sandbox-policy.yaml";
+	/** The SEMOSS home inside the sandbox image: the worker's py/ and insight folder. */
+	private static final String IMAGE_HOME = "/opt/semosshome";
 	/** Property naming the port the worker listens on *inside* the sandbox. */
 	public static final String WORKER_PORT_PROP = "OPENSHELL_WORKER_PORT";
 	/** Property naming the label value used to group executor sandboxes. */
@@ -306,23 +327,13 @@ public final class OpenShellTransport {
 			create.add("--template");
 			create.add(template.trim());
 		} else {
-			String image = Utility.getDIHelperProperty(IMAGE_PROP);
-			if (image == null || image.trim().isEmpty()) {
-				throw new IOException("no sandbox image: set " + IMAGE_PROP + " (or " + TEMPLATE_PROP
-						+ "). The stock OpenShell image has no python3, so omitting this produces a sandbox"
-						+ " that starts and then cannot run the worker.");
-			}
+			// Never the stock OpenShell image: it has no python3, so the sandbox would start and
+			// then fail to run the worker.
 			create.add("--from");
-			create.add(image.trim());
-		}
-		String policy = Utility.getDIHelperProperty(POLICY_PROP);
-		if (policy == null || policy.trim().isEmpty()) {
-			throw new IOException("no sandbox policy: set " + POLICY_PROP
-					+ ". Creating a sandbox without a filesystem policy leaves the workload unfenced, which"
-					+ " is never what a deployment intends.");
+			create.add(propOr(IMAGE_PROP, DEFAULT_IMAGE));
 		}
 		create.add("--policy");
-		create.add(policy.trim());
+		create.add(renderPolicy().toString());
 		// Give sandboxed code the same interpreter the worker uses. The runtime does not
 		// apply the image's ENV PATH, so without this a `Py()` block that shells out to
 		// `python3` gets the bare system interpreter while the worker runs from the venv.
@@ -493,6 +504,118 @@ public final class OpenShellTransport {
 		return rows;
 	}
 
+	/**
+	 * The policy file to create sandboxes with: {@link #POLICY_PROP} or the bundled template,
+	 * with {@code ${SEMOSS_HOME_ROOT}} replaced by {@link #homeRoot()} and {@code ${PYTHON}} by
+	 * {@link #PYTHON_BINARY_PROP}.
+	 *
+	 * <p>
+	 * Generated rather than shipped as a fixed file because the home differs per deployment:
+	 * files cross into the sandbox at their host path, and the filesystem policy can only grant
+	 * a path by name. On a server the home is the image's own /opt/semosshome, and the line is
+	 * dropped.
+	 *
+	 * @return a file under the temp directory, named by its content, so concurrent creates and
+	 *         restarts reuse one rendering
+	 */
+	static Path renderPolicy() throws IOException {
+		String configured = Utility.getDIHelperProperty(POLICY_PROP);
+		String template;
+		if (configured != null && !configured.trim().isEmpty()) {
+			template = Files.readString(Paths.get(configured.trim()), StandardCharsets.UTF_8);
+		} else {
+			try (InputStream in = OpenShellTransport.class.getResourceAsStream(POLICY_RESOURCE)) {
+				if (in == null) {
+					throw new IOException("bundled sandbox policy " + POLICY_RESOURCE + " is missing from the build");
+				}
+				template = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+			}
+		}
+		String root = homeRoot();
+		StringBuilder rendered = new StringBuilder();
+		for (String line : template.split("\n", -1)) {
+			if (line.trim().startsWith("#")) {
+				// the template documents its placeholders; leave the comments as written
+				rendered.append(line).append('\n');
+				continue;
+			}
+			if (line.trim().equals("- ${SEMOSS_HOME_ROOT}") && root == null) {
+				continue;
+			}
+			rendered.append(line.replace("${SEMOSS_HOME_ROOT}", root == null ? IMAGE_HOME : root)
+					.replace("${PYTHON}", propOr(PYTHON_BINARY_PROP, DEFAULT_PYTHON_BINARY))).append('\n');
+		}
+		String text = rendered.toString();
+		String hash;
+		try {
+			hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8)))
+					.substring(0, 16);
+		} catch (NoSuchAlgorithmException e) {
+			throw new IOException("SHA-256 unavailable", e);
+		}
+		Path file = Paths.get(System.getProperty("java.io.tmpdir"), "openshell-policy-" + hash + ".yaml");
+		if (!Files.exists(file)) {
+			Path partial = Files.createTempFile(file.getParent(), "openshell-policy-", ".partial");
+			Files.writeString(partial, text, StandardCharsets.UTF_8);
+			Files.move(partial, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+		}
+		return file;
+	}
+
+	/** The platform's SEMOSS home (BaseFolder), normalized and without a trailing slash. */
+	private static String semossHome() {
+		String home = Utility.normalizePath(Utility.getBaseFolder());
+		return home.length() > 1 && home.endsWith("/") ? home.substring(0, home.length() - 1) : home;
+	}
+
+	/** Whether the home is the image's own, which the image and the policy already provide. */
+	private static boolean homeIsImageHome() {
+		String home = semossHome();
+		return home.equals(IMAGE_HOME) || home.startsWith(IMAGE_HOME + "/");
+	}
+
+	/**
+	 * The folder the policy grants so the home can be made inside the sandbox: the top folder
+	 * of the home's path, {@code /Users} for {@code /Users/me/Documents/semoss}. Landlock only
+	 * grants a path that exists when the sandbox starts, and the home itself does not exist in
+	 * a generic image; {@code docker/Dockerfile.sandbox} makes {@code /Users} and {@code /home}
+	 * for exactly this. Null when the home is the image's own.
+	 */
+	static String homeRoot() {
+		if (homeIsImageHome()) {
+			return null;
+		}
+		String home = semossHome();
+		int slash = home.indexOf('/', 1);
+		return slash < 0 ? home : home.substring(0, slash);
+	}
+
+	/**
+	 * Make the SEMOSS home inside the sandbox, at its host path, and fail with the fix in the
+	 * message when that is not possible. Otherwise the first upload fails with only "ssh tar
+	 * extract exited with status 1": uploads run as the sandbox user, who can only create
+	 * directories under a root the image has and the policy grants.
+	 */
+	private void checkSandboxHome() throws IOException {
+		if (homeIsImageHome()) {
+			return;
+		}
+		String home = semossHome();
+		try {
+			run(Arrays.asList(propOr(CLI_PROP, DEFAULT_CLI), "sandbox", "exec", "-n", sandboxName, "--", "sh",
+					"-c", "mkdir -p \"$1\" && test -w \"$1\"", "sh", home), 60);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IOException("interrupted checking the SEMOSS home in sandbox " + sandboxName, e);
+		} catch (IOException e) {
+			throw new IOException("Could not make " + home + ", the SEMOSS home (BaseFolder), inside the sandbox."
+					+ " Files cross into the sandbox at their host path, so the image must have a writable "
+					+ homeRoot() + ": docker/Dockerfile.sandbox provides /Users and /home. For a home under"
+					+ " another root, add that root to the image owned by uid 1000 (see"
+					+ " docs/deployment/executor_sandbox.md) and set " + IMAGE_PROP + " to it.", e);
+		}
+	}
+
 	/** The CLI may print notices before its JSON; keep from the first brace. */
 	private static String jsonBody(String out) {
 		int brace = out.indexOf('{');
@@ -540,6 +663,7 @@ public final class OpenShellTransport {
 		}
 
 		try {
+			checkSandboxHome();
 			openForward(readyTimeout);
 		} catch (IOException e) {
 			close();
