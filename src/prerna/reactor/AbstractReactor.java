@@ -955,8 +955,7 @@ public abstract class AbstractReactor implements IReactor {
 	 * "auto" if omitted)</li>
 	 * <li>{@code displayLocation} - "sidebar", "inline", or "hidden"</li>
 	 * <li>{@code loadingMessage} - custom loading text shown during execution</li>
-	 * <li>{@code resourceURI} - portal page path for the tool's UI</li>
-	 * <li>{@code component} - native element name for the tool call</li>
+	 * <li>{@code resourceURI} - flat component://name URI, system:// app, or portal page path</li>
 	 * <li>{@code autoOpen} - "true" to open the tool view automatically</li>
 	 * </ul>
 	 * {@code SMSS_MCP_DEFERRED} is not read here; set it through mcpMetadata.

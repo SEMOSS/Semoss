@@ -139,7 +139,9 @@ class ConnectorReactorParityTest {
 		if (microsoftView == null || googleView == null) {
 			assertEquals(microsoftView, googleView, "view of " + operation);
 		} else {
-			assertTrue(microsoftView.startsWith(MCPUtility.UI_COMPONENT_SCHEME), microsoftView);
+			assertTrue(microsoftView.matches("component://(?:mail|calendar)-[a-z-]+\\?.*"), microsoftView);
+			assertFalse(microsoftUi.has("component"));
+			assertFalse(googleUi.has("component"));
 			assertTrue(microsoftView.endsWith("provider=microsoft"), microsoftView);
 			assertTrue(googleView.endsWith("provider=google"), googleView);
 			assertEquals(microsoftView.replace("provider=microsoft", "provider="),

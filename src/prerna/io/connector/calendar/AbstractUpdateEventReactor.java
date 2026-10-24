@@ -68,7 +68,7 @@ public abstract class AbstractUpdateEventReactor extends AbstractEventWriteReact
 
 	@Override
 	protected final String getView() {
-		return "calendar/event-edit?intent=update";
+		return "calendar-event-edit?intent=update";
 	}
 
 	@Override

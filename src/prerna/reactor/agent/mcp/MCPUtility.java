@@ -126,23 +126,25 @@ public final class MCPUtility {
 	public static final String UI_AUTO_OPEN = "autoOpen";
 	/**
 	 * Starts a {@link #UI_RESOURCE_URI} naming one of the client's own components
-	 * as the tool's view, such as {@code component://mail/list?provider=google},
+	 * as the tool's view, such as {@code component://mail-list?provider=google},
 	 * which the client renders in the page rather than loading a portal.
 	 */
 	public static final String UI_COMPONENT_SCHEME = "component://";
 	/**
-	 * What a tool call holds, so a page can show it with a native element: a chat
-	 * card, or a panel such as a query editor. Pages that do not know the name show
-	 * the generic tool view.
+	 * @deprecated Native views must use {@link #UI_RESOURCE_URI} with a flat
+	 *             {@code component://<componentName>} URI. This key is ignored.
 	 */
+	@Deprecated
 	public static final String UI_COMPONENT = "component";
 
-	/** Names for {@link #UI_COMPONENT}; one name per kind of content. */
+	/** Flat component names used after {@link #UI_COMPONENT_SCHEME} in resource URIs. */
 	public static final String COMPONENT_EMAIL_COMPOSE = "email-compose";
 	public static final String COMPONENT_EMAIL_DRAFT = "email-draft";
 	public static final String COMPONENT_EMAIL_SEND = "email-send";
 	public static final String COMPONENT_CALENDAR_EVENT = "calendar-event";
 	public static final String COMPONENT_MEMORY = "memory";
+	public static final String COMPONENT_DELEGATION_REQUEST = "delegation-request";
+	public static final String COMPONENT_DELEGATION_SUBMIT = "delegation-submit";
 
 	/**
 	 * @deprecated Use {@link #SMSS_ENGINE_ID}, which is set for every engine type
@@ -1379,16 +1381,12 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Copies the {@link #UI_COMPONENT} and {@link #UI_AUTO_OPEN} hints, the UI keys
-	 * every tool builder passes through as they are.
+	 * Copies the {@link #UI_AUTO_OPEN} hint. Native view selection belongs only
+	 * to {@link #UI_RESOURCE_URI}; the legacy component key is not propagated.
 	 */
 	public static void copyUiHints(Map<String, ?> from, JSONObject to) {
 		if (from == null) {
 			return;
-		}
-		Object component = from.get(UI_COMPONENT);
-		if (component instanceof String && !((String) component).isBlank()) {
-			to.put(UI_COMPONENT, ((String) component).trim());
 		}
 		Object autoOpen = from.get(UI_AUTO_OPEN);
 		if (autoOpen instanceof Boolean || autoOpen instanceof String) {

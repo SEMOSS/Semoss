@@ -79,7 +79,7 @@ public abstract class AbstractSendDraftReactor extends AbstractDraftDeliveryReac
 
 	@Override
 	protected final String getView() {
-		return "mail/compose?intent=send";
+		return "mail-compose?intent=send";
 	}
 
 	@Override

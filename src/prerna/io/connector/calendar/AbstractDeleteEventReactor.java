@@ -80,7 +80,7 @@ public abstract class AbstractDeleteEventReactor extends AbstractCalendarReactor
 
 	@Override
 	protected final String getView() {
-		return "calendar/event?intent=delete";
+		return "calendar-event?intent=delete";
 	}
 
 	@Override
