@@ -100,10 +100,18 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	static {
 		pyS.put("object", SemossDataType.STRING);
+		// pandas 3 reports string columns as "str" ("string" is the opt-in pd.NA variant)
+		pyS.put("str", SemossDataType.STRING);
+		pyS.put("string", SemossDataType.STRING);
 		pyS.put("category", SemossDataType.STRING);
 		pyS.put("int64", SemossDataType.INT);
 		pyS.put("float64", SemossDataType.DOUBLE);
 		pyS.put("datetime64", SemossDataType.DATE);
+		// real pandas dtype names always carry a resolution, so the bare key above never matched
+		pyS.put("datetime64[ns]", SemossDataType.TIMESTAMP);
+		pyS.put("datetime64[us]", SemossDataType.TIMESTAMP);
+		pyS.put("datetime64[ms]", SemossDataType.TIMESTAMP);
+		pyS.put("datetime64[s]", SemossDataType.TIMESTAMP);
 		pyS.put("bool", SemossDataType.BOOLEAN);
 
 		pyJ.put("object", java.lang.String.class);
@@ -525,13 +533,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 			if (proposedType != null && pyproposedType != null && !pyproposedType.equalsIgnoreCase(colType)) {
 				// create and execute the type
-				if (proposedType == SemossDataType.DATE) {
-					String typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['"
-							+ colName + "'], errors='ignore').dt.date";
-					allTypes.append(typeChanger).append("\n");
-				} else if (proposedType == SemossDataType.TIMESTAMP) {
-					String typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['"
-							+ colName + "'], errors='ignore')";
+				if (proposedType == SemossDataType.DATE || proposedType == SemossDataType.TIMESTAMP) {
+					// pandas 3 removed to_datetime(errors='ignore'), so leave the column as-is when it will not parse
+					String dateSuffix = proposedType == SemossDataType.DATE ? ".dt.date" : "";
+					String typeChanger = "try:\n    " + tableName + "['" + colName + "'] = pd.to_datetime(" + tableName
+							+ "['" + colName + "'])" + dateSuffix + "\nexcept (ValueError, TypeError):\n    pass";
 					allTypes.append(typeChanger).append("\n");
 				} else {
 					String typeChanger = tableName + "['" + colName + "'] = " + tableName + "['" + colName

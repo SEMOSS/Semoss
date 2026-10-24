@@ -58,9 +58,9 @@ import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
  * <li>{@code BLOCKED_MESSAGE} - replacement text used by an input pipeline when
  * {@code respondWithGuardrailMessage=true}. Output pipelines can block a
  * failing response but cannot rewrite it.</li>
- * <li>{@code FAIL_OPEN} - whether a judge error should allow the guarded call.
- * Defaults to {@code true} for compatibility. Set it to {@code false} for
- * irreversible operations such as sending mail.</li>
+ * <li>{@code JUDGE_ERROR_VERDICT} - {@code BLOCK} or {@code PASS}: the verdict
+ * when the judge call fails. Defaults to {@code PASS}. Set it to {@code BLOCK}
+ * for irreversible operations such as sending mail.</li>
  * </ul>
  *
  * <h3>Optional call parameters</h3>
@@ -105,8 +105,8 @@ public class PolicyComplianceGuardrailEngine extends PromptGuardrailEngine {
 	}
 
 	@Override
-	protected boolean isFailOpenByDefault() {
-		return true;
+	protected GuardrailVerdict getDefaultJudgeErrorVerdict() {
+		return GuardrailVerdict.PASS;
 	}
 
 	@Override
@@ -147,7 +147,7 @@ public class PolicyComplianceGuardrailEngine extends PromptGuardrailEngine {
 
 				This guardrail sends selected text and a policy to the configured model engine. The judge must answer `SAFE` or `UNSAFE`; an unsafe result prevents the guarded result from being returned.
 
-				The SMSS `POLICY_DESCRIPTION` is the default policy. A pipeline may supply a `policy` in `directParameters` for one use case. `SYSTEM_PROMPT` can replace the default judge instructions; include `${POLICY_DESCRIPTION}` where the policy should be inserted. `BLOCKED_MESSAGE` and `FAIL_OPEN` are also optional. `FAIL_OPEN` defaults to `true`; use `false` before irreversible actions such as sending mail.
+				The SMSS `POLICY_DESCRIPTION` is the default policy. A pipeline may supply a `policy` in `directParameters` for one use case. `SYSTEM_PROMPT` can replace the default judge instructions; include `${POLICY_DESCRIPTION}` where the policy should be inserted. `BLOCKED_MESSAGE` and `JUDGE_ERROR_VERDICT` are also optional. `JUDGE_ERROR_VERDICT` is `BLOCK` or `PASS`, the verdict when the judge call fails, and defaults to `PASS`; use `BLOCK` before irreversible actions such as sending mail.
 
 				## Example: review model responses
 

@@ -437,8 +437,13 @@ final class WorkRoutine {
 			if (engine == null) {
 				throw new RoutineFailure(CAUSE_MODEL, "A Collaboration text model is required for " + kind.label() + "s.");
 			}
+			// a kind's agent step can need the routine's own id, such as for its reference documents
+			Map<String, Object> agentSettings = new LinkedHashMap<>(config);
+			if (routineId != null) {
+				agentSettings.put("routineId", routineId);
+			}
 			AutomationDefinitionService.DefinitionFiles files = definition(kind, engine,
-					kind.agent() == null ? null : kind.agent().config(user, config));
+					kind.agent() == null ? null : kind.agent().config(user, agentSettings));
 			Map<String, Object> inputs = new LinkedHashMap<>();
 			inputs.put("owner_email", recipient);
 			inputs.put("timezone", config.get("timezone"));
@@ -540,7 +545,17 @@ final class WorkRoutine {
 		for (JsonElement element : definition.getAsJsonObject(AutomationConstants.DOC_GRAPH)
 				.getAsJsonArray(AutomationConstants.DOC_NODES)) {
 			JsonObject node = element.getAsJsonObject();
-			if (AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE).getAsString())) {
+			String nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE).getAsString();
+			if (kind == WorkInboxRoutine.KIND && AutomationConstants.NODE_START.equals(nodeType)) {
+				for (JsonElement global : node.getAsJsonObject(AutomationConstants.NODE_FIELD_CONFIG)
+						.getAsJsonArray(AutomationConstants.CONFIG_GLOBALS)) {
+					JsonObject value = global.getAsJsonObject();
+					if ("brief_model".equals(value.get("name").getAsString())) {
+						value.addProperty(AutomationConstants.CONFIG_DEFAULT_VALUE, engineId);
+					}
+				}
+			}
+			if (AutomationConstants.NODE_AGENT_RUN.equals(nodeType)) {
 				JsonObject config = node.getAsJsonObject(AutomationConstants.NODE_FIELD_CONFIG);
 				config.addProperty(AutomationConstants.CONFIG_ENGINE_ID, engineId);
 				if (agentConfig != null) {

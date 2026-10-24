@@ -72,8 +72,10 @@ The REST contract is in the Monolith
   model-inference database when they are first read, and every call's usage is
   logged there with the source billed and its cost. See
   [internal databases](../platform_services/internal_databases.md#model-inference-database).
-- **Redis on a cluster.** On a cluster every server counts in the same Redis, so
-  a limit holds across servers. A single server counts in memory.
+- **Redis on a cluster.** On a cluster with Redis turned on (`REDIS_ENABLED` or
+  `SEMOSS_IS_CLUSTER_REDIS`), every server counts in the same Redis, so a limit
+  holds across servers. A single server counts in memory, and so does a cluster
+  without Redis, where each server then holds the whole limit.
 - **Prices for cost rules.** A cost rule on a model needs the model's known
   prices; see [cost and prices](cost_and_prices.md).
 
