@@ -979,10 +979,34 @@ same `portals/` output (index.html, fonts, CSS, JS bundle) - independently
 for the workspace root and the standalone `client/` lockfile, in both this
 repo and its sibling.
 
-This accounts for all six packages with findings first appearing in the
+`@modelcontextprotocol/sdk` 1.31.0, pinned via the same `pnpm.overrides`
+mechanism as `fast-uri` (the actual dependent is `shadcn@4.21.0`'s own MCP
+integration, not SEMOSS's own code), closed four findings first appearing
+in the next rescan, all server-side HTTP-transport bugs: CVE-2026-111767
+(HIGH, the experimental tasks feature didn't scope a task to the session
+that created it, letting clients sharing one `InMemoryTaskStore` list/read/
+cancel each other's tasks), GHSA-rvq5-wwqv-78pq (MEDIUM, bearer-token
+verification didn't check the token's audience, so a token issued for a
+different service sharing the same authorization server was accepted),
+GHSA-46jr-4wx8-v453 (HIGH, no limit on array/object elements validated per
+request, letting one request within the default 4 MiB size limit exhaust
+server memory), and GHSA-6prh-2h8m-c8cw (MEDIUM, HTTP client transports and
+OAuth requests followed redirects to any origin, leaking custom headers,
+the session ID, and on a 307/308 the request body - including OAuth
+refresh tokens - cross-origin). Fixed in the very next release, 1.32.0,
+with an unchanged `zod` peer range (`^3.25 || ^4.0`, still satisfied by our
+pinned 3.25.76). Verified the same way as `fast-uri`: a full lockfile diff
+confirmed only the SDK itself and one of its own transitive deps (`qs`,
+a patch-level bump) moved, then ran the project's actual `tsc -b && vite
+build` against the upgraded package in an isolated install with
+`--frozen-lockfile` passing cleanly - independently for the workspace root
+and the standalone `client/` lockfile.
+
+This accounts for all seven packages with findings first appearing in the
 2026-10-24 rescan across these lockfiles: `undici`, `fast-uri`,
-`body-parser`, and `vite` fixed; `zod` documented above as an accepted
-exception since no released version remediates its reachable case.
+`body-parser`, `vite`, and `@modelcontextprotocol/sdk` fixed; `zod`
+documented above as an accepted exception since no released version
+remediates its reachable case.
 
 **Reassess if**: Node.js, npm, or pnpm is added to `docker/il4/Dockerfile`
 for any reason - at that point this needs an actual decision (a feature flag
