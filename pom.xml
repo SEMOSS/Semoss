@@ -70,6 +70,26 @@
 		<jackson3.version>3.2.3</jackson3.version>
 		<!-- Keep this security pin in sync with Monolith/pom.xml. -->
 		<lz4.version>1.11.4</lz4.version>
+		<!-- rabbitmq.version intentionally not carried over from dev: the existing
+		     amqp-client entry below already pins a higher, CVE-driven hardcoded
+		     version; introducing this property unused would risk a future
+		     re-declaration tripping the enforcer plugin's duplicate-version check,
+		     same as the amqp-client duplicate this repo already hit once. -->
+		<!-- 2.7.4->2.8.4 drops databricks-jdbc's bundled log4j-core/log4j-api entirely
+		     (confirmed via direct jar inspection - neither is present in 2.8.4 at all)
+		     and bumps bundled jackson to 2.21.5, closing CVE-2025-68161/34477/34478/34480/49844
+		     (log4j) and CVE-2026-18401/68494/59888 (jackson) - about a third of the ~20
+		     bundled-vendor findings this jar carries. Same Simba-derived 2.x codebase as
+		     2.7.4 (identical com/databricks/client/* package structure, same driver
+		     class), not the ground-up 3.x rewrite investigated and rejected earlier -
+		     dev's bare "fix: update databricks and tika" commit gave no reasoning, so this
+		     was independently re-verified here rather than trusted as-is. Remaining findings
+		     (CVE-2026-91777/91776/89425/68497 and others needing jackson>=2.22.x or the
+		     real Jackson 3.x line) still require the 3.x rewrite or an upstream 2.x release
+		     that bundles newer Jackson; see docker/il4/README.md for the full accepted-risk
+		     writeup, now updated to reflect this partial fix. -->
+		<databricks.jdbc.version>2.8.4</databricks.jdbc.version>
+		<tika.version>3.3.3</tika.version>
 		<httpcore5.version>5.4.3</httpcore5.version>
 		<docx4j.version>11.5.14</docx4j.version>
 		<sesame.version>2.7.12</sesame.version>
@@ -2739,15 +2759,18 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.elasticsearch.plugin/x-pack-sql-jdbc -->
-		<!-- 9.4.2 -> 9.4.8: bundled jackson-core 2.15.0 -> 2.21.7, closing CVE-2026-18401 (MEDIUM)
+		<!-- 9.4.2 -> 9.5.5: bundled jackson-core 2.15.0 -> 2.21.7, closing CVE-2026-18401 (MEDIUM)
 			 and CVE-2026-68494 (HIGH) among the bundled-vendor Inspector2 findings. CVE-2026-89425
 			 (HIGH) needs jackson-core>=2.22.3, which no published x-pack-sql-jdbc release bundles
-			 yet (checked through the real current latest, 9.5.5); minimal same-9.4.x-line bump
-			 rather than jumping to 9.5.x, consistent with picking the smallest safe version. -->
+			 yet (checked through the real current latest, 9.5.5 - this exact version). dev
+			 independently bumped to 9.5.5 (#3185); verified it bundles the identical
+			 jackson-core 2.21.7 as the 9.4.8 this repo had chosen (no security difference
+			 either way), so took dev's newer, already-adopted value on merge rather than
+			 keeping a narrower independent choice. -->
 		<dependency>
 			<groupId>org.elasticsearch.plugin</groupId>
 			<artifactId>x-pack-sql-jdbc</artifactId>
-			<version>9.4.8</version>
+			<version>9.5.5</version>
 		</dependency>
 		<!-- self hostged -->
 		<dependency>
@@ -2851,7 +2874,7 @@
 		<dependency>
 			<groupId>com.databricks</groupId>
 			<artifactId>databricks-jdbc</artifactId>
-			<version>2.7.4</version>
+			<version>${databricks.jdbc.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.hierynomus/sshj -->
 		<!-- Version 0.41.0 updates SSHJ's cryptography baseline. Keep this synchronized
@@ -2896,7 +2919,7 @@
 		<dependency>
 			<groupId>org.apache.tika</groupId>
 			<artifactId>tika-core</artifactId>
-			<version>3.2.2</version>
+			<version>${tika.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>commons-io</groupId>

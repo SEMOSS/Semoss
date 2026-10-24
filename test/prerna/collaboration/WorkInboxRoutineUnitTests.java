@@ -78,6 +78,7 @@ import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry.Subscription;
 import prerna.om.Insight;
 import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.AutomationRuntime;
 import prerna.reactor.automation.definition.AutomationDefinitionService;
 import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.reactor.automation.run.AutomationRunStore;
@@ -491,7 +492,7 @@ class WorkInboxRoutineUnitTests {
 			assertEquals(prior, lastSuccess());
 			Map<?, ?> failed = (Map<?, ?>) WorkInboxRoutine.get(user).get("lastRun");
 			assertEquals("failed", failed.get("status"));
-			assertNull(failed.get("roomId"));
+			assertEquals("brief-room", failed.get("roomId"));
 			// Simulate the next scheduled day's database claim without changing the host clock.
 			CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET LAST_DATE = NULL");
 			at("2026-10-13T08:00:00Z");
@@ -500,7 +501,7 @@ class WorkInboxRoutineUnitTests {
 			assertEquals("2026-10-13T08:00:00Z", lastSuccess());
 			Map<?, ?> unsent = (Map<?, ?>) WorkInboxRoutine.get(user).get("lastRun");
 			assertEquals("Caught up.", unsent.get("summary"));
-			assertEquals("The brief was saved but the email could not be sent.", unsent.get("error"));
+			assertEquals("The brief was saved but could not be delivered.", unsent.get("error"));
 			assertEquals("brief-room", unsent.get("roomId"));
 			automations.verify(() -> RunAutomationDefinitionReactor.runDefinition(any(), anyString(), anyString(), any(),
 					anyMap(), anyString(), isNull()), times(2));
@@ -536,6 +537,25 @@ class WorkInboxRoutineUnitTests {
 			assertFalse(inputs.getValue().containsKey("since"));
 			assertTrue(files.getValue().definition().contains("\"text-model\""));
 		}
+	}
+
+	@Test
+	void assembledBriefIsSavedWithoutAnAgentRoom() {
+		WorkInboxRoutine.save(user, config(false));
+		CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET RUN_STATUS = ?, RUN_ID = ?, STARTED_AT = ?",
+				"running", "assembled-run", CollaborationDbUtils.toTimestamp("2026-10-12T08:00:00Z", "startedAt"));
+		store.when(() -> AutomationRunStore.getRunDetail("assembled-run"))
+				.thenReturn(Map.of(AutomationConstants.STATUS, AutomationConstants.STATUS_SUCCESS));
+		store.when(() -> AutomationRunStore.getNodeOutputsForRun("assembled-run"))
+				.thenReturn(List.of(Map.of(AutomationConstants.NODE_ID, "brief",
+						AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS,
+						AutomationConstants.OUTPUT_VALUE, "\"Assembled daily brief.\"")));
+		Insight insight = mock(Insight.class); when(insight.getUser()).thenReturn(user);
+		Map<?, ?> result = (Map<?, ?>) WorkInboxRoutine.get(insight).get("lastRun");
+		assertEquals("completed", result.get("status"));
+		assertEquals("Assembled daily brief.", result.get("summary"));
+		assertNull(result.get("roomId"));
+		assertNull(result.get("error"));
 	}
 
 	@Test
@@ -674,10 +694,43 @@ class WorkInboxRoutineUnitTests {
 	@Test
 	void briefDefinitionIsStrictlyValidAndReadsOnlyDeclaredScopeNames() {
 		assertStrictDefinition(WorkInboxRoutine.briefDefinition("engine-1"),
-				List.of("start", "sync", "wait_sync", "gather", "drafts", "save_drafts", "brief", "deliver"),
-				List.of("wait_sync", "gather", "save_drafts", "deliver"), List.of("drafts", "brief"),
-				Set.of("owner_email", "timezone", "lookback_hours"),
-				Set.of("context", "drafts", "saved", "brief", "owner_email", "timezone", "lookback_hours"));
+				List.of("start", "sync", "wait_sync", "gather", "drafts", "save_drafts", "prepare", "meeting_notes", "brief", "deliver"),
+				List.of("wait_sync", "gather", "save_drafts", "prepare", "summarize_meeting", "brief", "deliver"), List.of("drafts"),
+				Set.of("owner_email", "timezone", "lookback_hours", "brief_model"),
+				Set.of("context", "drafts", "saved", "prepared", "meeting_notes", "brief", "brief_model",
+						"owner_email", "timezone", "lookback_hours"));
+	}
+
+	@Test
+	void dailyMeetingSummariesUseTheOwnersModelWithoutChangingOtherDefaults() {
+		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator
+				.parseAndValidate(WorkInboxRoutine.briefDefinition("owners-model").definition());
+		Map<String, Object> defaults = AutomationRuntime.declaredGlobals(definition);
+		assertEquals("owners-model", defaults.get("brief_model"));
+		assertEquals("", defaults.get("owner_email"));
+		assertEquals("UTC", defaults.get("timezone"));
+		assertEquals(24, ((Number) defaults.get("lookback_hours")).intValue());
+		Map<?, ?> drafts = (Map<?, ?>) definition.nodes().stream()
+				.filter(node -> "drafts".equals(node.get(AutomationConstants.NODE_FIELD_ID))).findFirst().orElseThrow()
+				.get(AutomationConstants.NODE_FIELD_CONFIG);
+		assertEquals("owners-model", drafts.get(AutomationConstants.CONFIG_ENGINE_ID));
+		assertEquals(InboxBriefHarness.NAME, drafts.get(AutomationConstants.CONFIG_HARNESS_TYPE));
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void dailyModelBindingDoesNotChangeOtherRoutineAgentConfiguration(boolean custom) {
+		Map<String, Object> agentConfig = Map.of("command", "Prepare the owner's routine.",
+				"routineId", "owned-routine", "harnessType", InboxBriefHarness.NAME);
+		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator.parseAndValidate(
+				WorkRoutine.definition(custom ? WorkCustomRoutine.KIND : WorkAgendaRoutine.KIND,
+						"owners-model", agentConfig).definition());
+		assertFalse(AutomationRuntime.declaredGlobals(definition).containsKey("brief_model"));
+		Map<?, ?> agent = (Map<?, ?>) definition.nodes().stream()
+				.filter(node -> AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE)))
+				.findFirst().orElseThrow().get(AutomationConstants.NODE_FIELD_CONFIG);
+		assertEquals("owners-model", agent.get(AutomationConstants.CONFIG_ENGINE_ID));
+		agentConfig.forEach((key, value) -> assertEquals(value, agent.get(key), key));
 	}
 
 	@Test
@@ -702,11 +755,8 @@ class WorkInboxRoutineUnitTests {
 		assertTrue(saveDrafts.contains("Teamwork drafts"));
 		Map<String, Object> brief = definition.nodes().stream()
 				.filter(node -> "brief".equals(node.get(AutomationConstants.NODE_FIELD_ID))).findFirst().orElseThrow();
-		Map<?, ?> config = (Map<?, ?>) brief.get(AutomationConstants.NODE_FIELD_CONFIG);
-		String command = (String) config.get(AutomationConstants.CONFIG_COMMAND);
-		assertTrue(command.contains("Needs your reply"));
-		assertTrue(command.contains("${saved.briefInput}"));
-		assertTrue(command.contains("Draft:"));
+		assertEquals(AutomationConstants.NODE_DEVELOPER_PYTHON, brief.get(AutomationConstants.NODE_FIELD_TYPE));
+		assertEquals("brief", brief.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR));
 		String deliver = files.nodeSources().get("deliver");
 		assertTrue(deliver.contains("MicrosoftOutlookSendMail("));
 		assertTrue(deliver.contains("scope.get(\"owner_email\")"));
@@ -864,7 +914,7 @@ class WorkInboxRoutineUnitTests {
 		Set<String> used = new HashSet<>();
 		Map<String, Map<String, Object>> nodes = new HashMap<>();
 		Pattern reference = Pattern.compile("\\$\\{([A-Za-z_][A-Za-z0-9_]*)");
-		for (Map<String, Object> node : definition.nodes()) {
+		for (Map<String, Object> node : AutomationRuntime.allNodes(definition)) {
 			nodes.put((String) node.get(AutomationConstants.NODE_FIELD_ID), node);
 			if (node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR) instanceof String name) {
 				declared.add(name);

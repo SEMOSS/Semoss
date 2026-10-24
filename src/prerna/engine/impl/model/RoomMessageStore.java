@@ -30,6 +30,7 @@ package prerna.engine.impl.model;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -73,6 +74,9 @@ public final class RoomMessageStore {
 
 	private static final String LOCK_TTL_MS = "ROOM_MESSAGE_STORE_LOCK_TTL_MS";
 	private static final String LOCK_WAIT_MS = "ROOM_MESSAGE_STORE_LOCK_WAIT_MS";
+	// sliding expiry on the cached projection; refreshed on every write
+	private static final String REDIS_TTL_HOURS = "ROOM_MESSAGE_REDIS_TTL_HOURS";
+	private static final long DEFAULT_REDIS_TTL_HOURS = 1L;
 	private static final ReentrantLock[] LOCAL_LOCKS = new ReentrantLock[256];
 	// Separate stripes so a short options update never waits on a long model call.
 	private static final ReentrantLock[] OPTIONS_LOCAL_LOCKS = new ReentrantLock[256];
@@ -472,9 +476,9 @@ public final class RoomMessageStore {
 		}
 		try {
 			RoomMessageRedisClient redis = redisClient();
-			if (redis.getMessages(room.getId()) == null) {
-				redis.setMessages(room.getId(), messageHistory);
-				redis.incrementVersion(room.getId());
+			long ttlSeconds = redisTtlSeconds();
+			if (redis.setMessagesIfAbsent(room.getId(), messageHistory, ttlSeconds)) {
+				redis.incrementVersion(room.getId(), ttlSeconds);
 			}
 		} catch (Exception e) {
 			classLogger.warn("Failed to warm Redis room-message projection for room={}", room.getId(), e);
@@ -487,8 +491,9 @@ public final class RoomMessageStore {
 		}
 		try {
 			RoomMessageRedisClient redis = redisClient();
-			redis.setMessages(room.getId(), messageHistory);
-			redis.incrementVersion(room.getId());
+			long ttlSeconds = redisTtlSeconds();
+			redis.setMessages(room.getId(), messageHistory, ttlSeconds);
+			redis.incrementVersion(room.getId(), ttlSeconds);
 		} catch (Exception e) {
 			classLogger.warn("Failed to update Redis room-message projection for room={}", room.getId(), e);
 			invalidateRedisProjection(room);
@@ -504,6 +509,32 @@ public final class RoomMessageStore {
 		} catch (Exception e) {
 			classLogger.warn("Failed to invalidate Redis room-message projection for room={}", room.getId(), e);
 		}
+	}
+
+	// best-effort: a missing projection just reloads from the DB on next read
+	public static void evictRedisProjection(String roomId) {
+		if (roomId == null || !RedisConnectionConfig.isRedisEnabled()) {
+			return;
+		}
+		try {
+			redisClient().evictRoom(roomId);
+		} catch (Exception e) {
+			classLogger.warn("Failed to evict Redis room-message projection for room={}", roomId, e);
+		}
+	}
+
+	public static void evictRedisProjections(Collection<String> roomIds) {
+		if (roomIds == null || roomIds.isEmpty() || !RedisConnectionConfig.isRedisEnabled()) {
+			return;
+		}
+		for (String roomId : new ArrayList<>(roomIds)) {
+			evictRedisProjection(roomId);
+		}
+	}
+
+	private static long redisTtlSeconds() {
+		long hours = getLongProperty(REDIS_TTL_HOURS, DEFAULT_REDIS_TTL_HOURS);
+		return TimeUnit.HOURS.toSeconds(hours > 0 ? hours : DEFAULT_REDIS_TTL_HOURS);
 	}
 
 	public static RoomMessageRedisClient redisClient() {
