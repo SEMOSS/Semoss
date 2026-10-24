@@ -4,3 +4,9 @@ protobuf>=6.33.5
 numpy>=2.2.6
 pyasn1>=0.6.3
 lxml>=6.1.0
+# IL4-specific addition (not from upstream): pipecat-ai==1.13.0 declares
+# Pillow<13, but its own code (traced from its real sdist - see
+# compatibility.json) only calls open/frombytes/convert/resize/save/tobytes
+# on raster frames, touching none of 13.0.0's behavioral changes. Closes
+# CVE-2026-112393/112403/112900 (CRITICAL) and the rest of pillow's findings.
+pillow>=13.0.0

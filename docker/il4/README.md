@@ -189,6 +189,7 @@ Python 3.14 requires these explicitly documented compatibility changes:
 | pipecat-ai | 1.4.0 | 1.13.0 | Closes CVE-2026-102682 (AWS Inspector2 finding) |
 | fsspec | 2023.10.0 (incidental) | 2023.10.0 (now explicit) | Had no pin anywhere; the above two bumps would have silently floated it to 2025.10.0, breaking the hash-guarded patch below |
 | certifi | 2026.10.18 | 2026.10.23 | Closes GHSA-6q48-6c7w-9gw2 (CRITICAL, AWS Inspector2 finding - a compromised, revoked root CA in the bundled trust store). Hand-edited rather than regenerated; see compatibility.json for why |
+| pillow | 12.3.0 | 13.0.0 | Closes 39 AWS Inspector2 findings (4 CRITICAL). Forced past pipecat-ai's declared `Pillow<13` via an override plus a hash-guarded metadata patch; see compatibility.json for why |
 
 Additional constraints are `dill>=0.4.0` and `protobuf<7`; the upstream security
 overrides remain applied. Exact pins, failed older candidates, source references,
@@ -222,35 +223,36 @@ appears anywhere in the codebase, so neither precondition the exploit needs is
 present. See `accepted_vulnerabilities` in
 [compatibility.json](./python-dependencies/compatibility.json).
 
-`pillow` stays at 12.3.0 rather than bumped to 13.0.0, leaving 39 findings as
-of the 2026-10-23 rescan (4 CRITICAL; up from 28 at the 2026-10-21 scan this
-was first written against - Inspector2 correlated 11 more CVEs into its feed
-against the same unchanged image in the interim, mostly TIFF/GIF/APNG/XBM/
-MSP/BMP/MPO/DCX/SPIDER/JPEG2000 decoder memory-safety bugs) open:
-`pipecat-ai`'s current pin - and PyPI's own latest release, so no newer one
-exists to pick up instead - declares `Pillow<13`. SEMOSS's entire Pillow
-surface is `Image.open/new/paste/crop/close/save/convert` in
-[table_util.py](../../py/vector_database/utils/extraction/table_util.py)
-(no resize, filters, merge, quantize, EXIF handling, or PDF-append) plus a
-notebook-display guard that only touches SEMOSS's own sandboxed output. The
-one live caller chain (`AbstractVectorDatabaseEngine`'s fitz-extraction path)
-never hands PIL the uploaded file's own bytes: PyMuPDF decodes the embedded
-image or page region into a format-agnostic `Pixmap` first and saves *that*
-to a hardcoded `.png` path, so `Image.open()` only ever sees a plain
-single-frame PNG it produced itself, not an attacker-chosen container
-format. A handful of operation-level bugs (`Image.merge`, `Image.quantize`,
-rank filters, `exif_transpose`) aren't called by SEMOSS's own code either,
-though whether PaddleOCR or the transformers object-detection pipeline call
-them internally on the resulting image wasn't independently verified.
-Separately traced `pipecat-ai` 1.13.0's own Pillow usage from its real PyPI
-sdist: its actual code only does `open`/`frombytes`/`convert`/`resize`/`save`
-on RGB-ish raster frames, touching none of 13.0.0's behavioral deltas, so its
-`<13` cap looks like an unreviewed precaution rather than a known
-incompatibility - overriding it is assessed as low risk based on that trace,
-though not yet attempted or tested end-to-end. See `accepted_vulnerabilities`
-in [compatibility.json](./python-dependencies/compatibility.json) for the
-full reachability analysis, the pipecat-ai call-site citations, and
-reassessment triggers.
+`pillow` is bumped from 12.3.0 to 13.0.0, closing all 39 findings against the
+bundled package as of the 2026-10-23 rescan (4 CRITICAL, mostly TIFF/GIF/APNG/
+XBM/MSP/BMP/MPO/DCX/SPIDER/JPEG2000 decoder memory-safety bugs; all fixed
+upstream in a single release). `pipecat-ai`'s current pin - and PyPI's own
+latest release, so no newer one exists to pick up instead - declares
+`Pillow<13`; reaching 13.0.0 requires overriding that bound via
+`overrides.in`/`overrides.lock` (the same mechanism already used for
+marshmallow/protobuf/numpy/pyasn1/lxml). A source trace of `pipecat-ai`
+1.13.0's real PyPI sdist found its actual code only does
+`open`/`frombytes`/`convert`/`resize`/`save`/`tobytes` on RGB-ish raster
+frames across 14 call sites, touching none of 13.0.0's documented behavioral
+deltas - so its `<13` cap reflects an unreviewed precaution, not a real
+incompatibility. Forcing the resolver past that bound isn't sufficient on its
+own, though: `pipecat-ai`'s installed package metadata still declares
+`Pillow<13`, which `uv pip check` (the last line of `install.sh`) audits
+independently and fails the build on, before `validate.py` or any functional
+test can run. This is closed with a targeted, hash-guarded metadata patch
+([pipecat_pillow_compat.py](./python-dependencies/pipecat_pillow_compat.py))
+that narrows the declared bound to `Pillow>=11.1.0,<14` - correcting stale
+metadata to match what's actually been verified, not suppressing the check
+itself, which keeps full strength for every other package. Verified beyond
+the standard harness with a functional smoke test importing `pipecat-ai`'s
+real shipped `pipecat.utils.image.encode_image` (its actual
+`frombytes`/`convert`/`save` call chain) against synthetic raw pixel data,
+executed under the real installed Pillow 13.0.0. See
+`approved_compatibility_changes` and `applied_source_patches` in
+[compatibility.json](./python-dependencies/compatibility.json) for the full
+reachability analysis, the pipecat-ai call-site citations, and verification
+detail. Live external audio/model/service integrations and the other 13
+cited call sites remain untested beyond the static source trace.
 
 The build uses hash-pinned uv and build tools, verifies dependency artifact hashes,
 routes PyTorch packages explicitly to its CPU index, and checks the installed
