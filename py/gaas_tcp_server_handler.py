@@ -388,8 +388,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # arming here yields zero roots and pins the host to the slow path forever.
         self.change_watcher = None
 
-        # set the thread local
-        TCPServerHandler.thread_local = threading.local()
+        # per connection: a class-level one is replaced by every new client, wiping the
+        # payload of requests still running on other connections to a persistent worker
+        self.thread_local = threading.local()
 
         # Sometimes the debugger is not effective or cannot handle certain troubleshooting scenarios.
         # This is where you can use the custom_log() method. It writes to the log txt file, ensuring the file exists, creates a new line, adds the message, and flushes the log.
@@ -468,7 +469,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # Re-evaluated on every call: room/ and user/ appear only when the session
             # first touches one, which is usually after the first CHANGES.
             self.change_watcher = shared_watcher(self._watcher_roots())
-        except Exception:
+        except Exception as e:
+            # an unsupported kernel returns None without raising, so this is a real fault
+            if self.logger:
+                self.logger.warning(
+                    f"Change watcher failed, host falls back to a full reconcile: {e}",
+                    exc_info=True,
+                )
             self.change_watcher = None
         if self.change_watcher is None:
             snapshot = {
