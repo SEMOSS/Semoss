@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.automation.definition;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -121,11 +122,131 @@ public class AutomationDefinitionValidatorUnitTests {
 		return AutomationRuntimeUtils.GSON.toJson(definition);
 	}
 
+	@Test
+	void validatesCleanSourcesColumnsAndPurgeFilters() {
+		for (String operation : List.of("trim", "replace", "filterEmpty", "imputeNulls")) {
+			Map<String, Object> config = new LinkedHashMap<>();
+			config.put("source", "${table}");
+			config.put("operation", operation);
+			config.put("columns", List.of("NAME"));
+			assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+					definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS, config))));
+			Map<String, Object> missingSource = new LinkedHashMap<>(config);
+			missingSource.put("source", "table");
+			assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+					definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS, missingSource))));
+			Map<String, Object> missingColumns = new LinkedHashMap<>(config);
+			missingColumns.put("columns", List.of());
+			assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+					definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS, missingColumns))));
+		}
+		assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "removeDuplicates")))));
+		assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "purge", "filters",
+						List.of(Map.of("column", "AGE", "operator", ">=", "value", 18)))))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "purge", "filters", List.of())))));
+	}
+
+	@Test
+	void validatesTransformOperationsOnlyOnDataTransformNode() {
+		assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_DATA_TRANSFORM, Map.of("source", "${table}", "operation", "changeType",
+						"column", "AGE", "dataType", "DOUBLE")))));
+		assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_DATA_TRANSFORM, Map.of("source", "${table}", "operation", "dropColumn",
+						"columns", List.of("AGE"))))));
+		assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_DATA_TRANSFORM, Map.of("source", "${table}", "operation", "renameColumn",
+						"column", "AGE", "newColumn", "AGE_YEARS")))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_DATA_TRANSFORM, Map.of("source", "${table}", "operation", "changeType",
+						"column", "AGE", "dataType", "INVALID")))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_DATA_TRANSFORM, Map.of("source", "${table}", "operation", "changeType",
+						"column", "AGE", "dataType", "INT")))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+				workNode(AutomationConstants.NODE_DATA_TRANSFORM, Map.of("source", "${table}", "operation", "renameColumn",
+						"column", "AGE", "newColumn", "AGE YEARS")))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM,
+						Map.of("source", "${table}", "operation", "trim", "columns", List.of("NAME"))))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS,
+						Map.of("source", "${table}", "operation", "changeType", "column", "AGE", "dataType", "DOUBLE")))));
+	}
+
+	@Test
+	void validatesTheNewSingleFrameTransformContracts() {
+		List<Map<String, Object>> configs = List.of(
+				Map.of("source", "${table}", "operation", "addColumn", "newColumn", "FLAG", "dataType", "STRING"),
+				Map.of("source", "${table}", "operation", "duplicateColumn", "column", "NAME", "newColumn", "NAME_COPY"),
+				Map.of("source", "${table}", "operation", "concatenate", "columns", List.of("FIRST", "LAST"), "newColumn", "FULL_NAME", "delimiter", " "),
+				Map.of("source", "${table}", "operation", "pivot", "pivotColumn", "STATUS", "valueColumn", "AMOUNT", "maintainColumns", List.of("ID"), "aggregateFunction", "sum"),
+				Map.of("source", "${table}", "operation", "lowerCase", "columns", List.of("NAME")),
+				Map.of("source", "${table}", "operation", "properCase", "columns", List.of("NAME")),
+				Map.of("source", "${table}", "operation", "split", "columns", List.of("NAME"), "delimiter", " "),
+				Map.of("source", "${table}", "operation", "splitUnpivot", "columns", List.of("NAME"), "delimiter", ","),
+				Map.of("source", "${table}", "operation", "timestampData", "newColumn", "CREATED_AT", "includeTime", true),
+				Map.of("source", "${table}", "operation", "toPercent", "column", "RATE", "newColumn", "RATE_PCT", "sigDigits", 2, "by100", true),
+				Map.of("source", "${table}", "operation", "transpose"),
+				Map.of("source", "${table}", "operation", "unpivot", "columns", List.of("Q1", "Q2")),
+				Map.of("source", "${table}", "operation", "upperCase", "columns", List.of("NAME")),
+				Map.of("source", "${table}", "operation", "join", "column", "ID", "rightSource", "${other_table}", "rightColumn", "ID", "joinType", "left.outer.join"));
+		for (Map<String, Object> config : configs) {
+			assertDoesNotThrow(() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+					workNode(AutomationConstants.NODE_DATA_TRANSFORM, config))), String.valueOf(config.get("operation")));
+		}
+	}
+
+	@Test
+	void rejectsUnsafeOrIncompleteTransformSettings() {
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM,
+						Map.of("source", "${table}", "operation", "dropColumn", "columns", "${column_names}")))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS,
+						Map.of("source", "${table}", "operation", "purge", "filters",
+								List.of(Map.of("column", "bad column", "operator", "==", "value", "x")))))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM,
+						Map.of("source", "${table}", "operation", "addColumn", "newColumn", "bad name", "dataType", "STRING")))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM,
+						Map.of("source", "${table}", "operation", "split", "columns", List.of("NAME"), "delimiter", "' ); system('bad') #")))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM,
+						Map.of("source", "${table}", "operation", "pivot", "pivotColumn", "STATUS", "valueColumn", "AMOUNT", "aggregateFunction", "system('bad')")))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+			definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM,
+				Map.of("source", "${table}", "operation", "join", "column", "ID", "rightSource", "other_table", "rightColumn", "ID")))));
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+			definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS,
+				Map.of("source", "${table}", "operation", "join", "column", "ID", "rightSource", "${other_table}", "rightColumn", "ID")))));
+	}
+
 	private static Map<String, Object> databaseConfig(String query) {
+
 		Map<String, Object> config = new LinkedHashMap<>();
 		config.put("engineId", "engine-1");
 		config.put("query", query);
 		return config;
+	}
+
+	@Test
+	void rejectsPurgeListsAndNullsBeforeSaving() {
+		for (Object value : List.of(List.of(1, 2), Map.of("invalid", true))) {
+			assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+					workNode(AutomationConstants.NODE_CLEAN_PROCESS, Map.of("source", "${table}", "operation", "purge", "filters", List.of(Map.of("column", "ID", "operator", "==", "value", value)))))));
+		}
+		Map<String, Object> nullFilter = new LinkedHashMap<>();
+		nullFilter.put("column", "ID");
+		nullFilter.put("operator", "==");
+		nullFilter.put("value", null);
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_CLEAN_PROCESS,
+						Map.of("source", "${table}", "operation", "purge", "filters", List.of(nullFilter))))));
 	}
 
 	private static Map<String, Object> databaseQueryConfig() {

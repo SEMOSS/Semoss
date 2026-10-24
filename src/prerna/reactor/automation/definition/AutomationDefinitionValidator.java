@@ -288,6 +288,8 @@ public final class AutomationDefinitionValidator {
 			validateOptionalConfigString(nodeId, config, "version");
 		}
 		case DATA_EXTRACT -> validateDataExtractConfig(nodeId, config);
+		case DATA_TRANSFORM -> validateTransformConfig(nodeId, config);
+		case CLEAN_PROCESS -> validateCleanProcessConfig(nodeId, config);
 		case VECTOR_SEARCH -> {
 			requireConfigString(nodeId, config, "value");
 			validateOptionalConfigObject(nodeId, config, "filters");
@@ -334,6 +336,182 @@ public final class AutomationDefinitionValidator {
 		case TRIGGER_START, DEVELOPER_PYTHON -> {
 			// These node types have no additional required configuration here.
 		}
+		}
+	}
+
+	private static void validateCleanProcessConfig(String nodeId, Map<String, Object> config) {
+		requireConfigString(nodeId, config, "operation");
+		AutomationFrameOperation operation = AutomationFrameOperation.fromValue((String) config.get("operation"));
+		if (operation.isTransform()) {
+			throw new IllegalArgumentException("Transform operations must use the data.transform node.");
+		}
+		validateFrameOperationConfig(nodeId, operation, config);
+	}
+
+	private static void validateTransformConfig(String nodeId, Map<String, Object> config) {
+		requireConfigString(nodeId, config, "operation");
+		AutomationFrameOperation operation = AutomationFrameOperation.fromValue((String) config.get("operation"));
+		if (!operation.isTransform()) {
+			throw new IllegalArgumentException("Clean operations must use the clean.process node.");
+		}
+		validateFrameOperationConfig(nodeId, operation, config);
+	}
+
+	private static void validateFrameOperationConfig(String nodeId, AutomationFrameOperation type,
+			Map<String, Object> config) {
+		requireConfigString(nodeId, config, "source");
+		if (!isScopePlaceholder(((String) config.get("source")).trim())) {
+			throw new IllegalArgumentException("Automation frame node '" + nodeId
+					+ "' source must be an exact upstream table reference.");
+		}
+		if (type == AutomationFrameOperation.PURGE) {
+			if (!(config.get("filters") instanceof List<?> filters) || filters.isEmpty() || filters.size() > 100) {
+				throw new IllegalArgumentException("Clean node '" + nodeId + "' requires 1 to 100 row filters.");
+			}
+			for (Object item : filters) {
+				if (!(item instanceof Map<?, ?> filter) || !(filter.get("column") instanceof String column)
+						|| !column.matches("[A-Za-z_][A-Za-z0-9_]*")
+						|| !List.of("==", "!=", ">", ">=", "<", "<=").contains(filter.get("operator"))
+						|| !filter.containsKey("value") || filter.get("value") instanceof Map<?, ?>) {
+					throw new IllegalArgumentException("Clean node '" + nodeId + "' has an invalid row filter.");
+				}
+				Object value = filter.get("value");
+				if (!(value instanceof String || value instanceof Boolean
+						|| value instanceof Number number && Double.isFinite(number.doubleValue()))) {
+					throw new IllegalArgumentException(
+							"Clean node '" + nodeId + "' filter values must be non-null scalars.");
+				}
+			}
+		} else if (type == AutomationFrameOperation.IMPUTE_NULLS
+				|| type == AutomationFrameOperation.DROP_COLUMN
+				|| type == AutomationFrameOperation.TRIM
+				|| type == AutomationFrameOperation.REPLACE
+				|| type == AutomationFrameOperation.FILTER_EMPTY
+				|| type == AutomationFrameOperation.LOWER_CASE
+				|| type == AutomationFrameOperation.PROPER_CASE
+				|| type == AutomationFrameOperation.UPPER_CASE
+				|| type == AutomationFrameOperation.UNPIVOT) {
+			validateTransformColumns(nodeId, config, "columns", true);
+		} else if (type == AutomationFrameOperation.CHANGE_TYPE) {
+			requireColumnIdentifier(nodeId, config, "column");
+			Object dataType = config.get("dataType");
+			if (!(dataType instanceof String value)
+					|| !List.of("STRING", "FACTOR", "DOUBLE", "DATE").contains(value)) {
+				throw new IllegalArgumentException("Clean node '" + nodeId + "' dataType is unsupported.");
+			}
+		} else if (type == AutomationFrameOperation.ADD_COLUMN) {
+			requireNewColumnIdentifier(nodeId, config);
+			requireTransformDataType(nodeId, config);
+		} else if (type == AutomationFrameOperation.DUPLICATE_COLUMN) {
+			requireColumnIdentifier(nodeId, config, "column");
+			requireNewColumnIdentifier(nodeId, config);
+		} else if (type == AutomationFrameOperation.RENAME_COLUMN) {
+			requireColumnIdentifier(nodeId, config, "column");
+			requireNewColumnIdentifier(nodeId, config);
+		} else if (type == AutomationFrameOperation.CONCATENATE) {
+			validateTransformColumns(nodeId, config, "columns", true);
+			requireNewColumnIdentifier(nodeId, config);
+			validateTransformScriptLiteral(nodeId, config, "delimiter", true);
+		} else if (type == AutomationFrameOperation.PIVOT) {
+			requireColumnIdentifier(nodeId, config, "pivotColumn");
+			requireColumnIdentifier(nodeId, config, "valueColumn");
+			validateTransformColumns(nodeId, config, "maintainColumns", false);
+			validateOptionalConfigString(nodeId, config, "aggregateFunction");
+			String aggregate = config.get("aggregateFunction") instanceof String value ? value.toLowerCase(java.util.Locale.ROOT) : "";
+			if (!List.of("", "sum", "mean", "median").contains(aggregate)) {
+				throw new IllegalArgumentException("Transform node '" + nodeId + "' aggregateFunction is unsupported.");
+			}
+		} else if (type == AutomationFrameOperation.SPLIT
+				|| type == AutomationFrameOperation.SPLIT_UNPIVOT) {
+			validateTransformColumns(nodeId, config, "columns", true);
+			validateTransformScriptLiteral(nodeId, config, "delimiter", true);
+		} else if (type == AutomationFrameOperation.TIMESTAMP_DATA) {
+			requireNewColumnIdentifier(nodeId, config);
+			validateOptionalConfigBoolean(nodeId, config, "includeTime");
+		} else if (type == AutomationFrameOperation.TO_PERCENT) {
+			requireColumnIdentifier(nodeId, config, "column");
+			requireNewColumnIdentifier(nodeId, config);
+			Object digits = config.get("sigDigits");
+			if (!(digits instanceof Number number) || !Double.isFinite(number.doubleValue())
+					|| number.intValue() < 0 || number.intValue() > 20
+					|| number.doubleValue() != number.intValue()) {
+				throw new IllegalArgumentException("Transform node '" + nodeId + "' sigDigits must be an integer from 0 to 20.");
+			}
+			validateOptionalConfigBoolean(nodeId, config, "by100");
+		} else if (type == AutomationFrameOperation.JOIN) {
+			requireScopeTableReference(nodeId, config, "rightSource");
+			requireColumnIdentifier(nodeId, config, "column");
+			requireColumnIdentifier(nodeId, config, "rightColumn");
+			String joinType = config.get("joinType") instanceof String value ? value : "inner.join";
+			if (!List.of("inner.join", "left.outer.join", "right.outer.join").contains(joinType)) {
+				throw new IllegalArgumentException("Transform node '" + nodeId + "' joinType is unsupported.");
+			}
+		} else if (type != AutomationFrameOperation.REMOVE_DUPLICATES
+				&& type != AutomationFrameOperation.TRANSPOSE) {
+			validateTransformColumns(nodeId, config, "columns", true);
+		}
+		if (type == AutomationFrameOperation.REPLACE) {
+			validateOptionalConfigString(nodeId, config, "value");
+			validateOptionalConfigString(nodeId, config, "newValue");
+		}
+	}
+
+	private static void requireTransformDataType(String nodeId, Map<String, Object> config) {
+		Object dataType = config.get("dataType");
+		if (!(dataType instanceof String value)
+				|| !List.of("STRING", "FACTOR", "DOUBLE", "DATE").contains(value)) {
+			throw new IllegalArgumentException("Transform node '" + nodeId + "' dataType is unsupported.");
+		}
+	}
+
+	private static void requireNewColumnIdentifier(String nodeId, Map<String, Object> config) {
+		requireConfigString(nodeId, config, "newColumn");
+		if (!((String) config.get("newColumn")).matches("[A-Za-z_][A-Za-z0-9_]*")) {
+			throw new IllegalArgumentException("Transform node '" + nodeId
+					+ "' newColumn must contain only letters, digits, and underscores.");
+		}
+	}
+
+	private static void requireColumnIdentifier(String nodeId, Map<String, Object> config, String key) {
+		requireConfigString(nodeId, config, key);
+		if (!((String) config.get(key)).matches("[A-Za-z_][A-Za-z0-9_]*")) {
+			throw new IllegalArgumentException("Transform node '" + nodeId + "' " + key
+					+ " must contain only letters, digits, and underscores.");
+		}
+	}
+
+	private static void requireScopeTableReference(String nodeId, Map<String, Object> config, String key) {
+		requireConfigString(nodeId, config, key);
+		if (!isScopePlaceholder(((String) config.get(key)).trim())) {
+			throw new IllegalArgumentException("Transform node '" + nodeId + "' " + key
+					+ " must be an exact upstream table reference.");
+		}
+	}
+
+	private static void validateTransformColumns(String nodeId, Map<String, Object> config, String key,
+			boolean required) {
+		Object value = config.get(key);
+		if (!(value instanceof List<?> columns) || required && columns.isEmpty() || columns.size() > 1000) {
+			throw new IllegalArgumentException("Transform node '" + nodeId + "' config." + key
+					+ " must be " + (required ? "a non-empty" : "an") + " array of valid column names.");
+		}
+		for (Object column : columns) {
+			if (!(column instanceof String name) || !name.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+				throw new IllegalArgumentException("Transform node '" + nodeId + "' config." + key
+						+ " contains an invalid column name.");
+			}
+		}
+	}
+
+	private static void validateTransformScriptLiteral(String nodeId, Map<String, Object> config, String key,
+			boolean required) {
+		Object value = config.get(key);
+		if (value == null && !required) return;
+		if (!(value instanceof String string) || required && string.isEmpty()
+				|| string.length() > 100 || string.contains("'") || string.contains("\"") || string.contains("\\")
+				|| string.chars().anyMatch(Character::isISOControl)) {
+			throw new IllegalArgumentException("Transform node '" + nodeId + "' config." + key
+					+ " contains an unsupported value.");
 		}
 	}
 

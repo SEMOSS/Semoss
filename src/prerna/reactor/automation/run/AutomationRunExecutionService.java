@@ -117,7 +117,7 @@ final class AutomationRunExecutionService {
 
 	private enum Handler {
 		START, CONDITION, JEV, LOOP, WAIT, APP_PIXEL, FUNCTION, STORAGE_LIST, DATABASE_WRITE, VECTOR_WRITE, MODEL,
-		STORAGE, AGENT, DATABASE_QUERY, VECTOR_SEARCH, STORAGE_DOWNLOAD, DATA_EXTRACT, PYTHON
+		STORAGE, AGENT, DATABASE_QUERY, VECTOR_SEARCH, STORAGE_DOWNLOAD, DATA_EXTRACT, CLEAN, PYTHON
 	}
 
 	private final Insight requestInsight;
@@ -339,27 +339,30 @@ final class AutomationRunExecutionService {
 			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 			Handler handler = handlerFor(node);
 			Map<String, Object> nodeResult = switch (handler) {
-			case START -> executeStartNode(context, runId, node);
-			case CONDITION -> executeConditionNode(runId, node, context.values());
-			case JEV -> executeJevDecisionNode(context.insight(), runId, node, context.values());
-			case LOOP -> executeLoopNode(projectId, runId, node, nodeSources, context, pythonExecutor, pixelExecutor);
-			case WAIT -> executeWaitNode(projectId, runId, node, context);
-			case APP_PIXEL -> executeAppPixelNode(projectId, runId, node, context, pixelExecutor);
-			case FUNCTION -> executeFunctionNode(projectId, runId, node, context, pixelExecutor);
-			case STORAGE_LIST -> executeStorageListNode(projectId, runId, node, context, pixelExecutor);
-			case DATABASE_WRITE -> executeDatabaseWriteNode(projectId, runId, node, context, pixelExecutor);
-			case VECTOR_WRITE -> executeVectorWriteNode(projectId, runId, node, context, pixelExecutor);
-			case MODEL -> executeModelNode(projectId, runId, node, context, pixelExecutor, traceRoomIds.get(nodeId));
-			case STORAGE -> executeStorageNode(projectId, runId, node, context, pixelExecutor);
-			case AGENT -> executeAgentNode(projectId, runId, node, context, pixelExecutor, traceRoomIds.get(nodeId),
-					controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
-			case DATABASE_QUERY -> executeDatabaseQueryNode(projectId, runId, node, context, pixelExecutor);
-			case VECTOR_SEARCH -> executeVectorSearchNode(projectId, runId, node, context, pixelExecutor);
-			case STORAGE_DOWNLOAD -> executeStorageDownloadNode(projectId, runId, node, context, pixelExecutor);
-			case DATA_EXTRACT -> executeDataExtractNode(projectId, runId, node, context, pixelExecutor);
-			case PYTHON -> executeNodeSource(projectId, runId, node, node, nodeSources.get(nodeId), context,
-					pythonExecutor, traceRoomIds.get(nodeId),
-					controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
+				case START -> executeStartNode(context, runId, node);
+				case CONDITION -> executeConditionNode(runId, node, context.values());
+				case JEV -> executeJevDecisionNode(context.insight(), runId, node, context.values());
+				case LOOP ->
+					executeLoopNode(projectId, runId, node, nodeSources, context, pythonExecutor, pixelExecutor);
+				case WAIT -> executeWaitNode(projectId, runId, node, context);
+				case APP_PIXEL -> executeAppPixelNode(projectId, runId, node, context, pixelExecutor);
+				case FUNCTION -> executeFunctionNode(projectId, runId, node, context, pixelExecutor);
+				case STORAGE_LIST -> executeStorageListNode(projectId, runId, node, context, pixelExecutor);
+				case DATABASE_WRITE -> executeDatabaseWriteNode(projectId, runId, node, context, pixelExecutor);
+				case VECTOR_WRITE -> executeVectorWriteNode(projectId, runId, node, context, pixelExecutor);
+				case MODEL ->
+					executeModelNode(projectId, runId, node, context, pixelExecutor, traceRoomIds.get(nodeId));
+				case STORAGE -> executeStorageNode(projectId, runId, node, context, pixelExecutor);
+				case AGENT -> executeAgentNode(projectId, runId, node, context, pixelExecutor, traceRoomIds.get(nodeId),
+						controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
+				case DATABASE_QUERY -> executeDatabaseQueryNode(projectId, runId, node, context, pixelExecutor);
+				case VECTOR_SEARCH -> executeVectorSearchNode(projectId, runId, node, context, pixelExecutor);
+				case STORAGE_DOWNLOAD -> executeStorageDownloadNode(projectId, runId, node, context, pixelExecutor);
+				case DATA_EXTRACT -> executeDataExtractNode(projectId, runId, node, context, pixelExecutor);
+				case CLEAN -> executeCleanNode(projectId, runId, node, context);
+				case PYTHON -> executeNodeSource(projectId, runId, node, node, nodeSources.get(nodeId), context,
+						pythonExecutor, traceRoomIds.get(nodeId),
+						controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
 			};
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
 				if (AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT
@@ -396,31 +399,33 @@ final class AutomationRunExecutionService {
 	private static Handler handlerFor(Map<String, Object> node) {
 		String type = String.valueOf(node.get(AutomationConstants.NODE_FIELD_TYPE));
 		return switch (type) {
-		case AutomationConstants.NODE_START -> Handler.START;
-		case AutomationConstants.NODE_CONTROL_IF -> Handler.CONDITION;
-		case AutomationConstants.NODE_CONTROL_JEV -> Handler.JEV;
-		case AutomationConstants.NODE_CONTROL_LOOP -> Handler.LOOP;
-		case AutomationConstants.NODE_CONTROL_WAIT -> Handler.WAIT;
-		case AutomationConstants.NODE_APP_PIXEL -> Handler.APP_PIXEL;
-		case AutomationConstants.NODE_FUNCTION_EXECUTE -> Handler.FUNCTION;
-		case AutomationConstants.NODE_STORAGE_LIST -> Handler.STORAGE_LIST;
-		case AutomationConstants.NODE_DATABASE_INSERT, AutomationConstants.NODE_DATABASE_UPDATE,
-				AutomationConstants.NODE_DATABASE_DELETE ->
-			Handler.DATABASE_WRITE;
-		case AutomationConstants.NODE_VECTOR_ADD, AutomationConstants.NODE_VECTOR_DELETE -> Handler.VECTOR_WRITE;
-		case AutomationConstants.NODE_MODEL_CHAT, AutomationConstants.NODE_MODEL_EMBEDDINGS,
-				AutomationConstants.NODE_MODEL_VISION, AutomationConstants.NODE_MODEL_NER ->
-			Handler.MODEL;
-		case AutomationConstants.NODE_STORAGE_READ, AutomationConstants.NODE_STORAGE_UPLOAD,
-				AutomationConstants.NODE_STORAGE_DELETE ->
-			Handler.STORAGE;
-		case AutomationConstants.NODE_AGENT_RUN -> Handler.AGENT;
-		case AutomationConstants.NODE_DATABASE_QUERY -> Handler.DATABASE_QUERY;
-		case AutomationConstants.NODE_VECTOR_SEARCH -> Handler.VECTOR_SEARCH;
-		case AutomationConstants.NODE_STORAGE_DOWNLOAD -> Handler.STORAGE_DOWNLOAD;
-		case AutomationConstants.NODE_DATA_EXTRACT -> Handler.DATA_EXTRACT;
-		case AutomationConstants.NODE_DEVELOPER_PYTHON -> Handler.PYTHON;
-		default -> throw new IllegalArgumentException("Unsupported Automation node type: " + type);
+			case AutomationConstants.NODE_START -> Handler.START;
+			case AutomationConstants.NODE_CONTROL_IF -> Handler.CONDITION;
+			case AutomationConstants.NODE_CONTROL_JEV -> Handler.JEV;
+			case AutomationConstants.NODE_CONTROL_LOOP -> Handler.LOOP;
+			case AutomationConstants.NODE_CONTROL_WAIT -> Handler.WAIT;
+			case AutomationConstants.NODE_APP_PIXEL -> Handler.APP_PIXEL;
+			case AutomationConstants.NODE_FUNCTION_EXECUTE -> Handler.FUNCTION;
+			case AutomationConstants.NODE_STORAGE_LIST -> Handler.STORAGE_LIST;
+			case AutomationConstants.NODE_DATABASE_INSERT, AutomationConstants.NODE_DATABASE_UPDATE,
+					AutomationConstants.NODE_DATABASE_DELETE ->
+				Handler.DATABASE_WRITE;
+			case AutomationConstants.NODE_VECTOR_ADD, AutomationConstants.NODE_VECTOR_DELETE -> Handler.VECTOR_WRITE;
+			case AutomationConstants.NODE_MODEL_CHAT, AutomationConstants.NODE_MODEL_EMBEDDINGS,
+					AutomationConstants.NODE_MODEL_VISION, AutomationConstants.NODE_MODEL_NER ->
+				Handler.MODEL;
+			case AutomationConstants.NODE_STORAGE_READ, AutomationConstants.NODE_STORAGE_UPLOAD,
+					AutomationConstants.NODE_STORAGE_DELETE ->
+				Handler.STORAGE;
+			case AutomationConstants.NODE_AGENT_RUN -> Handler.AGENT;
+			case AutomationConstants.NODE_DATABASE_QUERY -> Handler.DATABASE_QUERY;
+			case AutomationConstants.NODE_VECTOR_SEARCH -> Handler.VECTOR_SEARCH;
+			case AutomationConstants.NODE_STORAGE_DOWNLOAD -> Handler.STORAGE_DOWNLOAD;
+			case AutomationConstants.NODE_DATA_EXTRACT -> Handler.DATA_EXTRACT;
+			case AutomationConstants.NODE_DATA_TRANSFORM -> Handler.CLEAN;
+			case AutomationConstants.NODE_CLEAN_PROCESS -> Handler.CLEAN;
+			case AutomationConstants.NODE_DEVELOPER_PYTHON -> Handler.PYTHON;
+			default -> throw new IllegalArgumentException("Unsupported Automation node type: " + type);
 		};
 	}
 
@@ -465,11 +470,11 @@ final class AutomationRunExecutionService {
 			}
 			long requiredIterations = itemCount == 0 ? 0 : (itemCount + batchSize - 1) / batchSize;
 			int iterationLimit = switch (loopMode) {
-			case AutomationConstants.LOOP_MODE_FOR_EACH -> Math.toIntExact(requiredIterations);
-			case AutomationConstants.LOOP_MODE_REPEAT ->
-				((Number) config.get(AutomationConstants.CONFIG_LOOP_COUNT)).intValue();
-			case AutomationConstants.LOOP_MODE_WHILE -> maximumIterations;
-			default -> throw new IllegalArgumentException("Unsupported loop mode: " + loopMode);
+				case AutomationConstants.LOOP_MODE_FOR_EACH -> Math.toIntExact(requiredIterations);
+				case AutomationConstants.LOOP_MODE_REPEAT ->
+					((Number) config.get(AutomationConstants.CONFIG_LOOP_COUNT)).intValue();
+				case AutomationConstants.LOOP_MODE_WHILE -> maximumIterations;
+				default -> throw new IllegalArgumentException("Unsupported loop mode: " + loopMode);
 			};
 			if (iterationLimit > maximumIterations) {
 				throw new IllegalArgumentException("Loop node '" + loopNodeId + "' requires " + iterationLimit
@@ -569,39 +574,50 @@ final class AutomationRunExecutionService {
 						executionNode.put(AutomationConstants.ITERATION_INDEX, iteration);
 						Handler handler = handlerFor(executionNode);
 						Map<String, Object> nodeResult = switch (handler) {
-						case CONDITION -> executeConditionNode(runId, executionNode, iterationContext.values());
-						case JEV -> executeJevDecisionNode(parentContext.insight(), runId, executionNode,
-								iterationContext.values());
-						case WAIT -> executeWaitNode(projectId, runId, executionNode, iterationContext);
-						case APP_PIXEL ->
-							executeAppPixelNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case FUNCTION ->
-							executeFunctionNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case STORAGE_LIST ->
-							executeStorageListNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case DATABASE_WRITE ->
-							executeDatabaseWriteNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case VECTOR_WRITE ->
-							executeVectorWriteNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case MODEL -> executeModelNode(projectId, runId, executionNode, iterationContext, pixelExecutor,
-								bodyTraceRoomIds.get(current));
-						case STORAGE ->
-							executeStorageNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case AGENT -> executeAgentNode(projectId, runId, executionNode, iterationContext, pixelExecutor,
-								bodyTraceRoomIds.get(current), null);
-						case DATABASE_QUERY ->
-							executeDatabaseQueryNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case VECTOR_SEARCH ->
-							executeVectorSearchNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case STORAGE_DOWNLOAD -> executeStorageDownloadNode(projectId, runId, executionNode,
-								iterationContext, pixelExecutor);
-						case DATA_EXTRACT ->
-							executeDataExtractNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case PYTHON ->
-							executeNodeSource(projectId, runId, executionNode, executionNode, nodeSources.get(current),
-									iterationContext, pythonExecutor, bodyTraceRoomIds.get(current), null);
-						case START, LOOP -> throw new IllegalStateException(
-								"Loop body selected unsupported handler '" + handler + "' for node '" + current + "'.");
+							case CONDITION -> executeConditionNode(runId, executionNode, iterationContext.values());
+							case JEV -> executeJevDecisionNode(parentContext.insight(), runId, executionNode,
+									iterationContext.values());
+							case WAIT -> executeWaitNode(projectId, runId, executionNode, iterationContext);
+							case APP_PIXEL ->
+								executeAppPixelNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+							case FUNCTION ->
+								executeFunctionNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+							case STORAGE_LIST ->
+								executeStorageListNode(projectId, runId, executionNode, iterationContext,
+										pixelExecutor);
+							case DATABASE_WRITE ->
+								executeDatabaseWriteNode(projectId, runId, executionNode, iterationContext,
+										pixelExecutor);
+							case VECTOR_WRITE ->
+								executeVectorWriteNode(projectId, runId, executionNode, iterationContext,
+										pixelExecutor);
+							case MODEL ->
+								executeModelNode(projectId, runId, executionNode, iterationContext, pixelExecutor,
+										bodyTraceRoomIds.get(current));
+							case STORAGE ->
+								executeStorageNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+							case AGENT ->
+								executeAgentNode(projectId, runId, executionNode, iterationContext, pixelExecutor,
+										bodyTraceRoomIds.get(current), null);
+							case DATABASE_QUERY ->
+								executeDatabaseQueryNode(projectId, runId, executionNode, iterationContext,
+										pixelExecutor);
+							case VECTOR_SEARCH ->
+								executeVectorSearchNode(projectId, runId, executionNode, iterationContext,
+										pixelExecutor);
+							case STORAGE_DOWNLOAD -> executeStorageDownloadNode(projectId, runId, executionNode,
+									iterationContext, pixelExecutor);
+							case DATA_EXTRACT ->
+								executeDataExtractNode(projectId, runId, executionNode, iterationContext,
+										pixelExecutor);
+							case CLEAN -> executeCleanNode(projectId, runId, executionNode, iterationContext);
+							case PYTHON ->
+								executeNodeSource(projectId, runId, executionNode, executionNode,
+										nodeSources.get(current),
+										iterationContext, pythonExecutor, bodyTraceRoomIds.get(current), null);
+							case START, LOOP -> throw new IllegalStateException(
+									"Loop body selected unsupported handler '" + handler + "' for node '" + current
+											+ "'.");
 						};
 						if (!AutomationConstants.NODE_STATUS_SUCCESS
 								.equals(nodeResult.get(AutomationConstants.STATUS))) {
@@ -757,6 +773,38 @@ final class AutomationRunExecutionService {
 			return items;
 		}
 		throw new IllegalArgumentException("Loop node '" + loopNodeId + "' items must resolve to an array or list.");
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeCleanNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		String outputVariable = (String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			AutomationFrameOutput.RegisteredFrame frame = AutomationCleanExecutor.execute(context.insight(),
+					outputVariable, prerna.reactor.automation.definition.AutomationNodeType.fromType(
+							(String) node.get(AutomationConstants.NODE_FIELD_TYPE)),
+					config, context.values(), nodeId);
+			AutomationTableCaptureService.TableCapture capture = AutomationTableCaptureService.capture(frame, nodeId);
+			Map<String, Object> result = persistNativeNodeResult(runId, projectId, node, frame.summary(), started,
+					startedMs, null, null, context.values(), AutomationConstants.OUTPUT_KIND_TABLE, capture);
+			if (AutomationConstants.NODE_STATUS_SUCCESS.equals(result.get(AutomationConstants.STATUS))) {
+				result = new LinkedHashMap<>(result);
+				result.put(AutomationConstants.RESULT_OUTPUT_VALUE, frame);
+			}
+			return result;
+		} catch (Exception error) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(error);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw error instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(error);
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -1244,11 +1292,11 @@ final class AutomationRunExecutionService {
 		}
 		int comparison = Double.compare(actualNumber.doubleValue(), expectedNumber.doubleValue());
 		return switch (operator) {
-		case AutomationConstants.JEV_OPERATOR_GREATER_THAN -> comparison > 0;
-		case AutomationConstants.JEV_OPERATOR_GREATER_THAN_OR_EQUAL -> comparison >= 0;
-		case AutomationConstants.JEV_OPERATOR_LESS_THAN -> comparison < 0;
-		case AutomationConstants.JEV_OPERATOR_LESS_THAN_OR_EQUAL -> comparison <= 0;
-		default -> throw new IllegalStateException("Unsupported Jev route operator: " + operator + ".");
+			case AutomationConstants.JEV_OPERATOR_GREATER_THAN -> comparison > 0;
+			case AutomationConstants.JEV_OPERATOR_GREATER_THAN_OR_EQUAL -> comparison >= 0;
+			case AutomationConstants.JEV_OPERATOR_LESS_THAN -> comparison < 0;
+			case AutomationConstants.JEV_OPERATOR_LESS_THAN_OR_EQUAL -> comparison <= 0;
+			default -> throw new IllegalStateException("Unsupported Jev route operator: " + operator + ".");
 		};
 	}
 
@@ -1647,7 +1695,8 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Room options a generated agent node asks for: extra skills (access is checked when the run loads them) and the
+	 * Room options a generated agent node asks for: extra skills (access is checked
+	 * when the run loads them) and the
 	 * Collaboration routine flag, which only narrows what the run may do.
 	 */
 	private static Map<String, Object> generatedAgentRoomOptions(Map<String, Object> config) {
@@ -2510,14 +2559,15 @@ final class AutomationRunExecutionService {
 			return "Agent run '" + runId + "' returned no durable status.";
 		}
 		return switch (status.toUpperCase()) {
-		case "COMPLETED" -> null;
-		case "INPUT_REQUIRED" -> "Agent run '" + runId + "' requires user input before the automation can continue.";
-		case "FAILED" -> {
-			String error = stringValue(result.get("errorMessage"));
-			yield error != null ? error : "Agent run '" + runId + "' failed.";
-		}
-		case "CANCELLED" -> "Agent run '" + runId + "' was cancelled.";
-		default -> "Agent run '" + runId + "' did not reach COMPLETED status (" + status + ").";
+			case "COMPLETED" -> null;
+			case "INPUT_REQUIRED" ->
+				"Agent run '" + runId + "' requires user input before the automation can continue.";
+			case "FAILED" -> {
+				String error = stringValue(result.get("errorMessage"));
+				yield error != null ? error : "Agent run '" + runId + "' failed.";
+			}
+			case "CANCELLED" -> "Agent run '" + runId + "' was cancelled.";
+			default -> "Agent run '" + runId + "' did not reach COMPLETED status (" + status + ").";
 		};
 	}
 
