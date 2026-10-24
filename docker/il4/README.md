@@ -154,6 +154,7 @@ Python 3.14 requires these explicitly documented compatibility changes:
 | fsspec | 2023.10.0 (incidental) | 2023.10.0 (now explicit) | Had no pin anywhere; the above two bumps would have silently floated it to 2025.10.0, breaking the hash-guarded patch below |
 | certifi | 2026.10.18 | 2026.10.23 | Closes GHSA-6q48-6c7w-9gw2 (CRITICAL, AWS Inspector2 finding - a compromised, revoked root CA in the bundled trust store). Hand-edited rather than regenerated; see compatibility.json for why |
 | pillow | 12.3.0 | 13.0.0 | Closes 39 AWS Inspector2 findings (4 CRITICAL). Forced past pipecat-ai's declared `Pillow<13` via an override plus a hash-guarded metadata patch; see compatibility.json for why |
+| pypdf | 6.21.1 | 6.21.2 | Closes CVE-2026-115572, CVE-2026-115580, CVE-2026-115585 (all HIGH, PDF-parsing DoS). Next patch release; already permitted by pyproject.toml's own `pypdf>=6.14.2` |
 
 Additional constraints are `dill>=0.4.0` and `protobuf<7`; the upstream security
 overrides remain applied. Exact pins, failed older candidates, source references,
