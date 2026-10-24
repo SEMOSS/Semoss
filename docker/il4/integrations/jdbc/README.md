@@ -32,6 +32,57 @@ Sources:
 [SQL Server FIPS options](https://learn.microsoft.com/en-us/sql/connect/jdbc/fips-mode),
 [PostgreSQL SSL](https://jdbc.postgresql.org/documentation/ssl/).
 
+## Other bundled JDBC connectors (not in the reviewed overlay)
+
+`RdbmsTypeEnum` also registers `DATABRICKS` (`com.databricks.client.jdbc.Driver`) and
+`ELASTIC_SEARCH` (`org.elasticsearch.xpack.sql.jdbc.EsDriver`), wired into real,
+non-stub `DatabricksQueryUtil`/`ElasticSearchQueryUtil` classes and reachable the same
+way as the three reviewed drivers above: `RdbmsExternalUploadReactor` and
+`ExternalJdbcSchemaReactor` read `RDBMS_TYPE` from a caller-supplied map with no
+allowlist, so any caller already permitted to register an external database can set
+`RDBMS_TYPE=DATABRICKS` or `ELASTIC_SEARCH` today. Git history shows deliberate,
+multi-commit SEMOSS feature work for the Databricks connector specifically, not an
+unused upstream default. These two are outside this document's reviewed overlay (no
+TLS profile review, no live validation), and AWS Inspector2 flags vendor-embedded
+CVEs in both bundled driver JARs.
+
+**`x-pack-sql-jdbc`** (Elasticsearch SQL): bumped 9.4.2 -> 9.4.8, moving the jar's
+bundled `jackson-core` from 2.15.0 to 2.21.7. Closes CVE-2026-18401 (MEDIUM) and
+CVE-2026-68494 (HIGH). CVE-2026-89425 (HIGH) needs `jackson-core>=2.22.3`, which no
+published x-pack-sql-jdbc release bundles yet - checked every 9.4.x/9.5.x release
+through the real current latest, 9.5.5. Verified by resolving the dependency through
+the project's real Maven build (`BUILD SUCCESS`) and inspecting the resolved jar's own
+`META-INF/maven/.../jackson-core/pom.properties`, confirming 2.21.7 landed exactly as
+expected - not assumed from the version number alone.
+
+**`databricks-jdbc`**: stays at 2.7.4, leaving its bundled-vendor Inspector2 findings
+open (log4j-core/log4j-api 2.24.3 and jackson-databind/jackson-core 2.17.1, ~21
+findings including several HIGH). Checked for a fix: the *only* line that removes the
+vulnerable log4j entirely is 3.x, confirmed by downloading and inspecting the real
+3.4.4 jar (no `log4j-core`/`log4j-api` present at all; Databricks also now shades its
+own Jackson copy under `com.databricks.internal.fasterxml.jackson.*`, unlike 2.7.4's
+unshaded bundling). But GitHub's actual release history
+(`databricks/databricks-jdbc`) jumps straight from `v1.0.9-oss` to `v3.0.3` - 2.x was
+never published there at all, meaning 3.x is a ground-up, Databricks-authored OSS
+driver rewrite that happens to share the `com.databricks:databricks-jdbc` Maven
+coordinate with the legacy 2.x line, not an evolutionary version bump. Its own v3.0.7
+changelog documents a real breaking change
+(`PreparedStatement.setTimestamp(int, Timestamp, Calendar)` behavior). Even at the
+latest 3.4.4, bundled Jackson is still only 2.18.11 - below every threshold these
+CVEs need (2.21.4-2.22.3, or the real Jackson 3.x line under the renamed
+`tools.jackson.core` coordinate, which Databricks hasn't adopted) - so a 3.x bump
+would only ever close the log4j-related findings, never the Jackson-related majority.
+SEMOSS's own `DatabricksQueryUtil.java` doesn't call the specific changed API
+directly, but the actual JDBC interaction runs through the generic, shared
+`RDBMSNativeEngine` used by every RDBMS type, which was not verified against the
+rewritten driver - there is no live Databricks workspace available here to test a
+real connection against. Kept as an accepted exception rather than acted on: the
+compatibility risk of a from-scratch driver rewrite, untestable without a live
+Databricks SQL warehouse, outweighs a fix that would close under a quarter of the
+findings even in the best case. Reassess if a live Databricks workspace becomes
+available to validate the 3.x rewrite end to end, or Databricks ships a 2.x-line
+patch instead of continuing only the 3.x rewrite.
+
 ## Strict connection profiles
 
 [JdbcTls.java](../../JdbcTls.java) is the single source for the tested URL profiles.

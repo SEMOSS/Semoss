@@ -2739,10 +2739,15 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.elasticsearch.plugin/x-pack-sql-jdbc -->
+		<!-- 9.4.2 -> 9.4.8: bundled jackson-core 2.15.0 -> 2.21.7, closing CVE-2026-18401 (MEDIUM)
+			 and CVE-2026-68494 (HIGH) among the bundled-vendor Inspector2 findings. CVE-2026-89425
+			 (HIGH) needs jackson-core>=2.22.3, which no published x-pack-sql-jdbc release bundles
+			 yet (checked through the real current latest, 9.5.5); minimal same-9.4.x-line bump
+			 rather than jumping to 9.5.x, consistent with picking the smallest safe version. -->
 		<dependency>
 			<groupId>org.elasticsearch.plugin</groupId>
 			<artifactId>x-pack-sql-jdbc</artifactId>
-			<version>9.4.2</version>
+			<version>9.4.8</version>
 		</dependency>
 		<!-- self hostged -->
 		<dependency>
