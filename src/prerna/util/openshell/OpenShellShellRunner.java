@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.util.openshell;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,7 +38,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
+import prerna.om.ClientProcessWrapper;
 import prerna.util.OpenShellTransport;
 import prerna.util.Utility;
 
@@ -53,10 +59,9 @@ import prerna.util.Utility;
  *
  * <p>
  * The command is run with {@code openshell sandbox exec}, which starts a process
- * inside the sandbox. That is deliberately <b>not</b> the worker socket: the
- * worker serves one connection and a shell command must not compete with the
- * REPL for it. It also means shell output does not require the python worker to
- * be healthy.
+ * inside the sandbox. That is deliberately <b>not</b> the worker socket: a shell
+ * command must not queue behind a running python block on the same connection,
+ * and shell output does not require the python worker to be healthy.
  *
  * <p>
  * The sandbox is started on demand if it is not running yet, so a terminal
@@ -64,6 +69,8 @@ import prerna.util.Utility;
  * {@code Py()} first.
  */
 public final class OpenShellShellRunner {
+
+	private static final Logger classLogger = LogManager.getLogger(OpenShellShellRunner.class);
 
 	private static final int DEFAULT_TIMEOUT_SECONDS = 60;
 	/** Most output returned to the terminal for one command. */
@@ -108,7 +115,7 @@ public final class OpenShellShellRunner {
 			user.getPythonSocketClient(true);
 			// The sandbox the user's worker is actually in: a user-scoped one is named by the
 			// registry, not derived from this instance's chroot folder.
-			prerna.om.ClientProcessWrapper cpw = user.getPythonClientProcessWrapper();
+			ClientProcessWrapper cpw = user.getPythonClientProcessWrapper();
 			String sandboxName = cpw == null ? null : cpw.getOpenShellSandboxName();
 			if (sandboxName == null) {
 				sandboxName = OpenShellTransport.sandboxNameFor(user.getUserSymlinkHelper().getUserChrootFolder());
@@ -145,18 +152,20 @@ public final class OpenShellShellRunner {
 					cpw.refreshTransportedRoots();
 				} catch (Exception refreshError) {
 					// a stale copy is better than a refused command
+					classLogger.warn("Refresh before shell command failed", refreshError);
 				}
 			}
 			String output = runInSandbox(sandboxName, dir, trimmed).output;
 			// Shell writes are not requests on the python socket, so they do not pass the
 			// fetch-back hook there. Reconcile here too -- this is the path a `git commit`
 			// or a `cat > file` takes, and losing that work is exactly what we are fixing.
-			try {
-				if (user.getPythonClientProcessWrapper() != null) {
-					user.getPythonClientProcessWrapper().fetchBackChangedPaths();
+			if (cpw != null) {
+				try {
+					cpw.fetchBackChangedPaths();
+				} catch (Exception reconcileError) {
+					// the command itself already ran; a failed reconcile must not fail the shell
+					classLogger.warn("Write-back after shell command failed", reconcileError);
 				}
-			} catch (Exception ignored) {
-				// the command itself already ran; a failed reconcile must not fail the shell
 			}
 			return new Result(output, dir);
 		} catch (Exception e) {
@@ -207,7 +216,7 @@ public final class OpenShellShellRunner {
 			ProcessBuilder builder = new ProcessBuilder(argv);
 			builder.redirectErrorStream(true);
 			builder.redirectOutput(capture.toFile());
-			builder.redirectInput(ProcessBuilder.Redirect.from(new java.io.File("/dev/null")));
+			builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
 			// The CLI needs the same environment the transport uses (gateway config,
 			// TLS bundle); inherit it rather than reconstructing it here.
 			Process process = builder.start();
@@ -232,7 +241,7 @@ public final class OpenShellShellRunner {
 	private static String readCapped(Path capture) throws IOException {
 		long size = Files.size(capture);
 		byte[] bytes;
-		try (java.io.InputStream in = Files.newInputStream(capture)) {
+		try (InputStream in = Files.newInputStream(capture)) {
 			bytes = in.readNBytes((int) Math.min(size, MAX_OUTPUT_BYTES));
 		}
 		String text = new String(bytes, StandardCharsets.UTF_8).replace("\r", "").trim();

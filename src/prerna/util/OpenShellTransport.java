@@ -27,14 +27,49 @@
  *******************************************************************************/
 package prerna.util;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import prerna.util.openshell.TransportedRoots;
 
 /**
  * Transport to a SEMOSS python worker running inside an OpenShell sandbox.
@@ -51,11 +86,12 @@ import org.apache.logging.log4j.Logger;
  * loopback over the gateway ({@code openshell forward service}). The existing
  * {@code NativePySocketClient} is unchanged: it connects to
  * {@code 127.0.0.1:<forwardedPort>} exactly as it does for the non-sandbox path.</li>
- * <li><b>What "the connection" means.</b> The worker is single-connection
- * ({@code --max_count 1}) and it is the sandbox's main process, so a client
- * disconnect ends the worker <i>and</i> the sandbox. The connection must therefore
- * be held for the session's life, and re-established by re-creating the sandbox,
- * not merely by reconnecting a socket.</li>
+ * <li><b>What "the connection" means.</b> In the session-scoped form
+ * ({@link #forSession}) the worker is single-connection ({@code --max_count 1}) and
+ * the sandbox's main process, so a client disconnect ends the worker <i>and</i> the
+ * sandbox; the connection is held for the session's life. In the user-scoped form
+ * ({@link #forUser}) the worker is persistent: it serves several clients, survives
+ * their disconnects, and any server instance can {@link #attach()} to it.</li>
  * </ol>
  *
  * <p>
@@ -180,6 +216,8 @@ public final class OpenShellTransport {
 	private static final long MAX_FETCH_BYTES = 256L * 1024 * 1024;
 	/** Most paths one change set may name; the worker overflows to a full capture before this. */
 	private static final int MAX_CHANGED_PATHS = 2000;
+	/** Paths per {@code rm} when a refresh removes host-deleted files from the sandbox. */
+	private static final int REFRESH_DELETE_BATCH = 500;
 
 	/**
 	 * Relative paths, per transported root, that the sandbox is known to have held:
@@ -188,13 +226,13 @@ public final class OpenShellTransport {
 	 * gitignored, added on the host mid-session, missed by a partial upload -- is never
 	 * mistaken for one the sandbox removed.
 	 */
-	private final java.util.Map<String, java.util.Set<String>> seenBySandbox = new java.util.concurrent.ConcurrentHashMap<>();
+	private final Map<String, Set<String>> seenBySandbox = new ConcurrentHashMap<>();
 	/**
 	 * Size and mtime of each host file as this transport last left it (uploaded or
 	 * written back). A file that no longer matches was changed on the host since, and is
 	 * quarantined before a sandbox copy replaces it.
 	 */
-	private final java.util.Map<String, String> hostStamps = new java.util.concurrent.ConcurrentHashMap<>();
+	private final Map<String, String> hostStamps = new ConcurrentHashMap<>();
 
 	private static final String NAME_PREFIX = "pyw-";
 
@@ -215,14 +253,14 @@ public final class OpenShellTransport {
 		int digestChars = MAX_SANDBOX_NAME_LENGTH - NAME_PREFIX.length();
 		String digest;
 		try {
-			java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-			byte[] hash = md.digest(sessionKey.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			byte[] hash = md.digest(sessionKey.getBytes(StandardCharsets.UTF_8));
 			StringBuilder sb = new StringBuilder();
 			for (int i = 0; sb.length() < digestChars; i++) {
 				sb.append(String.format("%02x", hash[i]));
 			}
 			digest = sb.substring(0, digestChars);
-		} catch (java.security.NoSuchAlgorithmException e) {
+		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalStateException("SHA-256 unavailable", e);
 		}
 		String name = NAME_PREFIX + digest;
@@ -375,20 +413,39 @@ public final class OpenShellTransport {
 		}
 	}
 
-	/** The sandbox's phase ({@code Ready}, {@code Completed}, ...), or null when it does not exist. */
-	public static String phaseOf(String sandboxName) {
+	/**
+	 * The sandbox's phase ({@code Ready}, {@code Completed}, ...), or null when the gateway
+	 * says it does not exist.
+	 *
+	 * @throws IOException when the gateway could not be asked or its answer not read. That
+	 *                     is not "gone": a caller that deleted on it would destroy a live
+	 *                     user's python over a network hiccup.
+	 */
+	public static String phaseOf(String sandboxName) throws IOException {
+		String out;
 		try {
-			String out = run(Arrays.asList(propOr(CLI_PROP, DEFAULT_CLI), "sandbox", "get", sandboxName, "-o",
-					"json"), 30);
-			com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(jsonBody(out)).getAsJsonObject();
+			out = run(Arrays.asList(propOr(CLI_PROP, DEFAULT_CLI), "sandbox", "get", sandboxName, "-o", "json"),
+					30);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IOException("interrupted asking for sandbox " + sandboxName, e);
+		} catch (IOException e) {
+			if (String.valueOf(e.getMessage()).toLowerCase().contains("not found")) {
+				return null;
+			}
+			throw e;
+		}
+		try {
+			JsonObject json = JsonParser.parseString(jsonBody(out)).getAsJsonObject();
 			if (json.has("sandbox") && json.get("sandbox").isJsonObject()) {
 				json = json.getAsJsonObject("sandbox");
 			}
-			return json.has("phase") ? json.get("phase").getAsString() : null;
-		} catch (Exception e) {
-			// "not found" exits non-zero; anything unparseable is treated the same way,
-			// which only ever leads to creating a fresh sandbox.
-			return null;
+			if (!json.has("phase")) {
+				throw new IOException("no phase in the gateway's answer for sandbox " + sandboxName);
+			}
+			return json.get("phase").getAsString();
+		} catch (RuntimeException e) {
+			throw new IOException("unreadable answer for sandbox " + sandboxName + ": " + out, e);
 		}
 	}
 
@@ -403,26 +460,35 @@ public final class OpenShellTransport {
 	}
 
 	/**
-	 * Every executor sandbox on the gateway (selected by {@link #LABEL_PROP}), as name,
-	 * phase, creation time ({@code yyyy-MM-dd HH:mm:ss}, UTC) and owner label (or null).
+	 * One executor sandbox as the gateway lists it.
+	 *
+	 * @param createdAt {@code yyyy-MM-dd HH:mm:ss}, UTC, or empty
+	 * @param owner     the {@link #OWNER_LABEL} digest, or null for a session-scoped sandbox
 	 */
-	public static List<String[]> listExecutorSandboxes() throws IOException, InterruptedException {
+	public record SandboxInfo(String name, String phase, String createdAt, String owner) {
+		public boolean isReady() {
+			return "Ready".equalsIgnoreCase(phase);
+		}
+	}
+
+	/** Every executor sandbox on the gateway, selected by {@link #LABEL_PROP}. */
+	public static List<SandboxInfo> listExecutorSandboxes() throws IOException, InterruptedException {
 		String out = run(Arrays.asList(propOr(CLI_PROP, DEFAULT_CLI), "sandbox", "list", "--selector",
 				propOr(LABEL_PROP, DEFAULT_LABEL), "-o", "json"), 60);
-		List<String[]> rows = new ArrayList<>();
-		com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(jsonBody(out)).getAsJsonObject();
+		List<SandboxInfo> rows = new ArrayList<>();
+		JsonObject json = JsonParser.parseString(jsonBody(out)).getAsJsonObject();
 		if (!json.has("sandboxes")) {
 			return rows;
 		}
-		for (com.google.gson.JsonElement element : json.getAsJsonArray("sandboxes")) {
-			com.google.gson.JsonObject box = element.getAsJsonObject();
-			com.google.gson.JsonObject labels = box.has("labels") && box.get("labels").isJsonObject()
+		for (JsonElement element : json.getAsJsonArray("sandboxes")) {
+			JsonObject box = element.getAsJsonObject();
+			JsonObject labels = box.has("labels") && box.get("labels").isJsonObject()
 					? box.getAsJsonObject("labels")
-					: new com.google.gson.JsonObject();
-			rows.add(new String[] { box.get("name").getAsString(),
+					: new JsonObject();
+			rows.add(new SandboxInfo(box.get("name").getAsString(),
 					box.has("phase") ? box.get("phase").getAsString() : "",
 					box.has("created_at") ? box.get("created_at").getAsString() : "",
-					labels.has(OWNER_LABEL) ? labels.get(OWNER_LABEL).getAsString() : null });
+					labels.has(OWNER_LABEL) ? labels.get(OWNER_LABEL).getAsString() : null));
 		}
 		return rows;
 	}
@@ -524,8 +590,8 @@ public final class OpenShellTransport {
 		// A child whose pipe fills up blocks forever. The forward emits periodic
 		// output, so it must be drained continuously or the port never binds.
 		Thread drain = new Thread(() -> {
-			try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(
-					forwardProcess.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
+			try (BufferedReader r = new BufferedReader(new InputStreamReader(
+					forwardProcess.getInputStream(), StandardCharsets.UTF_8))) {
 				String line;
 				while ((line = r.readLine()) != null) {
 					synchronized (forwardLog) {
@@ -616,8 +682,8 @@ public final class OpenShellTransport {
 		// produced /a/b/app_root/app_root/version/... (observed 2026-09-28, and the same
 		// shape as the earlier X.py -> /path/X.py/X.py trap). The destination must be the
 		// PARENT so the tree lands at the absolute path the worker expects.
-		String destination = java.nio.file.Paths.get(absPath).getParent() == null ? "/"
-				: java.nio.file.Paths.get(absPath).getParent().toString();
+		String destination = Paths.get(absPath).getParent() == null ? "/"
+				: Paths.get(absPath).getParent().toString();
 		classLogger.info("Sandbox upload {} -> {}:{}", absPath, sandboxName, destination);
 		try {
 			String out = run(Arrays.asList(cli, "sandbox", "upload", sandboxName, absPath, destination), 300);
@@ -625,10 +691,8 @@ public final class OpenShellTransport {
 			// which run() already raises as IOException.
 			classLogger.info("Sandbox upload result for {}: {}", absPath, out.trim());
 			String normalized = Utility.normalizePath(absPath);
-			if (normalized.contains("/" + Constants.PROJECT_FOLDER + "/")
-					|| normalized.contains("/" + Constants.ROOM_FOLDER + "/")
-					|| normalized.contains("/" + Constants.USER_FOLDER + "/")) {
-				recordUploadedStamps(java.nio.file.Paths.get(normalized));
+			if (TransportedRoots.isUserSpace(normalized)) {
+				recordUploadedStamps(Paths.get(normalized));
 			}
 			return true;
 		} catch (Exception e) {
@@ -724,20 +788,20 @@ public final class OpenShellTransport {
 			classLogger.warn("Refusing fetch-back outside the SEMOSS home: {}", absPath);
 			return 0;
 		}
-		java.io.File source = new java.io.File(normalized);
+		File source = new File(normalized);
 		String parent = source.getParent();
 		String base = source.getName();
 		if (parent == null) {
 			return 0;
 		}
 
-		java.nio.file.Path temp = java.nio.file.Files.createTempDirectory("openshell-fetchback-");
+		Path temp = Files.createTempDirectory("openshell-fetchback-");
 		try {
 			String cli = propOr(CLI_PROP, DEFAULT_CLI);
 			// .git is captured so that a commit made in the sandbox shell survives, but only
 			// git's data files are ever written back -- see isWritableGitPath. Regenerable
 			// caches are skipped.
-			java.nio.file.Path archive = temp.resolve("capture.tar");
+			Path archive = temp.resolve("capture.tar");
 			Capture capture = runToFile(Arrays.asList(cli, "sandbox", "exec", "-n", sandboxName, "--", "tar", "-C",
 					parent, "--ignore-failed-read", "--exclude=node_modules", "--exclude=__pycache__", "--exclude=.venv",
 					"-cf", "-", base), 120, archive);
@@ -745,7 +809,7 @@ public final class OpenShellTransport {
 				return 0;
 			}
 			requireSafeArchive(archive);
-			java.nio.file.Path tree = java.nio.file.Files.createDirectory(temp.resolve("tree"));
+			Path tree = Files.createDirectory(temp.resolve("tree"));
 			extractArchive(archive, tree);
 			// tar warns about anything it could not read (a mode-000 directory, say). What
 			// it skipped is missing from the capture without having been deleted, so a
@@ -755,7 +819,7 @@ public final class OpenShellTransport {
 				classLogger.warn("Capture of {} is partial; not propagating deletions this time: {}", absPath,
 						capture.warnings);
 			}
-			int changed = reconcile(tree.resolve(base), java.nio.file.Paths.get(normalized), complete);
+			int changed = reconcile(tree.resolve(base), Paths.get(normalized), complete);
 			classLogger.info("Full capture of {}: {} bytes, {} file(s) changed on the host{}", absPath, capture.bytes,
 					changed, complete ? "" : " (partial)");
 			return changed;
@@ -765,6 +829,132 @@ public final class OpenShellTransport {
 		} finally {
 			deleteQuietly(temp);
 		}
+	}
+
+	/**
+	 * Bring host-side changes to one transported root into the sandbox: files another user,
+	 * a cluster pull or the UI wrote since this sandbox last had them, and files removed on
+	 * the host. Run before a block, after the previous block's write-back, so the sandbox
+	 * computes on what the platform holds now.
+	 *
+	 * <p>
+	 * Only files whose host stamp moved since the last sync are sent, in one upload. A file
+	 * the sandbox also changed was reconciled by the previous write-back (last write won
+	 * and the loser was kept), so sending the host's copy here cannot drop work.
+	 *
+	 * @param absRoot a path previously passed to {@link #upload(String)}
+	 * @return number of files copied in or removed
+	 */
+	public int refreshFromHost(String absRoot) throws IOException {
+		Path root = Paths.get(Utility.normalizePath(absRoot));
+		if (!Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS)) {
+			return 0;
+		}
+		Set<String> seen = seenBySandbox.computeIfAbsent(root.toString(),
+				key -> ConcurrentHashMap.newKeySet());
+		List<Path> changed = new ArrayList<>();
+		Set<String> present = new HashSet<>();
+		Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
+			@Override
+			public FileVisitResult preVisitDirectory(Path dir,
+					BasicFileAttributes attrs) {
+				String name = dir.getFileName() == null ? "" : dir.getFileName().toString();
+				return !dir.equals(root) && (attrs.isSymbolicLink() || isExcludedFromCapture(Paths.get(name)))
+						? FileVisitResult.SKIP_SUBTREE
+						: FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult visitFile(Path file,
+					BasicFileAttributes attrs) {
+				if (attrs.isRegularFile()) {
+					present.add(file.toString());
+					String stamp = stampOf(attrs);
+					if (!stamp.equals(hostStamps.get(file.toString()))) {
+						changed.add(file);
+					}
+				}
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult visitFileFailed(Path file, IOException e) {
+				return FileVisitResult.CONTINUE;
+			}
+		});
+		// Removed on the host since the sandbox had it: only paths this transport synced.
+		String prefix = root.toString() + File.separator;
+		List<String> removed = new ArrayList<>();
+		for (String known : new ArrayList<>(hostStamps.keySet())) {
+			if (known.startsWith(prefix) && !present.contains(known)
+					&& !Files.exists(Paths.get(known), LinkOption.NOFOLLOW_LINKS)) {
+				removed.add(known);
+			}
+		}
+		if (changed.isEmpty() && removed.isEmpty()) {
+			return 0;
+		}
+		String cli = propOr(CLI_PROP, DEFAULT_CLI);
+		if (changed.size() + removed.size() > MAX_CHANGED_PATHS) {
+			// A whole-tree change (a branch switch, a re-import): send the root again. The
+			// upload records every stamp and only adds, so host deletions still follow.
+			classLogger.info("Refreshing all of {} in sandbox {}: {} host change(s)", root, sandboxName,
+					changed.size() + removed.size());
+			if (!upload(root.toString())) {
+				throw new IOException("re-upload of " + root + " failed");
+			}
+			for (Path file : changed) {
+				seen.add(relativeKey(root, file));
+			}
+		} else if (!changed.isEmpty()) {
+			Path stage = Files.createTempDirectory("openshell-refresh-");
+			try {
+				Path staged = stage.resolve(root.getFileName().toString());
+				for (Path file : changed) {
+					Path copy = staged.resolve(root.relativize(file).toString());
+					Files.createDirectories(copy.getParent());
+					Files.copy(file, copy, StandardCopyOption.COPY_ATTRIBUTES, LinkOption.NOFOLLOW_LINKS);
+				}
+				// `sandbox upload` merges into the existing tree and keeps mtimes, so after it
+				// both sides carry the stamp recorded below.
+				run(Arrays.asList(cli, "sandbox", "upload", sandboxName, staged.toString(),
+						root.getParent().toString()), 300);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw new IOException("interrupted refreshing " + root, e);
+			} finally {
+				deleteQuietly(stage);
+			}
+			for (Path file : changed) {
+				recordStamp(file);
+				seen.add(relativeKey(root, file));
+			}
+		}
+		// In batches, so a mass delete cannot exceed the argument-length limit.
+		for (int from = 0; from < removed.size(); from += REFRESH_DELETE_BATCH) {
+			List<String> batch = removed.subList(from, Math.min(removed.size(), from + REFRESH_DELETE_BATCH));
+			List<String> rm = new ArrayList<>(
+					Arrays.asList(cli, "sandbox", "exec", "-n", sandboxName, "--", "rm", "-f", "--"));
+			rm.addAll(batch);
+			try {
+				run(rm, 60);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw new IOException("interrupted refreshing " + root, e);
+			}
+			for (String known : batch) {
+				hostStamps.remove(known);
+				seen.remove(relativeKey(root, Paths.get(known)));
+			}
+		}
+		classLogger.info("Refreshed sandbox {} from {}: {} file(s) in, {} removed", sandboxName, root, changed.size(),
+				removed.size());
+		return changed.size() + removed.size();
+	}
+
+	/** A path's key in {@link #seenBySandbox}: relative to its root, forward slashes. */
+	private static String relativeKey(Path root, Path file) {
+		return root.relativize(file).toString().replace('\\', '/');
 	}
 
 	/**
@@ -782,128 +972,7 @@ public final class OpenShellTransport {
 	 * @throws IOException when the paths could not be captured or applied; the change set
 	 *                     is then lost and the caller must schedule a full capture
 	 */
-	/**
-	 * Bring host-side changes to one transported root into the sandbox: files another user,
-	 * a cluster pull or the UI wrote since this sandbox last had them, and files removed on
-	 * the host. Run before a block, after the previous block's write-back, so the sandbox
-	 * computes on what the platform holds now.
-	 *
-	 * <p>
-	 * Only files whose host stamp moved since the last sync are sent, in one upload. A file
-	 * the sandbox also changed was reconciled by the previous write-back (last write won
-	 * and the loser was kept), so sending the host's copy here cannot drop work.
-	 *
-	 * @param absRoot a path previously passed to {@link #upload(String)}
-	 * @return number of files copied in or removed
-	 */
-	public int refreshFromHost(String absRoot) throws IOException {
-		java.nio.file.Path root = java.nio.file.Paths.get(Utility.normalizePath(absRoot));
-		if (!java.nio.file.Files.isDirectory(root, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
-			return 0;
-		}
-		java.util.Set<String> seen = seenBySandbox.computeIfAbsent(root.toString(),
-				key -> java.util.concurrent.ConcurrentHashMap.newKeySet());
-		java.util.List<java.nio.file.Path> changed = new ArrayList<>();
-		java.util.Set<String> present = new java.util.HashSet<>();
-		java.nio.file.Files.walkFileTree(root, new java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
-			@Override
-			public java.nio.file.FileVisitResult preVisitDirectory(java.nio.file.Path dir,
-					java.nio.file.attribute.BasicFileAttributes attrs) {
-				String name = dir.getFileName() == null ? "" : dir.getFileName().toString();
-				return !dir.equals(root) && (attrs.isSymbolicLink() || isExcludedFromCapture(java.nio.file.Paths.get(name)))
-						? java.nio.file.FileVisitResult.SKIP_SUBTREE
-						: java.nio.file.FileVisitResult.CONTINUE;
-			}
-
-			@Override
-			public java.nio.file.FileVisitResult visitFile(java.nio.file.Path file,
-					java.nio.file.attribute.BasicFileAttributes attrs) {
-				if (attrs.isRegularFile()) {
-					present.add(file.toString());
-					String stamp = attrs.size() + ":" + attrs.lastModifiedTime().to(TimeUnit.SECONDS);
-					if (!stamp.equals(hostStamps.get(file.toString()))) {
-						changed.add(file);
-					}
-				}
-				return java.nio.file.FileVisitResult.CONTINUE;
-			}
-
-			@Override
-			public java.nio.file.FileVisitResult visitFileFailed(java.nio.file.Path file, IOException e) {
-				return java.nio.file.FileVisitResult.CONTINUE;
-			}
-		});
-		// Removed on the host since the sandbox had it: only paths this transport synced.
-		String prefix = root.toString() + java.io.File.separator;
-		java.util.List<String> removed = new ArrayList<>();
-		for (String known : new ArrayList<>(hostStamps.keySet())) {
-			if (known.startsWith(prefix) && !present.contains(known)
-					&& !java.nio.file.Files.exists(java.nio.file.Paths.get(known), java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
-				removed.add(known);
-			}
-		}
-		if (changed.isEmpty() && removed.isEmpty()) {
-			return 0;
-		}
-		if (changed.size() + removed.size() > MAX_CHANGED_PATHS) {
-			// A whole-tree change (a branch switch, a re-import): send the root again.
-			classLogger.info("Refreshing all of {} in sandbox {}: {} host change(s)", root, sandboxName,
-					changed.size() + removed.size());
-			if (!upload(root.toString())) {
-				throw new IOException("re-upload of " + root + " failed");
-			}
-			return changed.size();
-		}
-		String cli = propOr(CLI_PROP, DEFAULT_CLI);
-		int count = 0;
-		if (!changed.isEmpty()) {
-			java.nio.file.Path stage = java.nio.file.Files.createTempDirectory("openshell-refresh-");
-			try {
-				java.nio.file.Path staged = stage.resolve(root.getFileName().toString());
-				for (java.nio.file.Path file : changed) {
-					java.nio.file.Path copy = staged.resolve(root.relativize(file).toString());
-					java.nio.file.Files.createDirectories(copy.getParent());
-					java.nio.file.Files.copy(file, copy, java.nio.file.StandardCopyOption.COPY_ATTRIBUTES,
-							java.nio.file.LinkOption.NOFOLLOW_LINKS);
-				}
-				// `sandbox upload` merges into the existing tree and keeps mtimes, so after it
-				// both sides carry the stamp recorded below.
-				run(Arrays.asList(cli, "sandbox", "upload", sandboxName, staged.toString(),
-						root.getParent().toString()), 300);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				throw new IOException("interrupted refreshing " + root, e);
-			} finally {
-				deleteQuietly(stage);
-			}
-			for (java.nio.file.Path file : changed) {
-				recordStamp(file);
-				seen.add(root.relativize(file).toString().replace('\\', '/'));
-			}
-			count += changed.size();
-		}
-		if (!removed.isEmpty()) {
-			List<String> rm = new ArrayList<>(Arrays.asList(cli, "sandbox", "exec", "-n", sandboxName, "--", "rm",
-					"-f", "--"));
-			rm.addAll(removed);
-			try {
-				run(rm, 60);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				throw new IOException("interrupted refreshing " + root, e);
-			}
-			for (String known : removed) {
-				hostStamps.remove(known);
-				seen.remove(root.relativize(java.nio.file.Paths.get(known)).toString().replace('\\', '/'));
-			}
-			count += removed.size();
-		}
-		classLogger.info("Refreshed sandbox {} from {}: {} file(s) in, {} removed", sandboxName, root, changed.size(),
-				removed.size());
-		return count;
-	}
-
-	public int fetchBackPaths(String absRoot, java.util.List<String> relativePaths) throws IOException {
+	public int fetchBackPaths(String absRoot, List<String> relativePaths) throws IOException {
 		if (absRoot == null || relativePaths == null || relativePaths.isEmpty()) {
 			return 0;
 		}
@@ -913,7 +982,7 @@ public final class OpenShellTransport {
 			classLogger.warn("Refusing path fetch-back outside the SEMOSS home: {}", absRoot);
 			return 0;
 		}
-		java.util.List<String> safe = new java.util.ArrayList<>();
+		List<String> safe = new ArrayList<>();
 		for (String relative : relativePaths) {
 			if (relative == null || relative.isEmpty()) {
 				continue;
@@ -933,21 +1002,21 @@ public final class OpenShellTransport {
 					+ " path limit");
 		}
 
-		java.nio.file.Path temp = java.nio.file.Files.createTempDirectory("openshell-fetchback-paths-");
+		Path temp = Files.createTempDirectory("openshell-fetchback-paths-");
 		try {
 			String cli = propOr(CLI_PROP, DEFAULT_CLI);
-			java.util.List<String> command = new java.util.ArrayList<>(Arrays.asList(cli, "sandbox", "exec", "-n",
+			List<String> command = new ArrayList<>(Arrays.asList(cli, "sandbox", "exec", "-n",
 					sandboxName, "--", "tar", "-C", normalized, "--ignore-failed-read", "--exclude=node_modules",
 					"--exclude=__pycache__", "--exclude=.venv", "-cf", "-", "--"));
 			command.addAll(safe);
-			java.nio.file.Path archive = temp.resolve("capture.tar");
+			Path archive = temp.resolve("capture.tar");
 			if (runToFile(command, 120, archive).bytes == 0) {
 				return 0;
 			}
 			requireSafeArchive(archive);
-			java.nio.file.Path tree = java.nio.file.Files.createDirectory(temp.resolve("tree"));
+			Path tree = Files.createDirectory(temp.resolve("tree"));
 			extractArchive(archive, tree);
-			return reconcile(tree, java.nio.file.Paths.get(normalized), false);
+			return reconcile(tree, Paths.get(normalized), false);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new IOException("path fetch-back from " + absRoot + " interrupted", e);
@@ -964,19 +1033,19 @@ public final class OpenShellTransport {
 	 * root: paths the sandbox held before but no longer has are then propagated as
 	 * deletions.
 	 */
-	private int reconcile(java.nio.file.Path incoming, java.nio.file.Path target, boolean fullTree)
+	private int reconcile(Path incoming, Path target, boolean fullTree)
 			throws IOException {
-		if (!java.nio.file.Files.isDirectory(incoming)) {
+		if (!Files.isDirectory(incoming)) {
 			return 0;
 		}
-		java.util.Set<String> seen = seenBySandbox.computeIfAbsent(target.toString(),
-				key -> java.util.concurrent.ConcurrentHashMap.newKeySet());
-		java.util.Set<String> previous = fullTree ? new java.util.HashSet<>(seen) : null;
-		java.util.Set<String> captured = new java.util.HashSet<>();
-		java.nio.file.Path store = quarantineStore();
+		Set<String> seen = seenBySandbox.computeIfAbsent(target.toString(),
+				key -> ConcurrentHashMap.newKeySet());
+		Set<String> previous = fullTree ? new HashSet<>(seen) : null;
+		Set<String> captured = new HashSet<>();
+		Path store = quarantineStore();
 		int[] copied = { 0 };
-		try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(incoming)) {
-			walk.filter(path -> java.nio.file.Files.isRegularFile(path, java.nio.file.LinkOption.NOFOLLOW_LINKS))
+		try (Stream<Path> walk = Files.walk(incoming)) {
+			walk.filter(path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
 					.forEach(path -> {
 						String relative = incoming.relativize(path).toString().replace('\\', '/');
 						captured.add(relative);
@@ -984,15 +1053,15 @@ public final class OpenShellTransport {
 							classLogger.debug("Not writing back git control file {}", relative);
 							return;
 						}
-						java.nio.file.Path destination = containedHostPath(target, relative);
+						Path destination = containedHostPath(target, relative);
 						if (destination == null) {
 							classLogger.warn("Refusing write-back of {} under {}: path leaves the root or crosses a symlink",
 									relative, target);
 							return;
 						}
 						try {
-							if (java.nio.file.Files.exists(destination, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
-								if (java.nio.file.Files.mismatch(path, destination) == -1L) {
+							if (Files.exists(destination, LinkOption.NOFOLLOW_LINKS)) {
+								if (Files.mismatch(path, destination) == -1L) {
 									recordStamp(destination);
 									return;
 								}
@@ -1024,7 +1093,7 @@ public final class OpenShellTransport {
 									}
 								}
 							}
-							java.nio.file.Files.createDirectories(destination.getParent());
+							Files.createDirectories(destination.getParent());
 							// Re-check now that the parents exist: creating them must not have
 							// walked through a link that appeared in between.
 							if (containedHostPath(target, relative) == null) {
@@ -1032,9 +1101,9 @@ public final class OpenShellTransport {
 										target);
 								return;
 							}
-							java.nio.file.Files.copy(path, destination,
-									java.nio.file.StandardCopyOption.REPLACE_EXISTING,
-									java.nio.file.StandardCopyOption.COPY_ATTRIBUTES);
+							Files.copy(path, destination,
+									StandardCopyOption.REPLACE_EXISTING,
+									StandardCopyOption.COPY_ATTRIBUTES);
 							recordStamp(destination);
 							copied[0]++;
 						} catch (IOException e) {
@@ -1061,16 +1130,16 @@ public final class OpenShellTransport {
 	 * the capture no longer contains was deleted inside the sandbox: quarantine the host
 	 * copy, then remove it. Host files the sandbox never held are left alone.
 	 */
-	private int removeDeletedFromHost(java.nio.file.Path target, java.util.Set<String> previous,
-			java.util.Set<String> captured, java.nio.file.Path store) {
+	private int removeDeletedFromHost(Path target, Set<String> previous,
+			Set<String> captured, Path store) {
 		int moved = 0;
 		for (String relative : previous) {
 			if (captured.contains(relative) || !isWritableGitPath(relative)
-					|| isExcludedFromCapture(java.nio.file.Paths.get(relative))) {
+					|| isExcludedFromCapture(Paths.get(relative))) {
 				continue;
 			}
-			java.nio.file.Path file = containedHostPath(target, relative);
-			if (file == null || !java.nio.file.Files.isRegularFile(file, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+			Path file = containedHostPath(target, relative);
+			if (file == null || !Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
 				continue;
 			}
 			if (hostChangedSinceSync(file)) {
@@ -1084,7 +1153,7 @@ public final class OpenShellTransport {
 				continue;
 			}
 			try {
-				java.nio.file.Files.deleteIfExists(file);
+				Files.deleteIfExists(file);
 				hostStamps.remove(file.toString());
 				pruneEmptyParents(file, target);
 				moved++;
@@ -1108,8 +1177,8 @@ public final class OpenShellTransport {
 	 * @return true when the host file was removed
 	 */
 	public boolean deleteFromHost(String root, String relative) {
-		java.nio.file.Path rootPath = java.nio.file.Paths.get(Utility.normalizePath(root));
-		java.util.Set<String> seen = seenBySandbox.get(rootPath.toString());
+		Path rootPath = Paths.get(Utility.normalizePath(root));
+		Set<String> seen = seenBySandbox.get(rootPath.toString());
 		if (seen == null || !seen.contains(relative)) {
 			classLogger.debug("Ignoring delete of {} under {}: the sandbox never held it", relative, root);
 			return false;
@@ -1117,12 +1186,12 @@ public final class OpenShellTransport {
 		if (!isWritableGitPath(relative)) {
 			return false;
 		}
-		java.nio.file.Path file = containedHostPath(rootPath, relative);
+		Path file = containedHostPath(rootPath, relative);
 		if (file == null) {
 			classLogger.warn("Refusing delete of {} under {}: path leaves the root or crosses a symlink", relative, root);
 			return false;
 		}
-		if (!java.nio.file.Files.isRegularFile(file, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+		if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
 			seen.remove(relative);
 			return false;
 		}
@@ -1135,7 +1204,7 @@ public final class OpenShellTransport {
 			return false;
 		}
 		try {
-			java.nio.file.Files.deleteIfExists(file);
+			Files.deleteIfExists(file);
 			hostStamps.remove(file.toString());
 			seen.remove(relative);
 			pruneEmptyParents(file, rootPath);
@@ -1151,10 +1220,10 @@ public final class OpenShellTransport {
 	 * including) the transported root. Only empty directories are removed, so a folder
 	 * someone deliberately created stays where it is.
 	 */
-	private static void pruneEmptyParents(java.nio.file.Path file, java.nio.file.Path root) {
-		java.nio.file.Path parent = file.getParent();
+	private static void pruneEmptyParents(Path file, Path root) {
+		Path parent = file.getParent();
 		while (parent != null && parent.startsWith(root) && !parent.equals(root)) {
-			try (java.util.stream.Stream<java.nio.file.Path> children = java.nio.file.Files.list(parent)) {
+			try (Stream<Path> children = Files.list(parent)) {
 				if (children.findAny().isPresent()) {
 					return;
 				}
@@ -1162,7 +1231,7 @@ public final class OpenShellTransport {
 				return;
 			}
 			try {
-				java.nio.file.Files.deleteIfExists(parent);
+				Files.deleteIfExists(parent);
 			} catch (IOException e) {
 				return;
 			}
@@ -1175,8 +1244,8 @@ public final class OpenShellTransport {
 	 * missing from the archive under one of these names was never captured rather than
 	 * deleted, and must not be treated as a tombstone.
 	 */
-	private static boolean isExcludedFromCapture(java.nio.file.Path relative) {
-		for (java.nio.file.Path part : relative) {
+	private static boolean isExcludedFromCapture(Path relative) {
+		for (Path part : relative) {
 			String name = part.toString();
 			if ("node_modules".equals(name) || "__pycache__".equals(name) || ".venv".equals(name)) {
 				return true;
@@ -1214,7 +1283,7 @@ public final class OpenShellTransport {
 		return true;
 	}
 
-	private static final java.util.Set<String> GIT_DATA_FILES = java.util.Set.of("HEAD", "ORIG_HEAD", "FETCH_HEAD",
+	private static final Set<String> GIT_DATA_FILES = Set.of("HEAD", "ORIG_HEAD", "FETCH_HEAD",
 			"MERGE_HEAD", "index", "packed-refs", "COMMIT_EDITMSG");
 
 	/** A relative path with no absolute prefix and no {@code ..} segment. */
@@ -1236,21 +1305,21 @@ public final class OpenShellTransport {
 	 * symlink: a link already in a writable project -- committed to its repository, say --
 	 * would otherwise redirect the write, or the delete, into another user's space.
 	 */
-	static java.nio.file.Path containedHostPath(java.nio.file.Path root, String relative) {
+	static Path containedHostPath(Path root, String relative) {
 		if (!isSafeRelative(relative)) {
 			return null;
 		}
-		java.nio.file.Path candidate = root.resolve(relative).normalize();
+		Path candidate = root.resolve(relative).normalize();
 		if (!candidate.startsWith(root) || candidate.equals(root)) {
 			return null;
 		}
-		java.nio.file.Path current = root;
-		for (java.nio.file.Path part : root.relativize(candidate)) {
+		Path current = root;
+		for (Path part : root.relativize(candidate)) {
 			current = current.resolve(part);
-			if (java.nio.file.Files.isSymbolicLink(current)) {
+			if (Files.isSymbolicLink(current)) {
 				return null;
 			}
-			if (!java.nio.file.Files.exists(current, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+			if (!Files.exists(current, LinkOption.NOFOLLOW_LINKS)) {
 				break;
 			}
 		}
@@ -1258,7 +1327,7 @@ public final class OpenShellTransport {
 	}
 
 	/** Remember a host file's state as this transport left it. */
-	private void recordStamp(java.nio.file.Path file) {
+	private void recordStamp(Path file) {
 		String stamp = stampOf(file);
 		if (stamp != null) {
 			hostStamps.put(file.toString(), stamp);
@@ -1266,28 +1335,31 @@ public final class OpenShellTransport {
 	}
 
 	/** True unless the host file is exactly as this transport last left it. */
-	private boolean hostChangedSinceSync(java.nio.file.Path file) {
+	private boolean hostChangedSinceSync(Path file) {
 		String known = hostStamps.get(file.toString());
 		return known == null || !known.equals(stampOf(file));
 	}
 
-	private static String stampOf(java.nio.file.Path file) {
+	private static String stampOf(Path file) {
 		try {
-			java.nio.file.attribute.BasicFileAttributes attributes = java.nio.file.Files.readAttributes(file,
-					java.nio.file.attribute.BasicFileAttributes.class, java.nio.file.LinkOption.NOFOLLOW_LINKS);
-			return attributes.size() + ":" + attributes.lastModifiedTime().to(TimeUnit.SECONDS);
+			return stampOf(Files.readAttributes(file, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS));
 		} catch (IOException e) {
 			return null;
 		}
 	}
 
 	/**
-	 * Seconds, not milliseconds: tar and {@code sandbox upload} keep whole seconds, so a finer
-	 * stamp would read as changed after every round trip.
+	 * {@code size:mtime} in whole seconds: tar and {@code sandbox upload} keep only seconds,
+	 * so a finer stamp would read as changed after every round trip.
 	 */
-	private static long mtimeOf(java.nio.file.Path file) {
+	private static String stampOf(BasicFileAttributes attributes) {
+		return attributes.size() + ":" + attributes.lastModifiedTime().to(TimeUnit.SECONDS);
+	}
+
+	/** Modification time in whole seconds, the resolution both sides of a sync share. */
+	private static long mtimeOf(Path file) {
 		try {
-			return java.nio.file.Files.getLastModifiedTime(file, java.nio.file.LinkOption.NOFOLLOW_LINKS)
+			return Files.getLastModifiedTime(file, LinkOption.NOFOLLOW_LINKS)
 					.to(TimeUnit.SECONDS);
 		} catch (IOException e) {
 			return 0L;
@@ -1295,14 +1367,14 @@ public final class OpenShellTransport {
 	}
 
 	/** Keep the sandbox's copy of a file whose host copy won a conflict. */
-	private static void quarantineIncoming(java.nio.file.Path file, java.nio.file.Path target, String relative,
-			java.nio.file.Path store) {
+	private static void quarantineIncoming(Path file, Path target, String relative,
+			Path store) {
 		try {
-			java.nio.file.Path destination = store.resolve(target.getFileName().toString() + ".sandbox")
+			Path destination = store.resolve(target.getFileName().toString() + ".sandbox")
 					.resolve(relative);
-			java.nio.file.Files.createDirectories(destination.getParent());
-			java.nio.file.Files.copy(file, destination, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
-					java.nio.file.StandardCopyOption.COPY_ATTRIBUTES, java.nio.file.LinkOption.NOFOLLOW_LINKS);
+			Files.createDirectories(destination.getParent());
+			Files.copy(file, destination, StandardCopyOption.REPLACE_EXISTING,
+					StandardCopyOption.COPY_ATTRIBUTES, LinkOption.NOFOLLOW_LINKS);
 			classLogger.warn("Write-back kept the sandbox copy of {} at {}", relative, destination);
 		} catch (Exception e) {
 			classLogger.warn("Could not keep the sandbox copy of {}", relative, e);
@@ -1314,36 +1386,36 @@ public final class OpenShellTransport {
 	 * a host file nobody touched (overwrite it) from one edited on the host since
 	 * (quarantine it first).
 	 */
-	private void recordUploadedStamps(java.nio.file.Path root) {
-		if (!java.nio.file.Files.isDirectory(root, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
-			if (java.nio.file.Files.isRegularFile(root, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+	private void recordUploadedStamps(Path root) {
+		if (!Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS)) {
+			if (Files.isRegularFile(root, LinkOption.NOFOLLOW_LINKS)) {
 				recordStamp(root);
 			}
 			return;
 		}
 		try {
-			java.nio.file.Files.walkFileTree(root, new java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
+			Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
 				@Override
-				public java.nio.file.FileVisitResult preVisitDirectory(java.nio.file.Path dir,
-						java.nio.file.attribute.BasicFileAttributes attrs) {
+				public FileVisitResult preVisitDirectory(Path dir,
+						BasicFileAttributes attrs) {
 					String name = dir.getFileName() == null ? "" : dir.getFileName().toString();
-					return isExcludedFromCapture(java.nio.file.Paths.get(name))
-							? java.nio.file.FileVisitResult.SKIP_SUBTREE
-							: java.nio.file.FileVisitResult.CONTINUE;
+					return isExcludedFromCapture(Paths.get(name))
+							? FileVisitResult.SKIP_SUBTREE
+							: FileVisitResult.CONTINUE;
 				}
 
 				@Override
-				public java.nio.file.FileVisitResult visitFile(java.nio.file.Path file,
-						java.nio.file.attribute.BasicFileAttributes attrs) {
+				public FileVisitResult visitFile(Path file,
+						BasicFileAttributes attrs) {
 					if (attrs.isRegularFile()) {
-						hostStamps.put(file.toString(), attrs.size() + ":" + attrs.lastModifiedTime().to(TimeUnit.SECONDS));
+						hostStamps.put(file.toString(), stampOf(attrs));
 					}
-					return java.nio.file.FileVisitResult.CONTINUE;
+					return FileVisitResult.CONTINUE;
 				}
 
 				@Override
-				public java.nio.file.FileVisitResult visitFileFailed(java.nio.file.Path file, IOException e) {
-					return java.nio.file.FileVisitResult.CONTINUE;
+				public FileVisitResult visitFileFailed(Path file, IOException e) {
+					return FileVisitResult.CONTINUE;
 				}
 			});
 		} catch (IOException e) {
@@ -1352,24 +1424,24 @@ public final class OpenShellTransport {
 	}
 
 	/** Timestamped quarantine root, outside every transported root so it is never pushed. */
-	private static java.nio.file.Path quarantineStore() {
+	private static Path quarantineStore() {
 		String base = Utility.getBaseFolder();
-		java.nio.file.Path store = java.nio.file.Paths
+		Path store = Paths
 				.get(base == null ? System.getProperty("java.io.tmpdir") : base, "writeback-quarantine");
-		String stamp = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date());
+		String stamp = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date());
 		return store.resolve(stamp);
 	}
 
 	/** Copy a host file aside before it is overwritten or removed. Returns the copy, or null. */
-	private static java.nio.file.Path quarantineCopy(java.nio.file.Path file, java.nio.file.Path root,
-			java.nio.file.Path store) {
+	private static Path quarantineCopy(Path file, Path root,
+			Path store) {
 		try {
-			java.nio.file.Path relative = root.relativize(file);
-			java.nio.file.Path destination = store.resolve(root.getFileName().toString())
+			Path relative = root.relativize(file);
+			Path destination = store.resolve(root.getFileName().toString())
 					.resolve(relative.toString());
-			java.nio.file.Files.createDirectories(destination.getParent());
-			java.nio.file.Files.copy(file, destination, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
-					java.nio.file.StandardCopyOption.COPY_ATTRIBUTES, java.nio.file.LinkOption.NOFOLLOW_LINKS);
+			Files.createDirectories(destination.getParent());
+			Files.copy(file, destination, StandardCopyOption.REPLACE_EXISTING,
+					StandardCopyOption.COPY_ATTRIBUTES, LinkOption.NOFOLLOW_LINKS);
 			classLogger.warn("Write-back preserved the host copy of {} at {}", file, destination);
 			return destination;
 		} catch (Exception e) {
@@ -1383,7 +1455,7 @@ public final class OpenShellTransport {
 	 * a {@code ..} segment. Checked per segment, so a file called {@code v1..v2.diff} is
 	 * fine.
 	 */
-	private static void requireSafeArchive(java.nio.file.Path archive) throws IOException, InterruptedException {
+	private static void requireSafeArchive(Path archive) throws IOException, InterruptedException {
 		String listing = runLocal(Arrays.asList("tar", "-tf", archive.toString()), 60);
 		for (String line : listing.split("\\R")) {
 			String entry = line.trim();
@@ -1404,14 +1476,14 @@ public final class OpenShellTransport {
 	 * sandbox left at mode 000 would otherwise be unreadable to the reconcile walk and
 	 * undeletable afterwards.
 	 */
-	private static void extractArchive(java.nio.file.Path archive, java.nio.file.Path destination)
+	private static void extractArchive(Path archive, Path destination)
 			throws IOException, InterruptedException {
 		runLocal(Arrays.asList("tar", "-xf", archive.toString(), "-C", destination.toString(), "--no-same-owner"),
 				120);
 		makeOwnerAccessible(destination);
 	}
 
-	private static void makeOwnerAccessible(java.nio.file.Path root) {
+	private static void makeOwnerAccessible(Path root) {
 		try {
 			runLocal(Arrays.asList("chmod", "-R", "u+rwX", root.toString()), 60);
 		} catch (Exception e) {
@@ -1419,15 +1491,15 @@ public final class OpenShellTransport {
 		}
 	}
 
-	private static void deleteQuietly(java.nio.file.Path root) {
-		if (root == null || !java.nio.file.Files.exists(root)) {
+	private static void deleteQuietly(Path root) {
+		if (root == null || !Files.exists(root)) {
 			return;
 		}
 		makeOwnerAccessible(root);
-		try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(root)) {
-			walk.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
+		try (Stream<Path> walk = Files.walk(root)) {
+			walk.sorted(Comparator.reverseOrder()).forEach(path -> {
 				try {
-					java.nio.file.Files.deleteIfExists(path);
+					Files.deleteIfExists(path);
 				} catch (IOException ignored) {
 					// best effort
 				}
@@ -1441,11 +1513,11 @@ public final class OpenShellTransport {
 	private static String runLocal(List<String> cmd, int timeoutSeconds) throws IOException, InterruptedException {
 		ProcessBuilder builder = new ProcessBuilder(cmd);
 		builder.redirectErrorStream(true);
-		builder.redirectInput(ProcessBuilder.Redirect.from(new java.io.File("/dev/null")));
+		builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
 		Process process = builder.start();
-		java.io.ByteArrayOutputStream collected = new java.io.ByteArrayOutputStream();
+		ByteArrayOutputStream collected = new ByteArrayOutputStream();
 		Thread reader = new Thread(() -> {
-			try (java.io.InputStream stream = process.getInputStream()) {
+			try (InputStream stream = process.getInputStream()) {
 				stream.transferTo(collected);
 			} catch (IOException ignored) {
 				// the exit code carries the outcome
@@ -1458,7 +1530,7 @@ public final class OpenShellTransport {
 			throw new IOException("timed out after " + timeoutSeconds + "s: " + String.join(" ", cmd));
 		}
 		reader.join(5000);
-		String output = collected.toString(java.nio.charset.StandardCharsets.UTF_8);
+		String output = collected.toString(StandardCharsets.UTF_8);
 		if (process.exitValue() != 0) {
 			throw new IOException("command failed (" + process.exitValue() + "): " + String.join(" ", cmd) + "\n"
 					+ output.trim());
@@ -1474,16 +1546,16 @@ public final class OpenShellTransport {
 	 *
 	 * @return bytes written, and whatever the command wrote to stderr
 	 */
-	private Capture runToFile(List<String> cmd, int timeoutSeconds, java.nio.file.Path out)
+	private Capture runToFile(List<String> cmd, int timeoutSeconds, Path out)
 			throws IOException, InterruptedException {
 		ProcessBuilder builder = new ProcessBuilder(cmd);
 		builder.environment().putAll(cliEnv());
-		builder.redirectInput(ProcessBuilder.Redirect.from(new java.io.File("/dev/null")));
+		builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
 		Process process = builder.start();
 		StringBuilder errors = new StringBuilder();
 		Thread errorReader = new Thread(() -> {
-			try (java.io.BufferedReader reader = new java.io.BufferedReader(
-					new java.io.InputStreamReader(process.getErrorStream(), java.nio.charset.StandardCharsets.UTF_8))) {
+			try (BufferedReader reader = new BufferedReader(
+					new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
 				String line;
 				while ((line = reader.readLine()) != null) {
 					synchronized (errors) {
@@ -1498,12 +1570,12 @@ public final class OpenShellTransport {
 		}, "openshell-fetchback-errors");
 		errorReader.setDaemon(true);
 		errorReader.start();
-		java.util.concurrent.atomic.AtomicLong written = new java.util.concurrent.atomic.AtomicLong();
-		java.util.concurrent.atomic.AtomicBoolean overCap = new java.util.concurrent.atomic.AtomicBoolean();
+		AtomicLong written = new AtomicLong();
+		AtomicBoolean overCap = new AtomicBoolean();
 		Thread reader = new Thread(() -> {
 			byte[] buffer = new byte[64 * 1024];
-			try (java.io.InputStream stream = process.getInputStream();
-					java.io.OutputStream sink = java.nio.file.Files.newOutputStream(out)) {
+			try (InputStream stream = process.getInputStream();
+					OutputStream sink = Files.newOutputStream(out)) {
 				int read;
 				while ((read = stream.read(buffer)) > 0) {
 					if (written.addAndGet(read) > MAX_FETCH_BYTES) {
@@ -1577,8 +1649,8 @@ public final class OpenShellTransport {
 	 * Environment for CLI children: inherit the caller's, but pin {@code HOME} so the
 	 * CLI always finds the same gateway registration and client certificate bundle.
 	 */
-	private static java.util.Map<String, String> cliEnv() {
-		java.util.Map<String, String> env = new java.util.HashMap<>(System.getenv());
+	private static Map<String, String> cliEnv() {
+		Map<String, String> env = new HashMap<>(System.getenv());
 		String home = System.getProperty(CLI_HOME_PROP);
 		if (home == null || home.trim().isEmpty()) {
 			home = Utility.getDIHelperProperty(CLI_HOME_PROP);
@@ -1611,7 +1683,7 @@ public final class OpenShellTransport {
 	 * host-local, and two sessions must not collide.
 	 */
 	private static int freeLocalPort() throws IOException {
-		try (java.net.ServerSocket s = new java.net.ServerSocket(0)) {
+		try (ServerSocket s = new ServerSocket(0)) {
 			return s.getLocalPort();
 		}
 	}
@@ -1627,7 +1699,7 @@ public final class OpenShellTransport {
 		// instantly from a shell (stdin at EOF) and timed out after 30s under
 		// Tomcat, which is what made the readiness poll fail and the pixel stall for
 		// the full 180s. A shell would not have shown this.
-		pb.redirectInput(ProcessBuilder.Redirect.from(new java.io.File("/dev/null")));
+		pb.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
 		Process p = pb.start();
 
 		// Read on a separate thread. A blocking readLine() here hangs the CALLER --
@@ -1636,8 +1708,8 @@ public final class OpenShellTransport {
 		// no timeout, and the sandbox was never cleaned up. Measured 2026-09-28.
 		StringBuilder out = new StringBuilder();
 		Thread reader = new Thread(() -> {
-			try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(
-					p.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
+			try (BufferedReader r = new BufferedReader(new InputStreamReader(
+					p.getInputStream(), StandardCharsets.UTF_8))) {
 				String line;
 				while ((line = r.readLine()) != null) {
 					synchronized (out) {

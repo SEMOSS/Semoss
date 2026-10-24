@@ -27,14 +27,20 @@
  *******************************************************************************/
 package prerna.util.openshell;
 
+import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +60,7 @@ import prerna.redis.RedisConnectionConfig;
 import prerna.redis.RedisConnectionFactory;
 import prerna.util.Constants;
 import prerna.util.OpenShellTransport;
+import prerna.util.OpenShellTransport.SandboxInfo;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 import redis.clients.jedis.UnifiedJedis;
@@ -88,13 +95,21 @@ public final class OpenShellUserSandboxes {
 
 	private static final Logger classLogger = LogManager.getLogger(OpenShellUserSandboxes.class);
 
-	private static final String KEY_PREFIX = "semoss:openshell:";
 	/** How often a session may refresh its lease; requests in between are free. */
 	private static final long TOUCH_INTERVAL_MS = TimeUnit.SECONDS.toMillis(60);
 	/** How long a creator may hold the per-user create lock. */
 	private static final long CREATE_LOCK_MS = TimeUnit.MINUTES.toMillis(5);
 	/** A labelled sandbox younger than this is never swept: its registry entry may not exist yet. */
-	private static final long SWEEP_GRACE_MS = TimeUnit.MINUTES.toMillis(10);
+	private static final Duration SWEEP_GRACE = Duration.ofMinutes(10);
+	private static final long SWEEP_INTERVAL_MINUTES = 5;
+	/** How long {@link #acquire} keeps trying: a create is bounded by the CLI's ready timeout. */
+	private static final long ACQUIRE_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(240);
+	/** Pause between attempts while another instance creates, or the gateway does not answer. */
+	private static final long ACQUIRE_POLL_MS = 1000;
+	/** Failed attaches to a Ready sandbox before it is replaced; one failure may be a hiccup. */
+	private static final int MAX_ATTACH_ATTEMPTS = 2;
+	/** Session lease when the container gives no timeout (a negative interval never expires). */
+	private static final long DEFAULT_LEASE_MS = TimeUnit.DAYS.toMillis(1);
 	private static final DateTimeFormatter CREATED_AT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
 	/** Distinguishes this JVM's leases from ones a restored session carries over a restart. */
@@ -104,6 +119,12 @@ public final class OpenShellUserSandboxes {
 	private static final Map<String, Local> LOCALS = new ConcurrentHashMap<>();
 	private static final Map<String, Set<String>> LOCAL_SESSIONS = new ConcurrentHashMap<>();
 	private static final Object LOCALS_LOCK = new Object();
+	/**
+	 * Serialises, per user, the changes to which of their sessions live here and the release
+	 * of their connection, so a session ending cannot tear down a wrapper another session
+	 * of theirs just started using. Always taken before a {@link Local}'s monitor.
+	 */
+	private static final Map<String, Object> OWNER_LOCKS = new ConcurrentHashMap<>();
 	private static volatile Registry registry;
 	private static volatile ScheduledExecutorService sweeper;
 
@@ -116,6 +137,18 @@ public final class OpenShellUserSandboxes {
 		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))
 				&& Constants.SANDBOX_MODE_OPENSHELL.equalsIgnoreCase(
 						String.valueOf(Utility.getDIHelperProperty(Constants.SANDBOX_MODE)).trim());
+	}
+
+	/**
+	 * Whether this user's python lives in a user-scoped sandbox: the jail is OpenShell and
+	 * the user has a primary login to scope it by. Anyone else keeps the per-session form.
+	 */
+	public static boolean appliesTo(User user) {
+		if (user == null || !enabled()) {
+			return false;
+		}
+		AccessToken token = user.getPrimaryLoginToken();
+		return token != null && token.getId() != null;
 	}
 
 	/**
@@ -135,12 +168,12 @@ public final class OpenShellUserSandboxes {
 
 	/** What this instance holds for one user, shared by all of their sessions here. */
 	public static final class Local {
-		private final String owner;
 		private final SymlinkHelper helper;
 		private final ClientProcessWrapper cpw = new ClientProcessWrapper();
+		/** Set under this object's monitor when the instance gives the user up. */
+		private boolean released;
 
-		private Local(String owner, SymlinkHelper helper) {
-			this.owner = owner;
+		private Local(SymlinkHelper helper) {
 			this.helper = helper;
 		}
 
@@ -150,6 +183,11 @@ public final class OpenShellUserSandboxes {
 
 		public ClientProcessWrapper getWrapper() {
 			return cpw;
+		}
+
+		/** Whether this was released; read under this object's monitor. */
+		public boolean isReleased() {
+			return released;
 		}
 	}
 
@@ -169,7 +207,7 @@ public final class OpenShellUserSandboxes {
 				String chroot = Utility.getDIHelperProperty(Constants.CHROOT_DIR) + "/" + User.getSingleLogginName(user)
 						+ "-" + UUID.randomUUID();
 				SymlinkHelper helper = new SymlinkHelper(chroot);
-				local = new Local(owner, helper);
+				local = new Local(helper);
 				// Published before linking the asset folder: opening the asset project can
 				// ask the user for this helper again, and must get this one.
 				LOCALS.put(owner, local);
@@ -210,27 +248,44 @@ public final class OpenShellUserSandboxes {
 	public static Attached acquire(User user) throws Exception {
 		String owner = ownerOf(user);
 		Registry store = registry();
-		long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(240);
+		long deadline = System.currentTimeMillis() + ACQUIRE_TIMEOUT_MS;
+		int attachFailures = 0;
 		while (System.currentTimeMillis() < deadline) {
 			String name = store.sandboxFor(owner);
 			if (name != null) {
-				String phase = OpenShellTransport.phaseOf(name);
+				String phase;
+				try {
+					phase = OpenShellTransport.phaseOf(name);
+				} catch (IOException e) {
+					// Unknown is not gone: deleting here would destroy the user's python over a
+					// gateway hiccup.
+					classLogger.warn("Could not read the state of sandbox {}; retrying", name, e);
+					Thread.sleep(ACQUIRE_POLL_MS);
+					continue;
+				}
 				if ("Ready".equalsIgnoreCase(phase)) {
 					OpenShellTransport transport = OpenShellTransport.forUser(name, owner);
 					try {
-						int port = transport.attach();
-						return new Attached(transport, port, true);
+						return new Attached(transport, transport.attach(), true);
 					} catch (Exception e) {
+						if (++attachFailures < MAX_ATTACH_ATTEMPTS) {
+							classLogger.warn("Could not attach to sandbox {}; retrying", name, e);
+							Thread.sleep(ACQUIRE_POLL_MS);
+							continue;
+						}
 						classLogger.warn("Could not attach to sandbox {}; replacing it", name, e);
 					}
 				} else {
-					classLogger.info("Sandbox {} for this user is {}; replacing it", name, phase);
+					classLogger.info("Sandbox {} for this user is {}; replacing it", name,
+							phase == null ? "gone" : phase);
 				}
 				OpenShellTransport.deleteSandbox(name);
 				store.forget(owner, name);
+				attachFailures = 0;
 				continue;
 			}
-			if (store.lock(owner)) {
+			String lockToken = store.tryLock(owner);
+			if (lockToken != null) {
 				try {
 					if (store.sandboxFor(owner) != null) {
 						continue;
@@ -250,11 +305,11 @@ public final class OpenShellUserSandboxes {
 					classLogger.info("Created sandbox {} for user {} on {}", name, owner, NODE);
 					return new Attached(transport, port, false);
 				} finally {
-					store.unlock(owner);
+					store.unlock(owner, lockToken);
 				}
 			}
 			// Another instance is creating it; its entry appears when the sandbox is Ready.
-			Thread.sleep(1000);
+			Thread.sleep(ACQUIRE_POLL_MS);
 		}
 		throw new IllegalStateException("timed out waiting for the user's sandbox");
 	}
@@ -262,9 +317,9 @@ public final class OpenShellUserSandboxes {
 	/** A {@code Ready} sandbox carrying this owner's label, or null. */
 	private static String runningSandboxLabelled(String owner) {
 		try {
-			for (String[] box : OpenShellTransport.listExecutorSandboxes()) {
-				if (owner.equals(box[3]) && "Ready".equalsIgnoreCase(box[1])) {
-					return box[0];
+			for (SandboxInfo box : OpenShellTransport.listExecutorSandboxes()) {
+				if (owner.equals(box.owner()) && box.isReady()) {
+					return box.name();
 				}
 			}
 		} catch (Exception e) {
@@ -284,8 +339,14 @@ public final class OpenShellUserSandboxes {
 	 * @return the marker to store on the session, or null when nothing was refreshed
 	 */
 	public static String touch(User user, String sessionId, String lastTouch, int ttlSeconds) {
-		if (user == null || sessionId == null || !user.isLoggedIn()) {
+		if (sessionId == null || !appliesTo(user) || !user.isLoggedIn()) {
 			return null;
+		}
+		String owner = ownerOf(user);
+		// Every request, not only refreshing ones: this set is what keeps the user's
+		// connection here from being released while a session of theirs is still active.
+		synchronized (ownerLock(owner)) {
+			LOCAL_SESSIONS.computeIfAbsent(owner, k -> ConcurrentHashMap.newKeySet()).add(sessionId);
 		}
 		long now = System.currentTimeMillis();
 		if (lastTouch != null && lastTouch.startsWith(BOOT_ID + ":")) {
@@ -298,10 +359,8 @@ public final class OpenShellUserSandboxes {
 			}
 		}
 		try {
-			String owner = ownerOf(user);
-			long ttlMs = TimeUnit.SECONDS.toMillis(ttlSeconds > 0 ? ttlSeconds : TimeUnit.DAYS.toSeconds(1));
+			long ttlMs = ttlSeconds > 0 ? TimeUnit.SECONDS.toMillis(ttlSeconds) : DEFAULT_LEASE_MS;
 			registry().touch(owner, sessionId, now + ttlMs);
-			LOCAL_SESSIONS.computeIfAbsent(owner, k -> ConcurrentHashMap.newKeySet()).add(sessionId);
 			ensureSweeper();
 		} catch (Exception e) {
 			classLogger.warn("Could not refresh the sandbox lease for session {}", sessionId, e);
@@ -324,22 +383,19 @@ public final class OpenShellUserSandboxes {
 	 * @param over true for a logout or a timeout; false when the server is going away
 	 */
 	public static void sessionEnded(User user, String sessionId, boolean over) {
-		if (user == null || !user.isLoggedIn()) {
+		if (!appliesTo(user) || !user.isLoggedIn()) {
 			return;
 		}
-		String owner;
-		try {
-			owner = ownerOf(user);
-		} catch (IllegalStateException e) {
-			return;
-		}
-		Set<String> here = LOCAL_SESSIONS.get(owner);
-		if (here != null) {
-			here.remove(sessionId);
-		}
-		if (here == null || here.isEmpty()) {
-			LOCAL_SESSIONS.remove(owner);
-			releaseLocal(owner);
+		String owner = ownerOf(user);
+		synchronized (ownerLock(owner)) {
+			Set<String> here = LOCAL_SESSIONS.get(owner);
+			if (here != null) {
+				here.remove(sessionId);
+			}
+			if (here == null || here.isEmpty()) {
+				LOCAL_SESSIONS.remove(owner);
+				releaseLocal(owner);
+			}
 		}
 		if (!over) {
 			classLogger.info("Session {} left with the server; keeping its sandbox lease", sessionId);
@@ -357,19 +413,29 @@ public final class OpenShellUserSandboxes {
 		}
 	}
 
+	/** Caller holds {@link #ownerLock}. */
 	private static void releaseLocal(String owner) {
 		Local local = LOCALS.remove(owner);
 		if (local == null) {
 			return;
 		}
-		try {
-			// Write back, close this instance's connection, stop the forward. The sandbox
-			// itself is not touched here.
-			local.cpw.shutdown(true);
-		} catch (Exception e) {
-			classLogger.warn("Failed to release the sandbox connection for {}", owner, e);
+		// The same monitor User takes while it binds and starts this wrapper, so a release
+		// never runs underneath a request that is connecting.
+		synchronized (local) {
+			local.released = true;
+			try {
+				// Write back, close this instance's connection, stop the forward. The sandbox
+				// itself is not touched here.
+				local.cpw.shutdown(true);
+			} catch (Exception e) {
+				classLogger.warn("Failed to release the sandbox connection for {}", owner, e);
+			}
+			local.helper.removeChrootFolder();
 		}
-		local.helper.removeChrootFolder();
+	}
+
+	private static Object ownerLock(String owner) {
+		return OWNER_LOCKS.computeIfAbsent(owner, k -> new Object());
 	}
 
 	private static void deleteFor(String owner, String reason) {
@@ -396,7 +462,8 @@ public final class OpenShellUserSandboxes {
 					t.setDaemon(true);
 					return t;
 				});
-				service.scheduleWithFixedDelay(OpenShellUserSandboxes::sweepQuietly, 1, 5, TimeUnit.MINUTES);
+				service.scheduleWithFixedDelay(OpenShellUserSandboxes::sweepQuietly, 1, SWEEP_INTERVAL_MINUTES,
+						TimeUnit.MINUTES);
 				sweeper = service;
 			}
 		}
@@ -426,40 +493,40 @@ public final class OpenShellUserSandboxes {
 		long now = System.currentTimeMillis();
 		for (String owner : store.owners()) {
 			if (!store.anyLive(owner, now)) {
-				Set<String> here = LOCAL_SESSIONS.remove(owner);
-				if (here != null) {
-					here.clear();
+				synchronized (ownerLock(owner)) {
+					LOCAL_SESSIONS.remove(owner);
+					releaseLocal(owner);
 				}
-				releaseLocal(owner);
 				deleteFor(owner, "no live session for this user");
 			}
 		}
-		LocalDateTime cutoff = LocalDateTime.now(ZoneOffset.UTC).minusNanos(TimeUnit.MILLISECONDS.toNanos(SWEEP_GRACE_MS));
-		List<String[]> boxes = OpenShellTransport.listExecutorSandboxes();
-		for (String[] box : boxes) {
-			String name = box[0];
-			String phase = box[1];
-			String owner = box[3];
+		LocalDateTime cutoff = LocalDateTime.now(ZoneOffset.UTC).minus(SWEEP_GRACE);
+		int unreadable = 0;
+		for (SandboxInfo box : OpenShellTransport.listExecutorSandboxes()) {
 			LocalDateTime created;
 			try {
-				created = LocalDateTime.parse(box[2], CREATED_AT);
-			} catch (Exception e) {
+				created = LocalDateTime.parse(box.createdAt(), CREATED_AT);
+			} catch (DateTimeParseException e) {
+				unreadable++;
 				continue;
 			}
 			if (created.isAfter(cutoff)) {
 				continue;
 			}
-			boolean running = "Ready".equalsIgnoreCase(phase);
-			if (!running) {
-				classLogger.info("Sweeping sandbox {} (phase {})", name, phase);
-				OpenShellTransport.deleteSandbox(name);
-				if (owner != null) {
-					store.forget(owner, name);
+			if (!box.isReady()) {
+				classLogger.info("Sweeping sandbox {} (phase {})", box.name(), box.phase());
+				OpenShellTransport.deleteSandbox(box.name());
+				if (box.owner() != null) {
+					store.forget(box.owner(), box.name());
 				}
-			} else if (owner != null && store.shared() && !name.equals(store.sandboxFor(owner))) {
-				classLogger.info("Sweeping sandbox {} (no registry entry points at it)", name);
-				OpenShellTransport.deleteSandbox(name);
+			} else if (box.owner() != null && store.shared() && !box.name().equals(store.sandboxFor(box.owner()))) {
+				classLogger.info("Sweeping sandbox {} (no registry entry points at it)", box.name());
+				OpenShellTransport.deleteSandbox(box.name());
 			}
+		}
+		if (unreadable > 0) {
+			// Said out loud: a changed CLI date format would otherwise silently stop all sweeping.
+			classLogger.warn("Skipped {} sandbox(es) whose creation time could not be read", unreadable);
 		}
 	}
 
@@ -491,9 +558,11 @@ public final class OpenShellUserSandboxes {
 		/** Remove the entry only if it still names this sandbox. */
 		void forget(String owner, String sandboxName);
 
-		boolean lock(String owner);
+		/** Take the per-user create lock; the token that holds it, or null when another does. */
+		String tryLock(String owner);
 
-		void unlock(String owner);
+		/** Release the create lock, only if this token still holds it. */
+		void unlock(String owner, String token);
 
 		void touch(String owner, String sessionId, long expiresAtMs);
 
@@ -508,31 +577,26 @@ public final class OpenShellUserSandboxes {
 		void drop(String owner);
 	}
 
+	/**
+	 * The shared registry. Laid out like the room coordination keys
+	 * ({@code RoomMessageRedisClient}): every key of one user carries the
+	 * {@code {owner}} hash tag, so they share a Redis Cluster slot and a script can
+	 * touch them together; the lock is {@code SET NX PX} with a random token, released
+	 * only by its holder.
+	 */
 	static final class RedisRegistry implements Registry {
+		private static final String UNLOCK_SCRIPT = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+		private static final String FORGET_SCRIPT = "if redis.call('hget', KEYS[1], 'name') == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+		/** Forget a user with no session and no sandbox left; 1 when it did. */
+		private static final String DROP_SCRIPT = "if redis.call('zcard', KEYS[1]) == 0 and redis.call('exists', KEYS[2]) == 0 then return redis.call('del', KEYS[1]) + 1 else return 0 end";
+		/** Every user with an entry or a lease; a separate slot, so kept apart from the scripts. */
+		private static final String OWNERS_KEY = "openshell:owners";
+
 		private final RedisConnectionConfig config;
-		private final String lockToken = NODE + ":" + BOOT_ID;
 
 		RedisRegistry(RedisConnectionConfig config) {
 			this.config = config;
 		}
-
-		private UnifiedJedis redis() {
-			return RedisConnectionFactory.getClient(config);
-		}
-
-		private static String sandboxKey(String owner) {
-			return KEY_PREFIX + "sandbox:" + owner;
-		}
-
-		private static String sessionsKey(String owner) {
-			return KEY_PREFIX + "sessions:" + owner;
-		}
-
-		private static String lockKey(String owner) {
-			return KEY_PREFIX + "lock:" + owner;
-		}
-
-		private static final String OWNERS = KEY_PREFIX + "owners";
 
 		@Override
 		public boolean shared() {
@@ -541,7 +605,7 @@ public final class OpenShellUserSandboxes {
 
 		@Override
 		public String sandboxFor(String owner) {
-			return redis().hget(sandboxKey(owner), "name");
+			return withJedis(jedis -> jedis.hget(sandboxKey(owner), "name"));
 		}
 
 		@Override
@@ -551,64 +615,96 @@ public final class OpenShellUserSandboxes {
 			record.put("node", NODE);
 			record.put("createdAt", String.valueOf(System.currentTimeMillis()));
 			record.put("workerPort", String.valueOf(Utility.getDIHelperProperty(OpenShellTransport.WORKER_PORT_PROP)));
-			UnifiedJedis redis = redis();
-			redis.hset(sandboxKey(owner), record);
-			redis.sadd(OWNERS, owner);
+			withJedis(jedis -> {
+				jedis.hset(sandboxKey(owner), record);
+				return jedis.sadd(OWNERS_KEY, owner);
+			});
 		}
 
 		@Override
 		public void forget(String owner, String sandboxName) {
-			UnifiedJedis redis = redis();
-			if (sandboxName.equals(redis.hget(sandboxKey(owner), "name"))) {
-				redis.del(sandboxKey(owner));
-			}
+			withJedis(jedis -> jedis.eval(FORGET_SCRIPT, Collections.singletonList(sandboxKey(owner)),
+					Collections.singletonList(sandboxName)));
 		}
 
 		@Override
-		public boolean lock(String owner) {
-			return "OK".equals(redis().set(lockKey(owner), lockToken, SetParams.setParams().nx().px(CREATE_LOCK_MS)));
+		public String tryLock(String owner) {
+			String token = UUID.randomUUID().toString();
+			boolean held = withJedis(jedis -> "OK"
+					.equals(jedis.set(lockKey(owner), token, SetParams.setParams().nx().px(CREATE_LOCK_MS))));
+			return held ? token : null;
 		}
 
 		@Override
-		public void unlock(String owner) {
-			UnifiedJedis redis = redis();
-			if (lockToken.equals(redis.get(lockKey(owner)))) {
-				redis.del(lockKey(owner));
-			}
+		public void unlock(String owner, String token) {
+			withJedis(jedis -> jedis.eval(UNLOCK_SCRIPT, Collections.singletonList(lockKey(owner)),
+					Collections.singletonList(token)));
 		}
 
 		@Override
 		public void touch(String owner, String sessionId, long expiresAtMs) {
-			UnifiedJedis redis = redis();
-			redis.zadd(sessionsKey(owner), expiresAtMs, sessionId);
-			redis.sadd(OWNERS, owner);
+			withJedis(jedis -> {
+				jedis.zadd(sessionsKey(owner), expiresAtMs, sessionId);
+				return jedis.sadd(OWNERS_KEY, owner);
+			});
 		}
 
 		@Override
 		public boolean release(String owner, String sessionId, long nowMs) {
-			redis().zrem(sessionsKey(owner), sessionId);
+			withJedis(jedis -> jedis.zrem(sessionsKey(owner), sessionId));
 			return anyLive(owner, nowMs);
 		}
 
 		@Override
 		public boolean anyLive(String owner, long nowMs) {
-			UnifiedJedis redis = redis();
-			redis.zremrangeByScore(sessionsKey(owner), Double.NEGATIVE_INFINITY, nowMs);
-			return redis.zcard(sessionsKey(owner)) > 0;
+			return withJedis(jedis -> {
+				jedis.zremrangeByScore(sessionsKey(owner), Double.NEGATIVE_INFINITY, nowMs);
+				return jedis.zcard(sessionsKey(owner)) > 0;
+			});
 		}
 
 		@Override
 		public Set<String> owners() {
-			return new HashSet<>(redis().smembers(OWNERS));
+			return new HashSet<>(withJedis(jedis -> jedis.smembers(OWNERS_KEY)));
 		}
 
 		@Override
 		public void drop(String owner) {
-			UnifiedJedis redis = redis();
-			if (redis.zcard(sessionsKey(owner)) == 0 && !redis.exists(sandboxKey(owner))) {
-				redis.del(sessionsKey(owner));
-				redis.srem(OWNERS, owner);
+			Object dropped = withJedis(jedis -> jedis.eval(DROP_SCRIPT, List.of(sessionsKey(owner), sandboxKey(owner)),
+					Collections.emptyList()));
+			if (dropped instanceof Long count && count > 0) {
+				// A touch racing this re-adds the owner, so the index cannot lose a live user.
+				withJedis(jedis -> jedis.srem(OWNERS_KEY, owner));
 			}
+		}
+
+		private <T> T withJedis(JedisCallback<T> callback) {
+			// UnifiedJedis is thread-safe and internally pooled; it is shared and must
+			// NOT be closed per call (that would tear down the whole client).
+			try {
+				return callback.apply(RedisConnectionFactory.getClient(config));
+			} catch (Exception e) {
+				throw new IllegalStateException("Redis sandbox-registry command failed: " + e.getMessage(), e);
+			}
+		}
+
+		// The {owner} hash tag co-locates all of a user's keys on a single Redis Cluster
+		// hash slot, so multi-key EVAL operations never trigger CROSSSLOT. It is inert on
+		// standalone/Sentinel deployments.
+		private static String sandboxKey(String owner) {
+			return "openshell:{" + owner + "}:sandbox";
+		}
+
+		private static String sessionsKey(String owner) {
+			return "openshell:{" + owner + "}:sessions";
+		}
+
+		private static String lockKey(String owner) {
+			return "openshell:{" + owner + "}:lock";
+		}
+
+		private interface JedisCallback<T> {
+			T apply(UnifiedJedis jedis);
 		}
 	}
 
@@ -616,7 +712,7 @@ public final class OpenShellUserSandboxes {
 	static final class LocalRegistry implements Registry {
 		private final Map<String, String> sandboxes = new ConcurrentHashMap<>();
 		private final Map<String, Map<String, Long>> sessions = new ConcurrentHashMap<>();
-		private final Set<String> locks = ConcurrentHashMap.newKeySet();
+		private final Map<String, String> locks = new ConcurrentHashMap<>();
 
 		@Override
 		public boolean shared() {
@@ -639,13 +735,14 @@ public final class OpenShellUserSandboxes {
 		}
 
 		@Override
-		public boolean lock(String owner) {
-			return locks.add(owner);
+		public String tryLock(String owner) {
+			String token = UUID.randomUUID().toString();
+			return locks.putIfAbsent(owner, token) == null ? token : null;
 		}
 
 		@Override
-		public void unlock(String owner) {
-			locks.remove(owner);
+		public void unlock(String owner, String token) {
+			locks.remove(owner, token);
 		}
 
 		@Override
@@ -693,11 +790,7 @@ public final class OpenShellUserSandboxes {
 	private static String digest(String value, int hexChars) {
 		try {
 			byte[] hash = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
-			StringBuilder sb = new StringBuilder();
-			for (int i = 0; sb.length() < hexChars; i++) {
-				sb.append(String.format("%02x", hash[i]));
-			}
-			return sb.substring(0, hexChars);
+			return HexFormat.of().formatHex(hash).substring(0, hexChars);
 		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalStateException("SHA-256 unavailable", e);
 		}
@@ -705,7 +798,7 @@ public final class OpenShellUserSandboxes {
 
 	private static String nodeName() {
 		try {
-			return java.net.InetAddress.getLocalHost().getHostName();
+			return InetAddress.getLocalHost().getHostName();
 		} catch (Exception e) {
 			return "unknown";
 		}

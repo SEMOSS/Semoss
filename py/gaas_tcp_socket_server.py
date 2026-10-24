@@ -125,7 +125,6 @@ class Server(socketserver.ThreadingTCPServer):
             if idle and self.idle_limit > 0:
                 self.logger.info(f"No client for {self.idle_limit / 60} minutes. Shutting down.")
                 self.stop = True
-                socketserver.TCPServer.server_close(self)
                 # Hard exit: a thread user code left running must not keep an abandoned
                 # sandbox alive, and the sandbox ends with this process.
                 os._exit(0)

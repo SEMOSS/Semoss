@@ -53,8 +53,11 @@ Each server instance holds one connection per user, shared by that user's sessio
 ## Lifecycle (one sandbox per user)
 
 `OpenShellUserSandboxes` keeps a registry of owner → sandbox and owner → live sessions. It uses
-Redis when one is configured (`REDIS_ENABLED`, or the cluster Redis), under `semoss:openshell:*`,
-and an in-memory map otherwise. The in-memory map is only correct for a single server instance,
+Redis when one is configured (`REDIS_ENABLED`, or the cluster Redis), and an in-memory map
+otherwise. The Redis keys follow the room-coordination layout: `openshell:{<owner>}:sandbox`,
+`:sessions` and `:lock`, all with the `{owner}` hash tag so one user's keys share a Redis Cluster
+slot, plus an `openshell:owners` index. The create lock is `SET NX PX` with a random token and is
+released by a compare-and-delete script, as room locks are. The in-memory map is only correct for a single server instance,
 and it forgets the sandbox when that instance restarts.
 
 - **Created** lazily on the first `Py()` or shell command of a user who has no running sandbox.

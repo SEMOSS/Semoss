@@ -44,7 +44,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -62,15 +64,21 @@ import org.apache.logging.log4j.Logger;
 import com.google.common.base.Strings;
 import com.google.gson.GsonBuilder;
 
+import prerna.cluster.util.ClusterUtil;
+import prerna.project.api.IProject;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.OpenShellTransport;
+import prerna.util.OpenShellTransporter;
 import prerna.util.PortAllocator;
 import prerna.util.SandboxInjector;
 import prerna.util.Settings;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
+import prerna.util.openshell.OpenShellUserSandboxes;
+import prerna.util.openshell.TransportedRoots;
 
 public class ClientProcessWrapper {
 
@@ -130,7 +138,7 @@ public class ClientProcessWrapper {
 	/** Whose permissions gate write-back; bound by {@code User} when the client is created. */
 	private prerna.auth.User user;
 	// OPENSHELL mode: owns the sandbox + port-forward for this worker's lifetime
-	private prerna.util.OpenShellTransport openshell;
+	private OpenShellTransport openshell;
 	/**
 	 * The sandbox belongs to the user, not to this wrapper: shutdown detaches and leaves
 	 * it running, and {@code OpenShellUserSandboxes} decides when it is deleted.
@@ -150,8 +158,8 @@ public class ClientProcessWrapper {
 	 * Project roots written back since they were last published to cluster storage. Pushing
 	 * is what lets another server pull the change, and from there its sandboxes refresh.
 	 */
-	private final java.util.Set<String> unpublishedRoots = java.util.concurrent.ConcurrentHashMap.newKeySet();
-	private final Map<String, Long> lastPublished = new java.util.concurrent.ConcurrentHashMap<>();
+	private final Set<String> unpublishedRoots = ConcurrentHashMap.newKeySet();
+	private final Map<String, Long> lastPublished = new ConcurrentHashMap<>();
 	private static final long PUBLISH_INTERVAL_MS = 10_000L;
 	private static final ExecutorService PUBLISHER = Executors.newSingleThreadExecutor(r -> {
 		Thread t = new Thread(r, "openshell-writeback-publisher");
@@ -267,11 +275,10 @@ public class ClientProcessWrapper {
 					// what selects the TCP branch below.
 					if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isExternalSandbox()) {
 						try {
-							if (this.user != null && prerna.util.openshell.OpenShellUserSandboxes.enabled()) {
+							if (OpenShellUserSandboxes.appliesTo(this.user)) {
 								// The user's own sandbox, shared across their sessions and server
 								// instances: attach if it is running, create it otherwise.
-								prerna.util.openshell.OpenShellUserSandboxes.Attached attached = prerna.util.openshell.OpenShellUserSandboxes
-										.acquire(this.user);
+								OpenShellUserSandboxes.Attached attached = OpenShellUserSandboxes.acquire(this.user);
 								this.openshell = attached.transport;
 								this.openshellUserScoped = true;
 								this.port = attached.port;
@@ -281,8 +288,7 @@ public class ClientProcessWrapper {
 									this.fullCaptureOwed = true;
 								}
 							} else {
-								this.openshell = prerna.util.OpenShellTransport
-										.forSession(this.chrootSymlinkHelper.getUserChrootFolder());
+								this.openshell = OpenShellTransport.forSession(this.chrootSymlinkHelper.getUserChrootFolder());
 								this.openshellUserScoped = false;
 								this.port = this.openshell.start();
 							}
@@ -292,7 +298,7 @@ public class ClientProcessWrapper {
 							// replayed by setTransport, which is why this happens here rather than
 							// before start().
 							this.chrootSymlinkHelper.setTransport(
-									new prerna.util.OpenShellTransporter(this.openshell));
+									new OpenShellTransporter(this.openshell));
 						} catch (Exception e) {
 							// Fail closed: never fall back to an in-Tomcat worker when the
 							// deployment asked for an external boundary.
@@ -490,12 +496,7 @@ public class ClientProcessWrapper {
 		List<String> roots = new ArrayList<>();
 		for (String path : this.chrootSymlinkHelper.getTransportedPaths()) {
 			String normalized = Utility.normalizePath(path);
-			if (normalized.contains("/" + Constants.PROJECT_FOLDER + "/")
-					|| normalized.contains("/" + Constants.ROOM_FOLDER + "/")
-					|| normalized.contains("/" + Constants.USER_FOLDER + "/")) {
-				if (!canWriteBack(normalized)) {
-					continue;
-				}
+			if (TransportedRoots.isUserSpace(normalized) && canWriteBack(normalized)) {
 				roots.add(normalized);
 			}
 		}
@@ -530,9 +531,10 @@ public class ClientProcessWrapper {
 		int total = 0;
 		for (Map.Entry<String, List<String>> group : writes.entrySet()) {
 			try {
-				if (this.openshell.fetchBackPaths(group.getKey(), group.getValue()) > 0) {
+				int written = this.openshell.fetchBackPaths(group.getKey(), group.getValue());
+				if (written > 0) {
 					this.unpublishedRoots.add(group.getKey());
-					total++;
+					total += written;
 				}
 			} catch (Exception e) {
 				// The worker has already dropped these paths from its pending set, so they
@@ -551,8 +553,8 @@ public class ClientProcessWrapper {
 			}
 		}
 		if (total > 0 || removed > 0) {
-			classLogger.info("Fetch-back wrote into {} root(s) and removed {} file(s) from {} changed path(s)", total,
-					removed, changes.size());
+			classLogger.info("Fetch-back wrote {} and removed {} file(s) from {} changed path(s)", total, removed,
+					changes.size());
 		}
 		publishWrittenRoots(false);
 		return total + removed;
@@ -574,7 +576,7 @@ public class ClientProcessWrapper {
 				fetchBackTransportedRootsLocked();
 			}
 			for (String path : this.chrootSymlinkHelper.getTransportedPaths()) {
-				if (!isUserSpace(Utility.normalizePath(path))) {
+				if (!TransportedRoots.isUserSpace(Utility.normalizePath(path))) {
 					continue;
 				}
 				try {
@@ -588,12 +590,6 @@ public class ClientProcessWrapper {
 		}
 	}
 
-	private static boolean isUserSpace(String normalized) {
-		return normalized.contains("/" + Constants.PROJECT_FOLDER + "/")
-				|| normalized.contains("/" + Constants.ROOM_FOLDER + "/")
-				|| normalized.contains("/" + Constants.USER_FOLDER + "/");
-	}
-
 	/**
 	 * Push written-back project roots to cluster storage and announce them, so servers that
 	 * have the project loaded pull the change. Batched: a root is pushed at most every ten
@@ -602,12 +598,12 @@ public class ClientProcessWrapper {
 	 * @param force push everything pending now (teardown)
 	 */
 	private void publishWrittenRoots(boolean force) {
-		if (!prerna.cluster.util.ClusterUtil.IS_CLUSTER || this.unpublishedRoots.isEmpty()) {
+		if (!ClusterUtil.IS_CLUSTER || this.unpublishedRoots.isEmpty()) {
 			return;
 		}
 		long now = System.currentTimeMillis();
 		for (String root : new ArrayList<>(this.unpublishedRoots)) {
-			String projectId = projectIdOf(root);
+			String projectId = TransportedRoots.projectIdOf(root);
 			if (projectId == null) {
 				// rooms and user assets have their own sync at logout
 				this.unpublishedRoots.remove(root);
@@ -620,9 +616,9 @@ public class ClientProcessWrapper {
 			this.lastPublished.put(root, now);
 			Runnable push = () -> {
 				try {
-					prerna.project.api.IProject project = Utility.getProject(projectId);
+					IProject project = Utility.getProject(projectId);
 					if (project != null) {
-						prerna.cluster.util.ClusterUtil.pushProjectFolder(project, root);
+						ClusterUtil.pushProjectFolder(project, root);
 						classLogger.info("Published write-back of {} to cluster storage", root);
 					}
 				} catch (Exception e) {
@@ -636,20 +632,6 @@ public class ClientProcessWrapper {
 				PUBLISHER.submit(push);
 			}
 		}
-	}
-
-	/** The project id of a root under {@code project/<name>__<id>/}, or null for other spaces. */
-	private static String projectIdOf(String normalized) {
-		String marker = "/" + Constants.PROJECT_FOLDER + "/";
-		int at = normalized.indexOf(marker);
-		if (at < 0) {
-			return null;
-		}
-		String rest = normalized.substring(at + marker.length());
-		int slash = rest.indexOf('/');
-		String folder = slash < 0 ? rest : rest.substring(0, slash);
-		int separator = folder.lastIndexOf("__");
-		return separator < 0 ? folder : folder.substring(separator + 2);
 	}
 
 	private static boolean truthy(Object value) {
@@ -677,12 +659,7 @@ public class ClientProcessWrapper {
 	 * @return true when the asset belongs to this user
 	 */
 	private boolean isOwnUserAsset(String normalized) {
-		String marker = "/" + Constants.USER_FOLDER + "/";
-		String rest = normalized.substring(normalized.indexOf(marker) + marker.length());
-		int slash = rest.indexOf('/');
-		String folder = slash < 0 ? rest : rest.substring(0, slash);
-		int separator = folder.lastIndexOf("__");
-		String assetId = separator < 0 ? folder : folder.substring(separator + 2);
+		String assetId = TransportedRoots.userAssetIdOf(normalized);
 		if (this.user == null) {
 			classLogger.warn("Refusing write-back into {}: no user is bound to this process", normalized);
 			return false;
@@ -711,11 +688,7 @@ public class ClientProcessWrapper {
 	 * @return true when the session's user owns the room
 	 */
 	private boolean canWriteRoom(String normalized) {
-		String marker = "/" + Constants.ROOM_FOLDER + "/";
-		int at = normalized.indexOf(marker);
-		String rest = normalized.substring(at + marker.length());
-		int slash = rest.indexOf('/');
-		String roomId = slash < 0 ? rest : rest.substring(0, slash);
+		String roomId = TransportedRoots.roomIdOf(normalized);
 		if (this.user == null) {
 			classLogger.warn("Refusing write-back into room {}: no user is bound to this process", roomId);
 			return false;
@@ -751,23 +724,17 @@ public class ClientProcessWrapper {
 	 * @return true when write-back into this root is allowed
 	 */
 	private boolean canWriteBack(String normalized) {
-		if (normalized.contains("/" + Constants.ROOM_FOLDER + "/")) {
+		if (TransportedRoots.isRoom(normalized)) {
 			return canWriteRoom(normalized);
 		}
-		if (normalized.contains("/" + Constants.USER_FOLDER + "/")) {
+		if (TransportedRoots.isUserAsset(normalized)) {
 			return isOwnUserAsset(normalized);
 		}
-		String marker = "/" + Constants.PROJECT_FOLDER + "/";
-		int at = normalized.indexOf(marker);
-		if (at < 0) {
+		String projectId = TransportedRoots.projectIdOf(normalized);
+		if (projectId == null) {
 			classLogger.warn("Refusing write-back into {}: unrecognised root space", normalized);
 			return false;
 		}
-		String rest = normalized.substring(at + marker.length());
-		int slash = rest.indexOf('/');
-		String folder = slash < 0 ? rest : rest.substring(0, slash);
-		int separator = folder.lastIndexOf("__");
-		String projectId = separator < 0 ? folder : folder.substring(separator + 2);
 		if (this.user == null) {
 			classLogger.warn("Refusing write-back into {}: no user is bound to this process", normalized);
 			return false;
@@ -819,10 +786,7 @@ public class ClientProcessWrapper {
 			String normalized = Utility.normalizePath(path);
 			// Only the user-facing roots. Engine and runtime trees are never written by
 			// user code, and pulling them back would waste a tar per block.
-			boolean syncable = normalized.contains("/" + Constants.PROJECT_FOLDER + "/")
-					|| normalized.contains("/" + Constants.ROOM_FOLDER + "/")
-					|| normalized.contains("/" + Constants.USER_FOLDER + "/");
-			if (!syncable || !canWriteBack(normalized)) {
+			if (!TransportedRoots.isUserSpace(normalized) || !canWriteBack(normalized)) {
 				continue;
 			}
 			try {
@@ -1029,7 +993,7 @@ public class ClientProcessWrapper {
 	 *         OPENSHELL mode or before it started
 	 */
 	public String getOpenShellSandboxName() {
-		prerna.util.OpenShellTransport current = this.openshell;
+		OpenShellTransport current = this.openshell;
 		return current == null ? null : current.getSandboxName();
 	}
 

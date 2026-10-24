@@ -240,12 +240,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
     # Class attribute to hold a singleton instance
     da_server = None
+    CANCELLED_MESSAGE = "The request was cancelled by the user"
 
     @staticmethod
     def current():
         """The handler whose request this thread is serving, else the latest client."""
         return getattr(_current_handler, "handler", None) or TCPServerHandler.da_server
-    CANCELLED_MESSAGE = "The request was cancelled by the user"
 
     def log_level_mapper(self, log_level_name: str) -> int:
         """
@@ -316,7 +316,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         TCPServerHandler.da_server = self
         live = getattr(self.server, "live_handlers", None)
         if live is not None:
-            live.add(self)
+            with self.server.monitor:
+                live.add(self)
 
         # a lock to serialise all socket writes. HuggingFace (and similar libraries)
         # download files in parallel worker threads that all write tqdm progress to
@@ -995,11 +996,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         if not self.stop:
             live = getattr(self.server, "live_handlers", None)
             if live is not None:
-                live.discard(self)
-                # A persistent worker keeps serving other clients; callbacks with no
-                # request of their own must not keep pointing at a closed socket.
-                if TCPServerHandler.da_server is self:
-                    TCPServerHandler.da_server = next(iter(live), None)
+                # Other connection threads add and remove concurrently; iterating the
+                # set unguarded can raise "set changed size during iteration".
+                with self.server.monitor:
+                    live.discard(self)
+                    # A persistent worker keeps serving other clients; callbacks with no
+                    # request of their own must not keep pointing at a closed socket.
+                    if TCPServerHandler.da_server is self:
+                        TCPServerHandler.da_server = next(iter(live), None)
             self.server.remove_handler()
             self.server.stop_it()
             self.request.close()
