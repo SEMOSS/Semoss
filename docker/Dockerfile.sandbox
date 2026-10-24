@@ -42,6 +42,12 @@ RUN real="$(readlink -f /usr/lib/python/semossvenv/bin/python3)" \
  && mv "$dir" /usr/lib/python/cpython \
  && ln -s cpython "$dir" \
  && test "$(readlink -f /usr/lib/python/semossvenv/bin/python3)" = "/usr/lib/python/cpython/bin/$(basename "$real")"
+# Packages example apps need that SEMOSS does not declare (Stock MCP: yfinance). A stopgap until an
+# app can declare its own dependencies; keep the list short, and pass APP_PACKAGES="" to omit it.
+ARG APP_PACKAGES="yfinance"
+RUN if [ -n "${APP_PACKAGES}" ]; then \
+      /usr/lib/python/semossvenv/bin/python3 -m pip install --no-cache-dir ${APP_PACKAGES}; \
+    fi
 ENV VIRTUAL_ENV=/usr/lib/python/semossvenv
 ENV PATH=/usr/lib/python/semossvenv/bin:$PATH
 
