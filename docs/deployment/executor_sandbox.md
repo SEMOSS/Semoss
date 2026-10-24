@@ -71,7 +71,8 @@ and it forgets the sandbox when that instance restarts.
 
 ## Write-back pipeline
 
-Every `PYTHON` and `CMD` block ends with a sync. The steps, in order:
+Every `PYTHON` and `CMD` block starts with a refresh (host to sandbox) and ends with a write-back
+(sandbox to host). The write-back steps, in order:
 
 1. **Ask for the change set.** `NativePySocketClient` sends a `CHANGES` request on the
    existing socket. The worker answers
@@ -84,15 +85,26 @@ Every `PYTHON` and `CMD` block ends with a sync. The steps, in order:
 3. **Pull only what changed.** Changed paths are tarred inside the sandbox under one
    `sandbox exec` and streamed to a temporary file on the host, stopping at a 256 MB cap. The
    archive is refused if its listing fails or names an absolute path or a `..` segment.
-4. **Reconcile.** Content is the authority: a differing sandbox file is always written. The
-   host copy is quarantined first if it changed since this session last left it (uploaded or
-   written back), and the write is skipped if that copy fails. Sandbox timestamps never
-   decide anything.
+4. **Reconcile.** Identical content is skipped. Otherwise each side is checked against the
+   stamp (size and mtime, in seconds) recorded at the last sync, when both copies matched:
+   uploads and captures preserve mtime, so a side that no longer matches is the side that
+   changed.
+   - Only the sandbox changed: the file is written back.
+   - Only the host changed (another user, a cluster pull, the UI): nothing is written. The
+     next refresh brings the host copy in. This is what keeps a full capture from putting a
+     stale copy back.
+   - Both changed: the **last write wins**. The losing copy is kept in quarantine (the
+     sandbox's under `<root>.sandbox/`), and the write is skipped if the host copy cannot be
+     preserved.
 5. **Deletes.** Only a path the sandbox is known to have held — seen in a full capture or
    written back since — is ever deleted on the host, so a file created and removed within one
-   block cannot take an unrelated host file with it. Deletes are quarantine-then-delete,
-   suppressed if the copy fails, and directories they empty are pruned up to (never including)
-   the transported root.
+   block cannot take an unrelated host file with it. A host file that changed since the
+   sandbox had it is never deleted. Deletes are quarantine-then-delete, suppressed if the copy
+   fails, and directories they empty are pruned up to (never including) the transported root.
+6. **Publish.** In cluster mode, a project root that was written back is pushed to cluster
+   storage and announced on the cluster synchronizer, at most every ten seconds per root and
+   once more on teardown. Servers that have the project loaded pull it, and their sandboxes
+   refresh from that before their next block.
 
 Every host-side write and delete is contained: a path that leaves the root, or crosses a
 symlink on the way, is refused. Without that, a link committed into a writable project could
@@ -102,6 +114,12 @@ Inside `.git`, only git's data is written back — `objects/` (not `objects/info
 `logs/`, `HEAD`, `index`, `packed-refs` and a few state files — so a commit made in the sandbox
 reaches the host. `config`, `hooks/` and `info/` are never written back: host-side git runs or
 obeys them, so a sandbox able to write them could execute commands on the server.
+
+The **refresh** before each block walks every transported root on the host. Files whose stamp
+moved since the last sync are copied in with a single `sandbox upload`, which merges into the
+existing tree and keeps mtimes. Files removed on the host are removed in the sandbox. More
+than ~2000 changes re-upload the whole root. Any sandbox change still owed from a failed
+write-back is applied first, so a refresh never overwrites unsynced work.
 
 Quarantine lives at `$BASE/writeback-quarantine/<timestamp>/<root>/<relative>`, outside
 `project/`, `room/` and `user/`, so it is never pushed to object storage.
@@ -230,10 +248,11 @@ be current — a stale image shows up as code that ignores your latest change.
 - More than ~2000 changed paths in one block sets `overflow` and forces a full capture.
 - A *racing* `mmap` writer cannot be captured without cooperation (`msync`) or interception
   this sandbox does not have.
-- There is no host→sandbox refresh while a sandbox lives. A `git pull` on the host during a
-  session is not reflected inward, and the sandbox wins the next write-back for any file it
-  touched (recoverable from quarantine). Branch switching belongs on the host, followed by a
-  fresh session.
+- Conflicts are decided by modification time, so a change made within the same second as
+  the last sync, and leaving the size unchanged, is not detected.
+- The refresh lists each transported root on every block; for very large roots that cost
+  shows up as block latency.
+- Background code that writes between blocks is not synced until the next block ends.
 - Python variables are keyed by insight id, and insight ids live in one instance's memory. After
   a restart or a move to another instance the worker, its modules and its files are intact, but a
   new insight does not see the old insight's variables.
