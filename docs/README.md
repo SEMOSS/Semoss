@@ -82,6 +82,7 @@ The [Python GAAS tools index](python_gaas_tools/README.md) documents Python acce
 
 - [Local Docker setup](cloud_and_cluster/docker_deployment.md)
 - [Local Docker configuration](deployment/docker_configuration.md)
+- [OpenShell executor sandbox](deployment/executor_sandbox.md): running user code in a per-session container, the write-back pipeline and change detection, per-space write permissions, and building the image from `py/`
 - [Supporting engine examples](../docker-compose-examples/engines/README.md)
 - [Cloud and cluster architecture](cloud_and_cluster/README.md)
 - [Central asset storage](cloud_and_cluster/central_cloud_storage.md)

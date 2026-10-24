@@ -44,7 +44,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -62,15 +64,21 @@ import org.apache.logging.log4j.Logger;
 import com.google.common.base.Strings;
 import com.google.gson.GsonBuilder;
 
+import prerna.cluster.util.ClusterUtil;
+import prerna.project.api.IProject;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.OpenShellTransport;
+import prerna.util.OpenShellTransporter;
 import prerna.util.PortAllocator;
 import prerna.util.SandboxInjector;
 import prerna.util.Settings;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
+import prerna.util.openshell.OpenShellUserSandboxes;
+import prerna.util.openshell.TransportedRoots;
 
 public class ClientProcessWrapper {
 
@@ -127,6 +135,37 @@ public class ClientProcessWrapper {
 	// the same JSON protocol, so it reuses NativePySocketClient.
 	private boolean nodeServer = false;
 	private SymlinkHelper chrootSymlinkHelper;
+	/** Whose permissions gate write-back; bound by {@code User} when the client is created. */
+	private prerna.auth.User user;
+	// OPENSHELL mode: owns the sandbox + port-forward for this worker's lifetime
+	private OpenShellTransport openshell;
+	/**
+	 * The sandbox belongs to the user, not to this wrapper: shutdown detaches and leaves
+	 * it running, and {@code OpenShellUserSandboxes} decides when it is deleted.
+	 */
+	private boolean openshellUserScoped = false;
+	/**
+	 * One write-back at a time: python blocks, shell commands and teardown all reconcile,
+	 * and two reconciles interleaving over the same root would race their writes.
+	 */
+	private final ReentrantLock fetchBackLock = new ReentrantLock();
+	/**
+	 * Set when a change set was drained from the worker but could not be applied. The
+	 * worker has already forgotten those paths, so only a full capture can recover them.
+	 */
+	private volatile boolean fullCaptureOwed = false;
+	/**
+	 * Project roots written back since they were last published to cluster storage. Pushing
+	 * is what lets another server pull the change, and from there its sandboxes refresh.
+	 */
+	private final Set<String> unpublishedRoots = ConcurrentHashMap.newKeySet();
+	private final Map<String, Long> lastPublished = new ConcurrentHashMap<>();
+	private static final long PUBLISH_INTERVAL_MS = 10_000L;
+	private static final ExecutorService PUBLISHER = Executors.newSingleThreadExecutor(r -> {
+		Thread t = new Thread(r, "openshell-writeback-publisher");
+		t.setDaemon(true);
+		return t;
+	});
 	private String classPath;
 	private boolean debug;
 	private String timeout;
@@ -223,7 +262,52 @@ public class ClientProcessWrapper {
 			boolean serverRunning = debug && port > 0;
 			if (!serverRunning) {
 				if (nativePyServer) {
-					if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isInjectMode()) {
+					// The jail is selected the same way the fakechroot and namespace
+					// jails have always been selected: by the chain below, on the
+					// SymlinkHelper the caller supplied. User-authored python gets one
+					// (User.startPythonSocketServerAndClient); engine-owned workers and
+					// Project python pass null and so are never jailed at all.
+					//
+					// OPENSHELL is simply the third branch of that chain. The sandbox is
+					// created ahead of the worker, so the worker becomes the sandbox's
+					// canonical process instead of a child of Tomcat, and the socket
+					// client connects to the forwarded port. No udsPath is set, which is
+					// what selects the TCP branch below.
+					if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isExternalSandbox()) {
+						try {
+							if (OpenShellUserSandboxes.appliesTo(this.user)) {
+								// The user's own sandbox, shared across their sessions and server
+								// instances: attach if it is running, create it otherwise.
+								OpenShellUserSandboxes.Attached attached = OpenShellUserSandboxes.acquire(this.user);
+								this.openshell = attached.transport;
+								this.openshellUserScoped = true;
+								this.port = attached.port;
+								if (attached.reattached) {
+									// Another connection may have drained changes this one never
+									// applied; start this connection's write-back from the whole tree.
+									this.fullCaptureOwed = true;
+								}
+							} else {
+								this.openshell = OpenShellTransport.forSession(this.chrootSymlinkHelper.getUserChrootFolder());
+								this.openshellUserScoped = false;
+								this.port = this.openshell.start();
+							}
+							// Same seam as the namespace injector below: the per-mode collaborator
+							// that receives every path symlinkFolder/symlinkProject would otherwise
+							// have symlinked. Assets registered before the worker existed are
+							// replayed by setTransport, which is why this happens here rather than
+							// before start().
+							this.chrootSymlinkHelper.setTransport(
+									new OpenShellTransporter(this.openshell));
+						} catch (Exception e) {
+							// Fail closed: never fall back to an in-Tomcat worker when the
+							// deployment asked for an external boundary.
+							throw new IllegalStateException(
+									"OpenShell executor sandbox unavailable and no fallback is permitted in "
+											+ "SANDBOX_MODE=OPENSHELL",
+									e);
+						}
+					} else if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isInjectMode()) {
 						String insightCache = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 						Path serverDirectoryPath = Files.createTempDirectory(Paths.get(insightCache), "a");
 						this.serverDirectory = serverDirectoryPath.toString();
@@ -324,6 +408,9 @@ public class ClientProcessWrapper {
 					this.socketClient = new SocketClient(threadLoggerCtx);
 				}
 				this.socketClient.setCpw(this);
+				classLogger.info(
+						"Connecting socket client: udsPath={} port={} openshell={} nativePyServer={}",
+						this.udsPath, this.port, this.openshell != null, this.nativePyServer);
 				if (this.udsPath != null) {
 					this.socketClient.connectUds(this.udsPath);
 				} else {
@@ -357,9 +444,381 @@ public class ClientProcessWrapper {
 	 * @param cleanUpFolder true to also recursively delete the server scratch
 	 *                      directory and any namespace-sandbox folders
 	 */
+
+	/**
+	 * Reconcile only the files the sandbox worker reports as changed since the last
+	 * snapshot.
+	 *
+	 * <p>
+	 * Cost is proportional to the change: a block that writes three files produces
+	 * three paths and one small tar, instead of a tar per transported root. It falls
+	 * back to {@link #fetchBackTransportedRoots()} whenever the worker's answer cannot
+	 * be trusted — no watcher, the first call after materialise (everything in the tree
+	 * arrived before the watch existed), a kernel queue overflow, or a change set past
+	 * the worker's cap.
+	 *
+	 * @return number of files written back
+	 */
+	public int fetchBackChangedPaths() {
+		if (this.openshell == null || this.chrootSymlinkHelper == null) {
+			return 0;
+		}
+		fetchBackLock.lock();
+		try {
+			return fetchBackChangedPathsLocked();
+		} finally {
+			fetchBackLock.unlock();
+		}
+	}
+
+	private int fetchBackChangedPathsLocked() {
+		Map<String, Object> snapshot = null;
+		if (this.socketClient instanceof NativePySocketClient pyClient) {
+			try {
+				snapshot = pyClient.getFileChanges();
+			} catch (Exception e) {
+				classLogger.warn("Change query failed; falling back to a full reconcile", e);
+			}
+		}
+		// The snapshot is taken even when a full capture is owed: it drains the worker's
+		// pending set, which the full capture is about to cover anyway.
+		if (snapshot == null || this.fullCaptureOwed || truthy(snapshot.get("overflow"))
+				|| truthy(snapshot.get("baseline")) || Boolean.FALSE.equals(snapshot.get("coverage"))) {
+			return fetchBackTransportedRoots();
+		}
+		Object raw = snapshot.get("changes");
+		if (!(raw instanceof List<?> changes) || changes.isEmpty()) {
+			return 0;
+		}
+
+		// Only roots this session transported are eligible, longest first so a nested
+		// root wins over its parent.
+		List<String> roots = new ArrayList<>();
+		for (String path : this.chrootSymlinkHelper.getTransportedPaths()) {
+			String normalized = Utility.normalizePath(path);
+			if (TransportedRoots.isUserSpace(normalized) && canWriteBack(normalized)) {
+				roots.add(normalized);
+			}
+		}
+		roots.sort((first, second) -> second.length() - first.length());
+
+		Map<String, List<String>> writes = new HashMap<>();
+		Map<String, List<String>> deletes = new HashMap<>();
+		for (Object entry : changes) {
+			if (!(entry instanceof Map<?, ?> change)) {
+				continue;
+			}
+			Object pathValue = change.get("path");
+			if (pathValue == null) {
+				continue;
+			}
+			String path = Utility.normalizePath(pathValue.toString());
+			String root = null;
+			for (String candidate : roots) {
+				if (path.startsWith(candidate + "/")) {
+					root = candidate;
+					break;
+				}
+			}
+			if (root == null) {
+				continue;
+			}
+			String relative = path.substring(root.length() + 1);
+			boolean delete = "delete".equals(String.valueOf(change.get("op")));
+			(delete ? deletes : writes).computeIfAbsent(root, key -> new ArrayList<>()).add(relative);
+		}
+
+		int total = 0;
+		for (Map.Entry<String, List<String>> group : writes.entrySet()) {
+			try {
+				int written = this.openshell.fetchBackPaths(group.getKey(), group.getValue());
+				if (written > 0) {
+					this.unpublishedRoots.add(group.getKey());
+					total += written;
+				}
+			} catch (Exception e) {
+				// The worker has already dropped these paths from its pending set, so they
+				// would never be reported again: recover them with a full capture next block.
+				this.fullCaptureOwed = true;
+				classLogger.warn("Path fetch-back failed for {}; a full capture is owed", group.getKey(), e);
+			}
+		}
+		int removed = 0;
+		for (Map.Entry<String, List<String>> group : deletes.entrySet()) {
+			for (String relative : group.getValue()) {
+				if (this.openshell.deleteFromHost(group.getKey(), relative)) {
+					this.unpublishedRoots.add(group.getKey());
+					removed++;
+				}
+			}
+		}
+		if (total > 0 || removed > 0) {
+			classLogger.info("Fetch-back wrote {} and removed {} file(s) from {} changed path(s)", total, removed,
+					changes.size());
+		}
+		publishWrittenRoots(false);
+		return total + removed;
+	}
+
+	/**
+	 * Bring host-side changes into the sandbox before a block runs: another user's write-back,
+	 * a cluster pull, an upload in the UI. Without this a sandbox computes on the copy it was
+	 * given at first use for as long as it lives.
+	 */
+	public void refreshTransportedRoots() {
+		if (this.openshell == null || this.chrootSymlinkHelper == null) {
+			return;
+		}
+		fetchBackLock.lock();
+		try {
+			if (this.fullCaptureOwed) {
+				// Unapplied sandbox changes first; a refresh must not overwrite them.
+				fetchBackTransportedRootsLocked();
+			}
+			for (String path : this.chrootSymlinkHelper.getTransportedPaths()) {
+				if (!TransportedRoots.isUserSpace(Utility.normalizePath(path))) {
+					continue;
+				}
+				try {
+					this.openshell.refreshFromHost(path);
+				} catch (Exception e) {
+					classLogger.warn("Refresh of {} into the sandbox failed; the sandbox keeps its copy", path, e);
+				}
+			}
+		} finally {
+			fetchBackLock.unlock();
+		}
+	}
+
+	/**
+	 * Push written-back project roots to cluster storage and announce them, so servers that
+	 * have the project loaded pull the change. Batched: a root is pushed at most every ten
+	 * seconds, and whatever is left is pushed when the connection is released.
+	 *
+	 * @param force push everything pending now (teardown)
+	 */
+	private void publishWrittenRoots(boolean force) {
+		if (!ClusterUtil.IS_CLUSTER || this.unpublishedRoots.isEmpty()) {
+			return;
+		}
+		long now = System.currentTimeMillis();
+		for (String root : new ArrayList<>(this.unpublishedRoots)) {
+			String projectId = TransportedRoots.projectIdOf(root);
+			if (projectId == null) {
+				// rooms and user assets have their own sync at logout
+				this.unpublishedRoots.remove(root);
+				continue;
+			}
+			if (!force && now - this.lastPublished.getOrDefault(root, 0L) < PUBLISH_INTERVAL_MS) {
+				continue;
+			}
+			this.unpublishedRoots.remove(root);
+			this.lastPublished.put(root, now);
+			Runnable push = () -> {
+				try {
+					IProject project = Utility.getProject(projectId);
+					if (project != null) {
+						ClusterUtil.pushProjectFolder(project, root);
+						classLogger.info("Published write-back of {} to cluster storage", root);
+					}
+				} catch (Exception e) {
+					this.unpublishedRoots.add(root);
+					classLogger.warn("Could not publish write-back of {}; retrying after the next block", root, e);
+				}
+			};
+			if (force) {
+				push.run();
+			} else {
+				PUBLISHER.submit(push);
+			}
+		}
+	}
+
+	private static boolean truthy(Object value) {
+		if (value instanceof Boolean flag) {
+			return flag;
+		}
+		return value != null && Boolean.parseBoolean(value.toString());
+	}
+
+	/**
+	 * Bind the user whose permissions decide whether a root may be written back.
+	 *
+	 * @param user owner of this process
+	 */
+	public void setUser(prerna.auth.User user) {
+		this.user = user;
+	}
+
+	/**
+	 * User assets are per-user by construction: the folder is {@code Asset__<id>}, where the
+	 * id is the user's own asset project id for one of their logins. Anything else under
+	 * {@code user/} belongs to somebody else and must never be written back.
+	 *
+	 * @param normalized absolute user-asset root
+	 * @return true when the asset belongs to this user
+	 */
+	private boolean isOwnUserAsset(String normalized) {
+		String assetId = TransportedRoots.userAssetIdOf(normalized);
+		if (this.user == null) {
+			classLogger.warn("Refusing write-back into {}: no user is bound to this process", normalized);
+			return false;
+		}
+		try {
+			for (prerna.auth.AuthProvider provider : this.user.getLogins()) {
+				if (assetId.equals(this.user.getAssetProjectId(provider))) {
+					return true;
+				}
+			}
+		} catch (Exception e) {
+			classLogger.warn("Could not resolve asset ownership for {}; refusing write-back", normalized, e);
+			return false;
+		}
+		classLogger.warn("Refusing write-back into {}: asset {} does not belong to {}", normalized, assetId,
+				prerna.auth.User.getSingleLogginName(this.user));
+		return false;
+	}
+
+	/**
+	 * A room is writable only by the member who owns it. Rooms are rows in the model
+	 * inference logs database ({@code ROOM.USER_ID}), not insights in this build, and
+	 * sharing grants participation rather than edit rights.
+	 *
+	 * @param normalized absolute room root
+	 * @return true when the session's user owns the room
+	 */
+	private boolean canWriteRoom(String normalized) {
+		String roomId = TransportedRoots.roomIdOf(normalized);
+		if (this.user == null) {
+			classLogger.warn("Refusing write-back into room {}: no user is bound to this process", roomId);
+			return false;
+		}
+		try {
+			// A login can be any of the providers the user authenticated with; the room was
+			// created under one of them.
+			for (prerna.auth.AuthProvider provider : this.user.getLogins()) {
+				prerna.auth.AccessToken token = this.user.getAccessToken(provider);
+				if (token != null && prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils
+						.doCheckRoomExistsForUser(roomId, token.getId())) {
+					return true;
+				}
+			}
+			classLogger.warn("Refusing write-back into room {}: user {} does not own it", roomId,
+					prerna.auth.User.getSingleLogginName(this.user));
+			return false;
+		} catch (Exception e) {
+			classLogger.warn("Could not resolve ownership of room {}; refusing write-back", roomId, e);
+			return false;
+		}
+	}
+
+	/**
+	 * A read-only member must not be able to modify a project through the sandbox: the
+	 * worker runs outside the platform's permission checks, so without this gate a
+	 * read-only user could write a file with {@code Py()} and have it published to the
+	 * project folder. Every root is decided by its own space: projects on the platform
+	 * permission lookup, rooms on {@code ROOM.USER_ID} in the model-inference-logs
+	 * database, user assets on the caller's own asset project id.
+	 *
+	 * @param normalized absolute transported root
+	 * @return true when write-back into this root is allowed
+	 */
+	private boolean canWriteBack(String normalized) {
+		if (TransportedRoots.isRoom(normalized)) {
+			return canWriteRoom(normalized);
+		}
+		if (TransportedRoots.isUserAsset(normalized)) {
+			return isOwnUserAsset(normalized);
+		}
+		String projectId = TransportedRoots.projectIdOf(normalized);
+		if (projectId == null) {
+			classLogger.warn("Refusing write-back into {}: unrecognised root space", normalized);
+			return false;
+		}
+		if (this.user == null) {
+			classLogger.warn("Refusing write-back into {}: no user is bound to this process", normalized);
+			return false;
+		}
+		try {
+			// The same check SymlinkHelper.symlinkProject uses to grant the project
+			// read-write: write-back must never answer that question differently.
+			boolean allowed = prerna.auth.utils.SecurityProjectUtils.userCanEditProject(this.user, projectId);
+			if (!allowed) {
+				classLogger.warn("Refusing write-back into {}: user {} cannot edit project {}", normalized,
+						prerna.auth.User.getSingleLogginName(this.user), projectId);
+			}
+			return allowed;
+		} catch (Exception e) {
+			// Fail closed: an unresolvable permission is not a licence to write.
+			classLogger.warn("Could not resolve permission for {}; refusing write-back", normalized, e);
+			return false;
+		}
+	}
+
+	/**
+	 * Reconcile the sandbox copies of this session's transported roots back onto the
+	 * host, so a file written by {@code Py()} or a shell command is visible to the
+	 * platform (asset browser, MCP generators, git) without waiting for logout.
+	 *
+	 * <p>
+	 * Called at the execution boundary. Throttled: a REPL that runs many small blocks
+	 * must not tar its roots per call, and the reconcile itself skips files that are
+	 * identical or where the sandbox copy is older.
+	 *
+	 * @return number of files written back
+	 */
+	public int fetchBackTransportedRoots() {
+		if (this.openshell == null || this.chrootSymlinkHelper == null) {
+			return 0;
+		}
+		fetchBackLock.lock();
+		try {
+			return fetchBackTransportedRootsLocked();
+		} finally {
+			fetchBackLock.unlock();
+		}
+	}
+
+	private int fetchBackTransportedRootsLocked() {
+		int total = 0;
+		boolean failed = false;
+		for (String path : this.chrootSymlinkHelper.getTransportedPaths()) {
+			String normalized = Utility.normalizePath(path);
+			// Only the user-facing roots. Engine and runtime trees are never written by
+			// user code, and pulling them back would waste a tar per block.
+			if (!TransportedRoots.isUserSpace(normalized) || !canWriteBack(normalized)) {
+				continue;
+			}
+			try {
+				int written = this.openshell.fetchBack(path);
+				if (written > 0) {
+					this.unpublishedRoots.add(normalized);
+				}
+				total += written;
+			} catch (Exception e) {
+				failed = true;
+				classLogger.warn("Fetch-back failed for {}; retrying with a full capture next block", path, e);
+			}
+		}
+		this.fullCaptureOwed = failed;
+		publishWrittenRoots(false);
+		return total;
+	}
+
 	public void shutdown(boolean cleanUpFolder) {
 		lockDestroy.lock();
 		try {
+			// OPENSHELL: the last reconcile must run while the sandbox is still alive. A
+			// session-scoped worker is the sandbox's main process, so stopping the socket
+			// below ends the sandbox, and a capture attempted after that finds it Completed.
+			if (this.openshell != null) {
+				try {
+					fetchBackTransportedRoots();
+					publishWrittenRoots(true);
+				} catch (Exception e) {
+					classLogger.warn("Fetch-back before sandbox teardown failed for port {}", this.port, e);
+				}
+			}
 			if (this.socketClient != null && this.socketClient.isConnected()) {
 				try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 
@@ -409,6 +868,23 @@ public class ClientProcessWrapper {
 					this.process.destroy();
 				} catch (Exception e) {
 					classLogger.error("Failed to destroy isolated analytics process for port {}", this.port, e);
+				}
+			}
+			// OPENSHELL: the worker lives in the sandbox, not in this JVM's process
+			// tree. A user-scoped sandbox is only detached from (the `stop` above closed
+			// this connection, not the persistent worker); a session-scoped one is
+			// deleted, and the gateway delete is authoritative.
+			if (this.openshell != null) {
+				try {
+					if (this.openshellUserScoped) {
+						this.openshell.detach();
+					} else {
+						this.openshell.close();
+					}
+				} catch (Exception e) {
+					classLogger.error("Failed to close OpenShell executor sandbox for port {}", this.port, e);
+				} finally {
+					this.openshell = null;
 				}
 			}
 		} finally {
@@ -510,6 +986,15 @@ public class ClientProcessWrapper {
 		}
 
 		return port;
+	}
+
+	/**
+	 * @return the OpenShell sandbox this wrapper's worker runs in, or null outside
+	 *         OPENSHELL mode or before it started
+	 */
+	public String getOpenShellSandboxName() {
+		OpenShellTransport current = this.openshell;
+		return current == null ? null : current.getSandboxName();
 	}
 
 	/**

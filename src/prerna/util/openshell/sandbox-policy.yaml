@@ -1,0 +1,40 @@
+version: 1
+# SEMOSS sandbox policy, the default when OPENSHELL_POLICY is unset. OpenShellTransport fills in
+#   ${SEMOSS_HOME_ROOT}  the top folder of BaseFolder's path (/Users for /Users/me/...); files
+#                        cross into the sandbox at their host path, and the home is created
+#                        under this root when the sandbox starts
+#   ${PYTHON}       the interpreter's real path (OPENSHELL_PYTHON_BINARY), which egress rules name
+#   ${NETWORK_POLICIES}  the network_policies section, generated from OPENSHELL_EGRESS
+# and passes the result to `openshell sandbox create --policy`. A custom OPENSHELL_POLICY file may
+# use the same placeholders.
+filesystem_policy:
+  include_workdir: true
+  read_only:
+    - /usr
+    - /lib
+    - /etc
+    - /bin
+    - /sbin
+    # process inspection (ps, /proc scans, pid-based kill) fails without it
+    - /proc
+    - /dev/urandom
+  read_write:
+    - /sandbox
+    - /tmp
+    # the image's own home: the worker (py/) and its insight folder
+    - /opt/semosshome
+    # where the platform's home is made, for projects, rooms and user assets; on a server
+    # the home is /opt/semosshome itself and the line is dropped
+    - ${SEMOSS_HOME_ROOT}
+    # redirects fail unless it is listed
+    - /dev/null
+    # POSIX semaphores and shared memory: multiprocessing, joblib (scikit-learn n_jobs) and
+    # torch data loaders fail with PermissionError on SemLock without it
+    - /dev/shm
+landlock:
+  compatibility: hard_requirement
+
+# The only egress the workload gets: OPENSHELL_EGRESS (default pypi, so pip works), granted to
+# the interpreter. pip is a script, so a rule names the INTERPRETER: the kernel-reported
+# executable, not a symlink to it.
+${NETWORK_POLICIES}
