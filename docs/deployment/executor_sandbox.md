@@ -178,27 +178,32 @@ never reaches the host.
 
 ## Image
 
-The sandbox image is built from this repository, not from a staged copy:
+One image, `docker/Dockerfile.sandbox`, serves every sandbox. Like the Tomcat images, it is a
+plain `ubuntu:24.04` with `/usr/lib/python` copied in from the python-builder image
+(`quay.io/semoss/python-builder:3.14-cpu`, built by `docker/Dockerfile.python` from
+`py/install_config/pyproject.toml` with uv). A `Py()` block therefore gets the same Python and
+the same packages inside the sandbox as outside it. On top of that the image adds git, a uid
+1000 user and this repository's `py/` as the worker.
+
+CI publishes it as `quay.io/semoss/semoss-sandbox` from
+`.github/workflows/sandbox-builder.yml`. It rebuilds on any `py/` change on `dev`/`main` and
+after every successful Python Builder run. Tags are `<branch>-<python-builder tag>` (for example
+`dev-3.14-cpu`) plus a `-<short sha>` pin. Each architecture is smoke-tested before anything is
+tagged. Point `OPENSHELL_IMAGE` at one of these tags.
+
+For a local build:
 
 ```bash
-docker/build-executor-image.sh                          # slim, tag semoss-executor:dev
-MODE=full TAG=semoss-executor:full docker/build-executor-image.sh
+docker/build-sandbox-image.sh                          # tag semoss-sandbox:dev
+TAG=semoss-sandbox:test NO_CACHE=1 docker/build-sandbox-image.sh
 ```
 
-The script stages the committed `py/` into the build context, so the image carries exactly the
-worker in this repository. The tag is labelled with `org.semoss.py-sha`, a hash of the python
-tree, and the build fails unless the worker tree inside the image hashes to the repository's
-and the worker's interpreter imports the change watcher.
+The build context is `py/` itself, so a local build carries the checkout's worker, uncommitted
+edits included. Both the script and CI run `docker/sandbox-smoke-test.sh`, which fails unless
+the worker tree in the image hashes to the source `py/`, the venv python imports the worker
+under a bare `PATH`, git is present and the image runs as uid 1000.
 
-Two variants:
-
-| Mode | Contents | Use |
-| --- | --- | --- |
-| `slim` (default) | `python:3.12-slim`, git, `pandas`, `jsonpickle`, `yfinance` | quick iteration; user code can only import those |
-| `full` (`MODE=full`) | the dependency set declared in `py/install_config/pyproject.toml`, installed with uv | parity with the platform runtime — a `Py()` block keeps its imports |
-
-The full build keeps a venv at `/usr/lib/python/semossvenv` — the same path
-`docker/Dockerfile.python` uses — and the worker is launched by absolute path, because
+The venv lives at `/usr/lib/python/semossvenv` and the worker is launched by absolute path, because
 **both the environment and the filesystem inside a sandbox belong to the runtime**:
 
 - **`PATH`**: a workload starts with `/usr/local/bin:/usr/bin:/bin`, so an image's `ENV PATH`

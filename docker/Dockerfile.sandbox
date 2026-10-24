@@ -1,0 +1,50 @@
+# SEMOSS sandbox image: the OpenShell sandbox that runs a user's persistent python worker.
+#
+#   docker/build-sandbox-image.sh                                   # local build + smoke test
+#   docker build -f docker/Dockerfile.sandbox -t semoss-sandbox py   # context is py/
+#
+# Python and every dependency come from the python-builder image (docker/Dockerfile.python,
+# uv + py/install_config/pyproject.toml). Like the Tomcat images, we copy its /usr/lib/python
+# onto a plain Ubuntu base, so a Py() block has the same interpreter and imports inside the
+# sandbox as outside it.
+#
+# The venv is reached by explicit path, never by PATH lookup: OpenShell builds the environment
+# for the processes it spawns, so ENV PATH is not applied inside a sandbox. See
+# docs/deployment/executor_sandbox.md.
+ARG BASE_REGISTRY=public.ecr.aws/docker/library
+ARG BASE_IMAGE=ubuntu
+ARG BASE_TAG=24.04
+
+FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG}
+
+LABEL maintainer="semoss@semoss.org"
+LABEL org.semoss.component="sandbox"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# git for local repository work; egress stays policy-gated per binary
+RUN for i in 1 2 3; do apt-get update && break || (sleep 10 && rm -rf /var/lib/apt/lists/*); done \
+ && apt-get install -y --no-install-recommends git ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# uv-managed CPython + semossvenv; /usr/lib/python sits inside the policy's read-only /usr
+COPY --from=quay.io/semoss/python-builder:3.14-cpu  /usr/lib/python /usr/lib/python
+ENV VIRTUAL_ENV=/usr/lib/python/semossvenv
+ENV PATH=/usr/lib/python/semossvenv/bin:$PATH
+
+# the sandbox identity is uid/gid 1000 (ubuntu:24.04 already has it as "ubuntu")
+RUN if ! getent group 1000 >/dev/null; then groupadd -g 1000 sandbox; fi \
+ && if ! getent passwd 1000 >/dev/null; then useradd -u 1000 -g 1000 -m -s /bin/bash sandbox; fi
+
+# the worker source (build context is the repo's py/)
+COPY . /opt/semosshome/py/
+
+# setup() appends to insight/log.txt; grants-* are the policy's ro/rw drop points
+RUN mkdir -p /opt/semosshome/insight /opt/grants-rw /opt/grants-ro \
+ && touch /opt/semosshome/insight/log.txt \
+ && chown -R 1000:1000 /opt/semosshome /opt/grants-rw /opt/grants-ro \
+ && chmod 755 /opt/grants-rw /opt/grants-ro
+
+# OpenShell refuses to start unless the workspace is writable by the sandbox identity
+USER 1000:1000
+WORKDIR /opt/semosshome/py
