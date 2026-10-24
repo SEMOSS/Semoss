@@ -1057,10 +1057,38 @@ isolated install - the process survived and returned a handled 400 response
 instead of crashing, independently for both the workspace root and the
 standalone `client/` lockfile.
 
-This accounts for all five packages with findings first appearing in the
-2026-10-24 rescan across these lockfiles: `undici`, `fast-uri`, and
-`body-parser` fixed; `zod` documented above as an accepted exception since
-no released version remediates its reachable case.
+`vite` 8.2.2, a direct `client/package.json` dependency (`^8.2.2`, already
+permitting the fix), closed six findings first appearing in the next
+rescan: three in its bundled `launch-editor`/`launch-editor-middleware`
+(CVE-2026-112942 HIGH, CVE-2026-112943 MEDIUM - attacker-controlled
+filenames or environment-variable content reaching an editor-launch command
+line or `cmd` argument) and three in Vite's own dev-server request handling
+(CVE-2026-112945 LOW and CVE-2026-112946 MEDIUM - crafted module/proxy URLs
+disclosing files outside `server.fs`; CVE-2026-112947 MEDIUM - a
+`?vite-wasm-instance` request reading the first 4 bytes of any file on disk
+without `server.fs` checks). All six are exclusively dev-server
+functionality (opening a file in an editor from an error overlay click, or
+handling live HTTP requests to `vite dev`) - this deployment never runs a
+Vite dev server; `BuildAndPublishApp` (see the Node.js section above) only
+ever invokes `vite build`, a one-shot compiler with no network-facing
+request handling. Fixed anyway since the cost was negligible: 8.2.2 ->
+8.3.3, a same-major-line patch already permitted by the declared range.
+Bumped `client/package.json`'s own floor to match (`pnpm update vite@8.3.3`
+also updates the lockfile's recorded specifier to `^8.3.3`, and leaving the
+committed `package.json` at the old `^8.2.2` would desync the two, failing
+any future `pnpm install --frozen-lockfile` - caught by rerunning the
+verification with `--frozen-lockfile` specifically, not just `pnpm install`
+or `pnpm update`'s own non-strict install). Verified beyond dependency
+resolution: ran the project's actual `tsc -b && vite build` command against
+the upgraded package in an isolated install and confirmed it produces the
+same `portals/` output (index.html, fonts, CSS, JS bundle) - independently
+for the workspace root and the standalone `client/` lockfile, in both this
+repo and its sibling.
+
+This accounts for all six packages with findings first appearing in the
+2026-10-24 rescan across these lockfiles: `undici`, `fast-uri`,
+`body-parser`, and `vite` fixed; `zod` documented above as an accepted
+exception since no released version remediates its reachable case.
 
 **Reassess if**: Node.js, npm, or pnpm is added to `docker/il4/Dockerfile`
 for any reason - at that point this needs the same actual decision as
