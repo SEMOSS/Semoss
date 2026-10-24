@@ -222,25 +222,35 @@ appears anywhere in the codebase, so neither precondition the exploit needs is
 present. See `accepted_vulnerabilities` in
 [compatibility.json](./python-dependencies/compatibility.json).
 
-`pillow` stays at 12.3.0 rather than bumped to 13.0.0, leaving 28 findings
-(3 CRITICAL, mostly TIFF/GIF/APNG/XBM/MSP decoder memory-safety bugs) open:
+`pillow` stays at 12.3.0 rather than bumped to 13.0.0, leaving 39 findings as
+of the 2026-10-23 rescan (4 CRITICAL; up from 28 at the 2026-10-21 scan this
+was first written against - Inspector2 correlated 11 more CVEs into its feed
+against the same unchanged image in the interim, mostly TIFF/GIF/APNG/XBM/
+MSP/BMP/MPO/DCX/SPIDER/JPEG2000 decoder memory-safety bugs) open:
 `pipecat-ai`'s current pin - and PyPI's own latest release, so no newer one
 exists to pick up instead - declares `Pillow<13`. SEMOSS's entire Pillow
 surface is `Image.open/new/paste/crop/close/save/convert` in
 [table_util.py](../../py/vector_database/utils/extraction/table_util.py)
-(no resize, filters, merge, quantize, or PDF-append) plus a notebook-display
-guard that only touches SEMOSS's own sandboxed output. The one live caller
-chain (`AbstractVectorDatabaseEngine`'s fitz-extraction path) never hands PIL
-the uploaded file's own bytes: PyMuPDF decodes the embedded image or page
-region into a format-agnostic `Pixmap` first and saves *that* to a hardcoded
-`.png` path, so `Image.open()` only ever sees a plain single-frame PNG it
-produced itself, not an attacker-chosen container format. A handful of
-operation-level bugs (`Image.merge`, `Image.quantize`, rank filters) aren't
-called by SEMOSS's own code either, though whether PaddleOCR or the
-transformers object-detection pipeline call them internally on the resulting
-image wasn't independently verified - see `accepted_vulnerabilities` in
-[compatibility.json](./python-dependencies/compatibility.json) for the full
-reachability analysis and reassessment triggers.
+(no resize, filters, merge, quantize, EXIF handling, or PDF-append) plus a
+notebook-display guard that only touches SEMOSS's own sandboxed output. The
+one live caller chain (`AbstractVectorDatabaseEngine`'s fitz-extraction path)
+never hands PIL the uploaded file's own bytes: PyMuPDF decodes the embedded
+image or page region into a format-agnostic `Pixmap` first and saves *that*
+to a hardcoded `.png` path, so `Image.open()` only ever sees a plain
+single-frame PNG it produced itself, not an attacker-chosen container
+format. A handful of operation-level bugs (`Image.merge`, `Image.quantize`,
+rank filters, `exif_transpose`) aren't called by SEMOSS's own code either,
+though whether PaddleOCR or the transformers object-detection pipeline call
+them internally on the resulting image wasn't independently verified.
+Separately traced `pipecat-ai` 1.13.0's own Pillow usage from its real PyPI
+sdist: its actual code only does `open`/`frombytes`/`convert`/`resize`/`save`
+on RGB-ish raster frames, touching none of 13.0.0's behavioral deltas, so its
+`<13` cap looks like an unreviewed precaution rather than a known
+incompatibility - overriding it is assessed as low risk based on that trace,
+though not yet attempted or tested end-to-end. See `accepted_vulnerabilities`
+in [compatibility.json](./python-dependencies/compatibility.json) for the
+full reachability analysis, the pipecat-ai call-site citations, and
+reassessment triggers.
 
 The build uses hash-pinned uv and build tools, verifies dependency artifact hashes,
 routes PyTorch packages explicitly to its CPU index, and checks the installed
