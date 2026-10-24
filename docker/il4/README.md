@@ -1011,9 +1011,37 @@ reachable vulnerability is not a trade worth making. Kept as an accepted
 exception: gated behind the same Node.js-runtime absence as `undici` above,
 and no released version remediates the underlying case regardless.
 
-These same lockfiles also carry two other packages with findings first
-appearing in the same 2026-10-24 rescan - `fast-uri` and `body-parser` - not
-yet individually investigated or fixed.
+`fast-uri` 3.1.8 is pinned via a `pnpm.overrides` entry (alongside
+`@modelcontextprotocol/sdk`, `proxy-addr`, and others - the same
+force-a-version-past-a-dependent's-declared-range mechanism as the Python
+`overrides.in`/`overrides.lock` pair used throughout this project) in both
+`project/platform__react-template/package.json` and its `client/` copy,
+because `ajv@8.20.0` - the real, current latest ajv release - declares
+`"fast-uri": "^3.0.1"` and has never been updated to accept 4.x. Bumped the
+override to 4.2.3 anyway, closing all four findings first appearing in the
+2026-10-24 rescan: CVE-2026-110180 (MEDIUM, a malformed host with ambiguous
+delimiters or stripped control characters is silently rewritten rather than
+rejected, letting host-based allow/deny policies be bypassed),
+CVE-2026-110306 (MEDIUM, a percent-encoded scheme is decoded into a live
+scheme before RFC 3986 validation, so a screened-then-decoded dangerous
+scheme can slip through), CVE-2026-110095 and CVE-2026-110725 (both LOW,
+relative-reference normalization bugs that can turn a document-relative
+path root-relative, or let a bare colon reparse as an absolute URI with a
+scheme). fast-uri's real GitHub release history shows the 3.x->4.0.0 bump
+itself was version hygiene (migrating a TypeScript type-testing tool,
+removing deprecated types, one bug fix - no runtime API changes), not a
+breaking rewrite, and forcing the override through left every other
+resolved package - `ajv` included - completely unchanged (confirmed via a
+full lockfile diff). Verified beyond dependency resolution: wrote and ran a
+functional smoke test that actually exercises `ajv`'s real runtime use of
+`fast-uri` (schema compilation, `$ref` resolution, and `format: "uri"`
+validation against both a valid and an invalid URI) against the upgraded
+package in an isolated install, independently for the workspace root and
+the standalone `client/` lockfile - not just confirming it resolves.
+
+This same lockfile pair also carries one other package with a finding first
+appearing in the same 2026-10-24 rescan - `body-parser` - not yet
+individually investigated or fixed.
 
 **Reassess if**: Node.js, npm, or pnpm is added to `docker/il4/Dockerfile`
 for any reason - at that point this needs the same actual decision as
