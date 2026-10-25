@@ -82,6 +82,7 @@ public class PixelRunner {
 		errorOpTypes.add(PixelOperationType.USER_INPUT_REQUIRED);
 		errorOpTypes.add(PixelOperationType.LOGGIN_REQUIRED_ERROR);
 		errorOpTypes.add(PixelOperationType.ANONYMOUS_USER_ERROR);
+		errorOpTypes.add(PixelOperationType.USER_LOGGED_OUT_ERROR);
 		errorOpTypes.add(PixelOperationType.INVALID_SYNTAX);
 	}
 
