@@ -65,17 +65,33 @@ jobs:
             echo "::error::The Docker daemon must run Linux containers."
             exit 1
           fi
-          # This runner pool is shared across many jobs/workflows, some of which call
-          # docker/setup-buildx-action to create a docker-container builder and select it
-          # as current. That selection (and, occasionally, a builder registered under the
-          # name "default" itself) can survive on the underlying runner host into a job
-          # that expects a clean environment. Reset both explicitly instead of failing on
-          # state a different job left behind.
-          docker context use default >/dev/null
-          docker buildx rm default >/dev/null 2>&1 || true
-          docker buildx use default
           # Use the approved daemon's embedded BuildKit, not a floating builder image.
-          if ! docker buildx inspect default | grep -Eq '^Driver:[[:space:]]+docker$'; then
+          # "default" is a reserved builder name that always reflects the docker driver
+          # bound to the current context, so it cannot be shadowed by another builder;
+          # a prior transient failure here lined up with the daemon having just started
+          # on this runner, so retry briefly before failing in case buildx queries it
+          # before the embedded worker finishes coming up.
+          buildx_default_output=""
+          buildx_default_ok=0
+          for attempt in 1 2 3 4 5; do
+            set +e
+            buildx_default_output="$(docker buildx inspect default 2>&1)"
+            set -e
+            if grep -Eq '^Driver:[[:space:]]+docker$' <<<"$buildx_default_output"; then
+              buildx_default_ok=1
+              break
+            fi
+            echo "Buildx default builder not ready yet (attempt $attempt/5), retrying..."
+            sleep 2
+          done
+          if [[ "$buildx_default_ok" -ne 1 ]]; then
+            echo "::group::Buildx diagnostics (default builder check failed after retries)"
+            echo "$buildx_default_output"
+            echo "--- docker buildx ls ---"
+            docker buildx ls 2>&1 || true
+            echo "--- docker context ls ---"
+            docker context ls 2>&1 || true
+            echo "::endgroup::"
             echo "::error::The default Buildx builder must use the docker driver."
             exit 1
           fi
