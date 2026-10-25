@@ -1,0 +1,250 @@
+name: Build IL4 test container
+
+on:
+  push:
+    branches: [IL4-dev]
+    paths:
+      - docker/il4/**
+      - .github/workflows/il4-container.yml
+  workflow_dispatch:
+    inputs:
+      image_reports:
+        description: Generate report-only SBOM and vulnerability artifacts
+        type: boolean
+        default: false
+  schedule:
+    - cron: '23 9 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: il4-container-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/IL4-dev' || github.event_name == 'schedule'
+    runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
+    container:
+      image: quay.io/semoss/test-quay:ubuntu-dind@sha256:5711ae2ade8db7de5e95f16bee23a89addd5d9aeb5b905c41c7ccca183ecda20
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      packages: write
+    defaults:
+      run:
+        shell: bash
+        working-directory: docker/il4
+    steps:
+      - name: Check out reviewed source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'schedule' && 'IL4-dev' || github.sha }}
+
+      - name: Install Python for build orchestration
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends python3
+
+      - name: Check runner and required credentials
+        env:
+          IRONBANK_USERNAME: ${{ secrets.REPO_ONE_USERNAME }}
+          IRONBANK_PASSWORD: ${{ secrets.REPO_ONE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$IRONBANK_USERNAME" || -z "$IRONBANK_PASSWORD" ]]; then
+            echo "::error::Set both repository secrets REPO_ONE_USERNAME and REPO_ONE_PASSWORD."
+            exit 1
+          fi
+          export DOCKER_CONFIG="$RUNNER_TEMP/semoss-docker-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          install -d -m 700 "$DOCKER_CONFIG"
+          python3 --version
+          docker version
+          docker buildx version
+          if [[ "$(docker info --format '{{.OSType}}')" != linux ]]; then
+            echo "::error::The Docker daemon must run Linux containers."
+            exit 1
+          fi
+          # Use the approved daemon's embedded BuildKit, not a floating builder image.
+          if ! docker buildx inspect default | grep -Eq '^Driver:[[:space:]]+docker$'; then
+            echo "::error::The default Buildx builder must use the docker driver."
+            exit 1
+          fi
+          image_repository="ghcr.io/${GITHUB_REPOSITORY,,}-il4"
+          source_sha="$(git rev-parse HEAD)"
+          {
+            echo "DOCKER_CONFIG=$DOCKER_CONFIG"
+            echo "IMAGE_REPOSITORY=$image_repository"
+            echo "SOURCE_SHA=$source_sha"
+            echo "IMAGE_REF=$image_repository:sha-${source_sha}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          } >> "$GITHUB_ENV"
+
+      - name: Run isolated source tests
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -v
+          sh -n entrypoint.sh conf/setenv.sh python-dependencies/install.sh
+
+      - name: Log in to Iron Bank
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: registry1.dso.mil
+          username: ${{ secrets.REPO_ONE_USERNAME }}
+          password: ${{ secrets.REPO_ONE_PASSWORD }}
+
+      - name: Refresh the selected Iron Bank version tags
+        run: |
+          set -euo pipefail
+          python3 refresh_bases.py > "$RUNNER_TEMP/il4-bases.env"
+          cat "$RUNNER_TEMP/il4-bases.env" >> "$GITHUB_ENV"
+          {
+            printf '## Resolved Iron Bank bases\n\n```text\n'
+            cat "$RUNNER_TEMP/il4-bases.env"
+            printf '```\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build and load candidate
+        id: build
+        env:
+          MAVEN_SETTINGS: ${{ secrets.MAVEN_SETTINGS }}
+        run: |
+          set -euo pipefail
+          secrets=()
+          if [[ -n "$MAVEN_SETTINGS" ]]; then
+            secrets+=(--secret "id=maven_settings,env=MAVEN_SETTINGS")
+          fi
+          docker buildx build --builder default \
+            --platform linux/amd64 --load --provenance=false --pull --no-cache \
+            --build-arg "MAVEN_IMAGE=$MAVEN_IMAGE" \
+            --build-arg "UBI_IMAGE=$UBI_IMAGE" \
+            --build-arg "PYTHON_IMAGE=$PYTHON_IMAGE" \
+            --tag "$IMAGE_REF" \
+            --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${SOURCE_SHA}" \
+            --label "org.semoss.base.maven=${MAVEN_IMAGE}" \
+            --label "org.semoss.base.ubi=${UBI_IMAGE}" \
+            --label "org.semoss.base.python=${PYTHON_IMAGE}" \
+            "${secrets[@]}" .
+
+      - name: Check candidate offline with runtime restrictions
+        run: |
+          set -euo pipefail
+          restrictions=(
+            --rm --platform linux/amd64 --network none
+            --read-only --cap-drop=ALL --security-opt=no-new-privileges
+            --pids-limit=512 --memory=8g --cpus=4
+            --tmpfs "/tmp:rw,noexec,nosuid,nodev" --workdir /tmp
+          )
+          docker run "${restrictions[@]}" "$IMAGE_REF" --check
+          docker run "${restrictions[@]}" --entrypoint /bin/sh "$IMAGE_REF" -ec \
+            'python /opt/python-check/validate.py
+             python /opt/python-check/python_check.py
+             python /opt/python-check/check_audio.py'
+          # Stream the checks because the job container and Docker host use different workspace paths.
+          tar -C integrations/bedrock -cf - check_bedrock.py test_check_bedrock.py |
+            docker run "${restrictions[@]}" --interactive \
+              --entrypoint /opt/semoss-python/bin/python "$IMAGE_REF" -c '
+          import sys, tarfile, unittest
+          with tarfile.open(fileobj=sys.stdin.buffer, mode="r|") as archive:
+              archive.extractall("/tmp/bedrock-checks", filter="data")
+          suite = unittest.defaultTestLoader.discover("/tmp/bedrock-checks")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          sys.exit(not result.wasSuccessful())
+          '
+
+      - name: Log in to GHCR after validation
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish the tested image
+        id: publish
+        run: |
+          set -euo pipefail
+          docker push "$IMAGE_REF"
+          REPO_DIGESTS="$(docker image inspect "$IMAGE_REF" --format '{{json .RepoDigests}}')"
+          export REPO_DIGESTS
+          python3 - <<'PY'
+          import json, os, re, sys
+          prefix = os.environ["IMAGE_REPOSITORY"] + "@sha256:"
+          matches = [value for value in json.loads(os.environ["REPO_DIGESTS"])
+                     if value.startswith(prefix)
+                     and re.fullmatch(r"[0-9a-f]{64}", value[len(prefix):])]
+          if len(matches) != 1:
+              sys.exit("Expected exactly one published GHCR digest.")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("## IL4 test image published\n\n")
+              summary.write("Tag: `" + os.environ["IMAGE_REF"] + "`\n\n")
+              summary.write("Deploy by digest: `" + matches[0] + "`\n\n")
+              summary.write("Offline FIPS/JDBC/Python checks passed. HTTPS readiness, "
+                            "deployment acceptance, scanning, signing, and IL4 "
+                            "authorization remain separate gates.\n")
+          print(matches[0])
+          PY
+
+      - name: Generate optional image reports
+        id: reports
+        if: inputs.image_reports || vars.IL4_IMAGE_REPORTS == 'true'
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/il4-image-reports"
+          tools="$RUNNER_TEMP/il4-report-tools"
+          install -d -m 700 "$reports" "$tools"
+          printf '%s\n' "$IMAGE_REF" > "$reports/image-reference.txt"
+          docker image inspect "$IMAGE_REF" --format '{{json .RepoDigests}}' \
+            > "$reports/image-digests.json"
+          curl --fail --silent --show-error --location --retry 3 \
+            --connect-timeout 15 --max-time 180 \
+            https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz \
+            --output "$tools/trivy.tar.gz"
+          printf '%s  %s\n' \
+            2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a \
+            "$tools/trivy.tar.gz" | sha256sum --check -
+          tar -xzf "$tools/trivy.tar.gz" -C "$tools" trivy
+          "$tools/trivy" image --image-src docker --scanners vuln \
+            --skip-version-check --timeout 15m --exit-code 0 --list-all-pkgs \
+            --cache-dir "$tools/cache" --format json \
+            --output "$reports/vulnerabilities.json" "$IMAGE_REF"
+          "$tools/trivy" convert --format cyclonedx \
+            --output "$reports/sbom.cdx.json" "$reports/vulnerabilities.json"
+          "$tools/trivy" version --cache-dir "$tools/cache" --format json \
+            > "$reports/scanner-version.json"
+
+      - name: Upload optional image reports
+        id: report_upload
+        if: always() && steps.reports.outcome != 'skipped' && steps.publish.outcome == 'success'
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: il4-image-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/il4-image-reports/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Summarize optional reporting outcome
+        if: always() && steps.reports.outcome != 'skipped' && steps.publish.outcome == 'success'
+        env:
+          REPORT_OUTCOME: ${{ steps.reports.outcome }}
+          UPLOAD_OUTCOME: ${{ steps.report_upload.outcome }}
+        run: |
+          set -euo pipefail
+          {
+            printf '\n## Optional image reports\n\n'
+            printf 'Report generation: **%s**. Artifact upload: **%s**.\n\n' \
+              "$REPORT_OUTCOME" "$UPLOAD_OUTCOME"
+            printf 'Report-only: findings do not gate publishing or establish compliance.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$REPORT_OUTCOME" != success || "$UPLOAD_OUTCOME" != success ]]; then
+            echo "::warning::Optional image reporting is incomplete. Do not interpret missing reports as a clean scan."
+          fi
+
+      - name: Remove job image tag
+        if: always() && steps.build.outcome == 'success'
+        run: docker image rm "$IMAGE_REF"
