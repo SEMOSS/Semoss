@@ -49,7 +49,6 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.cookie.ClientCookie;
 import org.apache.http.impl.auth.DigestScheme;
 import org.apache.http.impl.client.BasicAuthCache;
@@ -77,6 +76,7 @@ import prerna.util.Constants;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.ldap.ILdapAuthenticator;
 import prerna.util.ldap.LDAPPasswordChangeRequiredException;
+import prerna.util.radius.RadiusClient;
 
 public class LinOTPUtil {
 
@@ -89,9 +89,27 @@ public class LinOTPUtil {
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 */
+	/**
+	 * Authenticates against LinOTP. Dispatches to either LinOTP's native REST
+	 * {@code validate/check} API (the existing, default behavior) or a RADIUS
+	 * exchange against a RADIUS-fronted token backend, based on the
+	 * {@code linotp_auth_mode} social property ({@code rest}, the default, or
+	 * {@code radius}). {@link #resetCounter(HttpServletRequest)} has no RADIUS
+	 * equivalent - LinOTP's admin reset is a management-API operation, not part
+	 * of the authentication protocol - and always uses the REST API regardless
+	 * of this setting.
+	 */
 	public static LinOTPResponse login(HttpServletRequest request) throws ClientProtocolException, IOException {
 		SocialPropertiesUtil socialData = SocialPropertiesUtil.getInstance();
+		String authMode = socialData.getProperty("linotp_auth_mode", "rest");
+		if ("radius".equalsIgnoreCase(authMode)) {
+			return loginViaRadius(request, socialData);
+		}
+		return loginViaRest(request, socialData);
+	}
 
+	private static LinOTPResponse loginViaRest(HttpServletRequest request, SocialPropertiesUtil socialData)
+			throws ClientProtocolException, IOException {
 		Map<String, Object> returnMap = new HashMap<>();
 		LinOTPResponse linotpResponse = new LinOTPResponse();
 		linotpResponse.setReturnMap(returnMap);
@@ -184,8 +202,7 @@ public class LinOTPUtil {
 
 			// first, request for challenge request using user pin
 			// Create HTTP request via ssl port (https) and pass post parameters
-			CloseableHttpClient httpclient = HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-					.build();
+			CloseableHttpClient httpclient = HttpClients.custom().build();
 			try {
 				HttpEntity entity = null;
 				HttpPost httpPost = new HttpPost(requestURL);
@@ -274,8 +291,7 @@ public class LinOTPUtil {
 		} else {
 			// subsequent challenge request with otp
 			// Create HTTP request via ssl port (https) and pass post parameters
-			CloseableHttpClient httpclient = HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-					.build();
+			CloseableHttpClient httpclient = HttpClients.custom().build();
 			try {
 				HttpPost httpPost = new HttpPost(requestURL);
 				HttpSession session = request.getSession();
@@ -358,7 +374,195 @@ public class LinOTPUtil {
 	}
 
 	/**
-	 * 
+	 * Authenticates against a RADIUS-fronted token backend. Mirrors the two-step
+	 * (pin, then OTP) flow of {@link #loginViaRest(HttpServletRequest, SocialPropertiesUtil)}:
+	 * an initial Access-Request carries the user's pin, and either succeeds
+	 * outright (a policy with no second factor), fails, or comes back as an
+	 * Access-Challenge whose State value is stashed in the session and must be
+	 * echoed back, together with the user's OTP, in a follow-up call to this same
+	 * method.
+	 */
+	private static LinOTPResponse loginViaRadius(HttpServletRequest request, SocialPropertiesUtil socialData)
+			throws IOException {
+		final String RADIUS_USERNAME = "radiusUsername";
+		final String RADIUS_STATE = "radiusState";
+		final String OTP = "OTP";
+		final String AD_ACCESS_TOKEN = "ad_token";
+
+		Map<String, Object> returnMap = new HashMap<>();
+		LinOTPResponse linotpResponse = new LinOTPResponse();
+		linotpResponse.setReturnMap(returnMap);
+
+		String username = request.getParameter("username");
+		String pin = request.getParameter("pin");
+		String otp = request.getParameter("otp");
+
+		if ((username == null || username.isEmpty()) && (otp == null || otp.isEmpty())) {
+			returnMap.put(Constants.ERROR_MESSAGE, "The user name cannot be null or empty.");
+			linotpResponse.setResponseCode(401);
+			return linotpResponse;
+		}
+		if ((pin == null || pin.isEmpty()) && (otp == null || otp.isEmpty())) {
+			returnMap.put(Constants.ERROR_MESSAGE, "Must be providing either a pin or otp");
+			linotpResponse.setResponseCode(401);
+			return linotpResponse;
+		}
+
+		AccessToken adAuthToken = null;
+		if (otp == null) {
+			boolean checkAD = Boolean.parseBoolean(socialData.getProperty("linotp_check_ad", "false"));
+			if (checkAD) {
+				ILdapAuthenticator authenticator = null;
+				try {
+					authenticator = socialData.getLdapAuthenticator();
+					adAuthToken = authenticator.authenticate(username, pin);
+					if (adAuthToken == null) {
+						throw new IllegalArgumentException("Unable to parse any user attributes");
+					}
+					request.getSession().setAttribute(AD_ACCESS_TOKEN, adAuthToken);
+				} catch (LDAPPasswordChangeRequiredException e) {
+					invalidateUnauthenticatedSession(request);
+					classLogger.error(Constants.STACKTRACE, e);
+					returnMap.put(Constants.ERROR_MESSAGE, e.getMessage());
+					returnMap.put(ILdapAuthenticator.LDAP_PASSWORD_CHANGE_RETURN_KEY, true);
+					linotpResponse.setResponseCode(401);
+					return linotpResponse;
+				} catch (Exception e) {
+					invalidateUnauthenticatedSession(request);
+					classLogger.error(Constants.STACKTRACE, e);
+					returnMap.put(Constants.ERROR_MESSAGE, e.getMessage() != null
+							? "Failed to authenticate with active directory. Error message = " + e.getMessage()
+							: "Failed to authenticate with active directory.");
+					linotpResponse.setResponseCode(500);
+					return linotpResponse;
+				} finally {
+					if (authenticator != null) {
+						try {
+							authenticator.close();
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
+						}
+					}
+				}
+			}
+		}
+
+		RadiusClient radiusClient = buildRadiusClient(socialData);
+		RadiusClient.RadiusResult result;
+		HttpSession session = request.getSession();
+		try {
+			if (otp == null) {
+				result = radiusClient.authenticate(radiusUsername(username, socialData), pin);
+			} else {
+				String stashedUsername = (String) session.getAttribute(RADIUS_USERNAME);
+				byte[] state = (byte[]) session.getAttribute(RADIUS_STATE);
+				if (stashedUsername == null || stashedUsername.isEmpty() || state == null) {
+					returnMap.put(Constants.ERROR_MESSAGE,
+							"The user must re-enter their username and password before proceeding to enter their 2FA pin");
+					linotpResponse.setResponseCode(401);
+					return linotpResponse;
+				}
+				username = stashedUsername;
+				result = radiusClient.authenticateChallengeResponse(radiusUsername(username, socialData), otp, state);
+			}
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			returnMap.put(Constants.ERROR_MESSAGE, "Failed to reach the RADIUS server. Error message = " + e.getMessage());
+			linotpResponse.setResponseCode(500);
+			return linotpResponse;
+		}
+
+		switch (result.getStatus()) {
+		case ACCEPT:
+			AccessToken token = new AccessToken();
+			token.setProvider(AuthProvider.LINOTP);
+			token.setId(username);
+			token.setUsername(username);
+
+			adAuthToken = (AccessToken) session.getAttribute(AD_ACCESS_TOKEN);
+			if (adAuthToken != null) {
+				token.setEmail(adAuthToken.getEmail());
+				token.setLastPasswordReset(adAuthToken.getLastPasswordReset());
+				session.removeAttribute(AD_ACCESS_TOKEN);
+			}
+			session.removeAttribute(RADIUS_USERNAME);
+			session.removeAttribute(RADIUS_STATE);
+
+			returnMap.put("success", "true");
+			returnMap.put("username", username);
+			linotpResponse.setToken(token);
+			linotpResponse.setResponseCode(200);
+
+			// this is just an attempt to reset counter (REST-API-only; no RADIUS
+			// equivalent) - still allow user to login if it fails
+			try {
+				resetCounter(new LinOTPResponse(), username);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+			return linotpResponse;
+
+		case CHALLENGE:
+			session.setAttribute(RADIUS_USERNAME, username);
+			session.setAttribute(RADIUS_STATE, result.getState());
+			returnMap.put(OTP, result.getReplyMessage() != null ? result.getReplyMessage() : "Please get OTP code.");
+			linotpResponse.setResponseCode(200);
+			return linotpResponse;
+
+		case REJECT:
+		default:
+			returnMap.put(Constants.ERROR_MESSAGE,
+					result.getReplyMessage() != null ? result.getReplyMessage()
+							: "The user name, pin, or one-time passcode are invalid.");
+			linotpResponse.setResponseCode(401);
+			return linotpResponse;
+		}
+	}
+
+	private static void invalidateUnauthenticatedSession(HttpServletRequest request) {
+		HttpSession session = request.getSession(false);
+		if (session != null) {
+			User user = (User) session.getAttribute(Constants.SESSION_USER);
+			if (!AbstractSecurityUtils.anonymousUsersEnabled() && user != null && user.getLogins().isEmpty()) {
+				session.invalidate();
+			}
+		}
+	}
+
+	/**
+	 * Builds a {@link RadiusClient} from the {@code linotp_radius_*} social
+	 * properties. {@code linotp_radius_hostname} and {@code linotp_radius_secret}
+	 * are required; the rest have sensible defaults.
+	 */
+	private static RadiusClient buildRadiusClient(SocialPropertiesUtil socialData) {
+		String hostname = socialData.getProperty("linotp_radius_hostname");
+		String secret = socialData.getProperty("linotp_radius_secret");
+		if (hostname == null || hostname.isEmpty() || secret == null || secret.isEmpty()) {
+			throw new IllegalStateException(
+					"linotp_radius_hostname and linotp_radius_secret must both be configured for linotp_auth_mode=radius");
+		}
+		int port = Integer.parseInt(socialData.getProperty("linotp_radius_port", "1812"));
+		String nasIdentifier = socialData.getProperty("linotp_radius_nas_identifier", "SEMOSS");
+		int timeoutMillis = Integer.parseInt(socialData.getProperty("linotp_radius_timeout_ms", "5000"));
+		int retries = Integer.parseInt(socialData.getProperty("linotp_radius_retries", "2"));
+		return new RadiusClient(hostname, port, secret, nasIdentifier, timeoutMillis, retries);
+	}
+
+	/**
+	 * RADIUS has no native realm concept; LinOTP's RADIUS server selects the
+	 * realm from the RADIUS User-Name attribute itself, in {@code user@realm}
+	 * form. {@code linotp_radius_realm} is optional - omit it to rely on the
+	 * RADIUS server's own default realm. This only affects the value sent to the
+	 * RADIUS server; the plain username (without the realm suffix) is still what
+	 * SEMOSS uses for the resulting session/{@link AccessToken}.
+	 */
+	static String radiusUsername(String username, SocialPropertiesUtil socialData) {
+		String realm = socialData.getProperty("linotp_radius_realm", "");
+		return realm.isEmpty() ? username : username + "@" + realm;
+	}
+
+	/**
+	 *
 	 * @param request
 	 * @return
 	 * @throws ClientProtocolException
@@ -399,7 +603,29 @@ public class LinOTPUtil {
 	}
 
 	/**
-	 * 
+	 * Builds the "admin_session" cookie sent alongside the LinOTP admin reset call.
+	 * The cookie value is a random, single-use token (paired with the same value
+	 * sent in the request body) used as a CSRF-style double-submit check - it is not
+	 * itself a long-lived credential, but it is still security-relevant, so it is
+	 * marked Secure (never sent over a non-TLS connection) and HttpOnly for defense
+	 * in depth, consistent with how session-identifying cookies are hardened
+	 * elsewhere in this codebase.
+	 *
+	 * @param domain the LinOTP server hostname the cookie is scoped to
+	 * @param token  the random session token value
+	 * @return a configured cookie ready to add to a CookieStore
+	 */
+	static BasicClientCookie buildAdminSessionCookie(String domain, String token) {
+		BasicClientCookie cookie = new BasicClientCookie("admin_session", token);
+		cookie.setDomain(domain);
+		cookie.setAttribute(ClientCookie.DOMAIN_ATTR, "true");
+		cookie.setSecure(true);
+		cookie.setAttribute("httponly", "true");
+		return cookie;
+	}
+
+	/**
+	 *
 	 * @param linotpResponse
 	 * @param username
 	 * @return
@@ -467,15 +693,12 @@ public class LinOTPUtil {
 
 		// must send the token in the cookie as well as the session key in the body
 		CookieStore cstore = new BasicCookieStore();
-		BasicClientCookie cookie = new BasicClientCookie("admin_session", token);
-		cookie.setDomain(cleanHostname);
-		cookie.setAttribute(ClientCookie.DOMAIN_ATTR, "true");
+		BasicClientCookie cookie = buildAdminSessionCookie(cleanHostname, token);
 		cstore.addCookie(cookie);
 		context.setCookieStore(cstore);
 
 		// Create HTTP request via ssl port (https) and pass post parameters
-		CloseableHttpClient httpclient = HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-				.build();
+		CloseableHttpClient httpclient = HttpClients.custom().build();
 		try {
 			HttpPost httpPost = new HttpPost(requestURL);
 
