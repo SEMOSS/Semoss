@@ -98,6 +98,22 @@ outweighs a fix that would close only part of what's left even in the best case.
 Reassess if a live Databricks workspace becomes available to validate the 3.x
 rewrite end to end, or Databricks ships a further 2.x-line patch.
 
+**`at.yawk.lz4:lz4-java`**, also bundled inside `databricks-jdbc`, is a clean
+exception to the above: Inspector2's 5 findings against it (CVE-2026-106449/
+50/51/52/53 - heap-exhaustion, predictable-tempfile, and stack-overflow DoS
+vectors, needing 1.11.2 or 1.11.4 depending on the CVE) are **all fully closed
+by the 3.x rewrite**, unlike Jackson. SEMOSS's own real, directly-declared
+`lz4-java` dependency is already pinned to the fixed `1.11.4` (`pom.xml`'s
+`lz4.version`, with explicit exclusions forcing every transitive pull through
+it) - confirmed by downloading and inspecting `databricks-jdbc-3.4.4.jar`
+directly: it bundles the identical `1.11.4`, while the current `2.8.4` still
+bundles the vulnerable `1.11.1` (no newer 2.x release exists to pick up
+instead). This doesn't change the accepted-exception decision above, though:
+the 3.x rewrite's compatibility risk and untestability apply regardless of
+which specific bundled component it would incidentally fix, and Jackson - the
+majority of what's left - stays open either way. Reassess alongside the
+Jackson line above if circumstances change.
+
 ## Strict connection profiles
 
 [JdbcTls.java](../../JdbcTls.java) is the single source for the tested URL profiles.
