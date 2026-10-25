@@ -208,6 +208,27 @@ appears anywhere in the codebase, so neither precondition the exploit needs is
 present. See `accepted_vulnerabilities` in
 [compatibility.json](./python-dependencies/compatibility.json).
 
+**Deferred:** the 2026-10-24 `dev` merge brought `py/install_config/pyproject.toml`
+(a normally-merged file, not this directory's hand-maintained spec) to
+`pandas==3.0.6` and `pyarrow>=26.0.0` as part of a broader, Python-3.14-driven
+currency pass across dozens of packages. This hardened `pyproject.toml` stays
+at `pandas==2.3.3`/`pyarrow==23.0.1` for now. Neither bump is security-driven -
+pandas has no open advisory, and pyarrow's only relevant one (CVE-2026-25087)
+is already closed at this pin - so there is nothing to patch, only currency to
+gain. Adopting it later would not reopen the fsspec/datasets chain above:
+`datasets==4.4.0` declares only `pyarrow>=21.0.0` with no ceiling, so pyarrow
+can move independently of `datasets`/`fsspec` (that chain only reopens if
+`fsspec` itself is bumped first). Both `pandas-3.0.6` and `pyarrow-26.0.0`
+ship cp314 wheels and numpy's installed `2.5.3` already clears both floors, so
+nothing mechanically blocks the bump. It is deferred anyway because
+`pandas` 2.x -> 3.x is a major version bump (Copy-on-Write is now mandatory,
+not opt-in): a scan of this codebase's ~26 pandas-importing files under `py/`
+found no removed APIs and only the safe direct-reference `inplace=True` form
+(not the chained-indexing pattern CoW changes), but that is not a substitute
+for actually running the worker's pandas smoke check against 3.0.6 before
+adopting it. Revisit alongside the next real pandas/pyarrow CVE, or if `dev`'s
+pin drifts far enough to make the next security-driven bump here require it.
+
 `pillow` is bumped from 12.3.0 to 13.0.0, closing all 39 findings against the
 bundled package as of the 2026-10-23 rescan (4 CRITICAL, mostly TIFF/GIF/APNG/
 XBM/MSP/BMP/MPO/DCX/SPIDER/JPEG2000 decoder memory-safety bugs; all fixed
