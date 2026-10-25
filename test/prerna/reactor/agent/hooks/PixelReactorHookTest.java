@@ -116,6 +116,26 @@ class PixelReactorHookTest {
 		hook.configure(spec); // no throw
 	}
 
+	@Test
+	void configureRejectsBindingUnavailableAtSelectedEvent() {
+		JSONObject spec = new JSONObject();
+		spec.put("pixel", "LogIt([hookOutput]);");
+		spec.put("events", new JSONArray().put(PixelReactorHook.EVT_BEFORE_RUN));
+		spec.put("bindings", new JSONObject().put("hookOutput", "result.finalText"));
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> hook.configure(spec));
+		assertTrue(ex.getMessage().contains("not available"));
+	}
+
+	@Test
+	void configureRejectsEventSpecificBindingWhenHookFiresOnAllEvents() {
+		JSONObject spec = new JSONObject();
+		spec.put("pixel", "LogIt([hookOutput]);");
+		spec.put("bindings", new JSONObject().put("hookOutput", "tool.resultContent"));
+
+		assertThrows(IllegalArgumentException.class, () -> hook.configure(spec));
+	}
+
 	// ---------- event firing ----------
 
 	@Test
@@ -243,4 +263,5 @@ class PixelReactorHookTest {
 
 		verify(insight).runPixel(eq("LogIt();"));
 	}
+
 }
