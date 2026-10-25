@@ -126,6 +126,36 @@ release depending on `commons-configuration2` instead, or if any future
 code change has SEMOSS load an untrusted configuration file through this
 library directly.
 
+**`gremlin-shaded` 3.7.7** (pulled in transitively via `org.janusgraph:janusgraph-core`
+and SEMOSS's own `gremlin-core`/`tinkergraph-gremlin`/`neo4j-gremlin` dependencies,
+backing the real `TinkerEngine`/`GremlinInterpreter` graph engine) bundles
+`jackson-databind`/`jackson-core` **2.18.9**, contributing the same 7 open
+jackson findings as `databricks-jdbc` below (CVE-2026-83557/89425/91776/89407/
+19032/91777/68497) - a shaded copy embedded inside the jar's own bytecode,
+invisible to and unpatchable via the `jackson2.version`/`jackson3.version`
+`dependencyManagement` pins above. Checked every stable TinkerPop release from
+the current 3.7.7 through the latest 3.8.2 by downloading and inspecting each
+jar's bundled `pom.properties` directly: all of them ship the identical
+`2.18.9` (3.8.0 actually regresses to `2.15.2`) - no stable release closes
+this. The only release bundling something different is the pre-release
+`4.0.0-beta.3`, which relocates Jackson entirely to
+`org.apache.tinkerpop.shaded.jackson.*`; adopting a beta dependency for an
+IL4-hardened build isn't warranted for an unreleased, architecturally
+different fix. Reachability is low: SEMOSS's only custom TinkerPop IO wiring
+([MyGraphIoRegistry.java](../../src/prerna/util/MyGraphIoRegistry.java),
+[MyGraphIoMappingBuilder.java](../../src/prerna/util/MyGraphIoMappingBuilder.java))
+registers types against `GryoIo` (Kryo-based binary serialization), not
+GraphSON - no `GraphSONMapper`/`GraphSONReader`/`GraphSONWriter` usage exists
+anywhere in this repo or Monolith, so the polymorphic-deserialization
+preconditions these CVEs need (`@JsonTypeInfo` misuse with a fallback,
+`Path`/`XMLGregorianCalendar` binding, `@JsonIdentityInfo` forward references)
+have no confirmed path through this embedded copy. See
+[the JDBC README](./integrations/jdbc/README.md) for the matching
+`databricks-jdbc`/`x-pack-sql-jdbc` writeup - same CVEs, same unpatchable
+shaded-copy reasoning. Reassess if TinkerPop ships a stable release bundling
+`jackson>=2.22.3`, or if SEMOSS's Gremlin integration is ever extended to use
+GraphSON.
+
 ## Functional validation and integration status
 
 The **BC baseline** localhost-only deployment passed native administrator login, CSRF-protected
