@@ -31,6 +31,9 @@ This example reads the credential at runtime, so the initialization script does
 not contain the secret. The SDK also honors `TYPESAFE_BASE_URL`, or you can supply
 `base_url` directly to `TypeSafeClientWrapper`. Use the API root, without `/v1/systemone`.
 The constructor also accepts `timeout` (seconds) and `max_retries` (default 2).
+Request bodies are sent uncompressed by default, because vLLM `/v1/systemone`
+rejects zstd bodies. For a server that accepts them (the SDK's default), add
+`compression='zstd'` to the `TypeSafeClientWrapper(...)` call in `INIT_MODEL_ENGINE`.
 Rebuild/restart SEMOSS to load the new Java engine and reactor; reactor discovery
 is automatic. Model creation through `CreateModelEngine` uses the same
 `MODEL_TYPE`, `MODEL`, and `INIT_MODEL_ENGINE` properties in `modelDetails`.

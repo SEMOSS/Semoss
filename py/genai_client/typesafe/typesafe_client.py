@@ -26,6 +26,10 @@ IMAGES_HEADER = "TypeSafe-Danger-Zone-Images"
 # API); "images" is a JSON list of data URLs (vLLM and OpenJev /v1/systemone).
 IMAGE_FORMATS = ("assets", "images")
 
+# Request body compression: off unless the engine opts in with compression="zstd". The SDK
+# defaults to zstd when Python has it (3.14+), and vLLM /v1/systemone rejects zstd bodies.
+COMPRESSIONS = ("zstd", False)
+
 # Data URLs need a type; servers decode by content, so a missed sniff only mislabels.
 _IMAGE_SIGNATURES = {
     b"\x89PNG": "image/png",
@@ -57,12 +61,16 @@ class TypeSafeClientWrapper:
         timeout: float | None = None,
         max_retries: int = 2,
         image_format: str = "assets",
+        compression: str | bool = False,
     ):
         if not isinstance(model, str) or not model.strip():
             raise ValueError("model must be a nonempty string")
         if image_format not in IMAGE_FORMATS:
             raise ValueError(f"image_format must be one of {IMAGE_FORMATS}")
+        if compression not in COMPRESSIONS:
+            raise ValueError(f"compression must be one of {COMPRESSIONS}")
         self.image_format = image_format
+        self.compression = compression
         options = TypeSafeCallOptions(timeout=timeout, max_retries=max_retries)
         self.api_key = api_key
         self.model = model
@@ -83,6 +91,7 @@ class TypeSafeClientWrapper:
                 base_url=self.base_url,
                 retry=RetryPolicy(max_retries=self.max_retries),
                 http_client=http_client,
+                compression=self.compression,
             )
         except Exception:
             http_client.close()
