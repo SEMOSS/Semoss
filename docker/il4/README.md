@@ -945,6 +945,101 @@ unused clutter, not revived - the live path here is server-side TLS client-cert
 validation (Tomcat/the connector), not a client-side PKCS#11 smart-card reader
 running in the browser or on the app server itself.
 
+## LinOTP RADIUS authentication
+
+`LinOTPUtil` previously only spoke LinOTP's own REST `validate/check` API.
+`linotp_auth_mode` (in `social.properties`) now selects between that existing
+behavior (`rest`, the default - unchanged) and a RADIUS (RFC 2865) exchange
+(`radius`) against a RADIUS-fronted token backend, such as LinOTP's own RADIUS
+token. This is implemented directly against `java.net.DatagramSocket` in
+[`prerna.util.radius`](../../src/prerna/util/radius) rather than by adding a
+third-party RADIUS client dependency: the protocol surface needed is small,
+and for a FIPS/IL4-hardened build, an implementation that is fully auditable
+in two files is preferable to trusting an external library's exact handling
+of password encryption and response-authenticator verification.
+
+### Configuration
+
+All of these live in `social.properties`. Only `linotp_radius_hostname` and
+`linotp_radius_secret` are required; `linotp_auth_mode` must be set to
+`radius` for any of this to take effect (the default, `rest`, ignores these
+entirely).
+
+| Property | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `linotp_auth_mode` | No | `rest` | `rest` keeps the existing LinOTP REST API behavior; `radius` switches to the RADIUS exchange described here. |
+| `linotp_radius_hostname` | **Yes** (radius mode) | - | RADIUS server hostname or IP address. |
+| `linotp_radius_port` | No | `1812` | RADIUS authentication port (`1812` is the standard RFC 2865 port; some deployments still use the legacy `1645`). |
+| `linotp_radius_secret` | **Yes** (radius mode) | - | The shared secret configured identically on this application and on the RADIUS server. Treat it as a credential: do not commit it, log it, or reuse a secret shared with an unrelated RADIUS client. |
+| `linotp_radius_realm` | No | unset (server's own default realm) | RADIUS has no native realm attribute; LinOTP's RADIUS server selects the realm from the `User-Name` attribute itself, in `user@realm` form. Set this to have SEMOSS append `@<realm>` to the username it sends over RADIUS. Only the wire value is affected - the plain username (without the suffix) is still what SEMOSS uses for the resulting session. |
+| `linotp_radius_nas_identifier` | No | `SEMOSS` | Sent as the `NAS-Identifier` attribute, identifying this application to the RADIUS server. Set this if your RADIUS server's client configuration expects a specific value. |
+| `linotp_radius_timeout_ms` | No | `5000` | Socket receive timeout, in milliseconds, for a single Access-Request attempt. |
+| `linotp_radius_retries` | No | `2` | Additional attempts after the first if a request times out. RADIUS runs over UDP, which does not guarantee delivery, so a lost packet is expected occasionally rather than exceptional. |
+
+`linotp_hostname`/`linotp_realm`/`linotp_adminuser`/`linotp_adminpassword`
+(the existing REST-API properties) are unrelated to and unaffected by RADIUS
+mode - see "Admin reset stays on REST" below.
+
+### FIPS note on RFC 2865's use of MD5
+
+RADIUS's `User-Password` attribute encryption and its response-authenticator
+scheme (the server-authenticity check on every reply) are both defined in RFC
+2865 in terms of MD5. This is mandated by the RADIUS protocol itself, not a
+choice made by this implementation, and MD5 is used here only for that
+RFC-specified purpose - never as a general-purpose cryptographic primitive
+elsewhere in this application. There is no FIPS-approved alternative to RFC
+2865's own wire format; a deployment that cannot accept this would need a
+non-RADIUS second factor instead.
+
+### Not live-tested
+
+No RADIUS server was available to validate this against end to end. Instead:
+
+- Password encryption and response-authenticator verification are each
+  checked against an independent, from-scratch re-implementation of the RFC
+  2865 math written directly into the unit tests (not by having the
+  production code check itself).
+- A minimal, hermetic UDP test server bound to loopback drives the real
+  client through a full two-step (pin, then OTP) Access-Challenge/Access-Accept
+  exchange, an Access-Reject exchange, and - importantly - a forged/mismatched
+  response-authenticator case, confirming the client actually rejects a
+  response signed with the wrong secret rather than merely logging a warning.
+  See `prerna.util.radius.RadiusProtocolUnitTests`.
+- A client pointed at a port with nothing listening is confirmed to retry the
+  configured number of times and then fail explicitly, rather than hang.
+
+This exercises the protocol implementation thoroughly but does not replace
+validating against a real RADIUS server (attribute quirks a specific vendor's
+server expects, actual network/firewall behavior, realm handling against a
+real multi-realm LinOTP instance) before production use.
+
+### Admin reset stays on REST
+
+`LinOTPUtil.resetCounter` (the admin fail-counter reset) always uses LinOTP's
+REST admin API regardless of `linotp_auth_mode` - RADIUS is an authentication
+protocol with no management-API equivalent, so there is nothing to switch
+here. `linotp_adminuser`/`linotp_adminpassword`/`linotp_hostname` must still
+be configured for that endpoint to work, even when login itself is in RADIUS
+mode.
+
+### Audit logging
+
+`UserResource.loginLinOTP` now writes both `LOGIN_SUCCESS` and
+`LOGIN_FAILURE` to the security audit trail (see "Security audit logging"
+above) via the same `SemossLogUtils.logSecurityAuditEvent` path
+`UserResource.loginNative` and the CAC/PIV filter use, plus the matching
+`UserAuditTrailUtils` failure-trail entry on the failure path (the success
+path's `UserAuditTrailUtils` entry already happens automatically via
+`addAccessToken` -> `userTrackingLogin`, the same as every other provider).
+This covers both auth modes identically, since both return through the same
+`LinOTPResponse`. The one exception is the password field itself: neither the
+submitted pin/password/OTP, nor the RADIUS shared secret, is ever written to
+any log - only the username, client IP, and a sanitized error message (never
+the raw server response body) are recorded on failure. The intermediate
+"please enter your OTP" challenge step (a 200 response with no token yet) is
+deliberately not written to the audit trail - it is neither a success nor a
+failure, so only the eventual accept/reject outcome is.
+
 ## Mobile code (Content-Security-Policy)
 
 DoD mobile-code policy (SC-18, DoDI 8552.01) categorizes active content by
