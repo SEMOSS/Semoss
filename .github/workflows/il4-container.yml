@@ -65,6 +65,15 @@ jobs:
             echo "::error::The Docker daemon must run Linux containers."
             exit 1
           fi
+          # This runner pool is shared across many jobs/workflows, some of which call
+          # docker/setup-buildx-action to create a docker-container builder and select it
+          # as current. That selection (and, occasionally, a builder registered under the
+          # name "default" itself) can survive on the underlying runner host into a job
+          # that expects a clean environment. Reset both explicitly instead of failing on
+          # state a different job left behind.
+          docker context use default >/dev/null
+          docker buildx rm default >/dev/null 2>&1 || true
+          docker buildx use default
           # Use the approved daemon's embedded BuildKit, not a floating builder image.
           if ! docker buildx inspect default | grep -Eq '^Driver:[[:space:]]+docker$'; then
             echo "::error::The default Buildx builder must use the docker driver."
