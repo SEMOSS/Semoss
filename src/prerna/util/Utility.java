@@ -3739,6 +3739,85 @@ public final class Utility {
 	}
 
 	/**
+	 * Determine if for this instance only the admin can add a virtual environment
+	 * 
+	 * @return true if only an admin can add a virtual environment
+	 */
+	public static boolean getApplicationAdminOnlyVenvAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_ADD);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can delete a virtual
+	 * environment
+	 * 
+	 * @return true if only an admin can delete a virtual environment
+	 */
+	public static boolean getApplicationAdminOnlyVenvDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_DELETE);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can add/set virtual environment
+	 * access
+	 * 
+	 * @return true if only an admin can add/set virtual environment access
+	 */
+	public static boolean getApplicationAdminOnlyVenvAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_ADD_ACCESS);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can set a virtual environment
+	 * public
+	 * 
+	 * @return true if only an admin can set a virtual environment public
+	 */
+	public static boolean getApplicationAdminOnlyVenvSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_SET_PUBLIC);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can set a virtual environment
+	 * discoverable
+	 * 
+	 * @return true if only an admin can set a virtual environment discoverable
+	 */
+	public static boolean getApplicationAdminOnlyVenvSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_SET_DISCOVERABLE);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
 	 * Get a comma separated list of widget ids to filter on
 	 * 
 	 * @return
