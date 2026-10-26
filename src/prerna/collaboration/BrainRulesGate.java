@@ -254,7 +254,7 @@ public final class BrainRulesGate {
 	// active rules, oldest first; the gate and the thread read share them
 	static List<Rule> activeRules(String ownerId, String ownerType) {
 		return CollaborationDbUtils.query(
-				"SELECT RULE_ID, KIND, VALUE, TOPIC_ID, PERSON_ID, CHANNEL FROM BRAIN_RULE "
+				"SELECT RULE_ID, KIND, " + BrainRuleUtils.valueColumn() + ", TOPIC_ID, PERSON_ID, CHANNEL FROM BRAIN_RULE "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND DISABLED_AT IS NULL ORDER BY CREATED_AT, RULE_ID",
 				rs -> new Rule(rs.getString("RULE_ID"), rs.getString("KIND"), rs.getString("VALUE"),
 						rs.getString("TOPIC_ID"), rs.getString("PERSON_ID"), rs.getString("CHANNEL")),
