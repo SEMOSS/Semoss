@@ -14,5 +14,14 @@
 	"packageManager": "pnpm@10.10.0",
 	"devDependencies": {
 		"@biomejs/biome": "2.5.12"
+	},
+	"pnpm": {
+		"overrides": {
+			"@modelcontextprotocol/sdk": "1.32.0",
+			"proxy-addr": "2.0.8",
+			"brace-expansion": "5.0.12",
+			"source-map-js": "1.2.2",
+			"undici": "7.30.1"
+		}
 	}
 }
