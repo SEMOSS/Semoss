@@ -225,7 +225,7 @@ public abstract class AbstractFormBuilder {
 	
 				classLogger.info("CREATING NEW AUDIT LOG!!!");
 				StringBuilder createAuditTable = new StringBuilder("CREATE TABLE ");
-				createAuditTable.append(auditLogTableName).append("(ID IDENTITY, USER VARCHAR(255), ACTION VARCHAR(100), START_NODE VARCHAR(255), "
+				createAuditTable.append(auditLogTableName).append("(ID IDENTITY, \"USER\" VARCHAR(255), ACTION VARCHAR(100), START_NODE VARCHAR(255), "
 						+ "REL_NAME VARCHAR(255), END_NODE VARCHAR(255), PROP_NAME VARCHAR(255), PROP_VALUE CLOB, TIME TIMESTAMP");
 				if(this.tagCols != null) {
 					for(String tag : tagCols) {
@@ -374,7 +374,7 @@ public abstract class AbstractFormBuilder {
 		PreparedStatement ps = null;
 
 		try {
-			ps = rdbmsEng.getPreparedStatement("INSERT INTO "+this.auditLogTableName+" (USER, ACTION, START_NODE, REL_NAME, END_NODE, PROP_NAME, PROP_VALUE, TIME) VALUES(?,?,?,?,?,?,?,?)");
+			ps = rdbmsEng.getPreparedStatement("INSERT INTO "+this.auditLogTableName+" (\"USER\", ACTION, START_NODE, REL_NAME, END_NODE, PROP_NAME, PROP_VALUE, TIME) VALUES(?,?,?,?,?,?,?,?)");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, cleanUser);
 			ps.setString(parameterIndex++, action);
