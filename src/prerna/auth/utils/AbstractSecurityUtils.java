@@ -152,6 +152,12 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyGuardrailSetPublic = false;
 	static boolean adminOnlyGuardrailSetDiscoverable = false;
 
+	static boolean adminOnlyVenvAdd = false;
+	static boolean adminOnlyVenvDelete = false;
+	static boolean adminOnlyVenvAddAccess = false;
+	static boolean adminOnlyVenvSetPublic = false;
+	static boolean adminOnlyVenvSetDiscoverable = false;
+
 	static boolean adminOnlyInsightSetPublic = false;
 	static boolean adminOnlyInsightAddAccess = false;
 
@@ -272,6 +278,12 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyGuardrailAddAccess = Utility.getApplicationAdminOnlyGuardrailAddAccess();
 		adminOnlyGuardrailSetPublic = Utility.getApplicationAdminOnlyGuardrailSetPublic();
 		adminOnlyGuardrailSetDiscoverable = Utility.getApplicationAdminOnlyGuardrailSetDiscoverable();
+
+		adminOnlyVenvAdd = Utility.getApplicationAdminOnlyVenvAdd();
+		adminOnlyVenvDelete = Utility.getApplicationAdminOnlyVenvDelete();
+		adminOnlyVenvAddAccess = Utility.getApplicationAdminOnlyVenvAddAccess();
+		adminOnlyVenvSetPublic = Utility.getApplicationAdminOnlyVenvSetPublic();
+		adminOnlyVenvSetDiscoverable = Utility.getApplicationAdminOnlyVenvSetDiscoverable();
 
 		adminOnlyInsightSetPublic = Utility.getApplicationAdminOnlyInsightSetPublic();
 		adminOnlyInsightAddAccess = Utility.getApplicationAdminOnlyInsightAddAccess();
@@ -551,6 +563,26 @@ public abstract class AbstractSecurityUtils {
 		return adminOnlyGuardrailSetDiscoverable;
 	}
 
+	public static boolean adminOnlyVenvAdd() {
+		return adminOnlyVenvAdd;
+	}
+
+	public static boolean adminOnlyVenvDelete() {
+		return adminOnlyVenvDelete;
+	}
+
+	public static boolean adminOnlyVenvAddAccess() {
+		return adminOnlyVenvAddAccess;
+	}
+
+	public static boolean adminOnlyVenvSetPublic() {
+		return adminOnlyVenvSetPublic;
+	}
+
+	public static boolean adminOnlyVenvSetDiscoverable() {
+		return adminOnlyVenvSetDiscoverable;
+	}
+
 	public static boolean adminOnlyInsightSetPublic() {
 		return adminOnlyInsightSetPublic;
 	}
@@ -580,6 +612,8 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyFunctionAdd;
 		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			return adminOnlyGuardrailAdd;
+		} else if (IEngine.CATALOG_TYPE.VENV == type) {
+			return adminOnlyVenvAdd;
 		}
 
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
@@ -602,6 +636,8 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyFunctionDelete;
 		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			return adminOnlyGuardrailDelete;
+		} else if (IEngine.CATALOG_TYPE.VENV == type) {
+			return adminOnlyVenvDelete;
 		}
 
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
@@ -624,6 +660,8 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyFunctionAddAccess;
 		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			return adminOnlyGuardrailAddAccess;
+		} else if (IEngine.CATALOG_TYPE.VENV == type) {
+			return adminOnlyVenvAddAccess;
 		}
 
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
@@ -646,6 +684,8 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyFunctionSetPublic;
 		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			return adminOnlyGuardrailSetPublic;
+		} else if (IEngine.CATALOG_TYPE.VENV == type) {
+			return adminOnlyVenvSetPublic;
 		}
 
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
@@ -668,6 +708,8 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyFunctionSetDiscoverable;
 		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			return adminOnlyGuardrailSetDiscoverable;
+		} else if (IEngine.CATALOG_TYPE.VENV == type) {
+			return adminOnlyVenvSetDiscoverable;
 		}
 
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
