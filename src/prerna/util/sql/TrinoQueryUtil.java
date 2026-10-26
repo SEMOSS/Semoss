@@ -76,14 +76,14 @@ public class TrinoQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Configuration map is null or empty");
 		}
 
-		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
+		this.connectionUrl = getOptionalStringValue(configMap, AbstractSqlQueryUtil.CONNECTION_URL, null);
 
-		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
+		this.hostname = getOptionalStringValue(configMap, AbstractSqlQueryUtil.HOSTNAME, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty()) && (hostname == null || hostname.isEmpty())) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
 
-		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
+		this.port = getOptionalStringValue(configMap, AbstractSqlQueryUtil.PORT, null);
 		String port = this.port;
 		if (port != null && !port.isEmpty()) {
 			port = ":" + port;
@@ -91,18 +91,18 @@ public class TrinoQueryUtil extends AnsiSqlQueryUtil {
 			port = "";
 		}
 
-		this.database = (String) configMap.get(AbstractSqlQueryUtil.CATALOG);
+		this.database = getOptionalStringValue(configMap, AbstractSqlQueryUtil.CATALOG, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.database == null || this.database.isEmpty())) {
 			throw new RuntimeException("Must pass in the database/catalog");
 		}
 
-		this.schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
+		this.schema = getOptionalStringValue(configMap, AbstractSqlQueryUtil.SCHEMA, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty()) && (schema == null || schema.isEmpty())) {
 			throw new RuntimeException("Must pass in schema name");
 		}
 
-		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.additionalProps = getOptionalStringValue(configMap, AbstractSqlQueryUtil.ADDITIONAL, null);
 
 		// do we need to make the connection url?
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
@@ -121,14 +121,14 @@ public class TrinoQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Properties object is null or empty");
 		}
 
-		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
+		this.connectionUrl = getOptionalStringValue(prop, AbstractSqlQueryUtil.CONNECTION_URL, null);
 
-		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
+		this.hostname = getOptionalStringValue(prop, AbstractSqlQueryUtil.HOSTNAME, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty()) && (hostname == null || hostname.isEmpty())) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
 
-		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
+		this.port = getOptionalStringValue(prop, AbstractSqlQueryUtil.PORT, null);
 		String port = this.port;
 		if (port != null && !port.isEmpty()) {
 			port = ":" + port;
@@ -136,18 +136,18 @@ public class TrinoQueryUtil extends AnsiSqlQueryUtil {
 			port = "";
 		}
 
-		this.database = (String) prop.get(AbstractSqlQueryUtil.CATALOG);
+		this.database = getOptionalStringValue(prop, AbstractSqlQueryUtil.CATALOG, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.database == null || this.database.isEmpty())) {
 			throw new RuntimeException("Must pass in the database/catalog");
 		}
 
-		this.schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
+		this.schema = getOptionalStringValue(prop, AbstractSqlQueryUtil.SCHEMA, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty()) && (schema == null || schema.isEmpty())) {
 			throw new RuntimeException("Must pass in schema name");
 		}
 
-		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.additionalProps = getOptionalStringValue(prop, AbstractSqlQueryUtil.ADDITIONAL, null);
 
 		// do we need to make the connection url?
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {

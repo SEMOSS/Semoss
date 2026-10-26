@@ -122,39 +122,39 @@ public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Configuration map is null or empty");
 		}
 
-		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
+		this.connectionUrl = getOptionalStringValue(configMap, AbstractSqlQueryUtil.CONNECTION_URL, null);
 
-		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
+		this.hostname = getOptionalStringValue(configMap, AbstractSqlQueryUtil.HOSTNAME, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.hostname == null || this.hostname.isEmpty())) {
 			throw new RuntimeException("Must pass in a host");
 		}
 
-		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
+		this.port = getOptionalStringValue(configMap, AbstractSqlQueryUtil.PORT, null);
 		if (this.port == null || this.port.isEmpty()) {
 			this.port = "443";
 		}
 
-		this.projectId = (String) configMap.get(AbstractSqlQueryUtil.PROJECT_ID);
+		this.projectId = getOptionalStringValue(configMap, AbstractSqlQueryUtil.PROJECT_ID, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.projectId == null || this.projectId.isEmpty())) {
 			throw new RuntimeException("Must pass in a project id");
 		}
 
-		this.oauthType = (String) configMap.get(AbstractSqlQueryUtil.OAUTH_TYPE);
+		this.oauthType = getOptionalStringValue(configMap, AbstractSqlQueryUtil.OAUTH_TYPE, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.oauthType == null || this.oauthType.isEmpty())) {
 			throw new RuntimeException("Must pass in an OAuth Type");
 		}
 
 		if (this.oauthType.equals("0")) {
-			this.oauthServiceAcctEmail = (String) configMap.get(AbstractSqlQueryUtil.OAUTH_SERVICE_ACCT_EMAIL);
+			this.oauthServiceAcctEmail = getOptionalStringValue(configMap, AbstractSqlQueryUtil.OAUTH_SERVICE_ACCT_EMAIL, null);
 			if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 					&& (this.oauthServiceAcctEmail == null || this.oauthServiceAcctEmail.isEmpty())) {
 				throw new RuntimeException("Must pass in an OAuth Service Account Email");
 			}
 
-			this.oauthPrivateKeyPath = (String) configMap.get(AbstractSqlQueryUtil.OAUTH_PRIVATE_KEY_PATH);
+			this.oauthPrivateKeyPath = getOptionalStringValue(configMap, AbstractSqlQueryUtil.OAUTH_PRIVATE_KEY_PATH, null);
 			if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 					&& (this.oauthPrivateKeyPath == null || this.oauthPrivateKeyPath.isEmpty())) {
 				throw new RuntimeException("Must pass in an OAuth Private Key Path");
@@ -162,8 +162,8 @@ public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 		} else if (this.oauthType.equals("1")) {
 			throw new IllegalArgumentException("This authentication protocol is not currently supported");
 		} else if (this.oauthType.equals("2")) {
-			this.oauthAccessToken = (String) configMap.get(AbstractSqlQueryUtil.OAUTH_ACCESS_TOKEN);
-			this.oauthRefreshToken = (String) configMap.get(AbstractSqlQueryUtil.OAUTH_REFRESH_TOKEN);
+			this.oauthAccessToken = getOptionalStringValue(configMap, AbstractSqlQueryUtil.OAUTH_ACCESS_TOKEN, null);
+			this.oauthRefreshToken = getOptionalStringValue(configMap, AbstractSqlQueryUtil.OAUTH_REFRESH_TOKEN, null);
 
 			if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 					&& ((this.oauthAccessToken == null || this.oauthAccessToken.isEmpty())
@@ -171,13 +171,13 @@ public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 				throw new RuntimeException("Must pass in an OAuth Access Token or Refresh Token");
 			}
 
-			this.oauthClientId = (String) configMap.get(AbstractSqlQueryUtil.OAUTH_CLIENT_ID);
+			this.oauthClientId = getOptionalStringValue(configMap, AbstractSqlQueryUtil.OAUTH_CLIENT_ID, null);
 			if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 					&& (this.oauthClientId == null || this.oauthClientId.isEmpty())) {
 				throw new RuntimeException("Must pass in an OAuth Client ID");
 			}
 
-			this.oauthClientSecret = (String) configMap.get(AbstractSqlQueryUtil.OAUTH_CLIENT_SECRET);
+			this.oauthClientSecret = getOptionalStringValue(configMap, AbstractSqlQueryUtil.OAUTH_CLIENT_SECRET, null);
 			if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 					&& (this.oauthClientSecret == null || this.oauthClientSecret.isEmpty())) {
 				throw new RuntimeException("Must pass in an OAuth Client Secret");
@@ -189,13 +189,13 @@ public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 					"OAuth Type can only contain one of the following values: '0', '1', '2', '3'");
 		}
 
-		this.schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
+		this.schema = getOptionalStringValue(configMap, AbstractSqlQueryUtil.SCHEMA, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.schema == null || this.schema.isEmpty())) {
 			throw new RuntimeException("Must pass in the default dataset");
 		}
 
-		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.additionalProps = getOptionalStringValue(configMap, AbstractSqlQueryUtil.ADDITIONAL, null);
 
 		// do we need to make the connection url?
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
@@ -234,39 +234,39 @@ public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Properties object is null or empty");
 		}
 
-		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
+		this.connectionUrl = getOptionalStringValue(prop, AbstractSqlQueryUtil.CONNECTION_URL, null);
 
-		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
+		this.hostname = getOptionalStringValue(prop, AbstractSqlQueryUtil.HOSTNAME, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.hostname == null || this.hostname.isEmpty())) {
 			throw new RuntimeException("Must pass in a host");
 		}
 
-		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
+		this.port = getOptionalStringValue(prop, AbstractSqlQueryUtil.PORT, null);
 		if (this.port == null || this.port.isEmpty()) {
 			this.port = "443";
 		}
 
-		this.projectId = (String) prop.get(AbstractSqlQueryUtil.PROJECT_ID);
+		this.projectId = getOptionalStringValue(prop, AbstractSqlQueryUtil.PROJECT_ID, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.projectId == null || this.projectId.isEmpty())) {
 			throw new RuntimeException("Must pass in a project id");
 		}
 
-		this.oauthType = (String) prop.get(AbstractSqlQueryUtil.OAUTH_TYPE);
+		this.oauthType = getOptionalStringValue(prop, AbstractSqlQueryUtil.OAUTH_TYPE, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.oauthType == null || this.oauthType.isEmpty())) {
 			throw new RuntimeException("Must pass in an OAuth Type");
 		}
 
 		if (this.oauthType.equals("0")) {
-			this.oauthServiceAcctEmail = (String) prop.get(AbstractSqlQueryUtil.OAUTH_SERVICE_ACCT_EMAIL);
+			this.oauthServiceAcctEmail = getOptionalStringValue(prop, AbstractSqlQueryUtil.OAUTH_SERVICE_ACCT_EMAIL, null);
 			if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 					&& (this.oauthServiceAcctEmail == null || this.oauthServiceAcctEmail.isEmpty())) {
 				throw new RuntimeException("Must pass in an OAuth Service Account Email");
 			}
 
-			this.oauthPrivateKeyPath = (String) prop.get(AbstractSqlQueryUtil.OAUTH_PRIVATE_KEY_PATH);
+			this.oauthPrivateKeyPath = getOptionalStringValue(prop, AbstractSqlQueryUtil.OAUTH_PRIVATE_KEY_PATH, null);
 			if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 					&& (this.oauthPrivateKeyPath == null || this.oauthPrivateKeyPath.isEmpty())) {
 				throw new RuntimeException("Must pass in an OAuth Private Key Path");
@@ -274,8 +274,8 @@ public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 		} else if (this.oauthType.equals("1")) {
 			throw new IllegalArgumentException("This authentication protocol is not currently supported");
 		} else if (this.oauthType.equals("2")) {
-			this.oauthAccessToken = (String) prop.get(AbstractSqlQueryUtil.OAUTH_ACCESS_TOKEN);
-			this.oauthRefreshToken = (String) prop.get(AbstractSqlQueryUtil.OAUTH_REFRESH_TOKEN);
+			this.oauthAccessToken = getOptionalStringValue(prop, AbstractSqlQueryUtil.OAUTH_ACCESS_TOKEN, null);
+			this.oauthRefreshToken = getOptionalStringValue(prop, AbstractSqlQueryUtil.OAUTH_REFRESH_TOKEN, null);
 
 			if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 					&& ((this.oauthAccessToken == null || this.oauthAccessToken.isEmpty())
@@ -283,13 +283,13 @@ public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 				throw new RuntimeException("Must pass in an OAuth Access Token or Refresh Token");
 			}
 
-			this.oauthClientId = (String) prop.get(AbstractSqlQueryUtil.OAUTH_CLIENT_ID);
+			this.oauthClientId = getOptionalStringValue(prop, AbstractSqlQueryUtil.OAUTH_CLIENT_ID, null);
 			if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 					&& (this.oauthClientId == null || this.oauthClientId.isEmpty())) {
 				throw new RuntimeException("Must pass in an OAuth Client ID");
 			}
 
-			this.oauthClientSecret = (String) prop.get(AbstractSqlQueryUtil.OAUTH_CLIENT_SECRET);
+			this.oauthClientSecret = getOptionalStringValue(prop, AbstractSqlQueryUtil.OAUTH_CLIENT_SECRET, null);
 			if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 					&& (this.oauthClientSecret == null || this.oauthClientSecret.isEmpty())) {
 				throw new RuntimeException("Must pass in an OAuth Client Secret");
@@ -301,13 +301,13 @@ public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 					"OAuth Type can only contain one of the following values: '0', '1', '2', '3'");
 		}
 
-		this.schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
+		this.schema = getOptionalStringValue(prop, AbstractSqlQueryUtil.SCHEMA, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.schema == null || this.schema.isEmpty())) {
 			throw new RuntimeException("Must pass in the default dataset");
 		}
 
-		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.additionalProps = getOptionalStringValue(prop, AbstractSqlQueryUtil.ADDITIONAL, null);
 
 		// do we need to make the connection url?
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {

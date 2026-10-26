@@ -84,14 +84,14 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Configuration map is null or empty");
 		}
 
-		this.forceFile = Boolean.parseBoolean(configMap.get(AbstractSqlQueryUtil.FORCE_FILE) + "");
-		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
-		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
-		this.schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
-		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
-		this.username = (String) configMap.get(AbstractSqlQueryUtil.USERNAME);
-		this.password = (String) configMap.get(AbstractSqlQueryUtil.PASSWORD);
+		this.forceFile = getOptionalBooleanValue(configMap, AbstractSqlQueryUtil.FORCE_FILE, false);
+		this.connectionUrl = getOptionalStringValue(configMap, AbstractSqlQueryUtil.CONNECTION_URL, null);
+		this.hostname = getOptionalStringValue(configMap, AbstractSqlQueryUtil.HOSTNAME, null);
+		this.port = getOptionalStringValue(configMap, AbstractSqlQueryUtil.PORT, null);
+		this.schema = getOptionalStringValue(configMap, AbstractSqlQueryUtil.SCHEMA, null);
+		this.additionalProps = getOptionalStringValue(configMap, AbstractSqlQueryUtil.ADDITIONAL, null);
+		this.username = getOptionalStringValue(configMap, AbstractSqlQueryUtil.USERNAME, null);
+		this.password = getOptionalStringValue(configMap, AbstractSqlQueryUtil.PASSWORD, null);
 
 		return buildConnectionString();
 	}
@@ -102,14 +102,14 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Properties object is null or empty");
 		}
 
-		this.forceFile = Boolean.parseBoolean(prop.get(AbstractSqlQueryUtil.FORCE_FILE) + "");
-		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
-		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
-		this.schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
-		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
-		this.username = (String) prop.get(AbstractSqlQueryUtil.USERNAME);
-		this.password = (String) prop.get(AbstractSqlQueryUtil.PASSWORD);
+		this.forceFile = getOptionalBooleanValue(prop, AbstractSqlQueryUtil.FORCE_FILE, false);
+		this.connectionUrl = getOptionalStringValue(prop, AbstractSqlQueryUtil.CONNECTION_URL, null);
+		this.hostname = getOptionalStringValue(prop, AbstractSqlQueryUtil.HOSTNAME, null);
+		this.port = getOptionalStringValue(prop, AbstractSqlQueryUtil.PORT, null);
+		this.schema = getOptionalStringValue(prop, AbstractSqlQueryUtil.SCHEMA, null);
+		this.additionalProps = getOptionalStringValue(prop, AbstractSqlQueryUtil.ADDITIONAL, null);
+		this.username = getOptionalStringValue(prop, AbstractSqlQueryUtil.USERNAME, null);
+		this.password = getOptionalStringValue(prop, AbstractSqlQueryUtil.PASSWORD, null);
 
 		return buildConnectionString();
 	}
@@ -122,9 +122,7 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 
 		this.connectionUrl = this.dbType.getUrlPrefix();
 
-		if (this.hostname == null || this.hostname.isEmpty()) {
-			throw new RuntimeException("Must pass in a hostname");
-		}
+		requireNonBlank(AbstractSqlQueryUtil.HOSTNAME, this.hostname);
 
 		String port = this.port;
 		if (port != null && !port.isEmpty()) {
