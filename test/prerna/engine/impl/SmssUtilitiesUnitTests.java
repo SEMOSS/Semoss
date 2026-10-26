@@ -569,4 +569,81 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		assertEquals(curr, SmssUtilities.concealSmssSensitiveInfo(curr));
 	}
 
+	@Test
+	void testGetInsightsRdbmsFileInvalidConfiguredRdbmsType() {
+		Properties prop = new Properties();
+		prop.setProperty(Constants.RDBMS_INSIGHTS, "@PROJECT@" + File.separator + "data");
+		prop.setProperty(Constants.RDBMS_INSIGHTS_TYPE, "NOT_A_REAL_RDBMS_TYPE");
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> SmssUtilities.getInsightsRdbmsFile(prop));
+
+		assertTrue(e.getMessage().contains("NOT_A_REAL_RDBMS_TYPE"),
+				"Error message should name the invalid configured value, was: " + e.getMessage());
+		assertTrue(e.getMessage().contains("H2_DB"),
+				"Error message should list the valid RdbmsTypeEnum constants, was: " + e.getMessage());
+	}
+
+	@Test
+	void testCreateTempProjectSmssInvalidConfiguredRdbmsType() throws IOException {
+		Path base = tempDir.resolve("Semoss");
+		Files.createDirectories(base);
+		Properties coreProp = new Properties();
+		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
+		coreProp.setProperty(Constants.DEFAULT_INSIGHTS_RDBMS, "NOT_A_REAL_RDBMS_TYPE");
+		DIHelper.getInstance().setCoreProp(coreProp);
+
+		Path project = base.resolve("project");
+		Files.createDirectories(project);
+
+		// passing a null forceInsightDatabaseType forces this method to fall back to
+		// the configured DEFAULT_INSIGHTS_RDBMS property
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> SmssUtilities.createTemporaryProjectSmss("pid", "pname", IProject.PROJECT_TYPE.INSIGHTS,
+						"github", "github.com", null));
+
+		assertTrue(e.getMessage().contains("NOT_A_REAL_RDBMS_TYPE"),
+				"Error message should name the invalid configured value, was: " + e.getMessage());
+		assertTrue(e.getMessage().contains("H2_DB"),
+				"Error message should list the valid RdbmsTypeEnum constants, was: " + e.getMessage());
+	}
+
+	@Test
+	void testCreateTempAssetInvalidConfiguredRdbmsType() throws IOException {
+		Path base = tempDir.resolve("Semoss");
+		Files.createDirectories(base);
+		Properties coreProp = new Properties();
+		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
+		coreProp.setProperty(Constants.DEFAULT_INSIGHTS_RDBMS, "NOT_A_REAL_RDBMS_TYPE");
+		DIHelper.getInstance().setCoreProp(coreProp);
+
+		Path user = base.resolve("user");
+		Files.createDirectories(user);
+
+		// passing a null forceInsightDatabaseType forces this method to fall back to
+		// the configured DEFAULT_INSIGHTS_RDBMS property
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> SmssUtilities.createTemporaryAssetSmss("pid", "pname", null));
+
+		assertTrue(e.getMessage().contains("NOT_A_REAL_RDBMS_TYPE"),
+				"Error message should name the invalid configured value, was: " + e.getMessage());
+		assertTrue(e.getMessage().contains("H2_DB"),
+				"Error message should list the valid RdbmsTypeEnum constants, was: " + e.getMessage());
+	}
+
+	@Test
+	void testGenerateInsightsDatabaseInvalidConfiguredRdbmsType() {
+		Properties coreProp = new Properties();
+		coreProp.setProperty(Constants.DEFAULT_INSIGHTS_RDBMS, "NOT_A_REAL_RDBMS_TYPE");
+		DIHelper.getInstance().setCoreProp(coreProp);
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> SmssUtilities.generateInsightsDatabase("pid", "pname"));
+
+		assertTrue(e.getMessage().contains("NOT_A_REAL_RDBMS_TYPE"),
+				"Error message should name the invalid configured value, was: " + e.getMessage());
+		assertTrue(e.getMessage().contains("H2_DB"),
+				"Error message should list the valid RdbmsTypeEnum constants, was: " + e.getMessage());
+	}
+
 }

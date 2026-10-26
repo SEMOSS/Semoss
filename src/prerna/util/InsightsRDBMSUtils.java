@@ -69,7 +69,7 @@ public final class InsightsRDBMSUtils {
 			// default will be h2
 			rdbmsTypeStr = "H2_DB";
 		}
-		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
+		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
 
 		Properties insightSmssProp = new Properties();
 		/*
@@ -253,7 +253,7 @@ public final class InsightsRDBMSUtils {
 				// default will be h2
 				rdbmsTypeStr = "H2_DB";
 			}
-			rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
+			rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
 		}
 
 		Properties insightSmssProp = new Properties();

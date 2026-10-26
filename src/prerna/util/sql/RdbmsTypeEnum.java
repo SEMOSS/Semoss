@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.util.sql;
 
+import java.util.Arrays;
+
 public enum RdbmsTypeEnum {
 
 	// @formatter:off
@@ -142,6 +144,27 @@ public enum RdbmsTypeEnum {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Get the enum based on the type, normalizing surrounding whitespace and case
+	 * first. Unlike {@link #getEnumFromString(String)}, this throws a clear,
+	 * actionable exception naming the invalid configured value and the valid
+	 * constants instead of silently returning null when the type cannot be
+	 * resolved.
+	 *
+	 * @param type
+	 * @return
+	 */
+	public static RdbmsTypeEnum getEnumFromStringOrThrow(String type) {
+		String normalizedType = type == null ? null : type.trim();
+		RdbmsTypeEnum foundType = (normalizedType == null || normalizedType.isEmpty()) ? null
+				: getEnumFromString(normalizedType);
+		if (foundType == null) {
+			throw new IllegalArgumentException(
+					"Unknown rdbms type '" + type + "'. Valid values are: " + Arrays.toString(RdbmsTypeEnum.values()));
+		}
+		return foundType;
 	}
 
 	/**
