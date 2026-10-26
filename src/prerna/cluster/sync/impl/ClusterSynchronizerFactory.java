@@ -137,7 +137,7 @@ public class ClusterSynchronizerFactory {
 	static boolean userLoaded(String projectId) {
 		// User assets are not registered in DIHelper like projects/engines.
 		// Check if the SMSS file exists locally it is only written here by
-		// pullUserAssetOrWorkspace, meaning this pod has previously fetched this
+		// pullUserAsset, meaning this pod has previously fetched this
 		// user's data and may have a stale copy.
 		String userFolder = EngineUtility.USER_FOLDER;
 		String assetSmss = userFolder + "/" + SmssUtilities.getUniqueName(UserAssetUtils.ASSET_APP_NAME, projectId)

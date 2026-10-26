@@ -39,11 +39,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload2.core.FileItem;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -72,11 +69,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.ResponseBuilder;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.security.HttpHelperUtility;
 import prerna.util.AssetUtility;
 import prerna.util.DefaultImageGeneratorUtil;
 import prerna.util.EngineUtility;
@@ -134,9 +134,8 @@ public class CouchUtil {
 	 * partition with matching field data. The entries of the map are used to form a
 	 * document selector used to query CouchDB for matching documents in the
 	 * partition. If a document is found, the attachment data is retrieved.
-	 * Otherwise, a new document with a default image attachment is created. The
-	 * retrieved or created image data is used to build a JAX-RS Response object to
-	 * download it.
+	 * Otherwise, a local image or shared stock fallback is returned. Stock catalog
+	 * images are served without creating a CouchDB attachment for each resource.
 	 * 
 	 * @param partitionId   The partition of the database to query for document
 	 *                      attachments
@@ -152,6 +151,15 @@ public class CouchUtil {
 	 * @throws CouchException           If another exception is encountered
 	 */
 	public static Response download(String partitionId, Map<String, String> referenceData) throws CouchException {
+		return download(partitionId, referenceData, null);
+	}
+
+	/**
+	 * The requested theme applies only to stock fallbacks, never stored
+	 * attachments.
+	 */
+	public static Response download(String partitionId, Map<String, String> referenceData, String theme)
+			throws CouchException {
 		if (referenceData == null || referenceData.isEmpty()) {
 			throw new IllegalArgumentException("Selector list is empty");
 		}
@@ -196,7 +204,7 @@ public class CouchUtil {
 					docJson.put(key, referenceData.get(key));
 				}
 			}
-			attachmentBytes = createDefault(partitionId, docJson);
+			attachmentBytes = createDefault(partitionId, docJson, theme);
 		}
 
 		String eTag = null;
@@ -206,8 +214,12 @@ public class CouchUtil {
 			classLogger.error("Error building byte digest", e);
 		}
 
+		// the default image has no stored attachment name; strip header delimiters
+		// instead of throwing
+		String safeAttachmentId = (attachmentId == null ? "image" : attachmentId).replace("\r", "").replace("\n", "")
+				.replace("\0", "").replace("\\", "\\\\").replace("\"", "\\\"");
 		ResponseBuilder builder = Response.ok(attachmentBytes).header("Content-Disposition",
-				"attachment; filename=\"" + attachmentId + "\"");
+				"attachment; filename=\"" + safeAttachmentId + "\"");
 		if (eTag != null) {
 			builder = builder.tag(eTag);
 		}
@@ -450,8 +462,8 @@ public class CouchUtil {
 	 * attachment. The default image is created by first searching for a local image
 	 * in the associated DB, project, and insight image locations. If found, the
 	 * byte array contents are returned. Otherwise, a stock image is selected as the
-	 * default. Before returning, the image is also uploaded to CouchDB for later
-	 * use.
+	 * default. Local images are uploaded to CouchDB for later use; stock catalog
+	 * fallbacks are returned directly without persisting a per-resource copy.
 	 * 
 	 * @param partitionId  The partition of the database that will contain the image
 	 * @param documentData A <a href="#{@link}">{@link ObjectNode}</a> with contents
@@ -464,7 +476,8 @@ public class CouchUtil {
 	 * @see AbstractSecurityUtils#getStockImage
 	 * @throws CouchException If an exception is encountered
 	 */
-	private static byte[] createDefault(String partitionId, ObjectNode documentData) throws CouchException {
+	private static byte[] createDefault(String partitionId, ObjectNode documentData, String theme)
+			throws CouchException {
 		String documentId = null;
 		String revisionId = null;
 		if (documentData.has("_id")) {
@@ -515,10 +528,8 @@ public class CouchUtil {
 					contentType = "image/" + extension;
 					fileContent = FileUtils.readFileToByteArray(insightImageFile);
 				} else {
-					attachmentName = "image.png";
-					contentType = "image/png";
-					fileContent = DefaultImageGeneratorUtil
-							.pickRandomImageBytes(buildStockSeed(partitionId, databaseId, databaseName));
+					return DefaultImageGeneratorUtil
+							.pickRandomImageBytes(buildStockSeed(partitionId, databaseId, databaseName), theme);
 				}
 			} else if (PROJECT.equals(partitionId)) {
 				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
@@ -528,7 +539,8 @@ public class CouchUtil {
 					String imagePath = ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "projects";
 					images = InsightUtility.findImageFile(imagePath, projectId);
 				} else {
-					String imagePath = AssetUtility.getProjectVersionFolder(projectName, projectId);
+					String imagePath = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
+							projectId, projectName);
 					images = InsightUtility.findImageFile(imagePath);
 				}
 
@@ -539,10 +551,8 @@ public class CouchUtil {
 					contentType = "image/" + extension;
 					fileContent = FileUtils.readFileToByteArray(insightImageFile);
 				} else {
-					attachmentName = "image.png";
-					contentType = "image/png";
-					fileContent = DefaultImageGeneratorUtil
-							.pickRandomImageBytes(buildStockSeed(partitionId, projectId, projectName));
+					return DefaultImageGeneratorUtil
+							.pickRandomImageBytes(buildStockSeed(partitionId, projectId, projectName), theme);
 				}
 			} else {
 				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
@@ -572,23 +582,17 @@ public class CouchUtil {
 	}
 
 	/**
-	 * Builds the deterministic seed used to pick a stock image. Formatted as
-	 * {@code <partition>|<alias>__<id>} so that DefaultImageGeneratorUtil can strip
-	 * the random id suffix and drive selection off the human alias - this keeps
-	 * differently-named entities (e.g. "TestCSV" vs "TestDB1") on distinct images.
-	 * The id is retained so a same-named pair still varies if the alias is missing.
+	 * Uses the resource ID to match local and cluster stock-image selection. A
+	 * missing ID falls back to the full alias, then the partition as a last resort.
 	 */
 	private static String buildStockSeed(String partitionId, String entityId, String entityName) {
-		StringBuilder builder = new StringBuilder();
-		builder.append(partitionId == null ? "" : partitionId).append("|");
-		String id = entityId == null ? "" : entityId;
-		if (entityName == null || entityName.isBlank()) {
-			// no alias to drive selection - fall back to the id (kept whole, no "__")
-			builder.append(id);
-		} else {
-			builder.append(entityName).append("__").append(id);
+		if (entityId != null && !entityId.isBlank()) {
+			return entityId;
 		}
-		return builder.toString();
+		if (entityName != null && !entityName.isBlank()) {
+			return entityName;
+		}
+		return partitionId == null ? "" : partitionId;
 	}
 
 	/**
@@ -795,7 +799,7 @@ public class CouchUtil {
 	 */
 	private static CouchResponse executeRequest(HttpUriRequest request) throws CouchException {
 		try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
-			request.setHeader(HttpHeaders.AUTHORIZATION, COUCH_AUTH);
+			request.setHeader(HttpHeaders.AUTHORIZATION, HttpHelperUtility.requireSafeHeaderValue(COUCH_AUTH));
 
 			HttpResponse response = client.execute(request);
 

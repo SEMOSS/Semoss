@@ -49,6 +49,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AssetUtility;
 
 /**
@@ -61,7 +64,8 @@ import prerna.util.AssetUtility;
  * <ul>
  * <li>Every file under the source's skill content folder (SKILL.md + any
  * helpers).</li>
- * <li>The description, re-synthesized into the clone's SKILL.md frontmatter.</li>
+ * <li>The description, re-synthesized into the clone's SKILL.md
+ * frontmatter.</li>
  * </ul>
  *
  * <p>
@@ -82,8 +86,8 @@ import prerna.util.AssetUtility;
  * </ul>
  *
  * <p>
- * Authorization: caller must be able to view the source skill-project
- * ({@link SecurityProjectUtils#userCanViewProject}).
+ * Authorization: caller must be able to view the source skill-project and the
+ * project must be explicitly enabled as a template.
  */
 public class CloneSkillReactor extends AbstractReactor {
 
@@ -111,6 +115,9 @@ public class CloneSkillReactor extends AbstractReactor {
 		if (!SecurityProjectUtils.userCanViewProject(user, sourceSkillId)) {
 			throw new IllegalArgumentException(
 					"Skill " + sourceSkillId + " does not exist or user does not have permission to view it");
+		}
+		if (!SecurityProjectUtils.userCanCloneProject(user, sourceSkillId)) {
+			throw new IllegalArgumentException("This skill is not enabled as a template and cannot be cloned.");
 		}
 
 		if (!SkillProjects.isSkillProject(sourceSkillId)) {
@@ -165,6 +172,8 @@ public class CloneSkillReactor extends AbstractReactor {
 		response.put("name", newName);
 		response.put("slug", newSlug);
 		response.put("source_skill_id", sourceSkillId);
+		UserAuditTrailUtils.recordResourceEvent(user, AuditEventType.SKILL_CREATE, AuditTargetType.SKILL, newSkillId,
+				newName, newSkillId, null, null, Map.of("clonedFrom", sourceSkillId));
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

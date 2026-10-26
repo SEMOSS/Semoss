@@ -14,7 +14,10 @@ if TYPE_CHECKING:
 
 from smss_thread_local import get_smss_stream
 from pydantic import BaseModel
-from ...message_builders.anthropic.anthropic_models import AnthropicRequestConfig
+from ...message_builders.anthropic.anthropic_models import (
+    AnthropicCacheTTL,
+    AnthropicRequestConfig,
+)
 from ...constants import (
     AskModelEngineResponse2,
     TEMPLATE,
@@ -24,12 +27,19 @@ from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
 )
+from ...message_builders.semoss_base.builtin_tools import has_built_in_tool
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ..model_engine_exception import (
     ModelEngineException,
     AnthropicRefusalError,
 )
 from ...utils import string_to_bool
+from ...usage_ceiling import (
+    PromptCount,
+    count_prompt_tokens,
+    fit_thinking_budget,
+    note_output_stop,
+)
 
 
 class ToolCall(BaseModel):
@@ -45,11 +55,18 @@ class Usage(BaseModel):
 
 class AnthropicTextClient(AbstractTextGenerationClient):
 
+    # Anthropic's smallest extended thinking budget
+    MIN_THINKING_BUDGET = 1024
+
+    # providers whose client supports messages.count_tokens
+    _COUNT_TOKENS_PROVIDERS = ("anthropic", "google", "azure")
+
     def __init__(
         self,
         provider: str,
         use_beta_header: Optional[Union[str, bool]] = False,
         prompt_caching: Optional[Union[str, bool]] = True,
+        cache_ttl: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(
@@ -69,6 +86,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             if isinstance(prompt_caching, str)
             else prompt_caching
         )
+        self.cache_ttl = self._normalize_cache_ttl(cache_ttl)
         self.beta_feature_name = kwargs.pop("beta_feature_name", None)
         if self.use_beta_header and not self.beta_feature_name:
             raise ValueError(
@@ -100,21 +118,31 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 region=kwargs.pop("region", None),
                 project=kwargs.pop("project", None),
                 api_key=kwargs.pop("api_key", None),
+                # Accept either .smss property name -- BATCH_REGION and
+                # GCP_BATCH_REGION have both been used across engines.
+                batch_region=kwargs.pop("batch_region", None) or kwargs.pop("gcp_batch_region", None),
             )
             return GoogleClient(config=self.client_config).anthropic_client
         elif self.provider == "bedrock":
             from anthropic.lib.bedrock import AnthropicBedrock
 
-            return AnthropicBedrock(
-                aws_region=kwargs.pop("aws_region", None),
-                aws_access_key=kwargs.pop("aws_access_key", None),
-                aws_secret_key=kwargs.pop("aws_secret_key", None),
-                default_headers=self._get_bedrock_guardrail_headers(
+            bedrock_kwargs = {
+                "aws_region": kwargs.pop("aws_region", None),
+                "aws_access_key": kwargs.pop("aws_access_key", None),
+                "aws_secret_key": kwargs.pop("aws_secret_key", None),
+                "default_headers": self._get_bedrock_guardrail_headers(
                     kwargs.pop("guardrail_identifier", None),
                     kwargs.pop("guardrail_version", None),
                     trace=kwargs.pop("guardrail_trace", True),
                 ),
-            )
+            }
+            try:
+                return AnthropicBedrock(**bedrock_kwargs)
+            except ValueError:
+                if bedrock_kwargs["aws_region"] is not None:
+                    raise
+                bedrock_kwargs["aws_region"] = "us-east-1"
+                return AnthropicBedrock(**bedrock_kwargs)
         elif self.provider == "azure":
             from anthropic import AnthropicFoundry
 
@@ -132,6 +160,38 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
             )
+
+    @staticmethod
+    def _normalize_cache_ttl(cache_ttl: Optional[str]) -> Optional[str]:
+        """
+        Resolve the cache_ttl the engine was initialized with to one of the
+        values Anthropic accepts on cache_control.
+
+        Returns None for an unset value, which leaves the ttl field off the
+        request entirely and gets Anthropic's 5 minute default.
+        """
+        if cache_ttl is None:
+            return None
+        ttl = str(cache_ttl).strip().lower()
+        if not ttl:
+            return None
+        if ttl not in AnthropicCacheTTL.values():
+            raise ValueError(
+                f"cache_ttl '{cache_ttl}' is not supported. Valid values are: "
+                + ", ".join(AnthropicCacheTTL.values())
+            )
+        return ttl
+
+    def _cache_control(self) -> Dict[str, Any]:
+        """
+        Build the cache_control payload applied at every breakpoint. The ttl key
+        is only included when one was explicitly requested so requests that rely
+        on the default lifetime keep their existing shape.
+        """
+        cache_control: Dict[str, Any] = {"type": "ephemeral"}
+        if self.cache_ttl:
+            cache_control["ttl"] = self.cache_ttl
+        return cache_control
 
     @staticmethod
     def _get_bedrock_guardrail_headers(
@@ -162,7 +222,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         """
         With the trace header enabled, Bedrock attaches the guardrail trace as
         extra JSON fields (amazon-bedrock-trace / amazon-bedrock-guardrailAction)
-        on the InvokeModel response body — the final message when non-streaming,
+        on the InvokeModel response body -- the final message when non-streaming,
         the message_stop event when streaming. The Anthropic SDK preserves
         unknown fields in model_extra.
 
@@ -220,8 +280,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             }
         return None
 
-    @staticmethod
-    def _apply_cache_to_tools(request_config: "AnthropicRequestConfig") -> None:
+    def _apply_cache_to_tools(self, request_config: "AnthropicRequestConfig") -> None:
         """
         Add cache_control to the last tool definition. Tools are evaluated
         first in Anthropic's cache breakpoint order (tools -> system -> messages),
@@ -230,10 +289,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         tools = request_config.tools
         if not tools:
             return
-        tools[-1]["cache_control"] = {"type": "ephemeral"}
+        tools[-1]["cache_control"] = self._cache_control()
 
-    @staticmethod
-    def _apply_cache_to_system(request_config: "AnthropicRequestConfig") -> None:
+    def _apply_cache_to_system(self, request_config: "AnthropicRequestConfig") -> None:
         """
         Convert the system prompt to list form and attach cache_control to its
         last text block. This caches the system prompt on the first call so
@@ -247,20 +305,23 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             return
         if isinstance(system, str):
             request_config.system = [
-                {"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}
+                {
+                    "type": "text",
+                    "text": system,
+                    "cache_control": self._cache_control(),
+                }
             ]
         elif isinstance(system, list):
             # Already a list - attach to the last text block.
             for block in reversed(system):
                 if isinstance(block, dict) and block.get("type") == "text":
-                    block["cache_control"] = {"type": "ephemeral"}
+                    block["cache_control"] = self._cache_control()
                     break
 
     # Block types that Anthropic supports cache_control on.
     _CACHEABLE_BLOCK_TYPES = {"text", "tool_result", "image", "document"}
 
-    @staticmethod
-    def _apply_cache_to_last_block(messages: List[Dict[str, Any]]) -> None:
+    def _apply_cache_to_last_block(self, messages: List[Dict[str, Any]]) -> None:
         """
         Add cache_control to the last cacheable block of the last message. This
         replicates Anthropic's automatic caching behaviour for providers
@@ -282,7 +343,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 {
                     "type": "text",
                     "text": content,
-                    "cache_control": {"type": "ephemeral"},
+                    "cache_control": self._cache_control(),
                 }
             ]
         elif isinstance(content, list):
@@ -291,7 +352,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     isinstance(block, dict)
                     and block.get("type") in AnthropicTextClient._CACHEABLE_BLOCK_TYPES
                 ):
-                    block["cache_control"] = {"type": "ephemeral"}
+                    block["cache_control"] = self._cache_control()
                     break
 
     def ask_call(
@@ -305,10 +366,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             if self.model_settings.global_param_override:
                 kwargs.update(self.model_settings.global_param_override)
 
-            built_in_tools = kwargs.get("built_in_tools", []) or []
-            web_search_enabled = any(
-                isinstance(tool, str) and tool.lower() == "web_search"
-                for tool in built_in_tools
+            web_search_enabled = has_built_in_tool(
+                kwargs.get("built_in_tools"), "web_search"
             )
             inline_citations = kwargs.get("inline_citations", None)
             if inline_citations is None:
@@ -327,7 +386,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 msg_builder_response = AnthropicMessageBuilder().build_messages(
                     semoss_messages,
                     self.model_settings,
-                    self.model_limits,
                     self.model_name,
                     self.use_beta_header,
                     self.beta_feature_name,
@@ -344,11 +402,16 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
             if self.prompt_caching:
                 if self.provider in ("anthropic", "azure"):
-                    request_config.cache_control = {"type": "ephemeral"}
+                    request_config.cache_control = self._cache_control()
                 elif self.provider in ("bedrock", "google"):
                     self._apply_cache_to_tools(request_config)
                     self._apply_cache_to_system(request_config)
                     self._apply_cache_to_last_block(request_config.messages)
+
+            # fitted on the finished request; since this client marks the prompt
+            # for caching, the prompt is priced at the higher of the input and
+            # cache write rates
+            self._apply_usage_ceiling(request_config)
 
             if streaming:
                 return self._handle_streaming(
@@ -371,6 +434,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 raise AnthropicRefusalError(
                     "The model refused to complete the request."
                 )
+
+            # stopped by max_tokens, which marks the response usageCapped when
+            # the ceiling set it
+            note_output_stop(response.stop_reason == "max_tokens")
 
             if response.stop_reason == "tool_use":
                 _cache_read = (
@@ -419,7 +486,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
             if self.prompt_caching and (cache_read_tokens or cache_creation_tokens):
                 print(
-                    f"[prompt_caching] cache_read_tokens={cache_read_tokens} "
+                    f"[prompt_caching] ttl={self.cache_ttl or '5m'} "
+                    f"cache_read_tokens={cache_read_tokens} "
                     f"cache_creation_tokens={cache_creation_tokens}",
                     flush=True,
                 )
@@ -452,6 +520,96 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             return ModelEngineException(
                 error=e, client="anthropic", model=self.model_name
             ).parse_error()
+
+    def _apply_usage_ceiling(self, request_config: AnthropicRequestConfig) -> None:
+        """Fit the request to the usage ceiling of the call in progress.
+
+        max_tokens is lowered to what the prompt leaves, never raised. A
+        budget_tokens thinking budget is lowered below it, leaving part of it for
+        the answer, and thinking is turned off when even 1,024 tokens do not fit.
+        Adaptive thinking has no budget and counts inside max_tokens, so it is
+        left as it is.
+        """
+        fit = self.fit_output_to_usage_ceiling(
+            request_config.max_tokens,
+            lambda: self._count_prompt_tokens(request_config),
+        )
+        if fit is None or not fit.lowered:
+            return
+        request_config.max_tokens = fit.max_tokens
+
+        thinking = request_config.thinking
+        if not thinking or thinking.get("type") != "enabled":
+            return
+        # Anthropic refuses a budget that is not below max_tokens, and thinking
+        # counts inside max_tokens, so the budget follows the lowered maximum
+        budget = fit_thinking_budget(
+            int(thinking.get("budget_tokens") or self.MIN_THINKING_BUDGET),
+            fit.max_tokens,
+            self.usage_ceiling_min_output_tokens(),
+            self.MIN_THINKING_BUDGET,
+        )
+        if budget is None:
+            request_config.thinking = None
+        else:
+            request_config.thinking = {**thinking, "budget_tokens": budget}
+
+    def _count_prompt_tokens(
+        self, request_config: AnthropicRequestConfig
+    ) -> PromptCount:
+        """Count the prompt with messages.count_tokens where the provider's
+        client supports it, and estimate it otherwise (Bedrock) or when the
+        count fails."""
+        if self.provider in self._COUNT_TOKENS_PROVIDERS and not getattr(
+            self, "_count_tokens_unavailable", False
+        ):
+            params: Dict[str, Any] = {
+                "model": request_config.model,
+                "messages": request_config.messages,
+            }
+            if request_config.system:
+                params["system"] = request_config.system
+            if request_config.tools:
+                params["tools"] = request_config.tools
+            if request_config.thinking:
+                params["thinking"] = request_config.thinking
+            try:
+                if self.use_beta_header and request_config.betas:
+                    result = self.client.beta.messages.count_tokens(
+                        betas=request_config.betas, **params
+                    )
+                else:
+                    result = self.client.messages.count_tokens(**params)
+                return PromptCount(tokens=int(result.input_tokens), estimated=False)
+            except Exception as e:
+                # remembered for the client, so an endpoint without count_tokens
+                # is not asked again on every call
+                if self._count_tokens_unsupported(e):
+                    self._count_tokens_unavailable = True
+
+        return count_prompt_tokens(
+            [request_config.system, request_config.messages],
+            [request_config.tools, request_config.output_config],
+            message_count=len(request_config.messages or []),
+        )
+
+    @staticmethod
+    def _count_tokens_unsupported(error: Exception) -> bool:
+        """True when count_tokens cannot work for this client at all, as
+        opposed to failing for one request or for a moment."""
+        from anthropic import (
+            APIConnectionError,
+            APIStatusError,
+            NotFoundError,
+            PermissionDeniedError,
+            AnthropicError,
+        )
+
+        if isinstance(error, (NotFoundError, PermissionDeniedError)):
+            return True
+        if isinstance(error, (APIStatusError, APIConnectionError)):
+            return False
+        return isinstance(error, (AnthropicError, AttributeError, NotImplementedError))
 
     def _parse_tools_call_response(
         self,
@@ -762,6 +920,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             smss_stream(data, stream_type="content", interim=False)
             raise AnthropicRefusalError("The model refused to complete the request.")
 
+        note_output_stop(stop_reason == "max_tokens")
+
         if tool_result:
             data = StreamUtil.create_finish_reason_chunk("tool_use")
             smss_stream(data, stream_type="tool", interim=False)
@@ -866,7 +1026,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         if self.prompt_caching and (cache_read_tokens or cache_creation_tokens):
             print(
-                f"[prompt_caching] cache_read_tokens={cache_read_tokens} "
+                f"[prompt_caching] ttl={self.cache_ttl or '5m'} "
+                f"cache_read_tokens={cache_read_tokens} "
                 f"cache_creation_tokens={cache_creation_tokens}",
                 flush=True,
             )
@@ -1073,12 +1234,188 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         return mapping.get(s, s.upper() or "UNKNOWN")
 
     def _ensure_native_batch_supported(self):
-        """Batch is only working for Anthropic provider; raise if not."""
-        if self.provider not in ("anthropic"):
+        """Batch is supported for direct Anthropic (native Message Batches API)
+        and Anthropic-on-Vertex (GCS-mediated Vertex batch prediction jobs, see
+        the _*_vertex methods below); raise for any other provider (bedrock,
+        azure)."""
+        if self.provider not in ("anthropic", "google"):
             raise ValueError(
-                f"Native message batches are not supported for Anthropic provider "
-                f"'{self.provider}'."
+                f"Batch is not supported for Anthropic provider '{self.provider}'."
             )
+
+    # Vertex batch prediction jobs are a regional resource -- they cannot be
+    # created (or looked up) against the "global" endpoint this engine uses
+    # for regular, non-batch inference. Fall back to a real region only for
+    # batch calls; every batch call site must agree on the same fallback
+    # since a job's resource name is region-qualified.
+    def _vertex_genai_client(self):
+        """A google.genai.Client configured for Vertex AI, for .batches.*.
+        Reuses this engine's own Vertex project/credentials (already loaded
+        for non-batch Anthropic-on-Vertex inference) -- unrelated to whatever
+        GCS storage engine's credentials a batch call was given.
+
+        Unlike regular inference, a Vertex AI batch prediction job for
+        Anthropic models is a regional resource and rejects region="global"
+        outright -- raise rather than silently substituting a region the
+        caller never configured, since a wrong guess would create the job
+        somewhere the caller doesn't expect (and later status/results calls
+        must agree on the same region to find it again)."""
+        from ...clients.google_clients import (
+            GoogleClient,
+            GoogleClientConfig,
+            GoogleClientType,
+        )
+
+        region = self.client_config.batch_region or self.client_config.region
+        if not region or region.strip().lower() == "global":
+            raise ValueError(
+                "Vertex AI batch prediction requires a real (non-global) region for "
+                "Anthropic-on-Vertex models. This engine's REGION is "
+                f"{self.client_config.region!r}; set BATCH_REGION on the engine's "
+                ".smss to a supported Anthropic-on-Vertex region (e.g. 'us-east5')."
+            )
+
+        config = GoogleClientConfig(
+            type=GoogleClientType.GOOGLE,
+            service_account_credentials=self.client_config.service_account_credentials,
+            service_account_key_file=self.client_config.service_account_key_file,
+            region=region,
+            project=self.client_config.project,
+        )
+        return GoogleClient(config=config).genai_client
+
+    def _submit_batch_vertex(self, requests, **kwargs) -> Dict[str, Any]:
+        """Anthropic-on-Vertex has no hosted batch API; a Vertex AI batch
+        prediction job is used instead, staged through Cloud Storage. This
+        Python client never touches that bucket directly -- Java drives the
+        upload through the SEMOSS storage engine that holds its credentials
+        (see ModelBatchManager.submitVertexBatch), calling this method twice:
+
+        Phase 1 (no inputUri kwarg): build the input JSONL content only, no
+        GCS/Vertex touched -- Java uploads what comes back in raw.jsonl_content.
+        Phase 2 (inputUri/outputUriPrefix kwargs present, requests empty):
+        Java has already uploaded the input file; just create the job.
+        """
+        input_uri = kwargs.pop("inputUri", None)
+        output_uri_prefix = kwargs.pop("outputUriPrefix", None)
+        if input_uri and output_uri_prefix:
+            from google.genai.types import CreateBatchJobConfig
+
+            from ...clients.vertex_batch_client import normalize_job_state
+
+            genai_client = self._vertex_genai_client()
+            job = genai_client.batches.create(
+                model=f"publishers/anthropic/models/{self.model_settings.model_name}",
+                src=input_uri,
+                config=CreateBatchJobConfig(dest=output_uri_prefix),
+            )
+            return {
+                "provider_batch_id": job.name,
+                "status": normalize_job_state(job.state),
+                "raw": {"name": job.name, "state": str(job.state)},
+            }
+
+        if isinstance(requests, str):
+            requests = json.loads(requests)
+        requests = [
+            self._normalize_request_for_batch(r, i)
+            for i, r in enumerate(requests or [])
+        ]
+        default_max_tokens = getattr(self.model_settings, "max_tokens", None) or 1024
+        lines = []
+        for req in requests or []:
+            params = dict(req.get("body") or req.get("params") or {})
+            # model is set at the job level, not per line
+            params.pop("model", None)
+            params.setdefault("max_tokens", default_max_tokens)
+            params.setdefault("anthropic_version", "vertex-2023-10-16")
+            lines.append({"custom_id": str(req.get("custom_id")), "request": params})
+        if not lines:
+            raise ValueError("submit_batch requires at least one request")
+
+        jsonl_content = "\n".join(json.dumps(line, ensure_ascii=False) for line in lines)
+        return {
+            "status": "BUILT",
+            "request_count": len(lines),
+            "raw": {"jsonl_content": jsonl_content},
+        }
+
+    def _get_batch_status_vertex(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        from ...clients.vertex_batch_client import job_output_uri, normalize_job_state
+
+        job_name = provider_batch_id.split(".", 1)[-1]
+        genai_client = self._vertex_genai_client()
+        job = genai_client.batches.get(name=job_name)
+        return {
+            "provider_batch_id": provider_batch_id,
+            "status": normalize_job_state(job.state),
+            "counts": None,
+            "raw": {
+                "name": job.name,
+                "state": str(job.state),
+                "output_uri": job_output_uri(job),
+            },
+        }
+
+    def _get_batch_results_vertex(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        """outputFiles are the local copies of every output shard Java already
+        downloaded through the storage engine -- this method only normalizes
+        their lines into the SEMOSS shape; it never touches GCS itself. jobId is
+        the bare Vertex job id; provider_batch_id is the SEMOSS id the results
+        are billed and logged under."""
+        from ...clients.vertex_batch_client import (
+            normalize_job_state,
+            normalize_result_line,
+            read_output_files,
+        )
+
+        job_name = kwargs.pop("jobId", None) or provider_batch_id.split(".", 1)[-1]
+        items = read_output_files(kwargs.pop("outputFiles", None) or [], normalize_result_line)
+
+        genai_client = self._vertex_genai_client()
+        job = genai_client.batches.get(name=job_name)
+        return {
+            "provider_batch_id": provider_batch_id,
+            "status": normalize_job_state(job.state),
+            "count": len(items),
+            "results": items,
+        }
+
+    def _list_batches_vertex(self, limit: int = 20, **kwargs) -> Dict[str, Any]:
+        """Lists Vertex AI batch jobs for this project/region. Each returned
+        provider_batch_id is the bare Vertex job name (no storageEngineId
+        prefix) since a project-wide listing has no single storage engine to
+        attach -- results for one of these ids would need "storage" supplied
+        again by the caller some other way; not a well-supported path today."""
+        from ...clients.vertex_batch_client import normalize_job_state
+
+        genai_client = self._vertex_genai_client()
+        resp = genai_client.batches.list(config={"page_size": limit})
+        batches = []
+        for job in resp:
+            batches.append(
+                {
+                    "provider_batch_id": job.name,
+                    "status": normalize_job_state(job.state),
+                    "request_count": None,
+                    "created_at": str(getattr(job, "create_time", None)),
+                }
+            )
+        return {"batches": batches}
+
+    def _cancel_batch_vertex(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        from ...clients.vertex_batch_client import normalize_job_state
+
+        job_name = provider_batch_id.split(".", 1)[-1]
+        genai_client = self._vertex_genai_client()
+        job = genai_client.batches.cancel(name=job_name)
+        if job is None:
+            job = genai_client.batches.get(name=job_name)
+        return {
+            "provider_batch_id": provider_batch_id,
+            "status": normalize_job_state(getattr(job, "state", None)),
+            "raw": {"name": job_name},
+        }
 
     def _normalize_request_for_batch(self, req: Any, idx: int) -> Dict[str, Any]:
         """Convert simplified {command, context} format to Anthropic batch wire format."""
@@ -1114,7 +1451,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         msg_builder_response = AnthropicMessageBuilder().build_messages(
             semoss_messages,
             self.model_settings,
-            self.model_limits,
             self.model_name,
             self.use_beta_header if self.use_beta_header else False,
             self.beta_feature_name,
@@ -1124,6 +1460,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         params.pop("stream", None)  # no streaming for batch
         params.pop("betas", None)
+        extra_body = params.pop("extra_body", None)
+        if extra_body:
+            params.update(extra_body)
         return {"custom_id": custom_id, "params": params}
 
     def submit_batch(self, requests, **kwargs) -> Dict[str, Any]:
@@ -1135,6 +1474,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         from anthropic.types.messages import MessageBatch
 
         self._ensure_native_batch_supported()
+        if self.provider == "google":
+            return self._submit_batch_vertex(requests, **kwargs)
         if isinstance(requests, str):
             requests = json.loads(requests)
         requests = [
@@ -1173,6 +1514,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def get_batch_status(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
         """Get the status of a previously submitted batch."""
         self._ensure_native_batch_supported()
+        if self.provider == "google":
+            return self._get_batch_status_vertex(provider_batch_id, **kwargs)
         batch = self.client.messages.batches.retrieve(provider_batch_id)
         rc = batch.request_counts
         counts = {
@@ -1198,6 +1541,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def get_batch_results(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
         """Get the results of a previously submitted batch"""
         self._ensure_native_batch_supported()
+        if self.provider == "google":
+            return self._get_batch_results_vertex(provider_batch_id, **kwargs)
         items = []
         raw_lines = []
         for entry in self.client.messages.batches.results(provider_batch_id):
@@ -1236,6 +1581,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
         return {
             "provider_batch_id": provider_batch_id,
+            # results can only be read once the batch has ended
+            "status": self._normalize_batch_status("ended"),
             "count": len(items),
             "results": items,
             "raw_jsonl": "\n".join(raw_lines),
@@ -1244,6 +1591,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def list_batches(self, limit: int = 20, **kwargs) -> Dict[str, Any]:
         """List previously submitted batches."""
         self._ensure_native_batch_supported()
+        if self.provider == "google":
+            return self._list_batches_vertex(limit, **kwargs)
         list_kwargs: Dict[str, Any] = {"limit": limit}
         after = kwargs.get("after")
         if not after:
@@ -1278,6 +1627,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def cancel_batch(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
         """Cancel a previously submitted batch."""
         self._ensure_native_batch_supported()
+        if self.provider == "google":
+            return self._cancel_batch_vertex(provider_batch_id, **kwargs)
         batch = self.client.messages.batches.cancel(provider_batch_id)
         return {
             "provider_batch_id": batch.id,

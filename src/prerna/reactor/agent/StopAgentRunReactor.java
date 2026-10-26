@@ -32,11 +32,20 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Pixel entry point for cancelling an agent run.
+ *
+ * <p>
+ * Delegates to {@link AgentRunService#stop}, which marks the run
+ * {@code CANCELLED} and, when the run is executing on this node, interrupts its
+ * thread and frees its room. Returns the run snapshot as it stands after the
+ * cancel.
+ */
 public class StopAgentRunReactor extends AbstractReactor {
 
 	private static final String RUN_ID_KEY = "runId";
@@ -50,7 +59,7 @@ public class StopAgentRunReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String runId = StringUtils.trimToNull(this.keyValue.get(RUN_ID_KEY));
-		Map<String, Object> result = AgentRuntimeManager.get().stop(runId, this.insight);
+		Map<String, Object> result = AgentRunService.get().stop(runId, this.insight);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

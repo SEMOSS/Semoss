@@ -44,6 +44,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -134,10 +135,11 @@ public class ExportEngineReactor extends AbstractReactor {
 				if(thisEngineF.exists()) {
 					logger.info("Zipping engine files...");
 					// now zip up
-					zos = ZipUtils.zipFolder(thisEngineDir, zipFilePath, ignoreDirs, 
-							// ignore the current metadata file
+					zos = ZipUtils.zipFolder(thisEngineDir, zipFilePath, ignoreDirs,
+							// ignore the current metadata files
 							Arrays.asList(
-									engineNameAndId+"/"+engineName+IEngine.METADATA_FILE_SUFFIX
+									engineNameAndId+"/"+engineName+IEngine.METADATA_FILE_SUFFIX,
+									engineNameAndId+"/"+engineName+IEngine.MODEL_METADATA_FILE_SUFFIX
 								));
 					logger.info("Done zipping engine folder");
 				} else {
@@ -153,7 +155,19 @@ public class ExportEngineReactor extends AbstractReactor {
 					ZipUtils.zipObjectToFile(zos, engineNameAndId, outputDir+"/"+engineName+IEngine.METADATA_FILE_SUFFIX, engineMeta);
 					logger.info("Done zipping engine metadata...");
 				}
-				
+
+				// zip up the model metadata so the MODELMETADATA values travel with the engine
+				if(IEngine.CATALOG_TYPE.MODEL == engine.getCatalogType()) {
+					logger.info("Grabbing model metadata to write to temporary file to zip...");
+					Map<String, Object> modelMeta = SecurityModelMetadataUtils.getModelMetadata(engineId);
+					if(modelMeta == null || modelMeta.isEmpty()) {
+						logger.info("No model metadata to zip");
+					} else {
+						ZipUtils.zipObjectToFile(zos, engineNameAndId, outputDir+"/"+engineName+IEngine.MODEL_METADATA_FILE_SUFFIX, modelMeta);
+						logger.info("Done zipping model metadata...");
+					}
+				}
+
 				// add smss file
 				File smss = new File(engine.getSmssFilePath());
 				logger.info("Adding smss file...");

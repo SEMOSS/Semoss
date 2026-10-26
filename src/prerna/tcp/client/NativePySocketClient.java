@@ -43,8 +43,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.ws.rs.core.StreamingOutput;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -52,6 +50,7 @@ import org.apache.logging.log4j.ThreadContext;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
+import jakarta.ws.rs.core.StreamingOutput;
 import prerna.auth.User;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
@@ -79,6 +78,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	private static final int CONNECT_INITIAL_INTERVAL_MS = 100;
 	private static final int CONNECT_MAX_INTERVAL_MS = 500;
 	private static final long CONNECT_TIMEOUT_MS = 30_000L;
+	// how a matplotlib figure rendered inline by smss_inline_display.py arrives on
+	// the stdout stream
+	private static final String INLINE_IMAGE_PREFIX = "<img src='data:image/";
 
 	public NativePySocketClient() {
 		this.startMdc = new HashMap<>();
@@ -477,9 +479,18 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	 * @param insightId
 	 */
 	private void exposeLog(String data, String jobId) {
-		classLogger.debug("Exposing log to jobId = '{}' with data = {}", jobId, data);
+		// an inlined matplotlib figure is a multi-MB base64 data URI. It still goes to
+		// the front end in full, but writing it to the logs is pure noise
+		boolean inlineImage = data != null && data.startsWith(INLINE_IMAGE_PREFIX);
+		if (inlineImage) {
+			classLogger.debug("Exposing inline image of {} chars to jobId = '{}'", data.length(), jobId);
+		} else {
+			classLogger.debug("Exposing log to jobId = '{}' with data = {}", jobId, data);
+		}
 		if (jobId != null && data != null) {
-			pyLogger.info(data);
+			if (!inlineImage) {
+				pyLogger.info(data);
+			}
 			PixelJobManager.getManager().addStdOut(jobId, data);
 		} else {
 			// 2025-07-08
@@ -611,7 +622,18 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								break; // let existing cancelledEpocs/job handling throw cancel response
 							}
 
-							classLogger.warn("Interrupted while waiting for epoc {}", ps.epoc, e);
+							// An interrupt with no cancel record still means this thread was told
+							// to stop. An agent run cancel is the common case: it interrupts the
+							// run's thread without touching the epoc maps, because the model call
+							// runs on an engine-owned python process the canceller has no handle
+							// on. Going back to waiting would ignore the stop, so abandon the epoc
+							// and hand the interrupt back to the caller, whose cooperative cancel
+							// checks are what end the work.
+							Thread.currentThread().interrupt();
+							classLogger.warn("Interrupted while waiting for epoc {} {}; abandoning the wait", ps.epoc,
+									ps.methodName);
+							this.requestMap.remove(ps.epoc);
+							throw new SemossPixelException("The request was interrupted", e);
 						}
 					}
 					if (cancelledEpocs.contains(ps.epoc)) {

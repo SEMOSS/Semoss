@@ -6,6 +6,7 @@ from google.genai.types import (
     GenerateVideosConfig,
     Image,
     VideoGenerationReferenceImage,
+    VideoGenerationReferenceType,
 )
 from ...constants import AskModelEngineResponse2
 from genai_client.text_generation.model_engine_exception import ModelEngineException
@@ -14,7 +15,6 @@ if TYPE_CHECKING:
     from .google_genai_client import GoogleGenAiTextClient
 from ...message_builders.semoss_base.semoss_models import (
     SEMOSSMessage,
-    SEMOSSMessagePartType,
     SEMOSSMessagePartType,
 )
 
@@ -104,9 +104,9 @@ class GoogleGenAiVideoClient:
         self, reference_images: list[VideoGenerationReferenceImage], param_map: dict
     ) -> GenerateVideosConfig:
         acceptable_params = self._extract_acceptable_params(param_map)
-        config = GenerateVideosConfig(
-            reference_images=reference_images, **acceptable_params
-        )
+        if reference_images:
+            acceptable_params["reference_images"] = reference_images
+        config = GenerateVideosConfig(**acceptable_params)
         return config
 
     def _build_from_semoss_messages(
@@ -121,26 +121,30 @@ class GoogleGenAiVideoClient:
             if getattr(part, "type", None) == SEMOSSMessagePartType.TEXT:
                 prompt += getattr(part, "text", "")
             elif getattr(part, "type", None) == SEMOSSMessagePartType.MEDIA:
-                media_content = getattr(part, "media_content", [])
-                for media in media_content:
-                    if not media.is_image():
-                        continue
-                    ref_images.append(
-                        VideoGenerationReferenceImage(
-                            image=Image(
-                                image_bytes=media.get_bytes(),
-                                mime_type=media.mime_type,
-                            ),
-                        )
+                media = part.media_info
+                if not media.is_image():
+                    continue
+                ref_images.append(
+                    VideoGenerationReferenceImage(
+                        image=Image(
+                            image_bytes=media.get_bytes(),
+                            mime_type=media.mime_type,
+                        ),
+                        reference_type=VideoGenerationReferenceType.ASSET,
                     )
+                )
 
         return prompt, ref_images, param_map
 
     def _extract_acceptable_params(self, kwargs: dict) -> dict:
-        """Take only the keys from kwargs that are acceptable for GenerateVideosConfig."""
-
-        acceptable_keys = set(GenerateVideosConfig.model_fields.keys())
-        return {k: v for k, v in kwargs.items() if k in acceptable_keys}
+        """Accept SDK field names and their API aliases, using SDK names first."""
+        params = {}
+        for name, field in GenerateVideosConfig.model_fields.items():
+            if name in kwargs:
+                params[name] = kwargs[name]
+            elif field.alias in kwargs:
+                params[name] = kwargs[field.alias]
+        return params
 
     @staticmethod
     def _create_media_info(raw_bytes: bytes, mime_type: str) -> Dict[str, Any]:

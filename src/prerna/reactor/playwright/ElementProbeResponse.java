@@ -29,15 +29,11 @@ package prerna.reactor.playwright;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
 /**
  * Represents a comprehensive response containing detailed information about a
  * probed HTML element. This record is designed to provide a snapshot of an
- * element's properties for analysis or interaction. Fields with null values
- * will be omitted during JSON serialization due to
- * {@code @JsonInclude(JsonInclude.Include.NON_NULL)}.
- *
+ * element's properties for analysis or interaction.
+ * 
  * @param tag              The HTML tag name of the element (e.g., "input",
  *                         "textarea", "button", "a").
  * @param type             The type attribute of the element (e.g., "text",
@@ -67,7 +63,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * @param isTextControl    Convenience flag indicating if the element is a text
  *                         input control.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public record ElementProbeResponse(String tag, String type, String inputCategory, String role, String selector,
 		String placeholder, String labelText, String value, String href, boolean contentEditable, ElementRect rect,
 		ElementMetrics metrics, Map<String, String> styles, Map<String, String> placeholderStyle,

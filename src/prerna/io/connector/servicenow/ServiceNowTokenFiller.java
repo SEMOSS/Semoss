@@ -28,6 +28,7 @@
 package prerna.io.connector.servicenow;
 
 import prerna.io.connector.AbstractOAuthTokenFiller;
+import prerna.util.ValueUtils;
 
 /**
  * ServiceNow OAuth2 provider. The authorize and token endpoints are derived
@@ -46,13 +47,13 @@ public class ServiceNowTokenFiller extends AbstractOAuthTokenFiller {
 	@Override
 	protected String getDefaultAuthorizeUrl(String prefix) {
 		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_auth.do";
+		return ValueUtils.isBlank(instanceUrl) ? null : instanceUrl + "/oauth_auth.do";
 	}
 
 	@Override
 	protected String getDefaultTokenUrl(String prefix) {
 		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_token.do";
+		return ValueUtils.isBlank(instanceUrl) ? null : instanceUrl + "/oauth_token.do";
 	}
 
 	@Override

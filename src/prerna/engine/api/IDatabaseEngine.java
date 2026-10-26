@@ -31,7 +31,6 @@ import java.time.ZoneId;
 import java.util.Vector;
 
 import prerna.engine.impl.owl.OWLEngineFactory;
-import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.logging.IgnoreEngineLogging;
 
 /**
@@ -44,12 +43,13 @@ import prerna.logging.IgnoreEngineLogging;
 public interface IDatabaseEngine extends IExplorable, IEngine {
 
 	enum DATABASE_TYPE {
+		JENA, JENA_TDB, SESAME, RDF4J, // rdf
+		TINKER, NEO4J, DATASTAX_GRAPH, JANUS_GRAPH, // graph
+		RDBMS, // rdbms
+		R, // csv as r
+		JMES_API, JSON, JSON2, WEB, // json + html
 		@Deprecated
-		APP, // this is now just an IProject
-		JENA, JENA_TDB, SESAME, RDF4J, RDBMS, @Deprecated
-		IMPALA, R, TINKER, NEO4J,
-//		NEO4J_EMBEDDED, 
-		DATASTAX_GRAPH, JANUS_GRAPH, JMES_API, JSON, JSON2, WEB
+		IMPALA
 	};
 
 	enum ACTION_TYPE {
@@ -149,13 +149,6 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 */
 	@IgnoreEngineLogging
 	OWLEngineFactory getOWLEngineFactory();
-
-	/**
-	 * Generate an audit database
-	 * 
-	 */
-	@IgnoreEngineLogging
-	AuditDatabase generateAudit();
 
 	/**
 	 * 

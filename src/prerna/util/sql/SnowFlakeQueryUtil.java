@@ -37,43 +37,43 @@ import prerna.query.interpreters.sql.SnowFlakeSqlInterpreter;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
 public class SnowFlakeQueryUtil extends AnsiSqlQueryUtil {
-	
+
 	private String warehouse;
 	private String role;
-	
+
 	SnowFlakeQueryUtil() {
 		super();
 		setDbType(RdbmsTypeEnum.SNOWFLAKE);
 	}
-	
+
 	SnowFlakeQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.SNOWFLAKE);
 	}
-	
+
+	@Override
 	public IQueryInterpreter getInterpreter(IDatabaseEngine engine) {
 		return new SnowFlakeSqlInterpreter(engine);
 	}
 
+	@Override
 	public IQueryInterpreter getInterpreter(ITableDataFrame frame) {
 		return new SnowFlakeSqlInterpreter(frame);
 	}
 
 	@Override
 	public String setConnectionDetailsfromMap(Map<String, Object> configMap) throws RuntimeException {
-		if(configMap == null || configMap.isEmpty()){
+		if (configMap == null || configMap.isEmpty()) {
 			throw new RuntimeException("Configuration map is null or empty");
 		}
-		
+
 		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		
+
 		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(hostname == null || hostname.isEmpty())
-			) {
+		if ((this.connectionUrl == null || this.connectionUrl.isEmpty()) && (hostname == null || hostname.isEmpty())) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
-		
+
 		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
 		String port = this.port;
 		if (port != null && !port.isEmpty()) {
@@ -81,69 +81,57 @@ public class SnowFlakeQueryUtil extends AnsiSqlQueryUtil {
 		} else {
 			port = "";
 		}
-		
+
 		this.warehouse = (String) configMap.get(AbstractSqlQueryUtil.WAREHOUSE);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.warehouse == null || this.warehouse.isEmpty())
-			) {
+		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
+				&& (this.warehouse == null || this.warehouse.isEmpty())) {
 			throw new RuntimeException("Must pass in the warehouse to compute the queries");
 		}
-		
+
 		this.role = (String) configMap.get(AbstractSqlQueryUtil.ROLE);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.role == null || this.role.isEmpty())
-			) {
+		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
+				&& (this.role == null || this.role.isEmpty())) {
 			this.role = "PUBLIC";
 		}
-		
+
 		this.database = (String) configMap.get(AbstractSqlQueryUtil.DATABASE);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.database == null || this.database.isEmpty())
-				){
+		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
+				&& (this.database == null || this.database.isEmpty())) {
 			throw new RuntimeException("Must pass in database name");
 		}
-		
+
 		this.schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.schema == null || this.schema.isEmpty())
-				){
+		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
+				&& (this.schema == null || this.schema.isEmpty())) {
 			throw new RuntimeException("Must pass in schema name");
 		}
-		
+
 		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
 
 		// do we need to make the connection url?
-		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
-			this.connectionUrl = this.dbType.getUrlPrefix()+"://"+this.hostname+port
-					+"/?warehouse="+this.warehouse+"&role="+this.role+"&db="+this.database+"&schema="+this.schema;
-			
-			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
+		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
+			this.connectionUrl = this.dbType.getUrlPrefix() + "://" + this.hostname + port + "/?warehouse="
+					+ this.warehouse + "&role=" + this.role + "&db=" + this.database + "&schema=" + this.schema;
+
+			this.connectionUrl = appendAdditionalProps(this.connectionUrl);
 		}
-		
+
 		return this.connectionUrl;
 	}
 
 	@Override
 	public String setConnectionDetailsFromSMSS(CaseInsensitiveProperties prop) throws RuntimeException {
-		if(prop == null || prop.isEmpty()){
+		if (prop == null || prop.isEmpty()) {
 			throw new RuntimeException("Properties object is null or empty");
 		}
-		
+
 		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		
+
 		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(hostname == null || hostname.isEmpty())
-			) {
+		if ((this.connectionUrl == null || this.connectionUrl.isEmpty()) && (hostname == null || hostname.isEmpty())) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
-		
+
 		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
 		String port = this.port;
 		if (port != null && !port.isEmpty()) {
@@ -151,119 +139,112 @@ public class SnowFlakeQueryUtil extends AnsiSqlQueryUtil {
 		} else {
 			port = "";
 		}
-		
+
 		this.warehouse = (String) prop.get(AbstractSqlQueryUtil.WAREHOUSE);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.warehouse == null || this.warehouse.isEmpty())
-			) {
+		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
+				&& (this.warehouse == null || this.warehouse.isEmpty())) {
 			throw new RuntimeException("Must pass in the warehouse to compute the queries");
 		}
-		
+
 		this.role = (String) prop.get(AbstractSqlQueryUtil.ROLE);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.role == null || this.role.isEmpty())
-			) {
+		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
+				&& (this.role == null || this.role.isEmpty())) {
 			this.role = "PUBLIC";
 		}
-		
+
 		this.database = (String) prop.get(AbstractSqlQueryUtil.DATABASE);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.database == null || this.database.isEmpty())
-				){
+		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
+				&& (this.database == null || this.database.isEmpty())) {
 			throw new RuntimeException("Must pass in database name");
 		}
-		
+
 		this.schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
-		if((this.connectionUrl == null || this.connectionUrl.isEmpty()) && 
-				(this.schema == null || this.schema.isEmpty())
-				){
+		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
+				&& (this.schema == null || this.schema.isEmpty())) {
 			throw new RuntimeException("Must pass in schema name");
 		}
-		
+
 		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
 
 		// do we need to make the connection url?
-		if(this.connectionUrl == null || this.connectionUrl.isEmpty()) {
-			this.connectionUrl = this.dbType.getUrlPrefix()+"://"+this.hostname+port
-					+"/?warehouse="+this.warehouse+"&role="+this.role+"&db="+this.database+"&schema="+this.schema;
-			
-			if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
+		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
+			this.connectionUrl = this.dbType.getUrlPrefix() + "://" + this.hostname + port + "/?warehouse="
+					+ this.warehouse + "&role=" + this.role + "&db=" + this.database + "&schema=" + this.schema;
+
+			this.connectionUrl = appendAdditionalProps(this.connectionUrl);
 		}
-		
+
 		return this.connectionUrl;
 	}
 
 	@Override
 	public String buildConnectionString() {
-		if(this.connectionUrl != null && !this.connectionUrl.isEmpty()) {
+		if (this.connectionUrl != null && !this.connectionUrl.isEmpty()) {
 			return this.connectionUrl;
 		}
-		
-		if(this.hostname == null || this.hostname.isEmpty()) {
+
+		if (this.hostname == null || this.hostname.isEmpty()) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
-		
+
 		String port = this.port;
 		if (port != null && !port.isEmpty()) {
 			port = ":" + port;
 		} else {
 			port = "";
 		}
-		
-		if(this.warehouse == null || this.warehouse.isEmpty()) {
+
+		if (this.warehouse == null || this.warehouse.isEmpty()) {
 			throw new RuntimeException("Must pass in the warehouse to compute the queries");
 		}
-		
-		if(this.role == null || this.role.isEmpty()) {
+
+		if (this.role == null || this.role.isEmpty()) {
 			this.role = "PUBLIC";
 		}
-		
-		if(this.database == null || this.database.isEmpty()) {
+
+		if (this.database == null || this.database.isEmpty()) {
 			throw new RuntimeException("Must pass in database name");
 		}
-		
-		if(this.schema == null || this.schema.isEmpty()) {
+
+		if (this.schema == null || this.schema.isEmpty()) {
 			throw new RuntimeException("Must pass in schema name");
 		}
-		
-		this.connectionUrl = this.dbType.getUrlPrefix()+"://"+this.hostname+port
-				+"/?warehouse="+this.warehouse+"&role="+this.role+"&db="+this.database+"&schema="+this.schema;
-		
-		if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
-			if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-				this.connectionUrl += ";" + this.additionalProps;
-			} else {
-				this.connectionUrl += this.additionalProps;
-			}
-		}
-		
+
+		this.connectionUrl = this.dbType.getUrlPrefix() + "://" + this.hostname + port + "/?warehouse=" + this.warehouse
+				+ "&role=" + this.role + "&db=" + this.database + "&schema=" + this.schema;
+
+		this.connectionUrl = appendAdditionalProps(this.connectionUrl);
+
 		return this.connectionUrl;
 	}
-	
+
 	@Override
 	public String escapeReferencedAlias(String alias) {
 		return "\"" + alias + "\"";
 	}
-	
+
 	@Override
 	public String getGroupConcatFunctionSyntax() {
 		return "LISTAGG";
 	}
-	
+
 	@Override
 	public void appendDefaultFunctionOptions(QueryFunctionSelector fun) {
 		String function = getSqlFunctionSyntax(fun.getFunction());
-		if(function.equals(getGroupConcatFunctionSyntax())) {
-			if(fun.getAdditionalFunctionParams().isEmpty()) {
-				fun.addAdditionalParam(new Object[] {"noname", "', '"});
+		if (function.equals(getGroupConcatFunctionSyntax())) {
+			if (fun.getAdditionalFunctionParams().isEmpty()) {
+				fun.addAdditionalParam(new Object[] { "noname", "', '" });
 			}
 		}
 	}
-	
+
+	@Override
+	/**
+	 * Snowflake takes ?key=value&key2=value2 - the generated url already has
+	 * ?warehouse=
+	 */
+	protected String getAdditionalPropsSeparator() {
+		return "?";
+	}
+
 }

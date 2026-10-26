@@ -11,7 +11,10 @@ The `py/genai_client/text_generation/anthropic_client/anthropic_text_client.py` 
 
 The client is initialized with the following parameters:
 
-*   `provider` (str): Specifies the platform through which the Anthropic model is accessed. Currently, the primary supported value is `"google"` (for Anthropic models on Google Cloud Vertex AI).
+*   `provider` (str): Specifies the platform through which the Anthropic model is accessed. Supported values are `"anthropic"` (first party API), `"bedrock"` (Amazon Bedrock), `"azure"` (Microsoft Foundry), and `"google"` (Anthropic models on Google Cloud Vertex AI).
+*   `use_beta_header` (str or bool, optional): Routes requests through `client.beta.messages` and sends the `anthropic-beta` header. Defaults to `False`. When enabled, `beta_feature_name` is required.
+*   `prompt_caching` (str or bool, optional): Enables Anthropic prompt caching. Defaults to `True`.
+*   `cache_ttl` (str, optional): Lifetime of a cache entry, either `"5m"` or `"1h"`. Defaults to `None`, which leaves the field off the request and gets Anthropic's 5 minute default. See [Prompt Caching](#prompt-caching) below.
 *   `**kwargs`: A dictionary of keyword arguments.
     *   **Common from `AbstractTextGenerationClient`**:
         *   `model_name` (str): The identifier for the specific Anthropic model (e.g., "claude-3-opus-20240229").
@@ -26,6 +29,34 @@ The client is initialized with the following parameters:
         *   `api_key` (str, optional): Though less common for Vertex AI, an API key might be relevant for other Anthropic access methods if supported in the future.
 
 The constructor initializes the underlying client (e.g., `anthropic.AnthropicVertex` if `provider="google"`) via the `_get_client` method, which uses `GoogleClientConfig` and `GoogleClient` from `py.genai_client.clients.google_clients`.
+
+### Prompt Caching
+
+Prompt caching lets Anthropic reuse a previously processed prompt prefix. Cache reads are billed at roughly 0.1x the base input price, while the write that seeds the cache is billed at 1.25x for a 5 minute TTL and 2x for a 1 hour TTL. A 5 minute entry pays for itself on the second request, a 1 hour entry on the third, so `cache_ttl='1h'` is the right choice when traffic is bursty with idle gaps longer than five minutes and the same prefix is hit at least a few times per hour.
+
+Caching is controlled by two init parameters:
+
+*   `prompt_caching`: master switch. When false, no `cache_control` markers are attached at all.
+*   `cache_ttl`: `"5m"` or `"1h"`. The value is validated in `_normalize_cache_ttl` against `AnthropicCacheTTL` in `py/genai_client/message_builders/anthropic/anthropic_models.py`; anything else raises a `ValueError` at engine startup. An unset or blank value means the `ttl` key is omitted from `cache_control` and Anthropic applies its 5 minute default.
+
+`_cache_control()` builds the payload attached at each breakpoint, which is `{"type": "ephemeral"}` when no TTL was requested and `{"type": "ephemeral", "ttl": "1h"}` when one was.
+
+Where the markers land depends on the provider:
+
+*   `anthropic` and `azure` support the top level automatic `cache_control` field, so `ask_call` sets `request_config.cache_control` once and Anthropic places the breakpoint on the last cacheable block.
+*   `bedrock` and `google` only support block level `cache_control`, so the client places the breakpoints itself in Anthropic's evaluation order: `_apply_cache_to_tools` marks the last tool definition, `_apply_cache_to_system` marks the last text block of the system prompt, and `_apply_cache_to_last_block` marks the last cacheable block (`text`, `tool_result`, `image`, or `document`) of the last message.
+
+Cache activity is reported back through `AskModelEngineResponse2` as `cache_read_tokens` and `cache_creation_tokens`, and logged as a `[prompt_caching] ttl=... cache_read_tokens=... cache_creation_tokens=...` line. `prompt_tokens` is normalized to the total billed input, meaning Anthropic's `input_tokens` plus both cache counters, so it lines up with the OpenAI and Gemini clients.
+
+Note that the minimum cacheable prefix is model dependent and ranges from 512 to 4096 tokens. A prompt shorter than the model's minimum will not cache and produces no error, just `cache_creation_tokens` of zero.
+
+#### Configuring it on an engine
+
+`cache_ttl` is a plain constructor argument, so it is set on the `INIT_MODEL_ENGINE` line of the model SMSS that `AbstractPythonModelEngine` runs at startup:
+
+```
+INIT_MODEL_ENGINE	import genai_client;${VAR_NAME} = genai_client.AnthropicClient(model_name='${MODEL}', provider='${PROVIDER}', endpoint='${ENDPOINT}', api_key='${API_KEY}', context_window=${CONTEXT_WINDOW}, max_tokens=${MAX_TOKENS}, prompt_caching=True, cache_ttl='1h')
+```
 
 ### Key Methods and Functionality
 

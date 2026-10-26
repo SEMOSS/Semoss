@@ -33,11 +33,8 @@ import java.util.Map;
 
 public abstract class AbstractModelEngineResponse<T> implements Serializable {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -5721069401496221919L;
-	
+	private static final long serialVersionUID = 1L;
+
 	public static final String RESPONSE = "response";
 	public static final String NUMBER_OF_TOKENS_IN_PROMPT = "numberOfTokensInPrompt";
 	public static final String NUMBER_OF_TOKENS_IN_RESPONSE = "numberOfTokensInResponse";
@@ -48,6 +45,12 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	public static final String USAGE_RESTRICTION_MODE = "restrictedBy";
 	public static final String USAGE_RESTRICTION_CURRENT_VALUE = "currentValue";
 	public static final String USAGE_RESTRICTION_MAX_VALUE = "maxValue";
+	public static final String USAGE_LIMITS_KEY = "usageLimits";
+	/**
+	 * Set by a Python client when the answer stopped at an output maximum its usage
+	 * ceiling lowered
+	 */
+	public static final String USAGE_CAPPED_KEY = "usageCapped";
 
 	protected T response;
 	protected Integer numberOfTokensInPrompt;
@@ -56,60 +59,62 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	protected Integer numberOfCacheCreationTokens;
 	protected Integer numberOfThinkingTokens;
 	protected Map<String, Object> usageRestriction = null;
+	protected Map<String, Object> usageLimits = null;
+	protected boolean usageCapped = false;
 
-    public AbstractModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
-        this.response = response;
-        this.numberOfTokensInPrompt = numberOfTokensInPrompt;
-        this.numberOfTokensInResponse = numberOfTokensInResponse;
-    }
+	public AbstractModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
+		this.response = response;
+		this.numberOfTokensInPrompt = numberOfTokensInPrompt;
+		this.numberOfTokensInResponse = numberOfTokensInResponse;
+	}
 
-    public T getResponse() {
-        return response;
-    }
+	public T getResponse() {
+		return response;
+	}
 
-    public void setResponse(T response) {
-        this.response = response;
-    }
+	public void setResponse(T response) {
+		this.response = response;
+	}
 
-    public Integer getNumberOfTokensInPrompt() {
-        return numberOfTokensInPrompt;
-    }
+	public Integer getNumberOfTokensInPrompt() {
+		return numberOfTokensInPrompt;
+	}
 
-    public void setNumberOfTokensInPrompt(Integer numberOfTokensInPrompt) {
-        this.numberOfTokensInPrompt = numberOfTokensInPrompt;
-    }
+	public void setNumberOfTokensInPrompt(Integer numberOfTokensInPrompt) {
+		this.numberOfTokensInPrompt = numberOfTokensInPrompt;
+	}
 
-    public Integer getNumberOfTokensInResponse() {
-        return numberOfTokensInResponse;
-    }
+	public Integer getNumberOfTokensInResponse() {
+		return numberOfTokensInResponse;
+	}
 
-    public void setNumberOfTokensInResponse(Integer numberOfTokensInResponse) {
-        this.numberOfTokensInResponse = numberOfTokensInResponse;
-    }
+	public void setNumberOfTokensInResponse(Integer numberOfTokensInResponse) {
+		this.numberOfTokensInResponse = numberOfTokensInResponse;
+	}
 
-    public Integer getNumberOfCacheReadTokens() {
-        return numberOfCacheReadTokens;
-    }
+	public Integer getNumberOfCacheReadTokens() {
+		return numberOfCacheReadTokens;
+	}
 
-    public void setNumberOfCacheReadTokens(Integer numberOfCacheReadTokens) {
-        this.numberOfCacheReadTokens = numberOfCacheReadTokens;
-    }
+	public void setNumberOfCacheReadTokens(Integer numberOfCacheReadTokens) {
+		this.numberOfCacheReadTokens = numberOfCacheReadTokens;
+	}
 
-    public Integer getNumberOfCacheCreationTokens() {
-        return numberOfCacheCreationTokens;
-    }
+	public Integer getNumberOfCacheCreationTokens() {
+		return numberOfCacheCreationTokens;
+	}
 
-    public void setNumberOfCacheCreationTokens(Integer numberOfCacheCreationTokens) {
-        this.numberOfCacheCreationTokens = numberOfCacheCreationTokens;
-    }
+	public void setNumberOfCacheCreationTokens(Integer numberOfCacheCreationTokens) {
+		this.numberOfCacheCreationTokens = numberOfCacheCreationTokens;
+	}
 
-    public Integer getNumberOfThinkingTokens() {
-        return numberOfThinkingTokens;
-    }
+	public Integer getNumberOfThinkingTokens() {
+		return numberOfThinkingTokens;
+	}
 
-    public void setNumberOfThinkingTokens(Integer numberOfThinkingTokens) {
-        this.numberOfThinkingTokens = numberOfThinkingTokens;
-    }
+	public void setNumberOfThinkingTokens(Integer numberOfThinkingTokens) {
+		this.numberOfThinkingTokens = numberOfThinkingTokens;
+	}
 
 	public Map<String, Object> getUsageRestriction() {
 		return usageRestriction;
@@ -118,28 +123,62 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	public void setUsageRestriction(Map<String, Object> usageRestriction) {
 		this.usageRestriction = usageRestriction;
 	}
-    
-    public Map<String, Object> toMap(){
-    	Map<String, Object> responseMap = new HashMap<>();
-    	responseMap.put(RESPONSE, this.response);
-    	responseMap.put(NUMBER_OF_TOKENS_IN_PROMPT, this.numberOfTokensInPrompt);
-    	responseMap.put(NUMBER_OF_TOKENS_IN_RESPONSE, this.numberOfTokensInResponse);
-    	if (this.numberOfCacheReadTokens != null) {
-    		responseMap.put(NUMBER_OF_CACHE_READ_TOKENS, this.numberOfCacheReadTokens);
-    	}
-    	if (this.numberOfCacheCreationTokens != null) {
-    		responseMap.put(NUMBER_OF_CACHE_CREATION_TOKENS, this.numberOfCacheCreationTokens);
-    	}
-    	if (this.numberOfThinkingTokens != null) {
-    		responseMap.put(NUMBER_OF_THINKING_TOKENS, this.numberOfThinkingTokens);
-    	}
-    	if(this.usageRestriction != null) {
-    		responseMap.put(USAGE_RESTRICTION_KEY, this.usageRestriction);
-    	}
-    	return responseMap;
-    }
-    
-    protected static Integer getTokens(Object numTokens) {
+
+	/**
+	 * The usage limits the call was billed under, sent with the response as its
+	 * {@code usageLimits}.
+	 *
+	 * @return the usage limits the call was billed under: the source billed, each
+	 *         rule's use and reset time, the ceilings, and whether the answer was
+	 *         capped; null when no limit applies
+	 */
+	public Map<String, Object> getUsageLimits() {
+		return usageLimits;
+	}
+
+	public void setUsageLimits(Map<String, Object> usageLimits) {
+		this.usageLimits = usageLimits;
+	}
+
+	/**
+	 * Whether the answer was cut short by its usage ceiling, which the usage limits
+	 * on the response report as {@code capped}.
+	 *
+	 * @return whether the answer stopped at an output maximum the call's usage
+	 *         ceiling lowered
+	 */
+	public boolean isUsageCapped() {
+		return usageCapped;
+	}
+
+	public void setUsageCapped(boolean usageCapped) {
+		this.usageCapped = usageCapped;
+	}
+
+	public Map<String, Object> toMap() {
+		Map<String, Object> responseMap = new HashMap<>();
+		responseMap.put(RESPONSE, this.response);
+		responseMap.put(NUMBER_OF_TOKENS_IN_PROMPT, this.numberOfTokensInPrompt);
+		responseMap.put(NUMBER_OF_TOKENS_IN_RESPONSE, this.numberOfTokensInResponse);
+		if (this.numberOfCacheReadTokens != null) {
+			responseMap.put(NUMBER_OF_CACHE_READ_TOKENS, this.numberOfCacheReadTokens);
+		}
+		if (this.numberOfCacheCreationTokens != null) {
+			responseMap.put(NUMBER_OF_CACHE_CREATION_TOKENS, this.numberOfCacheCreationTokens);
+		}
+		if (this.numberOfThinkingTokens != null) {
+			responseMap.put(NUMBER_OF_THINKING_TOKENS, this.numberOfThinkingTokens);
+		}
+		if (this.usageRestriction != null) {
+			responseMap.put(USAGE_RESTRICTION_KEY, this.usageRestriction);
+		}
+		if (this.usageLimits != null) {
+			responseMap.put(USAGE_LIMITS_KEY, this.usageLimits);
+		}
+		return responseMap;
+	}
+
+	protected static Integer getTokens(Object numTokens) {
 		if (numTokens instanceof Integer) {
 			return (Integer) numTokens;
 		} else if (numTokens instanceof Long) {
@@ -148,7 +187,7 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 			return ((Double) numTokens).intValue();
 		} else if (numTokens instanceof Number) {
 			return ((Number) numTokens).intValue();
-		} else if (numTokens instanceof String){
+		} else if (numTokens instanceof String) {
 			return Integer.valueOf((String) numTokens);
 		} else {
 			return null;

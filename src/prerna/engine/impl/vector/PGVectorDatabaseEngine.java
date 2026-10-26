@@ -366,13 +366,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			} catch (Exception e) {
 				classLogger.error("Failed to add embeddings from CSV file: {}", vectorCsvFile.getAbsolutePath(), e);
 				// File failed completely
-				FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(vectorCsvFile.getName(), "FAILED", 0, 0, 0);
 				String errorMessage = "Embedding failed for " + vectorCsvFile.getName();
 				if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage = errorMessage + ": " + e.getMessage();
 				}
-				failedStatus.setError(buildEmbeddingError(errorMessage, e));
-				fileStatusList.add(failedStatus);
+				fileStatusList.add(new FileEmbeddingStatus(vectorCsvFile.getName(), "FAILED", 0, 0, 0,
+						buildEmbeddingError(errorMessage, e)));
 			}
 		}
 		return fileStatusList;
@@ -435,6 +434,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		PreparedStatement ps = null;
 		try {
 			conn = this.getConnection();
+			PGvector.addVectorType(conn);
 			ps = conn.prepareStatement(psString);
 
 //			if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {
@@ -906,8 +906,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	 */
 
 	/**
-	 * 
-	 * @return
+	 * Follows KEEP_INPUT_OUTPUT in the SMSS, false when it is not set, as a vector
+	 * database does, though this engine is built on the database engine, which
+	 * always keeps its input and output. The flag decides whether a search's text
+	 * and results, and the text of the engine's other calls, are kept in the audit
+	 * logs and the model inference logs.
+	 *
+	 * @return the SMSS value of KEEP_INPUT_OUTPUT
 	 */
 	@Override
 	public boolean keepInputOutput() {
@@ -980,10 +985,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			setVectorFolderPermissions();
 
 			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
-			// it has to be -- don't change this unless you can send engine calls from
-			// python
 			boolean nativePyServer = true;
 			try {
+				cpwToInit.setEngineOwned(true);
 				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
 						debug, timeout, loggerLevel);
 			} catch (Exception e) {
@@ -1220,10 +1224,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				} catch (Exception e) {
 					String errorMessage = "Unable to process document " + destinationFile.getName();
 					classLogger.error("Failed to process document: {}", destinationFile.getName(), e);
-					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0,
-							0, 0);
-					failedStatus.setError(buildEmbeddingError(errorMessage, e));
-					fileStatusList.add(failedStatus);
+					fileStatusList.add(new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0, 0, 0,
+							buildEmbeddingError(errorMessage, e)));
 					extractedFile.delete(); // delete the csv if it was created
 					destinationFile.delete(); // delete the input file e.g pdf
 				}

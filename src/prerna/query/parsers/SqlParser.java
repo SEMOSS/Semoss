@@ -27,846 +27,1547 @@
  *******************************************************************************/
 package prerna.query.parsers;
 
+import java.sql.Time;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
+import java.util.Stack;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Alias;
+import net.sf.jsqlparser.expression.BinaryExpression;
+import net.sf.jsqlparser.expression.CaseExpression;
+import net.sf.jsqlparser.expression.CastExpression;
 import net.sf.jsqlparser.expression.DateValue;
 import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.NullValue;
-import net.sf.jsqlparser.expression.Parenthesis;
-import net.sf.jsqlparser.expression.SignedExpression;
 import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.arithmetic.Addition;
-import net.sf.jsqlparser.expression.operators.arithmetic.Division;
-import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
-import net.sf.jsqlparser.expression.operators.arithmetic.Subtraction;
+import net.sf.jsqlparser.expression.TimeValue;
+import net.sf.jsqlparser.expression.TimestampValue;
+import net.sf.jsqlparser.expression.WhenClause;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.Between;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
-import net.sf.jsqlparser.expression.operators.relational.ItemsList;
-import net.sf.jsqlparser.expression.operators.relational.LikeExpression;
-import net.sf.jsqlparser.expression.operators.relational.MinorThan;
-import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
-import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.IsNullExpression;
+import net.sf.jsqlparser.expression.operators.relational.ParenthesedExpressionList;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.select.AllColumns;
+import net.sf.jsqlparser.statement.select.Distinct;
+import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.GroupByElement;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.OrderByElement;
+import net.sf.jsqlparser.statement.select.ParenthesedFromItem;
+import net.sf.jsqlparser.statement.select.ParenthesedSelect;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
+import net.sf.jsqlparser.statement.select.SetOperation;
+import net.sf.jsqlparser.statement.select.SetOperationList;
+import net.sf.jsqlparser.statement.select.WithItem;
+import prerna.query.querystruct.FunctionExpression;
+import prerna.query.querystruct.GenExpression;
+import prerna.query.querystruct.InGenExpression;
+import prerna.query.querystruct.OperationExpression;
+import prerna.query.querystruct.OrderByExpression;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.WhenExpression;
 import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.query.querystruct.filters.OrQueryFilter;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryArithmeticSelector;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Walks a JSQLParser AST and rebuilds it as a tree of {@link GenExpression}
+ * nodes, which can be printed back out as SQL, inspected for the tables and
+ * columns a query touches, or rewritten to swap constants for named parameters.
+ * <p>
+ * The traversal mirrors the shape of the JSQLParser AST:
+ * 
+ * <pre>
+ * Select
+ *   PlainSelect        a single SELECT: select items, FROM, joins, WHERE, GROUP BY, ORDER BY, LIMIT
+ *   SetOperationList   a UNION / INTERSECT / EXCEPT chain of nested Selects
+ *   Values             a literal VALUES list
+ *   WithItem           a CTE, each wrapping a ParenthesedSelect
+ *
+ * FromItem
+ *   Table              a plain table reference, with or without an alias
+ *   ParenthesedSelect  a parenthesized subquery, recursing back into Select
+ *   ParenthesedFromItem  parenthesized joins, recursing back into FromItem
+ *   TableFunction
+ *
+ * Join
+ *   getRightItem()     a FromItem, recursing
+ *   getOnExpressions() the ON predicates, recursing into Expression
+ *
+ * Expression           conditionals, arithmetic, functions, CASE, IN, BETWEEN,
+ *                      literals, columns, and nested ParenthesedSelects
+ * </pre>
+ *
+ * Each node is recorded on a shared {@link GenExpressionWrapper}, which
+ * accumulates the table and column aliases, the per-table and per-select column
+ * usage, and the parameters discovered along the way.
+ * <p>
+ * TODO:
+ * <ol>
+ * <li>resolve every selector back to a real column and table</li>
+ * <li>support CREATE statements</li>
+ * <li>support substituting one column for another</li>
+ * </ol>
+ */
 public class SqlParser {
 
-	// to determine type of the expression
-	private static enum EXPR_TYPE {LEFT, RIGHT, INNER};
+	GenExpression qs = null;
+	GenExpressionWrapper wrapper = new GenExpressionWrapper();
+	boolean binary = false;
+	boolean column = false;
+	public boolean parameterize = true;
+	String columnName = null;
 
-	// keep table alias
-	private Map<String, String> tableAlias = null;
-	// keep column alias
-	private Map<String, String> columnAlias = null;
-	// used to keep track of every table and column set used
-	private Map<String, Set<String>> schema = null;
+	boolean processCase = false;
+	boolean processAllBinary = false;
+	Stack<Boolean> processParam = new Stack<Boolean>();
+	private static final Logger classLogger = LogManager.getLogger(SqlParser.class);
 
 	public SqlParser() {
-		this.tableAlias = new Hashtable <String, String>();
-		this.columnAlias = new Hashtable <String, String>();
-		this.schema = new Hashtable<String, Set<String>>();
+		this.wrapper.tableAlias = new HashMap<String, String>();
+		this.wrapper.columnAlias = new HashMap<String, String>();
+		this.wrapper.schema = new HashMap<String, Set<String>>();
 	}
 
-	public SelectQueryStruct processQuery(String query) throws Exception {
-		SelectQueryStruct qs = new SelectQueryStruct();
+	/**
+	 * Parse a SELECT and return the wrapper holding the resulting expression tree
+	 * along with the aliases, column usage, and parameters found in it.
+	 *
+	 * @param query the SQL to parse
+	 * @return the populated wrapper, whose root is the top level expression
+	 * @throws Exception if the SQL cannot be parsed
+	 */
+	public GenExpressionWrapper processQuery(String query) throws Exception {
+
+		wrapper = new GenExpressionWrapper();
+		// the WITH clauses are collected separately and hung off the root
+		List<GenExpression> withqs = new ArrayList<>();
+		List<String> withAlias = new ArrayList<>();
+		// this is the main query struct
+		GenExpression qs = new GenExpression();
 		// parse the sql
 		Statement stmt = CCJSqlParserUtil.parse(query);
-		Select select = ((Select)stmt);
-		PlainSelect sb = (PlainSelect)select.getSelectBody();
+		Select select = ((Select) stmt);
 
-		// get the list of select expression terms
-		List<SelectItem> items = sb.getSelectItems();
+		if (select instanceof PlainSelect) {
+			PlainSelect sb = (PlainSelect) select;
+			List<WithItem<?>> withItemList = select.getWithItemsList();
+			if (withItemList != null) {
+				for (WithItem<?> wi : withItemList) {
+					ParenthesedSelect wparen = wi.getSelect();
+					Select wbody = wparen == null ? null : wparen.getSelect();
+					String asName = wi.getAliasName();
 
-		// we will go through the joins first
-		// because we need to figure out how to do all the aliases
-		// for the selects
-		Table fromTable = (Table) sb.getFromItem();
-		String fromTableName = fromTable.getName();
-
-		// if there is no alias
-		// we will determine to set the table as the alias
-		Alias fromTableAliasObj = fromTable.getAlias();
-		if(fromTableAliasObj != null) {
-			tableAlias.put(fromTable.getAlias().getName(), fromTable.getName());
-		} else {
-			tableAlias.put(fromTableName, fromTableName);
+					if (wbody instanceof PlainSelect) {
+						GenExpression withstruct = processSelect(null, (PlainSelect) wbody);
+						withqs.add(withstruct);
+						withAlias.add(asName);
+					}
+				}
+			}
+			qs = processSelect(null, sb);
+			qs.setWithFrom(withAlias);
+			qs.setWithList(withqs);
+		}
+		if (select instanceof SetOperationList) {
+			qs = processOperation((SetOperationList) select);
 		}
 
-		// process the joins into the QS
-		fillJoins(qs, fromTableName, sb.getJoins());
+		this.qs = qs;
+		wrapper.root = qs;
 
-		// now that we have the joins
-		// we also have the table aliases we need
-		// so we can add the selectors
-		fillSelects(qs, items);
-
-		// fill the filters
-		fillFilters(qs, null, sb.getWhere());
-
-		// fill the groups
-		fillGroups(qs, sb.getGroupBy());
-
-		// fill the order by
-		fillOrder(qs, sb.getOrderByElements());
-
-		// fill the limit
-		fillLimitOffset(qs, sb.getLimit());
-
-		return qs;
+		return wrapper;
 	}
 
+	/**
+	 * Print an expression tree back out as SQL.
+	 *
+	 * @param qs the root expression, which must be a {@link GenExpression}
+	 * @return the rendered SQL
+	 * @throws Exception if the tree cannot be rendered
+	 */
+	public String generateQuery(SelectQueryStruct qs) throws Exception {
+		String finalQuery = GenExpression.printQS((GenExpression) qs, new StringBuffer()).toString();
+		classLogger.debug("Generated query {}", finalQuery);
+		return finalQuery;
+	}
 
 	/**
-	 * Add the selectors into the query struct
-	 * @param qs
-	 * @param selects
+	 * Convert one PlainSelect into an expression tree, recursing through its FROM
+	 * item, joins, filters, groupings, ordering, and limit.
+	 *
+	 * @param qs the parent expression, or null for the outermost select
+	 * @param sb the select to convert
+	 * @return the expression built for this select
 	 */
-	public void fillSelects(SelectQueryStruct qs, List<SelectItem> selects) {
-		for(int selectIndex = 0;selectIndex < selects.size();selectIndex++) {
-			SelectItem si = selects.get(selectIndex);
-			if(si instanceof SelectExpressionItem) {
-				SelectExpressionItem sei = (SelectExpressionItem) si;
-				Alias seiAlias = sei.getAlias();
-				Expression expr = sei.getExpression();
-				// get eth selector
-				// method does this recursively to determine operations
-				IQuerySelector thisSelect = null;
-				if(seiAlias != null) {
-					thisSelect = determineSelector(expr, null, EXPR_TYPE.LEFT, seiAlias.getName());
+	public GenExpression processSelect(GenExpression qs, PlainSelect sb) {
+		wrapper.numSubSelects++; // if it is the first time this will equal to zero
+
+		GenExpression thisQs = null;
+		if (qs == null) {
+			qs = new GenExpression();
+			thisQs = qs;
+		}
+		// the parent is reused for alias and hash bookkeeping even when it was just
+		// created above, so this always builds a fresh expression for the select
+		{
+			thisQs = new GenExpression();
+			thisQs.parent = qs; // set the parent here
+			thisQs.aQuery = sb.toString();
+			thisQs.operation = "select";
+			thisQs.aliasHash = qs.aliasHash;
+			thisQs.randomHash = qs.randomHash;
+		}
+
+		// DISTINCT ON is not modelled, only whether the select is distinct at all
+		Distinct dis = sb.getDistinct();
+		if (dis != null) {
+			thisQs.distinct = true;
+		}
+		FromItem fi = sb.getFromItem();
+
+		String alias = "";
+		if (fi.getAlias() != null) {
+			alias = fi.getAlias().getName();
+		}
+		List<SelectItem<?>> items = sb.getSelectItems();
+
+		{
+			if (fi instanceof Table) {
+				Table fromTable = (Table) sb.getFromItem();
+				String fromTableName = fromTable.getName();
+				String fromTableAlias = null;
+				Alias fromTableAliasObj = fromTable.getAlias();
+				if (fromTableAliasObj != null) {
+					fromTableAlias = fromTableAliasObj.getName();
+					this.wrapper.tableAlias.put(fromTableAlias, fromTableName);
 				} else {
-					thisSelect = determineSelector(expr, null, EXPR_TYPE.LEFT, null);
+					this.wrapper.tableAlias.put(fromTableName, fromTableName);
 				}
-				qs.addSelector(thisSelect);
+				thisQs.currentTable = fromTableName;
+				thisQs.currentTableAlias = fromTableAlias;
+
+				GenExpression fromExpr = new GenExpression();
+				fromExpr.setOperation("from");
+				fromExpr.setComposite(false);
+				fromExpr.aQuery = fi.toString();
+				fromExpr.setLeftExpr(fromTableName);
+				fromExpr.setLeftAlias(alias);
+				thisQs.from = fromExpr;
+
+				// tracking tables
+				List<GenExpression> selectList = null;
+				if (this.wrapper.tableSelect.containsKey(fromTableName)) {
+					selectList = this.wrapper.tableSelect.get(fromTableName);
+				} else {
+					selectList = new ArrayList<GenExpression>();
+				}
+				if (!selectList.contains(thisQs)) {
+					selectList.add(thisQs);
+				}
+
+				this.wrapper.tableSelect.put(fromTableName, selectList);
+			} else if (fi instanceof PlainSelect) {
+				thisQs.currentTable = fi.getAlias().getName();
+			} else if (fi instanceof ParenthesedSelect) {
+				thisQs.currentTable = fi.getAlias().getName();
+			} else if (fi instanceof ParenthesedFromItem) {
+				thisQs.currentTable = fi.getAlias().getName();
 			}
+
+			// the joins come first because they register the table aliases that the
+			// selectors, filters, groupings, and ordering below resolve against
+			fillJoins(thisQs, sb.getJoins());
+			fillSelects(thisQs, items);
+			fillFilters(thisQs, null, sb.getWhere());
+			fillGroups(thisQs, sb.getGroupBy());
+			fillOrder(thisQs, sb.getOrderByElements());
+			fillLimitOffset(thisQs, sb.getLimit());
 		}
+
+		// a subquery in the FROM is captured as its own expression and registered
+		// under the alias it was given
+		GenExpression substruct = processSelectFromItem(fi, thisQs);
+		if (substruct != null) {
+			substruct.setLeftAlias(alias);
+			thisQs.setComposite(true);
+			thisQs.aliasHash.put(alias, substruct);
+			thisQs.from = substruct;
+		}
+		return thisQs;
 	}
 
 	/**
-	 * Return the selector based on the expression input
-	 * @param expr
-	 * @param parentQuerySelector
-	 * @param expressionType
-	 * @param alias
-	 * @return
+	 * Convert the FROM item of a select into an expression. A plain table becomes a
+	 * leaf "from" node; a subquery or set operation recurses back into the select
+	 * handling.
+	 *
+	 * @param fi     the FROM item to convert
+	 * @param thisQs the expression for the select that owns this FROM item
+	 * @return the expression for the FROM item, or null if the item is a shape this
+	 *         parser does not model
 	 */
-	private IQuerySelector determineSelector(Expression expr, IQuerySelector parentQuerySelector, EXPR_TYPE expressionType, String alias) {
-		// see if it is a basic operation
-		IQuerySelector basic = processBasicSelector(expr);
-		if(basic != null) {
-			// if we have a parent
-			// set this in the parent and return the parent
-			// otherwise, just return the basic column
-			if(parentQuerySelector == null) {
-				return basic;
-			} else {
-				setChildSelectorInParentSelector(parentQuerySelector, basic, expressionType);
-				return parentQuerySelector;
+	public GenExpression processSelectFromItem(FromItem fi, GenExpression thisQs) {
+		if (fi instanceof ParenthesedSelect) {
+			Select sbody = ((ParenthesedSelect) fi).getSelect();
+			if (sbody instanceof PlainSelect) {
+				GenExpression substruct = processSelect(thisQs, (PlainSelect) sbody);
+				substruct.setComposite(true);
+				return substruct;
+			} else if (sbody instanceof SetOperationList) {
+				return processOperation((SetOperationList) sbody);
 			}
+		} else if (fi instanceof SetOperationList) {
+			return processOperation((SetOperationList) fi);
+		} else if (fi instanceof Table) {
+			String fromTableName = "";
+			Table fromTable = (Table) fi;
+			fromTableName = fromTable.getName();
+			String fromTableAlias = null;
+			Alias tableAlias = fromTable.getAlias();
+			if (tableAlias != null) {
+				fromTableAlias = tableAlias.getName();
+			}
+			thisQs.currentTable = fromTableName;
+			thisQs.currentTableAlias = fromTableAlias;
+			GenExpression fromExpr = new GenExpression();
+			fromExpr.setOperation("from");
+			fromExpr.setComposite(false);
+			fromExpr.aQuery = fi.toString();
+			fromExpr.setLeftExpr(fromTableName);
+			thisQs.from = fromExpr;
+
+			// tracking tables
+			List<GenExpression> selectList = null;
+			if (this.wrapper.tableSelect.containsKey(fromTableName)) {
+				selectList = this.wrapper.tableSelect.get(fromTableName);
+			} else {
+				selectList = new ArrayList<GenExpression>();
+			}
+			if (!selectList.contains(thisQs)) {
+				selectList.add(thisQs);
+			}
+
+			this.wrapper.tableSelect.put(fromTableName, selectList);
+			return fromExpr;
 		}
 
-		return processExpressionSelector(expr, parentQuerySelector, expressionType, alias);
+		else if (fi instanceof ParenthesedFromItem) {
+			GenExpression gep = processSelectFromItem(((ParenthesedFromItem) fi).getFromItem(), thisQs);
+			gep.setComposite(true);
+			gep.paranthesis = true;
+			return gep;
+		}
+		return null;
+
 	}
 
 	/**
-	 * Process a basic selector
-	 * @param expr
-	 * @return
+	 * Add the selectors into the query struct. A select item whose alias shadows a
+	 * column already recorded on the wrapper replaces that entry, so the alias does
+	 * not get reported as a column of its own.
+	 *
+	 * @param qs      the expression for the select
+	 * @param selects the select items to convert
 	 */
-	private IQuerySelector processBasicSelector(Expression expr) {
-		// we will use this to process
-		// basic constants
-		// and columns
-
-		// init the basic selector
-		IQuerySelector constSelector = null;
-
-		if(expr instanceof LongValue) {
-			long longValue = ((LongValue) expr).getValue();
-			constSelector = new QueryConstantSelector();
-			((QueryConstantSelector)constSelector).setConstant(longValue);
-		} else if (expr instanceof DoubleValue) {
-			double doubleValue = ((DoubleValue) expr).getValue();
-			constSelector = new QueryConstantSelector();
-			((QueryConstantSelector)constSelector).setConstant(doubleValue);
-		}  else if(expr instanceof SignedExpression) {
-			Expression innerExpression = ((SignedExpression) expr).getExpression();
-			if(innerExpression instanceof LongValue) {
-				long longValue = ((LongValue) innerExpression).getValue();
-				constSelector = new QueryConstantSelector();
-				((QueryConstantSelector)constSelector).setConstant(-1 * longValue);
-			} else if (innerExpression instanceof DoubleValue) {
-				double doubleValue = ((DoubleValue) innerExpression).getValue();
-				constSelector = new QueryConstantSelector();
-				((QueryConstantSelector)constSelector).setConstant(-1 * doubleValue);
-			}
-		} else if(expr instanceof StringValue) {
-			String strValue = ((StringValue) expr).getValue();
-			constSelector = new QueryConstantSelector();
-			((QueryConstantSelector)constSelector).setConstant(strValue);
-		} else if(expr instanceof DateValue) {
-			// need to see about this
-			Date dateValue = ((DateValue) expr).getValue();
-			constSelector = new QueryConstantSelector();
-			((QueryConstantSelector)constSelector).setConstant(dateValue);
-		} else if(expr instanceof NullValue) {
-			// need to see about this as well
-			String strValue = ((NullValue) expr).toString();
-			constSelector = new QueryConstantSelector();
-			((QueryConstantSelector)constSelector).setConstant(strValue);
-		} else if(expr instanceof Column) {
-			String colValue = ((Column) expr).getColumnName();
-			// need a way to get the alias
-			//String alias = ((Column)expr).getFullyQualifiedName();
-			String tableValue = ((Column)expr).getTable().getName();
-			constSelector = new QueryColumnSelector();
-			if(tableAlias.containsKey(tableValue)) {
-				tableValue = tableAlias.get(tableValue);
-			}
-			// keep track of column and table in schema
-			Set<String> columns = new HashSet<String>();
-			if(this.schema.containsKey(tableValue)) {
-				columns = this.schema.get(tableValue);
-			}
-			columns.add(colValue);
-			this.schema.put(tableValue, columns);
-			colValue = tableValue + "__" + colValue;
-			constSelector = new QueryColumnSelector(colValue);
-		}
-
-		// if it is not basic
-		// we will end up returning null
-		return constSelector;
-	}
-
-	/**
-	 * Process a complex selector
-	 * @param expr
-	 * @param qs
-	 * @param parentSelector
-	 * @param expressionType
-	 * @param alias
-	 * @return
-	 */
-	private IQuerySelector processExpressionSelector(Expression expr, IQuerySelector parentSelector, EXPR_TYPE expressionType, String alias) {
-		// this will be the selector
-		IQuerySelector thisSelector = null;
-
-		// keep these here so we know how to grab them
-		// this is the left hand side for the selector
-		Expression lexpr = null;
-		// this is the right hand side for the selector
-		Expression rexpr = null;
-
-		if(expr instanceof Addition) {
-			if(parentSelector == null) {
-				parentSelector = new QueryArithmeticSelector();
-				parentSelector.setAlias(alias);
-				((QueryArithmeticSelector)parentSelector).setMathExpr("+");
-				thisSelector = parentSelector;
+	public void fillSelects(SelectQueryStruct qs, List<SelectItem<?>> selects) {
+		for (int selectIndex = 0; selectIndex < selects.size(); selectIndex++) {
+			SelectItem<?> si = selects.get(selectIndex);
+			Expression expr = si.getExpression();
+			// AllTableColumns extends AllColumns, so both t.* and * land on this check
+			if (expr instanceof AllColumns) {
+				GenExpression gep = new GenExpression();
+				gep.aQuery = si.toString();
+				gep.setLeftExpr(si.toString());
+				gep.setOperation("opaque");
+				qs.nselectors.add(gep);
 			} else {
-				thisSelector = new QueryArithmeticSelector();
-				((QueryArithmeticSelector)thisSelector).setMathExpr("+");
-				setChildSelectorInParentSelector(parentSelector, thisSelector, expressionType);
-			}
+				Alias seiAlias = si.getAlias();
+				GenExpression gep = processExpression(qs, expr, null);
 
-			// grab the left and right side expressions that will be processed
-			Addition aExpr = (Addition)expr;
-			lexpr = aExpr.getLeftExpression();
-			rexpr = aExpr.getRightExpression();
+				if (seiAlias != null) {
+					gep.setLeftAlias(seiAlias.getName());
+				}
+				qs.nselectors.add(gep);
 
-		} else if(expr instanceof Subtraction) {
-			if(parentSelector == null) {
-				parentSelector = new QueryArithmeticSelector();
-				parentSelector.setAlias(alias);
-				((QueryArithmeticSelector)parentSelector).setMathExpr("-");
-				thisSelector = parentSelector;
-			} else {
-				thisSelector = new QueryArithmeticSelector();
-				((QueryArithmeticSelector)thisSelector).setMathExpr("-");
-				setChildSelectorInParentSelector(parentSelector, thisSelector, expressionType);
-			}
-
-			// grab the left and right side expressions that will be processed
-			Subtraction aExpr = (Subtraction)expr;
-			lexpr = aExpr.getLeftExpression();
-			rexpr = aExpr.getRightExpression();
-
-		} else if(expr instanceof Multiplication) {
-			if(parentSelector == null) {
-				parentSelector = new QueryArithmeticSelector();
-				parentSelector.setAlias(alias);
-				((QueryArithmeticSelector)parentSelector).setMathExpr("*");
-				thisSelector = parentSelector;
-			} else {
-				thisSelector = new QueryArithmeticSelector();
-				((QueryArithmeticSelector)thisSelector).setMathExpr("*");
-				setChildSelectorInParentSelector(parentSelector, thisSelector, expressionType);
-			}
-
-			// grab the left and right side expressions that will be processed
-			Multiplication aExpr = (Multiplication)expr;
-			lexpr = aExpr.getLeftExpression();
-			rexpr = aExpr.getRightExpression();
-
-		} else if(expr instanceof Division) {
-			if(parentSelector == null) {
-				parentSelector = new QueryArithmeticSelector();
-				parentSelector.setAlias(alias);
-				((QueryArithmeticSelector)parentSelector).setMathExpr("/");
-				thisSelector = parentSelector;
-			} else {
-				thisSelector = new QueryArithmeticSelector();
-				((QueryArithmeticSelector)thisSelector).setMathExpr("/");
-				setChildSelectorInParentSelector(parentSelector, thisSelector, expressionType);
-			}
-
-			// grab the left and right side expressions that will be processed
-			Division aExpr = (Division)expr;
-			lexpr = aExpr.getLeftExpression();
-			rexpr = aExpr.getRightExpression();
-
-		} else if(expr instanceof Function) {
-			Function aExpr = (Function)expr;
-			String functionName = aExpr.getName();
-			// complex function
-			// using multiple cols
-			// i.e. concat, etc.
-			if(parentSelector == null) {
-				parentSelector = new QueryFunctionSelector();
-				parentSelector.setAlias(alias);
-				((QueryFunctionSelector) parentSelector).setFunction(functionName);
-				thisSelector = parentSelector;
-			} else {
-				thisSelector = new QueryFunctionSelector();
-				thisSelector.setAlias(alias);
-				((QueryFunctionSelector) thisSelector).setFunction(functionName);
-				setChildSelectorInParentSelector(parentSelector, thisSelector, expressionType);
-			}
-			
-			if(aExpr.isDistinct()) {
-				((QueryFunctionSelector) thisSelector).setDistinct(true);
-			}
-			if(aExpr.isAllColumns()) {
-				// if it is all columns, we need to add a star
-				//TODO: come back to how to handle the *
-				((QueryFunctionSelector) thisSelector).addInnerSelector(new QueryColumnSelector("*"));
-			} else {
-				ExpressionList params = aExpr.getParameters();
-				List<Expression> paramExprs = params.getExpressions();
-				int numParamExprs = paramExprs.size();
-				// need to process all the children
-				// and put into the selector
-				for(int paramIndex = 0; paramIndex < numParamExprs; paramIndex++) {
-					// set the parent to null since we are directly adding it here
-					((QueryFunctionSelector) thisSelector).addInnerSelector(determineSelector(paramExprs.get(paramIndex), null, EXPR_TYPE.INNER, alias));
+				// process for column cleanup
+				if (seiAlias != null && this.wrapper.columnSelect.containsKey(seiAlias.getName())) {
+					// remove it / add it as the actual one
+					// it is already accommodated for some other place
+					this.wrapper.columnSelect.remove(seiAlias.getName());
 				}
 			}
-		} else if (expr instanceof Parenthesis) {
-			// move into the next piece
-			// but make sure we update thisSelector reference
-			thisSelector = processExpressionSelector(((Parenthesis)expr).getExpression(), parentSelector, expressionType, alias);
-		}
-
-		// if we need to process sides of the expression
-		// these are null for parenthesis and function expressions
-		if(lexpr != null && rexpr != null) {
-			// we need to process the children for this selector
-			// this will update the parent selector reference
-			// so we only need to run
-			determineSelector(lexpr, thisSelector, EXPR_TYPE.LEFT, alias);
-			determineSelector(rexpr, thisSelector, EXPR_TYPE.RIGHT, alias);
-		}
-
-		// return the selector
-		return thisSelector;
-	}
-
-	/**
-	 * Utility so we dont need to cast everywhere...
-	 * @param parentSelector
-	 * @param childSelector
-	 * @param expressionType
-	 */
-	private void setChildSelectorInParentSelector(IQuerySelector parentSelector, IQuerySelector childSelector, EXPR_TYPE expressionType) {
-		if(EXPR_TYPE.LEFT == expressionType) {
-			((QueryArithmeticSelector) parentSelector).setLeftSelector(childSelector);
-		} else if(EXPR_TYPE.RIGHT == expressionType){
-			((QueryArithmeticSelector) parentSelector).setRightSelector(childSelector);
-		} else {
-			((QueryFunctionSelector) parentSelector).addInnerSelector(childSelector);
 		}
 	}
 
 	/**
-	 * Add the joins and store table aliases used
-	 * @param qs
-	 * @param tableName
-	 * @param joins
+	 * Convert each join on a select into an expression and hang it off the select.
+	 *
+	 * @param qs    the expression for the select that owns these joins
+	 * @param joins the joins to convert, may be null or empty
 	 */
-	public void fillJoins(SelectQueryStruct qs, String tableName, List <Join> joins) {
-		// if there are no joins
-		// nothing to do
-		if(joins == null || joins.isEmpty()) {
+	public void fillJoins(GenExpression qs, List<Join> joins) {
+		if (joins == null || joins.isEmpty()) {
 			return;
 		}
 
-		// joins are all sitting on
-		// select.getJoins()
-		// each one of which is telling what type of join it is
-		// for the case of engineconcept ec and engine e
-		// the join seems to say simple is true
-		// the last one it says simple is false and it also puts an equation to it
-		// each join has a table associated with it
-		// sb.joins.get(index).rightitem - table and alias
-		// sb.join.get(index).onExpression - tells you the quals to expression
-
-		for(int joinIndex = 0; joinIndex < joins.size(); joinIndex++) {
+		for (int joinIndex = 0; joinIndex < joins.size(); joinIndex++) {
 			Join thisJoin = joins.get(joinIndex);
-			Table rightTable = (Table)thisJoin.getRightItem();
-			// add the alias
-			String rightTableName = rightTable.getName();
-			String rightTableAlias = rightTable.getAlias().getName();
-
-			// if somebody -- need to see if sql grammar can accomodate for stupidity where alias and table are same kind of
-			//tableAlias.put(rightTableName, rightTableAlias);
-			tableAlias.put(rightTableAlias, rightTableName);
-			boolean simple = thisJoin.isSimple();
-			if(!simple) {
-				EqualsTo joinExpr = (EqualsTo)thisJoin.getOnExpression();
-				String toTable = ((Column)joinExpr.getRightExpression()).getTable().getName();
-				String toColumn = ((Column)joinExpr.getRightExpression()).getColumnName();
-				String fromTable = tableName;
-				String fromColumn = ((Column)joinExpr.getLeftExpression()).getColumnName();
-				String joinType = null;
-				
-				// keep track of column and table in schema
-				// from 
-				Set<String> columns = new HashSet<String>();
-				if(this.schema.containsKey(fromTable)) {
-					columns = this.schema.get(fromTable);
-				}
-				columns.add(fromColumn);
-				this.schema.put(fromTable, columns);
-				// to
-				Set<String> columns2 = new HashSet<String>();
-				if(this.schema.containsKey(rightTableName)) {
-					columns2 = this.schema.get(rightTableName);
-				}
-				columns2.add(toColumn);
-				this.schema.put(rightTableName, columns2);
-				
-				// need to translate the alias into column name
-				String full_from = fromTable  + "__" + fromColumn;
-				String full_To = rightTableName + "__" + toColumn;
-
-				if(thisJoin.isInner()) {
-					joinType = "inner.join";
-				} else if(thisJoin.isLeft()) {
-					joinType = "left.outer.join";
-				} else if(thisJoin.isRight()) {
-					joinType = "right.outer.join";
-				} else if(thisJoin.isOuter()) {
-					joinType = "outer.join";
-				} else if(thisJoin.isFull()) {
-					joinType = "full.join";
-				}
-				qs.addRelation(full_from, full_To, joinType);
-			} else {
-				// Need to understand how implicit join is being handled
-			}
+			qs.joins.add(processJoinExpression(qs, null, thisJoin));
 		}
-	}
-
-	// things I need to recurse
-	// Main Query Struct
-	// What was previously executed
-	// for instance if the previous piece was and and this is or, I need to close and start it ?
-	// Need some way to jump back to the previous level
-
-	// I need some way to go in and go out kind of like the sablecc here
-	// so I will do this artifically
-	// Start of with a simple query filter or even a null
-	// if the first one is an and/or 
-	// I create the and/or filter and call this with left expression
-	// and right expression
-	// With the filter as a curFilter
-	// if the expression is simple
-	// it will continue to add itself as a simple filter
-	// if the expression is complex then it will create another filter and add it into it - FE cant handle it right now
-	// Once complete, there is nothing to change, since at this point it is all done
-	// everytime I finish up with the expression which is a simple one like equals etc. 
-
-	public void fillFilters(SelectQueryStruct qs, IQueryFilter curFilter, Expression expr) {
-		// this is a simple one just go ahead and process it like anything else
-		// this should go first.. 
-		// if unable to process it is only then we should attempt to create other pieces
-		IQueryFilter filter = processFilter(expr);
-		if(filter != null) {
-			if(curFilter != null) {		
-				if(curFilter instanceof AndQueryFilter) {
-					((AndQueryFilter)curFilter).addFilter(filter);
-				}else {
-					((OrQueryFilter)curFilter).addFilter(filter);
-				}
-			} else {
-				curFilter = filter;
-				qs.addImplicitFilter(curFilter);				
-			}
-		} else {	
-			if(expr instanceof AndExpression) {
-				AndQueryFilter newFilter = null;
-				if(curFilter == null) {
-					curFilter = new AndQueryFilter();
-					qs.addImplicitFilter(curFilter);
-				} else if(!(curFilter instanceof AndQueryFilter)) {
-					newFilter = new AndQueryFilter();
-					// I need something which adds this to the curFilter
-					// at this point the cur filter has to be an or
-					// it could be a subfilter
-					// for now I will process it as a or
-					((OrQueryFilter)curFilter).addFilter(newFilter);				
-					curFilter = newFilter;
-				}		
-
-				// process left
-				fillFilters(qs,curFilter, ((AndExpression) expr).getLeftExpression());
-				// process right
-				fillFilters(qs,curFilter, ((AndExpression) expr).getRightExpression());
-			} else if(expr instanceof OrExpression) {
-				OrQueryFilter newFilter = null;
-				if(curFilter == null) {
-					curFilter = new OrQueryFilter();
-					qs.addImplicitFilter(curFilter);
-				} else if(!(curFilter instanceof OrQueryFilter)) {
-					newFilter = new OrQueryFilter();
-
-					// I need something which adds this to the curFilter
-					// at this point the cur filter has to be an or
-					// it could be a subfilter
-					// for now I will process it as a or
-					((AndQueryFilter)curFilter).addFilter(newFilter);				
-					curFilter = newFilter;
-				}		
-
-				// process left
-				fillFilters(qs,curFilter, ((OrExpression) expr).getLeftExpression());
-				// process right
-				fillFilters(qs, curFilter, ((OrExpression) expr).getRightExpression());
-			} else if (expr instanceof Parenthesis) {
-				System.out.println("This is where it is struck");
-				fillFilters(qs, curFilter, ((Parenthesis)expr).getExpression());
-			}
-		}
-	}
-
-
-	public IQueryFilter processFilter(Expression expr) {
-		IQueryFilter retFilter = null;
-
-		// >>>> Logical
-		// EqualsTo
-		// NotEqualsTo
-		// GreaterThan
-		// GreaterThanEquals
-		// MinorThan - because LessThan would be too easy
-		// MinorThanEquals
-		// AndExpression
-		// OrExpression
-
-		if(expr instanceof EqualsTo) {
-			EqualsTo eExpr = (EqualsTo)expr;
-			// there are only three choices may be four ok
-			NounMetadata l = getNoun(eExpr.getLeftExpression());
-			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
-				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			if(r == null) {
-				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			retFilter = new SimpleQueryFilter(l, "==", r);
-		} else if(expr instanceof NotEqualsTo) {
-			NotEqualsTo eExpr = (NotEqualsTo)expr;
-			// there are only three choices may be four ok
-			NounMetadata l = getNoun(eExpr.getLeftExpression());
-			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
-				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			if(r == null) {
-				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			retFilter = new SimpleQueryFilter(l, "!=", r);
-		} else if(expr instanceof GreaterThan) {
-			GreaterThan eExpr = (GreaterThan)expr;
-			// there are only three choices may be four ok
-			NounMetadata l = getNoun(eExpr.getLeftExpression());
-			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
-				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			if(r == null) {
-				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			retFilter = new SimpleQueryFilter(l, ">", r);
-		} else if(expr instanceof MinorThan) {
-			MinorThan eExpr = (MinorThan)expr;
-			// there are only three choices may be four ok
-			NounMetadata l = getNoun(eExpr.getLeftExpression());
-			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
-				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			if(r == null) {
-				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			retFilter = new SimpleQueryFilter(l, "<", r);
-		} else if(expr instanceof GreaterThanEquals) {
-			GreaterThanEquals eExpr = (GreaterThanEquals)expr;
-			// there are only three choices may be four ok
-			NounMetadata l = getNoun(eExpr.getLeftExpression());
-			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
-				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			if(r == null) {
-				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			retFilter = new SimpleQueryFilter(l, ">=", r);
-		} else if(expr instanceof MinorThanEquals) {
-			MinorThanEquals eExpr = (MinorThanEquals)expr;
-			// there are only three choices may be four ok
-			NounMetadata l = getNoun(eExpr.getLeftExpression());
-			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
-				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			if(r == null) {
-				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			retFilter = new SimpleQueryFilter(l, "<=", r);
-		} else if(expr instanceof LikeExpression) {
-			LikeExpression eExpr = (LikeExpression)expr;
-			// there are only three choices may be four ok
-			NounMetadata l = getNoun(eExpr.getLeftExpression());
-			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
-				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			if(r == null) {
-				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
-			}
-			retFilter = new SimpleQueryFilter(l, "?like", r);
-		} else if(expr instanceof InExpression) {
-			InExpression eExpr = (InExpression)expr;
-			// there are only three choices may be four ok
-			NounMetadata l = getNoun(eExpr.getLeftExpression());
-			ItemsList list = eExpr.getRightItemsList();
-			NounMetadata r = null;
-			if(list instanceof ExpressionList) {
-				List<Expression> el = ((ExpressionList)list).getExpressions();
-				List <Object> ol = new Vector<Object>();
-				for(int elIndex = 0;elIndex < el.size();elIndex++) {
-					NounMetadata thisVal = getNoun(el.get(elIndex));
-					ol.add(thisVal.getValue());
-				}
-
-				r = new NounMetadata(ol, PixelDataType.VECTOR);
-			}
-			if(l != null && r != null) {
-				retFilter = new SimpleQueryFilter(l, "?like", r);
-			}
-		}
-		return retFilter;
-	}
-
-
-	private NounMetadata getNoun(Expression expr) {
-		// Column
-		// DoubleValue
-		// DateValue
-		// LongValue
-		// TimestampValue
-		// TimeValue
-		// StringValue
-		// NullValue
-
-		NounMetadata retData = null;
-
-		if(expr instanceof LongValue) {
-			long longValue = ((LongValue) expr).getValue();
-			retData = new NounMetadata(longValue, PixelDataType.CONST_DECIMAL);
-		} else if(expr instanceof DoubleValue) {
-			double longValue = ((DoubleValue) expr).getValue();
-			retData = new NounMetadata(longValue, PixelDataType.CONST_DECIMAL);
-		} else if(expr instanceof StringValue) {
-			String strValue = ((StringValue) expr).getValue();
-			retData = new NounMetadata(strValue, PixelDataType.CONST_STRING);
-		} else if(expr instanceof DateValue) {
-			// need to see about this
-			Date dateValue = ((DateValue) expr).getValue();
-			retData = new NounMetadata(dateValue+"", PixelDataType.CONST_STRING);
-		} else if(expr instanceof NullValue) {
-			// need to see about this as well
-			String strValue = ((NullValue) expr).toString();
-			retData = new NounMetadata(strValue, PixelDataType.CONST_STRING);
-		} else {
-			// assume it is some kind of selector column or expression
-			IQuerySelector selector = determineSelector(expr, null, EXPR_TYPE.LEFT, null);
-			retData = new NounMetadata(selector, PixelDataType.COLUMN);
-		}
-		return retData;
 	}
 
 	/**
-	 * Fills in the limit and offset for the query
-	 * @param qs
-	 * @param limit
+	 * Build the expression for a single join. The ON predicate becomes the body of
+	 * the join node, the join keyword becomes its "on" text, and the right hand
+	 * FROM item becomes its "from", recursing for nested joins and subqueries.
+	 *
+	 * @param qs       the expression for the select that owns the join
+	 * @param expr     the enclosing expression to attach the ON predicate under, if
+	 *                 any
+	 * @param thisJoin the join to convert
+	 * @return the expression for the join
+	 */
+	// TODO - process USING columns
+	public GenExpression processJoinExpression(GenExpression qs, GenExpression expr, Join thisJoin) {
+		GenExpression gep = new GenExpression();
+		// a join can carry several ON expressions, and cross joins carry none at all
+		Collection<Expression> onExpressions = thisJoin.getOnExpressions();
+		Expression onExpression = onExpressions.isEmpty() ? null : onExpressions.iterator().next();
+		GenExpression retExpr = processExpression(qs, onExpression, expr);
+		gep.telescope = true;
+		gep.body = retExpr;
+		gep.aQuery = thisJoin.toString();
+		gep.parent = qs;
+
+		FromItem fi = thisJoin.getRightItem();
+		GenExpression from2 = new GenExpression();
+
+		String joinType = null;
+		if (thisJoin.isInner()) {
+			joinType = "inner join";
+		} else if (thisJoin.isLeft()) {
+			joinType = "left outer join";
+		} else if (thisJoin.isRight()) {
+			joinType = "right outer join";
+		} else if (thisJoin.isOuter()) {
+			joinType = "outer join";
+		} else if (thisJoin.isFull()) {
+			joinType = "full join";
+		} else if (thisJoin.isCross()) {
+			joinType = "cross join";
+		}
+		if (joinType == null) {
+			joinType = "JOIN";
+		}
+		gep.setOperation("join");
+		gep.setOn(joinType);
+
+		from2 = processJoinFromItem(fi, thisJoin, gep);
+		from2.parent = gep;
+		gep.from = from2;
+
+		return gep;
+	}
+
+	/**
+	 * Convert the right hand side of a join into an expression, recursing for
+	 * subqueries, set operations, and parenthesized joins.
+	 *
+	 * @param fi       the right hand FROM item of the join
+	 * @param thisJoin the join being processed
+	 * @param gep      the expression for the join, used as the parent
+	 * @return the expression for the FROM item, empty if the item is a shape this
+	 *         parser does not model
+	 */
+	private GenExpression processJoinFromItem(FromItem fi, Join thisJoin, GenExpression gep) {
+		String rightTableName, rightTableAlias = null;
+		GenExpression from2 = new GenExpression();
+		if (fi instanceof Table) {
+			Table rightTable = (Table) fi;
+			rightTableName = rightTable.getName();
+			rightTableAlias = rightTableName;
+			if (rightTable.getAlias() != null) {
+				rightTableAlias = rightTable.getAlias().getName();
+			}
+			// register the alias so a column qualified by it resolves to the real table,
+			// the same way the FROM table's alias does
+			this.wrapper.tableAlias.put(rightTableAlias, rightTableName);
+
+			// turn this into a full from
+			from2.setOperation("table");
+			from2.setLeftExpr(rightTableName);
+			from2.setLeftAlias(rightTableAlias);
+			from2.parent = gep;
+			return from2;
+		} else if (fi instanceof ParenthesedSelect) {
+			rightTableName = fi.getAlias().getName();
+			rightTableAlias = rightTableName;
+			String alias = fi.getAlias().getName();
+
+			Select sbody = ((ParenthesedSelect) fi).getSelect();
+			if (sbody instanceof PlainSelect) {
+				from2 = processSelect(qs, (PlainSelect) sbody);
+				from2.operation = "querystruct";
+				from2.telescope = true;
+				from2.setComposite(true);
+				from2.setLeftAlias(alias);
+			}
+			// union if it is a set operations list
+			else if (sbody instanceof SetOperationList) {
+				from2 = processOperation((SetOperationList) sbody);
+				from2.telescope = true;
+				from2.setComposite(true);
+				from2.setLeftAlias(alias);
+			}
+			return from2;
+		} else if (fi instanceof ParenthesedFromItem) {
+			FromItem innerFromItem = ((ParenthesedFromItem) fi).getFromItem();
+			from2 = processJoinFromItem(innerFromItem, thisJoin, gep);
+			from2.paranthesis = true;
+			from2.setComposite(true);
+			return from2;
+		}
+		return from2;
+	}
+
+	/**
+	 * Convert a single SQL expression into an expression node, recursing into its
+	 * operands. Constants that sit opposite a column are also registered as
+	 * parameters on the wrapper, and replaced with a parameter placeholder when
+	 * {@link #parameterize} is set.
+	 *
+	 * @param qs       the expression for the select the expression belongs to
+	 * @param joinExpr the SQL expression to convert, may be null
+	 * @param expr     the enclosing expression, may be null at the top of a tree
+	 * @return the expression node, or the enclosing expression when the input is a
+	 *         shape with nothing to add
+	 */
+	public GenExpression processExpression(SelectQueryStruct qs, Expression joinExpr, GenExpression expr) {
+		// these are either composite relations like and or etc. or simple relations
+		if (joinExpr instanceof AndExpression) {
+			GenExpression expr2 = new GenExpression();
+			AndExpression aExpr = (AndExpression) joinExpr;
+			expr2.setOperation(aExpr.getStringExpression());
+			expr2.aQuery = joinExpr.toString();
+
+			// this is composite
+			expr2.setComposite(true);
+
+			Expression left = aExpr.getLeftExpression();
+			Expression right = aExpr.getRightExpression();
+			expr2.recursive = true;
+
+			// the operator stack lets the operands below name their parameters after the
+			// branch of the tree they sit on
+			wrapper.currentOperator.push("and");
+			wrapper.andCount++;
+			wrapper.procOrder.put("and" + wrapper.andCount, true);
+			wrapper.contextExpression.push(joinExpr.toString());
+
+			// process the left and right
+			GenExpression leftExpr = processExpression(qs, left, expr);
+			GenExpression rightExpr = processExpression(qs, right, expr);
+
+			expr2.setLeftExpresion(leftExpr);
+			expr2.setRightExpresion(rightExpr);
+
+			expr2.parent = (GenExpression) qs;
+
+			wrapper.currentOperator.pop();
+			wrapper.contextExpression.pop();
+			wrapper.andCount--;
+			return expr2;
+		} else if (joinExpr instanceof OrExpression) {
+			GenExpression expr2 = new GenExpression();
+			OrExpression aExpr = (OrExpression) joinExpr;
+			expr2.setOperation(aExpr.getStringExpression());
+			expr2.aQuery = joinExpr.toString();
+
+			// this is composite
+			expr2.setComposite(true);
+
+			Expression left = aExpr.getLeftExpression();
+			Expression right = aExpr.getRightExpression();
+			expr2.recursive = true;
+
+			wrapper.currentOperator.push("or");
+			wrapper.orCount++;
+			wrapper.procOrder.put("or" + wrapper.andCount, true);
+			wrapper.contextExpression.push(joinExpr.toString());
+
+			// process the left and right
+			GenExpression leftExpr = processExpression(qs, left, expr);
+			GenExpression rightExpr = processExpression(qs, right, expr);
+
+			expr2.setLeftExpresion(leftExpr);
+			expr2.setRightExpresion(rightExpr);
+
+			expr2.parent = (GenExpression) qs;
+
+			wrapper.currentOperator.pop();
+			wrapper.contextExpression.pop();
+			wrapper.orCount--;
+			return expr2;
+		}
+		// only the binary expression has 2 sides
+		else if (joinExpr instanceof BinaryExpression && (processAllBinary
+				|| IQueryFilter.comparatorIsValidSQL(((BinaryExpression) joinExpr).getStringExpression()))) {
+			boolean paramBinary = true;
+
+			if (processParam.size() > 0) {
+				// get the latest and push it back
+				paramBinary = processParam.pop();
+				processParam.push(paramBinary);
+			}
+
+			this.binary = true;
+			// this is another fractal that needs to be taken care of
+			// so it is like and / or and then below that you have the equal expression etc.
+			GenExpression eqExpr = new GenExpression();
+			eqExpr.setComposite(true);
+			eqExpr.aQuery = joinExpr.toString();
+			BinaryExpression joinExpr2 = (BinaryExpression) joinExpr;
+			eqExpr.setOperation(joinExpr2.getStringExpression());
+
+			// e.g. YEAR_ID (left expression) = 123 (right expression)
+			String operator = eqExpr.aQuery;
+			String modifier = wrapper.uniqueCounter + "";
+
+			// name the parameter after the enclosing AND / OR and the side of it this
+			// comparison sits on, so the two halves of a range get distinct names
+			if (wrapper.currentOperator.size() > 0) {
+				operator = wrapper.currentOperator.pop();
+				Boolean left = false;
+				int count = 0;
+				if (operator.equalsIgnoreCase("and")) {
+					count = wrapper.andCount;
+				} else {
+					count = wrapper.orCount;
+				}
+				count = wrapper.uniqueCounter;
+				left = wrapper.procOrder.get(operator + count);
+				if (left == null || left) {
+					modifier = operator + count + "_left";
+					wrapper.procOrder.put(operator + count, false);
+				} else {
+					modifier = operator + count + "_right";
+				}
+				wrapper.currentOperator.push(operator);
+			}
+
+			String full_from = null;
+			String full_To = null;
+
+			GenExpression sqs = processExpression(qs, joinExpr2.getLeftExpression(), eqExpr);
+			GenExpression sqs2 = processExpression(qs, joinExpr2.getRightExpression(), eqExpr);
+
+			Object constantValue = null;
+			String constantType = null;
+			GenExpression exprToTrack = null;
+			String tableName = null;
+			String aliasName = null;
+
+			// skipped inside a CASE, where the branches are rendered verbatim
+			if (paramBinary) {
+				if (sqs.getOperation().equalsIgnoreCase("column")) {
+					full_from = sqs.getLeftExpr();
+					column = true;
+					columnName = full_from;
+					tableName = sqs.tableName;
+					aliasName = columnName;
+					if (sqs.userTableAlias != null) {
+						aliasName = sqs.userTableAlias;
+					}
+
+				} else if ((sqs.getOperation().equalsIgnoreCase("string"))
+						|| (sqs.getOperation().equalsIgnoreCase("double"))
+						|| (sqs.getOperation().equalsIgnoreCase("date"))
+						|| (sqs.getOperation().equalsIgnoreCase("time"))
+						|| (sqs.getOperation().equalsIgnoreCase("long"))) {
+					// we got our target
+					constantValue = sqs.leftItem;
+					constantType = sqs.getOperation();
+					if (columnName != null) {
+						sqs.setLeftExpresion(
+								"'<" + tableName + "_" + columnName + modifier + eqExpr.getOperation().trim() + ">'");
+					}
+					exprToTrack = sqs;
+
+				}
+				// If the operation is function, get the data from the expression
+				else if ((sqs.getOperation().equalsIgnoreCase("function"))) {
+					// Casting to FunctionExpression to get the expression data
+					FunctionExpression fnsqs = (FunctionExpression) sqs;
+					// in case we have function inside function
+					while (fnsqs.expressions.size() > 0 && fnsqs.expressions.get(0).getOperation().equals("function")) {
+						fnsqs = (FunctionExpression) fnsqs.expressions.get(0);
+					}
+					if (fnsqs.expressions.size() > 0) {
+						// Going with the normal flow
+						if (fnsqs.expressions.get(0).getOperation().equalsIgnoreCase("column")) {
+							full_from = fnsqs.expressions.get(0).getLeftExpr();
+							column = true;
+							columnName = full_from;
+							tableName = fnsqs.expressions.get(0).tableName;
+							aliasName = columnName;
+							if (fnsqs.expressions.get(0).userTableAlias != null) {
+								aliasName = fnsqs.expressions.get(0).userTableAlias;
+							}
+						} else if (fnsqs.expressions.get(0).getOperation().equalsIgnoreCase("cast")) {
+							GenExpression innerExpression = (GenExpression) fnsqs.expressions.get(0).leftItem;
+							full_from = innerExpression.aQuery;
+							column = true;
+							columnName = innerExpression.getLeftExpr();
+							tableName = innerExpression.tableName;
+							aliasName = columnName;
+							if (fnsqs.expressions.get(0).userTableAlias != null) {
+								aliasName = fnsqs.expressions.get(0).userTableAlias;
+							}
+						} else if ((fnsqs.expressions.get(0).getOperation().equalsIgnoreCase("string"))
+								|| (fnsqs.expressions.get(0).getOperation().equalsIgnoreCase("double"))
+								|| (fnsqs.expressions.get(0).getOperation().equalsIgnoreCase("date"))
+								|| (fnsqs.expressions.get(0).getOperation().equalsIgnoreCase("time"))
+								|| (fnsqs.expressions.get(0).getOperation().equalsIgnoreCase("long"))) {
+
+							constantValue = fnsqs.expressions.get(0).leftItem;
+							constantType = sqs2.getOperation();
+						}
+					}
+				}
+
+				// the column can just as easily be on the right hand side
+				if (sqs2.getOperation().equalsIgnoreCase("column")) {
+					full_To = sqs2.getLeftExpr();
+					column = true;
+					columnName = full_To;
+					tableName = sqs2.tableName;
+					aliasName = columnName;
+					if (sqs2.userTableAlias != null) {
+						aliasName = sqs2.userTableAlias;
+					}
+				} else if ((sqs2.getOperation().equalsIgnoreCase("string"))
+						|| (sqs2.getOperation().equalsIgnoreCase("double"))
+						|| (sqs2.getOperation().equalsIgnoreCase("date"))
+						|| (sqs2.getOperation().equalsIgnoreCase("time"))
+						|| (sqs2.getOperation().equalsIgnoreCase("long"))) {
+					// we got our target
+					constantValue = sqs2.leftItem;
+					constantType = sqs2.getOperation();
+
+					if (columnName != null && parameterize) {
+						// replace the parameter value so at a later point some one can change it
+						// the value is now replaced with table_column_left or right of the and
+						// expression followed by operation
+						sqs2.setLeftExpresion(
+								"<" + tableName + "_" + columnName + modifier + eqExpr.getOperation().trim() + ">");
+					}
+					exprToTrack = sqs2;
+
+				}
+				// If the operation is function, get the data from the expression
+				else if ((sqs2.getOperation().equalsIgnoreCase("function"))) {
+					// Casting to FunctionExpression to get the expression data
+					FunctionExpression fnsqs2 = (FunctionExpression) sqs2;
+					// in case we have function inside function
+					while (fnsqs2.expressions.size() > 0
+							&& fnsqs2.expressions.get(0).getOperation().equals("function")) {
+						fnsqs2 = (FunctionExpression) fnsqs2.expressions.get(0);
+					}
+					if (fnsqs2.expressions.size() > 0) {
+						// Going with the normal flow
+						if (fnsqs2.expressions.get(0).getOperation().equalsIgnoreCase("column")) {
+							full_from = fnsqs2.expressions.get(0).getLeftExpr();
+							column = true;
+							columnName = full_from;
+							tableName = fnsqs2.expressions.get(0).tableName;
+							aliasName = columnName;
+							if (fnsqs2.expressions.get(0).userTableAlias != null) {
+								aliasName = fnsqs2.expressions.get(0).userTableAlias;
+							}
+						} else if (fnsqs2.expressions.get(0).getOperation().equalsIgnoreCase("cast")) {
+							GenExpression innerExpression = (GenExpression) fnsqs2.expressions.get(0).leftItem;
+							full_from = innerExpression.aQuery;
+							column = true;
+							columnName = innerExpression.getLeftExpr();
+							tableName = innerExpression.tableName;
+							aliasName = columnName;
+							if (fnsqs2.expressions.get(0).userTableAlias != null) {
+								aliasName = fnsqs2.expressions.get(0).userTableAlias;
+							}
+						} else if ((fnsqs2.expressions.get(0).getOperation().equalsIgnoreCase("string"))
+								|| (fnsqs2.expressions.get(0).getOperation().equalsIgnoreCase("double"))
+								|| (fnsqs2.expressions.get(0).getOperation().equalsIgnoreCase("date"))
+								|| (fnsqs2.expressions.get(0).getOperation().equalsIgnoreCase("time"))
+								|| (fnsqs2.expressions.get(0).getOperation().equalsIgnoreCase("long"))) {
+
+							constantValue = fnsqs2.expressions.get(0).leftItem;
+							constantType = sqs2.getOperation();
+						}
+					}
+				}
+
+				if (binary && column && tableName != null && constantValue != null) {
+					String defQuery = "Select q1." + aliasName + " from (" + qs + ") q1";
+					this.wrapper.makeParameters(columnName, constantValue, modifier + eqExpr.getOperation().trim(),
+							eqExpr.getOperation().trim(), constantType, exprToTrack, tableName, defQuery);
+				}
+
+				binary = false;
+				column = false;
+				columnName = null;
+
+			}
+
+			eqExpr.recursive = true;
+			eqExpr.setLeftExpresion(sqs);
+			eqExpr.setRightExpresion(sqs2);
+			eqExpr.setComposite(false);
+			eqExpr.setExpression(joinExpr2.toString());
+			eqExpr.setLeftExpr(full_from);
+			eqExpr.setRightExpr(full_To);
+
+			eqExpr.parent = (GenExpression) qs;
+			return eqExpr;
+		}
+		// a subquery used as an expression, e.g. the right hand side of an IN
+		else if (joinExpr instanceof ParenthesedSelect) {
+			ParenthesedSelect ss = (ParenthesedSelect) joinExpr;
+			Select sb = ss.getSelect();
+			String alias = null;
+			if (ss.getAlias() != null) {
+				alias = ss.getAlias().getName();
+			}
+
+			// this can be something else other than plain select
+			if (sb instanceof PlainSelect) {
+				GenExpression ge = new GenExpression();
+				ge.aliasHash = qs.aliasHash;
+				ge.randomHash = qs.randomHash;
+				ge.setOperation("querystruct");
+				ge.telescope = true;
+
+				GenExpression sqs = processSelect(ge, (PlainSelect) sb);
+				ge.body = sqs;
+				sqs.parent = ge;
+				if (alias != null) {
+					qs.aliasHash.put(alias, sqs);
+				}
+				return ge;
+			} else if (sb instanceof SetOperationList) {
+				GenExpression gep = processOperation((SetOperationList) sb);
+				gep.parent = (GenExpression) qs;
+				return gep;
+			}
+
+		} else if (joinExpr instanceof Between) {
+			boolean paramBetween = true;
+
+			if (processParam.size() > 0) {
+				// get the latest and push it back
+				paramBetween = processParam.pop();
+				processParam.push(paramBetween);
+			}
+
+			GenExpression retExpr = new GenExpression();
+			retExpr.setComposite(true);
+			retExpr.setOperation("between");
+			retExpr.aQuery = joinExpr.toString();
+			retExpr.recursive = true;
+			String modifier = wrapper.uniqueCounter + "";
+			// the column under test becomes the body, and the bounds become the left and
+			// right expressions
+
+			Between betw = (Between) joinExpr;
+			Expression leftExpr = betw.getLeftExpression();
+			retExpr.body = processExpression(qs, leftExpr, retExpr);
+			Expression start = betw.getBetweenExpressionStart();
+			Expression end = betw.getBetweenExpressionEnd();
+			GenExpression startExpression = processExpression(qs, start, retExpr);
+			retExpr.setLeftExpresion(startExpression);
+			GenExpression endExpression = processExpression(qs, end, retExpr);
+			retExpr.setRightExpresion(endExpression);
+
+			retExpr.parent = (GenExpression) qs;
+			String tableName = null;
+			String aliasName = null;
+
+			if (retExpr.body.getOperation().equalsIgnoreCase("column")) {
+				column = true;
+				columnName = retExpr.body.getLeftExpr();
+				tableName = retExpr.body.tableName;
+				aliasName = columnName;
+				if (retExpr.body.userTableAlias != null) {
+					aliasName = retExpr.body.userTableAlias;
+				}
+
+			}
+
+			if (paramBetween && tableName != null) {
+				// process the start value if it is a constant
+				if ((startExpression.getOperation().equalsIgnoreCase("string"))
+						|| startExpression.getOperation().equalsIgnoreCase("double")
+						|| startExpression.getOperation().equalsIgnoreCase("date")
+						|| startExpression.getOperation().equalsIgnoreCase("time")
+						|| startExpression.getOperation().equalsIgnoreCase("long")) {
+					// we got our target
+					Object constantValue = startExpression.leftItem;
+					String constantType = startExpression.getOperation();
+
+					if (columnName != null && parameterize) {
+						startExpression.setLeftExpresion(
+								"'<" + tableName + "_" + columnName + modifier + "between.start" + ">'");
+					}
+
+					String defQuery = "Select q1." + aliasName + " from (" + qs + ") q1";
+					String compositeName = this.wrapper.makeParameters(columnName, constantValue,
+							modifier + "between.start", "between.start", constantType, startExpression, tableName,
+							defQuery);
+					startExpression.setLeftExpresion("'<" + compositeName + ">'");
+					classLogger.debug("Parameterized {} in query {}", columnName, qs);
+
+				}
+
+				// process the end value if it is a constant
+				if ((endExpression.getOperation().equalsIgnoreCase("string"))
+						|| endExpression.getOperation().equalsIgnoreCase("double")
+						|| endExpression.getOperation().equalsIgnoreCase("date")
+						|| endExpression.getOperation().equalsIgnoreCase("time")
+						|| endExpression.getOperation().equalsIgnoreCase("long")) {
+					// we got our target
+					Object constantValue = endExpression.leftItem;
+					String constantType = endExpression.getOperation();
+
+					if (columnName != null && parameterize) {
+						endExpression.setLeftExpresion(
+								"'<" + tableName + "_" + columnName + modifier + "between.end" + ">'");
+					}
+
+					String defQuery = "Select q1." + aliasName + " from (" + qs + ") q1";
+					String compositeName = this.wrapper.makeParameters(columnName, constantValue,
+							modifier + "between.end", "between.end", constantType, endExpression, tableName, defQuery);
+					endExpression.setLeftExpresion("'<" + compositeName + ">'");
+					classLogger.debug("Parameterized {} in query {}", columnName, qs);
+				}
+			}
+			binary = false;
+			column = false;
+			columnName = null;
+
+			return retExpr;
+		} else if (joinExpr instanceof Column) {
+			// process the column and return back
+			GenExpression retExpr = new GenExpression();
+			Column thisCol = (Column) joinExpr;
+			retExpr.aQuery = thisCol.toString();
+			retExpr.setComposite(false);
+			retExpr.setOperation("column");
+			String tableName = "";
+			String tableAlias = "";
+
+			// an unqualified column belongs to whatever table the enclosing select is on
+			if (thisCol.getTable() != null) {
+				tableName = thisCol.getTable().getFullyQualifiedName();
+				retExpr.userTableName = tableName;
+				Alias alias = thisCol.getTable().getAlias();
+				if (alias != null) {
+					tableAlias = alias.getName();
+					retExpr.userTableAlias = tableAlias;
+				}
+			} else {
+				tableName = qs.currentTable;
+				tableAlias = qs.currentTableAlias;
+			}
+			retExpr.setLeftExpr(thisCol.getColumnName());
+			retExpr.tableName = tableName;
+			retExpr.tableAlias = tableAlias;
+
+			// starts keeping track of the columns
+			String columnName = thisCol.getColumnName();
+
+			List<GenExpression> selectList = null;
+			if (this.wrapper.columnSelect.containsKey(tableName + "." + columnName)) {
+				selectList = this.wrapper.columnSelect.get(tableName + "." + columnName);
+			} else {
+				selectList = new ArrayList<GenExpression>();
+			}
+			if (!selectList.contains(qs)) {
+				selectList.add((GenExpression) qs);
+			}
+			this.wrapper.columnSelect.put(tableName + "." + columnName, selectList);
+
+			// track based on select too
+			List<String> columnList = null;
+			if (this.wrapper.selectColumns.containsKey(qs)) {
+				columnList = this.wrapper.selectColumns.get(qs);
+			} else {
+				columnList = new ArrayList<String>();
+			}
+			if (!columnList.contains(tableName + "." + columnName)) {
+				columnList.add(tableName + "." + columnName);
+			}
+
+			this.wrapper.selectColumns.put((GenExpression) qs, columnList);
+
+			retExpr.parent = (GenExpression) qs;
+			return retExpr;
+		} else if (joinExpr instanceof Function) {
+			Function fexpr = (Function) joinExpr;
+			FunctionExpression gep = new FunctionExpression();
+			gep.aQuery = fexpr.toString();
+			gep.setExpression(fexpr.getName());
+			gep.setOperation("function");
+			// the whole call is kept verbatim as well, so it can be rendered back out
+			// without reassembling it from the arguments
+			gep.setLeftExpr(fexpr.toString());
+			gep.distinct = fexpr.isDistinct();
+
+			if (!fexpr.isAllColumns()) {
+				List<? extends Expression> el = fexpr.getParameters();
+				for (int exprIndex = 0; exprIndex < el.size(); exprIndex++) {
+					GenExpression thisExpression = processExpression(qs, el.get(exprIndex), gep);
+					gep.expressions.add(thisExpression);
+				}
+			} else {
+				GenExpression allColExpression = new GenExpression();
+				allColExpression.setOperation("allcol");
+				gep.expressions.add(allColExpression);
+			}
+			// add this to be used later
+			wrapper.addFunctionExpression(fexpr.getName(), gep);
+			gep.parent = (GenExpression) qs;
+			return gep;
+		} else if (joinExpr instanceof CaseExpression) {
+			CaseExpression cep = (CaseExpression) joinExpr;
+			// suppress parameterization for everything under the CASE, since its branches
+			// are rendered verbatim. TODO this should be a stack to survive nested cases
+			if (!processCase) {
+				processParam.push(false);
+			}
+
+			WhenExpression wep = new WhenExpression();
+			wep.aQuery = joinExpr.toString();
+			wep.setOperation("case");
+			List<WhenClause> whens = cep.getWhenClauses();
+
+			for (int whenIndex = 0; whenIndex < whens.size(); whenIndex++) {
+				WhenClause wc = whens.get(whenIndex);
+				Expression we = wc.getWhenExpression();
+				// process this expression
+				GenExpression when = processExpression(qs, we, wep);
+
+				Expression te = wc.getThenExpression();
+				GenExpression then = processExpression(qs, te, wep);
+
+				StringBuffer whenBuf = GenExpression.printQS(when, new StringBuffer());
+				StringBuffer thenBuf = GenExpression.printQS(then, new StringBuffer());
+				wep.addWhenThen(whenBuf.toString(), thenBuf.toString());
+				wep.addWhenThenE(when, then);
+			}
+			// if there is an else - process it
+			if (cep.getElseExpression() != null) {
+				GenExpression elseE = processExpression(qs, cep.getElseExpression(), wep);
+				wep.setElse(cep.getElseExpression().toString());
+				wep.setElseE(elseE);
+			}
+
+			wep.parent = (GenExpression) qs;
+			if (!processCase) {
+				processParam.pop();
+			}
+			return wep;
+		} else if (joinExpr instanceof StringValue) {
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			String value = ((StringValue) joinExpr).getValue();
+			gep.setOperation("string");
+			gep.setExpression("string");
+			gep.setLeftExpresion("'" + value + "'");
+			gep.setLeftExpr("'" + value + "'");
+			gep.parent = (GenExpression) qs;
+			return gep;
+		} else if (joinExpr instanceof LongValue) {
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			Long value = ((LongValue) joinExpr).getValue();
+			gep.setOperation("long");
+			gep.setExpression("long");
+			gep.setLeftExpresion(value);
+			gep.parent = (GenExpression) qs;
+			return gep;
+		} else if (joinExpr instanceof DoubleValue) {
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			Double value = ((DoubleValue) joinExpr).getValue();
+			gep.setOperation("double");
+			gep.setExpression("double");
+			gep.setLeftExpresion(value);
+			gep.parent = (GenExpression) qs;
+			return gep;
+		} else if (joinExpr instanceof DateValue) {
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			Date value = ((DateValue) joinExpr).getValue();
+			gep.setOperation("date");
+			gep.setExpression("date");
+			gep.setLeftExpresion(value);
+			gep.parent = (GenExpression) qs;
+			return gep;
+		} else if (joinExpr instanceof TimestampValue) {
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			Date value = ((DateValue) joinExpr).getValue();
+			gep.setOperation("timestamp");
+			gep.setExpression("timestamp");
+			gep.setLeftExpresion(value);
+			gep.parent = (GenExpression) qs;
+			return gep;
+		} else if (joinExpr instanceof TimeValue) {
+			GenExpression gep = new GenExpression();
+			gep.aQuery = joinExpr.toString();
+			Time value = ((TimeValue) joinExpr).getValue();
+			gep.setOperation("time");
+			gep.setExpression("time");
+			gep.setLeftExpresion(value);
+			gep.parent = (GenExpression) qs;
+			return gep;
+		} else if (joinExpr instanceof CastExpression) {
+			CastExpression ce = (CastExpression) joinExpr;
+			GenExpression gep = new GenExpression();
+			gep.aQuery = ce.toString();
+			gep.setOperation("cast");
+			// the target type rides along as the alias of the expression being cast
+			GenExpression innerExpression = processExpression(qs, ce.getLeftExpression(), null);
+			innerExpression.setLeftAlias(ce.getColDataType().toString());
+			gep.setLeftExpresion(innerExpression);
+			gep.parent = (GenExpression) qs;
+			return gep;
+		}
+		// a single parenthesized expression, e.g. WHERE (a = 1 AND b = 2). Lists with
+		// more than one element fall through to the opaque handling below
+		else if (joinExpr instanceof ParenthesedExpressionList
+				&& ((ParenthesedExpressionList<?>) joinExpr).size() == 1) {
+			GenExpression gep = new GenExpression();
+			gep.setOperation("paranthesis");
+			gep.setExpression(joinExpr.toString());
+
+			Expression nextExpr = ((ParenthesedExpressionList<?>) joinExpr).get(0);
+			gep.telescope = true;
+			GenExpression body = processExpression(qs, nextExpr, null);
+			gep.body = body;
+			gep.setLeftExpresion(body);
+			gep.parent = (GenExpression) qs;
+			return gep;
+		} else if (joinExpr instanceof IsNullExpression) {
+			IsNullExpression nullExpr = (IsNullExpression) joinExpr;
+			GenExpression gep = new GenExpression();
+			gep.setOperation("isnull");
+			gep.setLeftExpresion(processExpression(qs, nullExpr.getLeftExpression(), expr));
+			return gep;
+		} else if (joinExpr instanceof InExpression) {
+			boolean paramIn = true;
+
+			if (processParam.size() > 0) {
+				// get the latest and push it back
+				paramIn = processParam.pop();
+				processParam.push(paramIn);
+			}
+
+			InExpression inExpr = (InExpression) joinExpr;
+			InGenExpression gep = new InGenExpression();
+			gep.setIsNot(inExpr.isNot());
+			// the left side is a single expression; the right side is either a subquery
+			// or a value list that gets parameterized as a whole
+			gep.setOperation("in");
+			String operator = "in";
+
+			String modifier = operator + wrapper.uniqueCounter;
+
+			String tableName = null;
+			Expression leftExpression = inExpr.getLeftExpression();
+			// sometimes the in can also be a list, which the parser hands back as a
+			// parenthesed expression list rather than a dedicated items list
+			if (leftExpression instanceof ExpressionList) {
+				ExpressionList<?> el = (ExpressionList<?>) leftExpression;
+				if (el.size() == 1) {
+					GenExpression colExpression = processExpression(qs, el.get(0), expr);
+					colExpression.paranthesis = true;
+					gep.setLeftExpresion(colExpression);
+					if (colExpression.getOperation().equalsIgnoreCase("column")) {
+						column = true;
+						columnName = colExpression.getLeftExpr();
+						tableName = colExpression.tableName;
+					}
+				} else {
+					// TODO this should raise rather than warn
+					classLogger.warn("Multiple columns in IN is not supported, leaving {} unparameterized",
+							leftExpression);
+				}
+			} else if (leftExpression != null) {
+				GenExpression colExpression = processExpression(qs, leftExpression, expr);
+				gep.setLeftExpresion(colExpression);
+				if (colExpression.getOperation().equalsIgnoreCase("column")) {
+					column = true;
+					columnName = colExpression.getLeftExpr();
+					tableName = colExpression.tableName;
+				}
+
+				// If Operation is function, get the column name and table name from the
+				// expression
+				if (colExpression.getOperation().equalsIgnoreCase("function")) {
+					// Casting to FunctionExpression to get the expression data
+					FunctionExpression fncolExpression = (FunctionExpression) colExpression;
+					column = true;
+					columnName = fncolExpression.expressions.get(0).getLeftExpr();
+					tableName = fncolExpression.expressions.get(0).tableName;
+				}
+
+			}
+
+			Expression itemList = inExpr.getRightExpression();
+			if (itemList instanceof ParenthesedSelect) {
+				GenExpression ge = processExpression(qs, itemList, expr);
+				gep.rightItem = ge;
+			} else {
+				// the value list is kept whole as an opaque node, so the parameter it
+				// produces stands in for the entire list rather than one element
+				GenExpression ge = new GenExpression();
+				ge.setOperation("opaque");
+				ge.setLeftExpr(itemList.toString());
+				ge.parent = (GenExpression) qs;
+
+				gep.inList.add(ge);
+				Object constantValue = ge.getLeftExpr();
+				// the list is typed off its first recognizable literal
+				String constantType = "string";
+				{
+					ExpressionList<?> list = (ExpressionList<?>) itemList;
+					for (Expression e : list) {
+						if (e instanceof LongValue) {
+							constantType = "long";
+							break;
+						} else if (joinExpr instanceof DoubleValue) {
+							constantType = "long";
+							break;
+						} else if (joinExpr instanceof TimeValue) {
+							constantType = "time";
+							break;
+						} else if (joinExpr instanceof DateValue) {
+							constantType = "date";
+							break;
+						} else if (joinExpr instanceof TimestampValue) {
+							constantType = "timestamp";
+							break;
+						}
+					}
+				}
+
+				if (columnName != null && paramIn) {
+					// removing the quotes for now
+					String defQuery = "Select q1." + columnName + " from (" + qs + ") q1";
+					this.wrapper.makeParameters(columnName, constantValue, modifier, "in", constantType, ge, tableName,
+							defQuery);
+					if (parameterize) {
+						ge.setLeftExpr("(<" + tableName + "_" + columnName + modifier + ">)");
+					}
+				}
+			}
+
+			return gep;
+		} else {
+			// anything this parser does not model is carried through verbatim so the
+			// query can still be rendered back out unchanged
+			classLogger.debug("Unhandled expression, carrying it through verbatim: {}", joinExpr);
+			if (joinExpr == null) {
+				return null;
+			}
+			GenExpression ge = new GenExpression();
+			ge.setOperation("opaque");
+			ge.setLeftExpr(joinExpr.toString());
+			ge.parent = (GenExpression) qs;
+
+			return ge;
+		}
+
+		return expr;
+	}
+
+	/**
+	 * Convert a UNION / INTERSECT / EXCEPT chain into a single expression whose
+	 * operands are the individual selects and whose opNames are the set operators
+	 * between them. There is always one more operand than operator, so the last
+	 * select is handled after the loop.
+	 *
+	 * @param sol the set operation chain to convert
+	 * @return the expression for the chain
+	 */
+	public GenExpression processOperation(SetOperationList sol) {
+		OperationExpression opExpr = new OperationExpression();
+		List<Select> solParts = sol.getSelects();
+		List<SetOperation> solOps = sol.getOperations();
+
+		opExpr.setOperation("union");
+		opExpr.setComposite(true);
+
+		int solIndex = 0;
+		for (; solIndex < solOps.size(); solIndex++) {
+			Select sb1 = solParts.get(solIndex);
+
+			opExpr.opNames.add(solOps.get(solIndex).toString());
+
+			GenExpression sqs1 = null;
+
+			if (sb1 instanceof PlainSelect) {
+				sqs1 = processSelect(null, (PlainSelect) sb1);
+			} else if (sb1 instanceof SetOperationList) {
+				sqs1 = processOperation((SetOperationList) sb1);
+			}
+
+			opExpr.operands.add(sqs1);
+		}
+
+		// the trailing select, which has no operator after it
+		Select lastS = solParts.get(solIndex);
+		GenExpression sqs1 = null;
+
+		if (lastS instanceof PlainSelect) {
+			sqs1 = processSelect(null, (PlainSelect) lastS);
+		} else if (lastS instanceof SetOperationList) {
+			sqs1 = processOperation((SetOperationList) lastS);
+		}
+		opExpr.operands.add(sqs1);
+
+		return opExpr;
+	}
+
+	/**
+	 * Set the WHERE clause of the select. The whole predicate is kept as one
+	 * expression tree rather than being flattened into a list of filters, so
+	 * arbitrary nesting of AND, OR, and parentheses survives a round trip.
+	 *
+	 * @param qs        the expression for the select
+	 * @param curFilter unused, kept for signature compatibility with the callers
+	 * @param expr      the WHERE predicate, may be null
+	 */
+	public void fillFilters(SelectQueryStruct qs, IQueryFilter curFilter, Expression expr) {
+		if (expr != null) {
+			GenExpression fExpr = processExpression(qs, expr, null);
+			qs.filter = fExpr;
+		}
+	}
+
+	/**
+	 * Fills in the limit and offset for the query. Anything that is not a plain
+	 * numeric literal is ignored.
+	 *
+	 * @param qs    the expression for the select
+	 * @param limit the LIMIT clause, may be null
 	 */
 	public void fillLimitOffset(SelectQueryStruct qs, Limit limit) {
-		if(limit == null) {
+		if (limit == null) {
 			return;
 		}
 		// add limit
-		if(limit.getRowCount() instanceof LongValue) {
-			long limitRow =  ((LongValue)limit.getRowCount()).getValue();
+		if (limit.getRowCount() instanceof LongValue) {
+			long limitRow = ((LongValue) limit.getRowCount()).getValue();
 			qs.setLimit(limitRow);
 		}
 
 		// add offset
-		if(limit.getOffset() instanceof LongValue) {
-			long offset =  ((LongValue)limit.getOffset()).getValue();
+		if (limit.getOffset() instanceof LongValue) {
+			long offset = ((LongValue) limit.getOffset()).getValue();
 			qs.setOffSet(offset);
 		}
 	}
 
 	/**
-	 * Add in the order by
-	 * @param qs
-	 * @param orders
+	 * Add in the order by. ASC is the default, so only DESC is recorded.
+	 *
+	 * @param qs     the expression for the select
+	 * @param orders the ORDER BY elements, may be null or empty
 	 */
-	public void fillOrder(SelectQueryStruct qs, List <OrderByElement> orders) {
-		if(orders == null || orders.isEmpty()) {
+	public void fillOrder(SelectQueryStruct qs, List<OrderByElement> orders) {
+		if (orders == null || orders.isEmpty()) {
 			return;
 		}
 
-		for(int orderIndex = 0; orderIndex < orders.size(); orderIndex++) {
+		for (int orderIndex = 0; orderIndex < orders.size(); orderIndex++) {
+
 			OrderByElement thisElement = orders.get(orderIndex);
 			Expression expr = thisElement.getExpression();
 			String sortDir = "ASC";
-			if(thisElement.isAscDescPresent() && !thisElement.isAsc()) {
+			if (thisElement.isAscDescPresent() && !thisElement.isAsc()) {
 				sortDir = "DESC";
 			}
 
-			if(expr instanceof Column) {
-				String colName = ((Column)expr).getColumnName();
-				if(columnAlias.containsKey(colName)) {
-					String fullColumn = columnAlias.get(colName);
-					String [] colParts = fullColumn.split("__");
-					String concept = colParts[0];
-					String property = colParts[1];
-					// keep track of column and table in schema
-					Set<String> columns = new HashSet<String>();
-					if(this.schema.containsKey(concept)) {
-						columns = this.schema.get(concept);
-					}
-					columns.add(property);
-					this.schema.put(concept, columns);
-					qs.addOrderBy(concept, property, sortDir);
-				}
-			}			
+			OrderByExpression obe = new OrderByExpression();
+			obe.telescope = true;
+			obe.body = processExpression(qs, expr, null);
+			if (!sortDir.equalsIgnoreCase("ASC")) {
+				obe.direction = sortDir;
+			}
+			qs.norderBy.add(obe);
 		}
 	}
-	
+
 	/**
-	 * Add in the group bys
-	 * @param qs
-	 * @param groupByElement
+	 * Add in the group bys, also recording each grouped column on the wrapper.
+	 *
+	 * @param qs     the expression for the select
+	 * @param groups the GROUP BY clause, may be null
 	 */
 	public void fillGroups(SelectQueryStruct qs, GroupByElement groups) {
-		if(groups == null) {
+		if (groups == null) {
 			return;
 		}
-		List<Expression> groupByElement = groups.getGroupByExpressions();
-		if(groupByElement == null || groupByElement.isEmpty()) {
+		ExpressionList<?> groupByElement = groups.getGroupByExpressionList();
+		if (groupByElement == null || groupByElement.isEmpty()) {
 			return;
 		}
-		
-		for(int groupIndex = 0; groupIndex < groupByElement.size(); groupIndex++) {
+
+		for (int groupIndex = 0; groupIndex < groupByElement.size(); groupIndex++) {
 			Expression expr = groupByElement.get(groupIndex);
-			// this has to be a column
-			// right now this assumption is wrong
-			// it could be an alias of a derived column
-			if(expr instanceof Column) {
-				String colName = ((Column) expr).getColumnName();
-				if(columnAlias.containsKey(colName)) {
-					String fullColumn = columnAlias.get(colName);
-					String [] colParts = fullColumn.split("__");
-					String concept = colParts[0];
-					String property = colParts[1];
-					qs.addGroupBy(concept, property);
-				}
+			GenExpression gep = processExpression(qs, expr, null);
+
+			String tableColumnName = gep.getLeftExpr();
+			wrapper.addGroupBy(tableColumnName, (GenExpression) qs);
+
+			qs.ngroupBy.add(gep);
+		}
+	}
+
+	/**
+	 * Parse a query and report which columns each real, physical table contributes.
+	 * Derived tables and subquery aliases are dropped, so only names that resolve
+	 * to something in the database survive.
+	 *
+	 * @param query the SQL to parse
+	 * @return table name to the columns used from it, or null if parsing failed
+	 */
+	public Map<String, List<GenExpression>> getTableColumns(String query) {
+		Map<String, List<GenExpression>> newTableColumn = null;
+		try {
+			wrapper = new GenExpressionWrapper();
+			GenExpression qs = new GenExpression();
+			Statement stmt = CCJSqlParserUtil.parse(query);
+			Select select = ((Select) stmt);
+
+			if (select instanceof PlainSelect) {
+				PlainSelect sb = (PlainSelect) select;
+				qs = processSelect(null, sb);
+			}
+			if (select instanceof SetOperationList) {
+				qs = processOperation((SetOperationList) select);
+			}
+			Map<Integer, List<GenExpression>> levelSelectors = new HashMap<Integer, List<GenExpression>>();
+			List<String> realTables = new ArrayList<String>();
+			Map<GenExpression, List<GenExpression>> derivedColumns = new HashMap<GenExpression, List<GenExpression>>();
+			Map<String, List<GenExpression>> tableColumns = new HashMap<String, List<GenExpression>>();
+
+			Map<String, String> aliases = new HashMap<String, String>();
+
+			// walking the tree fills realTables and tableColumns as a side effect
+			GenExpression.printLevel2(qs, realTables, 0, null, derivedColumns, levelSelectors, tableColumns, aliases,
+					null, false, true);
+
+			newTableColumn = remasterColumns(realTables, tableColumns);
+		} catch (JSQLParserException e) {
+			classLogger.error("Failed to parse the SQL query {}", query, e);
+		}
+
+		return newTableColumn;
+	}
+
+	/**
+	 * Parse a query and report the selectors found at each level of nesting, where
+	 * level 0 is the outermost select.
+	 *
+	 * @param query the SQL to parse
+	 * @return nesting level to the selectors at that level, empty if parsing failed
+	 */
+	public Map<Integer, List<GenExpression>> getLevelColumns(String query) {
+		Map<Integer, List<GenExpression>> levelSelectors = new HashMap<Integer, List<GenExpression>>();
+		try {
+			wrapper = new GenExpressionWrapper();
+			GenExpression qs = new GenExpression();
+			Statement stmt = CCJSqlParserUtil.parse(query);
+			Select select = ((Select) stmt);
+
+			if (select instanceof PlainSelect) {
+				PlainSelect sb = (PlainSelect) select;
+				qs = processSelect(null, sb);
+			}
+			if (select instanceof SetOperationList) {
+				qs = processOperation((SetOperationList) select);
+			}
+			List<String> realTables = new ArrayList<String>();
+			Map<GenExpression, List<GenExpression>> derivedColumns = new HashMap<GenExpression, List<GenExpression>>();
+			Map<String, List<GenExpression>> tableColumns = new HashMap<String, List<GenExpression>>();
+
+			Map<String, String> aliases = new HashMap<String, String>();
+
+			// walking the tree fills levelSelectors as a side effect
+			GenExpression.printLevel2(qs, realTables, 0, null, derivedColumns, levelSelectors, tableColumns, aliases,
+					null, false, true);
+
+		} catch (JSQLParserException e) {
+			classLogger.error("Failed to parse the SQL query {}", query, e);
+		}
+
+		return levelSelectors;
+	}
+
+	/**
+	 * Narrow a table to column map down to the tables that are real rather than
+	 * derived.
+	 *
+	 * @param realTables   the names that resolve to physical tables
+	 * @param tableColumns every name seen, mapped to its columns
+	 * @return the entries of tableColumns whose key is in realTables
+	 */
+	public Map<String, List<GenExpression>> remasterColumns(List<String> realTables,
+			Map<String, List<GenExpression>> tableColumns) {
+		Iterator<String> tableKeys = tableColumns.keySet().iterator();
+		Map<String, List<GenExpression>> newTableColumn = new HashMap<String, List<GenExpression>>();
+		while (tableKeys.hasNext()) {
+			String thisTable = tableKeys.next();
+			if (realTables.contains(thisTable)) {
+				newTableColumn.put(thisTable, tableColumns.get(thisTable));
 			}
 		}
+		return newTableColumn;
 	}
 
-	public Map<String, String> getTableAlias() {
-		return this.tableAlias;
+	/**
+	 * Log a table to column map, for debugging.
+	 *
+	 * @param tableColumns the map to log
+	 */
+	public void printRealColumns(Map<String, List<GenExpression>> tableColumns) {
+		Iterator<String> tableKeys = tableColumns.keySet().iterator();
+		while (tableKeys.hasNext()) {
+			String thisTable = tableKeys.next();
+			classLogger.info("Table {} uses columns {}", thisTable, tableColumns.get(thisTable));
+		}
 	}
-	public Map<String, String> getColumnAlias() {
-		return this.columnAlias;
-	}
-	public Map<String, Set<String>> getSchema() {
-		return this.schema;
-	}
-
-
-//	public static void main(String [] args) throws Exception {
-//		SqlParser test = new SqlParser();
-//		String query = "Select * from employee";
-//		query =  "select distinct c.logicalname ln, (ec.physicalName + 1) ep from "
-//				+ "concept c, engineconcept ec, engine e inner join sometable s on c.logicalname=s.logical where (ec.localconceptid=c.localconceptid and "
-//				+ "c.conceptualname in ('val1', 'val2')) or (ec.localconceptid + 5) =1 group by ln order by ln limit 200 offset 50 ";// order by c.logicalname";
-//
-//		query = "select distinct f.studio, (f.movie_budget - 3) / 2 from f where f.movie_budget * 4 > 10";
-//		test.processQuery(query);
-//	}
 }
-

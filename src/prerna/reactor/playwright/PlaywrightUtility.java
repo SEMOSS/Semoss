@@ -27,8 +27,12 @@
  *******************************************************************************/
 package prerna.reactor.playwright;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -41,8 +45,8 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
@@ -54,13 +58,40 @@ import prerna.util.AssetUtility;
 
 public class PlaywrightUtility {
 
-	private static final ObjectMapper JSON_MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	public static final Gson GSON = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
 
 	/**
 	 * The name of the folder where Playwright recordings are stored within a
 	 * project's assets.
 	 */
 	public static final String RECORDINGS_FOLDER_NAME = "recordings";
+
+	/**
+	 * Reads a {@link StepsEnvelope} from a recording file using {@link #GSON}.
+	 *
+	 * @param file The recording file to read.
+	 * @return The parsed {@link StepsEnvelope}, or null if the file holds JSON
+	 *         null.
+	 * @throws IOException If the file cannot be read.
+	 */
+	public static StepsEnvelope readStepsEnvelope(File file) throws IOException {
+		try (Reader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
+			return GSON.fromJson(reader, StepsEnvelope.class);
+		}
+	}
+
+	/**
+	 * Writes a {@link StepsEnvelope} to a recording file using {@link #GSON}.
+	 *
+	 * @param file     The recording file to write.
+	 * @param envelope The envelope to serialize.
+	 * @throws IOException If the file cannot be written.
+	 */
+	public static void writeStepsEnvelope(File file, StepsEnvelope envelope) throws IOException {
+		try (Writer writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
+			GSON.toJson(envelope, writer);
+		}
+	}
 
 	/**
 	 * Initialize and get the recordings directory
@@ -87,7 +118,7 @@ public class PlaywrightUtility {
 	public static StepsEnvelope loadStepsFromFile(String projectId, String nameOrPath) {
 		Path file = resolveRecordingPath(projectId, nameOrPath);
 		try {
-			return JSON_MAPPER.readValue(file.toFile(), StepsEnvelope.class);
+			return readStepsEnvelope(file.toFile());
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to read: " + file, e);
 		}

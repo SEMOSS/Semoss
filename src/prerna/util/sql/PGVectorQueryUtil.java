@@ -41,7 +41,7 @@ import prerna.engine.impl.vector.VectorDatabaseCSVTable;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
 
 public class PGVectorQueryUtil extends PostgresQueryUtil {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(PGVectorQueryUtil.class);
 
 	public PGVectorQueryUtil() {
@@ -51,12 +51,12 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 	public PGVectorQueryUtil(String connectionUrl, String username, String password) {
 		super();
 	}
-	
+
 	@Override
 	public void enhanceConnection(Connection con) {
 		try (Statement stmt = con.createStatement()) {
 			stmt.execute(addVectorExtension());
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			classLogger.error("Failed to ensure pgvector extension exists using SQL '{}'", addVectorExtension(), e);
 		}
 	}
@@ -64,38 +64,24 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 	public String addVectorExtension() {
 		return "CREATE EXTENSION IF NOT EXISTS vector;";
 	}
-	
+
 	public String createEmbeddingsTable(String table) {
-		return "CREATE TABLE IF NOT EXISTS "+table+"("
-				+ "ID INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY, "
-				+ "EMBEDDING VECTOR, "
-				+ "SOURCE TEXT, "
-				+ "MODALITY TEXT, "
-				+ "DIVIDER TEXT, "
-				+ "PART TEXT, "
-				+ "TOKENS INTEGER, "
-				+ "CONTENT TEXT "
-				+ ");";
+		return "CREATE TABLE IF NOT EXISTS " + table + "(" + "ID INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY, "
+				+ "EMBEDDING VECTOR, " + "SOURCE TEXT, " + "MODALITY TEXT, " + "DIVIDER TEXT, " + "PART TEXT, "
+				+ "TOKENS INTEGER, " + "CONTENT TEXT " + ");";
 	}
-	
+
 	public String createEmbeddingsMetadataTable(String table) {
-		return "CREATE TABLE IF NOT EXISTS "+table+"("
-				+ "ID INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY, "
-				+ "SOURCE TEXT, "
-				+ "ATTRIBUTE TEXT, "
-				+ "STR_VALUE TEXT, "
-				+ "INT_VALUE INTEGER, "
-				+ "NUM_VALUE NUMERIC(18,4), "
-				+ "BOOL_VALUE BOOLEAN, "
-				+ "DATE_VAL DATE, "
-				+ "TIMESTAMP_VAL TIMESTAMP "
+		return "CREATE TABLE IF NOT EXISTS " + table + "(" + "ID INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY, "
+				+ "SOURCE TEXT, " + "ATTRIBUTE TEXT, " + "STR_VALUE TEXT, " + "INT_VALUE INTEGER, "
+				+ "NUM_VALUE NUMERIC(18,4), " + "BOOL_VALUE BOOLEAN, " + "DATE_VAL DATE, " + "TIMESTAMP_VAL TIMESTAMP "
 				+ ");";
 	}
 
 	public void createOWL(PGVectorDatabaseEngine engine, String embeddingsTable, String metadataTable) {
-		try(WriteOWLEngine writer = engine.getOWLEngineFactory().getWriteOWL()) {
+		try (WriteOWLEngine writer = engine.getOWLEngineFactory().getWriteOWL()) {
 			writer.createEmptyOWLFile();
-			
+
 			writer.addConcept(embeddingsTable);
 			writer.addProp(embeddingsTable, "ID", "IDENTITY");
 			writer.addProp(embeddingsTable, VectorDatabaseCSVTable.SOURCE, "TEXT");
@@ -117,9 +103,9 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 			writer.addProp(metadataTable, VectorDatabaseMetadataCSVTable.DATE_VAL, "DATE");
 			writer.addProp(metadataTable, VectorDatabaseMetadataCSVTable.TIMESTAMP_VAL, "TIMESTAMP");
 
-			writer.addRelation(embeddingsTable, metadataTable, 
-					embeddingsTable+"."+VectorDatabaseCSVTable.SOURCE+"."+metadataTable+"."+VectorDatabaseMetadataCSVTable.SOURCE);
-			
+			writer.addRelation(embeddingsTable, metadataTable, embeddingsTable + "." + VectorDatabaseCSVTable.SOURCE
+					+ "." + metadataTable + "." + VectorDatabaseMetadataCSVTable.SOURCE);
+
 			writer.commit();
 			writer.export();
 		} catch (IOException e) {
@@ -128,10 +114,12 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 					embeddingsTable, metadataTable, e);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			classLogger.error("Interrupted while creating OWL metadata for embeddings table '{}' and metadata table '{}'",
+			classLogger.error(
+					"Interrupted while creating OWL metadata for embeddings table '{}' and metadata table '{}'",
 					embeddingsTable, metadataTable, e);
 		} catch (Exception e) {
-			classLogger.error("Unexpected error creating OWL metadata for embeddings table '{}' and metadata table '{}'",
+			classLogger.error(
+					"Unexpected error creating OWL metadata for embeddings table '{}' and metadata table '{}'",
 					embeddingsTable, metadataTable, e);
 		}
 	}

@@ -38,9 +38,10 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 
 	public ModelInferenceLogsOwlCreator(AbstractSqlQueryUtil queryUtil) {
-		createColumnsAndTypes(queryUtil);
+		super(queryUtil);
 	}
 
+	@Override
 	public void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
 		final String BLOB_DATATYPE_NAME = queryUtil.getBlobDataTypeName();
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
@@ -48,8 +49,10 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
 		final String DOUBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
+		final String VARCHAR_20 = "VARCHAR(20)";
 		final String VARCHAR_50 = "VARCHAR(50)";
 		final String VARCHAR_255 = "VARCHAR(255)";
+		final String BIGINT_DATATYPE_NAME = "BIGINT";
 
 		this.allSchemas = new ArrayList<>();
 
@@ -107,7 +110,17 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("SESSIONID", VARCHAR_255),
 				Pair.with("USER_ID", VARCHAR_255),
 				Pair.with("USER_NAME", VARCHAR_255),
-				Pair.with("USER_EMAIL_ID", VARCHAR_50)));
+				Pair.with("USER_EMAIL_ID", VARCHAR_50),
+				// the primary login's type, beside USER_ID
+				Pair.with("USER_TYPE", VARCHAR_255),
+				// the usage limit source the call was billed to: USER, TEAM, PUBLIC,
+				// ALL_MODELS or PLATFORM, or null when no limit applied
+				Pair.with("BILLED_SOURCE_TYPE", VARCHAR_20),
+				Pair.with("BILLED_SUBJECT_ID", VARCHAR_255),
+				Pair.with("BILLED_SUBJECT_TYPE", VARCHAR_255),
+				// the call's cost in millionths of a dollar, on the RESPONSE row, or null
+				// when the model has no known prices
+				Pair.with("COST_MICROS", BIGINT_DATATYPE_NAME)));
 
 		addTable("FEEDBACK", Arrays.asList(
 				Pair.with("MESSAGE_ID", VARCHAR_50),
@@ -140,6 +153,7 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 
 		addTable("AGENT_RUN", Arrays.asList(
 				Pair.with("RUN_ID", VARCHAR_50),
+				Pair.with("PARENT_RUN_ID", VARCHAR_50),
 				Pair.with("ROOM_ID", VARCHAR_50),
 				Pair.with("WORKSPACE_ID", VARCHAR_255),
 				Pair.with("MODEL_ID", VARCHAR_255),
@@ -148,6 +162,7 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("STATUS", VARCHAR_50),
 				Pair.with("INPUT", CLOB_DATATYPE_NAME),
 				Pair.with("REQUEST_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("PROGRESS_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("INPUT_MESSAGE_ID", VARCHAR_50),
 				Pair.with("FINAL_OUTPUT", CLOB_DATATYPE_NAME),
 				Pair.with("FINAL_OUTPUT_MESSAGE_ID", VARCHAR_50),
@@ -171,6 +186,7 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("UI_URL", CLOB_DATATYPE_NAME),
 				Pair.with("STATUS", VARCHAR_50),
 				Pair.with("RESULT", CLOB_DATATYPE_NAME),
+				Pair.with("TOOL_STATUS", VARCHAR_50),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("DECIDED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("USER_ID", VARCHAR_255)));

@@ -311,4 +311,61 @@ public class LocalPythonGuardrailReactorFunctionEngine extends AbstractPythonGua
 		return GuardrailTypeEnum.LOCAL_PYTHON;
 	}
 
+	@Override
+	public String getDefaultMarkdown() {
+		return """
+				# Local Python guardrail
+
+				This guardrail calls `%s` from `%s` with the parameters declared in the engine SMSS. The function must return a dictionary with a boolean `pass`. It may also return `returnPrompt` for masking or a user-facing response, and `fullDetails` for audit context.
+
+				## Python function shape
+
+				```python
+				import re
+
+				API_KEY = re.compile(r"(?i)(api_key\\s*=\\s*)[^\\s,;]+")
+
+				def guard_prompt(prompt, **kwargs):
+				    contains_secret = API_KEY.search(prompt) is not None
+				    masked = API_KEY.sub(r"\\1[masked]", prompt)
+				    return {
+				        "pass": not contains_secret,
+				        "returnPrompt": masked,
+				        "fullDetails": {"rule": "api-key-prefix"},
+				    }
+				```
+
+				Declare `prompt` in `FUNCTION_PARAMETERS` and `FUNCTION_REQUIRED_PARAMETERS`, and set `FUNCTION_NAME` to the actual Python function name.
+
+				## Example: mask model input with the Python result
+
+				Save this as `pipeline.json` in the model engine's assets folder, set `PIPELINE pipeline.json` in that model engine's SMSS, and restart or reload the model engine:
+
+				```json
+				{
+				  "pipelines": {
+				    "askRoom": {
+				      "input": [
+				        {
+				          "reactorClass": "prerna.reactor.interceptor.GenericGuardrailInputReactor",
+				          "params": {
+				            "guardrailEngineId": "%s",
+				            "inputMapping": {
+				              "prompt": "arg0"
+				            },
+				            "maskOnGuardrailFailure": true,
+				            "blockOnGuardrailFailure": false
+				          }
+				        }
+				      ]
+				    }
+				  }
+				}
+				```
+
+				For `askRoom`, `arg0` is the full `InputMessage`. The interceptor gives its text to the Python `prompt` parameter and, when masking, writes `returnPrompt` back into that same message before refreshing the provider payload. For other methods, map each declared Python parameter to the appropriate argument or nested map path.
+				"""
+				.formatted(this.functionName, this.pythonFileName, getEngineId());
+	}
+
 }

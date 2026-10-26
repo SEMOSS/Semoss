@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.insights.fs;
 
+import org.json.JSONObject;
+
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -38,55 +40,76 @@ import prerna.util.Utility;
 
 public class CopyInsightAssetReactor extends AbstractReactor {
 
-    public CopyInsightAssetReactor() {
-        this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.NEW_VALUE.getKey() };
-        this.keyRequired = new int[] { 1, 1 };
-    }
+	private static final String OVERRIDE = ReactorKeysEnum.OVERRIDE.getKey();
 
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
+	public CopyInsightAssetReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.NEW_VALUE.getKey(),
+				OVERRIDE };
+		this.keyRequired = new int[] { 1, 1, 0 };
+	}
 
-        User user = this.insight.getUser();
-        // check if user is logged in
-        if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-            throwAnonymousUserError();
-        }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
 
-        String sourceFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
-        String destFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
+		User user = this.insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
-        if (sourceFileName == null || sourceFileName.trim().isEmpty() || destFileName == null
-                || destFileName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Must pass both source path and destination path");
-        }
+		String sourceFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
+		String destFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
 
-        String assetFolder = this.insight.getInsightFolder();
+		if (sourceFileName == null || sourceFileName.trim().isEmpty() || destFileName == null
+				|| destFileName.trim().isEmpty()) {
+			throw new IllegalArgumentException("Must pass both source path and destination path");
+		}
 
-        FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName);
+		String assetFolder = this.insight.getInsightFolder();
 
-        // push room to cloud storage
-        if (this.insight.getRoomId() != null) {
-            ClusterUtil.pushRoomAsync(this.insight.getRoomId());
-        }
+		boolean override = getBoolean(OVERRIDE, false);
+		FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName, override);
 
-        NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
-        return retNoun;
-    }
+		// push room to cloud storage
+		if (this.insight.getRoomId() != null) {
+			ClusterUtil.pushRoomAsync(this.insight.getRoomId());
+		}
 
-    @Override
-    public String getReactorDescription() {
-        return "Copy (clone) a file or directory in the insight assets folder to a new path";
-    }
+		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
+		return retNoun;
+	}
 
-    @Override
-    protected String getDescriptionForKey(String key) {
-        if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-            return "The source file or directory to copy. This relative path should assume the prefix of the insight folder.";
-        } else if (key.equals(ReactorKeysEnum.NEW_VALUE.getKey())) {
-            return "The destination path for the copy. This cannot be an existing file or directory and has the same character restrictions you would expect on a typical file system.";
-        }
-        return super.getDescriptionForKey(key);
-    }
+	@Override
+	public String getReactorDescription() {
+		return "Copy (clone) a file or directory in the insight assets folder to a new path";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "The source file or directory to copy. This relative path should assume the prefix of the insight folder.";
+		} else if (key.equals(ReactorKeysEnum.NEW_VALUE.getKey())) {
+			return "The destination path for the copy. This cannot be an existing file or directory unless override is true and has the same character restrictions you would expect on a typical file system.";
+		} else if (key.equals(OVERRIDE)) {
+			return "Whether to delete an existing file or directory at the destination before copying. Defaults to false.";
+		}
+		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(OVERRIDE).put("default", false);
+		return properties;
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(OVERRIDE)) {
+			return MCP_KEY_TYPE.BOOLEAN;
+		}
+		return super.getKeyTypeForMCP(key);
+	}
 
 }

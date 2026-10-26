@@ -32,11 +32,14 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.Callable;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
@@ -54,6 +57,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityUserUtils;
+import prerna.engine.impl.function.mail.engine.SMTPFunctionEngine;
 import prerna.usertracking.UserTrackingUtils;
 
 public class EmailUtility {
@@ -94,48 +98,160 @@ public class EmailUtility {
 	}
 
 	/**
-	 * 
-	 * @param emailSession
-	 * @param toRecipients
-	 * @param ccRecipients
-	 * @param bccRecipients
-	 * @param from
-	 * @param subject
-	 * @param emailMessage
-	 * @param isHtml
-	 * @param attachments
-	 * @return
+	 * What is recorded about one attempt to send.
+	 *
+	 * <p>
+	 * Held apart from the delivery itself because the two come from different
+	 * places. A provider that posts a message to an API has this in front of it,
+	 * where jakarta.mail builds its own from the same fields, and the record is
+	 * what lets both be tracked identically.
+	 *
+	 * <p>
+	 * The arrays are copied on the way in, so what is recorded is what was sent
+	 * even if the caller reuses its own array afterwards.
+	 *
+	 * @param toRecipients  the recipients, or null
+	 * @param ccRecipients  the copied recipients, or null
+	 * @param bccRecipients the blind copied recipients, or null
+	 * @param from          the address it is sent as
+	 * @param subject       the subject line
+	 * @param emailMessage  the body
+	 * @param html          whether the body is html
+	 * @param attachments   the files attached, or null
+	 */
+	public record EmailMetadata(String[] toRecipients, String[] ccRecipients, String[] bccRecipients, String from,
+			String subject, String emailMessage, boolean html, String[] attachments) {
+
+		public EmailMetadata {
+			toRecipients = copy(toRecipients);
+			ccRecipients = copy(ccRecipients);
+			bccRecipients = copy(bccRecipients);
+			attachments = copy(attachments);
+		}
+
+		private static String[] copy(String[] values) {
+			return values == null ? null : values.clone();
+		}
+	}
+
+	/**
+	 * Send one email over SMTP, and record the attempt.
+	 *
+	 * <p>
+	 * The tracking is in a finally block rather than after the send, so a delivery
+	 * that throws is still recorded as an attempt that failed.
+	 *
+	 * @param emailSession  the mail session to send through
+	 * @param toRecipients  the recipients, or null
+	 * @param ccRecipients  the copied recipients, or null
+	 * @param bccRecipients the blind copied recipients, or null
+	 * @param from          the address to send as
+	 * @param subject       the subject line
+	 * @param emailMessage  the body
+	 * @param isHtml        whether the body is html rather than plain text
+	 * @param attachments   the files to attach, or null
+	 * @return whether the mail server took the message
 	 */
 	public static boolean sendEmail(Session emailSession, String[] toRecipients, String[] ccRecipients,
 			String[] bccRecipients, String from, String subject, String emailMessage, boolean isHtml,
 			String[] attachments) {
-
-		boolean successful = doSendEmail(emailSession, toRecipients, ccRecipients, bccRecipients, from, subject,
+		EmailMetadata metadata = new EmailMetadata(toRecipients, ccRecipients, bccRecipients, from, subject,
 				emailMessage, isHtml, attachments);
-		UserTrackingUtils.trackEmail(toRecipients, ccRecipients, bccRecipients, from, subject, emailMessage, isHtml,
-				attachments, successful);
-		return successful;
+		boolean successful = false;
+		try {
+			successful = doSendEmail(emailSession, toRecipients, ccRecipients, bccRecipients, from, subject,
+					emailMessage, isHtml, attachments);
+			return successful;
+		} finally {
+			trackEmail(metadata, successful);
+		}
 	}
 
 	/**
-	 * 
-	 * @param emailSession
-	 * @param toRecipients
-	 * @param ccRecipients
-	 * @param bccRecipients
-	 * @param from
-	 * @param subject
-	 * @param emailMessage
-	 * @param isHtml
-	 * @param attachments
-	 * @return
+	 * Send one email some other way, and record it here all the same.
+	 *
+	 * <p>
+	 * Mail leaves this instance by more routes than SMTP - Microsoft Graph, Gmail,
+	 * a draft somebody sends from their own mailbox - and a tracking table that
+	 * held only the relayed ones would read as a complete account while being
+	 * nothing of the kind. Every route passes its delivery through here instead, so
+	 * there is one place a row is written and no way to add a route that forgets
+	 * to.
+	 *
+	 * <p>
+	 * Returning is what counts as sent, and throwing is what counts as failed,
+	 * which is what an API client already does. The result is handed back
+	 * untouched, so a provider that answers with something worth having is not made
+	 * to reduce it to a boolean first.
+	 *
+	 * @param delivery the call that actually sends
+	 * @param metadata what to record about it
+	 * @param <T>      whatever the provider answers with
+	 * @return that answer, unchanged
+	 * @throws Exception whatever the provider threw, after the attempt is recorded
+	 */
+	public static <T> T sendEmail(Callable<T> delivery, EmailMetadata metadata) throws Exception {
+		Objects.requireNonNull(delivery, "The email delivery is required");
+		Objects.requireNonNull(metadata, "The email metadata is required");
+		boolean successful = false;
+		try {
+			T result = delivery.call();
+			successful = true;
+			return result;
+		} finally {
+			trackEmail(metadata, successful);
+		}
+	}
+
+	/**
+	 * Write the row, and never let doing so change what the caller sees.
+	 *
+	 * <p>
+	 * By the time this runs the mail has already gone, so a tracking failure that
+	 * propagated would report a successful send as a failed one. It is logged
+	 * instead. Whether tracking is on at all is decided further down, in
+	 * {@link UserTrackingUtils#trackEmail}, so nothing here has to ask.
+	 *
+	 * @param metadata   what was sent
+	 * @param successful whether it went
+	 */
+	private static void trackEmail(EmailMetadata metadata, boolean successful) {
+		try {
+			UserTrackingUtils.trackEmail(metadata.toRecipients(), metadata.ccRecipients(), metadata.bccRecipients(),
+					metadata.from(), metadata.subject(), metadata.emailMessage(), metadata.html(),
+					metadata.attachments(), successful);
+		} catch (RuntimeException e) {
+			// Delivery has already completed. Tracking must not change the reported result.
+			classLogger.error("Could not track the email with subject '{}' sent as {}", metadata.subject(),
+					metadata.from(), e);
+		}
+	}
+
+	/**
+	 * Build the MIME message and hand it to the mail server.
+	 *
+	 * <p>
+	 * The delivery itself, with no tracking, so the caller can record the attempt
+	 * whichever way it turns out. A message with nobody to send it to is refused
+	 * before a connection is opened.
+	 *
+	 * @param emailSession  the mail session to send through
+	 * @param toRecipients  the recipients, or null
+	 * @param ccRecipients  the copied recipients, or null
+	 * @param bccRecipients the blind copied recipients, or null
+	 * @param from          the address to send as
+	 * @param subject       the subject line
+	 * @param emailMessage  the body
+	 * @param isHtml        whether the body is html rather than plain text
+	 * @param attachments   the files to attach, or null
+	 * @return whether the mail server took the message
 	 */
 	private static boolean doSendEmail(Session emailSession, String[] toRecipients, String[] ccRecipients,
 			String[] bccRecipients, String from, String subject, String emailMessage, boolean isHtml,
 			String[] attachments) {
 		if ((toRecipients == null || toRecipients.length == 0) && (ccRecipients == null || ccRecipients.length == 0)
 				&& (bccRecipients == null || bccRecipients.length == 0)) {
-			classLogger.info("No receipients to send an email to");
+			classLogger.info("No recipients to send the email with subject '{}' to", subject);
 			return false;
 		}
 
@@ -186,8 +302,10 @@ public class EmailUtility {
 					try {
 						attachmentBodyPart.attachFile(new File(filePath));
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-						throw new IllegalArgumentException("Error adding attachment");
+						classLogger.error("Error attaching the file {} to the email with subject '{}'", filePath,
+								subject, e);
+						throw new IllegalArgumentException(
+								"Error adding the attachment " + new File(filePath).getName(), e);
 					}
 					attachmentBodyPart.setFileName(new File(filePath).getName());
 					multipart.addBodyPart(attachmentBodyPart);
@@ -198,24 +316,20 @@ public class EmailUtility {
 			// Send email
 			Transport.send(email);
 			// Log email
-			StringBuilder logMessage = new StringBuilder("Email subject = '" + subject).append("' has been sent: ");
-			if (toRecipients != null) {
-				logMessage.append("to ").append(Arrays.toString(toRecipients)).append(". ");
-			}
-			if (ccRecipients != null) {
-				logMessage.append("cc ").append(Arrays.toString(ccRecipients)).append(". ");
-			}
-			if (bccRecipients != null) {
-				logMessage.append("bcc ").append(Arrays.toString(bccRecipients)).append(". ");
-			}
-			classLogger.info(logMessage.toString());
+			classLogger.info("Email with subject '{}' has been sent. to = {}, cc = {}, bcc = {}", subject,
+					Arrays.toString(toRecipients), Arrays.toString(ccRecipients), Arrays.toString(bccRecipients));
 
 			return true;
+		} catch (AuthenticationFailedException e) {
+			classLogger.error("The mail server {} refused the credentials for {}",
+					emailSession.getProperty("mail.smtp.host"), from, e);
 		} catch (SendFailedException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new RuntimeException("Bad SMTP Connection");
-		} catch (MessagingException me) {
-			classLogger.error(Constants.STACKTRACE, me);
+			classLogger.error("The mail server would not accept the email with subject '{}' for {}", subject,
+					Arrays.toString(toRecipients), e);
+			throw new RuntimeException("The mail server would not accept the email. Detailed error: " + e.getMessage(),
+					e);
+		} catch (MessagingException e) {
+			classLogger.error("Error sending the email with subject '{}' from {}", subject, from, e);
 		}
 
 		return false;
@@ -252,7 +366,8 @@ public class EmailUtility {
 	 */
 	public static void sendAccessRequestEmailNotification(User requestingUser, String resourceId,
 			String requestedPermission, String requestComment, RESOURCE_TYPE accessRequestType) {
-		if (!SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
+		SMTPFunctionEngine mailEngine = SocialPropertiesUtil.getInstance().getSmtpEngine();
+		if (mailEngine == null) {
 			return;
 		}
 
@@ -315,9 +430,8 @@ public class EmailUtility {
 			emailReplacements.put(ENGINE_NAME_REPLACEMENT, engineName);
 		}
 
-		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-		EmailUtility.sendEmail(emailSession, recipients.toArray(new String[0]), null, null,
+		mailEngine.sendEmail(recipients.toArray(new String[0]), null, null,
 				SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
 	}
 
@@ -332,7 +446,8 @@ public class EmailUtility {
 	 */
 	public static void sendInsightAccessRequestEmailNotification(User requestingUser, String projectId,
 			String insightId, String requestedPermission, String requestComment) {
-		if (!SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
+		SMTPFunctionEngine mailEngine = SocialPropertiesUtil.getInstance().getSmtpEngine();
+		if (mailEngine == null) {
 			return;
 		}
 
@@ -370,9 +485,8 @@ public class EmailUtility {
 		emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
 		emailReplacements.put(REQUEST_REASON_REPLACEMENT, requestComment);
 
-		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-		EmailUtility.sendEmail(emailSession, recipients.toArray(new String[0]), null, null,
+		mailEngine.sendEmail(recipients.toArray(new String[0]), null, null,
 				SocialPropertiesUtil.getInstance().getSmtpSender(), INSIGHT_ACCESS_REQUEST_SUBJECT, message, true,
 				null);
 	}
@@ -389,7 +503,8 @@ public class EmailUtility {
 	 */
 	public static void sendAccessRequestApprovalEmailNotification(User currentUser, String affectedUserId,
 			String engineId, String affectedUserPermission, RESOURCE_TYPE accessRequestType) {
-		if (!SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
+		SMTPFunctionEngine mailEngine = SocialPropertiesUtil.getInstance().getSmtpEngine();
+		if (mailEngine == null) {
 			return;
 		}
 
@@ -447,9 +562,8 @@ public class EmailUtility {
 			recipients.add(userEmail);
 		}
 
-		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-		EmailUtility.sendEmail(emailSession, recipients.toArray(new String[0]), null, null,
+		mailEngine.sendEmail(recipients.toArray(new String[0]), null, null,
 				SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
 	}
 
@@ -463,7 +577,8 @@ public class EmailUtility {
 	 */
 	public static void sendSmssUpdateEmailNotification(User currentUser, String engineId,
 			RESOURCE_TYPE accessRequestType) {
-		if (!SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
+		SMTPFunctionEngine mailEngine = SocialPropertiesUtil.getInstance().getSmtpEngine();
+		if (mailEngine == null) {
 			return;
 		}
 
@@ -515,9 +630,8 @@ public class EmailUtility {
 			emailReplacements.put(PROJECT_BLOCK_REPLACEMENT, "");
 		}
 
-		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-		EmailUtility.sendEmail(emailSession, recipients.toArray(new String[0]), null, null,
+		mailEngine.sendEmail(recipients.toArray(new String[0]), null, null,
 				SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
 	}
 
@@ -540,7 +654,7 @@ public class EmailUtility {
 			try {
 				template = FileUtils.readFileToString(templateFile, "UTF-8");
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error reading the email template {}", templatePath, e);
 			}
 		}
 		return template;

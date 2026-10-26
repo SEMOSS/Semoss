@@ -43,6 +43,7 @@ public class GetUserInfoReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		boolean includeToken = getBoolean("includeToken", false);
+
 		Map<String, Object> returnMap = new TreeMap<String, Object>();
 		User user = this.insight.getUser();
 		if (user != null) {

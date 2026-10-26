@@ -105,19 +105,17 @@ public final class ZipUtils {
 		try {
 			fos = new FileOutputStream(zipFilePath);
 		} catch (Exception e) {
-			classLogger.error("Could not find file for zip file path: {}", zipFilePath);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create zip output file at '{}'", zipFilePath, e);
 			throw new IllegalArgumentException("Could not find file. See logs for details.");
 		}
 		ZipOutputStream zos = new ZipOutputStream(fos);
 		File dir = new File(folderPath);
 		try {
-			classLogger.info(
-					"Adding to zip with details.\n folderPath: {}\n zipFilePath: {}\n ignoredDirs: {}\n ignoredFiles: {}",
-					folderPath, zipFilePath, ignoreDirs, ignoreFiles);
+			classLogger.info("Creating zip '{}' from folder '{}' (ignored directories: {}, ignored files: {})",
+					zipFilePath, folderPath, ignoreDirs, ignoreFiles);
 			addAllToZip(dir, zos, null, ignoreDirs, ignoreFiles);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add folder '{}' to zip file '{}'", folderPath, zipFilePath, e);
 			throw new IllegalArgumentException("Could not add folder to zip. See logs for details.");
 		}
 		return zos;
@@ -311,7 +309,7 @@ public final class ZipUtils {
 					bos.close();
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close output stream after extracting zip entry to '{}'", filePath, e);
 			}
 		}
 	}
@@ -330,7 +328,7 @@ public final class ZipUtils {
 		List<String> files = new ArrayList<>();
 		try {
 			// need to tell that this is a zip (jar)
-			zipFs = FileSystems.newFileSystem(URI.create("jar:"+fromZip.toUri().toString()), Map.of());
+			zipFs = FileSystems.newFileSystem(URI.create("jar:" + fromZip.toUri().toString()), Map.of());
 			for (Path root : zipFs.getRootDirectories()) {
 				Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
 					@Override
@@ -339,8 +337,9 @@ public final class ZipUtils {
 						String filePath = file.toString();
 						if (file.startsWith("/")) {
 							filePath = filePath.replaceFirst("/", "");
-							if (!filePath.equals(""))
+							if (!filePath.equals("")) {
 								files.add(filePath);
+							}
 						}
 						return FileVisitResult.CONTINUE;
 					}
@@ -358,7 +357,7 @@ public final class ZipUtils {
 				});
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to list entries in zip file '{}'", fromZip, e);
 			throw e;
 		} finally {
 			try {
@@ -366,8 +365,8 @@ public final class ZipUtils {
 					zipFs.close();
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} 
+				classLogger.error("Failed to close zip file system for '{}'", fromZip, e);
+			}
 		}
 		paths.put("DIR", dirs);
 		paths.put("FILE", files);

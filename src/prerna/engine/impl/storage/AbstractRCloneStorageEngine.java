@@ -115,55 +115,78 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 
 	@Override
 	public List<String> list(String path) throws IOException, InterruptedException {
-		return list(path, null);
+		return listWithConfig(path, null);
 	}
 
 	@Override
 	public List<Map<String, Object>> listDetails(String path) throws IOException, InterruptedException {
-		return listDetails(path, null);
+		return listDetailsWithConfig(path, null);
 	}
 
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
+	public StorageSyncStatus syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
 			throws IOException, InterruptedException {
-		syncLocalToStorage(localPath, storagePath, null, metadata);
+		return syncLocalToStorageWithConfig(localPath, storagePath, null, metadata);
 	}
 
 	@Override
 	public void syncStorageToLocal(String storagePath, String localPath) throws IOException, InterruptedException {
-		syncStorageToLocal(storagePath, localPath, null);
+		syncStorageToLocalWithConfig(storagePath, localPath, null);
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
+	public String copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
 			throws IOException, InterruptedException {
-		copyToStorage(localFilePath, storageFolderPath, null, metadata);
+		copyToStorageWithConfig(localFilePath, storageFolderPath, null, metadata);
+		return null;
 	}
 
 	@Override
 	public void copyToLocal(String storageFilePath, String localFolderPath) throws IOException, InterruptedException {
-		copyToLocal(storageFilePath, localFolderPath, null);
+		copyToLocalWithConfig(storageFilePath, localFolderPath, null);
+	}
+
+	/**
+	 * Note the third argument here is a version id, which is not the same as the
+	 * config that copyToLocalWithConfig takes. These two used to be the same method
+	 * by erasure, so a caller asking for a specific version silently had it treated
+	 * as a config name.
+	 *
+	 * @param storageFilePath the file in storage to download
+	 * @param localFolderPath where to put it
+	 * @param versionId       must be null or empty, this engine has no concept of
+	 *                        object versions
+	 * @throws UnsupportedOperationException if a version id is supplied
+	 */
+	@Override
+	public void copyToLocal(String storageFilePath, String localFolderPath, String versionId)
+			throws IOException, InterruptedException {
+		if (versionId != null && !versionId.trim().isEmpty()) {
+			throw new UnsupportedOperationException("Object versioning is not supported by this storage engine");
+		}
+		copyToLocalWithConfig(storageFilePath, localFolderPath, null);
 	}
 
 	@Override
 	public void deleteFromStorage(String storagePath) throws IOException, InterruptedException {
-		deleteFromStorage(storagePath, false, null);
+		deleteFromStorageWithConfig(storagePath, false, null);
 	}
 
 	@Override
-	public void deleteFromStorage(String storagePath, String rCloneConfig) throws IOException, InterruptedException {
-		deleteFromStorage(storagePath, false, rCloneConfig);
+	public void deleteFromStorageWithConfig(String storagePath, String rCloneConfig)
+			throws IOException, InterruptedException {
+		deleteFromStorageWithConfig(storagePath, false, rCloneConfig);
 	}
 
 	@Override
 	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure)
 			throws IOException, InterruptedException {
-		deleteFromStorage(storagePath, leaveFolderStructure, null);
+		deleteFromStorageWithConfig(storagePath, leaveFolderStructure, null);
 	}
 
 	@Override
 	public void deleteFolderFromStorage(String storageFolderPath) throws IOException, InterruptedException {
-		deleteFolderFromStorage(storageFolderPath, null);
+		deleteFolderFromStorageWithConfig(storageFolderPath, null);
 	}
 
 	/**
@@ -183,16 +206,11 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 		}
 	}
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////
-
 	/**
 	 * List the folders/files in the path
 	 */
 	@Override
-	public List<String> list(String path, String rCloneConfig) throws IOException, InterruptedException {
+	public List<String> listWithConfig(String path, String rCloneConfig) throws IOException, InterruptedException {
 		boolean delete = false;
 		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
 			rCloneConfig = createRCloneConfig();
@@ -211,10 +229,6 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 					rClonePath += path;
 				}
 			}
-			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("'")) {
-//				rClonePath = "'"+rClonePath+"'";
-//			}
 			List<String> results = runRcloneFastListProcess(rCloneConfig, RCLONE, "lsf", rClonePath);
 			return results;
 		} finally {
@@ -228,7 +242,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 * List the folders/files in the path
 	 */
 	@Override
-	public List<Map<String, Object>> listDetails(String path, String rCloneConfig)
+	public List<Map<String, Object>> listDetailsWithConfig(String path, String rCloneConfig)
 			throws IOException, InterruptedException {
 		boolean delete = false;
 		String basePath = "";
@@ -256,10 +270,6 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 					basePath = basePath.substring(0, basePath.length() - 1);
 				}
 			}
-			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("'")) {
-//				rClonePath = "'"+rClonePath+"'";
-//			}
 			List<Map<String, Object>> results = runRcloneListJsonProcess(rCloneConfig, RCLONE, "lsjson", rClonePath,
 					"--max-depth=1", "--metadata");
 			List<Map<String, Object>> standardized = new ArrayList<>(results.size());
@@ -306,7 +316,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath, String rCloneConfig,
+	public StorageSyncStatus syncLocalToStorageWithConfig(String localPath, String storagePath, String rCloneConfig,
 			Map<String, Object> metadata) throws IOException, InterruptedException {
 		boolean delete = false;
 		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
@@ -332,15 +342,6 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 				storagePath = "/" + storagePath;
 			}
 			rClonePath += storagePath;
-
-			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("'")) {
-//				rClonePath = "'"+rClonePath+"'";
-//			}
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!localPath.startsWith("'")) {
-//				localPath = "'"+localPath+"'";
-//			}
 
 			// Initialize metadata to an empty map if it is null
 			if (metadata == null) {
@@ -371,10 +372,13 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			}
 		}
 
+		// rclone does the walking, so there is nothing to enumerate here. A failure
+		// throws out of runRcloneTransferProcess, so reaching this point is success
+		return StorageSyncStatus.of(storagePath, null, null, null);
 	}
 
 	@Override
-	public void syncStorageToLocal(String storagePath, String localPath, String rCloneConfig)
+	public void syncStorageToLocalWithConfig(String storagePath, String localPath, String rCloneConfig)
 			throws IOException, InterruptedException {
 		boolean delete = false;
 		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
@@ -401,14 +405,6 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			}
 			rClonePath += storagePath;
 
-			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("'")) {
-//				rClonePath = "'"+rClonePath+"'";
-//			}
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!localPath.startsWith("'")) {
-//				localPath = "'"+localPath+"'";
-//			}
 			runRcloneTransferProcess(rCloneConfig, RCLONE, "sync", rClonePath, localPath);
 		} finally {
 			if (delete && rCloneConfig != null) {
@@ -418,7 +414,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig,
+	public void copyToStorageWithConfig(String localFilePath, String storageFolderPath, String rCloneConfig,
 			Map<String, Object> metadata) throws IOException, InterruptedException {
 		boolean delete = false;
 		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
@@ -444,15 +440,6 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 				storageFolderPath = "/" + storageFolderPath;
 			}
 			rClonePath += storageFolderPath;
-
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("'")) {
-//				rClonePath = "'"+rClonePath+"'";
-//			}
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!localFilePath.startsWith("'")) {
-//				localFilePath = "'"+localFilePath+"'";
-//			}
 
 			// Initialize metadata to an empty map if it is null
 			if (metadata == null) {
@@ -485,7 +472,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void copyToLocal(String storageFilePath, String localFolderPath, String rCloneConfig)
+	public void copyToLocalWithConfig(String storageFilePath, String localFolderPath, String rCloneConfig)
 			throws IOException, InterruptedException {
 		boolean delete = false;
 		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
@@ -512,14 +499,6 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			}
 			rClonePath += storageFilePath;
 
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("'")) {
-//				rClonePath = "'"+rClonePath+"'";
-//			}
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!localFolderPath.startsWith("'")) {
-//				localFolderPath = "'"+localFolderPath+"'";
-//			}
 			runRcloneTransferProcess(rCloneConfig, RCLONE, "copy", rClonePath, localFolderPath);
 		} finally {
 			if (delete && rCloneConfig != null) {
@@ -529,7 +508,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure, String rCloneConfig)
+	public void deleteFromStorageWithConfig(String storagePath, boolean leaveFolderStructure, String rCloneConfig)
 			throws IOException, InterruptedException {
 		boolean delete = false;
 		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
@@ -552,11 +531,6 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			}
 			rClonePath += storagePath;
 
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("'")) {
-//				rClonePath = "'"+rClonePath+"'";
-//			}
-
 			if (leaveFolderStructure) {
 				// always do delete
 				runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "delete", rClonePath);
@@ -578,7 +552,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void deleteFolderFromStorage(String storageFolderPath, String rCloneConfig)
+	public void deleteFolderFromStorageWithConfig(String storageFolderPath, String rCloneConfig)
 			throws IOException, InterruptedException {
 		boolean delete = false;
 		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
@@ -601,11 +575,6 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			}
 			rClonePath += storageFolderPath;
 
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("'")) {
-//				rClonePath = "'"+rClonePath+"'";
-//			}
-
 			runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "purge", rClonePath);
 		} finally {
 			if (delete && rCloneConfig != null) {
@@ -614,11 +583,6 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 		}
 
 	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/**
 	 * 

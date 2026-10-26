@@ -4,7 +4,11 @@ from typing import Any
 
 # register all the clients in the init
 def __getattr__(name: str) -> Any:
-    if name == "AzureOpenAiClient":
+    if name == "TypeSafeClientWrapper":
+        from .typesafe import TypeSafeClientWrapper
+
+        return TypeSafeClientWrapper
+    elif name == "AzureOpenAiClient":
         from .text_generation.openai_clients import AzureOpenAiClient
 
         return AzureOpenAiClient
@@ -117,7 +121,7 @@ def get_text_gen_client(client_type, **kwargs):
 
             return OpenAiClient(**kwargs)
     elif client_type == "BEDROCK":
-        from .text_generation.bedrock_client import BedrockClient
+        from .text_generation.bedrock_clients.bedrock_client import BedrockClient
 
         return BedrockClient(**kwargs)
     elif client_type == "VERTEX":
@@ -185,6 +189,7 @@ def get_tokenizer(tokenizer_type: str, tokenizer_name, max_tokens):
 
 
 __all__ = [
+    "TypeSafeClientWrapper",
     "AzureOpenAiClient",
     "OpenAiClient",
     "BedrockClient",

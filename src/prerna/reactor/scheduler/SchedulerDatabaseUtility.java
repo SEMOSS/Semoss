@@ -47,7 +47,6 @@ import static prerna.reactor.scheduler.SchedulerConstants.EXECUTION_START;
 import static prerna.reactor.scheduler.SchedulerConstants.EXEC_ID;
 import static prerna.reactor.scheduler.SchedulerConstants.FIRED_TIME;
 import static prerna.reactor.scheduler.SchedulerConstants.INSTANCE_NAME;
-import static prerna.reactor.scheduler.SchedulerConstants.INTEGER;
 import static prerna.reactor.scheduler.SchedulerConstants.INT_PROP_1;
 import static prerna.reactor.scheduler.SchedulerConstants.INT_PROP_2;
 import static prerna.reactor.scheduler.SchedulerConstants.IS_DURABLE;
@@ -102,7 +101,6 @@ import static prerna.reactor.scheduler.SchedulerConstants.STR_PROP_1;
 import static prerna.reactor.scheduler.SchedulerConstants.STR_PROP_2;
 import static prerna.reactor.scheduler.SchedulerConstants.STR_PROP_3;
 import static prerna.reactor.scheduler.SchedulerConstants.SUCCESS;
-import static prerna.reactor.scheduler.SchedulerConstants.TIMESTAMP;
 import static prerna.reactor.scheduler.SchedulerConstants.TIMES_TRIGGERED;
 import static prerna.reactor.scheduler.SchedulerConstants.TIME_ZONE_ID;
 import static prerna.reactor.scheduler.SchedulerConstants.TRIGGER_GROUP;
@@ -124,7 +122,6 @@ import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_80;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_95;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Connection;
@@ -143,6 +140,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
@@ -151,18 +149,26 @@ import org.quartz.CronExpression;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import org.quartz.impl.matchers.GroupMatcher;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
+/**
+ * Provides scheduler persistence and Quartz lifecycle operations backed by the
+ * SEMOSS scheduler database.
+ *
+ * <p>
+ * Callers use this utility for parameterized recipe, tag, execution, and audit
+ * operations. The logical database schema remains owned by
+ * {@link SchedulerOwlCreator}.
+ */
 public class SchedulerDatabaseUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(SchedulerDatabaseUtility.class);
@@ -228,6 +234,8 @@ public class SchedulerDatabaseUtility {
 			WHERE JOB_ID = ? AND JOB_GROUP = ?""";
 	private static final String DELETE_JOB_RECIPES_QUERY = "DELETE FROM SMSS_JOB_RECIPES WHERE JOB_ID =? AND JOB_GROUP=?";
 	private static final String EXISTS_JOB_RECIPES_QUERY = "SELECT COUNT(JOB_ID) FROM SMSS_JOB_RECIPES WHERE JOB_ID =? AND JOB_GROUP=?";
+	private static final String SELECT_PROJECT_JOB_IDS_QUERY = "SELECT JOB_ID FROM SMSS_JOB_RECIPES WHERE JOB_GROUP=?";
+	private static final String DELETE_PROJECT_JOB_RECIPES_QUERY = "DELETE FROM SMSS_JOB_RECIPES WHERE JOB_GROUP=?";
 	private static final String SELECT_TRIGGER_ON_LOAD_QUERY = "SELECT * FROM SMSS_JOB_RECIPES WHERE TRIGGER_ON_LOAD=?";
 
 	// SMSS_JOB_TAGS CRUD
@@ -256,6 +264,26 @@ public class SchedulerDatabaseUtility {
 			WHERE NEXT_FIRE_TIME > ? \
 			AND TRIGGER_STATE NOT IN ('PAUSED', 'PAUSED_BLOCKED', 'COMPLETE')""";
 
+	// the keys of the Quartz tables, added at startup in this order; the foreign
+	// keys come after the primary keys they reference
+	private static final String QUARTZ_TRIGGER_KEY = "SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP";
+	private static final List<QuartzConstraint> QUARTZ_PRIMARY_KEYS = List.of(
+			QuartzConstraint.primaryKey("QRTZ_CALENDARS", "SCHED_NAME, CALENDAR_NAME"),
+			QuartzConstraint.primaryKey("QRTZ_CRON_TRIGGERS", QUARTZ_TRIGGER_KEY),
+			QuartzConstraint.primaryKey("QRTZ_FIRED_TRIGGERS", "SCHED_NAME, ENTRY_ID"),
+			QuartzConstraint.primaryKey("QRTZ_PAUSED_TRIGGER_GRPS", "SCHED_NAME, TRIGGER_GROUP"),
+			QuartzConstraint.primaryKey("QRTZ_SCHEDULER_STATE", "SCHED_NAME, INSTANCE_NAME"),
+			QuartzConstraint.primaryKey("QRTZ_LOCKS", "SCHED_NAME, LOCK_NAME"),
+			QuartzConstraint.primaryKey("QRTZ_JOB_DETAILS", "SCHED_NAME, JOB_NAME, JOB_GROUP"),
+			QuartzConstraint.primaryKey("QRTZ_SIMPLE_TRIGGERS", QUARTZ_TRIGGER_KEY),
+			QuartzConstraint.primaryKey("QRTZ_SIMPROP_TRIGGERS", QUARTZ_TRIGGER_KEY),
+			QuartzConstraint.primaryKey("QRTZ_TRIGGERS", QUARTZ_TRIGGER_KEY));
+	private static final List<QuartzConstraint> QUARTZ_FOREIGN_KEYS = List.of(
+			QuartzConstraint.foreignKey("QRTZ_CRON_TRIGGERS", QUARTZ_TRIGGER_KEY, "QRTZ_TRIGGERS").onDeleteCascade(),
+			QuartzConstraint.foreignKey("QRTZ_SIMPLE_TRIGGERS", QUARTZ_TRIGGER_KEY, "QRTZ_TRIGGERS").onDeleteCascade(),
+			QuartzConstraint.foreignKey("QRTZ_SIMPROP_TRIGGERS", QUARTZ_TRIGGER_KEY, "QRTZ_TRIGGERS").onDeleteCascade(),
+			QuartzConstraint.foreignKey("QRTZ_TRIGGERS", "SCHED_NAME, JOB_NAME, JOB_GROUP", "QRTZ_JOB_DETAILS"));
+
 	// ----------------------------------------------------------------------------
 
 	static AbstractSqlQueryUtil queryUtil;
@@ -265,36 +293,32 @@ public class SchedulerDatabaseUtility {
 	}
 
 	/**
-	 * Bootstraps the scheduler subsystem: loads the OWL if needed, creates and
-	 * migrates every Quartz and SMSS scheduler table, then starts the Quartz
-	 * scheduler. Called once at server startup.
+	 * Bootstraps the scheduler subsystem: loads the OWL if needed, creates every
+	 * Quartz and SMSS scheduler table and its keys through {@link #initialize()},
+	 * then starts the Quartz scheduler. Called once at server startup.
+	 *
+	 * @throws Exception when the OWL cannot be remade or the scheduler database
+	 *                   cannot be reached
 	 */
 	public static void startServer() throws Exception {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = schedulerDb.getConnection();
+		queryUtil = schedulerDb.getQueryUtil();
+
+		SchedulerOwlCreator owlCreator = new SchedulerOwlCreator(queryUtil);
+		if (owlCreator.needsRemake(schedulerDb)) {
+			owlCreator.remakeOwl(schedulerDb);
+		}
+
+		initialize();
+
+		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 		try {
-			queryUtil = schedulerDb.getQueryUtil();
-
-			SchedulerOwlCreator owlCreator = new SchedulerOwlCreator();
-			if (owlCreator.needsRemake(schedulerDb)) {
-				owlCreator.remakeOwl(schedulerDb);
+			if (!scheduler.isStarted()) {
+				classLogger.info("Scheduler is not active. Starting up scheduler...");
+				scheduler.start();
 			}
-
-			initialize();
-
-			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
-			try {
-				if (!scheduler.isStarted()) {
-					classLogger.info("Scheduler is not active. Starting up scheduler...");
-					scheduler.start();
-				}
-			} catch (SchedulerException e) {
-				classLogger.error("Failed to start scheduler: {}", e.getMessage(), e);
-			}
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				conn.close();
-			}
+		} catch (SchedulerException e) {
+			classLogger.error("Failed to start scheduler: {}", e.getMessage(), e);
 		}
 	}
 
@@ -302,6 +326,14 @@ public class SchedulerDatabaseUtility {
 	 * Creates the Quartz and SMSS scheduler tables (idempotent) and adds primary
 	 * and foreign key constraints. Safe to call on every startup; statements are
 	 * gated by IF NOT EXISTS or by metadata lookups depending on the rdbms.
+	 *
+	 * <p>
+	 * Each DDL statement runs and commits on its own through the engine, with no
+	 * transaction across statements, since several dialects commit DDL implicitly.
+	 * The metadata lookups share one connection held for the call.
+	 *
+	 * @throws SQLException when the lookup connection cannot be acquired, committed
+	 *                      or released
 	 */
 	public static void initialize() throws SQLException {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
@@ -311,8 +343,8 @@ public class SchedulerDatabaseUtility {
 		try {
 			createQuartzTables(conn, database, schema);
 			createSemossTables(conn, database, schema);
-			addAllPrimaryKeys(conn, database, schema);
-			addAllForeignKeys(conn, database, schema);
+			addConstraints(QUARTZ_PRIMARY_KEYS, conn, database, schema);
+			addConstraints(QUARTZ_FOREIGN_KEYS, conn, database, schema);
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -322,34 +354,6 @@ public class SchedulerDatabaseUtility {
 				conn.close();
 			}
 		}
-	}
-
-	/**
-	 * Borrows a JDBC connection to the scheduler database. With connection pooling
-	 * the caller is responsible for closing the returned connection; without
-	 * pooling the connection is the underlying long-lived one and must not be
-	 * closed.
-	 *
-	 * @return a non-null Connection
-	 * @throws NullPointerException if a connection cannot be obtained
-	 */
-	public static Connection connectToScheduler() {
-		Connection connection = null;
-
-		try {
-			IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-			connection = schedulerDb.getConnection();
-		} catch (SQLException se) {
-			classLogger.error("SQL error obtaining scheduler db connection: {}", se.getMessage(), se);
-		} catch (Exception ex) {
-			classLogger.error("Unexpected error obtaining scheduler db connection: {}", ex.getMessage(), ex);
-		}
-
-		if (connection == null) {
-			throw new NullPointerException("Connection wasn't able to be created.");
-		}
-
-		return connection;
 	}
 
 	/**
@@ -369,20 +373,6 @@ public class SchedulerDatabaseUtility {
 	}
 
 	/**
-	 * Closes the given connection, swallowing and logging any SQLException. No-op
-	 * when {@code connection} is null.
-	 */
-	public static void closeConnection(Connection connection) {
-		try {
-			if (connection != null) {
-				connection.close();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-		}
-	}
-
-	/**
 	 * Records a new scheduler execution attempt in SMSS_EXECUTION. The execId is
 	 * the in-flight handle used by the rest of the scheduler runtime to look up the
 	 * owning job.
@@ -394,27 +384,20 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static boolean insertIntoExecutionTable(String execId, String jobId, String jobGroup) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		try (PreparedStatement statement = conn.prepareStatement(INSERT_EXECUTION_QUERY)) {
-			statement.setString(1, execId);
-			statement.setString(2, jobId);
-			statement.setString(3, jobGroup);
-			statement.executeUpdate();
-		} catch (SQLException e) {
+		try {
+			QueryExecutionUtility.executeUpdate(schedulerDb, INSERT_EXECUTION_QUERY, statement -> {
+				statement.setString(1, execId);
+				statement.setString(2, jobId);
+				statement.setString(3, jobGroup);
+			});
+			return true;
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to insert into SMSS_EXECUTION for execId '{}', jobId '{}', jobGroup '{}': {}",
 					execId, jobId, jobGroup, e.getMessage(), e);
 			return false;
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
-		return true;
 	}
 
 	/**
@@ -426,37 +409,19 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static String[] executionIdExists(String execId) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		ResultSet rs = null;
-		try (PreparedStatement statement = conn.prepareStatement(SELECT_EXECUTION_BY_ID_QUERY)) {
-			statement.setString(1, execId);
-			rs = statement.executeQuery();
-			if (rs.next()) {
-				String jobId = rs.getString(1);
-				String jobGroup = rs.getString(2);
-				return new String[] { jobId, jobGroup };
-			}
-		} catch (SQLException e) {
+		try {
+			return QueryExecutionUtility.queryOne(schedulerDb, SELECT_EXECUTION_BY_ID_QUERY,
+					statement -> statement.setString(1, execId), rs -> {
+						String jobId = rs.getString(1);
+						String jobGroup = rs.getString(2);
+						return new String[] { jobId, jobGroup };
+					});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to look up execution id '{}' in SMSS_EXECUTION: {}", execId, e.getMessage(), e);
 			return null;
-		} finally {
-			if (rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close ResultSet: {}", e.getMessage(), e);
-				}
-			}
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
-		return null;
 	}
 
 	/**
@@ -468,24 +433,16 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static boolean removeExecutionId(String execId) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		try (PreparedStatement statement = conn.prepareStatement(DELETE_EXECUTION_QUERY)) {
-			statement.setString(1, execId);
-			statement.executeUpdate();
-		} catch (SQLException e) {
+		try {
+			QueryExecutionUtility.executeUpdate(schedulerDb, DELETE_EXECUTION_QUERY,
+					statement -> statement.setString(1, execId));
+			return true;
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to remove execution id '{}' from SMSS_EXECUTION: {}", execId, e.getMessage(), e);
 			return false;
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
-		return true;
 	}
 
 	/**
@@ -504,8 +461,6 @@ public class SchedulerDatabaseUtility {
 	public static boolean insertIntoAuditTrailTable(String jobId, String jobGroup, Long start, Long end,
 			boolean success, String schedulerOutput) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 		Timestamp startTimeStamp = Utility
 				.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneOffset.UTC));
@@ -514,42 +469,46 @@ public class SchedulerDatabaseUtility {
 
 		// update is_latest to false for all the existing records of this job id
 		try {
-			try (PreparedStatement updateAuditTrailStatement = conn.prepareStatement(CLEAR_AUDIT_TRAIL_LATEST_QUERY)) {
-				updateAuditTrailStatement.setBoolean(1, false);
-				updateAuditTrailStatement.setString(2, jobId);
-				updateAuditTrailStatement.executeUpdate();
-			} catch (SQLException e) {
-				classLogger.error("Failed to clear IS_LATEST flag in SMSS_AUDIT_TRAIL for jobId '{}': {}", jobId,
-						e.getMessage(), e);
-				return false;
-			}
-			// now insert the new record with is_latest as true
-			try (PreparedStatement statement = conn.prepareStatement(INSERT_AUDIT_TRAIL_QUERY)) {
-				int index = 1;
-				statement.setString(index++, jobId);
-				statement.setString(index++, jobGroup);
-				statement.setTimestamp(index++, startTimeStamp);
-				statement.setTimestamp(index++, endTimeStamp);
-				statement.setString(index++, String.valueOf(end - start));
-				statement.setBoolean(index++, success);
-				statement.setBoolean(index++, true);
-				queryUtil.handleInsertionOfClob(conn, statement, schedulerOutput, index++, gson);
-				statement.executeUpdate();
-			} catch (UnsupportedEncodingException | SQLException e) {
-				classLogger.error("Failed to insert audit trail row for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
-						e.getMessage(), e);
-				return false;
-			}
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+
 				try {
-					conn.close();
+					QueryExecutionUtility.executeUpdate(conn, CLEAR_AUDIT_TRAIL_LATEST_QUERY,
+							updateAuditTrailStatement -> {
+								updateAuditTrailStatement.setBoolean(1, false);
+								updateAuditTrailStatement.setString(2, jobId);
+							});
 				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
+					classLogger.error("Failed to clear IS_LATEST flag in SMSS_AUDIT_TRAIL for jobId '{}': {}", jobId,
+							e.getMessage(), e);
+					throw e;
 				}
-			}
+				// now insert the new record with is_latest as true
+				try {
+					QueryExecutionUtility.executeUpdate(conn, INSERT_AUDIT_TRAIL_QUERY, statement -> {
+						int index = 1;
+						statement.setString(index++, jobId);
+						statement.setString(index++, jobGroup);
+						statement.setTimestamp(index++, startTimeStamp);
+						statement.setTimestamp(index++, endTimeStamp);
+						statement.setString(index++, String.valueOf(end - start));
+						statement.setBoolean(index++, success);
+						statement.setBoolean(index++, true);
+						queryUtil.setNullableLargeText(statement, index++, schedulerOutput);
+					});
+				} catch (SQLException e) {
+					classLogger.error("Failed to insert audit trail row for jobId '{}', jobGroup '{}': {}", jobId,
+							jobGroup, e.getMessage(), e);
+					throw e;
+				}
+
+				return true;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to record scheduler audit for job '{}'", jobId, e);
+			return false;
 		}
-		return true;
 	}
 
 	/**
@@ -576,37 +535,32 @@ public class SchedulerDatabaseUtility {
 			boolean triggerOnLoad, String uiState, List<String> jobTags) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 
-		Connection conn = connectToScheduler();
-		try (PreparedStatement statement = conn.prepareStatement(INSERT_JOB_RECIPES_QUERY)) {
-			int index = 1;
-			statement.setString(index++, userId);
-			statement.setString(index++, jobId);
-			statement.setString(index++, jobName);
-			statement.setString(index++, jobGroup);
-			statement.setString(index++, cronExpression);
-			statement.setString(index++, cronTimeZone.getID());
-			queryUtil.handleInsertionOfBlob(conn, statement, recipe, index++);
-			queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, index++);
-			statement.setString(index++, jobCategory);
-			statement.setBoolean(index++, triggerOnLoad);
-			queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
-
-			statement.executeUpdate();
-		} catch (SQLException | UnsupportedEncodingException e) {
+		try {
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				QueryExecutionUtility.executeUpdate(conn, INSERT_JOB_RECIPES_QUERY, statement -> {
+					int index = 1;
+					statement.setString(index++, userId);
+					statement.setString(index++, jobId);
+					statement.setString(index++, jobName);
+					statement.setString(index++, jobGroup);
+					statement.setString(index++, cronExpression);
+					statement.setString(index++, cronTimeZone.getID());
+					queryUtil.handleInsertionOfBlob(conn, statement, recipe, index++);
+					queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, index++);
+					statement.setString(index++, jobCategory);
+					statement.setBoolean(index++, triggerOnLoad);
+					queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
+				});
+				updateJobTags(conn, jobId, jobTags);
+				return true;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to insert SMSS_JOB_RECIPES row for jobId '{}', jobGroup '{}': {}", jobId,
 					jobGroup, e.getMessage(), e);
 			return false;
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
-		return updateJobTags(jobId, jobTags);
 	}
 
 	/**
@@ -620,47 +574,49 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static boolean updateJobTags(String jobId, List<String> jobTags) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-
 		try {
-			// first we delete old tags
-			try (PreparedStatement statement = conn.prepareStatement(DELETE_JOB_TAGS_QUERY)) {
-				statement.setString(1, jobId);
-				statement.execute();
-			} catch (SQLException e) {
-				classLogger.error("Failed to delete existing tags from SMSS_JOB_TAGS for jobId '{}': {}", jobId,
-						e.getMessage(), e);
-				return false;
-			}
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+				updateJobTags(conn, jobId, jobTags);
+				return null;
+			});
+			return true;
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to replace scheduler tags for job '{}'", jobId, e);
+			return false;
+		}
+	}
 
-			if (jobTags == null) {
-				return true;
-			}
+	private static void updateJobTags(Connection conn, String jobId, List<String> jobTags) throws SQLException {
 
-			// bulk insert for the job tags
-			try (PreparedStatement statement = conn.prepareStatement(INSERT_JOB_TAGS_QUERY)) {
-				for (String jobTag : jobTags) {
-					statement.setString(1, jobId);
-					statement.setString(2, jobTag.trim());
-					statement.addBatch();
-				}
-				statement.executeBatch();
-			} catch (SQLException e) {
-				classLogger.error("Failed to bulk insert tags into SMSS_JOB_TAGS for jobId '{}': {}", jobId,
-						e.getMessage(), e);
-				return false;
-			}
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
+		// first we delete old tags
+		try (PreparedStatement statement = conn.prepareStatement(DELETE_JOB_TAGS_QUERY)) {
+			statement.setString(1, jobId);
+			statement.execute();
+		} catch (SQLException e) {
+			classLogger.error("Failed to delete existing tags from SMSS_JOB_TAGS for jobId '{}': {}", jobId,
+					e.getMessage(), e);
+			throw e;
 		}
 
-		return true;
+		if (jobTags == null) {
+			return;
+		}
+
+		// bulk insert for the job tags
+		try (PreparedStatement statement = conn.prepareStatement(INSERT_JOB_TAGS_QUERY)) {
+			for (String jobTag : jobTags) {
+				statement.setString(1, jobId);
+				statement.setString(2, jobTag.trim());
+				statement.addBatch();
+			}
+			statement.executeBatch();
+		} catch (SQLException e) {
+			classLogger.error("Failed to bulk insert tags into SMSS_JOB_TAGS for jobId '{}': {}", jobId, e.getMessage(),
+					e);
+			throw e;
+		}
 	}
 
 	/**
@@ -690,40 +646,35 @@ public class SchedulerDatabaseUtility {
 			List<String> jobTags) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 
-		Connection conn = connectToScheduler();
-		try (PreparedStatement statement = conn.prepareStatement(UPDATE_JOB_RECIPES_QUERY)) {
-			int index = 1;
-			statement.setString(index++, userId);
-			statement.setString(index++, jobName);
-			statement.setString(index++, jobGroup);
-			statement.setString(index++, cronExpression);
-			statement.setString(index++, cronTimeZone.getID());
-			queryUtil.handleInsertionOfBlob(conn, statement, recipe, index++);
-			queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, index++);
-			statement.setString(index++, jobCategory);
-			statement.setBoolean(index++, triggerOnLoad);
-			queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
+		try {
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				QueryExecutionUtility.executeUpdate(conn, UPDATE_JOB_RECIPES_QUERY, statement -> {
+					int index = 1;
+					statement.setString(index++, userId);
+					statement.setString(index++, jobName);
+					statement.setString(index++, jobGroup);
+					statement.setString(index++, cronExpression);
+					statement.setString(index++, cronTimeZone.getID());
+					queryUtil.handleInsertionOfBlob(conn, statement, recipe, index++);
+					queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, index++);
+					statement.setString(index++, jobCategory);
+					statement.setBoolean(index++, triggerOnLoad);
+					queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
 
-			// where clause filters
-			statement.setString(index++, jobId);
-			statement.setString(index++, existingJobGroup);
-
-			statement.executeUpdate();
-		} catch (SQLException | UnsupportedEncodingException e) {
+					// where clause filters
+					statement.setString(index++, jobId);
+					statement.setString(index++, existingJobGroup);
+				});
+				updateJobTags(conn, jobId, jobTags);
+				return true;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to update SMSS_JOB_RECIPES for jobId '{}', existingJobGroup '{}': {}", jobId,
 					existingJobGroup, e.getMessage(), e);
 			return false;
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
-		return updateJobTags(jobId, jobTags);
 	}
 
 	/**
@@ -736,27 +687,80 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static boolean removeFromJobRecipesTable(String jobId, String jobGroup) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		try (PreparedStatement statement = conn.prepareStatement(DELETE_JOB_RECIPES_QUERY)) {
-			statement.setString(1, jobId);
-			statement.setString(2, jobGroup);
-
-			statement.executeUpdate();
-		} catch (SQLException e) {
+		try {
+			QueryExecutionUtility.executeUpdate(schedulerDb, DELETE_JOB_RECIPES_QUERY, statement -> {
+				statement.setString(1, jobId);
+				statement.setString(2, jobGroup);
+			});
+			return true;
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to delete SMSS_JOB_RECIPES row for jobId '{}', jobGroup '{}': {}", jobId,
 					jobGroup, e.getMessage(), e);
 			return false;
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
+		}
+	}
+
+	/**
+	 * Removes every future Quartz job and stored recipe owned by a project job
+	 * group. Scheduler audit rows remain available for operational history.
+	 *
+	 * @param projectId project id used as the Quartz job group
+	 * @throws IllegalStateException when Quartz or scheduler-database cleanup fails
+	 */
+	public static void removeJobsForProject(String projectId) {
+		if (projectId == null || projectId.isBlank()) {
+			throw new IllegalArgumentException("Project id is required to remove scheduled jobs");
 		}
 
-		return true;
+		String jobGroup = projectId.trim();
+		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+		try {
+			Set<JobKey> jobKeys = scheduler.getJobKeys(GroupMatcher.jobGroupEquals(jobGroup));
+			if (!jobKeys.isEmpty() && !scheduler.deleteJobs(new ArrayList<>(jobKeys))) {
+				throw new IllegalStateException("Quartz did not remove every scheduled job for project " + jobGroup);
+			}
+		} catch (SchedulerException e) {
+			classLogger.error("Failed to remove Quartz jobs for project '{}': {}", jobGroup, e.getMessage(), e);
+			throw new IllegalStateException("Failed to remove scheduled jobs for project " + jobGroup, e);
+		}
+
+		removeProjectJobRecords(jobGroup);
+	}
+
+	private static void removeProjectJobRecords(String jobGroup) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+		try {
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+
+				List<String> jobIds = new ArrayList<>();
+				try (PreparedStatement select = conn.prepareStatement(SELECT_PROJECT_JOB_IDS_QUERY)) {
+					select.setString(1, jobGroup);
+					try (ResultSet result = select.executeQuery()) {
+						while (result.next()) {
+							jobIds.add(result.getString(1));
+						}
+					}
+				}
+
+				if (!jobIds.isEmpty()) {
+					QueryExecutionUtility.executeBatch(conn, DELETE_JOB_TAGS_QUERY, jobIds, (deleteTags, jobId) -> {
+						deleteTags.setString(1, jobId);
+					});
+				}
+
+				QueryExecutionUtility.executeUpdate(conn, DELETE_PROJECT_JOB_RECIPES_QUERY,
+						deleteRecipes -> deleteRecipes.setString(1, jobGroup));
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+
+			classLogger.error("Failed to remove scheduler records for project '{}': {}", jobGroup, e.getMessage(), e);
+			throw new IllegalStateException("Failed to remove scheduler records for project " + jobGroup, e);
+		}
 	}
 
 	/**
@@ -767,77 +771,58 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static boolean existsInJobRecipesTable(String jobId, String jobGroup) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		try (PreparedStatement statement = conn.prepareStatement(EXISTS_JOB_RECIPES_QUERY)) {
-			statement.setString(1, jobId);
-			statement.setString(2, jobGroup);
-			try (ResultSet result = statement.executeQuery()) {
-				while (result.next()) {
-					int count = result.getInt(1);
-					if (count == 0) {
-						return false;
+		try {
+			return QueryExecutionUtility.read(schedulerDb, conn -> {
+				try (PreparedStatement statement = conn.prepareStatement(EXISTS_JOB_RECIPES_QUERY)) {
+					statement.setString(1, jobId);
+					statement.setString(2, jobGroup);
+					try (ResultSet result = statement.executeQuery()) {
+						while (result.next()) {
+							int count = result.getInt(1);
+							if (count == 0) {
+								return false;
+							}
+						}
 					}
 				}
-			}
-		} catch (SQLException e) {
+				return true;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to check existence in SMSS_JOB_RECIPES for jobId '{}', jobGroup '{}': {}", jobId,
 					jobGroup, e.getMessage(), e);
 			return false;
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
-		return true;
 	}
 
 	/**
 	 * Returns every scheduled job belonging to a single project (jobGroup),
-	 * optionally narrowed to those carrying any of the supplied tags.
+	 * optionally narrowed to those carrying any of the supplied tags. The rows are
+	 * read as described in {@link #readJobDetails(Map, String, String...)}; a
+	 * failed read is logged and the jobs read before it are returned.
 	 *
 	 * @param appId   project id (matched against SMSS_JOB_RECIPES.JOB_GROUP)
 	 * @param jobTags optional tag filter; pass null to skip tag filtering
 	 * @return map keyed by Quartz JobKey toString -> flattened job-details map
 	 */
 	public static Map<String, Map<String, String>> retrieveJobsForProject(String appId, List<String> jobTags) {
-		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
-
-		try (PreparedStatement statement = conn
-				.prepareStatement(createJobQuery("WHERE SMSS_JOB_RECIPES.JOB_GROUP=?", jobTags))) {
-			// always have the is_latest value
-			statement.setBoolean(1, true);
-			statement.setString(2, appId);
-
-			try (ResultSet result = statement.executeQuery()) {
-				while (result.next()) {
-					fillJobDetailsMap(jobMap, result);
-				}
-			}
-		} catch (SQLException e) {
+		try {
+			readJobDetails(jobMap, createJobQuery("WHERE SMSS_JOB_RECIPES.JOB_GROUP=?", jobTags), appId);
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to retrieve scheduled jobs for project '{}': {}", appId, e.getMessage(), e);
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
 		return jobMap;
 	}
 
 	/**
 	 * Returns the scheduled jobs owned by a specific user within a single project,
-	 * optionally narrowed by tags.
+	 * optionally narrowed by tags. The rows are read as described in
+	 * {@link #readJobDetails(Map, String, String...)}; a failed read is logged and
+	 * the jobs read before it are returned.
 	 *
 	 * @param appId   project id (matched against JOB_GROUP)
 	 * @param userId  owner id (matched against USER_ID)
@@ -846,72 +831,77 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static Map<String, Map<String, String>> retrieveUsersJobsForProject(String appId, String userId,
 			List<String> jobTags) {
-		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
-		try (PreparedStatement statement = conn.prepareStatement(
-				createJobQuery(" WHERE SMSS_JOB_RECIPES.USER_ID=? AND SMSS_JOB_RECIPES.JOB_GROUP=?", jobTags))) {
-			// always have the is_latest value
-			statement.setBoolean(1, true);
-			statement.setString(2, userId);
-			statement.setString(3, appId);
-
-			try (ResultSet result = statement.executeQuery()) {
-				while (result.next()) {
-					fillJobDetailsMap(jobMap, result);
-				}
-			}
-		} catch (SQLException e) {
+		try {
+			readJobDetails(jobMap,
+					createJobQuery(" WHERE SMSS_JOB_RECIPES.USER_ID=? AND SMSS_JOB_RECIPES.JOB_GROUP=?", jobTags),
+					userId, appId);
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to retrieve scheduled jobs for user '{}' in project '{}': {}", userId, appId,
 					e.getMessage(), e);
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
 		return jobMap;
 	}
 
 	/**
 	 * Returns every scheduled job owned by a user across all projects, optionally
-	 * narrowed by tags.
+	 * narrowed by tags. The rows are read as described in
+	 * {@link #readJobDetails(Map, String, String...)}; a failed read is logged and
+	 * the jobs read before it are returned.
 	 *
 	 * @param userId  owner id (matched against USER_ID)
 	 * @param jobTags optional tag filter; pass null to skip tag filtering
 	 * @return map keyed by Quartz JobKey toString -> flattened job-details map
 	 */
 	public static Map<String, Map<String, String>> retrieveUsersJobs(String userId, List<String> jobTags) {
-		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
-		try (PreparedStatement statement = conn
-				.prepareStatement(createJobQuery(" WHERE SMSS_JOB_RECIPES.USER_ID=?", jobTags))) {
-			// always have the is_latest value
-			statement.setBoolean(1, true);
-			statement.setString(2, userId);
-			try (ResultSet result = statement.executeQuery()) {
-				while (result.next()) {
-					fillJobDetailsMap(jobMap, result);
-				}
-			}
-		} catch (SQLException e) {
+		try {
+			readJobDetails(jobMap, createJobQuery(" WHERE SMSS_JOB_RECIPES.USER_ID=?", jobTags), userId);
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to retrieve scheduled jobs for user '{}': {}", userId, e.getMessage(), e);
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
+		}
+		return jobMap;
+	}
+
+	/**
+	 * Reads the rows of a {@link #createJobQuery(String, List)} query into the
+	 * caller's map in one read on the shared executor. The IS_LATEST flag is bound
+	 * first, then each filter value in order.
+	 *
+	 * <p>
+	 * A JDBC failure, including one reading a LOB column, ends the read and
+	 * propagates; the jobs added before it stay in the map. A failure reading the
+	 * content of one LOB field is logged by
+	 * {@link #fillJobDetailsMap(Map, ResultSet)} and leaves only that field empty.
+	 *
+	 * @param jobMap       accumulator keyed by Quartz JobKey toString
+	 * @param query        the assembled job-details query
+	 * @param filterValues values for the query's WHERE placeholders, in order
+	 * @throws Exception when the connection cannot be acquired or the read fails
+	 */
+	private static void readJobDetails(Map<String, Map<String, String>> jobMap, String query, String... filterValues)
+			throws Exception {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+		QueryExecutionUtility.read(schedulerDb, conn -> {
+			try (PreparedStatement statement = conn.prepareStatement(query)) {
+				int index = 1;
+				// always have the is_latest value
+				statement.setBoolean(index++, true);
+				for (String filterValue : filterValues) {
+					statement.setString(index++, filterValue);
+				}
+				try (ResultSet result = statement.executeQuery()) {
+					while (result.next()) {
+						fillJobDetailsMap(jobMap, result);
+					}
 				}
 			}
-		}
-
-		return jobMap;
+			return null;
+		});
 	}
 
 	/**
@@ -967,36 +957,22 @@ public class SchedulerDatabaseUtility {
 
 	/**
 	 * Returns every scheduled job in the system, optionally narrowed by tags.
-	 * Admin-style call; intended for server-wide views.
+	 * Admin-style call; intended for server-wide views. The rows are read as
+	 * described in {@link #readJobDetails(Map, String, String...)}; a failed read
+	 * is logged and the jobs read before it are returned.
 	 *
 	 * @param jobTags optional tag filter; pass null to skip tag filtering
 	 * @return map keyed by Quartz JobKey toString -> flattened job-details map
 	 */
 	public static Map<String, Map<String, String>> retrieveAllJobs(List<String> jobTags) {
-		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
-		String query = createJobQuery(null, jobTags);
-		try (PreparedStatement statement = conn.prepareStatement(query)) {
-			// always have the is_latest value
-			statement.setBoolean(1, true);
-			try (ResultSet result = statement.executeQuery()) {
-				while (result.next()) {
-					fillJobDetailsMap(jobMap, result);
-				}
-			}
-		} catch (SQLException e) {
+		try {
+			readJobDetails(jobMap, createJobQuery(null, jobTags));
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to retrieve all scheduled jobs: {}", e.getMessage(), e);
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
 		return jobMap;
 	}
 
@@ -1013,95 +989,128 @@ public class SchedulerDatabaseUtility {
 	 * run count, failure count, mean and p95 of EXECUTION_DELTA (ms), and the job
 	 * whose latest sequence of failed runs is the longest. Rows are streamed in
 	 * (JOB_ID, EXECUTION_START DESC) order so each job's current failure streak is
-	 * computed in a single pass.
+	 * computed in a single pass, in one read on the shared executor.
+	 *
+	 * <p>
+	 * A failed read is logged and the stats cover the rows counted before it, so a
+	 * cursor failure partway through returns partial totals; a connection that
+	 * cannot be acquired returns empty stats.
+	 *
+	 * @param windowStart earliest EXECUTION_START counted, inclusive
+	 * @return the stats over the rows read
 	 */
 	public static SchedulerAuditStats computeSchedulerAuditStats(Instant windowStart) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		long totalRuns = 0;
-		long failures = 0;
-		List<Long> durations = new ArrayList<>();
-
-		String currentJobId = null;
-		String currentJobName = null;
-		boolean stillCountingStreak = false;
-		long currentStreak = 0;
-		long worstStreak = 0;
-		String worstJobId = null;
-		String worstJobName = null;
-
-		try (PreparedStatement ps = conn.prepareStatement(SCHEDULER_AUDIT_STATS_QUERY)) {
-			ps.setTimestamp(1, Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(windowStart, ZoneOffset.UTC)));
-			try (ResultSet rs = ps.executeQuery()) {
-				while (rs.next()) {
-					totalRuns++;
-					String jobId = rs.getString("JOB_ID");
-					boolean success = rs.getBoolean("SUCCESS");
-					String deltaStr = rs.getString("EXECUTION_DELTA");
-					String jobName = rs.getString("JOB_NAME");
-
-					if (!success) {
-						failures++;
-					}
-					if (deltaStr != null) {
-						try {
-							durations.add(Long.parseLong(deltaStr.trim()));
-						} catch (NumberFormatException ignore) {
-							// legacy rows may store non-numeric values; skip
-						}
-					}
-
-					if (jobId != null && !jobId.equals(currentJobId)) {
-						currentJobId = jobId;
-						currentJobName = jobName;
-						currentStreak = 0;
-						stillCountingStreak = true;
-					}
-					if (stillCountingStreak) {
-						if (!success) {
-							currentStreak++;
-							if (currentStreak > worstStreak) {
-								worstStreak = currentStreak;
-								worstJobId = currentJobId;
-								worstJobName = currentJobName;
-							}
-						} else {
-							stillCountingStreak = false;
+		AuditStatsAccumulator stats = new AuditStatsAccumulator();
+		try {
+			QueryExecutionUtility.read(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(SCHEDULER_AUDIT_STATS_QUERY)) {
+					ps.setTimestamp(1,
+							Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(windowStart, ZoneOffset.UTC)));
+					try (ResultSet rs = ps.executeQuery()) {
+						while (rs.next()) {
+							stats.add(rs.getString("JOB_ID"), rs.getBoolean("SUCCESS"), rs.getString("EXECUTION_DELTA"),
+									rs.getString("JOB_NAME"));
 						}
 					}
 				}
-			}
-		} catch (SQLException e) {
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to query scheduler audit stats: {}", e.getMessage(), e);
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
+		}
+		return stats.toStats();
+	}
+
+	/**
+	 * Running totals for {@link #computeSchedulerAuditStats(Instant)}. They live
+	 * outside the read so the rows counted before a failure still produce stats.
+	 * Rows must arrive in (JOB_ID, EXECUTION_START DESC) order.
+	 */
+	private static final class AuditStatsAccumulator {
+
+		private long totalRuns = 0;
+		private long failures = 0;
+		private final List<Long> durations = new ArrayList<>();
+
+		private String currentJobId = null;
+		private String currentJobName = null;
+		private boolean stillCountingStreak = false;
+		private long currentStreak = 0;
+		private long worstStreak = 0;
+		private String worstJobId = null;
+		private String worstJobName = null;
+
+		/**
+		 * Counts one audit-trail row.
+		 *
+		 * @param jobId    the run's job id
+		 * @param success  whether the run succeeded
+		 * @param deltaStr the run's EXECUTION_DELTA in ms, as stored
+		 * @param jobName  the job's name, or null when the recipe is gone
+		 */
+		private void add(String jobId, boolean success, String deltaStr, String jobName) {
+			totalRuns++;
+			if (!success) {
+				failures++;
+			}
+			if (deltaStr != null) {
 				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
+					durations.add(Long.parseLong(deltaStr.trim()));
+				} catch (NumberFormatException ignore) {
+					// legacy rows may store non-numeric values; skip
+				}
+			}
+
+			if (jobId != null && !jobId.equals(currentJobId)) {
+				currentJobId = jobId;
+				currentJobName = jobName;
+				currentStreak = 0;
+				stillCountingStreak = true;
+			}
+			if (stillCountingStreak) {
+				if (!success) {
+					currentStreak++;
+					if (currentStreak > worstStreak) {
+						worstStreak = currentStreak;
+						worstJobId = currentJobId;
+						worstJobName = currentJobName;
+					}
+				} else {
+					stillCountingStreak = false;
 				}
 			}
 		}
 
-		long avg = 0;
-		long p95 = 0;
-		if (!durations.isEmpty()) {
-			long sum = 0;
-			for (long d : durations) {
-				sum += d;
+		/**
+		 * Builds the stats from the rows counted so far.
+		 *
+		 * @return the run and failure counts, the mean and p95 duration, and the job
+		 *         with the longest current failure streak
+		 */
+		private SchedulerAuditStats toStats() {
+			long avg = 0;
+			long p95 = 0;
+			if (!durations.isEmpty()) {
+				long sum = 0;
+				for (long d : durations) {
+					sum += d;
+				}
+				avg = sum / durations.size();
+				Collections.sort(durations);
+				int idx = (int) Math.ceil(durations.size() * 0.95) - 1;
+				if (idx < 0) {
+					idx = 0;
+				} else if (idx >= durations.size()) {
+					idx = durations.size() - 1;
+				}
+				p95 = durations.get(idx);
 			}
-			avg = sum / durations.size();
-			Collections.sort(durations);
-			int idx = (int) Math.ceil(durations.size() * 0.95) - 1;
-			if (idx < 0) {
-				idx = 0;
-			} else if (idx >= durations.size()) {
-				idx = durations.size() - 1;
-			}
-			p95 = durations.get(idx);
-		}
 
-		return new SchedulerAuditStats(totalRuns, failures, avg, p95, worstJobId, worstJobName, worstStreak);
+			return new SchedulerAuditStats(totalRuns, failures, avg, p95, worstJobId, worstJobName, worstStreak);
+		}
 	}
 
 	/**
@@ -1110,26 +1119,24 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static Map<String, Long> getTriggerStateCounts() {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
 		Map<String, Long> counts = new HashMap<>();
-		try (PreparedStatement ps = conn.prepareStatement(TRIGGER_STATE_COUNT_QUERY);
-				ResultSet rs = ps.executeQuery()) {
-			while (rs.next()) {
-				String state = rs.getString(1);
-				if (state != null) {
-					counts.put(state, rs.getLong(2));
+		try {
+			return QueryExecutionUtility.read(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(TRIGGER_STATE_COUNT_QUERY);
+						ResultSet rs = ps.executeQuery()) {
+					while (rs.next()) {
+						String state = rs.getString(1);
+						if (state != null) {
+							counts.put(state, rs.getLong(2));
+						}
+					}
 				}
-			}
-		} catch (SQLException e) {
+				return counts;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to query trigger state counts: {}", e.getMessage(), e);
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
 		return counts;
 	}
@@ -1141,26 +1148,15 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static long getOverdueTriggerCount(long beforeEpochMillis) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		try (PreparedStatement ps = conn.prepareStatement(OVERDUE_TRIGGER_COUNT_QUERY)) {
-			ps.setLong(1, beforeEpochMillis);
-			try (ResultSet rs = ps.executeQuery()) {
-				if (rs.next()) {
-					return rs.getLong(1);
-				}
-			}
-		} catch (SQLException e) {
+		try {
+			return java.util.Objects.requireNonNullElse(QueryExecutionUtility.queryOne(schedulerDb,
+					OVERDUE_TRIGGER_COUNT_QUERY, ps -> ps.setLong(1, beforeEpochMillis), rs -> rs.getLong(1)), 0L);
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to query overdue trigger count: {}", e.getMessage(), e);
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-		return 0;
+		return 0L;
 	}
 
 	/**
@@ -1170,27 +1166,19 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static Long getNextScheduledRunTime(long afterEpochMillis) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		try (PreparedStatement ps = conn.prepareStatement(NEXT_SCHEDULED_RUN_QUERY)) {
-			ps.setLong(1, afterEpochMillis);
-			try (ResultSet rs = ps.executeQuery()) {
-				if (rs.next()) {
-					long next = rs.getLong(1);
-					if (!rs.wasNull() && next > 0) {
-						return next;
-					}
-				}
-			}
-		} catch (SQLException e) {
+		try {
+			return QueryExecutionUtility.queryOne(schedulerDb, NEXT_SCHEDULED_RUN_QUERY,
+					ps -> ps.setLong(1, afterEpochMillis), rs -> {
+						long next = rs.getLong(1);
+						if (!rs.wasNull() && next > 0) {
+							return next;
+						}
+						return null;
+					});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to query next trigger fire time: {}", e.getMessage(), e);
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
 		return null;
 	}
@@ -1200,9 +1188,12 @@ public class SchedulerDatabaseUtility {
 	 * three BLOB columns (PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, UI_STATE), formats
 	 * PREV_FIRE_TIME and NEXT_FIRE_TIME into display strings, and appends the
 	 * resulting flattened map to {@code jobMap} keyed by {@code JobKey.toString()}.
+	 * A BLOB whose content cannot be read leaves that field empty, as described in
+	 * {@link #readLobField(ResultSet, String, String)}.
 	 *
 	 * @param jobMap accumulator the caller passes in; mutated in place
 	 * @param result the current row of the audit/recipes query
+	 * @throws SQLException when a column cannot be read from the row
 	 */
 	private static void fillJobDetailsMap(Map<String, Map<String, String>> jobMap, ResultSet result)
 			throws SQLException {
@@ -1215,9 +1206,6 @@ public class SchedulerDatabaseUtility {
 		String jobGroup = result.getString(JOB_GROUP);
 		String cronExpression = result.getString(CRON_EXPRESSION);
 		String cronTimeZone = result.getString(CRON_TIMEZONE);
-		String recipe = null;
-		String recipeParameters = null;
-		String uiState = null;
 		BigInteger nextExecTime = null;
 		BigDecimal nExecTimeD = result.getBigDecimal(NEXT_FIRE_TIME);
 		String tiggerState = result.getString(TRIGGER_STATE);
@@ -1227,24 +1215,9 @@ public class SchedulerDatabaseUtility {
 			nextExecTime = nExecTimeD.toBigInteger();
 		}
 
-		try {
-			recipe = queryUtil.handleBlobRetrieval(result, PIXEL_RECIPE);
-		} catch (SQLException | IOException e) {
-			classLogger.error("Failed to read PIXEL_RECIPE blob for jobId '{}': {}", jobId, e.getMessage(), e);
-		}
-
-		try {
-			recipeParameters = queryUtil.handleBlobRetrieval(result, PIXEL_RECIPE_PARAMETERS);
-		} catch (SQLException | IOException e) {
-			classLogger.error("Failed to read PIXEL_RECIPE_PARAMETERS blob for jobId '{}': {}", jobId, e.getMessage(),
-					e);
-		}
-
-		try {
-			uiState = queryUtil.handleBlobRetrieval(result, UI_STATE);
-		} catch (SQLException | IOException e) {
-			classLogger.error("Failed to read UI_STATE blob for jobId '{}': {}", jobId, e.getMessage(), e);
-		}
+		String recipe = readLobField(result, PIXEL_RECIPE, jobId);
+		String recipeParameters = readLobField(result, PIXEL_RECIPE_PARAMETERS, jobId);
+		String uiState = readLobField(result, UI_STATE, jobId);
 
 		jobDetailsMap.put(USER_ID, userId);
 		jobDetailsMap.put(ReactorKeysEnum.JOB_ID.getKey(), jobId);
@@ -1284,10 +1257,38 @@ public class SchedulerDatabaseUtility {
 	}
 
 	/**
+	 * Reads one BLOB column of the current job row as text. A failure reading the
+	 * BLOB's content is logged and the field is left null, so the rest of the row
+	 * is still listed. A JDBC failure reading the column from the row propagates to
+	 * the read that owns the cursor.
+	 *
+	 * @param result the current row of the job-details query
+	 * @param column the BLOB column to read
+	 * @param jobId  the row's job id, for the log
+	 * @return the column's text, or null when it is null or its content cannot be
+	 *         read
+	 * @throws SQLException when the column cannot be read from the row
+	 */
+	private static String readLobField(ResultSet result, String column, String jobId) throws SQLException {
+		try {
+			return queryUtil.handleBlobRetrieval(result, column);
+		} catch (IOException e) {
+			classLogger.error("Failed to read {} blob for jobId '{}': {}", column, jobId, e.getMessage(), e);
+			return null;
+		}
+	}
+
+	/**
 	 * Fires every SMSS_JOB_RECIPES row marked TRIGGER_ON_LOAD=true once. Called
 	 * after the scheduler is started so opt-in jobs run at server boot. No-op on a
 	 * clustered scheduler - one node fires for the cluster and we do not want every
 	 * node to duplicate the run.
+	 *
+	 * <p>
+	 * The rows are read in one read on the shared executor, and the jobs are fired
+	 * only after the read completes. A failed read is logged and fires no job. A
+	 * job that Quartz cannot fire is logged and ends the firing; the jobs before it
+	 * have already been fired.
 	 */
 	public static void executeAllTriggerOnLoads() {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
@@ -1295,44 +1296,40 @@ public class SchedulerDatabaseUtility {
 			return;
 		}
 
-		Connection conn = connectToScheduler();
 		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
-		ResultSet result = null;
+		List<TriggerOnLoadJob> jobs;
+		try {
+			jobs = QueryExecutionUtility.queryList(schedulerDb, SELECT_TRIGGER_ON_LOAD_QUERY,
+					statement -> statement.setBoolean(1, true), result -> new TriggerOnLoadJob(result.getString(JOB_ID),
+							result.getString(JOB_NAME), result.getString(JOB_GROUP)));
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to query trigger-on-load jobs from SMSS_JOB_RECIPES: {}", e.getMessage(), e);
+			return;
+		}
 
-		try (PreparedStatement preparedStatement = conn.prepareStatement(SELECT_TRIGGER_ON_LOAD_QUERY)) {
-			preparedStatement.setBoolean(1, true);
-			result = preparedStatement.executeQuery();
-
-			while (result.next()) {
-				String jobId = result.getString(JOB_ID);
-				String jobName = result.getString(JOB_NAME);
-				String jobGroup = result.getString(JOB_GROUP);
-				JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
-				classLogger.info("Triggering job on startup {}", Utility.cleanLogString(jobName));
+		try {
+			for (TriggerOnLoadJob job : jobs) {
+				JobKey jobKey = JobKey.jobKey(job.jobId(), job.jobGroup());
+				classLogger.info("Triggering job on startup {}", Utility.cleanLogString(job.jobName()));
 				scheduler.triggerJob(jobKey);
 			}
 
 			classLogger.info("All trigger on load jobs executed successfully");
-		} catch (SQLException sqe) {
-			classLogger.error("Failed to query trigger-on-load jobs from SMSS_JOB_RECIPES: {}", sqe.getMessage(), sqe);
 		} catch (SchedulerException se) {
 			classLogger.error("Failed to fire trigger-on-load job: {}", se.getMessage(), se);
-		} finally {
-			try {
-				if (result != null) {
-					result.close();
-				}
-			} catch (SQLException sqe) {
-				classLogger.error("Failed to close ResultSet: {}", sqe.getMessage(), sqe);
-			}
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
+	}
+
+	/**
+	 * A SMSS_JOB_RECIPES row marked TRIGGER_ON_LOAD, read before its job is fired.
+	 *
+	 * @param jobId    Quartz job id
+	 * @param jobName  user-facing job name, for the log
+	 * @param jobGroup Quartz job group
+	 */
+	private record TriggerOnLoadJob(String jobId, String jobName, String jobGroup) {
 	}
 
 	/**
@@ -1426,10 +1423,12 @@ public class SchedulerDatabaseUtility {
 	private static void createQuartzTables(Connection connection, String database, String schema) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
-		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
-		final String IMAGE_DATATYPE = queryUtil.getImageDataTypeName();
+
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
+		final String INTEGER_DATATYPE = queryUtil.getBooleanDataTypeName();
+		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
+		final String IMAGE_DATATYPE = queryUtil.getImageDataTypeName();
 
 		String[] colNames = null;
 		String[] types = null;
@@ -1473,7 +1472,7 @@ public class SchedulerDatabaseUtility {
 			colNames = new String[] { SCHED_NAME, ENTRY_ID, TRIGGER_NAME, TRIGGER_GROUP, INSTANCE_NAME, FIRED_TIME,
 					SCHED_TIME, PRIORITY, STATE, JOB_NAME, JOB_GROUP, IS_NONCONCURRENT, REQUESTS_RECOVERY };
 			types = new String[] { VARCHAR_120, VARCHAR_95, VARCHAR_200, VARCHAR_200, VARCHAR_200, BIGINT, BIGINT,
-					INTEGER, VARCHAR_16, VARCHAR_200, VARCHAR_200, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE };
+					INTEGER_DATATYPE, VARCHAR_16, VARCHAR_200, VARCHAR_200, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL,
 					NOT_NULL, null, null, null, null };
 
@@ -1583,7 +1582,8 @@ public class SchedulerDatabaseUtility {
 					INT_PROP_1, INT_PROP_2, LONG_PROP_1, LONG_PROP_2, DEC_PROP_1, DEC_PROP_2, BOOL_PROP_1,
 					BOOL_PROP_2 };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_512, VARCHAR_512, VARCHAR_512,
-					INTEGER, INTEGER, BIGINT, BIGINT, NUMERIC_13_4, NUMERIC_13_4, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE };
+					INTEGER_DATATYPE, INTEGER_DATATYPE, BIGINT, BIGINT, NUMERIC_13_4, NUMERIC_13_4, BOOLEAN_DATATYPE,
+					BOOLEAN_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null, null, null,
 					null, null, null };
 
@@ -1621,7 +1621,8 @@ public class SchedulerDatabaseUtility {
 					NEXT_FIRE_TIME, PREV_FIRE_TIME, PRIORITY, TRIGGER_STATE, TRIGGER_TYPE, START_TIME, END_TIME,
 					CALENDAR_NAME, MISFIRE_INSTR, JOB_DATA };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_250, BIGINT,
-					BIGINT, INTEGER, VARCHAR_16, VARCHAR_8, BIGINT, BIGINT, VARCHAR_200, SMALLINT, IMAGE_DATATYPE };
+					BIGINT, INTEGER_DATATYPE, VARCHAR_16, VARCHAR_8, BIGINT, BIGINT, VARCHAR_200, SMALLINT,
+					IMAGE_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null,
 					NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null };
 
@@ -1642,12 +1643,10 @@ public class SchedulerDatabaseUtility {
 	}
 
 	/**
-	 * Creates and migrates the SMSS-side scheduler tables (SMSS_JOB_RECIPES,
-	 * SMSS_JOB_TAGS, SMSS_AUDIT_TRAIL, SMSS_EXECUTION). Beyond initial creation
-	 * this method also runs idempotent column back-fills for older schemas - see
-	 * the {@code // ADDED <date>} blocks for the individual migrations. Every
-	 * migration step is gated on a column/constraint existence check so the method
-	 * can be re-run on every startup.
+	 * Creates the SMSS-side scheduler tables (SMSS_JOB_RECIPES, SMSS_JOB_TAGS,
+	 * SMSS_AUDIT_TRAIL, SMSS_EXECUTION). Each table is created by one DDL statement
+	 * gated by IF NOT EXISTS or a table existence check, so the method can be
+	 * re-run on every startup. It copies or backfills no rows.
 	 *
 	 * @param connection live JDBC connection to the scheduler db
 	 * @param database   database name (used for metadata lookups)
@@ -1658,10 +1657,11 @@ public class SchedulerDatabaseUtility {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-		String dateTimeType = queryUtil.getDateWithTimeDataType();
+		final String TIMESTAMP_DATATYPE = queryUtil.getDateWithTimeDataType();
 		final String BLOB_DATATYPE = queryUtil.getBlobDataTypeName();
 		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
 		final String CLOB_DATATYPE = queryUtil.getClobDataTypeName();
+
 		String[] colNames = null;
 		String[] types = null;
 		Object[] constraints = null;
@@ -1715,11 +1715,8 @@ public class SchedulerDatabaseUtility {
 			// adding is_latest flag to mark the latest record
 			colNames = new String[] { JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS,
 					IS_LATEST, SCHEDULER_OUTPUT };
-			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP, TIMESTAMP, VARCHAR_255, BOOLEAN_DATATYPE,
-					BOOLEAN_DATATYPE, CLOB_DATATYPE };
-			if (!dateTimeType.equals(TIMESTAMP)) {
-				types = cleanUpDataType(types, TIMESTAMP, dateTimeType);
-			}
+			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP_DATATYPE, TIMESTAMP_DATATYPE, VARCHAR_255,
+					BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, CLOB_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, null, null, null, null, null, null };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames, types,
@@ -1740,9 +1737,6 @@ public class SchedulerDatabaseUtility {
 			// SMSS_EXECUTION_SCHEDULE
 			colNames = new String[] { EXEC_ID, JOB_ID, JOB_GROUP };
 			types = new String[] { VARCHAR_200, VARCHAR_200, VARCHAR_200 };
-			if (!dateTimeType.equals(TIMESTAMP)) {
-				types = cleanUpDataType(types, TIMESTAMP, dateTimeType);
-			}
 			if (allowIfExistsTable) {
 				schedulerDb.insertData(queryUtil.createTableIfNotExists(SMSS_EXECUTION, colNames, types));
 			} else {
@@ -1760,229 +1754,108 @@ public class SchedulerDatabaseUtility {
 	}
 
 	/**
-	 * In-place find/replace across a String[]. Used by the table-creation logic to
-	 * swap a generic placeholder type (e.g. {@code TIMESTAMP}) for the
-	 * rdbms-specific equivalent reported by the query util.
+	 * Adds each constraint to the scheduler database, in order. When the rdbms
+	 * supports {@code ADD CONSTRAINT IF NOT EXISTS} the database skips a constraint
+	 * that is already there; otherwise each one is looked up first, so re-running
+	 * is idempotent either way. A failure is logged and the next constraint is
+	 * still tried, so one failing key does not stop the scheduler from coming up.
 	 *
-	 * @param arrays      array to mutate
-	 * @param value       value to find
-	 * @param replacement value to substitute
-	 * @return the same array reference (for fluent use)
+	 * @param constraints the constraints to add, in order
+	 * @param conn        live JDBC connection to the scheduler db
+	 * @param database    database name (used for constraint-existence lookups)
+	 * @param schema      schema name (used for constraint-existence lookups)
 	 */
-	private static String[] cleanUpDataType(String[] arrays, String value, String replacement) {
-		for (int i = 0; i < arrays.length; i++) {
-			if (arrays[i].equals(value)) {
-				arrays[i] = replacement;
-			}
-		}
-		return arrays;
-	}
-
-	/**
-	 * Adds primary-key constraints to the ten Quartz tables that require them. When
-	 * the rdbms supports {@code ADD CONSTRAINT IF NOT EXISTS} the helper fires all
-	 * ten in a single try/catch; otherwise each one is gated on a
-	 * pg_constraint-style lookup so re-running is idempotent. Each failure is
-	 * logged and the helper continues - a single failing PK does not stop the
-	 * scheduler from coming up.
-	 *
-	 * @param conn     live JDBC connection to the scheduler db
-	 * @param database database name (used for constraint-existence lookups)
-	 * @param schema   schema name (used for constraint-existence lookups)
-	 */
-	private static void addAllPrimaryKeys(Connection conn, String database, String schema) {
+	private static void addConstraints(List<QuartzConstraint> constraints, Connection conn, String database,
+			String schema) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
-		if (queryUtil.allowIfExistsAddConstraint()) {
-			String query1 = "ALTER TABLE QRTZ_CALENDARS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_CALENDARS PRIMARY KEY ( SCHED_NAME, CALENDAR_NAME);";
-			String query2 = "ALTER TABLE QRTZ_CRON_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_CRON_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
-			String query3 = "ALTER TABLE QRTZ_FIRED_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_FIRED_TRIGGERS PRIMARY KEY ( SCHED_NAME, ENTRY_ID );";
-			String query4 = "ALTER TABLE QRTZ_PAUSED_TRIGGER_GRPS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_PAUSED_TRIGGER_GRPS PRIMARY KEY ( SCHED_NAME, TRIGGER_GROUP );";
-			String query5 = "ALTER TABLE QRTZ_SCHEDULER_STATE ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_SCHEDULER_STATE PRIMARY KEY ( SCHED_NAME, INSTANCE_NAME );";
-			String query6 = "ALTER TABLE QRTZ_LOCKS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_LOCKS PRIMARY KEY ( SCHED_NAME, LOCK_NAME );";
-			String query7 = "ALTER TABLE QRTZ_JOB_DETAILS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_JOB_DETAILS PRIMARY KEY ( SCHED_NAME, JOB_NAME, JOB_GROUP );";
-			String query8 = "ALTER TABLE QRTZ_SIMPLE_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_SIMPLE_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
-			String query9 = "ALTER TABLE QRTZ_SIMPROP_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_SIMPROP_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
-			String query10 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
-
+		boolean ifNotExists = queryUtil.allowIfExistsAddConstraint();
+		for (QuartzConstraint constraint : constraints) {
 			try {
-				schedulerDb.insertData(query1);
-				schedulerDb.insertData(query2);
-				schedulerDb.insertData(query3);
-				schedulerDb.insertData(query4);
-				schedulerDb.insertData(query5);
-				schedulerDb.insertData(query6);
-				schedulerDb.insertData(query7);
-				schedulerDb.insertData(query8);
-				schedulerDb.insertData(query9);
-				schedulerDb.insertData(query10);
-			} catch (Exception se) {
-				classLogger.error("Failed to add Quartz primary key constraints (IF NOT EXISTS path): {}",
-						se.getMessage(), se);
-			}
-		} else {
-			String query1 = "ALTER TABLE QRTZ_CALENDARS ADD CONSTRAINT PK_QRTZ_CALENDARS PRIMARY KEY ( SCHED_NAME, CALENDAR_NAME);";
-			String query2 = "ALTER TABLE QRTZ_CRON_TRIGGERS ADD CONSTRAINT PK_QRTZ_CRON_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
-			String query3 = "ALTER TABLE QRTZ_FIRED_TRIGGERS ADD CONSTRAINT PK_QRTZ_FIRED_TRIGGERS PRIMARY KEY ( SCHED_NAME, ENTRY_ID );";
-			String query4 = "ALTER TABLE QRTZ_PAUSED_TRIGGER_GRPS ADD CONSTRAINT PK_QRTZ_PAUSED_TRIGGER_GRPS PRIMARY KEY ( SCHED_NAME, TRIGGER_GROUP );";
-			String query5 = "ALTER TABLE QRTZ_SCHEDULER_STATE ADD CONSTRAINT PK_QRTZ_SCHEDULER_STATE PRIMARY KEY ( SCHED_NAME, INSTANCE_NAME );";
-			String query6 = "ALTER TABLE QRTZ_LOCKS ADD CONSTRAINT PK_QRTZ_LOCKS PRIMARY KEY ( SCHED_NAME, LOCK_NAME );";
-			String query7 = "ALTER TABLE QRTZ_JOB_DETAILS ADD CONSTRAINT PK_QRTZ_JOB_DETAILS PRIMARY KEY ( SCHED_NAME, JOB_NAME, JOB_GROUP );";
-			String query8 = "ALTER TABLE QRTZ_SIMPLE_TRIGGERS ADD CONSTRAINT PK_QRTZ_SIMPLE_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
-			String query9 = "ALTER TABLE QRTZ_SIMPROP_TRIGGERS ADD CONSTRAINT PK_QRTZ_SIMPROP_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
-			String query10 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT PK_QRTZ_TRIGGERS PRIMARY KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP );";
-
-			try {
-				if (!queryUtil.tableConstraintExists(conn, "PK_QRTZ_CALENDARS", "QRTZ_CALENDARS", database, schema)) {
-					schedulerDb.insertData(query1);
+				if (ifNotExists || !constraint.exists(queryUtil, conn, database, schema)) {
+					schedulerDb.insertData(constraint.addStatement(ifNotExists));
 				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add primary key PK_QRTZ_CALENDARS: {}", se.getMessage(), se);
-			}
-			try {
-				if (!queryUtil.tableConstraintExists(conn, "PK_QRTZ_CRON_TRIGGERS", "QRTZ_CRON_TRIGGERS", database,
-						schema)) {
-					schedulerDb.insertData(query2);
-				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add primary key PK_QRTZ_CRON_TRIGGERS: {}", se.getMessage(), se);
-			}
-			try {
-				if (!queryUtil.tableConstraintExists(conn, "PK_QRTZ_FIRED_TRIGGERS", "QRTZ_FIRED_TRIGGERS", database,
-						schema)) {
-					schedulerDb.insertData(query3);
-				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add primary key PK_QRTZ_FIRED_TRIGGERS: {}", se.getMessage(), se);
-			}
-			try {
-				if (!queryUtil.tableConstraintExists(conn, "PK_QRTZ_PAUSED_TRIGGER_GRPS", "QRTZ_PAUSED_TRIGGER_GRPS",
-						database, schema)) {
-					schedulerDb.insertData(query4);
-				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add primary key PK_QRTZ_PAUSED_TRIGGER_GRPS: {}", se.getMessage(), se);
-			}
-			try {
-				if (!queryUtil.tableConstraintExists(conn, "PK_QRTZ_SCHEDULER_STATE", "QRTZ_SCHEDULER_STATE", database,
-						schema)) {
-					schedulerDb.insertData(query5);
-				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add primary key PK_QRTZ_SCHEDULER_STATE: {}", se.getMessage(), se);
-			}
-			try {
-				if (!queryUtil.tableConstraintExists(conn, "PK_QRTZ_LOCKS", "QRTZ_LOCKS", database, schema)) {
-					schedulerDb.insertData(query6);
-				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add primary key PK_QRTZ_LOCKS: {}", se.getMessage(), se);
-			}
-			try {
-				if (!queryUtil.tableConstraintExists(conn, "PK_QRTZ_JOB_DETAILS", "QRTZ_JOB_DETAILS", database,
-						schema)) {
-					schedulerDb.insertData(query7);
-				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add primary key PK_QRTZ_JOB_DETAILS: {}", se.getMessage(), se);
-			}
-			try {
-				if (!queryUtil.tableConstraintExists(conn, "PK_QRTZ_SIMPLE_TRIGGERS", "QRTZ_SIMPLE_TRIGGERS", database,
-						schema)) {
-					schedulerDb.insertData(query8);
-				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add primary key PK_QRTZ_SIMPLE_TRIGGERS: {}", se.getMessage(), se);
-			}
-			try {
-				if (!queryUtil.tableConstraintExists(conn, "PK_QRTZ_SIMPROP_TRIGGERS", "QRTZ_SIMPROP_TRIGGERS",
-						database, schema)) {
-					schedulerDb.insertData(query9);
-				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add primary key PK_QRTZ_SIMPROP_TRIGGERS: {}", se.getMessage(), se);
-			}
-			try {
-				if (!queryUtil.tableConstraintExists(conn, "PK_QRTZ_TRIGGERS", "QRTZ_TRIGGERS", database, schema)) {
-					schedulerDb.insertData(query10);
-				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add primary key PK_QRTZ_TRIGGERS: {}", se.getMessage(), se);
+			} catch (Exception e) {
+				classLogger.error("Failed to add constraint {} to {}", constraint.name(), constraint.table(), e);
 			}
 		}
 	}
 
 	/**
-	 * Adds the four foreign-key constraints linking QRTZ_CRON_TRIGGERS,
-	 * QRTZ_SIMPLE_TRIGGERS, QRTZ_SIMPROP_TRIGGERS and QRTZ_TRIGGERS to their parent
-	 * tables. Same idempotency strategy as
-	 * {@link #addAllPrimaryKeys(Connection, String, String)}: uses
-	 * {@code IF NOT EXISTS} when available, otherwise a metadata lookup per FK.
+	 * A key on a Quartz table: its name, its table, the definition that follows the
+	 * name in {@code ADD CONSTRAINT}, and for a foreign key the table it
+	 * references.
 	 *
-	 * @param conn     live JDBC connection to the scheduler db
-	 * @param database database name (used for constraint-existence lookups)
-	 * @param schema   schema name (used for constraint-existence lookups)
+	 * @param name            the constraint name
+	 * @param table           the table the constraint is on
+	 * @param definition      the {@code PRIMARY KEY} or {@code FOREIGN KEY} clause
+	 * @param referencedTable the table a foreign key references, or null for a
+	 *                        primary key
 	 */
-	private static void addAllForeignKeys(Connection conn, String database, String schema) {
-		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
-		if (queryUtil.allowIfExistsAddConstraint()) {
-			String query1 = "ALTER TABLE QRTZ_CRON_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_CRON_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY (SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
-			String query2 = "ALTER TABLE QRTZ_SIMPLE_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_SIMPLE_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
-			String query3 = "ALTER TABLE QRTZ_SIMPROP_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_SIMPROP_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
-			String query4 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_TRIGGERS_QRTZ_JOB_DETAILS FOREIGN KEY ( SCHED_NAME, JOB_NAME, JOB_GROUP ) REFERENCES QRTZ_JOB_DETAILS ( SCHED_NAME, JOB_NAME, JOB_GROUP );";
+	private record QuartzConstraint(String name, String table, String definition, String referencedTable) {
 
-			try {
-				schedulerDb.insertData(query1);
-				schedulerDb.insertData(query2);
-				schedulerDb.insertData(query3);
-				schedulerDb.insertData(query4);
-			} catch (Exception se) {
-				classLogger.error("Failed to add Quartz foreign key constraints (IF NOT EXISTS path): {}",
-						se.getMessage(), se);
-			}
-		} else {
-			String query1 = "ALTER TABLE QRTZ_CRON_TRIGGERS ADD CONSTRAINT FK_QRTZ_CRON_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY (SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
-			String query2 = "ALTER TABLE QRTZ_SIMPLE_TRIGGERS ADD CONSTRAINT FK_QRTZ_SIMPLE_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
-			String query3 = "ALTER TABLE QRTZ_SIMPROP_TRIGGERS ADD CONSTRAINT FK_QRTZ_SIMPROP_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";
-			String query4 = "ALTER TABLE QRTZ_TRIGGERS ADD CONSTRAINT FK_QRTZ_TRIGGERS_QRTZ_JOB_DETAILS FOREIGN KEY ( SCHED_NAME, JOB_NAME, JOB_GROUP ) REFERENCES QRTZ_JOB_DETAILS ( SCHED_NAME, JOB_NAME, JOB_GROUP );";
+		/**
+		 * Builds the primary key {@code "PK_" + table} over the given columns.
+		 *
+		 * @param table   the table
+		 * @param columns the key columns, comma separated
+		 * @return the primary key
+		 */
+		static QuartzConstraint primaryKey(String table, String columns) {
+			return new QuartzConstraint("PK_" + table, table, "PRIMARY KEY (" + columns + ")", null);
+		}
 
-			try {
-				if (!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_CRON_TRIGGERS_QRTZ_TRIGGERS", database,
-						schema)) {
-					schedulerDb.insertData(query1);
-				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add foreign key FK_QRTZ_CRON_TRIGGERS_QRTZ_TRIGGERS: {}", se.getMessage(),
-						se);
+		/**
+		 * Builds the foreign key {@code "FK_" + table + "_" + referencedTable} from the
+		 * given columns to the same columns of the referenced table.
+		 *
+		 * @param table           the table holding the key
+		 * @param columns         the key columns, comma separated
+		 * @param referencedTable the table the key references
+		 * @return the foreign key
+		 */
+		static QuartzConstraint foreignKey(String table, String columns, String referencedTable) {
+			return new QuartzConstraint("FK_" + table + "_" + referencedTable, table,
+					"FOREIGN KEY (" + columns + ") REFERENCES " + referencedTable + " (" + columns + ")",
+					referencedTable);
+		}
+
+		/**
+		 * Returns this foreign key with {@code ON DELETE CASCADE}, so deleting the
+		 * referenced row deletes the rows that point at it.
+		 *
+		 * @return the cascading foreign key
+		 */
+		QuartzConstraint onDeleteCascade() {
+			return new QuartzConstraint(this.name, this.table, this.definition + " ON DELETE CASCADE",
+					this.referencedTable);
+		}
+
+		/**
+		 * Builds the statement that adds this constraint.
+		 *
+		 * @param ifNotExists whether to use {@code ADD CONSTRAINT IF NOT EXISTS}
+		 * @return the {@code ALTER TABLE} statement
+		 */
+		String addStatement(boolean ifNotExists) {
+			return "ALTER TABLE " + this.table + " ADD CONSTRAINT " + (ifNotExists ? "IF NOT EXISTS " : "") + this.name
+					+ " " + this.definition + ";";
+		}
+
+		/**
+		 * Looks up whether this constraint is already on its table.
+		 *
+		 * @param queryUtil the scheduler db's query util
+		 * @param conn      live JDBC connection to the scheduler db
+		 * @param database  database name
+		 * @param schema    schema name
+		 * @return true when the constraint exists
+		 */
+		boolean exists(AbstractSqlQueryUtil queryUtil, Connection conn, String database, String schema) {
+			if (this.referencedTable != null) {
+				return queryUtil.referentialConstraintExists(conn, this.name, database, schema);
 			}
-			try {
-				if (!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_SIMPLE_TRIGGERS_QRTZ_TRIGGERS", database,
-						schema)) {
-					schedulerDb.insertData(query2);
-				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add foreign key FK_QRTZ_SIMPLE_TRIGGERS_QRTZ_TRIGGERS: {}",
-						se.getMessage(), se);
-			}
-			try {
-				if (!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_SIMPROP_TRIGGERS_QRTZ_TRIGGERS", database,
-						schema)) {
-					schedulerDb.insertData(query3);
-				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add foreign key FK_QRTZ_SIMPROP_TRIGGERS_QRTZ_TRIGGERS: {}",
-						se.getMessage(), se);
-			}
-			try {
-				if (!queryUtil.referentialConstraintExists(conn, "FK_QRTZ_TRIGGERS_QRTZ_JOB_DETAILS", database,
-						schema)) {
-					schedulerDb.insertData(query4);
-				}
-			} catch (Exception se) {
-				classLogger.error("Failed to add foreign key FK_QRTZ_TRIGGERS_QRTZ_JOB_DETAILS: {}", se.getMessage(),
-						se);
-			}
+			return queryUtil.tableConstraintExists(conn, this.name, this.table, database, schema);
 		}
 	}
 

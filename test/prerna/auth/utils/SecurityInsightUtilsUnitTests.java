@@ -47,6 +47,7 @@ import org.junit.jupiter.api.Test;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -424,7 +425,7 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	}
 
 	@Test
-	void testSetInsightFavorite() throws IllegalAccessException, SQLException {
+	void testSetInsightFavorite() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
@@ -436,6 +437,79 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		// We can't easily verify the favorite status without querying the database
 		// but at least we verify no exception is thrown
 		assertTrue(SecurityInsightUtils.userIsInsightOwner(user, "testProjectId", "testInsightId"));
+	}
+
+	@Test
+	void testSetInsightFavorite_listsOnlyFavorites() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "insight1", "Insight One", "grid");
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "insight2", "Insight Two", "grid");
+
+		SecurityInsightUtils.setInsightFavorite(user, "testProjectId", "insight1", true);
+
+		List<Map<String, Object>> favorites = SecurityInsightUtils.searchUserInsights(user, null, null, true, null,
+				null, null, null);
+		assertEquals(1, favorites.size());
+		assertEquals("insight1", favorites.getFirst().get("project_insight_id"));
+		assertEquals("1", favorites.getFirst().get("insight_favorite").toString());
+
+		SecurityInsightUtils.setInsightFavorite(user, "testProjectId", "insight1", false);
+		assertTrue(SecurityInsightUtils.searchUserInsights(user, null, null, true, null, null, null, null).isEmpty());
+	}
+
+	@Test
+	void testSetInsightFavorite_givesNoAccess() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
+		SecurityProjectUtils.setProjectGlobal(user, "testProjectId", true);
+
+		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
+		SecurityInsightUtils.setInsightFavorite(user2, "testProjectId", "testInsightId", true);
+
+		// the favorite is kept apart from the permissions, so the private insight
+		// stays private
+		assertFalse(SecurityInsightUtils.userCanViewInsight(user2, "testProjectId", "testInsightId"));
+		assertEquals(0L,
+				((Number) UnitTestGroupTables.queryValue(securityDb,
+						"SELECT COUNT(*) FROM USERINSIGHTPERMISSION WHERE USERID=? AND INSIGHTID=?",
+						user2.getPrimaryLoginToken().getId(), "testInsightId")).longValue());
+	}
+
+	///
+	/// setInsightVisibility
+	///
+
+	@Test
+	void testSetInsightVisibility_noAccess() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
+
+		IllegalAccessException ex = assertThrows(IllegalAccessException.class,
+				() -> SecurityInsightUtils.setInsightVisibility(user2, "testProjectId", "testInsightId", false));
+		assertEquals("The user doesn't have the permission to modify this insight", ex.getMessage());
+	}
+
+	@Test
+	void testSetInsightVisibility_onlyChangesThatInsight() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "insight1", "Insight One", "grid");
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "insight2", "Insight Two", "grid");
+
+		SecurityInsightUtils.setInsightVisibility(user, "testProjectId", "insight1", false);
+
+		List<Map<String, Object>> insights = SecurityInsightUtils.searchUserInsights(user, null, null, false, null,
+				null, null, null);
+		assertEquals(1, insights.size());
+		assertEquals("insight2", insights.getFirst().get("project_insight_id"));
+
+		SecurityInsightUtils.setInsightVisibility(user, "testProjectId", "insight1", true);
+		assertEquals(2,
+				SecurityInsightUtils.searchUserInsights(user, null, null, false, null, null, null, null).size());
 	}
 
 	///
@@ -1213,30 +1287,6 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	}
 
 	///
-	/// copyInsightPermissions
-	///
-
-	@Test
-	void testCopyInsightPermissions() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User user2 = UnitTestSecurityAuthUtils.createUser("user2", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
-		UnitTestSecurityAuthUtils.createInsight("testProjectId", "sourceInsightId", "SourceInsight", "grid");
-		UnitTestSecurityAuthUtils.createInsight("testProjectId", "targetInsightId", "TargetInsight", "grid");
-		SecurityInsightUtils.addUserInsightCreator(user, "testProjectId", "sourceInsightId");
-		SecurityInsightUtils.addUserInsightCreator(user, "testProjectId", "targetInsightId");
-		SecurityInsightUtils.addInsightUser(user, "user2id", "testProjectId", "sourceInsightId", "EDIT", null);
-
-		assertTrue(SecurityInsightUtils.userCanEditInsight(user2, "testProjectId", "sourceInsightId"));
-		assertFalse(SecurityInsightUtils.userCanEditInsight(user2, "testProjectId", "targetInsightId"));
-
-		SecurityInsightUtils.copyInsightPermissions("testProjectId", "sourceInsightId", "testProjectId",
-				"targetInsightId");
-
-		assertTrue(SecurityInsightUtils.userCanEditInsight(user2, "testProjectId", "targetInsightId"));
-	}
-
-	///
 	/// getInsightOwners
 	///
 
@@ -1690,6 +1740,88 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 				"testInsightId");
 		assertNotNull(requests);
 		assertEquals(1, requests.size());
+	}
+
+	///
+	/// approveInsightUserAccessRequests and denyInsightUserAccessRequests: one
+	/// transaction, for the insight's own requests
+	///
+
+	@Test
+	void testApproveInsightUserAccessRequests_aFailedApprovalSavesNothing() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User secondUser = UnitTestSecurityAuthUtils.createUser("second", false);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "testInsightName", "grid");
+		SecurityInsightUtils.setUserAccessRequest("secondid", "NATIVE", "testProjectId", "reason", "testInsightId", 2,
+				secondUser);
+		String requestId = pendingRequestId("testInsightId");
+		List<Map<String, String>> requests = List
+				.of(Map.of("requestid", requestId, "userid", "secondid", "type", "NATIVE", "permission", "EDIT"));
+
+		// marking the request approved fails after the grant was written
+		addCheck("APPROVE_FAIL", "INSIGHTACCESSREQUEST", "APPROVER_DECISION <> 'APPROVED'");
+		try {
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> SecurityInsightUtils
+					.approveInsightUserAccessRequests(user, "testProjectId", "testInsightId", requests, null));
+			assertEquals("An error occurred while approving the access requests", e.getMessage());
+		} finally {
+			dropCheck("APPROVE_FAIL", "INSIGHTACCESSREQUEST");
+		}
+
+		assertTrue(SecurityInsightUtils.getUserInsightPermissions(List.of("secondid"), "testProjectId", "testInsightId")
+				.isEmpty());
+		assertEquals("NEW_REQUEST", requestDecision(requestId));
+	}
+
+	@Test
+	void testApproveAndDenyInsightUserAccessRequests_leaveAnotherInsightsRequestsAsTheyAre() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User secondUser = UnitTestSecurityAuthUtils.createUser("second", false);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "testInsightName", "grid");
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "otherInsightId", "otherInsightName", "grid");
+		SecurityInsightUtils.setUserAccessRequest("secondid", "NATIVE", "testProjectId", "reason", "otherInsightId", 3,
+				secondUser);
+		String otherRequestId = pendingRequestId("otherInsightId");
+
+		SecurityInsightUtils.approveInsightUserAccessRequests(user, "testProjectId", "testInsightId", List.of(
+				Map.of("requestid", otherRequestId, "userid", "secondid", "type", "NATIVE", "permission", "READ_ONLY")),
+				null);
+		SecurityInsightUtils.denyInsightUserAccessRequests(user, "testProjectId", "testInsightId",
+				List.of(otherRequestId));
+
+		// the person gets the access the batch gives, but the other insight's request
+		// is neither approved nor denied
+		assertEquals(3, SecurityInsightUtils
+				.getUserInsightPermissions(List.of("secondid"), "testProjectId", "testInsightId").get("secondid"));
+		assertEquals("NEW_REQUEST", requestDecision(otherRequestId));
+	}
+
+	private String pendingRequestId(String insightId) throws SQLException {
+		return String.valueOf(UnitTestGroupTables.queryValue(securityDb,
+				"SELECT ID FROM INSIGHTACCESSREQUEST WHERE INSIGHTID = ? AND APPROVER_DECISION = 'NEW_REQUEST'",
+				insightId));
+	}
+
+	private Object requestDecision(String requestId) throws SQLException {
+		return UnitTestGroupTables.queryValue(securityDb,
+				"SELECT APPROVER_DECISION FROM INSIGHTACCESSREQUEST WHERE ID = ?", requestId);
+	}
+
+	/**
+	 * Adds a check to a security table, so a test can fail a later statement of a
+	 * save on purpose; {@link #dropCheck} takes it off again.
+	 */
+	private void addCheck(String name, String table, String condition) throws Exception {
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"ALTER TABLE " + table + " ADD CONSTRAINT " + name + " CHECK (" + condition + ")",
+				QueryExecutionUtility.NO_PARAMETERS);
+	}
+
+	private void dropCheck(String name, String table) throws Exception {
+		QueryExecutionUtility.executeUpdate(securityDb, "ALTER TABLE " + table + " DROP CONSTRAINT " + name,
+				QueryExecutionUtility.NO_PARAMETERS);
 	}
 
 }

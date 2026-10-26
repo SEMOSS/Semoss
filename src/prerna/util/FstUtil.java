@@ -37,96 +37,43 @@ import org.apache.logging.log4j.Logger;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
-public class FstUtil {
+public final class FstUtil {
 
 	private static final Logger classLogger = LogManager.getLogger(FstUtil.class);
+	private static final int LENGTH_PREFIX_SIZE = Integer.BYTES;
+
+	private FstUtil() {
+		throw new IllegalStateException("Utility class");
+	}
 
 	public static byte[] serialize(Object input) {
-		ByteArrayOutputStream baos = null;
-		FSTObjectOutput fo = null;
-		try {
-			// write it back
-			baos = new ByteArrayOutputStream();
-			// FST
-			fo = new FSTObjectOutput(baos);
-			fo.writeObject(input);
-			fo.close();
-			byte[] retArr = baos.toByteArray();
-			return retArr;
+		ByteArrayOutputStream outputBytes = new ByteArrayOutputStream();
+		try (FSTObjectOutput output = new FSTObjectOutput(outputBytes)) {
+			output.writeObject(input);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (fo != null) {
-				try {
-					fo.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (baos != null) {
-				try {
-					baos.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Failed to serialize object with FST", e);
+			return null;
 		}
-		return null;
+		return outputBytes.toByteArray();
 	}
 
 	public static Object deserialize(byte[] data) {
-		ByteArrayInputStream bais = null;
-		FSTObjectInput fi = null;
-		try {
-			bais = new ByteArrayInputStream(data);
-			fi = new FSTObjectInput(bais);
-			Object object = fi.readObject();
-			return object;
+		try (FSTObjectInput input = new FSTObjectInput(new ByteArrayInputStream(data))) {
+			return input.readObject();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (fi != null) {
-				try {
-					fi.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (bais != null) {
-				try {
-					bais.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Failed to deserialize FST data", e);
+			return null;
 		}
-		return null;
 	}
 
 	public static byte[] packBytes(Object obj) {
-		byte[] psBytes = FstUtil.serialize(obj);
-
-		if (psBytes == null) {
-			return psBytes;
-		}
-		// get the length
-		int length = psBytes.length;
-
-		// make this into array
-		byte[] lenBytes = ByteBuffer.allocate(4).putInt(length).array();
-
-		// pack both of these
-		byte[] finalByte = new byte[psBytes.length + lenBytes.length];
-
-		for (int lenIndex = 0; lenIndex < lenBytes.length; lenIndex++) {
-			finalByte[lenIndex] = lenBytes[lenIndex];
+		byte[] serialized = serialize(obj);
+		if (serialized == null) {
+			return null;
 		}
 
-		for (int lenIndex = 0; lenIndex < psBytes.length; lenIndex++) {
-			finalByte[lenIndex + lenBytes.length] = psBytes[lenIndex];
-		}
-
-		return finalByte;
+		return ByteBuffer.allocate(LENGTH_PREFIX_SIZE + serialized.length).putInt(serialized.length).put(serialized)
+				.array();
 	}
 
 }

@@ -36,12 +36,12 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IStorageEngine;
+import prerna.engine.impl.storage.StorageSyncStatus;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
@@ -69,13 +69,22 @@ public class SyncLocalToStorageReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
 
-		Map<String, Object> metadata = getMetadata();
+		Map<String, Object> metadata = getMapFromKeyOrCurRow(ReactorKeysEnum.METADATA.getKey());
 		try {
-			storage.syncLocalToStorage(fileLocation, storageFolderPath, metadata);
-			return new NounMetadata(true, PixelDataType.BOOLEAN);
+			StorageSyncStatus status = storage.syncLocalToStorage(fileLocation, storageFolderPath, metadata);
+			if (!status.isSuccess()) {
+				// a sync that half worked used to return true like any other, so the
+				// caller had no way to know files were missing. The status is handed
+				// back rather than thrown so the caller can see which files those were
+				classLogger.error(
+						"Sync of local path={} to storagePath={} on storage engine={} finished as {}, failed files: {}",
+						fileLocation, storageFolderPath, storage.getEngineId(), status.status(), status.failedFiles());
+			}
+			return new NounMetadata(status, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred uploading local file to storage");
+			classLogger.error("Failed to sync local path={} to storagePath={} on storage engine={}", fileLocation,
+					storageFolderPath, storage.getEngineId(), e);
+			throw new IllegalArgumentException("Error occurred uploading local file to storage", e);
 		}
 	}
 
@@ -100,24 +109,10 @@ public class SyncLocalToStorageReactor extends AbstractReactor {
 		throw new NullPointerException("No storage engine defined");
 	}
 
-	private Map<String, Object> getMetadata() {
-		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.METADATA.getKey());
-		if (mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if (mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Object>) mapInputs.get(0).getValue();
-			}
-		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if (mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Object>) mapInputs.get(0).getValue();
-		}
-		return null;
-	}
-
 	@Override
 	public String getReactorDescription() {
-		return "Syncronize files in storage file path with local file path";
+		return "Syncronize files in storage file path with local file path, returning the status of the sync "
+				+ "along with the files uploaded, skipped and failed";
 	}
 
 	@Override

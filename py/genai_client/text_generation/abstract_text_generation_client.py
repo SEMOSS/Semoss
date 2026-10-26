@@ -1,9 +1,8 @@
-from typing import Union, Dict, Any, Optional, List
+from typing import Union, Dict, Any, Optional, List, Callable
 import json
 import os
 from string import Template
 from abc import ABC, abstractmethod
-from pydantic import BaseModel
 from ..constants import (
     AskModelEngineResponse,
     AskModelEngineResponse2,
@@ -15,18 +14,21 @@ from ..message_builders.semoss_base.semoss_models import (
     SEMOSSMessage,
 )
 from ..utils import string_to_bool
-from .model_engine_exception import ErrorDetails
-
-
-class ModelLimits(BaseModel):
-    context_window: Optional[int] = None
-    max_input_tokens: Optional[int] = None
-    max_completion_tokens: Optional[int] = None
+from ..message_builders.semoss_base.document_input import DocumentInputProcessor
+from ..usage_ceiling import (
+    USAGE_CEILING,
+    CeilingFit,
+    PromptCount,
+    UsageCeiling,
+    UsageLimitDoesNotFitError,
+    current_usage_ceiling,
+    fit_to_usage_ceiling,
+    usage_ceiling_scope,
+)
+from .model_engine_exception import ErrorDetails, ModelEngineException
 
 
 class AbstractTextGenerationClient(ABC):
-    # loads all the templates
-    # fills the templates and gives information back
     def __init__(
         self,
         template: Optional[Union[Dict, str]] = None,
@@ -37,26 +39,9 @@ class AbstractTextGenerationClient(ABC):
         if self.model_name is None:
             raise ValueError("model_name must be provided.")
 
-        self.model_limits = self._get_model_limits(kwargs)
-
         self.template_name = template_name
         self.templates = {}
         self._handle_template_args(template)
-
-        tokens_param_name = kwargs.pop("tokens_param_name", None)
-        if not tokens_param_name:
-            tokens_param_name = next(
-                (
-                    param
-                    for param in [
-                        "max_completion_tokens",
-                        "max_tokens",
-                        "max_new_tokens",
-                    ]
-                    if param in kwargs
-                ),
-                "max_completion_tokens",
-            )
 
         thinking = kwargs.pop("thinking", False)
         if thinking is not None and thinking is not isinstance(thinking, bool):
@@ -66,34 +51,47 @@ class AbstractTextGenerationClient(ABC):
                 thinking = False
         thinking_budget = kwargs.pop("thinking_budget", None)
 
+        tokens_param_name = next(
+            (
+                param
+                for param in [
+                    "max_completion_tokens",
+                    "max_tokens",
+                    "max_new_tokens",
+                ]
+                if param in kwargs
+            ),
+            "max_tokens",
+        )
+
         self.model_settings = ModelSettings(
             model_name=self.model_name,
             context_window=kwargs.get("context_window", None),
-            max_completion_tokens=kwargs.get("max_completion_tokens", None),
-            max_input_tokens=kwargs.get("max_input_tokens", None),
+            max_tokens=kwargs.get(tokens_param_name, None),
             ai_role=kwargs.pop("ai_role", None),
             user_role=kwargs.pop("user_role", None),
             system_role=kwargs.pop("system_role", None),
             chat_type=kwargs.pop("chat_type", None),
             model_type=kwargs.pop("model_type", None),
-            tokens_param_name=tokens_param_name,
             thinking=thinking,
             thinking_budget=thinking_budget,
             global_param_override=kwargs.pop("global_param_override", None),
             modalities=kwargs.pop("modalities", None),
+            native_document_mime_types=kwargs.pop("native_document_mime_types", None),
+            preserve_reasoning_content=kwargs.pop("preserve_reasoning_content", False),
+            chat_reasoning_mode=kwargs.pop("chat_reasoning_mode", "reasoning_effort"),
         )
+
+        self._document_input_processor = DocumentInputProcessor()
 
     def _handle_template_args(self, template):
         """This may not be used anymore.."""
-        # if the user does not provide a template, we default to chat_templates.json
         if template == None:
             script_directory = os.path.dirname(os.path.abspath(__file__))
             chat_templates = os.path.join(script_directory, "chat_templates.json")
             template = chat_templates
 
-        # the user should be able to pass, their own file (json) or dictionary
         if isinstance(template, str):
-            # since its a string, we assume its path and need to validate that its valid
             if os.path.exists(template) == False:
                 raise FileNotFoundError(f"The file '{template}' does not exist.")
 
@@ -104,25 +102,6 @@ class AbstractTextGenerationClient(ABC):
         elif isinstance(template, dict):
             self.template_file = None
             self.templates = template
-
-    def _get_model_limits(self, smss_args) -> ModelLimits:
-        """
-        Returns the model limits for the given  model.
-        These only set limits that are preset in the SMSS file.
-        If a model does not have these limits set, they should be resolved in the given client class.
-        Only piloting this for google genai for now..
-        """
-        context_window = smss_args.get("context_window", None)
-        max_input_tokens = smss_args.get("max_input_tokens", None)
-        max_completion_tokens = smss_args.get("max_completion_tokens", None)
-        if max_completion_tokens is None:
-            max_completion_tokens = smss_args.get("max_tokens", None)
-
-        return ModelLimits(
-            context_window=context_window,
-            max_input_tokens=max_input_tokens,
-            max_completion_tokens=max_completion_tokens,
-        )
 
     def build_semoss_messages(
         self,
@@ -135,6 +114,8 @@ class AbstractTextGenerationClient(ABC):
         if not message_json:
             raise ValueError("message_json is required to build semoss messages.")
 
+        # Internal engine metadata is consumed here, never sent to the provider.
+        input_modalities = kwargs.pop("_semoss_input_modalities", None)
         param_map = {**kwargs}
 
         try:
@@ -158,7 +139,12 @@ class AbstractTextGenerationClient(ABC):
             except Exception as e:
                 raise ValueError(f"Invalid JSON format in message_json.: {e}")
 
-        return semoss_messages
+        return self._document_input_processor.prepare(
+            semoss_messages,
+            model_settings,
+            source_messages=message_json,
+            input_modalities=input_modalities,
+        )
 
     def get_template(self, template_name=None, **kwargs):
         if template_name in self.templates.keys():
@@ -206,7 +192,25 @@ class AbstractTextGenerationClient(ABC):
         return output, substitutions_made
 
     def ask(self, *args: Any, **kwargs: Any) -> Dict:
-        response = self.ask_call(*args, **kwargs)
+        # the usage ceiling is held for this call only and never reaches ask_call
+        ceiling = UsageCeiling.from_value(kwargs.pop(USAGE_CEILING, None))
+        with usage_ceiling_scope(ceiling) as ceiling_call:
+            try:
+                response = self.ask_call(*args, **kwargs)
+            except UsageLimitDoesNotFitError as e:
+                # the refusal goes back as the USAGE_LIMIT_DOES_NOT_FIT error response,
+                # which Java reads to release the call's reservation
+                response = ModelEngineException(
+                    error=e, client=type(self).__name__, model=str(self.model_name)
+                ).parse_error()
+        # usageCapped tells the caller the answer was cut by what is left on a
+        # usage limit, not by its own maximum
+        if (
+            ceiling_call is not None
+            and isinstance(response, AskModelEngineResponse2)
+            and ceiling_call.capped(response.response_tokens)
+        ):
+            response.usage_capped = True
         if isinstance(response, AskModelEngineResponse):
             return response.to_dict()
         if isinstance(response, AskModelEngineResponse2):
@@ -220,7 +224,39 @@ class AbstractTextGenerationClient(ABC):
     def ask_call(self, *args: Any, **kwargs: Any) -> AskModelEngineResponse:
         pass
 
+    def fit_output_to_usage_ceiling(
+        self,
+        requested_max: Optional[int],
+        count_prompt: Callable[[], PromptCount],
+        can_cap: bool = True,
+    ) -> Optional[CeilingFit]:
+        """Fit the call in progress to the usage ceiling of this ask.
+
+        Every provider client applies the cap through this one method, so the
+        rules of ``usage_ceiling`` hold the same way for each.
+
+        Clients call this with their finished provider request: the output
+        maximum it carries and a function that counts its prompt (called only
+        when a ceiling applies). Returns None without a ceiling. Otherwise the
+        returned fit holds the output maximum to send; when ``fit.lowered`` the
+        client sets it on the request and lowers any thinking budget with
+        ``fit_thinking_budget``. Raises UsageLimitDoesNotFitError when the prompt
+        leaves less than ``min_output_tokens``; the client's own error handling
+        or ``ask`` turns it into the USAGE_LIMIT_DOES_NOT_FIT error response.
+        """
+        return fit_to_usage_ceiling(requested_max, count_prompt, can_cap=can_cap)
+
+    @staticmethod
+    def usage_ceiling_min_output_tokens() -> int:
+        """The output the ceiling of the call in progress keeps for the answer,
+        for fitting thinking budgets. 1 without a ceiling, so the budget only has
+        to stay below the output maximum."""
+        call = current_usage_ceiling()
+        return call.ceiling.min_output_tokens if call is not None else 1
+
     def embeddings(self, *args: Any, **kwargs: Any) -> Dict:
+        # accepted so every engine call can pass it; nothing is embedded here
+        kwargs.pop(USAGE_CEILING, None)
         response = "This model does not support embeddings."
 
         numberOfTokensInResponse = 6
@@ -237,10 +273,37 @@ class AbstractTextGenerationClient(ABC):
 
     def multi_modal_embeddings(self, *args: Any, **kwargs: Any) -> Dict:
         """Optional capability. Text generation clients do not embed by default."""
+        kwargs.pop(USAGE_CEILING, None)
         return {
             "response": "This model does not support multi modal embeddings.",
             "implemented": False,
         }
+
+    # Optional capability, same as multi_modal_embeddings above -- default to a
+    # clean, catchable error for any client that doesn't override these, rather
+    # than an AttributeError from a missing method reaching Java as an opaque
+    # transport failure. AbstractPythonModelEngine.supportsBatch() (Java) gates
+    # calls on ModelTypeEnum, which is coarser than "this specific client
+    # implements batch" -- these defaults are the fallback for that gap.
+    def _batch_not_supported(self):
+        raise NotImplementedError(
+            f"Batch is not supported for model '{self.model_name}' on this provider."
+        )
+
+    def submit_batch(self, requests, **kwargs) -> Dict:
+        self._batch_not_supported()
+
+    def get_batch_status(self, provider_batch_id: str, **kwargs) -> Dict:
+        self._batch_not_supported()
+
+    def get_batch_results(self, provider_batch_id: str, **kwargs) -> Dict:
+        self._batch_not_supported()
+
+    def list_batches(self, limit: int = 20, **kwargs) -> Dict:
+        self._batch_not_supported()
+
+    def cancel_batch(self, provider_batch_id: str, **kwargs) -> Dict:
+        self._batch_not_supported()
 
 
 # TODO remove once no errors are happening

@@ -2,7 +2,7 @@ name: semoss-with-postgres-minio
 
 services:
   semoss:
-    image: quay.io/semoss/semoss-dev:5.4.0-SNAPSHOT-ubuntu22-latest
+    image: quay.io/semoss/semoss-dev:6.0.0-SNAPSHOT-ubuntu22-latest
     container_name: semoss
     pull_policy: always
     user: "1001:1001"
@@ -31,6 +31,14 @@ services:
       CHROOT_DIR: /opt/chroot
       CHROOT_SYMLINK_PATHS: /usr/lib/python
       FAKECHROOT_EXCLUDE_PATH: /dev
+
+      # node agent execution environment (ExecuteNodeCode agent tool)
+      NODE_HOME: /opt/node
+      AGENT_DEFAULT_TOOLS_ENABLE_NODE: 'true'
+
+      # semoss-maintained services, run from engines/semoss-maintained/
+      UNOSERVER: 'http://semoss-unoserver:8080'
+      NODE_SERVER_ENDPOINT: 'http://semoss-node-builder:3000'
 
       # local master
       CUSTOM_LM_RDBMS_TYPE : "postgres"

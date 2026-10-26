@@ -29,8 +29,7 @@ package prerna.reactor.playwright;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.gson.reflect.TypeToken;
 import com.microsoft.playwright.Page;
 
 import prerna.reactor.AbstractReactor;
@@ -82,7 +81,7 @@ public class ProbeElementReactor extends AbstractReactor {
 			         }
 
 			         const sib = Array.from(p.children).filter(c => c.tagName === e.tagName);
-                     const idx = sib.indexOf(e) + 1;
+			                  const idx = sib.indexOf(e) + 1;
 			         return cssPath(p) + ">" + tag + ":nth-of-type(" + idx + ")";
 			       }
 
@@ -290,8 +289,6 @@ public class ProbeElementReactor extends AbstractReactor {
 			 }
 			 """;
 
-	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
 	public ProbeElementReactor() {
 		this.keysToGet = new String[] { "sessionId", "coords", "tabId" };
 		this.keyRequired = new int[] { 1, 1 };
@@ -311,7 +308,8 @@ public class ProbeElementReactor extends AbstractReactor {
 		ElementProbeResponse response = probeElementAt(s, coords, tabId);
 
 		// test if the return format can be processed by the backend
-		Map<String, Object> asMap = json.convertValue(response, Map.class);
+		Map<String, Object> asMap = GSON.fromJson(GSON.toJson(response), new TypeToken<Map<String, Object>>() {
+		}.getType());
 		return new NounMetadata(asMap, PixelDataType.MAP);
 	}
 

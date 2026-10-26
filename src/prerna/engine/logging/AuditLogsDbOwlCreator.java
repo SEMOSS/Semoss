@@ -38,9 +38,10 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class AuditLogsDbOwlCreator extends AbstractOwlCreator {
 
 	public AuditLogsDbOwlCreator(AbstractSqlQueryUtil queryUtil) {
-		createColumnsAndTypes(queryUtil);
+		super(queryUtil);
 	}
 
+	@Override
 	public void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
@@ -72,6 +73,9 @@ public class AuditLogsDbOwlCreator extends AbstractOwlCreator {
 				Pair.with("INPUT_REACTOR_NAME", VARCHAR_255),
 				Pair.with("OUTPUT_REACTOR_NAME", VARCHAR_255),
 				Pair.with("GUARDRAIL_ACTION", VARCHAR_255),
+				Pair.with("BILLED_SOURCE_TYPE", VARCHAR_255),
+				Pair.with("BILLED_SUBJECT_ID", VARCHAR_255),
+				Pair.with("BILLED_SUBJECT_TYPE", VARCHAR_255),
 				Pair.with("MESSAGE", CLOB_DATATYPE_NAME),
 				Pair.with("REQUEST", CLOB_DATATYPE_NAME),
 				Pair.with("RESPONSE", CLOB_DATATYPE_NAME),

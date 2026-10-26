@@ -62,4 +62,9 @@ To add support for a new storage system:
     *   `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`: AWS credentials (though using IAM roles via instance profiles is often preferred for security in EC2 environments, which the SDK can handle automatically).
     *   `AWS_REGION`: The AWS region where the bucket resides.
     *   `AWS_SESSION_TOKEN` (optional): For temporary credentials.
-```
+
+## Storage in agent workflows and deployments
+
+A storage engine exposed to a user or agent is a configured catalog resource. Central storage for the platform's own project, engine, and room files is a separate deployment responsibility, even when it uses the same kind of provider.
+
+Consult [IStorageEngine](../../src/prerna/engine/api/IStorageEngine.java) for current operations and provider-specific support, including optional versioning. Use [storage examples](../../docker-compose-examples/engines/storage.md) for local connections, [central storage](../cloud_and_cluster/central_cloud_storage.md) for deployment assets, and [skills](../agents/skills/skills_doc.md) for instructions used by storage-aware agents.

@@ -64,10 +64,12 @@ public final class AgentRunContext {
     private final Insight       insight;
     private final String        userId;
     private final String        input;
+    private final String        userText;
     private final SandboxPolicy sandboxPolicy;
     private final String        runId;
     private final List<String>  mediaInputPaths;
     private final List<String>  mediaUrls;
+    private final AgentRunTarget agentTarget;
 
     // 0 for a root run, parent.spawnDepth+1 for a subagent run.
     private final int           spawnDepth;
@@ -89,10 +91,12 @@ public final class AgentRunContext {
         this.insight       = b.insight;
         this.userId        = b.userId;
         this.input         = b.input;
+        this.userText      = b.userText;
         this.sandboxPolicy = b.sandboxPolicy;
         this.runId         = b.runId;
         this.mediaInputPaths = immutableStringList(b.mediaInputPaths);
         this.mediaUrls       = immutableStringList(b.mediaUrls);
+        this.agentTarget    = b.agentTarget;
         this.spawnDepth    = b.spawnDepth;
         this.agentConfig   = b.agentConfig;
         this.resumeMode    = b.resumeMode;
@@ -124,6 +128,11 @@ public final class AgentRunContext {
         return input;
     }
 
+    /** What the user typed; {@link #getInput()} when the caller sent no separate text. */
+    public String getUserText() {
+        return userText == null || userText.isBlank() ? input : userText;
+    }
+
     /** Durable {@code AGENT_RUN.RUN_ID} for this invocation. May be {@code null} for legacy direct callers. */
     public String getRunId() {
         return runId;
@@ -137,6 +146,14 @@ public final class AgentRunContext {
     /** Direct media URLs to attach to the initial user turn. */
     public List<String> getMediaUrls() {
         return mediaUrls;
+    }
+
+    /**
+     * Authorized filesystem target selected for this run. May be {@code null}
+     * for legacy direct callers that build a context without the runner.
+     */
+    public AgentRunTarget getAgentTarget() {
+        return agentTarget;
     }
 
     /**
@@ -232,10 +249,12 @@ public final class AgentRunContext {
         private Insight       insight;
         private String        userId;
         private String        input;
+        private String        userText;
         private SandboxPolicy sandboxPolicy;
         private String        runId;
         private List<String>  mediaInputPaths;
         private List<String>  mediaUrls;
+        private AgentRunTarget agentTarget;
 
         private int           spawnDepth = ROOT_SPAWN_DEPTH;
 
@@ -255,10 +274,12 @@ public final class AgentRunContext {
         public Builder insight(Insight insight)              { this.insight = insight;             return this; }
         public Builder userId(String userId)                 { this.userId = userId;               return this; }
         public Builder input(String input)                   { this.input = input;                 return this; }
+        public Builder userText(String userText)             { this.userText = userText;           return this; }
         public Builder sandboxPolicy(SandboxPolicy policy)   { this.sandboxPolicy = policy;        return this; }
         public Builder runId(String runId)                   { this.runId = runId;                 return this; }
         public Builder mediaInputPaths(List<String> paths)   { this.mediaInputPaths = paths;       return this; }
         public Builder mediaUrls(List<String> urls)          { this.mediaUrls = urls;              return this; }
+        public Builder agentTarget(AgentRunTarget target)    { this.agentTarget = target;         return this; }
 
         public Builder spawnDepth(int spawnDepth)            { this.spawnDepth = spawnDepth;       return this; }
 

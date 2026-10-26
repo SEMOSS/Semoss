@@ -1,0 +1,57 @@
+name: semoss-mail
+
+# GreenMail - a throwaway mail server that speaks SMTP, POP3 and IMAP at once, so
+# one container covers all three SEMOSS mail function engines (SMTP, POP3, IMAP).
+# Image: https://hub.docker.com/r/greenmail/standalone
+#
+# Run:    docker compose -f semoss-mail.yml up -d
+# Stop:   docker compose -f semoss-mail.yml down       (mail is in memory, nothing to wipe)
+# Check:  curl http://localhost:8085/api/service/readiness
+# Poke:   curl http://localhost:8085/api/user          (lists the mailboxes)
+#
+# NOTE ON PORTS: GreenMail serves on 3025/3110/3143 rather than the real 25/110/143
+# so it needs no privileges. The engines therefore have to be given the port
+# explicitly, since they default to the real ones.
+#
+# NOTE ON TLS: the plaintext ports are the ones to use. GreenMail also serves
+# SMTPS/POP3S/IMAPS on 3465/3995/3993, but with a self-signed certificate for
+# "localhost", so the engines' TLS defaults (certificate must be trusted and match
+# the host) reject it. Point an engine at a TLS port only with the trust override
+# in the README, and never carry that override to a real mail server.
+#
+# NOTE ON PERSISTENCE: every mailbox lives in memory. A restart is an empty mail
+# server again, which is the point - each test run starts clean.
+services:
+  greenmail:
+    image: greenmail/standalone:2.1.13
+    container_name: semoss-mail
+    environment:
+      # setup.test.all starts every protocol on its 3xxx port. the users are
+      # created up front so a mailbox exists to read before anything has been
+      # sent to it - the login is the full address, the password follows the
+      # colon. add -Dgreenmail.auth.disabled to accept any login instead
+      GREENMAIL_OPTS: >-
+        -Dgreenmail.setup.test.all
+        -Dgreenmail.hostname=0.0.0.0
+        -Dgreenmail.users=semoss@semoss.local:semoss,reports@semoss.local:reports
+        -Dgreenmail.verbose
+    ports:
+      - "3025:3025"   # SMTP
+      - "3110:3110"   # POP3
+      - "3143:3143"   # IMAP
+      - "3465:3465"   # SMTPS  (self-signed, see the TLS note above)
+      - "3995:3995"   # POP3S  (self-signed)
+      - "3993:3993"   # IMAPS  (self-signed)
+      - "8085:8080"   # REST API and web UI
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/service/readiness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - semoss-net
+
+networks:
+  # shared with the SEMOSS compose files so SEMOSS can reach this by container name
+  semoss-net:
+    external: true

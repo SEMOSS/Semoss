@@ -27,7 +27,12 @@
  *******************************************************************************/
 package prerna.reactor;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -53,6 +58,8 @@ import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -74,6 +81,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.TypeReference;
+import prerna.util.ValueUtils;
 import prerna.util.gson.LocalDateTimeAdapter;
 import prerna.util.gson.ZonedDateTimeAdapter;
 
@@ -137,10 +145,6 @@ public abstract class AbstractReactor implements IReactor {
 	public AbstractReactor() {
 
 	}
-
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * Methods for merging up the noun store across reactors
@@ -509,10 +513,6 @@ public abstract class AbstractReactor implements IReactor {
 		return this.originalSignature;
 	}
 
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-
 	/*
 	 * Utility methods
 	 */
@@ -685,7 +685,82 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
-	 * 
+	 * Resolves the engine/project id a reactor should operate on: the id the caller
+	 * passed in, else the insight's app context - its context project, else its own
+	 * project.
+	 *
+	 * <p>
+	 * This is the standard precedence for reactors whose {@code project}/
+	 * {@code engine} key is optional. The context project is what a pixel run under
+	 * an app context (and so every project-scoped MCP tool call) already carries,
+	 * so those callers do not have to repeat the id they are already scoped to.
+	 *
+	 * <p>
+	 * Named for engine rather than project because the caller-supplied id may be
+	 * any catalog id - the same reason {@code MCPUtility.SMSS_ENGINE_ID} superseded
+	 * {@code SMSS_PROJECT_ID} - while the two context fallbacks are always project
+	 * ids, which are themselves engine ids ({@code IProject extends IEngine}).
+	 *
+	 * @param engineId the caller-supplied id, may be null/blank
+	 * @return the resolved, trimmed id, never null
+	 * @throws IllegalArgumentException when no id was passed and no app context is
+	 *                                  set
+	 */
+	protected String resolveContextEngineId(String engineId) {
+		return resolveContextEngineId(engineId, this.insight);
+	}
+
+	/**
+	 * {@link #resolveContextEngineId(String)} for callers that hold an
+	 * {@link Insight} but are not themselves a reactor (tool/decision handlers, for
+	 * example), so the precedence lives in one place.
+	 *
+	 * @param engineId the caller-supplied id, may be null/blank
+	 * @param insight  the insight whose context is consulted, may be null
+	 * @return the resolved, trimmed id, never null
+	 * @throws IllegalArgumentException when no id was passed and no app context is
+	 *                                  set
+	 */
+	public static String resolveContextEngineId(String engineId, Insight insight) {
+		String resolved = resolveContextEngineIdOrNull(engineId, insight);
+		if (resolved == null) {
+			throw new IllegalArgumentException("Must provide the project id or set the app context");
+		}
+		return resolved;
+	}
+
+	/**
+	 * {@link #resolveContextEngineId(String)} for reactors that can carry on
+	 * without a project rather than fail: same precedence, but returns null instead
+	 * of throwing when nothing resolves.
+	 *
+	 * @param engineId the caller-supplied id, may be null/blank
+	 * @return the resolved, trimmed id, or null when there is none
+	 */
+	protected String resolveContextEngineIdOrNull(String engineId) {
+		return resolveContextEngineIdOrNull(engineId, this.insight);
+	}
+
+	/**
+	 * {@link #resolveContextEngineIdOrNull(String)} for callers that hold an
+	 * {@link Insight} but are not themselves a reactor.
+	 *
+	 * @param engineId the caller-supplied id, may be null/blank
+	 * @param insight  the insight whose context is consulted, may be null
+	 * @return the resolved, trimmed id, or null when there is none
+	 */
+	public static String resolveContextEngineIdOrNull(String engineId, Insight insight) {
+		if (ValueUtils.isBlank(engineId) && insight != null) {
+			engineId = insight.getContextProjectId();
+		}
+		if (ValueUtils.isBlank(engineId) && insight != null) {
+			engineId = insight.getProjectId();
+		}
+		return ValueUtils.isBlank(engineId) ? null : engineId.trim();
+	}
+
+	/**
+	 *
 	 * @param engine
 	 * @param engineId
 	 * @param user
@@ -710,10 +785,6 @@ public abstract class AbstractReactor implements IReactor {
 			}
 		}
 	}
-
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * Methods to quickly retrieve inputs in the noun store
@@ -805,10 +876,6 @@ public abstract class AbstractReactor implements IReactor {
 		}
 	}
 
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-
 	/*
 	 * MCP
 	 */
@@ -868,6 +935,7 @@ public abstract class AbstractReactor implements IReactor {
 			if (resourceURI != null && !resourceURI.isEmpty()) {
 				uiJson.put(MCPUtility.UI_RESOURCE_URI, resourceURI);
 			}
+			MCPUtility.copyUiHints(mcpMeta, uiJson);
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 			tool.put("_meta", meta);
 		}
@@ -877,9 +945,9 @@ public abstract class AbstractReactor implements IReactor {
 
 	/**
 	 * Returns MCP tool metadata for this reactor, or {@code null} if this reactor
-	 * is not an MCP tool. Reactors that should be discoverable by package scanning
-	 * in {@code MakePixelMCPReactor} must override this method and return a
-	 * non-null map.
+	 * is not an MCP tool. The default is non-null (auto + sidebar), so package and
+	 * full scans in {@code MakePixelMCPReactor} include every reactor; override and
+	 * return {@code null} to opt out.
 	 * <p>
 	 * Supported keys (use {@link MCPUtility} constants):
 	 * <ul>
@@ -888,7 +956,10 @@ public abstract class AbstractReactor implements IReactor {
 	 * <li>{@code displayLocation} - "sidebar", "inline", or "hidden"</li>
 	 * <li>{@code loadingMessage} - custom loading text shown during execution</li>
 	 * <li>{@code resourceURI} - portal page path for the tool's UI</li>
+	 * <li>{@code component} - native element name for the tool call</li>
+	 * <li>{@code autoOpen} - "true" to open the tool view automatically</li>
 	 * </ul>
+	 * {@code SMSS_MCP_DEFERRED} is not read here; set it through mcpMetadata.
 	 *
 	 * @return a map of MCP metadata key-value pairs, or {@code null} if not an MCP
 	 *         tool
@@ -959,10 +1030,6 @@ public abstract class AbstractReactor implements IReactor {
 		return MCP_KEY_TYPE.STRING;
 	}
 
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-
 	/*
 	 * Throwing common errors
 	 */
@@ -1008,18 +1075,36 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
+	 * Requires an OAuth login for the requested provider before reactor work
+	 * starts. Token refresh, when supported, remains the provider connector's
+	 * responsibility.
+	 *
+	 * @param provider the provider required by the reactor
+	 * @return the user's provider token
+	 */
+	protected AccessToken requireLogin(AuthProvider provider) {
+		User user = this.insight == null ? null : this.insight.getUser();
+		AccessToken token = user == null ? null : user.getAccessToken(provider);
+		if (token == null || token.getAccess_token() == null || token.getAccess_token().isBlank()) {
+			Map<String, Object> retMap = new HashMap<>();
+			retMap.put("type", provider.getLabel());
+			retMap.put("message", "Please login to your " + provider.getDisplayName() + " account");
+			throwLoginError(retMap);
+		}
+		return token;
+	}
+
+	/**
 	 * Throw login required error
 	 * 
 	 * @param details
 	 */
-	public static void throwLoginError(Map details) {
+	public static void throwLoginError(Map<?, ?> details) {
 		SemossPixelException exception = new SemossPixelException(
 				NounMetadata.getErrorNounMessage(details, PixelOperationType.LOGGIN_REQUIRED_ERROR));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
-
-	/////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * Methods in interface that are not really used at the moment...
@@ -1238,6 +1323,37 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		if (this.curRow != null && curRowIndex >= 0 && this.curRow.size() > curRowIndex) {
 			return this.curRow.get(curRowIndex);
+		}
+		return null;
+	}
+
+	/**
+	 * Get the first value of a given type from a keyed GenRowStruct entry, falling
+	 * back to the first value of that type in curRow.
+	 *
+	 * Unlike the index based overloads, this picks by type rather than by position,
+	 * so it is for nouns that were passed without a key and cannot be identified by
+	 * where they sit in curRow. The keyed entry wins when it holds a value of the
+	 * type; curRow is only consulted when it does not.
+	 *
+	 * @param key  The key to retrieve from noun store.
+	 * @param type The noun type to look for in both the keyed entry and curRow.
+	 * @return The first matching value, or null when neither source has one of this
+	 *         type.
+	 */
+	protected Object getValueOfTypeFromKeyOrCurRow(String key, PixelDataType type) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			List<Object> valuesOfType = grs.getValuesOfType(type);
+			if (valuesOfType != null && !valuesOfType.isEmpty()) {
+				return valuesOfType.get(0);
+			}
+		}
+		if (this.curRow != null) {
+			List<Object> valuesOfType = this.curRow.getValuesOfType(type);
+			if (valuesOfType != null && !valuesOfType.isEmpty()) {
+				return valuesOfType.get(0);
+			}
 		}
 		return null;
 	}
@@ -1765,6 +1881,33 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
+	 * Get every string value supplied for an aliased key definition, e.g.
+	 * "media,image". {@link #organizeKeys()} resolves aliases only into
+	 * {@link #keyValue}, and only for the first value of a key, so a multi-valued
+	 * key has to be read off the noun store directly - which means the alias
+	 * resolution has to be repeated here. Values from every alias are combined, so
+	 * supplying more than one accepted name is additive rather than one silently
+	 * winning.
+	 *
+	 * @param keyDefinition A key definition, optionally comma-separated aliases.
+	 * @return Every value supplied under any of the aliases; empty when none were
+	 *         supplied.
+	 */
+	protected List<String> getListStringForAliasedKey(String keyDefinition) {
+		List<String> values = new ArrayList<>();
+		if (keyDefinition == null) {
+			return values;
+		}
+		for (String alias : keyDefinition.split(",")) {
+			GenRowStruct grs = getGenRowStruct(alias.trim());
+			if (grs != null && !grs.isEmpty()) {
+				values.addAll(grs.getAllStrValues());
+			}
+		}
+		return values;
+	}
+
+	/**
 	 * Get a list of strings from the noun store by index.
 	 * 
 	 * @param index The index of the key to retrieve from the noun store.
@@ -2050,6 +2193,21 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
+	 * Get a map by key, falling back to the first map in curRow.
+	 *
+	 * The fallback is by type rather than by curRow index, since a map noun passed
+	 * without a key has no fixed position.
+	 *
+	 * @param key The key to retrieve from noun store.
+	 * @return The map value, or null if neither the key nor curRow holds one.
+	 */
+	@SuppressWarnings("unchecked")
+	protected Map<String, Object> getMapFromKeyOrCurRow(String key) {
+		Object value = getValueOfTypeFromKeyOrCurRow(key, PixelDataType.MAP);
+		return value instanceof Map ? (Map<String, Object>) value : null;
+	}
+
+	/**
 	 * Get a list of integers from the noun store.
 	 * 
 	 * @param key The key to retrieve from the noun store.
@@ -2153,11 +2311,265 @@ public abstract class AbstractReactor implements IReactor {
 		return value != null ? value : defaultValue;
 	}
 
+	/*
+	 * Reading the keys a reactor declares in keysToGet. These read the values
+	 * organizeKeys collected into keyValue, trimmed, so a key left out or left
+	 * blank reads as null, and a value that cannot be read says which key it was.
+	 */
+
 	/**
-	 * 
+	 * Put keys a reactor takes after the ones a family of reactors shares, for
+	 * keysToGet.
+	 *
+	 * @param standard the keys the family shares
+	 * @param extra    the keys only this reactor takes
+	 * @return the keys, the shared ones first
+	 */
+	protected static String[] withExtraKeys(String[] standard, String... extra) {
+		if (extra == null || extra.length == 0) {
+			return standard.clone();
+		}
+		String[] keys = new String[standard.length + extra.length];
+		System.arraycopy(standard, 0, keys, 0, standard.length);
+		System.arraycopy(extra, 0, keys, standard.length, extra.length);
+		return keys;
+	}
+
+	/**
+	 * Mark which keys have to be passed, for keyRequired.
+	 *
+	 * @param keys     every key the reactor takes
+	 * @param required the keys that have to be passed
+	 * @return the required flags, in the order of the keys
+	 */
+	protected static int[] requiredKeys(String[] keys, String... required) {
+		int[] flags = new int[keys.length];
+		for (int i = 0; i < keys.length; i++) {
+			for (String key : required) {
+				if (key.equals(keys[i])) {
+					flags[i] = 1;
+				}
+			}
+		}
+		return flags;
+	}
+
+	/**
+	 * @param key the key to read
+	 * @return the value, trimmed, or null when the caller left it out
+	 */
+	protected String readString(String key) {
+		return ValueUtils.trimToNull(this.keyValue.get(key));
+	}
+
+	/**
+	 * @param key     the key to read
+	 * @param message what to say when it was left out
+	 * @return the value, trimmed
+	 */
+	protected String requireString(String key, String message) {
+		String value = readString(key);
+		if (value == null) {
+			throw new SemossPixelException(message);
+		}
+		return value;
+	}
+
+	/**
+	 * @param key the key to read
+	 * @return the value, or null when the caller left it out, which lets a change
+	 *         leave a field as it was rather than setting it to false
+	 */
+	protected Boolean readOptionalBoolean(String key) {
+		String value = readString(key);
+		return value == null ? null : Boolean.valueOf(Boolean.parseBoolean(value));
+	}
+
+	/**
+	 * @param key      the key to read
+	 * @param fallback what it is when the caller left it out
+	 * @return the value
+	 */
+	protected boolean readBoolean(String key, boolean fallback) {
+		Boolean value = readOptionalBoolean(key);
+		return value == null ? fallback : value;
+	}
+
+	/**
+	 * Read a key that has to be a whole number when it is there at all.
+	 *
+	 * <p>
+	 * A number can arrive written as a decimal, such as 10.0, when it came through
+	 * JSON, so a decimal with nothing after the point is taken as the whole number
+	 * it is.
+	 * </p>
+	 *
+	 * @param key the key to read
+	 * @return the value, or null when the caller left it out
+	 */
+	protected Integer readOptionalInt(String key) {
+		String value = readString(key);
+		try {
+			return ValueUtils.parseWholeNumber(value);
+		} catch (NumberFormatException e) {
+			throw new SemossPixelException(key + " must be a whole number but received: " + value);
+		}
+	}
+
+	/**
+	 * Read a key that has to be a positive whole number, such as a limit.
+	 *
+	 * @param key      the key to read
+	 * @param fallback what it is when the caller left it out
+	 * @param cap      the largest value allowed, which the value is held down to
+	 * @return the value
+	 */
+	protected int readCount(String key, int fallback, int cap) {
+		Integer value = readOptionalInt(key);
+		if (value == null) {
+			return fallback;
+		}
+		if (value <= 0) {
+			throw new SemossPixelException(key + " must be greater than 0.");
+		}
+		if (value > cap) {
+			classLogger.warn("A {} of {} was asked for, using {} instead", key, value, cap);
+			return cap;
+		}
+		return value;
+	}
+
+	/**
+	 * Read one set of values, which a caller may pass as several values, as a list,
+	 * as one comma separated value, or as any mixture of them.
+	 *
+	 * @param key the key to read
+	 * @return the values, or null when none were passed
+	 */
+	protected List<String> readValues(String key) {
+		return readValues(key, true);
+	}
+
+	/**
+	 * Read one set of values.
+	 *
+	 * @param key         the key to read
+	 * @param splitCommas whether one value can be a comma separated list, which a
+	 *                    file name cannot be, since it can hold a comma
+	 * @return the values, or null when none were passed
+	 */
+	protected List<String> readValues(String key, boolean splitCommas) {
+		GenRowStruct grs = this.store == null ? null : this.store.getGenRowStruct(key);
+		if (grs == null || grs.isEmpty()) {
+			return null;
+		}
+		List<String> values = new ArrayList<>();
+		for (int i = 0; i < grs.size(); i++) {
+			values.addAll(ValueUtils.splitValues(grs.getNoun(i).getValue(), splitCommas));
+		}
+		return values.isEmpty() ? null : values;
+	}
+
+	/**
+	 * Resolve files named relative to the insight folder.
+	 *
+	 * <p>
+	 * A leading slash is taken as the root of the insight folder rather than of the
+	 * server, and {@link MCPUtility#resolveContainedMcpFile} refuses a path that
+	 * climbs out of the folder.
+	 * </p>
+	 *
+	 * @param key the key naming the files
+	 * @return the files, or null when none were named
+	 * @throws IOException when a path cannot be resolved
+	 */
+	protected List<File> readInsightFiles(String key) throws IOException {
+		List<String> requested = readValues(key, false);
+		if (requested == null) {
+			return null;
+		}
+		if (this.insight == null || this.insight.getInsightFolder() == null) {
+			throw new SemossPixelException("Files can only be read from within an insight that holds them.");
+		}
+		String insightFolder = this.insight.getInsightFolder();
+		List<File> files = new ArrayList<>();
+		for (String path : requested) {
+			String relative = path.replace('\\', '/');
+			while (relative.startsWith("/")) {
+				relative = relative.substring(1);
+			}
+			if (relative.isEmpty()) {
+				continue;
+			}
+			File file;
+			try {
+				file = MCPUtility.resolveContainedMcpFile(insightFolder, relative).toFile();
+			} catch (NoSuchFileException e) {
+				// the exception names the server side path, which the caller is not shown
+				throw new SemossPixelException("No file exists in the insight folder at: " + relative);
+			}
+			files.add(file);
+		}
+		return files.isEmpty() ? null : files;
+	}
+
+	/**
+	 * Write bytes into the insight folder under a base name, so a requested name
+	 * cannot steer the file outside that folder.
+	 *
+	 * @param requestedName the name the caller asked for, or null
+	 * @param fallbackName  the name to use when the caller asked for none
+	 * @param bytes         what to write
+	 * @return the name the file was written as, relative to the insight folder
+	 * @throws IOException when the file cannot be written
+	 */
+	protected String saveToInsightFolder(String requestedName, String fallbackName, byte[] bytes) throws IOException {
+		if (this.insight == null || this.insight.getInsightFolder() == null) {
+			throw new SemossPixelException("Files can only be saved from within an insight that holds them.");
+		}
+		String insightFolder = this.insight.getInsightFolder();
+		File folder = new File(insightFolder);
+		if (!folder.exists() && !folder.mkdirs()) {
+			throw new SemossPixelException("Unable to create the insight folder at: " + insightFolder);
+		}
+		String name = toBaseName(requestedName);
+		if (name == null) {
+			name = toBaseName(fallbackName);
+		}
+		if (name == null) {
+			name = "attachment";
+		}
+		try (FileOutputStream out = new FileOutputStream(Paths.get(insightFolder, name).toFile())) {
+			out.write(bytes);
+			out.flush();
+		}
+		return name;
+	}
+
+	/**
+	 * @param fileName a requested file name, which may carry a path
+	 * @return the base name, or null when nothing usable was supplied
+	 */
+	private static String toBaseName(String fileName) {
+		if (fileName == null) {
+			return null;
+		}
+		String trimmed = fileName.trim().replace('\\', '/');
+		int lastSlash = trimmed.lastIndexOf('/');
+		if (lastSlash >= 0) {
+			trimmed = trimmed.substring(lastSlash + 1);
+		}
+		trimmed = trimmed.trim();
+		return trimmed.isEmpty() || trimmed.equals(".") || trimmed.equals("..") ? null : trimmed;
+	}
+
+	/**
+	 * @deprecated no longer required as python already has the necessary details to
+	 *             know its insight id, etc.
 	 * @param input
 	 * @return
 	 */
+	@Deprecated()
 	public String fillVars(String input) {
 		// ${i} - insight id
 		// ${iid} - insight id
@@ -2200,5 +2612,4 @@ public abstract class AbstractReactor implements IReactor {
 		String resolvedString = sub.replace(input);
 		return resolvedString;
 	}
-
 }

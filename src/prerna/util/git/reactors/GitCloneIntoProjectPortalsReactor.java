@@ -38,6 +38,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectPortalsHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -160,6 +161,7 @@ public class GitCloneIntoProjectPortalsReactor extends AbstractReactor {
 				GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 				// handle synchronization to the cloud
 				ClusterUtil.pushProjectFolder(project, projectAssetFolder);
+				ProjectPortalsHelper.notePortalChange(user, project.getProjectId());
 			} finally {
 				// Clean up temp directory
 				if (tempDir.exists()) {

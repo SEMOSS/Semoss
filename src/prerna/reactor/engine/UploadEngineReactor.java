@@ -47,6 +47,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -59,6 +60,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
@@ -321,6 +325,27 @@ public class UploadEngineReactor extends AbstractReactor {
 					metadataFile.delete();
 				}
 			}
+
+			if (IEngine.CATALOG_TYPE.MODEL == engineType) {
+				File modelMetadataFile = new File(Utility.normalizePath(
+						finalEngineFolder.getAbsolutePath() + "/" + engineName + IEngine.MODEL_METADATA_FILE_SUFFIX));
+				if (modelMetadataFile.exists() && modelMetadataFile.isFile()) {
+					logger.info(step + ") Applying model metadata");
+					try {
+						Map<String, Object> modelMetadata = (Map<String, Object>) GsonUtility
+								.readJsonFileToObject(modelMetadataFile, new TypeToken<Map<String, Object>>() {
+								}.getType());
+						SecurityModelMetadataUtils.restoreModelMetadata(engineId, modelMetadata);
+					} catch (Exception e) {
+						classLogger.error(
+								"Failed to apply the model metadata for engine {}. The engine is uploaded without it",
+								Utility.cleanLogString(engineId), e);
+					}
+					modelMetadataFile.delete();
+					logger.info(step + ") Done");
+					step++;
+				}
+			}
 		} catch (Exception e) {
 			error = true;
 			classLogger.error("Error occurred trying to synchronize the metadata for the zip file", e);
@@ -350,6 +375,8 @@ public class UploadEngineReactor extends AbstractReactor {
 		}
 
 		ClusterUtil.pushEngine(engineId);
+		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_CREATE,
+				AuditTargetType.ofEngine(engineType), engineId, engineName, Map.of("global", global));
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), engineId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);

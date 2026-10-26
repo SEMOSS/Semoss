@@ -50,8 +50,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 
 /**
  * Verifies that {@link CreateProjectReactor} accepts only CODE / BLOCKS /
- * INSIGHTS project types and rejects WORKSPACE / SKILL with a clear error
- * directing the caller at the type-specific reactor.
+ * INSIGHTS project types and rejects WORKSPACE / SKILL / NOTEBOOK with a clear
+ * error directing the caller at the type-specific reactor.
  *
  * <p>
  * WORKSPACE and SKILL projects have additional persistence requirements
@@ -106,6 +106,16 @@ class CreateProjectReactorTest {
 				"error must name the rejected type — actual: " + ex.getMessage());
 		assertTrue(ex.getMessage().contains("CreateSkill"),
 				"error must point caller at CreateSkill — actual: " + ex.getMessage());
+	}
+
+	@Test
+	void rejectsNotebookType() {
+		setKeys("MyProject", "NOTEBOOK");
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> reactor.execute());
+		assertTrue(ex.getMessage().contains("NOTEBOOK"),
+				"error must name the rejected type — actual: " + ex.getMessage());
+		assertTrue(ex.getMessage().contains("CreateNotebook"),
+				"error must point caller at CreateNotebook — actual: " + ex.getMessage());
 	}
 
 	@Test

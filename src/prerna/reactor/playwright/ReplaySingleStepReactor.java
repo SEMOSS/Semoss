@@ -34,9 +34,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -46,8 +43,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class ReplaySingleStepReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ReplaySingleStepReactor.class);
-
-	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	/**
 	 * Default constructor for ReplaySingleStepReactor. Initializes the keys this
@@ -83,7 +78,8 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 		}
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have access to view the project");
 		}
 
 		Map<String, Object> response = replayStep(projectId, sessionId, fileName, stepId, inputs, tabId);
@@ -130,7 +126,7 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 				classLogger.warn("Provided tabId {} doesn't match step's tabId {}", tabId, actualTabId);
 			}
 
-			classLogger.info("Found step {} in tab {}: {}", stepId, actualTabId, json.valueToTree(step).toString());
+			classLogger.info("Found step {} in tab {}: {}", stepId, actualTabId, GSON.toJson(step));
 
 			// Get session
 			PlaywrightSession s = this.insight.getUser().getPlaywrightSession(sessionId);
@@ -139,20 +135,6 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 				response.put("error", "Session not found");
 				return response;
 			}
-
-			// Validate step can be executed
-			// String validationError = validateStep(s, step, inputs, actualTabId);
-			// if (validationError != null) {
-			// response.put("status", "failed");
-			// response.put("error", validationError);
-			// response.put("stepId", stepId);
-			// response.put("tabId", actualTabId);
-
-			// ScreenshotResponse screenshot = ScreenshotReactor.screenshot(s, actualTabId);
-			// response.put("screenshot", screenshot);
-
-			// return response;
-			// }
 
 			// Execute the step and capture result
 			PlaywrightStep stepToExecute = step;
@@ -216,7 +198,7 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 				PlaywrightSession s = this.insight.getUser().getPlaywrightSession(sessionId);
 				if (s != null) {
 					String actualTabId = tabId != null && !tabId.isEmpty() ? tabId : "tab-1";
-					if (s.tabPages.containsKey(actualTabId)) {
+					if (s.getPage(actualTabId) != null) {
 						ScreenshotResponse screenshot = ScreenshotReactor.screenshot(s, actualTabId);
 						response.put("screenshot", screenshot);
 					}

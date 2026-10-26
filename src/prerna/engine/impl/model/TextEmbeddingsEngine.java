@@ -41,6 +41,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
@@ -113,8 +114,8 @@ public class TextEmbeddingsEngine extends AbstractRESTModelEngine {
 	}
 
 	@Override
-	protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
-			String roomId, Map<String, Object> parameters) {
+	protected AskModelEngineResponse askCall(InputMessage inputMessage, Insight insight, String roomId,
+			Map<String, Object> parameters) {
 		return new AskStringModelEngineResponse("This model does not support text generation.", 0, 0);
 	}
 

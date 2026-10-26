@@ -27,41 +27,38 @@
  *******************************************************************************/
 package prerna.reactor.notification;
 
-import java.util.List;
-
-import org.javatuples.Pair;
-
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class PollNotificationsReactor extends AbstractReactor {
+	private static final String SCOPE_TYPE = "scopeType";
+	private static final String SCOPE_ID = "scopeId";
+
+	public PollNotificationsReactor() {
+		this.keysToGet = new String[] { SCOPE_TYPE, SCOPE_ID };
+		this.keyRequired = new int[] { 0, 0 };
+	}
 
 	@Override
 	public NounMetadata execute() {
 		if (!Utility.isNotificationDatabaseEnabled()) {
 			throw new IllegalArgumentException("Notifications are not enabled on this instance");
 		}
+		organizeKeys();
 		User user = this.insight.getUser();
 		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
 			throwAnonymousUserError();
 		}
 
-		List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(user);
-		if (userIdAndTypeList == null || userIdAndTypeList.isEmpty()) {
-			throw new SemossPixelException(new NounMetadata("Unable to determine user type for deletion",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR));
-		}
+		String scopeId = this.keyValue.get(SCOPE_ID);
+		String scopeType = NotificationDbUtils.resolveReadScope(user, this.keyValue.get(SCOPE_TYPE), scopeId);
 
-		String recipientId = userIdAndTypeList.get(0).getValue0();
-		String recipientType = userIdAndTypeList.get(0).getValue1();
-		int newNotificationCount = NotificationDbUtils.fetchNewNotificationCount(recipientId, recipientType);
+		int newNotificationCount = NotificationDbUtils.fetchNewNotificationCount(user, scopeType, scopeId);
 		return new NounMetadata(newNotificationCount, PixelDataType.CONST_INT);
 	}
 

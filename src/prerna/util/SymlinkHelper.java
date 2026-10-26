@@ -50,6 +50,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.UserAssetUtils;
+import prerna.project.api.IProject;
 
 public class SymlinkHelper {
 
@@ -79,8 +81,10 @@ public class SymlinkHelper {
 		File targetDir = new File(Utility.normalizePath(userChrootFolder));
 		if (!targetDir.exists()) {
 			classLogger.info("User chroot folder doesn't exist. Making folder now at: {}", userChrootFolder);
-			boolean success = targetDir.mkdir(); // make directory
-			classLogger.info("User chroot folder creation at {} {}", userChrootFolder, success);
+			if (!targetDir.mkdir()) {
+				classLogger.warn("Unable to create the user chroot folder {} - verify the {} directory {} exists",
+						userChrootFolder, Constants.CHROOT_DIR, Utility.getDIHelperProperty(Constants.CHROOT_DIR));
+			}
 		}
 
 		// also create the semoss home folder
@@ -344,11 +348,13 @@ public class SymlinkHelper {
 				classLogger.info("Symbolic link created at: {}", symlinkPath);
 			}
 		} catch (IllegalArgumentException e) {
-			classLogger.error("Invalid argument: {}", e.getMessage(), e);
+			classLogger.error("Unable to symlink {} into the chroot {} - the source directory does not exist",
+					sourceDirName, userChrootFolder, e);
 		} catch (IOException e) {
-			classLogger.error("Error creating symbolic link: {}", e.getMessage(), e);
+			classLogger.error("Failed to create the symlink {} pointing at {}", symlinkPath, sourceDirName, e);
 		} catch (UnsupportedOperationException e) {
-			classLogger.error("Symbolic links are not supported on this file system.", e);
+			classLogger.error("Symbolic links are not supported on this file system - unable to link {} into {}",
+					sourceDirName, userChrootFolder, e);
 		}
 	}
 
@@ -367,24 +373,41 @@ public class SymlinkHelper {
 	public void removeChrootFolder() {
 		try {
 			FileUtils.deleteDirectory(new File(userChrootFolder));
-			classLogger.info("{} Directory and all contents deleted successfully.", userChrootFolder);
+			classLogger.info("Deleted the chroot folder {} and all its contents", userChrootFolder);
 		} catch (IOException e) {
-			classLogger.error("Error deleting directory: {}", e.getMessage(), e);
+			classLogger.error("Failed to delete the chroot folder {}", userChrootFolder, e);
 		}
 	}
 
 	/**
 	 * Symlink the given user's personal Asset project folder into the chroot so the
-	 * user's saved assets are accessible from inside the sandbox. Looks up the
-	 * user's primary login and asset project id, resolves the asset app root folder
-	 * via {@link AssetUtility}, then delegates to {@link #symlinkFolder(String)}.
+	 * user's saved assets are accessible from inside the sandbox. The asset project
+	 * is resolved through {@link User#getAssetProject(AuthProvider)} so that it is
+	 * created, pulled and opened before we try to link it - opening the project is
+	 * what materializes the asset folders on this instance. The app root folder is
+	 * then resolved via {@link AssetUtility} and passed to
+	 * {@link #symlinkFolder(String)}.
 	 *
 	 * @param user the user whose asset folder should be exposed inside the chroot
 	 */
 	public void symlinkUserAsset(User user) {
 		AuthProvider provider = user.getPrimaryLogin();
 		String projectId = user.getAssetProjectId(provider);
-		String assetFolder = AssetUtility.getUserAssetAppRootFolder("Asset", projectId);
+		if (projectId == null) {
+			classLogger.warn("Unable to resolve the user asset project - skipping the user asset folder symlink");
+			return;
+		}
+
+		String projectName = UserAssetUtils.ASSET_APP_NAME;
+		IProject assetProject = user.getAssetProject(provider);
+		if (assetProject == null) {
+			classLogger.warn("Unable to open the user asset project {} - the asset folder will be created empty",
+					projectId);
+		} else if (assetProject.getProjectName() != null) {
+			projectName = assetProject.getProjectName();
+		}
+
+		String assetFolder = AssetUtility.getUserAssetAppRootFolder(projectName, projectId);
 		classLogger.info("Symlinking user asset folder for projectId={}", projectId);
 		symlinkFolder(assetFolder);
 	}

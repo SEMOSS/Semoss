@@ -33,10 +33,10 @@ public class DerbyQueryUtil extends AnsiSqlQueryUtil {
 		super();
 		setDbType(RdbmsTypeEnum.DERBY);
 	}
-	
+
 	DerbyQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.DERBY);
 	}
-	
+
 }

@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import prerna.engine.impl.storage.StorageSyncStatus;
 import prerna.logging.IgnoreEngineLogging;
 
 public interface IRCloneStorage extends IStorageEngine {
@@ -80,7 +81,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	List<String> list(String path, String rCloneConfig) throws IOException, InterruptedException;
+	List<String> listWithConfig(String path, String rCloneConfig) throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -89,7 +90,8 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	List<Map<String, Object>> listDetails(String path, String rCloneConfig) throws IOException, InterruptedException;
+	List<Map<String, Object>> listDetailsWithConfig(String path, String rCloneConfig)
+			throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -100,8 +102,8 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void syncLocalToStorage(String localPath, String storagePath, String rCloneConfig, Map<String, Object> metadata)
-			throws IOException, InterruptedException;
+	StorageSyncStatus syncLocalToStorageWithConfig(String localPath, String storagePath, String rCloneConfig,
+			Map<String, Object> metadata) throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -111,7 +113,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void syncStorageToLocal(String storagePath, String localPath, String rCloneConfig)
+	void syncStorageToLocalWithConfig(String storagePath, String localPath, String rCloneConfig)
 			throws IOException, InterruptedException;
 
 	/**
@@ -124,7 +126,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig,
+	void copyToStorageWithConfig(String localFilePath, String storageFolderPath, String rCloneConfig,
 			Map<String, Object> metadata) throws IOException, InterruptedException;
 
 	/**
@@ -136,7 +138,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void copyToLocal(String storageFilePath, String localFolderPath, String rCloneConfig)
+	void copyToLocalWithConfig(String storageFilePath, String localFolderPath, String rCloneConfig)
 			throws IOException, InterruptedException;
 
 	/**
@@ -148,7 +150,8 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void deleteFromStorage(String storageFilePath, String rCloneConfig) throws IOException, InterruptedException;
+	void deleteFromStorageWithConfig(String storageFilePath, String rCloneConfig)
+			throws IOException, InterruptedException;
 
 	/**
 	 * Delete the folder or file from the storage engine
@@ -159,7 +162,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void deleteFromStorage(String storageFilePath, boolean leaveFolderStructure, String rCloneConfig)
+	void deleteFromStorageWithConfig(String storageFilePath, boolean leaveFolderStructure, String rCloneConfig)
 			throws IOException, InterruptedException;
 
 	/**
@@ -169,7 +172,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void deleteFolderFromStorage(String storageFolderPath, String rCloneConfig)
+	void deleteFolderFromStorageWithConfig(String storageFolderPath, String rCloneConfig)
 			throws IOException, InterruptedException;
 
 }

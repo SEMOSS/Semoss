@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <title>Instance-managed project</title>
+  <desc>A shield with the monochrome SEMOSS mark centered inside.</desc>
+  <defs>
+    <linearGradient id="instance-managed-light-background" x2="1" y2="1">
+      <stop stop-color="#F3F7FF"/>
+      <stop offset="1" stop-color="#E3ECFA"/>
+    </linearGradient>
+  </defs>
+  <rect width="240" height="240" rx="32" fill="url(#instance-managed-light-background)"/>
+  <rect x="12" y="12" width="216" height="216" rx="24" fill="none" stroke="#CBD9EE"/>
+  <path d="M120 34 188 61v54c0 39-26 69-68 93-42-24-68-54-68-93V61Z"
+        fill="#FFFFFF" stroke="#A9C4E8" stroke-width="3" stroke-linejoin="round"/>
+  <g transform="translate(8 0)" fill="#0C4BA2">
+    <path d="M94 90v56l52-28Z" fill="none" stroke="#0C4BA2"
+          stroke-opacity="0.35" stroke-width="8" stroke-linejoin="round"/>
+    <circle cx="94" cy="90" r="18"/>
+    <circle cx="94" cy="146" r="18"/>
+    <circle cx="146" cy="118" r="18"/>
+  </g>
+</svg>

@@ -27,36 +27,71 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import prerna.auth.AccessPermissionEnum;
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.InsightAdministrator;
+import prerna.notifications.NotificationDbUtils;
+import prerna.project.api.IProject;
+import prerna.util.ConnectionUtils;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.EmailUtility;
+import prerna.util.InsightsRDBMSUtils;
+import prerna.util.NotificationConstants;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
+import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
 	private IRDBMSEngine securityDb;
 
 	private List<String> tables = new ArrayList<>();
+
+	/** The projects a test put in DIHelper, taken out again after it */
+	private List<String> stagedProjects = new ArrayList<>();
 
 	@BeforeEach
 	void setup() {
@@ -67,6 +102,11 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 	@AfterEach
 	void cleanup() throws SQLException {
+		for (String projectId : stagedProjects) {
+			DIHelper.getInstance().removeProjectProperty(projectId);
+			DIHelper.getInstance().removeProjectProperty(projectId + "_" + Constants.STORE);
+		}
+		stagedProjects.clear();
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		tables = UnitTestSecurityAuthUtils.clearSecurityDB(securityDb, tables);
 	}
@@ -849,7 +889,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		// Use includeExplicitUser=true to get only projects where user has explicit
 		// permission
-		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user, false, false, true);
+		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user, null, false, false, true);
 		assertNotNull(ids);
 		assertTrue(ids.isEmpty());
 	}
@@ -860,7 +900,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createProject("project1", "Project One", user);
 		UnitTestSecurityAuthUtils.createProject("project2", "Project Two", user);
 
-		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user, false, false, true);
+		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user, null, false, false, true);
 		assertNotNull(ids);
 		assertEquals(2, ids.size());
 	}
@@ -953,6 +993,35 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		assertTrue(SecurityProjectUtils.userIsOwner(user, "testProjectId"));
 	}
 
+	@Test
+	void testSetProjectFavorite_publicProjectWithoutAccess() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		SecurityProjectUtils.setProjectGlobal(user, "testProjectId", true);
+
+		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
+		String user2Id = user2.getPrimaryLoginToken().getId();
+		SecurityProjectUtils.setProjectFavorite(user2, "testProjectId", true);
+
+		List<Map<String, Object>> favorites = SecurityProjectUtils.getUserProjectList(user2, null, null, true, null,
+				null, null, null, null);
+		assertEquals(1, favorites.size());
+		assertEquals("1", favorites.getFirst().get("project_favorite").toString());
+		assertEquals("1", SecurityProjectUtils.getUserProjectList(user2, "testProjectId").getFirst()
+				.get("project_favorite").toString());
+		// the favorite is kept apart from the permissions, so no access row is added
+		assertEquals(0L,
+				((Number) UnitTestGroupTables.queryValue(securityDb,
+						"SELECT COUNT(*) FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?", user2Id,
+						"testProjectId")).longValue());
+
+		SecurityProjectUtils.setProjectFavorite(user2, "testProjectId", false);
+		assertTrue(SecurityProjectUtils.getUserProjectList(user2, null, null, true, null, null, null, null, null)
+				.isEmpty());
+		assertEquals("0", SecurityProjectUtils.getUserProjectList(user2, "testProjectId").getFirst()
+				.get("project_favorite").toString());
+	}
+
 	///
 	/// setProjectVisibility
 	///
@@ -976,6 +1045,24 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		// Just verify no exception is thrown
 		SecurityProjectUtils.setProjectVisibility(user, "testProjectId", true);
 		assertTrue(SecurityProjectUtils.userIsOwner(user, "testProjectId"));
+	}
+
+	@Test
+	void testSetProjectVisibility_onlyChangesThatProject() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createProject("testProjectId2", "testProjectName2", user);
+
+		SecurityProjectUtils.setProjectVisibility(user, "testProjectId", false);
+
+		List<Map<String, Object>> projects = SecurityProjectUtils.getUserProjectList(user, null, null, false, null,
+				null, null, null, null);
+		assertEquals(1, projects.size());
+		assertEquals("testProjectId2", projects.getFirst().get("project_id"));
+
+		SecurityProjectUtils.setProjectVisibility(user, "testProjectId", true);
+		assertEquals(2,
+				SecurityProjectUtils.getUserProjectList(user, null, null, false, null, null, null, null, null).size());
 	}
 
 	///
@@ -1103,26 +1190,6 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		boolean hasAccess = SecurityProjectUtils.checkUserHasAccessToProject("testProjectId", "adminid");
 		assertTrue(hasAccess);
-	}
-
-	///
-	/// copyProjectPermissions
-	///
-
-	@Test
-	void testCopyProjectPermissions() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		UnitTestSecurityAuthUtils.createProject("sourceProject", "Source Project", user);
-		UnitTestSecurityAuthUtils.createProject("targetProject", "Target Project", user);
-		SecurityProjectUtils.addProjectUser(user, "user2id", "sourceProject", "EDIT", null);
-
-		assertTrue(SecurityProjectUtils.userCanEditProject(user2, "sourceProject"));
-		assertFalse(SecurityProjectUtils.userCanEditProject(user2, "targetProject"));
-
-		SecurityProjectUtils.copyProjectPermissions("sourceProject", "targetProject");
-
-		assertTrue(SecurityProjectUtils.userCanEditProject(user2, "targetProject"));
 	}
 
 	///
@@ -1695,7 +1762,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		SecurityProjectUtils.setPortalPublish(user, "testProjectId");
 
 		// Verify timestamp is now set
-		SemossDate timestamp = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
+		LocalDateTime timestamp = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
 		assertNotNull(timestamp);
 	}
 
@@ -1704,8 +1771,36 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
 
-		SemossDate timestamp = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
+		LocalDateTime timestamp = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
 		assertNull(timestamp);
+	}
+
+	@Test
+	void testInitPortalPublishedTimestamp() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+
+		assertNull(SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId"));
+
+		assertTrue(SecurityProjectUtils.initPortalPublishedTimestamp("testProjectId"));
+
+		assertNotNull(SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId"));
+	}
+
+	@Test
+	void testInitPortalPublishedTimestamp_doesNotOverwriteExisting() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+
+		SecurityProjectUtils.setPortalPublish(user, "testProjectId");
+		LocalDateTime reported = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
+		assertNotNull(reported);
+
+		// the IS NULL guard leaves an already recorded timestamp alone, so a container
+		// initializing one cannot move a change that another container reported
+		assertTrue(SecurityProjectUtils.initPortalPublishedTimestamp("testProjectId"));
+
+		assertEquals(reported, SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId"));
 	}
 
 	///
@@ -1723,7 +1818,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		SecurityProjectUtils.setReactorCompilation(user, "testProjectId");
 
 		// Verify timestamp is now set
-		SemossDate timestamp = SecurityProjectUtils.getReactorCompilationTimestamp("testProjectId");
+		LocalDateTime timestamp = SecurityProjectUtils.getReactorCompilationTimestamp("testProjectId");
 		assertNotNull(timestamp);
 	}
 
@@ -1732,7 +1827,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-		SemossDate timestamp = SecurityProjectUtils.getReactorCompilationTimestamp("testProjectId");
+		LocalDateTime timestamp = SecurityProjectUtils.getReactorCompilationTimestamp("testProjectId");
 		assertNull(timestamp);
 	}
 
@@ -1817,7 +1912,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		// Call propagate with no project dependencies - should return empty result maps
 		Map<String, Object> result = SecurityProjectUtils.propagateProjectPermission(user, "testProjectId", "user2id",
-				"user", "READ_ONLY", null, null, null, 0, 0.0);
+				"user", "READ_ONLY", null);
 		assertNotNull(result);
 	}
 
@@ -1911,7 +2006,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		SecurityProjectUtils.setProjectGlobal(user, "testProjectId", true);
 
 		// includeExistingAccess must be true when includeDiscoverable is false
-		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user2, true, true, true);
+		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user2, null, true, true, true);
 		assertNotNull(ids);
 		assertTrue(ids.contains("testProjectId"));
 	}
@@ -1923,7 +2018,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 		SecurityProjectUtils.setProjectDiscoverable(user, "testProjectId", true);
 
-		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user2, false, true, false);
+		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user2, null, false, true, false);
 		assertNotNull(ids);
 		assertTrue(ids.contains("testProjectId"));
 	}
@@ -1989,6 +2084,499 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		SecurityProjectUtils.setProjectDiscoverable(user, "testProjectId", false);
 
 		assertFalse(SecurityProjectUtils.projectIsDiscoverable("testProjectId"));
+	}
+
+	///
+	/// addProject: the project's row, then its insights
+	///
+
+	@Test
+	void testAddProject_registersTheProjectWithItsInsights() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		stageProject("newProject", false, "first", "second");
+
+		SecurityProjectUtils.addProject("newProject", false, user);
+
+		assertTrue(SecurityProjectUtils.projectExists("newProject"));
+		assertEquals(2L, count("SELECT COUNT(*) FROM INSIGHT WHERE PROJECTID=?", "newProject"));
+		assertEquals(2L, count("SELECT COUNT(*) FROM INSIGHTMETA WHERE PROJECTID=?", "newProject"));
+	}
+
+	@Test
+	void testAddProject_aFailedInsightCopyKeepsTheProjectRegistered() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		stageProject("newProject", false, "first", "reject");
+
+		// the second insight fails after the first insight was written
+		addCheck("ADD_PROJECT_FAIL", "INSIGHT", "INSIGHTNAME <> 'reject'");
+		try {
+			assertDoesNotThrow(() -> SecurityProjectUtils.addProject("newProject", false, user));
+		} finally {
+			dropCheck("ADD_PROJECT_FAIL", "INSIGHT");
+		}
+
+		// the project's row was committed before the insights, which are all rolled
+		// back
+		assertTrue(SecurityProjectUtils.projectExists("newProject"));
+		assertEquals(0L, count("SELECT COUNT(*) FROM INSIGHT WHERE PROJECTID=?", "newProject"));
+		assertEquals(0L, count("SELECT COUNT(*) FROM INSIGHTMETA WHERE PROJECTID=?", "newProject"));
+	}
+
+	@Test
+	void testAddProject_aFailedProjectRowCopiesNoInsights() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		stageProject("newProject", false, "first", "second");
+
+		addCheck("ADD_PROJECT_ROW_FAIL", "PROJECT", "PROJECTID <> 'newProject'");
+		try {
+			assertDoesNotThrow(() -> SecurityProjectUtils.addProject("newProject", false, user));
+		} finally {
+			dropCheck("ADD_PROJECT_ROW_FAIL", "PROJECT");
+		}
+
+		assertFalse(SecurityProjectUtils.projectExists("newProject"));
+		assertEquals(0L, count("SELECT COUNT(*) FROM INSIGHT WHERE PROJECTID=?", "newProject"));
+	}
+
+	@Test
+	void testAddProject_reloadReplacesTheInsightsAndTheirPermissions() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createUser("second", false);
+		stageRegisteredProject(user);
+		Path smss = stageProject("reloaded", true, "kept");
+
+		SecurityProjectUtils.addProject("reloaded", true, user);
+
+		assertTrue(SecurityProjectUtils.projectIsGlobal("reloaded"));
+		assertEquals(1L, count("SELECT COUNT(*) FROM INSIGHT WHERE PROJECTID=?", "reloaded"));
+		assertEquals(1L, count("SELECT COUNT(*) FROM USERINSIGHTPERMISSION WHERE PROJECTID=? AND INSIGHTID=?",
+				"reloaded", "keptId"));
+		assertEquals(0L, count("SELECT COUNT(*) FROM USERINSIGHTPERMISSION WHERE PROJECTID=? AND INSIGHTID=?",
+				"reloaded", "goneId"));
+		assertEquals("false", Utility.loadProperties(smss.toString()).getProperty(Constants.RELOAD_INSIGHTS));
+	}
+
+	@Test
+	void testAddProject_aFailedReloadKeepsWhatWasThere() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createUser("second", false);
+		stageRegisteredProject(user);
+		Path smss = stageProject("reloaded", true, "kept", "reject");
+
+		addCheck("RELOAD_FAIL", "INSIGHT", "INSIGHTNAME <> 'reject'");
+		try {
+			assertDoesNotThrow(() -> SecurityProjectUtils.addProject("reloaded", true, user));
+		} finally {
+			dropCheck("RELOAD_FAIL", "INSIGHT");
+		}
+
+		// the project's row was updated before the insights; its insights and the
+		// permissions of the insight that is gone are as they were
+		assertTrue(SecurityProjectUtils.projectIsGlobal("reloaded"));
+		assertEquals(2L, count("SELECT COUNT(*) FROM INSIGHT WHERE PROJECTID=?", "reloaded"));
+		assertEquals(1L, count("SELECT COUNT(*) FROM USERINSIGHTPERMISSION WHERE PROJECTID=? AND INSIGHTID=?",
+				"reloaded", "goneId"));
+		// the reload is not asked for again
+		assertEquals("false", Utility.loadProperties(smss.toString()).getProperty(Constants.RELOAD_INSIGHTS));
+	}
+
+	/**
+	 * Registers the project "reloaded" with the insights "kept" and "gone", each
+	 * shared with the second user.
+	 */
+	private void stageRegisteredProject(User user) throws Exception {
+		UnitTestSecurityAuthUtils.createProject("reloaded", "reloadedName", user);
+		for (String insightId : List.of("keptId", "goneId")) {
+			UnitTestSecurityAuthUtils.createInsight("reloaded", insightId, insightId.replace("Id", ""), "grid");
+			SecurityInsightUtils.addInsightUser(user, "secondid", "reloaded", insightId, "READ_ONLY", null);
+		}
+	}
+
+	///
+	/// createInsightsDatabase: the security rows read in one transaction
+	///
+
+	@Test
+	void testCreateInsightsDatabase_copiesTheInsightsAndTheirMetadata() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("exported", "exportedName", user);
+		SecurityInsightUtils.addInsight("exported", "insightId", "insightName", true, "grid", false, -1, null, null,
+				false, List.of("AddPanel(0);"), null);
+		SecurityInsightUtils.updateInsightTags("exported", "insightId", List.of("tagged"));
+		stageLoadedProject("exported");
+		Path folder = Files.createDirectories(dbDir.resolve("exported_" + UUID.randomUUID()));
+
+		File databaseFile = SecurityProjectUtils.createInsightsDatabase("exported", folder.toString());
+
+		assertTrue(databaseFile.isFile());
+		IRDBMSEngine exported = InsightsRDBMSUtils.generateInsightsDatabase("exported", RdbmsTypeEnum.H2_DB,
+				folder.toString());
+		try {
+			assertEquals(List.of("insightId:insightName"),
+					QueryExecutionUtility.queryList(exported, "SELECT ID, QUESTION_NAME FROM QUESTION_ID",
+							QueryExecutionUtility.NO_PARAMETERS, rs -> rs.getString(1) + ":" + rs.getString(2)));
+			assertEquals(List.of("tagged"),
+					QueryExecutionUtility.queryList(exported, "SELECT METAVALUE FROM INSIGHTMETA WHERE INSIGHTID=?",
+							ps -> ps.setString(1, "insightId"), rs -> rs.getString(1)));
+		} finally {
+			exported.close();
+		}
+	}
+
+	@Test
+	void testCreateInsightsDatabase_aFailureLeavesNoFile() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("exported", "exportedName", user);
+		SecurityInsightUtils.addInsight("exported", "insightId", "insightName", true, "grid", false, -1, null, null,
+				false, List.of("AddPanel(0);"), null);
+		QueryExecutionUtility.executeUpdate(securityDb, "UPDATE INSIGHT SET RECIPE=? WHERE INSIGHTID=?", ps -> {
+			ps.setString(1, "{not a recipe");
+			ps.setString(2, "insightId");
+		});
+		stageLoadedProject("exported");
+		Path folder = Files.createDirectories(dbDir.resolve("exported_" + UUID.randomUUID()));
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> SecurityProjectUtils.createInsightsDatabase("exported", folder.toString()));
+		assertEquals("Error occured creating the insights database", e.getMessage());
+		assertFalse(new File(folder.toFile(), "insights_database.mv.db").exists());
+	}
+
+	/**
+	 * Puts a loaded project in DIHelper whose insights database is H2, as
+	 * createInsightsDatabase reads it.
+	 */
+	private void stageLoadedProject(String projectId) {
+		IRDBMSEngine insightsDb = mock(IRDBMSEngine.class);
+		when(insightsDb.getQueryUtil()).thenReturn(SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB));
+		IProject project = mock(IProject.class);
+		when(project.getInsightDatabase()).thenReturn(insightsDb);
+		DIHelper.getInstance().setProjectProperty(projectId, project);
+		stagedProjects.add(projectId);
+	}
+
+	/**
+	 * Writes a project's smss file, and puts the project in DIHelper as loaded,
+	 * with an insights database that has the insights named, each with a tag, as
+	 * addProject reads them. Each insight's id is its name and "Id".
+	 *
+	 * @return the smss file
+	 */
+	private Path stageProject(String projectId, boolean reloadInsights, String... insightNames) throws Exception {
+		Path folder = Files.createDirectories(dbDir.resolve(projectId + "_" + UUID.randomUUID()));
+		IRDBMSEngine insightsDb = InsightsRDBMSUtils.generateInsightsDatabase(projectId, RdbmsTypeEnum.H2_DB,
+				folder.toString());
+		InsightAdministrator admin = new InsightAdministrator(insightsDb);
+		for (String insightName : insightNames) {
+			String insightId = insightName + "Id";
+			admin.addInsight(insightId, insightName, "grid", new String[] { "AddPanel(0);" }, true, false, -1, null,
+					null, false, null);
+			admin.updateInsightTags(insightId, List.of(insightName + "Tag"));
+		}
+		IProject project = mock(IProject.class);
+		when(project.getInsightDatabase()).thenReturn(insightsDb);
+		DIHelper.getInstance().setProjectProperty(projectId, project);
+		stagedProjects.add(projectId);
+
+		Properties props = new Properties();
+		props.setProperty(Constants.PROJECT, projectId);
+		props.setProperty(Constants.PROJECT_ALIAS, projectId + "Name");
+		props.setProperty(Constants.RELOAD_INSIGHTS, String.valueOf(reloadInsights));
+		Path smss = UnitTestSecurityAuthUtils.createSmssFileFromProps(props, folder, projectId + ".smss");
+		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smss.toString());
+		return smss;
+	}
+
+	///
+	/// access request decisions and permission changes: one transaction, then
+	/// notifications
+	///
+
+	@Test
+	void testApproveProjectUserAccessRequests_notifiesOnlyAfterTheApprovalIsSaved() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User secondUser = UnitTestSecurityAuthUtils.createUser("second", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		SecurityProjectUtils.setUserAccessRequest("secondid", "NATIVE", "testProjectId", "reason", 2, secondUser);
+		List<Map<String, String>> requests = List.of(Map.of("requestid", pendingRequestId("testProjectId"), "userid",
+				"secondid", "type", "NATIVE", "permission", "EDIT"));
+
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class);
+				MockedStatic<EmailUtility> emails = mockStatic(EmailUtility.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+			notifications.when(() -> NotificationDbUtils.createNotification(any(), any(), any(), any(), any(), any(),
+					any(), any(), any(), any())).thenAnswer(invocation -> {
+						// the save has committed: no transaction holds the connection, and
+						// a read sees the grant and the approval
+						assertFalse(insideSecurityTransaction());
+						assertEquals(AccessPermissionEnum.EDIT.getId(),
+								SecurityProjectUtils.getUserProjectPermission("secondid", "testProjectId"));
+						assertTrue(SecurityProjectUtils.getUserAccessRequestsByProject("testProjectId").isEmpty());
+						return null;
+					});
+
+			SecurityProjectUtils.approveProjectUserAccessRequests(user, "testProjectId", requests, null);
+
+			notifications.verify(() -> NotificationDbUtils.createNotification(eq(user), eq("secondid"), eq("NATIVE"),
+					eq("testProjectId"), eq(NotificationConstants.Type.REQUEST_APPROVAL),
+					eq(NotificationConstants.APP_CATALOG), any(), isNull(), eq("EDIT"), any()), times(1));
+			emails.verify(() -> EmailUtility.sendAccessRequestApprovalEmailNotification(user, "secondid",
+					"testProjectId", "EDIT", EmailUtility.RESOURCE_TYPE.PROJECT), times(1));
+		}
+	}
+
+	@Test
+	void testApproveProjectUserAccessRequests_aFailedApprovalSavesNothingAndTellsNoOne() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User secondUser = UnitTestSecurityAuthUtils.createUser("second", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		SecurityProjectUtils.setUserAccessRequest("secondid", "NATIVE", "testProjectId", "reason", 2, secondUser);
+		List<Map<String, String>> requests = List.of(Map.of("requestid", pendingRequestId("testProjectId"), "userid",
+				"secondid", "type", "NATIVE", "permission", "EDIT"));
+
+		// marking the request approved fails after the grant was written
+		addCheck("APPROVE_FAIL", "PROJECTACCESSREQUEST", "APPROVER_DECISION <> 'APPROVED'");
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class);
+				MockedStatic<EmailUtility> emails = mockStatic(EmailUtility.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> SecurityProjectUtils.approveProjectUserAccessRequests(user, "testProjectId", requests, null));
+			assertEquals("An error occurred while approving the access requests", e.getMessage());
+			notifications.verifyNoInteractions();
+			emails.verifyNoInteractions();
+		} finally {
+			dropCheck("APPROVE_FAIL", "PROJECTACCESSREQUEST");
+		}
+
+		assertNull(SecurityProjectUtils.getUserProjectPermission("secondid", "testProjectId"));
+		assertEquals(1, SecurityProjectUtils.getUserAccessRequestsByProject("testProjectId").size());
+	}
+
+	@Test
+	void testDenyProjectUserAccessRequests_tellsTheProjectsRequestersOnlyAfterTheDenialIsSaved() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User secondUser = UnitTestSecurityAuthUtils.createUser("second", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createProject("otherProjectId", "otherProjectName", user);
+		SecurityProjectUtils.setUserAccessRequest("secondid", "NATIVE", "testProjectId", "reason", 2, secondUser);
+		SecurityProjectUtils.setUserAccessRequest("secondid", "NATIVE", "otherProjectId", "reason", 3, secondUser);
+		String requestId = pendingRequestId("testProjectId");
+		String otherRequestId = pendingRequestId("otherProjectId");
+
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+			notifications.when(() -> NotificationDbUtils.createNotification(any(), any(), any(), any(), any(), any(),
+					any(), any(), any(), any())).thenAnswer(invocation -> {
+						// the denial has committed: no transaction holds the connection,
+						// and a read sees it
+						assertFalse(insideSecurityTransaction());
+						assertTrue(SecurityProjectUtils.getUserAccessRequestsByProject("testProjectId").isEmpty());
+						return null;
+					});
+
+			// a request of another project is neither denied nor told
+			SecurityProjectUtils.denyProjectUserAccessRequests(user, "testProjectId",
+					List.of(requestId, otherRequestId));
+
+			notifications.verify(() -> NotificationDbUtils.createNotification(eq(user), eq("secondid"), eq("NATIVE"),
+					eq("testProjectId"), eq(NotificationConstants.Type.REQUEST_DENIAL),
+					eq(NotificationConstants.APP_CATALOG), any(), isNull(), eq("EDIT"), any()), times(1));
+			notifications.verify(() -> NotificationDbUtils.createNotification(any(), any(), any(), eq("otherProjectId"),
+					any(), any(), any(), any(), any(), any()), never());
+		}
+
+		assertEquals(1, SecurityProjectUtils.getUserAccessRequestsByProject("otherProjectId").size());
+	}
+
+	@Test
+	void testDenyProjectUserAccessRequests_aFailedDenialTellsNoOne() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User secondUser = UnitTestSecurityAuthUtils.createUser("second", true);
+		User thirdUser = UnitTestSecurityAuthUtils.createUser("third", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		SecurityProjectUtils.setUserAccessRequest("secondid", "NATIVE", "testProjectId", "reason", 2, secondUser);
+		SecurityProjectUtils.setUserAccessRequest("thirdid", "NATIVE", "testProjectId", "reason", 3, thirdUser);
+		List<String> requestIds = new ArrayList<>();
+		for (Map<String, Object> request : SecurityProjectUtils.getUserAccessRequestsByProject("testProjectId")) {
+			requestIds.add(request.get("ID").toString());
+		}
+
+		// the third person's request cannot be denied, so neither is
+		addCheck("DENY_FAIL", "PROJECTACCESSREQUEST", "REQUEST_USERID <> 'thirdid' OR APPROVER_DECISION <> 'DENIED'");
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> SecurityProjectUtils.denyProjectUserAccessRequests(user, "testProjectId", requestIds));
+			assertEquals("An error occurred while updating user access request", e.getMessage());
+			notifications.verifyNoInteractions();
+		} finally {
+			dropCheck("DENY_FAIL", "PROJECTACCESSREQUEST");
+		}
+
+		assertEquals(2, SecurityProjectUtils.getUserAccessRequestsByProject("testProjectId").size());
+	}
+
+	@Test
+	void testAddProjectUserPermissions_notifiesOnlyAfterEveryoneIsSaved() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createUser("second", false);
+		UnitTestSecurityAuthUtils.createUser("third", false);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		List<Map<String, String>> permissions = List.of(Map.of("userid", "secondid", "permission", "READ_ONLY"),
+				Map.of("userid", "thirdid", "permission", "EDIT"));
+
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+			notifications.when(() -> NotificationDbUtils.createNotification(any(), any(), any(), any(), any(), any(),
+					any(), any(), any(), any())).thenAnswer(invocation -> {
+						// the save has committed: no transaction holds the connection, and
+						// a read sees everyone it added
+						assertFalse(insideSecurityTransaction());
+						assertEquals(AccessPermissionEnum.READ_ONLY.getId(),
+								SecurityProjectUtils.getUserProjectPermission("secondid", "testProjectId"));
+						assertEquals(AccessPermissionEnum.EDIT.getId(),
+								SecurityProjectUtils.getUserProjectPermission("thirdid", "testProjectId"));
+						return null;
+					});
+
+			SecurityProjectUtils.addProjectUserPermissions(user, "testProjectId", permissions, null);
+
+			notifications.verify(() -> NotificationDbUtils.createNotification(any(), any(), any(), eq("testProjectId"),
+					eq(NotificationConstants.Type.USER_ADDITION), eq(NotificationConstants.APP_CATALOG), any(), any(),
+					any(), any()), times(2));
+		}
+	}
+
+	@Test
+	void testAddProjectUserPermissions_aFailedSaveAddsNoOneAndTellsNoOne() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createUser("second", false);
+		UnitTestSecurityAuthUtils.createUser("third", false);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		List<Map<String, String>> permissions = List.of(Map.of("userid", "secondid", "permission", "READ_ONLY"),
+				Map.of("userid", "thirdid", "permission", "EDIT"));
+
+		// the second grant fails after the first was written
+		addCheck("ADD_FAIL", "PROJECTPERMISSION", "USERID <> 'thirdid'");
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> SecurityProjectUtils.addProjectUserPermissions(user, "testProjectId", permissions, null));
+			assertEquals("An error occurred adding user permissions for this project", e.getMessage());
+			notifications.verifyNoInteractions();
+		} finally {
+			dropCheck("ADD_FAIL", "PROJECTPERMISSION");
+		}
+
+		assertNull(SecurityProjectUtils.getUserProjectPermission("secondid", "testProjectId"));
+		assertNull(SecurityProjectUtils.getUserProjectPermission("thirdid", "testProjectId"));
+	}
+
+	@Test
+	void testEditProjectUserPermissions_notifiesOnlyAfterEveryChangeIsSaved() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createUser("second", false);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		SecurityProjectUtils.addProjectUser(user, "secondid", "testProjectId", "READ_ONLY", null);
+		List<Map<String, String>> requests = List
+				.of(Map.of("userid", "secondid", "type", "NATIVE", "permission", "EDIT"));
+
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+			notifications.when(() -> NotificationDbUtils.createNotification(any(), any(), any(), any(), any(), any(),
+					any(), any(), any(), any())).thenAnswer(invocation -> {
+						// the save has committed: no transaction holds the connection, and
+						// a read sees the change
+						assertFalse(insideSecurityTransaction());
+						assertEquals(AccessPermissionEnum.EDIT.getId(),
+								SecurityProjectUtils.getUserProjectPermission("secondid", "testProjectId"));
+						return null;
+					});
+
+			SecurityProjectUtils.editProjectUserPermissions(user, "testProjectId", requests, null);
+
+			notifications.verify(() -> NotificationDbUtils.createNotification(eq(user), eq("secondid"), any(),
+					eq("testProjectId"), eq(NotificationConstants.Type.PERMISSION_CHANGE),
+					eq(NotificationConstants.APP_CATALOG), any(), eq("READ_ONLY"), eq("EDIT"), any()), times(1));
+		}
+	}
+
+	///
+	/// setProjectVisibility: every login or none
+	///
+
+	@Test
+	void testSetProjectVisibility_savesEveryLoginOrNone() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		AccessToken github = new AccessToken();
+		github.setId("admingithub");
+		github.setName("adminname");
+		github.setProvider(AuthProvider.GITHUB);
+		user.setAccessToken(github);
+
+		// the second login's row fails after the first login's was written
+		addCheck("VISIBILITY_FAIL", "USERPROJECTPREFERENCE", "TYPE <> 'GITHUB'");
+		try {
+			assertThrows(Exception.class,
+					() -> SecurityProjectUtils.setProjectVisibility(user, "testProjectId", false));
+		} finally {
+			dropCheck("VISIBILITY_FAIL", "USERPROJECTPREFERENCE");
+		}
+		assertEquals(0L, count("SELECT COUNT(*) FROM USERPROJECTPREFERENCE WHERE PROJECTID=? AND VISIBILITY=FALSE",
+				"testProjectId"));
+
+		SecurityProjectUtils.setProjectVisibility(user, "testProjectId", false);
+		assertEquals(2L, count("SELECT COUNT(*) FROM USERPROJECTPREFERENCE WHERE PROJECTID=? AND VISIBILITY=FALSE",
+				"testProjectId"));
+	}
+
+	private long count(String sql, Object... params) throws SQLException {
+		return ((Number) UnitTestGroupTables.queryValue(securityDb, sql, params)).longValue();
+	}
+
+	private static String pendingRequestId(String projectId) {
+		List<Map<String, Object>> pending = SecurityProjectUtils.getUserAccessRequestsByProject(projectId);
+		assertEquals(1, pending.size());
+		return pending.getFirst().get("ID").toString();
+	}
+
+	/**
+	 * Whether this thread is inside a security database transaction: a write holds
+	 * the engine's connection until it has committed or rolled back.
+	 */
+	private boolean insideSecurityTransaction() throws SQLException {
+		Connection connection = securityDb.getConnection();
+		try {
+			return Thread.holdsLock(connection);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, connection);
+		}
+	}
+
+	/**
+	 * Adds a check to a security table, so a test can fail a later statement of a
+	 * save on purpose; {@link #dropCheck} takes it off again.
+	 */
+	private void addCheck(String name, String table, String condition) throws Exception {
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"ALTER TABLE " + table + " ADD CONSTRAINT " + name + " CHECK (" + condition + ")",
+				QueryExecutionUtility.NO_PARAMETERS);
+	}
+
+	private void dropCheck(String name, String table) throws Exception {
+		QueryExecutionUtility.executeUpdate(securityDb, "ALTER TABLE " + table + " DROP CONSTRAINT " + name,
+				QueryExecutionUtility.NO_PARAMETERS);
 	}
 
 }

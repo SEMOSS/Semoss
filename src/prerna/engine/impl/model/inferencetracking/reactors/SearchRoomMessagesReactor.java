@@ -43,60 +43,106 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class SearchRoomMessagesReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(SearchRoomMessagesReactor.class);
 
+	private static final String INCLUDE_UNNAMED_ROOMS = "includeUnnamedRooms";
+	private static final String INCLUDE_CHILD_ROOMS = "includeChildRooms";
+
 	public SearchRoomMessagesReactor() {
-		// this expects projectId and search term
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.SEARCH.getKey(), };
-		this.keyRequired = new int[] { 0, 1 };
+		this.keysToGet = new String[] {
+				ReactorKeysEnum.PROJECT.getKey(),
+				ReactorKeysEnum.SEARCH.getKey(),
+				ReactorKeysEnum.LIMIT.getKey(),
+				ReactorKeysEnum.OFFSET.getKey(),
+				INCLUDE_UNNAMED_ROOMS,
+				INCLUDE_CHILD_ROOMS
+		};
+		this.keyRequired = new int[] { 0, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 
-		// Get user
 		User user = this.insight.getUser();
 		if (user == null) {
 			throw new IllegalArgumentException("You are not properly logged in");
 		}
 		String userId = user.getPrimaryLoginToken().getId();
 
-		// Get projectId
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (projectId == null) {
+		if (projectId == null || projectId.trim().isEmpty()) {
 			projectId = this.insight.getContextProjectId();
 		}
+		if (projectId == null || projectId.trim().isEmpty()) {
+			projectId = this.insight.getProjectId();
+		}
+		if (projectId == null || projectId.trim().isEmpty()) {
+			projectId = null;
+		}
 
-		// Get keyword
 		String keyword = this.keyValue.get(this.keysToGet[1]);
 		if (keyword == null || keyword.trim().isEmpty()) {
 			throw new IllegalArgumentException("Search keyword must be provided");
 		}
 
-		// Query messages
+		Long requestedLimit;
+		Long requestedOffset;
+		try {
+			requestedLimit = getLong(ReactorKeysEnum.LIMIT.getKey());
+			requestedOffset = getLong(ReactorKeysEnum.OFFSET.getKey());
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Limit and offset must be whole numbers", e);
+		}
+		if (requestedLimit != null && requestedLimit <= 0) {
+			throw new IllegalArgumentException("Limit must be greater than zero");
+		}
+		if (requestedOffset != null && requestedOffset < 0) {
+			throw new IllegalArgumentException("Offset must be zero or greater");
+		}
+		if (requestedOffset != null && requestedOffset > 0 && requestedLimit == null) {
+			throw new IllegalArgumentException("A positive limit is required when offset is provided");
+		}
+		long limit = requestedLimit == null ? -1L : requestedLimit;
+		long offset = requestedOffset == null ? 0L : requestedOffset;
+		boolean includeUnnamedRooms = getBoolean(INCLUDE_UNNAMED_ROOMS, false);
+		boolean includeChildRooms = getBoolean(INCLUDE_CHILD_ROOMS, false);
+
 		List<Map<String, Object>> results;
 		try {
-			results = ModelInferenceLogsUtils.searchMessages(userId, projectId, keyword);
+			results = ModelInferenceLogsUtils.searchMessages(userId, projectId, keyword, limit, offset,
+					includeUnnamedRooms, includeChildRooms);
 		} catch (Exception e) {
 			classLogger.error("Error searching room messages", e);
 			throw new RuntimeException("Could not search room messages: " + e.getMessage(), e);
 		}
 
-		// Return results as VECTOR
 		return new NounMetadata(results, PixelDataType.VECTOR);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor searches through the messages in the user's conversation rooms for a given keyword within a specified project. "
-				+ "It returns the matching messages, including relevant details such as room ID, message text, and message ID, for rooms the user has access to.";
+		return "Searches through the messages in the user's conversation rooms for a given keyword. "
+				+ "Returns one row per matching room: room_id, room_name, and the latest matching date_created. "
+				+ "Case-insensitive matching is handled by the query framework's ?like comparator. "
+				+ "Unnamed and child rooms are excluded unless explicitly included. "
+				+ "Falls back to the current insight's context/project when projectId is omitted; "
+				+ "if none is available, searches all projects for the user. "
+				+ "Supports limit and offset for pagination over matching rooms.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The project ID for which to search room messages. If no project ID is passed, then all rooms for the user will be searched.";
+			return "Optional project ID to scope the search. Falls back to the current insight's project, then searches all projects for the user if no project is available.";
 		} else if (key.equals(ReactorKeysEnum.SEARCH.getKey())) {
-			return "The search term to use to search for within the messages. All messages containing this text (case-insensitive) will be returned.";
+			return "The keyword to search for within message content (case-insensitive).";
+		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "Maximum number of results to return. Defaults to no cap when omitted.";
+		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
+			return "Number of results to skip for pagination.";
+		} else if (key.equals(INCLUDE_UNNAMED_ROOMS)) {
+			return "Whether to include rooms with a null or empty name. Defaults to false.";
+		} else if (key.equals(INCLUDE_CHILD_ROOMS)) {
+			return "Whether to include rooms that have a parent room. Defaults to false.";
 		}
 		return super.getDescriptionForKey(key);
 	}

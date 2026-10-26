@@ -29,6 +29,7 @@ package prerna.engine.impl.model;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -45,9 +46,12 @@ import com.google.gson.Gson;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.batch.ModelBatchManager;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.BatchListResponse;
@@ -56,9 +60,14 @@ import prerna.engine.impl.model.responses.BatchStatusResponse;
 import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.MultiModalEmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.usage.ModelUsageLimitException;
+import prerna.engine.impl.model.usage.ModelUsageReport;
+import prerna.engine.impl.model.usage.ModelUsageRequest;
+import prerna.engine.impl.model.usage.ModelUsageTicket;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
 import prerna.util.Settings;
@@ -73,6 +82,7 @@ import prerna.util.Utility;
 public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
+	private static final String INPUT_MODALITIES_PARAM = "_semoss_input_modalities";
 
 	// python server
 	protected String prefix = null;
@@ -108,10 +118,15 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 
 		// vars for string substitution
+		this.vars.clear();
 		for (Object smssKey : this.smssProp.keySet()) {
 			String key = smssKey.toString();
 			this.vars.put(key, this.smssProp.getProperty(key));
 		}
+		// Older init scripts still reference these placeholders. A cleared limit
+		// must resolve to Python None, not a stale value or an unresolved token.
+		this.vars.putIfAbsent(Constants.CONTEXT_WINDOW, "None");
+		this.vars.putIfAbsent(Constants.MAX_TOKENS, "None");
 	}
 
 	/**
@@ -185,10 +200,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				}
 
 				String serverDirectory = this.cacheFolder.getAbsolutePath();
-				// it has to be -- don't change this unless you can send engine calls from
-				// python
 				boolean nativePyServer = true;
 				try {
+					cpwToInit.setEngineOwned(true);
 					cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory,
 							customClassPath, debug, timeout, loggerLevel);
 				} catch (Exception e) {
@@ -249,6 +263,55 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 
 	/**
+	 * Whether the caller already named an output token limit under any of the
+	 * aliases the python message builders accept.
+	 */
+	private static boolean hasMaxTokensParam(Map<String, Object> parameters) {
+		return parameters.containsKey(MAX_TOKENS) || parameters.containsKey("max_completion_tokens")
+				|| parameters.containsKey("max_output_tokens") || parameters.containsKey("max_new_tokens");
+	}
+
+	/** Clients using the shared genai_client document preparation step. */
+	private boolean supportsDocumentInputProcessing() {
+		return switch (getModelType()) {
+		case OPEN_AI, AZURE_OPEN_AI, ANTHROPIC, BEDROCK, VERTEX, TEXT_GENERATION -> true;
+		default -> false;
+		};
+	}
+
+	/**
+	 * Documents can reach the Python client for text extraction even when the model
+	 * does not accept them natively. Python rejects unsupported formats or failed
+	 * conversions before calling the provider. FILE is treated as broad native
+	 * document support, including PDF. Other media keep their usual gate.
+	 */
+	@Override
+	protected void requireInputModalityAllowed(ModelModalityEnum modality) {
+		if (supportsDocumentInputProcessing() && this.inputModalities != null
+				&& (modality == ModelModalityEnum.PDF || modality == ModelModalityEnum.FILE)
+				&& (this.inputModalities.contains(ModelModalityEnum.TEXT)
+						|| this.inputModalities.contains(ModelModalityEnum.FILE))) {
+			return;
+		}
+		super.requireInputModalityAllowed(modality);
+	}
+
+	/**
+	 * Carry the selected engine's capabilities to Python without persisting them in
+	 * conversation history or requiring an init-script argument. The shared message
+	 * builder consumes this internal parameter before building API params.
+	 * Caller-supplied values never override engine metadata (including in routers).
+	 */
+	private Map<String, Object> withInputModalities(Map<String, Object> parameters) {
+		Map<String, Object> prepared = parameters == null ? new HashMap<>() : new HashMap<>(parameters);
+		prepared.remove(INPUT_MODALITIES_PARAM);
+		if (supportsDocumentInputProcessing() && this.inputModalities != null) {
+			prepared.put(INPUT_MODALITIES_PARAM, this.inputModalities.stream().map(Enum::name).sorted().toList());
+		}
+		return prepared;
+	}
+
+	/**
 	 * This method checks whether the socket client is instantiated and connected.
 	 */
 	protected void checkSocketStatus() {
@@ -269,73 +332,34 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 
 	@Override
-	public AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
-			String roomId, Map<String, Object> parameters) {
+	public AskModelEngineResponse askCall(InputMessage inputMessage, Insight insight, String roomId,
+			Map<String, Object> parameters) {
 		if (ModelInferenceLogsUtils.isRoomInActive(insight.getUserId(), roomId)) {
 			throw new IllegalArgumentException(
 					"The room being referenced has been permanently closed. Please open a new room");
 		}
 		checkSocketStatus();
 
-		final String TRIPLE_QUOTE = "\"\"\"";
+		parameters = withInputModalities(parameters);
+
+		// ride the engine's saved built-in tool selection and max output
+		// tokens along on the request unless the caller supplied their own
+		if (this.builtinTools != null || this.maxTokens != null) {
+			if (parameters == null) {
+				parameters = new HashMap<>();
+			}
+			if (this.builtinTools != null && !parameters.containsKey(BUILT_IN_TOOLS)) {
+				parameters.put(BUILT_IN_TOOLS, this.builtinTools);
+			}
+			if (this.maxTokens != null && !hasMaxTokensParam(parameters)) {
+				parameters.put(MAX_TOKENS, this.maxTokens);
+			}
+		}
+
+		parameters = applyReasoningParameters(parameters);
+		parameters = applyTemperatureParameter(parameters);
+
 		StringBuilder callMaker = new StringBuilder(varName + ".ask(");
-
-//		// TODO fullPrompt should be removed
-//		if (fullPrompt != null) {
-//			callMaker.append(FULL_PROMPT).append("=").append(PyUtils.determineStringType(fullPrompt));
-//			if (context != null) {
-//				if (context.startsWith("\"")) {
-//					context = " " + context;
-//				}
-//				if (context.endsWith("\"")) {
-//					context = context + " ";
-//				}
-//				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-//				callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
-//			}
-//		}
-//		else {
-//			if (question.startsWith("\"")) {
-//				question = " " + question;
-//			}
-//			if (question.endsWith("\"")) {
-//				question = question + " ";
-//			}
-//			question = question.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-//			callMaker.append("question=").append(TRIPLE_QUOTE).append(question).append(TRIPLE_QUOTE);
-//
-//			if (context != null) {
-//				if (context.startsWith("\"")) {
-//					context = " " + context;
-//				}
-//				if (context.endsWith("\"")) {
-//					context = context + " ";
-//				}
-//				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-//				callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
-//			}
-//
-//			// if we are doing message_json (new world playground chat)
-//			// we should ignore trying to add additional history
-//			// TODO: remove the entire chatHistory object from the python model entirely
-//			// otherwise we end up with 2 history= params being sent to the json
-//			if (!parameters.containsKey("message_json")) {
-//				if (parameters.containsKey("toolExecution")) {
-//					Map<String, Object> toolExecutionMap = (Map<String, Object>) parameters.get("toolExecution");
-//					if (chatHistory.containsKey(insight.getInsightId())) {
-//						chatHistory.get(insight.getInsightId()).add(toolExecutionMap);
-//					}
-//					parameters.remove("toolExecution");
-//				}
-//
-//				String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
-//				if (history != null) {
-//					// could still be null if its the first question in the convo
-//					callMaker.append(",").append("history=").append(history);
-//				}
-//			}
-//		}
-
 		if (parameters != null && !parameters.isEmpty()) {
 			Iterator<Map.Entry<String, Object>> paramEntries = parameters.entrySet().iterator();
 			boolean isFirst = true;
@@ -358,6 +382,11 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		classLogger.debug("Running model command {}", callMaker.toString());
 
 		Object output = pyTranslator.runDirectPyNoCancelTrace(insight, callMaker.toString());
+		// the client refused the call before the provider saw it: it does not fit in
+		// what is left of the usage limit
+		if (ModelUsageTicket.callDoesNotFit(output)) {
+			throw ModelUsageLimitException.doesNotFit(ModelUsageTicket.doesNotFitMessage(output));
+		}
 		AskModelEngineResponse response = null;
 		try {
 			response = AskModelEngineResponse.fromObject(output);
@@ -401,6 +430,11 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		callMaker.append(")");
 
 		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
+		// the client refused the call because what is embedded does not fit in what is
+		// left of the usage limit
+		if (ModelUsageTicket.callDoesNotFit(output)) {
+			throw ModelUsageLimitException.doesNotFit(ModelUsageTicket.doesNotFitMessage(output));
+		}
 		EmbeddingsModelEngineResponse response = null;
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);
@@ -426,38 +460,91 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			video = new ArrayList<>();
 		}
 
-		StringBuilder callMaker = new StringBuilder();
-		callMaker.append(varName).append(".multi_modal_embeddings(")
-				.append("text = ").append(PyUtils.determineStringType(text))
-				.append(", image = ").append(PyUtils.determineStringType(image))
-				.append(", video = ").append(PyUtils.determineStringType(video));
+		if (!image.isEmpty()) {
+			requireInputModalityAllowed(ModelModalityEnum.IMAGE);
+		}
+		if (!video.isEmpty()) {
+			requireInputModalityAllowed(ModelModalityEnum.VIDEO);
+		}
 
-		if (parameters != null && !parameters.isEmpty()) {
-			Iterator<String> paramKeys = parameters.keySet().iterator();
+		// usage limits: images and videos count as an image's worth of tokens each,
+		// and the call is fitted in its usage_ceiling like embeddings
+		List<String> texts = text;
+		long mediaCount = image.size() + video.size();
+		Map<String, Object> callParameters = parameters == null ? null : new HashMap<>(parameters);
+		Object passedOnCeiling = ModelUsageRestrictionUtility.takeUsageCeiling(callParameters);
+		ModelUsageTicket usageTicket = orNoLimits(ModelUsageRestrictionUtility
+				.admit(insight == null ? null : insight.getUser(), this, usageRequestFor(ModelUsageRequest.embeddings(
+						() -> ModelUsageRequest.estimateTokens(texts) + mediaCount * ModelUsageRequest.IMAGE_TOKENS))));
+		if (acceptsUsageCeiling()) {
+			callParameters = ModelUsageRestrictionUtility.withUsageCeiling(callParameters, usageTicket,
+					passedOnCeiling);
+		}
+
+		StringBuilder callMaker = new StringBuilder();
+		callMaker.append(varName).append(".multi_modal_embeddings(").append("text = ")
+				.append(PyUtils.determineStringType(text)).append(", image = ")
+				.append(PyUtils.determineStringType(image)).append(", video = ")
+				.append(PyUtils.determineStringType(video));
+
+		if (callParameters != null && !callParameters.isEmpty()) {
+			Iterator<String> paramKeys = callParameters.keySet().iterator();
 			while (paramKeys.hasNext()) {
 				String key = paramKeys.next();
-				Object value = parameters.get(key);
+				Object value = callParameters.get(key);
 				callMaker.append(",").append(key).append("=").append(PyUtils.determineStringType(value));
 			}
 		}
 
 		callMaker.append(")");
 
-		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
+		ZonedDateTime inputTime = ZonedDateTime.now();
+		Object output;
+		try {
+			output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
+		} catch (RuntimeException e) {
+			usageTicket.release();
+			throw e;
+		}
+		ZonedDateTime outputTime = ZonedDateTime.now();
+		// the client refused the call because what is embedded does not fit in what is
+		// left of the usage limit
+		if (ModelUsageTicket.callDoesNotFit(output)) {
+			usageTicket.release();
+			throw usageTicket
+					.doesNotFit(ModelUsageLimitException.doesNotFit(ModelUsageTicket.doesNotFitMessage(output)));
+		}
 		MultiModalEmbeddingsModelEngineResponse response = null;
 		try {
 			response = MultiModalEmbeddingsModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
+			usageTicket.release();
 			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
+		Integer promptTokens = response.getNumberOfTokensInPrompt();
+		usageTicket.bill(new ModelUsageReport(promptTokens == null ? 0 : promptTokens, 0, 0, 0, 0,
+				ModelUsageReport.millisBetween(inputTime, outputTime)).asEmbeddings());
 		return response;
+	}
+
+	/**
+	 * The Python clients fit each ask, embeddings and multi-modal embeddings call
+	 * inside its {@code usage_ceiling}.
+	 */
+	@Override
+	protected boolean acceptsUsageCeiling() {
+		return true;
 	}
 
 	// ------------------------------------------------------------------
 	// Batch model calls -- delegate to the Python client (same hop as askCall).
-	// Native batch is gated to OpenAI / Azure OpenAI / Anthropic model types;
-	// other Python engines inherit these overrides but reject via supportsBatch().
+	// Native batch is gated to OpenAI / Azure OpenAI / Anthropic model types,
+	// plus VERTEX (Anthropic-on-Vertex and Gemini-on-Vertex, both staged
+	// through a GCS storage engine -- see BatchLLMReactor's STORAGE key);
+	// other Python engines inherit these overrides but reject via
+	// supportsBatch(). A future non-batch-capable VERTEX provider would pass
+	// this gate but fail cleanly Python-side via NotImplementedError.
 	// ------------------------------------------------------------------
 
 	private static final Gson BATCH_GSON = new Gson();
@@ -465,7 +552,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	@Override
 	public boolean supportsBatch() {
 		ModelTypeEnum type = this.getModelType();
-		return type == ModelTypeEnum.OPEN_AI || type == ModelTypeEnum.AZURE_OPEN_AI || type == ModelTypeEnum.ANTHROPIC;
+		return type == ModelTypeEnum.OPEN_AI || type == ModelTypeEnum.AZURE_OPEN_AI || type == ModelTypeEnum.ANTHROPIC
+				|| type == ModelTypeEnum.VERTEX;
 	}
 
 	private void assertBatchSupported() {
@@ -496,13 +584,32 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	public BatchSubmissionResponse submitBatch(List<Map<String, Object>> requests, Map<String, Object> parameters) {
 		assertBatchSupported();
 		checkSocketStatus();
-		String requestsJson = BATCH_GSON.toJson(requests);
+		// usage limits: the whole batch's ceiling is reserved when it is submitted,
+		// with each request's output maximum capped so the batch fits in it
+		ModelBatchManager.BatchUsage batchUsage = ModelBatchManager.admitBatch(ThreadStore.getUser(), this, requests);
+		// SEMOSS histories use the same preparation as synchronous asks. Already
+		// assembled provider-native batch bodies retain their existing behavior.
+		List<Map<String, Object>> prepared = batchUsage.requests() == null ? null
+				: batchUsage.requests().stream()
+						.map(request -> request != null && request.containsKey("message_json")
+								? withInputModalities(request)
+								: request)
+						.toList();
+		String requestsJson = BATCH_GSON.toJson(prepared);
 		StringBuilder callMaker = new StringBuilder(varName + ".submit_batch(");
 		callMaker.append("requests=").append(PyUtils.determineStringType(requestsJson));
 		appendKwargs(callMaker, parameters, true);
 		callMaker.append(")");
-		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
-		return BatchSubmissionResponse.fromObject(output);
+		BatchSubmissionResponse response;
+		try {
+			Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
+			response = BatchSubmissionResponse.fromObject(output);
+		} catch (RuntimeException e) {
+			batchUsage.ticket().release();
+			throw e;
+		}
+		ModelBatchManager.holdBatchUsage(this, response.getProviderBatchId(), batchUsage);
+		return response;
 	}
 
 	@Override
@@ -514,7 +621,10 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		appendKwargs(callMaker, parameters, true);
 		callMaker.append(")");
 		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
-		return BatchStatusResponse.fromObject(output);
+		BatchStatusResponse response = BatchStatusResponse.fromObject(output);
+		// a batch that failed before any request ran has nothing to bill
+		ModelBatchManager.releaseFailedBatch(this, providerBatchId, response.getStatus());
+		return response;
 	}
 
 	@Override
@@ -526,7 +636,10 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		appendKwargs(callMaker, parameters, true);
 		callMaker.append(")");
 		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
-		return BatchResultsResponse.fromObject(output);
+		BatchResultsResponse response = BatchResultsResponse.fromObject(output);
+		// a batch is billed as its results come in
+		ModelBatchManager.billBatchResults(ThreadStore.getUser(), this, providerBatchId, response);
+		return response;
 	}
 
 	@Override
@@ -580,6 +693,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 
 	/**
+	 * Fills the {@code ${...}} placeholders in a command of the engine's init
+	 * script with the engine's smss properties.
 	 * 
 	 * @param input
 	 * @return

@@ -31,6 +31,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -41,7 +43,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class RunMCPToolReactor extends AbstractReactor {
 
 	// Agent HITL keys (optional). When actionId is present, this call is a
-	// decision on a paused agent tool call and is delegated to AgentToolDecisionHandler.
+	// decision on a paused agent tool call and is delegated to
+	// AgentToolDecisionHandler.
 	private static final String RUN_ID_KEY = "runId";
 	private static final String ROOM_ID_KEY = ReactorKeysEnum.ROOM_ID.getKey();
 	private static final String TOOL_CALL_ID_KEY = "toolCallId";
@@ -91,24 +94,30 @@ public class RunMCPToolReactor extends AbstractReactor {
 					PixelOperationType.MCP_TOOL_EXECUTION);
 		}
 
-		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
-		if (engineId == null || engineId.isEmpty()) {
-			engineId = insight.getContextProjectId();
-			if (engineId == null || engineId.isEmpty()) {
-				engineId = insight.getProjectId();
-			}
-		}
-		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must provide the project id or set the app context");
-		}
+		String engineId = resolveContextEngineId(this.keyValue.get(this.keysToGet[0].split(",")[0]));
 
 		String toolName = this.keyValue.get(this.keysToGet[1]);
+		String roomId = this.keyValue.get(ROOM_ID_KEY);
+		Room room = null;
+		if (roomId != null && !roomId.isBlank()) {
+			room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+			if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
+				this.insight.setRoomForInsight(room);
+			}
+			// The caller sends back the aliased name the model was given. The room
+			// still holds the map that produced that alias, so undo it here rather
+			// than leaving the resolver to match a possibly truncated name.
+			toolName = room.resolveOriginalToolName(toolName);
+		}
 
 		// these are the params
 		Map<String, Object> paramMap = getMap();
 
-		return new NounMetadata(MCPUtility.executeTool(engineId, toolName, paramMap, this.insight),
-				PixelDataType.MCP_TOOL_EXECUTION, PixelOperationType.MCP_TOOL_EXECUTION);
+		Object toolOutput = MCPUtility.executeTool(engineId, toolName, paramMap, this.insight);
+		if (room != null && toolOutput instanceof String) {
+			toolOutput = MCPUtility.externalizeToolResultMedia((String) toolOutput, room);
+		}
+		return new NounMetadata(toolOutput, PixelDataType.MCP_TOOL_EXECUTION, PixelOperationType.MCP_TOOL_EXECUTION);
 	}
 
 	/**

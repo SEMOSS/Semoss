@@ -127,11 +127,22 @@ public final class RemoteBrowserSelectorService {
 
 			  function labelText(el) {
 			    if (!el) return "";
-			    if (el.labels && el.labels.length) return (el.labels[0].innerText || "").trim();
 			    const aria = el.getAttribute("aria-label");
 			    if (aria) return aria;
+			    if (el.labels && el.labels.length) return (el.labels[0].innerText || "").trim();
 			    const lab = el.closest && el.closest("label");
-			    return lab ? (lab.innerText || "").trim() : "";
+			    if (lab) return (lab.innerText || "").trim();
+			    const placeholder = el.getAttribute("placeholder");
+			    if (placeholder) return placeholder.trim();
+			    const title = el.getAttribute("title");
+			    if (title) return title.trim();
+			    const alt = el.getAttribute("alt");
+			    if (alt) return alt.trim();
+			    // For text controls, visible text can be the value the user just entered.
+			    // Never copy that value into the semantic label used by metadata inference.
+			    if (isTextControl(el)) return "";
+			    const visibleText = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
+			    return visibleText.slice(0, 180);
 			  }
 
 			  function isTextControl(el) {
@@ -308,7 +319,7 @@ public final class RemoteBrowserSelectorService {
 			return;
 		}
 
-		Page page = session.getPage();
+		Page page = session.getActivePage();
 		if (page == null || page.isClosed()) {
 			return;
 		}

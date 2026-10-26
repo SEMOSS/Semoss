@@ -33,8 +33,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 import java.nio.file.Path;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,12 +54,28 @@ import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
+import prerna.auth.AccessPermissionEnum;
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.ModelUsageLimit;
+import prerna.auth.access.ModelUsageLimitKey;
+import prerna.auth.access.ModelUsageLimitRule;
+import prerna.auth.access.ModelUsageLimitRule.Counts;
+import prerna.auth.access.ModelUsageLimitRule.Metric;
+import prerna.auth.access.ModelUsageLimitRule.Window;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.notifications.NotificationDbUtils;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.EmailUtility;
+import prerna.util.NotificationConstants;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
+import prerna.util.Utility;
 
 public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -339,6 +363,25 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		assertNull(val);
 	}
 
+	@Test
+	void testSetDefaultEngineMarkdownOnlyFillsEmptyMetadata() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createEngine("id1", "name1", IEngine.CATALOG_TYPE.GUARDRAIL, user);
+
+		SecurityEngineUtils.setDefaultEngineMarkdown("id1", "First default");
+		assertEquals("First default", SecurityEngineUtils
+				.getAggregateEngineMetadata("id1", List.of(Constants.MARKDOWN), false).get(Constants.MARKDOWN));
+
+		SecurityEngineUtils.setDefaultEngineMarkdown("id1", "Second default");
+		assertEquals("First default", SecurityEngineUtils
+				.getAggregateEngineMetadata("id1", List.of(Constants.MARKDOWN), false).get(Constants.MARKDOWN));
+
+		SecurityEngineUtils.updateEngineMetadata("id1", Map.of(Constants.MARKDOWN, ""));
+		SecurityEngineUtils.setDefaultEngineMarkdown("id1", "Replacement default");
+		assertEquals("Replacement default", SecurityEngineUtils
+				.getAggregateEngineMetadata("id1", List.of(Constants.MARKDOWN), false).get(Constants.MARKDOWN));
+	}
+
 	///
 	/// getUserEnginePermission
 	///
@@ -394,8 +437,10 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		updates.add(updatesMap);
 		SecurityEngineUtils.updateEngineUserPermissions(user, updates);
 
+		UnitTestSecurityAuthUtils.createUser("second", false);
 		List<Map<String, String>> requests = new ArrayList<>();
 		Map<String, String> request = new HashMap<>();
+		request.put("userid", "secondid");
 		request.put("permission", "OWNER");
 		requests.add(request);
 
@@ -701,7 +746,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		// user not editor
 		IllegalAccessException ex = assertThrows(IllegalAccessException.class,
-				() -> SecurityEngineUtils.addEngineUser(user2, "user3id", "testId", "OWNER", null, null, null, 0, 0));
+				() -> SecurityEngineUtils.addEngineUser(user2, "user3id", "testId", "OWNER", null, null));
 
 		assertEquals("Insufficient privileges to modify this engine's permissions.", ex.getMessage());
 
@@ -709,18 +754,18 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		// user already has permissions
 		IllegalArgumentException argEx = assertThrows(IllegalArgumentException.class,
-				() -> SecurityEngineUtils.addEngineUser(user, "admin2id", "testId", "OWNER", null, null, null, 0, 0));
+				() -> SecurityEngineUtils.addEngineUser(user, "admin2id", "testId", "OWNER", null, null));
 		assertEquals("This user already has access to this engine. Please edit the existing permission level.",
 				argEx.getMessage());
 
 		// user not owner and tries to give ownership
 		ex = assertThrows(IllegalAccessException.class,
-				() -> SecurityEngineUtils.addEngineUser(user2, "user3id", "testId", "OWNER", null, null, null, 0, 0));
+				() -> SecurityEngineUtils.addEngineUser(user2, "user3id", "testId", "OWNER", null, null));
 		assertEquals("Cannot give owner level access to this engine since you are not currently an owner.",
 				ex.getMessage());
 
 		// user successfully gives edit as edit user
-		SecurityEngineUtils.addEngineUser(user2, "user3id", "testId", "EDIT", null, null, null, 0, 0);
+		SecurityEngineUtils.addEngineUser(user2, "user3id", "testId", "EDIT", null, null);
 
 		assertTrue(SecurityEngineUtils.userCanEditEngine(user3, "testId"));
 
@@ -780,13 +825,13 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		// user not editor
 		IllegalAccessException ex = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils
-				.editEngineUserPermission(user2, "user3id", "NATIVE", "testId", "OWNER", null, null, null, 0, 0));
+				.editEngineUserPermission(user2, "user3id", "NATIVE", "testId", "OWNER", null));
 
 		assertEquals("Insufficient privileges to modify this engine's permissions.", ex.getMessage());
 
 		// user does not have permissions
 		IllegalArgumentException argEx = assertThrows(IllegalArgumentException.class, () -> SecurityEngineUtils
-				.editEngineUserPermission(user, "admin2id", "NATIVE", "testId", "OWNER", null, null, null, 0, 0));
+				.editEngineUserPermission(user, "admin2id", "NATIVE", "testId", "OWNER", null));
 		assertEquals(
 				"Attempting to modify engine permission for a user who does not currently have access to the engine",
 				argEx.getMessage());
@@ -796,20 +841,19 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, "user3id", "testId", "READ_ONLY");
 
 		// edit user tries to edit owner user
-		ex = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils.editEngineUserPermission(user2,
-				"adminid", "NATIVE", "testId", "EDIT", null, null, null, 0, 0));
+		ex = assertThrows(IllegalAccessException.class,
+				() -> SecurityEngineUtils.editEngineUserPermission(user2, "adminid", "NATIVE", "testId", "EDIT", null));
 		assertEquals("The user doesn't have the high enough permissions to modify this users engine permission.",
 				ex.getMessage());
 
 		// user not owner and tries to give ownership
 		ex = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils.editEngineUserPermission(user2,
-				"user3id", "NATIVE", "testId", "OWNER", null, null, null, 0, 0));
+				"user3id", "NATIVE", "testId", "OWNER", null));
 		assertEquals("Cannot give owner level access to this engine since you are not currently an owner.",
 				ex.getMessage());
 
 		// user2 successfully changes user3 to edit as edit user
-		SecurityEngineUtils.editEngineUserPermission(user2, "user3id", "NATIVE", "testId", "EDIT", null, null, null, 0,
-				0);
+		SecurityEngineUtils.editEngineUserPermission(user2, "user3id", "NATIVE", "testId", "EDIT", null);
 
 		assertTrue(SecurityEngineUtils.userCanEditEngine(user3, "testId"));
 
@@ -888,6 +932,50 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		// assert that no longer present in enginemeta table
 		// assert that no longer present in workspaceengine table
 		// assert that no longer present in assetengine table
+	}
+
+	@Test
+	void testDeleteEngine_removesModelUsageLimits() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", IEngine.CATALOG_TYPE.MODEL, user);
+		UnitTestSecurityAuthUtils.createEngine("otherId", "otherAlias", IEngine.CATALOG_TYPE.MODEL, user);
+		saveLimit(ModelUsageLimitKey.direct("testId", "adminid", null), tokensADay(100));
+		saveLimit(ModelUsageLimitKey.team("testId", "data", "CUSTOM"), ModelUsageLimit.unlimited());
+		saveLimit(ModelUsageLimitKey.publicUse("testId"), tokensADay(10));
+		saveLimit(ModelUsageLimitKey.direct("otherId", "adminid", null), tokensADay(100));
+
+		SecurityEngineUtils.deleteEngine("testId");
+
+		assertTrue(SecurityModelUsageLimitUtils.getEngineLimits("testId").isEmpty());
+		assertNotNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct("otherId", "adminid", null)));
+	}
+
+	///
+	/// addEngineUser and editEngineUserPermission with a model usage limit
+	///
+
+	@Test
+	void testAddAndEditEngineUser_usageLimit() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createUser("second", false);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", IEngine.CATALOG_TYPE.MODEL, user);
+		ModelUsageLimitKey key = ModelUsageLimitKey.direct("testId", "secondid", null);
+		ModelUsageLimit twoRules = ModelUsageLimit
+				.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, 1000L, Window.MINUTE, Counts.EACH_PERSON),
+						new ModelUsageLimitRule(Metric.TOKENS, 50000L, Window.DAY, Counts.EACH_PERSON)));
+
+		SecurityEngineUtils.addEngineUser(user, "secondid", "testId", "READ_ONLY", null, twoRules);
+		assertEquals(2, SecurityModelUsageLimitUtils.getLimit(key).getRules().size());
+
+		// a change of level only keeps the limit
+		SecurityEngineUtils.editEngineUserPermission(user, "secondid", "NATIVE", "testId", "EDIT", null);
+		assertEquals(AccessPermissionEnum.EDIT.getId(),
+				SecurityEngineUtils.getUserEnginePermission("secondid", "testId"));
+		assertEquals(2, SecurityModelUsageLimitUtils.getLimit(key).getRules().size());
+
+		SecurityEngineUtils.editEngineUserPermission(user, "secondid", "NATIVE", "testId", "READ_ONLY", null,
+				(ModelUsageLimit) null);
+		assertNull(SecurityModelUsageLimitUtils.getLimit(key));
 	}
 
 	///
@@ -1053,7 +1141,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 	///
 
 	@Test
-	void testEngineVisibility() throws IllegalAccessException {
+	void testEngineVisibility() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
 
@@ -1068,12 +1156,30 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		assertEquals(0, SecurityEngineUtils.getVisibleUserDatabaseIds(user).size());
 	}
 
+	@Test
+	void testEngineVisibility_onlyChangesThatEngine() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		UnitTestSecurityAuthUtils.createEngine("testId2", "testAlias2", user);
+
+		SecurityEngineUtils.setEngineVisibility(user, "testId", false);
+
+		assertEquals(List.of("testId2"), SecurityEngineUtils.getVisibleUserDatabaseIds(user));
+		List<Map<String, Object>> engines = SecurityEngineUtils.getUserEngineList(user, null, null, false, null, null,
+				null, null, null, null);
+		assertEquals(1, engines.size());
+		assertEquals("testId2", engines.getFirst().get("engine_id"));
+
+		SecurityEngineUtils.setEngineVisibility(user, "testId", true);
+		assertEquals(2, SecurityEngineUtils.getVisibleUserDatabaseIds(user).size());
+	}
+
 	///
 	/// setEngineFavorite
 	///
 
 	@Test
-	void testEngineFavorite() throws IllegalAccessException {
+	void testEngineFavorite() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
 
@@ -1087,13 +1193,42 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 				null, null, null, null);
 		assertEquals(1, list.size());
 		Map<String, Object> userEngine = list.getFirst();
-		assertEquals("0", userEngine.get("database_favorite").toString());
+		assertEquals("0", userEngine.get("engine_favorite").toString());
 
 		SecurityEngineUtils.setEngineFavorite(user, "testId", true);
 
 		assertEquals("1",
 				SecurityEngineUtils.getUserEngineList(user, null, null, false, null, null, null, null, null, null)
-						.getFirst().get("database_favorite").toString());
+						.getFirst().get("engine_favorite").toString());
+	}
+
+	@Test
+	void testEngineFavorite_publicEngineWithoutAccess() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		SecurityEngineUtils.setEngineGlobal(user, "testId", true);
+
+		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
+		String user2Id = user2.getPrimaryLoginToken().getId();
+		SecurityEngineUtils.setEngineFavorite(user2, "testId", true);
+
+		List<Map<String, Object>> favorites = SecurityEngineUtils.getUserEngineList(user2, null, null, true, null, null,
+				null, null, null, null);
+		assertEquals(1, favorites.size());
+		assertEquals("1", favorites.getFirst().get("engine_favorite").toString());
+		// the favorite is kept apart from the permissions, so no access row is added
+		assertEquals(0L,
+				((Number) UnitTestGroupTables.queryValue(securityDb,
+						"SELECT COUNT(*) FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?", user2Id, "testId"))
+						.longValue());
+
+		SecurityEngineUtils.setEngineFavorite(user2, "testId", false);
+		assertTrue(SecurityEngineUtils.getUserEngineList(user2, null, null, true, null, null, null, null, null, null)
+				.isEmpty());
+		assertEquals(1L,
+				((Number) UnitTestGroupTables.queryValue(securityDb,
+						"SELECT COUNT(*) FROM USERENGINEPREFERENCE WHERE USERID=? AND TYPE=? AND ENGINEID=?", user2Id,
+						"NATIVE", "testId")).longValue());
 	}
 
 	///
@@ -1163,23 +1298,6 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		assertTrue(SecurityEngineUtils.checkUserHasAccessToDatabase("testId", "adminid"));
 		assertFalse(SecurityEngineUtils.checkUserHasAccessToDatabase("testId", "secondid"));
-	}
-
-	///
-	/// copyEnginePermissions
-	///
-
-	@Test
-	void testCopyEnginePermissions() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
-		User user2 = UnitTestSecurityAuthUtils.createUser("second", true);
-		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, "secondid", "testId", "EDIT");
-		UnitTestSecurityAuthUtils.createEngine("testId2", "testAlias2", user);
-
-		assertFalse(SecurityEngineUtils.userCanEditEngine(user2, "testId2"));
-		SecurityEngineUtils.copyEnginePermissions("testId", "testId2");
-		assertTrue(SecurityEngineUtils.userCanEditEngine(user2, "testId2"));
 	}
 
 	///
@@ -1427,7 +1545,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 				"0");
 
 		assertEquals(1, vals.size());
-		assertEquals("testId2", vals.getFirst().get("database_id"));
+		assertEquals("testId2", vals.getFirst().get("engine_id"));
 	}
 
 	///
@@ -1461,48 +1579,97 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 	}
 
 	///
-	/// getEngineUsagePermissionMap
+	/// updateEngineUserPermissions (the login sync)
 	///
 
 	@Test
-	void testGetEngineUsagePermissionMap() {
+	void testUpdateEngineUserPermissions_keepsTheLimitsOfKeptGrants() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createEngine("keptId", "keptAlias", IEngine.CATALOG_TYPE.MODEL, user);
+		UnitTestSecurityAuthUtils.createEngine("droppedId", "droppedAlias", IEngine.CATALOG_TYPE.MODEL, user);
+		saveLimit(ModelUsageLimitKey.direct("keptId", "adminid", null), tokensADay(100));
+		saveLimit(ModelUsageLimitKey.direct("droppedId", "adminid", null), tokensADay(200));
 
-		// check conditions that immediately return null
-		assertNull(SecurityEngineUtils.getEngineUsagePermissionMap(null, null));
-		assertNull(SecurityEngineUtils.getEngineUsagePermissionMap(user, null));
-		assertNull(SecurityEngineUtils.getEngineUsagePermissionMap(user, ""));
+		List<Map<String, Object>> updates = new ArrayList<>();
+		Map<String, Object> updatesMap = new HashMap<>();
+		updatesMap.put("engineId", "keptId");
+		updatesMap.put("engineName", "keptAlias");
+		updatesMap.put("engineType", IEngine.CATALOG_TYPE.MODEL);
+		updatesMap.put("permission", "READ_ONLY");
+		updates.add(updatesMap);
+		SecurityEngineUtils.updateEngineUserPermissions(user, updates);
 
-		UnitTestSecurityAuthUtils.createEngine("testId", "ta", user);
-
-		List<Map<String, Object>> vals = SecurityEngineUtils.getEngineUsagePermissionMap(user, "testId");
-
-		assertEquals(1, vals.size());
-		assertEquals("adminid", vals.getFirst().get("id"));
+		assertEquals(AccessPermissionEnum.READ_ONLY.getId(),
+				SecurityEngineUtils.getUserEnginePermission("adminid", "keptId"));
+		assertNull(SecurityEngineUtils.getUserEnginePermission("adminid", "droppedId"));
+		ModelUsageLimit kept = SecurityModelUsageLimitUtils
+				.getLimit(ModelUsageLimitKey.direct("keptId", "adminid", null));
+		assertNotNull(kept);
+		assertEquals(100L, kept.getRules().get(0).getAmount());
+		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct("droppedId", "adminid", null)));
 	}
 
-	///
-	/// getModelEngineIdsWithRestrictions
-	///
+	@Test
+	void testUpdateEngineUserPermissions_addsTheEnginesNotYetRegistered() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+
+		List<Map<String, Object>> updates = new ArrayList<>();
+		updates.add(loginSyncGrant("newId", "EDIT"));
+		List<Map<String, Object>> added = SecurityEngineUtils.updateEngineUserPermissions(user, updates);
+
+		assertEquals(1, added.size());
+		assertEquals("newId", added.getFirst().get("engineId"));
+		assertTrue(SecurityEngineUtils.engineExists("newId"));
+		assertEquals(AccessPermissionEnum.EDIT.getId(),
+				SecurityEngineUtils.getUserEnginePermission("adminid", "newId"));
+	}
 
 	@Test
-	void testGetModelEngineIdsWithRestrictions() throws IllegalAccessException {
+	void testUpdateEngineUserPermissions_aFailureSavesNothing() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User user2 = UnitTestSecurityAuthUtils.createUser("second", true);
+		UnitTestSecurityAuthUtils.createEngine("keptId", "keptAlias", IEngine.CATALOG_TYPE.MODEL, user);
+		saveLimit(ModelUsageLimitKey.direct("keptId", "adminid", null), tokensADay(100));
 
-		// check conditions that immediately return null
-		assertNull(SecurityEngineUtils.getModelEngineIdsWithRestrictions(null, null));
-		assertNull(SecurityEngineUtils.getModelEngineIdsWithRestrictions(user, null));
-		assertNull(SecurityEngineUtils.getModelEngineIdsWithRestrictions(user, ""));
+		List<Map<String, Object>> updates = new ArrayList<>();
+		updates.add(loginSyncGrant("newId", "READ_ONLY"));
+		updates.add(loginSyncGrant("rejectId", "READ_ONLY"));
+		// the grant on the last engine fails, after both engines were added and the
+		// person's grants were deleted
+		addCheck("SYNC_FAIL", "ENGINEPERMISSION", "ENGINEID <> 'rejectId'");
+		try {
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> SecurityEngineUtils.updateEngineUserPermissions(user, updates));
+			assertEquals("An error occurred while updating the user engine permissions in db ", e.getMessage());
+		} finally {
+			dropCheck("SYNC_FAIL", "ENGINEPERMISSION");
+		}
 
-		UnitTestSecurityAuthUtils.createEngine("testId", "ta", user);
+		assertFalse(SecurityEngineUtils.engineExists("newId"));
+		assertFalse(SecurityEngineUtils.engineExists("rejectId"));
+		assertEquals(AccessPermissionEnum.OWNER.getId(),
+				SecurityEngineUtils.getUserEnginePermission("adminid", "keptId"));
+		assertNotNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct("keptId", "adminid", null)));
+	}
 
-		SecurityEngineUtils.addEngineUser(user, "secondid", "testId", "EDIT", null, "restrict", "frequency", 3, 4.0);
+	private static Map<String, Object> loginSyncGrant(String engineId, String permission) {
+		Map<String, Object> grant = new HashMap<>();
+		grant.put("engineId", engineId);
+		grant.put("engineName", engineId + "Alias");
+		grant.put("engineType", IEngine.CATALOG_TYPE.DATABASE);
+		grant.put("permission", permission);
+		return grant;
+	}
 
-		List<String> ids = SecurityEngineUtils.getModelEngineIdsWithRestrictions(user2, "testId");
+	private static void saveLimit(ModelUsageLimitKey key, ModelUsageLimit limit) throws Exception {
+		QueryExecutionUtility.write(SystemEngineRegistry.getSecurityDb(), connection -> {
+			SecurityModelUsageLimitUtils.setLimit(connection, key, limit, null);
+			return null;
+		});
+	}
 
-		assertEquals(1, ids.size());
-		assertEquals("testId", ids.getFirst());
+	private static ModelUsageLimit tokensADay(long amount) {
+		return ModelUsageLimit
+				.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, amount, Window.DAY, Counts.EACH_PERSON)));
 	}
 
 	///
@@ -1519,8 +1686,293 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		List<Map<String, Object>> engineList = SecurityEngineUtils.getUserEngineList(user, null, null);
 		assertEquals(1, engineList.size());
 
-		assertEquals("testToolApp", engineList.getFirst().get("database_tool_app"));
 		assertEquals("testToolApp", engineList.getFirst().get("engine_tool_app"));
+	}
+
+	///
+	/// access request decisions and permission changes: one transaction, then
+	/// notifications
+	///
+
+	@Test
+	void testApproveEngineUserAccessRequests_notifiesOnlyAfterTheApprovalIsSaved() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User secondUser = UnitTestSecurityAuthUtils.createUser("second", true);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		SecurityEngineUtils.setUserAccessRequest("secondid", "NATIVE", "testId", "reason", 2, secondUser);
+		List<Map<String, String>> requests = List.of(Map.of("requestid", pendingRequestId("testId"), "userid",
+				"secondid", "type", "NATIVE", "permission", "EDIT"));
+
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class);
+				MockedStatic<EmailUtility> emails = mockStatic(EmailUtility.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+			notifications.when(() -> NotificationDbUtils.createNotification(any(), any(), any(), any(), any(), any(),
+					any(), any(), any(), any())).thenAnswer(invocation -> {
+						// the save has committed: no transaction holds the connection, and
+						// a read sees the grant and the approval
+						assertFalse(insideSecurityTransaction());
+						assertEquals(AccessPermissionEnum.EDIT.getId(),
+								SecurityEngineUtils.getUserEnginePermission("secondid", "testId"));
+						assertTrue(SecurityEngineUtils.getUserAccessRequestsByEngine("testId").isEmpty());
+						return null;
+					});
+
+			SecurityEngineUtils.approveEngineUserAccessRequests(user, "testId", requests, null);
+
+			notifications.verify(() -> NotificationDbUtils.createNotification(eq(user), eq("secondid"), eq("NATIVE"),
+					eq("testId"), eq(NotificationConstants.Type.REQUEST_APPROVAL), eq("database"), any(), isNull(),
+					eq("EDIT"), any()), times(1));
+			emails.verify(() -> EmailUtility.sendAccessRequestApprovalEmailNotification(user, "secondid", "testId",
+					"EDIT", EmailUtility.RESOURCE_TYPE.ENGINE), times(1));
+		}
+	}
+
+	@Test
+	void testApproveEngineUserAccessRequests_aFailedApprovalSavesNothingAndTellsNoOne() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User secondUser = UnitTestSecurityAuthUtils.createUser("second", true);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		SecurityEngineUtils.setUserAccessRequest("secondid", "NATIVE", "testId", "reason", 2, secondUser);
+		List<Map<String, String>> requests = List.of(Map.of("requestid", pendingRequestId("testId"), "userid",
+				"secondid", "type", "NATIVE", "permission", "EDIT"));
+
+		// marking the request approved fails after the grant was written
+		addCheck("APPROVE_FAIL", "ENGINEACCESSREQUEST", "APPROVER_DECISION <> 'APPROVED'");
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class);
+				MockedStatic<EmailUtility> emails = mockStatic(EmailUtility.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> SecurityEngineUtils.approveEngineUserAccessRequests(user, "testId", requests, null));
+			assertEquals("An error occurred while approving the access requests", e.getMessage());
+			notifications.verifyNoInteractions();
+			emails.verifyNoInteractions();
+		} finally {
+			dropCheck("APPROVE_FAIL", "ENGINEACCESSREQUEST");
+		}
+
+		assertNull(SecurityEngineUtils.getUserEnginePermission("secondid", "testId"));
+		assertEquals(1, SecurityEngineUtils.getUserAccessRequestsByEngine("testId").size());
+	}
+
+	@Test
+	void testDenyEngineUserAccessRequests_tellsTheEnginesRequestersOnlyAfterTheDenialIsSaved() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User secondUser = UnitTestSecurityAuthUtils.createUser("second", true);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		UnitTestSecurityAuthUtils.createEngine("otherId", "otherAlias", user);
+		SecurityEngineUtils.setUserAccessRequest("secondid", "NATIVE", "testId", "reason", 2, secondUser);
+		SecurityEngineUtils.setUserAccessRequest("secondid", "NATIVE", "otherId", "reason", 3, secondUser);
+		String requestId = pendingRequestId("testId");
+		String otherRequestId = pendingRequestId("otherId");
+
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+			notifications.when(() -> NotificationDbUtils.createNotification(any(), any(), any(), any(), any(), any(),
+					any(), any(), any(), any())).thenAnswer(invocation -> {
+						// the denial has committed: no transaction holds the connection,
+						// and a read sees it
+						assertFalse(insideSecurityTransaction());
+						assertTrue(SecurityEngineUtils.getUserAccessRequestsByEngine("testId").isEmpty());
+						return null;
+					});
+
+			// a request of another engine is neither denied nor told
+			SecurityEngineUtils.denyEngineUserAccessRequests(user, "testId", List.of(requestId, otherRequestId));
+
+			notifications.verify(() -> NotificationDbUtils.createNotification(eq(user), eq("secondid"), eq("NATIVE"),
+					eq("testId"), eq(NotificationConstants.Type.REQUEST_DENIAL), eq("database"), any(), isNull(),
+					eq("EDIT"), any()), times(1));
+			notifications.verify(() -> NotificationDbUtils.createNotification(any(), any(), any(), eq("otherId"), any(),
+					any(), any(), any(), any(), any()), never());
+		}
+
+		assertEquals(1, SecurityEngineUtils.getUserAccessRequestsByEngine("otherId").size());
+	}
+
+	@Test
+	void testDenyEngineUserAccessRequests_aFailedDenialTellsNoOne() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User secondUser = UnitTestSecurityAuthUtils.createUser("second", true);
+		User thirdUser = UnitTestSecurityAuthUtils.createUser("third", true);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		SecurityEngineUtils.setUserAccessRequest("secondid", "NATIVE", "testId", "reason", 2, secondUser);
+		SecurityEngineUtils.setUserAccessRequest("thirdid", "NATIVE", "testId", "reason", 3, thirdUser);
+		List<String> requestIds = new ArrayList<>();
+		for (Map<String, Object> request : SecurityEngineUtils.getUserAccessRequestsByEngine("testId")) {
+			requestIds.add(request.get("ID").toString());
+		}
+
+		// the third person's request cannot be denied, so neither is
+		addCheck("DENY_FAIL", "ENGINEACCESSREQUEST", "REQUEST_USERID <> 'thirdid' OR APPROVER_DECISION <> 'DENIED'");
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> SecurityEngineUtils.denyEngineUserAccessRequests(user, "testId", requestIds));
+			assertEquals("An error occurred while updating user access request", e.getMessage());
+			notifications.verifyNoInteractions();
+		} finally {
+			dropCheck("DENY_FAIL", "ENGINEACCESSREQUEST");
+		}
+
+		assertEquals(2, SecurityEngineUtils.getUserAccessRequestsByEngine("testId").size());
+	}
+
+	@Test
+	void testAddEngineUserPermissions_notifiesOnlyAfterEveryoneIsSaved() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createUser("second", false);
+		UnitTestSecurityAuthUtils.createUser("third", false);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		List<Map<String, Object>> permissions = List.of(Map.of("userid", "secondid", "permission", "READ_ONLY"),
+				Map.of("userid", "thirdid", "permission", "EDIT"));
+
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+			notifications.when(() -> NotificationDbUtils.createNotification(any(), any(), any(), any(), any(), any(),
+					any(), any(), any(), any())).thenAnswer(invocation -> {
+						// the save has committed: no transaction holds the connection, and
+						// a read sees everyone it added
+						assertFalse(insideSecurityTransaction());
+						assertEquals(AccessPermissionEnum.READ_ONLY.getId(),
+								SecurityEngineUtils.getUserEnginePermission("secondid", "testId"));
+						assertEquals(AccessPermissionEnum.EDIT.getId(),
+								SecurityEngineUtils.getUserEnginePermission("thirdid", "testId"));
+						return null;
+					});
+
+			SecurityEngineUtils.addEngineUserPermissions(user, "testId", permissions);
+
+			notifications.verify(() -> NotificationDbUtils.createNotification(any(), any(), any(), eq("testId"),
+					eq(NotificationConstants.Type.USER_ADDITION), any(), any(), any(), any(), any()), times(2));
+		}
+	}
+
+	@Test
+	void testAddEngineUserPermissions_aFailedSaveAddsNoOneAndTellsNoOne() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createUser("second", false);
+		UnitTestSecurityAuthUtils.createUser("third", false);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		List<Map<String, Object>> permissions = List.of(Map.of("userid", "secondid", "permission", "READ_ONLY"),
+				Map.of("userid", "thirdid", "permission", "EDIT"));
+
+		// the second grant fails after the first was written
+		addCheck("ADD_FAIL", "ENGINEPERMISSION", "USERID <> 'thirdid'");
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> SecurityEngineUtils.addEngineUserPermissions(user, "testId", permissions));
+			assertEquals("An error occurred adding the user permissions for this engine", e.getMessage());
+			notifications.verifyNoInteractions();
+		} finally {
+			dropCheck("ADD_FAIL", "ENGINEPERMISSION");
+		}
+
+		assertNull(SecurityEngineUtils.getUserEnginePermission("secondid", "testId"));
+		assertNull(SecurityEngineUtils.getUserEnginePermission("thirdid", "testId"));
+	}
+
+	@Test
+	void testEditEngineUserPermission_notifiesOnlyAfterTheChangeIsSaved() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createUser("second", false);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, "secondid", "testId", "READ_ONLY");
+
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class)) {
+			utility.when(Utility::isNotificationDatabaseEnabled).thenReturn(true);
+			notifications.when(() -> NotificationDbUtils.createNotification(any(), any(), any(), any(), any(), any(),
+					any(), any(), any(), any())).thenAnswer(invocation -> {
+						// the save has committed: no transaction holds the connection, and
+						// a read sees the change
+						assertFalse(insideSecurityTransaction());
+						assertEquals(AccessPermissionEnum.EDIT.getId(),
+								SecurityEngineUtils.getUserEnginePermission("secondid", "testId"));
+						return null;
+					});
+
+			SecurityEngineUtils.editEngineUserPermission(user, "secondid", "NATIVE", "testId", "EDIT", null);
+
+			notifications.verify(() -> NotificationDbUtils.createNotification(eq(user), eq("secondid"), any(),
+					eq("testId"), eq(NotificationConstants.Type.PERMISSION_CHANGE), eq("database"), any(),
+					eq("READ_ONLY"), eq("EDIT"), any()), times(1));
+		}
+	}
+
+	///
+	/// setEngineFavorite: every login or none
+	///
+
+	@Test
+	void testEngineFavorite_savesEveryLoginOrNone() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		AccessToken github = new AccessToken();
+		github.setId("admingithub");
+		github.setName("adminname");
+		github.setProvider(AuthProvider.GITHUB);
+		user.setAccessToken(github);
+
+		// the second login's row fails after the first login's was written
+		addCheck("FAVORITE_FAIL", "USERENGINEPREFERENCE", "TYPE <> 'GITHUB'");
+		try {
+			assertThrows(Exception.class, () -> SecurityEngineUtils.setEngineFavorite(user, "testId", true));
+		} finally {
+			dropCheck("FAVORITE_FAIL", "USERENGINEPREFERENCE");
+		}
+		assertEquals(0L, favoriteRows("testId"));
+
+		SecurityEngineUtils.setEngineFavorite(user, "testId", true);
+		assertEquals(2L, favoriteRows("testId"));
+	}
+
+	private long favoriteRows(String engineId) throws SQLException {
+		return ((Number) UnitTestGroupTables.queryValue(securityDb,
+				"SELECT COUNT(*) FROM USERENGINEPREFERENCE WHERE ENGINEID=? AND FAVORITE=TRUE", engineId)).longValue();
+	}
+
+	private static String pendingRequestId(String engineId) {
+		List<Map<String, Object>> pending = SecurityEngineUtils.getUserAccessRequestsByEngine(engineId);
+		assertEquals(1, pending.size());
+		return pending.getFirst().get("ID").toString();
+	}
+
+	/**
+	 * Whether this thread is inside a security database transaction: a write holds
+	 * the engine's connection until it has committed or rolled back.
+	 */
+	private boolean insideSecurityTransaction() throws SQLException {
+		Connection connection = securityDb.getConnection();
+		try {
+			return Thread.holdsLock(connection);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, connection);
+		}
+	}
+
+	/**
+	 * Adds a check to a security table, so a test can fail a later statement of a
+	 * save on purpose; {@link #dropCheck} takes it off again.
+	 */
+	private void addCheck(String name, String table, String condition) throws Exception {
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"ALTER TABLE " + table + " ADD CONSTRAINT " + name + " CHECK (" + condition + ")",
+				QueryExecutionUtility.NO_PARAMETERS);
+	}
+
+	private void dropCheck(String name, String table) throws Exception {
+		QueryExecutionUtility.executeUpdate(securityDb, "ALTER TABLE " + table + " DROP CONSTRAINT " + name,
+				QueryExecutionUtility.NO_PARAMETERS);
 	}
 
 }

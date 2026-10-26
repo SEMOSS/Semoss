@@ -1,0 +1,1269 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+package prerna.io.connector.ms.outlook;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import org.apache.hc.core5.http.ContentType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.safety.Safelist;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import prerna.security.HttpHelperUtility;
+import prerna.util.Utility;
+
+/**
+ * The Outlook mail operations of Microsoft Graph, as plain calls.
+ *
+ * <p>
+ * Every method takes the access token to use and the mailbox to work against,
+ * and nothing here knows or cares where either came from. That is deliberate:
+ * the same call serves an app-only caller holding a client credentials token
+ * for a particular mailbox, and a delegated caller holding a signed in user's
+ * token for their own. A null mailbox addresses {@code /me}, which is the
+ * delegated shape, and a named one addresses {@code /users/{mailbox}}, which is
+ * the app only shape.
+ *
+ * <p>
+ * What the methods return is Graph's own json, parsed into maps, rather than a
+ * type of this codebase's invention. A caller that wants a tidier shape maps it
+ * on the way out, and one that wants a field this class never thought about can
+ * still reach it.
+ *
+ * <p>
+ * Two Graph rules are worth knowing, because they are the ones that shape
+ * {@link MessageQuery}: {@code $search} and {@code $filter} cannot be combined
+ * on messages, and {@code $orderby} is ignored while searching. So a query that
+ * asks for text finds by search and narrows the rest in memory, and one that
+ * does not filters and orders on the server.
+ */
+public class MicrosoftOutlookMailHelper {
+
+	private static final Logger classLogger = LogManager.getLogger(MicrosoftOutlookMailHelper.class);
+
+	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
+
+	/** Where Graph lives, unless a sovereign cloud says otherwise. */
+	public static final String DEFAULT_GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0";
+
+	/** The fields a message listing asks for when the caller wants the body. */
+	private static final String MESSAGE_FIELDS = "id,parentFolderId,subject,from,replyTo,toRecipients,ccRecipients,bccRecipients,"
+			+ "receivedDateTime,sentDateTime,isRead,hasAttachments,bodyPreview,body,internetMessageId,webLink,"
+			+ "conversationId";
+
+	/**
+	 * What a thread asks for: the body, and the part of it that is the message's
+	 * own, without the earlier messages it quotes.
+	 */
+	private static final String CONVERSATION_FIELDS = MESSAGE_FIELDS + ",uniqueBody";
+
+	/** The same without the body, for a listing that only wants headers. */
+	private static final String MESSAGE_FIELDS_NO_BODY = "id,parentFolderId,subject,from,toRecipients,ccRecipients,"
+			+ "receivedDateTime,sentDateTime,isRead,hasAttachments,bodyPreview,internetMessageId,conversationId,"
+			+ "webLink";
+
+	// graph refuses a message over this size on the simple send, and the limit is
+	// on the encoded form rather than the file, so it is checked after encoding
+	private static final long MAX_SEND_BYTES = 4L * 1024L * 1024L;
+	// graph takes a file under this in one attach request; larger needs an upload session
+	private static final int SMALL_ATTACHMENT_BYTES = 3 * 1024 * 1024;
+	// upload chunks are multiples of 320KiB and stay under the 4MB a request may carry
+	private static final int UPLOAD_CHUNK_BYTES = 320 * 1024 * 10;
+	// RDF_Map, else an environment variable: the largest message sent, in MB, files encoded;
+	// Exchange Online's default per mailbox, which an admin can raise to 150
+	public static final String MAX_MESSAGE_MB_SETTING = "MS_MAIL_MAX_MESSAGE_MB";
+	private static final int DEFAULT_MAX_MESSAGE_MB = 35;
+	// left for the body and headers when working out how much file fits
+	private static final long MESSAGE_HEADROOM_BYTES = 1024L * 1024L;
+
+	/**
+	 * The folders Graph addresses by name rather than by id. Anything else somebody
+	 * names is either an id or a folder they made, and the two are told apart by
+	 * looking it up.
+	 */
+	private static final List<String> WELL_KNOWN_FOLDERS = Arrays.asList("archive", "clutter", "conflicts",
+			"conversationhistory", "deleteditems", "drafts", "inbox", "junkemail", "localfailures", "msgfolderroot",
+			"outbox", "recoverableitemsdeletions", "scheduled", "searchfolders", "sentitems", "serverfailures",
+			"syncissues");
+
+	private final String graphBaseUrl;
+
+	/**
+	 * Talk to the public Graph endpoint.
+	 */
+	public MicrosoftOutlookMailHelper() {
+		this(DEFAULT_GRAPH_BASE_URL);
+	}
+
+	/**
+	 * @param graphBaseUrl where Graph lives, for a sovereign cloud or a test double
+	 */
+	public MicrosoftOutlookMailHelper(String graphBaseUrl) {
+		this.graphBaseUrl = graphBaseUrl == null || graphBaseUrl.trim().isEmpty() ? DEFAULT_GRAPH_BASE_URL
+				: graphBaseUrl.trim().replaceAll("/+$", "");
+	}
+
+	/**
+	 * Send one message.
+	 *
+	 * @param accessToken     the token to send with
+	 * @param mailbox         the mailbox to send as, or null for the signed in user
+	 * @param message         the message, as built by
+	 *                        {@link #buildMessage(String, String, boolean, String[], String[], String[], String, String, String[])}
+	 * @param saveToSentItems whether a copy is kept in Sent Items; a message too
+	 *                        large for one send goes out as a draft, which always
+	 *                        keeps one
+	 * @throws IOException when the message is too large even without its files
+	 */
+	public void sendMail(String accessToken, String mailbox, Map<String, Object> message, boolean saveToSentItems)
+			throws IOException {
+		Map<String, Object> request = new LinkedHashMap<>();
+		request.put("message", message);
+		request.put("saveToSentItems", saveToSentItems);
+
+		String body = GSON.toJson(request);
+		// measured on the bytes rather than the characters, since the limit is on
+		// what goes over the wire and a body is not all ascii
+		int requestBytes = body.getBytes(StandardCharsets.UTF_8).length;
+		long maxMessageBytes = maxMessageBytes();
+		if (requestBytes > maxMessageBytes) {
+			throw new IOException("The email is " + (requestBytes / (1024 * 1024)) + " MB with its files encoded, over the "
+					+ (maxMessageBytes / (1024 * 1024)) + " MB limit for one message (" + MAX_MESSAGE_MB_SETTING + ")");
+		}
+		if (requestBytes > MAX_SEND_BYTES) {
+			if (message.get("attachments") instanceof List<?> files && !files.isEmpty()) {
+				// the files are what made it large: draft, upload them, then send
+				sendWithLargeAttachments(accessToken, mailbox, message, saveToSentItems);
+				return;
+			}
+			throw new IOException("The message is " + requestBytes + " bytes, over the " + MAX_SEND_BYTES
+					+ " byte limit Graph accepts on a single send");
+		}
+
+		String url = userPath(mailbox) + "/sendMail";
+		classLogger.info("Sending an email through {}", url);
+		// a successful sendMail answers 202 with no body, so anything coming back is
+		// either an error graph described or a transport problem
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), body,
+				ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "send an email");
+	}
+
+	/**
+	 * The largest message sent, files encoded, from {@link #MAX_MESSAGE_MB_SETTING}.
+	 */
+	public static long maxMessageBytes() {
+		String value = Utility.getDIHelperProperty(MAX_MESSAGE_MB_SETTING);
+		if (value == null || value.isBlank()) {
+			value = System.getenv(MAX_MESSAGE_MB_SETTING);
+		}
+		long mb = DEFAULT_MAX_MESSAGE_MB;
+		if (value != null && !value.isBlank()) {
+			try {
+				mb = Math.max(1, Long.parseLong(value.trim()));
+			} catch (NumberFormatException e) {
+				classLogger.warn("{} is not a whole number of MB, using {}", MAX_MESSAGE_MB_SETTING,
+						DEFAULT_MAX_MESSAGE_MB);
+			}
+		}
+		return mb * 1024L * 1024L;
+	}
+
+	/**
+	 * How many bytes of files fit in one message under that limit, once base64
+	 * adds its third and the body and headers have their room.
+	 */
+	public static long maxAttachmentBytes() {
+		return Math.max(0, (maxMessageBytes() - MESSAGE_HEADROOM_BYTES) / 4 * 3);
+	}
+
+	/**
+	 * Sends a message whose files are over the single send limit: saved as a draft
+	 * with its files added one by one, then sent. A draft that fails part way is
+	 * deleted.
+	 */
+	private void sendWithLargeAttachments(String accessToken, String mailbox, Map<String, Object> message,
+			boolean saveToSentItems) {
+		if (!saveToSentItems) {
+			classLogger.info("A large message is sent from a draft, so a copy stays in Sent Items");
+		}
+		String draftId = draftId(createDraft(accessToken, mailbox, message));
+		boolean sent = false;
+		try {
+			sendDraft(accessToken, mailbox, draftId);
+			sent = true;
+		} finally {
+			if (!sent) {
+				deleteQuietly(accessToken, mailbox, draftId);
+			}
+		}
+	}
+
+	/**
+	 * Adds files to a draft one request each, through an upload session for the
+	 * ones too large for a single request.
+	 */
+	private void addAttachments(String accessToken, String mailbox, String draftId, List<Map<String, Object>> files) {
+		String attachmentsUrl = userPath(mailbox) + "/messages/" + encode(draftId) + "/attachments";
+		for (Map<String, Object> file : files) {
+			byte[] bytes = Base64.getDecoder().decode(String.valueOf(file.get("contentBytes")));
+			if (bytes.length >= SMALL_ATTACHMENT_BYTES) {
+				uploadAttachment(accessToken, attachmentsUrl, String.valueOf(file.get("name")), bytes);
+				continue;
+			}
+			String response = HttpHelperUtility.postRequestStringBody(attachmentsUrl, headers(accessToken),
+					GSON.toJson(file), ContentType.APPLICATION_JSON, null, null, null);
+			throwOnError(response, "attach a file to the draft email");
+			if (!(readMap(response).get("id") instanceof String attachmentId) || attachmentId.isBlank()) {
+				throw new IllegalArgumentException(
+						"The draft attachment could not be confirmed. Check the draft in Outlook.");
+			}
+		}
+	}
+
+	// refuses files that, encoded, are over the one message limit
+	private static void checkAttachmentSize(List<Map<String, Object>> files) {
+		long encoded = 0;
+		for (Map<String, Object> file : files) {
+			encoded += String.valueOf(file.get("contentBytes")).length();
+		}
+		long max = maxMessageBytes() - MESSAGE_HEADROOM_BYTES;
+		if (encoded > max) {
+			throw new IllegalArgumentException("The email's files are " + (encoded / 4 * 3 / (1024 * 1024))
+					+ " MB, over the " + (maxAttachmentBytes() / (1024 * 1024)) + " MB that fit in one message ("
+					+ MAX_MESSAGE_MB_SETTING + ")");
+		}
+	}
+
+	private static String draftId(Map<String, Object> draft) {
+		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
+			throw new IllegalStateException("Microsoft Graph did not return the draft to attach the files to");
+		}
+		return id;
+	}
+
+	private void deleteQuietly(String accessToken, String mailbox, String draftId) {
+		try {
+			deleteMessage(accessToken, mailbox, draftId);
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not delete the unsent draft {}", draftId, e);
+		}
+	}
+
+	/**
+	 * Uploads one file to a draft through an upload session, in chunks under the
+	 * 4MB a request may carry. The upload url is pre-authenticated, so no bearer
+	 * header is sent with the chunks.
+	 */
+	private static void uploadAttachment(String accessToken, String attachmentsUrl, String name, byte[] bytes) {
+		Map<String, Object> item = new LinkedHashMap<>();
+		item.put("attachmentType", "file");
+		item.put("name", name);
+		item.put("size", bytes.length);
+		String session = HttpHelperUtility.postRequestStringBody(attachmentsUrl + "/createUploadSession",
+				headers(accessToken), GSON.toJson(Map.of("AttachmentItem", item)), ContentType.APPLICATION_JSON, null,
+				null, null);
+		throwOnError(session, "start uploading a file to the email");
+		Object uploadUrl = readMap(session).get("uploadUrl");
+		if (uploadUrl == null) {
+			throw new IllegalStateException("Microsoft Graph did not return an upload session for " + name);
+		}
+		for (int offset = 0; offset < bytes.length; offset += UPLOAD_CHUNK_BYTES) {
+			int end = Math.min(offset + UPLOAD_CHUNK_BYTES, bytes.length);
+			Map<String, String> chunkHeaders = new HashMap<>();
+			chunkHeaders.put("Content-Range", "bytes " + offset + "-" + (end - 1) + "/" + bytes.length);
+			HttpHelperUtility.putRequestBytesBody(uploadUrl.toString(), chunkHeaders,
+					Arrays.copyOfRange(bytes, offset, end), ContentType.APPLICATION_OCTET_STREAM, null, null, null);
+		}
+	}
+
+	/**
+	 * Save a message as a draft rather than sending it.
+	 *
+	 * <p>
+	 * The draft lands in the mailbox's Drafts folder, where whoever owns it can
+	 * read it, change it and decide whether it goes out. Nothing is sent, and the
+	 * message can be sent later with {@link #sendDraft(String, String, String)}.
+	 *
+	 * @param accessToken the token to write with
+	 * @param mailbox     the mailbox to save into, or null for the signed in user
+	 * @param message     the message, as built by
+	 *                    {@link #buildMessage(String, String, boolean, String[], String[], String[], String, String, String[])}
+	 * @return the draft as Graph created it, which carries the id it was given and
+	 *         a webLink that opens it in Outlook
+	 */
+	@SuppressWarnings("unchecked")
+	public Map<String, Object> createDraft(String accessToken, String mailbox, Map<String, Object> message) {
+		String url = userPath(mailbox) + "/messages";
+		classLogger.info("Saving a draft email through {}", url);
+		String body = GSON.toJson(message);
+		List<Map<String, Object>> files = null;
+		if (message.get("attachments") instanceof List<?> attached && !attached.isEmpty()
+				&& body.getBytes(StandardCharsets.UTF_8).length > MAX_SEND_BYTES) {
+			// too large for one request: save it bare, then add the files one by one
+			files = (List<Map<String, Object>>) attached;
+			checkAttachmentSize(files);
+			Map<String, Object> bare = new LinkedHashMap<>(message);
+			bare.remove("attachments");
+			body = GSON.toJson(bare);
+		}
+		// unlike sendMail, this answers with the message it created, since the id it
+		// was given is the only way to find it again
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), body,
+				ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "save a draft email");
+		Map<String, Object> draft = readMap(response);
+		if (files != null) {
+			String draftId = draftId(draft);
+			boolean attached = false;
+			try {
+				addAttachments(accessToken, mailbox, draftId, files);
+				attached = true;
+			} finally {
+				if (!attached) {
+					deleteQuietly(accessToken, mailbox, draftId);
+				}
+			}
+		}
+		return draft;
+	}
+
+	/**
+	 * Send a message that was saved as a draft.
+	 *
+	 * @param accessToken the token to send with
+	 * @param mailbox     the mailbox holding the draft, or null for the signed in
+	 *                    user
+	 * @param messageId   the draft to send
+	 */
+	public void sendDraft(String accessToken, String mailbox, String messageId) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/send";
+		classLogger.info("Sending a saved draft through {}", url);
+		// answers 202 with no body, the same way sendMail does
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), "",
+				ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "send a saved draft");
+	}
+
+	/**
+	 * Answer a message, either to the sender alone or to everybody on it.
+	 *
+	 * <p>
+	 * Graph writes the quoted original and the recipients itself, so what is passed
+	 * here is only what the reply adds to the top of it. That is also why there is
+	 * no subject: a reply keeps the one it is answering.
+	 * </p>
+	 *
+	 * @param accessToken the token to send with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param messageId   the message being answered
+	 * @param comment     what the reply says
+	 * @param replyAll    whether everybody on the message is answered, rather than
+	 *                    just whoever sent it
+	 * @param asDraft     whether the reply is left in Drafts instead of being sent,
+	 *                    for somebody to read before it goes
+	 * @return the draft as Graph created it when one was asked for, otherwise null,
+	 *         since a sent reply answers with nothing
+	 */
+	public Map<String, Object> reply(String accessToken, String mailbox, String messageId, String comment,
+			boolean replyAll, boolean asDraft) {
+		String action = replyAll ? "replyAll" : "reply";
+		if (asDraft) {
+			action = "createReply" + (replyAll ? "All" : "");
+		}
+
+		Map<String, Object> request = new LinkedHashMap<>();
+		if (comment != null) {
+			request.put("comment", comment);
+		}
+
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/" + action;
+		classLogger.info("Answering an email through {}", url);
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), GSON.toJson(request),
+				ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "answer an email");
+		// sending answers 202 with no body, while creating a draft answers with the
+		// draft it made
+		return asDraft ? readMap(response) : null;
+	}
+
+	/**
+	 * Pass a message on to somebody else.
+	 *
+	 * @param accessToken the token to send with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param messageId   the message being passed on
+	 * @param to          who it goes to
+	 * @param comment     optional note added above the message being forwarded
+	 * @param asDraft     whether the forward is left in Drafts instead of being
+	 *                    sent
+	 * @return the draft as Graph created it when one was asked for, otherwise null
+	 * @throws IllegalArgumentException if nobody was named to forward to
+	 */
+	public Map<String, Object> forward(String accessToken, String mailbox, String messageId, String[] to,
+			String comment, boolean asDraft) {
+		if (to == null || to.length == 0) {
+			throw new IllegalArgumentException("At least one recipient is required to forward an email.");
+		}
+
+		Map<String, Object> request = new LinkedHashMap<>();
+		if (comment != null) {
+			request.put("comment", comment);
+		}
+		putRecipients(request, "toRecipients", to);
+
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/"
+				+ (asDraft ? "createForward" : "forward");
+		classLogger.info("Forwarding an email through {}", url);
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), GSON.toJson(request),
+				ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "forward an email");
+		return asDraft ? readMap(response) : null;
+	}
+
+	/**
+	 * Save HTML in a native reply draft while keeping Outlook's original quoted
+	 * body and recipients.
+	 */
+	public Map<String, Object> replyHtmlDraft(String accessToken, String uid, String html, boolean replyAll) {
+		return fillHtmlDraft(accessToken, reply(accessToken, null, uid, null, replyAll, true), html);
+	}
+
+	/** Save an HTML note above the native forwarded message and its attachments. */
+	public Map<String, Object> forwardHtmlDraft(String accessToken, String uid, String[] to, String html) {
+		return fillHtmlDraft(accessToken, forward(accessToken, null, uid, to, null, true), html);
+	}
+
+	/**
+	 * Save an edited envelope on the same native reply draft as the formatted body.
+	 */
+	public Map<String, Object> replyHtmlDraft(String accessToken, String uid, String html, boolean replyAll,
+			String[] to, String[] cc) {
+		String[] validatedTo = MicrosoftOutlookReplyRecipients.validate(to);
+		String[] validatedCc = MicrosoftOutlookReplyRecipients.validate(cc);
+		return fillHtmlDraft(accessToken, reply(accessToken, null, uid, null, replyAll, true), html, validatedTo,
+				validatedCc);
+	}
+
+	private Map<String, Object> fillHtmlDraft(String accessToken, Map<String, Object> draft, String html) {
+		return fillHtmlDraft(accessToken, draft, html, null, null);
+	}
+
+	private Map<String, Object> fillHtmlDraft(String accessToken, Map<String, Object> draft, String html, String[] to,
+			String[] cc) {
+		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
+			throw new IllegalStateException("The reply draft could not be confirmed. Check Outlook before retrying.");
+		}
+		Map<String, Object> original = draft.get("body") instanceof Map<?, ?> ? draft
+				: getMessage(accessToken, null, id);
+		if (original == null || !(original.get("body") instanceof Map<?, ?> body)) {
+			throw new IllegalStateException("The created draft body could not be read. Check Outlook before retrying.");
+		}
+		Map<String, Object> request = new LinkedHashMap<>();
+		request.put("body", Map.of("contentType", "HTML", "content", prependHtml(html, body)));
+		if (to != null && cc != null) {
+			// Empty lists are intentional removals, not omitted properties.
+			request.put("toRecipients", List.of());
+			request.put("ccRecipients", List.of());
+			request.put("bccRecipients", List.of());
+			putRecipients(request, "toRecipients", to);
+			putRecipients(request, "ccRecipients", cc);
+		}
+		String response = HttpHelperUtility.patchRequestStringBody(userPath(null) + "/messages/" + encode(id),
+				headers(accessToken), GSON.toJson(request), ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "format the draft");
+		Map<String, Object> updated = readMap(response);
+		if (updated == null || !id.equals(updated.get("id"))) {
+			throw new IllegalStateException(
+					"The formatted draft could not be confirmed. Check Outlook before retrying.");
+		}
+		if (to != null && cc != null
+				&& (!MicrosoftOutlookReplyRecipients.matches(updated.get("toRecipients"), to)
+						|| !MicrosoftOutlookReplyRecipients.matches(updated.get("ccRecipients"), cc)
+						|| !MicrosoftOutlookReplyRecipients.matches(updated.get("bccRecipients"), new String[0]))) {
+			throw new IllegalStateException(
+					"The saved reply recipients could not be confirmed. Check Outlook before retrying.");
+		}
+		if (!updated.containsKey("webLink") && draft.get("webLink") instanceof String link) {
+			updated.put("webLink", link);
+		}
+		return updated;
+	}
+
+	/**
+	 * Compose only the newly authored fragment with the draft's native source body.
+	 */
+	static String prependHtml(String html, Map<?, ?> body) {
+		String content = body.get("content") instanceof String text ? text : "";
+		Document original;
+		if ("html".equalsIgnoreCase(String.valueOf(body.get("contentType")))) {
+			original = Jsoup.parse(content);
+		} else {
+			original = Jsoup.parse("");
+			original.body().appendElement("pre").text(content);
+		}
+		Safelist allowed = Safelist.relaxed().addTags("span", "h1", "h2", "h3", "s").addAttributes(":all", "style")
+				.addAttributes("td", "colspan", "rowspan").addAttributes("th", "colspan", "rowspan", "scope");
+		original.outputSettings().prettyPrint(false);
+		String clean = Jsoup.clean(html == null ? "" : html, "", allowed,
+				new Document.OutputSettings().prettyPrint(false));
+		original.body().prepend(clean + "<br>");
+		return original.outerHtml();
+	}
+
+	/**
+	 * Read one attachment, including its bytes when it is a file.
+	 *
+	 * @param accessToken  the token to read with
+	 * @param mailbox      the mailbox, or null for the signed in user
+	 * @param messageId    the message holding it
+	 * @param attachmentId the attachment to read
+	 * @return the attachment as Graph returned it
+	 */
+	public Map<String, Object> getAttachment(String accessToken, String mailbox, String messageId,
+			String attachmentId) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/attachments/" + encode(attachmentId);
+		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		throwOnError(response, "read an attachment");
+		return readMap(response);
+	}
+
+	/**
+	 * Work out what to hand {@link #moveMessage} for a folder somebody named.
+	 *
+	 * <p>
+	 * Graph takes a well known name such as {@code archive} and an id, and nothing
+	 * else, so a folder somebody made is looked up by the name they call it. Only
+	 * the top level of the mailbox is searched, which is what {@link #listFolders}
+	 * reads, so a folder nested inside another has to be named by its id.
+	 * </p>
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param destination a well known name, a folder id, or the name of a folder in
+	 *                    the mailbox
+	 * @return what Graph will accept for that folder
+	 */
+	public String resolveDestination(String accessToken, String mailbox, String destination) {
+		String wanted = destination.trim();
+		if (WELL_KNOWN_FOLDERS.contains(wanted.toLowerCase(Locale.ROOT))) {
+			return wanted.toLowerCase(Locale.ROOT);
+		}
+		String byName = resolveFolderId(accessToken, mailbox, wanted);
+		// nothing of that name leaves the value as it was given, which is what an id
+		// looks like from here
+		return byName == null ? wanted : byName;
+	}
+
+	/**
+	 * Build a message in the shape Graph reads.
+	 *
+	 * <p>
+	 * Pure assembly, so a caller can hold it, log it, or hand it to
+	 * {@link #sendMail(String, String, Map, boolean)} later.
+	 *
+	 * @param subject     the subject line
+	 * @param body        the body
+	 * @param html        whether the body is html rather than plain text
+	 * @param to          the to recipients, or null
+	 * @param cc          the cc recipients, or null
+	 * @param bcc         the bcc recipients, or null
+	 * @param fromAddress the address to send as, or null to let Graph decide from
+	 *                    the mailbox
+	 * @param fromName    a display name for that address, or null
+	 * @param attachments file paths to attach, or null
+	 * @return the message
+	 * @throws IOException when an attachment cannot be read
+	 */
+	public static Map<String, Object> buildMessage(String subject, String body, boolean html, String[] to, String[] cc,
+			String[] bcc, String fromAddress, String fromName, String[] attachments) throws IOException {
+		Map<String, Object> content = new LinkedHashMap<>();
+		content.put("contentType", html ? "HTML" : "Text");
+		content.put("content", body == null ? "" : body);
+
+		Map<String, Object> message = new LinkedHashMap<>();
+		message.put("subject", subject == null ? "" : subject);
+		message.put("body", content);
+		if (fromAddress != null) {
+			Map<String, Object> sentAs = new LinkedHashMap<>();
+			sentAs.put("address", fromAddress);
+			if (fromName != null) {
+				// the address is the mailbox either way, so this only puts a readable
+				// name in front of it rather than sending as somebody else
+				sentAs.put("name", fromName);
+			}
+			message.put("from", Map.of("emailAddress", sentAs));
+		}
+		putRecipients(message, "toRecipients", to);
+		putRecipients(message, "ccRecipients", cc);
+		putRecipients(message, "bccRecipients", bcc);
+
+		if (attachments != null && attachments.length > 0) {
+			message.put("attachments", fileAttachments(attachments));
+		}
+		return message;
+	}
+
+	/**
+	 * Materialize files before creating a remote draft, so local failures cannot
+	 * send anything.
+	 */
+	public static List<Map<String, Object>> fileAttachments(String[] paths) throws IOException {
+		List<Map<String, Object>> attached = new ArrayList<>();
+		if (paths == null) {
+			return attached;
+		}
+		for (String path : paths) {
+			File file = new File(path);
+			Map<String, Object> attachment = new LinkedHashMap<>();
+			attachment.put("@odata.type", "#microsoft.graph.fileAttachment");
+			// The editor gives uploads a UUID prefix to prevent same-name collisions.
+			attachment.put("name",
+					file.getName().replaceFirst("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-", ""));
+			attachment.put("contentBytes", Base64.getEncoder().encodeToString(Files.readAllBytes(file.toPath())));
+			attached.add(attachment);
+		}
+		return attached;
+	}
+
+	/**
+	 * Add authored files without replacing the native forward's existing
+	 * attachments.
+	 */
+	public void attachToDraft(String accessToken, Map<String, Object> draft, List<Map<String, Object>> files) {
+		if (files.isEmpty()) {
+			return;
+		}
+		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
+			throw new IllegalArgumentException("The saved draft attachment target could not be confirmed.");
+		}
+		checkAttachmentSize(files);
+		addAttachments(accessToken, null, id, files);
+	}
+
+	/**
+	 * Find messages in a mailbox.
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox to read, or null for the signed in user
+	 * @param query       what to look for
+	 * @return the messages, newest first, as Graph returned them
+	 */
+	public List<Map<String, Object>> listMessages(String accessToken, String mailbox, MessageQuery query) {
+		if (query.conversationId != null) {
+			return listConversation(accessToken, mailbox, query);
+		}
+
+		StringBuilder url = new StringBuilder(userPath(mailbox));
+		if (query.folder != null && !query.folder.isEmpty()) {
+			url.append("/mailFolders/").append(encode(query.folder));
+		}
+		url.append("/messages?$select=").append(query.includeBody ? MESSAGE_FIELDS : MESSAGE_FIELDS_NO_BODY);
+		url.append("&$top=").append(Math.max(1, query.top));
+
+		boolean searching = query.from != null || query.subject != null;
+		if (!searching && query.skip > 0) {
+			// graph will not skip alongside a text search, so a search always reads
+			// from the first message
+			url.append("&$skip=").append(query.skip);
+		}
+		if (searching) {
+			// $search cannot be combined with $filter, and ordering is ignored while
+			// searching, so the rest of the query is applied below in memory
+			List<String> terms = new ArrayList<>();
+			if (query.from != null) {
+				terms.add("from:" + query.from);
+			}
+			if (query.subject != null) {
+				terms.add("subject:" + query.subject);
+			}
+			url.append("&$search=").append(encode('"' + String.join(" AND ", terms) + '"'));
+		} else {
+			List<String> filters = new ArrayList<>();
+			if (query.since != null) {
+				filters.add("receivedDateTime ge " + DateTimeFormatter.ISO_INSTANT.format(query.since.toInstant()));
+			} else if (query.unreadOnly && query.until == null) {
+				// graph refuses a filter sorted by a field it does not filter on first, so
+				// the date the listing is sorted by leads the filter even with no cutoff
+				filters.add("receivedDateTime ge 1900-01-01T00:00:00Z");
+			}
+			if (query.until != null) {
+				filters.add("receivedDateTime le " + DateTimeFormatter.ISO_INSTANT.format(query.until.toInstant()));
+			}
+			if (query.unreadOnly) {
+				filters.add("isRead eq false");
+			}
+			if (!filters.isEmpty()) {
+				url.append("&$filter=").append(encode(String.join(" and ", filters)));
+			}
+			url.append("&$orderby=").append(encode("receivedDateTime desc"));
+		}
+
+		String response = HttpHelperUtility.getRequest(url.toString(),
+				query.includeBody ? textBodyHeaders(accessToken) : headers(accessToken), null, null, null);
+		throwOnError(response, "read the mailbox");
+		List<Map<String, Object>> messages = readList(response);
+
+		if (searching) {
+			// what the server could not be asked for alongside the text search
+			List<Map<String, Object>> narrowed = new ArrayList<>();
+			for (Map<String, Object> message : messages) {
+				if (query.unreadOnly && Boolean.TRUE.equals(message.get("isRead"))) {
+					continue;
+				}
+				if (query.since != null && receivedBefore(message, query.since)) {
+					continue;
+				}
+				if (query.until != null && receivedAfter(message, query.until)) {
+					continue;
+				}
+				narrowed.add(message);
+			}
+			messages = narrowed;
+		}
+		return messages;
+	}
+
+	/**
+	 * Find the messages of one conversation, in every folder, so a thread holds the
+	 * replies the user sent as well as the ones they received.
+	 *
+	 * <p>
+	 * The conversation filter is sent without an ordering, which Graph can reject
+	 * alongside it as too complex, so the messages are put newest first here.
+	 * Bodies are asked for as text, which Graph writes out keeping the lines of the
+	 * message, and each message also comes back with its unique body, the part that
+	 * is not quoted from the messages before it.
+	 * </p>
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox to read, or null for the signed in user
+	 * @param query       the conversation, how many messages, and whether bodies
+	 *                    come back
+	 * @return the messages, newest first, as Graph returned them
+	 */
+	private List<Map<String, Object>> listConversation(String accessToken, String mailbox, MessageQuery query) {
+		StringBuilder url = new StringBuilder(userPath(mailbox));
+		url.append("/messages?$select=").append(query.includeBody ? CONVERSATION_FIELDS : MESSAGE_FIELDS_NO_BODY);
+		url.append("&$top=").append(Math.max(1, query.top));
+		// a quote inside an OData string is written twice
+		String conversationId = query.conversationId.replace("'", "''");
+		url.append("&$filter=").append(encode("conversationId eq '" + conversationId + "'"));
+
+		String response = HttpHelperUtility.getRequest(url.toString(), textBodyHeaders(accessToken), null, null, null);
+		throwOnError(response, "read the conversation");
+		List<Map<String, Object>> messages = new ArrayList<>(readList(response));
+		messages.sort(Comparator
+				.comparing(
+						(Map<String, Object> message) -> String.valueOf(message.getOrDefault("receivedDateTime", "")))
+				.reversed());
+		return messages;
+	}
+
+	/**
+	 * Read one message.
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param messageId   the message to read
+	 * @return the message as Graph returned it
+	 */
+	public Map<String, Object> getMessage(String accessToken, String mailbox, String messageId) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "?$select=" + MESSAGE_FIELDS;
+		String response = HttpHelperUtility.getRequest(url, textBodyHeaders(accessToken), null, null, null);
+		throwOnError(response, "read a message");
+		return readMap(response);
+	}
+
+	/**
+	 * List what is attached to a message, without the bytes, which is one call
+	 * however large the files are.
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param messageId   the message whose attachments to list
+	 * @return the attachments as Graph returned them, each still saying what kind
+	 *         of attachment it is
+	 */
+	public List<Map<String, Object>> listAttachmentSummaries(String accessToken, String mailbox, String messageId) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId)
+				+ "/attachments?$select=id,name,contentType,size,isInline";
+		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		throwOnError(response, "read the attachments of a message");
+		return readList(response);
+	}
+
+	/**
+	 * List the attachments of a message, each carrying its bytes when it is a file.
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param messageId   the message whose attachments to list
+	 * @return the attachments as Graph returned them
+	 */
+	public List<Map<String, Object>> listAttachments(String accessToken, String mailbox, String messageId) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/attachments";
+		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		throwOnError(response, "read the attachments of a message");
+		return readList(response);
+	}
+
+	/**
+	 * Mark a message read or unread.
+	 *
+	 * @param accessToken the token to write with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param messageId   the message to mark
+	 * @param read        true to mark read, false to mark unread
+	 */
+	public void setRead(String accessToken, String mailbox, String messageId, boolean read) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId);
+		String response = HttpHelperUtility.patchRequestStringBody(url, headers(accessToken),
+				GSON.toJson(Map.of("isRead", read)), ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "mark a message");
+	}
+
+	/**
+	 * Move a message to another folder.
+	 *
+	 * @param accessToken       the token to write with
+	 * @param mailbox           the mailbox, or null for the signed in user
+	 * @param messageId         the message to move
+	 * @param destinationFolder the folder to move it to, by well known name or id
+	 * @return the id of the moved message, which Graph reissues on a move
+	 */
+	public String moveMessage(String accessToken, String mailbox, String messageId, String destinationFolder) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/move";
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken),
+				GSON.toJson(Map.of("destinationId", destinationFolder)), ContentType.APPLICATION_JSON, null, null,
+				null);
+		throwOnError(response, "move a message");
+		Map<String, Object> moved = readMap(response);
+		// a move is a copy and a delete on the server, so the message that comes
+		// back is not the one that went in
+		return moved == null ? null : (String) moved.get("id");
+	}
+
+	/**
+	 * Move a message to another folder and return the message as it is there.
+	 *
+	 * @param accessToken       the token to write with
+	 * @param mailbox           the mailbox, or null for the signed in user
+	 * @param messageId         the message to move
+	 * @param destinationFolder the folder to move it to, by well known name or id
+	 * @return the moved message, which carries the new id and webLink Graph gave it
+	 */
+	public Map<String, Object> moveMessageDetails(String accessToken, String mailbox, String messageId,
+			String destinationFolder) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/move";
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken),
+				GSON.toJson(Map.of("destinationId", destinationFolder)), ContentType.APPLICATION_JSON, null, null,
+				null);
+		throwOnError(response, "move a message");
+		return readMap(response);
+	}
+
+	/**
+	 * Delete a message. It goes to Deleted Items rather than disappearing, which is
+	 * the one thing Graph does more gently than the mail protocols.
+	 *
+	 * @param accessToken the token to write with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param messageId   the message to delete
+	 */
+	public void deleteMessage(String accessToken, String mailbox, String messageId) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId);
+		String response = HttpHelperUtility.deleteRequestStringBody(url, headers(accessToken), null, null, null);
+		throwOnError(response, "delete a message");
+	}
+
+	/**
+	 * List the folders of a mailbox.
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @return the folders as Graph returned them
+	 */
+	public List<Map<String, Object>> listFolders(String accessToken, String mailbox) {
+		return listFolders(accessToken, mailbox, 100, 0);
+	}
+
+	/**
+	 * List one page of the folders of a mailbox.
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param top         how many folders to read
+	 * @param skip        how many folders to skip first
+	 * @return the folders as Graph returned them
+	 */
+	public List<Map<String, Object>> listFolders(String accessToken, String mailbox, int top, int skip) {
+		String url = userPath(mailbox) + "/mailFolders?$top=" + Math.max(1, top) + "&$skip=" + Math.max(0, skip)
+				+ "&$select=id,displayName,totalItemCount,unreadItemCount";
+		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		throwOnError(response, "list the folders of the mailbox");
+		return readList(response);
+	}
+
+	/**
+	 * List the folders directly inside one folder, or at the top of the mailbox
+	 * when no parent is given.
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param parentId    the parent folder id or well known name, or null for the top level
+	 * @return the folders, each with its id, displayName and childFolderCount
+	 */
+	public List<Map<String, Object>> listFolderChildren(String accessToken, String mailbox, String parentId) {
+		String base = userPath(mailbox) + "/mailFolders";
+		String url = (parentId == null ? base : base + "/" + encode(parentId) + "/childFolders")
+				+ "?$top=100&$select=id,displayName,childFolderCount";
+		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		throwOnError(response, "list the folders of the mailbox");
+		return readList(response);
+	}
+
+	/**
+	 * The id of a folder by its well known name, such as {@code drafts}.
+	 *
+	 * @return the folder id, or null when Graph has no such folder
+	 */
+	public String wellKnownFolderId(String accessToken, String mailbox, String wellKnownName) {
+		String url = userPath(mailbox) + "/mailFolders/" + encode(wellKnownName) + "?$select=id";
+		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		if (response == null || response.contains("\"error\"")) {
+			return null;
+		}
+		Map<String, Object> folder = readMap(response);
+		return folder == null ? null : (String) folder.get("id");
+	}
+
+	/**
+	 * Make a folder, or return the one of that name that is already there.
+	 *
+	 * @param accessToken the token to write with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param parentId    the parent folder id or well known name, or null for the top level
+	 * @param name        the folder name
+	 * @return the folder, with its id and displayName
+	 */
+	public Map<String, Object> createFolder(String accessToken, String mailbox, String parentId, String name) {
+		for (Map<String, Object> existing : listFolderChildren(accessToken, mailbox, parentId)) {
+			if (name.equalsIgnoreCase(String.valueOf(existing.get("displayName")))) {
+				return existing;
+			}
+		}
+		String base = userPath(mailbox) + "/mailFolders";
+		String url = parentId == null ? base : base + "/" + encode(parentId) + "/childFolders";
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken),
+				GSON.toJson(Map.of("displayName", name)), ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "create a folder");
+		return readMap(response);
+	}
+
+	/**
+	 * Find the id of a folder by the name a person would call it.
+	 *
+	 * <p>
+	 * Graph takes a well known name such as {@code inbox} straight through, so this
+	 * is only needed for a folder somebody made.
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param displayName the folder name to look for
+	 * @return the folder id, or null when the mailbox has no such folder
+	 */
+	public String resolveFolderId(String accessToken, String mailbox, String displayName) {
+		for (Map<String, Object> folder : listFolders(accessToken, mailbox)) {
+			if (displayName.equalsIgnoreCase(String.valueOf(folder.get("displayName")))) {
+				return (String) folder.get("id");
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Find a folder inside another one by name, making it when it is not there.
+	 *
+	 * @param accessToken the token to write with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param parent      the folder it sits in, by well known name or id
+	 * @param displayName the folder name
+	 * @return the folder as Graph returned it, with created true when it was made
+	 */
+	public Map<String, Object> ensureChildFolder(String accessToken, String mailbox, String parent,
+			String displayName) {
+		String url = userPath(mailbox) + "/mailFolders/" + encode(parent) + "/childFolders";
+		String response = HttpHelperUtility.getRequest(url + "?$select=id,displayName&$filter="
+				+ encode("displayName eq '" + displayName.replace("'", "''") + "'"), headers(accessToken), null, null,
+				null);
+		throwOnError(response, "find a mail folder");
+		List<Map<String, Object>> found = readList(response);
+		if (!found.isEmpty()) {
+			Map<String, Object> folder = new HashMap<>(found.get(0));
+			folder.put("created", false);
+			return folder;
+		}
+		response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken),
+				GSON.toJson(Map.of("displayName", displayName)), ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "create a mail folder");
+		Map<String, Object> made = readMap(response);
+		if (made == null) {
+			throw new IllegalStateException("Microsoft did not return the new mail folder.");
+		}
+		Map<String, Object> folder = new HashMap<>(made);
+		folder.put("created", true);
+		return folder;
+	}
+
+	/**
+	 * The part of a Graph url that says whose mailbox this is.
+	 *
+	 * @param mailbox the mailbox, or null for the signed in user
+	 * @return the url up to the mailbox
+	 */
+	private String userPath(String mailbox) {
+		if (mailbox == null || mailbox.trim().isEmpty()) {
+			// the delegated shape, where the token already says who this is
+			return this.graphBaseUrl + "/me";
+		}
+		return this.graphBaseUrl + "/users/" + encode(mailbox.trim());
+	}
+
+	/**
+	 * @param accessToken the token to send
+	 * @return the headers every call carries
+	 */
+	private static Map<String, String> headers(String accessToken) {
+		Map<String, String> headers = new HashMap<>();
+		headers.put("Authorization", "Bearer " + accessToken);
+		return headers;
+	}
+
+	/**
+	 * The headers for a read that returns bodies, asking Graph for Outlook's own
+	 * plain text rendering. It keeps the paragraphs and line breaks, and writes a
+	 * link as its text followed by the address in angle brackets, where reducing
+	 * the markup here would run everything into one line.
+	 *
+	 * @param accessToken the token to read with
+	 * @return the headers
+	 */
+	private static Map<String, String> textBodyHeaders(String accessToken) {
+		Map<String, String> headers = headers(accessToken);
+		headers.put("Prefer", "outlook.body-content-type=\"text\"");
+		return headers;
+	}
+
+	/**
+	 * Turn an error Graph described into an exception, so a caller does not have to
+	 * inspect every response.
+	 *
+	 * @param response what came back
+	 * @param what     what was being attempted, for the message
+	 */
+	private static void throwOnError(String response, String what) {
+		if (response == null || !response.contains("\"error\"")) {
+			return;
+		}
+		String detail = response;
+		try {
+			Map<String, Object> parsed = readMap(response);
+			Object error = parsed == null ? null : parsed.get("error");
+			if (error instanceof Map) {
+				Map<?, ?> errorMap = (Map<?, ?>) error;
+				detail = errorMap.get("code") + ": " + errorMap.get("message");
+			}
+		} catch (RuntimeException e) {
+			classLogger.debug("Could not read the error Graph returned", e);
+		}
+		throw new IllegalArgumentException("Microsoft Graph would not " + what + ". Detailed error: " + detail);
+	}
+
+	/**
+	 * Read the {@code value} collection out of a Graph response.
+	 *
+	 * @param response the response body
+	 * @return the collection, empty when there is none
+	 */
+	@SuppressWarnings("unchecked")
+	private static List<Map<String, Object>> readList(String response) {
+		Map<String, Object> parsed = readMap(response);
+		if (parsed == null) {
+			return new ArrayList<>();
+		}
+		Object value = parsed.get("value");
+		if (!(value instanceof List)) {
+			return new ArrayList<>();
+		}
+		return (List<Map<String, Object>>) value;
+	}
+
+	/**
+	 * @param response the response body
+	 * @return the response as a map, or null when there is nothing to read
+	 */
+	private static Map<String, Object> readMap(String response) {
+		if (response == null || response.trim().isEmpty()) {
+			return null;
+		}
+		return GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
+		}.getType());
+	}
+
+	/**
+	 * Whether a message arrived before a cutoff, used to narrow a text search that
+	 * could not carry a date filter.
+	 *
+	 * @param message the message
+	 * @param since   the cutoff
+	 * @return true when the message is older than the cutoff
+	 */
+	private static boolean receivedBefore(Map<String, Object> message, Date since) {
+		Object received = message.get("receivedDateTime");
+		if (received == null) {
+			return false;
+		}
+		try {
+			return Instant.parse(received.toString()).isBefore(since.toInstant());
+		} catch (RuntimeException e) {
+			classLogger.debug("Could not read the received date {}", received, e);
+			return false;
+		}
+	}
+
+	/** Whether a search result arrived after the inclusive upper cutoff. */
+	private static boolean receivedAfter(Map<String, Object> message, Date until) {
+		Object received = message.get("receivedDateTime");
+		if (received == null) {
+			return false;
+		}
+		try {
+			return Instant.parse(received.toString()).isAfter(until.toInstant());
+		} catch (RuntimeException e) {
+			classLogger.debug("Could not read the received date {}", received, e);
+			return false;
+		}
+	}
+
+	/**
+	 * Add one set of recipients in the shape Graph reads them.
+	 *
+	 * @param message    the message being built
+	 * @param key        the recipient collection to set
+	 * @param recipients the addresses, or null when there are none
+	 */
+	private static void putRecipients(Map<String, Object> message, String key, String[] recipients) {
+		if (recipients == null || recipients.length == 0) {
+			return;
+		}
+		List<Map<String, Object>> addresses = new ArrayList<>();
+		for (String recipient : recipients) {
+			Map<String, Object> emailAddress = new LinkedHashMap<>();
+			emailAddress.put("address", recipient);
+			addresses.add(Map.of("emailAddress", emailAddress));
+		}
+		message.put(key, addresses);
+	}
+
+	private static String encode(String value) {
+		return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
+	}
+
+	/**
+	 * What to look for in a mailbox.
+	 *
+	 * <p>
+	 * The fields are plain because Graph treats them differently depending on which
+	 * are set, and {@link MicrosoftOutlookMailHelper#listMessages} is where that
+	 * knowledge belongs rather than in every caller.
+	 */
+	public static class MessageQuery {
+
+		/** The folder to read, by well known name or id. Null reads them all. */
+		public String folder = "inbox";
+
+		/** How many messages to ask Graph for. */
+		public int top = 10;
+
+		/**
+		 * How many messages Graph skips before the ones it returns. Graph cannot skip
+		 * alongside a text search or a conversation, which always read from the first
+		 * message.
+		 */
+		public int skip = 0;
+
+		/** Text the sender has to contain, which makes this a search. */
+		public String from = null;
+
+		/** Text the subject has to contain, which makes this a search. */
+		public String subject = null;
+
+		/** The oldest message to return. */
+		public Date since = null;
+
+		/** The newest message to return, including messages received at this time. */
+		public Date until = null;
+
+		/** Whether to return only messages nobody has opened. */
+		public boolean unreadOnly = false;
+
+		/** Whether the body comes back with each message. */
+		public boolean includeBody = true;
+
+		/**
+		 * The conversation to read, from every folder. When set, the folder, the text
+		 * search, the dates, and the unread filter are not applied.
+		 */
+		public String conversationId = null;
+
+	}
+
+}

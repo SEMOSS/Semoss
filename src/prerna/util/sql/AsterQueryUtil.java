@@ -33,10 +33,10 @@ public class AsterQueryUtil extends AnsiSqlQueryUtil {
 		super();
 		setDbType(RdbmsTypeEnum.ASTER);
 	}
-	
+
 	AsterQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.ASTER);
 	}
-	
+
 }

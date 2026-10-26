@@ -1,186 +1,101 @@
-# SEMOSS Monolith Interaction
+# Semoss and Monolith Integration
 
-This document outlines the interaction between the main SEMOSS platform (presumably the components developed in the current repository, referred to as `semoss/semoss` for clarity) and the `semoss/monolith` web application.
+[Monolith](https://github.com/SEMOSS/Monolith) is the Java web application that exposes the Semoss core runtime to browsers and API clients. Its WAR embeds the core Maven dependency. [semoss-ui](https://github.com/SEMOSS/semoss-ui) provides the frontend applications and client libraries.
 
-## Overview of `semoss/monolith`
+## Request flow
 
-The `semoss/monolith` repository houses a Java-based web application packaged as a WAR (Web Application Archive). Its primary role is to serve as the main backend server for SEMOSS, exposing APIs and handling client requests. It builds upon a core `semoss` library (artifact `org.semoss:semoss`), which is likely produced by the `semoss/semoss` repository.
+```mermaid
+sequenceDiagram
+    participant Client as UI / API client
+    participant Web as Monolith filters and RESTEasy
+    participant Resource as REST resource
+    participant Core as Insight / Pixel / reactors
+    participant Service as Engines or agent services
+    Client->>Web: Authenticated request
+    Web->>Resource: Dispatch mapped route
+    Resource->>Core: Resolve context and invoke operation
+    Core->>Service: Authorize and execute
+    Service-->>Core: Result or durable run handle
+    Core-->>Resource: NounMetadata / response data
+    Resource-->>Client: JSON or configured stream
+```
 
-Key characteristics of the Monolith:
-- **Technology**: Java, Maven, RESTEasy (for JAX-RS RESTful services), WebSockets.
-- **Packaging**: Deployed as a WAR file on a Java web server (e.g., Tomcat).
-- **Core Logic**: Leverages a base `semoss.jar` for fundamental SEMOSS functionalities like Pixel processing, engine management, and data utilities.
-- **Configuration**: Shares configuration mechanisms with the core `semoss` library, such as `RDF_Map.prop` and `log4j2.properties`.
+[web.xml](https://github.com/SEMOSS/Monolith/blob/dev/WebContent/WEB-INF/web.xml) defines servlet/filter mappings and startup configuration. [MonolithApplication](https://github.com/SEMOSS/Monolith/blob/dev/src/prerna/semoss/web/app/MonolithApplication.java) registers REST resources. The implementation uses Jakarta APIs and RESTEasy.
 
-## Key Interaction Points
+Filters establish and check the request/session context. Core resource operations still enforce engine, project, insight, and run access; passing a web authentication check does not authorize every resource.
 
-### 1. Core Library Dependency
+## Applications and base paths
 
-The most fundamental interaction is that `semoss/monolith` includes the `org.semoss:semoss` artifact (the core SEMOSS library) as a Maven dependency. This means the Monolith uses the classes and methods from this core library to perform its operations. The Monolith essentially provides the web-facing layer (APIs, request handling, session management) on top of the functionalities provided by the core `semoss` library.
+Monolith hosts six REST applications. With the default `/Monolith` web context, their mappings are:
 
-### 2. RESTful API via RESTEasy
+| Application | Base path | Responsibility |
+| --- | --- | --- |
+| `MonolithApplication` | `/Monolith/api` | Core runtime, engines, projects, sessions, and integration APIs |
+| `GitHubApplication` | `/Monolith/github` | GitHub App setup, repository links, callbacks, and push webhook |
+| `MicrosoftGraphApplication` | `/Monolith/msgraph` | Microsoft subscriptions and mailbox/calendar notifications |
+| `HealthApplication` | `/Monolith/health` | Liveness, readiness, and resource status |
+| `TrustedTokenApplication` | `/Monolith/token` | Trusted integration tokens |
+| `AdminApplication` | `/Monolith/adminconfig` | Initial administrator setup |
 
-The Monolith exposes a comprehensive set of RESTful API endpoints using JAX-RS, with RESTEasy as the implementation. These endpoints are primarily accessible under the `/api/*` URL path, as configured in its `web.xml` file via the `prerna.semoss.web.app.MonolithApplication` JAX-RS application class.
+Adjust the context and any deployment prefix for your installation. The [Monolith endpoint reference](https://github.com/SEMOSS/Monolith/blob/dev/docs/endpoints.md) groups routes by application and documents engine operations and their main inputs.
 
-**The `runPixel` Endpoint:**
+### MonolithApplication: core and engine APIs
 
-A critical endpoint for the platform is `runPixel`. While its exact path under `/api/` and specific signature are defined within the Java JAX-RS resource classes in the Monolith's `prerna.semoss.web.app` package, its general behavior involves:
+All routes in this table belong to `/Monolith/api`. Brace-delimited values are path parameters, and `*` indicates a family of routes.
 
-- **Request**: Clients (e.g., SEMOSS UIs, external applications) send HTTP requests (typically POST) to this endpoint. The request payload contains:
-    - The Pixel code to be executed.
-    - Optionally, parameters such as target database/engine IDs, variable assignments, and context information.
-- **Processing**:
-    1. The Monolith's JAX-RS resource class receives the request.
-    2. It authenticates and authorizes the request based on the configured security filters (e.g., session tokens, SAML assertions, API keys).
-    3. It then utilizes the embedded `semoss.jar` (core library) to:
-        - Parse the Pixel code.
-        - Generate an execution plan.
-        - Run the query against the appropriate data engines (databases, storage, models, etc.).
-    4. Results from the Pixel execution are returned from the core library to the JAX-RS resource.
-- **Response**: The JAX-RS resource formats the results (typically as JSON) and sends them back in the HTTP response to the client. This can include data, messages, errors, or status information.
+| Endpoint / route family | Purpose |
+| --- | --- |
+| `POST /Monolith/api/engine/runPixel` | Run Pixel expressions in the resolved Insight |
+| `POST /Monolith/api/engine/runPixelAsync` | Submit asynchronous Pixel execution |
+| `POST /Monolith/api/engine/pixelJobStreaming` | Progress for the Pixel job path |
+| `POST /Monolith/api/engine/agentRunStreaming` | Drain canonical agent events and return a durable run snapshot |
+| `/Monolith/api/session/*` | Session and insight lifecycle |
+| `/Monolith/api/database-{databaseId}/*` | Database type (`GET /type`), reload (`POST /reload`), and queries (`POST /query`) |
+| `/Monolith/api/storage-{storageId}/*` | Storage operations: `POST /list`, `/listDetails`, `/delete` |
+| `/Monolith/api/vector-{vectorId}/*` | Vector operations: `POST /query`, `/listDocuments`, `/removeDocument` |
+| `/Monolith/api/model-{modelId}/*` | Model operations: `POST /llm`, `/llmStreaming`, `/embeddings`, `/vision` |
+| `/Monolith/api/function-{functionId}/*` | Function execution (`POST /execute`) and definition (`GET /definition`) |
+| `/Monolith/api/e-{engineId}/*` | Shared engine type, configuration, and catalog-image operations |
+| `/Monolith/api/project-{projectId}/*` | Project reactors, assets, configuration, and images, including workspace agents and skills |
+| `/Monolith/api/model/openai/*`, `/Monolith/api/model/anthropic/*`, `/Monolith/api/model/ollama/*` | Model compatibility protocols |
+| `/Monolith/api/ext/mcp/{toolbox_id}/comms`, `/Monolith/api/ext/a2a/workspace/{workspaceId}/*` | MCP and A2A integration |
+| `/Monolith/api/auth/*`, `/Monolith/api/authorization/*` | Authentication and resource permissions, including `/api/auth/admin/*` |
+| `GET /Monolith/api/config/endpoints` | Discover registered main-application methods and resource-relative paths |
 
-Other API endpoints under `/api/*` handle various other platform functions like engine management, data uploads, user authentication, scheduling tasks (`/api/schedule/*`), and OpenAI model interactions (`/api/model/openai/*`).
+[NameServer](https://github.com/SEMOSS/Monolith/blob/dev/src/prerna/semoss/web/services/local/NameServer.java) implements execution and polling. Engine-specific wrappers run the corresponding core operations with the caller's permissions. For example, storage listing is `POST /Monolith/api/storage-{storageId}/list` with a `storagePath` input. See the [engine endpoint tables](https://github.com/SEMOSS/Monolith/blob/dev/docs/endpoints.md#database-engines) for full paths and request fields.
 
-### 3. WebSocket Communication
+### Other REST applications
 
-The Monolith is equipped for WebSocket communication (indicated by `javax.websocket/javax.websocket-api` in its `pom.xml`). This allows for real-time, bidirectional communication channels between clients and the server. Use cases might include:
-- Live updates for dashboards or data visualizations.
-- Collaborative editing or interaction sessions.
-- Streaming of large query results or logs.
-The specific WebSocket endpoints and their protocols are defined within Java classes in the Monolith.
+These applications have their own servlet mappings and do not add `/api` to their base paths.
 
-### 4. Shared Configuration Files
+| Application | Main endpoints | Details |
+| --- | --- | --- |
+| `GitHubApplication` | `POST /Monolith/github/webhook`; setup and callbacks under `/Monolith/github/*` | [GitHub webhook guide](monolith_webhooks.md#github) |
+| `MicrosoftGraphApplication` | `POST /Monolith/msgraph/notifications/messages`, `POST /Monolith/msgraph/notifications/events`; management under `/Monolith/msgraph/*` | [Microsoft Graph guide](monolith_webhooks.md#microsoft-graph) |
+| `HealthApplication` | `GET /Monolith/health/`, `GET /Monolith/health/ready`, `GET /Monolith/health/details` | [Health endpoints](https://github.com/SEMOSS/Monolith/blob/dev/docs/endpoints.md#healthapplication) |
+| `TrustedTokenApplication` | `POST /Monolith/token/getToken`, legacy GET variant | [Trusted-token endpoints](https://github.com/SEMOSS/Monolith/blob/dev/docs/endpoints.md#trustedtokenapplication) |
+| `AdminApplication` | `POST /Monolith/adminconfig/setInitialAdmins` | [Initial administrator setup](https://github.com/SEMOSS/Monolith/blob/dev/docs/endpoints.md#adminapplication) |
 
-The Monolith relies on configuration files like `RDF_Map.prop` (for semantic mappings) and `log4j2.properties` (for logging), which are also central to the core SEMOSS platform. This ensures consistency in how both the core library and the Monolith web application interpret semantic data and manage logging.
+Use the session, credential, CSRF, or provider-verification behavior expected by each route. Resource classes define the full parameters and responses. Direct SAML servlet mappings and WebSockets are documented separately from these REST applications.
 
-### 5. Authentication and Authorization
+## Webhooks and change notifications
 
-The Monolith is responsible for securing its exposed endpoints. It employs a suite of configurable security filters (defined in `web.xml` and implemented in `prerna.web.conf.*` classes) to handle:
-- User authentication (SAML, trusted tokens, user access keys, etc.).
-- Session management.
-- Authorization checks.
-Clients interacting with the Monolith's API must adhere to these security protocols.
+GitHub and Microsoft Graph use dedicated servlet applications under `/github` and `/msgraph`. Provider deliveries are verified with the GitHub signature or the recorded Microsoft subscription's client state. Their setup and management routes apply their own access checks.
 
-## Typical Interaction Flow (Example: UI running a Pixel query)
+See [Monolith webhooks](monolith_webhooks.md) for the endpoint tables, GitHub app and repository setup, Microsoft subscription creation/renewal/deletion, validation responses, public URL configuration, and delivery diagnostics. GitHub pushes synchronize linked project files in the background. Microsoft notifications currently fetch and log mailbox/calendar changes; they do not automatically start agent runs.
 
-1.  A user interacts with a SEMOSS web interface, triggering a Pixel query.
-2.  The UI client constructs an HTTP request (e.g., POST) to the Monolith's `/api/.../runPixel` endpoint, including the Pixel code and any necessary session tokens or authentication headers.
-3.  The Monolith receives the request. Its security filters validate the user's session and authorization.
-4.  The designated JAX-RS resource class for `runPixel` is invoked.
-5.  This resource class calls methods within the core `semoss.jar` to execute the Pixel query.
-6.  The core library processes the query (connects to databases, performs computations, etc.) and returns the results.
-7.  The JAX-RS resource packages the results into a JSON response.
-8.  The Monolith sends the HTTP response back to the UI client.
-9.  The UI client renders the results for the user.
+## Agents across the web boundary
 
-## Development and Troubleshooting
+`RunAgent` is submitted through Pixel. With `wait=false`, it returns a `runId` while the durable worker executes the harness outside the HTTP request. The frontend polls `agentRunStreaming` for live items and run status, and can reload durable messages with `GetAgentRun`.
 
-- When changes are made to the core `semoss` library (in `semoss/semoss`), a new version of the `org.semoss:semoss` artifact must be built and published.
-- The `semoss/monolith` project then needs to be updated to use this new version, rebuilt into a WAR, and redeployed.
-- Troubleshooting issues often involves checking logs from both the Monolith application (Tomcat logs, application logs configured via log4j2) and potentially any client-side logs if the interaction originates from another application. Understanding the flow through the RESTEasy endpoints and the underlying Pixel execution logic is key.
+Agent polling uses run IDs, authorizes the run owner, and drains an in-memory buffer. It is not interchangeable with `pixelJobStreaming`. Approval decisions return through the run-action/tool decision path, which resumes the existing run after the pending batch is resolved.
 
-This documentation provides a high-level overview of the interaction. For precise details of API endpoint signatures, request/response structures, and internal logic, developers would need to consult the Java source code within the `semoss/monolith` repository, particularly the JAX-RS resource classes in the `prerna.semoss.web.app` package and filter configurations in `web.xml`.
+See [agent runs](../agents/agent_runs.md) and [the SEMOSS harness](../agents/semoss_harness.md).
 
-## Servlet Filters and Their Roles
+## Build and deploy together
 
-The `semoss/monolith` web application utilizes a series of servlet filters defined in its `web.xml` to process incoming requests and outgoing responses. These filters handle various concerns, including security, session management, character encoding, and request routing. Below is a breakdown of the key active filters:
+Build and install Semoss before building Monolith, with matching `ci.version` values. Monolith consumes the core artifact's `shaded-dependencies` classifier. The current backend uses Java 21 and Tomcat 11/Jakarta Servlet 6.1.
 
-### Standard Tomcat Filters
+Use [Monolith's local Docker workflow](https://github.com/SEMOSS/Monolith#quick-start-with-docker) to test local Java changes. Its image preserves the base image's `web.xml`; verify the effective descriptor when testing routes or filters. Package matching frontend and platform project assets when changing workbench agents or skills.
 
-These are common filters provided by Apache Tomcat.
-
-1.  **`SetCharacterEncoding`**
-    *   **Class**: `org.apache.catalina.filters.SetCharacterEncodingFilter`
-    *   **Purpose**: Ensures that requests and responses are processed using UTF-8 encoding, crucial for correct international character handling.
-    *   **Configuration**: `encoding = UTF-8`
-    *   **Applies to**: All requests (`/*`).
-
-2.  **`HeaderSecurityFilter`**
-    *   **Class**: `org.apache.catalina.filters.HttpHeaderSecurityFilter`
-    *   **Purpose**: Adds HTTP security headers to responses to mitigate common web vulnerabilities.
-        *   HSTS (HTTP Strict Transport Security): Instructs browsers to only use HTTPS.
-        *   X-Frame-Options: Prevents clickjacking (set to `SAMEORIGIN`).
-        *   X-Content-Type-Options: Prevents MIME-sniffing.
-    *   **Applies to**: All requests (`/*`).
-
-### SEMOSS Custom Filters (from `prerna.web.conf.*` package)
-
-These filters are specific to the SEMOSS application and handle core application logic, security, and session management.
-
-#### Application Initialization & Health
-
-3.  **`StartUpSuccessFilter`**
-    *   **Class**: `prerna.web.conf.StartUpSuccessFilter`
-    *   **Purpose**: Likely verifies that essential application components (e.g., database connections, core services) initialized correctly during startup. If not, it might block requests or redirect to an error page.
-    *   **Applies to**: All requests (`/*`).
-
-#### Security, Session, and User Management
-
-4.  **`NoUserExistsFilter`**
-    *   **Class**: `prerna.web.conf.NoUserExistsFilter`
-    *   **Purpose**: Checks if any administrative user is configured. If not (e.g., on a fresh install), it may redirect to a setup page (like `/adminconfig/*`) to allow the creation of the first admin user.
-    *   **Applies to**: API requests (`/api/*`).
-
-5.  **`SessionCounterExceededFilter`**
-    *   **Class**: `prerna.web.conf.SessionCounterExceededFilter`
-    *   **Purpose**: Designed to limit concurrent user sessions. (Note: In the analyzed `web.xml`, `sessionLimit` is `-1`, meaning this filter is inactive by default).
-    *   **Applies to**: All requests (`/*`).
-
-6.  **`MemoryCheckFilter`**
-    *   **Class**: `prerna.web.conf.MemoryCheckFilter`
-    *   **Purpose**: Likely monitors memory usage (per-user, per-session, or overall). If usage exceeds thresholds, it might block new requests or terminate expensive operations to prevent OutOfMemoryErrors.
-    *   **Applies to**: API requests (`/api/*`).
-
-7.  **`ShareSessionFilter`**
-    *   **Class**: `prerna.web.conf.ShareSessionFilter`
-    *   **Purpose**: Potentially involved in enabling session sharing across different web contexts or managing session propagation for specific integrations.
-    *   **Applies to**: All requests (`/*`).
-
-8.  **`TrustedTokenFilter`**
-    *   **Class**: `prerna.web.conf.TrustedTokenFilter`
-    *   **Purpose**: Part of a custom token-based authentication scheme. It inspects requests for a "trusted token" and validates it, often used for server-to-server communication.
-    *   **Applies to**: All requests (`/*`).
-
-9.  **`UserAccessKeyFilter`**
-    *   **Class**: `prerna.web.conf.UserAccessKeyFilter`
-    *   **Purpose**: Implements authentication based on user-specific access keys. Requests must provide a valid key for verification.
-    *   **Applies to**: All requests (`/*`).
-
-10. **`NoUserInSessionTrustedTokenFilter`**
-    *   **Class**: `prerna.web.conf.NoUserInSessionTrustedTokenFilter`
-    *   **Purpose**: A specialized token authentication, possibly for specific clients (e.g., Sencha UI, given `trustedTokenPrefix="sencha"`). Allows API access via a valid token even without an existing user session. Accepts tokens from any domain (`trustedTokenDomain="*"`).
-    *   **Applies to**: API requests (`/api/*`).
-
-11. **`NoUserInSessionFilter`**
-    *   **Class**: `prerna.web.conf.NoUserInSessionFilter`
-    *   **Purpose**: A primary security filter for the API. Checks for a valid user session. If absent, it typically blocks API access or redirects to login, unless authentication is handled by a preceding filter.
-    *   **Applies to**: API requests (`/api/*`).
-
-12. **`AdminStartupFilter`**
-    *   **Class**: `prerna.web.conf.AdminStartupFilter`
-    *   **Purpose**: Secures the `/adminconfig/*` path, ensuring only authenticated admins can access these configuration endpoints (handled by `AdminApplication`).
-    *   **Applies to**: Admin configuration requests (`/adminconfig/*`).
-
-13. **`PublicHomeCheckFilter`**
-    *   **Class**: `prerna.web.conf.PublicHomeCheckFilter`
-    *   **Purpose**: Manages access to publicly shared resources or dashboards under `/public_home/*`. Checks if a resource is marked public or if specific access rules apply.
-    *   **Applies to**: Public home requests (`/public_home/*`).
-
-#### Request-Specific Processing Filters
-
-14. **`OpenAIFilter`**
-    *   **Class**: `prerna.web.conf.OpenAIFilter`
-    *   **Purpose**: Specific to OpenAI model interactions (`/api/model/openai/*`). Could handle API key injection, request/response modification for OpenAI, logging, or policy enforcement for OpenAI usage.
-    *   **Applies to**: OpenAI model requests (`/api/model/openai/*`).
-
-15. **`SchedulerFilter`**
-    *   **Class**: `prerna.web.conf.SchedulerFilter`
-    *   **Purpose**: Applied to scheduler API calls (`/api/schedule/*`). May handle auth specific to scheduling or ensure correct request routing/formatting.
-    *   **Applies to**: Scheduler API requests (`/api/schedule/*`).
-
-16. **`APIFilter`**
-    *   **Class**: `prerna.web.conf.APIFilter`
-    *   **Purpose**: Mapped to `/data/*` URLs (handled by `APIApplication` servlet). Might set up context for data-centric API interactions, possibly related to external applications or API users.
-    *   **Applies to**: Data API requests (`/data/*`).
-
-It's important to note that several other filters related to specific authentication mechanisms (SAML, Waffle, CAC/PIV, Anonymous User) were found commented out in the `web.xml`. This indicates that these are optional features that can be enabled if needed.
+For full infrastructure examples, use [SEMOSS-deployment](https://github.com/SEMOSS/SEMOSS-deployment). See [cluster state boundaries](../cloud_and_cluster/README.md) before assuming live sessions or streams can move between nodes.

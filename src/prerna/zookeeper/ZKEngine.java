@@ -49,6 +49,7 @@ public class ZKEngine implements IEngine {
 
 	protected String engineId = null;
 	protected String engineName = null;
+	protected String displayName = null;
 
 	protected String smssFilePath = null;
 	private Properties smssProp;
@@ -78,6 +79,16 @@ public class ZKEngine implements IEngine {
 	@Override
 	public String getEngineName() {
 		return this.engineName;
+	}
+
+	@Override
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
+	}
+
+	@Override
+	public String getDisplayName() {
+		return this.getEngineName();
 	}
 
 	@Override
@@ -215,17 +226,6 @@ public class ZKEngine implements IEngine {
 
 	public ZooKeeper getZookeeper() throws Exception {
 		return this.curator.getZookeeperClient().getZooKeeper();
-	}
-
-	@Override
-	public void setDisplayName(String displayName) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public String getDisplayName() {
-		return this.getEngineName();
 	}
 
 }

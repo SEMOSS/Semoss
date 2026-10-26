@@ -94,7 +94,7 @@ import prerna.util.Utility;
 
 public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(GoogleOCRCustomEmbeddingsFunctionEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(GoogleOCRFunctionEngine.class);
 
 	protected static final String DIR_SEPARATOR = "/";
 
@@ -178,17 +178,17 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 
 			IStorageEngine storageEngine = Utility.getStorage(this.googleStorageEngineId);
 			if (storageEngine.getStorageType() == StorageTypeEnum.GOOGLE_CLOUD_STORAGE
-					|| storageEngine.getStorageType() == StorageTypeEnum.GOOGLE_CLOUD_NATIVE_STORAGE) {
+					|| storageEngine.getStorageType() == StorageTypeEnum.GOOGLE_CLOUD_STORAGE) {
 				this.bucketName = storageEngine.getSmssProp().getProperty(GoogleCloudStorageEngine.GCS_BUCKET_KEY);
 			} else {
 				throw new IllegalArgumentException("Storage engine is not an Amazon S3 implementation.");
 			}
 
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to initialize the Google OCR client for projectId={} region={} processorId={}",
+					this.projectId, this.region, this.processorId, e);
 			throw e;
 		}
-
 	}
 
 	@Override
@@ -239,7 +239,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 
 					storageEng.copyToStorage(fileDir,
 							this.bucketName + DIR_SEPARATOR + this.objectPath + filePath.getName(), metadata);
-					classLogger.info(WAITING_INFO);
+					classLogger.info("{} for: {}", WAITING_INFO, filePath.getName());
 					extractedTextFromDoc = getAsyncTextExtraction(pdfFilePath);
 
 					storageEng.deleteFromStorage(DIR_SEPARATOR + this.objectPath + filePath.getName());
@@ -258,7 +258,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 			}
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Google OCR failed to extract text from: {}", fileDir, e);
 			throw new IllegalArgumentException(e);
 		}
 		return extractedTextFromDoc;
@@ -331,7 +331,8 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 				try (FileInputStream fis = new FileInputStream(fileToProcess)) {
 					mimeType = URLConnection.guessContentTypeFromStream(fis);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					// not fatal, the request is still sent with a null mime type
+					classLogger.error("Unable to determine the mime type of: {}", fileName, e);
 				}
 			}
 
@@ -365,12 +366,13 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 
 			future.get();
 
-			classLogger.info(END_INFO);
+			classLogger.info("{} for: {}", END_INFO, fileName);
 
 			extractedTextFromDoc = getTextFromStorage(outputFileName);
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Google OCR batch processing failed for: {} using processor: {}", filePathInBucket,
+					processorName, e);
 			throw e;
 		}
 		return extractedTextFromDoc;
@@ -409,7 +411,8 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 
 					}
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to read the OCR output blob {} from bucket {}", blob.getName(),
+							this.bucketName, e);
 					throw e;
 				} finally {
 					if (tempFile != null && tempFile.exists()) {
@@ -456,7 +459,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 			try {
 				this.storage.close();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close the Google Cloud Storage client for bucket: {}", this.bucketName, e);
 			}
 		}
 	}

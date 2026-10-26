@@ -53,6 +53,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -155,6 +158,7 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 			guardrail.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.addEngineToDIHelper(guardrailId, guardrailName, guardrail, smssFile);
 			SecurityEngineUtils.addEngine(guardrailId, global, user);
+			SecurityEngineUtils.setDefaultEngineMarkdown(guardrailId, guardrail.getDefaultMarkdown());
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
@@ -162,10 +166,12 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 			}
 
 			ClusterUtil.pushEngine(guardrailId);
+			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.GUARDRAIL_CREATE, AuditTargetType.GUARDRAIL,
+					guardrailId, guardrailName,
+					Map.of("global", global, "guardrailType", guardrailType.getGuardrailName()));
 		} catch (Exception e) {
-			classLogger.error(
-					"Failed to create guardrail engine '{}' with id '{}' and type '{}': {}",
-					guardrailName, guardrailId, guardrailTypeStr, e.getMessage(), e);
+			classLogger.error("Failed to create guardrail engine '{}' with id '{}' and type '{}': {}", guardrailName,
+					guardrailId, guardrailTypeStr, e.getMessage(), e);
 			UploadUtilities.cleanUpCreateNewError(guardrail, guardrailId, tempSmss, smssFile, specificEngineFolder);
 			throw new IllegalArgumentException("Failed to create guardrail engine. Error: " + e.getMessage());
 		}

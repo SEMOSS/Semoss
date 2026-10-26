@@ -103,12 +103,6 @@ public final class UploadUtilities {
 	public static final String GRID_DELTA_INSIGHT_NAME = "Grid Delta";
 	public static final String GRID_DELTA_LAYOUT = "Grid";
 
-	public static final String AUDIT_MODIFICATION_VIEW_INSIGHT_NAME = "What are the modifications made to specific column(s)?";
-	public static final String AUDIT_MODIFICATION_VIEW_LAYOUT = "Bar";
-
-	public static final String AUDIT_TIMELINE_INSIGHT_NAME = "What are the modifications made to the specific column(s) over time?";
-	public static final String AUDIT_TIMELINE_LAYOUT = "Line";
-
 	public static final String INSERT_FORM_LAYOUT = "form-builder";
 	public static final String UPDATE_FORM_LAYOUT = "form-builder";
 
@@ -559,15 +553,16 @@ public final class UploadUtilities {
 				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
 				bufferedWriter.write(newLine);
-				bufferedWriter.write(Constants.TINKER_DRIVER + "\t" + tinkerDriverType + "\n");
+				writeSmssProperty(bufferedWriter, Constants.TINKER_DRIVER, tinkerDriverType);
 				// if neo4j, point to the folder
 				if (tinkerDriverType == TINKER_DRIVER.NEO4J) {
-					bufferedWriter.write(Constants.TINKER_FILE + tinkerFilePath + "\n");
+					writeSmssProperty(bufferedWriter, Constants.TINKER_FILE, tinkerFilePath);
 				} else {
 					// basefolder/db/engine/engine.driverTypeExtension
-					bufferedWriter.write(Constants.TINKER_FILE + tinkerFilePath + "." + tinkerDriverType + "\n");
+					writeSmssProperty(bufferedWriter, Constants.TINKER_FILE, tinkerFilePath + "." + tinkerDriverType);
 				}
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException ex) {
 			classLogger.error("Failed to write Tinker database smss file for database {}: {}", databaseName,
 					ex.getMessage(), ex);
@@ -649,7 +644,7 @@ public final class UploadUtilities {
 				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
 				bufferedWriter.write(newLine);
-				bufferedWriter.write(Constants.RDF_FILE_BASE_URI + tab + baseUri + newLine);
+				writeSmssProperty(bufferedWriter, Constants.RDF_FILE_BASE_URI, baseUri);
 
 				if (dbClassName.endsWith("BigDataEngine")) {
 					// get additional RDF default properties
@@ -671,10 +666,11 @@ public final class UploadUtilities {
 						}
 					}
 				} else {
-					bufferedWriter.write(Constants.RDF_FILE_NAME + tab + databaseName + ".xml" + newLine);
-					bufferedWriter.write(Constants.RDF_FILE_TYPE + tab + "RDF/XML" + newLine);
+					writeSmssProperty(bufferedWriter, Constants.RDF_FILE_NAME, databaseName + ".xml");
+					writeSmssProperty(bufferedWriter, Constants.RDF_FILE_TYPE, "RDF/XML");
 				}
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException e) {
 			classLogger.error("Failed to write RDF database smss file for database {}: {}", databaseName,
 					e.getMessage(), e);
@@ -751,17 +747,18 @@ public final class UploadUtilities {
 				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
 				bufferedWriter.write(newLine);
-				bufferedWriter.write(Constants.JANUS_CONF + tab + janusConfPath + newLine);
+				writeSmssProperty(bufferedWriter, Constants.JANUS_CONF, janusConfPath);
 				// type map
 				// if we use the label we do not need the type map
 				if (useLabel) {
-					bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+					writeSmssProperty(bufferedWriter, Constants.TINKER_USE_LABEL, useLabel);
 				} else {
-					bufferedWriter.write(Constants.TYPE_MAP + tab + GSON.toJson(typeMap) + newLine);
+					writeSmssProperty(bufferedWriter, Constants.TYPE_MAP, GSON.toJson(typeMap));
 				}
 				// name map
-				bufferedWriter.write(Constants.NAME_MAP + tab + GSON.toJson(nameMap) + newLine);
+				writeSmssProperty(bufferedWriter, Constants.NAME_MAP, GSON.toJson(nameMap));
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException ex) {
 			classLogger.error("Failed to write JanusGraph database smss file for database {}: {}", databaseName,
 					ex.getMessage(), ex);
@@ -842,19 +839,20 @@ public final class UploadUtilities {
 				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
 				bufferedWriter.write(newLine);
-				bufferedWriter.write(Constants.TINKER_FILE + tab + tinkerFilePath + newLine);
+				writeSmssProperty(bufferedWriter, Constants.TINKER_FILE, tinkerFilePath);
 				// tinker driver
-				bufferedWriter.write(Constants.TINKER_DRIVER + tab + tinkerDriverType + newLine);
+				writeSmssProperty(bufferedWriter, Constants.TINKER_DRIVER, tinkerDriverType);
 				// type map
 				// if we use the label we do not need the type map
 				if (useLabel) {
-					bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+					writeSmssProperty(bufferedWriter, Constants.TINKER_USE_LABEL, useLabel);
 				} else {
-					bufferedWriter.write(Constants.TYPE_MAP + tab + GSON.toJson(typeMap) + newLine);
+					writeSmssProperty(bufferedWriter, Constants.TYPE_MAP, GSON.toJson(typeMap));
 				}
 				// name map
-				bufferedWriter.write(Constants.NAME_MAP + tab + GSON.toJson(nameMap) + newLine);
+				writeSmssProperty(bufferedWriter, Constants.NAME_MAP, GSON.toJson(nameMap));
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException ex) {
 			classLogger.error("Failed to write external Tinker database smss file for database {}: {}", databaseName,
 					ex.getMessage(), ex);
@@ -934,28 +932,26 @@ public final class UploadUtilities {
 			} else {
 				bufferedWriter.write(newLine);
 				// host + port
-				if (host.contains("\\")) {
-					host = host.replace("\\", "\\\\");
-				}
-				bufferedWriter.write("HOST" + tab + host + newLine);
-				bufferedWriter.write(Constants.PORT + "\t" + port + newLine);
+				writeSmssProperty(bufferedWriter, "HOST", host);
+				writeSmssProperty(bufferedWriter, Constants.PORT, port);
 				if (username != null) {
-					bufferedWriter.write(Constants.USERNAME + tab + username + newLine);
+					writeSmssProperty(bufferedWriter, Constants.USERNAME, username);
 				}
 				if (password != null) {
-					bufferedWriter.write(Constants.PASSWORD + tab + password + newLine);
+					writeSmssProperty(bufferedWriter, Constants.PASSWORD, password);
 				}
-				bufferedWriter.write("GRAPH_NAME" + tab + graphName + newLine);
+				writeSmssProperty(bufferedWriter, "GRAPH_NAME", graphName);
 
 				// type map
 				if (useLabel) {
-					bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+					writeSmssProperty(bufferedWriter, Constants.TINKER_USE_LABEL, useLabel);
 				} else {
-					bufferedWriter.write(Constants.TYPE_MAP + tab + GSON.toJson(typeMap) + newLine);
+					writeSmssProperty(bufferedWriter, Constants.TYPE_MAP, GSON.toJson(typeMap));
 				}
 				// name map
-				bufferedWriter.write(Constants.NAME_MAP + "\t" + GSON.toJson(nameMap) + "\n");
+				writeSmssProperty(bufferedWriter, Constants.NAME_MAP, GSON.toJson(nameMap));
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException ex) {
 			classLogger.error("Failed to write DataStax database smss file for database {}: {}", databaseName,
 					ex.getMessage(), ex);
@@ -1020,18 +1016,19 @@ public final class UploadUtilities {
 			} else {
 				bufferedWriter.write(newLine);
 				// neo4j external properties
-				bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionStringKey + newLine);
-				bufferedWriter.write(Constants.USERNAME + tab + username + newLine);
-				bufferedWriter.write(Constants.PASSWORD + tab + password + newLine);
+				writeSmssProperty(bufferedWriter, Constants.CONNECTION_URL, connectionStringKey);
+				writeSmssProperty(bufferedWriter, Constants.USERNAME, username);
+				writeSmssProperty(bufferedWriter, Constants.PASSWORD, password);
 				// type map
 				if (useLabel) {
-					bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+					writeSmssProperty(bufferedWriter, Constants.TINKER_USE_LABEL, useLabel);
 				} else {
-					bufferedWriter.write(Constants.TYPE_MAP + tab + GSON.toJson(typeMap) + newLine);
+					writeSmssProperty(bufferedWriter, Constants.TYPE_MAP, GSON.toJson(typeMap));
 				}
 				// name map
-				bufferedWriter.write(Constants.NAME_MAP + "\t" + GSON.toJson(nameMap) + "\n");
+				writeSmssProperty(bufferedWriter, Constants.NAME_MAP, GSON.toJson(nameMap));
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException ex) {
 			classLogger.error("Failed to write external Neo4j database smss file for database {}: {}", databaseName,
 					ex.getMessage(), ex);
@@ -1096,15 +1093,16 @@ public final class UploadUtilities {
 			} else {
 				bufferedWriter.write(newLine);
 				// neo4j external properties
-				bufferedWriter.write(Constants.NEO4J_FILE + tab + filePath + newLine);
+				writeSmssProperty(bufferedWriter, Constants.NEO4J_FILE, filePath);
 				if (useLabel) {
-					bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+					writeSmssProperty(bufferedWriter, Constants.TINKER_USE_LABEL, useLabel);
 				} else {
-					bufferedWriter.write(Constants.TYPE_MAP + tab + GSON.toJson(typeMap) + newLine);
+					writeSmssProperty(bufferedWriter, Constants.TYPE_MAP, GSON.toJson(typeMap));
 				}
 				// name map
-				bufferedWriter.write(Constants.NAME_MAP + tab + GSON.toJson(nameMap) + newLine);
+				writeSmssProperty(bufferedWriter, Constants.NAME_MAP, GSON.toJson(nameMap));
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException ex) {
 			classLogger.error("Failed to write embedded Neo4j database smss file for database {}: {}", databaseName,
 					ex.getMessage(), ex);
@@ -1155,7 +1153,7 @@ public final class UploadUtilities {
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
 			bufferedWriter.write(newLine);
 			// write the rdbms type
-			bufferedWriter.write(Constants.RDBMS_TYPE + tab + dbType.getLabel() + newLine);
+			writeSmssProperty(bufferedWriter, Constants.RDBMS_TYPE, dbType.getLabel());
 
 			// we write the url at the end
 			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
@@ -1188,7 +1186,7 @@ public final class UploadUtilities {
 
 				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
-				bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
+				writeSmssProperty(bufferedWriter, Constants.DRIVER, dbType.getDriver());
 				// just write everything to the smss file
 				// but ignore the connection url until the end
 				for (String key : connectionDetails.keySet()) {
@@ -1197,14 +1195,11 @@ public final class UploadUtilities {
 									&& connectionDetails.get(key).toString().isEmpty())) {
 						continue;
 					}
-					bufferedWriter.write(key.toUpperCase() + tab + connectionDetails.get(key) + newLine);
+					writeSmssProperty(bufferedWriter, key.toUpperCase(), connectionDetails.get(key));
 				}
 
 				// connection url
-				if (connectionUrl.contains("\\")) {
-					connectionUrl = connectionUrl.replace("\\", "\\\\");
-				}
-				bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
+				writeSmssProperty(bufferedWriter, Constants.CONNECTION_URL, connectionUrl);
 				bufferedWriter.write(newLine);
 
 				// write the additonal jdbc properties at the end of the properties file
@@ -1212,9 +1207,10 @@ public final class UploadUtilities {
 					if (jdbcPropertiesMap.get(key) == null || jdbcPropertiesMap.get(key).toString().isEmpty()) {
 						continue;
 					}
-					bufferedWriter.write(key + tab + jdbcPropertiesMap.get(key) + newLine);
+					writeSmssProperty(bufferedWriter, key, jdbcPropertiesMap.get(key));
 				}
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException e) {
 			classLogger.error("Failed to write external RDBMS database smss file for database {}: {}", databaseName,
 					e.getMessage(), e);
@@ -1285,19 +1281,20 @@ public final class UploadUtilities {
 				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
 				bufferedWriter.write(newLine);
-				bufferedWriter.write(AbstractDatabaseEngine.DATA_FILE + tab + dataFile.replace('\\', '/') + newLine);
+				writeSmssProperty(bufferedWriter, AbstractDatabaseEngine.DATA_FILE, dataFile.replace('\\', '/'));
 				// stringify maps
 				if (newHeaders != null && !newHeaders.isEmpty()) {
-					bufferedWriter.write(Constants.NEW_HEADERS + tab + GSON.toJson(newHeaders) + newLine);
+					writeSmssProperty(bufferedWriter, Constants.NEW_HEADERS, GSON.toJson(newHeaders));
 				}
 				if (dataTypesMap != null && !dataTypesMap.isEmpty()) {
-					bufferedWriter.write(Constants.SMSS_DATA_TYPES + tab + GSON.toJson(dataTypesMap) + newLine);
+					writeSmssProperty(bufferedWriter, Constants.SMSS_DATA_TYPES, GSON.toJson(dataTypesMap));
 				}
 				if (additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
-					bufferedWriter.write(
-							Constants.ADDITIONAL_DATA_TYPES + tab + GSON.toJson(additionalDataTypeMap) + newLine);
+					writeSmssProperty(bufferedWriter, Constants.ADDITIONAL_DATA_TYPES,
+							GSON.toJson(additionalDataTypeMap));
 				}
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException e) {
 			classLogger.error("Failed to write R native engine smss file for database {}: {}", databaseName,
 					e.getMessage(), e);
@@ -1450,15 +1447,15 @@ public final class UploadUtilities {
 						if (key != null && key.equalsIgnoreCase(Constants.MCP_ENABLED)) {
 							mcpFromUI = true;
 						}
-						bufferedWriter.write(key.toUpperCase() + tab + properties.get(key) + newLine);
+						writeSmssProperty(bufferedWriter, key.toUpperCase(), properties.get(key));
 					}
 
 					// if UI is not sending, we set as default
 					if (!pipelineFromUI) {
-						bufferedWriter.write(IEngine.PIPELINE + tab + "pipeline.json" + newLine);
+						writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 					}
 					if (!mcpFromUI) {
-						bufferedWriter.write(Constants.MCP_ENABLED + tab + "false" + newLine);
+						writeSmssProperty(bufferedWriter, Constants.MCP_ENABLED, false);
 					}
 				}
 			}
@@ -1468,6 +1465,46 @@ public final class UploadUtilities {
 		}
 
 		return engineTempSmss;
+	}
+
+	static String escapeSmssPropertyValue(Object value) {
+		if (value == null) {
+			return "";
+		}
+
+		String stringValue = value.toString();
+		StringBuilder escapedValue = new StringBuilder(stringValue.length());
+		for (int i = 0; i < stringValue.length(); i++) {
+			char character = stringValue.charAt(i);
+			switch (character) {
+			case '\\':
+				escapedValue.append("\\\\");
+				break;
+			case '\t':
+				escapedValue.append("\\t");
+				break;
+			case '\r':
+				escapedValue.append("\\r");
+				break;
+			case '\n':
+				escapedValue.append("\\n");
+				break;
+			case '\f':
+				escapedValue.append("\\f");
+				break;
+			default:
+				if (character < 0x20 || character > 0x7e) {
+					escapedValue.append(String.format("\\u%04x", (int) character));
+				} else {
+					escapedValue.append(character);
+				}
+			}
+		}
+		return escapedValue.toString();
+	}
+
+	private static void writeSmssProperty(BufferedWriter bufferedWriter, String key, Object value) throws IOException {
+		bufferedWriter.write(key + "\t" + escapeSmssPropertyValue(value) + "\n");
 	}
 
 	/**
@@ -1496,10 +1533,10 @@ public final class UploadUtilities {
 	private static void writeDefaultEngineSettings(BufferedWriter bufferedWriter, String engineId, String engineName,
 			String className, final String newLine, final String tab) throws IOException {
 		bufferedWriter.write("#Base Properties" + newLine);
-		bufferedWriter.write(Constants.ENGINE + tab + engineId + newLine);
-		bufferedWriter.write(Constants.ENGINE_ALIAS + tab + engineName + newLine);
-		bufferedWriter.write(Constants.ENGINE_DISPLAY_NAME + tab + engineName + newLine);
-		bufferedWriter.write(Constants.ENGINE_TYPE + tab + className + newLine);
+		writeSmssProperty(bufferedWriter, Constants.ENGINE, engineId);
+		writeSmssProperty(bufferedWriter, Constants.ENGINE_ALIAS, engineName);
+		writeSmssProperty(bufferedWriter, Constants.ENGINE_DISPLAY_NAME, engineName);
+		writeSmssProperty(bufferedWriter, Constants.ENGINE_TYPE, className);
 	}
 
 	/**
@@ -1519,7 +1556,7 @@ public final class UploadUtilities {
 			throws IOException {
 		writeDefaultEngineSettings(bufferedWriter, databaseId, databaseName, className, newLine, tab);
 		// write owl
-		bufferedWriter.write(Constants.OWL + tab + owlFile.getName() + newLine);
+		writeSmssProperty(bufferedWriter, Constants.OWL, owlFile.getName());
 	}
 
 	/*
@@ -1708,126 +1745,6 @@ public final class UploadUtilities {
 			return retMap;
 		} catch (Exception e) {
 			classLogger.error("Failed to add grid delta insight for database {}: {}", databaseName, e.getMessage(), e);
-		}
-		return null;
-	}
-
-	/**
-	 * Add the insight to check the modifications made to a column from audit db
-	 * 
-	 * @param databaseId
-	 * @param insightEngine
-	 */
-	public static Map<String, Object> addAuditModificationView(String projectId, String projectName, String databaseId,
-			String databaseName, IRDBMSEngine insightEngine) {
-		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
-				+ "AuditModificationView.json";
-		File jsonFile = new File(jsonLoc);
-		if (jsonFile.exists()) {
-			String newPixel = "META | AddPanel(0); META | Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
-			try {
-				newPixel += new String(Files.readAllBytes(jsonFile.toPath())).replaceAll("\n|\r|\t", "")
-						.replace("<<ENGINE>>", databaseId)
-						.replace("<<INSIGHT_NAME>>", AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
-				newPixel += "} </encode>\" ) ;";
-				List<String> pixelRecipeToSave = new ArrayList<>();
-				pixelRecipeToSave.add(newPixel);
-				String insightName = getInsightName(databaseName, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
-				boolean global = true;
-				boolean cacheable = Utility.getApplicationCacheInsight();
-				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
-				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
-				String cacheCron = Utility.getApplicationCacheCron();
-				ZonedDateTime cachedOn = null;
-				String description = null;
-				List<String> tags = null;
-				String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
-
-				String insightId = admin.addInsight(insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave,
-						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
-				// write recipe to file
-				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName,
-						AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron,
-						cachedOn, cacheEncrypt, description, tags, schemaName);
-				// add the insight to git
-				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-				List<String> files = new ArrayList<>();
-				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-				GitRepoUtils.addSpecificFiles(gitFolder, files);
-				GitRepoUtils.commitAddedFiles(gitFolder,
-						GitUtils.getDateMessage("Saved " + insightName + " insight on"));
-
-				Map<String, Object> retMap = new HashMap<>();
-				retMap.put(INSIGHT_ID_KEY, insightId);
-				retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
-				retMap.put(INSIGHT_NAME_KEY, insightName);
-				retMap.put(SCHEMA_NAME_KEY, schemaName);
-				return retMap;
-			} catch (Exception e) {
-				classLogger.error("Failed to add audit modification view insight for database {}: {}", databaseName,
-						e.getMessage(), e);
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * Add the insight to check the modifications made to a column over time from
-	 * audit database
-	 * 
-	 * @param databaseId
-	 * @param insightEngine
-	 */
-	public static Map<String, Object> addAuditTimelineView(String projectId, String projectName, String databaseId,
-			String databaseName, IRDBMSEngine insightEngine) {
-		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
-				+ "AuditTimelineView.json";
-		File jsonFile = new File(jsonLoc);
-		if (jsonFile.exists()) {
-			String newPixel = "META | AddPanel(0); META | Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
-			try {
-				newPixel += new String(Files.readAllBytes(jsonFile.toPath())).replaceAll("\n|\r|\t", "")
-						.replace("<<ENGINE>>", databaseId).replace("<<INSIGHT_NAME>>", AUDIT_TIMELINE_INSIGHT_NAME);
-				newPixel += "} </encode>\" ) ;";
-				List<String> pixelRecipeToSave = new ArrayList<>();
-				pixelRecipeToSave.add(newPixel);
-				String insightName = getInsightName(databaseName, AUDIT_TIMELINE_INSIGHT_NAME);
-				boolean global = true;
-				boolean cacheable = Utility.getApplicationCacheInsight();
-				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
-				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
-				String cacheCron = Utility.getApplicationCacheCron();
-				ZonedDateTime cachedOn = null;
-				String description = null;
-				List<String> tags = null;
-				String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
-
-				String insightId = admin.addInsight(insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave, global,
-						cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
-				// write recipe to file
-				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_TIMELINE_LAYOUT,
-						pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
-						description, tags, schemaName);
-				// add the insight to git
-				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-				List<String> files = new ArrayList<>();
-				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-				GitRepoUtils.addSpecificFiles(gitFolder, files);
-				GitRepoUtils.commitAddedFiles(gitFolder,
-						GitUtils.getDateMessage("Saved " + insightName + " insight on"));
-
-				Map<String, Object> retMap = new HashMap<>();
-				retMap.put(INSIGHT_ID_KEY, insightId);
-				retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
-				retMap.put(INSIGHT_NAME_KEY, insightName);
-				retMap.put(SCHEMA_NAME_KEY, schemaName);
-				return retMap;
-			} catch (Exception e) {
-				classLogger.error("Failed to add audit timeline view insight for database {}: {}", databaseName,
-						e.getMessage(), e);
-			}
 		}
 		return null;
 	}

@@ -27,12 +27,10 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -42,13 +40,17 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
-
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.auth.access.ModelUsageLimit;
+import prerna.auth.access.ModelUsageLimitKey;
+import prerna.auth.access.PermissionChange;
+import prerna.auth.access.PermissionErrorRules;
+import prerna.auth.access.PermissionGrant;
+import prerna.auth.access.PermissionProblem;
+import prerna.auth.access.PermissionSubject;
+import prerna.auth.access.PermissionTargetResource;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -60,10 +62,12 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.util.ConnectionUtils;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
@@ -71,11 +75,37 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AdminSecurityGroupUtils.class);
 
-	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping().create();
+	/**
+	 * Moves a custom group's members and managers to a new id: new id, then old id
+	 */
+	private static final String[] CUSTOM_GROUP_ROW_RENAMES = {
+			"UPDATE CUSTOMGROUPASSIGNMENT SET GROUPID=? WHERE GROUPID=?",
+			"UPDATE GROUPMANAGERS SET GROUPID=? WHERE GROUPID=?" };
+
+	/** Deletes the members and managers kept under a custom group id */
+	private static final String[] CUSTOM_GROUP_ROW_DELETES = { "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?",
+			"DELETE FROM GROUPMANAGERS WHERE GROUPID=?" };
+
+	/**
+	 * Moves a team's model usage limits, on models and its total, to a new id: new
+	 * id, then old id and type
+	 */
+	private static final String MOVE_TEAM_LIMITS = "UPDATE MODELUSAGELIMIT SET SUBJECTID=? WHERE SUBJECTID=? "
+			+ "AND SUBJECTTYPE=? AND LIMITTYPE='" + ModelUsageLimitKey.Type.TEAM.name() + "'";
 
 	private AdminSecurityGroupUtils() {
 
+	}
+
+	/**
+	 * The group utilities without an admin check, for callers in this package that
+	 * check the user's permissions themselves, such as
+	 * {@link SecurityGroupManagerUtils} for a group's managers.
+	 *
+	 * @return the group utilities
+	 */
+	static AdminSecurityGroupUtils getUncheckedInstance() {
+		return instance;
 	}
 
 	public static AdminSecurityGroupUtils getInstance(User user) {
@@ -121,6 +151,20 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Group ids are SQL escaped each time an endpoint reads them, so an id stored
+	 * with a single quote could never be found again.
+	 *
+	 * @param groupId the id a group is being given
+	 * @throws IllegalArgumentException when the id is blank or has a single quote
+	 */
+	static void validateGroupId(String groupId) {
+		ValueUtils.requireNonBlank(groupId, "The group id cannot be null or empty");
+		if (groupId.contains("'")) {
+			throw new IllegalArgumentException("Group names cannot contain an apostrophe (')");
+		}
+	}
+
+	/**
 	 * Add a group with description
 	 * 
 	 * @param groupId
@@ -130,39 +174,55 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public void addGroup(User user, String groupId, String groupType, String description) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
+			validateGroupId(groupId);
 			if (groupExists(groupId, groupType)) {
 				throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " already exists");
 			}
-			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+			QueryExecutionUtility.write(securityDb, conn -> {
+				Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
-			String query = "INSERT INTO SMSS_GROUP (ID, TYPE, DESCRIPTION, DATEADDED, USERID, USERIDTYPE) "
-					+ "VALUES (?,?,?,?,?,?)";
-			try (PreparedStatement ps = conn.prepareStatement(query)) {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, groupType);
-				securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, description, parameterIndex++, GSON);
-				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.execute();
-				if (!conn.getAutoCommit()) {
-					conn.commit();
+				String query = "INSERT INTO SMSS_GROUP (ID, TYPE, DESCRIPTION, DATEADDED, USERID, USERIDTYPE) "
+						+ "VALUES (?,?,?,?,?,?)";
+				QueryExecutionUtility.executeUpdate(conn, query, ps -> {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, groupId);
+					ps.setString(parameterIndex++, groupType);
+					securityDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, description);
+					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+				});
+
+				// the admin who creates a custom group is its first manager. Members and
+				// managers left under the id by an earlier group are not carried over.
+				if (SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE.equals(groupType)) {
+					for (String deleteQuery : CUSTOM_GROUP_ROW_DELETES) {
+						QueryExecutionUtility.executeUpdate(conn, deleteQuery, ps -> ps.setString(1, groupId));
+					}
+					QueryExecutionUtility.executeUpdate(conn, SecurityGroupManagerUtils.INSERT_MANAGER_QUERY, ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+						ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+					});
 				}
-			}
+				return null;
+			});
+			UserAuditTrailUtils.recordGroupAdmin(user, true, AuditEventType.GROUP_CREATE, groupId, groupType, null,
+					null, null, description == null ? null : Map.of("description", description), null);
 		} catch (Exception e) {
 			classLogger.error("Unable to add group.", e);
 			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
 	/**
-	 * Delete a new group and its references across the tables
+	 * Delete a new group and its references across the tables, including its model
+	 * usage limits: its limits on models and its total
 	 * 
 	 * @param groupId
 	 * @param groupType
@@ -173,14 +233,14 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
-		String[] queries = null;
+		String[] queries;
 
 		if ("CUSTOM".equals(groupType)) {
 			queries = new String[] { "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=?",
 					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=?",
 					"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=?",
-					"DELETE FROM SMSS_GROUP WHERE ID=? AND TYPE=?",
-					"DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?" };
+					"DELETE FROM SMSS_GROUP WHERE ID=? AND TYPE=?", "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?",
+					"DELETE FROM GROUPMANAGERS WHERE GROUPID=?" };
 		} else {
 			queries = new String[] { "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=?",
 					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=?",
@@ -188,15 +248,14 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					"DELETE FROM SMSS_GROUP WHERE ID=? AND TYPE=?" };
 		}
 
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
+			QueryExecutionUtility.write(securityDb, conn -> {
 
-			try {
 				for (String query : queries) {
 					try (PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
-						if (query.equals("DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?")) {
+						// the custom group tables key the group by its id alone
+						if (query.endsWith("WHERE GROUPID=?")) {
 							ps.setString(parameterIndex++, groupId);
 							ps.execute();
 						} else {
@@ -206,99 +265,17 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						}
 					}
 				}
-
-				// commit
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-			} catch (SQLException e) {
-				if (!conn.getAutoCommit()) {
-					conn.rollback();
-				}
-				throw e;
-			}
+				SecurityModelUsageLimitUtils.deleteTeamLimits(conn, groupId, groupType);
+				return null;
+			});
+			UserAuditTrailUtils.recordGroupAdmin(null, true, AuditEventType.GROUP_DELETE, groupId, groupType, null,
+					null, null, null, null);
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
-	}
-
-	/**
-	 * Edit an existing group across all the tables
-	 * 
-	 * @param curGroupId
-	 * @param curGroupType
-	 * @param newGroupId
-	 * @param newGroupType
-	 * @param newDescription
-	 * @throws Exception
-	 */
-	@Deprecated
-	public void editGroupAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId,
-			String newGroupType, String newDescription) throws Exception {
-
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-
-		if (!groupExists(curGroupId, curGroupType)) {
-			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
-		}
-		String groupQuery = null;
-		String[] propagateQueries = null;
-		groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, DATEADDED=?, USERID=?, USERIDTYPE=? WHERE ID=? AND TYPE=?";
-		propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
-				"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
-				"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?", };
-
-		Connection conn = null;
-		try {
-			conn = securityDb.getConnection();
-
-			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-			try {
-				// group edit
-				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newGroupId);
-					ps.setString(parameterIndex++, newGroupType);
-					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, GSON);
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					// where
-					ps.setString(parameterIndex++, curGroupId);
-					ps.setString(parameterIndex++, curGroupType);
-					ps.execute();
-				}
-
-				// propagation
-				for (String query : propagateQueries) {
-					try (PreparedStatement ps = conn.prepareStatement(query)) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, newGroupId);
-						ps.setString(parameterIndex++, newGroupType);
-						ps.setString(parameterIndex++, curGroupId);
-						ps.setString(parameterIndex++, curGroupType);
-						ps.execute();
-					}
-				}
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-			} catch (SQLException e) {
-				if (!conn.getAutoCommit()) {
-					conn.rollback();
-				}
-				throw e;
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to delete the group and clean up related permissions.", e);
-			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
-		}
+		// the team's grants and limits are gone, so the cached limits are read again
+		SecurityModelUsageLimitUtils.markChanged();
 	}
 
 	/**
@@ -319,6 +296,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
 		}
 		if (!curGroupId.equals(newGroupId)) {
+			validateGroupId(newGroupId);
 			if (groupExists(newGroupId, curGroupType)) {
 				throw new IllegalArgumentException(
 						"Group " + newGroupId + " of type " + curGroupType + " already exist");
@@ -326,161 +304,110 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 
 		String groupQuery = "UPDATE SMSS_GROUP SET ID=?, DESCRIPTION=? WHERE ID=? AND TYPE=?";
-		String propagateCustomGroupQuery = "UPDATE CUSTOMGROUPASSIGNMENT SET GROUPID=? WHERE GROUPID=?";
 		String[] propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
 				"UPDATE GROUPPROJECTPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
-				"UPDATE GROUPINSIGHTPERMISSION SET ID=? WHERE ID=? AND TYPE=?" };
+				"UPDATE GROUPINSIGHTPERMISSION SET ID=? WHERE ID=? AND TYPE=?", MOVE_TEAM_LIMITS };
 
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
+			QueryExecutionUtility.write(securityDb, conn -> {
 
-			try {
-				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
+				QueryExecutionUtility.executeUpdate(conn, groupQuery, ps -> {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
-					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, GSON);
+					securityDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, newDescription);
 					// where
 					ps.setString(parameterIndex++, curGroupId);
 					ps.setString(parameterIndex++, curGroupType);
-					ps.execute();
-				}
+				});
 
-				// custom groups
-				try (PreparedStatement ps = conn.prepareStatement(propagateCustomGroupQuery)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newGroupId);
-					// where
-					ps.setString(parameterIndex++, curGroupId);
-					ps.execute();
+				// the members and managers of a custom group, which are keyed by the id
+				// alone, so a group of another type with the same id must not move them
+				if (SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE.equals(curGroupType)) {
+					// rows already under the new id belong to no group, so they are not
+					// carried into it
+					if (!newGroupId.equals(curGroupId)) {
+						for (String query : CUSTOM_GROUP_ROW_DELETES) {
+							QueryExecutionUtility.executeUpdate(conn, query, ps -> ps.setString(1, newGroupId));
+						}
+					}
+					for (String query : CUSTOM_GROUP_ROW_RENAMES) {
+						QueryExecutionUtility.executeUpdate(conn, query, ps -> {
+							ps.setString(1, newGroupId);
+							// where
+							ps.setString(2, curGroupId);
+						});
+					}
 				}
 
 				// propagation
 				for (String query : propagateQueries) {
-					try (PreparedStatement ps = conn.prepareStatement(query)) {
+					QueryExecutionUtility.executeUpdate(conn, query, ps -> {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, newGroupId);
 						// where
 						ps.setString(parameterIndex++, curGroupId);
 						ps.setString(parameterIndex++, curGroupType);
-						ps.execute();
-					}
+					});
 				}
-
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-			} catch (SQLException e) {
-				if (!conn.getAutoCommit()) {
-					conn.rollback();
-				}
-				throw e;
-			}
+				return null;
+			});
+			SecurityModelUsageLimitUtils.markChanged();
+			Map<String, Object> newDetails = new HashMap<>();
+			newDetails.put("groupId", newGroupId);
+			newDetails.put("description", newDescription);
+			UserAuditTrailUtils.recordGroupAdmin(user, true, AuditEventType.GROUP_UPDATE, newGroupId, curGroupType,
+					null, null, Map.of("groupId", curGroupId), newDetails, null);
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
 	/**
-	 * 
-	 * @param groupId
-	 * @param userId
-	 * @param userType
-	 * @throws Exception
+	 * Adds a member to a custom group in admin mode, as a permission batch.
+	 *
+	 * @param user     the admin
+	 * @param groupId  the custom group
+	 * @param userId   the new member's user id
+	 * @param userType the new member's login type
+	 * @param endDate  when the membership ends, or null
+	 * @throws IllegalArgumentException when the group does not exist, or the person
+	 *                                  is already a member or does not exist
 	 */
 	public void addUserToGroup(User user, String groupId, String userId, String userType, String endDate)
 			throws Exception {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, "CUSTOM")) {
-			throw new IllegalArgumentException("Group " + groupId + " does not exist");
-		}
-
-		if (userInCustomGroup(groupId, userId, userType)) {
-			throw new IllegalArgumentException("User " + userId + " already has access to group " + groupId);
-		}
-
-		if (!userExists(userId, userType)) {
-			throw new IllegalArgumentException("User " + userId + " does not exist");
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
-
-		Connection conn = null;
-		try {
-			conn = securityDb.getConnection();
-			String query = "INSERT INTO CUSTOMGROUPASSIGNMENT (GROUPID, USERID, TYPE, "
-					+ "DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) " + "VALUES (?,?,?,?,?,?,?)";
-			try (PreparedStatement ps = conn.prepareStatement(query)) {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, userType);
-				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-				if (verifiedEndDate == null) {
-					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-				} else {
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				}
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.execute();
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to delete the group and clean up related permissions.", e);
-			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
-		}
+		changeMember(user, PermissionChange.Action.ADD, groupId, userId, userType, endDate);
 	}
 
 	/**
-	 * 
-	 * @param groupId
-	 * @param userId
-	 * @param userType
-	 * @throws Exception
+	 * Takes a member out of a custom group in admin mode, as a permission batch.
+	 *
+	 * @param groupId  the custom group
+	 * @param userId   the member's user id
+	 * @param userType the member's login type
+	 * @throws IllegalArgumentException when the group does not exist, or the person
+	 *                                  is not a member
 	 */
 	public void removeUserFromGroup(String groupId, String userId, String userType) throws Exception {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, "CUSTOM")) {
-			throw new IllegalArgumentException("Group " + groupId + " does not exist");
-		}
+		changeMember(null, PermissionChange.Action.REMOVE, groupId, userId, userType, null);
+	}
 
-		if (!userInCustomGroup(groupId, userId, userType)) {
-			throw new IllegalArgumentException("User " + userId + " does not have access to group " + groupId);
-		}
-
-		Connection conn = null;
-		try {
-			conn = securityDb.getConnection();
-			String query = "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=? AND USERID=? AND TYPE=?";
-			try (PreparedStatement ps = conn.prepareStatement(query)) {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, userType);
-				ps.execute();
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to remove user from group.", e);
-			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
-		}
+	/**
+	 * Adds or removes a member in admin mode, with these methods' own messages.
+	 */
+	private static void changeMember(User user, PermissionChange.Action action, String groupId, String userId,
+			String userType, String endDate) throws IllegalAccessException {
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.team(groupId),
+				List.of(new PermissionChange(
+						action, PermissionSubject.ofUser(userId, userType), new PermissionGrant(null, endDate))),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate)
+						.illegalArgument(PermissionProblem.ErrorCode.INVALID_TARGET,
+								"Group " + groupId + " does not exist")
+						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+								"User " + userId + " already has access to group " + groupId)
+						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+								"User " + userId + " does not have access to group " + groupId));
 	}
 
 	/**
@@ -507,7 +434,58 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
-		return getSimpleQuery(qs);
+		List<Map<String, Object>> groups = getSimpleQuery(qs);
+		addMemberCounts(groups);
+		return groups;
+	}
+
+	/**
+	 * Adds {@code member_count}, how many members a custom group has, to each
+	 * custom group in a group list. Groups of other types take their members from
+	 * the login, so they get no count.
+	 *
+	 * @param groups rows with {@code id} and {@code type}, as the group lists
+	 *               return them
+	 */
+	public static void addMemberCounts(List<Map<String, Object>> groups) {
+		List<String> customIds = new ArrayList<>();
+		for (Map<String, Object> group : groups) {
+			if (SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE.equals(group.get("type")) && group.get("id") != null) {
+				customIds.add(group.get("id").toString());
+			}
+		}
+		if (customIds.isEmpty()) {
+			return;
+		}
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID", "GROUPID"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
+				"CUSTOMGROUPASSIGNMENT__USERID", "MEMBERS"));
+		qs.addGroupBy(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID", "GROUPID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", customIds));
+		// count the members the member list shows, which leaves out deleted users
+		qs.addRelation("CUSTOMGROUPASSIGNMENT__USERID", "SMSS_USER__ID", "inner.join");
+		qs.addRelation("CUSTOMGROUPASSIGNMENT__TYPE", "SMSS_USER__TYPE", "inner.join");
+
+		Map<String, Long> counts = new HashMap<>();
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			while (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				if (values[0] != null && values[1] instanceof Number) {
+					counts.put(values[0].toString(), ((Number) values[1]).longValue());
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Unable to count the members of the custom groups.", e);
+			return;
+		}
+		for (Map<String, Object> group : groups) {
+			if (SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE.equals(group.get("type")) && group.get("id") != null) {
+				group.put("member_count", counts.getOrDefault(group.get("id").toString(), 0L));
+			}
+		}
 	}
 
 	/**
@@ -551,9 +529,15 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * This is only valid for members assigned to custom group assignments
-	 * 
-	 * @return
+	 * The members of a custom group.
+	 *
+	 * @param groupId    the custom group
+	 * @param searchTerm text matched against the member's id, name, username and
+	 *                   email, or null
+	 * @param limit      page size, or 0 or less for all
+	 * @param offset     rows to skip
+	 * @return the members, with the keys {@code userid}, {@code type},
+	 *         {@code dateadded}, {@code name}, {@code username} and {@code email}
 	 */
 	public List<Map<String, Object>> getGroupMembers(String groupId, String searchTerm, long limit, long offset) {
 		if (!groupExists(groupId, "CUSTOM")) {
@@ -561,22 +545,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__USERID"));
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__TYPE"));
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__DATEADDED"));
-		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__ENDDATE"));
-		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__PERMISSIONGRANTEDBY"));
-		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__PERMISSIONGRANTEDBYTYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONE"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
@@ -628,9 +602,15 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * This is only valid for members assigned to custom group assignments
-	 * 
-	 * @return
+	 * The users who are not members of a custom group.
+	 *
+	 * @param groupId    the custom group
+	 * @param searchTerm text matched against the user's id, name, username and
+	 *                   email, or null
+	 * @param limit      page size, or 0 or less for all
+	 * @param offset     rows to skip
+	 * @return the users, with the keys {@code id}, {@code type}, {@code name},
+	 *         {@code username} and {@code email}
 	 */
 	public List<Map<String, Object>> getNonGroupMembers(String groupId, String searchTerm, long limit, long offset) {
 		if (!groupExists(groupId, "CUSTOM")) {
@@ -643,12 +623,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONE"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
 		{
 			SelectQueryStruct exisitngMembersQs = new SelectQueryStruct();
 			exisitngMembersQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction(
@@ -679,195 +653,89 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * This is only valid for members assigned to custom group assignments
-	 * 
-	 * @return
-	 */
-	public Long getNumNonMembersInGroup(String groupId, String searchTerm) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, "CUSTOM")) {
-			throw new IllegalArgumentException("Group " + groupId + " with type custom does not exist");
-		}
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, "SMSS_USER__ID", "numUsers"));
-		{
-			SelectQueryStruct exisitngMembersQs = new SelectQueryStruct();
-			exisitngMembersQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction(
-					"CUSTOMGROUPASSIGNMENT__USERID", "CUSTOMGROUPASSIGNMENT__TYPE", "UUID"));
-			exisitngMembersQs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
-
-			// add the subqs to the main qs
-			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(
-					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_USER__ID", "SMSS_USER__TYPE", "UUID"), "!=",
-					exisitngMembersQs));
-		}
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
-			OrQueryFilter or = new OrQueryFilter();
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
-			qs.addExplicitFilter(or);
-		}
-		return QueryExecutionUtility.flushToLong(securityDb, qs);
-	}
-
-	/**
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param projectId
-	 * @param permission
-	 * @param endDat
+	 * Gives a team access to a project in admin mode, as a permission batch.
+	 *
+	 * @param user       the admin
+	 * @param groupId    the team
+	 * @param groupType  the team's type
+	 * @param projectId  the project
+	 * @param permission the level's id; anything but 1, 2 or 3 is Read-Only
+	 * @param endDate    when the access ends, or null
 	 */
 	public void addGroupProjectPermission(User user, String groupId, String groupType, String projectId, int permission,
 			String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, groupType)) {
-			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
-		}
-
-		int curPermission = groupProjectPermission(groupId, groupType, projectId);
-		if (curPermission != -1) {
-			throw new IllegalArgumentException("Group " + groupId + " already has access to project " + projectId
-					+ " with permission = " + AccessPermissionEnum.getPermissionValueById(curPermission));
-		}
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
-
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(
-					"INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)");
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, groupType);
-			ps.setString(parameterIndex++, projectId);
-			ps.setInt(parameterIndex++, permission);
-			ps.setTimestamp(parameterIndex++, startDate);
-			if (verifiedEndDate == null) {
-				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-			} else {
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			}
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to retrieve the number of users who are not in the group.", e);
-			throw new IllegalArgumentException("Error occurred adding the group permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.add(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(AccessPermissionEnum.getPermissionValueById(permission), endDate))),
+				PermissionBatchOptions.adminMode().keepingTeamType(),
+				new PermissionErrorRules(endDate)
+						.illegalArgument(PermissionProblem.ErrorCode.SUBJECT_MISSING,
+								"Group " + groupId + " with type " + groupType + " does not exist")
+						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+								() -> "Group " + groupId + " already has access to project " + projectId
+										+ " with permission = "
+										+ AccessPermissionEnum.getPermissionValueById(
+												groupProjectPermission(groupId, groupType, projectId)))
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+								"Error occurred adding the group permission"));
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param projectId
-	 * @param permission
-	 * @param endDate
+	 * Changes a team's access to a project in admin mode, as a permission batch.
+	 * The team must not have the level already.
+	 *
+	 * @param user       the admin
+	 * @param groupId    the team
+	 * @param groupType  the team's type
+	 * @param projectId  the project
+	 * @param permission the level's id; anything but 1, 2 or 3 is Read-Only
+	 * @param endDate    when the access ends, or null
 	 */
 	public void editGroupProjectPermission(User user, String groupId, String groupType, String projectId,
 			int permission, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		int curPermission = groupProjectPermission(groupId, groupType, projectId);
-		if (curPermission == -1) {
-			throw new IllegalArgumentException(
-					"Group " + groupId + " does not currently have access to project " + projectId + " to edit");
-		}
-		if (curPermission == permission) {
-			throw new IllegalArgumentException("Group " + groupId + " already has permission level "
-					+ AccessPermissionEnum.getPermissionValueById(curPermission) + " to project " + projectId);
-		}
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
-
-		String updateQuery = null;
-		updateQuery = "UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND PROJECTID=? AND TYPE=?";
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(updateQuery);
-			int parameterIndex = 1;
-			ps.setInt(parameterIndex++, permission);
-			ps.setTimestamp(parameterIndex++, startDate);
-			if (verifiedEndDate == null) {
-				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-			} else {
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			}
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, projectId);
-			ps.setString(parameterIndex++, groupType);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to retrieve the number of users who are not in the group.", e);
-			throw new IllegalArgumentException("Error occurred editing the group permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.change(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(AccessPermissionEnum.getPermissionValueById(permission), endDate))),
+				PermissionBatchOptions.adminMode().keepingTeamType().rejectingSameLevel(),
+				new PermissionErrorRules(endDate)
+						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+								"Group " + groupId + " does not currently have access to project " + projectId
+										+ " to edit")
+						.illegalArgument(PermissionProblem.ErrorCode.SAME_LEVEL,
+								() -> "Group " + groupId + " already has permission level "
+										+ AccessPermissionEnum.getPermissionValueById(
+												groupProjectPermission(groupId, groupType, projectId))
+										+ " to project " + projectId)
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+								"Error occurred editing the group permission"));
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param projectId
+	 * Takes a team's access to a project away in admin mode, as a permission batch.
+	 *
+	 * @param user      the admin
+	 * @param groupId   the team
+	 * @param groupType the team's type
+	 * @param projectId the project
 	 */
 	public void removeGroupProjectPermission(User user, String groupId, String groupType, String projectId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		int curPermission = groupProjectPermission(groupId, groupType, projectId);
-		if (curPermission == -1) {
-			throw new IllegalArgumentException(
-					"Group " + groupId + " does not currently have access to project " + projectId + " to remove");
-		}
-		String deleteQuery = null;
-		deleteQuery = "DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND PROJECTID=? AND TYPE=?";
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(deleteQuery);
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, projectId);
-			ps.setString(parameterIndex++, groupType);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to remove group project permission.", e);
-			throw new IllegalArgumentException("Error occurred deleting the group permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		PermissionBatchUtils
+				.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+						List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
+						PermissionBatchOptions.adminMode().keepingTeamType(),
+						new PermissionErrorRules()
+								.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+										"Group " + groupId + " does not currently have access to project " + projectId
+												+ " to remove")
+								.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+										"Error occurred deleting the group permission"));
 	}
 
 	/**
+	 * Lists the projects the team holds a grant on, with the grant's level and end
+	 * date and the project's details, sorted by name, one page at a time. The
+	 * search matches project id or name, and onlyApps keeps only the projects with
+	 * a portal.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
@@ -951,6 +819,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Counts the projects the team holds a grant on, with the same search and
+	 * onlyApps filters as getProjectsForGroup, for paging that list.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
@@ -996,6 +866,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Lists the projects the team holds no grant on yet, so an admin can pick ones
+	 * to add, sorted by name, one page at a time. The search matches project id or
+	 * name, and onlyApps keeps only the projects with a portal.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
@@ -1028,9 +901,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBYTYPE", "project_created_by_type"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "DATECREATED", "project_date_created"));
-		// dont forget reactors/portal information
-		qs.addSelector(new QueryColumnSelector(projectPrefix + "HASPORTAL", "project_has_portal"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix + "PORTALNAME", "project_portal_name"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "PORTALPUBLISHED", "project_portal_published_date"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "PORTALPUBLISHEDUSER", "project_published_user"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "PORTALPUBLISHEDTYPE", "project_published_user_type"));
@@ -1082,207 +952,107 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param groupId
-	 * @param searchTerm
-	 * @return
-	 */
-	public Long getNumAvailableProjectsForGroup(String groupId, String groupType, String searchTerm, boolean onlyApps) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, groupType)) {
-			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
-		}
-
-		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
-		String projectPrefix = "PROJECT__";
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
-				projectPrefix + "PROJECTID", "numProjects"));
-
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
-			OrQueryFilter searchFilter = new OrQueryFilter();
-			searchFilter
-					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTID", searchTerm));
-			searchFilter.addFilter(
-					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTNAME", searchTerm));
-			qs.addExplicitFilter(searchFilter);
-		}
-
-		if (onlyApps) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "HASPORTAL", "==", true,
-					PixelDataType.BOOLEAN));
-		}
-
-		// filter out projects that are already added
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			subQs.addSelector(new QueryColumnSelector(groupProjectPermission + "PROJECTID")); // this is the group id
-			// filter for the group being specified
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", groupId));
-			subQs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", groupType));
-			// filter out from engine list
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=", subQs));
-		}
-
-		return QueryExecutionUtility.flushToLong(securityDb, qs);
-	}
-
-	/**
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param engineId
-	 * @param permission
-	 * @param endDate
+	 * Gives a team access to an engine in admin mode, as a permission batch.
+	 *
+	 * @param user       the admin
+	 * @param groupId    the team
+	 * @param groupType  the team's type
+	 * @param engineId   the engine
+	 * @param permission the level's id; anything but 1, 2 or 3 is Read-Only
+	 * @param endDate    when the access ends, or null
 	 */
 	public void addGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission,
 			String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, groupType)) {
-			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
-		}
-
-		int curPermission = groupEnginePermission(groupId, groupType, engineId);
-		if (curPermission != -1) {
-			throw new IllegalArgumentException("Group " + groupId + " already has access to engine " + engineId
-					+ " with permission = " + AccessPermissionEnum.getPermissionValueById(curPermission));
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
-
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(
-					"INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)");
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, groupType);
-			ps.setString(parameterIndex++, engineId);
-			ps.setInt(parameterIndex++, permission);
-			ps.setTimestamp(parameterIndex++, startDate);
-			if (verifiedEndDate == null) {
-				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-			} else {
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			}
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to retrieve the number of projects available for the group.", e);
-			throw new IllegalArgumentException("Error occurred adding the group permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		addGroupEnginePermission(user, groupId, groupType, engineId, permission, endDate, null);
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param projectId
-	 * @param permission
-	 * @param endDate
+	 * Gives a team access to an engine in admin mode, as a permission batch, with a
+	 * usage limit on a model.
+	 *
+	 * @param user       the admin
+	 * @param groupId    the team
+	 * @param groupType  the team's type
+	 * @param engineId   the engine
+	 * @param permission the level's id; anything but 1, 2 or 3 is Read-Only
+	 * @param endDate    when the access ends, or null
+	 * @param usageLimit the team's limit on the model, or null for no limit defined
+	 */
+	public void addGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission,
+			String endDate, ModelUsageLimit usageLimit) {
+		PermissionBatchUtils
+				.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+						List.of(PermissionChange.add(PermissionSubject.ofTeam(groupId, groupType),
+								new PermissionGrant(AccessPermissionEnum.getPermissionValueById(permission), endDate)
+										.withUsageLimit(usageLimit))),
+						PermissionBatchOptions.adminMode().keepingTeamType(),
+						new PermissionErrorRules(endDate)
+								.illegalArgument(PermissionProblem.ErrorCode.SUBJECT_MISSING,
+										"Group " + groupId + " with type " + groupType + " does not exist")
+								.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+										() -> "Group " + groupId + " already has access to engine " + engineId
+												+ " with permission = "
+												+ AccessPermissionEnum.getPermissionValueById(
+														groupEnginePermission(groupId, groupType, engineId)))
+								.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+										"Error occurred adding the group permission"));
+	}
+
+	/**
+	 * Changes a team's access to an engine in admin mode, as a permission batch.
+	 * The team must not have the level already.
+	 *
+	 * @param user       the admin
+	 * @param groupId    the team
+	 * @param groupType  the team's type
+	 * @param engineId   the engine
+	 * @param permission the level's id; anything but 1, 2 or 3 is Read-Only
+	 * @param endDate    when the access ends, or null
 	 */
 	public void editGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission,
 			String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		int curPermission = groupEnginePermission(groupId, groupType, engineId);
-		if (curPermission == -1) {
-			throw new IllegalArgumentException(
-					"Group " + groupId + " does not currently have access to engine " + engineId + " to edit");
-		}
-		if (curPermission == permission) {
-			throw new IllegalArgumentException("Group " + groupId + " already has permission level "
-					+ AccessPermissionEnum.getPermissionValueById(curPermission) + " to engine " + engineId);
-		}
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
-
-		String updateQuery = null;
-		updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(updateQuery);
-			int parameterIndex = 1;
-			ps.setInt(parameterIndex++, permission);
-			ps.setTimestamp(parameterIndex++, startDate);
-			if (verifiedEndDate == null) {
-				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-			} else {
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			}
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, engineId);
-			ps.setString(parameterIndex++, groupType);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to retrieve the number of projects available for the group.", e);
-			throw new IllegalArgumentException("Error occurred editing the group permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.change(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(AccessPermissionEnum.getPermissionValueById(permission), endDate))),
+				PermissionBatchOptions.adminMode().keepingTeamType().rejectingSameLevel().keepingModelLimits(),
+				new PermissionErrorRules(endDate)
+						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+								"Group " + groupId + " does not currently have access to engine " + engineId
+										+ " to edit")
+						.illegalArgument(PermissionProblem.ErrorCode.SAME_LEVEL,
+								() -> "Group " + groupId + " already has permission level "
+										+ AccessPermissionEnum.getPermissionValueById(
+												groupEnginePermission(groupId, groupType, engineId))
+										+ " to engine " + engineId)
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+								"Error occurred editing the group permission"));
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param engineId
+	 * Takes a team's access to an engine away in admin mode, as a permission batch.
+	 *
+	 * @param user      the admin
+	 * @param groupId   the team
+	 * @param groupType the team's type
+	 * @param engineId  the engine
 	 */
 	public void removeGroupEnginePermission(User user, String groupId, String groupType, String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		int curPermission = groupEnginePermission(groupId, groupType, engineId);
-		if (curPermission == -1) {
-			throw new IllegalArgumentException(
-					"Group " + groupId + " does not currently have access to engine " + engineId + " to remove");
-		}
-		String deleteQuery = null;
-		deleteQuery = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND ENGINEID=? AND TYPE=?";
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(deleteQuery);
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, engineId);
-			ps.setString(parameterIndex++, groupType);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to remove group engine permission.", e);
-			throw new IllegalArgumentException("Error occurred deleting the group permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		PermissionBatchUtils
+				.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+						List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
+						PermissionBatchOptions.adminMode().keepingTeamType(),
+						new PermissionErrorRules()
+								.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+										"Group " + groupId + " does not currently have access to engine " + engineId
+												+ " to remove")
+								.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+										"Error occurred deleting the group permission"));
 	}
 
 	/**
+	 * Lists the engines the team holds a grant on, with the grant's level and end
+	 * date and the engine's details, sorted by name, one page at a time. The search
+	 * matches engine id or name.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
@@ -1352,6 +1122,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Counts the engines the team holds a grant on, with the same search as
+	 * getEnginesForGroup, for paging that list.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
@@ -1386,6 +1158,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Lists the engines the team holds no grant on yet, so an admin can pick ones
+	 * to add, sorted by name, one page at a time. The search matches engine id or
+	 * name.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
@@ -1456,48 +1231,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param groupId
-	 * @param searchTerm
-	 * @return
-	 */
-	public Long getNumAvailableEnginesForGroup(String groupId, String groupType, String searchTerm) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, groupType)) {
-			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
-		}
-
-		String groupEnginePermission = "GROUPENGINEPERMISSION__";
-		String enginePrefix = "ENGINE__";
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, enginePrefix + "ENGINEID",
-				"numEngines"));
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
-			OrQueryFilter searchFilter = new OrQueryFilter();
-			searchFilter
-					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINEID", searchTerm));
-			searchFilter
-					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINENAME", searchTerm));
-			qs.addExplicitFilter(searchFilter);
-		}
-
-		// filter out engines that are already added
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			subQs.addSelector(new QueryColumnSelector(groupEnginePermission + "ENGINEID")); // this is the group id
-			// filter for the group being specified
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", groupId));
-			subQs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", groupType));
-			// filter out from engine list
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(enginePrefix + "ENGINEID", "!=", subQs));
-		}
-
-		return QueryExecutionUtility.flushToLong(securityDb, qs);
-	}
-
-	/**
+	 * Lists the ids of the custom teams the login belongs to, leaving out
+	 * memberships that have ended.
 	 * 
 	 * @param accessToken
 	 * @return
@@ -1511,6 +1246,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__TYPE", "==", accessToken.getProvider()));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", accessToken.getId()));
+		qs.addExplicitFilter(getUnexpiredFilter("CUSTOMGROUPASSIGNMENT__ENDDATE"));
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
@@ -1531,6 +1267,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 
 	/**
+	 * Whether the login with this id and type is assigned to the custom team,
+	 * whatever the assignment's end date.
 	 * 
 	 * @param groupId
 	 * @param userId
@@ -1545,18 +1283,18 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__TYPE", "==", userType));
 
+		boolean inGroup = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				return true;
-			}
+			inGroup = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user belongs to the custom group.", e);
 		}
 
-		return false;
+		return inGroup;
 	}
 
 	/**
+	 * Whether a team with this id and type exists.
 	 * 
 	 * @param groupId
 	 * @param groupType
@@ -1569,18 +1307,18 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", groupType));
+		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				return true;
-			}
+			exists = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the group exists.", e);
 		}
 
-		return false;
+		return exists;
 	}
 
 	/**
+	 * Whether a custom team with this id exists.
 	 * 
 	 * @param groupId
 	 * @return
@@ -1594,18 +1332,18 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", "CUSTOM"));
 
+		boolean customGroup = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				return true;
-			}
+			customGroup = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the group is custom.", e);
 		}
 
-		return false;
+		return customGroup;
 	}
 
 	/**
+	 * Whether a user with this id and login type exists.
 	 * 
 	 * @param userId
 	 * @param userType
@@ -1618,18 +1356,19 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", userType));
+		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				return true;
-			}
+			exists = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user exists.", e);
 		}
 
-		return false;
+		return exists;
 	}
 
 	/**
+	 * The level id of the team's grant on the project, whatever its end date, or -1
+	 * when the team has no grant there.
 	 * 
 	 * @param groupId
 	 * @param groupType
@@ -1644,18 +1383,21 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", groupType));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+		int permission = -1;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				return ((Number) wrapper.next().getValues()[0]).intValue();
+				permission = ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the group permission for the project.", e);
 		}
 
-		return -1;
+		return permission;
 	}
 
 	/**
+	 * The level id of the team's grant on the engine, whatever its end date, or -1
+	 * when the team has no grant there.
 	 * 
 	 * @param groupId
 	 * @param groupType
@@ -1669,15 +1411,16 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", groupType));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
+		int permission = -1;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				return ((Number) wrapper.next().getValues()[0]).intValue();
+				permission = ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the group permission for the engine.", e);
 		}
 
-		return -1;
+		return permission;
 	}
 
 }

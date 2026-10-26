@@ -32,6 +32,11 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,11 +45,36 @@ import org.apache.logging.log4j.Logger;
 
 import com.zaxxer.hikari.HikariDataSource;
 
+import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RdbmsConnectionHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(RdbmsConnectionHelper.class);
+
+	/**
+	 * The fewest tables whose columns {@link #readColumns} reads in one call for
+	 * the whole schema. For fewer tables, a call per table is only a handful of
+	 * round trips, which costs less than reading every column of the schema.
+	 */
+	static final int MIN_TABLES_FOR_SCHEMA_READ = 20;
+	/**
+	 * The smallest share of the schema's tables whose columns {@link #readColumns}
+	 * reads in one call for the whole schema. One call reads the columns of every
+	 * table in the schema, so for 25 tables out of a 50,000 table schema, as a
+	 * large warehouse can have, 25 calls are faster. The single call is only worth
+	 * it when the tables asked for are a good part of what it reads.
+	 */
+	static final double MIN_SHARE_FOR_SCHEMA_READ = 0.25;
+
+	/**
+	 * One column of a table or view, as the database's metadata describes it.
+	 *
+	 * @param name the column's name
+	 * @param type the database's type name for the column
+	 */
+	public record ColumnMetadata(String name, String type) {
+	}
 
 	private RdbmsConnectionHelper() {
 
@@ -152,9 +182,7 @@ public class RdbmsConnectionHelper {
 
 		if (schema == null) {
 			// try schema...
-			ResultSet schemaRs = null;
-			try {
-				schemaRs = meta.getSchemas();
+			try (ResultSet schemaRs = meta.getSchemas()) {
 				while (schemaRs.next()) {
 					String tableSchema = schemaRs.getString(1);
 					if (truncatedUrl.contains(tableSchema)) {
@@ -163,24 +191,14 @@ public class RdbmsConnectionHelper {
 					}
 				}
 			} catch (SQLException e) {
-				classLogger.error(
-						"Failed to iterate over database schemas from metadata while inferring schema from URL", e);
-			} finally {
-				if (schemaRs != null) {
-					try {
-						schemaRs.close();
-					} catch (SQLException e) {
-						classLogger.error("Failed to close schemas result set", e);
-					}
-				}
+				classLogger.error("Failed to read the database schemas from metadata while inferring the schema "
+						+ "from the URL", e);
 			}
 		}
 
 		// try catalog...
 		if (schema == null) {
-			ResultSet catalogRs = null;
-			try {
-				catalogRs = meta.getCatalogs();
+			try (ResultSet catalogRs = meta.getCatalogs()) {
 				while (catalogRs.next()) {
 					String tableSchema = catalogRs.getString(1);
 					if (truncatedUrl.contains(tableSchema)) {
@@ -189,16 +207,8 @@ public class RdbmsConnectionHelper {
 					}
 				}
 			} catch (SQLException e) {
-				classLogger.error(
-						"Failed to iterate over database catalogs from metadata while inferring schema from URL", e);
-			} finally {
-				if (catalogRs != null) {
-					try {
-						catalogRs.close();
-					} catch (SQLException e) {
-						classLogger.error("Failed to close catalogs result set", e);
-					}
-				}
+				classLogger.error("Failed to read the database catalogs from metadata while inferring the schema "
+						+ "from the URL", e);
 			}
 		}
 
@@ -208,7 +218,9 @@ public class RdbmsConnectionHelper {
 	/**
 	 * Get tables result set for the given connection, metadata parser, and catalog
 	 * / schema filters. Must return a result set containing table_name and
-	 * table_type (with values 'TABLE' or 'VIEW').
+	 * table_type (with values 'TABLE' or 'VIEW'). The caller owns the result set,
+	 * and the statement Oracle's listing runs on, and closes both, as with
+	 * try-with-resources.
 	 * 
 	 * @param con
 	 * @param meta
@@ -290,7 +302,11 @@ public class RdbmsConnectionHelper {
 	/**
 	 * Get columns result set for the given metadata parser, table or view name, and
 	 * catalog / schema filters. Must return a result set containing column_name and
-	 * type_name.
+	 * type_name. A null table or view name reads the columns of every table and
+	 * view the filters cover. The name is a pattern, so the result can also hold
+	 * the columns of a table whose name only resembles it; {@link #readColumns}
+	 * drops those. The caller owns the result set and closes it, as with
+	 * try-with-resources.
 	 * 
 	 * @param meta
 	 * @param tableOrView
@@ -343,6 +359,160 @@ public class RdbmsConnectionHelper {
 			arr[1] = "type_name";
 		}
 		return arr;
+	}
+
+	/**
+	 * Reads the columns of the given tables and views, each in its column order.
+	 *
+	 * <p>
+	 * Every {@link DatabaseMetaData#getColumns} call is a round trip to the
+	 * database, and on a remote database, such as Snowflake, Oracle or PostgreSQL,
+	 * a metadata call can take from tens of milliseconds to seconds. A call per
+	 * table makes a schema of 500 tables cost 500 round trips before anything else
+	 * is read. So when many tables are asked for, and they are a good part of the
+	 * schema, their columns are read in one call for the whole schema, with no
+	 * table name, and only the rows of the tables asked for are kept. JDBC returns
+	 * those rows ordered by table and column position, so each table keeps its
+	 * column order.
+	 * </p>
+	 *
+	 * <p>
+	 * Otherwise each table is read on its own, since reading every column of a
+	 * large schema to get a few of its tables is slower: see
+	 * {@link #MIN_TABLES_FOR_SCHEMA_READ} and {@link #MIN_SHARE_FOR_SCHEMA_READ}.
+	 * Oracle is always read a table at a time: {@link #getTables} lists its tables
+	 * from every owner and {@link #getColumns} does not limit its call to a schema,
+	 * so one call would read every column in the database. When the single call
+	 * fails, the tables are read one at a time instead. The calls run one after
+	 * another on the given connection.
+	 * </p>
+	 *
+	 * <p>
+	 * The table name in {@code getColumns} is a pattern, where {@code _} matches
+	 * any character, so a call for ORDER_ITEMS can also return the columns of
+	 * ORDERXITEMS. Either way, only the rows of the table asked for are kept.
+	 * </p>
+	 *
+	 * @param meta             the connection's metadata
+	 * @param tables           the tables and views to read, each as its name, type
+	 *                         and schema, as {@link #getTables} lists them
+	 * @param schemaTableCount how many tables and views the schema's listing held,
+	 *                         before any filter
+	 * @param catalogFilter    the catalog the tables are in, or null
+	 * @param schemaFilter     the schema the tables are in, or null
+	 * @param driver           the database type, for its metadata quirks
+	 * @return each table's columns in order, by table name; a table whose columns
+	 *         could not be read is left out
+	 */
+	public static Map<String, List<ColumnMetadata>> readColumns(DatabaseMetaData meta, List<String[]> tables,
+			int schemaTableCount, String catalogFilter, String schemaFilter, RdbmsTypeEnum driver) {
+		if (readsWholeSchema(tables.size(), schemaTableCount, driver)) {
+			try {
+				return readColumnsOfSchema(meta, tables, catalogFilter, schemaFilter, driver);
+			} catch (SQLException e) {
+				classLogger.warn(
+						"Failed to read the columns of {} tables in one call, so reading them a table at a time",
+						tables.size(), e);
+			}
+		}
+
+		Map<String, List<ColumnMetadata>> columns = new LinkedHashMap<>();
+		for (String[] table : tables) {
+			try {
+				columns.put(table[0], readColumnsOfTable(meta, table[0], catalogFilter, schemaFilter, driver));
+			} catch (SQLException e) {
+				classLogger.error("Failed to retrieve columns for {}", Utility.cleanLogString(table[0]), e);
+			}
+		}
+		return columns;
+	}
+
+	/**
+	 * Whether {@link #readColumns} reads the columns in one call for the whole
+	 * schema: for at least {@link #MIN_TABLES_FOR_SCHEMA_READ} tables that are at
+	 * least {@link #MIN_SHARE_FOR_SCHEMA_READ} of the schema, and never for Oracle.
+	 *
+	 * @param tableCount       how many tables are asked for
+	 * @param schemaTableCount how many tables and views the schema holds
+	 * @param driver           the database type
+	 * @return true for one call for the whole schema
+	 */
+	static boolean readsWholeSchema(int tableCount, int schemaTableCount, RdbmsTypeEnum driver) {
+		return driver != RdbmsTypeEnum.ORACLE && tableCount >= MIN_TABLES_FOR_SCHEMA_READ
+				&& tableCount >= MIN_SHARE_FOR_SCHEMA_READ * schemaTableCount;
+	}
+
+	/**
+	 * Reads the columns of the given tables in one call for the whole schema,
+	 * keeping only the rows of those tables. A row of a table with the same name in
+	 * another schema is dropped when both schemas are known.
+	 *
+	 * @return each table's columns in order, by table name, every table included
+	 * @throws SQLException when the call fails, or the driver does not report each
+	 *                      row's table
+	 */
+	private static Map<String, List<ColumnMetadata>> readColumnsOfSchema(DatabaseMetaData meta, List<String[]> tables,
+			String catalogFilter, String schemaFilter, RdbmsTypeEnum driver) throws SQLException {
+		Map<String, List<ColumnMetadata>> columns = new LinkedHashMap<>();
+		Map<String, String> listedSchemas = new HashMap<>();
+		for (String[] table : tables) {
+			columns.put(table[0], new ArrayList<>());
+			listedSchemas.put(table[0], table.length > 2 ? table[2] : null);
+		}
+		String[] columnKeys = getColumnKeys(driver);
+		try (ResultSet columnsRs = getColumns(meta, null, catalogFilter, schemaFilter, driver)) {
+			while (columnsRs.next()) {
+				String tableName = columnsRs.getString("TABLE_NAME");
+				List<ColumnMetadata> tableColumns = columns.get(tableName);
+				if (tableColumns == null) {
+					// a table that was not asked for
+					continue;
+				}
+				String listedSchema = listedSchemas.get(tableName);
+				String rowSchema = stringOrNull(columnsRs, "TABLE_SCHEM");
+				if (listedSchema != null && rowSchema != null && !listedSchema.equals(rowSchema)) {
+					continue;
+				}
+				tableColumns.add(
+						new ColumnMetadata(columnsRs.getString(columnKeys[0]), columnsRs.getString(columnKeys[1])));
+			}
+		}
+		return columns;
+	}
+
+	/**
+	 * Reads the columns of one table, keeping only the rows of that table, since
+	 * its name is a pattern that can match others.
+	 *
+	 * @return the table's columns in order
+	 * @throws SQLException when the call fails
+	 */
+	private static List<ColumnMetadata> readColumnsOfTable(DatabaseMetaData meta, String tableName,
+			String catalogFilter, String schemaFilter, RdbmsTypeEnum driver) throws SQLException {
+		List<ColumnMetadata> columns = new ArrayList<>();
+		String[] columnKeys = getColumnKeys(driver);
+		try (ResultSet columnsRs = getColumns(meta, tableName, catalogFilter, schemaFilter, driver)) {
+			while (columnsRs.next()) {
+				// a row whose table the driver does not report is kept
+				String rowTable = stringOrNull(columnsRs, "TABLE_NAME");
+				if (rowTable != null && !rowTable.equalsIgnoreCase(tableName)) {
+					continue;
+				}
+				columns.add(new ColumnMetadata(columnsRs.getString(columnKeys[0]), columnsRs.getString(columnKeys[1])));
+			}
+		}
+		return columns;
+	}
+
+	/**
+	 * A column of the current row, or null when the driver does not report it.
+	 */
+	private static String stringOrNull(ResultSet resultSet, String columnLabel) {
+		try {
+			return resultSet.getString(columnLabel);
+		} catch (SQLException e) {
+			return null;
+		}
 	}
 
 	private static String predictSchemaFromUrl(String url) {

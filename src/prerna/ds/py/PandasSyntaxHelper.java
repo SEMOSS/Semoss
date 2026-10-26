@@ -52,7 +52,7 @@ public class PandasSyntaxHelper {
 		OPERATOR_LIST.add("!=");
 	}
 
-	private static final String NAN_VALUES = "[\"\",\"#N/A\",\"#N/A N/A\",\"#NA\",\"-1.#IND\",\"<NA>\",\"N/A\",\"NULL\""
+	private static final String NAN_VALUES = "[\"\",\"#N/A\",\"#N/A N/A\",\"#NA\",\"-1.#IND\",\"<NA>\",\"N/A\",\"NULL\","
 			+ "\"n/a\",\"null\",\"-1.#QNAN\",\"-NaN\",\"-nan\",\"1.#IND\",\"1.#Q.#NAN\",\"NA\",\"NaN\",\"nan\"]";
 
 	private static final String EQUAL = "==";
@@ -183,7 +183,10 @@ public class PandasSyntaxHelper {
 		StringBuffer converter = new StringBuffer("converters={i: lambda x: x.strip() if (isinstance(");
 		StringBuffer numeric = new StringBuffer("");
 
-		numeric.append(pandasImportVar).append(".to_numeric(x,errors='ignore')");
+		// pandas 3 removed to_numeric(errors='ignore'): coerce, then fall back to the raw string
+		// (values that parse to NaN are mapped to NaN by the NAN_VALUES replace below either way)
+		numeric.append("(lambda n: x if ").append(pandasImportVar).append(".isna(n) else n)(").append(pandasImportVar)
+				.append(".to_numeric(x,errors='coerce'))");
 		replace.append(NAN_VALUES).append(",").append(numpyImportVar).append(".nan)");
 		converter.append(numeric).append(",").append(numpyImportVar)
 				.append(".integer) and x.strip()[0] == '0' and len(x.strip()) > 1) else ").append(numeric)
@@ -308,7 +311,8 @@ public class PandasSyntaxHelper {
 						+ dataMap.toString())
 				.append(",parse_dates=").append(dateList)
 				// note, we assume encoding is the actual ,encoding='value' format
-				.append(",infer_datetime_format=True" + encoding + nrows + ")");
+				// (no infer_datetime_format: a no-op since pandas 2, removed in 3)
+				.append(encoding + nrows + ")");
 
 		return sb;
 	}
