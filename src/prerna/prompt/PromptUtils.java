@@ -89,8 +89,19 @@ public final class PromptUtils {
 	}
 
 	/**
-	 * 
-	 * @throws Exception
+	 * Creates the prompt tables and columns from the OWL schema, the PROMPTMETA
+	 * index, and the default PROMPTMETAKEYS rows.
+	 *
+	 * <p>
+	 * Each DDL statement runs and commits on its own through the engine, with no
+	 * transaction across statements, since several dialects commit DDL implicitly.
+	 * Table and column lookups run in their own reads on the shared executor. The
+	 * default meta keys are a data migration stage: the row count, the delete and
+	 * the inserts run in one write, so the defaults are replaced completely or not
+	 * at all; a failure is logged and startup continues.
+	 *
+	 * @param dbSchema table and column metadata to apply
+	 * @throws Exception when a table cannot be looked up or created
 	 */
 	private static void initialize(List<Pair<String, List<Pair<String, String>>>> dbSchema) throws Exception {
 		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
@@ -119,7 +130,8 @@ public final class PromptUtils {
 				classLogger.info("Running sql {}", sql);
 				promptDb.insertData(sql);
 			} else {
-				if (!queryUtil.tableExists(promptDb.getConnection(), tableName, database, schema)) {
+				if (!QueryExecutionUtility.read(promptDb,
+						connection -> queryUtil.tableExists(connection, tableName, database, schema))) {
 					String sql = queryUtil.createTable(tableName, colNames, types);
 					classLogger.info("Running sql {}", sql);
 					promptDb.insertData(sql);
@@ -127,7 +139,8 @@ public final class PromptUtils {
 			}
 
 			// add any columns missing from a previously-created table
-			List<String> allCols = queryUtil.getTableColumns(promptDb.getConnection(), tableName, database, schema);
+			List<String> allCols = QueryExecutionUtility.read(promptDb,
+					connection -> queryUtil.getTableColumns(connection, tableName, database, schema));
 			for (int i = 0; i < colNames.length; i++) {
 				String col = colNames[i];
 				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
@@ -158,39 +171,53 @@ public final class PromptUtils {
 			}
 		}
 		// see if there are any default values
-		{
-			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(promptDb,
-					"select count(*) from " + Constants.PROMPT_METAKEYS)) {
-				if (wrapper.hasNext()) {
-					int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
-					if (numrows < 6) {
-						promptDb.removeData("DELETE FROM " + Constants.PROMPT_METAKEYS + " WHERE 1=1");
-						int order = 0;
-						promptDb.insertData(
-								queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
-										new Object[] { Constants.MARKDOWN, "single", order++, "markdown", null }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames,
-								metaKeysTypes, new Object[] { "description", "single", order++, "textarea", null }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames,
-								metaKeysTypes, new Object[] { "tag", "multi", order++, "multi-typeahead", null }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames,
-								metaKeysTypes, new Object[] { "domain", "multi", order++, "multi-typeahead", null }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames,
-								metaKeysTypes, new Object[] { "data classification", "multi", order++, "select-box",
-										"Confidential,FOUO,Internal Only,IP,PII,PHI,Public,Restricted" }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames,
-								metaKeysTypes, new Object[] { "data restrictions", "multi", order++, "select-box",
-										"Confidential Allowed,FOUO Allowed,Internal Allowed,IP Allowed,PII Allowed,PHI Allowed,Restricted Allowed" }));
-					}
-				}
-			} catch (Exception e) {
-				classLogger.error("Failed to initialize default records in {}.", Constants.PROMPT_METAKEYS, e);
-			}
+		try {
+			seedDefaultMetaKeys(promptDb, queryUtil, metaKeysColNames, metaKeysTypes);
+		} catch (Exception e) {
+			classLogger.error("Failed to initialize default records in {}.", Constants.PROMPT_METAKEYS, e);
 		}
+	}
 
-		// commit the changes
-		promptDb.commit();
+	/**
+	 * Replaces the PROMPTMETAKEYS rows with the default meta keys when the table
+	 * holds fewer than six rows. The count, the delete and the inserts run in one
+	 * write on the shared executor.
+	 *
+	 * @param promptDb         the prompt database
+	 * @param queryUtil        dialect of the prompt database
+	 * @param metaKeysColNames PROMPTMETAKEYS columns
+	 * @param metaKeysTypes    PROMPTMETAKEYS column types
+	 * @throws Exception when a statement fails; the table is left as it was
+	 */
+	private static void seedDefaultMetaKeys(IRDBMSEngine promptDb, AbstractSqlQueryUtil queryUtil,
+			String[] metaKeysColNames, String[] metaKeysTypes) throws Exception {
+		QueryExecutionUtility.write(promptDb, connection -> {
+			Integer numrows = QueryExecutionUtility.queryOne(connection,
+					"select count(*) from " + Constants.PROMPT_METAKEYS, QueryExecutionUtility.NO_PARAMETERS,
+					rs -> rs.getInt(1));
+			if (numrows == null || numrows >= 6) {
+				return null;
+			}
+			List<Object[]> defaults = new ArrayList<>();
+			int order = 0;
+			defaults.add(new Object[] { Constants.MARKDOWN, "single", order++, "markdown", null });
+			defaults.add(new Object[] { "description", "single", order++, "textarea", null });
+			defaults.add(new Object[] { "tag", "multi", order++, "multi-typeahead", null });
+			defaults.add(new Object[] { "domain", "multi", order++, "multi-typeahead", null });
+			defaults.add(new Object[] { "data classification", "multi", order++, "select-box",
+					"Confidential,FOUO,Internal Only,IP,PII,PHI,Public,Restricted" });
+			defaults.add(new Object[] { "data restrictions", "multi", order++, "select-box",
+					"Confidential Allowed,FOUO Allowed,Internal Allowed,IP Allowed,PII Allowed,PHI Allowed,Restricted Allowed" });
 
+			QueryExecutionUtility.executeUpdate(connection, "DELETE FROM " + Constants.PROMPT_METAKEYS + " WHERE 1=1",
+					QueryExecutionUtility.NO_PARAMETERS);
+			for (Object[] metaKey : defaults) {
+				QueryExecutionUtility.executeUpdate(connection,
+						queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes, metaKey),
+						QueryExecutionUtility.NO_PARAMETERS);
+			}
+			return null;
+		});
 	}
 
 	/**
@@ -223,15 +250,14 @@ public final class PromptUtils {
 		// Apply appropriate visibility filters based on user role
 		applyPromptVisibilityFilters(user, qs);
 
+		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(promptDb, qs)) {
-			if (wrapper.hasNext()) {
-				return true;
-			}
+			exists = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Failed to check if prompt title '{}' exists.", promptTitle, e);
 		}
 
-		return false;
+		return exists;
 	}
 
 	/**
@@ -306,16 +332,23 @@ public final class PromptUtils {
 	 * to false) - tags: List<String> (optional) - metaMap: Map<String,
 	 * Collection<String>> (optional)
 	 * 
+	 * <p>
+	 * The prompt row is written as described in
+	 * {@link #insertPrompt(Map, String, String, boolean)}. The tags and metadata
+	 * are written after it, in a separate stage: any meta key missing from
+	 * PROMPTMETAKEYS is first copied from the security database's USERMETAKEYS,
+	 * which spans two databases, then the PROMPTMETA rows are inserted in one
+	 * write. A failure in that stage is logged and leaves the prompt without its
+	 * tags and metadata.
+	 * 
 	 * @param promptDetails Map containing all prompt information
 	 * @param user          The user creating the prompt
 	 * @param userId        The ID of the user creating the prompt
 	 * @return The UUID of the newly created prompt
-	 * @throws IllegalArgumentException if validation fails
+	 * @throws IllegalArgumentException if validation fails or the prompt row cannot
+	 *                                  be written
 	 */
 	public static String addPrompt(Map<String, Object> promptDetails, User user, String userId) {
-		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
-		boolean allowClob = promptDb.getQueryUtil().allowClobJavaObject();
-
 		List<String> tags = (List<String>) promptDetails.get("tags");
 		Map<String, Collection<String>> userSelectedMeta = (Map<String, Collection<String>>) promptDetails
 				.get("metaMap");
@@ -328,7 +361,7 @@ public final class PromptUtils {
 
 		promptDetailsValidation(promptDetails);
 
-		insertPrompt(promptDetails, userId, allowClob, promptId);
+		insertPrompt(promptDetails, userId, promptId, false);
 		insertTagsAndMeta(tags, userSelectedMeta, promptId);
 
 		return promptId;
@@ -342,16 +375,23 @@ public final class PromptUtils {
 	 * intent: String (optional) - tags: List<String> (optional) - metaMap:
 	 * Map<String, Collection<String>> (optional)
 	 * 
+	 * <p>
+	 * The new version is written as described in
+	 * {@link #insertPrompt(Map, String, String, boolean)}, so the prompt keeps
+	 * exactly one latest version whether the write succeeds or fails. The tags and
+	 * metadata are replaced after it by
+	 * {@link #updatePromptTags(String, Map, List)}, a separate stage that spans the
+	 * security and prompt databases; a failure there is logged and leaves the new
+	 * version with the previous tags and metadata.
+	 * 
 	 * @param promptDetails Map containing updated prompt information, must include
 	 *                      "id"
 	 * @param user          The user updating the prompt, used for authorization
-	 * @throws IllegalArgumentException if validation fails or user lacks
-	 *                                  permissions
+	 * @throws IllegalArgumentException if validation fails, user lacks permissions,
+	 *                                  or the new version cannot be written
 	 */
 	public static void editPrompt(Map<String, Object> promptDetails, User user) {
-		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		String userId = user.getPrimaryLoginToken().getId();
-		boolean allowClob = promptDb.getQueryUtil().allowClobJavaObject();
 
 		List<String> tags = (List<String>) promptDetails.get("tags");
 		Map<String, Collection<String>> userSelectedMeta = (Map<String, Collection<String>>) promptDetails
@@ -368,8 +408,7 @@ public final class PromptUtils {
 		validatePromptUpdateAuthorization(promptId, user);
 
 		promptDetailsValidation(promptDetails);
-		updatePrompt(promptId);
-		insertPrompt(promptDetails, userId, allowClob, promptId);
+		insertPrompt(promptDetails, userId, promptId, true);
 		updatePromptTags(promptId, userSelectedMeta, tags);
 	}
 
@@ -433,31 +472,15 @@ public final class PromptUtils {
 	}
 
 	/**
-	 * Marks an existing prompt as no longer the latest version. Sets IS_LATEST =
-	 * false for the specified prompt ID.
-	 * 
-	 * @param promptId The ID of the prompt to mark as not latest
-	 */
-	private static void updatePrompt(String promptId) {
-		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
-		String[] colToUpdate = { "IS_LATEST" };
-		String[] whereCol = { "ID" };
-		String promptPermissionQuery = promptDb.getQueryUtil().createUpdatePreparedStatementString("PROMPT",
-				colToUpdate, whereCol);
-
-		try {
-			QueryExecutionUtility.executeUpdate(promptDb, promptPermissionQuery, ps -> {
-				int i = 1;
-				ps.setBoolean(i++, false);
-				ps.setString(i++, promptId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to mark previous versions as non-latest for prompt ID '{}'.", promptId, e);
-		}
-	}
-
-	/**
 	 * Replaces all metadata for a prompt with new tags and metadata values.
+	 * 
+	 * <p>
+	 * Any meta key missing from PROMPTMETAKEYS is first copied from the security
+	 * database's USERMETAKEYS, one key at a time, as described in
+	 * {@link #ensureUserMetaKeyExistsInPromptMetaKeys(String)}. That import spans
+	 * two databases and stays a separate stage. The PROMPTMETA delete and inserts
+	 * then run in one write on the shared executor; a failure there is logged and
+	 * leaves the previous metadata.
 	 * 
 	 * @param promptId         The ID of the prompt to update metadata for
 	 * @param userSelectedMeta Map of metadata keys to collections of values
@@ -684,6 +707,13 @@ public final class PromptUtils {
 	 * Inserts tags and metadata entries into the PROMPTMETA table. Tags are stored
 	 * with METAKEY="tag", other metadata uses the actual metakey.
 	 * 
+	 * <p>
+	 * Missing meta keys are imported from the security database first, in a
+	 * separate stage, as described in
+	 * {@link #ensureUserMetaKeyExistsInPromptMetaKeys(String)}. The PROMPTMETA rows
+	 * are then inserted in one write; a failure there is logged and inserts no
+	 * rows.
+	 * 
 	 * @param tags             List of tag values to insert (stored with
 	 *                         METAKEY="tag")
 	 * @param userSelectedMeta Map of metadata keys to collections of values
@@ -744,6 +774,12 @@ public final class PromptUtils {
 	/**
 	 * Ensures that a metakey exists in PROMPTMETAKEYS table. If it doesn't exist,
 	 * copies it from security.USERMETAKEYS table.
+	 * 
+	 * <p>
+	 * The import spans the security and prompt databases, so it is staged: the
+	 * PROMPTMETAKEYS lookup, the USERMETAKEYS read and the PROMPTMETAKEYS insert
+	 * are separate operations. A failed step is logged and leaves the key missing;
+	 * the caller still writes its metadata rows.
 	 * 
 	 * @param metaKey The metakey to ensure exists
 	 */
@@ -823,38 +859,53 @@ public final class PromptUtils {
 	}
 
 	/**
-	 * Inserts a prompt record into the PROMPT table. Uses CLOB for CONTEXT field if
-	 * database supports it, otherwise uses String. Automatically determines and
-	 * increments the version number.
+	 * Writes a version of a prompt into the PROMPT table in one write on the shared
+	 * executor. When replacing, the prompt's current versions are first marked as
+	 * no longer latest; then the next version number is read and the new row is
+	 * inserted as the latest version. A failure in any step rolls back the whole
+	 * write.
 	 * 
 	 * @param promptDetails Map containing prompt information (title, context,
 	 *                      intent, global)
 	 * @param userId        The ID of the user creating/updating the prompt
-	 * @param allowClob     Whether the database supports CLOB objects for the
-	 *                      context field
 	 * @param promptId      The UUID for the prompt (generated for new prompts,
 	 *                      reused for updates)
-	 * @throws IllegalArgumentException if insertion fails
+	 * @param replaceLatest true to mark the prompt's current versions as no longer
+	 *                      latest before inserting
+	 * @throws IllegalArgumentException if the write fails
 	 */
-	private static void insertPrompt(Map<String, Object> promptDetails, String userId, boolean allowClob,
-			String promptId) {
+	private static void insertPrompt(Map<String, Object> promptDetails, String userId, String promptId,
+			boolean replaceLatest) {
 		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
-		Integer version = getVersionNumber(promptId);
+		AbstractSqlQueryUtil queryUtil = promptDb.getQueryUtil();
 		try {
-			QueryExecutionUtility.executeUpdate(promptDb, INSERT_PROMPT_QUERY, promptPS -> {
-				int index = 1;
-				promptPS.setString(index++, promptId);
-				promptPS.setString(index++, (String) promptDetails.get("title"));
-				promptDb.getQueryUtil().setNullableLargeText(promptPS, index++, (String) promptDetails.get("context"));
-				// Get version of existing prompt
-				promptPS.setInt(index++, version);
-				promptPS.setString(index++, (String) promptDetails.get("intent"));
-				promptPS.setString(index++, userId);
-				promptPS.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
-				promptPS.setBoolean(index++, true);
-				// Set GLOBAL value, default to false if not provided
-				Boolean global = (Boolean) promptDetails.get("global");
-				promptPS.setBoolean(index++, global != null ? global : false);
+			QueryExecutionUtility.write(promptDb, connection -> {
+				if (replaceLatest) {
+					String latestQuery = queryUtil.createUpdatePreparedStatementString("PROMPT",
+							new String[] { "IS_LATEST" }, new String[] { "ID" });
+					QueryExecutionUtility.executeUpdate(connection, latestQuery, ps -> {
+						int i = 1;
+						ps.setBoolean(i++, false);
+						ps.setString(i++, promptId);
+					});
+				}
+				int version = getVersionNumber(connection, promptId);
+				QueryExecutionUtility.executeUpdate(connection, INSERT_PROMPT_QUERY, promptPS -> {
+					int index = 1;
+					promptPS.setString(index++, promptId);
+					promptPS.setString(index++, (String) promptDetails.get("title"));
+					queryUtil.setNullableLargeText(promptPS, index++, (String) promptDetails.get("context"));
+					// Get version of existing prompt
+					promptPS.setInt(index++, version);
+					promptPS.setString(index++, (String) promptDetails.get("intent"));
+					promptPS.setString(index++, userId);
+					promptPS.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+					promptPS.setBoolean(index++, true);
+					// Set GLOBAL value, default to false if not provided
+					Boolean global = (Boolean) promptDetails.get("global");
+					promptPS.setBoolean(index++, global != null ? global : false);
+				});
+				return null;
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to insert prompt record for prompt ID '{}'.", promptId, e);
@@ -863,38 +914,30 @@ public final class PromptUtils {
 	}
 
 	/**
-	 * Retrieves the next version number for a prompt. Returns the most recent
-	 * version + 1, or 0 for new prompts.
+	 * Retrieves the next version number for a prompt inside the caller's
+	 * transaction. Returns the most recent version + 1, or 0 for new prompts.
+	 * Closes only the statement and result it creates.
 	 * 
-	 * @param promptId The ID of the prompt to get the version number for
+	 * @param connection connection whose transaction the caller owns
+	 * @param promptId   The ID of the prompt to get the version number for
 	 * @return The next version number (existing version + 1, or 0 if no versions
 	 *         exist)
+	 * @throws Exception if the read fails
 	 */
-	private static Integer getVersionNumber(String promptId) {
-		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
-		Integer version = 0;
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROMPT__VERSION"));
-		qs.addSelector(new QueryColumnSelector("PROMPT__DATE_CREATED"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__ID", "==", promptId));
-		qs.addOrderBy("PROMPT__DATE_CREATED", "desc");
-		qs.setLimit(1);
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(promptDb, qs)) {
-			if (wrapper.hasNext()) {
-				version = (Integer) wrapper.next().getValues()[0];
-				version += 1;
-				return version;
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to retrieve current prompt version for prompt ID '{}'.", promptId, e);
-		}
-		return version;
+	private static int getVersionNumber(Connection connection, String promptId) throws Exception {
+		Integer version = QueryExecutionUtility.queryOne(connection,
+				"SELECT VERSION FROM PROMPT WHERE ID = ? ORDER BY DATE_CREATED DESC", ps -> {
+					ps.setMaxRows(1);
+					ps.setString(1, promptId);
+				}, rs -> rs.getInt(1));
+		return version == null ? 0 : version + 1;
 	}
 
 	/**
 	 * Deletes a prompt and all its associated metadata. Removes entries from PROMPT
-	 * and PROMPTMETA tables.
+	 * and PROMPTMETA tables in one write on the shared executor, so the prompt and
+	 * its metadata are deleted together or not at all. A failed delete is logged
+	 * and leaves both tables as they were.
 	 * 
 	 * @param promptId The ID of the prompt to delete
 	 * @param user     The user object for authorization checks
@@ -910,14 +953,17 @@ public final class PromptUtils {
 		deletes.add("DELETE FROM PROMPT WHERE ID=?");
 		deletes.add("DELETE FROM PROMPTMETA WHERE PROMPT_ID=?");
 
-		for (String deleteQuery : deletes) {
-			try {
-				QueryExecutionUtility.executeUpdate(promptDb, deleteQuery, ps -> ps.setString(1, promptId));
-			} catch (RuntimeException e) {
-				throw e;
-			} catch (Exception e) {
-				classLogger.error("Failed to execute prompt delete statement for prompt ID '{}'.", promptId, e);
-			}
+		try {
+			QueryExecutionUtility.write(promptDb, connection -> {
+				for (String deleteQuery : deletes) {
+					QueryExecutionUtility.executeUpdate(connection, deleteQuery, ps -> ps.setString(1, promptId));
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to delete prompt ID '{}' and its metadata.", promptId, e);
 		}
 
 		return promptId;

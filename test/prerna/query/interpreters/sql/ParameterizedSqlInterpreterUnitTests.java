@@ -672,8 +672,8 @@ public class ParameterizedSqlInterpreterUnitTests {
 		parity.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ITEMS__ID", "==", 1));
 		var legacy = engine.getQueryUtil().getInterpreter(engine);
 		legacy.setQueryStruct(parity);
-		List<String> legacyRows = QueryExecutionUtility.queryList(engine, legacy.composeQuery(), ps -> {
-		}, rs -> rs.getString(2));
+		List<String> legacyRows = QueryExecutionUtility.queryList(engine, legacy.composeQuery(),
+				QueryExecutionUtility.NO_PARAMETERS, rs -> rs.getString(2));
 		assertEquals(1, legacyRows.size());
 		try (var wrapper = interpreter.execute(parity)) {
 			assertEquals(legacyRows.get(0), wrapper.next().getValues()[1]);

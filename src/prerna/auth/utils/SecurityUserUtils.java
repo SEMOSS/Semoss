@@ -228,8 +228,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 			return QueryExecutionUtility.write(securityDb, connection -> {
 				// first truncate table clean
 				String truncateSql = "DELETE FROM USERMETAKEYS WHERE 1=1";
-				QueryExecutionUtility.executeUpdate(connection, truncateSql, deletePs -> {
-				});
+				QueryExecutionUtility.executeUpdate(connection, truncateSql, QueryExecutionUtility.NO_PARAMETERS);
 				try (PreparedStatement insertPs = connection
 						.prepareStatement(securityDb.getQueryUtil().createInsertPreparedStatementString("USERMETAKEYS",
 								new String[] { Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER,
