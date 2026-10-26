@@ -38,7 +38,11 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
+import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessagePart;
+import prerna.engine.impl.model.message.ToolResultMessagePart;
+import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -62,6 +66,9 @@ import prerna.util.Utility;
 public class GenericGuardrailInputReactor extends AbstractReactor implements IInputReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GenericGuardrailInputReactor.class);
+
+	// askRoom's message argument, named by reflection order
+	private static final String DEFAULT_TOOL_CONTINUATION_ARG = "arg0";
 	private transient IEngine targetEngine;
 
 	public GenericGuardrailInputReactor() {
@@ -82,6 +89,14 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 			throw new SecurityException(
 					"GenericGuardrailInputReactor is not configured correctly. Missing 'guardrailEngineId'.");
 		}
+
+		// checked before the guardrail engine is resolved, so a skip never loads it
+		if (isToolContinuation(helper)) {
+			Map<String, Object> processedArguments = helper.getArgumentsMap();
+			processedArguments.put(PipelineReactorUtils.INTERIM_RESULT, createSkippedInterimResult());
+			return new NounMetadata(processedArguments, PixelDataType.MAP);
+		}
+
 		IGuardrailReactorFunctionEngine guardrailEngine = Utility.getGuardrailEngine(guardrailEngineId);
 		if (guardrailEngine == null) {
 			throw new SecurityException("Guardrail engine with ID '" + guardrailEngineId + "' not found.");
@@ -339,6 +354,83 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 			resultMap.put(PipelineReactorUtils.BLOCK_ERROR_MESSAGE, blockErrorMessage);
 		}
 
+		return resultMap;
+	}
+
+	/**
+	 * True when the guarded argument is a tool-result continuation this mount should
+	 * skip, never a real user turn.
+	 *
+	 * {@code skipOnToolContinuationForAllTools} (Boolean), when {@code true}, skips any
+	 * tool-result continuation and ignores {@code skipOnToolContinuationForTools}
+	 * entirely. Otherwise a non-empty {@code skipOnToolContinuationForTools} (List)
+	 * skips only when every tool result on the message names a listed tool. A listed
+	 * name must be the name the model was given, which for a tool served by another
+	 * engine carries that engine's prefix, such as {@code a<engineId>_search}.
+	 *
+	 * Either way, the argument named by {@code toolContinuationArg} (default
+	 * {@value #DEFAULT_TOOL_CONTINUATION_ARG}) must be an {@link AbstractMessage} that
+	 * carries tool results and no user-authored text - a real user turn is always
+	 * screened, regardless of either flag.
+	 */
+	static boolean isToolContinuation(ReactorInputHelper helper) {
+		boolean blanket = Boolean.TRUE
+				.equals(helper.getConfigParameter("skipOnToolContinuationForAllTools", Boolean.class));
+
+		List<?> allowedTools = helper.getConfigParameter("skipOnToolContinuationForTools", List.class);
+		if (!blanket && (allowedTools == null || allowedTools.isEmpty())) {
+			return false;
+		}
+
+		String argName = helper.getConfigParameter("toolContinuationArg", String.class);
+		if (argName == null || argName.isEmpty()) {
+			argName = DEFAULT_TOOL_CONTINUATION_ARG;
+		}
+		Object argValue = helper.getMethodArgument(argName);
+		if (!(argValue instanceof AbstractMessage)) {
+			return false; // not a message - always screen
+		}
+		AbstractMessage message = (AbstractMessage) argValue;
+		if (!message.hasToolResultPart() || message.hasUserAuthoredText()) {
+			return false; // not a tool continuation - always screen
+		}
+		if (!blanket && !allToolResultsAreListed(message, allowedTools)) {
+			return false;
+		}
+
+		classLogger.info("Guardrail '{}' skipped on a tool-result continuation ({}, toolContinuationArg='{}').",
+				helper.getConfigParameter("guardrailEngineId", String.class),
+				blanket ? "skipOnToolContinuationForAllTools=true" : "every tool result names a listed tool", argName);
+		return true;
+	}
+
+	/**
+	 * Whether every tool result on the message names a tool the mount is configured
+	 * to skip. One unlisted result is enough to screen the whole message, since the
+	 * guardrail sees the message as a whole.
+	 *
+	 * @param message      the message the guarded argument holds
+	 * @param allowedTools tool names configured for skipping
+	 * @return whether all of the message's tool results are listed
+	 */
+	private static boolean allToolResultsAreListed(AbstractMessage message, List<?> allowedTools) {
+		for (MessagePart part : message.getParts()) {
+			if (part instanceof ToolResultMessagePart) {
+				ToolResultPart toolResult = ((ToolResultMessagePart) part).getToolResult();
+				if (toolResult == null || !allowedTools.contains(toolResult.getToolName())) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	private Map<String, Object> createSkippedInterimResult() {
+		Map<String, Object> resultMap = new HashMap<>();
+		resultMap.put(PipelineReactorUtils.INTERCEPTOR, this.getClass().getName());
+		resultMap.put(PipelineReactorUtils.PASS, true);
+		resultMap.put(PipelineReactorUtils.PASS_DETAILS, "Skipped: tool-result continuation, not a user prompt");
+		resultMap.put(PipelineReactorUtils.MASKED, false);
 		return resultMap;
 	}
 }

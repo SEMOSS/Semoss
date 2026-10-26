@@ -2,7 +2,7 @@
 
 Two complete starting points that use only `@semoss/sdk`, no React and no UI library:
 
-- **No build** - a single `index.html` in `portals/`, importing the SDK from a CDN. Nothing to
+- **No build** - a single `index.html` in `portals/`, importing the SDK by name. Nothing to
   compile; publish and it runs.
 - **Bundled** - a `client/` folder with TypeScript and Vite, built into `portals/`.
 
@@ -13,19 +13,34 @@ dependencies, or more than a couple of source files.
 
 ## 1. No-build HTML app
 
-The whole app is `assets/portals/index.html`. There is no `client/` folder. Import the SDK as an
-ESM module from the CDN:
+The whole app is `assets/portals/index.html`. There is no `client/` folder. Import the SDK by
+name inside a module script:
 
 ```js
-import { Insight } from "https://cdn.jsdelivr.net/npm/@semoss/sdk@latest/+esm";
+import { Insight } from "@semoss/sdk";
 ```
 
-A bare specifier (`import { Insight } from "@semoss/sdk"`) does not resolve in a browser without
-a bundler or an import map, so the full URL is required here.
+A bare specifier normally does not resolve in a browser without a bundler. It resolves here
+because publish writes an import map into the head of `portals/index.html`, pointing
+`@semoss/sdk` at the SDK the server itself ships:
 
-`@latest` tracks the newest published build. That is the right default while developing. Pin the
-version (`@semoss/sdk@1.0.0-beta.43`) before anything ships to users, so a future SDK release
-cannot change the app under them.
+```html
+<script id="semoss-sdk-importmap" type="importmap">
+{"imports":{"@semoss/sdk":"/semoss-ui/libs/sdk/dist/index.mjs"}}
+</script>
+```
+
+That means the app always runs against the SDK build that matches the server, and it works on an
+air-gapped install. Consequences to respect:
+
+- Do not add your own `<script type="importmap">`. A document may only have one, and publish
+  leaves a page that already has one alone, so yours would have to be complete and correct by
+  itself.
+- Do not import from a CDN URL, and do not add a `<script src="...">` tag for the SDK.
+- Do not import `@semoss/sdk/react` in a no-build app. That entry has React as an external
+  dependency, so it only resolves inside a bundled build.
+- The tag is written at publish, so a freshly authored `index.html` does not contain it yet.
+  That is expected. Do not add it by hand.
 
 ### assets/portals/index.html
 
@@ -63,11 +78,11 @@ cannot change the app under them.
     </main>
 
     <script type="module">
-      import { Insight, runPixel, waitForEmbedAuth }
-        from "https://cdn.jsdelivr.net/npm/@semoss/sdk@latest/+esm";
+      import { Insight, runPixel, waitForEmbedAuth } from "@semoss/sdk";
 
-      // No Env.update here. The semoss-env tag the server injects on publish
-      // supplies APP and MODULE, and initialize() reads it.
+      // No import map and no Env.update here. Publish injects both tags: the
+      // import map that resolves "@semoss/sdk", and the semoss-env tag that
+      // supplies APP and MODULE for initialize() to read.
 
       const insight = new Insight();
 

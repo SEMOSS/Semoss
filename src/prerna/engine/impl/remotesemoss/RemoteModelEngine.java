@@ -34,9 +34,11 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.ModelTokenLimits;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -212,7 +214,10 @@ public class RemoteModelEngine implements IModelEngine {
 
 	@Override
 	public int getContextWindow() {
-		return this.getContextWindow();
+		String engineId = smssProp == null ? null : getEngineId();
+		Map<String, Object> metadata = engineId == null || engineId.isBlank() ? null
+				: SecurityModelMetadataUtils.getModelMetadata(engineId);
+		return ModelTokenLimits.resolve(metadata, smssProp).contextWindow();
 	}
 
 	@Override

@@ -172,12 +172,14 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				    SELECT 1
 				    FROM pg_proc p
 				    JOIN pg_namespace n ON p.pronamespace = n.oid
-				    WHERE p.proname = '<functionName>'
-				    AND n.nspname = '<schema>'
+				    WHERE p.proname = ?
+				    AND n.nspname = ?
 				) AS function_exists
-				""".replace("<functionName>", functionName).replace("<schema>", schema);
+				""";
 
 		try (PreparedStatement stmt = con.prepareStatement(query)) {
+			stmt.setString(1, functionName);
+			stmt.setString(2, schema);
 			try (ResultSet rs = stmt.executeQuery()) {
 				if (rs.next()) {
 					return rs.getBoolean("function_exists");
@@ -318,6 +320,26 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
+	public void setNullableLargeText(java.sql.PreparedStatement statement, int index, String value)
+			throws java.sql.SQLException {
+		if (value == null) {
+			statement.setNull(index, java.sql.Types.LONGVARCHAR);
+		} else {
+			statement.setString(index, value);
+		}
+	}
+
+	@Override
+	public void setNullableBinary(java.sql.PreparedStatement statement, int index, byte[] value)
+			throws java.sql.SQLException {
+		if (value == null) {
+			statement.setNull(index, java.sql.Types.BINARY);
+		} else {
+			statement.setBytes(index, value);
+		}
+	}
+
+	@Override
 	public boolean allowBlobJavaObject() {
 		return false;
 	}
@@ -398,6 +420,11 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
+	public IQueryFilter getPreparedSearchRegexFilter(String columnQs, String searchTerm) {
+		return getSearchRegexFilter(columnQs, searchTerm);
+	}
+
+	@Override
 	public IQueryFilter getSearchRegexFilter(String columnQs, String searchTerm) {
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
@@ -415,6 +442,21 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		fun.setFunction("CONVERT_FROM"); // Use enum, not string
 		fun.addInnerSelector(innerSelector);
 		fun.addInnerSelector(new QueryConstantSelector("UTF-8"));
+		fun.setDataType("TEXT");
+		fun.setAlias(alias);
+		return fun;
+	}
+
+	@Override
+	public QueryFunctionSelector getSearchableBlobToStringFunctionSelector(IQuerySelector innerSelector, String alias) {
+		// Unlike CONVERT_FROM, ENCODE(..., 'escape') is defined for any byte
+		// sequence, so legacy rows with invalid UTF-8 bytes can't abort the search.
+		// Printable ASCII passes through unchanged, so LIKE matching on ordinary
+		// search terms still works.
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction("ENCODE");
+		fun.addInnerSelector(innerSelector);
+		fun.addInnerSelector(new QueryConstantSelector("escape"));
 		fun.setDataType("TEXT");
 		fun.setAlias(alias);
 		return fun;

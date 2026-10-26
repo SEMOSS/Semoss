@@ -34,6 +34,7 @@ import java.util.Map;
 
 import com.google.gson.annotations.SerializedName;
 
+import prerna.engine.impl.model.ModelRouterEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.responses.AskImageModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -269,6 +270,14 @@ public class ResponseMessage extends AbstractMessage {
 			return this;
 		}
 
+		// Model-facing text with a separate display version.
+		public Builder withText(String content, String uiText) {
+			if (content != null && !content.isEmpty()) {
+				message.addPart(new TextMessagePart(content, uiText));
+			}
+			return this;
+		}
+
 		public Builder withType(MessageType type) {
 			// Legacy-only: keep for compatibility, but behavior is driven by parts.
 			message.type = type;
@@ -328,6 +337,25 @@ public class ResponseMessage extends AbstractMessage {
 
 			Builder builder = new Builder();
 			builder.withModelEngineResponse(llmResponse);
+
+			// Persist only display attribution, not arbitrary provider metadata. The
+			// selected modelId remains the router for room restoration and follow-ups.
+			Map<String, Object> metadata = llmResponse.getMetadata();
+			if (metadata != null && metadata.get(ModelRouterEngine.METADATA_ROUTED_ENGINE_ID) instanceof String id
+					&& !id.isBlank()) {
+				Map<String, Object> routing = new HashMap<>();
+				for (String key : List.of(ModelRouterEngine.METADATA_ROUTER_ENGINE_ID,
+						ModelRouterEngine.METADATA_ROUTED_ENGINE_ID, ModelRouterEngine.METADATA_ROUTED_ENGINE_NAME,
+						ModelRouterEngine.METADATA_ROUTED_ROUTE_NAME)) {
+					if (metadata.get(key) instanceof String value && !value.isBlank()) {
+						routing.put(key, value);
+					}
+				}
+				if (metadata.get(ModelRouterEngine.METADATA_ROUTING_TRACE) instanceof Map<?, ?> trace) {
+					routing.put("trace", trace);
+				}
+				builder.withMetadata("routing", routing);
+			}
 
 			builder.message.setCacheCreationTokens(llmResponse.getNumberOfCacheCreationTokens());
 			builder.message.setThinkingTokens(llmResponse.getNumberOfThinkingTokens());

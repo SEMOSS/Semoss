@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Any, Union, Literal
 from pydantic import BaseModel, field_validator
 
 from ...utils import StringEnum
@@ -30,9 +30,15 @@ class AnthropicImageContentPart(BaseModel):
     source: AnthropicMediaSourceBase64
 
 
+class AnthropicMediaSourceText(BaseModel):
+    type: Literal["text"] = "text"
+    media_type: Literal["text/plain"] = "text/plain"
+    data: str
+
+
 class AnthropicDocumentContentPart(BaseModel):
     type: str = "document"
-    source: AnthropicMediaSourceBase64
+    source: Union[AnthropicMediaSourceBase64, AnthropicMediaSourceText]
 
 
 # FOR HISTORY

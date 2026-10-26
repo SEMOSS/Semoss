@@ -52,6 +52,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class ConvertReactor extends AbstractFrameReactor {
 
@@ -171,12 +172,12 @@ public class ConvertReactor extends AbstractFrameReactor {
 		// see if a frame is passed in
 		if (grs != null && !grs.isEmpty()) {
 			String alias = grs.getNoun(0).getValue() + "";
-			return alias;
+			return AbstractSqlQueryUtil.cleanTableName(alias);
 		}
 
 		List<Object> alias = this.curRow.getValuesOfType(PixelDataType.ALIAS);
 		if (alias != null && alias.size() > 0) {
-			return alias.get(0).toString();
+			return AbstractSqlQueryUtil.cleanTableName(alias.get(0).toString());
 		}
 
 		return null;

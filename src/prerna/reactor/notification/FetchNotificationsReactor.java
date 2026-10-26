@@ -41,11 +41,25 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
+/**
+ * Fetches the user's notifications, newest first. By default every visible
+ * notification in the scope is marked read, which is how the platform bell
+ * clears; pass markRead=false to leave read state to MarkNotificationRead.
+ *
+ * <pre>{@code
+ * FetchNotifications(limit=["20"], offset=["0"]);
+ * FetchNotifications(scopeType=["APP"], scopeId=["SYSTEM__COLLABORATION"], markRead=[false]);
+ * }</pre>
+ */
 public class FetchNotificationsReactor extends AbstractReactor {
+	private static final String SCOPE_TYPE = "scopeType";
+	private static final String SCOPE_ID = "scopeId";
+	private static final String MARK_READ = "markRead";
 
 	public FetchNotificationsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey() };
-		this.keyRequired = new int[] { 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), SCOPE_TYPE,
+				SCOPE_ID, MARK_READ };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -57,6 +71,8 @@ public class FetchNotificationsReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		String limit = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
 		String offset = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
+		String scopeId = this.keyValue.get(SCOPE_ID);
+		String markRead = this.keyValue.get(MARK_READ);
 		if (user == null) {
 			NounMetadata noun = new NounMetadata(
 					"User must be signed into an account to retrieve the function engine files",
@@ -68,11 +84,13 @@ public class FetchNotificationsReactor extends AbstractReactor {
 		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
 			throwAnonymousUserError();
 		}
+		String scopeType = NotificationDbUtils.resolveReadScope(user, this.keyValue.get(SCOPE_TYPE), scopeId);
 
-		List<Map<String, Object>> allNotifications = null;
-		allNotifications = NotificationDbUtils.fetchAllNotifications(user, limit, offset);
-		if (!allNotifications.isEmpty()) {
-			NotificationDbUtils.resetNotificationActionType(user);
+		List<Map<String, Object>> allNotifications = NotificationDbUtils.fetchNotifications(user, scopeType, scopeId, limit,
+				offset);
+		boolean resetReadState = markRead == null || markRead.isBlank() || Boolean.parseBoolean(markRead.trim());
+		if (resetReadState && !allNotifications.isEmpty()) {
+			NotificationDbUtils.resetNotificationActionType(user, scopeType, scopeId);
 		}
 
 		return new NounMetadata(allNotifications, PixelDataType.MAP);
@@ -81,5 +99,19 @@ public class FetchNotificationsReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Fetch all user notifications";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (SCOPE_TYPE.equals(key)) {
+			return "ALL (default), SYSTEM, or APP.";
+		}
+		if (SCOPE_ID.equals(key)) {
+			return "The app id when scopeType is APP, e.g. SYSTEM__COLLABORATION for the Collaboration inbox.";
+		}
+		if (MARK_READ.equals(key)) {
+			return "Whether fetching marks every visible notification in the scope as read. Defaults to true.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

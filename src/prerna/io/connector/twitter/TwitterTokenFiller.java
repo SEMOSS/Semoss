@@ -36,6 +36,7 @@ import prerna.auth.AccessToken;
 import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.security.HttpHelperUtility;
 import prerna.security.PKCEUtil;
+import prerna.util.ValueUtils;
 
 /**
  * X (Twitter) OAuth2 provider using the API v2 authorization-code flow with
@@ -112,7 +113,7 @@ public class TwitterTokenFiller extends AbstractOAuthTokenFiller {
 		params.put("code_verifier", codeVerifier);
 
 		Map<String, String> headers = null;
-		if (!isBlank(clientSecret)) {
+		if (!ValueUtils.isBlank(clientSecret)) {
 			// confidential client: authenticate with HTTP Basic (client_id:client_secret)
 			String credentials = clientId + ":" + clientSecret;
 			String encoded = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));

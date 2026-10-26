@@ -7,10 +7,10 @@ description: Use when writing code in an app that checks the current user's acce
 
 The platform's access model has two resource kinds an app can manage:
 
-- **Projects** — apps and skill/workspace projects, identified by `projectId`
-- **Engines** — models, databases, vector stores, storage, identified by `engineId`
+- **Projects** - apps and skill/workspace projects, identified by `projectId`
+- **Engines** - models, databases, vector stores, storage, identified by `engineId`
 
-Every helper is a plain async REST function imported straight from `@semoss/sdk` — these are **not** pixels, so there is no `runPixel` envelope and no `errors` array. They resolve with typed data or **throw** on failure; wrap them in try/catch.
+Every helper is a plain async REST function imported straight from `@semoss/sdk` - these are **not** pixels, so there is no `runPixel` envelope and no `errors` array. They resolve with typed data or **throw** on failure; wrap them in try/catch.
 
 The permission levels (`Role` type):
 
@@ -21,7 +21,7 @@ The permission levels (`Role` type):
 | `READ_ONLY` | Can view/use |
 | `DISCOVERABLE` | Sees it exists, can request access |
 
-Every function takes an `admin` boolean (default `false`) right after the id. `true` routes through `/api/auth/admin/...` and requires the caller to be a platform admin — leave it `false` in normal app code.
+Every function takes an `admin` boolean (default `false`) right after the id. `true` routes through `/api/auth/admin/...` and requires the caller to be a platform admin - leave it `false` in normal app code.
 
 ## Gate UI by the current user's role
 
@@ -71,7 +71,7 @@ import type { PostUser } from "@semoss/sdk";
 // 1. search users without access (returns User[])
 const candidates = await getProjectUsersNoCredentials(projectId, false, searchTerm, 20, 0);
 
-// 2. grant access — PostUser is { userid, permission }
+// 2. grant access - PostUser is { userid, permission }
 const grants: PostUser[] = [{ userid: candidates[0].id, permission: "READ_ONLY" }];
 const ok: boolean = await addProjectUserPermissions(projectId, grants);
 ```
@@ -103,7 +103,7 @@ import {
 } from "@semoss/sdk";
 import type { UserAccessRequest } from "@semoss/sdk";
 
-// approve — each request carries the requestid you received with the pending request
+// approve - each request carries the requestid you received with the pending request
 const requests: UserAccessRequest[] = [
   { requestid, userid, permission: "READ_ONLY" },
 ];
@@ -123,7 +123,7 @@ import { propagateUserPermissions } from "@semoss/sdk";
 await propagateUserPermissions(projectId, [{ userid, permission: "READ_ONLY" }]);
 ```
 
-This is the common follow-up to `addProjectUserPermissions` — without it, a newly added member may open the app and hit engine-permission errors on every pixel.
+This is the common follow-up to `addProjectUserPermissions` - without it, a newly added member may open the app and hit engine-permission errors on every pixel.
 
 ## Error handling
 
@@ -137,4 +137,4 @@ try {
 }
 ```
 
-Do not pre-validate rules the server owns — attempt the call and surface its message. The one check worth doing up front is `getUserProjectPermission` to hide member-management UI from non-owners entirely.
+Do not pre-validate rules the server owns - attempt the call and surface its message. The one check worth doing up front is `getUserProjectPermission` to hide member-management UI from non-owners entirely.

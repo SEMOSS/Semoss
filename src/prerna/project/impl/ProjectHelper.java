@@ -37,6 +37,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -209,9 +211,6 @@ public final class ProjectHelper {
 			logger.info("Finished creating project");
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 
-//			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.PROJECT, projectId,
-//			projectName);
-
 			if (ClusterUtil.IS_CLUSTER) {
 				logger.info("Syncing project for cloud backup");
 				ClusterUtil.pushProject(projectId);
@@ -228,6 +227,7 @@ public final class ProjectHelper {
 			return project;
 		} catch (Exception e) {
 			error = true;
+			classLogger.error("Failed to create project '{}' with id {}", projectName, projectId, e);
 			throw new SemossPixelException(
 					NounMetadata.getErrorNounMessage("An error occurred creating the new project"));
 		} finally {
@@ -246,14 +246,16 @@ public final class ProjectHelper {
 								try {
 									FileUtils.forceDelete(f);
 								} catch (IOException e) {
-									classLogger.error(Constants.STACKTRACE, e);
+									classLogger.error("Failed to delete {} while cleaning up after project '{}' "
+											+ "could not be created", f, projectId, e);
 								}
 							}
 						}
 						try {
 							FileUtils.forceDelete(projectFolder);
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to delete folder {} while cleaning up after project '{}' "
+									+ "could not be created", projectFolder, projectId, e);
 						}
 					}
 				}
@@ -309,7 +311,7 @@ public final class ProjectHelper {
 		insightSmssProp.put(Constants.DRIVER, rdbmsInsightsType.getDriver());
 		insightSmssProp.put(Constants.RDBMS_TYPE, rdbmsInsightsType.getLabel());
 		String connURL = null;
-		logger.info("Insight rdbms database location is " + Utility.cleanLogString(insightDatabaseLoc));
+		logger.info("Insight rdbms database location is {}", Utility.cleanLogString(insightDatabaseLoc));
 
 		if (rdbmsInsightsType == RdbmsTypeEnum.SQLITE) {
 			connURL = rdbmsInsightsType.getUrlPrefix() + ":" + insightDatabaseLoc;
@@ -320,7 +322,7 @@ public final class ProjectHelper {
 			insightSmssProp.put(Constants.USERNAME, "sa");
 			insightSmssProp.put(Constants.PASSWORD, "");
 		}
-		logger.info("Insight rdbms database url is " + Utility.cleanLogString(connURL));
+		logger.info("Insight rdbms database url is {}", Utility.cleanLogString(connURL));
 		insightSmssProp.put(Constants.CONNECTION_URL, connURL);
 		insightsRdbms.setBasic(true);
 		insightsRdbms.open(insightSmssProp);
@@ -333,7 +335,8 @@ public final class ProjectHelper {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightsRdbms, tableExistsQuery)) {
 			tableExists = wrapper.hasNext();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to check whether the QUESTION_ID table exists in the insights database "
+					+ "for project '{}', treating it as absent", projectId, e);
 		}
 
 		if (!tableExists) {
@@ -344,26 +347,28 @@ public final class ProjectHelper {
 
 			// adding new insight metadata
 			try {
-				if (!queryUtil.tableExists(insightsRdbms.getConnection(), "INSIGHTMETA", insightsRdbms.getDatabase(),
-						insightsRdbms.getSchema())) {
+				if (!metadataTableExists(insightsRdbms.getConnection(), "INSIGHTMETA", insightsRdbms.getSchema())) {
 					String[] columns = new String[] { "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" };
 					String[] types = new String[] { "VARCHAR(255)", "VARCHAR(255)", queryUtil.getClobDataTypeName(),
 							"INT" };
 					try {
 						insightsRdbms.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error(
+								"Failed to create the INSIGHTMETA table in the insights database " + "for project '{}'",
+								projectId, e);
 					}
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to check whether the INSIGHTMETA table exists in the insights database "
+						+ "for project '{}'", projectId, e);
 			}
 
 			{
 				List<String> allCols;
 				try {
-					allCols = queryUtil.getTableColumns(insightsRdbms.getConnection(), InsightAdministrator.TABLE_NAME,
-							insightsRdbms.getDatabase(), insightsRdbms.getSchema());
+					allCols = metadataTableColumns(insightsRdbms.getConnection(), InsightAdministrator.TABLE_NAME,
+							insightsRdbms.getSchema());
 					// this should return in all upper case
 					// ... but sometimes it is not -_- i.e. postgres always lowercases
 					// TEMPORARY CHECK! - added 01/29/2022
@@ -426,11 +431,37 @@ public final class ProjectHelper {
 						}
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to add missing columns to the {} table in the insights database "
+							+ "for project '{}'", InsightAdministrator.TABLE_NAME, projectId, e);
 				}
 			}
 		}
 		return insightsRdbms;
+	}
+
+	private static boolean metadataTableExists(Connection connection, String tableName, String schema)
+			throws SQLException {
+		try (ResultSet tables = connection.getMetaData().getTables(null, schema, null, new String[] { "TABLE" })) {
+			while (tables.next()) {
+				if (tableName.equalsIgnoreCase(tables.getString("TABLE_NAME"))) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private static List<String> metadataTableColumns(Connection connection, String tableName, String schema)
+			throws SQLException {
+		List<String> columns = new ArrayList<>();
+		try (ResultSet columnRows = connection.getMetaData().getColumns(null, schema, null, null)) {
+			while (columnRows.next()) {
+				if (tableName.equalsIgnoreCase(columnRows.getString("TABLE_NAME"))) {
+					columns.add(columnRows.getString("COLUMN_NAME").toUpperCase());
+				}
+			}
+		}
+		return columns;
 	}
 
 	/**
@@ -547,12 +578,12 @@ public final class ProjectHelper {
 					}
 
 				} catch (IOException e) {
-					classLogger.error("Error reading file: " + path);
+					classLogger.error("Failed to read {} while extracting engine ids, skipping it", path, e);
 				}
 			});
 
 		} catch (IOException e) {
-			classLogger.error("Error reading file: {}", folderPath, e);
+			classLogger.error("Failed to walk project folder {} while extracting engine ids", folderPath, e);
 		}
 
 		return uuidDetailsMap;
@@ -615,6 +646,17 @@ public final class ProjectHelper {
 		return project;
 	}
 
+	/**
+	 * 
+	 * @param projectId
+	 * @param projectName
+	 * @param global
+	 * @param gitProvider
+	 * @param gitCloneUrl
+	 * @param user
+	 * @param logger
+	 * @return
+	 */
 	public static IProject createSkillProject(String projectId, String projectName, boolean global, String gitProvider,
 			String gitCloneUrl, User user, Logger logger) {
 		IProject project = generateNewProject(projectId, projectName, IProject.PROJECT_TYPE.SKILL, global, gitProvider,

@@ -1,11 +1,11 @@
 ---
 name: vector
-description: Use when writing code in an app that does semantic search, RAG, or ingests documents into a vector database on the platform — running nearest-neighbor queries, listing/adding/removing documents, feeding retrieved chunks into an LLM, downloading the original source document behind a citation, or tuning chunking at ingest time. Covers VectorDatabaseQuery(), ListDocumentsInVectorDatabase(), CreateEmbeddingsFromDocuments() and its chunking paramValues, CreateEmbeddingsFromVectorCSVFile(), RemoveDocumentFromVectorDatabase(), VectorFileDownload(), ListAllRecordsInVectorDatabase(), and VectorAttachFileToSource() pixel commands via @semoss/sdk's runPixel, plus listing engines with MyEngines(engineTypes=["VECTOR"]). Do not use for raw SQL/graph queries (see database-engine) or direct LLM calls without retrieval (see model-engine).
+description: Use when writing code in an app that does semantic search, RAG, or ingests documents into a vector database on the platform - running nearest-neighbor queries, listing/adding/removing documents, feeding retrieved chunks into an LLM, downloading the original source document behind a citation, or tuning chunking at ingest time. Covers VectorDatabaseQuery(), ListDocumentsInVectorDatabase(), CreateEmbeddingsFromDocuments() and its chunking paramValues, CreateEmbeddingsFromVectorCSVFile(), RemoveDocumentFromVectorDatabase(), VectorFileDownload(), ListAllRecordsInVectorDatabase(), and VectorAttachFileToSource() pixel commands via @semoss/sdk's runPixel, plus listing engines with MyEngines(engineTypes=["VECTOR"]). Do not use for raw SQL/graph queries (see database-engine) or direct LLM calls without retrieval (see model-engine).
 ---
 
 # Vector Engine
 
-Query and manage a vector database on the platform using `runPixel` from `@semoss/sdk` with the `VectorDatabaseQuery()` pixel command as the primary entry point. Results are typically passed into an `LLM()` call to implement RAG — see the [RAG pattern](#rag-pattern) section below.
+Query and manage a vector database on the platform using `runPixel` from `@semoss/sdk` with the `VectorDatabaseQuery()` pixel command as the primary entry point. Results are typically passed into an `LLM()` call to implement RAG - see the [RAG pattern](#rag-pattern) section below.
 
 ## Usage
 
@@ -37,7 +37,7 @@ const hits = pixelReturn[0].output as Array<{
 
 Each hit carries both the text chunk (`Content`) and the source document (`Source`), plus hybrid-search scoring fields. Lower `Score` is closer; `Weighted_RRF_Score` and `BM25_Score` are the underlying component scores from the hybrid rank fusion.
 
-The variations below show only the pixel string — the one that goes inside the `runPixel` template literal. The surrounding `runPixel(...)` call, the `errors` check, and the response parsing are the same as above.
+The variations below show only the pixel string - the one that goes inside the `runPixel` template literal. The surrounding `runPixel(...)` call, the `errors` check, and the response parsing are the same as above.
 
 ### Filtering by source document
 
@@ -81,7 +81,7 @@ CreateEmbeddingsFromDocuments(engine="${VECTOR_ID}", filePaths=["fileName1.pdf",
 
 ### Adding documents from app or user space
 
-When the files live outside the current insight — in a project/app folder or the user's personal space — pass `space`. Use `space="app_id"` where `app_id` is the project/app UUID, or `space="user"` for the user space.
+When the files live outside the current insight - in a project/app folder or the user's personal space - pass `space`. Use `space="app_id"` where `app_id` is the project/app UUID, or `space="user"` for the user space.
 
 ```
 CreateEmbeddingsFromDocuments(engine="${VECTOR_ID}", filePaths=["docs/file1.pdf"], space="app_id");
@@ -112,7 +112,7 @@ CreateEmbeddingsFromVectorCSVFile(engine="${VECTOR_ID}", filePaths=["vector_data
 
 ### Removing documents from the vector index
 
-Pass `fileNames` — the source identifiers as listed by `ListDocumentsInVectorDatabase`, not file paths.
+Pass `fileNames` - the source identifiers as listed by `ListDocumentsInVectorDatabase`, not file paths.
 
 ```
 RemoveDocumentFromVectorDatabase(engine="${VECTOR_ID}", fileNames=["fileName1.pdf", "fileName2.pdf"]);
@@ -162,10 +162,10 @@ Returns every chunk as `{ Source, Modality, Divider, Part, Tokens, Content }`. T
 
 Unlike `SqlQuery` (which returns a tabular `{ data: { values, headers } }` object), vector pixels return their payload directly at `pixelReturn[0].output`:
 
-- `VectorDatabaseQuery` → array of hit objects with `Score`, `Source`, `Content`, etc.
-- `ListDocumentsInVectorDatabase` → array of `{ fileName, fileSize, lastModified }`.
-- `CreateEmbeddingsFromDocuments` / `CreateEmbeddingsFromVectorCSVFile` → string status (`"Successfully embedded all files"`) plus a structured `additionalOutput[]` with per-file `{ fileName, status, insertedRecords, failedRecords, totalRecords }`.
-- `RemoveDocumentFromVectorDatabase` → status payload confirming the removal.
+- `VectorDatabaseQuery` -> array of hit objects with `Score`, `Source`, `Content`, etc.
+- `ListDocumentsInVectorDatabase` -> array of `{ fileName, fileSize, lastModified }`.
+- `CreateEmbeddingsFromDocuments` / `CreateEmbeddingsFromVectorCSVFile` -> string status (`"Successfully embedded all files"`) plus a structured `additionalOutput[]` with per-file `{ fileName, status, insertedRecords, failedRecords, totalRecords }`.
+- `RemoveDocumentFromVectorDatabase` -> status payload confirming the removal.
 
 For the full response schema of each pixel, see `references/response-schema.md`.
 
@@ -232,10 +232,10 @@ const vectorEngines = pixelReturn[0].output as Array<{
 
 `MyEngines` accepts several optional arguments. All are arrays, even when passing a single value:
 
-- `filterWord=["policy"]` — substring match against engine name.
-- `limit=[50]`, `offset=[0]` — paging. Omit both to return all results.
-- `onlyFavorites=[true]` — restrict to the user's favorited engines.
-- `sort={"ENGINENAME": "ASC"}` — sort by `ENGINENAME` or `DATECREATED`, direction `ASC` or `DESC`.
+- `filterWord=["policy"]` - substring match against engine name.
+- `limit=[50]`, `offset=[0]` - paging. Omit both to return all results.
+- `onlyFavorites=[true]` - restrict to the user's favorited engines.
+- `sort={"ENGINENAME": "ASC"}` - sort by `ENGINENAME` or `DATECREATED`, direction `ASC` or `DESC`.
 
 ```
 MyEngines(engineTypes=["VECTOR"], filterWord=["policy"], sort={"ENGINENAME": "ASC"}, limit=[20], offset=[0]);
@@ -243,9 +243,9 @@ MyEngines(engineTypes=["VECTOR"], filterWord=["policy"], sort={"ENGINENAME": "AS
 
 ### Response field conventions
 
-Use `engine_*` fields (`engine_id`, `engine_name`, `engine_display_name`, `engine_subtype`, etc.). The response also contains `app_*` and `database_*` fields with the same values — these are legacy aliases and should not be used in new code.
+Use `engine_*` fields (`engine_id`, `engine_name`, `engine_display_name`, `engine_subtype`, etc.). The response also contains `app_*` and `database_*` fields with the same values - these are legacy aliases and should not be used in new code.
 
-Common pattern — render a picker and use the selected `engine_id` as `VECTOR_ID` in the `VectorDatabaseQuery()` call above:
+Common pattern - render a picker and use the selected `engine_id` as `VECTOR_ID` in the `VectorDatabaseQuery()` call above:
 
 ```typescript
 const [engines, setEngines] = useState<VectorEngine[]>([]);
@@ -262,16 +262,16 @@ useEffect(() => {
 
 Full response shapes returned from `runPixel` calls that wrap the vector pixels: `VectorDatabaseQuery`, `ListDocumentsInVectorDatabase`, `CreateEmbeddingsFromDocuments`, `CreateEmbeddingsFromVectorCSVFile`, and `RemoveDocumentFromVectorDatabase`. Each call has a common envelope and a pixel-specific `output`.
 
-Note: unlike `SqlQuery`, whose output wraps rows in `{ data: { values, headers } }`, vector pixels put the payload directly at `pixelReturn[0].output` — usually a raw array or string.
+Note: unlike `SqlQuery`, whose output wraps rows in `{ data: { values, headers } }`, vector pixels put the payload directly at `pixelReturn[0].output` - usually a raw array or string.
 
 ## Envelope fields
 
 Same envelope as every other pixel call:
 
-- `insightID` — insight ID used for the pixel execution.
-- `pixelReturn[]` — array of results, one per pixel command in the call. For a single vector pixel, always index `[0]`.
+- `insightID` - insight ID used for the pixel execution.
+- `pixelReturn[]` - array of results, one per pixel command in the call. For a single vector pixel, always index `[0]`.
 
-Each `pixelReturn[i]` carries `pixelId`, `pixelExpression` (the parsed pixel the platform actually executed — useful for debugging encoding), `isMeta`, `timeToRun` (ms), and `operationType`. For successful embedding calls, `operationType` is `["SUCCESS"]`; for queries and listings it is `["OPERATION"]`.
+Each `pixelReturn[i]` carries `pixelId`, `pixelExpression` (the parsed pixel the platform actually executed - useful for debugging encoding), `isMeta`, `timeToRun` (ms), and `operationType`. For successful embedding calls, `operationType` is `["SUCCESS"]`; for queries and listings it is `["OPERATION"]`.
 
 ## `VectorDatabaseQuery` output
 
@@ -310,16 +310,16 @@ Each `pixelReturn[i]` carries `pixelId`, `pixelExpression` (the parsed pixel the
 
 ### Hit fields
 
-- `Score` _(number)_ — combined hybrid-search score. **Lower is closer.**
-- `idx` _(number)_ — internal chunk index within the vector store.
-- `Source` _(string)_ — source document identifier (e.g. `"timesheet_guide.pdf"`). Pass this back in `filters` to scope future queries.
-- `Modality` _(string)_ — chunk modality: `"text"`, etc.
-- `Divider` _(string)_ — page / section boundary the chunk came from. Often maps 1:1 to page number for PDFs.
-- `Part` _(string)_ — chunk ordinal within the `Divider` (`"0"`, `"1"`, ...).
-- `Tokens` _(number)_ — token count of the chunk's `Content`.
-- `Content` _(string)_ — the chunk text to feed into an LLM prompt.
-- `Weighted_RRF_Score` _(number)_ — reciprocal-rank-fusion component of the hybrid score.
-- `BM25_Score` _(number)_ — lexical BM25 component of the hybrid score.
+- `Score` _(number)_ - combined hybrid-search score. **Lower is closer.**
+- `idx` _(number)_ - internal chunk index within the vector store.
+- `Source` _(string)_ - source document identifier (e.g. `"timesheet_guide.pdf"`). Pass this back in `filters` to scope future queries.
+- `Modality` _(string)_ - chunk modality: `"text"`, etc.
+- `Divider` _(string)_ - page / section boundary the chunk came from. Often maps 1:1 to page number for PDFs.
+- `Part` _(string)_ - chunk ordinal within the `Divider` (`"0"`, `"1"`, ...).
+- `Tokens` _(number)_ - token count of the chunk's `Content`.
+- `Content` _(string)_ - the chunk text to feed into an LLM prompt.
+- `Weighted_RRF_Score` _(number)_ - reciprocal-rank-fusion component of the hybrid score.
+- `BM25_Score` _(number)_ - lexical BM25 component of the hybrid score.
 
 ## `ListDocumentsInVectorDatabase` output
 
@@ -347,9 +347,9 @@ Each `pixelReturn[i]` carries `pixelId`, `pixelExpression` (the parsed pixel the
 }
 ```
 
-- `fileName` _(string)_ — source identifier. Use this as the `Source` in `filters` and as `fileNames` when removing.
-- `fileSize` _(number)_ — size in kilobytes.
-- `lastModified` _(string)_ — ISO-like timestamp (`"YYYY-MM-DD HH:mm:ss"`).
+- `fileName` _(string)_ - source identifier. Use this as the `Source` in `filters` and as `fileNames` when removing.
+- `fileSize` _(number)_ - size in kilobytes.
+- `lastModified` _(string)_ - ISO-like timestamp (`"YYYY-MM-DD HH:mm:ss"`).
 
 ## `CreateEmbeddingsFromDocuments` / `CreateEmbeddingsFromVectorCSVFile` output
 
@@ -385,13 +385,13 @@ Each `pixelReturn[i]` carries `pixelId`, `pixelExpression` (the parsed pixel the
 }
 ```
 
-- `output` _(string)_ — human-readable summary (`"Successfully embedded all files"` on full success).
-- `operationType` — `["SUCCESS"]` for the top-level operation status.
-- `additionalOutput[0].output[]` — per-file record: `{ fileName, status, insertedRecords, failedRecords, totalRecords }`. For mixed-result batches, inspect this array to find partial failures. `fileName` here is the normalized CSV name the platform produced, not necessarily the original upload name.
+- `output` _(string)_ - human-readable summary (`"Successfully embedded all files"` on full success).
+- `operationType` - `["SUCCESS"]` for the top-level operation status.
+- `additionalOutput[0].output[]` - per-file record: `{ fileName, status, insertedRecords, failedRecords, totalRecords }`. For mixed-result batches, inspect this array to find partial failures. `fileName` here is the normalized CSV name the platform produced, not necessarily the original upload name.
 
 ## `RemoveDocumentFromVectorDatabase` output
 
-Same envelope shape as the embedding calls — a status string at `output` plus a per-file breakdown in `additionalOutput`. Check `operationType` for `"SUCCESS"` and inspect `additionalOutput` if you need per-file confirmation.
+Same envelope shape as the embedding calls - a status string at `output` plus a per-file breakdown in `additionalOutput`. Check `operationType` for `"SUCCESS"` and inspect `additionalOutput` if you need per-file confirmation.
 
 ## Common access patterns
 

@@ -1,9 +1,4075 @@
-<html>
- <head>
+<!doctype html>
+<html lang="en">
+ <head><script id="semoss-sdk-importmap" type="importmap">{"imports":{"@semoss/sdk":"/SemossWeb/libs/sdk/dist/index.mjs"}}</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Database Maker</title>
   <script id="semoss-env" type="application/json">{"APP": "database-maker","MODULE": "/Monolith"}</script>
-  <style>html {font-family: sans-serif; padding: 30px;}</style>
+  <style>
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap');
+
+        :root {
+            --primary-color: #d95d39;
+            --primary-hover: #bb4b2b;
+            --secondary-color: #5f6b76;
+            --background-color: #f4efe7;
+            --surface-color: rgba(255, 250, 242, 0.9);
+            --surface-strong: #fffaf2;
+            --surface-muted: #efe3d2;
+            --text-color: #1f252d;
+            --text-soft: #5d6470;
+            --border-color: rgba(67, 50, 33, 0.14);
+            --success-color: #2f7d4a;
+            --danger-color: #b63f34;
+            --warning-color: #d9a441;
+            --info-color: #1f7a8c;
+            --shadow-sm: 0 10px 24px rgba(58, 40, 20, 0.08);
+            --shadow-md: 0 24px 60px rgba(58, 40, 20, 0.14);
+            --radius: 24px;
+            --radius-sm: 14px;
+            --ring: 0 0 0 4px rgba(217, 93, 57, 0.16);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(217, 93, 57, 0.18), transparent 28%),
+                radial-gradient(circle at top right, rgba(31, 122, 140, 0.16), transparent 30%),
+                linear-gradient(135deg, #f6f0e7 0%, #f2e3d0 48%, #eedeca 100%);
+            color: var(--text-color);
+            line-height: 1.5;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            inset: auto;
+            width: 32vw;
+            height: 32vw;
+            border-radius: 999px;
+            pointer-events: none;
+            filter: blur(6px);
+            opacity: 0.35;
+            z-index: 0;
+        }
+
+        body::before {
+            top: -10vw;
+            right: -8vw;
+            background: rgba(217, 93, 57, 0.14);
+        }
+
+        body::after {
+            bottom: -14vw;
+            left: -10vw;
+            background: rgba(31, 122, 140, 0.12);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: linear-gradient(180deg, rgba(255, 251, 245, 0.88) 0%, rgba(255, 248, 239, 0.96) 100%);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(14px);
+        }
+
+        .header {
+            color: var(--text-color);
+            padding: 2.5rem;
+            border-bottom: 1px solid rgba(67, 50, 33, 0.09);
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.9fr);
+            gap: 2rem;
+            align-items: stretch;
+            background:
+                linear-gradient(135deg, rgba(255, 247, 236, 0.96), rgba(248, 234, 214, 0.92)),
+                linear-gradient(90deg, rgba(31, 122, 140, 0.08), rgba(217, 93, 57, 0.04));
+        }
+
+        .header h1 {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            font-weight: 400;
+            color: var(--text-color);
+            margin-bottom: 0.75rem;
+            line-height: 0.95;
+            letter-spacing: -0.03em;
+        }
+
+        .header p {
+            color: var(--text-soft);
+            font-size: 1.05rem;
+            max-width: 42rem;
+        }
+
+        .header-copy {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .header-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .header-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border-radius: 999px;
+            background: rgba(255, 251, 245, 0.88);
+            border: 1px solid rgba(67, 50, 33, 0.08);
+            color: var(--text-color);
+            font-size: 0.92rem;
+            font-weight: 700;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-pill strong {
+            color: var(--primary-color);
+            font-size: 1rem;
+        }
+
+        .header-art {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+            align-content: start;
+        }
+
+        .art-card {
+            min-height: 148px;
+            padding: 1.15rem;
+            border-radius: 22px;
+            border: 1px solid rgba(67, 50, 33, 0.08);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .art-visual {
+            display: block;
+            width: calc(100% + 1.4rem);
+            margin: -0.5rem -0.7rem 0.95rem;
+            border-radius: 18px;
+            border: 1px solid rgba(67, 50, 33, 0.08);
+            box-shadow: 0 12px 24px rgba(58, 40, 20, 0.08);
+        }
+
+        .art-card::after {
+            content: '';
+            position: absolute;
+            inset: auto -2rem -2rem auto;
+            width: 5rem;
+            height: 5rem;
+            border-radius: 999px;
+            opacity: 0.14;
+            background: currentColor;
+        }
+
+        .art-card.warm {
+            background: linear-gradient(160deg, #fff2df 0%, #ffd9ca 100%);
+            color: #8c3e27;
+            transform: rotate(-2deg);
+        }
+
+        .art-card.cool {
+            background: linear-gradient(160deg, #eef8f6 0%, #d7ecf1 100%);
+            color: #225c68;
+            transform: translateY(18px) rotate(2deg);
+        }
+
+        .art-card h3 {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 1.35rem;
+            font-weight: 400;
+            margin-bottom: 0.5rem;
+        }
+
+        .art-card p {
+            font-size: 0.92rem;
+            color: inherit;
+            max-width: 18rem;
+        }
+
+        .content {
+            padding: 2rem;
+            background-image: linear-gradient(rgba(67, 50, 33, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(67, 50, 33, 0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .accordion {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .accordion-item {
+            border: 1px solid var(--border-color);
+            border-radius: calc(var(--radius) - 6px);
+            background: rgba(255, 251, 245, 0.92);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .accordion-header {
+            background: rgba(255, 251, 245, 0.85);
+            padding: 1.2rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.2s ease;
+            user-select: none;
+        }
+
+        .accordion-header:hover {
+            background-color: rgba(239, 227, 210, 0.58);
+        }
+
+        .accordion-item.active .accordion-header {
+            background-color: rgba(239, 227, 210, 0.72);
+            border-bottom: 1px solid var(--border-color);
+            color: var(--primary-color);
+        }
+
+        .accordion-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: inherit;
+        }
+
+        .accordion-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            color: var(--secondary-color);
+            transition: transform 0.2s ease;
+        }
+
+        .accordion-item.active .accordion-header .accordion-icon {
+            color: var(--primary-color);
+        }
+        
+        .accordion-icon svg {
+            width: 100%;
+            height: 100%;
+            fill: currentColor;
+        }
+
+        .accordion-item.active .accordion-icon:last-child {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            display: none;
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .accordion-item.active .accordion-content {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-color);
+            font-size: 0.9rem;
+        }
+
+        input[type="text"],
+        input[type="file"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.8rem 0.95rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-color);
+            background-color: rgba(255, 251, 245, 0.96);
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: rgba(217, 93, 57, 0.6);
+            box-shadow: var(--ring);
+        }
+
+        textarea {
+            min-height: 120px;
+            font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            line-height: 1.5;
+            text-align: center;
+            text-decoration: none;
+            vertical-align: middle;
+            cursor: pointer;
+            user-select: none;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+
+        .btn:disabled {
+            pointer-events: none;
+            opacity: 0.65;
+        }
+
+        .btn-primary {
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary-color), #ef7b54);
+            border-color: transparent;
+            box-shadow: 0 12px 24px rgba(217, 93, 57, 0.18);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-hover), #dc6a43);
+            border-color: transparent;
+        }
+
+        .btn-secondary {
+            color: var(--text-color);
+            background-color: rgba(239, 227, 210, 0.76);
+            border-color: rgba(67, 50, 33, 0.08);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(231, 215, 193, 0.98);
+            border-color: rgba(67, 50, 33, 0.12);
+        }
+
+        .btn-danger {
+            color: #fff;
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+
+        .btn-danger:hover {
+            background-color: #bb2d3b;
+            border-color: #b02a37;
+        }
+
+        .btn-success {
+            color: #fff;
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        .btn-success:hover {
+            background-color: #157347;
+            border-color: #146c43;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        /* Toast Notifications */
+        #toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 1050;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background-color: rgba(255, 250, 242, 0.97);
+            border: 1px solid rgba(67, 50, 33, 0.1);
+            border-left-width: 4px;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-md);
+            min-width: 300px;
+            max-width: 400px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .toast.success { border-left-color: var(--success-color); }
+        .toast.error { border-left-color: var(--danger-color); }
+        .toast.info { border-left-color: var(--info-color); }
+        .toast.warning { border-left-color: var(--warning-color); }
+
+        .toast-icon {
+            margin-right: 0.75rem;
+            font-size: 1.25rem;
+        }
+
+        .toast.success .toast-icon { color: var(--success-color); }
+        .toast.error .toast-icon { color: var(--danger-color); }
+        .toast.info .toast-icon { color: var(--info-color); }
+        .toast.warning .toast-icon { color: var(--warning-color); }
+
+        .toast-message {
+            flex-grow: 1;
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 0.75rem;
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+        
+        .toast-close:hover { color: #000; }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Loader */
+        .loader {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(2px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loader.show { display: flex; }
+
+        .spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 0.25rem solid #e9ecef;
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .loader p {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        /* Layout Utilities */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Tables */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            margin: 1.5rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: var(--text-color);
+            font-weight: 600;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        
+        tr:hover td { background-color: #f8f9fa; }
+
+        /* Entity Diagram cards */
+        .entity-diagram {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .entity-box {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .entity-box:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+            border-color: #b6d4fe;
+        }
+
+        .entity-box h3, .entity-box h4 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .entity-columns {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .entity-columns li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f1f3f5;
+            font-size: 0.9rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .entity-columns li:last-child { border-bottom: none; }
+
+        /* Option Cards (Step 1) */
+        .option-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .option-button {
+            background: linear-gradient(180deg, rgba(255, 251, 245, 0.98), rgba(249, 239, 224, 0.96));
+            border: 1px solid var(--border-color);
+            border-radius: 22px;
+            padding: 2rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-button:hover {
+            border-color: var(--primary-color);
+            background-color: #f8f9ff;
+            box-shadow: var(--shadow-md);
+            transform: translateY(-3px) rotate(-0.3deg);
+        }
+
+        .option-button.selected {
+             border-color: var(--primary-color);
+             background: linear-gradient(180deg, #fff4e9, #ffe4d9);
+               box-shadow: var(--ring);
+        }
+
+        .option-button::after {
+            content: '';
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 999px;
+            background: rgba(217, 93, 57, 0.08);
+        }
+
+        .option-button-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+            display: block;
+            height: 48px;
+            width: 48px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* Use SVG for icons if possible, or style font icons */
+        .option-button-icon svg {
+            width: 100%;
+            height: 100%;
+            fill: currentColor;
+        }
+
+        .option-button-title {
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .option-button-desc {
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none; /* Flex when shown */
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(1px);
+        }
+        
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+
+        .modal-content {
+            background-color: var(--surface-strong);
+            margin: auto;
+            border-radius: calc(var(--radius) - 2px);
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-md);
+            animation: slideInUp 0.3s ease-out;
+        }
+        
+        @keyframes slideInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 { font-size: 1.25rem; font-weight: 600; margin: 0; }
+
+        .modal-body { 
+            padding: 1.5rem; 
+            overflow-y: auto; 
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        .close-modal {
+            background: transparent;
+            border: 0;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--secondary-color);
+        }
+        
+        .close-modal:hover { color: var(--text-color); }
+        
+        /* Code/Pre blocks */
+        pre {
+            background: rgba(245, 239, 229, 0.92);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 1rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word; /* Ensure long words break */
+        }
+
+        .workspace-intro {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1.2rem 1.3rem;
+            border-radius: 20px;
+            background: rgba(255, 251, 245, 0.86);
+            border: 1px solid rgba(67, 50, 33, 0.08);
+        }
+
+        .workspace-intro p {
+            color: var(--text-soft);
+            max-width: 45rem;
+        }
+
+        .workspace-intro-visual {
+            width: min(100%, 320px);
+            border-radius: 18px;
+            border: 1px solid rgba(67, 50, 33, 0.08);
+            background: linear-gradient(180deg, rgba(255, 251, 245, 0.96), rgba(240, 247, 247, 0.96));
+            box-shadow: var(--shadow-sm);
+            padding: 0.75rem;
+            align-self: center;
+        }
+
+        .workspace-intro-visual img {
+            display: block;
+            width: 100%;
+            border-radius: 14px;
+        }
+
+        .workspace-intro-caption {
+            margin-top: 0.7rem;
+            font-size: 0.84rem;
+            color: var(--text-soft);
+        }
+
+        .query-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0 1.5rem;
+        }
+
+        .query-panel,
+        .script-panel,
+        .query-results,
+        .script-results {
+            border-radius: 20px;
+            border: 1px solid rgba(67, 50, 33, 0.08);
+            background: rgba(255, 251, 245, 0.92);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .query-panel,
+        .script-panel {
+            padding: 1rem;
+        }
+
+        .query-panel h4,
+        .script-panel h4 {
+            font-size: 1rem;
+            font-weight: 800;
+            margin-bottom: 0.35rem;
+        }
+
+        .panel-kicker {
+            font-size: 0.84rem;
+            color: var(--text-soft);
+            margin-bottom: 0.8rem;
+        }
+
+        .query-results,
+        .script-results {
+            margin-top: 1rem;
+            padding: 1rem;
+            min-height: 72px;
+        }
+
+        .script-summary {
+            display: grid;
+            gap: 0.85rem;
+        }
+
+        .script-summary-item {
+            padding: 0.9rem 1rem;
+            border-radius: 16px;
+            background: rgba(244, 239, 231, 0.9);
+            border: 1px solid rgba(67, 50, 33, 0.08);
+        }
+
+        .script-summary-item strong {
+            display: inline-block;
+            margin-bottom: 0.45rem;
+        }
+
+        .script-summary-item code {
+            display: block;
+            margin-top: 0.45rem;
+            padding: 0.7rem 0.85rem;
+            border-radius: 12px;
+            background: rgba(31, 37, 45, 0.92);
+            color: #fff9f2;
+            font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .alert {
+            padding: 0.9rem 1rem;
+            border-radius: 14px;
+            border: 1px solid transparent;
+            font-weight: 600;
+        }
+
+        .alert-info {
+            background: rgba(31, 122, 140, 0.1);
+            border-color: rgba(31, 122, 140, 0.2);
+            color: #185766;
+        }
+
+        .alert-danger {
+            background: rgba(182, 63, 52, 0.1);
+            border-color: rgba(182, 63, 52, 0.2);
+            color: #8e2f28;
+        }
+
+        @media (max-width: 900px) {
+            .header {
+                grid-template-columns: 1fr;
+            }
+
+            .header-art {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header,
+            .content {
+                padding: 1.25rem;
+            }
+
+            .header-art {
+                grid-template-columns: 1fr;
+            }
+
+            .art-card.cool {
+                transform: none;
+            }
+        }
+
+        /* Tab styles */
+        .tab-container {
+            margin-top: 1rem;
+        }
+
+        .tab-nav {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-soft);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary-color);
+            background: rgba(217, 93, 57, 0.06);
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            background: rgba(217, 93, 57, 0.08);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .alert-success {
+            background: rgba(47, 125, 74, 0.1);
+            border-color: rgba(47, 125, 74, 0.2);
+            color: #24613a;
+        }
+
+        .alert-warning {
+            background: rgba(217, 164, 65, 0.12);
+            border-color: rgba(217, 164, 65, 0.28);
+            color: #7a5714;
+        }
+
+        /* Keyboard focus for elements that act as buttons */
+        [role="button"]:focus-visible,
+        .tab-btn:focus-visible,
+        .btn:focus-visible,
+        .close-modal:focus-visible {
+            outline: none;
+            box-shadow: var(--ring);
+        }
+
+        /* MCP tool views: the app opened by the host for a single tool call */
+        body.tool-mode {
+            padding: 0.75rem;
+        }
+
+        body.tool-mode::before,
+        body.tool-mode::after,
+        body.tool-mode .header {
+            display: none;
+        }
+
+        body.tool-mode .content {
+            padding: 1.25rem;
+        }
+
+        .tool-view-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.75rem 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .tool-view-header .section-title {
+            margin-bottom: 0.25rem;
+        }
+
+        .tool-view-header .panel-kicker {
+            margin-bottom: 0;
+        }
+
+        .tool-chip {
+            display: inline-flex;
+            flex-direction: column;
+            padding: 0.55rem 0.85rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--surface-strong);
+            font-size: 0.85rem;
+            max-width: 100%;
+        }
+
+        .tool-chip span {
+            color: var(--text-soft);
+            font-size: 0.78rem;
+            overflow-wrap: anywhere;
+        }
+
+        .tool-field-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.75rem;
+        }
+
+        .tool-edited {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #7a5714;
+        }
+
+        .tool-statements {
+            list-style: none;
+            display: grid;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .tool-statement {
+            display: grid;
+            grid-template-columns: auto auto minmax(0, 1fr);
+            align-items: baseline;
+            gap: 0.35rem 0.6rem;
+            padding: 0.6rem 0.8rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 251, 245, 0.92);
+        }
+
+        .tool-statement-index {
+            color: var(--text-soft);
+            font-size: 0.8rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tool-statement-type {
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            color: var(--secondary-color);
+        }
+
+        .tool-statement code {
+            font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            font-size: 0.82rem;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .tool-statement-warning {
+            grid-column: 1 / -1;
+            color: var(--danger-color);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        #tool-view-status:empty {
+            display: none;
+        }
+
+        #tool-view-status {
+            margin-top: 1rem;
+        }
+
+        #tool-view-result {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        #tool-view-result:empty {
+            display: none;
+        }
+
+        #tool-view-result .table-container {
+            margin: 0;
+            max-height: 420px;
+            overflow: auto;
+        }
+
+        #tool-view-result h4 {
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-meta {
+            color: var(--text-soft);
+            font-size: 0.88rem;
+        }
+
+    </style>
  </head>
  <body>
-  <h1>DatabaseMaker</h1>
- </body>
+  <div class="container">
+   <div class="header">
+    <div class="header-copy">
+     <div>
+      <h1>Database Maker</h1>
+      <p>Shape a database like a working board, not a default admin screen. Draft tables from ideas, load files, inspect structure, and run scripts when the SQL already exists.</p>
+     </div>
+     <div class="header-pills">
+      <div class="header-pill">
+       <strong>Prompt</strong> schema drafting
+      </div>
+      <div class="header-pill">
+       <strong>CSV</strong> table loading
+      </div>
+      <div class="header-pill">
+       <strong>SQL</strong> query and script execution
+      </div>
+     </div>
+    </div>
+    <div class="header-art" aria-hidden="true">
+     <div class="art-card warm">
+      <img class="art-visual" src="media/database-atelier.svg" alt="Abstract illustration of connected database tables and schema blocks">
+      <h3>Make the shape first</h3>
+      <p>Start from intent, then refine the actual schema before it touches the engine.</p>
+     </div>
+     <div class="art-card cool">
+      <img class="art-visual" src="media/script-ribbon.svg" alt="Abstract illustration of SQL script ribbons and execution arrows">
+      <h3>Bring your own script</h3>
+      <p>DDL and data setup can come in fully formed. Paste it, review it, run it.</p>
+     </div>
+    </div>
+   </div>
+   <div class="content">
+    <!-- MCP tool view: shown instead of the workshop when the host opens this app for a tool call -->
+    <section id="tool-view" hidden aria-labelledby="tool-view-title">
+     <div class="tool-view-header">
+      <div>
+       <h2 id="tool-view-title" class="section-title"></h2>
+       <p id="tool-view-subtitle" class="panel-kicker"></p>
+      </div>
+      <div id="tool-view-database" class="tool-chip" hidden></div>
+     </div>
+     <div id="tool-view-body"></div>
+     <div id="tool-view-actions" class="button-group" hidden>
+      <button id="tool-view-run" class="btn btn-primary" type="button">Run</button>
+      <button id="tool-view-reject" class="btn btn-secondary" type="button">Reject</button>
+     </div>
+     <div id="tool-view-status" role="status" aria-live="polite"></div>
+     <div id="tool-view-result"></div>
+    </section>
+    <!-- Step 1: Select or Create Database -->
+    <div id="step-1-database-selection">
+     <h2 class="section-title">Step 1: Choose a starting point</h2>
+     <div class="option-buttons">
+      <div class="option-button" id="show-select-db-btn" role="button" tabindex="0" aria-controls="select-db-container">
+       <div class="option-button-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+         <path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
+        </svg>
+       </div>
+       <div class="option-button-title">
+        Select Existing Database
+       </div>
+       <div class="option-button-desc">
+        Pick from a list of your previously created databases.
+       </div>
+      </div>
+      <div class="option-button" id="show-create-db-btn" role="button" tabindex="0" aria-controls="create-db-container">
+       <div class="option-button-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+         <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+        </svg>
+       </div>
+       <div class="option-button-title">
+        Create New Database
+       </div>
+       <div class="option-button-desc">
+        Start fresh with a brand new, empty database.
+       </div>
+      </div>
+     </div>
+     <div id="select-db-container" style="display: none; margin-top: 20px;">
+      <div class="form-group">
+       <label for="database-selector-main">Your Databases:</label> <select id="database-selector-main"></select>
+      </div>
+      <div class="button-group">
+       <button id="confirm-select-btn" class="btn btn-primary">Confirm Selection</button>
+       <button id="delete-db-btn" class="btn btn-danger">Delete Database</button>
+      </div>
+     </div>
+     <div id="create-db-container" style="display: none; margin-top: 20px;">
+      <div class="form-group">
+       <label for="db-name-create">New Database Name:</label> <input type="text" id="db-name-create" placeholder="e.g., MyNewProjectDB">
+      </div>
+      <div class="button-group">
+       <button id="confirm-create-btn" class="btn btn-primary">Create and Use</button>
+      </div>
+     </div>
+    </div><!-- Step 2 & 3: Database Workspace (hidden initially) -->
+    <div id="database-workspace" style="display: none;">
+     <div class="workspace-intro">
+      <div>
+       <h2 class="section-title" style="margin-bottom: 0.35rem;">Workshop</h2>
+       <p>The active database becomes your working canvas for schema design, imports, query checks, and full SQL scripts.</p>
+      </div>
+      <div class="workspace-intro-visual">
+       <img src="media/database-atelier.svg" alt="Database Maker visual board illustration">
+       <div class="workspace-intro-caption">
+        A visual cue for the active schema workspace, not stock art.
+       </div>
+      </div>
+     </div>
+     <h2 class="section-title" style="display: flex; align-items: center; justify-content: space-between;"><span>Now working on: <span id="current-db-name" style="color: var(--primary-color);"></span></span>
+      <button id="change-db-btn" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8em;">Change Database</button></h2>
+     <div id="current-db-meta" style="display: none; margin-bottom: 1.5rem; padding: 0.95rem 1rem; border: 1px solid rgba(12, 71, 112, 0.12); border-radius: 16px; background: rgba(248, 245, 236, 0.9);">
+      <div style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-soft); margin-bottom: 0.45rem;">
+       Active database
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center;">
+       <span><strong>ID:</strong> <span id="current-db-id"></span></span> <a id="current-db-link" href="#" target="_blank" rel="noopener noreferrer" style="font-weight: 600;">Open this database in SEMOSS</a>
+      </div>
+     </div>
+     <div class="accordion-item">
+      <div class="accordion-header" role="button" tabindex="0" aria-expanded="false" aria-controls="accordion-schema">
+       <h2><span class="accordion-icon">
+         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
+         </svg></span>Create Tables/Schema</h2><span class="accordion-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+         <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" />
+        </svg></span>
+      </div>
+      <div class="accordion-content" id="accordion-schema">
+       <div class="tab-container">
+        <div class="tab-nav" role="tablist" aria-label="Schema input">
+         <button class="tab-btn active" data-tab="natural-language" id="tab-natural-language" role="tab" aria-selected="true" aria-controls="natural-language">Natural Language</button>
+         <button class="tab-btn" data-tab="paste-schema" id="tab-paste-schema" role="tab" aria-selected="false" aria-controls="paste-schema" tabindex="-1">Paste Schema/SQL</button>
+        </div>
+        
+        <!-- Natural Language Tab -->
+        <div id="natural-language" class="tab-content active" role="tabpanel" aria-labelledby="tab-natural-language">
+         <div class="form-group">
+          <label for="nl-description">Describe the table(s) you want to create:</label> 
+          <textarea id="nl-description" placeholder="e.g., Create a table for customers with fields for id, name, email, and signup date. Also, a table for orders with order_id, customer_id, and order_date."></textarea>
+         </div>
+         <div class="grid-2">
+          <div class="form-group">
+           <label for="llm-selector">Select LLM for Generation:</label> 
+           <select id="llm-selector"></select>
+          </div>
+          <div class="form-group">
+           <label for="generate-sample-data-toggle">Generate Sample Data?</label>
+           <div style="display: flex; align-items: center; gap: 15px;">
+            <input type="checkbox" id="generate-sample-data-toggle" style="width: auto;"> 
+            <input type="number" id="sample-data-rows" aria-label="Number of sample rows" value="5" min="1" style="width: 80px; display: none;">
+           </div>
+          </div>
+         </div>
+         <div class="button-group">
+          <button id="generate-schema-btn" class="btn btn-primary">Generate Schema from Description</button>
+         </div>
+         <div id="schema-editor-container" style="margin-top: 20px; display: none;">
+          <h3 class="section-title">Interactive Schema Editor</h3>
+          <!-- This will be populated dynamically -->
+         </div>
+         <div class="form-group" style="margin-top: 20px; display: none;" id="final-sql-container">
+          <label for="schema-sql">Generated SQL (Ready to Execute):</label> 
+          <textarea id="schema-sql" class="sql-preview"></textarea>
+          <div class="button-group">
+           <button id="create-table-from-nl-btn" class="btn btn-success">Execute SQL</button>
+          </div>
+         </div>
+        </div>
+
+        <!-- Paste Schema Tab -->
+        <div id="paste-schema" class="tab-content" role="tabpanel" aria-labelledby="tab-paste-schema">
+         <div class="form-group">
+          <label for="paste-sql-input">Paste your SQL CREATE statements or schema definition:</label>
+          <textarea id="paste-sql-input" placeholder="CREATE TABLE users (
+  id INTEGER PRIMARY KEY,
+  name VARCHAR(100),
+  email VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE orders (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER,
+  amount DECIMAL(10,2),
+  order_date DATE
+);" rows="12"></textarea>
+         </div>
+         <div class="button-group">
+          <button id="execute-pasted-sql-btn" class="btn btn-success">Execute SQL</button>
+          <button id="validate-sql-btn" class="btn btn-secondary">Validate SQL</button>
+         </div>
+         <div id="sql-validation-result" style="margin-top: 15px; display: none;">
+          <!-- Validation results will appear here -->
+         </div>
+         
+         <!-- Ontology Management Section -->
+         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+          <h4 style="margin-bottom: 15px; color: var(--text-color);">Database Metadata &amp; Ontology</h4>
+          <p style="color: var(--text-soft); font-size: 0.9rem; margin-bottom: 15px;">
+           After creating tables, refresh the database metadata and generate ontology files for better data discovery and querying.
+          </p>
+          <div class="button-group">
+           <button id="refresh-ontology-btn" class="btn btn-primary">Refresh Database Ontology</button>
+           <button id="create-metadata-btn" class="btn btn-secondary">Generate Metadata Files</button>
+          </div>
+          <div id="ontology-result" style="margin-top: 15px; display: none;">
+           <!-- Ontology operation results will appear here -->
+          </div>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+     <div class="accordion-item">
+      <div class="accordion-header" role="button" tabindex="0" aria-expanded="false" aria-controls="accordion-csv">
+       <h2><span class="accordion-icon">
+         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+         </svg></span>Load Data from CSV</h2><span class="accordion-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+         <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" />
+        </svg></span>
+      </div>
+      <div class="accordion-content" id="accordion-csv">
+       <div class="grid-2">
+        <div class="form-group">
+         <label for="table-name-csv">Table Name:</label> <input type="text" id="table-name-csv" placeholder="e.g., products_2024">
+        </div>
+        <div class="form-group">
+         <label for="csv-file">Upload CSV File:</label> <input type="file" id="csv-file" accept=".csv">
+        </div>
+       </div>
+       <div id="csv-preview-section" style="display: none;">
+        <h3 class="section-title">CSV Data Preview &amp; Schema</h3>
+        <div id="csv-schema-container"></div>
+        <div id="csv-sql-container" style="margin-top: 20px; display: none;">
+         <label for="csv-schema-sql">Generated SQL (Ready to Execute):</label> <textarea id="csv-schema-sql" class="sql-preview" style="width: 100%; height: 150px; font-family: monospace; margin-bottom: 10px;"></textarea>
+         <div class="button-group">
+          <button id="execute-csv-sql-btn" class="btn btn-success">Execute SQL &amp; Load Data</button>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+     <div class="accordion-item">
+      <div class="accordion-header" role="button" tabindex="0" aria-expanded="false" aria-controls="accordion-query">
+       <h2><span class="accordion-icon">
+         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+         </svg></span>Manage &amp; Query Database</h2><span class="accordion-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+         <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" />
+        </svg></span>
+      </div>
+      <div class="accordion-content" id="accordion-query">
+       <div id="database-details">
+        <h3 class="section-title">Current Schema</h3>
+        <div id="entity-diagram" class="entity-diagram"></div>
+        <div class="query-grid">
+         <div class="query-panel">
+          <h4>Run a quick query</h4>
+          <p class="panel-kicker">Use this for single statements and result checks.</p>
+          <div class="form-group">
+           <textarea id="query-sql" aria-label="SQL query" placeholder="SELECT * FROM your_table;"></textarea>
+          </div>
+          <div class="button-group">
+           <button id="run-query-btn" class="btn btn-primary">Run Query</button>
+           <button id="update-metadata-btn" class="btn btn-secondary">Update Metadata</button>
+           <button id="debug-tables-btn" class="btn btn-secondary">Debug Tables</button>
+          </div>
+         </div>
+         <div class="script-panel">
+          <h4>Run an existing SQL script</h4>
+          <p class="panel-kicker">Paste multi-statement SQL when the script is already prepared. Statements execute in order.</p>
+          <div class="form-group">
+           <textarea id="query-script" aria-label="SQL script" placeholder="CREATE TABLE customers (...);
+    INSERT INTO customers VALUES (...);"></textarea>
+          </div>
+          <div class="button-group">
+           <button id="run-script-btn" class="btn btn-secondary">Run Script</button>
+          </div>
+          <div id="script-results" class="script-results"></div>
+         </div>
+        </div>
+        <div id="query-results" class="query-results"></div>
+        <div class="metamodel-section" style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+         <h3 class="section-title">Metamodel Context</h3>
+         <p class="text-muted" style="margin-bottom: 10px; color: #666; font-size: 0.9em;">This context can be used to generate web applications.</p>
+         <div class="form-group">
+          <textarea id="metamodel-context" aria-label="Metamodel context" readonly style="height: 150px; font-family: monospace; width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;" placeholder="Metamodel OWL will appear here..."></textarea>
+         </div>
+         <div class="button-group">
+          <button id="refresh-metamodel-btn" class="btn btn-secondary">Refresh Metamodel</button>
+          <button id="send-to-playground-btn" class="btn btn-primary">Send to Playground</button>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <div id="loader" class="loader" role="status" aria-live="polite">
+   <div class="spinner"></div>
+   <p>Processing...</p>
+  </div>
+  <div id="sample-data-modal" class="modal">
+   <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="sample-data-modal-title">
+    <div class="modal-header">
+     <h2 id="sample-data-modal-title">Sample Data</h2>
+     <button class="close-modal" id="close-sample-data-modal" type="button" aria-label="Close">×</button>
+    </div>
+    <div id="sample-data-modal-body" class="table-container">
+     <!-- Sample data table will be injected here -->
+    </div>
+   </div>
+  </div>
+  <div id="metadata-modal" class="modal">
+   <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="metadata-modal-title">
+    <div class="modal-header">
+     <h2 id="metadata-modal-title">Edit Database Metadata</h2>
+     <button class="close-modal" id="close-metadata-modal" type="button" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+     <div id="metadata-editor-container"></div>
+    </div>
+    <div class="modal-footer">
+     <button id="save-metadata-btn" class="btn btn-primary">Save &amp; Update</button>
+    </div>
+   </div>
+  </div>
+  <div id="confirm-modal" class="modal">
+   <div class="modal-content" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-message" style="max-width: 480px;">
+    <div class="modal-header">
+     <h2 id="confirm-modal-title">Please confirm</h2>
+    </div>
+    <div class="modal-body">
+     <p id="confirm-modal-message"></p>
+    </div>
+    <div class="modal-footer">
+     <button id="confirm-modal-cancel" class="btn btn-secondary" type="button">Cancel</button>
+     <button id="confirm-modal-ok" class="btn btn-danger" type="button">Delete</button>
+    </div>
+   </div>
+  </div>
+  <div id="toast-container" aria-live="polite"></div>
+  <script type="module">
+        // Loaded from the CDN rather than the platform import map's "@semoss/sdk", which
+        // points at a /SemossWeb path that local and Vite-hosted setups don't serve
+        import { Insight, Env } from 'https://cdn.jsdelivr.net/npm/@semoss/sdk@1.0.0-beta.47/+esm';
+
+        // Read by the load check after this script: the SDK import succeeded
+        window.databaseMakerLoaded = true;
+
+        const insight = new Insight();
+
+        // Keep every Pixel call in the initialized, project-bound insight.
+        // Bare runPixel calls create contextless one-off insights, which breaks DDL.
+        async function runPixel(pixel) {
+            if (!insight.isReady) throw new Error('Database workspace is not ready yet.');
+            const response = await insight.actions.run(pixel);
+            const failures = (response?.errors || []).concat(
+                (response?.pixelReturn || [])
+                    .filter(item => (item.operationType || []).includes('ERROR'))
+                    .map(item => item.output)
+            );
+            if (failures.length) {
+                throw new Error(failures.map(error => typeof error === 'string' ? error : JSON.stringify(error)).join('\n'));
+            }
+            return response;
+        }
+        const pixelJson = value => JSON.stringify(String(value ?? ''));
+        const encodedSql = sql => `<encode>${String(sql ?? '').replace(/<\/encode>/gi, '< /encode>')}</encode>`;
+
+        // Escape text before it goes into innerHTML.
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
+
+        // Python source that calls an mcp_driver function with JSON-decoded keyword arguments,
+        // so values are never spliced into the code. "<" is escaped so a "</encode>" inside a
+        // value cannot close the Py(<encode>...</encode>) block early.
+        function pyCall(functionName, kwargs = {}) {
+            const literal = JSON.stringify(JSON.stringify(kwargs)).replace(/</g, '\\u003c');
+            return `import json\nimport mcp_driver\nres = mcp_driver.${functionName}(**json.loads(${literal}))\nres`;
+        }
+
+        // The driver base64-encodes UTF-8 JSON; atob alone garbles non-ASCII text.
+        function decodeBase64Json(encoded) {
+            const binary = atob(String(encoded ?? '').trim());
+            const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+            return JSON.parse(new TextDecoder().decode(bytes));
+        }
+
+        // Port of mcp_driver.split_sql_script: splits on ";" outside quotes and drops comments.
+        function splitSqlStatements(script) {
+            const statements = [];
+            let buffer = '';
+            let inSingle = false, inDouble = false, inLineComment = false, inBlockComment = false;
+            for (let i = 0; i < script.length; i++) {
+                const ch = script[i];
+                const next = script[i + 1] || '';
+                if (inLineComment) {
+                    if (ch === '\n') { inLineComment = false; buffer += ch; }
+                    continue;
+                }
+                if (inBlockComment) {
+                    if (ch === '*' && next === '/') { inBlockComment = false; i++; }
+                    continue;
+                }
+                if (!inSingle && !inDouble) {
+                    if (ch === '-' && next === '-') { inLineComment = true; i++; continue; }
+                    if (ch === '/' && next === '*') { inBlockComment = true; i++; continue; }
+                }
+                if (ch === "'" && !inDouble) {
+                    if (inSingle && next === "'") { buffer += "''"; i++; continue; }
+                    inSingle = !inSingle;
+                } else if (ch === '"' && !inSingle) {
+                    inDouble = !inDouble;
+                } else if (ch === ';' && !inSingle && !inDouble) {
+                    if (buffer.trim()) statements.push(buffer.trim());
+                    buffer = '';
+                    continue;
+                }
+                buffer += ch;
+            }
+            if (buffer.trim()) statements.push(buffer.trim());
+            return statements;
+        }
+
+        function statementType(statement) {
+            return (statement.trim().split(/\s+/)[0] || 'UNKNOWN').toUpperCase();
+        }
+
+        const loader = document.getElementById('loader');
+        const loaderText = loader.querySelector('p');
+        const toastContainer = document.getElementById('toast-container');
+
+        // --- Modals: Escape and backdrop close, focus kept inside, focus returned on close ---
+        const modalReturnFocus = new Map();
+
+        function openModal(modal) {
+            modalReturnFocus.set(modal, document.activeElement);
+            modal.classList.add('show');
+            const focusTarget = modal.querySelector('[data-autofocus]') || modal.querySelector('.close-modal, button, input, select, textarea');
+            if (focusTarget) focusTarget.focus();
+        }
+
+        function closeModal(modal) {
+            if (!modal.classList.contains('show')) return;
+            modal.classList.remove('show');
+            modal.dispatchEvent(new CustomEvent('modal-closed'));
+            const returnTo = modalReturnFocus.get(modal);
+            modalReturnFocus.delete(modal);
+            if (returnTo && typeof returnTo.focus === 'function') returnTo.focus();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            const openModals = [...document.querySelectorAll('.modal.show')];
+            const modal = openModals[openModals.length - 1];
+            if (!modal) return;
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeModal(modal);
+                return;
+            }
+            if (e.key === 'Tab') {
+                const focusable = [...modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+                    .filter(el => !el.disabled && el.offsetParent !== null);
+                if (!focusable.length) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+            }
+        });
+
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal(modal);
+            });
+        });
+
+        // window.confirm() returns false inside a sandboxed iframe, so ask in the page instead.
+        const confirmModal = document.getElementById('confirm-modal');
+        function confirmDialog(message, confirmLabel = 'Delete') {
+            document.getElementById('confirm-modal-message').textContent = message;
+            const okBtn = document.getElementById('confirm-modal-ok');
+            const cancelBtn = document.getElementById('confirm-modal-cancel');
+            okBtn.textContent = confirmLabel;
+            return new Promise(resolve => {
+                let confirmed = false;
+                const onOk = () => { confirmed = true; closeModal(confirmModal); };
+                const onCancel = () => closeModal(confirmModal);
+                const onClosed = () => {
+                    okBtn.removeEventListener('click', onOk);
+                    cancelBtn.removeEventListener('click', onCancel);
+                    confirmModal.removeEventListener('modal-closed', onClosed);
+                    resolve(confirmed);
+                };
+                okBtn.addEventListener('click', onOk);
+                cancelBtn.addEventListener('click', onCancel);
+                confirmModal.addEventListener('modal-closed', onClosed);
+                openModal(confirmModal);
+                cancelBtn.focus();
+            });
+        }
+
+        function showStatus(message, type = 'info') {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            // Icon based on type
+            let icon = '';
+            if (type === 'success') {
+                icon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+            } else if (type === 'error') {
+                icon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
+            } else {
+                icon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
+            }
+
+            toast.innerHTML = `
+                <div class="toast-icon" aria-hidden="true">${icon}</div>
+                <div class="toast-message"></div>
+                <button class="toast-close" type="button" aria-label="Dismiss notification">&times;</button>
+            `;
+            // Messages often carry server or database text, so never parse them as HTML
+            toast.querySelector('.toast-message').textContent = message;
+            
+            // Close button handler
+            toast.querySelector('.toast-close').addEventListener('click', () => {
+                removeToast(toast);
+            });
+
+            // Add to container
+            toastContainer.appendChild(toast);
+
+            // Auto remove after 5 seconds if not error
+            if (type !== 'error') {
+                setTimeout(() => {
+                    removeToast(toast);
+                }, 5000);
+            }
+        }
+
+        function removeToast(toast) {
+            if (!toast.parentElement) return;
+            
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 300);
+        }
+
+        function showLoader(show, text = "Processing...") {
+            if (show) {
+                loaderText.textContent = text;
+                loader.classList.add('show');
+            } else {
+                loader.classList.remove('show');
+            }
+        }
+
+        let currentDatabase = { name: null, id: null };
+        let allDatabases = [];
+
+        // Accordion functionality
+        function setAccordionOpen(item, open) {
+            item.classList.toggle('active', open);
+            const header = item.querySelector('.accordion-header');
+            if (header) header.setAttribute('aria-expanded', String(open));
+        }
+
+        function initializeAccordion() {
+            const workspace = document.getElementById('database-workspace');
+            const toggle = (header) => {
+                const item = header.parentElement;
+                // Optional: close other accordions when one is opened
+                // workspace.querySelectorAll('.accordion-item').forEach(i => setAccordionOpen(i, false));
+                setAccordionOpen(item, !item.classList.contains('active'));
+            };
+            workspace.addEventListener('click', (e) => {
+                const header = e.target.closest('.accordion-header');
+                if (header) toggle(header);
+            });
+            workspace.addEventListener('keydown', (e) => {
+                const header = e.target.closest('.accordion-header');
+                if (header && e.target === header && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    toggle(header);
+                }
+            });
+        }
+
+        initializeAccordion();
+
+        // Option cards are divs styled as buttons; let the keyboard activate them too
+        document.querySelectorAll('.option-button[role="button"]').forEach(card => {
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    card.click();
+                }
+            });
+        });
+
+        // --- MCP tool views ---
+        // The host opens this app (resourceURI "/") for the tools below. Each gets a focused
+        // review-then-result view instead of the workshop; any other load runs the app as usual.
+        const TOOL_KINDS = ['run_query', 'run_script', 'create_new_db', 'get_schema'];
+        let latestToolContext = null;   // newest SMSS_INIT_TOOL payload; keeps _meta, which the SDK drops
+        let activeToolView = null;      // { kind, tool, actionId, decided, pending }
+        let appReady = false;
+
+        const toolView = document.getElementById('tool-view');
+        const toolViewTitle = document.getElementById('tool-view-title');
+        const toolViewSubtitle = document.getElementById('tool-view-subtitle');
+        const toolViewDatabase = document.getElementById('tool-view-database');
+        const toolViewBody = document.getElementById('tool-view-body');
+        const toolViewActions = document.getElementById('tool-view-actions');
+        const toolViewRun = document.getElementById('tool-view-run');
+        const toolViewReject = document.getElementById('tool-view-reject');
+        const toolViewStatus = document.getElementById('tool-view-status');
+        const toolViewResult = document.getElementById('tool-view-result');
+
+        window.addEventListener('message', (event) => {
+            if (event.source !== window.parent || !event.data || event.data.type !== 'SMSS_INIT_TOOL' || !event.data.tool) return;
+            latestToolContext = event.data.tool;
+            if (!appReady) return;
+            if (activeToolView && activeToolView.tool.id === latestToolContext.id) {
+                // Already moved on to the workshop (create_new_db); nothing left to show
+                if (activeToolView.inWorkspace) return;
+                // The host sends the context again once the call has a result
+                activeToolView.tool = latestToolContext;
+                if (latestToolContext.tool_response) showToolResult(latestToolContext.tool_response);
+            } else if (!activeToolView && !currentDatabase.id) {
+                routeToolView(latestToolContext);
+            }
+        });
+
+        function resolveToolKind(tool) {
+            if (!tool) return null;
+            const names = [tool._meta && tool._meta.SMSS_FUNCTION_NAME, tool.original_name, tool.name].filter(Boolean).map(String);
+            for (const name of names) {
+                // Hosts may prefix or alias the name the model saw, e.g. "database-maker__run_query"
+                const kind = TOOL_KINDS.find(k => name === k || name.endsWith(`_${k}`) || name.endsWith(`-${k}`) || name.endsWith(`.${k}`));
+                if (kind) return kind;
+            }
+            return null;
+        }
+
+        const alertHtml = (kind, text) => `<div class="alert alert-${kind}">${escapeHtml(text)}</div>`;
+
+        // Output that isn't the expected shape (plain text, tool errors) is shown as-is
+        function messageHtml(value) {
+            if (value === null || value === undefined || value === '') return alertHtml('info', 'The tool returned no output.');
+            const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+            return /error|exception|failed/i.test(text.slice(0, 200)) ? alertHtml('danger', text) : `<pre>${escapeHtml(text)}</pre>`;
+        }
+
+        // Tool results arrive as JSON (sometimes JSON inside a JSON string), as an MCP content
+        // envelope, or as base64 JSON; unwrap to the payload the tool returned.
+        function parseToolOutput(raw) {
+            let value = raw;
+            for (let depth = 0; depth < 3 && typeof value === 'string'; depth++) {
+                const text = value.trim();
+                if (!text) return null;
+                try {
+                    value = JSON.parse(text);
+                    continue;
+                } catch (e) { /* not JSON */ }
+                if (/^[A-Za-z0-9+/]+=*$/.test(text) && text.length % 4 === 0) {
+                    try {
+                        value = decodeBase64Json(text);
+                        continue;
+                    } catch (e) { /* not base64 JSON */ }
+                }
+                break;
+            }
+            if (value && typeof value === 'object' && Array.isArray(value.content)) {
+                return parseToolOutput(value.content.filter(part => part && part.type === 'text').map(part => part.text).join('\n'));
+            }
+            return value;
+        }
+
+        // SQL from a model sometimes arrives as one line with literal "\n"; the driver unescapes
+        // that case, so show it the same way.
+        function sqlForDisplay(sql) {
+            const text = String(sql ?? '');
+            return !text.includes('\n') && text.includes('\\n') ? text.replace(/\\n/g, '\n').replace(/\\t/g, '\t') : text;
+        }
+
+        function sqlFieldHtml(label) {
+            return `<div class="form-group">
+                        <div class="tool-field-label">
+                            <label for="tool-sql">${escapeHtml(label)}</label>
+                            <span class="tool-edited" hidden>Edited</span>
+                        </div>
+                        <textarea id="tool-sql" class="tool-sql" rows="8" spellcheck="false"></textarea>
+                    </div>`;
+        }
+
+        function bindSqlField(body, original, readOnly) {
+            const textarea = body.querySelector('.tool-sql');
+            const marker = body.querySelector('.tool-edited');
+            textarea.value = sqlForDisplay(original);
+            textarea.dataset.display = textarea.value;
+            textarea.readOnly = readOnly;
+            textarea.addEventListener('input', () => { marker.hidden = textarea.value === textarea.dataset.display; });
+            return textarea;
+        }
+
+        // The SQL to send: the original argument unless the user changed the text
+        function sqlFieldValue(body, original) {
+            const textarea = body.querySelector('.tool-sql');
+            return textarea.value === textarea.dataset.display ? original : textarea.value;
+        }
+
+        function describeStatement(statement) {
+            const type = statementType(statement);
+            if (type === 'DROP' || type === 'TRUNCATE') return { type, warning: 'Permanently removes a table or its data.' };
+            if (type === 'ALTER') return { type, warning: 'Changes the structure of an existing table.' };
+            if ((type === 'DELETE' || type === 'UPDATE') && !/\bWHERE\b/i.test(statement)) {
+                return { type, warning: `${type} without WHERE affects every row.` };
+            }
+            return { type, warning: '' };
+        }
+
+        function statementListHtml(script) {
+            const statements = splitSqlStatements(script || '');
+            if (!statements.length) return '<li class="result-meta">No statements to run.</li>';
+            return statements.map((statement, index) => {
+                const { type, warning } = describeStatement(statement);
+                return `<li class="tool-statement">
+                            <span class="tool-statement-index">${index + 1}</span>
+                            <span class="tool-statement-type">${escapeHtml(type)}</span>
+                            <code>${escapeHtml(statement)}</code>
+                            ${warning ? `<span class="tool-statement-warning">${escapeHtml(warning)}</span>` : ''}
+                        </li>`;
+            }).join('');
+        }
+
+        function renderScriptToolResult(result) {
+            if (!result || typeof result !== 'object' || !Array.isArray(result.results)) return messageHtml(result);
+            let html = '';
+            if (result.status === 'error') {
+                html += alertHtml('danger', `Script stopped: ${result.error || 'a statement failed.'}`);
+                if (result.failed_statement) html += `<pre>${escapeHtml(result.failed_statement)}</pre>`;
+                if (result.results.length) html += '<p class="result-meta">These statements ran before the failure and may already be committed:</p>';
+            } else {
+                const count = result.statement_count ?? result.results.length;
+                html += alertHtml('success', `${count} statement${count === 1 ? '' : 's'} ran.`);
+            }
+            if (result.results.length) html += renderScriptSummary(result);
+            result.results.forEach(item => {
+                const output = item && item.result;
+                const data = output && output.data ? output.data : output;
+                if (data && Array.isArray(data.headers) && Array.isArray(data.values)) {
+                    html += `<div><h4>Statement ${escapeHtml(item.index)} result</h4><div class="table-container">${renderTableHtml(data)}</div></div>`;
+                }
+            });
+            const refresh = result.ontology_refresh;
+            if (refresh) {
+                html += refresh.status === 'success'
+                    ? `<p class="result-meta">Database metadata refreshed (${escapeHtml(refresh.table_count ?? 0)} table(s)).</p>`
+                    : alertHtml('warning', `Metadata refresh failed: ${refresh.error || 'unknown error'}`);
+            }
+            return html;
+        }
+
+        const isTrue = value => value === true || value === 'true';
+
+        const TOOL_VIEWS = {
+            run_query: {
+                title: 'Run query',
+                subtitle: 'Review the SQL before it runs. You can edit it first.',
+                runLabel: 'Run query',
+                renderReview: () => sqlFieldHtml('Query'),
+                bindReview: (body, params, readOnly) => bindSqlField(body, params.query, readOnly),
+                collectParams: (body, params) => ({ ...params, query: sqlFieldValue(body, params.query) }),
+                validate: params => String(params.query || '').trim() ? '' : 'Enter a query to run.',
+                renderResult: (result) => {
+                    if (!result || typeof result !== 'object' || !Array.isArray(result.headers)) return messageHtml(result);
+                    const rows = Array.isArray(result.rows) ? result.rows : [];
+                    return `<p class="result-meta">${rows.length} row${rows.length === 1 ? '' : 's'} returned.</p>
+                            <div class="table-container">${renderTableHtml({ headers: result.headers, values: rows })}</div>`;
+                },
+            },
+            run_script: {
+                title: 'Run script',
+                subtitle: 'Review each statement before the script runs. Statements run in order and stop at the first error.',
+                runLabel: 'Run script',
+                renderReview: () => `${sqlFieldHtml('Script')}<ol class="tool-statements" aria-label="Statements"></ol>`,
+                bindReview: (body, params, readOnly) => {
+                    const textarea = bindSqlField(body, params.script, readOnly);
+                    const list = body.querySelector('.tool-statements');
+                    const update = () => { list.innerHTML = statementListHtml(textarea.value); };
+                    textarea.addEventListener('input', update);
+                    update();
+                },
+                collectParams: (body, params) => ({ ...params, script: sqlFieldValue(body, params.script) }),
+                validate: params => splitSqlStatements(sqlForDisplay(params.script)).length ? '' : 'Enter at least one SQL statement.',
+                renderResult: renderScriptToolResult,
+            },
+            create_new_db: {
+                title: 'Create database',
+                subtitle: 'Creates a new H2 database. If one with this name already exists, it is reused.',
+                runLabel: 'Create database',
+                renderReview: () => `<div class="form-group">
+                        <label for="tool-database-name">Database name</label>
+                        <input type="text" id="tool-database-name">
+                    </div>`,
+                bindReview: (body, params, readOnly) => {
+                    const input = body.querySelector('#tool-database-name');
+                    input.value = params.database_name || '';
+                    input.readOnly = readOnly;
+                },
+                collectParams: (body, params) => {
+                    const name = body.querySelector('#tool-database-name').value.trim();
+                    return name === String(params.database_name || '').trim() ? params : { ...params, database_name: name };
+                },
+                validate: params => String(params.database_name || '').trim() ? '' : 'Enter a database name.',
+                renderResult: (result) => {
+                    if (!result || typeof result !== 'object' || !result.status) return messageHtml(result);
+                    if (result.status !== 'success' && result.status !== 'exists') {
+                        return alertHtml('danger', result.error || 'Database creation failed.');
+                    }
+                    // With an id, showToolResult moves on to the workshop; this stays visible only without one
+                    const message = result.status === 'exists'
+                        ? `Database '${result.database_name}' already exists. Using the existing database.`
+                        : `Database '${result.database_name}' was created.`;
+                    return `${alertHtml('success', message)}
+                            <p class="result-meta">ID: ${escapeHtml(result.database_id || '')}</p>`;
+                },
+            },
+            get_schema: {
+                title: 'Get schema',
+                subtitle: 'Reads the tables and columns of this database.',
+                runLabel: 'Get schema',
+                renderReview: () => `<label for="tool-schema-playground" style="display: flex; align-items: center; gap: 0.6rem;">
+                        <input type="checkbox" id="tool-schema-playground" style="width: auto;">
+                        Also save a copy to the project assets
+                    </label>`,
+                bindReview: (body, params, readOnly) => {
+                    const checkbox = body.querySelector('#tool-schema-playground');
+                    checkbox.checked = isTrue(params.playground);
+                    checkbox.disabled = readOnly;
+                },
+                collectParams: (body, params) => {
+                    const checked = body.querySelector('#tool-schema-playground').checked;
+                    return checked === isTrue(params.playground) ? params : { ...params, playground: checked };
+                },
+                renderResult: (result) => {
+                    const schema = Array.isArray(result) ? result : result && Array.isArray(result.schema) ? result.schema : null;
+                    if (!schema) return messageHtml(result);
+                    const saved = result.file_saved ? `<p class="result-meta">Saved to ${escapeHtml(result.file_saved)}.</p>` : '';
+                    const saveError = result.file_save_error ? alertHtml('warning', `Could not save the schema file: ${result.file_save_error}`) : '';
+                    return `${saved}${saveError}<p class="result-meta">${schema.length} table${schema.length === 1 ? '' : 's'}.</p>
+                            <div class="entity-diagram">${renderSchemaCardsHtml(schema, { editable: false })}</div>`;
+                },
+            },
+        };
+
+        async function renderToolDatabase(databaseId) {
+            if (!databaseId) {
+                toolViewDatabase.hidden = true;
+                return;
+            }
+            let name = '';
+            try {
+                const { pixelReturn } = await runPixel('MyEngines(engineTypes=["DATABASE"]);');
+                const databases = Array.isArray(pixelReturn[0].output) ? pixelReturn[0].output : [];
+                const match = databases.find(db => (db.engine_id || db.database_id) === databaseId);
+                name = match ? (match.engine_display_name || match.engine_name || match.database_name || '') : '';
+            } catch (error) {
+                console.warn('Could not look up the database name:', error);
+            }
+            toolViewDatabase.innerHTML = `<strong>${escapeHtml(name || 'Database')}</strong><span>${escapeHtml(databaseId)}</span>`;
+            toolViewDatabase.hidden = false;
+        }
+
+        async function routeToolView(tool) {
+            const kind = resolveToolKind(tool);
+            if (!kind) return false;
+
+            activeToolView = { kind, tool, actionId: undefined, decided: false, pending: false };
+            const view = TOOL_VIEWS[kind];
+            const params = tool.parameters || {};
+            const hasResult = Boolean(tool.tool_response);
+
+            document.body.classList.add('tool-mode');
+            document.getElementById('step-1-database-selection').style.display = 'none';
+            databaseWorkspace.style.display = 'none';
+            toolView.hidden = false;
+            toolViewTitle.textContent = view.title;
+            toolViewSubtitle.textContent = hasResult ? '' : view.subtitle;
+            toolViewStatus.innerHTML = '';
+            toolViewResult.innerHTML = '';
+            toolViewBody.innerHTML = view.renderReview();
+            view.bindReview(toolViewBody, params, hasResult);
+
+            await renderToolDatabase(params.database_id);
+
+            if (hasResult) {
+                showToolResult(tool.tool_response);
+            } else {
+                toolViewRun.textContent = view.runLabel;
+                setToolButtonsDisabled(false);
+                toolViewActions.hidden = false;
+            }
+            return true;
+        }
+
+        function setToolButtonsDisabled(disabled) {
+            toolViewRun.disabled = disabled;
+            toolViewReject.disabled = disabled;
+        }
+
+        // The call is finished: hide the actions and lock the review fields
+        function finishToolView() {
+            activeToolView.decided = true;
+            toolViewActions.hidden = true;
+            toolViewSubtitle.textContent = '';
+            toolViewBody.querySelectorAll('textarea, input').forEach(el => {
+                el.readOnly = true;
+                if (el.type === 'checkbox') el.disabled = true;
+            });
+        }
+
+        function showToolResult(raw) {
+            if (!activeToolView) return;
+            const result = parseToolOutput(raw);
+            finishToolView();
+            toolViewStatus.innerHTML = '';
+            toolViewResult.innerHTML = TOOL_VIEWS[activeToolView.kind].renderResult(result);
+
+            // A created (or reused) database continues straight into the workshop
+            const createdDatabase = activeToolView.kind === 'create_new_db' && result && typeof result === 'object'
+                && (result.status === 'success' || result.status === 'exists') && result.database_id;
+            if (createdDatabase) openWorkspaceFromTool(result);
+        }
+
+        // Same message the SDK's sendMCPResponseToRoom posts, built from the context this page received
+        function postToolResponse(response, status, executedParameters) {
+            const tool = (activeToolView && activeToolView.tool) || latestToolContext || Env.TOOL;
+            if (!tool || window.parent === window) return;
+            window.parent.postMessage({
+                type: 'SMSS_EXEC_TOOL',
+                tool: {
+                    type: 'MCP',
+                    message: tool.message || '',
+                    id: tool.id || '',
+                    name: tool.name || '',
+                    response,
+                    roomId: tool.roomId || '',
+                    tool_status: status,
+                    executedParameters,
+                },
+            }, '*');
+        }
+
+        // An agent run pauses an "ask" tool as a pending action; find this call's action so the
+        // decision resumes the run. Chat rooms have no action (null).
+        async function findPendingActionId(tool) {
+            const fromUrl = new URLSearchParams(window.location.search).get('actionId');
+            if (fromUrl) return fromUrl;
+            if (!tool || !tool.roomId || !tool.id) return null;
+            const { pixelReturn } = await runPixel(`GetAgentRunsForRoom(roomId=[${pixelJson(tool.roomId)}]);`);
+            const runs = Array.isArray(pixelReturn[0].output) ? pixelReturn[0].output : [];
+            const waiting = runs.filter(run => run && run.status === 'INPUT_REQUIRED').reverse();
+            for (const run of waiting) {
+                const { pixelReturn: runReturn } = await runPixel(`GetAgentRun(runId=[${pixelJson(run.runId)}]);`);
+                const actions = (runReturn[0].output && runReturn[0].output.pendingActions) || [];
+                const action = actions.find(item => item && item.toolCallId === tool.id);
+                if (action) return action.actionId;
+            }
+            return null;
+        }
+
+        async function submitToolDecision(decision) {
+            const state = activeToolView;
+            if (!state || state.decided || state.pending) return;
+            const view = TOOL_VIEWS[state.kind];
+            const originalParams = state.tool.parameters || {};
+            const rejecting = decision === 'reject';
+            const params = rejecting ? originalParams : view.collectParams(toolViewBody, originalParams);
+            if (!rejecting && view.validate) {
+                const problem = view.validate(params);
+                if (problem) {
+                    toolViewStatus.innerHTML = alertHtml('warning', problem);
+                    return;
+                }
+            }
+            const edited = JSON.stringify(params) !== JSON.stringify(originalParams);
+
+            state.pending = true;
+            setToolButtonsDisabled(true);
+            toolViewStatus.innerHTML = alertHtml('info', rejecting ? 'Rejecting...' : 'Running...');
+            try {
+                if (state.actionId === undefined) {
+                    try {
+                        state.actionId = await findPendingActionId(state.tool);
+                    } catch (error) {
+                        console.error('Pending action lookup failed:', error);
+                        throw new Error(`Could not tell whether this call belongs to an agent run, so nothing was run. Use the Allow or Deny controls in the chat instead. (${error.message})`);
+                    }
+                }
+
+                if (state.actionId) {
+                    // Agent run: the server runs (or skips) the call and resumes the run
+                    const pixelDecision = rejecting ? 'reject' : edited ? 'edit' : 'approve';
+                    const paramPart = pixelDecision === 'edit' ? `, paramValues=[${JSON.stringify(params)}]` : '';
+                    const { pixelReturn } = await runPixel(`RunMCPTool(actionId=[${pixelJson(state.actionId)}], decision=[${pixelJson(pixelDecision)}]${paramPart});`);
+                    if (rejecting) {
+                        finishToolView();
+                        toolViewStatus.innerHTML = alertHtml('warning', 'Rejected. The tool did not run.');
+                    } else {
+                        showToolResult(pixelReturn[0].output);
+                    }
+                } else if (rejecting) {
+                    // Chat room: tell the host the call was declined
+                    postToolResponse('The user rejected this tool call.', 'cancelled', originalParams);
+                    finishToolView();
+                    toolViewStatus.innerHTML = alertHtml('warning', 'Rejected. The tool did not run.');
+                } else {
+                    // Chat room: run the tool here and hand the result to the host
+                    const projectId = (state.tool._meta && state.tool._meta.SMSS_ENGINE_ID) || Env.APP;
+                    let output;
+                    try {
+                        const { pixelReturn } = await runPixel(`RunMCPTool(project=[${pixelJson(projectId)}], function=[${pixelJson(state.kind)}], paramValues=[${JSON.stringify(params)}]);`);
+                        const raw = pixelReturn[0].output;
+                        output = typeof raw === 'string' ? raw : JSON.stringify(raw);
+                    } catch (error) {
+                        postToolResponse(`Tool execution error: ${error.message}`, 'error', params);
+                        finishToolView();
+                        throw error;
+                    }
+                    postToolResponse(output, 'success', params);
+                    showToolResult(output);
+                }
+            } catch (error) {
+                console.error('Tool decision failed:', error);
+                toolViewStatus.innerHTML = alertHtml('danger', error.message);
+                if (!state.decided) setToolButtonsDisabled(false);
+            } finally {
+                state.pending = false;
+            }
+        }
+
+        toolViewRun.addEventListener('click', () => submitToolDecision('run'));
+        toolViewReject.addEventListener('click', () => submitToolDecision('reject'));
+
+        // create_new_db result: continue in the full workshop with the new database
+        async function openWorkspaceFromTool(result) {
+            // Once only: the host re-sends the finished call, which must not reset the workshop
+            if (!activeToolView || activeToolView.inWorkspace) return;
+            activeToolView.inWorkspace = true;
+            const params = activeToolView.tool.parameters || {};
+            document.body.classList.remove('tool-mode');
+            toolView.hidden = true;
+            currentDatabase = { name: result.database_name || result.database_id, id: result.database_id };
+            renderCurrentDatabaseDetails();
+            document.getElementById('step-1-database-selection').style.display = 'none';
+            databaseWorkspace.style.display = 'block';
+            showStatus(result.status === 'exists'
+                ? `Database '${currentDatabase.name}' already exists. Using existing database.`
+                : `Database '${currentDatabase.name}' created successfully (${currentDatabase.id}).`, 'success');
+            await loadDatabases(); // fills the selectors and the LLM list the workshop uses
+            await loadDatabaseSchema();
+
+            // Prefill the natural-language description when the call carried an intent
+            if (params.user_intent) {
+                nlDescriptionInput.value = params.user_intent;
+                const accordionItem = nlDescriptionInput.closest('.accordion-item');
+                if (accordionItem) {
+                    setAccordionOpen(accordionItem, true);
+                    accordionItem.scrollIntoView({ behavior: 'smooth' });
+                }
+                nlDescriptionInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
+
+        // Initialize SDK
+        (async function init() {
+            const semossEnvScript = document.getElementById('semoss-env');
+            if (semossEnvScript) {
+                try {
+                    const envConfig = JSON.parse(semossEnvScript.textContent);
+                    Env.update(envConfig);
+                    const initialized = await insight.initialize();
+                    if (!insight.isReady) {
+                        // initialize() returns nothing when there is no signed-in session
+                        showStatus('Could not connect to SEMOSS. Sign in, then reload this page.', 'error');
+                        return;
+                    }
+                    const { tool } = initialized || {};
+
+                    // Initialize the mcp driver once for the whole page
+                    await runPixel(`SetContext([${pixelJson(envConfig.APP)}])`);
+                    await insight.actions.runPy(`import mcp_driver`);
+                    appReady = true;
+
+                    // Opened by the host for one of this app's tools: show that tool's view
+                    if (await routeToolView(latestToolContext || tool)) {
+                        return;
+                    }
+
+                    const databaseId = envConfig.database_id || envConfig.VAR_DATABASE_ID || null;
+                    if (databaseId) { // Fallback for envConfig ID or MCP returning ID
+                         if (tool) {
+                              console.log("Initialized with MCP Tool (Existing Database):", tool);
+                         }
+                        currentDatabase.id = databaseId;
+                        currentDatabase.name = currentDatabase.name || databaseId;
+                        renderCurrentDatabaseDetails();
+                        // Hide selection, show workspace
+                        document.getElementById('step-1-database-selection').style.display = 'none';
+                        document.getElementById('database-workspace').style.display = 'block';
+                        
+                        showLoader(true, "Initializing Database Context...");
+                        try {
+                            // Get the schema via Python; get_schema returns the schema as a JSON string
+                            const { output: schemaJson } = await insight.actions.runPy(pyCall('get_schema', { database_id: databaseId, playground: false }));
+                            
+                            // Pass metadata back to Orchestrator via MCP Tool
+                            // Only if we operate in an MCP context
+                            if (tool) {
+                                await insight.actions.runMCPTool("add_to_context", {
+                                    "context": schemaJson 
+                                });
+                            }
+
+                            // Load the UI
+                            await loadDatabaseSchema();
+                            
+                            showStatus('Database context loaded and schema saved.', 'success');
+                        } catch (err) {
+                            console.error("Error initializing database context:", err);
+                            showStatus(`Error loading database context: ${err.message}`, 'error');
+                            // Fallback to selection if schema loading fails
+                            await loadDatabases(); 
+                        } finally {
+                            showLoader(false);
+                        }
+                    } else {
+                         // Standard initialization - no params, show selection
+                        showStatus('SDK Initialized.', 'info');
+                        await loadDatabases();
+                    }
+                } catch (e) {
+                    console.error("Failed to parse or initialize:", e);
+                    showStatus(`Error: ${e.message}`, 'error');
+                }
+            }
+        })();
+
+        // --- Step 1: Database Selection ---
+        const showSelectBtn = document.getElementById('show-select-db-btn');
+        const showCreateBtn = document.getElementById('show-create-db-btn');
+        const selectDbContainer = document.getElementById('select-db-container');
+        const createDbContainer = document.getElementById('create-db-container');
+        const dbSelectorMain = document.getElementById('database-selector-main');
+        const confirmSelectBtn = document.getElementById('confirm-select-btn');
+        const deleteDbBtn = document.getElementById('delete-db-btn');
+        const dbNameCreateInput = document.getElementById('db-name-create');
+        const confirmCreateBtn = document.getElementById('confirm-create-btn');
+
+        const databaseWorkspace = document.getElementById('database-workspace');
+        const currentDbNameSpan = document.getElementById('current-db-name');
+        const currentDbMeta = document.getElementById('current-db-meta');
+        const currentDbIdSpan = document.getElementById('current-db-id');
+        const currentDbLink = document.getElementById('current-db-link');
+
+        function buildDatabaseUrl(databaseId) {
+            if (!databaseId) {
+                return '#';
+            }
+
+            const baseUrl = (Env.base_url || Env.BASE_URL || '').replace(/\/$/, '');
+            const webModuleUrl = Env.web_module_url || Env.WEB_MODULE_URL || '/cfg-ai-dev/SemossWeb';
+            return `${baseUrl}${webModuleUrl}/packages/client/dist/#/engine/database/${databaseId}`;
+        }
+
+        function renderCurrentDatabaseDetails() {
+            const label = currentDatabase.name || currentDatabase.id || '';
+            currentDbNameSpan.textContent = label;
+
+            if (!currentDatabase.id) {
+                currentDbMeta.style.display = 'none';
+                currentDbIdSpan.textContent = '';
+                currentDbLink.href = '#';
+                return;
+            }
+
+            currentDbMeta.style.display = 'block';
+            currentDbIdSpan.textContent = currentDatabase.id;
+            currentDbLink.href = buildDatabaseUrl(currentDatabase.id);
+        }
+
+        showSelectBtn.addEventListener('click', () => {
+            selectDbContainer.style.display = 'block';
+            createDbContainer.style.display = 'none';
+        });
+
+        showCreateBtn.addEventListener('click', () => {
+            createDbContainer.style.display = 'block';
+            selectDbContainer.style.display = 'none';
+        });
+
+
+        async function loadDatabases() {
+            try {
+                const { pixelReturn } = await runPixel('MyEngines(engineTypes=["DATABASE"]);');
+                allDatabases = Array.isArray(pixelReturn[0].output) ? pixelReturn[0].output : [];
+                dbSelectorMain.innerHTML = '<option value="">-- Please select a database --</option>';
+                allDatabases.forEach(db => {
+                    dbSelectorMain.add(new Option(db.database_name, db.database_id));
+                });
+                // Also load LLMs
+                loadLLMs();
+            } catch (error) {
+                console.error('Error loading databases:', error);
+                showStatus(`Error loading databases: ${error.message}`, 'error');
+            }
+        }
+
+        confirmSelectBtn.addEventListener('click', async () => {
+            const selectedDbId = dbSelectorMain.value;
+            if (!selectedDbId) {
+                showStatus('Please select a database.', 'warning');
+                return;
+            }
+            
+            const selectedDb = allDatabases.find(db => db.database_id === selectedDbId);
+            if(selectedDb) {
+                currentDatabase = { name: selectedDb.database_name, id: selectedDb.database_id };
+                renderCurrentDatabaseDetails();
+                showStatus(`Selected database '${currentDatabase.name}' (${currentDatabase.id}).`, 'info');
+
+                databaseWorkspace.style.display = 'block';
+                document.getElementById('step-1-database-selection').style.display = 'none';
+                await loadDatabaseSchema();
+            }
+        });
+
+        document.getElementById('change-db-btn').addEventListener('click', () => {
+            currentDatabase = { name: null, id: null };
+            renderCurrentDatabaseDetails();
+            databaseWorkspace.style.display = 'none';
+            document.getElementById('step-1-database-selection').style.display = 'block';
+            // Refresh the list just in case
+            loadDatabases();
+        });
+
+        deleteDbBtn.addEventListener('click', async () => {
+            const selectedDbId = dbSelectorMain.value;
+            if (!selectedDbId) {
+                showStatus('Please select a database to delete.', 'warning');
+                return;
+            }
+
+            const selectedDb = allDatabases.find(db => db.database_id === selectedDbId);
+            if (!selectedDb) return;
+
+            if (await confirmDialog(`Are you sure you want to PERMANENTLY DELETE the database '${selectedDb.database_name}'? This action cannot be undone.`, 'Delete database')) {
+                showLoader(true, `Deleting database '${selectedDb.database_name}'...`);
+                try {
+                    await runPixel(`DeleteEngine(engine=[${pixelJson(selectedDbId)}]);`);
+                    showStatus(`Database '${selectedDb.database_name}' deleted successfully.`, 'success');
+                    await loadDatabases(); // Refresh list
+                } catch (error) {
+                    console.error("Error deleting database:", error);
+                    showStatus(`Error deleting database: ${error.message}`, 'error');
+                } finally {
+                    showLoader(false);
+                }
+            }
+        });
+
+        confirmCreateBtn.addEventListener('click', async () => {
+            const dbName = dbNameCreateInput.value;
+            if (!dbName) {
+                showStatus('Please enter a name for the new database.', 'warning');
+                return;
+            }
+
+            showLoader(true, "Creating database...");
+            try {
+                // 1. Use MCP driver to create database with potential sample tables
+                const { output: createResult } = await insight.actions.runPy(pyCall('create_new_db', { database_name: dbName, user_intent: null }));
+                console.log("MCP Database creation result:", createResult);
+
+                // Parse and handle the creation result
+                let resultData = null;
+                try {
+                    resultData = JSON.parse(createResult);
+                    console.log("Parsed creation result:", resultData);
+                } catch (parseError) {
+                    console.error("Could not parse creation result:", parseError);
+                    showStatus('Database creation completed but result parsing failed.', 'warning');
+                }
+
+                if (resultData && resultData.status === 'success') {
+                    showStatus(`Database created successfully.`, 'success');
+                } else if (resultData && resultData.status === 'exists') {
+                    showStatus(`Database '${resultData.database_name}' already exists. Using existing database.`, 'info');
+                } else if (resultData) {
+                    throw new Error(resultData.error || 'Unknown error');
+                }
+
+                // Refresh the list (also used by the selectors), then prefer the id the driver returned
+                await loadDatabases();
+                const createdDb = (resultData && resultData.database_id)
+                    ? { database_id: resultData.database_id, database_name: resultData.database_name || dbName }
+                    : allDatabases.find(d => String(d.database_name).toLowerCase() === dbName.trim().toLowerCase());
+
+                if (!createdDb) {
+                     throw new Error(`Database '${dbName}' created but not found in engine list.`);
+                }
+
+                currentDatabase = { name: createdDb.database_name, id: createdDb.database_id };
+                renderCurrentDatabaseDetails();
+                
+                showStatus(`Database '${currentDatabase.name}' created successfully (${currentDatabase.id}).`, 'success');
+                
+                // Proceed to workspace
+                databaseWorkspace.style.display = 'block';
+                document.getElementById('step-1-database-selection').style.display = 'none';
+                await loadDatabaseSchema();
+
+            } catch (error) {
+                console.error("Error creating database:", error);
+                showStatus(`Error creating database: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        });
+
+        // --- Workspace Logic ---
+        const nlDescriptionInput = document.getElementById('nl-description');
+        const llmSelector = document.getElementById('llm-selector');
+        const sampleDataToggle = document.getElementById('generate-sample-data-toggle');
+        const sampleDataRowsInput = document.getElementById('sample-data-rows');
+        const generateSchemaBtn = document.getElementById('generate-schema-btn');
+        const schemaEditorContainer = document.getElementById('schema-editor-container');
+        const finalSqlContainer = document.getElementById('final-sql-container');
+        const schemaSqlInput = document.getElementById('schema-sql');
+        const createTableFromNlBtn = document.getElementById('create-table-from-nl-btn');
+        
+        const csvFileInput = document.getElementById('csv-file');
+        const tableNameCsvInput = document.getElementById('table-name-csv');
+        const csvPreviewSection = document.getElementById('csv-preview-section');
+        const csvSchemaContainer = document.getElementById('csv-schema-container');
+
+        const entityDiagram = document.getElementById('entity-diagram');
+        const metamodelContext = document.getElementById('metamodel-context');
+        const querySqlInput = document.getElementById('query-sql');
+        const queryScriptInput = document.getElementById('query-script');
+        const runQueryBtn = document.getElementById('run-query-btn');
+        const runScriptBtn = document.getElementById('run-script-btn');
+        const queryResults = document.getElementById('query-results');
+        const scriptResults = document.getElementById('script-results');
+        const updateMetadataBtn = document.getElementById('update-metadata-btn');
+
+        async function loadLLMs() {
+            try {
+                const { pixelReturn } = await runPixel('MyEngines(engineTypes=["MODEL"]);');
+                const models = pixelReturn[0].output;
+                llmSelector.innerHTML = '';
+				
+				// Optional: Add a default prompt
+                if(models.length === 0) {
+                     llmSelector.innerHTML = '<option value="">No models available</option>';
+                     return;
+                }
+				
+                models.forEach(model => {
+                    llmSelector.add(new Option(model.database_name, model.database_id));
+                });
+            } catch (error) {
+                console.error('Error loading LLMs:', error);
+                
+                // Fallback attempt: maybe the output structure is different or empty
+                try {
+                     // Sometimes output is null if no engines found, handle gracefully
+                     llmSelector.innerHTML = '<option value="">Could not load models (Retrying...)</option>';
+                } catch(e) {
+                     llmSelector.innerHTML = '<option value="">Error loading models</option>';
+                }
+            }
+        }
+
+        sampleDataToggle.addEventListener('change', () => {
+            sampleDataRowsInput.style.display = sampleDataToggle.checked ? 'block' : 'none';
+        });
+
+        function renderTableHtml(data) {
+            if (!data || !data.headers || !data.values) {
+                return '<div class="alert alert-info">Query executed successfully, but returned no data.</div>';
+            }
+
+            let tableHtml = '<table class="table"><thead><tr>';
+            data.headers.forEach(header => tableHtml += `<th>${escapeHtml(header)}</th>`);
+            tableHtml += '</tr></thead><tbody>';
+
+            data.values.forEach(row => {
+                tableHtml += '<tr>';
+                (Array.isArray(row) ? row : [row]).forEach(cell => tableHtml += `<td>${escapeHtml(String(cell))}</td>`);
+                tableHtml += '</tr>';
+            });
+
+            tableHtml += '</tbody></table>';
+            return tableHtml;
+        }
+
+        function renderScriptSummary(payload) {
+            if (!payload || !Array.isArray(payload.results) || payload.results.length === 0) {
+                return '<div class="alert alert-info">Script executed, but no statement summaries were returned.</div>';
+            }
+
+            return `
+                <div class="script-summary">
+                    ${payload.results.map(result => `
+                        <div class="script-summary-item">
+                            <strong>Statement ${escapeHtml(result.index)}</strong>
+                            <div>Type: ${escapeHtml(result.statement_type || 'UNKNOWN')}</div>
+                            <div>Rows returned: ${escapeHtml(result.row_count ?? 0)}</div>
+                            <code>${escapeHtml(result.statement)}</code>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Helper: Render Schema Editor
+        function renderSchemaEditor(container, llmResponse, approveBtnText = "Approve & Generate Final SQL", approveBtnId = "approve-schema-btn") {
+            // Build the interactive editor
+            let editorHtml = '';
+            for (const tableName in llmResponse.schema) {
+                const table = llmResponse.schema[tableName];
+                const hasSampleData = llmResponse.sample_data && llmResponse.sample_data[tableName];
+
+                editorHtml += `<div class="entity-box" data-table-name="${escapeHtml(tableName)}">
+                                 <h4>
+                                    <span>Table: <input type="text" class="table-name-input" aria-label="Table name" value="${escapeHtml(tableName)}"></span>
+                                    <span class="header-buttons">
+                                        ${hasSampleData ? '<button class="btn btn-secondary btn-small show-sample-data-btn">View Data</button>' : ''}
+                                        <button class="btn btn-primary btn-small add-column-btn" aria-label="Add column">+</button>
+                                        <button class="btn btn-danger btn-small delete-table-btn">Delete</button>
+                                    </span>
+                                 </h4>
+                                 <ul class="entity-columns">
+                                    <li class="column-header"><span>Column Name</span><span>Data Type</span><span></span></li>`;
+                for (const colName in table.columns) {
+                    const colDetails = table.columns[colName];
+                    // The LLM sometimes leaves out the type; fall back to the default text type
+                    const rawType = typeof colDetails === 'string' ? colDetails : colDetails && colDetails.type;
+                    const suggestedType = String(rawType || 'VARCHAR(255)').toUpperCase();
+                    const description = typeof colDetails === 'object' && colDetails && colDetails.description ? colDetails.description : '';
+
+                    editorHtml += `<li>
+                                    <input type="text" class="column-name-input" aria-label="Column name" value="${escapeHtml(colName)}">
+                                    ${columnTypeSelectHtml(suggestedType)}
+                                    <button class="delete-col-btn" aria-label="Remove column">&times;</button>
+                                    <input type="text" class="column-description-input" aria-label="Column description" placeholder="Description..." value="${escapeHtml(description)}">
+                                  </li>`;
+                }
+                editorHtml += `</ul></div>`;
+            }
+            editorHtml += `<div class="button-group"><button id="${approveBtnId}" class="btn btn-secondary">${approveBtnText}</button></div>`;
+
+            container.innerHTML = editorHtml;
+            container.dataset.llmResponse = JSON.stringify(llmResponse);
+            container.dataset.mode = 'create';
+        }
+
+        const STANDARD_SQL_TYPES = ['INTEGER', 'VARCHAR(255)', 'TEXT', 'DATE', 'TIMESTAMP', 'BOOLEAN', 'DOUBLE', 'FLOAT', 'DECIMAL(10, 2)'];
+
+        // selectedType '' means "existing column whose type is unknown": keep it unless the user picks one
+        function columnTypeSelectHtml(selectedType) {
+            const options = new Set(STANDARD_SQL_TYPES);
+            if (selectedType) options.add(selectedType);
+            let typeDropdown = `<select class="column-type-select" aria-label="Data type">`;
+            if (selectedType === '') typeDropdown += `<option value="" selected>Keep current type</option>`;
+            options.forEach(type => {
+                typeDropdown += `<option value="${escapeHtml(type)}" ${type === selectedType ? 'selected' : ''}>${escapeHtml(type)}</option>`;
+            });
+            return typeDropdown + `</select>`;
+        }
+
+        function newColumnRowHtml() {
+            return `<input type="text" class="column-name-input" aria-label="Column name" placeholder="NewColumn">
+                    ${columnTypeSelectHtml(null)}
+                    <button class="delete-col-btn" aria-label="Remove column">&times;</button>
+                    <input type="text" class="column-description-input" aria-label="Column description" placeholder="Description...">`;
+        }
+
+        // Helper: Generate SQL from Editor
+        function generateSqlFromEditor(container, includeSampleData = true) {
+            const originalResponse = container.dataset.llmResponse ? JSON.parse(container.dataset.llmResponse) : {};
+            let finalSql = '';
+
+            container.querySelectorAll('.entity-box').forEach(box => {
+                let tableName = box.querySelector('.table-name-input').value;
+                tableName = tableName.replace(/ /g, '_');
+                let createStatement = `CREATE TABLE ${tableName} (\n`;
+                const columns = [];
+                const columnNames = [];
+                
+                box.querySelectorAll('.entity-columns li:not(.column-header)').forEach(item => {
+                    let colName = item.querySelector('.column-name-input').value;
+                    const colType = item.querySelector('.column-type-select').value;
+                    
+                    if (colName && colType) {
+                        colName = colName.replace(/ /g, '_');
+                        let columnLine = `  ${colName} ${colType}`;
+                        columns.push(columnLine);
+                        columnNames.push(colName);
+                    }
+                });
+                createStatement += columns.join(',\n');
+                createStatement += '\n);\n\n';
+
+                finalSql += createStatement;
+                
+                // Generate INSERT statements for sample data
+                if (includeSampleData) {
+                    const originalTableName = box.dataset.tableName;
+                    if (originalResponse.sample_data && originalResponse.sample_data[originalTableName]) {
+                        const rows = originalResponse.sample_data[originalTableName];
+                        if(rows && rows.length > 0) {
+                            rows.forEach(row => {
+                                const values = columnNames.map(colName => {
+                                    let val = row[colName];
+                                    if (val === undefined) {
+                                        // Try to find the key by normalizing both key and colName
+                                        // Remove underscores and spaces, and convert to lower case for comparison
+                                        const normalize = s => s.toString().toLowerCase().replace(/[\s_]+/g, '');
+                                        const target = normalize(colName);
+                                        const key = Object.keys(row).find(k => normalize(k) === target);
+                                        if (key) val = row[key];
+                                    }
+
+                                    if (val === undefined || val === null) return 'NULL';
+                                    if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
+                                    return val;
+                                });
+                                
+                                finalSql += `INSERT INTO ${tableName} (${columnNames.join(', ')}) VALUES (${values.join(', ')});\n`;
+                            });
+                            finalSql += '\n';
+                        }
+                    }
+                }
+            });
+            return finalSql;
+        }
+
+        // Helper: Generate ALTER statements for an existing table opened with "Edit Schema".
+        // Rows remember the column they started as, so renames, type changes, additions and
+        // removals each become their own statement against the existing table.
+        function generateAlterSqlFromEditor(container) {
+            const box = container.querySelector('.entity-box');
+            if (!box) return '';
+            const sameName = (a, b) => String(a).toUpperCase() === String(b).toUpperCase();
+            const originalTable = box.dataset.tableName;
+            const newTable = (box.querySelector('.table-name-input').value || originalTable).trim().replace(/ /g, '_');
+            const originalColumns = JSON.parse(box.dataset.originalColumns || '[]');
+            const statements = [];
+            const keptColumns = new Set();
+
+            box.querySelectorAll('.entity-columns li:not(.column-header)').forEach(item => {
+                const name = (item.querySelector('.column-name-input').value || '').trim().replace(/ /g, '_');
+                const type = item.querySelector('.column-type-select').value;
+                const originalName = item.dataset.originalName;
+                if (!originalName) {
+                    if (name && type) statements.push(`ALTER TABLE ${originalTable} ADD COLUMN ${name} ${type};`);
+                    return;
+                }
+                // Existing column: only the remove button drops it
+                keptColumns.add(originalName);
+                if (type && type !== item.dataset.originalType) {
+                    statements.push(`ALTER TABLE ${originalTable} ALTER COLUMN ${originalName} ${type};`);
+                }
+                if (name && !sameName(name, originalName)) {
+                    statements.push(`ALTER TABLE ${originalTable} ALTER COLUMN ${originalName} RENAME TO ${name};`);
+                }
+            });
+
+            originalColumns
+                .filter(column => !keptColumns.has(column))
+                .forEach(column => statements.push(`ALTER TABLE ${originalTable} DROP COLUMN ${column};`));
+
+            if (!sameName(newTable, originalTable)) {
+                statements.push(`ALTER TABLE ${originalTable} RENAME TO ${newTable};`);
+            }
+            return statements.join('\n');
+        }
+
+        // NL to SQL
+        generateSchemaBtn.addEventListener('click', async () => {
+            const description = nlDescriptionInput.value;
+            const llmId = llmSelector.value;
+            if (!description || !llmId) {
+                showStatus('Please provide a description and select an LLM.', 'warning');
+                return;
+            }
+
+            showLoader(true, "Generating schema with LLM...");
+            schemaEditorContainer.style.display = 'none';
+            finalSqlContainer.style.display = 'none';
+
+            try {
+                const jsonSchema = {
+                    "type": "object",
+                    "properties": {
+                        "schema": {
+                            "type": "object",
+                            "description": "An object where each key is a table name and the value contains table details.",
+                            "patternProperties": {
+                                "^[a-zA-Z0-9_]+$": {
+                                    "type": "object",
+                                    "properties": {
+                                        "columns": {
+                                            "type": "object",
+                                            "description": "An object where each key is a column name and the value is an object containing its SQL data type and description.",
+                                            "patternProperties": {
+                                                "^[a-zA-Z0-9_]+$": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": { "type": "string", "description": "SQL data type for the column." },
+                                                        "description": { "type": "string", "description": "A brief description of the column's purpose." }
+                                                    },
+                                                    "required": ["type", "description"]
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "primary_key": { "type": "string" },
+                                        "foreign_keys": {
+                                            "type": "object",
+                                            "description": "An object defining foreign key relationships.",
+                                            "patternProperties": {
+                                                "^[a-zA-Z0-9_]+$": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "references": { "type": "string", "description": "The table this key references."},
+                                                        "on": { "type": "string", "description": "The column in the referenced table."}
+                                                    },
+                                                    "required": ["references", "on"]
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "required": ["columns"]
+                                }
+                            },
+                             "additionalProperties": false
+                        },
+                        "sample_data": {
+                            "type": ["object", "null"],
+                            "description": "An object where each key is a table name and the value is an array of data objects. Only include if requested.",
+                             "patternProperties": {
+                                "^[a-zA-Z0-9_]+$": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
+                                    }
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "required": ["schema"]
+                };
+
+                let prompt = `Based on the following description, generate a JSON object that defines the database schema.
+Description: "${description}"
+
+The JSON object must conform to the following schema:
+${JSON.stringify(jsonSchema, null, 2)}
+
+If the tables are related, define the relationships in the "foreign_keys" property.
+`;
+
+                if (sampleDataToggle.checked) {
+                    const rowCount = sampleDataRowsInput.value || 5;
+                    prompt += `\nAlso, include a "sample_data" property with ${rowCount} rows of realistic sample data for each table. The sample data should be an array of objects where keys match the column names. IMPORTANT: If foreign keys are defined, the sample data MUST be consistent and reflect those relationships.`;
+                } else {
+                    prompt += `\nDo not include the "sample_data" property.`;
+                }
+
+                prompt += "\n\nJSON Response:"
+
+                const pixel = `LLM(engine=["${llmId}"], command=["<encode>${prompt}</encode>"], paramValues=[{"schema": ${JSON.stringify(jsonSchema)}}]);`;
+                
+                const { pixelReturn } = await runPixel(pixel);
+                
+                if (!pixelReturn || !pixelReturn[0] || !pixelReturn[0].output) {
+                    throw new Error("No output received from LLM pixel.");
+                }
+
+                const llmOutput = pixelReturn[0].output;
+                showLoader(true, "Parsing LLM response...");
+                
+                // The output from the LLM might be a string that needs to be parsed, or it could be an object already if the platform handles it.
+                // We need to ensure we have a valid object to work with.
+                let llmResponse;
+                let rawResponse = llmOutput.response;
+                
+                if (typeof rawResponse === 'string') {
+                    // Clean up markdown code blocks if present
+                    rawResponse = rawResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                    
+                    try {
+                        llmResponse = JSON.parse(rawResponse);
+                    } catch (e) {
+                        console.error("Failed to parse LLM response string:", rawResponse);
+                        throw new Error("LLM returned a malformed JSON string.");
+                    }
+                } else if (typeof rawResponse === 'object') {
+                    // If it's already an object, use it directly.
+                    llmResponse = rawResponse;
+                } else {
+                     throw new Error("Received an unexpected response format from the LLM.");
+                }
+
+                if (!llmResponse || !llmResponse.schema) {
+                    throw new Error("LLM response did not contain the required 'schema' property.");
+                }
+
+                // Store the response for the next step
+                schemaEditorContainer.dataset.llmResponse = JSON.stringify(llmResponse);
+                
+                showLoader(true, "Building schema editor...");
+                
+                renderSchemaEditor(schemaEditorContainer, llmResponse);
+                
+                schemaEditorContainer.style.display = 'block';
+                showStatus('Schema generated successfully. Please review and approve.', 'success');
+
+            } catch (error) {
+                 console.error("Error during schema generation:", error);
+                 showStatus(`Error generating schema: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        });
+
+        // Save column descriptions to the database's ontology (OWL). An empty description
+        // removes the one that was there before.
+        async function saveColumnDescriptions(updates) {
+            const db = pixelJson(currentDatabase.id);
+            for (const { table, column, description, previous } of updates) {
+                const target = `database=[${db}], concept=[${pixelJson(table)}], column=[${pixelJson(column)}]`;
+                if (description) {
+                    await runPixel(`META | EditOwlDescription(${target}, description=["${encodedSql(description)}"]);`);
+                } else if (previous) {
+                    await runPixel(`META | RemoveOwlDescription(${target}, description=["${encodedSql(previous)}"]);`);
+                }
+            }
+            if (updates.length) {
+                await runPixel(`SyncDatabaseWithLocalMaster(database=[${db}]);`);
+            }
+        }
+
+        // After the editor's SQL has run, save the descriptions typed in that editor. Engines
+        // store unquoted identifiers in their own case (H2 upper-cases them), so names are
+        // matched against the refreshed schema.
+        async function applyEditorDescriptions(container) {
+            const entries = [];
+            container.querySelectorAll('.entity-box').forEach(box => {
+                const tableInput = box.querySelector('.table-name-input');
+                const table = (tableInput ? tableInput.value : box.dataset.tableName || '').trim().replace(/ /g, '_');
+                box.querySelectorAll('.entity-columns li:not(.column-header)').forEach(item => {
+                    const nameInput = item.querySelector('.column-name-input');
+                    const descriptionInput = item.querySelector('.column-description-input');
+                    const column = (nameInput ? nameInput.value : '').trim().replace(/ /g, '_');
+                    const description = (descriptionInput ? descriptionInput.value : '').trim();
+                    if (table && column && description) entries.push({ table, column, description });
+                });
+            });
+            if (!entries.length) return 0;
+
+            const schema = await getSimplifiedSchemaJS();
+            const tables = new Map(schema.map(t => [String(t.table_name).toLowerCase(), t]));
+            const updates = [];
+            entries.forEach(entry => {
+                const table = tables.get(entry.table.toLowerCase());
+                const column = table && table.columns.find(c => String(c.name).toLowerCase() === entry.column.toLowerCase());
+                if (column && (column.description || '') !== entry.description) {
+                    updates.push({ table: table.table_name, column: column.name, description: entry.description });
+                }
+            });
+            await saveColumnDescriptions(updates);
+            return updates.length;
+        }
+
+        // Event delegation for the approve button and others in the editor
+        // Sample rows (from the LLM or a CSV) shown in the shared modal
+        function showSampleDataModal(tableName, headers, rows) {
+            let tableHtml = '<table class="table"><thead><tr>';
+            headers.forEach(h => tableHtml += `<th>${escapeHtml(h)}</th>`);
+            tableHtml += '</tr></thead><tbody>';
+            rows.forEach(row => {
+                tableHtml += '<tr>';
+                headers.forEach(h => {
+                    const cell = row[h];
+                    tableHtml += `<td>${escapeHtml(cell === null || cell === undefined ? 'NULL' : String(cell))}</td>`;
+                });
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</tbody></table>';
+
+            document.getElementById('sample-data-modal-title').textContent = `Sample Data for ${tableName}`;
+            document.getElementById('sample-data-modal-body').innerHTML = tableHtml;
+            openModal(sampleDataModal);
+        }
+
+        schemaEditorContainer.addEventListener('click', async (e) => {
+            // Approve and Generate SQL
+            if (e.target.id === 'approve-schema-btn') {
+                const finalSql = generateSqlFromEditor(schemaEditorContainer);
+                schemaSqlInput.value = finalSql;
+                finalSqlContainer.style.display = 'block';
+            }
+
+            // Generate ALTER statements for a table opened with "Edit Schema"
+            if (e.target.id === 'generate-update-sql-btn') {
+                const alterSql = generateAlterSqlFromEditor(schemaEditorContainer);
+                if (!alterSql) {
+                    showStatus('No schema changes to apply. Column descriptions are saved when you execute.', 'info');
+                }
+                schemaSqlInput.value = alterSql;
+                finalSqlContainer.style.display = 'block';
+            }
+
+            // Add Column
+            if (e.target.classList.contains('add-column-btn')) {
+                const columnsList = e.target.closest('.entity-box').querySelector('.entity-columns');
+                const newRow = document.createElement('li');
+                newRow.innerHTML = newColumnRowHtml();
+                columnsList.appendChild(newRow);
+            }
+
+            // Delete Column
+            if (e.target.classList.contains('delete-col-btn')) {
+                e.target.closest('li').remove();
+            }
+
+            // Delete Table (from the editor UI only)
+            if (e.target.classList.contains('delete-table-btn')) {
+                const box = e.target.closest('.entity-box');
+                if (await confirmDialog(`Are you sure you want to remove this table definition from the editor?`, 'Remove')) {
+                    box.remove();
+                }
+            }
+
+            // Show Sample Data
+            if (e.target.classList.contains('show-sample-data-btn')) {
+                const box = e.target.closest('.entity-box');
+                const tableName = box.dataset.tableName;
+                const originalResponse = schemaEditorContainer.dataset.llmResponse ? JSON.parse(schemaEditorContainer.dataset.llmResponse) : {};
+                const sampleData = originalResponse.sample_data;
+                const schema = originalResponse.schema;
+
+                if (sampleData && sampleData[tableName] && schema && schema[tableName]) {
+                    // Get columns from the schema to ensure order, or just use keys from first row
+                    let headers = [];
+                    if (sampleData[tableName].length > 0) {
+                        headers = Object.keys(sampleData[tableName][0]);
+                    } else {
+                        headers = Object.keys(schema[tableName].columns);
+                    }
+                    showSampleDataModal(tableName, headers, sampleData[tableName]);
+                } else {
+                    console.error("Could not find sample data or schema for table:", tableName);
+                    showStatus("Sorry, the sample data for this table could not be displayed.", 'error');
+                }
+            }
+        });
+
+        // Modal close logic
+        const sampleDataModal = document.getElementById('sample-data-modal');
+        document.getElementById('close-sample-data-modal').addEventListener('click', () => {
+            closeModal(sampleDataModal);
+        });
+
+        // Run a multi-statement SQL script through the MCP driver and return its parsed result.
+        // Throws with the driver's error (and failing statement) when the script fails.
+        async function runDriverScript(script) {
+            const { output: encodedResult } = await insight.actions.runPy(pyCall('run_script', { database_id: currentDatabase.id, script }));
+            console.log('Raw runPy output:', encodedResult);
+            if (!encodedResult) {
+                throw new Error('Script runner returned an empty response.');
+            }
+
+            // The result is already JSON from the Python function
+            const result = typeof encodedResult === 'string' ? JSON.parse(encodedResult) : encodedResult;
+            if (result.status !== 'success') {
+                const error = new Error(result.error || 'Script execution failed.');
+                error.result = result;
+                throw error;
+            }
+            return result;
+        }
+
+        createTableFromNlBtn.addEventListener('click', async () => {
+            const schemaSql = schemaSqlInput.value;
+            const isEdit = schemaEditorContainer.dataset.mode === 'edit';
+            if (!schemaSql.trim() && !isEdit) {
+                showStatus('Please generate and approve a schema first.', 'warning');
+                return;
+            }
+            showLoader(true, isEdit ? "Updating table..." : "Creating tables from SQL...");
+            try {
+                // Execute the script using the MCP driver's run_script function
+                // This properly handles multi-statement SQL scripts
+                // run_script already auto-refreshes the ontology after DDL operations
+                const result = schemaSql.trim() ? await runDriverScript(schemaSql) : null;
+
+                // Descriptions typed in the editor are not part of the SQL; save them to the ontology
+                try {
+                    await applyEditorDescriptions(schemaEditorContainer);
+                } catch (descriptionError) {
+                    console.error('Error saving column descriptions:', descriptionError);
+                    showStatus(`SQL executed, but saving column descriptions failed: ${descriptionError.message}`, 'warning');
+                }
+
+                if (isEdit) {
+                    const countText = result ? ` ${result.statement_count} ${result.statement_count === 1 ? 'statement' : 'statements'} executed.` : '';
+                    showStatus(`Table updated in '${currentDatabase.name}'.${countText}`, 'success');
+                } else {
+                    const countLabel = result.statement_count === 1 ? 'statement' : 'statements';
+                    showStatus(`Table(s) created successfully in '${currentDatabase.name}'. ${result.statement_count} ${countLabel} executed.`, 'success');
+                }
+                await loadDatabaseSchema();
+            } catch (error) {
+                showStatus(`Error during execution: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        });
+
+        // Helper: CSV records per RFC 4180 (quoted fields may hold commas, "" and line breaks)
+        function parseCSVRecords(text) {
+            const records = [];
+            let record = [];
+            let field = '';
+            let inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                const ch = text[i];
+                if (inQuotes) {
+                    if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
+                    else if (ch === '"') inQuotes = false;
+                    else field += ch;
+                } else if (ch === '"') {
+                    inQuotes = true;
+                } else if (ch === ',') {
+                    record.push(field);
+                    field = '';
+                } else if (ch === '\n' || ch === '\r') {
+                    if (ch === '\r' && text[i + 1] === '\n') i++;
+                    record.push(field);
+                    records.push(record);
+                    record = [];
+                    field = '';
+                } else {
+                    field += ch;
+                }
+            }
+            if (field !== '' || record.length) {
+                record.push(field);
+                records.push(record);
+            }
+            return records;
+        }
+
+        // Turn a CSV header into a column name the SQL generator can use as-is
+        function toColumnName(header, index, usedNames) {
+            let name = String(header).trim().replace(/\W+/g, '_').replace(/^_+|_+$/g, '') || `column_${index + 1}`;
+            if (/^\d/.test(name)) name = `col_${name}`;
+            let unique = name;
+            for (let n = 2; usedNames.has(unique.toLowerCase()); n++) unique = `${name}_${n}`;
+            usedNames.add(unique.toLowerCase());
+            return unique;
+        }
+
+        // Helper: CSV Parser. Rows whose column count doesn't match the header are counted, not loaded.
+        function parseCSV(text) {
+            const records = parseCSVRecords(text.replace(/^﻿/, ''));
+            if (!records.length) return { headers: [], data: [], skipped: 0 };
+            const usedNames = new Set();
+            const headers = records[0].map((h, index) => toColumnName(h, index, usedNames));
+            const data = [];
+            let skipped = 0;
+            for (const row of records.slice(1)) {
+                if (row.every(value => !value.trim())) continue;
+                if (row.length !== headers.length) {
+                    skipped++;
+                    continue;
+                }
+                const rowObj = {};
+                headers.forEach((h, index) => rowObj[h] = row[index].trim());
+                data.push(rowObj);
+            }
+            return { headers, data, skipped };
+        }
+
+        function inferType(values) {
+            let isInt = true;
+            let isFloat = true;
+
+            for (const val of values) {
+                if (!val) continue;
+                if (isNaN(Number(val))) {
+                    isInt = false;
+                    isFloat = false;
+                    break;
+                }
+                if (!Number.isInteger(Number(val))) {
+                    isInt = false;
+                }
+            }
+
+            if (isInt) return 'INTEGER';
+            if (isFloat) return 'DOUBLE';
+            return 'VARCHAR(255)';
+        }
+
+        // CSV to Table - Client Side Parsing
+        csvFileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showLoader(true, "Parsing CSV locally...");
+            csvPreviewSection.style.display = 'none';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const text = e.target.result;
+                    const { headers, data, skipped } = parseCSV(text);
+                    
+                    // Store data for later execution
+                    csvSchemaContainer.dataset.csvData = JSON.stringify(data);
+
+                    let tableName = tableNameCsvInput.value;
+                    if (!tableName) {
+                        tableName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_]/g, "_");
+                        tableNameCsvInput.value = tableName;
+                    }
+
+                    const schemaResponse = {
+                        schema: {
+                            [tableName]: {
+                                columns: {}
+                            }
+                        },
+                        sample_data: {
+                            [tableName]: data.slice(0, 5) // Store first 5 rows as sample
+                        }
+                    };
+
+                    headers.forEach(header => {
+                        // Get some sample values for this column to infer type
+                        const sampleValues = data.slice(0, 10).map(row => row[header]);
+                        schemaResponse.schema[tableName].columns[header] = {
+                            type: inferType(sampleValues),
+                            description: ""
+                        };
+                    });
+
+                    renderSchemaEditor(csvSchemaContainer, schemaResponse, "Generate SQL", "generate-csv-sql-btn");
+                    
+                    csvPreviewSection.style.display = 'block';
+                    document.getElementById('csv-sql-container').style.display = 'none';
+                    showStatus('CSV parsed. Please review the schema.', 'success');
+                    if (skipped) {
+                        showStatus(`${skipped} row(s) were skipped because their column count doesn't match the header.`, 'warning');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showStatus("Error parsing CSV: " + err.message, "error");
+                } finally {
+                    showLoader(false);
+                }
+            };
+            
+            reader.onerror = function() {
+                showStatus("Error reading file", "error");
+                showLoader(false);
+            };
+
+            reader.readAsText(file);
+        });
+
+        // Event delegation for CSV Schema Editor
+        csvSchemaContainer.addEventListener('click', async (e) => {
+            // Generate SQL
+            if (e.target.id === 'generate-csv-sql-btn') {
+                // Get Create Table SQL (exclude sample data from the editor's response, we use full CSV data)
+                let finalSql = generateSqlFromEditor(csvSchemaContainer, false);
+                
+                // Append Inserts from parsed CSV data
+                try {
+                    const data = JSON.parse(csvSchemaContainer.dataset.csvData);
+                    const box = csvSchemaContainer.querySelector('.entity-box');
+                    let tableName = box ? box.querySelector('.table-name-input').value : tableNameCsvInput.value;
+                    if (tableName) tableName = tableName.replace(/ /g, '_');
+
+                    // Get columns from UI to ensure order and existence
+                    const columns = [];
+                    if (box) {
+                        box.querySelectorAll('.entity-columns li:not(.column-header)').forEach(item => {
+                            let colName = item.querySelector('.column-name-input').value;
+                            if (colName) {
+                                colName = colName.replace(/ /g, '_');
+                                columns.push(colName);
+                            }
+                        });
+                    }
+
+                    if (data && data.length > 0) {
+                        finalSql += `\n-- Inserting ${data.length} rows from CSV\n`;
+                        data.forEach(row => {
+                            const values = columns.map(col => {
+                                let val = row[col];
+                                // Case insensitive lookup with normalization
+                                if (val === undefined) {
+                                    const normalize = s => s.toString().toLowerCase().replace(/[\s_]+/g, '');
+                                    const target = normalize(col);
+                                    const key = Object.keys(row).find(k => normalize(k) === target);
+                                    if (key) val = row[key];
+                                }
+                                
+                                if (val === undefined || val === null) return 'NULL';
+                                if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
+                                return val;
+                            });
+                            // const quotedColumnNames = columns.map(c => `"${c}"`); // No quotes
+                            finalSql += `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${values.join(', ')});\n`;
+                        });
+                    }
+                } catch (err) {
+                    console.error("Error generating insert statements:", err);
+                    finalSql += `\n-- Error generating insert statements: ${err.message}`;
+                }
+
+                document.getElementById('csv-schema-sql').value = finalSql;
+                
+                // Store table name for metadata update
+                const box = csvSchemaContainer.querySelector('.entity-box');
+                const tableName = box ? box.querySelector('.table-name-input').value : tableNameCsvInput.value;
+                if (tableName) {
+                    document.getElementById('csv-schema-sql').dataset.tableName = tableName;
+                }
+
+                document.getElementById('csv-sql-container').style.display = 'block';
+            }
+
+            // Add Column
+            if (e.target.classList.contains('add-column-btn')) {
+                const columnsList = e.target.closest('.entity-box').querySelector('.entity-columns');
+                const newRow = document.createElement('li');
+                newRow.innerHTML = newColumnRowHtml();
+                columnsList.appendChild(newRow);
+            }
+
+            // Delete Column
+            if (e.target.classList.contains('delete-col-btn')) {
+                e.target.closest('li').remove();
+            }
+
+            // Delete Table (from the editor UI only)
+            if (e.target.classList.contains('delete-table-btn')) {
+                const box = e.target.closest('.entity-box');
+                if (await confirmDialog(`Are you sure you want to remove this table definition?`, 'Remove')) {
+                    box.remove();
+                }
+            }
+
+            // Show Sample Data
+            if (e.target.classList.contains('show-sample-data-btn')) {
+                const box = e.target.closest('.entity-box');
+                const tableName = box.dataset.tableName;
+                const originalResponse = csvSchemaContainer.dataset.llmResponse ? JSON.parse(csvSchemaContainer.dataset.llmResponse) : {};
+                const sampleData = originalResponse.sample_data;
+
+                if (sampleData && sampleData[tableName] && sampleData[tableName].length) {
+                    showSampleDataModal(tableName, Object.keys(sampleData[tableName][0]), sampleData[tableName]);
+                }
+            }
+        });
+
+        document.getElementById('execute-csv-sql-btn').addEventListener('click', async () => {
+            const schemaSql = document.getElementById('csv-schema-sql').value;
+
+            if (!schemaSql) {
+                showStatus('Please generate SQL first.', 'warning');
+                return;
+            }
+
+            showLoader(true, "Executing SQL...");
+            try {
+                // Use the MCP driver's run_script function to properly handle multi-statement SQL
+                const result = await runDriverScript(schemaSql);
+
+                // Descriptions typed in the editor are not part of the SQL; save them to the ontology
+                try {
+                    await applyEditorDescriptions(csvSchemaContainer);
+                } catch (descriptionError) {
+                    console.error('Error saving column descriptions:', descriptionError);
+                    showStatus(`SQL executed, but saving column descriptions failed: ${descriptionError.message}`, 'warning');
+                }
+
+                const countLabel = result.statement_count === 1 ? 'statement' : 'statements';
+                showStatus(`SQL executed successfully! ${result.statement_count} ${countLabel} ran.`, 'success');
+                await loadDatabaseSchema();
+            } catch (error) {
+                showStatus(`Error executing SQL: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        });
+
+        // get_schema returns the table list as a JSON string. Failures are thrown so callers can
+        // report them instead of showing an empty schema.
+        async function getSimplifiedSchemaJS() {
+            const { output: schemaJson } = await insight.actions.runPy(pyCall('get_schema', { database_id: currentDatabase.id, playground: false }));
+            try {
+                const schema = JSON.parse(schemaJson);
+                return Array.isArray(schema) ? schema : [];
+            } catch (e) {
+                console.error("Failed to parse schema from Python", e, schemaJson);
+                throw new Error(`Could not read the database schema: ${typeof schemaJson === 'string' ? schemaJson.slice(0, 200) : e.message}`);
+            }
+        }
+
+        async function debugDatabaseTables() {
+            if (!currentDatabase.id) return;
+            
+            console.log("=== DATABASE DEBUG INFO ===");
+            console.log("Database ID:", currentDatabase.id);
+            console.log("Database Name:", currentDatabase.name);
+            
+            try {
+                const { output: debugResult } = await insight.actions.runPy(pyCall('debug_database_tables', { database_id: currentDatabase.id }));
+                const debugData = decodeBase64Json(debugResult);
+                console.log("Debug data:", debugData);
+                
+                if (debugData.sql_tables && debugData.sql_tables.values) {
+                    console.log("Tables found via SQL:", debugData.sql_tables.values.map(row => row[0]));
+                } else {
+                    console.log("No tables found via SQL query");
+                }
+                
+                console.log("Metamodel nodes:", debugData.metamodel_nodes);
+                
+            } catch (e) {
+                console.error("Debug failed:", e);
+            }
+            
+            console.log("=== END DEBUG INFO ===");
+        }
+
+        function generateContextFromSchema(schema) {
+             let context = `Database: ${currentDatabase.name}\n\n`;
+             if(schema && schema.length > 0) {
+                  schema.forEach(table => {
+                       context += `Table: ${table.table_name}\n`;
+                       table.columns.forEach(col => {
+                           context += `  - ${col.name} (${col.type})`;
+                           if(col.description) context += `: ${col.description}`;
+                           context += `\n`;
+                       });
+                       context += `\n`;
+                  });
+             } else {
+                 context += "No tables found.";
+             }
+             return context;
+        }
+
+        async function loadDatabaseSchemaForMetadata(schemaData = null) {
+             if (!currentDatabase.id) {
+                showStatus('Please select a database first.', 'warning');
+                return;
+            }
+
+            const metadataEditorContainer = document.getElementById('metadata-editor-container');
+
+            try {
+                let schema = schemaData;
+                if (!schema) {
+                    showLoader(true, "Loading metadata...");
+                    schema = await getSimplifiedSchemaJS();
+                    showLoader(false);
+                }
+
+                let editorHtml = '';
+
+                if (schema && schema.length > 0) {
+                    schema.forEach(table => {
+                        editorHtml += `<div class="entity-box" data-table-name="${escapeHtml(table.table_name)}">
+                                            <h4>
+                                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                                    <input type="checkbox" class="table-select-checkbox" checked>
+                                                    ${escapeHtml(table.table_name)}
+                                                </label>
+                                            </h4>
+                                            <ul class="entity-columns">`;
+                        table.columns.forEach(col => {
+                            editorHtml += `<li data-column-name="${escapeHtml(col.name)}">
+                                            <span class="col-name">${escapeHtml(col.name)}</span>
+                                            <input type="text" class="column-description-input" aria-label="Description for ${escapeHtml(col.name)}" placeholder="Description..." value="${escapeHtml(col.description || '')}" data-original="${escapeHtml(col.description || '')}">
+                                          </li>`;
+                        });
+                        editorHtml += `</ul></div>`;
+                    });
+                } else {
+                    editorHtml = '<div class="empty-state"><p>No tables found.</p></div>';
+                }
+
+                metadataEditorContainer.innerHTML = editorHtml;
+                openModal(document.getElementById('metadata-modal'));
+                showStatus('Metadata loaded for editing.', 'info');
+
+            } catch (error) {
+                console.error("Error loading metadata for editing:", error);
+                showStatus(`Error loading metadata: ${error.message}`, 'error');
+                showLoader(false);
+            }
+        }
+
+        // Schema cards for the workspace (editable) and the get_schema tool view (read-only)
+        function renderSchemaCardsHtml(schema, { editable = true } = {}) {
+            if (!schema || schema.length === 0) {
+                return '<div class="empty-state"><div style="margin-bottom: 1rem; color: #dee2e6;"><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H4.99c-1.11 0-1.98.89-1.98 2L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10z"/></svg></div><p>No tables found in this database yet.</p></div>';
+            }
+            let diagramHtml = '';
+            schema.forEach(table => {
+                diagramHtml += `<div class="entity-box" data-table-name="${escapeHtml(table.table_name)}">
+                                    <h4>
+                                        <span>${escapeHtml(table.table_name)}</span>
+                                        ${editable ? `<span class="header-buttons">
+                                            <button class="btn btn-secondary btn-small edit-schema-btn">Edit Schema</button>
+                                            <button class="btn btn-danger btn-small delete-table-btn">Delete</button>
+                                        </span>` : ''}
+                                    </h4>
+                                    <ul class="entity-columns">`;
+                (table.columns || []).forEach(col => {
+                    diagramHtml += `<li>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%">
+                                        <span>${escapeHtml(col.name)}</span>
+                                        <span class="column-type" style="font-size: 0.8em; color: #888;">${escapeHtml(col.type)}</span>
+                                    </div>
+                                    ${col.description ? `<div class="column-description" style="font-size: 0.9em; color: #666; margin-top: 4px;">${escapeHtml(col.description)}</div>` : ''}
+                                  </li>`;
+                });
+                diagramHtml += `</ul></div>`;
+            });
+            return diagramHtml;
+        }
+
+        // Manage & Query
+        async function loadDatabaseSchema(schemaData = null) {
+            if (!currentDatabase.id) return;
+
+            showLoader(true, "Loading database schema...");
+            try {
+                let schema = schemaData;
+                if (!schema) {
+                    schema = await getSimplifiedSchemaJS();
+                }
+
+                entityDiagram.innerHTML = renderSchemaCardsHtml(schema, { editable: true });
+                // Optional: showStatus('Database schema loaded.', 'info');
+
+                // Also update the metadata context since we have the data
+                // We'll update the text area, but we won't open the modal
+                metamodelContext.value = generateContextFromSchema(schema);
+
+            } catch (error) {
+                entityDiagram.innerHTML = `<div class="alert alert-danger">Error loading schema: ${escapeHtml(error.message)}</div>`;
+                showStatus(`Error loading schema: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        updateMetadataBtn.addEventListener('click', async () => {
+             loadDatabaseSchemaForMetadata();
+        });
+
+        const debugTablesBtn = document.getElementById('debug-tables-btn');
+        debugTablesBtn.addEventListener('click', async () => {
+            showLoader(true, "Debugging database tables...");
+            try {
+                await debugDatabaseTables();
+                showStatus('Debug information logged to console. Check browser developer tools.', 'info');
+            } catch (error) {
+                showStatus(`Debug failed: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        });
+
+        const saveMetadataBtn = document.getElementById('save-metadata-btn');
+        const metadataModal = document.getElementById('metadata-modal');
+        saveMetadataBtn.addEventListener('click', async () => {
+            const metadataEditorContainer = document.getElementById('metadata-editor-container');
+            const updates = [];
+            let hasSelectedTables = false;
+
+            metadataEditorContainer.querySelectorAll('.entity-box').forEach(box => {
+                const checkbox = box.querySelector('.table-select-checkbox');
+                if (!checkbox || !checkbox.checked) return;
+
+                hasSelectedTables = true;
+                const tableName = box.dataset.tableName;
+
+                box.querySelectorAll('.entity-columns li').forEach(item => {
+                    const input = item.querySelector('.column-description-input');
+                    const description = input.value.trim();
+                    const previous = input.dataset.original || '';
+                    if (description !== previous) {
+                        updates.push({ table: tableName, column: item.dataset.columnName, description, previous });
+                    }
+                });
+            });
+
+            closeModal(metadataModal);
+
+            if (!hasSelectedTables) {
+                showStatus('No tables selected for metadata update.', 'info');
+                return;
+            }
+            if (!updates.length) {
+                showStatus('No description changes to save.', 'info');
+                return;
+            }
+
+            showLoader(true, "Saving column descriptions...");
+            try {
+                await saveColumnDescriptions(updates);
+                showStatus(`Metadata updated successfully for selected tables (${updates.length} description${updates.length === 1 ? '' : 's'}).`, 'success');
+                await loadDatabaseSchema();
+
+            } catch (error) {
+                console.error("Error saving metadata:", error);
+                showStatus(`Error saving metadata: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        });
+
+        // Close modal logic
+        document.getElementById('close-metadata-modal').addEventListener('click', () => {
+            closeModal(metadataModal);
+        });
+
+        runQueryBtn.addEventListener('click', async () => {
+            const query = querySqlInput.value;
+            if (!currentDatabase.id || !query) {
+                showStatus('Please enter a query.', 'warning');
+                return;
+            }
+
+            showLoader(true, "Executing query...");
+            try {
+                const { pixelReturn } = await runPixel(`Database(database=[${pixelJson(currentDatabase.id)}]) | Query("${encodedSql(query)}") | Collect(100);`);
+                // Collect nests headers/values under "data"
+                const output = pixelReturn[0].output;
+                const data = output && output.data ? output.data : output;
+
+                queryResults.innerHTML = renderTableHtml(data);
+                if (!data || !data.headers || !data.values) {
+                    showStatus('Query executed successfully, but returned no data.', 'info');
+                    return;
+                }
+
+                showStatus('Query executed successfully.', 'success');
+            } catch (error) {
+                queryResults.innerHTML = `<div class="alert alert-danger">Error running query: ${escapeHtml(error.message)}</div>`;
+                showStatus(`Error running query: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        });
+
+        // Last SELECT-style result in a run_script payload ({headers, values} under "data")
+        function lastScriptTable(payload) {
+            const results = payload && Array.isArray(payload.results) ? payload.results : [];
+            for (let i = results.length - 1; i >= 0; i--) {
+                const output = results[i] && results[i].result;
+                const data = output && output.data ? output.data : output;
+                if (data && Array.isArray(data.headers) && Array.isArray(data.values)) return data;
+            }
+            return null;
+        }
+
+        runScriptBtn.addEventListener('click', async () => {
+            const script = queryScriptInput.value;
+            if (!currentDatabase.id || !script.trim()) {
+                showStatus('Please enter a SQL script.', 'warning');
+                return;
+            }
+
+            showLoader(true, 'Running script...');
+            scriptResults.innerHTML = '';
+
+            try {
+                const result = await runDriverScript(script);
+
+                scriptResults.innerHTML = renderScriptSummary(result);
+                const lastTable = lastScriptTable(result);
+                if (lastTable) {
+                    queryResults.innerHTML = renderTableHtml(lastTable);
+                }
+
+                const countLabel = result.statement_count === 1 ? 'statement' : 'statements';
+                showStatus(`Script executed successfully. ${result.statement_count} ${countLabel} ran.`, 'success');
+                await loadDatabaseSchema();
+            } catch (error) {
+                const failed = error.result && error.result.failed_statement
+                    ? `<code>${escapeHtml(error.result.failed_statement)}</code>` : '';
+                scriptResults.innerHTML = `<div class="alert alert-danger">Error running script: ${escapeHtml(error.message)}${failed}</div>`;
+                showStatus(`Error running script: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        });
+
+        // Listener for dynamically added buttons in the workspace
+        databaseWorkspace.addEventListener('click', async (e) => {
+            // Edit existing table schema
+            if (e.target.classList.contains('edit-schema-btn')) {
+                const box = e.target.closest('.entity-box');
+                const tableName = box.dataset.tableName;
+                
+                // Find the accordion for NL generation and open it
+                const nlAccordion = generateSchemaBtn.closest('.accordion-item');
+                setAccordionOpen(nlAccordion, true);
+                
+                // Scroll to the editor
+                schemaEditorContainer.scrollIntoView({ behavior: 'smooth' });
+
+                // Re-create the editor with this table's data
+                showLoader(true, "Loading table schema for editing...");
+                try {
+                    const { pixelReturn } = await runPixel(`GetDatabaseMetamodel(database=[${pixelJson(currentDatabase.id)}], options=["dataTypes", "descriptions"]);`);
+                    const metamodel = pixelReturn[0].output || {};
+                    const dataTypes = metamodel.dataTypes || {};
+                    const descriptions = metamodel.descriptions || {};
+                    const tableNode = (metamodel.nodes || []).find(n => n.conceptualName === tableName);
+
+                    if (!tableNode) {
+                        throw new Error(`Table '${tableName}' was not found in the database metadata.`);
+                    }
+
+                    const columns = tableNode.propSet || [];
+                    // The editor remembers the table and columns it started from so
+                    // "Generate Update SQL" can emit ALTER statements against them.
+                    let editorHtml = `<div class="entity-box" data-table-name="${escapeHtml(tableName)}" data-original-columns="${escapeHtml(JSON.stringify(columns))}">
+                                    <h4>
+                                        <span>Table: <input type="text" class="table-name-input" aria-label="Table name" value="${escapeHtml(tableName)}"></span>
+                                        <span class="header-buttons">
+                                            <button class="btn btn-primary btn-small add-column-btn" aria-label="Add column">+</button>
+                                        </span>
+                                    </h4>
+                                    <ul class="entity-columns">
+                                        <li class="column-header"><span>Column Name</span><span>Data Type</span><span></span></li>`;
+                    
+                    columns.forEach(prop => {
+                        const physicalName = `${tableName}__${prop}`;
+                        const currentType = dataTypes[physicalName] || '';
+                        const description = descriptions[physicalName] || '';
+
+                        editorHtml += `<li data-original-name="${escapeHtml(prop)}" data-original-type="${escapeHtml(currentType)}">
+                                        <input type="text" class="column-name-input" aria-label="Column name" value="${escapeHtml(prop)}"> 
+                                        ${columnTypeSelectHtml(currentType)} 
+                                        <button class="delete-col-btn" aria-label="Remove column">&times;</button>
+                                        <input type="text" class="column-description-input" aria-label="Column description" placeholder="Description..." value="${escapeHtml(description)}">
+                                      </li>`;
+                    });
+
+                    editorHtml += `</ul></div><div class="button-group"><button id="generate-update-sql-btn" class="btn btn-secondary">Generate Update SQL</button></div>`;
+                    
+                    schemaEditorContainer.innerHTML = editorHtml;
+                    // Edit mode has no LLM response; drop any left over from an earlier generation
+                    delete schemaEditorContainer.dataset.llmResponse;
+                    schemaEditorContainer.dataset.mode = 'edit';
+                    schemaEditorContainer.style.display = 'block';
+                    finalSqlContainer.style.display = 'none';
+                } catch (error) {
+                    console.error("Error loading table schema for editing:", error);
+                    showStatus(`Error loading table schema: ${error.message}`, 'error');
+                } finally {
+                    showLoader(false);
+                }
+            }
+
+            // Delete existing table from the database
+            if (e.target.classList.contains('delete-table-btn')) {
+                const box = e.target.closest('.entity-box');
+                // This listener is for the whole workspace. We only act if the button is on an existing table diagram.
+                if (box && entityDiagram.contains(box)) {
+                    const tableName = box.dataset.tableName;
+                    if (await confirmDialog(`Are you sure you want to permanently delete the table '${tableName}' from the database? This action cannot be undone.`, 'Delete table')) {
+                        dropTable(tableName);
+                    }
+                }
+            }
+        });
+
+        async function dropTable(tableName) {
+            showLoader(true, `Deleting table '${tableName}'...`);
+            try {
+                await runPixel(`Database(database=[${pixelJson(currentDatabase.id)}]) | Query(${JSON.stringify(encodedSql(`DROP TABLE ${tableName};`))}) | ExecQuery();`);
+                
+                // Remove the table from the database's metadata (OWL) so it leaves the schema view
+                let metadataError = null;
+                try {
+                    const db = pixelJson(currentDatabase.id);
+                    await runPixel(`META | RemoveOwlConcept(database=[${db}], concept=[${pixelJson(tableName)}]);`);
+                    await runPixel(`SyncDatabaseWithLocalMaster(database=[${db}]);`);
+                } catch (error) {
+                    console.error("Error updating metadata after deletion:", error);
+                    metadataError = error;
+                }
+
+                if (metadataError) {
+                    // Don't fail the whole operation if metadata update fails, but warn the user
+                    showStatus(`Table '${tableName}' was deleted, but the metadata update failed: ${metadataError.message}`, 'warning');
+                } else {
+                    showStatus(`Table '${tableName}' was deleted successfully and metadata updated.`, 'success');
+                }
+                await loadDatabaseSchema(); // Refresh the view
+            } catch (error) {
+                showStatus(`Error deleting table: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        // Metamodel Context Logic
+        const refreshMetamodelBtn = document.getElementById('refresh-metamodel-btn');
+        const sendToPlaygroundBtn = document.getElementById('send-to-playground-btn');
+
+        async function generateContext() {
+            if (!currentDatabase.id) return '';
+            
+            try {
+                // Reuse the Python-based schema fetcher to avoid duplication
+                const schema = await getSimplifiedSchemaJS();
+                return generateContextFromSchema(schema);
+            } catch (e) {
+                console.error("Error generating context:", e);
+                return "Error retrieving database schema.";
+            }
+        }
+
+        refreshMetamodelBtn.addEventListener('click', async () => {
+            if (!currentDatabase.id) {
+                showStatus('Please select a database first.', 'warning');
+                return;
+            }
+            showLoader(true, "Refreshing metamodel...");
+            try {
+                const context = await generateContext();
+                metamodelContext.value = context;
+                showStatus('Metamodel refreshed successfully.', 'success');
+            } catch (error) {
+                console.error("Error generating metamodel:", error);
+                showStatus(`Failed to generate metamodel: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        });
+
+        sendToPlaygroundBtn.addEventListener('click', async () => {
+            const context = metamodelContext.value;
+            if (!context) {
+                showStatus('Please refresh the metamodel first.', 'warning');
+                return;
+            }
+            
+            showLoader(true, "Sending context to playground...");
+            try {
+                // Call the MCP tool 'add_to_context'
+                const { output } = await insight.actions.runMCPTool("add_to_context", {
+                    "context": context
+                });
+                
+                console.log("MCP Output:", output);
+                showStatus('Metamodel sent to playground context successfully.', 'success');
+            } catch (error) {
+                console.error("Error sending to playground:", error);
+                showStatus(`Error sending to playground: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        });
+
+        // Tab functionality
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('tab-btn')) {
+                const tabContainer = e.target.closest('.tab-container');
+                const targetTab = e.target.dataset.tab;
+                
+                // Remove active class from all tab buttons and content
+                tabContainer.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.setAttribute('aria-selected', 'false');
+                    btn.setAttribute('tabindex', '-1');
+                });
+                tabContainer.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding content
+                e.target.classList.add('active');
+                e.target.setAttribute('aria-selected', 'true');
+                e.target.removeAttribute('tabindex');
+                tabContainer.querySelector(`#${targetTab}`).classList.add('active');
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (!e.target.classList || !e.target.classList.contains('tab-btn')) return;
+            if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+            const tabs = [...e.target.closest('.tab-nav').querySelectorAll('.tab-btn')];
+            const next = tabs[(tabs.indexOf(e.target) + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+            next.focus();
+            next.click();
+        });
+
+        // Execute pasted SQL functionality
+        document.getElementById('execute-pasted-sql-btn').addEventListener('click', async () => {
+            const sqlInput = document.getElementById('paste-sql-input');
+            const sql = sqlInput.value.trim();
+            
+            if (!sql) {
+                showStatus('Please paste some SQL to execute.', 'warning');
+                return;
+            }
+            
+            if (!currentDatabase || !currentDatabase.id) {
+                showStatus('No database selected. Please select or create a database first.', 'error');
+                return;
+            }
+            
+            showLoader(true, "Executing SQL...");
+            try {
+                // Use the MCP driver's run_script function to properly handle multi-statement SQL
+                const result = await runDriverScript(sql);
+                
+                const countLabel = result.statement_count === 1 ? 'statement' : 'statements';
+                showStatus(`SQL executed successfully! ${result.statement_count} ${countLabel} ran.`, 'success');
+                
+                // Refresh schema to show new tables
+                await loadDatabaseSchema();
+                // Clear the input
+                sqlInput.value = '';
+            } catch (error) {
+                console.error('Error executing pasted SQL:', error);
+                showStatus(`Error executing SQL: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        });
+
+        // Validate SQL functionality
+        document.getElementById('validate-sql-btn').addEventListener('click', () => {
+            const sqlInput = document.getElementById('paste-sql-input');
+            const sql = sqlInput.value.trim();
+            const validationDiv = document.getElementById('sql-validation-result');
+            
+            if (!sql) {
+                validationDiv.style.display = 'none';
+                showStatus('Please paste some SQL to validate.', 'warning');
+                return;
+            }
+            
+            // Basic SQL validation, statement by statement (quotes and comments are respected)
+            const errors = [];
+            const warnings = [];
+            const statements = splitSqlStatements(sql);
+            const knownTypes = new Set(['CREATE', 'INSERT', 'ALTER', 'DROP', 'UPDATE', 'DELETE', 'SELECT', 'WITH', 'TRUNCATE', 'MERGE', 'COMMENT', 'GRANT', 'REVOKE', 'SET', 'SHOW', 'DESCRIBE', 'EXPLAIN']);
+            const typed = statements.map((statement, index) => ({ index: index + 1, type: statementType(statement) }));
+            const unknown = typed.filter(item => !knownTypes.has(item.type));
+
+            if (!statements.length || unknown.length === statements.length) {
+                errors.push('No recognizable SQL statements found.');
+            } else if (unknown.length) {
+                warnings.push(`Unrecognized statement type in statement(s) ${unknown.map(item => item.index).join(', ')}.`);
+            }
+            
+            // Check for missing semicolons
+            if (statements.length > 1 && !sql.trim().endsWith(';')) {
+                warnings.push('Consider ending statements with semicolons for clarity.');
+            }
+            
+            // Statements that remove tables or rows
+            const destructive = typed.filter(item => ['DROP', 'DELETE', 'TRUNCATE'].includes(item.type));
+            if (destructive.length) {
+                warnings.push(`Potentially destructive SQL detected in statement(s) ${destructive.map(item => item.index).join(', ')}. Please review carefully.`);
+            }
+            
+            // Display results
+            let resultHTML = '';
+            if (errors.length === 0 && warnings.length === 0) {
+                resultHTML = `<div style="color: var(--success-color); font-weight: 500;">\u2713 SQL appears valid and ready to execute (${statements.length} statement${statements.length === 1 ? '' : 's'}).</div>`;
+            } else {
+                if (errors.length > 0) {
+                    resultHTML += '<div style="color: var(--danger-color); margin-bottom: 10px;"><strong>Errors:</strong><ul>';
+                    errors.forEach(error => resultHTML += `<li>${escapeHtml(error)}</li>`);
+                    resultHTML += '</ul></div>';
+                }
+                if (warnings.length > 0) {
+                    resultHTML += '<div style="color: var(--warning-color);"><strong>Warnings:</strong><ul>';
+                    warnings.forEach(warning => resultHTML += `<li>${escapeHtml(warning)}</li>`);
+                    resultHTML += '</ul></div>';
+                }
+            }
+            
+            validationDiv.innerHTML = resultHTML;
+            validationDiv.style.display = 'block';
+        });
+
+        // Refresh Database Ontology
+        document.getElementById('refresh-ontology-btn').addEventListener('click', async () => {
+            if (!currentDatabase || !currentDatabase.id) {
+                showStatus('No database selected. Please select or create a database first.', 'error');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('ontology-result');
+            showLoader(true, "Refreshing database ontology...");
+            
+            try {
+                // Use MCP driver to refresh ontology
+                const { output: result } = await insight.actions.runPy(pyCall('refresh_database_ontology', { database_id: currentDatabase.id }));
+                const decoded = decodeBase64Json(result);
+                
+                if (decoded.status === 'success') {
+                    showStatus(`Ontology refreshed successfully! Synchronized ${decoded.table_count} table(s).`, 'success');
+                    resultDiv.innerHTML = `
+                        <div style="color: var(--success-color); font-weight: 500;">
+                            ✓ Ontology synchronized successfully
+                            <br>Tables processed: ${escapeHtml((decoded.synchronized_tables || []).join(', ') || 'None')}
+                        </div>`;
+                    resultDiv.style.display = 'block';
+                    
+                    // Refresh schema view to show updated metadata
+                    await loadDatabaseSchema();
+                } else {
+                    showStatus(`Ontology refresh failed: ${decoded.error}`, 'error');
+                    resultDiv.innerHTML = `<div style="color: var(--danger-color);">Error: ${escapeHtml(decoded.error)}</div>`;
+                    resultDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error refreshing ontology:', error);
+                showStatus(`Error refreshing ontology: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div style="color: var(--danger-color);">Error: ${escapeHtml(error.message)}</div>`;
+                resultDiv.style.display = 'block';
+            } finally {
+                showLoader(false);
+            }
+        });
+
+        // Generate Metadata Files
+        document.getElementById('create-metadata-btn').addEventListener('click', async () => {
+            if (!currentDatabase || !currentDatabase.id) {
+                showStatus('No database selected. Please select or create a database first.', 'error');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('ontology-result');
+            showLoader(true, "Generating metadata files...");
+            
+            try {
+                // Use MCP driver to create metadata
+                const { output: result } = await insight.actions.runPy(pyCall('create_ontology_metadata', { database_id: currentDatabase.id }));
+                const decoded = decodeBase64Json(result);
+                
+                if (decoded.status === 'success') {
+                    showStatus(`Metadata files generated successfully!`, 'success');
+                    resultDiv.innerHTML = `
+                        <div style="color: var(--success-color); font-weight: 500;">
+                            ✓ Metadata files created successfully
+                            <br>OWL File: ${escapeHtml(decoded.owl_file)}
+                            <br>Summary File: ${escapeHtml(decoded.summary_file)}
+                            <br>Tables documented: ${escapeHtml(decoded.table_count)}
+                        </div>`;
+                    resultDiv.style.display = 'block';
+                } else {
+                    showStatus(`Metadata generation failed: ${decoded.error}`, 'error');
+                    resultDiv.innerHTML = `<div style="color: var(--danger-color);">Error: ${escapeHtml(decoded.error)}</div>`;
+                    resultDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error generating metadata:', error);
+                showStatus(`Error generating metadata: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div style="color: var(--danger-color);">Error: ${escapeHtml(error.message)}</div>`;
+                resultDiv.style.display = 'block';
+            } finally {
+                showLoader(false);
+            }
+        });
+    </script>
+    <script>
+        // Every control on this page is wired up by the module script above. If its SDK
+        // import fails (module scripts run before "load"), say so instead of leaving a page
+        // whose buttons do nothing.
+        window.addEventListener('load', function () {
+            if (window.databaseMakerLoaded) return;
+            var banner = document.createElement('div');
+            banner.className = 'alert alert-danger';
+            banner.setAttribute('role', 'alert');
+            banner.style.marginBottom = '1.5rem';
+            banner.textContent = 'Database Maker could not load the SEMOSS SDK from cdn.jsdelivr.net, so this page cannot run. '
+                + 'Check that this browser can reach cdn.jsdelivr.net, then reload.';
+            var content = document.querySelector('.content');
+            content.insertBefore(banner, content.firstChild);
+        });
+    </script>
+</body>
 </html>

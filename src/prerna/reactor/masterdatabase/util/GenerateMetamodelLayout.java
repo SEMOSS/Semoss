@@ -31,6 +31,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,6 +50,7 @@ import org.graphstream.graph.implementations.MultiGraph;
 import org.graphstream.ui.layout.Layout;
 import org.graphstream.ui.layout.springbox.implementations.SpringBox;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
@@ -58,15 +61,48 @@ import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+/**
+ * Lays out metamodels for the metamodel page: the {@code top} and {@code left}
+ * of each table, by name. A force layout spreads the tables out by their joins,
+ * the tables are then separated so none overlap, and the result is scaled to
+ * page positions. Each table's height follows its number of columns.
+ */
 public class GenerateMetamodelLayout {
 
 	private static final Logger classLogger = LogManager.getLogger(GenerateMetamodelLayout.class);
 
+	private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().create();
+
+	/** How settled the force layout has to be before it stops */
+	private static final double LAYOUT_STABILIZATION = 0.9;
+	/** The most steps the force layout runs, however unsettled */
+	private static final int MAX_LAYOUT_STEPS = 1_000;
+	/** The longest the force layout runs, however unsettled */
+	private static final long LAYOUT_TIME_LIMIT_MS = 5_000;
+
+	/*
+	 * Roughly the size a table is drawn at on the metamodel page, for placing new
+	 * tables beside saved ones
+	 */
+	private static final double TABLE_WIDTH_PX = 320;
+	private static final double TABLE_HEADER_PX = 50;
+	private static final double TABLE_ROW_PX = 54;
+	private static final double TABLE_GAP_PX = 60;
+
+	/**
+	 * Lays out a database's metamodel from its OWL file and writes the positions
+	 * beside the OWL, as {@link AbstractDatabaseEngine#OWL_POSITION_FILENAME}. A
+	 * failure is logged, and the positions are written only once the layout has
+	 * finished.
+	 *
+	 * @param engineId   the database, for the OWL engine's name and the logs
+	 * @param engineName the database's name, for reading its OWL
+	 * @param owlF       the database's OWL file
+	 */
 	public static void generateLayout(String engineId, String engineName, File owlF) {
-		// owl is stored as RDF/XML file
-		RDFFileSesameEngine rfse = null;
-		try {
-			rfse = new RDFFileSesameEngine();
+		Map<String, Map<String, Double>> positionMap = null;
+		// the owl is stored as an RDF/XML file
+		try (RDFFileSesameEngine rfse = new RDFFileSesameEngine()) {
 			rfse.setBasic(true);
 			Properties owlSmss = new Properties();
 			owlSmss.put(Constants.RDF_FILE_PATH, owlF.getAbsolutePath());
@@ -100,54 +136,46 @@ public class GenerateMetamodelLayout {
 				graph.addEdge(edge, start, end);
 			}
 
-			while (layout.getStabilization() < 0.9) {
-				layout.compute();
-			}
+			computeLayout(layout);
 
 			Map<String, Rectangle2D> rectangles = GenerateMetamodelLayout.getRectangles(graph, nodeSizes);
 			Rectangles fixRectangles = new Rectangles();
 			// get map of correctly spaced nodes/rectangles for metamodel
 			Map<String, Rectangle2D> fixedRectangles = fixRectangles.fix(rectangles);
-			Map<String, Map<String, Double>> positionMap = GenerateMetamodelLayout.generatePositionMap(graph,
-					fixedRectangles);
+			positionMap = GenerateMetamodelLayout.generatePositionMap(graph, fixedRectangles);
 
 			long endTimer = System.currentTimeMillis();
-			classLogger.info("Compute time = " + (endTimer - startTimer) + " ms");
-
-			// now write the file
-			String baseFolder = owlF.getParent();
-			String positionJson = baseFolder + "/" + AbstractDatabaseEngine.OWL_POSITION_FILENAME;
-			FileWriter writer = null;
-			try {
-				writer = new FileWriter(positionJson);
-				writer.write(new GsonBuilder().setPrettyPrinting().create().toJson(positionMap));
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (writer != null) {
-					try {
-						writer.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			classLogger.info("Laid out the metamodel of database {} in {} ms", Utility.cleanLogString(engineId),
+					endTimer - startTimer);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (rfse != null) {
-				try {
-					rfse.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Failed to lay out the metamodel of database {} from its OWL",
+					Utility.cleanLogString(engineId), e);
+		}
+		if (positionMap == null) {
+			return;
+		}
+
+		// write the positions beside the owl
+		File positionFile = new File(owlF.getParentFile(), AbstractDatabaseEngine.OWL_POSITION_FILENAME);
+		try (FileWriter writer = new FileWriter(positionFile)) {
+			writer.write(PRETTY_GSON.toJson(positionMap));
+		} catch (IOException e) {
+			classLogger.error("Failed to write the metamodel positions of database {} to {}",
+					Utility.cleanLogString(engineId), positionFile.getAbsolutePath(), e);
 		}
 	}
 
-	/////////////////////////////////////////// for owl metamodel reactor
-	/////////////////////////////////////////// ///////////////////////////////////////////
+	// for owl metamodel reactor
 
+	/**
+	 * Lays out a metamodel given as concepts with their properties, and the joins
+	 * between them.
+	 *
+	 * @param databaseTables each concept's properties, by concept name
+	 * @param databaseJoins  each join, with its {@code source} and {@code target}
+	 *                       concepts and its {@code rel} name
+	 * @return the {@code top} and {@code left} of each concept, by name
+	 */
 	public static Map<String, Map<String, Double>> generateOWLMetamodelLayout(
 			Map<String, Collection<String>> databaseTables, List<Map<String, String>> databaseJoins) {
 		Rectangles fixRectangles = new Rectangles();
@@ -160,10 +188,14 @@ public class GenerateMetamodelLayout {
 		return nodePositionMap;
 	}
 
-	/////////////////////////////////////////// owl metamodel reactor helper
-	/////////////////////////////////////////// functions
-	/////////////////////////////////////////// ///////////////////////////////////////////
+	// owl metamodel reactor helper functions
 
+	/**
+	 * Builds the graph of an OWL metamodel, a node for each concept and an edge for
+	 * each join, and runs the force layout on it.
+	 *
+	 * @return the laid out graph
+	 */
 	private static Graph addNodesToGraphOwl(Map<String, Collection<String>> databaseTables,
 			List<Map<String, String>> databaseJoins) {
 		Graph graph = new MultiGraph(Utility.getRandomString(6));
@@ -182,13 +214,16 @@ public class GenerateMetamodelLayout {
 			graph.addEdge(edge, start, end);
 		}
 
-		while (layout.getStabilization() < 0.9) {
-			layout.compute();
-		}
+		computeLayout(layout);
 
 		return graph;
 	}
 
+	/**
+	 * The number of properties of each concept, which sets its height.
+	 *
+	 * @return the property count, by concept name
+	 */
 	private static Map<String, Integer> getNodeSizesOwl(Map<String, Collection<String>> databaseTables) {
 		Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
 
@@ -199,9 +234,15 @@ public class GenerateMetamodelLayout {
 		return nodeSizes;
 	}
 
-	/////////////////////////////////////////// for graph metamodel reactors
-	/////////////////////////////////////////// ///////////////////////////////////////////
+	// for graph metamodel reactors
 
+	/**
+	 * Lays out the metamodel of a graph database.
+	 *
+	 * @param graphMap the {@code nodes}, each node's properties by name, and the
+	 *                 {@code edges}, each edge's from and to node by name
+	 * @return the {@code top} and {@code left} of each node, by name
+	 */
 	public static Map<String, Map<String, Double>> generateMetamodelLayoutForGraphDBs(Map<String, Object> graphMap) {
 		Rectangles fixRectangles = new Rectangles();
 		Map<String, Map<String, SemossDataType>> nodeMap = (Map<String, Map<String, SemossDataType>>) graphMap
@@ -216,10 +257,14 @@ public class GenerateMetamodelLayout {
 		return nodePositionMap;
 	}
 
-	/////////////////////////////////////////// graph metamodel reactors helper
-	/////////////////////////////////////////// functions
-	/////////////////////////////////////////// ///////////////////////////////////////////
+	// graph metamodel reactors helper functions
 
+	/**
+	 * Builds the graph of a graph database's metamodel, a node for each node type
+	 * and an edge for each edge type, and runs the force layout on it.
+	 *
+	 * @return the laid out graph
+	 */
 	private static Graph addNodesToGraph(Map<String, Map<String, SemossDataType>> nodeMap,
 			Map<String, List<String>> relationshipMap) {
 		Graph graph = new MultiGraph(Utility.getRandomString(6));
@@ -238,13 +283,16 @@ public class GenerateMetamodelLayout {
 			graph.addEdge(edge, start, end);
 		});
 
-		while (layout.getStabilization() < 0.9) {
-			layout.compute();
-		}
+		computeLayout(layout);
 
 		return graph;
 	}
 
+	/**
+	 * The number of properties of each node type, which sets its height.
+	 *
+	 * @return the property count, by node name
+	 */
 	private static Map<String, Integer> getNodeSizes(Map<String, Map<String, SemossDataType>> nodeMap) {
 		Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
 
@@ -255,9 +303,17 @@ public class GenerateMetamodelLayout {
 		return nodeSizes;
 	}
 
-	/////////////////////////////////////////// for external jdbc schema reactor
-	/////////////////////////////////////////// ///////////////////////////////////////////
+	// for external jdbc schema reactor
 
+	/**
+	 * Lays out every table of an external database's schema, read through JDBC.
+	 *
+	 * @param databaseTables each table, with its {@code table} name and
+	 *                       {@code columns}
+	 * @param databaseJoins  each foreign key, with its {@code fromTable},
+	 *                       {@code fromCol}, {@code toTable} and {@code toCol}
+	 * @return the {@code top} and {@code left} of each table, by name
+	 */
 	public static Map<String, Map<String, Double>> generateMetamodelLayoutForExternal(
 			List<Map<String, Object>> databaseTables, List<Map<String, String>> databaseJoins) {
 		Rectangles fixRectangles = new Rectangles();
@@ -270,10 +326,154 @@ public class GenerateMetamodelLayout {
 		return nodePositionMap;
 	}
 
-	/////////////////////////////////////////// external jdbc schema reactor helper
-	/////////////////////////////////////////// functions
-	/////////////////////////////////////////// ///////////////////////////////////////////
+	/**
+	 * The positions of a database's tables after a schema sync. A table with a
+	 * saved position keeps it, so the layout the user arranged stays as it is. When
+	 * no table has one, every table is laid out; otherwise only the new tables are
+	 * placed, in rows below the saved ones, and no layout runs.
+	 *
+	 * @param databaseTables each table, with its {@code table} name and
+	 *                       {@code columns}
+	 * @param databaseJoins  the joins between the tables
+	 * @param savedPositions the saved {@code top} and {@code left} of each table,
+	 *                       by name, or null for none
+	 * @return the {@code top} and {@code left} of each table, by name
+	 */
+	public static Map<String, Map<String, Double>> generateMetamodelLayoutForExternal(
+			List<Map<String, Object>> databaseTables, List<Map<String, String>> databaseJoins,
+			Map<String, Object> savedPositions) {
+		Map<String, Map<String, Double>> positions = new HashMap<>();
+		List<Map<String, Object>> newTables = new ArrayList<>();
+		double left = Double.MAX_VALUE;
+		double bottom = 0;
+		for (Map<String, Object> table : databaseTables) {
+			String tableName = (String) table.get("table");
+			Map<String, Double> saved = savedPosition(savedPositions == null ? null : savedPositions.get(tableName));
+			if (saved == null) {
+				newTables.add(table);
+				continue;
+			}
+			positions.put(tableName, saved);
+			left = Math.min(left, saved.get("left"));
+			bottom = Math.max(bottom, saved.get("top") + tableHeight(table));
+		}
+		if (positions.isEmpty()) {
+			return generateMetamodelLayoutForExternal(databaseTables, databaseJoins);
+		}
 
+		// new tables go in rows below the saved ones, in a roughly square grid
+		int perRow = Math.max(1, (int) Math.ceil(Math.sqrt(newTables.size())));
+		double x = left;
+		double y = bottom + TABLE_GAP_PX;
+		double rowHeight = 0;
+		int inRow = 0;
+		for (Map<String, Object> table : newTables) {
+			if (inRow == perRow) {
+				x = left;
+				y += rowHeight + TABLE_GAP_PX;
+				rowHeight = 0;
+				inRow = 0;
+			}
+			Map<String, Double> position = new HashMap<>();
+			position.put("top", y);
+			position.put("left", x);
+			positions.put((String) table.get("table"), position);
+			rowHeight = Math.max(rowHeight, tableHeight(table));
+			x += TABLE_WIDTH_PX + TABLE_GAP_PX;
+			inRow++;
+		}
+		return positions;
+	}
+
+	/**
+	 * Runs the force layout until it settles, or until it has run
+	 * {@value #MAX_LAYOUT_STEPS} steps or {@value #LAYOUT_TIME_LIMIT_MS}
+	 * milliseconds, so a large or restless graph cannot keep the request waiting. A
+	 * layout stopped early is still usable, since the tables are separated
+	 * afterwards.
+	 *
+	 * @param layout the layout the graph sends its nodes and edges to
+	 */
+	private static void computeLayout(Layout layout) {
+		long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(LAYOUT_TIME_LIMIT_MS);
+		int steps = 0;
+		while (steps < MAX_LAYOUT_STEPS && layout.getStabilization() < LAYOUT_STABILIZATION) {
+			layout.compute();
+			steps++;
+			if (System.nanoTime() - deadline >= 0) {
+				break;
+			}
+		}
+		if (layout.getStabilization() < LAYOUT_STABILIZATION) {
+			classLogger.info("Stopped the metamodel layout after {} steps, before it settled", steps);
+		}
+	}
+
+	/**
+	 * A saved position, read from the map of {@code top} and {@code left} the page
+	 * saves.
+	 *
+	 * @param value the saved entry for a table
+	 * @return the position, or null when it is missing or not a pair of numbers
+	 */
+	private static Map<String, Double> savedPosition(Object value) {
+		if (!(value instanceof Map<?, ?> saved)) {
+			return null;
+		}
+		Double top = toDouble(saved.get("top"));
+		Double left = toDouble(saved.get("left"));
+		if (top == null || left == null) {
+			return null;
+		}
+		Map<String, Double> position = new HashMap<>();
+		position.put("top", top);
+		position.put("left", left);
+		return position;
+	}
+
+	/**
+	 * A saved coordinate as a number. The local master database returns numbers,
+	 * and a cached map can hold them as text.
+	 *
+	 * @param value the saved coordinate
+	 * @return the number, or null when it is missing or not a number
+	 */
+	private static Double toDouble(Object value) {
+		if (value instanceof Number number) {
+			return number.doubleValue();
+		}
+		if (value instanceof String text) {
+			try {
+				return Double.parseDouble(text.trim());
+			} catch (NumberFormatException e) {
+				return null;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Roughly how tall a table is drawn on the metamodel page: its header and a row
+	 * for each column.
+	 *
+	 * @param table the table, with its {@code columns}
+	 * @return the height, in page pixels
+	 */
+	private static double tableHeight(Map<String, Object> table) {
+		Object columns = table.get("columns");
+		int columnCount = columns instanceof List<?> list ? list.size() : 0;
+		return TABLE_HEADER_PX + TABLE_ROW_PX * columnCount;
+	}
+
+	// external jdbc schema reactor helper functions
+
+	/**
+	 * Builds the graph of an external database's schema, a node for each table and
+	 * an edge for each foreign key, and runs the force layout on it. A table or a
+	 * foreign key listed twice is laid out once.
+	 *
+	 * @return the laid out graph
+	 */
 	private static Graph addNodesToGraph(List<Map<String, Object>> databaseTables,
 			List<Map<String, String>> databaseJoins) {
 		Graph graph = new MultiGraph(Utility.getRandomString(6));
@@ -286,7 +486,8 @@ public class GenerateMetamodelLayout {
 			try {
 				graph.addNode(tableName);
 			} catch (org.graphstream.graph.IdAlreadyInUseException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.warn("Table {} is listed more than once, so the metamodel layout places it once",
+						Utility.cleanLogString(tableName));
 			}
 		}
 
@@ -297,24 +498,29 @@ public class GenerateMetamodelLayout {
 			try {
 				graph.addEdge(edge, start, end);
 			} catch (org.graphstream.graph.IdAlreadyInUseException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.warn("Foreign key {} is listed more than once, so the metamodel layout draws it once",
+						Utility.cleanLogString(edge));
 			}
 		}
 
-		while (layout.getStabilization() < 0.9) {
-			layout.compute();
-		}
+		computeLayout(layout);
 
 		return graph;
 	}
 
+	/**
+	 * The number of columns of each table, which sets its height.
+	 *
+	 * @return the column count, by table name, for each table whose columns were
+	 *         read
+	 */
 	private static Map<String, Integer> getNodeSizes(List<Map<String, Object>> databaseTables) {
 		Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
 
 		for (Map<String, Object> nodes : databaseTables) {
 			List<String> columns = (List) nodes.get("columns");
 			String tableName = (String) nodes.get("table");
-			// if no columns, just why....
+			// a table whose columns could not be read has no size
 			if (columns != null) {
 				nodeSizes.put(tableName, columns.size());
 			}
@@ -323,9 +529,17 @@ public class GenerateMetamodelLayout {
 		return nodeSizes;
 	}
 
-	/////////////////////////////////////////// for predict metamodel reactor
-	/////////////////////////////////////////// ///////////////////////////////////////////
+	// for predict metamodel reactor
 
+	/**
+	 * Lays out a predicted metamodel: tables with their properties, and the joins
+	 * predicted between them.
+	 *
+	 * @param nodePropMap     each table's properties, by table name
+	 * @param relationMapList each predicted join, with its {@code fromTable},
+	 *                        {@code toTable} and {@code relName}
+	 * @return the {@code top} and {@code left} of each table, by name
+	 */
 	public static Map<String, Map<String, Double>> generateMetamodelPredictionLayout(
 			Map<String, List<String>> nodePropMap, List<Map<String, Object>> relationMapList) {
 		Rectangles fixRectangles = new Rectangles();
@@ -338,10 +552,14 @@ public class GenerateMetamodelLayout {
 		return nodePositionMap;
 	}
 
-	/////////////////////////////////////////// predict metamodel reactor helper
-	/////////////////////////////////////////// functions
-	/////////////////////////////////////////// ///////////////////////////////////////////
+	// predict metamodel reactor helper functions
 
+	/**
+	 * Builds the graph of a predicted metamodel, a node for each table in a join
+	 * and an edge for each join, and runs the force layout on it.
+	 *
+	 * @return the laid out graph
+	 */
 	private static Graph addNodesToGraph(Map<String, List<String>> nodePropMap,
 			List<Map<String, Object>> relationMapList) {
 		Graph graph = new MultiGraph(Utility.getRandomString(6));
@@ -369,13 +587,17 @@ public class GenerateMetamodelLayout {
 			graph.addEdge(edge, start, end);
 		}
 
-		while (layout.getStabilization() < 0.9) {
-			layout.compute();
-		}
+		computeLayout(layout);
 
 		return graph;
 	}
 
+	/**
+	 * The number of properties of each table, which sets its height. A table that
+	 * appears only in a join has none.
+	 *
+	 * @return the property count, by table name
+	 */
 	private static Map<String, Integer> getNodeSizes(Map<String, List<String>> nodePropMap,
 			List<Map<String, Object>> relationMapList) {
 		Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
@@ -399,6 +621,15 @@ public class GenerateMetamodelLayout {
 		return nodeSizes;
 	}
 
+	/**
+	 * The box of each node at its laid out position, in layout units: 160 wide, and
+	 * 20 tall, or 10 per property for a node with more than one property.
+	 *
+	 * @param graph     the laid out graph
+	 * @param nodeSizes the property count of each node, by name; a node not in it
+	 *                  has none
+	 * @return the box of each node, by name
+	 */
 	private static Map<String, Rectangle2D> getRectangles(Graph graph, Map<String, Integer> nodeSizes) {
 		Map<String, Rectangle2D> rectangles = new HashMap<>();
 		Iterator<Node> nodeIt = graph.iterator();
@@ -425,6 +656,15 @@ public class GenerateMetamodelLayout {
 		return rectangles;
 	}
 
+	/**
+	 * Turns the separated boxes into page positions: shifted so none is negative,
+	 * then scaled up, by 6 for fewer than 10 nodes, 4 for 11 to 24, and 3 for any
+	 * other count. The graph is cleared afterwards.
+	 *
+	 * @param graph           the laid out graph
+	 * @param fixedRectangles the separated box of each node, by name
+	 * @return the {@code top} and {@code left} of each node, by name
+	 */
 	private static Map<String, Map<String, Double>> generatePositionMap(Graph graph,
 			Map<String, Rectangle2D> fixedRectangles) {
 		Map<String, Map<String, Double>> positionMap = new HashMap<>();
@@ -491,18 +731,4 @@ public class GenerateMetamodelLayout {
 		return positionMap;
 	}
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//	public static void main(String[] args) throws Exception {
-//		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-//
-//		String tapCoreSmss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data__133db94b-4371-4763-bff9-edf7e5ed021b.smss";
-//		BigDataEngine engine = new BigDataEngine();
-//		engine.open(tapCoreSmss);
-//
-//		generateLayout("133db94b-4371-4763-bff9-edf7e5ed021b");
-//	}
 }

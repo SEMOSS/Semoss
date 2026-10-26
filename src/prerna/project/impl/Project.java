@@ -30,7 +30,6 @@ package prerna.project.impl;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -42,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,8 +64,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.json.JSONObject;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Element;
 import org.xml.sax.InputSource;
 
 import com.google.gson.Gson;
@@ -170,11 +168,11 @@ public class Project implements IProject {
 	private ProjectReactorHelper reactorHelper = null;
 	private SemossDate lastReactorCompilationDate = null;
 
-	// publish portals
-	private static final String PORTAL_INDEX_SCRIPT_ID = "semoss-env";
-	private SemossDate lastPortalPublishDate = null;
-	private boolean publishedPortal = false;
-	private boolean republishPortal = false;
+	/**
+	 * Owns publishing the portal into public_home and deciding when the published
+	 * copy has fallen behind the project's content.
+	 */
+	private ProjectPortalsHelper portalsHelper = null;
 
 	// python server
 	protected String prefix = null;
@@ -256,9 +254,10 @@ public class Project implements IProject {
 
 		// load any assets that are already compiled
 		this.reactorHelper = new ProjectReactorHelper(this);
+		this.portalsHelper = new ProjectPortalsHelper(this, this.projectPortalFolder, this.smssProp);
 		try {
 			loadCompiledProjectReactors();
-		} catch (Exception e) {
+		} catch (Exception | LinkageError e) {
 			classLogger.error("Unable to compile project reactors on project initialization for project '{}'",
 					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 		}
@@ -704,12 +703,19 @@ public class Project implements IProject {
 		boolean loadJars = jars != null && jars.length > 0;
 		boolean hasPom = pomFile.exists() && pomFile.isFile();
 
-		if (loadJars) {
-			compileReactorFromJars(jars);
-		} else if (hasPom) {
-			compileReactorsFromPom(pomFile);
-		} else {
-			compileReactorsFromJavaFiles();
+		// LinkageError covers classes built for a newer java version, which must not
+		// take the project down with them
+		try {
+			if (loadJars) {
+				compileReactorFromJars(jars);
+			} else if (hasPom) {
+				compileReactorsFromPom(pomFile);
+			} else {
+				compileReactorsFromJavaFiles();
+			}
+		} catch (Exception | LinkageError e) {
+			classLogger.error("Failed to compile reactors for project '{}'",
+					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 		}
 
 		this.lastReactorCompilationDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
@@ -792,8 +798,15 @@ public class Project implements IProject {
 					throw new IllegalArgumentException("Unable to load jar file : " + jars[i].getName());
 				}
 			}
-			projectSpecificHash = this.reactorHelper.loadReactorsFromJars(urls);
-			ProjectCustomReactorCompilator.setCompiled(this.projectId);
+			try {
+				projectSpecificHash = this.reactorHelper.loadReactorsFromJars(urls);
+				ProjectCustomReactorCompilator.setCompiled(this.projectId);
+			} catch (LinkageError e) {
+				// a jar built for a newer java version fails the same way every time, so it
+				// is not retried on every lookup, only once the class cache is cleared
+				ProjectCustomReactorCompilator.setFailed(this.projectId);
+				throw e;
+			}
 		}
 	}
 
@@ -808,7 +821,7 @@ public class Project implements IProject {
 
 		IReactor retReac = null;
 		try {
-			if (projectSpecificHash.containsKey(className.toUpperCase())) {
+			if (projectSpecificHash != null && projectSpecificHash.containsKey(className.toUpperCase())) {
 				Class<IReactor> thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 				retReac = thisReactorClass.getDeclaredConstructor().newInstance();
 			}
@@ -914,10 +927,6 @@ public class Project implements IProject {
 
 		if (hasPom) {
 			// this is maven
-
-			// TODO: need to figure out how we see if maven is already compiled and exists
-			// TODO: need to figure out how we see if maven is already compiled and exists
-			// TODO: need to figure out how we see if maven is already compiled and exists
 			// TODO: need to figure out how we see if maven is already compiled and exists
 
 		} else if (loadJars) {
@@ -941,12 +950,8 @@ public class Project implements IProject {
 
 	@Override
 	public IReactor getReactor(String className) {
-		SemossDate lastCompiledDateInSecurity = SecurityProjectUtils.getReactorCompilationTimestamp(this.projectId);
-		boolean outOfDate = false;
-		if (lastCompiledDateInSecurity != null && this.lastReactorCompilationDate != null) {
-			outOfDate = lastCompiledDateInSecurity.getLocalDateTime()
-					.isAfter(this.lastReactorCompilationDate.getLocalDateTime());
-		}
+		LocalDateTime clusterTimestamp = SecurityProjectUtils.getReactorCompilationTimestamp(this.projectId);
+		boolean outOfDate = ProjectFreshness.isBehind(clusterTimestamp, this.lastReactorCompilationDate);
 		// just pull to make sure we have the latest in case project was loaded
 		// but not published
 		if (outOfDate || this.lastReactorCompilationDate == null) {
@@ -965,7 +970,7 @@ public class Project implements IProject {
 					Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 					retReac = (IReactor) thisReactorClass.getDeclaredConstructor().newInstance();
 				}
-			} catch (Exception e) {
+			} catch (Exception | LinkageError e) {
 				classLogger.error("Failed to instantiate cached reactor '{}' for project '{}'", className,
 						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 			}
@@ -996,20 +1001,22 @@ public class Project implements IProject {
 			boolean loadJars = jars != null && jars.length > 0;
 			boolean hasPom = pomFile.exists() && pomFile.isFile();
 
-			if (loadJars) {
-				retReac = getReactorFromJars(className, jars);
-			} else if (hasPom) {
-				retReac = getReactorsFromPom(className, pomFile);
-			} else {
-				compileReactorsFromJavaFiles();
-				try {
+			// LinkageError covers classes built for a newer java version
+			try {
+				if (loadJars) {
+					retReac = getReactorFromJars(className, jars);
+				} else if (hasPom) {
+					retReac = getReactorsFromPom(className, pomFile);
+				} else {
+					compileReactorsFromJavaFiles();
 					if (projectSpecificHash != null && projectSpecificHash.containsKey(className.toUpperCase())) {
 						Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 						retReac = (IReactor) thisReactorClass.getDeclaredConstructor().newInstance();
 					}
-				} catch (Exception e) {
-					classLogger.error("Failed to instantiate reactor '{}' from project java source", className, e);
 				}
+			} catch (Exception | LinkageError e) {
+				classLogger.error("Failed to load reactor '{}' for project '{}'", className,
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 			}
 
 			this.lastReactorCompilationDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
@@ -1120,98 +1127,12 @@ public class Project implements IProject {
 
 	@Override
 	public boolean requirePublish(boolean pullFromCloud) {
-		// check in security DB when we last published
-		SemossDate lastPublishedDateInSecurity = SecurityProjectUtils.getPortalPublishedTimestamp(this.projectId);
-		boolean outOfDate = false;
-		if (lastPublishedDateInSecurity != null && this.lastPortalPublishDate != null) {
-			outOfDate = lastPublishedDateInSecurity.getZonedDateTime()
-					.isAfter(this.lastPortalPublishDate.getZonedDateTime());
-		}
-		if (outOfDate || this.lastPortalPublishDate == null) {
-			// just pull to make sure we have the latest in case project was loaded
-			// but not published
-			if (pullFromCloud) {
-				classLogger.info(
-						"Pulling Portals folder for project {}. Current portal out of date = {}. Last portal publish date = {}",
-						this.projectId, outOfDate, this.lastPortalPublishDate);
-				ClusterUtil.pullProjectFolder(this, this.projectPortalFolder);
-			}
-		}
-
-		// if this are true we want to republish
-		// we just add the additional logic above if we have to pull from cloud
-		return this.republishPortal || outOfDate || !this.publishedPortal;
+		return this.portalsHelper.requirePublish(pullFromCloud);
 	}
 
 	@Override
-	/**
-	 * Publish the portals folder to public_home
-	 */
-	// TODO: HAVE TO ADD SYNCHONIZED UNTIL DATES ARE RESOLVED
-	public synchronized boolean publish(String publicHomeFilePath, boolean pullFromCloud) {
-		if (publicHomeFilePath == null) {
-			return false;
-		}
-
-		// find what is the final URL
-		// this is the base url plus manipulations
-		// find what the tomcat deploy directory is
-		// no easy way to find other than may be find the classpath ? - will instrument
-		// this through RDF Map
-		boolean requirePublish = requirePublish(pullFromCloud);
-		try {
-			if (requirePublish) {
-				Path sourcePortalsProjectPath = Paths.get(this.projectPortalFolder);
-				Path targetPublicHomeProjectPortalsPath = Paths.get(
-						publicHomeFilePath + DIR_SEPARATOR + this.projectId + DIR_SEPARATOR + Constants.PORTALS_FOLDER);
-
-				File targetPublicHomeProjectPortalsDir = targetPublicHomeProjectPortalsPath.toFile();
-				// if the target directory exists
-				// we have to delete it before
-				if (targetPublicHomeProjectPortalsDir.exists() && targetPublicHomeProjectPortalsDir.isDirectory()) {
-					FileUtils.deleteDirectory(targetPublicHomeProjectPortalsDir);
-				}
-
-				rewritePortalIndexHtml(this.projectPortalFolder + DIR_SEPARATOR + "index.html");
-
-				// do we physically copy of link?
-				// first smss file
-				// second rdf map
-				boolean copy = true;
-				if (smssProp != null && smssProp.getProperty(Settings.COPY_PROJECT) != null) {
-					copy = Boolean.parseBoolean(smssProp.getProperty(Settings.COPY_PROJECT) + "");
-				} else if (Utility.getDIHelperProperty(Settings.COPY_PROJECT) != null) {
-					copy = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.COPY_PROJECT) + "");
-				}
-
-				// this is purely for testing purposes - this is because when eclipse publishes
-				// it wipes the directory and removes the actual db
-				if (copy) {
-					if (!targetPublicHomeProjectPortalsDir.exists()) {
-						targetPublicHomeProjectPortalsDir.mkdir();
-					}
-					FileUtils.copyDirectory(sourcePortalsProjectPath.toFile(), targetPublicHomeProjectPortalsDir);
-				}
-				// this is where we create symbolic link
-				else if (!targetPublicHomeProjectPortalsDir.exists()
-						&& !Files.isSymbolicLink(targetPublicHomeProjectPortalsPath)) {
-					Files.createSymbolicLink(targetPublicHomeProjectPortalsPath, sourcePortalsProjectPath);
-				}
-				targetPublicHomeProjectPortalsDir.deleteOnExit();
-				this.publishedPortal = true;
-				this.republishPortal = false;
-				this.lastPortalPublishDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
-				classLogger.info("Project '{}' has new last portal published date {}",
-						SmssUtilities.getUniqueName(this.projectName, this.projectId), this.lastPortalPublishDate);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to publish portals for project '{}'",
-					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
-			this.publishedPortal = false;
-			this.lastPortalPublishDate = null;
-		}
-
-		return this.publishedPortal;
+	public boolean publish(String publicHomeFilePath, boolean pullFromCloud) {
+		return this.portalsHelper.publish(publicHomeFilePath, pullFromCloud);
 	}
 
 	@Override
@@ -1318,53 +1239,19 @@ public class Project implements IProject {
 		return blocksF;
 	}
 
-	private void rewritePortalIndexHtml(String indexHtmlPath) {
-		/*
-		 * <script> window.SEMOSS = { "APP": "<project_id>", "MODULE":
-		 * "/{route - optional}/{context - usually just Monolith}" } </script>
-		 */
-		// add the route if this is server deployment
-		File indexHtmlF = new File(indexHtmlPath);
-		if (!indexHtmlF.exists() || !indexHtmlF.isFile()) {
-			return;
-		}
-
-		String module = Utility.getApplicationRouteAndContextPath();
-		org.jsoup.nodes.Document document;
-		try {
-			document = Jsoup.parse(indexHtmlF, "UTF-8");
-			String scriptContent = "{\"APP\": \"" + projectId + "\",\"MODULE\": \"" + module + "\"}";
-			Element autoGenScript = document.getElementById(PORTAL_INDEX_SCRIPT_ID);
-			if (autoGenScript == null) {
-				document.selectFirst("head").child(0).before("<script id=\"" + PORTAL_INDEX_SCRIPT_ID
-						+ "\" type=\"application/json\">" + scriptContent + "</script>");
-			} else {
-				autoGenScript.html(scriptContent);
-			}
-
-			String newHtml = document.html();
-			try (FileWriter fw = new FileWriter(indexHtmlF, false)) {
-				fw.write(newHtml);
-				fw.flush();
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to rewrite portal index html {}", indexHtmlF.getAbsolutePath(), e);
-		}
-	}
-
 	@Override
 	public void setRepublish(boolean republish) {
-		this.republishPortal = republish;
+		this.portalsHelper.setRepublish(republish);
 	}
 
 	@Override
 	public boolean isPublished() {
-		return this.publishedPortal;
+		return this.portalsHelper.isPublished();
 	}
 
 	@Override
 	public SemossDate getLastPublishDate() {
-		return this.lastPortalPublishDate;
+		return this.portalsHelper.getLastPublishDate();
 	}
 
 	@Override

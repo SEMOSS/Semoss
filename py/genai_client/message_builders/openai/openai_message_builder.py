@@ -1,7 +1,14 @@
 from typing import List, Dict, Any, Optional, Tuple, Union
 import json
+import mimetypes
 from pydantic import BaseModel
-from ...utils import get_image_extension, string_to_bool
+from ...utils import string_to_bool
+from ..semoss_base.media_types import (
+    decode_base64_text,
+    is_text_mime_type,
+    normalize_text_mime_type,
+    prepare_base64_media,
+)
 from ..semoss_base.builtin_tools import (
     built_in_tool_request_fields,
     normalize_built_in_tools,
@@ -207,18 +214,15 @@ class OpenAIMessageBuilder:
                             OpenAIResponsesToolCallOutput(
                                 type="function_call_output",
                                 call_id=p.tool_result.id,
-                                output=self._build_responses_tool_output(output, blocks),
+                                output=self._build_responses_tool_output(
+                                    output, blocks
+                                ),
                             )
                         )
 
                     elif p.type == SEMOSSMessagePartType.THINKING:
-                        thinking_dict = {
-                            "type": "thinking",
-                            "thinking": p.thinking,
-                        }
-                        if self.thinking_signature:
-                            thinking_dict["signature"] = self.thinking_signature
-                        content_parts.append(thinking_dict)
+                        # Chat reasoning is not a Responses API input item.
+                        continue
 
                 # this message might be a tool result with no other content
                 # in that case we don't want to add an additional message with empty content
@@ -359,6 +363,7 @@ class OpenAIMessageBuilder:
             if message.parts:
                 content_parts = []
                 tool_call_parts = []
+                reasoning_fields = {}
                 is_assistant = message.io != "INPUT"
                 assistant_media_parts = []
                 for p in message.parts:
@@ -438,36 +443,40 @@ class OpenAIMessageBuilder:
                         )
 
                     elif p.type == SEMOSSMessagePartType.THINKING:
-                        thinking_dict = {
-                            "type": "thinking",
-                            "thinking": p.thinking,
-                        }
-                        if self.thinking_signature:
-                            thinking_dict["signature"] = self.thinking_signature
-                        content_parts.append(thinking_dict)
+                        if (
+                            is_assistant
+                            and self.model_settings.preserve_reasoning_content
+                            and p.source in {"reasoning_content", "reasoning"}
+                        ):
+                            reasoning_fields[p.source] = (
+                                reasoning_fields.get(p.source, "") + p.thinking
+                            )
 
-                # openai does not allow text with tool calls
-                # so if tool call we will drop the text portion
+                if (
+                    len(content_parts) == 1
+                    and isinstance(content_parts[0], OpenAITextContentPart)
+                    and self.simplify_messages
+                ):
+                    content = content_parts[0].text
+                else:
+                    content = content_parts
+
                 if tool_call_parts:
                     openai_messages.append(
                         OpenAIMessage(
                             role="assistant",
-                            content="",
+                            content=(
+                                content
+                                if self.model_settings.preserve_reasoning_content
+                                else ""
+                            ),
                             tool_calls=tool_call_parts,
+                            **reasoning_fields,
                         ),
                     )
                 # this message might be a tool result with no other content
                 # in that case we don't want to add an additional message with empty content
-                elif content_parts:
-                    if (
-                        len(content_parts) == 1
-                        and isinstance(content_parts[0], OpenAITextContentPart)
-                        and self.simplify_messages
-                    ):
-                        content = content_parts[0].text
-                    else:
-                        content = content_parts
-
+                elif content_parts or reasoning_fields:
                     openai_messages.append(
                         OpenAIMessage(
                             role=(
@@ -476,6 +485,7 @@ class OpenAIMessageBuilder:
                                 else OpenAIRoles.ASSISTANT.value
                             ),
                             content=content,
+                            **reasoning_fields,
                         )
                     )
 
@@ -568,13 +578,26 @@ class OpenAIMessageBuilder:
                 if is_last:
                     param_map.update(message.param_map)
 
-        try:
-            reasoning_effort = self._resolve_reasoning_effort(param_map)
-            if reasoning_effort:
-                param_map["reasoning_effort"] = reasoning_effort
-                param_map.pop("temperature", None)
-        except Exception:
-            pass
+        if self.model_settings.chat_reasoning_mode == "chat_template":
+            # Laguna and similar endpoints use a template switch, not OpenAI effort.
+            reasoning = normalize_reasoning(param_map, self.model_settings)
+            extra_body = dict(param_map.get("extra_body") or {})
+            template_kwargs = dict(extra_body.get("chat_template_kwargs") or {})
+            template_kwargs["enable_thinking"] = reasoning is not None
+            extra_body["chat_template_kwargs"] = template_kwargs
+            param_map["extra_body"] = extra_body
+            param_map.pop("reasoning_effort", None)
+        elif self.model_settings.chat_reasoning_mode == "none":
+            normalize_reasoning(param_map, self.model_settings)
+            param_map.pop("reasoning_effort", None)
+        else:
+            try:
+                reasoning_effort = self._resolve_reasoning_effort(param_map)
+                if reasoning_effort:
+                    param_map["reasoning_effort"] = reasoning_effort
+                    param_map.pop("temperature", None)
+            except Exception:
+                pass
 
         has_schema = param_map.get("schema", False)
         if has_schema:
@@ -1050,14 +1073,23 @@ class OpenAIMessageBuilder:
             elif not b.data:
                 continue  # unresolved file ref - Java should have inlined this
             elif b.type == "image":
-                mime = b.mime_type or "image/png"
-                result.append({"type": "input_image",
-                               "image_url": f"data:{mime};base64,{b.data}"})
+                data, mime = prepare_base64_media(b, "image/png")
+                result.append(
+                    {"type": "input_image", "image_url": f"data:{mime};base64,{data}"}
+                )
             else:
-                mime = b.mime_type or "application/pdf"
-                result.append({"type": "input_file",
-                               "filename": "document.pdf",
-                               "file_data": f"data:{mime};base64,{b.data}"})
+                data, mime = prepare_base64_media(b, "application/pdf")
+                mime = normalize_text_mime_type(
+                    mime, preserve={"text/csv", "text/tab-separated-values"}
+                )
+                result.append(
+                    {
+                        "type": "input_file",
+                        "filename": "document"
+                        + (mimetypes.guess_extension(mime) or ""),
+                        "file_data": f"data:{mime};base64,{data}",
+                    }
+                )
         return result if result else (output or "Tool executed successfully.")
 
     def _build_text_content_part(
@@ -1073,6 +1105,7 @@ class OpenAIMessageBuilder:
         self, media_content: List[SEMOSSMediaContent] = []
     ) -> List[
         Union[
+            OpenAITextContentPart,
             OpenAIImageContentPart,
             OpenAIFileContentPart,
             OpenAIResponsesImageContentPart,
@@ -1089,6 +1122,7 @@ class OpenAIMessageBuilder:
     def _build_media_content_single_part(
         self, media: SEMOSSMediaContent = None
     ) -> Union[
+        OpenAITextContentPart,
         OpenAIImageContentPart,
         OpenAIFileContentPart,
         OpenAIResponsesImageContentPart,
@@ -1121,6 +1155,7 @@ class OpenAIMessageBuilder:
             return OpenAIImageContentPart(image_url=image_url)
 
     def _build_base64_media_content(self, media_content: SEMOSSMediaContent) -> Union[
+        OpenAITextContentPart,
         OpenAIImageContentPart,
         OpenAIFileContentPart,
         OpenAIResponsesImageContentPart,
@@ -1132,23 +1167,29 @@ class OpenAIMessageBuilder:
                 "The media type was specified as base64 but no data was provided."
             )
 
-        if not media_content.mime_type:
-            media_content.mime_type = get_image_extension(media_content.data)
+        data, mime_type = prepare_base64_media(media_content)
+        if self.chat_type != "responses" and is_text_mime_type(mime_type):
+            # Chat Completions accepts PDF files only; send textual attachments
+            # as text content while retaining the filename as context.
+            text = decode_base64_text(data)
+            if media_content.file_name:
+                text = f"Attached file: {media_content.file_name}\n\n{text}"
+            return self._build_text_content_part(text)
 
-        if media_content.mime_type == "image/jpg":
-            media_content.mime_type = "image/jpeg"
-
-        data_uri = f"data:{media_content.mime_type};base64,{media_content.data}"
+        mime_type = normalize_text_mime_type(
+            mime_type, preserve={"text/csv", "text/tab-separated-values"}
+        )
+        data_uri = f"data:{mime_type};base64,{data}"
 
         if self.chat_type == "responses":
-            if media_content.mime_type.startswith("image"):
+            if mime_type.startswith("image/"):
                 return OpenAIResponsesImageContentPart(image_url=data_uri)
             else:
                 return OpenAIResponsesFileContentPart(
                     filename=media_content.file_name, file_data=data_uri
                 )
         else:
-            if media_content.mime_type.startswith("image"):
+            if mime_type.startswith("image/"):
                 image_url = OpenAIImageURL(
                     url=data_uri, detail=OpenAIImageDetail.AUTO.value
                 )

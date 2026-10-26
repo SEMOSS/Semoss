@@ -20,6 +20,13 @@ from google.genai import types
 from ...utils import string_to_bool
 from ..semoss_base.builtin_tools import normalize_built_in_tools
 from ..semoss_base.reasoning import normalize_reasoning
+from ..semoss_base.media_types import (
+    decode_base64_text,
+    is_text_mime_type,
+    normalize_text_mime_type,
+    prepare_base64_media,
+    resolve_mime_type,
+)
 
 
 class GoogleGenAIMessageBuilder:
@@ -35,6 +42,7 @@ class GoogleGenAIMessageBuilder:
 
         pending_tool_responses = []
         expected_tool_count = 0
+        self._blob_seq = 0
 
         for i, message in enumerate(semoss_messages):
             if message.parts:
@@ -339,26 +347,39 @@ class GoogleGenAIMessageBuilder:
             return Part.from_function_response(name=name, response={"result": output})
 
         text_parts = [b.text for b in blocks if b.type == "text"]
+        # Function-response blobs support binary media. Include text documents
+        # in the response JSON so they are also retained on older SDK versions.
+        binary_blocks = []
+        for block in blocks:
+            if block.type in ("image", "document") and block.data:
+                data, mime = prepare_base64_media(
+                    block, "image/png" if block.type == "image" else "application/pdf"
+                )
+                if is_text_mime_type(mime):
+                    text_parts.append(decode_base64_text(data))
+                else:
+                    binary_blocks.append((data, mime))
         text = "\n".join(text_parts) if text_parts else "See attached media."
 
         try:
             media_parts = []
-            for block in blocks:
-                if block.type in ("image", "document") and block.data:
-                    try:
-                        data_bytes = base64.b64decode(block.data)
-                    except (ValueError, TypeError):
-                        continue  # malformed base64 - skip this block
-                    mime = block.mime_type or "image/png"
-                    media_parts.append(
-                        types.FunctionResponsePart(
-                            inline_data=types.FunctionResponseBlob(
-                                mime_type=mime,
-                                display_name=f"attachment.{mime.split('/')[-1]}",
-                                data=data_bytes,
-                            )
+            for data, mime in binary_blocks:
+                try:
+                    data_bytes = base64.b64decode(data)
+                except (ValueError, TypeError):
+                    continue  # malformed base64 - skip this block
+                ext = mime.split("/")[-1]
+                display_name = f"attachment_{self._blob_seq}.{ext}"
+                self._blob_seq += 1
+                media_parts.append(
+                    types.FunctionResponsePart(
+                        inline_data=types.FunctionResponseBlob(
+                            mime_type=mime,
+                            display_name=display_name,
+                            data=data_bytes,
                         )
                     )
+                )
             if media_parts:
                 return Part.from_function_response(
                     name=name,
@@ -406,13 +427,20 @@ class GoogleGenAIMessageBuilder:
     def _build_media_content_single_part(self, media: SEMOSSMediaContent) -> Part:
         """Convert SEMOSS media content to Google GenAI Part."""
         if media.type == SEMOSSMediaInputType.URL and media.url:
-            return Part.from_uri(file_uri=media.url)
+            mime = resolve_mime_type(media.mime_type, media.file_name, media.format)
+            return Part.from_uri(
+                file_uri=media.url,
+                mime_type=(
+                    normalize_text_mime_type(mime)
+                    if mime != "application/octet-stream"
+                    else None
+                ),
+            )
         elif media.type == SEMOSSMediaInputType.BASE64:
-            if not media.mime_type or not media.data:
-                raise ValueError(
-                    f"Missing required base64 data or mime type when building Google GenAI media part."
-                )
-            return Part.from_bytes(data=media.data, mime_type=media.mime_type)
+            data, mime = prepare_base64_media(media)
+            return Part.from_bytes(
+                data=base64.b64decode(data), mime_type=normalize_text_mime_type(mime)
+            )
         else:
             raise ValueError(f"Unsupported SEMOSSMediaContent type: {media.type}")
 

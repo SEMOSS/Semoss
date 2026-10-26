@@ -27,9 +27,8 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,16 +44,17 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 
@@ -74,6 +74,28 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	private static final String PHONE_EXTENSION_COL = SMSS_USER_TABLE_NAME + "__PHONEEXTENSION";
 	private static final String COUNTRY_CODE_COL = SMSS_USER_TABLE_NAME + "__COUNTRYCODE";
 
+	/**
+	 * Gives the row an admin added a person's details and password: the row's id
+	 * last
+	 */
+	private static final String ADOPT_ADMIN_ADDED_USER = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, "
+			+ "PASSWORD=?, SALT=?, LASTLOGIN=?, PHONE=?, PHONEEXTENSION=?, COUNTRYCODE=? WHERE ID=?";
+	/** Adds a native user, who is never an admin and starts unlocked */
+	private static final String INSERT_NATIVE_USER = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, "
+			+ "PASSWORD, SALT, DATECREATED, LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+	/** Stores a password in the password history */
+	private static final String INSERT_PASSWORD_HISTORY = "INSERT INTO PASSWORD_HISTORY (ID, USERID, TYPE, PASSWORD, "
+			+ "SALT, DATE_ADDED) VALUES (?,?,?,?,?,?)";
+	/** The ids of a user's stored passwords for a login type, the newest first */
+	private static final String PASSWORD_HISTORY_NEWEST_FIRST = "SELECT ID FROM PASSWORD_HISTORY WHERE USERID=? "
+			+ "AND TYPE=? ORDER BY DATE_ADDED DESC";
+	/** Deletes a stored password */
+	private static final String DELETE_PASSWORD_HISTORY = "DELETE FROM PASSWORD_HISTORY WHERE ID=?";
+	/** Sets a user's salt and password: salt, password, then user id */
+	private static final String RESET_PASSWORD = "UPDATE SMSS_USER SET SALT=?, PASSWORD=? WHERE ID=?";
+
+	private static final String FIND_ADMIN_ADDED_USER = "SELECT ID, TYPE FROM SMSS_USER WHERE NAME=? AND (ID=? OR ID=?)";
+
 	private SecurityNativeUserUtils() {
 
 	}
@@ -83,10 +105,17 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 */
 
 	/**
-	 * Adds a new user to the database
+	 * Adds a new user to the database with no all-models default, as
+	 * self-registration does. A person an admin added keeps the default the admin
+	 * set: their row takes the person's details and password, and what the admin
+	 * set up moves to the person's id and login type. The user row, the move and
+	 * the first password in the password history are saved in one transaction, so a
+	 * failure saves none of them.
 	 * 
-	 * @param userName String representing the name of the user to add
-	 * @throws IllegalArgumentException
+	 * @param newUser  the person
+	 * @param password their password
+	 * @return whether the person was added; false when they could not be saved
+	 * @throws IllegalArgumentException when the person's information is not valid
 	 */
 	public static Boolean addNativeUser(AccessToken newUser, String password) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -107,215 +136,80 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		}
 
 		validInformation(newUser, password, true);
+		String newType = ValueUtils.toStringOrNull(newUser.getProvider());
 
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(USERID_COL));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(NAME_COL, "==", ADMIN_ADDED_USER));
-		OrQueryFilter orFilter = new OrQueryFilter();
-		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", newUser.getId()));
-		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", newUser.getEmail()));
-		qs.addExplicitFilter(orFilter);
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				// this was the old id that was added when the admin
-				String oldId = wrapper.next().getValues()[0].toString();
-				String newId = newUser.getId();
-
-				// this user was added by the user and we need to update
-				String salt = AbstractSecurityUtils.generateSalt();
-				String hashedPassword = (AbstractSecurityUtils.hash(password, salt));
-
-				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-
-				String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, "
-						+ "PASSWORD=?, SALT=?, LASTLOGIN=?, PHONE=?, PHONEEXTENSION=?, COUNTRYCODE=?, "
-						+ "MODELMAXTOKENS=?, MODELMAXRESPONSETIME=?, MODELUSAGEFREQUENCY=?, MODELUSAGERESTRICTION=? "
-						+ "WHERE ID=?";
-				PreparedStatement ps = null;
-				try {
+		try {
+			AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
+			String salt = AbstractSecurityUtils.generateSalt();
+			String hashedPassword = (AbstractSecurityUtils.hash(password, salt));
+			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
+			// read before the transaction, since the rules can be loaded from the database
+			int passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
+			boolean limitsMoved = QueryExecutionUtility.write(securityDb, connection -> {
+				boolean moved = false;
+				String[] adminAdded = QueryExecutionUtility.queryOne(connection, FIND_ADMIN_ADDED_USER, ps -> {
 					int parameterIndex = 1;
-					ps = securityDb.getPreparedStatement(updateQuery);
-					ps.setString(parameterIndex++, newId);
-					if (newUser.getName() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getName());
-					}
-					if (newUser.getUsername() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getUsername());
-					}
-					if (newUser.getEmail() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getEmail());
-					}
-					ps.setString(parameterIndex++, newUser.getProvider().toString());
-					ps.setString(parameterIndex++, hashedPassword);
-					ps.setString(parameterIndex++, salt);
-					ps.setTimestamp(parameterIndex++, timestamp);
-					if (newUser.getPhone() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getPhone());
-					}
-					if (newUser.getPhoneExtension() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getPhoneExtension());
-					}
-					if (newUser.getCountryCode() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getCountryCode());
-					}
-					if (newUser.getModelMaxTokens() == 0) {
-						ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
-					} else {
-						ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
-					}
-					if (newUser.getModelMaxResponseTime() == 0.0) {
-						ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
-					} else {
-						ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
-					}
-					if (newUser.getModelUsageRestriction() == null || newUser.getModelUsageRestriction().isEmpty()) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
-					}
-					if (newUser.getModelUsageFrequency() == null || newUser.getModelUsageFrequency().isEmpty()) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
-					}
-					// where
-					ps.setString(parameterIndex++, oldId);
-					ps.execute();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (SQLException e) {
-					classLogger.error("Unable to add native user.", e);
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-
-				// need to update any other permissions that were set for this user
-				if (!oldId.equals(newId)) {
-					String[] updateQueries = new String[] { "UPDATE ENGINEPERMISSION SET USERID=? WHERE USERID=?",
-							"UPDATE PROJECTPERMISSION SET USERID=? WHERE USERID=?",
-							"UPDATE USERINSIGHTPERMISSION SET USERID=? WHERE USERID=?" };
-					for (String uQuery : updateQueries) {
-						try {
-							int parameterIndex = 1;
-							ps = securityDb.getPreparedStatement(uQuery);
-							ps.setString(parameterIndex++, newId);
-							ps.setString(parameterIndex++, oldId);
-							ps.execute();
-							if (!ps.getConnection().getAutoCommit()) {
-								ps.getConnection().commit();
-							}
-						} catch (SQLException e) {
-							classLogger.error("Unable to add native user.", e);
-						} finally {
-							ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-						}
-					}
-				}
-
-				storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp);
-				return true;
-			} else {
-				// not added by admin
-				String salt = AbstractSecurityUtils.generateSalt();
-				String hashedPassword = (AbstractSecurityUtils.hash(password, salt));
-
-				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-
-				String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, "
-						+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE, "
-						+ "MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY, MODELUSAGERESTRICTION) "
-						+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-
-				PreparedStatement ps = null;
-				try {
-					int parameterIndex = 1;
-					ps = securityDb.getPreparedStatement(insertQuery);
+					ps.setString(parameterIndex++, ADMIN_ADDED_USER);
 					ps.setString(parameterIndex++, newUser.getId());
-					if (newUser.getName() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getName());
-					}
-					if (newUser.getUsername() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getUsername());
-					}
-					if (newUser.getEmail() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getEmail());
-					}
-					ps.setString(parameterIndex++, newUser.getProvider().toString());
-					// we never add ADMIN this way
-					ps.setBoolean(parameterIndex++, false);
-					ps.setString(parameterIndex++, hashedPassword);
-					ps.setString(parameterIndex++, salt);
-					ps.setTimestamp(parameterIndex++, timestamp);
-					// not locked ...
-					ps.setBoolean(parameterIndex++, false);
-					if (newUser.getPhone() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getPhone());
-					}
-					if (newUser.getPhoneExtension() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getPhoneExtension());
-					}
-					if (newUser.getCountryCode() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getCountryCode());
-					}
-					if (newUser.getModelMaxTokens() == 0) {
-						ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
-					} else {
-						ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
-					}
-					if (newUser.getModelMaxResponseTime() == 0.0) {
-						ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
-					} else {
-						ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
-					}
-					if (newUser.getModelUsageRestriction() == null || newUser.getModelUsageRestriction().isEmpty()) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
-					}
-					if (newUser.getModelUsageFrequency() == null || newUser.getModelUsageFrequency().isEmpty()) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
-					}
-					ps.execute();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (SQLException e) {
-					classLogger.error("Unable to add native user.", e);
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+					queryUtil.setNullableString(ps, parameterIndex++, newUser.getEmail());
+				}, rs -> new String[] { rs.getString(1), rs.getString(2) });
+				if (adminAdded != null) {
+					// this was the old id and type that was added when the admin
+					String oldId = adminAdded[0];
+					String oldType = adminAdded[1];
+					String newId = newUser.getId();
+
+					// this user was added by the user and we need to update
+					QueryExecutionUtility.executeUpdate(connection, ADOPT_ADMIN_ADDED_USER, ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newId);
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getName());
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getUsername());
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getEmail());
+						ps.setString(parameterIndex++, newUser.getProvider().toString());
+						ps.setString(parameterIndex++, hashedPassword);
+						ps.setString(parameterIndex++, salt);
+						ps.setTimestamp(parameterIndex++, timestamp);
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getPhone());
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getPhoneExtension());
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getCountryCode());
+						// where
+						ps.setString(parameterIndex++, oldId);
+					});
+
+					// need to update any other permissions that were set for this user, and the
+					// model usage limits the admin set, which are kept
+					moved = SecurityUpdateUtils.moveAdminAddedUser(connection, oldId, oldType, newId, newType);
+				} else {
+					// not added by admin
+					QueryExecutionUtility.executeUpdate(connection, INSERT_NATIVE_USER, ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newUser.getId());
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getName());
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getUsername());
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getEmail());
+						ps.setString(parameterIndex++, newUser.getProvider().toString());
+						// we never add ADMIN this way
+						ps.setBoolean(parameterIndex++, false);
+						ps.setString(parameterIndex++, hashedPassword);
+						ps.setString(parameterIndex++, salt);
+						ps.setTimestamp(parameterIndex++, timestamp);
+						// not locked ...
+						ps.setBoolean(parameterIndex++, false);
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getPhone());
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getPhoneExtension());
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getCountryCode());
+					});
 				}
 
-				storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp);
-				return true;
+				storeUserPassword(connection, newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt,
+						timestamp, passReuseCount);
+				return moved;
+			});
+			if (limitsMoved) {
+				SecurityModelUsageLimitUtils.markChanged();
 			}
+			return true;
 		} catch (Exception e) {
 			classLogger.error("Unable to add native user.", e);
 		}
@@ -324,87 +218,66 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Store the password for the user
+	 * Stores a password in the user's password history, and deletes their older
+	 * passwords beyond the newest ones the password reuse rule checks, in one
+	 * transaction.
 	 * 
-	 * @param userId
-	 * @param type
-	 * @param hashPassword
-	 * @param salt
-	 * @param timestamp
-	 * @param cal
-	 * @throws Exception
+	 * @param userId       the user id
+	 * @param type         the user's login type
+	 * @param hashPassword the hashed password
+	 * @param salt         the password's salt
+	 * @param timestamp    when the password was set
+	 * @throws Exception when the password rules cannot be read, or the history
+	 *                   cannot be saved, in which case nothing is saved
 	 */
 	public static void storeUserPassword(String userId, String type, String hashPassword, String salt,
 			java.sql.Timestamp timestamp) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String insertQuery = "INSERT INTO PASSWORD_HISTORY (ID, USERID, TYPE, PASSWORD, SALT, DATE_ADDED) "
-				+ "VALUES (?,?,?,?,?,?)";
+		// read before the transaction, since the rules can be loaded from the database
+		int passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
+		QueryExecutionUtility.write(securityDb, connection -> {
+			storeUserPassword(connection, userId, type, hashPassword, salt, timestamp, passReuseCount);
+			return null;
+		});
+	}
 
-		PreparedStatement ps = null;
-		try {
+	/**
+	 * Stores a password in the user's password history, and deletes their older
+	 * passwords beyond the newest ones the password reuse rule checks, in the
+	 * caller's transaction. Nothing is deleted when the rule checks no passwords.
+	 *
+	 * @param connection     the connection of the caller's transaction
+	 * @param userId         the user id
+	 * @param type           the user's login type
+	 * @param hashPassword   the hashed password
+	 * @param salt           the password's salt
+	 * @param timestamp      when the password was set
+	 * @param passReuseCount how many of the newest passwords the reuse rule checks
+	 * @throws Exception when a statement fails
+	 */
+	static void storeUserPassword(Connection connection, String userId, String type, String hashPassword, String salt,
+			java.sql.Timestamp timestamp, int passReuseCount) throws Exception {
+		QueryExecutionUtility.executeUpdate(connection, INSERT_PASSWORD_HISTORY, ps -> {
 			int parameterIndex = 1;
-			ps = securityDb.getPreparedStatement(insertQuery);
 			ps.setString(parameterIndex++, UUID.randomUUID().toString());
 			ps.setString(parameterIndex++, userId);
 			ps.setString(parameterIndex++, type);
 			ps.setString(parameterIndex++, hashPassword);
 			ps.setString(parameterIndex++, salt);
 			ps.setTimestamp(parameterIndex++, timestamp);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to add native user.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		});
 
-		int passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
 		if (passReuseCount > 0) {
-			List<String> deleteIds = new ArrayList<>();
-
 			// do we have too many stored passwords?
-			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__ID"));
-			qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__USERID"));
-			qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__DATE_ADDED"));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__USERID", "==", userId));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__TYPE", "==", type));
-			qs.addOrderBy("PASSWORD_HISTORY__DATE_ADDED");
-			int counter = 0;
-
-			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-				while (wrapper.hasNext()) {
-					if (passReuseCount > counter) {
-						wrapper.next();
-						counter++;
-						continue;
-					}
-					String idToDelete = wrapper.next().getValues()[0].toString();
-					deleteIds.add(idToDelete);
-				}
-			} catch (Exception e) {
-				classLogger.error("Unable to add native user.", e);
-			}
-
-			if (!deleteIds.isEmpty()) {
-				String deleteQuery = "DELETE FROM PASSWORD_HISTORY WHERE ID=?";
-				try {
-					for (String deleteId : deleteIds) {
-						ps = securityDb.getPreparedStatement(deleteQuery);
-						ps.setString(1, deleteId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (SQLException e) {
-					classLogger.error("Unable to add native user.", e);
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
+			// keep the newest ones, which are the ones isPreviousPassword checks
+			List<String> storedIds = QueryExecutionUtility.queryList(connection, PASSWORD_HISTORY_NEWEST_FIRST, ps -> {
+				ps.setString(1, userId);
+				ps.setString(2, type);
+			}, rs -> rs.getString(1));
+			if (storedIds.size() > passReuseCount) {
+				List<String> deleteIds = storedIds.subList(passReuseCount, storedIds.size());
+				QueryExecutionUtility.executeBatch(connection, DELETE_PASSWORD_HISTORY, deleteIds,
+						(statement, deleteId) -> statement.setString(1, deleteId));
 			}
 		}
 	}
@@ -494,24 +367,25 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			String hashedPassword = AbstractSecurityUtils.hash(password, salt);
 			String updateQuery = "UPDATE SMSS_USER SET SALT=?, PASSWORD=? WHERE ID=? AND TYPE=?";
 
-			PreparedStatement ps = null;
 			try {
-				ps = securityDb.getPreparedStatement(updateQuery);
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, salt);
-				ps.setString(parameterIndex++, hashedPassword);
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, AuthProvider.NATIVE.getLabel());
-				ps.execute();
+				QueryExecutionUtility.write(securityDb, connection -> {
+					try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, salt);
+						ps.setString(parameterIndex++, hashedPassword);
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, AuthProvider.NATIVE.getLabel());
+						ps.execute();
 
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-				classLogger.info("Migrated the stored password hash for user id={} to the approved scheme", userId);
-			} catch (SQLException e) {
+						classLogger.info("Migrated the stored password hash for user id={} to the approved scheme",
+								userId);
+					}
+					return null;
+				});
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
 				classLogger.error("Unable to migrate the stored password hash to the approved scheme.", e);
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		});
 	}
@@ -527,14 +401,15 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(NAME_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", userId));
+		String username = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				return (String) wrapper.next().getValues()[0];
+				username = (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve username by user ID.", e);
 		}
-		return null;
+		return username;
 	}
 
 	/**
@@ -555,14 +430,15 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(USERID_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.getLabel()));
+		String userId = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				return (String) wrapper.next().getValues()[0];
+				userId = (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve user ID.", e);
 		}
-		return null;
+		return userId;
 
 	}
 
@@ -583,14 +459,15 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(EMAIL_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
+		String email = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				return (String) wrapper.next().getValues()[0];
+				email = (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve user email.", e);
 		}
-		return null;
+		return email;
 	}
 
 	/**
@@ -606,13 +483,14 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.getLabel()));
 
+		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			return wrapper.hasNext();
+			exists = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user email exists.", e);
 		}
 
-		return false;
+		return exists;
 	}
 
 	/**
@@ -632,16 +510,17 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(NAME_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
+		String name = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				IHeadersDataRow sjss = wrapper.next();
-				return (String) sjss.getValues()[0];
+				name = (String) sjss.getValues()[0];
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the user name.", e);
 		}
 
-		return null;
+		return name;
 	}
 
 	/**
@@ -700,6 +579,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Whether the password matches the user's current password, by hashing it with
+	 * the stored salt.
 	 * 
 	 * @param userId
 	 * @param type
@@ -731,6 +612,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Whether the password matches one of the user's newest passwords in the
+	 * password history, as many as the password reuse rule covers. False when the
+	 * reuse count is less than one.
 	 * 
 	 * @param userId
 	 * @param type
@@ -745,42 +629,49 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the provided password matches a previous password.", e);
 		}
+		if (passReuseCount < 1) {
+			return false;
+		}
 
+		// the newest passwords, as many as the reuse rule covers
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__PASSWORD"));
 		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__SALT"));
+		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__DATE_ADDED"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__USERID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__TYPE", "==", type));
 		qs.addOrderBy(new QueryColumnOrderBySelector("PASSWORD_HISTORY__DATE_ADDED", "DESC"));
+		qs.setLimit(passReuseCount);
 
+		boolean previousPassword = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			int counter = 0;
 			while (wrapper.hasNext()) {
-				if (passReuseCount > 0 && counter < passReuseCount) {
-					Object[] previousPass = wrapper.next().getValues();
-					String hashPass = (String) previousPass[0];
-					String salt = (String) previousPass[1];
-					String testPass = hash(password, salt);
-					if (hashPass.equals(testPass)) {
-						return true;
-					}
+				Object[] previousPass = wrapper.next().getValues();
+				String hashPass = (String) previousPass[0];
+				String salt = (String) previousPass[1];
+				String testPass = hash(password, salt);
+				if (hashPass.equals(testPass)) {
+					previousPassword = true;
+					break;
 				}
-				counter++;
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the provided password matches a previous password.", e);
 		}
 
-		return false;
+		return previousPassword;
 	}
 
 	/**
-	 * Reset the user password
+	 * Resets a native user's password: the new salt and hash, and the password
+	 * history with its older passwords deleted, are saved in one transaction.
 	 * 
-	 * @param token
-	 * @param password
-	 * @return
-	 * @throws Exception
+	 * @param userId   the user id
+	 * @param password the new password
+	 * @return the user id
+	 * @throws IllegalArgumentException when the password is not valid, or cannot be
+	 *                                  saved, in which case nothing is saved
+	 * @throws Exception                when the password rules cannot be read
 	 */
 	public static String performResetPassword(String userId, String password) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -790,26 +681,24 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		// validate the new password to run the edit logic
 		String salt = AbstractSecurityUtils.generateSalt();
 		String hashPassword = AbstractSecurityUtils.hash(password, salt);
-		String updateQuery = "UPDATE SMSS_USER SET SALT=?, PASSWORD=? WHERE ID=?";
-		PreparedStatement ps = null;
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
+		// read before the transaction, since the rules can be loaded from the database
+		int passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
 		try {
-			ps = securityDb.getPreparedStatement(updateQuery);
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, salt);
-			ps.setString(parameterIndex++, hashPassword);
-			ps.setString(parameterIndex++, userId);
-			ps.execute();
-
-			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-			storeUserPassword(userId, AuthProvider.NATIVE.getLabel(), hashPassword, salt, timestamp);
-
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				QueryExecutionUtility.executeUpdate(connection, RESET_PASSWORD, ps -> {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, salt);
+					ps.setString(parameterIndex++, hashPassword);
+					ps.setString(parameterIndex++, userId);
+				});
+				storeUserPassword(connection, userId, AuthProvider.NATIVE.getLabel(), hashPassword, salt, timestamp,
+						passReuseCount);
+				return null;
+			});
+		} catch (Exception e) {
 			classLogger.error("Unable to reset the user password in the native user store.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+			throw new IllegalArgumentException("Unable to reset the password", e);
 		}
 
 		return userId;

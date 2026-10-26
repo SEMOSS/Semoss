@@ -1,32 +1,51 @@
-# `PROJECT` Engines
+# Projects, Agents, and Skill Packages
 
-Engines of the `PROJECT` catalog type in SEMOSS have a special role. Unlike other engine types that connect to external data sources or services, a `PROJECT` engine typically represents a SEMOSS project itself. It acts as a container, an organizational unit, or a high-level orchestrator for other assets like data engines, model engines, insights, and datasets that constitute a specific analytical endeavor or application built within SEMOSS.
+Projects organize SEMOSS application assets, metadata, and access permissions. They share engine lifecycle behavior through [IProject](../../src/prerna/project/api/IProject.java) and the `PROJECT` catalog type, while [Project](../../src/prerna/project/impl/Project.java) provides the core implementation.
 
-## Core Concepts for Project Engines
+A project can represent a code application, notebook, automation, reusable agent, or skill package.
 
-*   **Purpose**: To encapsulate and manage the metadata and constituent parts of a SEMOSS project.
-*   **Interaction**: They don't usually involve direct data querying in the way database engines do. Instead, interactions might involve:
-    *   Listing the assets (engines, insights, files) associated with the project.
-    *   Managing project-level settings or metadata.
-    *   Potentially, providing access to a project-specific context or environment.
-*   **`IEngine` Implementation**: They implement the basic `IEngine` interface for consistency in how SEMOSS manages all engine types (e.g., for loading via SMSS, identification, and security).
+## Project types
 
-## Example Implementation
+The current `IProject.PROJECT_TYPE` values are:
 
-### `prerna.engine.impl.app.AppEngine`
-*   **Purpose**: This is the primary implementation for a `PROJECT` engine. It represents a SEMOSS "Project" (which in some older contexts or internal code might be referred to as an "App").
-*   **Implementation Highlights**:
-    *   Its `open()` method loads the project's metadata from its `.smss` file. This metadata includes the project's ID, name, and potentially references to other engines (database, model, storage, etc.) that are part of this project, as well as insights and other assets.
-    *   It likely interacts heavily with `prerna.auth.utils.SecurityProjectUtils` to retrieve and manage project-specific metadata and user permissions related to the project.
-    *   It might also use `prerna.masterdatabase.utility.MasterDatabaseUtility` if project asset lists are stored centrally.
-    *   Methods on this engine would allow other parts of SEMOSS to discover the components of the project (e.g., "list engines in this project", "list insights in this project").
-*   **SMSS Configuration**: The `.smss` file for an `AppEngine` is critical and typically contains:
-    *   `PROJECT_ID` (or `ENGINE` if following the general engine pattern): The unique ID of the project.
-    *   `PROJECT_NAME` (or `ENGINE_ALIAS`): The user-friendly name of the project.
-    *   Paths or references to the SMSS files of other engines that are scoped or associated with this project.
-    *   Information about user and group access permissions for the project itself.
-    *   Version information for the project.
-    *   Other project-specific settings or metadata.
+| Type | Role |
+| --- | --- |
+| `BLOCKS` | Applications assembled from blocks |
+| `CODE` | Applications and supporting code/assets |
+| `INSIGHTS` | Analytical insights |
+| `NOTEBOOK` | Notebook applications and assets |
+| `AUTOMATION` | Workflow automation projects |
+| `WORKSPACE` | Reusable agent identity and configuration |
+| `SKILL` | Agent instruction packages and supporting files |
 
-While not directly involved in data processing like other engine types, `AppEngine` (and the `PROJECT` catalog type) is fundamental to how SEMOSS organizes, secures, and manages collections of analytical assets.
-```
+The enum is the source of truth. Older references to an `AppEngine` do not describe the current project implementation.
+
+## Assets and access
+
+Project helpers resolve the assets directory beneath the project's versioned root. The exact root can include `app_root`; use [AssetUtility](../../src/prerna/util/AssetUtility.java) and project methods rather than constructing machine paths.
+
+[SecurityProjectUtils](../../src/prerna/auth/utils/SecurityProjectUtils.java) manages project access and dependencies. Public asset paths, editable assets, sharing, and project membership are separate from the external engine connections an application may use.
+
+## Agent workspaces
+
+An agent's project type is `WORKSPACE`. Its project ID is also the workspace identifier used by agent APIs. The model-inference database stores instructions and configuration in `WORKSPACE`, attachments in `WORKSPACE_RESOURCE`, and a configuration representation in `CONFIG_JSON`.
+
+The agent workspace describes behavior and resources; `RunAgent.space` chooses the room/user/project target where work happens. A code agent can be reused against several editable application projects without changing its identity.
+
+See [agent configuration](../agents/agent_configuration.md), [run lifecycle](../agents/agent_runs.md), and [workbench defaults](../agents/workbench-default-agents.md).
+
+## Skill projects
+
+A `SKILL` project stores `public/SKILL.md` and optional references, scripts, and assets beneath its assets directory. The project catalog and project permissions apply to skills. Attached skills are copied into an agent run's working directory for discovery and loading.
+
+Use `MyProjects(type=["SKILL"])` for the catalog, `ListSkillFiles`/`ReadSkillFile` for a skill package's content, and `ListSkills` for staged-file discovery. See [the skill guide](../agents/skills/skills_doc.md).
+
+## Platform project seeding
+
+[ProjectWatcher](../../src/prerna/util/ProjectWatcher.java) catalogs packaged platform projects. [SystemDefaultEngines](../../src/prerna/util/SystemDefaultEngines.java) identifies built-in applications, MCP resources, skills, and agents. [SystemAgentSeeder](../../src/prerna/util/SystemAgentSeeder.java) creates or reconciles the workspace configuration for system agents after their project catalog entries exist.
+
+Deploy descriptors and project assets together with matching backend code. A catalog entry alone is insufficient when the corresponding assets or required model-inference database are missing.
+
+## Cloud storage
+
+Project files can be pushed to and pulled from central storage through [ClusterUtil](../../src/prerna/cluster/util/ClusterUtil.java). Project/asset synchronization is distinct from room conversation persistence and live agent events. See [central storage](../cloud_and_cluster/central_cloud_storage.md).

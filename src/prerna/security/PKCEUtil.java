@@ -48,7 +48,7 @@ public class PKCEUtil {
 	private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
 
 	private PKCEUtil() {
-		// static utility
+
 	}
 
 	/**

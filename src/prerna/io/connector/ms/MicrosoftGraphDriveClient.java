@@ -51,6 +51,7 @@ import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.security.HttpHelperUtility;
+import prerna.util.ValueUtils;
 
 /**
  * Path addressed operations against a single Microsoft Graph drive, rooted at a
@@ -115,10 +116,10 @@ public class MicrosoftGraphDriveClient {
 	 * @param tokenSupplier supplies a valid bearer token per request
 	 */
 	public MicrosoftGraphDriveClient(String driveId, String rootItemId, Supplier<String> tokenSupplier) {
-		if (isBlank(driveId)) {
+		if (ValueUtils.isBlank(driveId)) {
 			throw new IllegalArgumentException("A drive id is required.");
 		}
-		if (isBlank(rootItemId)) {
+		if (ValueUtils.isBlank(rootItemId)) {
 			throw new IllegalArgumentException("A root item id is required.");
 		}
 		if (tokenSupplier == null) {
@@ -170,7 +171,7 @@ public class MicrosoftGraphDriveClient {
 	 * @throws Exception if the download fails
 	 */
 	public byte[] downloadVersionBytes(String itemId, String versionId) throws Exception {
-		if (isBlank(versionId)) {
+		if (ValueUtils.isBlank(versionId)) {
 			throw new IllegalArgumentException("A version id is required.");
 		}
 		String versionUrl = itemIdUrl(itemId) + "/versions/" + encodeSegment(versionId.trim());
@@ -364,7 +365,7 @@ public class MicrosoftGraphDriveClient {
 			createFolderPath(normalized.substring(0, lastSlash));
 		}
 
-		String behavior = isBlank(conflictBehavior) ? "replace" : conflictBehavior.trim();
+		String behavior = ValueUtils.isBlank(conflictBehavior) ? "replace" : conflictBehavior.trim();
 		String response;
 		if (localFile.length() <= SIMPLE_UPLOAD_MAX_BYTES) {
 			String url = itemUrl(normalized) + "/content?" + CONFLICT_BEHAVIOR_PARAM + "=" + behavior;
@@ -580,7 +581,7 @@ public class MicrosoftGraphDriveClient {
 	 * resolve the path to an item first.
 	 */
 	private String itemIdUrl(String itemId) {
-		if (isBlank(itemId)) {
+		if (ValueUtils.isBlank(itemId)) {
 			throw new IllegalArgumentException("An item id is required.");
 		}
 		return GRAPH_BASE + "/drives/" + this.driveId + "/items/" + itemId.trim();
@@ -690,7 +691,4 @@ public class MicrosoftGraphDriveClient {
 		return message != null && message.toLowerCase().contains(needle);
 	}
 
-	private static boolean isBlank(String value) {
-		return value == null || value.trim().isEmpty();
-	}
 }

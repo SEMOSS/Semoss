@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.sablecc2.om.execptions;
 
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 
 public class SemossModelEngineException extends RuntimeException {
@@ -40,5 +41,22 @@ public class SemossModelEngineException extends RuntimeException {
 
     public AskModelEngineResponse<?> getErrorResponse() {
         return errorResponse;
+    }
+
+    // true when this exception (or a cause) is a model error with reason CONTEXT_OVERFLOW
+    public static boolean isContextOverflow(Throwable error) {
+        return contextOverflowError(error) != null;
+    }
+
+    // the CONTEXT_OVERFLOW error details in this exception or its causes, else null
+    public static AskErrorModelEngineResponse contextOverflowError(Throwable error) {
+        for (Throwable t = error; t != null; t = t.getCause() == t ? null : t.getCause()) {
+            if (t instanceof SemossModelEngineException e
+                    && e.getErrorResponse() instanceof AskErrorModelEngineResponse details
+                    && details.isContextOverflow()) {
+                return details;
+            }
+        }
+        return null;
     }
 }

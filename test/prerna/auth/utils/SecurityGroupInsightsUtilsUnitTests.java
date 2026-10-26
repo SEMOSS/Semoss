@@ -221,7 +221,7 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		String endDate = ZonedDateTime.now().plusDays(2).toString();
 		IllegalAccessException e = assertThrows(IllegalAccessException.class, () -> SecurityGroupInsightsUtils
 				.addInsightGroupPermission(user2, "groupId1", "CUSTOM", "pid1", "iid1", "READ_ONLY", endDate));
-		assertEquals("Insufficient privileges to modify this insight's permissions.", e.getMessage());
+		assertEquals("Only this insight's owners can change which teams have access to it.", e.getMessage());
 	}
 
 	@Test
@@ -294,7 +294,7 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		String endDate = ZonedDateTime.now().plusDays(2).toString();
 		IllegalAccessException e = assertThrows(IllegalAccessException.class, () -> SecurityGroupInsightsUtils
 				.editInsightGroupPermission(user2, "groupId1", "CUSTOM", "pid1", "iid1", "READ_ONLY", endDate));
-		assertEquals("Insufficient privileges to modify this insight's permissions.", e.getMessage());
+		assertEquals("Only this insight's owners can change which teams have access to it.", e.getMessage());
 	}
 
 	@Test
@@ -319,7 +319,7 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 	}
 
 	@Test
-	void testEditInsightGroupPermission_NotHighEnoughPermissions() throws Exception {
+	void testEditInsightGroupPermission_EditorCannotChangeTeamAccess() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
 		UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
@@ -343,8 +343,7 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		// User2 tries to grant OWNER permission
 		IllegalAccessException e = assertThrows(IllegalAccessException.class, () -> SecurityGroupInsightsUtils
 				.editInsightGroupPermission(user2, "groupId1", "CUSTOM", "pid1", "iid1", "OWNER", endDate));
-		assertEquals("Cannot give owner level access to this insight since you are not currently an owner.",
-				e.getMessage());
+		assertEquals("Only this insight's owners can change which teams have access to it.", e.getMessage());
 	}
 
 	@Test
@@ -361,8 +360,8 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		String user2Type = user2.getPrimaryLogin().getLabel();
 		UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
-		// Give user2 EDIT permission
-		List<Map<String, String>> user2Permissions = List.of(Map.of("userid", user2Id, "permission", "EDIT"));
+		// only an owner changes which teams have access
+		List<Map<String, String>> user2Permissions = List.of(Map.of("userid", user2Id, "permission", "OWNER"));
 		SecurityInsightUtils.addInsightUserPermissions(user, "pid1", "iid1", user2Permissions, null);
 
 		String endDate = ZonedDateTime.now().plusDays(2).toString();
@@ -397,7 +396,7 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 
 		IllegalAccessException e = assertThrows(IllegalAccessException.class, () -> SecurityGroupInsightsUtils
 				.removeInsightGroupPermission(user2, "groupId1", "CUSTOM", "pid1", "iid1"));
-		assertEquals("Insufficient privileges to modify this insight's permissions.", e.getMessage());
+		assertEquals("Only this insight's owners can change which teams have access to it.", e.getMessage());
 	}
 
 	@Test
@@ -413,8 +412,8 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		List<Map<String, String>> userPermissions = List.of(Map.of("userid", userId, "permission", "OWNER"));
 		SecurityInsightUtils.addInsightUserPermissions(user, "pid1", "iid1", userPermissions, null);
 
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> SecurityGroupInsightsUtils.removeInsightGroupPermission(user, "groupId1", "CUSTOM", "pid1", "iid1"));
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> SecurityGroupInsightsUtils
+				.removeInsightGroupPermission(user, "groupId1", "CUSTOM", "pid1", "iid1"));
 		assertEquals(
 				"Attempting to modify group permission for a user who does not currently have access to the insight",
 				e.getMessage());
@@ -434,8 +433,8 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		String user2Type = user2.getPrimaryLogin().getLabel();
 		UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
-		// Give user2 EDIT permission
-		List<Map<String, String>> user2Permissions = List.of(Map.of("userid", user2Id, "permission", "EDIT"));
+		// only an owner changes which teams have access
+		List<Map<String, String>> user2Permissions = List.of(Map.of("userid", user2Id, "permission", "OWNER"));
 		SecurityInsightUtils.addInsightUserPermissions(user, "pid1", "iid1", user2Permissions, null);
 
 		String endDate = ZonedDateTime.now().plusDays(2).toString();
@@ -482,5 +481,49 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		SecurityGroupInsightsUtils.removeExpiredInsightGroupPermission("groupId1", "CUSTOM", "pid1", "iid1");
 
 		assertNull(SecurityGroupInsightsUtils.getGroupInsightPermission("groupId1", "CUSTOM", "pid1", "iid1"));
+	}
+
+	///
+	/// getGroupsWithAccessToInsight and getAvailableGroupsForInsight
+	///
+
+	@Test
+	void getGroupsWithAccessToInsight_listsAndCountsTheAttachedGroups() throws Exception {
+		User admin = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createGroup(admin, "attached", "CUSTOM");
+		UnitTestSecurityAuthUtils.createGroup(admin, "other", "CUSTOM");
+		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", admin);
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
+		SecurityGroupInsightsUtils.addInsightGroupPermission(admin, "attached", "CUSTOM", "pid1", "iid1", "EDIT", null);
+
+		List<Map<String, Object>> groups = SecurityGroupInsightsUtils.getGroupsWithAccessToInsight(admin, "pid1",
+				"iid1", 0, 0);
+
+		assertEquals(1, groups.size());
+		assertEquals("attached", groups.get(0).get("ID"));
+		assertEquals("CUSTOM", groups.get(0).get("TYPE"));
+		assertEquals(1L, SecurityGroupInsightsUtils.getNumGroupsWithAccessToInsight(admin, "pid1", "iid1"));
+		List<Object> available = SecurityGroupInsightsUtils
+				.getAvailableGroupsForInsight(admin, "pid1", "iid1", null, 0, 0).stream().map(row -> row.get("id"))
+				.toList();
+		assertTrue(available.contains("other"));
+		assertFalse(available.contains("attached"));
+	}
+
+	@Test
+	void getGroupsWithAccessToInsight_deniesUsersWhoCannotViewOrOwnIt() {
+		User admin = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User stranger = UnitTestSecurityAuthUtils.createUser("stranger", false);
+		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", admin);
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
+
+		IllegalAccessException view = assertThrows(IllegalAccessException.class,
+				() -> SecurityGroupInsightsUtils.getGroupsWithAccessToInsight(stranger, "pid1", "iid1", 0, 0));
+		assertEquals("The user does not have access to view this insight", view.getMessage());
+		IllegalAccessException own = assertThrows(IllegalAccessException.class,
+				() -> SecurityGroupInsightsUtils.getAvailableGroupsForInsight(stranger, "pid1", "iid1", null, 0, 0));
+		assertEquals("Only this insight's owners can change which teams have access to it.", own.getMessage());
+		assertThrows(IllegalArgumentException.class,
+				() -> SecurityGroupInsightsUtils.getNumGroupsWithAccessToInsight(admin, " ", "iid1"));
 	}
 }

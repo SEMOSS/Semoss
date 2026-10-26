@@ -27,12 +27,10 @@
  *******************************************************************************/
 package prerna.masterdatabase.utility;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,6 +51,8 @@ import org.javatuples.Pair;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.owl.AbstractOwlCreator;
+import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -68,7 +68,6 @@ import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class MasterDatabaseUtility {
@@ -100,212 +99,44 @@ public class MasterDatabaseUtility {
 
 	private static void executeInitLocalMaster(IRDBMSEngine engine, Connection conn,
 			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
-		String database = engine.getDatabase();
-		String schema = engine.getSchema();
-		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
-		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
-		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-
 		// create the tables and columns from the OWL creator schema
-		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
-			String tableName = tableSchema.getValue0();
-			String[] schemaCols = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
-			String[] schemaTypes = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
+		AbstractOwlCreator.syncSchema(engine, conn, dbSchema);
+
+		// create the indexes on the tables
+		AbstractOwlCreator.syncIndexes(engine, conn, List.of(OwlIndex.of("ENGINE_ID_INDEX", "ENGINE", "ID"),
+				OwlIndex.of("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", "ENGINE", "LOCALCONCEPTID"),
+				OwlIndex.of("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID"),
+				OwlIndex.of("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID"),
+				OwlIndex.of("RELATION_TARGETID_INDEX", "RELATION", "TARGETID"),
+				OwlIndex.of("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID"),
+				OwlIndex.of("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE"),
+				OwlIndex.of("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", "TARGETCONCEPTID"),
+				OwlIndex.of("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", "SOURCECONCEPTID"),
+				OwlIndex.of("CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE, Constants.LM_META_KEY),
+				OwlIndex.of("CONCEPTMETADATA_PHYSICALNAMEID_INDEX", Constants.CONCEPT_METADATA_TABLE,
+						Constants.LM_PHYSICAL_NAME_ID)));
+
+		// TBD if we want to keep any XRAY in local master
+		{
+			String database = engine.getDatabase();
+			String schema = engine.getSchema();
+			AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
+			boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
+
+			// XRAYCONFIGS is not described in the OWL schema - create it explicitly
+			final String CLOB_DATATYPE = queryUtil.getClobDataTypeName();
+			String[] colNames = new String[] { "FILENAME", "CONFIG" };
+			String[] types = new String[] { "varchar(800)", CLOB_DATATYPE };
 			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists(tableName, schemaCols, schemaTypes);
+				String sql = queryUtil.createTableIfNotExists("XRAYCONFIGS", colNames, types);
 				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			} else {
-				if (!queryUtil.tableExists(engine, tableName, database, schema)) {
-					String sql = queryUtil.createTable(tableName, schemaCols, schemaTypes);
+				if (!queryUtil.tableExists(engine, "XRAYCONFIGS", database, schema)) {
+					String sql = queryUtil.createTable("XRAYCONFIGS", colNames, types);
 					classLogger.info("Running sql {}", sql);
 					executeSql(conn, sql);
 				}
-			}
-
-			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
-			for (int i = 0; i < schemaCols.length; i++) {
-				String col = schemaCols[i];
-				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, schemaTypes[i]);
-					classLogger.info("Running sql {}", addColumnSql);
-					executeSql(conn, addColumnSql);
-				}
-			}
-		}
-
-		// XRAYCONFIGS is not described in the OWL schema - create it explicitly
-		final String CLOB_DATATYPE = queryUtil.getClobDataTypeName();
-		String[] colNames = new String[] { "FILENAME", "CONFIG" };
-		String[] types = new String[] { "varchar(800)", CLOB_DATATYPE };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("XRAYCONFIGS", colNames, types);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			if (!queryUtil.tableExists(engine, "XRAYCONFIGS", database, schema)) {
-				String sql = queryUtil.createTable("XRAYCONFIGS", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// engine table
-		// add index
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("ENGINE_ID_INDEX", "ENGINE", "ID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if index exists
-			if (!queryUtil.indexExists(engine, "ENGINE_ID_INDEX", "ENGINE", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINE_ID_INDEX", "ENGINE", "ID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// engine concept table
-		// add index
-		if (allowIfExistsIndexs) {
-			List<String> iCols = new ArrayList<>();
-			iCols.add("ENGINE");
-			iCols.add("LOCALCONCEPTID");
-
-			String sql = queryUtil.createIndexIfNotExists("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT",
-					iCols);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-			sql = queryUtil.createIndexIfNotExists("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT",
-					"PHYSICALNAMEID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if index exists
-			if (!queryUtil.indexExists(engine, "ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", database,
-					schema)) {
-				List<String> iCols = new ArrayList<>();
-				iCols.add("ENGINE");
-				iCols.add("LOCALCONCEPTID");
-
-				String sql = queryUtil.createIndex("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", iCols);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-			if (!queryUtil.indexExists(engine, "ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", database,
-					schema)) {
-				String sql = queryUtil.createIndex("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT",
-						"PHYSICALNAMEID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// concept table
-		// add index
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if index exists
-			if (!queryUtil.indexExists(engine, "CONCEPT_ID_INDEX", "CONCEPT", database, schema)) {
-				String sql = queryUtil.createIndex("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// relation table
-		// add index
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("RELATION_TARGETID_INDEX", "RELATION", "TARGETID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if index exists
-			if (!queryUtil.indexExists(engine, "RELATION_TARGETID_INDEX", "RELATION", database, schema)) {
-				String sql = queryUtil.createIndex("RELATION_TARGETID_INDEX", "RELATION", "TARGETID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-			if (!queryUtil.indexExists(engine, "RELATION_SOURCEID_INDEX", "RELATION", database, schema)) {
-				String sql = queryUtil.createIndex("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// engine relation table
-		// add index
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION",
-					"TARGETCONCEPTID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION",
-					"SOURCECONCEPTID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if index exists
-			if (!queryUtil.indexExists(engine, "ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-			if (!queryUtil.indexExists(engine, "ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", database,
-					schema)) {
-				String sql = queryUtil.createIndex("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION",
-						"TARGETCONCEPTID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-			if (!queryUtil.indexExists(engine, "ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", database,
-					schema)) {
-				String sql = queryUtil.createIndex("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION",
-						"SOURCECONCEPTID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// concept metadata table
-		// add index
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE,
-					Constants.LM_META_KEY);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("CONCEPTMETADATA_PHYSICALNAMEID_INDEX",
-					Constants.CONCEPT_METADATA_TABLE, Constants.LM_PHYSICAL_NAME_ID);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if index exists
-			if (!queryUtil.indexExists(engine, "CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE, database,
-					schema)) {
-				String sql = queryUtil.createIndex("CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE,
-						Constants.LM_META_KEY);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-			if (!queryUtil.indexExists(engine, "CONCEPTMETADATA_PHYSICALNAMEID_INDEX", Constants.CONCEPT_METADATA_TABLE,
-					database, schema)) {
-				String sql = queryUtil.createIndex("CONCEPTMETADATA_PHYSICALNAMEID_INDEX",
-						Constants.CONCEPT_METADATA_TABLE, Constants.LM_PHYSICAL_NAME_ID);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
 			}
 		}
 	}
@@ -552,9 +383,7 @@ public class MasterDatabaseUtility {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseFilter));
 		}
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
 				Object[] data = row.getValues();
@@ -601,14 +430,6 @@ public class MasterDatabaseUtility {
 			classLogger.error(
 					"Error retrieving candidate table/column mappings for local concept ids {} and database filter {}.",
 					localConceptIds, databaseFilter, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing wrapper while retrieving candidate table/column mappings.", e);
-				}
-			}
 		}
 
 		// let me add in all the concepts that are my parent
@@ -634,8 +455,7 @@ public class MasterDatabaseUtility {
 		qs.addOrderBy("ENGINECONCEPT__PK");
 		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
 
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
 				Object[] data = row.getValues();
@@ -666,14 +486,6 @@ public class MasterDatabaseUtility {
 			}
 		} catch (Exception e) {
 			classLogger.error("Error retrieving parent concept connections for database filter {}.", databaseFilter, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing wrapper while retrieving parent concept connections.", e);
-				}
-			}
 		}
 
 		// now let me query for all the properties
@@ -698,8 +510,7 @@ public class MasterDatabaseUtility {
 		qs.addOrderBy("ENGINECONCEPT__PK");
 		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
 
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
 				Object[] data = row.getValues();
@@ -740,14 +551,6 @@ public class MasterDatabaseUtility {
 			}
 		} catch (Exception e) {
 			classLogger.error("Error retrieving property connections for database filter {}.", databaseFilter, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing wrapper while retrieving property connections.", e);
-				}
-			}
 		}
 
 		// let me find up and downstream connections for my equivalent concepts
@@ -773,8 +576,7 @@ public class MasterDatabaseUtility {
 
 		Map<String, Object[]> relationshipEquivMap = new HashMap<>();
 
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
 				Object[] data = row.getValues();
@@ -822,14 +624,6 @@ public class MasterDatabaseUtility {
 		} catch (Exception e) {
 			classLogger.error("Error retrieving downstream relationship connections for database filter {}.",
 					databaseFilter, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing wrapper while retrieving downstream relationship connections.", e);
-				}
-			}
 		}
 
 //		// let me pull all the relationships that are ignore
@@ -909,8 +703,7 @@ public class MasterDatabaseUtility {
 		qs.addRelation("ENGINERELATION__SOURCECONCEPTID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 		qs.addOrderBy("ENGINERELATION__ENGINE");
 
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
 				Object[] data = row.getValues();
@@ -958,14 +751,6 @@ public class MasterDatabaseUtility {
 		} catch (Exception e1) {
 			classLogger.error("Error retrieving upstream relationship connections for database filter {}.",
 					databaseFilter, e1);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing wrapper while retrieving upstream relationship connections.", e);
-				}
-			}
 		}
 
 //		// let me pull all the relationships that are ignore
@@ -1058,9 +843,7 @@ public class MasterDatabaseUtility {
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 
@@ -1116,15 +899,6 @@ public class MasterDatabaseUtility {
 			}
 		} catch (Exception e1) {
 			classLogger.error("Error retrieving metamodel nodes for database {}.", databaseId, e1);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing wrapper while retrieving metamodel nodes for database {}.",
-							databaseId, e);
-				}
-			}
 		}
 
 		Map<String, Map<String, String>> edgeHash = new Hashtable<>();
@@ -1133,8 +907,7 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETPROPERTY"));
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", databaseId));
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				String startName = row[0].toString();
@@ -1170,15 +943,6 @@ public class MasterDatabaseUtility {
 			}
 		} catch (Exception e) {
 			classLogger.error("Error retrieving metamodel edges for database {}.", databaseId, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing wrapper while retrieving metamodel edges for database {}.",
-							databaseId, e);
-				}
-			}
 		}
 
 		Map<String, Object> finalHash = new Hashtable<>();
@@ -2339,64 +2103,71 @@ public class MasterDatabaseUtility {
 	}
 
 	/**
-	 * 
-	 * @param sourceDB
-	 * @param targetDB
-	 * @return
+	 * Maps each physical name of a source database to the physical names of a
+	 * target database that share its logical name. The rows are read in one read on
+	 * the shared executor.
+	 *
+	 * <p>
+	 * A failure acquiring or preparing the local master connection throws. A
+	 * failure while the query runs, or while the connection is released, is logged
+	 * and the mappings read before it are returned.
+	 *
+	 * @param sourceDB id of the database whose physical names are the keys
+	 * @param targetDB id of the database whose physical names are the values
+	 * @return source physical names to the matching target physical names; empty
+	 *         when nothing matches or the query fails before the first row
+	 * @throws IllegalArgumentException when the local master connection cannot be
+	 *                                  acquired
 	 */
 	public static Map<String, List<String>> databaseTranslator(String sourceDB, String targetDB) {
 		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
-		Connection conn = null;
-		try {
-			conn = engine.getConnection();
-		} catch (SQLException e) {
-			classLogger.error("Error connecting to local master engine {} for database translation from {} to {}.",
-					engine.getEngineName(), sourceDB, targetDB, e);
-			throw new IllegalArgumentException("Unable to connect to local master engine '" + engine.getEngineName()
-					+ "' for database translation.");
-		}
 		// select logicalname from concept where conceptualname='MovieBudget'
 		// and conceptualname != logicalname
 		// select distinct c.conceptualname, ec.physicalname from concept c,
 		// engineconcept ec, engine e where ec.localconceptid=c.localconceptid
 		// and ec.physicalname in ('Title', 'Actor');
 		Map<String, List<String>> map = new HashMap<>();
-		ResultSet rs = null;
-		PreparedStatement stmt = null;
+		String query = "SELECT e.engineName as sourceEngine, c.conceptualName as sourceConceptual, ec.physicalName as sourcePhysical, c.logicalName, "
+				+ "targetEngine, targetConceptual, targetPhysical from engine e, engineconcept ec, concept c  "
+				+ "INNER JOIN (SELECT e.engineName as targetEngine, c.conceptualName as targetConceptual, "
+				+ "ec.physicalName as targetPhysical, c.logicalName as targetLogical "
+				+ "from engine e, engineconcept ec, concept c WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = ?"
+				+ " and c.conceptualName != c.logicalName) ON c.logicalName = targetLogical "
+				+ "WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = ?"
+				+ " and c.conceptualName != c.logicalName";
+		Exception failure;
 		try {
-			String query = "SELECT e.engineName as sourceEngine, c.conceptualName as sourceConceptual, ec.physicalName as sourcePhysical, c.logicalName, "
-					+ "targetEngine, targetConceptual, targetPhysical from engine e, engineconcept ec, concept c  "
-					+ "INNER JOIN (SELECT e.engineName as targetEngine, c.conceptualName as targetConceptual, "
-					+ "ec.physicalName as targetPhysical, c.logicalName as targetLogical "
-					+ "from engine e, engineconcept ec, concept c WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = ?"
-					+ " and c.conceptualName != c.logicalName) ON c.logicalName = targetLogical "
-					+ "WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = ?"
-					+ " and c.conceptualName != c.logicalName";
-			stmt = conn.prepareStatement(query);
-			stmt.setString(1, targetDB);
-			stmt.setString(2, sourceDB);
-			rs = stmt.executeQuery();
-			while (rs.next()) {
-				String sourceEngine = rs.getString(1);
-				String sourceConceptual = rs.getString(2);
-				String sourcePhysical = rs.getString(3);
-				String logicalName = rs.getString(4);
-				String targetEngine = rs.getString(5);
-				String targetConceptual = rs.getString(6);
-				String targetPhysical = rs.getString(7);
+			failure = readLocalMasterStage(engine, conn -> {
+				try (PreparedStatement stmt = conn.prepareStatement(query)) {
+					stmt.setString(1, targetDB);
+					stmt.setString(2, sourceDB);
+					try (ResultSet rs = stmt.executeQuery()) {
+						while (rs.next()) {
+							String sourcePhysical = rs.getString(3);
+							String targetPhysical = rs.getString(7);
 
-				List<String> targetPhysicals = new ArrayList<>();
-				if (map.containsKey(sourcePhysical)) {
-					targetPhysicals = map.get(sourcePhysical);
+							List<String> targetPhysicals = new ArrayList<>();
+							if (map.containsKey(sourcePhysical)) {
+								targetPhysicals = map.get(sourcePhysical);
+							}
+							targetPhysicals.add(targetPhysical);
+
+							map.put(sourcePhysical, targetPhysicals);
+						}
+					}
 				}
-				targetPhysicals.add(targetPhysical);
-
-				map.put(sourcePhysical, targetPhysicals);
-			}
-		} catch (Exception ex) {
-			classLogger.error("Error translating database schema mappings from {} to {}.", sourceDB, targetDB, ex);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error connecting to local master engine {} for database translation from {} to {}.",
+					engine.getEngineName(), sourceDB, targetDB, e);
+			throw new IllegalArgumentException("Unable to connect to local master engine '" + engine.getEngineName()
+					+ "' for database translation.");
+		}
+		if (failure != null) {
+			classLogger.error("Error translating database schema mappings from {} to {}.", sourceDB, targetDB, failure);
 		}
 		return map;
 	}
@@ -2406,87 +2177,118 @@ public class MasterDatabaseUtility {
 	 */
 
 	/**
-	 * Returns Xray config files
-	 * 
-	 * @return
+	 * Lists the distinct X-ray config file names. The names are read in one read on
+	 * the shared executor.
+	 *
+	 * <p>
+	 * A failure acquiring or preparing the local master connection throws. A failed
+	 * query leaves {@code configList} out of the result without logging, since the
+	 * XRAYCONFIGS table does not exist until a config is saved.
+	 *
+	 * @return a map holding {@code configList}, a list of maps with a
+	 *         {@code fileName} each, when the query completes; empty otherwise
+	 * @throws IllegalArgumentException when the local master connection cannot be
+	 *                                  acquired
 	 */
 	public static HashMap<String, Object> getXrayConfigList() {
 		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
-		Connection conn = null;
+		HashMap<String, Object> configMap = new HashMap<>();
+		String query = "select distinct filename FROM xrayconfigs;";
+		Exception failure;
 		try {
-			conn = engine.getConnection();
-		} catch (SQLException e) {
+			failure = readLocalMasterStage(engine, conn -> {
+				try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
+					ArrayList<HashMap<String, Object>> configList = new ArrayList<>();
+					while (rs.next()) {
+						HashMap<String, Object> rsMap = new HashMap<>();
+						String fileName = rs.getString(1);
+						rsMap.put("fileName", fileName);
+						configList.add(rsMap);
+					}
+					configMap.put("configList", configList);
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Error connecting to local master engine {} while listing xray configs.",
 					engine.getEngineName(), e);
 			throw new IllegalArgumentException("Unable to connect to local master engine '" + engine.getEngineName()
 					+ "' while listing xray configs.");
 		}
-		Statement stmt = null;
-		ResultSet rs = null;
-		HashMap<String, Object> configMap = new HashMap<>();
-		try {
-			String query = "select distinct filename FROM xrayconfigs;";
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
-			ArrayList<HashMap<String, Object>> configList = new ArrayList<>();
-			while (rs.next()) {
-				HashMap<String, Object> rsMap = new HashMap<>();
-				String fileName = rs.getString(1);
-				rsMap.put("fileName", fileName);
-				configList.add(rsMap);
-			}
-			configMap.put("configList", configList);
-		} catch (SQLException ex) {
-			// Don't print stack trace... xrayConfigList table is missing if no config file
-			// exists
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
+		if (failure instanceof RuntimeException) {
+			throw (RuntimeException) failure;
 		}
+		// Don't print stack trace... xrayConfigList table is missing if no config file
+		// exists
 		return configMap;
 	}
 
 	/**
-	 * Gets the xray config file
-	 * 
-	 * @param filename
-	 * @return
+	 * Reads one X-ray config file. The config is read in one read on the shared
+	 * executor.
+	 *
+	 * <p>
+	 * A failure acquiring or preparing the local master connection throws. A
+	 * failure while the query runs, or while the connection is released, is logged
+	 * and the config read before it, if any, is returned.
+	 *
+	 * @param filename name the config was saved under
+	 * @return the config text of the last matching row; empty when there is no such
+	 *         config or the query fails before reading it
+	 * @throws IllegalArgumentException when the local master connection cannot be
+	 *                                  acquired
 	 */
-
 	public static String getXrayConfigFile(String filename) {
 		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
-		Connection conn = null;
+		String[] configFile = { "" };
+		String query = "select config from xrayconfigs where filename = ?";
+		Exception failure;
 		try {
-			conn = engine.getConnection();
-		} catch (SQLException e) {
+			failure = readLocalMasterStage(engine, conn -> {
+				try (PreparedStatement stmt = conn.prepareStatement(query)) {
+					stmt.setString(1, filename);
+					try (ResultSet rs = stmt.executeQuery()) {
+						while (rs.next()) {
+							configFile[0] = rs.getString(1);
+						}
+					}
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Error connecting to local master engine {} while reading xray config {}.",
 					engine.getEngineName(), filename, e);
 			throw new IllegalArgumentException("Unable to connect to local master database while reading xray config '"
 					+ filename + "'. See logs for details.");
 		}
-		PreparedStatement stmt = null;
-		ResultSet rs = null;
-		String configFile = "";
-		try {
-			String query = "select config from xrayconfigs where filename = ?";
-			stmt = conn.prepareStatement(query);
-			stmt.setString(1, filename);
-			rs = stmt.executeQuery();
-			while (rs.next()) {
-				configFile = rs.getString(1);
-			}
-		} catch (Exception ex) {
-			classLogger.error("Error retrieving xray config file {}.", filename, ex);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
+		if (failure != null) {
+			classLogger.error("Error retrieving xray config file {}.", filename, failure);
 		}
-		return configFile;
+		return configFile[0];
 	}
 
 	/**
-	 * specific format for xray merging db.tablename for nodes
-	 * 
-	 * @param engineName
-	 * @return
+	 * Builds the X-ray metamodel of one database: its nodes, named
+	 * {@code engine-concept}, and the edges between them. The nodes and the edges
+	 * are read in two separate reads on the shared executor, so a failed node read
+	 * still lets the edge read run.
+	 *
+	 * <p>
+	 * A failure acquiring or preparing the local master connection for either read
+	 * throws. A failed node read is logged and the edges are matched against the
+	 * nodes read before it. A failed edge read is logged and the result is left
+	 * empty, unless the edge read had already completed before the connection
+	 * release failed.
+	 *
+	 * @param engineName name of the database whose metamodel is built
+	 * @return {@code nodes} and {@code edges} when the edge read completes; empty
+	 *         otherwise
+	 * @throws IllegalArgumentException when the local master connection cannot be
+	 *                                  acquired
 	 */
 	public static Map<String, Object> getXrayExisitingMetamodelRDBMS(String engineName) {
 		// this needs to be moved to the name server
@@ -2500,18 +2302,6 @@ public class MasterDatabaseUtility {
 		// get the edges next
 
 		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
-		Connection conn = null;
-		try {
-			conn = engine.getConnection();
-		} catch (SQLException e) {
-			classLogger.error("Error connecting to local master engine {} while loading xray metamodel for {}.",
-					engine.getEngineName(), engineName, e);
-			throw new IllegalArgumentException(
-					"Unable to connect to local master database while loading xray metamodel for engine '" + engineName
-							+ "'. See logs for details.");
-		}
-		Statement stmt = null;
-		ResultSet rs = null;
 		// creates e-c-p node names for fe to parse
 		String delim = "-";
 		Map<String, Object> finalHash = new Hashtable<>();
@@ -2523,110 +2313,162 @@ public class MasterDatabaseUtility {
 		String nodeQuery = "SELECT c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property FROM "
 				+ "engineconcept ec, concept c, engine e " + "WHERE ec.engine=e.id " + "AND e.enginename=? "
 				+ "AND c.localconceptid=ec.localconceptid ORDER BY ec.property";
-		try (PreparedStatement statement = conn.prepareStatement(nodeQuery)) {
-//			String nodeQuery = "select c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property from "
-//					+ "engineconcept ec, concept c, engine e " + "where ec.engine=e.id " + "and e.enginename='"
-//					+ engineName + "' " + "and c.localconceptid=ec.localconceptid order by ec.property";
+		Exception nodeFailure;
+		try {
+			nodeFailure = readLocalMasterStage(engine, conn -> {
+				try (PreparedStatement statement = conn.prepareStatement(nodeQuery)) {
+					statement.setString(1, engineName);
+					try (ResultSet rs = statement.executeQuery()) {
+						while (rs.next()) {
+							String conceptualName = rs.getString(1);
+							String physicalId = rs.getString(4);
+							String parentPhysicalId = rs.getString(5);
 
-			statement.setString(1, engineName);
-			// stmt = conn.createStatement();
-			// rs = stmt.executeQuery(nodeQuery);
-			rs = statement.executeQuery();
-			while (rs.next()) {
-				String conceptualName = rs.getString(1);
-				String physicalName = rs.getString(2);
-				String physicalId = rs.getString(4);
-				String parentPhysicalId = rs.getString(5);
+							// sets the physical id to conceptual name
+							idHash.put(physicalId, conceptualName);
 
-				// sets the physical id to conceptual name
-				idHash.put(physicalId, conceptualName);
+							MetamodelVertex node = null;
 
-				MetamodelVertex node = null;
+							// gets the conceptual name
+							String conceptName = idHash.get(physicalId);
 
-				// gets the conceptual name
-				String conceptName = idHash.get(physicalId);
+							// because it is ordered by property, this would already be
+							// there
+							String parentName = idHash.get(parentPhysicalId);
 
-				// because it is ordered by property, this would already be
-				// there
-				String parentName = idHash.get(parentPhysicalId);
+							// if already there, should we still add it ?
+							if (nodeHash.containsKey(engineName + delim + parentName)) {
+								node = nodeHash.get(engineName + delim + parentName);
+							} else {
+								node = new MetamodelVertex(engineName + delim + parentName);
+								nodeHash.put(engineName + delim + conceptualName, node);
+							}
 
-				// if already there, should we still add it ?
-				if (nodeHash.containsKey(engineName + delim + parentName)) {
-					node = nodeHash.get(engineName + delim + parentName);
-				} else {
-					node = new MetamodelVertex(engineName + delim + parentName);
-					nodeHash.put(engineName + delim + conceptualName, node);
+							// might be this or might not be
+							node.addProperty(conceptName);
+						}
+					}
 				}
-
-				// if (!conceptName.equalsIgnoreCase(parentName)) {
-				// might be this or might not be
-				// node.addProperty(engineName+ "." +conceptName);
-				node.addProperty(conceptName);
-				// }
-			}
-		} catch (SQLException ex) {
-			classLogger.error("Error retrieving xray metamodel nodes for engine {}.", engineName, ex);
-		} finally {
-			// do not close the stmt
-			// reuse it below
-			ConnectionUtils.closeAllConnectionsIfPooling(null, null, null, rs);
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw xrayMetamodelConnectionFailure(engine, engineName, e);
+		}
+		if (nodeFailure instanceof RuntimeException) {
+			throw (RuntimeException) nodeFailure;
+		}
+		if (nodeFailure != null) {
+			classLogger.error("Error retrieving xray metamodel nodes for engine {}.", engineName, nodeFailure);
 		}
 
+		// get the edges next
+		// SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION
+		// er, engine e where e.id = er.engine and e.enginename = 'Mv1'
 		String edgeQuery = "SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION er, engine e WHERE e.id=er.engine AND "
 				+ "e.enginename = ?";
-		try (PreparedStatement statement = conn.prepareStatement(edgeQuery)) {
-			// get the edges next
-			// SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION
-			// er, engine e where e.id = er.engine and e.enginename = 'Mv1'
-//			String edgeQuery = "SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION er, engine e where e.id = er.engine and "
-//					+ "e.enginename = '" + engineName + "'";
+		Exception edgeFailure;
+		try {
+			edgeFailure = readLocalMasterStage(engine, conn -> {
+				try (PreparedStatement statement = conn.prepareStatement(edgeQuery)) {
+					statement.setString(1, engineName);
+					try (ResultSet rs = statement.executeQuery()) {
+						Hashtable<String, Hashtable> edgeHash = new Hashtable<>();
+						while (rs.next()) {
+							String startId = rs.getString(1);
+							String endId = rs.getString(2);
 
-			statement.setString(1, engineName);
-			if (stmt == null) {
-				stmt = conn.createStatement();
-			}
-			// rs = stmt.executeQuery(edgeQuery);
-			rs = statement.executeQuery();
+							Hashtable newEdge = new Hashtable();
+							// need to check to see if the idHash has it else put it in
+							String sourceName = idHash.get(startId);
+							String targetName = idHash.get(endId);
+							newEdge.put("source", engineName + delim + sourceName + delim + sourceName);
+							newEdge.put("target", engineName + delim + targetName + delim + targetName);
 
-			Hashtable<String, Hashtable> edgeHash = new Hashtable<>();
-			while (rs.next()) {
-				String startId = rs.getString(1);
-				String endId = rs.getString(2);
+							boolean foundNode = true;
+							if (!nodeHash.containsKey(engineName + delim + sourceName)) {
+								foundNode = false;
+								classLogger.debug("Unable to find node {}", sourceName);
+							}
+							if (!nodeHash.containsKey(engineName + delim + targetName)) {
+								foundNode = false;
+								classLogger.debug("Unable to find node {}", targetName);
+							}
 
-				Hashtable newEdge = new Hashtable();
-				// need to check to see if the idHash has it else put it in
-				String sourceName = idHash.get(startId);
-				String targetName = idHash.get(endId);
-				newEdge.put("source", engineName + delim + sourceName + delim + sourceName);
-				newEdge.put("target", engineName + delim + targetName + delim + targetName);
-
-				// if(nodeHash.containsKey(toId))
-
-				boolean foundNode = true;
-				if (!nodeHash.containsKey(engineName + delim + sourceName)) {
-					foundNode = false;
-					classLogger.debug("Unable to find node {}", sourceName);
+							if (foundNode) {
+								edgeHash.put(engineName + delim + sourceName + delim + sourceName + delim + engineName
+										+ delim + targetName + delim + targetName, newEdge);
+							}
+						}
+						finalHash.put("nodes", nodeHash);
+						finalHash.put("edges", edgeHash);
+					}
 				}
-				if (!nodeHash.containsKey(engineName + delim + targetName)) {
-					foundNode = false;
-					classLogger.debug("Unable to find node {}", targetName);
-				}
-
-				if (foundNode) {
-					edgeHash.put(engineName + delim + sourceName + delim + sourceName + delim + engineName + delim
-							+ targetName + delim + targetName, newEdge);
-				}
-			}
-			finalHash.put("nodes", nodeHash);
-			finalHash.put("edges", edgeHash);
-
-		} catch (SQLException ex) {
-			classLogger.error("Error retrieving xray metamodel edges for engine {}.", engineName, ex);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw xrayMetamodelConnectionFailure(engine, engineName, e);
+		}
+		if (edgeFailure instanceof RuntimeException) {
+			throw (RuntimeException) edgeFailure;
+		}
+		if (edgeFailure != null) {
+			classLogger.error("Error retrieving xray metamodel edges for engine {}.", engineName, edgeFailure);
 		}
 
 		return finalHash;
+	}
+
+	/**
+	 * Logs a failure to acquire the local master connection for an X-ray metamodel
+	 * read and builds the exception the caller throws.
+	 *
+	 * @param engine     the local master database
+	 * @param engineName name of the database whose metamodel is read
+	 * @param cause      the acquisition failure
+	 * @return the exception reporting that the connection is unavailable
+	 */
+	private static IllegalArgumentException xrayMetamodelConnectionFailure(IRDBMSEngine engine, String engineName,
+			Exception cause) {
+		classLogger.error("Error connecting to local master engine {} while loading xray metamodel for {}.",
+				engine.getEngineName(), engineName, cause);
+		return new IllegalArgumentException(
+				"Unable to connect to local master database while loading xray metamodel for engine '" + engineName
+						+ "'. See logs for details.");
+	}
+
+	/**
+	 * Runs one query-only stage of a local master read on the shared executor and
+	 * keeps a connection that cannot be acquired apart from a query that fails. The
+	 * work fills its caller's collections as it reads, so the values read before a
+	 * failure stay with the caller.
+	 *
+	 * @param engine the local master database
+	 * @param work   the stage's query-only work
+	 * @return null when the stage completes; otherwise the failure raised while the
+	 *         work ran or while the executor ended the read and released the
+	 *         connection
+	 * @throws Exception the failure raised before the work started, while the
+	 *                   connection was acquired or prepared
+	 */
+	private static Exception readLocalMasterStage(IRDBMSEngine engine, QueryExecutionUtility.JdbcWork<?> work)
+			throws Exception {
+		boolean[] started = { false };
+		try {
+			QueryExecutionUtility.read(engine, conn -> {
+				started[0] = true;
+				return work.run(conn);
+			});
+			return null;
+		} catch (Exception e) {
+			if (!started[0]) {
+				throw e;
+			}
+			return e;
+		}
 	}
 
 	/**
@@ -2636,27 +2478,26 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static Date getEngineDate(String engineId) {
-		java.util.Date retDate = null;
+		// Retain an already materialized date if a later cursor/cleanup step fails.
+		Date[] retDate = new Date[1];
 		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
-		Connection conn = null;
-		PreparedStatement stmt = null;
-		ResultSet rs = null;
 		try {
-			conn = engine.getConnection();
-			String query = "select modifieddate from engine e where e.id = ?";
-			stmt = conn.prepareStatement(query);
-			stmt.setString(1, engineId);
-			rs = stmt.executeQuery();
-			while (rs.next()) {
-				java.sql.Timestamp modDate = rs.getTimestamp(1);
-				retDate = new java.util.Date(modDate.getTime());
-			}
+			return QueryExecutionUtility.read(engine, conn -> {
+				String query = "select modifieddate from engine e where e.id = ?";
+				try (PreparedStatement stmt = conn.prepareStatement(query)) {
+					stmt.setString(1, engineId);
+					try (ResultSet rs = stmt.executeQuery()) {
+						while (rs.next()) {
+							retDate[0] = new Date(rs.getTimestamp(1).getTime());
+						}
+					}
+				}
+				return retDate[0];
+			});
 		} catch (Exception ex) {
 			classLogger.error("Error retrieving engine modified date for engine id {}.", engineId, ex);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
 		}
-		return retDate;
+		return retDate[0];
 	}
 
 	/**
@@ -2666,37 +2507,13 @@ public class MasterDatabaseUtility {
 	 */
 	public static void saveMetamodelPositions(String databaseId, Map<String, Object> positions) {
 		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
-		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
-		Connection conn = null;
-		Savepoint savepoint = null;
 		try {
-			conn = engine.getConnection();
-			if (!conn.getAutoCommit()) {
-				savepoint = conn.setSavepoint("mm_position_" + Utility.getRandomString(5));
-			}
-			saveMetamodelPositions(databaseId, positions, conn);
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+			QueryExecutionUtility.write(engine, conn -> {
+				saveMetamodelPositions(databaseId, positions, conn);
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Error saving metamodel positions for database {}.", databaseId, e);
-			try {
-				if (savepoint != null) {
-					conn.rollback(savepoint);
-				}
-			} catch (SQLException e1) {
-				classLogger.error("Error rolling back metamodel position save for database {}.", databaseId, e1);
-			}
-		} finally {
-			if (savepoint != null && !queryUtil.savePointAutoRelease()) {
-				try {
-					conn.releaseSavepoint(savepoint);
-				} catch (SQLException e) {
-					classLogger.error("Error releasing savepoint while saving metamodel positions for database {}.",
-							databaseId, e);
-				}
-			}
-			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, null, null);
 		}
 	}
 
@@ -2714,14 +2531,11 @@ public class MasterDatabaseUtility {
 		String removeExisting = "DELETE FROM METAMODELPOSITION where ENGINEID = ?";
 		String insertStatement = "INSERT INTO METAMODELPOSITION VALUES (?, ?, ?, ?)";
 
-		PreparedStatement remove = null;
-		PreparedStatement add = null;
-		try {
-			remove = conn.prepareStatement(removeExisting);
+		try (PreparedStatement remove = conn.prepareStatement(removeExisting);
+				PreparedStatement add = conn.prepareStatement(insertStatement)) {
 			remove.setString(1, databaseId);
 			remove.execute();
 
-			add = conn.prepareStatement(insertStatement);
 			for (String x : positions.keySet()) {
 				int i = 1;
 				add.setString(i++, databaseId);
@@ -2738,9 +2552,6 @@ public class MasterDatabaseUtility {
 		} catch (Exception e) {
 			classLogger.error("Could not save metamodel positions for database {}.", databaseId, e);
 			throw e;
-		} finally {
-			ConnectionUtils.closeStatement(remove);
-			ConnectionUtils.closeStatement(add);
 		}
 	}
 

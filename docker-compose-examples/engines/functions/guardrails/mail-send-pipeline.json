@@ -1,0 +1,25 @@
+{
+  "pipelines": {
+    "execute": {
+      "input": [
+        {
+          "reactorClass": "prerna.reactor.interceptor.GenericGuardrailInputReactor",
+          "params": {
+            "guardrailEngineId": "<outbound-mail-policy-guardrail-id>",
+            "blockOnGuardrailFailure": true,
+            "blockErrorMessage": "The email was not sent because it did not pass the outbound mail review.",
+            "inputMapping": {
+              "prompt": [
+                "arg0.subject",
+                "arg0.message"
+              ]
+            },
+            "directParameters": {
+              "policy": "Classify the email as UNSAFE if it discloses credentials, access tokens, private keys, regulated personal data, or confidential internal information; makes an unapproved financial or legal commitment; impersonates an executive; or uses threatening, harassing, or discriminatory language. Ordinary business communication that does none of these things is SAFE."
+            }
+          }
+        }
+      ]
+    }
+  }
+}

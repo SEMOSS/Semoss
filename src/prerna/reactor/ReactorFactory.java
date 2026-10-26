@@ -143,7 +143,6 @@ import prerna.reactor.export.EmptyDataReactor;
 import prerna.reactor.export.GoogleUploaderReactor;
 import prerna.reactor.export.GrabScalarElementReactor;
 import prerna.reactor.export.IterateReactor;
-import prerna.reactor.export.OneDriveUploaderReactor;
 import prerna.reactor.export.ToCsvReactor;
 import prerna.reactor.export.ToDatabaseReactor;
 import prerna.reactor.export.ToExcelReactor;
@@ -327,7 +326,6 @@ import prerna.reactor.qs.selectors.UniqueCountReactor;
 import prerna.reactor.qs.selectors.UniqueGroupConcatReactor;
 import prerna.reactor.qs.selectors.UniqueSumReactor;
 import prerna.reactor.qs.source.APIReactor;
-import prerna.reactor.qs.source.AuditDatabaseReactor;
 import prerna.reactor.qs.source.DatabaseReactor;
 import prerna.reactor.qs.source.DirectJdbcConnectionReactor;
 import prerna.reactor.qs.source.DropBoxFileRetrieverReactor;
@@ -337,13 +335,6 @@ import prerna.reactor.qs.source.FrameReactor;
 import prerna.reactor.qs.source.GoogleFileRetrieverReactor;
 import prerna.reactor.qs.source.GoogleListFilesReactor;
 import prerna.reactor.qs.source.JdbcSourceReactor;
-import prerna.reactor.qs.source.OneDriveFileRetrieverReactor;
-import prerna.reactor.qs.source.OneDriveListFilesReactor;
-import prerna.reactor.qs.source.SharePointDriveSelectorReactor;
-import prerna.reactor.qs.source.SharePointFileRetrieverReactor;
-import prerna.reactor.qs.source.SharePointListFilesReactor;
-import prerna.reactor.qs.source.SharePointSiteSelectorReactor;
-import prerna.reactor.qs.source.SharePointWebDavPullReactor;
 import prerna.reactor.qs.source.URLSourceReactor;
 import prerna.reactor.runtime.JavaReactor;
 import prerna.reactor.scheduler.ListAllJobsReactor;
@@ -714,7 +705,6 @@ public class ReactorFactory {
 		// specifies that our pixel operations after this point are dealing with the
 		// specified database
 		reactorHash.put("Database", DatabaseReactor.class);
-		reactorHash.put("AuditDatabase", AuditDatabaseReactor.class);
 		reactorHash.put("API", APIReactor.class);
 		reactorHash.put("FileRead", FileReadReactor.class);
 		reactorHash.put("JdbcSource", JdbcSourceReactor.class);
@@ -724,21 +714,11 @@ public class ReactorFactory {
 		reactorHash.put("DropBoxUploader", DropBoxUploaderReactor.class);
 		reactorHash.put("DropBoxListFiles", DropBoxListFilesReactor.class);
 		reactorHash.put("DropBoxFileRetriever", DropBoxFileRetrieverReactor.class);
-		// one drive
-		reactorHash.put("OneDriveUploader", OneDriveUploaderReactor.class);
-		reactorHash.put("OneDriveListFiles", OneDriveListFilesReactor.class);
-		reactorHash.put("OneDriveFileRetriever", OneDriveFileRetrieverReactor.class);
 		// google
 		reactorHash.put("GoogleUploader", GoogleUploaderReactor.class);
 		reactorHash.put("GoogleListFiles", GoogleListFilesReactor.class);
 		reactorHash.put("GoogleFileRetriever", GoogleFileRetrieverReactor.class);
 
-		// share point
-		reactorHash.put("SharePointListFiles", SharePointListFilesReactor.class);
-		reactorHash.put("SharePointFileRetriever", SharePointFileRetrieverReactor.class);
-		reactorHash.put("SharePointSiteSelector", SharePointSiteSelectorReactor.class);
-		reactorHash.put("SharePointDriveSelector", SharePointDriveSelectorReactor.class);
-		reactorHash.put("SharePointWebDavPull", SharePointWebDavPullReactor.class);
 		// survey monkey
 		reactorHash.put("SurveyMonkeyListSurveys", SurveyMonkeyListSurveysReactor.class);
 		reactorHash.put("NaturalLanguageSearch", NaturalLanguageSearchReactor.class);

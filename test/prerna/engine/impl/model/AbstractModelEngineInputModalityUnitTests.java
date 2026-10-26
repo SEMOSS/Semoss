@@ -94,6 +94,50 @@ class AbstractModelEngineInputModalityUnitTests {
 	}
 
 	@Test
+	void rejectsGenericFileWhenModelHasNoDocumentSupport() {
+		// text+image only, attachment not flagged: a pptx has nowhere to go
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE));
+		InputMessage message = newMessage();
+		message.addPart(new MediaMessagePart(pptxMedia()));
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> engine.validateInputModalities(List.of(), message));
+
+		assertTrue(exception.getMessage().contains("does not allow FILE input"));
+	}
+
+	@Test
+	void allowsGenericFileWhenModelAcceptsPdfInput() {
+		// the static catalog never declares "file"; pdf is its document modality
+		TestModelEngine engine = new TestModelEngine(
+				EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE, ModelModalityEnum.PDF));
+		InputMessage message = newMessage();
+		message.addPart(new MediaMessagePart(pptxMedia()));
+
+		assertDoesNotThrow(() -> engine.validateInputModalities(List.of(), message));
+	}
+
+	@Test
+	void allowsGenericFileWhenMetadataFlagsAttachmentSupport() {
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE),
+				Boolean.TRUE);
+		InputMessage message = newMessage();
+		message.addPart(new MediaMessagePart(pptxMedia()));
+
+		assertDoesNotThrow(() -> engine.validateInputModalities(List.of(), message));
+	}
+
+	@Test
+	void attachmentFlagDoesNotUnlockOtherModalities() {
+		// attachment support only widens FILE; an image is still gated by the list
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT), Boolean.TRUE);
+		InputMessage message = newMessage();
+		message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl("https://example.com/image.png")));
+
+		assertThrows(IllegalArgumentException.class, () -> engine.validateInputModalities(List.of(), message));
+	}
+
+	@Test
 	void classifiesPdfUrlsAsPdfInput() {
 		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE));
 		InputMessage message = newMessage();
@@ -249,12 +293,23 @@ class AbstractModelEngineInputModalityUnitTests {
 		return new Gson().fromJson("{\"mimeType\":\"audio/mp3\"}", MessageInputMedia.class);
 	}
 
+	private static MessageInputMedia pptxMedia() {
+		return new Gson().fromJson(
+				"{\"mimeType\":\"application/vnd.openxmlformats-officedocument.presentationml.presentation\"}",
+				MessageInputMedia.class);
+	}
+
 	private static class TestModelEngine extends AbstractModelEngine {
 		private InputMessage lastInputMessage;
 		private Map<String, Object> lastHyperParameters;
 
 		private TestModelEngine(Set<ModelModalityEnum> inputModalities) {
+			this(inputModalities, null);
+		}
+
+		private TestModelEngine(Set<ModelModalityEnum> inputModalities, Boolean attachmentSupported) {
 			this.inputModalities = inputModalities;
+			this.attachmentSupported = attachmentSupported;
 			setEngineName("test-model");
 		}
 
