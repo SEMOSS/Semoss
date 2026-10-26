@@ -36,6 +36,9 @@ import java.util.Map;
 // Owner and source health: COLLAB_OWNER, SOURCE_CONNECTION
 public final class CollaborationSourceUtils {
 
+	private static final String EMAIL = "email";
+	private static final String CALENDAR = "calendar";
+
 	private CollaborationSourceUtils() {
 
 	}
@@ -66,6 +69,11 @@ public final class CollaborationSourceUtils {
 		List<Map<String, Object>> statuses = new ArrayList<>();
 		for (String[] entry : SOURCE_CATALOG) {
 			Map<String, Object> row = rows.get(entry[0]);
+			// calendar is on with mail until the owner turns it off; nothing else writes its row
+			if (row == null && CALENDAR.equals(entry[0]) && rows.get(EMAIL) != null) {
+				row = new HashMap<>(rows.get(EMAIL));
+				row.put("lastEventAt", null);
+			}
 			String status = "off";
 			if (row != null && Boolean.TRUE.equals(row.get("enabled"))) {
 				status = Boolean.TRUE.equals(row.get("reauthNeeded")) ? "needs_permission" : "connected";
