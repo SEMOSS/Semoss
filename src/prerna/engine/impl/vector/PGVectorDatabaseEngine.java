@@ -906,8 +906,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	 */
 
 	/**
-	 * 
-	 * @return
+	 * Follows KEEP_INPUT_OUTPUT in the SMSS, false when it is not set, as a vector
+	 * database does, though this engine is built on the database engine, which
+	 * always keeps its input and output. The flag decides whether a search's text
+	 * and results, and the text of the engine's other calls, are kept in the audit
+	 * logs and the model inference logs.
+	 *
+	 * @return the SMSS value of KEEP_INPUT_OUTPUT
 	 */
 	@Override
 	public boolean keepInputOutput() {

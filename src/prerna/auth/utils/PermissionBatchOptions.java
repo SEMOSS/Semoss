@@ -270,9 +270,11 @@ final class PermissionBatchOptions {
 
 	/**
 	 * Marks access requests approved in the same transaction as the changes, by
-	 * whoever the rows say gave the access, each with the level it asked for. A
-	 * request asks only for a level, so a person who has access already keeps their
-	 * usage limit on a model ({@link #keepingModelLimits()}).
+	 * whoever the rows say gave the access, each with the level it asked for. Only
+	 * the target's own requests are marked; a request of another project, engine or
+	 * insight is left as it is. A request asks only for a level, so a person who
+	 * has access already keeps their usage limit on a model
+	 * ({@link #keepingModelLimits()}).
 	 *
 	 * @param target   the project, engine or insight
 	 * @param requests the requests, each with {@code requestid} and
@@ -290,7 +292,9 @@ final class PermissionBatchOptions {
 		return adminMode;
 	}
 
-	/** Keep the existing bulk event instead of also recording each permission row. */
+	/**
+	 * Keep the existing bulk event instead of also recording each permission row.
+	 */
 	PermissionBatchOptions withSummaryAudit() {
 		this.summaryAudit = true;
 		return this;

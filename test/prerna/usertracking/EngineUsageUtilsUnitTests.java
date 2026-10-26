@@ -29,41 +29,56 @@ package prerna.usertracking;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.util.JdbcTestDatabase;
-import prerna.util.QueryExecutionUtility;
 
 class EngineUsageUtilsUnitTests {
 
 	@Test
-	void insertAndReconcileUseCommittedIndependentOperations() throws Exception {
-		try (var db = new JdbcTestDatabase();
-				var queries = mockStatic(QueryExecutionUtility.class, CALLS_REAL_METHODS)) {
-			db.execute("CREATE TABLE ENGINE_USES (ENGINEID VARCHAR, INSIGHTID VARCHAR, PROJECTID VARCHAR, DATE DATE)");
+	void insertAndReconcileEachCommitOneWrite() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			db.execute("CREATE TABLE ENGINE_USES (ENGINEID VARCHAR, INSIGHTID VARCHAR, PROJECTID VARCHAR, DATE DATE)",
+					"INSERT INTO ENGINE_USES VALUES ('other','insight','elsewhere',DATE '2020-01-01')");
 			db.manual();
 			EngineUsageUtils.add(Set.of("old", "kept"), "insight", "project");
 			db.connection.rollback();
-			assertEquals(2, db.count("ENGINE_USES"));
-			queries.when(() -> QueryExecutionUtility.flushToListString(eq(db.engine), any(SelectQueryStruct.class)))
-					.thenReturn(new ArrayList<>(List.of("old", "kept")));
+			assertEquals(3, db.count("ENGINE_USES"));
+			db.execute("UPDATE ENGINE_USES SET \"DATE\" = DATE '2020-01-01'");
+			db.connection.commit();
 			EngineUsageUtils.update(Set.of("new", "kept"), "insight", "project");
-			assertEquals(2, db.count("ENGINE_USES"));
+			db.connection.rollback();
+			assertEquals(3, db.count("ENGINE_USES"));
 			assertEquals(0L, db.value("SELECT COUNT(*) FROM ENGINE_USES WHERE ENGINEID='old'"));
+			assertEquals(1L, db
+					.value("SELECT COUNT(*) FROM ENGINE_USES WHERE ENGINEID='kept' AND \"DATE\" > DATE '2020-01-01'"));
+			assertEquals(1L, db.value("SELECT COUNT(*) FROM ENGINE_USES WHERE ENGINEID='other'"));
+			verify(db.engine, times(2)).getConnection();
 			verify(db.engine, never()).getPreparedStatement(anyString());
+		}
+	}
+
+	@Test
+	void reconcileFailureLeavesEveryUsageRowAsItWas() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			db.execute(
+					"CREATE TABLE ENGINE_USES (ENGINEID VARCHAR CHECK (ENGINEID <> 'reject'), INSIGHTID VARCHAR, PROJECTID VARCHAR, DATE DATE)",
+					"INSERT INTO ENGINE_USES VALUES ('old','insight','project',DATE '2020-01-01')");
+			db.manual();
+			assertDoesNotThrow(() -> EngineUsageUtils.update(Set.of("reject"), "insight", "project"));
+			assertEquals(1, db.count("ENGINE_USES"));
+			assertEquals("old", db.value("SELECT ENGINEID FROM ENGINE_USES"));
+			verify(db.connection).rollback();
+			verify(db.connection, never()).commit();
+			assertDoesNotThrow(() -> EngineUsageUtils.add(Set.of("fine", "reject"), "insight", "project"));
+			assertEquals(1, db.count("ENGINE_USES"));
 		}
 	}
 
