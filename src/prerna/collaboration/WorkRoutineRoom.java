@@ -27,10 +27,13 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.javatuples.Pair;
 
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.om.Insight;
@@ -43,13 +46,19 @@ public final class WorkRoutineRoom {
 		WorkRoutine.Kind kind;
 		// any other id names one of the owner's own routines
 		String customId = null;
+		// the reference documents the routine's runs read; the inbox and agenda routines have none
+		String documentsId = null;
 		if (WorkInboxRoutine.ID.equals(routineId)) {
 			kind = WorkInboxRoutine.KIND;
 		} else if (WorkAgendaRoutine.ID.equals(routineId)) {
 			kind = WorkAgendaRoutine.KIND;
+		} else if (WorkExpenseRoutine.ID.equals(routineId)) {
+			kind = WorkExpenseRoutine.KIND;
+			documentsId = WorkExpenseRoutine.DOCUMENTS_ID;
 		} else if (routineId != null && !routineId.isBlank()) {
 			kind = WorkCustomRoutine.KIND;
 			customId = routineId.trim();
+			documentsId = customId;
 		} else {
 			throw new IllegalArgumentException("Unknown routine");
 		}
@@ -79,10 +88,30 @@ public final class WorkRoutineRoom {
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {
 			RoomUtils.createRoomIfNotExists(roomId, insight, null, title + " - " + runStarted.substring(0, 10),
 					null, options, null, CollaborationUtils.COLLABORATION_PROJECT_ID, null);
+			// the same copy a run gets, refreshed on every open so a document uploaded since is there too
+			List<String> documents = List.of();
+			if (documentsId != null) {
+				try {
+					documents = WorkRoutineDocuments.copyInto(insight.getUser(), documentsId, Room.roomFolderPath(roomId));
+				} catch (IOException e) {
+					throw new IllegalStateException("Could not copy the routine's reference documents into the chat", e);
+				}
+			}
 			// A deterministic message makes retries safe even if the room was created before persistence failed.
 			RoomMessageStore.appendPlatformMessageIfAbsent(roomId, insight.getUser().getPrimaryLoginToken().getId(),
-					messageId, summary, null);
+					messageId, withDocuments(summary, documents), null);
 		}
 		return Map.of("roomId", roomId);
+	}
+
+	// shortcut: the note names the documents present at first open; a later upload is copied on reopen but stays
+	// unnamed here, so add a per-turn runtime note if owners add documents mid-chat
+	static String withDocuments(String summary, List<String> documents) {
+		if (documents.isEmpty()) {
+			return summary;
+		}
+		return summary + "\n\n---\n\nThe routine's reference documents are in the \"" + WorkRoutineDocuments.FOLDER
+				+ "\" folder of this chat's working folder: " + String.join(", ", documents)
+				+ ". Read the ones a question needs with the file tools, or the document reader for Office files and PDFs.";
 	}
 }

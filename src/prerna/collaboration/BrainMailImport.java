@@ -419,6 +419,9 @@ public final class BrainMailImport {
 		final Set<String> threads = new LinkedHashSet<>();
 		// [threadId, sent time] of each newly imported message the owner sent, so a sync can close answered work
 		final List<String[]> ownerSent = new ArrayList<>();
+		// [messageKey, threadId, subject] of each newly imported message to the owner, from someone else or a note they
+		// sent themselves, for the routines mail sets off
+		final List<String[]> inbound = new ArrayList<>();
 		final Set<String> selfAddresses = new HashSet<>();
 		String selfId;
 		String selfName;
@@ -588,7 +591,8 @@ public final class BrainMailImport {
 				String address = entry.getKey();
 				boolean isSender = address.equals(from);
 				boolean self = isSelf(address, names.get(address));
-				if (!isSender && self) {
+				// a note the owner sent themselves is to them too
+				if (self && (!isSender || entry.getValue().contains("to") || entry.getValue().contains("cc"))) {
 					toMe = true;
 				}
 				if (isSender && senderHidden) {
@@ -626,6 +630,9 @@ public final class BrainMailImport {
 			threads.add(threadId);
 			if (fromMe) {
 				ownerSent.add(new String[] { threadId, (String) header.get("receivedDateTime") });
+			}
+			if (!fromMe || toMe) {
+				inbound.add(new String[] { messageKey, threadId, (String) header.get("subject") });
 			}
 			imported++;
 			if (meeting(header)) {

@@ -1664,6 +1664,10 @@ final class AutomationRunExecutionService {
 		}
 		if (Boolean.TRUE.equals(config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE))) {
 			options.put(CollaborationUtils.ROOM_OPTION_ROUTINE, true);
+			String delivery = stringValue(config.get(AutomationConstants.CONFIG_ROUTINE_DELIVERY));
+			if (delivery != null && !delivery.isBlank()) {
+				options.put(CollaborationUtils.ROOM_OPTION_ROUTINE_DELIVERY, delivery.trim());
+			}
 		}
 		return options.isEmpty() ? null : options;
 	}

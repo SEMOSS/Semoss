@@ -320,6 +320,11 @@ public final class AutomationDefinitionValidator {
 				throw new IllegalArgumentException("Automation agent node '" + nodeId
 						+ "' routineId configuration must be a string when provided.");
 			}
+			Object routineDelivery = config.get(AutomationConstants.CONFIG_ROUTINE_DELIVERY);
+			if (routineDelivery != null && !(routineDelivery instanceof String)) {
+				throw new IllegalArgumentException("Automation agent node '" + nodeId
+						+ "' routineDelivery configuration must be a string when provided.");
+			}
 			Object wait = config.get(AutomationConstants.CONFIG_WAIT);
 			if (wait != null && !(wait instanceof Boolean)) {
 				throw new IllegalArgumentException(
