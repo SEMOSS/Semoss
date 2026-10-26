@@ -375,9 +375,8 @@ public class InsertReactor extends AbstractReactor {
 	 */
 	private void recordInsert(IRDBMSEngine database, List<String> sentQueries, int statements, int inserted,
 			Exception error) {
-		// the SQL is only hashed for an engine that keeps its input, so it is joined
-		// only
-		// then
+		// the SQL is hashed only for an engine that keeps its input, which a database
+		// always does, so it is joined only then
 		String sql = database.keepInputOutput() ? String.join(";\n", sentQueries) : null;
 		DatabaseWriteAudit.record(this.insight, database,
 				DatabaseWriteAudit.Write.perStatement(REACTOR_NAME, sql, statements, inserted, inserted, error));

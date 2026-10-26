@@ -297,6 +297,33 @@ def test_client_configuration_and_context_manager_close():
         options["http_client"].close()
 
 
+@pytest.mark.parametrize("compression, encoding", [(None, None), ("zstd", "zstd")])
+def test_large_bodies_compress_only_when_the_engine_opts_in(
+    compression, encoding, response_body, questions
+):
+    seen = []
+
+    def handler(request):
+        seen.append(request.headers.get("content-encoding"))
+        return httpx2.Response(200, json=response_body)
+
+    real_client = httpx2.Client
+    options = {} if compression is None else {"compression": compression}
+    with patch(
+        "genai_client.typesafe.typesafe_client.httpx2.Client",
+        side_effect=lambda **kw: real_client(transport=httpx2.MockTransport(handler), **kw),
+    ):
+        with TypeSafeClientWrapper(api_key="test-key", **options) as client:
+            # well over the SDK's 1 KB compression threshold
+            client.ask("x" * 4000, questions)
+    assert seen == [encoding]
+
+
+def test_unknown_compression_is_rejected():
+    with pytest.raises(ValueError, match="compression"):
+        TypeSafeClientWrapper(api_key="test-key", compression="gzip")
+
+
 def test_failed_initialization_closes_http_client():
     with patch("genai_client.typesafe.typesafe_client.httpx2.Client") as http:
         with pytest.raises(TypeSafeError):

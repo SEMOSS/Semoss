@@ -123,14 +123,15 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("TOKEN__IPADDR"));
 		qs.addSelector(new QueryColumnSelector("TOKEN__CLIENTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("TOKEN__IPADDR", "==", ipAddr));
+		Object[] token = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				return wrapper.next().getValues();
+				token = wrapper.next().getValues();
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve token.", e);
 		}
 
-		return null;
+		return token;
 	}
 }
