@@ -59,7 +59,7 @@
 		<!-- Jackson 2.x. jackson-annotations tracks the minor line (2.22), while
 		     core/databind/datatype ship patch releases off it (2.22.2), so the two
 		     cannot share a single property. -->
-		<jackson2.version>2.22.3</jackson2.version>
+		<jackson2.version>2.22.4</jackson2.version>
 		<jackson2.annotations.version>2.22</jackson2.annotations.version>
 		<!-- 3.1.7->3.2.3 closes CVE-2026-91776/89425/68497/89407/91777 against the
 		     real jackson-core/jackson-databind jars (WEB-INF/lib). Shaded 2.x copies

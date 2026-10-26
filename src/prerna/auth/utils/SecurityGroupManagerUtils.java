@@ -127,12 +127,13 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("GROUPMANAGERS__GROUPID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPMANAGERS__GROUPID", "==", groupId));
 		qs.addExplicitFilter(loginFilter);
+		boolean isManager = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			return wrapper.hasNext();
+			isManager = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user manages the group.", e);
 		}
-		return false;
+		return isManager;
 	}
 
 	/**
@@ -415,12 +416,13 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPMANAGERS__GROUPID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPMANAGERS__USERID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPMANAGERS__TYPE", "==", userType));
+		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			return wrapper.hasNext();
+			exists = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user manages the group.", e);
 		}
-		return false;
+		return exists;
 	}
 
 	/**

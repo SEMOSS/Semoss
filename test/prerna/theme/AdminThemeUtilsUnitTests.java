@@ -27,14 +27,25 @@
  *******************************************************************************/
 package prerna.theme;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import org.junit.jupiter.api.Test;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.util.JdbcTestDatabase;
 
 class AdminThemeUtilsUnitTests {
+
 	@Test
 	void requiresAdminAndPreservesSerializedThemeText() throws Exception {
 		try (var db = new JdbcTestDatabase(); var admin = mockStatic(SecurityAdminUtils.class)) {
@@ -55,6 +66,41 @@ class AdminThemeUtilsUnitTests {
 			assertTrue(themes.setAllThemesInactive());
 			assertTrue(themes.deleteAdminTheme(id));
 			assertTrue(themes.deleteAdminTheme("absent"));
+		}
+	}
+
+	@Test
+	void activeThemeSwitchIsAtomicAndRefreshesTheCacheAfterCommit() throws Exception {
+		try (var db = new JdbcTestDatabase();
+				var admin = mockStatic(SecurityAdminUtils.class);
+				var playground = mockStatic(PlaygroundThemeUtils.class)) {
+			User user = mock(User.class);
+			admin.when(() -> SecurityAdminUtils.userIsAdmin(user)).thenReturn(true);
+			var themes = AdminThemeUtils.getInstance(user);
+			db.execute(
+					"CREATE TABLE ADMIN_THEME (ID VARCHAR, THEME_NAME VARCHAR, THEME_MAP CLOB, IS_ACTIVE BOOLEAN, CHECK (ID <> 'locked' OR IS_ACTIVE = FALSE))",
+					"INSERT INTO ADMIN_THEME VALUES ('old','old',NULL,TRUE),('new','new',NULL,FALSE),('locked','locked',NULL,FALSE)");
+			db.manual();
+			int[] refreshes = { 0 };
+			playground.when(PlaygroundThemeUtils::refreshCacheFromActiveTheme).thenAnswer(invocation -> {
+				// the cache is only refreshed once the switch is committed
+				verify(db.connection, times(++refreshes[0])).commit();
+				return null;
+			});
+			assertTrue(themes.setActiveTheme("new"));
+			db.connection.rollback();
+			assertEquals("new", db.value("SELECT ID FROM ADMIN_THEME WHERE IS_ACTIVE"));
+			playground.verify(PlaygroundThemeUtils::refreshCacheFromActiveTheme);
+
+			assertFalse(themes.setActiveTheme("locked"));
+			assertEquals("new", db.value("SELECT ID FROM ADMIN_THEME WHERE IS_ACTIVE"));
+			assertEquals(1, db.count("ADMIN_THEME WHERE IS_ACTIVE"));
+			verify(db.connection, times(1)).commit();
+			playground.verify(PlaygroundThemeUtils::refreshCacheFromActiveTheme, times(1));
+
+			assertTrue(themes.setActiveTheme("x' OR '1'='1"));
+			assertEquals(0, db.count("ADMIN_THEME WHERE IS_ACTIVE"));
+			assertEquals(2, refreshes[0]);
 		}
 	}
 

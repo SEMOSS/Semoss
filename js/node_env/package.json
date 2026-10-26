@@ -20,6 +20,7 @@
     "zod": "^3.23.8"
   },
   "overrides": {
-    "image-size": "2.0.4"
+    "image-size": "2.0.4",
+    "undici": "^7.30.1"
   }
 }
