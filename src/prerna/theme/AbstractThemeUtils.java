@@ -27,17 +27,11 @@
  *******************************************************************************/
 package prerna.theme;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.api.IRawSelectWrapper;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -65,14 +59,19 @@ public abstract class AbstractThemeUtils {
 		PlaygroundThemeUtils.refreshCacheFromActiveTheme();
 	}
 
+	/**
+	 * Creates the theme tables when they do not exist. Each DDL statement runs and
+	 * commits on its own through the engine, with no transaction across statements,
+	 * since several dialects commit DDL implicitly. Table lookups run in their own
+	 * reads on the shared executor.
+	 *
+	 * @throws Exception when a table cannot be looked up or created
+	 */
 	private static void initialize() throws Exception {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		String[] adminThemeColNames = null;
 		String[] adminThemeTypes = null;
 		String[] blocksTableTypes = null;
-		/*
-		 * Currently used
-		 */
 
 		// ADMIN_THEME
 		AbstractSqlQueryUtil queryUtil = themeDb.getQueryUtil();
@@ -84,35 +83,50 @@ public abstract class AbstractThemeUtils {
 			themeDb.insertData(queryUtil.createTableIfNotExists(ThemeDbTable.ADMIN_THEME.getThemeDbTableName(),
 					adminThemeColNames, adminThemeTypes));
 		} else {
-			if (!queryUtil.tableExists(themeDb.getConnection(), ThemeDbTable.ADMIN_THEME.getThemeDbTableName(),
-					themeDb.getDatabase(), themeDb.getSchema())) {
+			if (!tableExists(themeDb, ThemeDbTable.ADMIN_THEME.getThemeDbTableName())) {
 				themeDb.insertData(queryUtil.createTable(ThemeDbTable.ADMIN_THEME.getThemeDbTableName(),
 						adminThemeColNames, adminThemeTypes));
 			}
 		}
 
 		// BLOCKS_TABLE
-
 		blocksTableTypes = BlocksThemeUtils.getThemeColTypes(queryUtil);
 		if (queryUtil.allowsIfExistsTableSyntax()) {
 			themeDb.insertData(queryUtil.createTableIfNotExists(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
 					BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTableTypes));
 		} else {
-			if (!queryUtil.tableExists(themeDb.getConnection(), ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
-					themeDb.getDatabase(), themeDb.getSchema())) {
+			if (!tableExists(themeDb, ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName())) {
 				themeDb.insertData(queryUtil.createTable(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
 						BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTableTypes));
 				populateBlocksTemplateTable(BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTableTypes, queryUtil);
 			}
 		}
-//			if (!BlocksThemeUtils.getBlockNames().containsAll(BlocksThemeUtils.BASE_BLOCKS)) {
-//				populateBlocksTemplateTable(BlocksThemeUtils.BLOCK_COLUMN_NAMES, blocksTemplateTypes, queryUtil);
-//			}
-
-		// commit the changes
-		themeDb.commit();
 	}
 
+	/**
+	 * Checks whether a theme table exists, in one read on the shared executor.
+	 *
+	 * @param themeDb   the theme database
+	 * @param tableName table to look up
+	 * @return true when the table exists; false when it does not or the lookup
+	 *         query fails
+	 * @throws Exception when the connection cannot be acquired or released
+	 */
+	private static boolean tableExists(IRDBMSEngine themeDb, String tableName) throws Exception {
+		return QueryExecutionUtility.read(themeDb, connection -> themeDb.getQueryUtil().tableExists(connection,
+				tableName, themeDb.getDatabase(), themeDb.getSchema()));
+	}
+
+	/**
+	 * Clears the blocks table so it can be filled with the template blocks. The
+	 * delete is a data migration stage and runs in one write on the shared
+	 * executor.
+	 *
+	 * @param blocksTemplateColNames blocks table columns
+	 * @param blocksTemplateTypes    blocks table column types
+	 * @param queryUtil              dialect of the theme database
+	 * @throws Exception when the rows cannot be deleted
+	 */
 	private static void populateBlocksTemplateTable(String[] blocksTemplateColNames, String[] blocksTemplateTypes,
 			AbstractSqlQueryUtil queryUtil) throws Exception {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
@@ -120,12 +134,8 @@ public abstract class AbstractThemeUtils {
 		classLogger.info("Rebuilding Blocks_Table Table");
 
 		// delete the contents of the entire table
-		themeDb.removeData("DELETE FROM " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName());
-
-//			for (Object[] entry : BlocksThemeUtils.BLOCKS_DEFAULT_ENTRIES) {
-//				themeDb.insertData(queryUtil.insertIntoTable(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
-//						blocksTemplateColNames, blocksTemplateTypes, entry));
-//			}
+		QueryExecutionUtility.executeUpdate(themeDb, "DELETE FROM " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
+				QueryExecutionUtility.NO_PARAMETERS);
 	}
 
 	/**
@@ -135,25 +145,6 @@ public abstract class AbstractThemeUtils {
 	 */
 	public static boolean isInitalized() {
 		return AbstractThemeUtils.initialized;
-	}
-
-	static List<Map<String, Object>> flushRsToMap(IRawSelectWrapper wrapper) {
-		List<Map<String, Object>> result = new ArrayList<>();
-		while (wrapper.hasNext()) {
-			IHeadersDataRow headerRow = wrapper.next();
-			String[] headers = headerRow.getHeaders();
-			Object[] values = headerRow.getValues();
-			Map<String, Object> map = new HashMap<>();
-			for (int i = 0; i < headers.length; i++) {
-				if (values[i] instanceof java.sql.Clob) {
-					map.put(headers[i], AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]));
-				} else {
-					map.put(headers[i], values[i]);
-				}
-			}
-			result.add(map);
-		}
-		return result;
 	}
 
 }
