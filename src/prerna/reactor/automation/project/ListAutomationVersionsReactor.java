@@ -38,17 +38,17 @@ import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
-import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
 
 /**
  * Returns the git commit history for an automation project's workflow definition.
  *
- * <p>Each entry contains the commit author, timestamp, short revision hash, and message
- * recorded when {@code SaveAutomation} was called.
+ * <p>
+ * Each entry contains the commit author, timestamp, full revision SHA, and
+ * message recorded when the Automation graph or an owned developer-node source
+ * was saved.
  *
  * <p>Pixel: {@code ListAutomationVersions(project=["<projectId>"])}
  */
@@ -56,13 +56,11 @@ public class ListAutomationVersionsReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ListAutomationVersionsReactor.class);
 
-	private static final String PROJECT_KEY = "project";
-	private static final String LIMIT_KEY = "limit";
 	private static final int DEFAULT_LIMIT = 25;
 	private static final int MAXIMUM_LIMIT = 100;
 
 	public ListAutomationVersionsReactor() {
-		this.keysToGet = new String[] { PROJECT_KEY, LIMIT_KEY };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.LIMIT.getKey() };
 		this.keyRequired = new int[] { 1, 0 };
 	}
 
@@ -79,27 +77,17 @@ public class ListAutomationVersionsReactor extends AbstractReactor {
 			throw error;
 		}
 
-		String projectIdOrAlias = this.keyValue.get(PROJECT_KEY);
-		// resolveRunScope enforces view-level ACL and rejects inline run scopes
-		String projectId = AutomationProjectService.resolveRunScope(user, projectIdOrAlias, false);
+		IProject project = AutomationProjectService.getViewableAutomationProject(user,
+				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()));
+		String projectId = project.getProjectId();
 
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalArgumentException("Project not found: " + projectId);
-		}
-
-		int limit = getInt(LIMIT_KEY, DEFAULT_LIMIT);
+		int limit = getInt(ReactorKeysEnum.LIMIT.getKey(), DEFAULT_LIMIT);
 		if (limit <= 0) {
 			throw new IllegalArgumentException("limit must be a positive integer.");
 		}
 		limit = Math.min(limit, MAXIMUM_LIMIT);
 
-		String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
-		// getCommits returns newest-first (git log order); subList enforces the bound
-		List<Map<String, Object>> commits = GitRepoUtils.getCommits(versionFolder, null);
-		if (commits.size() > limit) {
-			commits = commits.subList(0, limit);
-		}
+		List<Map<String, Object>> commits = AutomationVersionService.listVersions(project, limit);
 
 		classLogger.info("Returning {} version entries for automation project {}", commits.size(), projectId);
 		return new NounMetadata(commits, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -113,11 +101,12 @@ public class ListAutomationVersionsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (PROJECT_KEY.equals(key)) {
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
 			return "ID or alias of the automation project whose version history should be listed.";
 		}
-		if (LIMIT_KEY.equals(key)) {
-			return "Maximum number of versions to return. Defaults to " + DEFAULT_LIMIT + ", capped at " + MAXIMUM_LIMIT + ".";
+		if (ReactorKeysEnum.LIMIT.getKey().equals(key)) {
+			return "Maximum number of versions to return. Defaults to " + DEFAULT_LIMIT + ", capped at "
+					+ MAXIMUM_LIMIT + ".";
 		}
 		return super.getDescriptionForKey(key);
 	}

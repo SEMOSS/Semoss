@@ -25,3 +25,126 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
+package prerna.reactor.automation.project;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
+
+import java.util.Map;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import prerna.auth.User;
+import prerna.om.Insight;
+import prerna.project.api.IProject;
+import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.definition.AutomationDefinitionService;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
+
+/** Covers rollback authorization, concurrency forwarding, and audit behavior. */
+class RollbackAutomationReactorUnitTests {
+
+	private static final String TARGET_REVISION = "a".repeat(40);
+	private static final String CURRENT_REVISION = "current-revision";
+	private static final String DEFINITION = """
+			{
+			  "formatVersion": 2,
+			  "triggerBindings": [{ "id": "manual", "type": "manual" }],
+			  "graph": {
+			    "nodes": [{ "id": "start", "type": "trigger.start", "label": "Start",
+			      "codeMode": "generated", "config": {} }],
+			    "edges": []
+			  }
+			}
+			""";
+
+	private RollbackAutomationReactor reactor;
+	private Insight insight;
+	private User user;
+
+	@BeforeEach
+	void setup() {
+		reactor = new RollbackAutomationReactor();
+		insight = mock(Insight.class);
+		user = mock(User.class);
+		reactor.setInsight(insight);
+		when(insight.getUser()).thenReturn(user);
+		reactor.keyValue.put("project", "project-1");
+		reactor.keyValue.put("revision", TARGET_REVISION);
+		reactor.keyValue.put(AutomationConstants.EXPECTED_REVISION_KEY, CURRENT_REVISION);
+	}
+
+	@Test
+	void requiresEditAccess() {
+		try (var projects = mockStatic(AutomationProjectService.class)) {
+			projects.when(() -> AutomationProjectService.getEditableAutomationProject(user, "project-1"))
+					.thenThrow(new IllegalArgumentException("Project does not exist or user does not have edit access."));
+
+			IllegalArgumentException error = assertThrows(IllegalArgumentException.class, reactor::execute);
+			assertEquals("Project does not exist or user does not have edit access.", error.getMessage());
+		}
+	}
+
+	@Test
+	void requiresCurrentRevision() {
+		reactor.keyValue.remove(AutomationConstants.EXPECTED_REVISION_KEY);
+
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class, reactor::execute);
+		assertEquals("Required input(s) missing: expectedRevision", error.getMessage());
+	}
+
+	@Test
+	void restoresWithConcurrencyTokenAndAuditsAfterSuccess() {
+		IProject project = project();
+		AutomationDefinitionService.DefinitionFiles files = new AutomationDefinitionService.DefinitionFiles(DEFINITION,
+				Map.of());
+
+		try (var projects = mockStatic(AutomationProjectService.class);
+				var versions = mockStatic(AutomationVersionService.class);
+				var audit = mockStatic(UserAuditTrailUtils.class)) {
+			projects.when(() -> AutomationProjectService.getEditableAutomationProject(user, "project-1"))
+					.thenReturn(project);
+			versions.when(() -> AutomationVersionService.restore(project, TARGET_REVISION, CURRENT_REVISION, user))
+					.thenReturn(files);
+
+			NounMetadata result = reactor.execute();
+
+			@SuppressWarnings("unchecked")
+			Map<String, Object> output = (Map<String, Object>) result.getValue();
+			assertEquals(true, output.get("saved"));
+			versions.verify(() -> AutomationVersionService.restore(project, TARGET_REVISION, CURRENT_REVISION, user));
+			audit.verify(() -> UserAuditTrailUtils.recordAutomationEvent(eq(user),
+					eq(AuditEventType.AUTOMATION_UPDATE), eq("project-1"), eq(null), eq(null), any(Map.class)));
+		}
+	}
+
+	@Test
+	void failedRestoreDoesNotWriteAuditEvent() {
+		IProject project = project();
+		try (var projects = mockStatic(AutomationProjectService.class);
+				var versions = mockStatic(AutomationVersionService.class);
+				var audit = mockStatic(UserAuditTrailUtils.class)) {
+			projects.when(() -> AutomationProjectService.getEditableAutomationProject(user, "project-1"))
+					.thenReturn(project);
+			versions.when(() -> AutomationVersionService.restore(project, TARGET_REVISION, CURRENT_REVISION, user))
+					.thenThrow(new IllegalArgumentException("Automation changed since it was loaded."));
+
+			assertThrows(IllegalArgumentException.class, reactor::execute);
+			audit.verifyNoInteractions();
+		}
+	}
+
+	private static IProject project() {
+		IProject project = mock(IProject.class);
+		when(project.getProjectId()).thenReturn("project-1");
+		return project;
+	}
+}

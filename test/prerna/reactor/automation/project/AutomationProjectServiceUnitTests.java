@@ -37,11 +37,15 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
 import prerna.auth.AccessToken;
@@ -56,6 +60,9 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 /** Covers the owner-scoped run scope used by runs of inline definition JSON. */
 public class AutomationProjectServiceUnitTests {
+
+	@TempDir
+	Path repositoryFolder;
 
 	private static User user(String id) {
 		AccessToken token = new AccessToken();
@@ -138,6 +145,49 @@ public class AutomationProjectServiceUnitTests {
 			assertEquals("Project does not exist or user does not have edit access.", error.getMessage());
 			security.verify(() -> SecurityProjectUtils.userCanEditProject(owner, "project-id"));
 		}
+	}
+
+	@Test
+	void commitsChangedDefinitionAssetsWithTheRequestedMessage() throws Exception {
+		Path versionFolder = repositoryFolder.resolve("version");
+		Files.createDirectories(versionFolder);
+		String initialHead;
+		try (Git git = Git.init().setDirectory(versionFolder.toFile()).call()) {
+			Path readme = versionFolder.resolve("README.md");
+			Files.writeString(readme, "initial");
+			git.add().addFilepattern("README.md").call();
+			initialHead = git.commit().setMessage("initial").setAuthor("Tester", "tester@example.com")
+					.setCommitter("Tester", "tester@example.com").call().getId().name();
+		}
+
+		Path definition = versionFolder.resolve("assets/automation-workflow.json");
+		Files.createDirectories(definition.getParent());
+		Files.writeString(definition, "{\"formatVersion\":2}");
+
+		AutomationProjectService.commitDefinitionAssets(versionFolder.toString(), List.of(definition.toString()),
+				"Restore automation definition from abc123", user("owner"));
+
+		try (Git git = Git.open(versionFolder.toFile())) {
+			assertNotEquals(initialHead, git.getRepository().resolve("HEAD").name());
+			assertEquals("Restore automation definition from abc123", git.log().setMaxCount(1).call().iterator().next()
+					.getFullMessage());
+		}
+	}
+
+	@Test
+	void reportsGitFailureInsteadOfSilentlySavingWithoutHistory() throws Exception {
+		Path versionFolder = repositoryFolder.resolve("version");
+		Files.createDirectories(versionFolder);
+		Path definition = versionFolder.resolve("assets/automation-workflow.json");
+		Git.init().setBare(true).setDirectory(versionFolder.toFile()).call().close();
+		Files.createDirectories(definition.getParent());
+		Files.writeString(definition, "{\"formatVersion\":2}");
+
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+				() -> AutomationProjectService.commitDefinitionAssets(versionFolder.toString(),
+						List.of(definition.toString()), "Update automation definition", user("owner")));
+
+		assertEquals("Unable to commit Automation definition assets to version history.", error.getMessage());
 	}
 
 	@Test

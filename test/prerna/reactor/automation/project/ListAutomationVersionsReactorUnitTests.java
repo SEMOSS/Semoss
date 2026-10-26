@@ -33,7 +33,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -43,13 +42,10 @@ import org.junit.jupiter.api.Test;
 import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
-import prerna.reactor.automation.AutomationConstants;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
-import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
 
+/** Covers the ACL and input boundary for Automation version listing. */
 class ListAutomationVersionsReactorUnitTests {
 
 	private static final String PROJECT_KEY = "project";
@@ -87,7 +83,7 @@ class ListAutomationVersionsReactorUnitTests {
 		reactor.keyValue.put(PROJECT_KEY, "project-1");
 
 		try (var projectService = mockStatic(AutomationProjectService.class)) {
-			projectService.when(() -> AutomationProjectService.resolveRunScope(user, "project-1", false))
+			projectService.when(() -> AutomationProjectService.getViewableAutomationProject(user, "project-1"))
 					.thenThrow(new IllegalArgumentException("Project does not exist or user does not have access."));
 
 			IllegalArgumentException error = assertThrows(IllegalArgumentException.class, reactor::execute);
@@ -96,166 +92,60 @@ class ListAutomationVersionsReactorUnitTests {
 	}
 
 	@Test
-	void inlineRunScopeIsRejected() {
-		String inlineScope = AutomationConstants.INLINE_RUN_SCOPE_PREFIX + "other-user";
-		reactor.keyValue.put(PROJECT_KEY, inlineScope);
-
-		try (var projectService = mockStatic(AutomationProjectService.class)) {
-			projectService.when(() -> AutomationProjectService.resolveRunScope(user, inlineScope, false))
-					.thenThrow(new IllegalArgumentException("Run does not exist or user does not have access."));
-
-			assertThrows(IllegalArgumentException.class, reactor::execute);
-		}
-	}
-
-	@Test
 	void zeroLimitThrows() {
 		reactor.keyValue.put(PROJECT_KEY, "project-1");
 		reactor.getNounStore().makeNoun(LIMIT_KEY).addLiteral("0");
-
-		IProject project = mock(IProject.class);
-		when(project.getProjectName()).thenReturn("My Project");
+		IProject project = project();
 
 		try (var projectService = mockStatic(AutomationProjectService.class)) {
-			projectService.when(() -> AutomationProjectService.resolveRunScope(user, "project-1", false))
-					.thenReturn("project-1");
+			projectService.when(() -> AutomationProjectService.getViewableAutomationProject(user, "project-1"))
+					.thenReturn(project);
 
-			try (var utility = mockStatic(Utility.class)) {
-				utility.when(() -> Utility.getProject("project-1")).thenReturn(project);
-
-				IllegalArgumentException error = assertThrows(IllegalArgumentException.class, reactor::execute);
-				assertEquals("limit must be a positive integer.", error.getMessage());
-			}
+			IllegalArgumentException error = assertThrows(IllegalArgumentException.class, reactor::execute);
+			assertEquals("limit must be a positive integer.", error.getMessage());
 		}
 	}
 
 	@Test
-	void returnsCommitsFromGit() {
+	void returnsVersionsFromAuthorizedProject() {
 		reactor.keyValue.put(PROJECT_KEY, "project-1");
-
-		IProject project = mock(IProject.class);
-		when(project.getProjectName()).thenReturn("My Project");
-
-		List<Map<String, Object>> fakeCommits = List.of(
-				Map.of("user", "Alice", "date", "2024-01-02", "message", "second save", "id", "abc123"),
-				Map.of("user", "Bob", "date", "2024-01-01", "message", "first save", "id", "def456"));
+		IProject project = project();
+		List<Map<String, Object>> versions = List.of(
+				Map.of("user", "Alice", "date", "2024-01-02", "message", "Save", "id", "a".repeat(40)));
 
 		try (var projectService = mockStatic(AutomationProjectService.class);
-				var utility = mockStatic(Utility.class);
-				var assetUtility = mockStatic(AssetUtility.class);
-				var gitRepo = mockStatic(GitRepoUtils.class)) {
-
-			projectService.when(() -> AutomationProjectService.resolveRunScope(user, "project-1", false))
-					.thenReturn("project-1");
-			utility.when(() -> Utility.getProject("project-1")).thenReturn(project);
-			assetUtility.when(() -> AssetUtility.getProjectVersionFolder("My Project", "project-1"))
-					.thenReturn("/fake/version/folder");
-			gitRepo.when(() -> GitRepoUtils.getCommits("/fake/version/folder", null))
-					.thenReturn(new ArrayList<>(fakeCommits));
+				var versionService = mockStatic(AutomationVersionService.class)) {
+			projectService.when(() -> AutomationProjectService.getViewableAutomationProject(user, "project-1"))
+					.thenReturn(project);
+			versionService.when(() -> AutomationVersionService.listVersions(project, 25)).thenReturn(versions);
 
 			NounMetadata result = reactor.execute();
 
-			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> commits = (List<Map<String, Object>>) result.getValue();
-			assertEquals(2, commits.size());
-			assertEquals("Alice", commits.get(0).get("user"));
-			assertEquals("Bob", commits.get(1).get("user"));
+			assertEquals(versions, result.getValue());
 		}
 	}
 
 	@Test
-	void limitCapsBeyondMaximumTo100() {
+	void capsRequestedLimitAt100BeforeReadingHistory() {
 		reactor.keyValue.put(PROJECT_KEY, "project-1");
 		reactor.getNounStore().makeNoun(LIMIT_KEY).addLiteral("999");
-
-		IProject project = mock(IProject.class);
-		when(project.getProjectName()).thenReturn("My Project");
-
-		// Build 150 fake commits to confirm only 100 are returned
-		List<Map<String, Object>> fakeCommits = new ArrayList<>();
-		for (int i = 0; i < 150; i++) {
-			fakeCommits.add(Map.of("user", "user-" + i, "date", "2024-01-01", "message", "save " + i, "id", "id" + i));
-		}
+		IProject project = project();
 
 		try (var projectService = mockStatic(AutomationProjectService.class);
-				var utility = mockStatic(Utility.class);
-				var assetUtility = mockStatic(AssetUtility.class);
-				var gitRepo = mockStatic(GitRepoUtils.class)) {
+				var versionService = mockStatic(AutomationVersionService.class)) {
+			projectService.when(() -> AutomationProjectService.getViewableAutomationProject(user, "project-1"))
+					.thenReturn(project);
+			versionService.when(() -> AutomationVersionService.listVersions(project, 100)).thenReturn(List.of());
 
-			projectService.when(() -> AutomationProjectService.resolveRunScope(user, "project-1", false))
-					.thenReturn("project-1");
-			utility.when(() -> Utility.getProject("project-1")).thenReturn(project);
-			assetUtility.when(() -> AssetUtility.getProjectVersionFolder("My Project", "project-1"))
-					.thenReturn("/fake/version/folder");
-			gitRepo.when(() -> GitRepoUtils.getCommits("/fake/version/folder", null))
-					.thenReturn(fakeCommits);
-
-			NounMetadata result = reactor.execute();
-
-			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> commits = (List<Map<String, Object>>) result.getValue();
-			assertEquals(100, commits.size());
+			assertEquals(List.of(), reactor.execute().getValue());
+			versionService.verify(() -> AutomationVersionService.listVersions(project, 100));
 		}
 	}
 
-	@Test
-	void defaultLimitIs25WhenNotProvided() {
-		reactor.keyValue.put(PROJECT_KEY, "project-1");
-
+	private static IProject project() {
 		IProject project = mock(IProject.class);
+		when(project.getProjectId()).thenReturn("project-1");
 		when(project.getProjectName()).thenReturn("My Project");
-
-		List<Map<String, Object>> fakeCommits = new ArrayList<>();
-		for (int i = 0; i < 50; i++) {
-			fakeCommits.add(Map.of("user", "user-" + i, "date", "2024-01-01", "message", "save " + i, "id", "id" + i));
-		}
-
-		try (var projectService = mockStatic(AutomationProjectService.class);
-				var utility = mockStatic(Utility.class);
-				var assetUtility = mockStatic(AssetUtility.class);
-				var gitRepo = mockStatic(GitRepoUtils.class)) {
-
-			projectService.when(() -> AutomationProjectService.resolveRunScope(user, "project-1", false))
-					.thenReturn("project-1");
-			utility.when(() -> Utility.getProject("project-1")).thenReturn(project);
-			assetUtility.when(() -> AssetUtility.getProjectVersionFolder("My Project", "project-1"))
-					.thenReturn("/fake/version/folder");
-			gitRepo.when(() -> GitRepoUtils.getCommits("/fake/version/folder", null))
-					.thenReturn(fakeCommits);
-
-			NounMetadata result = reactor.execute();
-
-			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> commits = (List<Map<String, Object>>) result.getValue();
-			assertEquals(25, commits.size());
-		}
-	}
-
-	@Test
-	void emptyGitHistoryReturnsEmptyList() {
-		reactor.keyValue.put(PROJECT_KEY, "project-1");
-
-		IProject project = mock(IProject.class);
-		when(project.getProjectName()).thenReturn("My Project");
-
-		try (var projectService = mockStatic(AutomationProjectService.class);
-				var utility = mockStatic(Utility.class);
-				var assetUtility = mockStatic(AssetUtility.class);
-				var gitRepo = mockStatic(GitRepoUtils.class)) {
-
-			projectService.when(() -> AutomationProjectService.resolveRunScope(user, "project-1", false))
-					.thenReturn("project-1");
-			utility.when(() -> Utility.getProject("project-1")).thenReturn(project);
-			assetUtility.when(() -> AssetUtility.getProjectVersionFolder("My Project", "project-1"))
-					.thenReturn("/fake/version/folder");
-			gitRepo.when(() -> GitRepoUtils.getCommits("/fake/version/folder", null))
-					.thenReturn(new ArrayList<>());
-
-			NounMetadata result = reactor.execute();
-
-			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> commits = (List<Map<String, Object>>) result.getValue();
-			assertEquals(0, commits.size());
-		}
+		return project;
 	}
 }

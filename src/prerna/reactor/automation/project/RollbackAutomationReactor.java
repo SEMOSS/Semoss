@@ -30,6 +30,9 @@ package prerna.reactor.automation.project;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -40,34 +43,30 @@ import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.reactor.automation.definition.AutomationScopeCatalog;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
-import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Restores an automation project's definition to the state captured at a
- * specific git commit,
- * then saves it as a new version.
+ * specific Git commit, then saves it as a new version.
  *
  * <p>
  * Pixel:
- * {@code RollbackAutomation(project=["<projectId>"], revision=["<commitId>"])}
+ * {@code RollbackAutomation(project=["<projectId>"], revision=["<commitId>"], expectedRevision=["<definitionRevision>"])}
  */
 public class RollbackAutomationReactor extends AbstractReactor {
 
-	private static final String PROJECT_KEY = "project";
+	private static final Logger classLogger = LogManager.getLogger(RollbackAutomationReactor.class);
+
 	private static final String REVISION_KEY = "revision";
 
-	private static final String WORKFLOW_GIT_PATH = "assets/"
-			+ AutomationConstants.AUTOMATION_PYTHON_DEFINITION_FILE_NAME;
-	private static final String NODES_GIT_PREFIX = "assets/" + AutomationConstants.AUTOMATION_NODE_SOURCES_FOLDER_NAME
-			+ "/";
-
 	public RollbackAutomationReactor() {
-		this.keysToGet = new String[] { PROJECT_KEY, REVISION_KEY };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), REVISION_KEY,
+				AutomationConstants.EXPECTED_REVISION_KEY };
+		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
@@ -83,75 +82,54 @@ public class RollbackAutomationReactor extends AbstractReactor {
 			throw error;
 		}
 
-		String projectIdOrAlias = this.keyValue.get(PROJECT_KEY);
+		String projectIdOrAlias = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		String revision = this.keyValue.get(REVISION_KEY);
+		String expectedRevision = this.keyValue.get(AutomationConstants.EXPECTED_REVISION_KEY);
 		if (revision == null || revision.isBlank()) {
 			throw new IllegalArgumentException("revision must be provided.");
 		}
 
 		// Edit-level ACL — restoring writes a new commit, so the user needs edit access
-		String projectId = AutomationProjectService.getEditableAutomationProject(user, projectIdOrAlias).getProjectId();
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalArgumentException("Project not found: " + projectId);
-		}
+		IProject project = AutomationProjectService.getEditableAutomationProject(user, projectIdOrAlias);
+		String projectId = project.getProjectId();
+		AutomationDefinitionService.DefinitionFiles files = AutomationVersionService.restore(project, revision,
+				expectedRevision, user);
 
-		String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
-
-		String definitionJson = GitRepoUtils.getFile(revision, WORKFLOW_GIT_PATH, versionFolder);
-		if (definitionJson == null || definitionJson.isBlank()) {
-			throw new IllegalArgumentException("No automation definition found at revision: " + revision);
-		}
-
-		// Reassemble node sources from the same commit
-		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
-				.parseAndValidateForAuthoring(definitionJson);
-
-		Map<String, String> nodeSources = new LinkedHashMap<>();
-		for (Map<String, Object> node : AutomationRuntime.allNodes(validated)) {
-			if (!AutomationConstants.NODE_DEVELOPER_PYTHON.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
-				continue;
-			}
-			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-			String gitPath = NODES_GIT_PREFIX + AutomationDefinitionService.safeNodeFileName(node) + ".py";
-			String source = GitRepoUtils.getFile(revision, gitPath, versionFolder);
-			if (source != null) {
-				nodeSources.put(nodeId, source);
-			}
-		}
-
-		// Save as a new commit — null expectedRevision skips optimistic concurrency
-		// check
-		AutomationDefinitionService.DefinitionFiles files = AutomationProjectService.saveDefinition(
-				projectId, definitionJson, nodeSources, null, user);
-
-		// Return the same shape as RollbackAutomation so the frontend can reuse the
-		// same handler
+		String savedRevision = AutomationDefinitionService.calculateRevision(files.definition(), files.nodeSources());
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("saved", true);
 		result.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
-		result.put(AutomationConstants.RESULT_REVISION,
-				AutomationDefinitionService.calculateRevision(files.definition(), files.nodeSources()));
+		result.put(AutomationConstants.RESULT_REVISION, savedRevision);
 		AutomationDefinitionValidator.ValidatedDefinition savedValidated = AutomationDefinitionValidator
 				.parseAndValidateForAuthoring(files.definition());
 		result.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(savedValidated));
 		result.put(AutomationConstants.RESULT_SCOPE_VARIABLES, AutomationScopeCatalog.variablesByNode(savedValidated));
+
+		UserAuditTrailUtils.recordAutomationEvent(user, AuditEventType.AUTOMATION_UPDATE, projectId, null, null,
+				Map.of("revision", savedRevision, "restoredFrom", revision, "nodeSourceCount",
+						files.nodeSources() == null ? 0 : files.nodeSources().size()));
+		classLogger.info("Restored automation project {} from revision {} as revision {}", projectId, revision,
+				savedRevision);
 
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Restores an automation project's definition to the state at the given git revision and saves it as a new version.";
+		return "Restores an automation project's definition to the state at the given Git revision and saves it as a new version.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (PROJECT_KEY.equals(key)) {
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
 			return "ID or alias of the automation project.";
 		}
 		if (REVISION_KEY.equals(key)) {
-			return "Git commit id (full or short hash) returned by ListAutomationVersions.";
+			return "Full Git commit SHA returned by ListAutomationVersions.";
+		}
+		if (AutomationConstants.EXPECTED_REVISION_KEY.equals(key)) {
+			return "Current definition revision returned by GetAutomation. The restore is rejected if the automation "
+					+ "changed.";
 		}
 		return super.getDescriptionForKey(key);
 	}
