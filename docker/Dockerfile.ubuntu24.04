@@ -154,7 +154,7 @@ RUN set -eux; \
 	rm -f "${nodeTar}" node-SHASUMS256.txt; \
 	/opt/node/bin/node --version; \
 	PATH="/opt/node/bin:$PATH" /opt/node/bin/npm install -g "npm@${NPM_VERSION}" --no-audit --no-fund; \
-	/opt/node/bin/npm --version; \
+	PATH="/opt/node/bin:$PATH" /opt/node/bin/npm --version; \
 	if [ -f /opt/semosshome/js/node_env/package-lock.json ]; then \
 		cd /opt/semosshome/js/node_env; \
 		PATH="/opt/node/bin:$PATH" /opt/node/bin/npm ci --omit=dev --no-audit --no-fund; \
