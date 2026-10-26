@@ -44,6 +44,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.JdbcTestDatabase;
 import prerna.util.Utility;
 
@@ -134,6 +135,30 @@ class DatabaseWriteAuditUnitTests {
 			assertTrue(details.contains("\"outcome\":\"PARTIAL\""), details);
 			assertTrue(details.contains("sqlSha256"), details);
 			assertFalse(details.contains("DROP TABLE"), details);
+		}
+	}
+
+	@Test
+	void aDatabaseWriteKeepsTheSqlHashWhenTheDatabaseSmssTurnsKeepInputOutputOff() throws Exception {
+		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
+			UserAuditTrailUtilsUnitTests.createAuditTable(db);
+			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+			RDBMSNativeEngine engine = new RDBMSNativeEngine() {
+				{
+					// what KEEP_INPUT_OUTPUT=false in the SMSS sets, which a database does
+					// not follow
+					this.keepInputOutput = false;
+				}
+			};
+			engine.setEngineId("database-1");
+			engine.setEngineName("Rebuild");
+
+			DatabaseWriteAudit.record(null, engine, DatabaseWriteAudit.Write.perStatement("ExecQuery",
+					"DELETE FROM orders WHERE id = 1", 1, 1, 1, null));
+
+			String details = String.valueOf(db.value("SELECT DETAILS FROM USER_AUDIT_EVENTS"));
+			assertTrue(details.contains("sqlSha256"), details);
+			assertFalse(details.contains("DELETE FROM"), details);
 		}
 	}
 

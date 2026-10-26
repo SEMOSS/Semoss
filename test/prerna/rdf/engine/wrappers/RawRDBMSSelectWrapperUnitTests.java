@@ -45,16 +45,23 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
@@ -193,5 +200,251 @@ class RawRDBMSSelectWrapperUnitTests {
 					.contains("cursor failed"));
 			verify(db.connection, never()).close();
 		}
+	}
+
+	@Test
+	void resetRunsTheQueryAgain() throws Exception {
+		try (var db = new JdbcTestDatabase(); var wrapper = new RawRDBMSSelectWrapper()) {
+			when(db.engine.execQuery("SELECT 7 AS VALUE_COLUMN")).thenAnswer(call -> {
+				Statement statement = db.connection.createStatement();
+				return Map.of(IRDBMSEngine.STATEMENT_OBJECT, statement, IRDBMSEngine.ENGINE_CONNECTION_OBJECT,
+						db.connection, IRDBMSEngine.RESULTSET_OBJECT,
+						statement.executeQuery("SELECT 7 AS VALUE_COLUMN"));
+			});
+			wrapper.setEngine(db.engine);
+			wrapper.setQuery("SELECT 7 AS VALUE_COLUMN");
+			wrapper.execute();
+			assertEquals(7, wrapper.next().getValues()[0]);
+			wrapper.reset();
+			assertEquals(7, wrapper.next().getValues()[0]);
+		}
+	}
+
+	@Test
+	void resetDropsTheRowReadAheadAndRunsAgainAfterTheLastRow() throws Exception {
+		String sql = "SELECT ID FROM ITEMS ORDER BY ID";
+		try (var db = new JdbcTestDatabase(); var wrapper = new RawRDBMSSelectWrapper()) {
+			db.execute("CREATE TABLE ITEMS (ID INT)", "INSERT INTO ITEMS VALUES (1),(2)");
+			List<Statement> statements = runOnEngineConnection(db, sql);
+			wrapper.setEngine(db.engine);
+			wrapper.setQuery(sql);
+			wrapper.execute();
+			// hasNext reads the first row ahead
+			assertTrue(wrapper.hasNext());
+			wrapper.reset();
+			assertEquals(List.of(1, 2), values(wrapper));
+			wrapper.reset();
+			assertEquals(List.of(1, 2), values(wrapper));
+			wrapper.reset();
+			assertEquals(1, wrapper.next().getValues()[0]);
+			wrapper.close();
+			wrapper.close();
+
+			assertFalse(wrapper.hasNext());
+			verify(db.engine, times(4)).execQuery(sql);
+			assertEquals(4, statements.size());
+			for (Statement statement : statements) {
+				assertTrue(statement.isClosed());
+			}
+			// the engine's shared connection stays open for the engine
+			verify(db.connection, never()).close();
+		}
+	}
+
+	@Test
+	void resetKeepsAConnectionToCloseAfterExecutionOpenUntilClose() throws Exception {
+		String sql = "SELECT 7 AS VALUE_COLUMN";
+		try (var db = new JdbcTestDatabase(); var wrapper = new RawRDBMSSelectWrapper()) {
+			runOnEngineConnection(db, sql);
+			wrapper.setEngine(db.engine);
+			wrapper.setQuery(sql);
+			wrapper.setCloseConenctionAfterExecution(true);
+			wrapper.execute();
+			assertTrue(wrapper.hasNext());
+			wrapper.reset();
+			verify(db.connection, never()).close();
+			assertEquals(7, wrapper.next().getValues()[0]);
+			wrapper.close();
+			wrapper.close();
+			verify(db.connection, times(1)).close();
+		}
+	}
+
+	@Test
+	void pooledResetGivesEachConnectionBackOnce() throws Exception {
+		String sql = "SELECT ID FROM ITEMS";
+		try (var pool = new HikariDataSource()) {
+			pool.setJdbcUrl("jdbc:h2:mem:raw_pool_" + UUID.randomUUID());
+			pool.setMaximumPoolSize(2);
+			try (var connection = pool.getConnection(); var statement = connection.createStatement()) {
+				statement.execute("CREATE TABLE ITEMS(ID INT)");
+				statement.execute("INSERT INTO ITEMS VALUES (1)");
+			}
+			IRDBMSEngine engine = mock(IRDBMSEngine.class);
+			List<Connection> leases = new ArrayList<>();
+			// a pooled engine hands back its lease as the engine connection, with its pool
+			when(engine.execQuery(sql)).thenAnswer(call -> {
+				Connection lease = spy(pool.getConnection());
+				leases.add(lease);
+				return engineResult(lease, sql, new ArrayList<>(), pool);
+			});
+			try (var wrapper = new RawRDBMSSelectWrapper()) {
+				wrapper.setEngine(engine);
+				wrapper.setQuery(sql);
+				wrapper.execute();
+				assertTrue(wrapper.hasNext());
+				wrapper.reset();
+				assertEquals(1, pool.getHikariPoolMXBean().getActiveConnections());
+				// reading past the last row gives the connection back
+				assertEquals(List.of(1), values(wrapper));
+				assertEquals(0, pool.getHikariPoolMXBean().getActiveConnections());
+				wrapper.reset();
+				assertEquals(1, wrapper.next().getValues()[0]);
+			}
+			assertEquals(3, leases.size());
+			for (Connection lease : leases) {
+				verify(lease).close();
+			}
+			assertEquals(0, pool.getHikariPoolMXBean().getActiveConnections());
+		}
+	}
+
+	@Test
+	void resetRunsTheQueryAgainOnTheSuppliedConnection() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			db.execute("CREATE TABLE ITEMS (ID INT)", "INSERT INTO ITEMS VALUES (1),(2)");
+			try (var wrapper = RawRDBMSSelectWrapper.directExecutionViaConnection(db.connection,
+					"SELECT ID FROM ITEMS ORDER BY ID", false)) {
+				Statement first = wrapper.stmt;
+				assertEquals(1, wrapper.next().getValues()[0]);
+				assertTrue(wrapper.hasNext());
+				wrapper.reset();
+				assertTrue(first.isClosed());
+				assertEquals(List.of(1, 2), values(wrapper));
+				wrapper.reset();
+				assertEquals(List.of(1, 2), values(wrapper));
+				wrapper.reset();
+				wrapper.close();
+				wrapper.close();
+				assertFalse(wrapper.hasNext());
+			}
+			verify(db.connection, never()).close();
+			assertFalse(db.connection.isClosed());
+		}
+	}
+
+	@Test
+	void aFailedResetLeavesTheWrapperClosedUntilALaterResetRunsAgain() throws Exception {
+		String sql = "SELECT 7 AS VALUE_COLUMN";
+		SQLException failure = new SQLException("database went away");
+		try (var db = new JdbcTestDatabase(); var wrapper = new RawRDBMSSelectWrapper()) {
+			List<Statement> statements = new ArrayList<>();
+			when(db.engine.execQuery(sql)).thenAnswer(call -> engineResult(db.connection, sql, statements, null))
+					.thenThrow(failure).thenAnswer(call -> engineResult(db.connection, sql, statements, null));
+			wrapper.setEngine(db.engine);
+			wrapper.setQuery(sql);
+			wrapper.execute();
+			assertTrue(wrapper.hasNext());
+
+			assertSame(failure, assertThrows(SQLException.class, wrapper::reset));
+			assertTrue(statements.get(0).isClosed());
+			assertFalse(wrapper.hasNext());
+			assertThrows(NoSuchElementException.class, wrapper::next);
+			wrapper.close();
+
+			wrapper.reset();
+			assertEquals(7, wrapper.next().getValues()[0]);
+			verify(db.connection, never()).close();
+		}
+	}
+
+	@Test
+	void aFailedResetOnTheSuppliedConnectionLeavesItOpen() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			try (var wrapper = RawRDBMSSelectWrapper.directExecutionViaConnection(db.connection, "SELECT 1", true)) {
+				Statement first = wrapper.stmt;
+				SQLException failure = new SQLException("connection lost");
+				doThrow(failure).when(db.connection).createStatement();
+
+				assertSame(failure, assertThrows(SQLException.class, wrapper::reset));
+				assertTrue(first.isClosed());
+				assertFalse(wrapper.hasNext());
+			}
+			verify(db.connection, never()).close();
+		}
+	}
+
+	@Test
+	void aWrapperOverAResultSetOrACallersPreparedStatementHasNoQueryToRunAgain() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			PreparedStatement prepared = db.connection.prepareStatement("SELECT CAST(? AS INT)");
+			prepared.setInt(1, 5);
+			try (var wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(db.engine, db.connection,
+					prepared, "SELECT CAST(? AS INT)", false)) {
+				assertThrows(UnsupportedOperationException.class, wrapper::reset);
+				// the wrapper is left as it was
+				assertEquals(5, wrapper.next().getValues()[0]);
+			}
+			try (Statement statement = db.connection.createStatement();
+					var wrapper = RawRDBMSSelectWrapper.wrapResultSet(statement.executeQuery("SELECT 6"),
+							ZoneOffset.UTC)) {
+				assertThrows(UnsupportedOperationException.class, wrapper::reset);
+				assertEquals(6, wrapper.next().getValues()[0]);
+			}
+		}
+	}
+
+	@Test
+	void anImpalaWrapperResetsLikeAnyEngineQuery() throws Exception {
+		String sql = "SELECT 7 AS VALUE_COLUMN";
+		try (var db = new JdbcTestDatabase(); var wrapper = new RawImpalaSelectWrapper()) {
+			runOnEngineConnection(db, sql);
+			wrapper.setEngine(db.engine);
+			wrapper.setQuery(sql);
+			wrapper.execute();
+			assertEquals(7, wrapper.next().getValues()[0]);
+			assertFalse(wrapper.hasNext());
+			wrapper.reset();
+			assertEquals(7, wrapper.next().getValues()[0]);
+		}
+	}
+
+	/**
+	 * Answers the engine's execQuery as an engine without a pool does: a new
+	 * statement on its shared connection each time.
+	 *
+	 * @return the statements made, in order, so a test can check they were closed
+	 */
+	private static List<Statement> runOnEngineConnection(JdbcTestDatabase db, String sql) throws Exception {
+		List<Statement> statements = new ArrayList<>();
+		when(db.engine.execQuery(sql)).thenAnswer(call -> engineResult(db.connection, sql, statements, null));
+		return statements;
+	}
+
+	/**
+	 * Runs the SQL on a new statement and returns it the way an RDBMS engine's
+	 * execQuery does, with the pool when the connection came from one.
+	 */
+	private static Map<String, Object> engineResult(Connection connection, String sql, List<Statement> statements,
+			HikariDataSource pool) throws SQLException {
+		Statement statement = connection.createStatement();
+		statements.add(statement);
+		Map<String, Object> result = new HashMap<>();
+		result.put(IRDBMSEngine.STATEMENT_OBJECT, statement);
+		result.put(IRDBMSEngine.ENGINE_CONNECTION_OBJECT, connection);
+		result.put(IRDBMSEngine.RESULTSET_OBJECT, statement.executeQuery(sql));
+		if (pool != null) {
+			result.put(IRDBMSEngine.DATASOURCE_POOLING_OBJECT, pool);
+		}
+		return result;
+	}
+
+	/** The first column of every row left in the wrapper */
+	private static List<Object> values(RawRDBMSSelectWrapper wrapper) {
+		List<Object> values = new ArrayList<>();
+		while (wrapper.hasNext()) {
+			values.add(wrapper.next().getValues()[0]);
+		}
+		return values;
 	}
 }

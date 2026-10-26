@@ -57,12 +57,14 @@ import prerna.auth.access.ModelUsageLimitKey;
 import prerna.auth.access.ModelUsageLimitRule;
 import prerna.auth.access.PermissionBatch;
 import prerna.auth.access.PermissionChange;
+import prerna.auth.access.PermissionErrorRules;
 import prerna.auth.access.PermissionGrant;
 import prerna.auth.access.PermissionSubject;
 import prerna.auth.access.PermissionTargetResource;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.io.connector.ms.MicrosoftGraphUserLookup;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 /**
@@ -544,6 +546,85 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 		IllegalAccessException noRights = assertThrows(IllegalAccessException.class,
 				() -> SecurityProjectUtils.denyProjectUserAccessRequests(reader, PROJECT_ID, List.of("anyrequest")));
 		assertEquals("Insufficient privileges to modify this project's permissions.", noRights.getMessage());
+	}
+
+	@Test
+	void denyRequests_returnsTheRequestersOfOnlyTheTargetsOwnRequests() throws Exception {
+		UnitTestSecurityAuthUtils.createProject(OTHER_PROJECT_ID, "other project", admin);
+		SecurityProjectUtils.setUserAccessRequest("managerid", NATIVE, PROJECT_ID, "please", 2, manager);
+		SecurityProjectUtils.setUserAccessRequest("managerid", NATIVE, OTHER_PROJECT_ID, "please", 3, manager);
+		String requestId = pendingRequestId(PROJECT_ID);
+		String otherRequestId = pendingRequestId(OTHER_PROJECT_ID);
+
+		List<Map<String, Object>> denied = PermissionBatchUtils.denyRequests(owner,
+				PermissionTargetResource.project(PROJECT_ID), List.of(requestId, otherRequestId),
+				PermissionBatchOptions.userMode(), new PermissionErrorRules());
+
+		assertEquals(1, denied.size());
+		assertEquals(requestId, denied.get(0).get("requestId"));
+		assertEquals("managerid", denied.get(0).get("userId"));
+		assertEquals(NATIVE, denied.get(0).get("type"));
+		assertEquals(2, denied.get(0).get("permission"));
+		assertEquals("DENIED", requestDecision(requestId));
+		// a request of another project is left as it is
+		assertEquals("NEW_REQUEST", requestDecision(otherRequestId));
+	}
+
+	@Test
+	void denyRequests_aFailureDeniesNothing() throws Exception {
+		SecurityProjectUtils.setUserAccessRequest("managerid", NATIVE, PROJECT_ID, "please", 2, manager);
+		SecurityProjectUtils.setUserAccessRequest("strangerid", NATIVE, PROJECT_ID, "please", 3, stranger);
+		String managerRequestId = String.valueOf(UnitTestGroupTables.queryValue(securityDb,
+				"SELECT ID FROM PROJECTACCESSREQUEST WHERE REQUEST_USERID = ?", "managerid"));
+		String strangerRequestId = String.valueOf(UnitTestGroupTables.queryValue(securityDb,
+				"SELECT ID FROM PROJECTACCESSREQUEST WHERE REQUEST_USERID = ?", "strangerid"));
+
+		// denying the second request fails after the first was marked
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"ALTER TABLE PROJECTACCESSREQUEST ADD CONSTRAINT DENY_FAIL "
+						+ "CHECK (REQUEST_USERID <> 'strangerid' OR APPROVER_DECISION <> 'DENIED')",
+				QueryExecutionUtility.NO_PARAMETERS);
+		try {
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> PermissionBatchUtils.denyRequests(owner, PermissionTargetResource.project(PROJECT_ID),
+							List.of(managerRequestId, strangerRequestId), PermissionBatchOptions.userMode(),
+							new PermissionErrorRules()));
+			assertEquals("The access requests could not be denied", e.getMessage());
+		} finally {
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"ALTER TABLE PROJECTACCESSREQUEST DROP CONSTRAINT DENY_FAIL", QueryExecutionUtility.NO_PARAMETERS);
+		}
+
+		assertEquals("NEW_REQUEST", requestDecision(managerRequestId));
+		assertEquals("NEW_REQUEST", requestDecision(strangerRequestId));
+	}
+
+	@Test
+	void approving_marksOnlyTheTargetsOwnRequests() throws Exception {
+		UnitTestSecurityAuthUtils.createProject(OTHER_PROJECT_ID, "other project", admin);
+		SecurityProjectUtils.setUserAccessRequest("managerid", NATIVE, OTHER_PROJECT_ID, "please", 3, manager);
+		String otherRequestId = pendingRequestId(OTHER_PROJECT_ID);
+
+		SecurityProjectUtils.approveProjectUserAccessRequests(owner, PROJECT_ID, List.of(
+				Map.of("requestid", otherRequestId, "userid", "managerid", "type", NATIVE, "permission", "READ_ONLY")),
+				null);
+
+		// the person gets the access the batch gives, but the other project's request
+		// is left as it is
+		assertEquals(3, SecurityProjectUtils.getUserProjectPermission("managerid", PROJECT_ID));
+		assertNull(SecurityProjectUtils.getUserProjectPermission("managerid", OTHER_PROJECT_ID));
+		assertEquals("NEW_REQUEST", requestDecision(otherRequestId));
+	}
+
+	private String pendingRequestId(String projectId) throws Exception {
+		return String.valueOf(UnitTestGroupTables.queryValue(securityDb,
+				"SELECT ID FROM PROJECTACCESSREQUEST WHERE PROJECTID = ? AND APPROVER_DECISION = 'NEW_REQUEST'",
+				projectId));
+	}
+
+	private Object requestDecision(String requestId) throws Exception {
+		return UnitTestGroupTables.queryValue(securityDb,
+				"SELECT APPROVER_DECISION FROM PROJECTACCESSREQUEST WHERE ID = ?", requestId);
 	}
 
 	@Test
