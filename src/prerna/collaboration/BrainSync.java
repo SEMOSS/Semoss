@@ -131,6 +131,8 @@ public final class BrainSync {
 			job.step("threads", 86);
 			run.refreshThreads();
 		}
+		// an approval request among the new mail starts the owner's expense review
+		WorkExpenseRoutine.onNewMail(ownerId, ownerType, run.inbound);
 
 		// mail the owner moved into a folder a topic stands for is filed under that topic
 		job.count("filedByFolder", BrainThreadClassifier.fileByFolder(ownerId, ownerType, run.refiled));
@@ -282,6 +284,7 @@ public final class BrainSync {
 			});
 			run.refreshThreads();
 		}
+		WorkExpenseRoutine.onNewMail(ownerId, ownerType, run.inbound);
 		for (String[] sent : run.ownerSent) {
 			WorkItemUtils.closeOnReply(ownerId, ownerType, sent[0], sent[1]);
 		}

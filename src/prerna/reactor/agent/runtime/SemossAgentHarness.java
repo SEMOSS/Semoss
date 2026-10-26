@@ -233,9 +233,12 @@ public class SemossAgentHarness implements IAgentHarness {
 
 		// a PPTX workflow run has no collaboration tools, so it keeps the general
 		// baseline
-		StringBuilder composed = new StringBuilder(collaborationBaseline(ctx, room)
-				? CollaborationPrompts.BASE_PROMPT
-				: SemossHarnessPrompts.SYSTEM_PROMPT);
+		// a routine run has its own baseline: nobody is watching and its answer is delivered
+		StringBuilder composed = new StringBuilder(!collaborationBaseline(ctx, room)
+				? SemossHarnessPrompts.SYSTEM_PROMPT
+				: CollaborationRunMode.isRoutine(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+						? CollaborationPrompts.routinePrompt(CollaborationUtils.routineDelivery(room))
+						: CollaborationPrompts.BASE_PROMPT);
 		composed.append("\n\n").append(DeferredAgentTools.PROMPT);
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
