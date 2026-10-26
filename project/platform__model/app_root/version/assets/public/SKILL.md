@@ -1,6 +1,6 @@
 ---
 name: model
-description: Use when writing code in an app that calls an LLM, embedding model, or other model engine, OR when listing/selecting models the user has access to. Covers the LLM() and MyEngines() pixel commands via @semoss/sdk's runPixel, including prompt/completion calls, conversational history, structured outputs, attaching media of any type (image, PDF, Word, spreadsheet, audio, video) with the media argument, and parsing model responses. Also covers which top-level arguments full_prompt drops, media included, plus the other model pixels: Embeddings(), MultiModalEmbeddings(), Vision(), NER(), GetContextWindow(), GetUserModelUsage(), and the provider batch API (BatchLLM, GetModelBatchStatus, GetModelBatchResults). Do not use for vector database queries (see vector).
+description: Use when writing code in an app that calls an LLM, embedding model, or other model engine, OR when listing/selecting models the user has access to. Covers the LLM() and MyEngines() pixel commands via @semoss/sdk's runPixel, including prompt/completion calls, conversational history, structured outputs, attaching media of any type (image, PDF, Word, spreadsheet, audio, video) with the media argument, and parsing model responses. Also covers which top-level arguments full_prompt drops, media included, plus the other model pixels: Embeddings(), MultiModalEmbeddings(), Vision(), GetContextWindow(), GetUserModelUsage(), and the provider batch API (BatchLLM, GetModelBatchStatus, GetModelBatchResults). Do not use for vector database queries (see vector).
 ---
 
 # Model Engine
@@ -212,14 +212,13 @@ Embeddings(engine="${EMBEDDING_MODEL_ID}", values=["first text", "second text"])
 
 Returns a map with the vectors in `pixelReturn[0].output`. If the engine is not an embedding model, the output is the literal string "This model does not support embeddings." - check for it. `MultiModalEmbeddings(engine=, text=, image=, video=)` embeds any combination of modalities (image/video accept base64, data URLs, or remote URLs), with results broken out by modality.
 
-### Vision and NER
+### Vision
 
 ```
 Vision(engine="${MODEL_ID}", command=["Describe this diagram"], image=["${urlOrBase64}"]);
-NER(engine="${NER_MODEL_ID}", prompt=["<encode>${text}</encode>"], entities=["PERSON","EMAIL"], maskEntities=[true]);
 ```
 
-`Vision` is the image-text-to-text task for models exposing it. `NER` extracts (and with `maskEntities` redacts) named entities - the engine must actually be an NER model or the call fails.
+`Vision` is the image-text-to-text task for models exposing it.
 
 ### Token budget and usage
 

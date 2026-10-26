@@ -86,11 +86,8 @@ public class Settings {
 
 	// FOR REMOTE CLIENTS
 
-	// The short name for a model.. Can't use the HuggingFace model repo id
-	// here due to naming restrictions on kubernetes resources
+	// The short name for a model
 	public static final String MODEL = "MODEL";
-	// The HuggingFace model repo id
-	public static final String MODEL_REPO_ID = "MODEL_REPO_ID";
 	// The type of model
 	public static final String MODEL_TYPE = "MODEL_TYPE";
 
