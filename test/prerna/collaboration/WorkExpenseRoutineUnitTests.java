@@ -66,11 +66,13 @@ class WorkExpenseRoutineUnitTests {
 
 	@Test
 	void commandNamesTheGuidelineDocumentsOrSaysThereAreNone() {
-		String withDocuments = WorkExpenseRoutine.command(List.of("travel-policy.pdf", "du-meetings.docx"));
+		String withDocuments = WorkExpenseRoutine.command("America/New_York",
+				List.of("travel-policy.pdf", "du-meetings.docx"));
+		assertTrue(withDocuments.startsWith("Routine: \"Expense review\"\nIt is now "));
 		assertTrue(withDocuments.contains("travel-policy.pdf, du-meetings.docx"));
 		assertTrue(withDocuments.contains("${context.reviewInput}"));
 		assertFalse(withDocuments.contains("%"));
-		assertTrue(WorkExpenseRoutine.command(List.of()).contains("no guideline documents"));
+		assertTrue(WorkExpenseRoutine.command("UTC", List.of()).contains("no guideline documents"));
 		// the owner reads the decision first, then the check behind it, then the request itself
 		int decision = withDocuments.indexOf("\"Suggested decision:\"");
 		int check = withDocuments.indexOf("heading Guideline check");
