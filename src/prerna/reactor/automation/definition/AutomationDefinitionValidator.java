@@ -255,11 +255,6 @@ public final class AutomationDefinitionValidator {
 			requireConfigString(nodeId, config, "text");
 			validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
 		}
-		case MODEL_NER -> {
-			requireConfigString(nodeId, config, "text");
-			requireConfigStringListOrPlaceholder(nodeId, config, "entities");
-			validateOptionalStringListOrPlaceholder(nodeId, config, "maskEntities");
-		}
 		case MODEL_VISION -> {
 			requireConfigString(nodeId, config, "prompt");
 			validateOptionalConfigString(nodeId, config, "image");
