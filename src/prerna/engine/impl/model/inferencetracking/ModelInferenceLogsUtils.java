@@ -46,6 +46,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -139,6 +140,12 @@ public class ModelInferenceLogsUtils {
 	 * Creates missing tables/columns and applies index/migration updates for the
 	 * model-inference logging schema.
 	 *
+	 * <p>
+	 * The DDL runs one statement at a time on the caller's connection, with no
+	 * transaction across statements, since several dialects commit DDL implicitly.
+	 * Each data migration stage runs in its own write on the shared executor, after
+	 * the schema changes before it are committed, so the stage is atomic.
+	 *
 	 * @param engine   model-inference logs engine
 	 * @param conn     database connection
 	 * @param dbSchema table and column metadata to apply
@@ -155,12 +162,18 @@ public class ModelInferenceLogsUtils {
 		// was roomId just added
 		if (roomIdColumnWasAdded) {
 			dropRoomMessageConstraints(conn);
-			migrateRoomAndMessageIds(conn);
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			migrateRoomAndMessageIds(engine);
 		}
 
 		// was modelId just added
 		if (modelIdColumnWasAdded) {
-			migrateAgentAndModelIds(conn);
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			migrateAgentAndModelIds(engine);
 		}
 
 		// create the indexes on the tables
@@ -189,40 +202,64 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Backfills {@code ROOM_ID} values from legacy {@code INSIGHT_ID} values.
+	 * Backfills {@code ROOM_ID} values from legacy {@code INSIGHT_ID} values. Both
+	 * updates run in one write on the shared executor, so the ROOM and MESSAGE
+	 * backfills commit together or not at all. A failure is logged and startup
+	 * continues.
 	 *
-	 * @param conn database connection
+	 * @param engine model-inference logs engine
 	 */
-	private static void migrateRoomAndMessageIds(Connection conn) {
-		try (Statement stmt = conn.createStatement()) {
-			int rCount = stmt
-					.executeUpdate("UPDATE ROOM SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''");
-			int mCount = stmt
-					.executeUpdate("UPDATE MESSAGE SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''");
-			classLogger.info("Room/Message room_id migration updated {} ROOM rows and {} MESSAGE rows.", rCount,
-					mCount);
-		} catch (SQLException ex) {
+	private static void migrateRoomAndMessageIds(IRDBMSEngine engine) {
+		try {
+			int[] counts = runBackfill(engine,
+					"UPDATE ROOM SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''",
+					"UPDATE MESSAGE SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''");
+			classLogger.info("Room/Message room_id migration updated {} ROOM rows and {} MESSAGE rows.", counts[0],
+					counts[1]);
+		} catch (Exception ex) {
 			classLogger.error("Failed to migrate legacy ROOM_ID fields", ex);
 		}
-
 	}
 
 	/**
-	 * Backfills {@code MODEL_ID} values from legacy {@code AGENT_ID} values.
+	 * Backfills {@code MODEL_ID} values from legacy {@code AGENT_ID} values. Both
+	 * updates run in one write on the shared executor, so the ROOM and MESSAGE
+	 * backfills commit together or not at all. A failure is logged and startup
+	 * continues.
 	 *
-	 * @param conn database connection
+	 * @param engine model-inference logs engine
 	 */
-	private static void migrateAgentAndModelIds(Connection conn) {
-		try (Statement stmt = conn.createStatement()) {
-			int rCount = stmt
-					.executeUpdate("UPDATE ROOM SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''");
-			int mCount = stmt
-					.executeUpdate("UPDATE MESSAGE SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''");
-			classLogger.info("Room/Message model_id migration updated {} ROOM rows and {} MESSAGE rows.", rCount,
-					mCount);
-		} catch (SQLException ex) {
+	private static void migrateAgentAndModelIds(IRDBMSEngine engine) {
+		try {
+			int[] counts = runBackfill(engine,
+					"UPDATE ROOM SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''",
+					"UPDATE MESSAGE SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''");
+			classLogger.info("Room/Message model_id migration updated {} ROOM rows and {} MESSAGE rows.", counts[0],
+					counts[1]);
+		} catch (Exception ex) {
 			classLogger.error("Failed to migrate legacy AGENT_ID fields", ex);
 		}
+	}
+
+	/**
+	 * Runs the updates of one data migration stage, in order, in one write on the
+	 * shared executor.
+	 *
+	 * @param engine  model-inference logs engine
+	 * @param updates the stage's update statements
+	 * @return the update count of each statement, in order
+	 * @throws Exception if a statement fails; the whole stage is rolled back
+	 */
+	private static int[] runBackfill(IRDBMSEngine engine, String... updates) throws Exception {
+		return QueryExecutionUtility.write(engine, connection -> {
+			int[] counts = new int[updates.length];
+			try (Statement stmt = connection.createStatement()) {
+				for (int i = 0; i < updates.length; i++) {
+					counts[i] = stmt.executeUpdate(updates[i]);
+				}
+			}
+			return counts;
+		});
 	}
 
 	/**
@@ -274,22 +311,24 @@ public class ModelInferenceLogsUtils {
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, "MESSAGE__MESSAGE_ID", "Counts"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_ID", "==", messageId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
+		boolean isAuthor = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
-					return false;
+					break;
 				}
 				int intVal = ((Number) val).intValue();
 				if (intVal > 0) {
-					return true;
+					isAuthor = true;
+					break;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to verify message ownership for userId '{}' and messageId '{}'.", userId,
 					messageId, e);
 		}
-		return false;
+		return isAuthor;
 	}
 
 	/**
@@ -1319,14 +1358,13 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", false, PixelDataType.BOOLEAN));
+		boolean inactive = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
-			if (wrapper.hasNext()) {
-				return true;
-			}
+			inactive = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Failed to check inactive state for roomId '{}' and userId '{}'.", roomId, userId, e);
 		}
-		return false;
+		return inactive;
 	}
 
 	/**
@@ -2603,12 +2641,27 @@ public class ModelInferenceLogsUtils {
 		if (raw == null) {
 			return null;
 		}
-		String text = String.valueOf(raw).trim();
-		if (text.isEmpty()) {
+		return parseWorkspaceConfigJson(workspaceId, String.valueOf(raw));
+	}
+
+	/**
+	 * Parses a stored {@code WORKSPACE.CONFIG_JSON} value.
+	 *
+	 * @param workspaceId workspace identifier, for the log
+	 * @param text        the stored value
+	 * @return parsed JSON object, or {@code null} when the value is null, blank or
+	 *         unparseable
+	 */
+	private static JSONObject parseWorkspaceConfigJson(String workspaceId, String text) {
+		if (text == null) {
+			return null;
+		}
+		String trimmed = text.trim();
+		if (trimmed.isEmpty()) {
 			return null;
 		}
 		try {
-			return new JSONObject(text);
+			return new JSONObject(trimmed);
 		} catch (Exception e) {
 			classLogger.warn("Failed to parse WORKSPACE.CONFIG_JSON for workspaceId '{}': {}", workspaceId,
 					e.getMessage());
@@ -2629,17 +2682,81 @@ public class ModelInferenceLogsUtils {
 			throw new IllegalArgumentException("workspaceId is required");
 		}
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 		String serialized = configJson == null ? null : configJson.toString();
 
 		try {
-			QueryExecutionUtility.executeUpdate(modelInferenceLogsDb,
-					"UPDATE WORKSPACE SET CONFIG_JSON = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?", ps -> {
-						int index = 1;
-						modelInferenceLogsDb.getQueryUtil().setNullableLargeText(ps, index++, serialized);
-						ps.setTimestamp(index++, now);
-						ps.setString(index++, workspaceId);
-					});
+			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				updateWorkspaceConfigJson(connection, modelInferenceLogsDb.getQueryUtil(), workspaceId, serialized);
+				return null;
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to update CONFIG_JSON for workspaceId '{}'.", workspaceId, e);
+			throw new SQLException("Failed to update workspace CONFIG_JSON: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Writes {@code WORKSPACE.CONFIG_JSON} and DATE_UPDATED for a workspace inside
+	 * the caller's transaction. Closes only the statement it creates.
+	 *
+	 * @param connection  connection whose transaction the caller owns
+	 * @param queryUtil   dialect of the model inference logs database
+	 * @param workspaceId workspace identifier
+	 * @param serialized  JSON text to persist, or {@code null} to clear the column
+	 * @throws Exception if the update fails
+	 */
+	private static void updateWorkspaceConfigJson(Connection connection, AbstractSqlQueryUtil queryUtil,
+			String workspaceId, String serialized) throws Exception {
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+		QueryExecutionUtility.executeUpdate(connection,
+				"UPDATE WORKSPACE SET CONFIG_JSON = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?", ps -> {
+					int index = 1;
+					queryUtil.setNullableLargeText(ps, index++, serialized);
+					ps.setTimestamp(index++, now);
+					ps.setString(index++, workspaceId);
+				});
+	}
+
+	/**
+	 * Reads and parses {@code WORKSPACE.CONFIG_JSON} inside the caller's
+	 * transaction. Closes only the statement and result it creates.
+	 *
+	 * @param connection  connection whose transaction the caller owns
+	 * @param workspaceId workspace identifier
+	 * @return parsed JSON object, or {@code null} when the workspace does not exist
+	 *         or its value is null, blank or unparseable
+	 * @throws Exception if the read fails
+	 */
+	private static JSONObject readWorkspaceConfigJson(Connection connection, String workspaceId) throws Exception {
+		String text = QueryExecutionUtility.queryOne(connection,
+				"SELECT CONFIG_JSON FROM WORKSPACE WHERE WORKSPACE_ID = ?", ps -> ps.setString(1, workspaceId),
+				rs -> rs.getString(1));
+		return parseWorkspaceConfigJson(workspaceId, text);
+	}
+
+	/**
+	 * Reads, changes and writes back {@code WORKSPACE.CONFIG_JSON} in one write on
+	 * the shared executor, so the change is applied to the value it read. The
+	 * change returns the JSON to store, or {@code null} to leave the column
+	 * untouched.
+	 *
+	 * @param workspaceId workspace identifier
+	 * @param change      builds the new config from the current one, which is
+	 *                    {@code null} when missing, blank or unparseable
+	 * @throws SQLException if the read or the write fails; nothing is changed
+	 */
+	private static void changeWorkspaceConfigJson(String workspaceId, UnaryOperator<JSONObject> change)
+			throws SQLException {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		try {
+			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				JSONObject updated = change.apply(readWorkspaceConfigJson(connection, workspaceId));
+				if (updated != null) {
+					updateWorkspaceConfigJson(connection, modelInferenceLogsDb.getQueryUtil(), workspaceId,
+							updated.toString());
+				}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update CONFIG_JSON for workspaceId '{}'.", workspaceId, e);
 			throw new SQLException("Failed to update workspace CONFIG_JSON: " + e.getMessage(), e);
@@ -2705,11 +2822,17 @@ public class ModelInferenceLogsUtils {
 	 * {@code { "skill_id": <id>, "pinned_version": <optional> }}. Note the key is
 	 * {@code skill_id} - NOT {@code id} as the MCP mirror uses.
 	 *
+	 * <p>
+	 * The config is read, changed and written back in one write on the shared
+	 * executor; a failed read changes nothing. The {@code WORKSPACE_RESOURCE} row
+	 * this mirrors is written by its caller in a separate operation, so the two
+	 * stores are kept in step by the caller, not by one transaction.
+	 *
 	 * @param workspaceId   workspace identifier
 	 * @param skillId       skill identifier to add
 	 * @param pinnedVersion optional pinned version; the key is omitted when
 	 *                      null/empty
-	 * @throws SQLException if the CONFIG_JSON write fails
+	 * @throws SQLException if the CONFIG_JSON read or write fails
 	 */
 	public static void addSkillToWorkspaceConfigJson(String workspaceId, String skillId, String pinnedVersion)
 			throws SQLException {
@@ -2719,31 +2842,32 @@ public class ModelInferenceLogsUtils {
 		if (skillId == null || skillId.isEmpty()) {
 			throw new IllegalArgumentException("skillId is required");
 		}
-		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
-		if (cfg == null) {
-			cfg = new JSONObject();
-			cfg.put("schema_version", 1);
-		}
-		JSONArray skills = cfg.optJSONArray("skills");
-		if (skills == null) {
-			skills = new JSONArray();
-		}
-		// Dedup by skill_id - keep the mirror idempotent like the attach reactor
-		// itself.
-		for (int i = 0; i < skills.length(); i++) {
-			JSONObject s = skills.optJSONObject(i);
-			if (s != null && skillId.equals(s.optString("skill_id", null))) {
-				return;
+		changeWorkspaceConfigJson(workspaceId, cfg -> {
+			if (cfg == null) {
+				cfg = new JSONObject();
+				cfg.put("schema_version", 1);
 			}
-		}
-		JSONObject entry = new JSONObject();
-		entry.put("skill_id", skillId);
-		if (pinnedVersion != null && !pinnedVersion.isEmpty()) {
-			entry.put("pinned_version", pinnedVersion);
-		}
-		skills.put(entry);
-		cfg.put("skills", skills);
-		updateWorkspaceConfigJson(workspaceId, cfg);
+			JSONArray skills = cfg.optJSONArray("skills");
+			if (skills == null) {
+				skills = new JSONArray();
+			}
+			// Dedup by skill_id - keep the mirror idempotent like the attach reactor
+			// itself.
+			for (int i = 0; i < skills.length(); i++) {
+				JSONObject s = skills.optJSONObject(i);
+				if (s != null && skillId.equals(s.optString("skill_id", null))) {
+					return null;
+				}
+			}
+			JSONObject entry = new JSONObject();
+			entry.put("skill_id", skillId);
+			if (pinnedVersion != null && !pinnedVersion.isEmpty()) {
+				entry.put("pinned_version", pinnedVersion);
+			}
+			skills.put(entry);
+			cfg.put("skills", skills);
+			return cfg;
+		});
 	}
 
 	/**
@@ -2752,9 +2876,15 @@ public class ModelInferenceLogsUtils {
 	 * when the workspace has no CONFIG_JSON, no {@code skills} array, or the skill
 	 * is not present.
 	 *
+	 * <p>
+	 * The config is read, changed and written back in one write on the shared
+	 * executor; a failed read changes nothing. The {@code WORKSPACE_RESOURCE} row
+	 * this mirrors is deleted by its caller in a separate operation, so the two
+	 * stores are kept in step by the caller, not by one transaction.
+	 *
 	 * @param workspaceId workspace identifier
 	 * @param skillId     skill identifier to remove
-	 * @throws SQLException if the CONFIG_JSON write fails
+	 * @throws SQLException if the CONFIG_JSON read or write fails
 	 */
 	public static void removeSkillFromWorkspaceConfigJson(String workspaceId, String skillId) throws SQLException {
 		if (workspaceId == null || workspaceId.isEmpty()) {
@@ -2763,29 +2893,30 @@ public class ModelInferenceLogsUtils {
 		if (skillId == null || skillId.isEmpty()) {
 			throw new IllegalArgumentException("skillId is required");
 		}
-		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
-		if (cfg == null) {
-			return;
-		}
-		JSONArray skills = cfg.optJSONArray("skills");
-		if (skills == null || skills.length() == 0) {
-			return;
-		}
-		JSONArray kept = new JSONArray();
-		boolean removed = false;
-		for (int i = 0; i < skills.length(); i++) {
-			JSONObject s = skills.optJSONObject(i);
-			if (s != null && skillId.equals(s.optString("skill_id", null))) {
-				removed = true;
-				continue;
+		changeWorkspaceConfigJson(workspaceId, cfg -> {
+			if (cfg == null) {
+				return null;
 			}
-			kept.put(skills.get(i));
-		}
-		if (!removed) {
-			return;
-		}
-		cfg.put("skills", kept);
-		updateWorkspaceConfigJson(workspaceId, cfg);
+			JSONArray skills = cfg.optJSONArray("skills");
+			if (skills == null || skills.length() == 0) {
+				return null;
+			}
+			JSONArray kept = new JSONArray();
+			boolean removed = false;
+			for (int i = 0; i < skills.length(); i++) {
+				JSONObject s = skills.optJSONObject(i);
+				if (s != null && skillId.equals(s.optString("skill_id", null))) {
+					removed = true;
+					continue;
+				}
+				kept.put(skills.get(i));
+			}
+			if (!removed) {
+				return null;
+			}
+			cfg.put("skills", kept);
+			return cfg;
+		});
 	}
 
 	/**
@@ -2844,6 +2975,7 @@ public class ModelInferenceLogsUtils {
 			qs.addOrderBy(sorts);
 		}
 
+		Map<String, Object> roomPage = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
 			Map<String, Object> workspaces = new HashMap<>();
 			List<Map<String, Object>> roomDetails = new ArrayList<>();
@@ -2880,11 +3012,11 @@ public class ModelInferenceLogsUtils {
 			}
 			workspaces.put("total_count", totalCount);
 			workspaces.put("rooms", roomDetails);
-			return workspaces;
+			roomPage = workspaces;
 		} catch (Exception e) {
 			classLogger.error("Failed to fetch workspace rooms for workspaceId '{}'.", workspaceId, e);
-			return null;
 		}
+		return roomPage;
 	}
 
 	/**
@@ -2958,6 +3090,7 @@ public class ModelInferenceLogsUtils {
 		qs.setCustomFrom(subQuery);
 		qs.setCustomFromAliasName("subquery");
 
+		Map<String, Object> workspacePage = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
 			Map<String, Object> workspaces = new HashMap<>();
 			List<Map<String, Object>> workspaceDetails = new ArrayList<>();
@@ -2993,11 +3126,11 @@ public class ModelInferenceLogsUtils {
 			}
 			workspaces.put("total_count", totalCount);
 			workspaces.put("workspaces", workspaceDetails);
-			return workspaces;
+			workspacePage = workspaces;
 		} catch (Exception e) {
 			classLogger.error("Failed to fetch workspace entries for user-visible workspace ids.", e);
-			return null;
 		}
+		return workspacePage;
 	}
 
 	/**
@@ -3041,6 +3174,7 @@ public class ModelInferenceLogsUtils {
 					SimpleQueryFilter.makeColToValFilter("WORKSPACE_RESOURCE__RESOURCE_TYPE", "==", resourceTypes));
 		}
 
+		List<Map<String, Object>> resources = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
 			List<Map<String, Object>> results = new ArrayList<>();
 			while (wrapper.hasNext()) {
@@ -3061,12 +3195,12 @@ public class ModelInferenceLogsUtils {
 				}
 				results.add(map);
 			}
-			return results;
+			resources = results;
 		} catch (Exception e) {
 			classLogger.error("Failed to fetch workspace resources for workspaceId '{}' and resourceTypes '{}'.",
 					workspaceId, resourceTypes, e);
-			return null;
 		}
+		return resources;
 	}
 
 	/**
@@ -3093,6 +3227,7 @@ public class ModelInferenceLogsUtils {
 					SimpleQueryFilter.makeColToValFilter("WORKSPACE_RESOURCE__RESOURCE_TYPE", "!=", resourceTypes));
 		}
 
+		List<Map<String, Object>> resources = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
 			List<Map<String, Object>> results = new ArrayList<>();
 			while (wrapper.hasNext()) {
@@ -3113,12 +3248,12 @@ public class ModelInferenceLogsUtils {
 				}
 				results.add(map);
 			}
-			return results;
+			resources = results;
 		} catch (Exception e) {
 			classLogger.error("Failed to fetch workspace resources for workspaceId '{}' and resourceTypes '{}'.",
 					workspaceId, resourceTypes, e);
-			return null;
 		}
+		return resources;
 	}
 
 	/**
@@ -3729,10 +3864,18 @@ public class ModelInferenceLogsUtils {
 	 * (see {@code AttachSkillToWorkspaceReactor}); delete must clear BOTH. Skipping
 	 * the mirror leaves a dangling skill id that
 	 * {@code AgentConfigLoader.resolveSkills} still returns, so the run-time
-	 * {@code SkillStager} fails it every run. The referencing workspaces are
-	 * captured before the row deletes so the mirror can be scrubbed afterward.
+	 * {@code SkillStager} fails it every run.
+	 *
+	 * <p>
+	 * The referencing workspaces are read and the rows deleted in one write on the
+	 * shared executor. The mirror is scrubbed after that write commits, one
+	 * workspace at a time through
+	 * {@link #removeSkillFromWorkspaceConfigJson(String, String)}; a scrub that
+	 * fails is logged and the remaining workspaces are still scrubbed.
 	 *
 	 * @param projectId skill project identifier
+	 * @throws IllegalArgumentException if the rows cannot be deleted; no mirror is
+	 *                                  scrubbed then
 	 */
 	public static void detachSkillFromAllWorkspaces(String projectId) {
 		if (!SystemEngineRegistry.isModelInferenceLogsDbLoaded()) {
@@ -3741,37 +3884,34 @@ public class ModelInferenceLogsUtils {
 			return;
 		}
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Connection con = null;
-		List<String> affectedWorkspaceIds = new ArrayList<>();
+		List<String> affectedWorkspaceIds;
 		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement sel = con.prepareStatement(
-					"SELECT DISTINCT WORKSPACE_ID FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
-				sel.setString(1, "SKILL");
-				sel.setString(2, projectId);
-				try (ResultSet rs = sel.executeQuery()) {
-					while (rs.next()) {
-						String wsId = rs.getString(1);
-						if (wsId != null && !wsId.trim().isEmpty()) {
-							affectedWorkspaceIds.add(wsId);
+			affectedWorkspaceIds = QueryExecutionUtility.write(modelInferenceLogsDb, con -> {
+				List<String> workspaceIds = new ArrayList<>();
+				try (PreparedStatement sel = con.prepareStatement(
+						"SELECT DISTINCT WORKSPACE_ID FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
+					sel.setString(1, "SKILL");
+					sel.setString(2, projectId);
+					try (ResultSet rs = sel.executeQuery()) {
+						while (rs.next()) {
+							String wsId = rs.getString(1);
+							if (wsId != null && !wsId.trim().isEmpty()) {
+								workspaceIds.add(wsId);
+							}
 						}
 					}
 				}
-			}
-			try (PreparedStatement ps = con
-					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
-				ps.setString(1, "SKILL");
-				ps.setString(2, projectId);
-				ps.execute();
-				if (!con.getAutoCommit()) {
-					con.commit();
+				try (PreparedStatement ps = con.prepareStatement(
+						"DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
+					ps.setString(1, "SKILL");
+					ps.setString(2, projectId);
+					ps.execute();
 				}
-			}
+				return workspaceIds;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to detach skill '{}' from workspaces.", projectId, e);
 			throw new IllegalArgumentException("Error detaching skill from workspaces: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 
 		for (String workspaceId : affectedWorkspaceIds) {
