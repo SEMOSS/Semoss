@@ -58,7 +58,6 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -156,6 +155,7 @@ public final class UserAuditTrailUtils {
 			Map.entry("UploadProjectApp", new AuditedAction(AuditEventType.PROJECT_UPLOAD, AuditTargetType.PROJECT)),
 			Map.entry("DeleteProject", new AuditedAction(AuditEventType.PROJECT_DELETE, AuditTargetType.PROJECT)),
 			Map.entry("UploadEngine", new AuditedAction(AuditEventType.ENGINE_CREATE, AuditTargetType.ENGINE)),
+			Map.entry("CloneEngine", new AuditedAction(AuditEventType.ENGINE_CREATE, AuditTargetType.ENGINE)),
 			Map.entry("CreateModelEngine", new AuditedAction(AuditEventType.MODEL_CREATE, AuditTargetType.MODEL)),
 			Map.entry("CreateVectorDatabaseEngine",
 					new AuditedAction(AuditEventType.VECTOR_CREATE, AuditTargetType.VECTOR)),
@@ -786,44 +786,6 @@ public final class UserAuditTrailUtils {
 	// ------------------------------------------------------------------------
 	// maintenance
 	// ------------------------------------------------------------------------
-
-	/**
-	 * Earlier builds of the audit trail stored the raw HTTP session id in a
-	 * {@code SESSION_ID} column. Raw session ids can be replayed to hijack a
-	 * session, so any values left in that legacy column are cleared on startup.
-	 *
-	 * @param userTrackingDb the user tracking database
-	 */
-	public static void clearLegacyRawSessionIds(IRDBMSEngine userTrackingDb) {
-		if (userTrackingDb == null) {
-			return;
-		}
-		java.sql.Connection conn = null;
-		try {
-			conn = userTrackingDb.getConnection();
-			List<String> columns = userTrackingDb.getQueryUtil().getTableColumns(conn, TABLE,
-					userTrackingDb.getDatabase(), userTrackingDb.getSchema());
-			boolean hasLegacyColumn = columns != null
-					&& columns.stream().anyMatch(c -> "SESSION_ID".equalsIgnoreCase(c));
-			if (!hasLegacyColumn) {
-				return;
-			}
-			try (PreparedStatement ps = conn
-					.prepareStatement("UPDATE " + TABLE + " SET SESSION_ID = NULL WHERE SESSION_ID IS NOT NULL")) {
-				int cleared = ps.executeUpdate();
-				if (cleared > 0) {
-					classLogger.info("Cleared {} legacy raw session ids from {}", cleared, TABLE);
-				}
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
-		} catch (Exception e) {
-			classLogger.warn("Unable to clear legacy raw session ids from {}", TABLE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, conn, null, null);
-		}
-	}
 
 	/**
 	 * Logging context entries an agent run puts on its threads so every audited

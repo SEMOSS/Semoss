@@ -539,7 +539,7 @@ public class CollaborationDbUtils {
 			AbstractOwlCreator.syncSchema(collaborationDb, conn, dbSchema);
 			// A single routine of each kind per owner is required for atomic schedule saves and run claims.
 			var queryUtil = collaborationDb.getQueryUtil();
-			for (String routineTable : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE")) {
+			for (String routineTable : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE", "WORK_EXPENSE_ROUTINE")) {
 				String routineIndex = routineTable + "_OWNER_UNIQUE";
 				if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, routineIndex,
 						routineTable, collaborationDb.getDatabase(), collaborationDb.getSchema())) {

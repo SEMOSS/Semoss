@@ -28,6 +28,7 @@
 package prerna.reactor.automation.run;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -55,9 +56,11 @@ import org.apache.logging.log4j.ThreadContext;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.collaboration.CollaborationUtils;
+import prerna.collaboration.WorkRoutineDocuments;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ITypeSafeEngine;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.logging.SemossLogUtils;
@@ -406,7 +409,7 @@ final class AutomationRunExecutionService {
 			Handler.DATABASE_WRITE;
 		case AutomationConstants.NODE_VECTOR_ADD, AutomationConstants.NODE_VECTOR_DELETE -> Handler.VECTOR_WRITE;
 		case AutomationConstants.NODE_MODEL_CHAT, AutomationConstants.NODE_MODEL_EMBEDDINGS,
-				AutomationConstants.NODE_MODEL_VISION, AutomationConstants.NODE_MODEL_NER ->
+				AutomationConstants.NODE_MODEL_VISION ->
 			Handler.MODEL;
 		case AutomationConstants.NODE_STORAGE_READ, AutomationConstants.NODE_STORAGE_UPLOAD,
 				AutomationConstants.NODE_STORAGE_DELETE ->
@@ -1632,6 +1635,15 @@ final class AutomationRunExecutionService {
 		String workspaceId = stringValue(config.get(AutomationConstants.CONFIG_WORKSPACE_ID));
 		RoomUtils.createRoomIfNotExists(roomId, executionInsight, null, null,
 				workspaceId == null ? null : workspaceId.trim(), generatedAgentRoomOptions(config), null, null, null);
+		// a Collaboration routine's reference documents go into the room before its agent starts
+		String routineId = stringValue(config.get(AutomationConstants.CONFIG_ROUTINE_ID));
+		if (routineId != null && Boolean.TRUE.equals(config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE))) {
+			try {
+				WorkRoutineDocuments.copyInto(executionInsight.getUser(), routineId, Room.roomFolderPath(roomId));
+			} catch (IOException e) {
+				throw new IllegalStateException("Could not copy the routine's reference documents into its room", e);
+			}
+		}
 	}
 
 	/**
@@ -1652,6 +1664,10 @@ final class AutomationRunExecutionService {
 		}
 		if (Boolean.TRUE.equals(config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE))) {
 			options.put(CollaborationUtils.ROOM_OPTION_ROUTINE, true);
+			String delivery = stringValue(config.get(AutomationConstants.CONFIG_ROUTINE_DELIVERY));
+			if (delivery != null && !delivery.isBlank()) {
+				options.put(CollaborationUtils.ROOM_OPTION_ROUTINE_DELIVERY, delivery.trim());
+			}
 		}
 		return options.isEmpty() ? null : options;
 	}

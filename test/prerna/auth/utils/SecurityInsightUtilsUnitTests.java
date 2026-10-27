@@ -47,6 +47,7 @@ import org.junit.jupiter.api.Test;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -1739,6 +1740,88 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 				"testInsightId");
 		assertNotNull(requests);
 		assertEquals(1, requests.size());
+	}
+
+	///
+	/// approveInsightUserAccessRequests and denyInsightUserAccessRequests: one
+	/// transaction, for the insight's own requests
+	///
+
+	@Test
+	void testApproveInsightUserAccessRequests_aFailedApprovalSavesNothing() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User secondUser = UnitTestSecurityAuthUtils.createUser("second", false);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "testInsightName", "grid");
+		SecurityInsightUtils.setUserAccessRequest("secondid", "NATIVE", "testProjectId", "reason", "testInsightId", 2,
+				secondUser);
+		String requestId = pendingRequestId("testInsightId");
+		List<Map<String, String>> requests = List
+				.of(Map.of("requestid", requestId, "userid", "secondid", "type", "NATIVE", "permission", "EDIT"));
+
+		// marking the request approved fails after the grant was written
+		addCheck("APPROVE_FAIL", "INSIGHTACCESSREQUEST", "APPROVER_DECISION <> 'APPROVED'");
+		try {
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> SecurityInsightUtils
+					.approveInsightUserAccessRequests(user, "testProjectId", "testInsightId", requests, null));
+			assertEquals("An error occurred while approving the access requests", e.getMessage());
+		} finally {
+			dropCheck("APPROVE_FAIL", "INSIGHTACCESSREQUEST");
+		}
+
+		assertTrue(SecurityInsightUtils.getUserInsightPermissions(List.of("secondid"), "testProjectId", "testInsightId")
+				.isEmpty());
+		assertEquals("NEW_REQUEST", requestDecision(requestId));
+	}
+
+	@Test
+	void testApproveAndDenyInsightUserAccessRequests_leaveAnotherInsightsRequestsAsTheyAre() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User secondUser = UnitTestSecurityAuthUtils.createUser("second", false);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "testInsightName", "grid");
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "otherInsightId", "otherInsightName", "grid");
+		SecurityInsightUtils.setUserAccessRequest("secondid", "NATIVE", "testProjectId", "reason", "otherInsightId", 3,
+				secondUser);
+		String otherRequestId = pendingRequestId("otherInsightId");
+
+		SecurityInsightUtils.approveInsightUserAccessRequests(user, "testProjectId", "testInsightId", List.of(
+				Map.of("requestid", otherRequestId, "userid", "secondid", "type", "NATIVE", "permission", "READ_ONLY")),
+				null);
+		SecurityInsightUtils.denyInsightUserAccessRequests(user, "testProjectId", "testInsightId",
+				List.of(otherRequestId));
+
+		// the person gets the access the batch gives, but the other insight's request
+		// is neither approved nor denied
+		assertEquals(3, SecurityInsightUtils
+				.getUserInsightPermissions(List.of("secondid"), "testProjectId", "testInsightId").get("secondid"));
+		assertEquals("NEW_REQUEST", requestDecision(otherRequestId));
+	}
+
+	private String pendingRequestId(String insightId) throws SQLException {
+		return String.valueOf(UnitTestGroupTables.queryValue(securityDb,
+				"SELECT ID FROM INSIGHTACCESSREQUEST WHERE INSIGHTID = ? AND APPROVER_DECISION = 'NEW_REQUEST'",
+				insightId));
+	}
+
+	private Object requestDecision(String requestId) throws SQLException {
+		return UnitTestGroupTables.queryValue(securityDb,
+				"SELECT APPROVER_DECISION FROM INSIGHTACCESSREQUEST WHERE ID = ?", requestId);
+	}
+
+	/**
+	 * Adds a check to a security table, so a test can fail a later statement of a
+	 * save on purpose; {@link #dropCheck} takes it off again.
+	 */
+	private void addCheck(String name, String table, String condition) throws Exception {
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"ALTER TABLE " + table + " ADD CONSTRAINT " + name + " CHECK (" + condition + ")",
+				QueryExecutionUtility.NO_PARAMETERS);
+	}
+
+	private void dropCheck(String name, String table) throws Exception {
+		QueryExecutionUtility.executeUpdate(securityDb, "ALTER TABLE " + table + " DROP CONSTRAINT " + name,
+				QueryExecutionUtility.NO_PARAMETERS);
 	}
 
 }

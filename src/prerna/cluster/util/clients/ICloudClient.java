@@ -38,161 +38,183 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public interface ICloudClient {
 
-	///////////////////////////////////////////////////////////////////////////////////
-
-	/*
-	 * Moving away from specific types and going to engine interface
-	 * 
-	 */
-
 	/**
-	 * 
-	 * @param engineId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Uploads an engine's folder and its smss file to cloud storage. An engine that
+	 * holds file locks, such as an H2 database, is closed for the upload and opened
+	 * again after.
+	 *
+	 * @param engineId the engine to upload
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pushEngine(String engineId) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param engineId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads an engine's folder and its smss file from cloud storage and
+	 * catalogs the engine on this node, for an engine that is not open here. The
+	 * engine's type is read from the security database.
+	 *
+	 * @param engineId the engine to download
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullEngine(String engineId) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param engineId
-	 * @param engineType
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads an engine's folder and its smss file from cloud storage and
+	 * catalogs the engine on this node, for an engine that is not open here.
+	 *
+	 * @param engineId   the engine to download
+	 * @param engineType the engine's type, which places its folders
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullEngine(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param engineId
-	 * @param engineType
-	 * @param engineAlreadyLoaded
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads an engine's folder and its smss file from cloud storage. An engine
+	 * open on this node is closed for the download and opened again after, so it
+	 * reads the new files; one that is not open is cataloged on this node. Nothing
+	 * is downloaded for an engine the security database does not have.
+	 *
+	 * @param engineId            the engine to download
+	 * @param engineType          the engine's type, or null to read it from the
+	 *                            security database
+	 * @param engineAlreadyLoaded true if the engine is open on this node
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullEngine(String engineId, IEngine.CATALOG_TYPE engineType, boolean engineAlreadyLoaded)
 			throws IOException, InterruptedException;
 
 	/**
-	 * Push only the smss file for a engine
-	 * 
-	 * @param engineId
-	 * @throws Exception
+	 * Uploads only an engine's smss file to cloud storage. The engine's type is
+	 * read from the security database.
+	 *
+	 * @param engineId the engine whose smss file to upload
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pushEngineSmss(String engineId) throws IOException, InterruptedException;
 
 	/**
-	 * Push only the smss file for a engine
-	 * 
-	 * @param engineId
-	 * @param engineType
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Uploads only an engine's smss file to cloud storage.
+	 *
+	 * @param engineId   the engine whose smss file to upload
+	 * @param engineType the engine's type, which places its folders
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pushEngineSmss(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException;
 
 	/**
-	 * Pull only the smss file for a engine
-	 * 
-	 * @param engineId
-	 * @throws Exception
+	 * Downloads only an engine's smss file from cloud storage. The engine's type is
+	 * read from the security database.
+	 *
+	 * @param engineId the engine whose smss file to download
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullEngineSmss(String engineId) throws IOException, InterruptedException;
 
 	/**
-	 * Pull only the smss file for a engine
-	 * 
-	 * @param engineId
-	 * @param engineType
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads only an engine's smss file from cloud storage.
+	 *
+	 * @param engineId   the engine whose smss file to download
+	 * @param engineType the engine's type, which places its folders
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullEngineSmss(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param engineId
-	 * @param localAbsoluteFilePath
-	 * @param storageRelativePath
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Uploads one folder of an engine, making the folder at a path in the engine's
+	 * cloud folder match the local folder.
+	 *
+	 * @param engineId              the engine
+	 * @param localAbsoluteFilePath the absolute path of the local folder to upload
+	 * @param storageRelativePath   the folder's path in the engine's cloud folder,
+	 *                              or null for the engine's cloud folder itself
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pushEngineFolder(String engineId, String localAbsoluteFilePath, String storageRelativePath)
 			throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param engineId
-	 * @param localAbsoluteFilePath
-	 * @param storageRelativePath
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads one folder of an engine, making the local folder match the folder
+	 * at a path in the engine's cloud folder.
+	 *
+	 * @param engineId              the engine
+	 * @param localAbsoluteFilePath the absolute path of the local folder to
+	 *                              download into
+	 * @param storageRelativePath   the folder's path in the engine's cloud folder
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullEngineFolder(String engineId, String localAbsoluteFilePath, String storageRelativePath)
 			throws IOException, InterruptedException;
 
 	/**
-	 * Delete the engine from cloud storage
-	 * 
-	 * @param engineId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Deletes an engine's folder, its smss file and its images from cloud storage.
+	 * The engine's type is read from the security database.
+	 *
+	 * @param engineId the engine to delete
+	 * @throws IOException          if the delete fails
+	 * @throws InterruptedException if the delete is interrupted
 	 */
 	void deleteEngine(String engineId) throws IOException, InterruptedException;
 
 	/**
-	 * Delete the engine from cloud storage
-	 * 
-	 * @param engineId
-	 * @param engineType
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Deletes an engine's folder, its smss file and its images from cloud storage.
+	 *
+	 * @param engineId   the engine to delete
+	 * @param engineType the engine's type, which places its folders
+	 * @throws IOException          if the delete fails
+	 * @throws InterruptedException if the delete is interrupted
 	 */
 	void deleteEngine(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException;
 
 	/**
-	 * Copy the engine local file to the corresponding storage location
-	 * 
-	 * @param engineId
-	 * @param engineType
-	 * @param localFilePath
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Uploads one file or folder of an engine to the place in the engine's cloud
+	 * folder that matches its place in the engine's local folder.
+	 *
+	 * @param engineId      the engine
+	 * @param engineType    the engine's type, which places its folders
+	 * @param localFilePath the absolute path of a file or folder in the engine's
+	 *                      local folder
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void copyLocalFileToEngineCloudFolder(String engineId, CATALOG_TYPE engineType, String localFilePath)
 			throws IOException, InterruptedException;
 
 	/**
-	 * Copy engine file path to local file path, based on where the corresponding
-	 * storage location should be
-	 * 
-	 * @param engineId
-	 * @param engineType
-	 * @param storageRelativePath
-	 * @param localFilePath
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads one file or folder of an engine to a local path, from the place in
+	 * the engine's cloud folder that matches the path's place in the engine's local
+	 * folder.
+	 *
+	 * @param engineId      the engine
+	 * @param engineType    the engine's type, which places its folders
+	 * @param localFilePath the absolute path in the engine's local folder to
+	 *                      download to
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void copyEngineCloudFileToLocalFile(String engineId, CATALOG_TYPE engineType, String localFilePath)
 			throws IOException, InterruptedException;
 
 	/**
-	 * Delete where the corresponding local file path would be from the
-	 * corresponding storage location
-	 * 
-	 * @param engineId
-	 * @param engineType
-	 * @param localFilePath
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Deletes one file or folder of an engine from cloud storage: the one at the
+	 * place in the engine's cloud folder that matches a local path's place in the
+	 * engine's local folder.
+	 *
+	 * @param engineId      the engine
+	 * @param engineType    the engine's type, which places its folders
+	 * @param localFilePath the absolute path in the engine's local folder whose
+	 *                      cloud copy to delete
+	 * @throws IOException          if the delete fails
+	 * @throws InterruptedException if the delete is interrupted
 	 */
 	void deleteEngineCloudFile(String engineId, CATALOG_TYPE engineType, String localFilePath)
 			throws IOException, InterruptedException;
@@ -204,37 +226,45 @@ public interface ICloudClient {
 	 */
 
 	/**
-	 * 
-	 * @param engineType
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads every image of one catalog type, such as databases or projects,
+	 * from cloud storage into the local image folder for that type.
+	 *
+	 * @param engineType the catalog type whose images to download
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullEngineAndProjectImageFolder(CATALOG_TYPE engineType) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param engineType
-	 * @param fileName
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Uploads one image from the local image folder of a catalog type to cloud
+	 * storage.
+	 *
+	 * @param engineType the catalog type the image belongs to
+	 * @param fileName   the image's file name in the local image folder
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pushEngineAndProjectImage(CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param engineType
-	 * @param fileName
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Deletes one image of a catalog type from cloud storage.
+	 *
+	 * @param engineType the catalog type the image belongs to
+	 * @param fileName   the image's file name
+	 * @throws IOException          if the delete fails
+	 * @throws InterruptedException if the delete is interrupted
 	 */
 	void deleteEngineAndProjectImage(CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param engineType
-	 * @param engineId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Deletes the images of one engine or project, the files in the local image
+	 * folder whose names start with its id, from cloud storage and from the local
+	 * folder.
+	 *
+	 * @param engineType the catalog type of the engine or project
+	 * @param engineId   the id of the engine or project whose images to delete
+	 * @throws IOException          if the delete fails
+	 * @throws InterruptedException if the delete is interrupted
 	 */
 	void deleteEngineAndProjectImageById(CATALOG_TYPE engineType, String engineId)
 			throws IOException, InterruptedException;
@@ -246,54 +276,71 @@ public interface ICloudClient {
 	 */
 
 	/**
-	 * 
-	 * @param databaseId
-	 * @param dbType
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Uploads the database file of an H2 or SQLite database to cloud storage. The
+	 * database is closed for the upload and opened again after.
+	 *
+	 * @param databaseId the database
+	 * @param dbType     the database's type, H2 or SQLite
+	 * @throws IllegalArgumentException if the database is not H2 or SQLite, or is
+	 *                                  not found
+	 * @throws IOException              if the transfer fails
+	 * @throws InterruptedException     if the transfer is interrupted
 	 */
 	void pushLocalDatabaseFile(String databaseId, RdbmsTypeEnum dbType) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param databaseId
-	 * @param rdbmsType
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads the database file of an H2 or SQLite database from cloud storage.
+	 * The database is closed for the download and opened again after.
+	 *
+	 * @param databaseId the database
+	 * @param rdbmsType  the database's type, H2 or SQLite
+	 * @throws IllegalArgumentException if the database is not H2 or SQLite, or is
+	 *                                  not found
+	 * @throws IOException              if the transfer fails
+	 * @throws InterruptedException     if the transfer is interrupted
 	 */
 	void pullLocalDatabaseFile(String databaseId, RdbmsTypeEnum rdbmsType) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param databaseId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Uploads a database's OWL file, and its positions file when it has one, to
+	 * cloud storage.
+	 *
+	 * @param databaseId the database
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pushOwl(String databaseId) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param databaseId
-	 * @param owlEngine
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Uploads a database's OWL file, and its positions file when it has one, to
+	 * cloud storage. The upload reads the files on disk.
+	 *
+	 * @param databaseId the database
+	 * @param owlEngine  the write OWL engine the caller holds, if any
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pushOwl(String databaseId, WriteOWLEngine owlEngine) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param databaseId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads a database's OWL file and its positions file from cloud storage,
+	 * then reloads the OWL.
+	 *
+	 * @param databaseId the database
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullOwl(String databaseId) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param databaseId
-	 * @param owlEngine
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads a database's OWL file and its positions file from cloud storage.
+	 * The write OWL engine is closed for the download and reloads the OWL after.
+	 *
+	 * @param databaseId the database
+	 * @param owlEngine  the write OWL engine the caller holds, or null to open one
+	 *                   for the download and close it after
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullOwl(String databaseId, WriteOWLEngine owlEngine) throws IOException, InterruptedException;
 
@@ -304,85 +351,111 @@ public interface ICloudClient {
 	 */
 
 	/**
-	 * 
-	 * @param projectId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Uploads a project's folder and its smss file to cloud storage. The project is
+	 * closed for the upload and opened again after.
+	 *
+	 * @param projectId the project to upload
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pushProject(String projectId) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param projectId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads a project's folder and its smss file from cloud storage and
+	 * catalogs the project on this node, for a project that is not open here.
+	 *
+	 * @param projectId the project to download
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullProject(String projectId) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param projectAlreadyLoaded
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads a project's folder and its smss file from cloud storage. A project
+	 * open on this node is closed for the download and opened again after; one that
+	 * is not open is cataloged on this node. Nothing is downloaded for a project
+	 * the security database does not have.
+	 *
+	 * @param projectId            the project to download
+	 * @param projectAlreadyLoaded true if the project is open on this node
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullProject(String projectId, boolean projectAlreadyLoaded) throws IOException, InterruptedException;
 
 	/**
-	 * Push only the smss file for a project
-	 * 
-	 * @param projectId
-	 * @throws Exception
+	 * Uploads only a project's smss file to cloud storage.
+	 *
+	 * @param projectId the project whose smss file to upload
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pushProjectSmss(String projectId) throws IOException, InterruptedException;
 
 	/**
-	 * Pull only the smss file for a project
-	 * 
-	 * @param projectId
-	 * @throws Exception
+	 * Downloads only a project's smss file from cloud storage.
+	 *
+	 * @param projectId the project whose smss file to download
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullProjectSmss(String projectId) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param projectId
-	 * @throws Exception
+	 * Deletes a project's folder, its smss file and its images from cloud storage.
+	 *
+	 * @param projectId the project to delete
+	 * @throws IOException          if the delete fails
+	 * @throws InterruptedException if the delete is interrupted
 	 */
 	void deleteProject(String projectId) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param projectId
-	 * @throws Exception
+	 * Downloads a project's insights database file from cloud storage. The insights
+	 * database is closed for the download and opened again after, whether or not
+	 * the download works.
+	 *
+	 * @param projectId the project
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullInsightsDB(String projectId) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param projectId
-	 * @throws Exception
+	 * Uploads a project's insights database file to cloud storage. The insights
+	 * database is closed for the upload and opened again after, whether or not the
+	 * upload works.
+	 *
+	 * @param projectId the project
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pushInsightDB(String projectId) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param localAbsoluteFilePath
-	 * @param storageRelativePath
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Uploads one folder of a project, making the folder at a path in the project's
+	 * cloud folder match the local folder.
+	 *
+	 * @param projectId             the project
+	 * @param localAbsoluteFilePath the absolute path of the local folder to upload
+	 * @param storageRelativePath   the folder's path in the project's cloud folder,
+	 *                              or null for the project's cloud folder itself
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pushProjectFolder(String projectId, String localAbsoluteFilePath, String storageRelativePath)
 			throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param localAbsoluteFilePath
-	 * @param storageRelativePath
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads one folder of a project, making the local folder match the folder
+	 * at a path in the project's cloud folder.
+	 *
+	 * @param projectId             the project
+	 * @param localAbsoluteFilePath the absolute path of the local folder to
+	 *                              download into
+	 * @param storageRelativePath   the folder's path in the project's cloud folder
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullProjectFolder(String projectId, String localAbsoluteFilePath, String storageRelativePath)
 			throws IOException, InterruptedException;
@@ -394,28 +467,38 @@ public interface ICloudClient {
 	 */
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param insightId
-	 * @throws Exception
+	 * Uploads one insight's folder of a project to cloud storage.
+	 *
+	 * @param projectId the project the insight belongs to
+	 * @param rdbmsId   the id of the insight
+	 * @throws IOException          if the upload fails
+	 * @throws InterruptedException if the upload is interrupted
 	 */
-	void pushInsight(String projectId, String insightId) throws IOException, InterruptedException;
+	void pushInsight(String projectId, String rdbmsId) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param insightId
-	 * @throws Exception
+	 * Downloads one insight's folder of a project from cloud storage.
+	 *
+	 * @param projectId the project the insight belongs to
+	 * @param rdbmsId   the id of the insight
+	 * @throws IOException          if the download fails
+	 * @throws InterruptedException if the download is interrupted
 	 */
-	void pullInsight(String projectId, String insightId) throws IOException, InterruptedException;
+	void pullInsight(String projectId, String rdbmsId) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param insightId
-	 * @param oldImageFileName
-	 * @param newImageFileName
-	 * @throws Exception
+	 * Replaces an insight's image in cloud storage: deletes the old image file by
+	 * name, since the new one can have another extension, then uploads the new one
+	 * from the insight's local folder.
+	 *
+	 * @param projectId        the project the insight belongs to
+	 * @param insightId        the id of the insight
+	 * @param oldImageFileName the file name of the image to delete, or null when
+	 *                         there is none
+	 * @param newImageFileName the file name of the image to upload, or null to
+	 *                         upload none
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName)
 			throws IOException, InterruptedException;
@@ -427,27 +510,33 @@ public interface ICloudClient {
 	 */
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param projectAlreadyLoaded
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Downloads a user's asset project folder and its smss file from cloud storage.
+	 * An asset project open on this node is closed for the download and opened
+	 * again after.
+	 *
+	 * @param projectId            the id of the user's asset project
+	 * @param projectAlreadyLoaded true if the asset project is open on this node
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pullUserAsset(String projectId, boolean projectAlreadyLoaded) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @param projectId
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Uploads a user's asset project folder and its smss file to cloud storage. The
+	 * project is closed for the upload and opened again after.
+	 *
+	 * @param projectId the id of the user's asset project
+	 * @throws IOException          if the transfer fails
+	 * @throws InterruptedException if the transfer is interrupted
 	 */
 	void pushUserAsset(String projectId) throws IOException, InterruptedException;
 
 	/**
-	 * 
-	 * @return
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Lists what each engine and project bucket in cloud storage holds.
+	 *
+	 * @return the entries of each bucket, keyed by the bucket's name
+	 * @throws IOException          if the listing fails
+	 * @throws InterruptedException if the listing is interrupted
 	 */
 	Map<String, List<String>> listAllContainersByBucket() throws IOException, InterruptedException;
 

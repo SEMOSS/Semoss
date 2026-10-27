@@ -59,12 +59,14 @@
 		<!-- Jackson 2.x. jackson-annotations tracks the minor line (2.22), while
 		     core/databind/datatype ship patch releases off it (2.22.2), so the two
 		     cannot share a single property. -->
-		<jackson2.version>2.22.3</jackson2.version>
+		<jackson2.version>2.22.4</jackson2.version>
 		<jackson2.annotations.version>2.22</jackson2.annotations.version>
 		<jackson3.version>3.1.7</jackson3.version>
 		<!-- Keep these security pins in sync with Monolith/pom.xml. -->
 		<lz4.version>1.11.4</lz4.version>
-		<rabbitmq.version>5.34.0</rabbitmq.version>
+		<rabbitmq.version>5.37.0</rabbitmq.version>
+		<databricks.jdbc.version>2.8.4</databricks.jdbc.version>
+		<tika.version>3.3.3</tika.version>
 		<httpcore5.version>5.4.3</httpcore5.version>
 		<docx4j.version>11.5.14</docx4j.version>
 		<sesame.version>2.7.12</sesame.version>
@@ -2723,7 +2725,7 @@
 		<dependency>
 			<groupId>org.elasticsearch.plugin</groupId>
 			<artifactId>x-pack-sql-jdbc</artifactId>
-			<version>9.4.2</version>
+			<version>9.5.5</version>
 		</dependency>
 		<!-- self hostged -->
 		<dependency>
@@ -2827,7 +2829,7 @@
 		<dependency>
 			<groupId>com.databricks</groupId>
 			<artifactId>databricks-jdbc</artifactId>
-			<version>2.7.4</version>
+			<version>${databricks.jdbc.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.hierynomus/sshj -->
 		<!-- Version 0.41.0 updates SSHJ's cryptography baseline. Keep this synchronized
@@ -2872,7 +2874,7 @@
 		<dependency>
 			<groupId>org.apache.tika</groupId>
 			<artifactId>tika-core</artifactId>
-			<version>3.2.2</version>
+			<version>${tika.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>commons-io</groupId>

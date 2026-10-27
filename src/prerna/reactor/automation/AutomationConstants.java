@@ -200,7 +200,6 @@ public final class AutomationConstants {
 	public static final String NODE_MODEL_CHAT = "model.chat";
 	public static final String NODE_MODEL_EMBEDDINGS = "model.embeddings";
 	public static final String NODE_MODEL_VISION = "model.vision";
-	public static final String NODE_MODEL_NER = "model.ner";
 	public static final String NODE_STORAGE_LIST = "storage.list";
 	public static final String NODE_STORAGE_READ = "storage.read";
 	public static final String NODE_STORAGE_UPLOAD = "storage.upload";
@@ -284,6 +283,8 @@ public final class AutomationConstants {
 	public static final String CONFIG_WORKSPACE_ID = "workspaceId";
 	public static final String CONFIG_SKILLS = "skills";
 	public static final String CONFIG_COLLABORATION_ROUTINE = "collaborationRoutine";
+	public static final String CONFIG_ROUTINE_ID = "routineId";
+	public static final String CONFIG_ROUTINE_DELIVERY = "routineDelivery";
 	public static final String CONFIG_MAX_TURNS = "maxTurns";
 	public static final String CONFIG_MAX_REFLECTIONS = "maxReflections";
 	public static final String CONFIG_WAIT = "wait";

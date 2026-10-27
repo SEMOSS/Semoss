@@ -110,7 +110,7 @@ Microsoft token of its own keeps the lent one while the Brain sync the run start
 (or its thread summaries) is still reading Graph through it. The recipient is the
 mailbox's own `mail` (or `userPrincipalName`) address from Graph `/me`.
 
-The definition is a linear graph:
+The definition runs these stages, with a bounded loop for meeting notes:
 
 1. `BrainSync()` imports new mail (and Teams when on) and classifies threads. An
    error, such as an import still running, does not stop the brief.
@@ -126,28 +126,46 @@ The definition is a linear graph:
    with `replyAll=True` and `asDraft=True`, leaving Outlook to supply recipients
    and the quoted original. It creates Drafts > Teamwork drafts when needed and
    moves the saved drafts there. A failed folder move leaves the draft saved;
-   a failed draft creation is reported in the brief. The step adds draft statuses
-   to the brief input as `saved.briefInput`.
-6. A second `agent.run` step uses Automation's Java scope interpolation to add those
-   results to the server-held briefing instruction. The `inbox_brief` harness and the owner's
-   `COLLAB_LLM_ENGINE_ID` model writes the brief. The harness makes one model
-   call per agent step, has no tool executor, rejects tool calls, and treats the data as
-   untrusted. The brief is Markdown with Suggested priorities, Needs your reply,
-   Today's meetings, and Open action items sections; links may only point to URLs
-   present in the data. Needs your reply identifies messages that need attention
-   and ends each item with a `Draft:` bullet reporting where it was saved or
-   that no draft was saved. A saved draft still needs the owner's review.
-7. A Python step converts the Markdown to HTML (raw HTML in the brief is
+   a failed draft creation is reported in the brief. The step returns the actual
+   draft statuses as `saved.replies`.
+6. A Python step prepares the factual inventory: reply identities and draft statuses,
+   exact duplicate action removal, normalized deadlines, and calendar order. Separate
+   records and workspace deliverables are preserved. Meeting evidence excludes
+   dated, generated daily or weekly briefs. Related subjects must match the normalized
+   meeting title or share at least two meaningful words. Attachments linked to rejected
+   threads are excluded too. This conservative filter can omit useful weak matches.
+7. A Java-owned `control.loop` processes up to ten gathered meetings, one at a time.
+   Each iteration makes one authenticated `LLM` call through a guarded Python step,
+   using the owner's Collaboration model, no history, no tools, and the model's
+   configured generation defaults. It requests a short combined meeting summary,
+   distinct attachment takeaways, and at most three supported unresolved questions.
+   Today's date is supplied explicitly; the current calendar entry takes precedence
+   over historical cancellations, rescheduling, and attendance requests.
+   The server binds the `brief_model` global only for this daily routine. A provider
+   failure, tool response, or invalid JSON produces an unavailable note without
+   stopping the brief. The guard is local because a failed `model.chat` node would
+   stop the workflow; the shared Automation runtime and `inbox_brief` harness are unchanged.
+8. A Python step assembles Markdown with Suggested priorities, Needs your reply,
+   Today's meetings, and Open action items sections. Code supplies every retained
+   reply, meeting, attachment name, action, date, link, and draft status. Model prose
+   is escaped as text and bounded to 60 words per summary, 35 per attachment takeaway,
+   and 40 per question. Invalid fields fall back independently; unavailable notes
+   leave the meeting's factual entry and invitation link. A saved draft still needs
+   the owner's review. Only gathered reply records receive a `Draft:` bullet.
+9. A Python step converts the Markdown to HTML (raw HTML in the brief is
    escaped, images are dropped, and links to URLs not found in the thread data
    are removed) and sends it with `MicrosoftOutlookSendMail` to the owner only.
 
 Suggested priorities opens the brief with three groups: 🔴 Due today (dated from
 the owner's local day, with overdue items explicitly marked), 🟡 Due soon (the
 next seven calendar days, plus explicitly urgent undated work marked as such),
-and 🟢 Flexible (later or undated next actions). The model is instructed to merge
-duplicate tasks, omit resolved work, and never invent deadlines. The brief input
-includes the owner's time zone and the origin of action-item steps so Brain's
-date-only deadlines stored as midnight UTC keep their original calendar date.
+and 🟢 Flexible (later or undated next actions). It selects at most five short
+priority references; the detail sections still contain every retained record.
+Code classifies recorded deadlines using the owner's time zone and the origin of
+action-item steps so Brain's date-only deadlines stored as midnight UTC keep their
+original calendar date. Missing deadlines are labeled "No recorded deadline";
+message receipt dates and model prose never establish deadlines. Semantic duplicates
+with different source records remain separate to avoid dropping distinct obligations.
 
 The routine's own exclusion filter no longer applies; only Brain's import gating
 does. The sync spends model calls on classification and thread summaries.
@@ -155,11 +173,12 @@ does. The sync spends model calls on classification and thread summaries.
 The latest result and status are stored in `WORK_INBOX_ROUTINE`, scoped to the
 owner's ID and authentication type, and shown in Routines. If the brief was
 written but the email failed, the routine still completes with the brief and
-reports "The brief was saved but the email could not be sent." `ROOM_ID` names
-the agent step's room for "Open session". A new brief replaces the routine's
+reports that the brief could not be delivered. The assembled daily brief does not
+require a model room; "Open session" can create a discussion room from the saved
+brief. A new brief replaces the routine's
 latest result. Interrupted runs are reconciled with the durable Automation run
 status; runs still unfinished after twenty minutes are cancelled and failed so
-the next scheduled day can retry. The agent wait is limited to ten minutes.
+the next scheduled day can retry. The reply-drafting agent wait is limited to ten minutes.
 
 Topics, threads, and the brief are also kept as Automation node outputs, which
 the owner can read with `GetAutomationRun`. "Reset my data" deletes these runs;
@@ -168,7 +187,9 @@ there is no time-based retention.
 ## Deployment and verification
 
 Deploy the updated SEMOSS Java classes through the normal application build and
-restart process. Security startup adds `MS_GRAPH_CREDENTIAL` and its unique user
+restart process. The daily brief's `WorkRoutine` model binding and JSON definition
+must be deployed together; a JSON-only update leaves `brief_model` unset. Security
+startup adds `MS_GRAPH_CREDENTIAL` and its unique user
 index; Collaboration startup adds the routine table, its `LAST_SUCCESS_AT` column,
 and unique owner index through
 the existing schema initialization. The new reactors use
@@ -189,7 +210,13 @@ duplicate-day execution, interrupted-run recovery, the JSON null contract,
 token lending and restore, the Python requirement, an unsent brief, strict
 validation of the shipped definition and its scope references, and an invariant
 that replies are saved as reply-all drafts while only the owner's brief is sent.
-No real mailbox was read, no model request was submitted, no live
-schedule was activated, and no application
-was deployed or restarted during this work. Live OAuth refresh and clustered
-Quartz execution remain deployment integration checks.
+The brief-specific Python checks execute the shipped sources with mailbox/model
+calls stubbed, covering coverage, deadline rules, isolated model requests, fallback,
+literal text and URL preservation through email rendering, and actual draft status.
+Run them with the application's Python environment:
+
+```sh
+python -m unittest discover -s py/testing -p 'test_inbox*brief*.py' -v
+```
+
+Live OAuth refresh and clustered Quartz execution remain deployment integration checks.

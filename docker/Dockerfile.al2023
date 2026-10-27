@@ -169,7 +169,7 @@ RUN curl -fsSL https://rclone.org/install.sh | bash \
 
 
 COPY --from=mavenpuller --chown=1001:0 /opt /opt
-COPY --from=quay.io/semoss/python-builder:3.12-cpu /usr/lib/python /usr/lib/python
+COPY --from=quay.io/semoss/python-builder:3.14-cpu /usr/lib/python /usr/lib/python
 
 # ---------------------------------------------------------------------------
 # Node.js runtime for the agent-only ExecuteNodeCode execution environment.
@@ -180,7 +180,11 @@ COPY --from=quay.io/semoss/python-builder:3.12-cpu /usr/lib/python /usr/lib/pyth
 # assembly includes it). AGENT_DEFAULT_TOOLS_ENABLE_NODE is seeded false so
 # the runtime env passthrough scripts have a line to sed, matching the other
 # agent tool flags.
-ARG NODE_VERSION=24.22.0
+ARG NODE_VERSION=24.22.1
+# The npm bundled with Node 24.22.1 (11.19.1) ships vulnerable brace-expansion,
+# undici and http-cache-semantics. Track the newest 11.x (11.21.1+ bundles the
+# fixed copies) so patch releases land on rebuild; pin an exact version to freeze.
+ARG NPM_VERSION=11
 ENV NODE_HOME=/opt/node
 RUN set -eux; \
 	case "$(uname -m)" in \
@@ -198,6 +202,8 @@ RUN set -eux; \
 	ln -sfn "/opt/node-v${NODE_VERSION}" /opt/node; \
 	rm -f "${nodeTar}" node-SHASUMS256.txt; \
 	/opt/node/bin/node --version; \
+	PATH="/opt/node/bin:$PATH" /opt/node/bin/npm install -g "npm@${NPM_VERSION}" --no-audit --no-fund; \
+	PATH="/opt/node/bin:$PATH" /opt/node/bin/npm --version; \
 	if [ -f /opt/semosshome/js/node_env/package-lock.json ]; then \
 		cd /opt/semosshome/js/node_env; \
 		PATH="/opt/node/bin:$PATH" /opt/node/bin/npm ci --omit=dev --no-audit --no-fund; \

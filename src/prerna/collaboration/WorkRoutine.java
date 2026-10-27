@@ -30,6 +30,7 @@ package prerna.collaboration;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -54,6 +55,7 @@ import com.google.gson.JsonParser;
 import org.javatuples.Pair;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.JobBuilder;
+import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
@@ -79,6 +81,7 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.reactor.scheduler.ScheduleJobReactor;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.reactor.scheduler.SchedulerFactorySingleton;
+import prerna.rpa.config.JobConfigKeys;
 import prerna.rpa.quartz.jobs.insight.RunPixelJobFromDB;
 import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
@@ -113,7 +116,11 @@ final class WorkRoutine {
 	}
 
 	static final List<String> WEEKDAYS = List.of("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN");
+	/** The most an owner's free-text preferences for a routine's model steps may hold. */
+	static final int MAX_PREFERENCES = 2000;
 	private static final String GROUP = "SYSTEM__COLLABORATION_ROUTINES";
+	// an unscheduled routine keeps a durable job for trigger(); its cron trigger never comes due
+	private static final String NEVER = "0 0 0 1 1 ? 2099";
 	private static final String OWNED = " WHERE OWNER_ID = ? AND OWNER_TYPE = ?";
 	private static final Set<String> TERMINAL = Set.of(AutomationConstants.STATUS_SUCCESS, AutomationConstants.STATUS_FAILED,
 			AutomationConstants.STATUS_CANCELLED, AutomationConstants.STATUS_INTERRUPTED);
@@ -133,8 +140,14 @@ final class WorkRoutine {
 			return "collaboration:" + id;
 		}
 
+		/** Whether the owner picks a time and days; an unscheduled kind's job runs only when {@link #trigger} fires it. */
+		boolean scheduled() {
+			return defaults.containsKey("time");
+		}
+
 		String failed() {
-			return "The " + label + " failed. Check your Microsoft connection and Collaboration model, then retry on the next scheduled day.";
+			return "The " + label + " failed. Check your Microsoft connection and Collaboration model, then "
+					+ (scheduled() ? "retry on the next scheduled day." : "it runs again on the next request.");
 		}
 
 		String pythonDisabled() {
@@ -245,7 +258,7 @@ final class WorkRoutine {
 				: !mailboxAvailable ? mailboxUnavailable(mailboxId)
 				: !pythonAvailable ? kind.pythonDisabled()
 				: !assistantAvailable ? "Ask your administrator to configure a Collaboration text model and grant your primary account access." : null);
-		result.put("nextRunAt", enabled && schedulerAvailable ? nextRun(slot) : null);
+		result.put("nextRunAt", enabled && schedulerAvailable && kind.scheduled() ? nextRun(slot) : null);
 		result.put("lastRun", row == null || row.get("status") == null ? null : lastRun(row));
 		result.put("flow", flow(serverDefinition(kind)));
 		return result;
@@ -352,6 +365,32 @@ final class WorkRoutine {
 		}
 	}
 
+	/**
+	 * Fires an unscheduled routine's durable job, now or after a delay, with the Pixel this run executes in place of
+	 * the job's recipe, as the owner on the scheduler like a Run now. Nothing happens while the routine is off.
+	 */
+	static void trigger(Kind kind, Pair<String, String> owner, String pixel, Duration delay) {
+		Slot slot = new Slot(kind, owner, null);
+		Map<String, Object> row = stored(slot);
+		if (row == null || !Boolean.TRUE.equals(row.get("enabled")) || !schedulerAvailable()) {
+			return;
+		}
+		try {
+			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+			// after a restart the scheduler stands by until a schedule is saved; a fired trigger would wait with it
+			SchedulerDatabaseUtility.startScheduler(scheduler);
+			JobDataMap data = new JobDataMap(Map.of(JobConfigKeys.PIXEL, pixel));
+			if (delay == null) {
+				scheduler.triggerJob(jobKey(slot), data);
+			} else {
+				scheduler.scheduleJob(TriggerBuilder.newTrigger().forJob(jobKey(slot)).usingJobData(data)
+						.startAt(Date.from(Instant.now().plus(delay))).build());
+			}
+		} catch (SchedulerException e) {
+			throw new IllegalStateException("Could not start the " + kind.label(), e);
+		}
+	}
+
 	/** Deletes one routine of a many-per-owner kind, with its schedule; its past runs stay in the scheduler history. */
 	static void delete(Kind kind, User user, String routineId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -380,6 +419,12 @@ final class WorkRoutine {
 
 	/** Runs one routine; now runs it on a day off its schedule too (Run now). */
 	static Map<String, Object> run(Kind kind, Insight insight, String routineId, boolean now) {
+		return run(kind, insight, routineId, now, Map.of());
+	}
+
+	/** The same, with the inputs a trigger supplies, such as the mail that set an unscheduled routine off. */
+	static Map<String, Object> run(Kind kind, Insight insight, String routineId, boolean now,
+			Map<String, Object> triggerInputs) {
 		User user = insight.getUser();
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		Slot slot = new Slot(kind, owner, routineId);
@@ -396,7 +441,8 @@ final class WorkRoutine {
 		startedAt.setNanos(startedAt.getNanos() / 1_000_000 * 1_000_000);
 		String started = CollaborationDbUtils.toIso(startedAt);
 		// Preserve an existing successful run's cutoff when upgrading an older routine row.
-		// shortcut: once-per-day guard off for testing (no "AND (LAST_DATE IS NULL OR LAST_DATE <> ?)"); restore before release.
+		// shortcut: once-per-day guard off for testing (no "AND (LAST_DATE IS NULL OR LAST_DATE <> ?)"); restore before release,
+		// for scheduled kinds only: an unscheduled routine runs once per trigger.
 		int claimed = CollaborationDbUtils.update("UPDATE " + kind.table() + " SET LAST_SUCCESS_AT = CASE "
 				+ "WHEN LAST_SUCCESS_AT IS NULL AND RUN_STATUS = 'completed' THEN STARTED_AT ELSE LAST_SUCCESS_AT END, "
 				+ "LAST_DATE = ?, RUN_STATUS = ?, STARTED_AT = ?, "
@@ -437,12 +483,21 @@ final class WorkRoutine {
 			if (engine == null) {
 				throw new RoutineFailure(CAUSE_MODEL, "A Collaboration text model is required for " + kind.label() + "s.");
 			}
+			// a kind's agent step can need the routine's own id, such as for its reference documents
+			Map<String, Object> agentSettings = new LinkedHashMap<>(config);
+			if (routineId != null) {
+				agentSettings.put("routineId", routineId);
+			}
 			AutomationDefinitionService.DefinitionFiles files = definition(kind, engine,
-					kind.agent() == null ? null : kind.agent().config(user, config));
+					kind.agent() == null ? null : kind.agent().config(user, agentSettings));
 			Map<String, Object> inputs = new LinkedHashMap<>();
 			inputs.put("owner_email", recipient);
 			inputs.put("timezone", config.get("timezone"));
 			inputs.putAll(kind.inputs().apply(row, config));
+			if (config.containsKey("preferences")) {
+				inputs.put("preferences", config.get("preferences"));
+			}
+			inputs.putAll(triggerInputs);
 			String runId = UUID.randomUUID().toString();
 			// Attach before running; no row means the routine was paused or a newer run took the day.
 			int attached = CollaborationDbUtils.update("UPDATE " + kind.table() + " SET RUN_ID = ?" + slot.where()
@@ -500,9 +555,19 @@ final class WorkRoutine {
 		if (!input.keySet().stream().allMatch(key -> "enabled".equals(key) || kind.defaults().containsKey(key))) {
 			throw new IllegalArgumentException("Unknown " + kind.label() + " setting");
 		}
-		String time = String.valueOf(input.get("time"));
-		if (!time.matches("(?:[01][0-9]|2[0-3]):[0-5][0-9]")) {
-			throw new IllegalArgumentException("time must be HH:mm in 24-hour format");
+		Map<String, Object> config = new LinkedHashMap<>();
+		config.put("enabled", input.get("enabled"));
+		if (kind.scheduled()) {
+			String time = String.valueOf(input.get("time"));
+			if (!time.matches("(?:[01][0-9]|2[0-3]):[0-5][0-9]")) {
+				throw new IllegalArgumentException("time must be HH:mm in 24-hour format");
+			}
+			if (!(input.get("days") instanceof List<?> days) || days.isEmpty() || days.size() > 7
+					|| !WEEKDAYS.containsAll(days) || days.stream().distinct().count() != days.size()) {
+				throw new IllegalArgumentException("Select one or more distinct weekdays (MON through SUN)");
+			}
+			config.put("time", time);
+			config.put("days", WEEKDAYS.stream().filter(((List<?>) input.get("days"))::contains).toList());
 		}
 		String timezone = String.valueOf(input.get("timezone"));
 		try {
@@ -510,20 +575,30 @@ final class WorkRoutine {
 		} catch (Exception e) {
 			throw new IllegalArgumentException("timezone must be a valid IANA time zone");
 		}
-		if (!(input.get("days") instanceof List<?> days) || days.isEmpty() || days.size() > 7
-				|| !WEEKDAYS.containsAll(days) || days.stream().distinct().count() != days.size()) {
-			throw new IllegalArgumentException("Select one or more distinct weekdays (MON through SUN)");
-		}
-		Map<String, Object> config = new LinkedHashMap<>();
-		config.put("enabled", input.get("enabled"));
-		config.put("time", time);
 		config.put("timezone", timezone);
-		config.put("days", WEEKDAYS.stream().filter(((List<?>) input.get("days"))::contains).toList());
+		// an owner's free text for the kind's model steps; a kind opts in by declaring the default
+		if (kind.defaults().containsKey("preferences")) {
+			config.put("preferences", preferences(input.get("preferences")));
+		}
 		kind.settings().accept(input, config);
 		return config;
 	}
 
+	/** Trimmed and bounded owner preferences; missing means none. */
+	static String preferences(Object value) {
+		if (value == null) {
+			return "";
+		}
+		if (!(value instanceof String text) || text.strip().length() > MAX_PREFERENCES) {
+			throw new IllegalArgumentException("preferences must be text of at most " + MAX_PREFERENCES + " characters");
+		}
+		return text.strip();
+	}
+
 	static String cron(Map<String, Object> config) {
+		if (!config.containsKey("time")) {
+			return NEVER;
+		}
 		LocalTime time = LocalTime.parse((String) config.get("time"));
 		return "0 " + time.getMinute() + " " + time.getHour() + " ? * "
 				+ String.join(",", ((List<?>) config.get("days")).stream().map(String::valueOf).toList());
@@ -540,7 +615,17 @@ final class WorkRoutine {
 		for (JsonElement element : definition.getAsJsonObject(AutomationConstants.DOC_GRAPH)
 				.getAsJsonArray(AutomationConstants.DOC_NODES)) {
 			JsonObject node = element.getAsJsonObject();
-			if (AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE).getAsString())) {
+			String nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE).getAsString();
+			if (kind == WorkInboxRoutine.KIND && AutomationConstants.NODE_START.equals(nodeType)) {
+				for (JsonElement global : node.getAsJsonObject(AutomationConstants.NODE_FIELD_CONFIG)
+						.getAsJsonArray(AutomationConstants.CONFIG_GLOBALS)) {
+					JsonObject value = global.getAsJsonObject();
+					if ("brief_model".equals(value.get("name").getAsString())) {
+						value.addProperty(AutomationConstants.CONFIG_DEFAULT_VALUE, engineId);
+					}
+				}
+			}
+			if (AutomationConstants.NODE_AGENT_RUN.equals(nodeType)) {
 				JsonObject config = node.getAsJsonObject(AutomationConstants.NODE_FIELD_CONFIG);
 				config.addProperty(AutomationConstants.CONFIG_ENGINE_ID, engineId);
 				if (agentConfig != null) {

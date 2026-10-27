@@ -98,7 +98,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 
 		// one table per routine kind (WorkRoutine.Kind), same columns
 		// WORK_CUSTOM_ROUTINE holds many per owner, told apart by ROUTINE_ID (null in the others)
-		for (String routine : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE", "WORK_CUSTOM_ROUTINE")) {
+		for (String routine : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE", "WORK_EXPENSE_ROUTINE",
+				"WORK_CUSTOM_ROUTINE")) {
 			addTable(routine, Arrays.asList(
 					OWNER_ID, OWNER_TYPE,
 					Pair.with("ROUTINE_ID", VARCHAR_50),

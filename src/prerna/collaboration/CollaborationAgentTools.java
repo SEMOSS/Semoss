@@ -57,6 +57,7 @@ import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListFilesReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListSharedFilesReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveSearchFilesReactor;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookListMailReactor;
+import prerna.io.connector.ms.outlook.MicrosoftOutlookSaveDraftReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsDownloadFileReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsDownloadMessageAttachmentReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsGetChatMessageReactor;
@@ -141,6 +142,8 @@ public final class CollaborationAgentTools {
 		// the email in the Work editor: written there, sent from it once the owner presses Send
 		REACTORS.put("ComposeEmail", WorkComposeEmailReactor.class);
 		REACTORS.put("SendEmail", WorkSendEmailReactor.class);
+		// a routine has no editor: it saves drafts straight into the owner's Outlook, never sent
+		REACTORS.put("SaveDraft", MicrosoftOutlookSaveDraftReactor.class);
 		// one email attachment of this thread, on request, into the room's working directory
 		REACTORS.put("DownloadAttachment", WorkDownloadAttachmentReactor.class);
 		REACTORS.put("ListTeams", MicrosoftTeamsListTeamsReactor.class);
@@ -176,6 +179,8 @@ public final class CollaborationAgentTools {
 	}
 
 	private static final Set<String> MEMORY_TOOLS = Set.of("Remember", "Forget", "SearchMemories");
+	// a routine's only words from the owner are its task, so it never saves or drops a memory
+	private static final Set<String> MEMORY_WRITE_TOOLS = Set.of("Remember", "Forget");
 
 	// calendar reads that take a timeZone, filled in with the owner's when the model leaves it out
 	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent");
@@ -185,6 +190,9 @@ public final class CollaborationAgentTools {
 
 	// the email editor is open in the owner's chat; a routine has none, its delivery step sends the result
 	private static final Set<String> EDITOR_TOOLS = Set.of("ComposeEmail");
+
+	// only a routine: the chat writes email in the editor and the owner saves it there
+	private static final Set<String> ROUTINE_TOOLS = Set.of("SaveDraft");
 
 	// the owner's routines and skills: at the root of the owner's chat or routine; a routine keeps only the auto ones
 	private static final Set<String> OWNER_TOOLS = Set.of("CreateRoutine", "ListRoutines", "ManageRoutine",
@@ -200,6 +208,7 @@ public final class CollaborationAgentTools {
 			"CompleteGoal", "[Brain: completes an existing goal in this chat's topics]",
 			"EditThread", "[Brain: changes a thread's topics]",
 			"TagTopic", "[Brain: tags this chat with a topic]",
+			"SaveDraft", "[Outlook: saves a draft in the owner's drafts folder for them to review; it never sends]",
 			"SearchMail", "[Brain: the owner's classified mail, start here; one topic or all]",
 			"ReadThread", "[Brain: reads a thread found in Brain]",
 			"ListM365Mail", "[Microsoft 365, direct: Outlook as it is now, outside Brain. Brain's never-ingest rules "
@@ -218,7 +227,9 @@ public final class CollaborationAgentTools {
 
 	/** Fresh copies of the tool definitions, safe for the caller to change; the memory and chat tools are left out. */
 	public static List<Map<String, Object>> definitions() {
-		return definitions(false, false, false);
+		List<Map<String, Object>> tools = definitions(false, false, false);
+		tools.removeIf(tool -> ROUTINE_TOOLS.contains(String.valueOf(tool.get("name"))));
+		return tools;
 	}
 
 	/**
@@ -237,9 +248,12 @@ public final class CollaborationAgentTools {
 			}
 		}
 		List<Map<String, Object>> tools = definitions(memory, owner && mode.chatOnly(), owner);
-		if (mode == CollaborationRunMode.ROUTINE) {
-			// unattended: nothing that would wait for an approval or work on the editor
-			tools.removeIf(tool -> isAsk(tool) || EDITOR_TOOLS.contains(String.valueOf(tool.get("name"))));
+		if (mode != CollaborationRunMode.ROUTINE) {
+			tools.removeIf(tool -> ROUTINE_TOOLS.contains(String.valueOf(tool.get("name"))));
+		} else {
+			// unattended: nothing that would wait for an approval or work on the editor, and memory is read only
+			tools.removeIf(tool -> isAsk(tool) || EDITOR_TOOLS.contains(String.valueOf(tool.get("name")))
+					|| MEMORY_WRITE_TOOLS.contains(String.valueOf(tool.get("name"))));
 		}
 		return tools;
 	}
@@ -259,6 +273,16 @@ public final class CollaborationAgentTools {
 	private static boolean isAsk(Map<String, Object> tool) {
 		return tool.get("_meta") instanceof Map<?, ?> meta && MCPUtility.MCPExecution.ASK.getValue()
 				.equalsIgnoreCase(String.valueOf(((Map<String, Object>) meta).get(MCPUtility.SMSS_MCP_EXECUTION)));
+	}
+
+	/** Whether the tool saves or drops a memory, which a routine never does. */
+	public static boolean writesMemory(String toolName) {
+		return toolName != null && MEMORY_WRITE_TOOLS.contains(toolName);
+	}
+
+	/** Whether the tool is a routine's alone, refused anywhere else. */
+	public static boolean routineOnly(String toolName) {
+		return toolName != null && ROUTINE_TOOLS.contains(toolName);
 	}
 
 	public static boolean isTool(String toolName) {

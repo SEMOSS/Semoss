@@ -118,6 +118,87 @@ public class SecurityNativeUserUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		assertEquals("User limit exceeded the max value of 1", e.getMessage());
 	}
 
+	@Test
+	void testAddNativeUser_historyFailureSavesNoUser() throws Exception {
+		AccessToken newUser = UnitTestSecurityAuthUtils.createAccessToken("test");
+		UnitTestFailingTrigger.install(securityDb, "TEST_REFUSE_HISTORY", "INSERT", "PASSWORD_HISTORY");
+		try {
+			// the password history is saved after the user row, in the same transaction
+			assertFalse(SecurityNativeUserUtils.addNativeUser(newUser, "Test123!"));
+		} finally {
+			UnitTestFailingTrigger.drop(securityDb, "TEST_REFUSE_HISTORY");
+		}
+
+		assertFalse(SecurityQueryUtils.checkUserExist("testid"));
+		assertTrue(storedPasswords("testid").isEmpty());
+	}
+
+	@Test
+	void testAddNativeUser_adminAddedUserTakesOverTheRowAndPermissions() throws Exception {
+		addAdminAddedUserWithEngineAccess("jdoe@test.com", "engine1");
+
+		assertTrue(SecurityNativeUserUtils.addNativeUser(signUp("jdoe", "jdoe@test.com"), "Test123!"));
+
+		assertTrue(SecurityQueryUtils.checkUserExist("jdoe"));
+		assertFalse(SecurityQueryUtils.checkUserExist("jdoe@test.com"));
+		assertEquals(List.of("jdoe"), engineUserIds("engine1"));
+		assertEquals(1, storedPasswords("jdoe").size());
+	}
+
+	@Test
+	void testAddNativeUser_adminAddedUserKeepsTheRowAndPermissionsWhenTheHistoryFails() throws Exception {
+		addAdminAddedUserWithEngineAccess("jdoe@test.com", "engine1");
+		UnitTestFailingTrigger.install(securityDb, "TEST_REFUSE_HISTORY", "INSERT", "PASSWORD_HISTORY");
+		try {
+			// the row and the permissions move before the password history is saved
+			assertFalse(SecurityNativeUserUtils.addNativeUser(signUp("jdoe", "jdoe@test.com"), "Test123!"));
+		} finally {
+			UnitTestFailingTrigger.drop(securityDb, "TEST_REFUSE_HISTORY");
+		}
+
+		assertFalse(SecurityQueryUtils.checkUserExist("jdoe"));
+		assertEquals("ADMIN_ADDED_USER",
+				QueryExecutionUtility.queryOne(securityDb, "SELECT NAME FROM SMSS_USER WHERE ID=?",
+						ps -> ps.setString(1, "jdoe@test.com"), rs -> rs.getString(1)));
+		assertEquals(List.of("jdoe@test.com"), engineUserIds("engine1"));
+	}
+
+	/**
+	 * Adds a person the way an admin does, under their email and with no login
+	 * type, with access to an engine.
+	 */
+	private void addAdminAddedUserWithEngineAccess(String email, String engineId) throws Exception {
+		assertTrue(SecurityUpdateUtils.registerUser(email, null, email, null, null, null, null, null, false, false,
+				false, null));
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID) VALUES (?,?,?)", ps -> {
+					ps.setString(1, email);
+					ps.setInt(2, 3);
+					ps.setString(3, engineId);
+				});
+	}
+
+	/**
+	 * A native sign up with the email an admin added the person under.
+	 */
+	private static AccessToken signUp(String id, String email) {
+		AccessToken token = new AccessToken();
+		token.setProvider(AuthProvider.NATIVE);
+		token.setId(id);
+		token.setUsername(id);
+		token.setName("Jane Doe");
+		token.setEmail(email);
+		return token;
+	}
+
+	/**
+	 * @return the ids of the people with a row on the engine
+	 */
+	private List<String> engineUserIds(String engineId) throws Exception {
+		return QueryExecutionUtility.queryList(securityDb, "SELECT USERID FROM ENGINEPERMISSION WHERE ENGINEID=?",
+				ps -> ps.setString(1, engineId), rs -> rs.getString(1));
+	}
+
 	///
 	/// storeUserPasswords
 	///
@@ -149,6 +230,34 @@ public class SecurityNativeUserUtilsUnitTests extends AbstractSecurityUtilsUnitT
 
 			// the newest three are kept
 			assertEquals(List.of("hashed2", "hashed3", "hashed4"), storedPasswords(newUser.getId()));
+		} finally {
+			requirements.setPassReuseCount(reuseCount);
+		}
+	}
+
+	@Test
+	void testStoreUserPasswords_pruneFailureRollsBackTheNewPassword() throws Exception {
+		PasswordRequirements requirements = PasswordRequirements.getInstance();
+		int reuseCount = requirements.getPassReuseCount();
+		requirements.setPassReuseCount(1);
+		try {
+			AccessToken newUser = UnitTestSecurityAuthUtils.createAccessToken("test");
+			assertTrue(SecurityNativeUserUtils.addNativeUser(newUser, "Test123!"));
+			List<String> before = storedPasswords(newUser.getId());
+			assertEquals(1, before.size());
+
+			UnitTestFailingTrigger.install(securityDb, "TEST_REFUSE_HISTORY_DELETE", "DELETE", "PASSWORD_HISTORY");
+			try {
+				// the older password is deleted after the new one is stored
+				assertThrows(SQLException.class,
+						() -> SecurityNativeUserUtils.storeUserPassword(newUser.getId(),
+								newUser.getProvider().toString(), "hashed", "salt",
+								Timestamp.valueOf(LocalDateTime.of(2100, 1, 1, 0, 0))));
+			} finally {
+				UnitTestFailingTrigger.drop(securityDb, "TEST_REFUSE_HISTORY_DELETE");
+			}
+
+			assertEquals(before, storedPasswords(newUser.getId()));
 		} finally {
 			requirements.setPassReuseCount(reuseCount);
 		}
@@ -422,5 +531,36 @@ public class SecurityNativeUserUtilsUnitTests extends AbstractSecurityUtilsUnitT
 
 		// new does not work since not valid
 		assertFalse(SecurityNativeUserUtils.logIn(newUser.getUsername(), "Bad55555"));
+	}
+
+	@Test
+	void testPerformResetPassword_historyFailureKeepsTheOldPassword() throws Exception {
+		AccessToken newUser = UnitTestSecurityAuthUtils.createAccessToken("test");
+		assertTrue(SecurityNativeUserUtils.addNativeUser(newUser, "Test123!"));
+		UnitTestFailingTrigger.install(securityDb, "TEST_REFUSE_HISTORY", "INSERT", "PASSWORD_HISTORY");
+		try {
+			// the password history is saved after the new password, in the same
+			// transaction
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> SecurityNativeUserUtils.performResetPassword(newUser.getId(), "NewTest123!"));
+			assertEquals("Unable to reset the password", e.getMessage());
+		} finally {
+			UnitTestFailingTrigger.drop(securityDb, "TEST_REFUSE_HISTORY");
+		}
+
+		assertTrue(SecurityNativeUserUtils.logIn(newUser.getUsername(), "Test123!"));
+		assertFalse(SecurityNativeUserUtils.logIn(newUser.getUsername(), "NewTest123!"));
+		assertEquals(1, storedPasswords(newUser.getId()).size());
+	}
+
+	@Test
+	void testPerformResetPassword_storesTheNewPasswordInTheHistory() throws Exception {
+		AccessToken newUser = UnitTestSecurityAuthUtils.createAccessToken("test");
+		assertTrue(SecurityNativeUserUtils.addNativeUser(newUser, "Test123!"));
+
+		SecurityNativeUserUtils.performResetPassword(newUser.getId(), "NewTest123!");
+
+		assertEquals(2, storedPasswords(newUser.getId()).size());
+		assertTrue(SecurityNativeUserUtils.isPreviousPassword(newUser.getId(), AuthProvider.NATIVE, "NewTest123!"));
 	}
 }
