@@ -126,6 +126,11 @@ metadata, and successful upstream outputs.
 
 - Generated configuration uses exact `${name.path}` references in supported
   fields. Resolution preserves maps, lists, table rows, scalars, and nulls.
+- `api.request` also accepts references embedded in text, such as
+  `Bearer ${token}` or `/items/${id}`, in its URL path, query, headers, and
+  body. An embedded reference must be a single value; an exact reference keeps
+  its type. The host and method are literal so the destination is validated
+  before anything is sent. This is the only node with embedded references.
 - Developer Python uses `scope["name"]` or `scope.get("name")`; `${...}` is not
   rewritten inside Python source.
 - Java scope is authoritative. Python receives only the values required for

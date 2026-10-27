@@ -302,6 +302,10 @@ public final class AutomationProjectService {
 				validateAppProjectReference(node, config, user);
 			}
 
+			if (typedNode == AutomationNodeType.API_REQUEST) {
+				validateApiConnectionReference(node, config, user);
+			}
+
 			IEngine.CATALOG_TYPE expectedType = typedNode.getEngineType();
 			if (expectedType == null) {
 				continue;
@@ -341,6 +345,29 @@ public final class AutomationProjectService {
 				throw new IllegalArgumentException("Automation node '" + nodeId + "' of type '" + nodeType
 						+ "' requires edit access to engineId '" + engineId + "'.");
 			}
+		}
+	}
+
+	/** An API Request node may point at a REST function engine the caller can view. */
+	private static void validateApiConnectionReference(Map<String, Object> node, Map<String, Object> config,
+			User user) {
+		Object raw = config.get(AutomationConstants.CONFIG_API_CONNECTION_ID);
+		if (!(raw instanceof String connectionId) || connectionId.isBlank()) {
+			return;
+		}
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		if (!SecurityEngineUtils.userCanViewEngine(user, connectionId)) {
+			throw invalidEngineReference(nodeId, connectionId, IEngine.CATALOG_TYPE.FUNCTION);
+		}
+		IEngine.CATALOG_TYPE actualType;
+		try {
+			actualType = SecurityEngineUtils.getEngineType(connectionId);
+		} catch (RuntimeException e) {
+			throw invalidEngineReference(nodeId, connectionId, IEngine.CATALOG_TYPE.FUNCTION);
+		}
+		if (actualType != IEngine.CATALOG_TYPE.FUNCTION) {
+			throw new IllegalArgumentException("Automation node '" + nodeId + "' requires a FUNCTION engine for its "
+					+ "connection, but '" + connectionId + "' is a " + actualType + " engine.");
 		}
 	}
 
