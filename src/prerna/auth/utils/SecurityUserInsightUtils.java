@@ -74,25 +74,24 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 			return AccessPermissionEnum.OWNER.getPermission();
 		}
 
-//		// query the database
-//		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
-//				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+		String userPermission = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null && val instanceof Number) {
-					return AccessPermissionEnum.getPermissionValueById(((Number) val).intValue());
+					userPermission = AccessPermissionEnum.getPermissionValueById(((Number) val).intValue());
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the user's effective insight permission.", e);
+		}
+		if (userPermission != null) {
+			return userPermission;
 		}
 
 		if (SecurityInsightUtils.insightIsGlobal(projectId, insightId)) {
@@ -125,10 +124,6 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		}
 
 		Collection<String> userIds = getUserFiltersQs(user);
-		// else query the database
-//		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
-//				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
@@ -136,16 +131,15 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 
+		boolean canView = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				// do not care if owner/edit/read
-				return true;
-			}
+			// do not care if owner/edit/read
+			canView = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user can view insight.", e);
 		}
 
-		return false;
+		return canView;
 	}
 
 	/**
@@ -171,10 +165,6 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user can edit insight.", e);
 		}
-		// else query the database
-//		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
-//				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
@@ -182,21 +172,23 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 
+		boolean canEdit = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
-					return false;
+					break;
 				}
 				int permission = ((Number) val).intValue();
 				if (AccessPermissionEnum.isEditor(permission)) {
-					return true;
+					canEdit = true;
+					break;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user can edit insight.", e);
 		}
-		return false;
+		return canEdit;
 	}
 
 	/**
@@ -222,10 +214,6 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		}
 
 		Collection<String> userIds = getUserFiltersQs(user);
-		// else query the database
-//		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
-//				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
@@ -233,21 +221,23 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 
+		boolean isOwner = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
-					return false;
+					break;
 				}
 				int permission = ((Number) val).intValue();
 				if (AccessPermissionEnum.isOwner(permission)) {
-					return true;
+					isOwner = true;
+					break;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user owns the insight.", e);
 		}
-		return false;
+		return isOwner;
 	}
 
 	/**
@@ -270,11 +260,6 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 			return AccessPermissionEnum.OWNER.getId();
 		}
 
-		// else query the database
-//		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
-//				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters + " ORDER BY PERMISSION";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
@@ -282,19 +267,18 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 		qs.addOrderBy(new QueryColumnOrderBySelector("USERINSIGHTPERMISSION__PERMISSION"));
 
+		int maxPermission = AccessPermissionEnum.READ_ONLY.getId();
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
+			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
-				if (val == null) {
-					return AccessPermissionEnum.READ_ONLY.getId();
+				if (val != null) {
+					maxPermission = ((Number) val).intValue();
 				}
-				int permission = ((Number) val).intValue();
-				return permission;
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the user's highest insight permission.", e);
 		}
-		return AccessPermissionEnum.READ_ONLY.getId();
+		return maxPermission;
 	}
 
 	/**
@@ -343,10 +327,6 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				List.of(Pair.with("PROJECTID", projectId), Pair.with("INSIGHTID", insightId)), "VISIBILITY",
 				visibility);
 	}
-
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * Query for insight users

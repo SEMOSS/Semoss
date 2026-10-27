@@ -28,6 +28,7 @@
 package prerna.reactor.automation.run;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -55,9 +56,11 @@ import org.apache.logging.log4j.ThreadContext;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.collaboration.CollaborationUtils;
+import prerna.collaboration.WorkRoutineDocuments;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ITypeSafeEngine;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.logging.SemossLogUtils;
@@ -396,33 +399,33 @@ final class AutomationRunExecutionService {
 	private static Handler handlerFor(Map<String, Object> node) {
 		String type = String.valueOf(node.get(AutomationConstants.NODE_FIELD_TYPE));
 		return switch (type) {
-			case AutomationConstants.NODE_START -> Handler.START;
-			case AutomationConstants.NODE_CONTROL_IF -> Handler.CONDITION;
-			case AutomationConstants.NODE_CONTROL_JEV -> Handler.JEV;
-			case AutomationConstants.NODE_CONTROL_LOOP -> Handler.LOOP;
-			case AutomationConstants.NODE_CONTROL_WAIT -> Handler.WAIT;
-			case AutomationConstants.NODE_APP_PIXEL -> Handler.APP_PIXEL;
-			case AutomationConstants.NODE_FUNCTION_EXECUTE -> Handler.FUNCTION;
-			case AutomationConstants.NODE_STORAGE_LIST -> Handler.STORAGE_LIST;
-			case AutomationConstants.NODE_DATABASE_INSERT, AutomationConstants.NODE_DATABASE_UPDATE,
-					AutomationConstants.NODE_DATABASE_DELETE ->
-				Handler.DATABASE_WRITE;
-			case AutomationConstants.NODE_VECTOR_ADD, AutomationConstants.NODE_VECTOR_DELETE -> Handler.VECTOR_WRITE;
-			case AutomationConstants.NODE_MODEL_CHAT, AutomationConstants.NODE_MODEL_EMBEDDINGS,
-					AutomationConstants.NODE_MODEL_VISION, AutomationConstants.NODE_MODEL_NER ->
-				Handler.MODEL;
-			case AutomationConstants.NODE_STORAGE_READ, AutomationConstants.NODE_STORAGE_UPLOAD,
-					AutomationConstants.NODE_STORAGE_DELETE ->
-				Handler.STORAGE;
-			case AutomationConstants.NODE_AGENT_RUN -> Handler.AGENT;
-			case AutomationConstants.NODE_DATABASE_QUERY -> Handler.DATABASE_QUERY;
-			case AutomationConstants.NODE_VECTOR_SEARCH -> Handler.VECTOR_SEARCH;
-			case AutomationConstants.NODE_STORAGE_DOWNLOAD -> Handler.STORAGE_DOWNLOAD;
-			case AutomationConstants.NODE_DATA_EXTRACT -> Handler.DATA_EXTRACT;
-			case AutomationConstants.NODE_DATA_TRANSFORM -> Handler.CLEAN;
-			case AutomationConstants.NODE_CLEAN_PROCESS -> Handler.CLEAN;
-			case AutomationConstants.NODE_DEVELOPER_PYTHON -> Handler.PYTHON;
-			default -> throw new IllegalArgumentException("Unsupported Automation node type: " + type);
+		case AutomationConstants.NODE_START -> Handler.START;
+		case AutomationConstants.NODE_CONTROL_IF -> Handler.CONDITION;
+		case AutomationConstants.NODE_CONTROL_JEV -> Handler.JEV;
+		case AutomationConstants.NODE_CONTROL_LOOP -> Handler.LOOP;
+		case AutomationConstants.NODE_CONTROL_WAIT -> Handler.WAIT;
+		case AutomationConstants.NODE_APP_PIXEL -> Handler.APP_PIXEL;
+		case AutomationConstants.NODE_FUNCTION_EXECUTE -> Handler.FUNCTION;
+		case AutomationConstants.NODE_STORAGE_LIST -> Handler.STORAGE_LIST;
+		case AutomationConstants.NODE_DATABASE_INSERT, AutomationConstants.NODE_DATABASE_UPDATE,
+				AutomationConstants.NODE_DATABASE_DELETE ->
+			Handler.DATABASE_WRITE;
+		case AutomationConstants.NODE_VECTOR_ADD, AutomationConstants.NODE_VECTOR_DELETE -> Handler.VECTOR_WRITE;
+		case AutomationConstants.NODE_MODEL_CHAT, AutomationConstants.NODE_MODEL_EMBEDDINGS,
+				AutomationConstants.NODE_MODEL_VISION ->
+			Handler.MODEL;
+		case AutomationConstants.NODE_STORAGE_READ, AutomationConstants.NODE_STORAGE_UPLOAD,
+				AutomationConstants.NODE_STORAGE_DELETE ->
+			Handler.STORAGE;
+		case AutomationConstants.NODE_AGENT_RUN -> Handler.AGENT;
+		case AutomationConstants.NODE_DATABASE_QUERY -> Handler.DATABASE_QUERY;
+		case AutomationConstants.NODE_VECTOR_SEARCH -> Handler.VECTOR_SEARCH;
+		case AutomationConstants.NODE_STORAGE_DOWNLOAD -> Handler.STORAGE_DOWNLOAD;
+		case AutomationConstants.NODE_DATA_EXTRACT -> Handler.DATA_EXTRACT;
+    case AutomationConstants.NODE_DATA_TRANSFORM -> Handler.CLEAN;
+		case AutomationConstants.NODE_CLEAN_PROCESS -> Handler.CLEAN;
+		case AutomationConstants.NODE_DEVELOPER_PYTHON -> Handler.PYTHON;
+		default -> throw new IllegalArgumentException("Unsupported Automation node type: " + type);
 		};
 	}
 
@@ -1680,6 +1683,15 @@ final class AutomationRunExecutionService {
 		String workspaceId = stringValue(config.get(AutomationConstants.CONFIG_WORKSPACE_ID));
 		RoomUtils.createRoomIfNotExists(roomId, executionInsight, null, null,
 				workspaceId == null ? null : workspaceId.trim(), generatedAgentRoomOptions(config), null, null, null);
+		// a Collaboration routine's reference documents go into the room before its agent starts
+		String routineId = stringValue(config.get(AutomationConstants.CONFIG_ROUTINE_ID));
+		if (routineId != null && Boolean.TRUE.equals(config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE))) {
+			try {
+				WorkRoutineDocuments.copyInto(executionInsight.getUser(), routineId, Room.roomFolderPath(roomId));
+			} catch (IOException e) {
+				throw new IllegalStateException("Could not copy the routine's reference documents into its room", e);
+			}
+		}
 	}
 
 	/**
@@ -1701,6 +1713,10 @@ final class AutomationRunExecutionService {
 		}
 		if (Boolean.TRUE.equals(config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE))) {
 			options.put(CollaborationUtils.ROOM_OPTION_ROUTINE, true);
+			String delivery = stringValue(config.get(AutomationConstants.CONFIG_ROUTINE_DELIVERY));
+			if (delivery != null && !delivery.isBlank()) {
+				options.put(CollaborationUtils.ROOM_OPTION_ROUTINE_DELIVERY, delivery.trim());
+			}
 		}
 		return options.isEmpty() ? null : options;
 	}

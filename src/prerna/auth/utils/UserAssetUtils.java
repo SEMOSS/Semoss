@@ -42,7 +42,6 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
-import prerna.project.api.IProject;
 import prerna.project.impl.Project;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -53,7 +52,6 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
 
 public class UserAssetUtils extends AbstractSecurityUtils {
 
@@ -65,10 +63,6 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 	UserAssetUtils() {
 		super();
 	}
-
-	//////////////////////////////////////////////////////////////////////
-	// Creating asset metadata
-	//////////////////////////////////////////////////////////////////////
 
 	/**
 	 * Create the user asset project for the provided user and auth token
@@ -185,19 +179,19 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ASSETENGINE__TYPE", "==", token.getProvider().name()));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__USERID", "==", token.getId()));
+		String projectId = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object rs = wrapper.next().getValues()[0];
-				if (rs == null) {
-					return null;
+				if (rs != null) {
+					projectId = rs.toString();
 				}
-				return rs.toString();
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve user asset project.", e);
 		}
 
-		return null;
+		return projectId;
 	}
 
 	/**
@@ -223,31 +217,14 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ASSETENGINE__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__PROJECTID", "==", projectId));
+		boolean isAsset = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			return wrapper.hasNext();
+			isAsset = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to determine whether the project is an asset project.", e);
 		}
 
-		return false;
-	}
-
-	//////////////////////////////////////////////////////////////////////
-	// Asset folder locations
-	//////////////////////////////////////////////////////////////////////
-
-	public static String getUserAssetRootDirectory(User user, AuthProvider provider) {
-		String assetProjectId = user.getAssetProjectId(provider);
-		if (assetProjectId != null) {
-			IProject assetProject = Utility.getProject(assetProjectId);
-			if (assetProject != null) {
-				String assetProjectName = assetProject.getProjectName();
-				if (assetProjectName != null) {
-					return AssetUtility.getProjectVersionFolder(assetProjectName, assetProjectId);
-				}
-			}
-		}
-		return null;
+		return isAsset;
 	}
 
 }

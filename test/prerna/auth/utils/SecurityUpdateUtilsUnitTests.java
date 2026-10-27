@@ -282,6 +282,67 @@ public class SecurityUpdateUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct("model", "jdoe@test.com", null)));
 	}
 
+	@Test
+	void addOAuthUser_adminAddedUserKeepsTheRowWhenThePermissionMoveFails() throws Exception {
+		// an admin adds the person by email, with access to an engine
+		assertTrue(SecurityUpdateUtils.registerUser("jdoe@test.com", null, "jdoe@test.com", null, null, null, null,
+				null, false, false, false, null));
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID) VALUES (?,?,?)", ps -> {
+					ps.setString(1, "jdoe@test.com");
+					ps.setInt(2, 3);
+					ps.setString(3, "engine1");
+				});
+		UnitTestFailingTrigger.install(securityDb, "TEST_REFUSE_PERMISSION_MOVE", "UPDATE", "ENGINEPERMISSION");
+		try {
+			// the permissions move after the row takes the id they sign in with, in the
+			// same transaction
+			assertFalse(SecurityUpdateUtils.addOAuthUser(googleSignIn("jdoe-google-id", "jdoe@test.com")));
+		} finally {
+			UnitTestFailingTrigger.drop(securityDb, "TEST_REFUSE_PERMISSION_MOVE");
+		}
+
+		assertFalse(SecurityQueryUtils.checkUserExist("jdoe-google-id"));
+		assertEquals("ADMIN_ADDED_USER",
+				QueryExecutionUtility.queryOne(securityDb, "SELECT NAME FROM SMSS_USER WHERE ID=?",
+						ps -> ps.setString(1, "jdoe@test.com"), rs -> rs.getString(1)));
+		assertEquals(List.of("jdoe@test.com"),
+				QueryExecutionUtility.queryList(securityDb, "SELECT USERID FROM ENGINEPERMISSION WHERE ENGINEID=?",
+						ps -> ps.setString(1, "engine1"), rs -> rs.getString(1)));
+
+		// with the move allowed, the row and the permissions move together
+		assertFalse(SecurityUpdateUtils.addOAuthUser(googleSignIn("jdoe-google-id", "jdoe@test.com")));
+		assertTrue(SecurityQueryUtils.checkUserExist("jdoe-google-id"));
+		assertFalse(SecurityQueryUtils.checkUserExist("jdoe@test.com"));
+		assertEquals(List.of("jdoe-google-id"),
+				QueryExecutionUtility.queryList(securityDb, "SELECT USERID FROM ENGINEPERMISSION WHERE ENGINEID=?",
+						ps -> ps.setString(1, "engine1"), rs -> rs.getString(1)));
+	}
+
+	@Test
+	void addOAuthUser_insertFailureSavesNothing() throws Exception {
+		UnitTestFailingTrigger.install(securityDb, "TEST_REFUSE_USER", "INSERT", "SMSS_USER");
+		try {
+			assertFalse(SecurityUpdateUtils.addOAuthUser(googleSignIn("jdoe-google-id", "jdoe@test.com")));
+		} finally {
+			UnitTestFailingTrigger.drop(securityDb, "TEST_REFUSE_USER");
+		}
+
+		assertFalse(SecurityQueryUtils.checkUserExist("jdoe-google-id"));
+	}
+
+	/**
+	 * A first sign in with Google.
+	 */
+	private static AccessToken googleSignIn(String id, String email) {
+		AccessToken at = new AccessToken();
+		at.setProvider(AuthProvider.GOOGLE);
+		at.setId(id);
+		at.setName("Jane Doe");
+		at.setEmail(email);
+		return at;
+	}
+
 	private static ModelUsageLimit tokensADay(long amount) {
 		return ModelUsageLimit
 				.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, amount, Window.DAY, Counts.EACH_PERSON)));

@@ -25,45 +25,25 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.model;
+package prerna.reactor.collaboration;
 
-import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.collaboration.WorkExpenseRoutine;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.engine.impl.model.KubernetesModelScaler;
 
-public class CanItRunReactor extends AbstractReactor {
-	
-	private static final Logger classLogger = LogManager.getLogger(CanItRunReactor.class);
-	
-	public CanItRunReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.HF_MODEL_ID.getKey()};
+public class WorkSaveExpenseRoutineReactor extends AbstractCollaborationReactor {
+	public WorkSaveExpenseRoutineReactor() {
+		this.keysToGet = new String[] { "settings" };
 		this.keyRequired = new int[] { 1 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
-		organizeKeys();
-		String hfModelId = this.keyValue.get(this.keysToGet[0]);
-		
-		final KubernetesModelScaler kmsServer;
-		kmsServer = KubernetesModelScaler.getInstance();
-		
-		try {
-			Map<String, Object> canRun = kmsServer.canItRun(hfModelId);
-			return new NounMetadata(canRun, PixelDataType.MAP, PixelOperationType.OPERATION);
-		} catch (Exception e) {
-			classLogger.error("Error checking if model can run: " + hfModelId, e);
-			throw new RuntimeException("Failed to check if model can run: " + e.getMessage());
-		}
-		
+		getUser();
+		return mapResult(WorkExpenseRoutine.save(this.insight.getUser(), getMapFromKeyOrCurRow("settings")));
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "Opts the signed-in user into expense reviews of the approval requests reaching their inbox, or pauses them";
+	}
 }

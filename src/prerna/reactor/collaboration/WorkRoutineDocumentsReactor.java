@@ -25,12 +25,43 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.api;
+package prerna.reactor.collaboration;
 
-public enum RemoteModelStateEnum {
-    COLD,
-    WARMING,
-    ACTIVE,
-    FAILED,
-    UNKNOWN
+import java.io.IOException;
+
+import prerna.collaboration.WorkRoutineDocuments;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+// WorkRoutineDocuments(routineId=["..."]);
+public class WorkRoutineDocumentsReactor extends AbstractCollaborationReactor {
+	private static final String ROUTINE_ID = "routineId";
+
+	public WorkRoutineDocumentsReactor() {
+		this.keysToGet = new String[] { ROUTINE_ID };
+		this.keyRequired = new int[] { 1 };
+	}
+
+	@Override
+	public NounMetadata execute() {
+		try {
+			return mapResult(WorkRoutineDocuments.open(getUser(), getString(ROUTINE_ID)));
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Could not open the routine's documents: " + e.getMessage(), e);
+		}
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Opens the reference documents folder of one of the signed-in user's routines in their user assets, "
+				+ "creating it when missing: its path for the user assets file reactors, and the documents in it. "
+				+ "Every run of the routine gets a copy of these files.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ROUTINE_ID.equals(key)) {
+			return "Id of the routine.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }
