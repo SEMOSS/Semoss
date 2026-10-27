@@ -210,6 +210,14 @@ public enum AuditEventType {
 	ENGINE_DELETE(ENGINE, HIGH),
 	/** A model engine was created */
 	MODEL_CREATE(ENGINE, LOW),
+	/** A model served by KServe was started (its InferenceService's stop annotation lifted) */
+	MODEL_SERVING_START(ENGINE, MEDIUM),
+	/** A model served by KServe was stopped (its pods deleted, the GPU freed) */
+	MODEL_SERVING_STOP(ENGINE, MEDIUM),
+	/** A model was defined for KServe from the serving catalog */
+	MODEL_SERVING_DEFINE(ENGINE, MEDIUM),
+	/** A model SEMOSS defined for KServe was removed */
+	MODEL_SERVING_REMOVE(ENGINE, HIGH),
 	/** A vector database engine was created */
 	VECTOR_CREATE(ENGINE, LOW),
 	/** A storage engine was created */

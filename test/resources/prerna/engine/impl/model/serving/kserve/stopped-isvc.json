@@ -1,0 +1,74 @@
+{
+  "apiVersion": "serving.kserve.io/v1beta1",
+  "kind": "InferenceService",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"serving.kserve.io/v1beta1\",\"kind\":\"InferenceService\",\"metadata\":{\"annotations\":{\"serving.kserve.io/deploymentMode\":\"Standard\"},\"name\":\"olmo-2-1b-instruct\",\"namespace\":\"semoss\"},\"spec\":{\"predictor\":{\"maxReplicas\":1,\"minReplicas\":1,\"model\":{\"args\":[\"--gpu-memory-utilization=0.2\"],\"modelFormat\":{\"name\":\"vllm\"},\"resources\":{\"limits\":{\"nvidia.com/gpu\":\"1\"},\"requests\":{\"cpu\":\"2\",\"memory\":\"4Gi\"}},\"runtime\":\"nvidia-vllm\",\"storageUri\":\"hf://allenai/OLMo-2-0425-1B-Instruct\"}}}}\n",
+      "modelFormat": "vllm",
+      "serving.kserve.io/deploymentMode": "Standard",
+      "serving.kserve.io/stop": "true"
+    },
+    "creationTimestamp": "2026-10-26T21:00:44Z",
+    "finalizers": [
+      "inferenceservice.finalizers"
+    ],
+    "generation": 1,
+    "name": "olmo-2-1b-instruct",
+    "namespace": "semoss",
+    "resourceVersion": "728377",
+    "uid": "57698b81-bfb2-4cb9-ac0a-7473e65bfdbd"
+  },
+  "spec": {
+    "predictor": {
+      "maxReplicas": 1,
+      "minReplicas": 1,
+      "model": {
+        "args": [
+          "--gpu-memory-utilization=0.2"
+        ],
+        "modelFormat": {
+          "name": "vllm"
+        },
+        "name": "",
+        "resources": {
+          "limits": {
+            "nvidia.com/gpu": "1"
+          },
+          "requests": {
+            "cpu": "2",
+            "memory": "4Gi"
+          }
+        },
+        "runtime": "nvidia-vllm",
+        "storageUri": "hf://allenai/OLMo-2-0425-1B-Instruct"
+      }
+    }
+  },
+  "status": {
+    "clusterServingRuntimeName": "nvidia-vllm",
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-26T23:56:52Z",
+        "reason": "Stopped",
+        "status": "False",
+        "type": "PredictorReady"
+      },
+      {
+        "lastTransitionTime": "2026-10-26T23:56:52Z",
+        "reason": "Stopped",
+        "status": "False",
+        "type": "Ready"
+      },
+      {
+        "lastTransitionTime": "2026-10-26T23:56:52Z",
+        "severity": "Info",
+        "status": "True",
+        "type": "Stopped"
+      }
+    ],
+    "deploymentMode": "Standard",
+    "modelStatus": {
+      "transitionStatus": ""
+    }
+  }
+}

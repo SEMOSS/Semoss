@@ -1,0 +1,291 @@
+{
+  "items": [
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-10-27T19:07:03.170335Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "semoss-test-image-predictor-5f844bf859-c7n9n",
+        "namespace": "semoss",
+        "resourceVersion": "835929",
+        "uid": "4fa12d37-6102-4f08-95e8-4adcb67cb8ab"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned semoss/semoss-test-image-predictor-5f844bf859-c7n9n to spark-cbde",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:03Z",
+        "name": "semoss-test-image-predictor-5f844bf859-c7n9n.18e2786fc9ddd06f",
+        "namespace": "semoss",
+        "resourceVersion": "835934",
+        "uid": "650a74ee-8da6-411c-b823-07a3e007d8bc"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-spark-cbde",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:03Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "semoss-test-image-predictor-5f844bf859-c7n9n",
+        "namespace": "semoss",
+        "resourceVersion": "835932",
+        "uid": "4fa12d37-6102-4f08-95e8-4adcb67cb8ab"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:03Z",
+      "message": "Pulling image \"nvcr.io/nvidia/vllm:semoss-test-no-such-tag\"",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:03Z",
+        "name": "semoss-test-image-predictor-5f844bf859-c7n9n.18e2786fed154f61",
+        "namespace": "semoss",
+        "resourceVersion": "835944",
+        "uid": "b73401c5-7dcd-4033-b54f-a17993ed2b26"
+      },
+      "reason": "Pulling",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:04Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "semoss-test-image-predictor-5f844bf859-c7n9n",
+        "namespace": "semoss",
+        "resourceVersion": "835932",
+        "uid": "4fa12d37-6102-4f08-95e8-4adcb67cb8ab"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:04Z",
+      "message": "Failed to pull image \"nvcr.io/nvidia/vllm:semoss-test-no-such-tag\": rpc error: code = NotFound desc = failed to pull and unpack image \"nvcr.io/nvidia/vllm:semoss-test-no-such-tag\": failed to resolve reference \"nvcr.io/nvidia/vllm:semoss-test-no-such-tag\": nvcr.io/nvidia/vllm:semoss-test-no-such-tag: not found",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:04Z",
+        "name": "semoss-test-image-predictor-5f844bf859-c7n9n.18e2787016c5174a",
+        "namespace": "semoss",
+        "resourceVersion": "835947",
+        "uid": "6a2de1a2-e0ed-4d73-a750-b01b6d330dc6"
+      },
+      "reason": "Failed",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:04Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "semoss-test-image-predictor-5f844bf859-c7n9n",
+        "namespace": "semoss",
+        "resourceVersion": "835932",
+        "uid": "4fa12d37-6102-4f08-95e8-4adcb67cb8ab"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:04Z",
+      "message": "Error: ErrImagePull",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:04Z",
+        "name": "semoss-test-image-predictor-5f844bf859-c7n9n.18e2787016c6df2a",
+        "namespace": "semoss",
+        "resourceVersion": "835948",
+        "uid": "084b50a7-b9c3-4469-bca7-c94803be8d0b"
+      },
+      "reason": "Failed",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:05Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "semoss-test-image-predictor-5f844bf859-c7n9n",
+        "namespace": "semoss",
+        "resourceVersion": "835932",
+        "uid": "4fa12d37-6102-4f08-95e8-4adcb67cb8ab"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:05Z",
+      "message": "Back-off pulling image \"nvcr.io/nvidia/vllm:semoss-test-no-such-tag\"",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:05Z",
+        "name": "semoss-test-image-predictor-5f844bf859-c7n9n.18e27870424c97c1",
+        "namespace": "semoss",
+        "resourceVersion": "835952",
+        "uid": "f67bc088-cbcf-4494-ade1-6bbbe6a8bb2d"
+      },
+      "reason": "BackOff",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:05Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "semoss-test-image-predictor-5f844bf859-c7n9n",
+        "namespace": "semoss",
+        "resourceVersion": "835932",
+        "uid": "4fa12d37-6102-4f08-95e8-4adcb67cb8ab"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:05Z",
+      "message": "Error: ImagePullBackOff",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:05Z",
+        "name": "semoss-test-image-predictor-5f844bf859-c7n9n.18e27870424def92",
+        "namespace": "semoss",
+        "resourceVersion": "835954",
+        "uid": "5e6383cd-99d8-4d62-a744-afd5a6fce951"
+      },
+      "reason": "Failed",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:03Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "semoss-test-image-predictor-5f844bf859",
+        "namespace": "semoss",
+        "resourceVersion": "835924",
+        "uid": "0ed70281-e184-4038-8f52-c9e922115c5e"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:03Z",
+      "message": "Created pod: semoss-test-image-predictor-5f844bf859-c7n9n",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:03Z",
+        "name": "semoss-test-image-predictor-5f844bf859.18e2786fc9bebaf9",
+        "namespace": "semoss",
+        "resourceVersion": "835931",
+        "uid": "522eda74-a118-407e-9755-c3fdb2c5bc23"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:03Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "name": "semoss-test-image-predictor",
+        "namespace": "semoss",
+        "resourceVersion": "835921",
+        "uid": "84f5b572-4700-44fd-ae87-2d3ea6631818"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:03Z",
+      "message": "Scaled up replica set semoss-test-image-predictor-5f844bf859 from 0 to 1",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:03Z",
+        "name": "semoss-test-image-predictor.18e2786fc9715e19",
+        "namespace": "semoss",
+        "resourceVersion": "835926",
+        "uid": "199b195c-a7f5-47e3-988b-c8675f64e3a1"
+      },
+      "reason": "ScalingReplicaSet",
+      "reportingComponent": "deployment-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 3,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:03Z",
+      "involvedObject": {
+        "apiVersion": "serving.kserve.io/v1beta1",
+        "kind": "InferenceService",
+        "name": "semoss-test-image",
+        "namespace": "semoss",
+        "resourceVersion": "835917",
+        "uid": "87d7b9d4-2dbe-409d-81bc-b4666dd93b3b"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:03Z",
+      "message": "Istio VirtualService CRD not present; VirtualService reconciliation skipped. If you do not use Istio, set ingress.disableIstioVirtualHost=true.",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:03Z",
+        "name": "semoss-test-image.18e2786fc96e1008",
+        "namespace": "semoss",
+        "resourceVersion": "835943",
+        "uid": "a0870003-7619-4f98-8b22-8664ffe764da"
+      },
+      "reason": "VirtualServiceCRDNotFound",
+      "reportingComponent": "v1beta1Controllers",
+      "reportingInstance": "",
+      "source": {
+        "component": "v1beta1Controllers"
+      },
+      "type": "Warning"
+    }
+  ]
+}

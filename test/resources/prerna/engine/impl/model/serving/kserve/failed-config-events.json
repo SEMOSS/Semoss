@@ -1,0 +1,192 @@
+{
+  "items": [
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-10-27T19:07:07.992949Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "semoss-test-config-predictor-6c4779fcf7-5596w",
+        "namespace": "semoss",
+        "resourceVersion": "835985",
+        "uid": "bf8a23f6-f7e9-4544-8115-d26314e1fb33"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned semoss/semoss-test-config-predictor-6c4779fcf7-5596w to spark-cbde",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:07Z",
+        "name": "semoss-test-config-predictor-6c4779fcf7-5596w.18e27870e9511587",
+        "namespace": "semoss",
+        "resourceVersion": "835991",
+        "uid": "c946e8d0-811b-4ff5-9d62-389d5d1cb0d6"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-spark-cbde",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:08Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "semoss-test-config-predictor-6c4779fcf7-5596w",
+        "namespace": "semoss",
+        "resourceVersion": "835988",
+        "uid": "bf8a23f6-f7e9-4544-8115-d26314e1fb33"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:09Z",
+      "message": "Container image \"nvcr.io/nvidia/vllm:25.11-py3\" already present on machine and can be accessed by the pod",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:08Z",
+        "name": "semoss-test-config-predictor-6c4779fcf7-5596w.18e278710ce49b22",
+        "namespace": "semoss",
+        "resourceVersion": "836007",
+        "uid": "2cda761a-1803-4e57-9925-329e9c068055"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:08Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "semoss-test-config-predictor-6c4779fcf7-5596w",
+        "namespace": "semoss",
+        "resourceVersion": "835988",
+        "uid": "bf8a23f6-f7e9-4544-8115-d26314e1fb33"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:09Z",
+      "message": "Error: secret \"semoss-test-no-such-secret\" not found",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:08Z",
+        "name": "semoss-test-config-predictor-6c4779fcf7-5596w.18e278710ce76ad3",
+        "namespace": "semoss",
+        "resourceVersion": "836008",
+        "uid": "1f23c260-1355-4f5a-9f4d-e9d1771d191c"
+      },
+      "reason": "Failed",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:07Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "semoss-test-config-predictor-6c4779fcf7",
+        "namespace": "semoss",
+        "resourceVersion": "835981",
+        "uid": "5b8c3961-7db6-4381-b6f0-cfc861e4162c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:07Z",
+      "message": "Created pod: semoss-test-config-predictor-6c4779fcf7-5596w",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:07Z",
+        "name": "semoss-test-config-predictor-6c4779fcf7.18e27870e93c1d93",
+        "namespace": "semoss",
+        "resourceVersion": "835987",
+        "uid": "072bf24a-5742-421a-b5f6-4372072b231a"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:07Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "name": "semoss-test-config-predictor",
+        "namespace": "semoss",
+        "resourceVersion": "835979",
+        "uid": "224c819b-35c7-4286-9704-33771da44394"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:07Z",
+      "message": "Scaled up replica set semoss-test-config-predictor-6c4779fcf7 from 0 to 1",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:07Z",
+        "name": "semoss-test-config-predictor.18e27870e903bc77",
+        "namespace": "semoss",
+        "resourceVersion": "835982",
+        "uid": "ad0e3bd5-e9af-4040-a722-ca5019713138"
+      },
+      "reason": "ScalingReplicaSet",
+      "reportingComponent": "deployment-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 3,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:07Z",
+      "involvedObject": {
+        "apiVersion": "serving.kserve.io/v1beta1",
+        "kind": "InferenceService",
+        "name": "semoss-test-config",
+        "namespace": "semoss",
+        "resourceVersion": "835974",
+        "uid": "0efa415c-0bb6-4fd3-a351-e236e0f6f6e1"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:08Z",
+      "message": "Istio VirtualService CRD not present; VirtualService reconciliation skipped. If you do not use Istio, set ingress.disableIstioVirtualHost=true.",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:07Z",
+        "name": "semoss-test-config.18e27870e901dae7",
+        "namespace": "semoss",
+        "resourceVersion": "835997",
+        "uid": "e199d3fd-3bbb-4f3e-910e-a33ca7bb3b74"
+      },
+      "reason": "VirtualServiceCRDNotFound",
+      "reportingComponent": "v1beta1Controllers",
+      "reportingInstance": "",
+      "source": {
+        "component": "v1beta1Controllers"
+      },
+      "type": "Warning"
+    }
+  ]
+}

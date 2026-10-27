@@ -1,0 +1,97 @@
+{
+    "apiVersion": "serving.kserve.io/v1beta1",
+    "kind": "InferenceService",
+    "metadata": {
+        "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"serving.kserve.io/v1beta1\",\"kind\":\"InferenceService\",\"metadata\":{\"annotations\":{\"serving.kserve.io/deploymentMode\":\"Standard\"},\"labels\":{\"semoss.org/test\":\"failure\"},\"name\":\"semoss-test-crash\",\"namespace\":\"semoss\"},\"spec\":{\"predictor\":{\"containers\":[{\"command\":[\"python3\",\"-c\",\"import sys; print('ERROR semoss test: this model server fails on purpose', file=sys.stderr); sys.exit(3)\"],\"image\":\"nvcr.io/nvidia/vllm:25.11-py3\",\"name\":\"kserve-container\",\"resources\":{\"limits\":{\"cpu\":\"500m\",\"memory\":\"256Mi\"},\"requests\":{\"cpu\":\"100m\",\"memory\":\"256Mi\"}}}],\"maxReplicas\":1,\"minReplicas\":1}}}\n",
+            "serving.kserve.io/deploymentMode": "Standard"
+        },
+        "creationTimestamp": "2026-10-27T19:07:12Z",
+        "finalizers": [
+            "inferenceservice.finalizers"
+        ],
+        "generation": 1,
+        "labels": {
+            "semoss.org/test": "failure"
+        },
+        "name": "semoss-test-crash",
+        "namespace": "semoss",
+        "resourceVersion": "836052",
+        "uid": "e748416a-26ad-4f32-a9ba-5a5c91b08bb9"
+    },
+    "spec": {
+        "predictor": {
+            "containers": [
+                {
+                    "command": [
+                        "python3",
+                        "-c",
+                        "import sys; print('ERROR semoss test: this model server fails on purpose', file=sys.stderr); sys.exit(3)"
+                    ],
+                    "image": "nvcr.io/nvidia/vllm:25.11-py3",
+                    "name": "kserve-container",
+                    "resources": {
+                        "limits": {
+                            "cpu": "500m",
+                            "memory": "256Mi"
+                        },
+                        "requests": {
+                            "cpu": "100m",
+                            "memory": "256Mi"
+                        }
+                    }
+                }
+            ],
+            "maxReplicas": 1,
+            "minReplicas": 1
+        }
+    },
+    "status": {
+        "address": {
+            "url": "http://semoss-test-crash-predictor.semoss.svc.cluster.local"
+        },
+        "components": {
+            "predictor": {}
+        },
+        "conditions": [
+            {
+                "lastTransitionTime": "2026-10-27T19:07:12Z",
+                "status": "True",
+                "type": "IngressReady"
+            },
+            {
+                "lastTransitionTime": "2026-10-27T19:07:12Z",
+                "message": "Deployment does not have minimum availability.",
+                "reason": "MinimumReplicasUnavailable",
+                "status": "False",
+                "type": "PredictorReady"
+            },
+            {
+                "lastTransitionTime": "2026-10-27T19:07:12Z",
+                "message": "Deployment does not have minimum availability.",
+                "reason": "MinimumReplicasUnavailable",
+                "status": "False",
+                "type": "Ready"
+            },
+            {
+                "lastTransitionTime": "2026-10-27T19:07:12Z",
+                "severity": "Info",
+                "status": "False",
+                "type": "Stopped"
+            }
+        ],
+        "deploymentMode": "Standard",
+        "modelStatus": {
+            "copies": {
+                "failedCopies": 0
+            },
+            "states": {
+                "activeModelState": "",
+                "targetModelState": "Pending"
+            },
+            "transitionStatus": "InProgress"
+        },
+        "observedGeneration": 1,
+        "url": "http://semoss-test-crash-semoss.example.com"
+    }
+}

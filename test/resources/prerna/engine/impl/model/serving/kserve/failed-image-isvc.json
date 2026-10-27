@@ -1,0 +1,92 @@
+{
+    "apiVersion": "serving.kserve.io/v1beta1",
+    "kind": "InferenceService",
+    "metadata": {
+        "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"serving.kserve.io/v1beta1\",\"kind\":\"InferenceService\",\"metadata\":{\"annotations\":{\"serving.kserve.io/deploymentMode\":\"Standard\"},\"labels\":{\"semoss.org/test\":\"failure\"},\"name\":\"semoss-test-image\",\"namespace\":\"semoss\"},\"spec\":{\"predictor\":{\"containers\":[{\"image\":\"nvcr.io/nvidia/vllm:semoss-test-no-such-tag\",\"name\":\"kserve-container\",\"resources\":{\"limits\":{\"cpu\":\"100m\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"100m\",\"memory\":\"64Mi\"}}}],\"maxReplicas\":1,\"minReplicas\":1}}}\n",
+            "serving.kserve.io/deploymentMode": "Standard"
+        },
+        "creationTimestamp": "2026-10-27T19:07:03Z",
+        "finalizers": [
+            "inferenceservice.finalizers"
+        ],
+        "generation": 1,
+        "labels": {
+            "semoss.org/test": "failure"
+        },
+        "name": "semoss-test-image",
+        "namespace": "semoss",
+        "resourceVersion": "835938",
+        "uid": "87d7b9d4-2dbe-409d-81bc-b4666dd93b3b"
+    },
+    "spec": {
+        "predictor": {
+            "containers": [
+                {
+                    "image": "nvcr.io/nvidia/vllm:semoss-test-no-such-tag",
+                    "name": "kserve-container",
+                    "resources": {
+                        "limits": {
+                            "cpu": "100m",
+                            "memory": "64Mi"
+                        },
+                        "requests": {
+                            "cpu": "100m",
+                            "memory": "64Mi"
+                        }
+                    }
+                }
+            ],
+            "maxReplicas": 1,
+            "minReplicas": 1
+        }
+    },
+    "status": {
+        "address": {
+            "url": "http://semoss-test-image-predictor.semoss.svc.cluster.local"
+        },
+        "components": {
+            "predictor": {}
+        },
+        "conditions": [
+            {
+                "lastTransitionTime": "2026-10-27T19:07:03Z",
+                "status": "True",
+                "type": "IngressReady"
+            },
+            {
+                "lastTransitionTime": "2026-10-27T19:07:03Z",
+                "message": "Deployment does not have minimum availability.",
+                "reason": "MinimumReplicasUnavailable",
+                "status": "False",
+                "type": "PredictorReady"
+            },
+            {
+                "lastTransitionTime": "2026-10-27T19:07:03Z",
+                "message": "Deployment does not have minimum availability.",
+                "reason": "MinimumReplicasUnavailable",
+                "status": "False",
+                "type": "Ready"
+            },
+            {
+                "lastTransitionTime": "2026-10-27T19:07:03Z",
+                "severity": "Info",
+                "status": "False",
+                "type": "Stopped"
+            }
+        ],
+        "deploymentMode": "Standard",
+        "modelStatus": {
+            "copies": {
+                "failedCopies": 0
+            },
+            "states": {
+                "activeModelState": "",
+                "targetModelState": "Pending"
+            },
+            "transitionStatus": "InProgress"
+        },
+        "observedGeneration": 1,
+        "url": "http://semoss-test-image-semoss.example.com"
+    }
+}

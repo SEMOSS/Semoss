@@ -1,0 +1,96 @@
+{
+  "apiVersion": "serving.kserve.io/v1beta1",
+  "kind": "InferenceService",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"serving.kserve.io/v1beta1\",\"kind\":\"InferenceService\",\"metadata\":{\"annotations\":{\"serving.kserve.io/deploymentMode\":\"Standard\"},\"name\":\"olmo-2-1b-instruct\",\"namespace\":\"semoss\"},\"spec\":{\"predictor\":{\"maxReplicas\":1,\"minReplicas\":1,\"model\":{\"args\":[\"--gpu-memory-utilization=0.2\"],\"modelFormat\":{\"name\":\"vllm\"},\"resources\":{\"limits\":{\"nvidia.com/gpu\":\"1\"},\"requests\":{\"cpu\":\"2\",\"memory\":\"4Gi\"}},\"runtime\":\"nvidia-vllm\",\"storageUri\":\"hf://allenai/OLMo-2-0425-1B-Instruct\"}}}}\n",
+      "modelFormat": "vllm",
+      "serving.kserve.io/deploymentMode": "Standard",
+      "serving.kserve.io/stop": "false"
+    },
+    "creationTimestamp": "2026-10-26T21:00:44Z",
+    "finalizers": [
+      "inferenceservice.finalizers"
+    ],
+    "generation": 1,
+    "name": "olmo-2-1b-instruct",
+    "namespace": "semoss",
+    "resourceVersion": "728450",
+    "uid": "57698b81-bfb2-4cb9-ac0a-7473e65bfdbd"
+  },
+  "spec": {
+    "predictor": {
+      "maxReplicas": 1,
+      "minReplicas": 1,
+      "model": {
+        "args": [
+          "--gpu-memory-utilization=0.2"
+        ],
+        "modelFormat": {
+          "name": "vllm"
+        },
+        "name": "",
+        "resources": {
+          "limits": {
+            "nvidia.com/gpu": "1"
+          },
+          "requests": {
+            "cpu": "2",
+            "memory": "4Gi"
+          }
+        },
+        "runtime": "nvidia-vllm",
+        "storageUri": "hf://allenai/OLMo-2-0425-1B-Instruct"
+      }
+    }
+  },
+  "status": {
+    "address": {
+      "url": "http://olmo-2-1b-instruct-predictor.semoss.svc.cluster.local"
+    },
+    "clusterServingRuntimeName": "nvidia-vllm",
+    "components": {
+      "predictor": {}
+    },
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-26T23:57:07Z",
+        "status": "True",
+        "type": "IngressReady"
+      },
+      {
+        "lastTransitionTime": "2026-10-26T23:57:07Z",
+        "message": "Deployment does not have minimum availability.",
+        "reason": "MinimumReplicasUnavailable",
+        "status": "False",
+        "type": "PredictorReady"
+      },
+      {
+        "lastTransitionTime": "2026-10-26T23:57:07Z",
+        "message": "Deployment does not have minimum availability.",
+        "reason": "MinimumReplicasUnavailable",
+        "status": "False",
+        "type": "Ready"
+      },
+      {
+        "lastTransitionTime": "2026-10-26T23:57:07Z",
+        "severity": "Info",
+        "status": "False",
+        "type": "Stopped"
+      }
+    ],
+    "deploymentMode": "Standard",
+    "modelStatus": {
+      "copies": {
+        "failedCopies": 0
+      },
+      "states": {
+        "activeModelState": "",
+        "targetModelState": "Loading"
+      },
+      "transitionStatus": "InProgress"
+    },
+    "observedGeneration": 1,
+    "url": "http://olmo-2-1b-instruct-semoss.example.com"
+  }
+}
