@@ -31,7 +31,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
@@ -39,14 +41,15 @@ import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
+import prerna.io.connector.mail.MailRecipientRules;
 import prerna.om.Insight;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 /**
  * The opted-in expense review: when a Meeting Approval or Business Approval request reaches the owner's inbox, their
  * assistant reviews it against the guideline documents and example threads they uploaded and emails them a suggested
- * decision; unless it is a plain approval, a reply to the approver waits in their drafts. Run by {@link WorkRoutine}
- * off the mail import ({@link #onNewMail}) instead of a schedule.
+ * decision, copied to the recipients they chose; unless it is a plain approval, a reply to the approver waits in their
+ * drafts. Run by {@link WorkRoutine} off the mail import ({@link #onNewMail}) instead of a schedule.
  */
 public final class WorkExpenseRoutine {
 	private static final Logger classLogger = LogManager.getLogger(WorkExpenseRoutine.class);
@@ -62,9 +65,13 @@ public final class WorkExpenseRoutine {
 	private static final Pattern GATEWAY_TAGS = Pattern.compile("^(?:\\[[^\\]]{1,30}\\]\\s*)+");
 	// a review already running skips the claim; the new requests wait this long for it
 	private static final Duration RETRY = Duration.ofMinutes(2);
+	/** The most addresses the owner can copy each review to. */
+	static final int MAX_RECIPIENTS = 10;
 	static final WorkRoutine.Kind KIND = new WorkRoutine.Kind(ID, "WORK_EXPENSE_ROUTINE", "WorkRunExpenseRoutine();",
 			"Expense review", "expense-review.automation.json", "review", "expense review", "review",
-			Map.of("timezone", "UTC"), (input, config) -> { }, (row, config) -> Map.of(), WorkExpenseRoutine::agent);
+			Map.of("timezone", "UTC", "recipients", List.of()), WorkExpenseRoutine::settings,
+			(row, config) -> Map.of("cc", Objects.requireNonNullElse(config.get("recipients"), List.of())),
+			WorkExpenseRoutine::agent);
 
 	private WorkExpenseRoutine() { }
 
@@ -77,6 +84,20 @@ public final class WorkExpenseRoutine {
 
 	public static Map<String, Object> save(User user, Map<String, Object> changes) {
 		return WorkRoutine.save(KIND, user, changes);
+	}
+
+	// who the owner copies each review to: bare addresses, each once; settings saved before this have none
+	private static void settings(Map<String, Object> input, Map<String, Object> config) {
+		Object value = input.get("recipients") == null ? List.of() : input.get("recipients");
+		if (!(value instanceof List<?> list) || list.size() > MAX_RECIPIENTS
+				|| !list.stream().allMatch(String.class::isInstance)) {
+			throw new IllegalArgumentException("recipients must be at most " + MAX_RECIPIENTS + " email addresses");
+		}
+		Map<String, String> unique = new LinkedHashMap<>();
+		for (String address : MailRecipientRules.validate(list.stream().map(String.class::cast).toList())) {
+			unique.putIfAbsent(address.toLowerCase(Locale.ROOT), address);
+		}
+		config.put("recipients", List.copyOf(unique.values()));
 	}
 
 	/** Whether a mail subject names an approval request. */
@@ -178,8 +199,10 @@ public final class WorkExpenseRoutine {
 				+ "- For each request, in order, a level-2 heading with the meeting or expense name and its number, "
 				+ "such as \"OSLT In Person (102783)\".\n"
 				+ "- Under it, first one paragraph that starts with \"Suggested decision:\" and one of Approve, Approve "
-				+ "with conditions, Return for more information, or Decline, followed by two to four sentences of "
-				+ "rationale that name the guideline document and section behind each point.\n"
+				+ "with conditions, Return for more information, or Decline, followed by only what is out of "
+				+ "compliance or unclear, in at most three short sentences, each naming the guideline document and "
+				+ "section it breaks. Leave out everything that complies; when nothing is out of compliance, say so "
+				+ "in one sentence.\n"
 				+ "- Then, when there are any, a level-3 heading Before you respond with bullets: the conditions to set "
 				+ "or the questions to ask, each naming the guideline it rests on.\n"
 				+ "- Then, unless the decision is Approve, a level-3 heading Draft reply, a line \"To: <name>, "

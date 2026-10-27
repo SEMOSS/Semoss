@@ -54,7 +54,7 @@ def _node(name, run_pixel):
 
 
 class ExpenseReviewDeliveryTests(unittest.TestCase):
-    def _deliver(self, review, reply=None):
+    def _deliver(self, review, reply=None, cc=None):
         pixels = []
 
         def run_pixel(pixel, raw=True):
@@ -66,7 +66,7 @@ class ExpenseReviewDeliveryTests(unittest.TestCase):
         context = {"today": "2026-10-27", "requests": [{"n": 1, "messageId": "graph-1", "subject": SUBJECT,
                                                          "webLink": "https://outlook.office.com/request-1"}]}
         result = _node("deliver", run_pixel)({"owner_email": "lgaines@deloitte.com", "context": context,
-                                              "review": review})
+                                              "review": review, "cc": cc or []})
         return result, pixels
 
     def test_draft_is_saved_as_a_reply_to_the_request_before_the_memo_is_sent(self):
@@ -102,7 +102,15 @@ class ExpenseReviewDeliveryTests(unittest.TestCase):
     def test_an_approval_saves_no_draft(self):
         result, pixels = self._deliver("## S&T Ignite Onboarding Program (102241)\n\nSuggested decision: Approve.\n")
         self.assertEqual(1, len(pixels))
+        self.assertNotIn("cc=", pixels[0])
         self.assertEqual([], result["drafts"])
+
+    def test_the_review_is_copied_to_the_owners_recipients_but_not_to_the_owner_twice(self):
+        result, pixels = self._deliver("## S&T Ignite Onboarding Program (102241)\n\nSuggested decision: Approve.\n",
+                                       cc=["jbell@deloitte.com", "LGaines@deloitte.com"])
+        self.assertTrue(pixels[0].startswith('MicrosoftOutlookSendMail(to=[["lgaines@deloitte.com"]], '
+                                             'cc=[["jbell@deloitte.com"]], subject='))
+        self.assertEqual(["jbell@deloitte.com"], result["cc"])
 
     def test_gather_keeps_the_graph_id_for_deliver_but_not_for_the_model(self):
         def run_pixel(pixel, raw=True):
