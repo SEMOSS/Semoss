@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -470,7 +471,9 @@ class WorkInboxRoutineUnitTests {
 					.forClass(AutomationDefinitionService.DefinitionFiles.class);
 			automations.verify(() -> RunAutomationDefinitionReactor.runDefinition(eq(insight), anyString(),
 					eq(WorkInboxRoutine.AUTOMATION_ID), files.capture(), eq(Map.of("owner_email", "owner@example.com",
-							"timezone", "America/New_York", "lookback_hours", 24)),
+							"timezone", "America/New_York", "lookback_hours", 24, "preferences", "", "sections",
+							List.of("priorities", "replies", "meetings", "actions"), "priority_count", 5, "write_drafts", true,
+							"skip_reply_subjects", WorkExpenseRoutine.SUBJECTS)),
 					eq(AutomationConstants.TRIGGER_SCHEDULED), isNull()));
 			assertEquals(2, files.getValue().definition().split("\"text-model\"", -1).length - 1);
 		}
@@ -692,13 +695,54 @@ class WorkInboxRoutineUnitTests {
 	}
 
 	@Test
+	void briefKnobsDefaultToTheWholeBriefWithDraftsAndAreBounded() {
+		Map<String, Object> result = WorkInboxRoutine.validate(config(false));
+		assertEquals(WorkInboxRoutine.SECTIONS, result.get("sections"));
+		assertEquals(5, result.get("priorityCount"));
+		assertEquals(true, result.get("writeDrafts"));
+		Map<String, Object> older = config(false); older.remove("sections"); older.remove("priorityCount"); older.remove("writeDrafts");
+		assertEquals(result, WorkInboxRoutine.validate(older));
+		Map<String, Object> chosen = config(false);
+		chosen.put("sections", List.of("actions", "priorities")); chosen.put("priorityCount", 10); chosen.put("writeDrafts", false);
+		Map<String, Object> valid = WorkInboxRoutine.validate(chosen);
+		assertEquals(List.of("priorities", "actions"), valid.get("sections"));
+		assertEquals(10, valid.get("priorityCount"));
+		assertEquals(false, valid.get("writeDrafts"));
+		BiConsumer<String, Object> rejects = (key, value) -> {
+			Map<String, Object> input = config(false); input.put(key, value);
+			assertThrows(IllegalArgumentException.class, () -> WorkInboxRoutine.validate(input), key + "=" + value);
+		};
+		rejects.accept("sections", List.of()); rejects.accept("sections", List.of("replies", "replies"));
+		rejects.accept("sections", List.of("news")); rejects.accept("sections", "replies");
+		rejects.accept("priorityCount", 0); rejects.accept("priorityCount", 11); rejects.accept("priorityCount", 2.5);
+		rejects.accept("writeDrafts", "yes");
+	}
+
+	@Test
+	void preferencesAreOptionalTrimmedAndBounded() {
+		assertEquals("", WorkInboxRoutine.validate(config(false)).get("preferences"));
+		Map<String, Object> missing = config(false); missing.remove("preferences");
+		assertEquals("", WorkInboxRoutine.validate(missing).get("preferences"));
+		Map<String, Object> spaced = config(false); spaced.put("preferences", "  Keep drafts short.\nSign off with my first name.  ");
+		assertEquals("Keep drafts short.\nSign off with my first name.", WorkInboxRoutine.validate(spaced).get("preferences"));
+		Map<String, Object> longest = agendaConfig(false); longest.put("preferences", "x".repeat(WorkRoutine.MAX_PREFERENCES));
+		assertEquals(WorkRoutine.MAX_PREFERENCES, ((String) WorkAgendaRoutine.validate(longest).get("preferences")).length());
+		for (Object invalid : List.<Object>of("x".repeat(WorkRoutine.MAX_PREFERENCES + 1), 7, List.of("Keep it short"))) {
+			Map<String, Object> input = config(false); input.put("preferences", invalid);
+			assertThrows(IllegalArgumentException.class, () -> WorkInboxRoutine.validate(input), invalid.getClass().getSimpleName());
+		}
+	}
+
+	@Test
 	void briefDefinitionIsStrictlyValidAndReadsOnlyDeclaredScopeNames() {
 		assertStrictDefinition(WorkInboxRoutine.briefDefinition("engine-1"),
-				List.of("start", "sync", "wait_sync", "gather", "drafts", "save_drafts", "prepare", "meeting_notes", "brief", "deliver"),
+				List.of("start", "sync", "wait_sync", "gather", "if_drafts", "drafts", "save_drafts", "prepare", "meeting_notes", "brief", "deliver"),
 				List.of("wait_sync", "gather", "save_drafts", "prepare", "summarize_meeting", "brief", "deliver"), List.of("drafts"),
-				Set.of("owner_email", "timezone", "lookback_hours", "brief_model"),
+				Set.of("owner_email", "timezone", "lookback_hours", "brief_model", "preferences", "sections", "priority_count",
+						"write_drafts", "skip_reply_subjects"),
 				Set.of("context", "drafts", "saved", "prepared", "meeting_notes", "brief", "brief_model",
-						"owner_email", "timezone", "lookback_hours"));
+						"owner_email", "timezone", "lookback_hours", "preferences", "sections", "priority_count", "write_drafts",
+						"skip_reply_subjects"));
 	}
 
 	@Test
@@ -768,8 +812,8 @@ class WorkInboxRoutineUnitTests {
 		assertStrictDefinition(WorkAgendaRoutine.definition("engine-1"),
 				List.of("start", "sync", "wait_sync", "gather", "agendas", "deliver"),
 				List.of("wait_sync", "gather", "deliver"), List.of("agendas"),
-				Set.of("owner_email", "timezone", "meetings", "days_ahead"),
-				Set.of("context", "agendas", "owner_email", "timezone", "meetings", "days_ahead"));
+				Set.of("owner_email", "timezone", "meetings", "days_ahead", "preferences"),
+				Set.of("context", "agendas", "owner_email", "timezone", "meetings", "days_ahead", "preferences"));
 	}
 
 	@ParameterizedTest
@@ -1095,7 +1139,7 @@ class WorkInboxRoutineUnitTests {
 			automations.verify(() -> RunAutomationDefinitionReactor.runDefinition(eq(insight), anyString(),
 					eq(WorkAgendaRoutine.AUTOMATION_ID), files.capture(), eq(Map.of("owner_email", "owner@example.com",
 							"timezone", "America/New_York", "meetings", List.of("Weekly ops sync", "Board review"),
-							"days_ahead", 21)), eq(AutomationConstants.TRIGGER_SCHEDULED), isNull()));
+							"days_ahead", 21, "preferences", "")), eq(AutomationConstants.TRIGGER_SCHEDULED), isNull()));
 			assertTrue(files.getValue().definition().contains("\"text-model\""));
 			Map<?, ?> last = (Map<?, ?>) WorkAgendaRoutine.get(user).get("lastRun");
 			assertEquals("completed", last.get("status"));

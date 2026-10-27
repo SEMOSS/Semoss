@@ -25,12 +25,25 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.api;
+package prerna.reactor.collaboration;
 
-public enum RemoteModelStateEnum {
-    COLD,
-    WARMING,
-    ACTIVE,
-    FAILED,
-    UNKNOWN
+import prerna.collaboration.WorkExpenseRoutine;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+public class WorkGetExpenseRoutineReactor extends AbstractCollaborationReactor {
+	public WorkGetExpenseRoutineReactor() {
+		this.keysToGet = new String[] {};
+	}
+
+	@Override
+	public NounMetadata execute() {
+		getUser();
+		return mapResult(WorkExpenseRoutine.get(this.insight));
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Returns the signed-in user's expense review routine: its settings, guideline documents folder id, "
+				+ "the mail subjects that start a review, and the latest review";
+	}
 }

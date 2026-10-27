@@ -31,12 +31,7 @@ import prerna.engine.impl.model.AnthropicEngine;
 import prerna.engine.impl.model.AzureOpenAiEngine;
 import prerna.engine.impl.model.BedrockEngine;
 import prerna.engine.impl.model.EmbeddedModelEngine;
-import prerna.engine.impl.model.KServeImageEmbedEngine;
-import prerna.engine.impl.model.KServeImageEngine;
-import prerna.engine.impl.model.KServeTTSEngine;
-import prerna.engine.impl.model.KServeVisionEngine;
 import prerna.engine.impl.model.ModelRouterEngine;
-import prerna.engine.impl.model.NEREngine;
 import prerna.engine.impl.model.OpenAiEngine;
 import prerna.engine.impl.model.TextEmbeddingsEngine;
 import prerna.engine.impl.model.TextGenerationEngine;
@@ -58,11 +53,6 @@ public enum ModelTypeEnum {
 
 	// these are secondary
 	EMBEDDED("EMBEDDED", EmbeddedModelEngine.class.getName()),
-	NER("NER", NEREngine.class.getName()),
-	KSERVE_VISION("KSERVE_VISION", KServeVisionEngine.class.getName()),
-	KSERVE_IMAGE_EMBED("KSERVE_IMAGE_EMBED", KServeImageEmbedEngine.class.getName()),
-	KSERVE_IMAGE("KSERVE_IMAGE", KServeImageEngine.class.getName()),
-	KSERVE_TTS("KSERVE_TTS", KServeTTSEngine.class.getName()),
 	REMOTE("REMOTE", RemoteModelEngine.class.getName()),
 	TEXT_EMBEDDINGS("TEXT_EMBEDDINGS", TextEmbeddingsEngine.class.getName()),
 	TEXT_GENERATION("TEXT_GENERATION", TextGenerationEngine.class.getName()),

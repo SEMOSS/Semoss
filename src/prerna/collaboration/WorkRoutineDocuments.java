@@ -69,7 +69,7 @@ public final class WorkRoutineDocuments {
 
 	/** Makes sure the routine's folder exists; its path in the owner's user assets, and the documents in it. */
 	public static Map<String, Object> open(User user, String routineId) throws IOException {
-		WorkCustomRoutine.requireStored(user, routineId);
+		requireRoutine(user, routineId);
 		Path folder = folder(user, routineId);
 		Files.createDirectories(folder);
 		Map<String, Object> result = new LinkedHashMap<>();
@@ -99,8 +99,15 @@ public final class WorkRoutineDocuments {
 
 	/** Copies the documents into the room's documents folder; the names copied, sorted. */
 	public static List<String> copyInto(User user, String routineId, String roomFolder) throws IOException {
-		WorkCustomRoutine.requireStored(user, routineId);
+		requireRoutine(user, routineId);
 		return copyInto(folder(user, routineId), Path.of(roomFolder, FOLDER));
+	}
+
+	// the expense review's guideline folder has a fixed id; any other id must be one of the owner's own routines
+	private static void requireRoutine(User user, String routineId) {
+		if (!WorkExpenseRoutine.DOCUMENTS_ID.equals(routineId == null ? null : routineId.trim())) {
+			WorkCustomRoutine.requireStored(user, routineId);
+		}
 	}
 
 	/** The document names, sorted, for the routine's command. */
