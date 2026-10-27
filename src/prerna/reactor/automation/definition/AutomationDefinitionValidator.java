@@ -384,7 +384,7 @@ public final class AutomationDefinitionValidator {
 				if (API_CREDENTIAL_HEADERS.contains(name) && !value.isBlank() && !value.contains("${")) {
 					throw new IllegalArgumentException(prefix + AutomationConstants.CONFIG_API_HEADERS + "."
 							+ header.getKey() + " is a credential header; reference a trigger input such as "
-							+ "${inputs.token} or use a Connection instead of typing the value.");
+							+ "${token} or use a Connection instead of typing the value.");
 				}
 			}
 		}

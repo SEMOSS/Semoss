@@ -432,10 +432,18 @@ final class AutomationApiRequestExecutor {
 	}
 
 	private static Map<String, String> responseHeaders(HttpResponse<?> response) {
+		return visibleHeaders(response.headers().map());
+	}
+
+	/**
+	 * Lower-cases header names, joins repeated values, and drops secrets and
+	 * HTTP/2 pseudo-headers (such as {@code :status}).
+	 */
+	static Map<String, String> visibleHeaders(Map<String, List<String>> raw) {
 		Map<String, String> headers = new LinkedHashMap<>();
-		response.headers().map().forEach((name, values) -> {
+		raw.forEach((name, values) -> {
 			String lower = name.toLowerCase(Locale.ROOT);
-			if (!HIDDEN_RESPONSE_HEADERS.contains(lower)) {
+			if (!lower.startsWith(":") && !HIDDEN_RESPONSE_HEADERS.contains(lower)) {
 				headers.put(lower, String.join(", ", values));
 			}
 		});

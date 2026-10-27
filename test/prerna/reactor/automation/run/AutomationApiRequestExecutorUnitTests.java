@@ -190,6 +190,18 @@ public class AutomationApiRequestExecutorUnitTests {
 	}
 
 	@Test
+	public void visibleHeadersDropSecretsAndPseudoHeaders() {
+		Map<String, List<String>> raw = new LinkedHashMap<>();
+		raw.put(":status", List.of("200"));
+		raw.put("Content-Type", List.of("application/json"));
+		raw.put("Set-Cookie", List.of("a=b"));
+		raw.put("Authorization", List.of("Bearer x"));
+		raw.put("X-Multi", List.of("1", "2"));
+		Map<String, String> headers = AutomationApiRequestExecutor.visibleHeaders(raw);
+		assertEquals(Map.of("content-type", "application/json", "x-multi", "1, 2"), headers);
+	}
+
+	@Test
 	public void interpolatesEmbeddedReferences() {
 		Map<String, Object> scope = Map.of("token", "abc", "item", Map.of("id", 7));
 		assertEquals("Bearer abc",
