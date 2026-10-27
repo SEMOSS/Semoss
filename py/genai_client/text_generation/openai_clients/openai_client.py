@@ -863,6 +863,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                         }
                     )
 
+                aggregated_content = self._without_inline_reasoning(aggregated_content)
                 parts = self._chat_reasoning_parts(reasoning_content) + (
                     [{"type": "TEXT", "text": aggregated_content}]
                     if aggregated_content
@@ -886,6 +887,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="content", interim=False)
 
+                aggregated_content = self._without_inline_reasoning(aggregated_content)
                 reasoning_parts = self._chat_reasoning_parts(reasoning_content)
                 if not reasoning_parts:
                     reasoning = self._extract_reasoning_summary_chat(response)
@@ -925,7 +927,9 @@ class OpenAiClient(AbstractTextGenerationClient):
 
             # "length" is the output maximum stopping the answer
             note_output_stop(response.choices[0].finish_reason == "length")
-            final_content = response.choices[0].message.content
+            final_content = self._without_inline_reasoning(
+                response.choices[0].message.content
+            )
             if self.model_settings.preserve_reasoning_content and final_content is None:
                 # A reasoning-only cutoff must still satisfy Java's CHAT string contract.
                 final_content = ""
@@ -1027,7 +1031,9 @@ class OpenAiClient(AbstractTextGenerationClient):
         preamble_text = None
         reasoning_parts = []
         if self.chat_type == "chat-completion":
-            preamble_text = response.choices[0].message.content
+            preamble_text = self._without_inline_reasoning(
+                response.choices[0].message.content
+            )
             reasoning_parts = self._chat_reasoning_parts(
                 self._get_chat_reasoning_content(response.choices[0].message)
             )
@@ -1522,6 +1528,18 @@ class OpenAiClient(AbstractTextGenerationClient):
             for source in ("reasoning_content", "reasoning")
             if isinstance(value := getattr(message, source, None), str) and value
         }
+
+    @staticmethod
+    def _without_inline_reasoning(text: Any) -> Any:
+        """The answer after thinking a compatible server left in the text.
+
+        Without a reasoning parser, such a server returns the model's thinking as ordinary
+        text ended by </think>; the chat template usually opens the block, so only the
+        closing tag arrives.
+        """
+        if not isinstance(text, str) or "</think>" not in text:
+            return text
+        return text.rpartition("</think>")[2].lstrip()
 
     @staticmethod
     def _chat_reasoning_parts(reasoning: dict[str, str]) -> list[dict[str, str]]:

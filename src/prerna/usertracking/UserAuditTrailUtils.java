@@ -155,6 +155,7 @@ public final class UserAuditTrailUtils {
 			Map.entry("UploadProjectApp", new AuditedAction(AuditEventType.PROJECT_UPLOAD, AuditTargetType.PROJECT)),
 			Map.entry("DeleteProject", new AuditedAction(AuditEventType.PROJECT_DELETE, AuditTargetType.PROJECT)),
 			Map.entry("UploadEngine", new AuditedAction(AuditEventType.ENGINE_CREATE, AuditTargetType.ENGINE)),
+			Map.entry("CloneEngine", new AuditedAction(AuditEventType.ENGINE_CREATE, AuditTargetType.ENGINE)),
 			Map.entry("CreateModelEngine", new AuditedAction(AuditEventType.MODEL_CREATE, AuditTargetType.MODEL)),
 			Map.entry("CreateVectorDatabaseEngine",
 					new AuditedAction(AuditEventType.VECTOR_CREATE, AuditTargetType.VECTOR)),

@@ -409,7 +409,7 @@ final class AutomationRunExecutionService {
 			Handler.DATABASE_WRITE;
 		case AutomationConstants.NODE_VECTOR_ADD, AutomationConstants.NODE_VECTOR_DELETE -> Handler.VECTOR_WRITE;
 		case AutomationConstants.NODE_MODEL_CHAT, AutomationConstants.NODE_MODEL_EMBEDDINGS,
-				AutomationConstants.NODE_MODEL_VISION, AutomationConstants.NODE_MODEL_NER ->
+				AutomationConstants.NODE_MODEL_VISION ->
 			Handler.MODEL;
 		case AutomationConstants.NODE_STORAGE_READ, AutomationConstants.NODE_STORAGE_UPLOAD,
 				AutomationConstants.NODE_STORAGE_DELETE ->

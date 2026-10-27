@@ -200,7 +200,6 @@ public final class AutomationConstants {
 	public static final String NODE_MODEL_CHAT = "model.chat";
 	public static final String NODE_MODEL_EMBEDDINGS = "model.embeddings";
 	public static final String NODE_MODEL_VISION = "model.vision";
-	public static final String NODE_MODEL_NER = "model.ner";
 	public static final String NODE_STORAGE_LIST = "storage.list";
 	public static final String NODE_STORAGE_READ = "storage.read";
 	public static final String NODE_STORAGE_UPLOAD = "storage.upload";
