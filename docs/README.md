@@ -64,6 +64,7 @@ Documentation for the SEMOSS core runtime, agents and harnesses, engine integrat
 - [Development guides](development_guides/README.md)
 - [Configuration and environment](development_guides/configuration_and_environment.md)
 - [Java developer onboarding](development_guides/java_developer_onboarding.md)
+- [REST and Pixel operation contracts](development_guides/operation_contracts.md): shared wire metadata, `AbstractReactor2`, and future client generation.
 - [How-to index](how-to-guides/README.md)
 - [Write a custom reactor](how-to-guides/writing_custom_reactors.md)
 - [Interact with databases](how-to-guides/interacting_with_databases.md)

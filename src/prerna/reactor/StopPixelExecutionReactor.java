@@ -31,6 +31,10 @@ import java.util.Objects;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.contract.Description;
+import prerna.contract.Invocation;
+import prerna.contract.Parameter;
+import prerna.contract.Returns;
 import prerna.reactor.agent.AgentCancelHook;
 import prerna.sablecc2.comm.JobStreamEnvelopes;
 import prerna.sablecc2.comm.PixelJobManager;
@@ -42,12 +46,13 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.SocketClient;
 
-public class StopPixelExecutionReactor extends AbstractReactor {
-
-	public StopPixelExecutionReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
-		this.keyRequired = new int[] { 1 };
-	}
+@Description("Stop the current execution of a pixel job")
+@Parameter(name = "id", type = String.class, required = true,
+		description = "The id for the job. If running the pixel synchronously, the job id will be the same as the insight id.")
+@Returns(value = String.class,
+		description = "A message describing the cancellation outcome. The caller must own an existing job or be an administrator.")
+@Invocation(mode = Invocation.Mode.BOTH, order = "id")
+public class StopPixelExecutionReactor extends AbstractReactor2 {
 
 	@Override
 	public NounMetadata execute() {
@@ -115,16 +120,4 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 		return new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 
-	@Override
-	public String getReactorDescription() {
-		return "Stop the current execution of a pixel job";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equalsIgnoreCase(ReactorKeysEnum.ID.getKey())) {
-			return "The id for the job. If running the pixel synchronously, the job id will be the same as the insight id.";
-		}
-		return super.getDescriptionForKey(key);
-	}
 }
