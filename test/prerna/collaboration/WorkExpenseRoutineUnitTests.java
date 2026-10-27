@@ -73,11 +73,15 @@ class WorkExpenseRoutineUnitTests {
 		assertTrue(withDocuments.contains("${context.reviewInput}"));
 		assertFalse(withDocuments.contains("%"));
 		assertTrue(WorkExpenseRoutine.command("UTC", List.of()).contains("no guideline documents"));
-		// the owner reads the decision first, then the check behind it, then the request itself
+		// the owner reads the decision first, then what to ask and the draft that asks it, then the request itself
 		int decision = withDocuments.indexOf("\"Suggested decision:\"");
-		int check = withDocuments.indexOf("heading Guideline check");
+		int probes = withDocuments.indexOf("heading Before you respond");
+		int draft = withDocuments.indexOf("heading Draft reply");
 		int request = withDocuments.indexOf("heading Request");
-		assertTrue(decision > 0 && decision < check && check < request);
+		assertTrue(decision > 0 && decision < probes && probes < draft && draft < request);
+		assertFalse(withDocuments.contains("Guideline check"));
+		// the deliver step saves the draft; one the agent saved too would be a second copy
+		assertTrue(withDocuments.contains("Do not call SaveDraft"));
 	}
 
 	@Test

@@ -44,8 +44,9 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 /**
  * The opted-in expense review: when a Meeting Approval or Business Approval request reaches the owner's inbox, their
- * assistant reviews it against the guideline documents they uploaded and emails them a suggested decision. Run by
- * {@link WorkRoutine} off the mail import ({@link #onNewMail}) instead of a schedule.
+ * assistant reviews it against the guideline documents and example threads they uploaded and emails them a suggested
+ * decision; unless it is a plain approval, a reply to the approver waits in their drafts. Run by {@link WorkRoutine}
+ * off the mail import ({@link #onNewMail}) instead of a schedule.
  */
 public final class WorkExpenseRoutine {
 	private static final Logger classLogger = LogManager.getLogger(WorkExpenseRoutine.class);
@@ -164,31 +165,40 @@ public final class WorkExpenseRoutine {
 					+ "the request itself states and ordinary expense judgment, and say in the result that no "
 					+ "guidelines were available.\n");
 		} else {
-			command.append("First read the owner's guideline documents in the \"").append(WorkRoutineDocuments.FOLDER)
+			command.append("First read the owner's documents in the \"").append(WorkRoutineDocuments.FOLDER)
 					.append("\" folder of your working folder with the file tools, or the document reader for Office "
 							+ "files and PDFs: ")
-					.append(String.join(", ", documents)).append(". They are the policy you review against.\n");
+					.append(String.join(", ", documents)).append(". The guideline documents are the policy you review "
+							+ "against. Email threads among them (an .eml or .msg file comes as a .txt copy) are examples "
+							+ "of how approvers answered earlier requests: pushing back, setting conditions, declining. "
+							+ "Use them as precedent for the decision, and model the draft reply below on them: who it "
+							+ "goes to, its length, tone, greeting and sign-off.\n");
 		}
 		command.append("\nTask: write the review, and nothing else, in this shape:\n"
 				+ "- For each request, in order, a level-2 heading with the meeting or expense name and its number, "
 				+ "such as \"OSLT In Person (102783)\".\n"
 				+ "- Under it, first one paragraph that starts with \"Suggested decision:\" and one of Approve, Approve "
 				+ "with conditions, Return for more information, or Decline, followed by two to four sentences of "
-				+ "rationale that cite the guideline check below.\n"
+				+ "rationale that name the guideline document and section behind each point.\n"
 				+ "- Then, when there are any, a level-3 heading Before you respond with bullets: the conditions to set "
-				+ "or the questions to ask the requester.\n"
-				+ "- Then a level-3 heading Guideline check and a table with the columns Check, Guideline, Request, "
-				+ "Result: one row per rule that applies (per-person and per-day limits, exceptions that need "
-				+ "justification, attendee level, sleeping rooms, venue, timing, approvals), Result being Pass, "
-				+ "Exception or Unclear. Name the document and section in Guideline.\n"
+				+ "or the questions to ask, each naming the guideline it rests on.\n"
+				+ "- Then, unless the decision is Approve, a level-3 heading Draft reply, a line \"To: <name>, "
+				+ "<email address>\", and the email itself as a blockquote. Address it to whoever the example threads "
+				+ "write to; without examples, the person the request's Financial Approval History shows approving "
+				+ "it last, else the sponsoring PPMD or CLO it names. Find the address with FindPerson; when no one "
+				+ "matches, give the name alone. In a few short paragraphs, no lists, it asks the questions or sets "
+				+ "the conditions from Before you respond, or for Decline gives the reason and the guideline behind "
+				+ "it; it never says the request is approved. Write it as the owner, signed with their first name "
+				+ "from the Owner section. Do not call SaveDraft for it: the routine saves it in the owner's drafts "
+				+ "as a reply to the request.\n"
 				+ "- Last, a level-3 heading Request and a two-column table with what was asked: who requested it and "
 				+ "the sponsoring PPMD, dates, location, meeting type, forecast (all expenses), attendees and attendee "
 				+ "level, KPI per person, DU chargeback, funding code, sleeping rooms, the stated policy exceptions, "
 				+ "and the objective in one line. Take every figure from the request; never invent or round one, and "
 				+ "leave out what it does not say.\n"
 				+ "- Start with the first heading: no greeting, no \"Here is\", no description of your steps or tools.\n"
-				+ "- This is a memo to the owner, never a reply to the requester: do not address the requester, and do "
-				+ "not write as the owner approving or declining; the owner decides.\n\n"
+				+ "- Everything but the draft reply is a memo to the owner: it addresses no one else and is never "
+				+ "written as the owner approving or declining; the owner decides.\n\n"
 				+ "Requests: ${context.reviewInput}");
 		return command.toString();
 	}
