@@ -76,14 +76,19 @@ public final class WorkExpenseRoutine {
 	private WorkExpenseRoutine() { }
 
 	public static Map<String, Object> get(Insight insight) {
-		Map<String, Object> result = new LinkedHashMap<>(WorkRoutine.get(KIND, insight));
-		result.put("documentsId", DOCUMENTS_ID);
-		result.put("subjects", SUBJECTS);
-		return result;
+		return withFolder(WorkRoutine.get(KIND, insight));
 	}
 
 	public static Map<String, Object> save(User user, Map<String, Object> changes) {
-		return WorkRoutine.save(KIND, user, changes);
+		return withFolder(WorkRoutine.save(KIND, user, changes));
+	}
+
+	// Routines reads a get and a save the same way, so both answer with the documents folder and the subjects
+	private static Map<String, Object> withFolder(Map<String, Object> routine) {
+		Map<String, Object> result = new LinkedHashMap<>(routine);
+		result.put("documentsId", DOCUMENTS_ID);
+		result.put("subjects", SUBJECTS);
+		return result;
 	}
 
 	// who the owner copies each review to: bare addresses, each once; settings saved before this have none

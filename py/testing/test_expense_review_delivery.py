@@ -105,6 +105,23 @@ class ExpenseReviewDeliveryTests(unittest.TestCase):
         self.assertNotIn("cc=", pixels[0])
         self.assertEqual([], result["drafts"])
 
+    def test_thinking_and_a_lead_in_never_reach_the_email(self):
+        # a model without a reasoning parser writes its thinking, a draft review and </think> before the answer
+        review = REVIEW % "Deanette Myers, demyers@deloitte.com"
+        result, pixels = self._deliver("Let me analyze the request.\n\n" + review + "\n</think>\n\n"
+                                       + "Key findings from the policy documents:\n\n" + review)
+        self.assertEqual(1, sum(pixel.startswith("MicrosoftOutlookReplyMail(") for pixel in pixels))
+        self.assertNotIn("Let me analyze", result["html"])
+        self.assertNotIn("Key findings", result["html"])
+        self.assertEqual(1, result["html"].count("Suggested decision:"))
+
+    def test_a_repeated_review_saves_one_draft_per_request(self):
+        review = REVIEW % "Deanette Myers, demyers@deloitte.com"
+        result, pixels = self._deliver(review + "\n" + review)
+        self.assertEqual(1, sum(pixel.startswith("MicrosoftOutlookReplyMail(") for pixel in pixels))
+        self.assertIn("A draft for this request is already in your Outlook drafts.", result["html"])
+        self.assertEqual([True, False], [draft["saved"] for draft in result["drafts"]])
+
     def test_the_review_is_copied_to_the_owners_recipients_but_not_to_the_owner_twice(self):
         result, pixels = self._deliver("## S&T Ignite Onboarding Program (102241)\n\nSuggested decision: Approve.\n",
                                        cc=["jbell@deloitte.com", "LGaines@deloitte.com"])
