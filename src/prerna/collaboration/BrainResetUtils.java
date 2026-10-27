@@ -77,7 +77,8 @@ public final class BrainResetUtils {
 			});
 			// the routines' runs keep mail, meetings and their results in the scheduler database
 			int runs = 0;
-			for (String automationId : List.of(WorkInboxRoutine.AUTOMATION_ID, WorkAgendaRoutine.AUTOMATION_ID)) {
+			for (String automationId : List.of(WorkInboxRoutine.AUTOMATION_ID, WorkAgendaRoutine.AUTOMATION_ID,
+					WorkExpenseRoutine.AUTOMATION_ID)) {
 				runs += AutomationRunStore.deleteRuns(AutomationProjectService.inlineRunScope(user), automationId);
 			}
 			if (runs > 0) {

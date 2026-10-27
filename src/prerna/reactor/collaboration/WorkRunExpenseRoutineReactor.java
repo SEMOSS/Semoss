@@ -25,26 +25,41 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.cluster.util;
+package prerna.reactor.collaboration;
 
-import prerna.engine.api.RemoteModelStateEnum;
+import prerna.collaboration.WorkExpenseRoutine;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/**
- * Represents information about a model deployed in the remote infrastructure.
- */
-public class RemoteModelInfo {
-    private final String id;
-    private final String name;
-    private final RemoteModelStateEnum state;
+// WorkRunExpenseRoutine(threadId=["..."], messageKey=["..."]); the mail import schedules this when a request arrives
+public class WorkRunExpenseRoutineReactor extends AbstractCollaborationReactor {
+	private static final String THREAD_ID = "threadId";
+	private static final String MESSAGE_KEY = "messageKey";
 
-    public RemoteModelInfo(String id, String name, RemoteModelStateEnum state) {
-        this.id = id;
-        this.name = name;
-        this.state = state;
-    }
+	public WorkRunExpenseRoutineReactor() {
+		this.keysToGet = new String[] { THREAD_ID, MESSAGE_KEY };
+		this.keyRequired = new int[] { 1, 1 };
+	}
 
-    // Getters
-    public String getId() { return id; }
-    public String getName() { return name; }
-    public RemoteModelStateEnum getState() { return state; }
+	@Override
+	public NounMetadata execute() {
+		getUser();
+		return mapResult(WorkExpenseRoutine.run(this.insight, getNounAsStringList(THREAD_ID),
+				getNounAsStringList(MESSAGE_KEY)));
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Reviews the given approval requests for the signed-in user when their expense review routine is on";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (THREAD_ID.equals(key)) {
+			return "Brain thread id of each request, in the same order as messageKey.";
+		}
+		if (MESSAGE_KEY.equals(key)) {
+			return "Brain message key of each request email.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }
