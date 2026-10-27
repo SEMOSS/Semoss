@@ -28,25 +28,31 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainTopicFiles;
+import prerna.collaboration.BrainTopicLinks;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class BrainCopyTopicFileToRoomReactor extends AbstractCollaborationReactor {
 	public BrainCopyTopicFileToRoomReactor() {
-		this.keysToGet = new String[] { "topicId", "fileId", "roomId" };
-		this.keyRequired = new int[] { 1, 1, 1 };
+		this.keysToGet = new String[] { "topicId", "fileId", "linkId", "roomId" };
+		this.keyRequired = new int[] { 1, 0, 0, 1 };
 	}
 	@Override
 	public NounMetadata execute() {
 		getUser();
-		return mapResult(BrainTopicFiles.copyToRoom(insight, getString("topicId"), getString("fileId"), getString("roomId")));
+		String fileId = getString("fileId"), linkId = getString("linkId");
+		if ((fileId == null) == (linkId == null)) throw new IllegalArgumentException("Pass either fileId or linkId");
+		return mapResult(linkId != null
+				? BrainTopicLinks.copyToRoom(insight, getString("topicId"), linkId, getString("roomId"))
+				: BrainTopicFiles.copyToRoom(insight, getString("topicId"), fileId, getString("roomId")));
 	}
 	@Override
-	public String getReactorDescription() { return "Copies a file from a linked topic into an owned collaboration room for use in the next message."; }
+	public String getReactorDescription() { return "Copies an uploaded or linked file from a linked topic into an owned collaboration room for use in the next message."; }
 	@Override
 	protected String getDescriptionForKey(String key) {
 		return switch (key) {
 			case "topicId" -> "Topic id from ListTopics or ListTopicFiles";
-			case "fileId" -> "File id from ListTopicFiles";
+			case "fileId" -> "Uploaded file id from ListTopicFiles";
+			case "linkId" -> "Linked Microsoft 365 file id from ListTopicFiles";
 			case "roomId" -> "Owned collaboration chat id; file access is restricted to its linked topics";
 			default -> super.getDescriptionForKey(key);
 		};

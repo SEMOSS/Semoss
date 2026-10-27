@@ -41,7 +41,7 @@ public class BrainListTopicFilesReactor extends AbstractCollaborationReactor {
 		return mapResult(BrainTopicFiles.list(getUser(), getString("topicId"), getString("roomId"), limit == null ? 50 : limit, offset == null ? 0 : offset));
 	}
 	@Override
-	public String getReactorDescription() { return "Lists original files on an owned topic, or only topics linked to roomId. Returns paginated metadata; use ReadTopicFile to access contents."; }
+	public String getReactorDescription() { return "Lists files on an owned topic, or only topics linked to roomId: uploaded files (paginated) and linked OneDrive, SharePoint and Teams files with their location, driveId, itemId, parentId and last change. Use ReadTopicFile to access contents."; }
 	@Override
 	protected String getDescriptionForKey(String key) {
 		return switch (key) {

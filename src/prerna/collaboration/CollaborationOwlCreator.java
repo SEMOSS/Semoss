@@ -269,6 +269,15 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("NAME", VARCHAR_255), Pair.with("PATH", CLOB_DATATYPE_NAME),
 				Pair.with("SIZE", "BIGINT"), Pair.with("MIME", VARCHAR_255),
 				Pair.with("UPLOADED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// Microsoft 365 files linked to a topic: their Graph address and last known metadata, never their contents
+		addTable("BRAIN_TOPIC_LINK", Arrays.asList(OWNER_ID, OWNER_TYPE,
+				Pair.with("LINK_ID", VARCHAR_50), Pair.with("TOPIC_ID", VARCHAR_50),
+				Pair.with("DRIVE_ID", VARCHAR_255), Pair.with("ITEM_ID", VARCHAR_255),
+				Pair.with("PARENT_ID", VARCHAR_255), Pair.with("NAME", VARCHAR_255),
+				Pair.with("LOCATION", CLOB_DATATYPE_NAME), Pair.with("WEB_URL", CLOB_DATATYPE_NAME),
+				Pair.with("SIZE", "BIGINT"), Pair.with("CTAG", VARCHAR_255),
+				Pair.with("MODIFIED_AT", TIMESTAMP_DATATYPE_NAME), Pair.with("STATUS", VARCHAR_20),
+				Pair.with("LINKED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// the owner's Outlook folder tree; KIND is inbox, sentitems, archive, custom (one the owner made) or skipped
 		addTable("BRAIN_MAIL_FOLDER", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,

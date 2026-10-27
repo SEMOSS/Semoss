@@ -547,6 +547,13 @@ public final class BrainTopicUtils {
 					ownerId, ownerType, sourceTopicId, ownerId, ownerType, targetTopicId);
 			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC_FOLDER SET TOPIC_ID = ?" + owned, targetTopicId,
 					ownerId, ownerType, sourceTopicId);
+			// likewise linked Microsoft 365 files; one linked to both keeps the target's link
+			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_TOPIC_LINK" + owned + " AND EXISTS (SELECT 1 FROM "
+					+ "BRAIN_TOPIC_LINK t WHERE t.OWNER_ID = BRAIN_TOPIC_LINK.OWNER_ID AND t.OWNER_TYPE = "
+					+ "BRAIN_TOPIC_LINK.OWNER_TYPE AND t.TOPIC_ID = ? AND t.DRIVE_ID = BRAIN_TOPIC_LINK.DRIVE_ID "
+					+ "AND t.ITEM_ID = BRAIN_TOPIC_LINK.ITEM_ID)", ownerId, ownerType, sourceTopicId, targetTopicId);
+			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC_LINK SET TOPIC_ID = ?" + owned, targetTopicId,
+					ownerId, ownerType, sourceTopicId);
 			for (String table : new String[] { "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE", "BRAIN_RULE" }) {
 				CollaborationDbUtils.update(conn, "UPDATE " + table + " SET TOPIC_ID = ?" + owned, targetTopicId,
 						ownerId, ownerType, sourceTopicId);
@@ -632,7 +639,7 @@ public final class BrainTopicUtils {
 				}
 			}
 			for (String table : new String[] { "BRAIN_THREAD_TOPIC", "BRAIN_THREAD_TOPIC_REJECTION", "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE",
-					"BRAIN_RULE", "BRAIN_TOPIC_FOLDER", "BRAIN_TOPIC" }) {
+					"BRAIN_RULE", "BRAIN_TOPIC_FOLDER", "BRAIN_TOPIC_LINK", "BRAIN_TOPIC" }) {
 				CollaborationDbUtils.update(conn, "DELETE FROM " + table + owned, ownerId, ownerType, topicId);
 			}
 			// memories only about this topic go with it, as its notes did; the others just lose the link

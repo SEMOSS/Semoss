@@ -551,14 +551,17 @@ public class CollaborationDbUtils {
 					}
 				}
 			}
-			String fileIndex = "BRAIN_TOPIC_FILE_OWNER_ID_UNIQUE";
-			if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, fileIndex,
-					"BRAIN_TOPIC_FILE", collaborationDb.getDatabase(), collaborationDb.getSchema())) {
-				String sql = queryUtil.allowIfExistsIndexSyntax()
-						? queryUtil.createIndexIfNotExists(fileIndex, "BRAIN_TOPIC_FILE", List.of("OWNER_ID", "OWNER_TYPE", "FILE_ID"))
-						: queryUtil.createIndex(fileIndex, "BRAIN_TOPIC_FILE", List.of("OWNER_ID", "OWNER_TYPE", "FILE_ID"));
-				try (Statement statement = conn.createStatement()) {
-					statement.execute(sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX"));
+			for (String[] unique : new String[][] { { "BRAIN_TOPIC_FILE", "FILE_ID" }, { "BRAIN_TOPIC_LINK", "LINK_ID" } }) {
+				String uniqueIndex = unique[0] + "_OWNER_ID_UNIQUE";
+				if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, uniqueIndex,
+						unique[0], collaborationDb.getDatabase(), collaborationDb.getSchema())) {
+					List<String> columns = List.of("OWNER_ID", "OWNER_TYPE", unique[1]);
+					String sql = queryUtil.allowIfExistsIndexSyntax()
+							? queryUtil.createIndexIfNotExists(uniqueIndex, unique[0], columns)
+							: queryUtil.createIndex(uniqueIndex, unique[0], columns);
+					try (Statement statement = conn.createStatement()) {
+						statement.execute(sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX"));
+					}
 				}
 			}
 			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)
@@ -615,6 +618,7 @@ public class CollaborationDbUtils {
 					OwlIndex.of("BRAIN_MAIL_FOLDER_OWNER_INDEX", "BRAIN_MAIL_FOLDER", "OWNER_ID", "OWNER_TYPE"),
 
 					OwlIndex.of("BRAIN_TOPIC_FILE_TOPIC_INDEX", "BRAIN_TOPIC_FILE", "OWNER_ID", "OWNER_TYPE", "TOPIC_ID"),
+					OwlIndex.of("BRAIN_TOPIC_LINK_TOPIC_INDEX", "BRAIN_TOPIC_LINK", "OWNER_ID", "OWNER_TYPE", "TOPIC_ID"),
 
 					// brain: threads
 					OwlIndex.of("BRAIN_THREAD_OWNER_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE"),

@@ -28,26 +28,32 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainTopicFiles;
+import prerna.collaboration.BrainTopicLinks;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class BrainReadTopicFileReactor extends AbstractCollaborationReactor {
 	public BrainReadTopicFileReactor() {
-		this.keysToGet = new String[] { "topicId", "fileId" };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { "topicId", "fileId", "linkId" };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 	@Override
 	public NounMetadata execute() {
 		getUser();
 		if (insight.getRoomId() == null) throw new IllegalArgumentException("ReadTopicFile requires a collaboration chat");
-		return mapResult(BrainTopicFiles.copyToRoom(insight, getString("topicId"), getString("fileId"), insight.getRoomId()));
+		String fileId = getString("fileId"), linkId = getString("linkId");
+		if ((fileId == null) == (linkId == null)) throw new IllegalArgumentException("Pass either fileId or linkId");
+		return mapResult(linkId != null
+				? BrainTopicLinks.copyToRoom(insight, getString("topicId"), linkId, insight.getRoomId())
+				: BrainTopicFiles.copyToRoom(insight, getString("topicId"), fileId, insight.getRoomId()));
 	}
 	@Override
-	public String getReactorDescription() { return "Retrieves an original file from a topic linked to this chat. Returns filePath in the room; read that path with the existing document or Python tools before answering. No document text is included in this response."; }
+	public String getReactorDescription() { return "Retrieves an uploaded file (fileId) or a linked Microsoft 365 file (linkId) from a topic linked to this chat. A linked file is downloaded only when it changed since it was last read here. Returns filePath in the room; read that path with the existing document or Python tools before answering. No document text is included in this response. If it fails, tell the user why instead of looking for the file elsewhere."; }
 	@Override
 	protected String getDescriptionForKey(String key) {
 		return switch (key) {
 			case "topicId" -> "Topic id from ListTopics or ListTopicFiles";
-			case "fileId" -> "File id from ListTopicFiles";
+			case "fileId" -> "Uploaded file id from ListTopicFiles files";
+			case "linkId" -> "Linked Microsoft 365 file id from ListTopicFiles links";
 			default -> super.getDescriptionForKey(key);
 		};
 	}
