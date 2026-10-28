@@ -29,6 +29,7 @@ package prerna.contract;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -43,6 +44,7 @@ public final class ContractSchemas {
 	public static JSONObject output(OperationContract contract) {
 		if (contract.outputs().size() != 1) throw new IllegalArgumentException("Select a specific REST response; output() requires one result");
 		JSONObject schema = type(contract.outputs().getFirst().type());
+		if (!contract.outputs().getFirst().name().isBlank()) schema.put("title", contract.outputs().getFirst().name());
 		if (!contract.outputs().getFirst().description().isBlank()) schema.put("description", contract.outputs().getFirst().description());
 		attachDefinitions(schema, contract);
 		return schema;
@@ -70,18 +72,30 @@ public final class ContractSchemas {
 		if (contract.definitions().isEmpty()) return;
 		JSONObject definitions = new JSONObject();
 		for (ObjectType definition : contract.definitions().values()) {
-			JSONObject properties = new JSONObject();
-			JSONArray required = new JSONArray();
-			for (Property property : definition.properties()) {
-				properties.put(property.name(), type(property.type()));
-				if (property.required()) required.put(property.name());
-			}
-			definitions.put(definition.id(), new JSONObject().put("type", "object").put("properties", properties).put("required", required));
+			definitions.put(definition.id(), object(definition, ContractSchemas::localReference));
 		}
 		schema.put("$defs", definitions);
 	}
 
-	private static JSONObject type(TypeUse value) {
+	private static JSONObject type(TypeUse value) { return type(value, ContractSchemas::localReference); }
+
+	/** Shared wire-schema rendering; the exporter supplies component references. */
+	static JSONObject object(ObjectType definition, Function<String, String> reference) {
+		JSONObject properties = new JSONObject();
+		JSONArray required = new JSONArray();
+		for (Property property : definition.properties()) {
+			properties.put(property.name(), type(property.type(), reference));
+			if (property.required()) required.put(property.name());
+		}
+		return new JSONObject().put("type", "object").put("properties", properties).put("required", required);
+	}
+
+	private static String localReference(String id) {
+		String segment = id.replace("~", "~0").replace("/", "~1");
+		return "#/$defs/" + URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
+	}
+
+	static JSONObject type(TypeUse value, Function<String, String> reference) {
 		JSONObject schema = switch (value.shape()) {
 			case Scalar scalar -> {
 				String name = switch (scalar.kind()) {
@@ -94,15 +108,10 @@ public final class ContractSchemas {
 				if (!scalar.values().isEmpty()) object.put("enum", scalar.values());
 				yield object;
 			}
-			case Sequence sequence -> new JSONObject().put("type", "array").put("items", type(sequence.element()));
-			case Dictionary dictionary -> new JSONObject().put("type", "object").put("additionalProperties", type(dictionary.value()));
-			case Union union -> new JSONObject().put("anyOf", union.alternatives().stream().map(ContractSchemas::type).toList());
-			case Reference reference -> {
-				String pointerSegment = reference.id().replace("~", "~0").replace("/", "~1");
-				// Definition IDs may contain method signatures or generic type expressions.
-				String fragment = URLEncoder.encode(pointerSegment, StandardCharsets.UTF_8).replace("+", "%20");
-				yield new JSONObject().put("$ref", "#/$defs/" + fragment);
-			}
+			case Sequence sequence -> new JSONObject().put("type", "array").put("items", type(sequence.element(), reference));
+			case Dictionary dictionary -> new JSONObject().put("type", "object").put("additionalProperties", type(dictionary.value(), reference));
+			case Union union -> new JSONObject().put("anyOf", union.alternatives().stream().map(alternative -> type(alternative, reference)).toList());
+			case Reference ref -> new JSONObject().put("$ref", reference.apply(ref.id()));
 			case Empty ignored -> new JSONObject().put("x-no-content", true);
 			case Unknown ignored -> new JSONObject();
 		};

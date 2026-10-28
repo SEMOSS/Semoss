@@ -68,15 +68,23 @@ import prerna.contract.TypeContract.TypeUse;
  */
 public final class ContractReader {
 	private ContractReader() {}
+	private static final ClassValue<OperationContract> REACTORS = new ClassValue<>() {
+		@Override protected OperationContract computeValue(Class<?> type) { return readReactor(type); }
+	};
 
 	/** Read a reactor's provider or class annotations without constructing it. */
 	public static OperationContract read(Class<?> reactor) {
+		return REACTORS.get(reactor);
+	}
+
+	private static OperationContract readReactor(Class<?> reactor) {
+		if (reactor.isAnnotationPresent(Reactor.class)) return readTyped(reactor);
 		TypeReader types = new TypeReader();
 		String source = reactor.getName();
 		ReactorMetadata metadata = reactor.getDeclaredAnnotation(ReactorMetadata.class);
 		String description;
 		List<Input> inputs = new ArrayList<>();
-		List<Output> outputs = new ArrayList<>();
+		List<OperationContract.Output> outputs = new ArrayList<>();
 		InvocationInfo invocation;
 		Policy policy = policy(types, reactor, null);
 		DeprecationInfo deprecation = deprecation(types, reactor, source);
@@ -102,7 +110,7 @@ public final class ContractReader {
 			}
 			ReactorDefinition.Result result = definition.result();
 			TypeUse output = types.read(result.type(), null, null, source + " return");
-			outputs.add(new Output(output.withNullable(result.nullable() || output.nullable()), -1, "", result.description()));
+			outputs.add(new OperationContract.Output(output.withNullable(result.nullable() || output.nullable()), -1, "", result.description()));
 			invocation = definition.invocation();
 			policy = new Policy(merge(policy.ignoreReasons(), definition.policy().ignoreReasons()),
 					merge(policy.internalReasons(), definition.policy().internalReasons()));
@@ -125,6 +133,60 @@ public final class ContractReader {
 			if (invocation == null) types.warning(source, "Pixel invocation conventions are unspecified");
 		}
 		return finish(types, source, Kind.PIXEL, description, policy, deprecation, inputs, outputs, invocation, null);
+	}
+
+	private static OperationContract readTyped(Class<?> reactor) {
+		TypeReader types = new TypeReader();
+		String source = reactor.getName();
+		Reactor declaration = reactor.getDeclaredAnnotation(Reactor.class);
+		if (reactor.isAnnotationPresent(ReactorMetadata.class) || reactor.isAnnotationPresent(Description.class)
+				|| reactor.getAnnotationsByType(Parameter.class).length > 0 || reactor.getAnnotationsByType(Returns.class).length > 0)
+			types.error(source, "Typed reactors derive their contract from @Reactor, the input record and @Output; remove competing metadata");
+		types.nonBlank(declaration.description(), source, "Reactor description");
+		List<String> names = new ArrayList<>();
+		names.add(declaration.name()); names.addAll(List.of(declaration.aliases()));
+		for (String name : names) if (!name.matches("[A-Za-z_][A-Za-z0-9_]*")) types.error(source, "Invalid Pixel name: " + name);
+		if (names.stream().distinct().count() != names.size()) types.error(source, "Duplicate reactor name/alias");
+		TypedReactorContract signature;
+		try { signature = TypedReactorContract.inspect(reactor); }
+		catch (IllegalArgumentException error) {
+			types.error(source, error.getMessage()); types.check(); throw new AssertionError(error);
+		}
+		List<Input> inputs = new ArrayList<>();
+		for (var component : signature.input().getRecordComponents()) {
+			Key key = component.getDeclaredAnnotation(Key.class);
+			if (key == null) { types.error(source, "Input record component " + component.getName() + " must declare @Key"); continue; }
+			String name = key.name().isEmpty() ? component.getName() : key.name();
+			if (name.equals("all") || List.of(key.aliases()).contains("all"))
+				types.error(source, "The key name 'all' is reserved for positional Pixel arguments");
+			types.nonBlank(key.description(), source + "." + name, "Key description");
+			boolean optional = component.isAnnotationPresent(Optional.class);
+			TypeUse type = types.read(component.getGenericType(), component.getAnnotatedType(), component, source + "." + name);
+			if ((optional || type.nullable()) && component.getType().isPrimitive())
+				types.error(source, "Optional/nullable key " + name + " must use a boxed Java type");
+			inputs.add(new Input(name, type, key.description(), optional ? Requirement.OPTIONAL : Requirement.REQUIRED,
+					sorted(List.of(key.aliases())), Binding.NOUN, Parameter.Encoding.DEFAULT, null));
+		}
+		Invocation invocation = reactor.getDeclaredAnnotation(Invocation.class);
+		if (invocation == null) types.error(source, "Typed reactors must declare @Invocation with verified argument conventions");
+		InvocationInfo conventions = invocation == null ? null : new InvocationInfo(invocation.mode(),
+				invocation.order().length == 0 && invocation.mode() != Invocation.Mode.NAMED
+						? inputs.stream().map(Input::name).toList() : List.of(invocation.order()),
+				invocation.variadic(), invocation.canOmitParameters());
+		Method method = signature.execution();
+		Output output = method.getDeclaredAnnotation(Output.class);
+		types.nonBlank(output.name(), source, "Output name");
+		types.nonBlank(output.description(), source, "Output description");
+		if (method.getAnnotationsByType(Returns.class).length > 0) types.error(source, "The execution return type defines the output; do not also use @Returns");
+		TypeUse resultType = types.read(method.getGenericReturnType(), method.getAnnotatedReturnType(), method, source + " return");
+		OperationContract result = finish(types, source, Kind.PIXEL, declaration.description(), policy(types, reactor, method),
+				deprecation(types, reactor, source), inputs,
+				List.of(new OperationContract.Output(resultType, -1, "", output.description(), output.name())), conventions, null);
+		if (!result.diagnostics().isEmpty()) throw new ContractException(result.diagnostics().stream()
+				.map(diagnostic -> new Diagnostic(Severity.ERROR, diagnostic.source(), diagnostic.message())).toList());
+		return new OperationContract(result.source(), result.kind(), result.description(), result.policy(), result.deprecation(),
+				result.inputs(), result.outputs(), result.invocation(), result.rest(), result.definitions(), result.diagnostics(),
+				declaration.name(), sorted(List.of(declaration.aliases())));
 	}
 
 	/** Read a REST method in its declaring resource. */
@@ -214,7 +276,7 @@ public final class ContractReader {
 	}
 
 	private static OperationContract finish(TypeReader types, String source, Kind kind, String description,
-			Policy policy, DeprecationInfo deprecation, List<Input> inputs, List<Output> outputs,
+			Policy policy, DeprecationInfo deprecation, List<Input> inputs, List<OperationContract.Output> outputs,
 			InvocationInfo invocation, RestInfo rest) {
 		if (description.isBlank()) types.warning(source, "Operation description is missing");
 		for (String reason : policy.ignoreReasons()) types.nonBlank(reason, source, "Ignore reason");
@@ -234,14 +296,14 @@ public final class ContractReader {
 		}
 		if (invocation != null) validateInvocation(types, source, invocation, inputs);
 		Set<String> responseKeys = new HashSet<>();
-		for (Output output : outputs) {
+		for (OperationContract.Output output : outputs) {
 			if (kind == Kind.REST && output.status() == -1) types.warning(source, "HTTP response status is unspecified");
 			if (output.status() != -1 && (kind == Kind.PIXEL || output.status() < 100 || output.status() > 599))
 				types.error(source, "Invalid response status " + output.status());
 			if (!responseKeys.add(output.status() + ":" + output.mediaType())) types.error(source, "Duplicate response status/media type");
 		}
-		inputs.sort(Comparator.comparing(Input::name));
-		outputs.sort(Comparator.comparingInt(Output::status).thenComparing(Output::mediaType));
+		inputs = inputs.stream().sorted(Comparator.comparing(Input::name)).toList();
+		outputs = outputs.stream().sorted(Comparator.comparingInt(OperationContract.Output::status).thenComparing(OperationContract.Output::mediaType)).toList();
 		types.check();
 		return new OperationContract(source, kind, description, policy, deprecation, inputs, outputs, invocation,
 				rest, types.definitions, types.diagnostics);
@@ -262,8 +324,8 @@ public final class ContractReader {
 			types.error(source, "Cannot omit parameters when an input is required or its requiredness is unknown");
 	}
 
-	private static List<Output> outputs(TypeReader types, AnnotatedElement element, Method method, String source) {
-		List<Output> outputs = new ArrayList<>();
+	private static List<OperationContract.Output> outputs(TypeReader types, AnnotatedElement element, Method method, String source) {
+		List<OperationContract.Output> outputs = new ArrayList<>();
 		for (Returns returns : element.getAnnotationsByType(Returns.class)) {
 			int[] statuses = returns.statuses().length == 0 ? new int[] { returns.status() }
 					: Arrays.stream(returns.statuses()).sorted().toArray();
@@ -280,13 +342,13 @@ public final class ContractReader {
 				type = types.read(returns.value(), null, element, responseSource);
 			}
 			for (int status : statuses) {
-				outputs.add(new Output(type.withNullable(returns.nullable() || type.nullable()), status, returns.mediaType(), returns.description()));
+				outputs.add(new OperationContract.Output(type.withNullable(returns.nullable() || type.nullable()), status, returns.mediaType(), returns.description()));
 			}
 		}
 		if (outputs.isEmpty()) {
 			TypeUse type = types.read(method == null ? Object.class : method.getGenericReturnType(),
 					method == null ? null : method.getAnnotatedReturnType(), element, source + " return");
-			outputs.add(new Output(type, -1, "", ""));
+			outputs.add(new OperationContract.Output(type, -1, "", ""));
 		}
 		return outputs;
 	}

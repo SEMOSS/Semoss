@@ -36,12 +36,20 @@ import java.util.Map;
 public record OperationContract(String source, Kind kind, String description, Policy policy,
 		DeprecationInfo deprecation, List<Input> inputs, List<Output> outputs,
 		InvocationInfo invocation, RestInfo rest, Map<String, TypeContract.ObjectType> definitions,
-		List<Diagnostic> diagnostics) {
+		List<Diagnostic> diagnostics, String name, List<String> aliases) {
 	public OperationContract {
 		inputs = List.copyOf(inputs);
 		outputs = List.copyOf(outputs);
 		definitions = Collections.unmodifiableMap(new LinkedHashMap<>(definitions));
 		diagnostics = List.copyOf(diagnostics);
+		aliases = List.copyOf(aliases);
+	}
+	public OperationContract(String source, Kind kind, String description, Policy policy,
+			DeprecationInfo deprecation, List<Input> inputs, List<Output> outputs,
+			InvocationInfo invocation, RestInfo rest, Map<String, TypeContract.ObjectType> definitions,
+			List<Diagnostic> diagnostics) {
+		this(source, kind, description, policy, deprecation, inputs, outputs, invocation, rest,
+				definitions, diagnostics, "", List.of());
 	}
 
 	public enum Kind { REST, PIXEL }
@@ -64,7 +72,11 @@ public record OperationContract(String source, Kind kind, String description, Po
 		public Input { aliases = List.copyOf(aliases); }
 	}
 	/** status -1 denotes an unspecified HTTP status, or a Pixel result. */
-	public record Output(TypeContract.TypeUse type, int status, String mediaType, String description) {}
+	public record Output(TypeContract.TypeUse type, int status, String mediaType, String description, String name) {
+		public Output(TypeContract.TypeUse type, int status, String mediaType, String description) {
+			this(type, status, mediaType, description, "");
+		}
+	}
 	public record InvocationInfo(Invocation.Mode mode, List<String> order, String variadic,
 			boolean canOmitParameters) {
 		public InvocationInfo { order = List.copyOf(order); }

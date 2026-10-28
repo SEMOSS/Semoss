@@ -299,7 +299,7 @@ final class TypeReader {
 		}
 		throw new IllegalArgumentException("Cannot resolve container " + type.getTypeName());
 	}
-	private static Type argument(Type type, int index) {
+	static Type argument(Type type, int index) {
 		return type instanceof ParameterizedType parameterized ? parameterized.getActualTypeArguments()[index] : Object.class;
 	}
 	static Class<?> raw(Type type) {
@@ -317,7 +317,7 @@ final class TypeReader {
 		if (type == BigDecimal.class) return "decimal";
 		return "";
 	}
-	private static Map<TypeVariable<?>, Type> variables(Type type) {
+	static Map<TypeVariable<?>, Type> variables(Type type) {
 		Map<TypeVariable<?>, Type> result = new HashMap<>();
 		if (type instanceof ParameterizedType parameterized && raw(type) != null) {
 			TypeVariable<?>[] names = raw(type).getTypeParameters();
@@ -434,7 +434,7 @@ final class TypeReader {
 		return qualifiers + identity(type, annotated);
 	}
 	private static String quoted(String value) { return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""; }
-	private static Type resolve(Type type, Map<TypeVariable<?>, Type> variables) {
+	static Type resolve(Type type, Map<TypeVariable<?>, Type> variables) {
 		if (type instanceof TypeVariable<?> variable) return variables.getOrDefault(variable, variable);
 		if (type instanceof ParameterizedType parameterized) {
 			Type[] args = Arrays.stream(parameterized.getActualTypeArguments()).map(arg -> resolve(arg, variables)).toArray(Type[]::new);

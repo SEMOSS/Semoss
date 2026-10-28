@@ -1,8 +1,8 @@
 # REST and Pixel operation contracts
 
-`prerna.contract` describes wire contracts for documentation and future TypeScript
-and Python client generators. Monolith consumes the same classes through its
-existing SEMOSS dependency. No catalog exporter or SDK generator is included yet.
+`prerna.contract` describes wire contracts for documentation and SDK generation. Monolith consumes the same classes through its
+existing SEMOSS dependency. Monolith exports a single OpenAPI artifact; semoss-ui consumes it to generate TypeScript.
+The format also supports a future Python generator.
 
 Two examples are implemented: Monolith's `HealthResource.readiness` and SEMOSS's
 [`StopPixelExecutionReactor`](../../src/prerna/reactor/StopPixelExecutionReactor.java).
@@ -73,83 +73,111 @@ non-null. `@BeanParam` needs explicit flattened metadata and is reported as a ga
 The reader's path is relative to the owning JAX-RS application. `/health` comes
 from application/servlet registration and is outside this reader's scope.
 
-## Reactors using AbstractReactor2
+## Reactors using actual input/output records
 
-[`AbstractReactor2`](../../src/prerna/reactor/AbstractReactor2.java) extends the
-existing base and derives keys, required flags, descriptions, and input/output
-schemas directly from annotations on the reactor class. Declare the contract
-above the class and implement `execute()` as before. No metadata provider,
-builder, constructor, or metadata method overrides are needed:
+[`AbstractReactor2<I, O>`](../../src/prerna/reactor/AbstractReactor2.java) binds Pixel
+arguments to the actual input record and invokes `protected O execute(I input)`.
+Annotate the components where their Java types are defined. The execution return
+type supplies the output shape; no duplicate type/class/schema declaration is needed.
+Keep small operation-specific records inside the reactor:
 
 ```java
-@Description("Echoes an identifier.")
-@Parameter(name = "id", type = String.class, required = true,
-           description = "Identifier to echo.")
-@Returns(value = String.class, description = "The identifier.")
-@Invocation(mode = Invocation.Mode.BOTH, order = "id")
-public class Echo2Reactor extends AbstractReactor2 {
+@Reactor(name = "Echo", description = "Echoes an identifier.")
+@Invocation(mode = Invocation.Mode.BOTH)
+public class EchoReactor extends AbstractReactor2<EchoReactor.Input, String> {
+    public record Input(
+        @Key(description = "Identifier to echo.") String id
+    ) {}
+
     @Override
-    public NounMetadata execute() {
-        organizeKeys();
-        return new NounMetadata(keyValue.get("id"), PixelDataType.CONST_STRING);
+    @Output(name = "message", description = "The echoed identifier.")
+    protected String execute(Input input) {
+        return input.id();
     }
 }
 ```
 
-Import the contract annotations from `prerna.contract`,
-`AbstractReactor2` from `prerna.reactor`, and the usual Pixel noun classes.
+Import annotations from `prerna.contract`. `@Reactor` supplies the callable name,
+description and optional operation aliases. Names/aliases must match the existing
+reactor registry; metadata does not register or rename operations. `@Key` supplies a component's description,
+optional wire-name override (`name`), and aliases; its Java type defines its shape.
+Keys are required and non-null by default. `@Output` names and describes the actual
+return value. Its name is exported as the schema `title`, not a new payload property.
+`StopPixelExecutionReactor` uses this pattern and still produces a string with the
+existing cancellation messages, permission checks and `OPERATION` flag.
 
-`StopPixelExecutionReactor` follows this pattern. Its `id` key, required flag,
-help strings, and schemas come from its class annotations. Its cancellation
-implementation is unchanged. Reading an annotated reactor's contract does not
-construct or initialize the reactor.
+For complex data, return a record and actually construct it in execution:
 
-Use repeated `@Parameter` annotations for additional inputs. Set `aliases` for
-alternate spellings and `nullable = true` when explicit null is valid. Apply
-`@Ignore`, `@Internal`, `@Deprecated`, and `@Deprecation` directly to the class.
-Policies describe client use and do not change authorization or MCP registration.
+```java
+public record Item(@Description("Item identifier.") String id) {}
+public record Page(
+    @Description("Matching items.") List<Item> items,
+    @Description("Total matches.") long total
+) {}
+```
 
-### Argument semantics
+A reactor returning `Page` extends `AbstractReactor2<Input, Page>` and implements
+`protected Page execute(Input input)`. Lists, string-keyed maps, enums and nested
+records can appear in actual input/output types. No separate documentation-only
+record is required for these typed reactors.
 
-- An argument declares a logical wire value. An array type denotes a list value;
-  clients still apply Pixel's noun-row/vector serialization rules.
-- `@Parameter` declares aliases and nullability. Aliases are alternate
-  spellings of one canonical input, not additional required inputs.
-- `@Invocation` is required for `AbstractReactor2`; the base reports an actionable
-  error if it is missing. `NAMED`, `POSITIONAL`, and `BOTH` describe verified
-  invocation styles. Positional order must name every argument once. A nonempty
-  variadic name must be last.
-- `canOmitParameters` is independent of individual optional inputs. It defaults
-  to false; asserting true while an input is required is rejected.
-- The base preserves existing `organizeKeys()` and `checkOptional()` behavior.
-  Type metadata adds no runtime type validation. Complex positional/variadic
-  interpretation still belongs in the reactor's existing execution code.
-- Output metadata describes the serialized Pixel output, not `NounMetadata` or a
-  Java frame/task object. Use a wire record when serialization transforms the value.
+### Enforcement
 
-Existing specialized bases are unchanged. A reactor that needs one should keep
-it until that base explicitly adopts the contract mechanism. Class-level
-`@Description`, repeated `@Parameter`/`@Returns`, and `@Invocation` are also readable
-on legacy reactors without changing their inheritance. Only `AbstractReactor2`
-automatically derives runtime keys and metadata hooks from those declarations.
+- Java checks the input record and return type against the generic base. Returning
+  a map from `execute(Input)` declared to return `Page` is a compilation error.
+- `ContractReader` requires a concrete typed execution declaration, `@Reactor`,
+  descriptions, `@Key` on each input component, `@Output` and `@Invocation`. It
+  rejects conflicting metadata, unresolved types and invalid invocation declarations
+  before export, and when constructing an adopted reactor. This metadata validation
+  is an export/startup check, **not an annotation processor in `javac`**.
+- The final public `NounMetadata execute()` entry point binds and validates input
+  values, invokes typed execution, converts the result to its wire representation,
+  and validates output shape/nullability. Optional primitive inputs must be boxed.
+  Numeric conversions reject fractional integers and overflow; strings are not
+  implicitly coerced from numbers. Business correctness and description accuracy
+  still need operation tests.
+- Contract reads are cached per concrete class and do not initialize, instantiate
+  or execute the reactor. Input record constructors run only during actual invocation.
+- The output bridge retains scalar Pixel noun types. Structured/nullable values use
+  the existing `JSON_OBJECT` serializer to preserve explicit null fields. Operation
+  flags can be customized with `outputOperationTypes()` without bypassing typed output.
 
-### Reusing a programmatic definition
+### Argument and field semantics
 
-Existing `@ReactorMetadata(SomeProvider.class)` definitions remain supported when
-a shared programmatic definition is useful. The provider implements
-`ReactorDefinition.Provider` and returns an immutable definition using
-`ReactorDefinition.builder(...)`. Its builder supports `.internal(reason)`,
-`.ignore(reason)`, and `.deprecated(since, forRemoval, reason, replacement)`.
+- `@Invocation` explicitly selects `NAMED`, `POSITIONAL`, or `BOTH`. For typed reactors,
+  omitted positional `order` derives from record component order. An explicit order
+  must list every key once. Reordering the record can change positional compatibility.
+- Arrays/collections are list values. A key becomes variadic only through an explicit
+  `variadic` declaration, and must be last in positional order.
+- Named keys and aliases address one canonical value. Duplicate spellings in a call,
+  unsupported argument modes and excess positional values are rejected. Mixed calls
+  fill unbound keys from the positional row in declared order.
+- `@Optional` means a key/field may be absent; its missing Java value is null.
+  `@Nullable` separately permits an explicit null. Nullable does not imply optional.
+  Optional non-null record fields whose value is null are omitted on output; nullable
+  fields are emitted as JSON null. A plain Java reference cannot distinguish absent
+  from explicit null when both are permitted.
+- Input records must be public. The default binder supports JSON-compatible scalar,
+  record, array, List/Set and Map values. Custom collection classes, DTO constructors,
+  polymorphic input interfaces and internal frame/task/query objects need a dedicated
+  binding adapter; the schema reader's ability to describe a type does not imply that
+  the default runtime binder can construct it. Unsupported binding fails explicitly.
+- `@Format` remains a descriptive wire hint, not an additional runtime constraint.
+  Recursive schemas are supported; actual cyclic/deep values are rejected.
 
-Use either a provider or direct description/parameter/return/invocation annotations.
-Combining those two sources is rejected; class policy annotations may accompany
-either style. Direct annotations are the recommended starting point.
+### Existing reactors and specialized bases
 
-Providers must be pure: no database access, services, environment-dependent
-branches, clock reads, or registration changes. They have a public no-argument
-constructor. Java initialization and provider code do execute; the reader is not
-a sandbox for untrusted Java code. The enclosing reactor is not constructed or
-initialized by reading a pure nested provider.
+Legacy reactors keep their existing inheritance, execution, noun-store handling and
+metadata hooks. They can still use class-level `@Description`, `@Parameter`, `@Returns`
+and `@Invocation` with `ContractReader`. Existing `@ReactorMetadata` providers also
+remain readable for compatibility. These are documentation contracts, not typed binding.
+Do not combine them with a typed reactor's declarations.
+
+Adopt the record execution boundary per reactor. Frame/task/query pipelines that
+exchange internal objects need compatible runtime adapters before switching to this
+base; this change does not pretend their wire result is their internal Java object.
+The reader and OpenAPI model remain independent of the runtime inheritance hierarchy.
+Apply `@Ignore`, `@Internal`, `@Deprecated` and `@Deprecation` on the reactor as before.
 
 ## Wire types
 
@@ -170,7 +198,7 @@ public record Result(
 public final class ResultPages extends TypeRef<Map<String, List<Result>>> {}
 ```
 
-Each public type belongs in its own file. `TypeRef<T>` supplies a class literal
+Shared top-level public types belong in their own files; operation-specific records may be nested in their reactor. `TypeRef<T>` supplies a class literal
 for a generic root, for example `@Returns(ResultPages.class)` or
 `.returns(ResultPages.class, "Results grouped by page.")`; it is never constructed.
 
@@ -248,23 +276,71 @@ warnings. Contradictions throw `ContractException`; callers must not generate a
 client from an invalid contract. `ContractSchemas` produces fresh JSON Schema
 views for the new base's help/MCP metadata; it is not a catalog exporter.
 
-TypeScript and Python generators should consume the same wire identities and
-type graph. They own language-specific identifier escaping, class/interface names,
+TypeScript and future Python generators consume the backend OpenAPI document.
+The Java wire graph is an internal backend representation. They own language-specific identifier escaping, class/interface names,
 imports, and numeric representations. Preserve integer/decimal formats, null versus
 absence, HTTP status/media distinctions, and Pixel argument conventions. A partial
 contract must remain partial; it must not become an invented precise client type.
+
+## Backend OpenAPI export
+
+`OpenApiExporter` converts selected `OperationContract` values into OpenAPI 3.1.
+It shares the wire-schema renderer with `ContractSchemas`, using stable local
+`components.schemas` references instead of exposing the internal Java graph.
+Monolith's `ExportOpenApi` owns the initial readiness/cancellation selection and
+combines REST and Pixel metadata without constructing or executing operations.
+
+After building/installing the matching SEMOSS artifact, run in Monolith:
+
+```sh
+mvn -Pcontracts -Dlicense.skip=true process-classes
+```
+
+The ignored output is `target/contracts/openapi.json`. Do not commit or publish
+it, or copy it into semoss-ui. The frontend generator reads it directly with
+`pnpm --filter @semoss/sdk generate --openapi /absolute/path/to/openapi.json`.
+Only generated TypeScript and sync provenance/file ownership are checked in.
+No Java or backend checkout is needed in the frontend generation environment.
+
+REST routes, parameters and responses use standard OpenAPI fields. The application
+path supplies the resource-group tag, while the selection provides a stable
+`operationId`. Schemas preserve integer/decimal types, enums, wire names, required
+fields, nullable values, maps, unions and recursive references. The export rejects
+incomplete contracts and unsupported request bindings instead of inventing shapes.
+
+`x-semoss-pixels` has `schemaVersion: 1` and a `reactors` object keyed by registered
+name. Each reactor carries a description, JSON Schema `inputSchema` and
+`outputSchema`, and `invocation` with `mode`, `order`, `variadic` (name or null), and
+`canOmitParameters`. Inputs describe canonical names; property `x-semoss-aliases`
+lists accepted aliases. SDK adapters normalize these aliases and serialize the
+verified named/positional invocation. The output schema describes the value inside
+the Pixel result, not the transport envelope. No synthetic REST route is created
+for a reactor.
+
+Operation extensions `x-semoss-ignore` and `x-semoss-internal` retain arrays of
+policy reasons. Java deprecation becomes `deprecated: true` plus
+`x-semoss-deprecation` (`since`, `forRemoval`, `reason`, `replacement`). Schema
+annotations `x-contract-status` and `x-contract-reason` retain dynamic/unverified
+knowledge, and `x-no-content` identifies an absent Pixel output. Incomplete or
+unverified contracts fail before export. These extensions are interpreted by the
+SEMOSS SDK adapter; general OpenAPI tools can consume the REST surface.
+
+The initial frontend adapter supports JSON GET operations with scalar path/query
+or repeated query parameters. Other verbs, bodies, response headers, remote
+references and other unsupported schema features require an adapter before SDK
+generation. Backend selection remains explicit; there is no full catalog scan.
 
 ## Verification
 
 From SEMOSS, under JDK 21:
 
 ```bash
-mvn -Dtest=ContractReaderUnitTests,AbstractReactor2UnitTests test
+mvn -Dtest=ContractReaderUnitTests,OpenApiExporterUnitTests,AbstractReactor2UnitTests test
 ```
 
 The tests cover metadata without operation initialization, policies, contradictory
 declarations, generic and recursive schemas, optional/null values, stable results,
-derived runtime keys, aliases, and the actual Pixel output serializer. If unrelated
+derived runtime keys, aliases, typed record binding, compiler rejection of incorrect result types, and the actual Pixel output serializer. If unrelated
 test sources fail compilation, run the focused tests after compiling production
 sources, without modifying the Maven build configuration:
 
@@ -275,8 +351,9 @@ contract_classpath="target/classes:$(cat target/contract-classpath.txt)"
 mkdir -p target/test-classes
 javac --release 21 -proc:none -cp "$contract_classpath" -d target/test-classes \
     test/prerna/contract/ContractReaderUnitTests.java \
+    test/prerna/contract/OpenApiExporterUnitTests.java \
     test/prerna/reactor/AbstractReactor2UnitTests.java
-mvn -Dtest=ContractReaderUnitTests,AbstractReactor2UnitTests surefire:test
+mvn -Dtest=ContractReaderUnitTests,OpenApiExporterUnitTests,AbstractReactor2UnitTests surefire:test
 ```
 
 Build/install SEMOSS before compiling Monolith, with matching `ci.version` values
