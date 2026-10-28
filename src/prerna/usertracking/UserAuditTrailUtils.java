@@ -105,6 +105,14 @@ public final class UserAuditTrailUtils {
 	public static final String AGENT_NAME_CONTEXT_KEY = "auditAgentName";
 	public static final String AGENT_RUN_ID_CONTEXT_KEY = "auditAgentRunId";
 
+	/**
+	 * Detail keys: the pixel name of the reactor an event or a failure came from,
+	 * and an export's project type and whether it kept the version history.
+	 */
+	private static final String REACTOR_DETAIL = "reactor";
+	private static final String PROJECT_TYPE_DETAIL = "projectType";
+	private static final String KEEP_GIT_DETAIL = "keepGit";
+
 	/** Insert order of every column in {@code USER_AUDIT_EVENTS}. */
 	public static final List<String> COLUMNS = List.of("EVENT_ID", "EVENT_TIME", "EVENT_OCCURRED_TIME", "EVENT_TYPE",
 			"ACTION", "STATUS", "CATEGORY", "SEVERITY", "ACTOR_USER_ID", "ACTOR_USER_TYPE", "ACTOR_USER_NAME",
@@ -154,6 +162,9 @@ public final class UserAuditTrailUtils {
 			Map.entry("UploadProject", new AuditedAction(AuditEventType.PROJECT_UPLOAD, AuditTargetType.PROJECT)),
 			Map.entry("UploadProjectApp", new AuditedAction(AuditEventType.PROJECT_UPLOAD, AuditTargetType.PROJECT)),
 			Map.entry("DeleteProject", new AuditedAction(AuditEventType.PROJECT_DELETE, AuditTargetType.PROJECT)),
+			Map.entry("ExportProject", new AuditedAction(AuditEventType.PROJECT_EXPORT, AuditTargetType.PROJECT)),
+			Map.entry("ExportProjectApp", new AuditedAction(AuditEventType.PROJECT_EXPORT, AuditTargetType.PROJECT)),
+			Map.entry("ExportApp", new AuditedAction(AuditEventType.PROJECT_EXPORT, AuditTargetType.PROJECT)),
 			Map.entry("UploadEngine", new AuditedAction(AuditEventType.ENGINE_CREATE, AuditTargetType.ENGINE)),
 			Map.entry("CloneEngine", new AuditedAction(AuditEventType.ENGINE_CREATE, AuditTargetType.ENGINE)),
 			Map.entry("CreateModelEngine", new AuditedAction(AuditEventType.MODEL_CREATE, AuditTargetType.MODEL)),
@@ -169,6 +180,8 @@ public final class UserAuditTrailUtils {
 			Map.entry("CreateVenvEngine", new AuditedAction(AuditEventType.ENGINE_CREATE, AuditTargetType.VENV)),
 			Map.entry("DeleteEngine", new AuditedAction(AuditEventType.ENGINE_DELETE, AuditTargetType.ENGINE)),
 			Map.entry("DeleteDatabase", new AuditedAction(AuditEventType.ENGINE_DELETE, AuditTargetType.DATABASE)),
+			Map.entry("ExportEngine", new AuditedAction(AuditEventType.ENGINE_EXPORT, AuditTargetType.ENGINE)),
+			Map.entry("ExportDatabase", new AuditedAction(AuditEventType.ENGINE_EXPORT, AuditTargetType.DATABASE)),
 			Map.entry("SetEngineMetadata",
 					new AuditedAction(AuditEventType.ENGINE_METADATA_UPDATE, AuditTargetType.ENGINE)),
 			Map.entry("SetEngineDisplayName",
@@ -498,6 +511,46 @@ public final class UserAuditTrailUtils {
 	}
 
 	/**
+	 * Records that a project was exported for download, once its archive is built.
+	 *
+	 * @param user        the user who exported it
+	 * @param projectId   the project's id
+	 * @param projectName the project's name
+	 * @param projectType the project's type, or null when it has none
+	 * @param reactor     the pixel name of the reactor that exported it, such as
+	 *                    ExportProjectApp
+	 * @param keepGit     whether the archive kept the version history, or null for
+	 *                    an export that never includes it
+	 */
+	public static void recordProjectExport(User user, String projectId, String projectName, String projectType,
+			String reactor, Boolean keepGit) {
+		Map<String, Object> details = new LinkedHashMap<>();
+		putIfPresent(details, REACTOR_DETAIL, reactor);
+		putIfPresent(details, PROJECT_TYPE_DETAIL, projectType);
+		putIfPresent(details, KEEP_GIT_DETAIL, keepGit);
+		recordProjectLifecycle(user, AuditEventType.PROJECT_EXPORT, projectId, projectName, details);
+	}
+
+	/**
+	 * Records that an engine was exported for download, once its archive is built.
+	 *
+	 * @param user       the user who exported it
+	 * @param targetType what kind of engine it is
+	 * @param engineId   the engine's id
+	 * @param engineName the engine's name
+	 * @param reactor    the pixel name of the reactor that exported it, such as
+	 *                   ExportEngine
+	 * @param keepGit    whether the archive kept the engine's version history
+	 */
+	public static void recordEngineExport(User user, AuditTargetType targetType, String engineId, String engineName,
+			String reactor, boolean keepGit) {
+		Map<String, Object> details = new LinkedHashMap<>();
+		putIfPresent(details, REACTOR_DETAIL, reactor);
+		details.put(KEEP_GIT_DETAIL, keepGit);
+		recordEngineLifecycle(user, AuditEventType.ENGINE_EXPORT, targetType, engineId, engineName, details);
+	}
+
+	/**
 	 * Records a lifecycle event for any other resource (automation, skill, job, API
 	 * key, platform configuration).
 	 */
@@ -624,7 +677,7 @@ public final class UserAuditTrailUtils {
 			// Pixel failures are separate operations, even inside the same HTTP request.
 
 			Map<String, Object> details = new LinkedHashMap<>();
-			putIfPresent(details, "reactor", reactor);
+			putIfPresent(details, REACTOR_DETAIL, reactor);
 			if (insight != null) {
 				putIfPresent(details, "insightId", insight.getInsightId());
 			}
