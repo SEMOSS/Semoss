@@ -36,6 +36,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -55,7 +56,8 @@ import prerna.util.git.GitRepoUtils;
  * The owner's reference documents for one of their routines: a folder in their user assets at
  * collaboration/routines/{routineId}. Routines shows it in the user-assets file explorer, where the owner uploads,
  * edits, renames and deletes with the user asset reactors; before a run's agent step starts, the automation copies
- * the folder's files into the run room's documents folder, so a run reads a copy and never the originals.
+ * the folder's files into the run room's documents folder, so a run reads a copy and never the originals. An email
+ * file arrives as its text, since neither the models nor the document reader take .eml or .msg.
  */
 public final class WorkRoutineDocuments {
 	private static final Logger classLogger = LogManager.getLogger(WorkRoutineDocuments.class);
@@ -97,7 +99,7 @@ public final class WorkRoutineDocuments {
 		}
 	}
 
-	/** Copies the documents into the room's documents folder; the names copied, sorted. */
+	/** Copies the documents into the room's documents folder, an email file as its text; the names copied, sorted. */
 	public static List<String> copyInto(User user, String routineId, String roomFolder) throws IOException {
 		requireRoutine(user, routineId);
 		return copyInto(folder(user, routineId), Path.of(roomFolder, FOLDER));
@@ -110,12 +112,12 @@ public final class WorkRoutineDocuments {
 		}
 	}
 
-	/** The document names, sorted, for the routine's command. */
+	/** The document names as a run sees them, sorted, for the routine's command. */
 	public static List<String> names(User user, String routineId) {
 		try {
 			List<String> names = new ArrayList<>();
 			for (Path file : files(folder(user, routineId))) {
-				names.add(file.getFileName().toString());
+				names.add(copyName(file.getFileName().toString()));
 			}
 			return names;
 		} catch (IOException e) {
@@ -144,10 +146,31 @@ public final class WorkRoutineDocuments {
 		Files.createDirectories(target);
 		for (Path file : files) {
 			String fileName = file.getFileName().toString();
-			Files.copy(file, target.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
-			names.add(fileName);
+			Path copy = target.resolve(copyName(fileName));
+			if (copy.getFileName().toString().equals(fileName) || !copyAsText(file, copy)) {
+				Files.copy(file, copy, StandardCopyOption.REPLACE_EXISTING);
+			}
+			names.add(copy.getFileName().toString());
 		}
 		return names;
+	}
+
+	// an email file is read as "<name>.txt", the way Brain reads a mail attachment
+	private static String copyName(String fileName) {
+		String lower = fileName.toLowerCase(Locale.ROOT);
+		return lower.endsWith(".eml") || lower.endsWith(".msg") ? fileName + ".txt" : fileName;
+	}
+
+	// false when it cannot be read as an email; the caller then copies it as it is, under the same name
+	private static boolean copyAsText(Path file, Path copy) {
+		try {
+			Files.writeString(copy, BrainAttachmentText.extract(file, file.getFileName().toString(), "",
+					BrainAttachmentText.MAX_CHARS).text());
+			return true;
+		} catch (Exception e) {
+			classLogger.warn("Could not read {} as an email; copying it as it is", file.getFileName(), e);
+			return false;
+		}
 	}
 
 	// regular, visible files, sorted by name; none for a missing folder. Subfolders the owner makes are not copied.
