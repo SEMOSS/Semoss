@@ -32,6 +32,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -289,6 +290,30 @@ public abstract class AbstractStorageEngine extends AbstractEngine implements IS
 			}
 		} catch (IOException e) {
 			classLogger.error("Error while deleting empty directories", e);
+		}
+	}
+
+	/**
+	 * Stamps a freshly downloaded file with the stored object's last modified time,
+	 * the way rclone did. Without it the file carries the time it was pulled, so
+	 * anything reading the local timestamp (such as the documents listed for a vector
+	 * database) reports the pull time instead of when the file was actually written.
+	 * It also keeps needsDownload comparing like with like.
+	 *
+	 * A failure here is logged and not rethrown, since the download itself worked.
+	 *
+	 * @param localFile                the file that was just written
+	 * @param storedLastModifiedMillis the stored object's last modified time, or null
+	 *                                 to leave the local time alone
+	 */
+	protected void applyStoredLastModified(Path localFile, Long storedLastModifiedMillis) {
+		if (storedLastModifiedMillis == null) {
+			return;
+		}
+		try {
+			Files.setLastModifiedTime(localFile, FileTime.fromMillis(storedLastModifiedMillis));
+		} catch (IOException e) {
+			classLogger.warn("Unable to set the timestamp of {}", localFile, e);
 		}
 	}
 

@@ -595,10 +595,13 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 			}
 
 			BlobClient blobClient = containerClient.getBlobClient(blobName);
+			Long storedLastModified = properties == null || properties.getLastModified() == null ? null
+					: properties.getLastModified().toInstant().toEpochMilli();
 			transfers.add(() -> {
 				try {
 					retryOperation(() -> blobClient.downloadToFile(localFilePath.toString(), true),
 							"Syncing file to local: " + blobName);
+					applyStoredLastModified(localFilePath, storedLastModified);
 					classLogger.debug(fileExists ? "Updated file: {}" : "Downloaded new file: {}", localFilePath);
 					return new TransferOutcome(blobName, null);
 				} catch (Exception e) {
@@ -797,6 +800,8 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 					try {
 						retryOperation(() -> sourceClient.downloadToFile(localFilePath.toString(), true),
 								"Downloading file: " + transferLabel);
+						// the listed time belongs to the current version, not a named one
+						applyStoredLastModified(localFilePath, useVersion ? null : storedLastModified);
 						classLogger.debug("Downloaded file: {} -> {}", transferLabel, localFilePath);
 						return new TransferOutcome(blobName, null);
 					} catch (Exception e) {

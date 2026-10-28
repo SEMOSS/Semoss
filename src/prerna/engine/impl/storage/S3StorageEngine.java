@@ -508,6 +508,8 @@ public class S3StorageEngine extends AbstractStorageEngine {
 							throw new RuntimeException("Error writing file: " + localFilePath, e);
 						}
 					}, "Syncing file to local: " + key);
+					applyStoredLastModified(localFilePath,
+							s3Object.lastModified() == null ? null : s3Object.lastModified().toEpochMilli());
 					classLogger.debug(fileExists ? "Updated file: {}" : "Downloaded new file: {}", localFilePath);
 					return new TransferOutcome(key, null);
 				} catch (Exception e) {
@@ -692,6 +694,9 @@ public class S3StorageEngine extends AbstractStorageEngine {
 								throw new RuntimeException("Failed to download: " + key, e);
 							}
 						}, "Downloading file: " + key);
+						// the listed time belongs to the current version, not a named one
+						applyStoredLastModified(localFilePath, useVersion || s3Object.lastModified() == null ? null
+								: s3Object.lastModified().toEpochMilli());
 						classLogger.debug("Downloaded file: {}", localFilePath);
 						return new TransferOutcome(key, null);
 					} catch (Exception e) {

@@ -507,6 +507,8 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 						// running at once
 						blob.downloadTo(localFilePath);
 					}, "Syncing file to local: " + blob.getName());
+					applyStoredLastModified(localFilePath, blob.getUpdateTimeOffsetDateTime() == null ? null
+							: blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli());
 					classLogger.debug(fileExists ? "Updated file: {}" : "Downloaded new file: {}", localFilePath);
 					return new TransferOutcome(blob.getName(), null);
 				} catch (Exception e) {
@@ -687,6 +689,8 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 				transfers.add(() -> {
 					try {
 						retryOperation(() -> downloadFile(blob, localFilePath), "Downloading file: " + blobName);
+						applyStoredLastModified(localFilePath, blob.getUpdateTimeOffsetDateTime() == null ? null
+								: blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli());
 						classLogger.debug("Downloaded file: {}", localFilePath);
 						return new TransferOutcome(blobName, null);
 					} catch (Exception e) {
