@@ -851,6 +851,19 @@ class WorkInboxRoutineUnitTests {
 	}
 
 	@Test
+	void expenseReviewSaveAnswersWithTheSameShapeAsItsRead() {
+		Insight insight = mock(Insight.class);
+		when(insight.getUser()).thenReturn(user);
+		Map<String, Object> saved = WorkExpenseRoutine.save(user,
+				Map.of("enabled", false, "timezone", "UTC", "recipients", List.of("jbell@deloitte.com")));
+		// Routines parses both answers with one schema; a save without the folder and subjects was rejected there
+		assertEquals(WorkExpenseRoutine.get(insight), saved);
+		assertEquals(WorkExpenseRoutine.DOCUMENTS_ID, saved.get("documentsId"));
+		assertEquals(WorkExpenseRoutine.SUBJECTS, saved.get("subjects"));
+		assertEquals(List.of("jbell@deloitte.com"), saved.get("recipients"));
+	}
+
+	@Test
 	void flowAllowsOnlyDisplayFieldsIncludingInsidePosition() {
 		Map<String, Object> flow = WorkRoutine.flow(JsonParser.parseString("""
 				{
