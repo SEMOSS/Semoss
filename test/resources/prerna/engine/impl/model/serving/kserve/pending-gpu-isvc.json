@@ -1,0 +1,99 @@
+{
+  "apiVersion": "serving.kserve.io/v1beta1",
+  "kind": "InferenceService",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"serving.kserve.io/v1beta1\",\"kind\":\"InferenceService\",\"metadata\":{\"annotations\":{\"serving.kserve.io/deploymentMode\":\"Standard\",\"serving.kserve.io/stop\":\"true\"},\"labels\":{\"app.kubernetes.io/managed-by\":\"semoss-verify\"},\"name\":\"semoss-verify-pending\",\"namespace\":\"semoss\"},\"spec\":{\"predictor\":{\"maxReplicas\":1,\"minReplicas\":1,\"model\":{\"args\":[\"--gpu-memory-utilization=0.2\"],\"modelFormat\":{\"name\":\"vllm\"},\"resources\":{\"limits\":{\"nvidia.com/gpu\":\"1\"},\"requests\":{\"cpu\":\"1\",\"memory\":\"2Gi\"}},\"runtime\":\"nvidia-vllm\",\"storageUri\":\"hf://allenai/OLMo-2-0425-1B-Instruct\"}}}}\n",
+      "modelFormat": "vllm",
+      "serving.kserve.io/deploymentMode": "Standard",
+      "serving.kserve.io/stop": "false"
+    },
+    "creationTimestamp": "2026-10-27T00:00:20Z",
+    "finalizers": [
+      "inferenceservice.finalizers"
+    ],
+    "generation": 1,
+    "labels": {
+      "app.kubernetes.io/managed-by": "semoss-verify"
+    },
+    "name": "semoss-verify-pending",
+    "namespace": "semoss",
+    "resourceVersion": "728860",
+    "uid": "a32f09e3-ecb3-4df2-a5a3-9273b4cec6c1"
+  },
+  "spec": {
+    "predictor": {
+      "maxReplicas": 1,
+      "minReplicas": 1,
+      "model": {
+        "args": [
+          "--gpu-memory-utilization=0.2"
+        ],
+        "modelFormat": {
+          "name": "vllm"
+        },
+        "name": "",
+        "resources": {
+          "limits": {
+            "nvidia.com/gpu": "1"
+          },
+          "requests": {
+            "cpu": "1",
+            "memory": "2Gi"
+          }
+        },
+        "runtime": "nvidia-vllm",
+        "storageUri": "hf://allenai/OLMo-2-0425-1B-Instruct"
+      }
+    }
+  },
+  "status": {
+    "address": {
+      "url": "http://semoss-verify-pending-predictor.semoss.svc.cluster.local"
+    },
+    "clusterServingRuntimeName": "nvidia-vllm",
+    "components": {
+      "predictor": {}
+    },
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-27T00:00:42Z",
+        "status": "True",
+        "type": "IngressReady"
+      },
+      {
+        "lastTransitionTime": "2026-10-27T00:00:42Z",
+        "message": "Deployment does not have minimum availability.",
+        "reason": "MinimumReplicasUnavailable",
+        "status": "False",
+        "type": "PredictorReady"
+      },
+      {
+        "lastTransitionTime": "2026-10-27T00:00:42Z",
+        "message": "Deployment does not have minimum availability.",
+        "reason": "MinimumReplicasUnavailable",
+        "status": "False",
+        "type": "Ready"
+      },
+      {
+        "lastTransitionTime": "2026-10-27T00:00:42Z",
+        "severity": "Info",
+        "status": "False",
+        "type": "Stopped"
+      }
+    ],
+    "deploymentMode": "Standard",
+    "modelStatus": {
+      "copies": {
+        "failedCopies": 0
+      },
+      "states": {
+        "activeModelState": "",
+        "targetModelState": "Pending"
+      },
+      "transitionStatus": "InProgress"
+    },
+    "observedGeneration": 1,
+    "url": "http://semoss-verify-pending-semoss.example.com"
+  }
+}

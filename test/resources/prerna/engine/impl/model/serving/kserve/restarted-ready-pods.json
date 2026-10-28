@@ -1,0 +1,470 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "internal.serving.kserve.io/storage-initializer-sourceuri": "hf://allenai/OLMo-2-0425-1B-Instruct",
+          "prometheus.kserve.io/path": "/metrics",
+          "prometheus.kserve.io/port": "8080",
+          "serving.kserve.io/deploymentMode": "Standard",
+          "serving.kserve.io/enable-metric-aggregation": "false",
+          "serving.kserve.io/enable-prometheus-scraping": "false",
+          "serving.kserve.io/stop": "false"
+        },
+        "creationTimestamp": "2026-10-26T23:57:07Z",
+        "generateName": "olmo-2-1b-instruct-predictor-bfc8475f7-",
+        "generation": 1,
+        "labels": {
+          "app": "isvc.olmo-2-1b-instruct-predictor",
+          "component": "predictor",
+          "pod-template-hash": "bfc8475f7",
+          "serving.kserve.io/inferenceservice": "olmo-2-1b-instruct"
+        },
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t",
+        "namespace": "semoss",
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "ReplicaSet",
+            "name": "olmo-2-1b-instruct-predictor-bfc8475f7",
+            "uid": "1f0e96e5-1836-48f3-9362-7e550c88ff3c"
+          }
+        ],
+        "resourceVersion": "728670",
+        "uid": "80816169-5bb8-4aca-88c7-2548acbf5ee8"
+      },
+      "spec": {
+        "containers": [
+          {
+            "args": [
+              "--served-model-name=olmo-2-1b-instruct",
+              "--host=0.0.0.0",
+              "--port=8080",
+              "--gpu-memory-utilization=0.5",
+              "--gpu-memory-utilization=0.2"
+            ],
+            "command": [
+              "vllm",
+              "serve",
+              "/mnt/models"
+            ],
+            "env": [
+              {
+                "name": "HF_HUB_OFFLINE",
+                "value": "1"
+              },
+              {
+                "name": "INFERENCE_SERVICE_NAME",
+                "value": "olmo-2-1b-instruct"
+              }
+            ],
+            "image": "nvcr.io/nvidia/vllm:25.11-py3",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "kserve-container",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "name": "http1",
+                "protocol": "TCP"
+              }
+            ],
+            "readinessProbe": {
+              "failureThreshold": 3,
+              "httpGet": {
+                "path": "/health",
+                "port": 8080,
+                "scheme": "HTTP"
+              },
+              "periodSeconds": 10,
+              "successThreshold": 1,
+              "timeoutSeconds": 1
+            },
+            "resources": {
+              "limits": {
+                "nvidia.com/gpu": "1"
+              },
+              "requests": {
+                "cpu": "2",
+                "memory": "4Gi",
+                "nvidia.com/gpu": "1"
+              }
+            },
+            "startupProbe": {
+              "failureThreshold": 180,
+              "httpGet": {
+                "path": "/health",
+                "port": 8080,
+                "scheme": "HTTP"
+              },
+              "periodSeconds": 10,
+              "successThreshold": 1,
+              "timeoutSeconds": 1
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/dev/shm",
+                "name": "devshm"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-mt6tf",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/mnt/models",
+                "name": "kserve-provision-location",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "initContainers": [
+          {
+            "args": [
+              "hf://allenai/OLMo-2-0425-1B-Instruct",
+              "/mnt/models"
+            ],
+            "env": [
+              {
+                "name": "HF_HUB_ENABLE_HF_TRANSFER",
+                "value": "1"
+              },
+              {
+                "name": "HF_XET_HIGH_PERFORMANCE",
+                "value": "1"
+              },
+              {
+                "name": "HF_XET_NUM_CONCURRENT_RANGE_GETS",
+                "value": "8"
+              }
+            ],
+            "image": "kserve/storage-initializer:v0.21.0",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "storage-initializer",
+            "resources": {
+              "limits": {
+                "cpu": "2",
+                "memory": "4Gi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "runAsNonRoot": true
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeMounts": [
+              {
+                "mountPath": "/mnt/models",
+                "name": "kserve-provision-location"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-mt6tf",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "nodeName": "spark-cbde",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {},
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "emptyDir": {
+              "medium": "Memory",
+              "sizeLimit": "4Gi"
+            },
+            "name": "devshm"
+          },
+          {
+            "name": "kube-api-access-mt6tf",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "emptyDir": {},
+            "name": "kserve-provision-location"
+          }
+        ]
+      },
+      "status": {
+        "allocatedResources": {
+          "cpu": "2",
+          "memory": "4Gi",
+          "nvidia.com/gpu": "1"
+        },
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-10-26T23:57:07Z",
+            "observedGeneration": 1,
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-10-26T23:57:46Z",
+            "observedGeneration": 1,
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-10-26T23:59:07Z",
+            "observedGeneration": 1,
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-10-26T23:59:07Z",
+            "observedGeneration": 1,
+            "status": "True",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-10-26T23:57:07Z",
+            "observedGeneration": 1,
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "allocatedResources": {
+              "cpu": "2",
+              "memory": "4Gi",
+              "nvidia.com/gpu": "1"
+            },
+            "allocatedResourcesStatus": [
+              {
+                "name": "nvidia.com/gpu",
+                "resources": [
+                  {
+                    "health": "Healthy",
+                    "resourceID": "GPU-72ec881d-d090-aa20-9c5d-4edbe21369c0"
+                  }
+                ]
+              }
+            ],
+            "containerID": "containerd://7443a4ff22322a0ce78ee3341d82bd81040dc42cbb2e8a10103fe584c3d6a8d9",
+            "image": "nvcr.io/nvidia/vllm:25.11-py3",
+            "imageID": "nvcr.io/nvidia/vllm@sha256:c94cef75a33ff40dd34d45429809d840b64f416f957fbe73af11944213b6b994",
+            "lastState": {},
+            "name": "kserve-container",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "nvidia.com/gpu": "1"
+              },
+              "requests": {
+                "cpu": "2",
+                "memory": "4Gi",
+                "nvidia.com/gpu": "1"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-10-26T23:57:46Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  44,
+                  993
+                ],
+                "uid": 0
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/dev/shm",
+                "name": "devshm"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-mt6tf",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              },
+              {
+                "mountPath": "/mnt/models",
+                "name": "kserve-provision-location",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.0.0.218",
+        "hostIPs": [
+          {
+            "ip": "10.0.0.218"
+          },
+          {
+            "ip": "2601:143:8100:a01::6efe"
+          }
+        ],
+        "initContainerStatuses": [
+          {
+            "allocatedResources": {
+              "cpu": "100m",
+              "memory": "256Mi"
+            },
+            "containerID": "containerd://62d4c249fe2615fc48b59e8bef9563dfc9c2cbbfd4deac8e15c91ac55f0ae312",
+            "image": "docker.io/kserve/storage-initializer:v0.21.0",
+            "imageID": "docker.io/kserve/storage-initializer@sha256:3a3a6a8053478c8d8d90f96fc5e54c1892c07784102dda70104374d4f89a3672",
+            "lastState": {},
+            "name": "storage-initializer",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "2",
+                "memory": "4Gi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "256Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "containerd://62d4c249fe2615fc48b59e8bef9563dfc9c2cbbfd4deac8e15c91ac55f0ae312",
+                "exitCode": 0,
+                "finishedAt": "2026-10-26T23:57:45Z",
+                "reason": "Completed",
+                "startedAt": "2026-10-26T23:57:07Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 1000,
+                "supplementalGroups": [
+                  1000
+                ],
+                "uid": 1000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/mnt/models",
+                "name": "kserve-provision-location"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-mt6tf",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "observedGeneration": 1,
+        "phase": "Running",
+        "podIP": "10.42.0.42",
+        "podIPs": [
+          {
+            "ip": "10.42.0.42"
+          }
+        ],
+        "qosClass": "Burstable",
+        "resources": {
+          "limits": {
+            "cpu": "2",
+            "memory": "4Gi"
+          },
+          "requests": {
+            "cpu": "1999m",
+            "memory": "4Gi"
+          }
+        },
+        "startTime": "2026-10-26T23:57:07Z"
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

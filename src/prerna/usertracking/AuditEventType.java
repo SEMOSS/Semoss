@@ -210,6 +210,16 @@ public enum AuditEventType {
 	ENGINE_DELETE(ENGINE, HIGH),
 	/** A model engine was created */
 	MODEL_CREATE(ENGINE, LOW),
+	/** A model served by KServe was started (its InferenceService's stop annotation lifted) */
+	MODEL_SERVING_START(ENGINE, MEDIUM),
+	/** A model served by KServe was stopped (its pods deleted, the GPU freed) */
+	MODEL_SERVING_STOP(ENGINE, MEDIUM),
+	/** A model was defined for KServe from the serving catalog */
+	MODEL_SERVING_DEFINE(ENGINE, MEDIUM),
+	/** A model SEMOSS defined for KServe was removed */
+	MODEL_SERVING_REMOVE(ENGINE, HIGH),
+	/** A model engine was linked to, or unlinked from, a model served by KServe */
+	MODEL_SERVING_ENGINE_LINK(ENGINE, LOW),
 	/** A vector database engine was created */
 	VECTOR_CREATE(ENGINE, LOW),
 	/** A storage engine was created */
@@ -284,14 +294,15 @@ public enum AuditEventType {
 
 	/**
 	 * The changes to a project's or an engine's own settings: its name, display
-	 * name, public and discoverable access, template setting and metadata. Saving a
-	 * project's blocks and a user showing or hiding an engine in their own lists
-	 * are not settings of the project or engine.
+	 * name, public and discoverable access, template setting and metadata, and a
+	 * model engine's link to a served model. Saving a project's blocks and a user
+	 * showing or hiding an engine in their own lists are not settings of the
+	 * project or engine.
 	 */
 	public static final Set<AuditEventType> SETTING_CHANGES = Collections.unmodifiableSet(
 			EnumSet.of(PROJECT_RENAME, PROJECT_DISPLAY_NAME_UPDATE, PROJECT_GLOBAL_UPDATE, PROJECT_DISCOVERABLE_UPDATE,
 					PROJECT_TEMPLATE_UPDATE, PROJECT_METADATA_UPDATE, ENGINE_RENAME, ENGINE_DISPLAY_NAME_UPDATE,
-					ENGINE_GLOBAL_UPDATE, ENGINE_DISCOVERABLE_UPDATE, ENGINE_METADATA_UPDATE));
+					ENGINE_GLOBAL_UPDATE, ENGINE_DISCOVERABLE_UPDATE, ENGINE_METADATA_UPDATE, MODEL_SERVING_ENGINE_LINK));
 
 	private final AuditCategory category;
 	private final AuditSeverity severity;

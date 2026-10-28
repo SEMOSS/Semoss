@@ -1,0 +1,16 @@
+# The serving catalog as dgx/models/serving-catalog.yml ships it (key catalog.yaml).
+models:
+  - id: allenai/OLMo-2-0425-1B-Instruct
+    displayName: OLMo 2 1B Instruct
+    storageUri: hf://allenai/OLMo-2-0425-1B-Instruct
+    runtime: nvidia-vllm
+    args: ["--gpu-memory-utilization=0.2"]
+    cpu: "2"
+    memory: 4Gi
+    sizeBytes: 2979627008
+    contextWindow: 4096
+    maxTokens: 1024
+    licence: apache-2.0
+    origin: Ai2 (US)
+    approvedBy: dgx-admin
+    approvedAt: "2026-10-26"

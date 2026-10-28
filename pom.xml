@@ -712,6 +712,12 @@
 				<artifactId>jackson-databind</artifactId>
 				<version>${jackson3.version}</version>
 			</dependency>
+			<!-- Source: https://mvnrepository.com/artifact/tools.jackson.dataformat/jackson-dataformat-yaml -->
+			<dependency>
+				<groupId>tools.jackson.dataformat</groupId>
+				<artifactId>jackson-dataformat-yaml</artifactId>
+				<version>${jackson3.version}</version>
+			</dependency>
 			<!-- FIPS BouncyCastle. Every version in the family is set here so the
 			     open ranges these artifacts declare for each other cannot float; the
 			     bcpkix-fips declaration below carries no version of its own. -->
@@ -1968,6 +1974,14 @@
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>
 			<version>${jackson2.annotations.version}</version>
+		</dependency>
+		<!-- Reads kubeconfig files (prerna.util.k8s). Already on the classpath through
+		     json-schema-validator; declared so the connector does not hang on a transitive.
+		     The version is managed above. -->
+		<!-- Source: https://mvnrepository.com/artifact/tools.jackson.dataformat/jackson-dataformat-yaml -->
+		<dependency>
+			<groupId>tools.jackson.dataformat</groupId>
+			<artifactId>jackson-dataformat-yaml</artifactId>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.datatype/jackson-datatype-jsr310 -->
 		<dependency>

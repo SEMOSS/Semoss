@@ -1,0 +1,454 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T23:56:53Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-7x5nh",
+        "namespace": "semoss",
+        "resourceVersion": "721336",
+        "uid": "7d138945-5b52-424b-99ce-453cd259e86a"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T23:56:53Z",
+      "message": "Stopping container kserve-container",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:56:53Z",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-7x5nh.18e239ac28627090",
+        "namespace": "semoss",
+        "resourceVersion": "728379",
+        "uid": "4897c74d-2807-4d02-ab56-74133677e35a"
+      },
+      "reason": "Killing",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-10-26T23:57:07.489730Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t",
+        "namespace": "semoss",
+        "resourceVersion": "728424",
+        "uid": "80816169-5bb8-4aca-88c7-2548acbf5ee8"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned semoss/olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t to spark-cbde",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:57:07Z",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t.18e239af7ad54304",
+        "namespace": "semoss",
+        "resourceVersion": "728428",
+        "uid": "cf7b7499-f77c-4e5c-8058-368c8f941da6"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-spark-cbde",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T23:57:07Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{storage-initializer}",
+        "kind": "Pod",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t",
+        "namespace": "semoss",
+        "resourceVersion": "728426",
+        "uid": "80816169-5bb8-4aca-88c7-2548acbf5ee8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T23:57:07Z",
+      "message": "Container image \"kserve/storage-initializer:v0.21.0\" already present on machine and can be accessed by the pod",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:57:07Z",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t.18e239af95393b0b",
+        "namespace": "semoss",
+        "resourceVersion": "728437",
+        "uid": "22e7628e-d847-40d1-982e-803f80bfe00b"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T23:57:07Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{storage-initializer}",
+        "kind": "Pod",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t",
+        "namespace": "semoss",
+        "resourceVersion": "728426",
+        "uid": "80816169-5bb8-4aca-88c7-2548acbf5ee8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T23:57:07Z",
+      "message": "Container created",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:57:07Z",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t.18e239af968c8f5e",
+        "namespace": "semoss",
+        "resourceVersion": "728439",
+        "uid": "4dc1be92-de1e-4243-8fad-ca676845f22f"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T23:57:07Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{storage-initializer}",
+        "kind": "Pod",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t",
+        "namespace": "semoss",
+        "resourceVersion": "728426",
+        "uid": "80816169-5bb8-4aca-88c7-2548acbf5ee8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T23:57:07Z",
+      "message": "Container started",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:57:07Z",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t.18e239af9916f0e8",
+        "namespace": "semoss",
+        "resourceVersion": "728440",
+        "uid": "4826cacd-6143-47b0-9c92-0ee19eb1c310"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T23:57:46Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t",
+        "namespace": "semoss",
+        "resourceVersion": "728426",
+        "uid": "80816169-5bb8-4aca-88c7-2548acbf5ee8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T23:57:46Z",
+      "message": "Container image \"nvcr.io/nvidia/vllm:25.11-py3\" already present on machine and can be accessed by the pod",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:57:46Z",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t.18e239b88a668aef",
+        "namespace": "semoss",
+        "resourceVersion": "728512",
+        "uid": "10425d2f-6907-478d-9dd7-05dbaac74a82"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T23:57:46Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t",
+        "namespace": "semoss",
+        "resourceVersion": "728426",
+        "uid": "80816169-5bb8-4aca-88c7-2548acbf5ee8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T23:57:46Z",
+      "message": "Container created",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:57:46Z",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t.18e239b88c91edc7",
+        "namespace": "semoss",
+        "resourceVersion": "728515",
+        "uid": "2c216368-e5e0-42db-8f60-59182ea2bdde"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T23:57:46Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t",
+        "namespace": "semoss",
+        "resourceVersion": "728426",
+        "uid": "80816169-5bb8-4aca-88c7-2548acbf5ee8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T23:57:46Z",
+      "message": "Container started",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:57:46Z",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t.18e239b8943b216e",
+        "namespace": "semoss",
+        "resourceVersion": "728517",
+        "uid": "31e4dad5-9a36-48b2-8708-744b25ebc93f"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 8,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T23:57:47Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t",
+        "namespace": "semoss",
+        "resourceVersion": "728426",
+        "uid": "80816169-5bb8-4aca-88c7-2548acbf5ee8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T23:58:57Z",
+      "message": "Startup probe failed: Get \"http://10.42.0.42:8080/health\": dial tcp 10.42.0.42:8080: connect: connection refused",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:57:47Z",
+        "name": "olmo-2-1b-instruct-predictor-bfc8475f7-x5l5t.18e239b8deb8173d",
+        "namespace": "semoss",
+        "resourceVersion": "728650",
+        "uid": "f47c05d6-fb25-48f7-aa1a-e680152c70b1"
+      },
+      "reason": "Unhealthy",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 35,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T22:44:17Z",
+      "involvedObject": {
+        "apiVersion": "serving.kserve.io/v1beta1",
+        "kind": "InferenceService",
+        "name": "olmo-2-1b-instruct",
+        "namespace": "semoss",
+        "resourceVersion": "728359",
+        "uid": "57698b81-bfb2-4cb9-ac0a-7473e65bfdbd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T23:57:08Z",
+      "message": "Istio VirtualService CRD not present; VirtualService reconciliation skipped. If you do not use Istio, set ingress.disableIstioVirtualHost=true.",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:56:52Z",
+        "name": "olmo-2-1b-instruct.18e235b61bc3673c",
+        "namespace": "semoss",
+        "resourceVersion": "728449",
+        "uid": "3dceb5db-1ee1-433f-a449-afda2a76a627"
+      },
+      "reason": "VirtualServiceCRDNotFound",
+      "reportingComponent": "v1beta1Controllers",
+      "reportingInstance": "",
+      "source": {
+        "component": "v1beta1Controllers"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 3,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T22:46:59Z",
+      "involvedObject": {
+        "apiVersion": "serving.kserve.io/v1beta1",
+        "kind": "InferenceService",
+        "name": "olmo-2-1b-instruct",
+        "namespace": "semoss",
+        "resourceVersion": "728678",
+        "uid": "57698b81-bfb2-4cb9-ac0a-7473e65bfdbd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T23:59:07Z",
+      "message": "InferenceService [olmo-2-1b-instruct] is Ready",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:59:07Z",
+        "name": "olmo-2-1b-instruct.18e235dbca25211f",
+        "namespace": "semoss",
+        "resourceVersion": "728679",
+        "uid": "1ca57336-a95a-4490-a079-5e5b794317f4"
+      },
+      "reason": "InferenceServiceReady",
+      "reportingComponent": "v1beta1Controllers",
+      "reportingInstance": "",
+      "source": {
+        "component": "v1beta1Controllers"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T22:51:16Z",
+      "involvedObject": {
+        "apiVersion": "serving.kserve.io/v1beta1",
+        "kind": "InferenceService",
+        "name": "olmo-2-1b-instruct",
+        "namespace": "semoss",
+        "resourceVersion": "728369",
+        "uid": "57698b81-bfb2-4cb9-ac0a-7473e65bfdbd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T23:56:52Z",
+      "message": "InferenceService [olmo-2-1b-instruct] is no longer Ready because of: PredictorReady, Ready",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:56:52Z",
+        "name": "olmo-2-1b-instruct.18e236177e8be01e",
+        "namespace": "semoss",
+        "resourceVersion": "728371",
+        "uid": "496af6f4-5929-43bd-9210-2764afc2535b"
+      },
+      "reason": "InferenceServiceNotReady",
+      "reportingComponent": "v1beta1Controllers",
+      "reportingInstance": "",
+      "source": {
+        "component": "v1beta1Controllers"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T23:57:07Z",
+      "involvedObject": {
+        "apiVersion": "serving.kserve.io/v1beta1",
+        "kind": "InferenceService",
+        "name": "olmo-2-1b-instruct",
+        "namespace": "semoss",
+        "resourceVersion": "728408",
+        "uid": "57698b81-bfb2-4cb9-ac0a-7473e65bfdbd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T23:57:07Z",
+      "message": "Failed to update status for InferenceService \"olmo-2-1b-instruct\": Operation cannot be fulfilled on inferenceservices.serving.kserve.io \"olmo-2-1b-instruct\": the object has been modified; please apply your changes to the latest version and try again",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:57:07Z",
+        "name": "olmo-2-1b-instruct.18e239af7a603989",
+        "namespace": "semoss",
+        "resourceVersion": "728422",
+        "uid": "b10e5f6a-0a42-4830-b974-77e15181ed33"
+      },
+      "reason": "UpdateFailed",
+      "reportingComponent": "v1beta1Controllers",
+      "reportingInstance": "",
+      "source": {
+        "component": "v1beta1Controllers"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T23:57:07Z",
+      "involvedObject": {
+        "apiVersion": "serving.kserve.io/v1beta1",
+        "kind": "InferenceService",
+        "name": "olmo-2-1b-instruct",
+        "namespace": "semoss",
+        "resourceVersion": "728408",
+        "uid": "57698b81-bfb2-4cb9-ac0a-7473e65bfdbd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T23:57:07Z",
+      "message": "fails to update InferenceService status: Operation cannot be fulfilled on inferenceservices.serving.kserve.io \"olmo-2-1b-instruct\": the object has been modified; please apply your changes to the latest version and try again",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T23:57:07Z",
+        "name": "olmo-2-1b-instruct.18e239af7a607a89",
+        "namespace": "semoss",
+        "resourceVersion": "728423",
+        "uid": "e1d97dcb-8a5c-4bab-a773-a38e468814e8"
+      },
+      "reason": "InternalError",
+      "reportingComponent": "v1beta1Controllers",
+      "reportingInstance": "",
+      "source": {
+        "component": "v1beta1Controllers"
+      },
+      "type": "Warning"
+    }
+  ],
+  "kind": "List"
+}

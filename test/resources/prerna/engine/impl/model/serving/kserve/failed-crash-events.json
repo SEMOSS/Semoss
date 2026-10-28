@@ -1,0 +1,291 @@
+{
+  "items": [
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-10-27T19:07:12.872516Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "semoss-test-crash-predictor-596dffc7b-494ml",
+        "namespace": "semoss",
+        "resourceVersion": "836042",
+        "uid": "1e6ac993-88ad-461a-9820-25f781d61ca2"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned semoss/semoss-test-crash-predictor-596dffc7b-494ml to spark-cbde",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:12Z",
+        "name": "semoss-test-crash-predictor-596dffc7b-494ml.18e278720c2953f5",
+        "namespace": "semoss",
+        "resourceVersion": "836047",
+        "uid": "fdd1b452-c5e7-445b-be2e-a693caea418a"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-spark-cbde",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:13Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "semoss-test-crash-predictor-596dffc7b-494ml",
+        "namespace": "semoss",
+        "resourceVersion": "836045",
+        "uid": "1e6ac993-88ad-461a-9820-25f781d61ca2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:14Z",
+      "message": "Container image \"nvcr.io/nvidia/vllm:25.11-py3\" already present on machine and can be accessed by the pod",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:13Z",
+        "name": "semoss-test-crash-predictor-596dffc7b-494ml.18e278722591d894",
+        "namespace": "semoss",
+        "resourceVersion": "836066",
+        "uid": "c088aad3-a0d5-42b2-9f66-aa1d8f2badd1"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:13Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "semoss-test-crash-predictor-596dffc7b-494ml",
+        "namespace": "semoss",
+        "resourceVersion": "836045",
+        "uid": "1e6ac993-88ad-461a-9820-25f781d61ca2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:14Z",
+      "message": "Container created",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:13Z",
+        "name": "semoss-test-crash-predictor-596dffc7b-494ml.18e2787226fc2b1e",
+        "namespace": "semoss",
+        "resourceVersion": "836068",
+        "uid": "e4e74138-2aac-4389-b80c-df0ee3987961"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:13Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "semoss-test-crash-predictor-596dffc7b-494ml",
+        "namespace": "semoss",
+        "resourceVersion": "836045",
+        "uid": "1e6ac993-88ad-461a-9820-25f781d61ca2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:14Z",
+      "message": "Container started",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:13Z",
+        "name": "semoss-test-crash-predictor-596dffc7b-494ml.18e2787229e4b055",
+        "namespace": "semoss",
+        "resourceVersion": "836069",
+        "uid": "178536fe-44ed-4489-90a9-0cc49d2e4611"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:13Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "semoss-test-crash-predictor-596dffc7b-494ml",
+        "namespace": "semoss",
+        "resourceVersion": "836045",
+        "uid": "1e6ac993-88ad-461a-9820-25f781d61ca2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:14Z",
+      "message": "Readiness probe failed: dial tcp 10.42.0.87:8080: connect: connection refused",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:13Z",
+        "name": "semoss-test-crash-predictor-596dffc7b-494ml.18e278722a04887c",
+        "namespace": "semoss",
+        "resourceVersion": "836070",
+        "uid": "5c1d801d-48c6-4bc2-aa53-6d2c95194c45"
+      },
+      "reason": "Unhealthy",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:15Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{kserve-container}",
+        "kind": "Pod",
+        "name": "semoss-test-crash-predictor-596dffc7b-494ml",
+        "namespace": "semoss",
+        "resourceVersion": "836045",
+        "uid": "1e6ac993-88ad-461a-9820-25f781d61ca2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:16Z",
+      "message": "Back-off restarting failed container kserve-container in pod semoss-test-crash-predictor-596dffc7b-494ml_semoss(1e6ac993-88ad-461a-9820-25f781d61ca2)",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:15Z",
+        "name": "semoss-test-crash-predictor-596dffc7b-494ml.18e278729855899d",
+        "namespace": "semoss",
+        "resourceVersion": "836078",
+        "uid": "38ed6596-a626-41f6-82e6-644fdacb81c8"
+      },
+      "reason": "BackOff",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:12Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "semoss-test-crash-predictor-596dffc7b",
+        "namespace": "semoss",
+        "resourceVersion": "836037",
+        "uid": "2e70b60b-21ff-450c-9269-99f9685ee945"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:12Z",
+      "message": "Created pod: semoss-test-crash-predictor-596dffc7b-494ml",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:12Z",
+        "name": "semoss-test-crash-predictor-596dffc7b.18e278720c0e9cff",
+        "namespace": "semoss",
+        "resourceVersion": "836043",
+        "uid": "c8dd51a0-d0a6-41f7-a06f-c1bf9af3f73d"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:12Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "name": "semoss-test-crash-predictor",
+        "namespace": "semoss",
+        "resourceVersion": "836034",
+        "uid": "393447f1-45ec-4b22-a79d-b80ec75eb8d8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:12Z",
+      "message": "Scaled up replica set semoss-test-crash-predictor-596dffc7b from 0 to 1",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:12Z",
+        "name": "semoss-test-crash-predictor.18e278720bc84b11",
+        "namespace": "semoss",
+        "resourceVersion": "836039",
+        "uid": "fa8d7b8d-00d6-4b90-8611-c96d9174a350"
+      },
+      "reason": "ScalingReplicaSet",
+      "reportingComponent": "deployment-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 4,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:12Z",
+      "involvedObject": {
+        "apiVersion": "serving.kserve.io/v1beta1",
+        "kind": "InferenceService",
+        "name": "semoss-test-crash",
+        "namespace": "semoss",
+        "resourceVersion": "836029",
+        "uid": "e748416a-26ad-4f32-a9ba-5a5c91b08bb9"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:12Z",
+      "message": "Istio VirtualService CRD not present; VirtualService reconciliation skipped. If you do not use Istio, set ingress.disableIstioVirtualHost=true.",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:12Z",
+        "name": "semoss-test-crash.18e278720bc1d6cf",
+        "namespace": "semoss",
+        "resourceVersion": "836054",
+        "uid": "3b286b1f-477c-4e32-a500-2a2135ec9046"
+      },
+      "reason": "VirtualServiceCRDNotFound",
+      "reportingComponent": "v1beta1Controllers",
+      "reportingInstance": "",
+      "source": {
+        "component": "v1beta1Controllers"
+      },
+      "type": "Warning"
+    }
+  ]
+}

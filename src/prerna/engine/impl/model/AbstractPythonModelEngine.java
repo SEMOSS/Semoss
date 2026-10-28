@@ -60,6 +60,7 @@ import prerna.engine.impl.model.responses.BatchStatusResponse;
 import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.MultiModalEmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.serving.ServedModelGuard;
 import prerna.engine.impl.model.usage.ModelUsageLimitException;
 import prerna.engine.impl.model.usage.ModelUsageReport;
 import prerna.engine.impl.model.usage.ModelUsageRequest;
@@ -396,9 +397,10 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 
 		// DON'T UPDATE CHAT HISTORY IF RESPONSE IS AN ERRROR
-		if (response instanceof AskErrorModelEngineResponse) {
+		if (response instanceof AskErrorModelEngineResponse error) {
 			classLogger.warn("Model returned an error: {}", response.getStringResponse());
-			return response;
+			// the engine of a model KServe serves says so when that model is not running
+			return ServedModelGuard.explain(this.smssProp, error);
 		}
 
 		return response;
