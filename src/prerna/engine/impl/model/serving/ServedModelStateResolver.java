@@ -91,8 +91,9 @@ public final class ServedModelStateResolver {
 	/** KServe creates the model server pod within seconds of a start */
 	private static final long CONTROLLER_STALL_SECONDS = 120;
 	/**
-	 * the storage initializer links the files of a pvc:// copy into the pod in
-	 * a second or two, instead of downloading them
+	 * KServe v0.21 mounts a pvc:// volume into the pod and runs no storage
+	 * initializer; with direct mounting turned off, the initializer would link the
+	 * files in a second or two instead of downloading them
 	 */
 	private static final int LINK_SECONDS = 5;
 	private static final Pattern SCHEDULER_SUMMARY = Pattern
@@ -601,7 +602,7 @@ public final class ServedModelStateResolver {
 	/**
 	 * A phase that took no time still gets one second, so fractions stay defined.
 	 * Without a last start, the weights of a pvc:// copy take
-	 * {@value #LINK_SECONDS} s, since they are linked rather than downloaded.
+	 * {@value #LINK_SECONDS} s, since they are at most linked, never downloaded.
 	 */
 	private static int budget(ServedModelPhase phase, Map<ServedModelPhase, Integer> lastStart, String storageUri) {
 		Integer seconds = lastStart.get(phase);
@@ -714,7 +715,7 @@ public final class ServedModelStateResolver {
 		set(status, ServedModelState.STARTING, phase, phase.getMessage(), since);
 	}
 
-	/** What the storage initializer does: KServe links a pvc:// copy into the pod instead of copying it. */
+	/** What the storage initializer does; for a pvc:// copy, when it runs at all, it links the files. */
 	private static String fetching(String storageUri, String what) {
 		VolumeUri volume = VolumeUri.of(storageUri);
 		return volume == null ? "Downloading " + what + source(storageUri)
