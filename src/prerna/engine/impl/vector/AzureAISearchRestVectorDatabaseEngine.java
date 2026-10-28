@@ -531,7 +531,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		JsonObject search = new JsonObject();
 		{
 			JsonArray facets = new JsonArray();
-			facets.add(VectorDatabaseCSVTable.SOURCE + ",count:0,sort:value");
+			facets.add(VectorDatabaseCSVTable.SOURCE + ",count:0");
 			search.addProperty("search", "*");
 			search.addProperty("select", VectorDatabaseCSVTable.SOURCE);
 			search.addProperty("top", 0);
@@ -829,7 +829,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		return key.replaceAll(regex, "_");
 	}
 
-//	FILTER HELPER FUNCTIONS
+	// FILTER HELPER FUNCTIONS
 
 	public String processFilter(IQueryFilter queryFilter, String filterString) {
 		IQueryFilter.QUERY_FILTER_TYPE filterType = queryFilter.getQueryFilterType();
