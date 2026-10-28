@@ -693,9 +693,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 						field.addProperty("sortable", false);
 					} else {
 						field.addProperty("filterable", true);
-						if (propName.equals(VectorDatabaseCSVTable.SOURCE)) {
-							field.addProperty("facetable", true);
-						}
 					}
 
 					fields.add(field);
