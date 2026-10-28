@@ -58,6 +58,7 @@ import prerna.engine.impl.model.serving.ServedModelState;
 import prerna.engine.impl.model.serving.ServedModelStatus;
 import prerna.engine.impl.model.serving.ServingCapacity;
 import prerna.engine.impl.model.serving.ServingCapacityException;
+import prerna.engine.impl.model.serving.ServingGpuStatus;
 import prerna.om.Insight;
 import prerna.reactor.IReactor;
 import prerna.sablecc2.om.NounStore;
@@ -98,7 +99,9 @@ class ServedModelReactorsUnitTests {
 		for (Class<?> type : List.of(ListServedModelsReactor.class, GetServedModelStatusReactor.class,
 				StartServedModelReactor.class, StopServedModelReactor.class, GetServedModelLogsReactor.class,
 				ListServingCatalogReactor.class, DefineServedModelReactor.class, RemoveServedModelReactor.class,
-				CreateServedModelEngineReactor.class, GetServingCapacityReactor.class)) {
+				CreateServedModelEngineReactor.class, GetServingCapacityReactor.class, GetServingGpuStatusReactor.class,
+				ListServedModelEnginesReactor.class, LinkServedModelEngineReactor.class,
+				UnlinkServedModelEngineReactor.class)) {
 			assertTrue(Modifier.isPublic(type.getModifiers()), type.getName());
 			assertFalse(Modifier.isAbstract(type.getModifiers()), type.getName());
 			assertTrue(IReactor.class.isAssignableFrom(type), type.getName());
@@ -216,6 +219,30 @@ class ServedModelReactorsUnitTests {
 			services.when(ServedModelService::getInstance).thenReturn(service);
 
 			assertEquals(map, reactor(new GetServingCapacityReactor(), user, Map.of()).execute().getValue());
+		}
+	}
+
+	@Test
+	void gpuStatusReadsTheWindowItIsGiven() {
+		User user = mock(User.class);
+		ServedModelService service = mock(ServedModelService.class);
+		ServingGpuStatus hour = mock(ServingGpuStatus.class);
+		ServingGpuStatus day = mock(ServingGpuStatus.class);
+		when(hour.toMap()).thenReturn(Map.of("window", "1h"));
+		when(day.toMap()).thenReturn(Map.of("window", "24h"));
+		when(service.gpuStatus(ServingGpuStatus.Window.HOUR)).thenReturn(hour);
+		when(service.gpuStatus(ServingGpuStatus.Window.DAY)).thenReturn(day);
+		try (var security = mockStatic(SecurityAdminUtils.class); var services = mockStatic(ServedModelService.class)) {
+			security.when(() -> SecurityAdminUtils.userIsAdmin(user)).thenReturn(true);
+			services.when(ServedModelService::getInstance).thenReturn(service);
+
+			assertEquals(Map.of("window", "1h"),
+					reactor(new GetServingGpuStatusReactor(), user, Map.of()).execute().getValue());
+			assertEquals(Map.of("window", "24h"),
+					reactor(new GetServingGpuStatusReactor(), user, Map.of("window", "24h")).execute().getValue());
+			IllegalArgumentException bad = assertThrows(IllegalArgumentException.class,
+					() -> reactor(new GetServingGpuStatusReactor(), user, Map.of("window", "2h")).execute());
+			assertEquals("The window must be 15m, 1h, 6h or 24h; it is 2h", bad.getMessage());
 		}
 	}
 

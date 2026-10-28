@@ -106,6 +106,8 @@ class ServingCapacityUnitTests {
 		Map<?, ?> other = models(capacity).get(1);
 		assertEquals(false, other.get("canStart"));
 		assertEquals(decision.reason(), other.get("reason"));
+		assertEquals(List.of(SAMPLE), other.get("blocking"), "what a replace would stop");
+		assertEquals(true, other.get("canReplace"));
 	}
 
 	@Test
@@ -134,6 +136,8 @@ class ServingCapacityUnitTests {
 
 		assertFalse(decision.allowed());
 		assertTrue(decision.waitable());
+		assertEquals(false, models(capacity(ONE_GPU, List.of(sample, stopped(OTHER, 0.2)), pods, 0.7)).get(1)
+				.get("canReplace"), "a start waits for a model that is already stopping");
 		assertEquals("The GPU is in use by olmo-2-1b-instruct (stopping). olmo-2-1b needs 0.2 of the unified memory, "
 				+ "and olmo-2-1b-instruct (0.2, stopping) already uses 0.2 of the 0.3 all models may use "
 				+ "(KSERVE_MEMORY_BUDGET). It is stopping; start olmo-2-1b again in a moment.",
@@ -156,6 +160,8 @@ class ServingCapacityUnitTests {
 		assertFalse(decision.waitable());
 		assertEquals("The GPU is in use by pod cuda-test. SEMOSS does not manage pod cuda-test; free it with kubectl.",
 				decision.reason());
+		assertEquals(false, models(capacity(ONE_GPU, List.of(stopped(OTHER, 0.2)), List.of(pod), 0.7)).get(0)
+				.get("canReplace"), "SEMOSS cannot stop a pod it does not manage");
 	}
 
 	@Test

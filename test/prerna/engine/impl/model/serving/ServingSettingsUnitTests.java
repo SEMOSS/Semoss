@@ -63,6 +63,18 @@ class ServingSettingsUnitTests {
 	}
 
 	@Test
+	void weightVolumesDefaultToTheModelCache() {
+		assertEquals(java.util.Set.of("semoss-model-cache"), ServingSettings.weightVolumes(null));
+		assertEquals(java.util.Set.of("semoss-model-cache"), ServingSettings.weightVolumes(" , "));
+		assertEquals(java.util.Set.of("team-weights", "semoss-model-cache"),
+				ServingSettings.weightVolumes(" team-weights , semoss-model-cache "));
+		IllegalStateException error = assertThrows(IllegalStateException.class,
+				() -> ServingSettings.weightVolumes("semoss-model-cache, Postgres_Data"));
+		assertEquals("KSERVE_WEIGHT_VOLUMES lists Postgres_Data, which is not a PersistentVolumeClaim name",
+				error.getMessage());
+	}
+
+	@Test
 	void credentialsFollowWhereSemossRuns() {
 		assertEquals(Auth.IN_CLUSTER, ServingSettings.auth(null, false, true));
 		assertEquals(Auth.KUBECONFIG, ServingSettings.auth(null, true, true), "a named kubeconfig wins in a pod");
@@ -80,5 +92,23 @@ class ServingSettingsUnitTests {
 				"SEMOSS in a pod can still be told to use host endpoints");
 		assertEquals(Mode.CLUSTER, ServingSettings.networkMode("cluster", false));
 		assertThrows(IllegalStateException.class, () -> ServingSettings.networkMode("lan", false));
+	}
+
+	@Test
+	void prometheusAndGrafanaAreAutoOffOrAUrl() {
+		String key = ServingSettings.KSERVE_PROMETHEUS_URL;
+		assertEquals(null, ServingSettings.urlOrOff(key, null, "http://10.43.0.10:9090"));
+		assertEquals(null, ServingSettings.urlOrOff(key, "Auto", "http://10.43.0.10:9090"));
+		assertEquals(ServingSettings.OFF, ServingSettings.urlOrOff(key, "OFF", "http://10.43.0.10:9090"));
+		assertEquals("http://10.43.12.7:9090", ServingSettings.urlOrOff(key, "http://10.43.12.7:9090/", "x"));
+		assertEquals("https://metrics.example.org/prometheus",
+				ServingSettings.urlOrOff(key, "https://metrics.example.org/prometheus", "x"));
+		for (String bad : new String[] { "10.43.12.7:9090", "ftp://10.43.12.7", "http://", "http://host:9090/?x=1",
+				"no url" }) {
+			IllegalStateException error = assertThrows(IllegalStateException.class,
+					() -> ServingSettings.urlOrOff(key, bad, "http://10.43.0.10:9090"), bad);
+			assertEquals("KSERVE_PROMETHEUS_URL must be auto, off or an http(s) URL such as http://10.43.0.10:9090; it is "
+					+ bad, error.getMessage());
+		}
 	}
 }

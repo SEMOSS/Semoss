@@ -28,6 +28,8 @@
 package prerna.engine.impl.model.serving;
 
 import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -62,8 +64,26 @@ public final class ServingSettings {
 	public static final String KSERVE_CATALOG = "KSERVE_CATALOG";
 	/** The (Cluster)ServingRuntimes catalog entries may use, comma-separated; default nvidia-vllm */
 	public static final String KSERVE_RUNTIMES = "KSERVE_RUNTIMES";
+	/**
+	 * The PersistentVolumeClaims that {@code pvc://} catalog entries may take
+	 * weights from, comma-separated; default {@value #DEFAULT_WEIGHT_VOLUME}
+	 */
+	public static final String KSERVE_WEIGHT_VOLUMES = "KSERVE_WEIGHT_VOLUMES";
 	public static final String KSERVE_MEMORY_BUDGET = "KSERVE_MEMORY_BUDGET";
 	public static final String KSERVE_HOST_PORT_RANGE = "KSERVE_HOST_PORT_RANGE";
+	/**
+	 * Where the GPU card reads its metrics: {@code auto} (default: Prometheus by
+	 * cluster DNS in a pod, through the Kubernetes API on the host), {@code off},
+	 * or Prometheus's own URL, such as its ClusterIP
+	 */
+	public static final String KSERVE_PROMETHEUS_URL = "KSERVE_PROMETHEUS_URL";
+	/**
+	 * The Grafana the GPU card links to: {@code auto} (default: port 3000 of the
+	 * address the browser used), {@code off}, or Grafana's URL
+	 */
+	public static final String KSERVE_GRAFANA_URL = "KSERVE_GRAFANA_URL";
+	/** The value that turns {@link #KSERVE_PROMETHEUS_URL} or {@link #KSERVE_GRAFANA_URL} off */
+	public static final String OFF = "off";
 
 	/** Where the Kubernetes credentials come from */
 	public enum Auth {
@@ -92,8 +112,12 @@ public final class ServingSettings {
 	 * about 35 GiB for the host, SEMOSS, Postgres, MinIO and Prometheus
 	 */
 	static final double DEFAULT_MEMORY_BUDGET = 0.7;
+	/** The model cache that the intake Job fills (models/model-cache.yml in the dgx repo) */
+	static final String DEFAULT_WEIGHT_VOLUME = "semoss-model-cache";
 
 	private static final Pattern NAMESPACE = Pattern.compile("[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?");
+	/** A PersistentVolumeClaim name: a DNS-1123 subdomain */
+	private static final Pattern CLAIM = Pattern.compile("[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?");
 
 	private ServingSettings() {
 	}
@@ -165,6 +189,38 @@ public final class ServingSettings {
 		return address == null ? "localhost" : address;
 	}
 
+	/** @return Prometheus's URL, null for auto, or {@link #OFF} */
+	public static String getPrometheusUrl() {
+		return urlOrOff(KSERVE_PROMETHEUS_URL, get(KSERVE_PROMETHEUS_URL), "http://10.43.0.10:9090");
+	}
+
+	/** @return Grafana's URL, null for auto, or {@link #OFF} */
+	public static String getGrafanaUrl() {
+		return urlOrOff(KSERVE_GRAFANA_URL, get(KSERVE_GRAFANA_URL), "http://spark-cbde.local:3000");
+	}
+
+	/** An http(s) URL without its trailing slash, null for auto, or {@link #OFF} */
+	static String urlOrOff(String key, String setting, String example) {
+		if (setting == null || setting.equalsIgnoreCase("auto")) {
+			return null;
+		}
+		if (setting.equalsIgnoreCase(OFF)) {
+			return OFF;
+		}
+		try {
+			URI uri = new URI(setting);
+			String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
+			if ((scheme.equals("http") || scheme.equals("https")) && uri.getHost() != null && uri.getQuery() == null
+					&& uri.getFragment() == null) {
+				return setting.replaceAll("/+$", "");
+			}
+		} catch (URISyntaxException e) {
+			// reported below
+		}
+		throw new IllegalStateException(
+				key + " must be auto, off or an http(s) URL such as " + example + "; it is " + setting);
+	}
+
 	public static String getCatalog() {
 		String catalog = get(KSERVE_CATALOG);
 		return catalog == null ? "configmap:" + ServingCatalog.DEFAULT_CONFIGMAP : catalog;
@@ -227,6 +283,31 @@ public final class ServingSettings {
 			}
 		}
 		return runtimes.isEmpty() ? Set.of("nvidia-vllm") : Set.copyOf(runtimes);
+	}
+
+	public static Set<String> getWeightVolumes() {
+		return weightVolumes(get(KSERVE_WEIGHT_VOLUMES));
+	}
+
+	/**
+	 * KServe mounts the whole claim of a {@code pvc://} entry into the model's pod,
+	 * so only claims that hold nothing but weights belong here, never a database's.
+	 */
+	static Set<String> weightVolumes(String setting) {
+		Set<String> claims = new LinkedHashSet<>();
+		if (setting != null) {
+			for (String claim : setting.split(",")) {
+				if (claim.isBlank()) {
+					continue;
+				}
+				if (!CLAIM.matcher(claim.strip()).matches()) {
+					throw new IllegalStateException(KSERVE_WEIGHT_VOLUMES + " lists " + claim.strip()
+							+ ", which is not a PersistentVolumeClaim name");
+				}
+				claims.add(claim.strip());
+			}
+		}
+		return claims.isEmpty() ? Set.of(DEFAULT_WEIGHT_VOLUME) : Set.copyOf(claims);
 	}
 
 	public static Path getKubeconfig() {

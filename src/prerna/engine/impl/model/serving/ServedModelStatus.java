@@ -71,6 +71,7 @@ public final class ServedModelStatus {
 	Integer maxModelLen;
 	Double weightsGiB;
 	Double kvCacheGiB;
+	String compileCache;
 	List<Map<String, Object>> conditions = List.of();
 	Map<String, Object> modelStatus;
 	List<Map<String, Object>> events = List.of();
@@ -134,6 +135,11 @@ public final class ServedModelStatus {
 		return this.maxModelLen;
 	}
 
+	/** @return whether vLLM's compile cache served this start: hit, miss, partial, or null before it compiles */
+	public String getCompileCache() {
+		return this.compileCache;
+	}
+
 	/** @return the OpenAI base URL at which this SEMOSS reaches the model, or null */
 	public String getEndpoint() {
 		return this.endpoint;
@@ -147,6 +153,11 @@ public final class ServedModelStatus {
 	/** Why there is no endpoint, or why it may not last; null when there is nothing to say */
 	public String getEndpointNote() {
 		return this.endpointNote;
+	}
+
+	/** @return the OpenAI base URL of the model on the cluster's network, or null */
+	public String getInClusterUrl() {
+		return this.inClusterUrl;
 	}
 
 	public String getPod() {
@@ -203,6 +214,7 @@ public final class ServedModelStatus {
 		vllm.put("maxModelLen", this.maxModelLen);
 		vllm.put("weightsGiB", this.weightsGiB);
 		vllm.put("kvCacheGiB", this.kvCacheGiB);
+		vllm.put("compileCache", this.compileCache);
 		map.put("vllm", vllm);
 		map.put("phases", this.phases);
 		map.put("conditions", this.conditions);

@@ -46,6 +46,7 @@ import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.impl.model.serving.ServedModelFailure.Cause;
+import prerna.engine.impl.model.serving.ServingCatalog.VolumeUri;
 import prerna.engine.impl.model.serving.VllmStartupLog.Milestone;
 import prerna.util.k8s.KubeJson;
 
@@ -89,6 +90,11 @@ public final class ServedModelStateResolver {
 	private static final long STALL_MIN_SECONDS = 600;
 	/** KServe creates the model server pod within seconds of a start */
 	private static final long CONTROLLER_STALL_SECONDS = 120;
+	/**
+	 * the storage initializer links the files of a pvc:// copy into the pod in
+	 * a second or two, instead of downloading them
+	 */
+	private static final int LINK_SECONDS = 5;
 	private static final Pattern SCHEDULER_SUMMARY = Pattern
 			.compile("^(.*?\\.)\\s+(?:no new claims|preemption:)", Pattern.DOTALL);
 	private static final Gson GSON = new Gson();
@@ -138,6 +144,7 @@ public final class ServedModelStateResolver {
 			status.maxModelLen = startupLog.getMaxModelLen();
 			status.weightsGiB = startupLog.getWeightsGiB();
 			status.kvCacheGiB = startupLog.getKvCacheGiB();
+			status.compileCache = startupLog.getCompileCache();
 		}
 
 		if (KubeJson.str(isvc, "metadata", "deletionTimestamp") != null) {
@@ -188,6 +195,13 @@ public final class ServedModelStateResolver {
 		}
 		if (reason.contains("taint")) {
 			return "The node has a taint the model does not tolerate";
+		}
+		if (reason.contains("persistentvolumeclaim") && reason.contains("not found")) {
+			return "Create the PersistentVolumeClaim it names; the model caches are in models/model-cache.yml "
+					+ "of the dgx repo";
+		}
+		if (reason.contains("unbound") && reason.contains("PersistentVolumeClaims")) {
+			return "A PersistentVolumeClaim of the model is not bound to a volume; kubectl describe pvc shows why";
 		}
 		return null;
 	}
@@ -244,19 +258,20 @@ public final class ServedModelStateResolver {
 			return;
 		}
 		long elapsed = secondsSince(status.phaseSince, now);
-		long expected = budget(status.phase, lastStart);
+		long expected = budget(status.phase, lastStart, status.storageUri);
 		if (elapsed >= Math.max(STALL_MIN_SECONDS, STALL_FACTOR * expected)) {
-			status.warnings.add(activity(status.phase) + " has taken " + duration(elapsed) + ", against about "
-					+ duration(expected) + " expected, so it may be stuck. " + whereToLook(status.phase));
+			status.warnings.add(activity(status.phase, status.storageUri) + " has taken " + duration(elapsed)
+					+ ", against about " + duration(expected) + " expected, so it may be stuck. "
+					+ whereToLook(status.phase, status.storageUri));
 			status.etaSeconds = null;
 		}
 	}
 
-	private static String activity(ServedModelPhase phase) {
+	private static String activity(ServedModelPhase phase, String storageUri) {
 		return switch (phase) {
 		case CREATING -> "Starting the model server pod's containers";
 		case PULLING_INIT_IMAGE -> "Pulling the storage-initializer image";
-		case DOWNLOADING_WEIGHTS -> "The weight download";
+		case DOWNLOADING_WEIGHTS -> VolumeUri.of(storageUri) == null ? "The weight download" : "Linking the weights";
 		case PULLING_IMAGE -> "Pulling the model server image";
 		case LOADING_WEIGHTS -> "Loading the weights";
 		case COMPILING -> "Compiling the model";
@@ -265,9 +280,10 @@ public final class ServedModelStateResolver {
 		};
 	}
 
-	private static String whereToLook(ServedModelPhase phase) {
+	private static String whereToLook(ServedModelPhase phase, String storageUri) {
 		return switch (phase) {
-		case DOWNLOADING_WEIGHTS -> "GetServedModelLogs with container storage-initializer shows the download.";
+		case DOWNLOADING_WEIGHTS -> "GetServedModelLogs with container storage-initializer shows the "
+				+ (VolumeUri.of(storageUri) == null ? "download." : "files it links.");
 		case PULLING_INIT_IMAGE, PULLING_IMAGE -> "The events in GetServedModelStatus show the pull.";
 		case CREATING -> "The events in GetServedModelStatus show what holds the pod.";
 		default -> "GetServedModelLogs shows what vLLM is doing.";
@@ -335,7 +351,7 @@ public final class ServedModelStateResolver {
 			Instant downloadStarted = KubeJson.time(init, "state", "running", "startedAt");
 			if (downloadStarted != null) {
 				set(status, ServedModelState.STARTING, ServedModelPhase.DOWNLOADING_WEIGHTS,
-						"Downloading the model weights" + source(status.storageUri), downloadStarted);
+						fetching(status.storageUri, "the model weights"), downloadStarted);
 				return;
 			}
 			Instant pullStarted = pullInProgress(podEvents, INIT_CONTAINER);
@@ -434,7 +450,7 @@ public final class ServedModelStateResolver {
 				message = "The model server did not become healthy before its startup probe gave up";
 			} else if (isInit) {
 				cause = Cause.DOWNLOAD_FAILED;
-				message = "Downloading the weights" + source(storageUri) + " failed (exit code " + exitCode + ")";
+				message = fetching(storageUri, "the weights") + " failed (exit code " + exitCode + ")";
 			} else {
 				cause = Cause.MODEL_CRASH;
 				message = "The model server exited with code " + exitCode;
@@ -481,7 +497,34 @@ public final class ServedModelStateResolver {
 		} else if (all.contains("GatedRepoError") || all.contains("401 Client Error")
 				|| all.contains("RepositoryNotFoundError")) {
 			failure.setHint("The Hugging Face repository is gated, private or missing; check the storageUri");
+		} else if (VolumeUri.of(status.storageUri) != null && missingCopy(failure.getCause(), all)) {
+			failure.setHint(missingCopyHint(VolumeUri.of(status.storageUri)));
 		}
+	}
+
+	/**
+	 * The storage initializer's complaint about a path that is not on the volume,
+	 * or vLLM's when the volume was mounted directly and the folder came up empty.
+	 */
+	private static boolean missingCopy(Cause cause, String log) {
+		if (cause == Cause.DOWNLOAD_FAILED) {
+			return log.contains("Cannot locate source uri") || log.contains("does not exist")
+					|| log.contains("No model found");
+		}
+		return cause == Cause.MODEL_CRASH && log.contains("Invalid repository ID or local directory");
+	}
+
+	/**
+	 * The intake fills the model cache at org/repo/commit, and its cache command
+	 * copies a model taken in earlier back from MinIO.
+	 */
+	private static String missingCopyHint(VolumeUri volume) {
+		String[] parts = volume.path().split("/");
+		String refill = parts.length == 3
+				? "bash models/intake/intake.sh cache " + parts[0] + "/" + parts[1] + " " + parts[2]
+				: "models/intake/intake.sh";
+		return "Volume " + volume.claim() + " has no copy of the weights at " + volume.path() + ". Copy them there with "
+				+ refill + " (the dgx repo), or point the catalog entry at a copy that exists";
 	}
 
 	/** Name the models whose pods hold the GPU this one waits for. */
@@ -536,7 +579,7 @@ public final class ServedModelStateResolver {
 		long after = 0;
 		boolean learned = false;
 		for (int index = 0; index < plan.size(); index++) {
-			int seconds = budget(plan.get(index), lastStart);
+			int seconds = budget(plan.get(index), lastStart, status.storageUri);
 			learned |= lastStart.containsKey(plan.get(index));
 			total += seconds;
 			if (index < current) {
@@ -546,7 +589,7 @@ public final class ServedModelStateResolver {
 			}
 		}
 		status.etaBasis = learned ? "last start" : "defaults";
-		double budget = budget(status.phase, lastStart);
+		double budget = budget(status.phase, lastStart, status.storageUri);
 		long elapsed = status.phaseSince == null ? 0
 				: Math.max(0, Duration.between(status.phaseSince, now).toSeconds());
 		double fraction = Math.min(MAX_PHASE_FRACTION, elapsed / budget);
@@ -555,10 +598,18 @@ public final class ServedModelStateResolver {
 		status.etaSeconds = Math.max(1, remaining + after);
 	}
 
-	/** A phase that took no time still gets one second, so fractions stay defined. */
-	private static int budget(ServedModelPhase phase, Map<ServedModelPhase, Integer> lastStart) {
+	/**
+	 * A phase that took no time still gets one second, so fractions stay defined.
+	 * Without a last start, the weights of a pvc:// copy take
+	 * {@value #LINK_SECONDS} s, since they are linked rather than downloaded.
+	 */
+	private static int budget(ServedModelPhase phase, Map<ServedModelPhase, Integer> lastStart, String storageUri) {
 		Integer seconds = lastStart.get(phase);
-		return seconds == null ? phase.getDefaultSeconds() : Math.max(1, seconds);
+		if (seconds != null) {
+			return Math.max(1, seconds);
+		}
+		return phase == ServedModelPhase.DOWNLOADING_WEIGHTS && VolumeUri.of(storageUri) != null ? LINK_SECONDS
+				: phase.getDefaultSeconds();
 	}
 
 	/** @return the phase lengths of the last start, empty when unknown or unreadable */
@@ -661,6 +712,13 @@ public final class ServedModelStateResolver {
 
 	private static void phase(ServedModelStatus status, ServedModelPhase phase, Instant since) {
 		set(status, ServedModelState.STARTING, phase, phase.getMessage(), since);
+	}
+
+	/** What the storage initializer does: KServe links a pvc:// copy into the pod instead of copying it. */
+	private static String fetching(String storageUri, String what) {
+		VolumeUri volume = VolumeUri.of(storageUri);
+		return volume == null ? "Downloading " + what + source(storageUri)
+				: "Linking " + what + " from volume " + volume.claim();
 	}
 
 	private static String source(String storageUri) {

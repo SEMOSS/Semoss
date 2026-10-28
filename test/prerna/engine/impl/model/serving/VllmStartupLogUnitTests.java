@@ -69,6 +69,27 @@ class VllmStartupLogUnitTests {
 	}
 
 	@Test
+	void tellsWhetherTheCompileCacheServedTheStart() {
+		List<String> cold = List.of(Fixtures.text("vllm-startup.log").split("\n"));
+		assertEquals("miss", VllmStartupLog.parse(cold).getCompileCache(), "the recorded start compiled the model");
+
+		// a restart that finds the compiled model in VLLM_CACHE_ROOT loads it instead
+		List<String> warm = cold.stream().filter(line -> !line.contains("Cache the graph for"))
+				.map(line -> line.replaceAll("Compiling a graph for dynamic shape takes [0-9.]+ s",
+						"Directly load the compiled graph(s) for dynamic shape from the cache, took 1.932 s"))
+				.toList();
+		VllmStartupLog log = VllmStartupLog.parse(warm);
+		assertEquals("hit", log.getCompileCache());
+		assertTrue(log.hasReached(Milestone.COMPILED), "torch.compile still logs its total");
+
+		List<String> both = new java.util.ArrayList<>(cold);
+		both.addAll(warm);
+		assertEquals("partial", VllmStartupLog.parse(both).getCompileCache());
+		assertNull(VllmStartupLog.parse(Fixtures.vllmLogUntil("Loading weights took")).getCompileCache(),
+				"not compiled yet");
+	}
+
+	@Test
 	void linesDropColorsAndProbeAccessLines() {
 		String body = Fixtures.text("vllm-startup.log");
 

@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.model.serving;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +42,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AuditEventType;
@@ -113,6 +115,15 @@ public abstract class AbstractServedModelReactor extends AbstractReactor {
 		return value.strip();
 	}
 
+	/** The id of the SEMOSS engine given by the engine key; refused when absent. */
+	protected String getEngineId() {
+		String value = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (value == null || value.isBlank()) {
+			throw new IllegalArgumentException("Must define the engine (its id)");
+		}
+		return value.strip();
+	}
+
 	/** A map argument given by key; null when absent. */
 	@SuppressWarnings("unchecked")
 	protected Map<String, Object> getMapArgument(String key) {
@@ -136,6 +147,18 @@ public abstract class AbstractServedModelReactor extends AbstractReactor {
 		UserAuditTrailUtils.recordEvent(new AuditEvent().eventType(eventType).status(AuditStatus.SUCCESS)
 				.actorUser(user).target(AuditTargetType.MODEL, namespace + "/" + name, name)
 				.details(Map.of("namespace", namespace, "servedModel", name)));
+	}
+
+	/** Record that a model engine was linked to a served model, or unlinked from it. */
+	protected static void auditEngineLink(User user, String engineId, String engineName, String namespace,
+			String servedModel, boolean linked) {
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("namespace", namespace);
+		details.put("servedModel", servedModel);
+		details.put("linked", linked);
+		UserAuditTrailUtils.recordEvent(new AuditEvent().eventType(AuditEventType.MODEL_SERVING_ENGINE_LINK)
+				.status(AuditStatus.SUCCESS).actorUser(user).target(AuditTargetType.ENGINE, engineId, engineName)
+				.details(details));
 	}
 
 	static String describe(KubeApiException e) {

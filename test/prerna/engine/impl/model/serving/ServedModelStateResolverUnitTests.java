@@ -165,6 +165,7 @@ class ServedModelStateResolverUnitTests {
 		assertEquals(4096, vllm.get("maxModelLen"));
 		assertEquals(2.7669, vllm.get("weightsGiB"));
 		assertEquals(19.63, vllm.get("kvCacheGiB"));
+		assertEquals("miss", vllm.get("compileCache"), "the recorded start compiled the model afresh");
 
 		Map<String, Long> seconds = new java.util.LinkedHashMap<>();
 		for (Map<String, Object> phase : status.phases) {
@@ -286,6 +287,73 @@ class ServedModelStateResolverUnitTests {
 		ServedModelStateResolver.explainFailure(status, List.of(
 				"2026-10-26T23:57:29Z huggingface_hub.errors.RepositoryNotFoundError: 401 Client Error. (Request ID: x)"));
 		assertTrue(failure.getHint().contains("gated"), failure.getHint());
+	}
+
+	private static final String CACHED_COMMIT = "0123456789abcdef0123456789abcdef01234567";
+
+	/** The recorded InferenceService, as if its catalog entry took the weights from the model cache */
+	private static JsonObject cached(String fixture) {
+		JsonObject isvc = Fixtures.json(fixture + "-isvc.json");
+		KubeJson.obj(isvc, "spec", "predictor", "model").addProperty("storageUri",
+				"pvc://semoss-model-cache/allenai/OLMo-2-0425-1B-Instruct/" + CACHED_COMMIT);
+		return isvc;
+	}
+
+	@Test
+	void weightsFromTheModelCacheAreLinkedInSeconds() {
+		Instant now = Instant.parse("2026-10-26T23:57:09Z");
+		ServedModelStatus status = ServedModelStateResolver.resolve(cached("starting-downloading"),
+				Fixtures.items("starting-downloading-pods.json"), Fixtures.items("starting-downloading-events.json"),
+				null, now);
+
+		assertEquals(ServedModelPhase.DOWNLOADING_WEIGHTS, status.getPhase());
+		assertEquals("Linking the model weights from volume semoss-model-cache", status.getMessage());
+		// 3 s left of the 5 s a link takes, then vLLM's defaults: 35 + 15 + 30 + 10
+		assertEquals(3L + 90, status.getEtaSeconds());
+		assertEquals(118L + 90, resolve("starting-downloading", now).getEtaSeconds(),
+				"a download from Hugging Face budgets 120 s");
+	}
+
+	@Test
+	void aCopyMissingFromTheModelCacheNamesTheCommandThatFillsIt() {
+		List<JsonObject> pods = Fixtures.items("starting-downloading-pods.json");
+		JsonObject init = container(pods.get(0), "initContainerStatuses", ServedModelService.INIT_CONTAINER);
+		init.add("state", json("{\"terminated\":{\"exitCode\":1,\"reason\":\"Error\"}}"));
+
+		ServedModelStatus status = ServedModelStateResolver.resolve(cached("starting-downloading"), pods,
+				Fixtures.items("starting-downloading-events.json"), null, Instant.parse("2026-10-26T23:57:30Z"));
+
+		ServedModelFailure failure = status.getFailure();
+		assertEquals(Cause.DOWNLOAD_FAILED, failure.getCause());
+		assertEquals("Linking the weights from volume semoss-model-cache failed (exit code 1)", failure.getMessage());
+		ServedModelStateResolver.explainFailure(status, List.of("2026-10-26T23:57:29Z 2026-10-26 23:57:29.512 1 "
+				+ "storage.initializer ERROR [initializer-entrypoint:<module>():28] Exception: Cannot locate source uri "
+				+ "/mnt/pvc/allenai/OLMo-2-0425-1B-Instruct/" + CACHED_COMMIT + " for PVC"));
+		assertTrue(failure.getHint().contains("bash models/intake/intake.sh cache allenai/OLMo-2-0425-1B-Instruct "
+				+ CACHED_COMMIT), failure.getHint());
+
+		// the same words in a model's crash say nothing about the copy
+		ServedModelStatus crash = resolve("starting-loading", Instant.parse("2026-10-26T23:58:00Z"));
+		crash.storageUri = "pvc://semoss-model-cache/a/b/c";
+		crash.failure = new ServedModelFailure(Cause.MODEL_CRASH, ServedModelService.MAIN_CONTAINER, "Error", 1, 0, false,
+				"The model server exited with code 1");
+		ServedModelStateResolver.explainFailure(crash, List.of("2026-10-26T23:58:00Z FileNotFoundError: x does not exist"));
+		assertNull(crash.getFailure().getHint());
+	}
+
+	@Test
+	void aMissingVolumeIsUnschedulableAndNamesItsManifest() {
+		List<JsonObject> pods = Fixtures.items("pending-gpu-pods.json");
+		for (JsonObject condition : KubeJson.objects(pods.get(0), "status", "conditions")) {
+			condition.addProperty("message", "0/1 nodes are available: persistentvolumeclaim \"semoss-vllm-cache\" not "
+					+ "found. preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling.");
+		}
+		ServedModelStatus status = resolve("pending-gpu", pods, null, Instant.parse("2026-10-27T00:00:48Z"));
+
+		assertEquals(Cause.UNSCHEDULABLE, status.getFailure().getCause());
+		assertEquals("Kubernetes cannot schedule the model server: 0/1 nodes are available: persistentvolumeclaim "
+				+ "\"semoss-vllm-cache\" not found.", status.getMessage());
+		assertTrue(status.getFailure().getHint().contains("models/model-cache.yml"), status.getFailure().getHint());
 	}
 
 	@Test

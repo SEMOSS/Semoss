@@ -149,6 +149,74 @@ class ServingCatalogUnitTests {
 	}
 
 	@Test
+	void anEntryOnAVolumeNamesAnAllowedClaimAndAFolderOfIt() {
+		String commit = "0123456789abcdef0123456789abcdef01234567";
+		ServingCatalog catalog = ServingCatalog.parse("""
+				models:
+				  - id: cached
+				    storageUri: pvc://semoss-model-cache/allenai/OLMo-2-0425-1B-Instruct/%1$s
+				    licence: apache-2.0
+				    origin: Ai2 (US)
+				    approvedBy: admin
+				  - id: database
+				    storageUri: pvc://postgres-data/base
+				    licence: mit
+				    origin: Example (US)
+				    approvedBy: admin
+				  - id: whole-volume
+				    storageUri: pvc://semoss-model-cache
+				    licence: mit
+				    origin: Example (US)
+				    approvedBy: admin
+				  - id: climbs-out
+				    storageUri: pvc://semoss-model-cache/allenai/../../x
+				    licence: mit
+				    origin: Example (US)
+				    approvedBy: admin
+				  - id: half-copied
+				    storageUri: pvc://semoss-model-cache/.incoming/semoss-intake-abc12
+				    licence: mit
+				    origin: Example (US)
+				    approvedBy: admin
+				  - id: trailing-slash
+				    storageUri: pvc://semoss-model-cache/allenai/OLMo-2-0425-1B-Instruct/%1$s/
+				    licence: mit
+				    origin: Example (US)
+				    approvedBy: admin
+				""".formatted(commit), "test", RUNTIMES);
+
+		ServingCatalog.Entry cached = catalog.entry("cached");
+		assertEquals("pvc://semoss-model-cache/allenai/OLMo-2-0425-1B-Instruct/" + commit, cached.storageUri());
+		assertNull(cached.serviceAccount(), "a volume needs no account");
+		String problems = String.join("\n", catalog.getProblems());
+		assertEquals(5, catalog.getProblems().size(), problems);
+		assertTrue(problems.contains("entry database has storageUri pvc://postgres-data/base on volume postgres-data, "
+				+ "which is not one of [semoss-model-cache] (KSERVE_WEIGHT_VOLUMES)"), problems);
+		for (String refused : List.of("whole-volume", "climbs-out", "half-copied", "trailing-slash")) {
+			assertTrue(problems.contains("entry " + refused + " has storageUri "), problems);
+		}
+		assertTrue(problems.contains("which must name the folder of the weights on the volume, such as "
+				+ "pvc://semoss-model-cache/<org>/<repo>/<commit>"), problems);
+
+		ServingCatalog other = ServingCatalog.parse("""
+				models:
+				  - id: elsewhere
+				    storageUri: pvc://team-weights/granite/main
+				    licence: apache-2.0
+				    origin: IBM (US)
+				    approvedBy: admin
+				  - id: default-cache
+				    storageUri: pvc://semoss-model-cache/a/b/c
+				    licence: apache-2.0
+				    origin: IBM (US)
+				    approvedBy: admin
+				""", "test", RUNTIMES, Set.of("team-weights"));
+		assertEquals(List.of("elsewhere"), other.getEntries().stream().map(ServingCatalog.Entry::id).toList());
+		assertTrue(other.getProblems().get(0).contains("on volume semoss-model-cache, which is not one of [team-weights]"),
+				other.getProblems().toString());
+	}
+
+	@Test
 	void unknownEntriesCannotBeDefined() {
 		ServingCatalog catalog = ServingCatalog.parse(Fixtures.text("serving-catalog.yaml"), "ConfigMap semoss/x",
 				RUNTIMES);

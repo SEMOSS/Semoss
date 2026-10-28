@@ -448,6 +448,11 @@ public final class ServingCapacity {
 				model.put("canStart", decision.allowed());
 				if (!decision.allowed()) {
 					model.put("reason", decision.reason());
+					// what a start with replace=[true] would stop; it waits instead when they are already
+					// stopping, and refuses when pods SEMOSS does not manage hold the GPU
+					model.put("blocking", decision.blocking());
+					model.put("canReplace", !decision.waitable() && decision.unmanaged().isEmpty()
+							&& !decision.blocking().isEmpty());
 				}
 			}
 			models.add(model);

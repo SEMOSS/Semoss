@@ -110,29 +110,36 @@ public final class ServedModelService {
 	private final ServedModelEndpoints endpoints;
 	private final String catalogLocation;
 	private final Set<String> runtimes;
+	private final Set<String> weightVolumes;
 	private final double memoryBudget;
 	private final ServingSettings.PortRange hostPorts;
 	private final Clock clock;
 	private Sleeper sleeper = Thread::sleep;
 	private ServedModelEndpoints.Probe probe = ServedModelEndpoints.HTTP_PROBE;
+	/** Made from the settings on first use; tests set their own */
+	private ServingGpuMonitor gpuMonitor;
 
 	ServedModelService(KubeClient client, String namespace, ServedModelEndpoints endpoints, String catalogLocation,
 			Set<String> runtimes, Clock clock) {
-		this(client, namespace, endpoints, catalogLocation, runtimes, ServingSettings.DEFAULT_MEMORY_BUDGET,
+		this(client, namespace, endpoints, catalogLocation, runtimes,
+				Set.of(ServingSettings.DEFAULT_WEIGHT_VOLUME), ServingSettings.DEFAULT_MEMORY_BUDGET,
 				ServingSettings.DEFAULT_HOST_PORT_RANGE, clock);
 	}
 
 	/**
-	 * @param memoryBudget the share of the unified memory all models may use
-	 * @param hostPorts    the node ports models may be published on
+	 * @param weightVolumes the PersistentVolumeClaims pvc:// catalog entries may use
+	 * @param memoryBudget  the share of the unified memory all models may use
+	 * @param hostPorts     the node ports models may be published on
 	 */
 	ServedModelService(KubeClient client, String namespace, ServedModelEndpoints endpoints, String catalogLocation,
-			Set<String> runtimes, double memoryBudget, ServingSettings.PortRange hostPorts, Clock clock) {
+			Set<String> runtimes, Set<String> weightVolumes, double memoryBudget, ServingSettings.PortRange hostPorts,
+			Clock clock) {
 		this.client = client;
 		this.namespace = namespace;
 		this.endpoints = endpoints;
 		this.catalogLocation = catalogLocation;
 		this.runtimes = runtimes;
+		this.weightVolumes = weightVolumes;
 		this.memoryBudget = memoryBudget;
 		this.hostPorts = hostPorts;
 		this.clock = clock;
@@ -144,6 +151,10 @@ public final class ServedModelService {
 
 	void setProbe(ServedModelEndpoints.Probe probe) {
 		this.probe = probe;
+	}
+
+	void setGpuMonitor(ServingGpuMonitor gpuMonitor) {
+		this.gpuMonitor = gpuMonitor;
 	}
 
 	/**
@@ -179,8 +190,8 @@ public final class ServedModelService {
 		classLogger.info("Model serving uses {}, namespace {}, {} endpoints", connection.describe(), namespace,
 				endpoints.getMode());
 		return new ServedModelService(new KubeClient(connection), namespace, endpoints, ServingSettings.getCatalog(),
-				ServingSettings.getRuntimes(), ServingSettings.getMemoryBudget(), ServingSettings.getHostPortRange(),
-				Clock.systemUTC());
+				ServingSettings.getRuntimes(), ServingSettings.getWeightVolumes(), ServingSettings.getMemoryBudget(),
+				ServingSettings.getHostPortRange(), Clock.systemUTC());
 	}
 
 	public String getNamespace() {
@@ -293,6 +304,21 @@ public final class ServedModelService {
 		List<JsonObject> pods = KubeJson.objects(this.client.get(pods()), "items");
 		return new ServingCapacity(this.namespace, nodes, services, pods, runtimeFractions(services, warnings),
 				this.memoryBudget, this.clock.instant(), warnings);
+	}
+
+	/**
+	 * What the GPUs are doing: DCGM's live values and history from Prometheus, the
+	 * pods using each GPU, and the nodes' memory; see {@link ServingGpuStatus}.
+	 */
+	public ServingGpuStatus gpuStatus(ServingGpuStatus.Window window) {
+		ServingGpuMonitor monitor;
+		synchronized (this) {
+			if (this.gpuMonitor == null) {
+				this.gpuMonitor = ServingGpuMonitor.fromSettings(this.client, this.namespace, this.endpoints.getMode());
+			}
+			monitor = this.gpuMonitor;
+		}
+		return monitor.read(window, this.clock.instant());
 	}
 
 	/**
@@ -462,7 +488,7 @@ public final class ServedModelService {
 			Path file = Path.of(this.catalogLocation.substring("file:".length()));
 			try {
 				return ServingCatalog.parse(Files.readString(file, StandardCharsets.UTF_8), file.toString(),
-						this.runtimes);
+						this.runtimes, this.weightVolumes);
 			} catch (IOException e) {
 				return ServingCatalog.empty(file.toString(), "Cannot read the serving catalog " + file + ": " + e.getMessage());
 			}
@@ -475,7 +501,7 @@ public final class ServedModelService {
 			JsonObject configMap = this.client
 					.get(KubeClient.path("api", "v1", "namespaces", this.namespace, "configmaps", name));
 			return ServingCatalog.parse(KubeJson.str(configMap, "data", ServingCatalog.CATALOG_KEY),
-					source + " (key " + ServingCatalog.CATALOG_KEY + ")", this.runtimes);
+					source + " (key " + ServingCatalog.CATALOG_KEY + ")", this.runtimes, this.weightVolumes);
 		} catch (KubeApiException e) {
 			if (e.isNotFound()) {
 				return ServingCatalog.empty(source, "There is no serving catalog: " + source + " does not exist");

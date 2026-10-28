@@ -136,6 +136,18 @@ final class FakeKubeApi implements AutoCloseable {
 		return service;
 	}
 
+	/** A client of this API with its own kubeconfig, for code that takes a client rather than the service */
+	KubeClient client(Path dir) throws IOException {
+		Path kubeconfig = dir.resolve("client-kubeconfig");
+		Files.writeString(kubeconfig, """
+				current-context: test
+				clusters: [{name: test, cluster: {server: "http://127.0.0.1:%d"}}]
+				contexts: [{name: test, context: {cluster: test, user: test}}]
+				users: [{name: test, user: {token: test-token}}]
+				""".formatted(this.server.getAddress().getPort()));
+		return new KubeClient(KubeConnection.fromKubeConfig(KubeConfig.load(kubeconfig, null)));
+	}
+
 	List<Request> requests(String method, String pathPrefix) {
 		List<Request> matching = new ArrayList<>();
 		for (Request request : this.requests) {

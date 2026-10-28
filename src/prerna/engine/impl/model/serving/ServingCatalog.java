@@ -28,6 +28,7 @@
 package prerna.engine.impl.model.serving;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -66,6 +67,11 @@ import tools.jackson.dataformat.yaml.YAMLMapper;
  * model pods as {@value #DEFAULT_S3_SERVICE_ACCOUNT}, which reads the models
  * bucket; {@code serviceAccount} names another.
  *
+ * An entry on {@code pvc://claim/path} takes its weights from a volume that
+ * outlives the model's pods, such as the model cache the intake Job fills, so a
+ * start copies nothing. KServe mounts the whole claim into the pod, so the claim
+ * must be one of {@link ServingSettings#KSERVE_WEIGHT_VOLUMES}.
+ *
  * An invalid entry is left out and reported, so one mistake does not hide the
  * rest of the catalog.
  */
@@ -76,10 +82,29 @@ public final class ServingCatalog {
 	static final String DEFAULT_S3_SERVICE_ACCOUNT = "kserve-minio";
 	static final String CATALOG_KEY = "catalog.yaml";
 
+	static final String PVC_SCHEME = "pvc://";
+
 	private static final YAMLMapper YAML = new YAMLMapper();
-	private static final Set<String> STORAGE_SCHEMES = Set.of("hf://", "s3://", "pvc://");
+	private static final Set<String> STORAGE_SCHEMES = Set.of("hf://", "s3://", PVC_SCHEME);
 	/** A ServiceAccount name: a DNS-1123 subdomain */
 	private static final Pattern SERVICE_ACCOUNT = Pattern.compile("[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?");
+	/** One folder of a pvc:// path; no "." or "..", and no hidden folder such as the intake's .incoming */
+	private static final Pattern PATH_SEGMENT = Pattern.compile("[A-Za-z0-9_][-A-Za-z0-9_.]*");
+
+	/** The parts of a {@code pvc://claim/path} storage URI */
+	record VolumeUri(String claim, String path) {
+
+		/** @return the parts, or null when the URI is not on pvc:// */
+		static VolumeUri of(String storageUri) {
+			if (storageUri == null || !storageUri.startsWith(PVC_SCHEME)) {
+				return null;
+			}
+			String rest = storageUri.substring(PVC_SCHEME.length());
+			int slash = rest.indexOf('/');
+			return slash < 0 ? new VolumeUri(rest, "")
+					: new VolumeUri(rest.substring(0, slash), rest.substring(slash + 1));
+		}
+	}
 
 	/**
 	 * @param serviceAccount the ServiceAccount the model's pods run as, which gives
@@ -127,10 +152,16 @@ public final class ServingCatalog {
 		return new ServingCatalog(source, List.of(), problem == null ? List.of() : List.of(problem));
 	}
 
+	/** As {@link #parse(String, String, Set, Set)}, with the default model cache as the only volume */
+	static ServingCatalog parse(String yaml, String source, Set<String> allowedRuntimes) {
+		return parse(yaml, source, allowedRuntimes, Set.of(ServingSettings.DEFAULT_WEIGHT_VOLUME));
+	}
+
 	/**
 	 * @param allowedRuntimes the (Cluster)ServingRuntimes entries may name
+	 * @param allowedVolumes  the PersistentVolumeClaims pvc:// entries may name
 	 */
-	static ServingCatalog parse(String yaml, String source, Set<String> allowedRuntimes) {
+	static ServingCatalog parse(String yaml, String source, Set<String> allowedRuntimes, Set<String> allowedVolumes) {
 		Map<String, Object> root;
 		try {
 			root = yaml == null || yaml.isBlank() ? Map.of()
@@ -153,7 +184,7 @@ public final class ServingCatalog {
 			}
 			String id = text(map, "id");
 			try {
-				Entry entry = entry(map, allowedRuntimes);
+				Entry entry = entry(map, allowedRuntimes, allowedVolumes);
 				if (!ids.add(entry.id())) {
 					throw new IllegalArgumentException("is listed twice");
 				}
@@ -165,11 +196,15 @@ public final class ServingCatalog {
 		return new ServingCatalog(source, entries, problems);
 	}
 
-	private static Entry entry(Map<?, ?> map, Set<String> allowedRuntimes) {
+	private static Entry entry(Map<?, ?> map, Set<String> allowedRuntimes, Set<String> allowedVolumes) {
 		String id = required(map, "id");
 		String storageUri = required(map, "storageUri");
 		if (STORAGE_SCHEMES.stream().noneMatch(storageUri::startsWith)) {
 			throw new IllegalArgumentException("has storageUri " + storageUri + "; use hf://, s3:// or pvc://");
+		}
+		VolumeUri volume = VolumeUri.of(storageUri);
+		if (volume != null) {
+			checkVolume(storageUri, volume, allowedVolumes);
 		}
 		String runtime = text(map, "runtime") == null ? "nvidia-vllm" : text(map, "runtime");
 		if (!allowedRuntimes.contains(runtime)) {
@@ -198,6 +233,23 @@ public final class ServingCatalog {
 				ServedModelTemplate.checkQuantity("memory", text(map, "memory") == null ? "4Gi" : text(map, "memory")),
 				size, contextWindow, maxTokens, required(map, "licence"), required(map, "origin"),
 				required(map, "approvedBy"), text(map, "approvedAt"));
+	}
+
+	/**
+	 * KServe mounts the whole claim into the model's pod, so the claim must be one
+	 * that holds only weights, and the path a folder of it.
+	 */
+	private static void checkVolume(String storageUri, VolumeUri volume, Set<String> allowedVolumes) {
+		if (!allowedVolumes.contains(volume.claim())) {
+			throw new IllegalArgumentException("has storageUri " + storageUri + " on volume " + volume.claim()
+					+ ", which is not one of " + allowedVolumes + " (" + ServingSettings.KSERVE_WEIGHT_VOLUMES + ")");
+		}
+		if (volume.path().isEmpty() || !Arrays.stream(volume.path().split("/", -1))
+				.allMatch(segment -> PATH_SEGMENT.matcher(segment).matches())) {
+			throw new IllegalArgumentException("has storageUri " + storageUri
+					+ ", which must name the folder of the weights on the volume, such as pvc://" + volume.claim()
+					+ "/<org>/<repo>/<commit>");
+		}
 	}
 
 	private static Number number(Map<?, ?> map, String key) {

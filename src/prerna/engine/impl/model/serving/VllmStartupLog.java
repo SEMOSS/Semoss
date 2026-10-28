@@ -65,6 +65,10 @@ public final class VllmStartupLog {
 		}
 	}
 
+	/** torch.compile's output came from vLLM's cache (VLLM_CACHE_ROOT), as on a restart */
+	private static final String COMPILE_CACHE_HIT = "Directly load the compiled graph";
+	/** vLLM compiled the model afresh, and keeps the result for the next start */
+	private static final String COMPILE_CACHE_MISS = "Compiling a graph for";
 	private static final Pattern ANSI_ESCAPE = Pattern.compile("\u001B\\[[0-9;?]*[ -/]*[@-~]");
 	/** uvicorn access lines for probes and scrapes: a 10 s heartbeat that buries everything else */
 	private static final Pattern ACCESS_LOG = Pattern
@@ -88,6 +92,8 @@ public final class VllmStartupLog {
 	private Integer maxModelLen;
 	private Double weightsGiB;
 	private Double kvCacheGiB;
+	private boolean compileCacheHit;
+	private boolean compileCacheMiss;
 
 	private VllmStartupLog() {
 	}
@@ -119,6 +125,8 @@ public final class VllmStartupLog {
 				String value = group(KV_CACHE, line);
 				log.kvCacheGiB = value == null ? null : Double.valueOf(value);
 			}
+			log.compileCacheHit |= line.contains(COMPILE_CACHE_HIT);
+			log.compileCacheMiss |= line.contains(COMPILE_CACHE_MISS);
 		}
 		return log;
 	}
@@ -151,6 +159,17 @@ public final class VllmStartupLog {
 
 	public Double getKvCacheGiB() {
 		return this.kvCacheGiB;
+	}
+
+	/**
+	 * @return "hit" when vLLM loaded the compiled model from its cache, "miss" when
+	 *         it compiled it, "partial" for both, and null before it compiles
+	 */
+	public String getCompileCache() {
+		if (this.compileCacheHit) {
+			return this.compileCacheMiss ? "partial" : "hit";
+		}
+		return this.compileCacheMiss ? "miss" : null;
 	}
 
 	/** Remove terminal color codes (vLLM colors its process prefixes). */
