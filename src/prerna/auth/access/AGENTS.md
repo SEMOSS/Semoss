@@ -419,6 +419,14 @@ showing or hiding an engine in their own lists (`ENGINE_VISIBILITY_UPDATE`) have
 on the Audit tab only. No code records `PROJECT_UPDATE` or `ENGINE_UPDATE`; they are kept so stored
 events of those types still read.
 
+Exporting a project or an engine for download records `PROJECT_EXPORT` (`ExportProject`,
+`ExportProjectApp`, `ExportApp`) or `ENGINE_EXPORT` (`ExportEngine`, `ExportDatabase`), both at `HIGH`
+severity, since a copy of the resource leaves the platform. `UserAuditTrailUtils.recordProjectExport`
+and `recordEngineExport` record it once the archive is built, with `details.reactor` (the pixel name,
+from `AbstractReactor.getPixelName`), the project's `projectType`, and `keepGit` where the export can
+keep the version history. An export that fails records its failure under the same event type
+(`AUDITED_REACTORS`), never a success. Owners see both on the Audit tab with those three details.
+
 ### Reads
 
 - `getPermissions` gives each grant on an engine its `usageLimit`. On a model

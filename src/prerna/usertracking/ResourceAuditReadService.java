@@ -84,9 +84,10 @@ public final class ResourceAuditReadService {
 			AuditEventType.PROJECT_GLOBAL_UPDATE, AuditEventType.PROJECT_DISCOVERABLE_UPDATE,
 			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_METADATA_UPDATE,
 			AuditEventType.PROJECT_BLOCKS_UPDATE, AuditEventType.PROJECT_DELETE, AuditEventType.PROJECT_UPLOAD,
-			AuditEventType.PROJECT_REPLACE, AuditEventType.WORKSPACE_CREATE, AuditEventType.WORKSPACE_UPDATE,
-			AuditEventType.WORKSPACE_DELETE, AuditEventType.SKILL_CREATE, AuditEventType.SKILL_UPDATE,
-			AuditEventType.SKILL_DELETE, AuditEventType.AUTOMATION_CREATE, AuditEventType.AUTOMATION_UPDATE);
+			AuditEventType.PROJECT_REPLACE, AuditEventType.PROJECT_EXPORT, AuditEventType.WORKSPACE_CREATE,
+			AuditEventType.WORKSPACE_UPDATE, AuditEventType.WORKSPACE_DELETE, AuditEventType.SKILL_CREATE,
+			AuditEventType.SKILL_UPDATE, AuditEventType.SKILL_DELETE, AuditEventType.AUTOMATION_CREATE,
+			AuditEventType.AUTOMATION_UPDATE);
 	/**
 	 * A usage limit set, changed or removed on a model; its owners set them, so
 	 * they see the limits
@@ -97,9 +98,9 @@ public final class ResourceAuditReadService {
 			AuditEventType.ENGINE_UPDATE, AuditEventType.ENGINE_RENAME, AuditEventType.ENGINE_DISPLAY_NAME_UPDATE,
 			AuditEventType.ENGINE_GLOBAL_UPDATE, AuditEventType.ENGINE_DISCOVERABLE_UPDATE,
 			AuditEventType.ENGINE_METADATA_UPDATE, AuditEventType.ENGINE_VISIBILITY_UPDATE,
-			AuditEventType.ENGINE_DELETE, AuditEventType.MODEL_CREATE, AuditEventType.VECTOR_CREATE,
-			AuditEventType.STORAGE_CREATE, AuditEventType.FUNCTION_CREATE, AuditEventType.GUARDRAIL_CREATE,
-			USAGE_LIMIT_EVENT, AuditEventType.DATABASE_WRITE);
+			AuditEventType.ENGINE_DELETE, AuditEventType.ENGINE_EXPORT, AuditEventType.MODEL_CREATE,
+			AuditEventType.VECTOR_CREATE, AuditEventType.STORAGE_CREATE, AuditEventType.FUNCTION_CREATE,
+			AuditEventType.GUARDRAIL_CREATE, USAGE_LIMIT_EVENT, AuditEventType.DATABASE_WRITE);
 
 	/**
 	 * The project and engine changes whose details owners see: which setting
@@ -131,6 +132,16 @@ public final class ResourceAuditReadService {
 			"sqlSha256");
 	private static final List<String> DATABASE_WRITE_NUMBER_FIELDS = List.of("statements", "succeeded",
 			"failedStatement", "timeoutSeconds");
+
+	/**
+	 * The exports of a project or an engine, and the details of one its owners see:
+	 * the reactor that ran it, the project's type and whether it kept the version
+	 * history
+	 */
+	private static final Set<AuditEventType> EXPORT_EVENTS = EnumSet.of(AuditEventType.PROJECT_EXPORT,
+			AuditEventType.ENGINE_EXPORT);
+	private static final List<String> EXPORT_TEXT_FIELDS = List.of("reactor", "projectType");
+	private static final List<String> EXPORT_FLAG_FIELDS = List.of("keepGit");
 
 	/**
 	 * The targets that are the project itself, or the engine itself, rather than
@@ -364,6 +375,9 @@ public final class ResourceAuditReadService {
 		if (value != null && eventType == AuditEventType.DATABASE_WRITE) {
 			return databaseWriteDetails(value);
 		}
+		if (value != null && EXPORT_EVENTS.contains(eventType)) {
+			return exportDetails(value);
+		}
 		if (value != null && SETTING_DETAIL_EVENTS.contains(eventType)) {
 			return settingDetails(value);
 		}
@@ -452,6 +466,33 @@ public final class ResourceAuditReadService {
 				var item = object.get(key);
 				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isNumber()) {
 					safe.addProperty(key, item.getAsLong());
+				}
+			}
+			return safe.size() == 0 ? null : safe.toString();
+		} catch (RuntimeException ignored) {
+			return null;
+		}
+	}
+
+	/**
+	 * Keeps how a project or an engine was exported: the reactor that ran it, the
+	 * project's type and whether the archive kept the version history.
+	 */
+	private static String exportDetails(String value) {
+		try {
+			var object = JsonParser.parseString(value).getAsJsonObject();
+			var safe = new JsonObject();
+			for (String key : EXPORT_TEXT_FIELDS) {
+				var item = object.get(key);
+				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isString()
+						&& item.getAsString().length() <= 255) {
+					safe.addProperty(key, item.getAsString());
+				}
+			}
+			for (String key : EXPORT_FLAG_FIELDS) {
+				var item = object.get(key);
+				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isBoolean()) {
+					safe.addProperty(key, item.getAsBoolean());
 				}
 			}
 			return safe.size() == 0 ? null : safe.toString();
