@@ -100,9 +100,12 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		boolean includeUnnamedRooms = getBoolean(INCLUDE_UNNAMED_ROOMS, false);
 		boolean includeChildRooms = getBoolean(INCLUDE_CHILD_ROOMS, false);
 
-		String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
-		String endDate = this.keyValue.get(ReactorKeysEnum.END_DATE.getKey());
-		String sortBy = this.keyValue.get(ReactorKeysEnum.SORT_BY.getKey());
+		// date-only bounds are whole days in the user's timezone
+		String startDate = ModelInferenceLogsUtils.toUtcDateBound(
+				this.keyValue.get(ReactorKeysEnum.START_DATE.getKey()), user.getZoneId(), false);
+		String endDate = ModelInferenceLogsUtils.toUtcDateBound(this.keyValue.get(ReactorKeysEnum.END_DATE.getKey()),
+				user.getZoneId(), true);
+		String sortBy = ModelInferenceLogsUtils.normalizeRoomSortBy(this.keyValue.get(ReactorKeysEnum.SORT_BY.getKey()));
 
 		// Call new overload of getUserConversations
 		List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(
@@ -130,7 +133,7 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		} else if (ReactorKeysEnum.SORT.getKey().equals(key)) {
 			return "Sort direction for the field chosen by sortBy. Accepts ASC or DESC (default is DESC).";
 		} else if (ReactorKeysEnum.SORT_BY.getKey().equals(key)) {
-			return "Which timestamp to sort by: \"modified\" sorts by ROOM__UPDATED_AT; anything else (including omitted) sorts by ROOM__DATE_CREATED.";
+			return "Which timestamp to sort by: \"created\" (default) or \"modified\" (last update, falling back to creation time for rooms never updated). Any other value is an error.";
 		} else if (ReactorKeysEnum.PINNED.getKey().equals(key)) {
 			return "Optional pinned filter: true for pinned rooms only, false for unpinned rooms only, omit for no pinned filter.";
 		} else if ("roomOptionsSearch".equals(key)) {
@@ -140,9 +143,9 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		} else if (INCLUDE_CHILD_ROOMS.equals(key)) {
 			return "Whether to include rooms that have a parent room. Defaults to false.";
 		} else if (ReactorKeysEnum.START_DATE.getKey().equals(key)) {
-			return "Optional inclusive start of a DATE_CREATED range filter. Ignored unless endDate is also provided.";
+			return "Optional inclusive start of a room creation-date filter: yyyy-MM-dd in the user's timezone, or an ISO-8601 date-time. Can be used without endDate.";
 		} else if (ReactorKeysEnum.END_DATE.getKey().equals(key)) {
-			return "Optional inclusive end of a DATE_CREATED range filter. Ignored unless startDate is also provided.";
+			return "Optional inclusive end of a room creation-date filter: yyyy-MM-dd (covers that whole day in the user's timezone), or an ISO-8601 date-time (exclusive). Can be used without startDate.";
 		}
 		return super.getDescriptionForKey(key);
 	}

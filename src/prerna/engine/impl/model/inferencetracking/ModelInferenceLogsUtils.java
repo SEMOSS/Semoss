@@ -34,9 +34,14 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1434,26 +1439,29 @@ public class ModelInferenceLogsUtils {
 	 *         * the room's date_created)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
-		return searchMessages(userId, projectId, keyword, -1, 0, false, false, null, null);
+		return searchMessages(userId, projectId, keyword, -1, 0, false, false, null, null, null, null);
 	}
 
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword, long limit,
 			long offset, boolean includeUnnamedRooms, boolean includeChildRooms) {
 		return searchMessages(userId, projectId, keyword, limit, offset, includeUnnamedRooms, includeChildRooms,
-				null, null);
+				null, null, null, null);
 	}
 
 	/**
-	 * Same as the seven-argument overload, with an additional inclusive
-	 * {@code ROOM__DATE_CREATED} range filter applied when both {@code startDate}
-	 * and {@code endDate} are provided.
+	 * Same as the seven-argument overload, plus a ROOM DATE_CREATED range and a
+	 * sort choice.
 	 *
-	 * @param startDate inclusive lower bound for DATE_CREATED (nullable)
-	 * @param endDate   inclusive upper bound for DATE_CREATED (nullable)
+	 * @param startDate inclusive UTC lower bound for DATE_CREATED (nullable), see
+	 *                  {@link #toUtcDateBound}
+	 * @param endDate   exclusive UTC upper bound for DATE_CREATED (nullable)
+	 * @param sortBy    "created" (default) or "modified", see
+	 *                  {@link #normalizeRoomSortBy}
+	 * @param sortDir   ASC or DESC (default DESC)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword,
 			long limit, long offset, boolean includeUnnamedRooms, boolean includeChildRooms, String startDate,
-			String endDate) {
+			String endDate, String sortBy, String sortDir) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 
 		// Room-only subquery selecting just the room IDs in scope for this user/
@@ -1470,6 +1478,8 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "room_name"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED", "date_created"));
+		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector("ROOM__UPDATED_AT", "ROOM__DATE_CREATED",
+				"last_modified"));
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
 				"MESSAGE__MESSAGE_ID", "match_count"));
 
@@ -1490,8 +1500,12 @@ public class ModelInferenceLogsUtils {
 		qs.addGroupBy(new QueryColumnSelector("ROOM__ROOM_ID"));
 		qs.addGroupBy(new QueryColumnSelector("ROOM__ROOM_NAME"));
 		qs.addGroupBy(new QueryColumnSelector("ROOM__DATE_CREATED"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("date_created", "DESC"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("room_id", "DESC"));
+		qs.addGroupBy(new QueryColumnSelector("ROOM__UPDATED_AT"));
+		String dir = normalizeSortDir(sortDir);
+		String sortAlias = "modified".equals(normalizeRoomSortBy(sortBy)) ? "last_modified" : "date_created";
+		qs.addOrderBy(new QueryColumnOrderBySelector(sortAlias, dir));
+		// unique tiebreaker so limit/offset pages are stable
+		qs.addOrderBy(new QueryColumnOrderBySelector("room_id", dir));
 		if (limit > 0) {
 			qs.setLimit(limit);
 		}
@@ -1501,17 +1515,6 @@ public class ModelInferenceLogsUtils {
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
-	private static void addRoomScopeFilters(SelectQueryStruct qs, String userId, String projectId,
-			boolean includeUnnamedRooms, boolean includeChildRooms) {
-		addRoomScopeFilters(qs, userId, projectId, includeUnnamedRooms, includeChildRooms, null, null);
-	}
-
-	/**
-	 * Same as the five-argument overload, with an additional inclusive
-	 * {@code ROOM__DATE_CREATED} range filter applied when both {@code startDate}
-	 * and {@code endDate} are provided — matches the range filter convention used
-	 * by {@code getUserConversations}.
-	 */
 	private static void addRoomScopeFilters(SelectQueryStruct qs, String userId, String projectId,
 			boolean includeUnnamedRooms, boolean includeChildRooms, String startDate, String endDate) {
 		qs.addExplicitFilter(
@@ -1527,13 +1530,77 @@ public class ModelInferenceLogsUtils {
 		if (!includeChildRooms) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
 		}
-		if ((startDate != null && !startDate.trim().isEmpty())
-				&& (endDate != null && !endDate.trim().isEmpty())) {
-			AndQueryFilter dateRangeFilter = new AndQueryFilter();
-			dateRangeFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ROOM__DATE_CREATED", ">=", startDate));
-			dateRangeFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ROOM__DATE_CREATED", "<=", endDate));
-			qs.addExplicitFilter(dateRangeFilter);
+		addDateRangeFilter(qs, "ROOM__DATE_CREATED", startDate, endDate);
+	}
+
+	private static final DateTimeFormatter UTC_BOUND_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+	/**
+	 * Converts a user-supplied date bound into a UTC timestamp string for a
+	 * [start, end) DATE_CREATED range. A date-only value (yyyy-MM-dd) is a whole
+	 * day in the user's zone, so an end date covers that entire day. Local
+	 * date-times are read in the user's zone; offset/instant values keep their
+	 * offset.
+	 *
+	 * @param value    the raw bound (nullable/blank returns null)
+	 * @param zone     the user's zone (null means UTC)
+	 * @param endBound true for the upper bound
+	 * @return UTC "yyyy-MM-dd HH:mm:ss", or null when no bound was given
+	 * @throws IllegalArgumentException if the value cannot be parsed
+	 */
+	public static String toUtcDateBound(String value, ZoneId zone, boolean endBound) {
+		if (value == null || value.trim().isEmpty()) {
+			return null;
 		}
+		String v = value.trim();
+		ZoneId z = zone == null ? ZoneOffset.UTC : zone;
+		ZonedDateTime zdt;
+		try {
+			if (v.length() == 10) {
+				LocalDate day = LocalDate.parse(v);
+				zdt = (endBound ? day.plusDays(1) : day).atStartOfDay(z);
+			} else {
+				String iso = v.replace(' ', 'T');
+				try {
+					zdt = OffsetDateTime.parse(iso).toZonedDateTime();
+				} catch (DateTimeParseException e) {
+					zdt = LocalDateTime.parse(iso).atZone(z);
+				}
+			}
+		} catch (DateTimeParseException e) {
+			throw new IllegalArgumentException("Invalid date '" + v + "'. Use yyyy-MM-dd or an ISO-8601 date-time.");
+		}
+		return zdt.withZoneSameInstant(ZoneOffset.UTC).format(UTC_BOUND_FORMAT);
+	}
+
+	// Either bound may be omitted; start is inclusive, end is exclusive.
+	private static void addDateRangeFilter(SelectQueryStruct qs, String column, String utcStart, String utcEnd) {
+		if (utcStart != null && !utcStart.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column, ">=", utcStart));
+		}
+		if (utcEnd != null && !utcEnd.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column, "<", utcEnd));
+		}
+	}
+
+	/**
+	 * @return "created" or "modified"; null/blank defaults to "created"
+	 * @throws IllegalArgumentException for any other value
+	 */
+	public static String normalizeRoomSortBy(String sortBy) {
+		if (sortBy == null || sortBy.trim().isEmpty()) {
+			return "created";
+		}
+		String s = sortBy.trim().toLowerCase();
+		if (!s.equals("created") && !s.equals("modified")) {
+			throw new IllegalArgumentException("Invalid sortBy '" + sortBy + "'. Use \"created\" or \"modified\".");
+		}
+		return s;
+	}
+
+	// ASC/ASCENDING (any case) sorts ascending; anything else keeps the documented DESC default
+	private static String normalizeSortDir(String sortDir) {
+		return sortDir != null && sortDir.trim().toUpperCase().startsWith("ASC") ? "ASC" : "DESC";
 	}
 
 	/**
@@ -1794,16 +1861,15 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Same as the ten-argument overload, with an additional inclusive
-	 * {@code ROOM__DATE_CREATED} range filter applied when both {@code startDate}
-	 * and {@code endDate} are provided, and a choice of which timestamp column to
-	 * order by.
+	 * Same as the ten-argument overload, plus a DATE_CREATED range and a sort
+	 * choice.
 	 *
-	 * @param startDate inclusive lower bound for DATE_CREATED (nullable)
-	 * @param endDate   inclusive upper bound for DATE_CREATED (nullable)
-	 * @param sortBy    which timestamp to order by: {@code "modified"} orders by
-	 *                  {@code ROOM__UPDATED_AT}; anything else (including null)
-	 *                  orders by {@code ROOM__DATE_CREATED}
+	 * @param startDate inclusive UTC lower bound for DATE_CREATED (nullable), see
+	 *                  {@link #toUtcDateBound}
+	 * @param endDate   exclusive UTC upper bound for DATE_CREATED (nullable)
+	 * @param sortBy    "created" (default) orders by DATE_CREATED; "modified"
+	 *                  orders by LAST_MODIFIED = COALESCE(UPDATED_AT,
+	 *                  DATE_CREATED); anything else is rejected
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch,
@@ -1815,6 +1881,8 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__UPDATED_AT"));
+		qs.addSelector(
+				QueryFunctionSelector.makeCoalesceSelector("ROOM__UPDATED_AT", "ROOM__DATE_CREATED", "LAST_MODIFIED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
 
@@ -1868,18 +1936,8 @@ public class ModelInferenceLogsUtils {
 			}
 		}
 
-		// DATE_CREATED range filter — only applied when both bounds are given,
-		// same convention as addStartDateEndDateFitler above (which targets
-		// MESSAGE__DATE_CREATED for a different query, not reused here).
-		if ((startDate != null && !startDate.trim().isEmpty())
-				&& (endDate != null && !endDate.trim().isEmpty())) {
-			AndQueryFilter dateRangeFilter = new AndQueryFilter();
-			dateRangeFilter.addFilter(
-					SimpleQueryFilter.makeColToValFilter("ROOM__DATE_CREATED", ">=", startDate));
-			dateRangeFilter.addFilter(
-					SimpleQueryFilter.makeColToValFilter("ROOM__DATE_CREATED", "<=", endDate));
-			qs.addExplicitFilter(dateRangeFilter);
-		}
+		// DATE_CREATED range, [start, end) in UTC; either bound may be omitted
+		addDateRangeFilter(qs, "ROOM__DATE_CREATED", startDate, endDate);
 
 		// LIMIT/OFFSET
 		if (limit > 0) {
@@ -1889,9 +1947,12 @@ public class ModelInferenceLogsUtils {
 			qs.setOffSet(offset);
 		}
 		// SORTING
-		sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
-		String sortColumn = "modified".equalsIgnoreCase(sortBy) ? "ROOM__UPDATED_AT" : "ROOM__DATE_CREATED";
-		qs.addOrderBy(new QueryColumnOrderBySelector(sortColumn, sortDir));
+		String dir = normalizeSortDir(sortDir);
+		// UPDATED_AT is only set once messages are saved, so fall back to DATE_CREATED
+		String sortColumn = "modified".equals(normalizeRoomSortBy(sortBy)) ? "LAST_MODIFIED" : "ROOM__DATE_CREATED";
+		qs.addOrderBy(new QueryColumnOrderBySelector(sortColumn, dir));
+		// unique tiebreaker so limit/offset pages are stable
+		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__ROOM_ID", dir));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
