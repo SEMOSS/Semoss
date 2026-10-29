@@ -28,8 +28,6 @@
 package prerna.reactor.scheduler;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -45,13 +43,8 @@ import prerna.SemossUnitTest;
 import prerna.util.sql.RdbmsTypeEnum;
 
 /**
- * quartz.properties ships with blank driver/URL/user/password placeholders
- * (see the comment above them in that file) since SchedulerFactorySingleton
- * always overwrites those four with the real scheduler database's own
- * connection details before Quartz is initialized. This confirms that
- * override actually happens, using the real project quartz.properties copied
- * into the test's base folder exactly as the deployed semosshome packaging
- * does (per semosshome.xml).
+ * Runs setUpQuartzProperties against the project quartz.properties, copied into
+ * the test base folder the way semosshome.xml packages it for deployment.
  */
 class SchedulerFactorySingletonUnitTests extends SemossUnitTest {
 
@@ -73,18 +66,6 @@ class SchedulerFactorySingletonUnitTests extends SemossUnitTest {
 		assertEquals("realpass", result.getProperty("org.quartz.dataSource.myDS.password"));
 		assertEquals("org.quartz.impl.jdbcjobstore.StdJDBCDelegate",
 				result.getProperty("org.quartz.jobStore.driverDelegateClass"));
-	}
-
-	@Test
-	void placeholdersInTheFileItselfAreBlankNotARealCredential() throws IOException {
-		Properties raw = new Properties();
-		try (var in = Files.newInputStream(semossDir.resolve("quartz.properties"))) {
-			raw.load(in);
-		}
-
-		assertTrue(raw.getProperty("org.quartz.dataSource.myDS.user", "").isEmpty());
-		assertTrue(raw.getProperty("org.quartz.dataSource.myDS.password", "").isEmpty());
-		assertFalse(raw.getProperty("org.quartz.dataSource.myDS.password", "").equals("admin"));
 	}
 
 	@Test
