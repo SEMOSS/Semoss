@@ -1617,7 +1617,7 @@ public final class CentralCloudStorage implements ICloudClient {
 	 */
 
 	@Override
-	public void pushInsight(String projectId, String insightId) throws IOException, InterruptedException {
+	public void pushInsight(String projectId, String rdbmsId) throws IOException, InterruptedException {
 		IProject project = Utility.getProject(projectId);
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
@@ -1626,13 +1626,13 @@ public final class CentralCloudStorage implements ICloudClient {
 		// only need to pull the insight folder - 99% the project is always already
 		// loaded to get to this point
 		String localInsightFolderPath = Utility.normalizePath(
-				AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId);
+				AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + rdbmsId);
 		File localInsightF = new File(localInsightFolderPath);
 		if (!localInsightF.exists() || !localInsightF.exists()) {
 			localInsightF.mkdirs();
 		}
 		String storageInsightFolder = PROJECT_CONTAINER_PREFIX + projectId + "/" + Constants.APP_ROOT_FOLDER + "/"
-				+ Constants.VERSION_FOLDER + "/" + insightId;
+				+ Constants.VERSION_FOLDER + "/" + rdbmsId;
 
 		classLogger.info("Pushing insight from local={} to remote={}", Utility.cleanLogString(localInsightFolderPath),
 				Utility.cleanLogString(storageInsightFolder));
@@ -1642,7 +1642,7 @@ public final class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void pullInsight(String projectId, String insightId) throws IOException, InterruptedException {
+	public void pullInsight(String projectId, String rdbmsId) throws IOException, InterruptedException {
 		IProject project = Utility.getProject(projectId);
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
@@ -1651,13 +1651,13 @@ public final class CentralCloudStorage implements ICloudClient {
 		// only need to pull the insight folder - 99% the project is always already
 		// loaded to get to this point
 		String localInsightFolderPath = Utility.normalizePath(
-				AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + insightId);
+				AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId) + "/" + rdbmsId);
 		File localInsightF = new File(localInsightFolderPath);
 		if (!localInsightF.exists() || !localInsightF.exists()) {
 			localInsightF.mkdirs();
 		}
 		String storageInsightFolder = PROJECT_CONTAINER_PREFIX + projectId + "/" + Constants.APP_ROOT_FOLDER + "/"
-				+ Constants.VERSION_FOLDER + "/" + insightId;
+				+ Constants.VERSION_FOLDER + "/" + rdbmsId;
 
 		classLogger.info("Pulling insight from remote={} to target={}", Utility.cleanLogString(storageInsightFolder),
 				Utility.cleanLogString(localInsightFolderPath));

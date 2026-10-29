@@ -255,11 +255,6 @@ public final class AutomationDefinitionValidator {
 			requireConfigString(nodeId, config, "text");
 			validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
 		}
-		case MODEL_NER -> {
-			requireConfigString(nodeId, config, "text");
-			requireConfigStringListOrPlaceholder(nodeId, config, "entities");
-			validateOptionalStringListOrPlaceholder(nodeId, config, "maskEntities");
-		}
 		case MODEL_VISION -> {
 			requireConfigString(nodeId, config, "prompt");
 			validateOptionalConfigString(nodeId, config, "image");
@@ -319,6 +314,11 @@ public final class AutomationDefinitionValidator {
 			if (routineId != null && !(routineId instanceof String)) {
 				throw new IllegalArgumentException("Automation agent node '" + nodeId
 						+ "' routineId configuration must be a string when provided.");
+			}
+			Object routineDelivery = config.get(AutomationConstants.CONFIG_ROUTINE_DELIVERY);
+			if (routineDelivery != null && !(routineDelivery instanceof String)) {
+				throw new IllegalArgumentException("Automation agent node '" + nodeId
+						+ "' routineDelivery configuration must be a string when provided.");
 			}
 			Object wait = config.get(AutomationConstants.CONFIG_WAIT);
 			if (wait != null && !(wait instanceof Boolean)) {

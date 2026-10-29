@@ -121,7 +121,8 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 				+ "regularly (\"every weekday at 8, summarize what my clients asked for and email it to me\"). Leave "
 				+ "out routineId to create one; pass it, from ListRoutines, to change one, sending only what changes. "
 				+ "The owner approves the exact routine on a card before it is saved. A routine can never send to "
-				+ "anyone else. To try a saved routine now, use ManageRoutine with action run. Load "
+				+ "anyone else, but it can save email drafts for others in the owner's Outlook, never sent, for "
+				+ "the owner to review (\"draft Ryan a status update each morning\"). To try a saved routine now, use ManageRoutine with action run. Load "
 				+ "collaboration/references/routines/schedule-a-routine.md before creating one.";
 	}
 

@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.utils;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,18 +36,24 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IEngine;
+import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.UploadUtilities;
+import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
+/**
+ * Closes engines so the next use opens them again from their smss file and
+ * files. This is how an engine is restarted: closing shuts down the python
+ * process the engine owns, so the reopened engine picks up changed files. In a
+ * cluster the close is published to the other nodes, which close the engine
+ * where they have it open. The user must own every engine, or be an admin.
+ */
 public class CloseEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CloseEngineReactor.class);
@@ -60,42 +65,39 @@ public class CloseEngineReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		List<String> engineIds = getEngineIds();
-
 		User user = this.insight.getUser();
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if (!isAdmin) {
-			for (String engineId : engineIds) {
-				// we may have the alias
-				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-				boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
-				if (!isOwner) {
-					throw new IllegalArgumentException("Engine " + engineId
-							+ " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
-				}
+
+		// check every engine before closing any
+		List<String> engineIds = getEngineIds();
+		for (String engineId : engineIds) {
+			if (!isAdmin && !SecurityEngineUtils.userIsOwner(user, engineId)) {
+				throw new IllegalArgumentException("Engine " + engineId
+						+ " does not exist or user does not have permissions to close the engine. User must be the owner to perform this function.");
 			}
 		}
 
-		// once all are good, we can close
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ENGINE_INFO);
 		for (String engineId : engineIds) {
-			classLogger.info("Attempting to close engine: " + engineId);
-			// we may have the alias
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			IEngine engine = Utility.getEngine(engineId);
+			classLogger.info("Closing engine {} for a restart", Utility.cleanLogString(engineId));
+			boolean closed = EngineSyncUtility.closeLoadedEngine(engineId);
 			try {
-				classLogger.info("Shutting down engine: " + engineId);
-				engine.close();
-				UploadUtilities.removeEngineExcludingSMSSFromDIHelper(engineId);
-				classLogger.info("Shut down engine: " + engineId);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				ClusterUtil.publishEngineClose(engineId);
+			} catch (SemossPixelException e) {
+				// keep closing the remaining engines, and tell the user which nodes
+				// still have the old instance open
+				noun.addAdditionalReturn(NounMetadata.getWarningNounMessage(e.getMessage()));
 			}
+			String message = closed ? "Closed engine " + engineId + ". It restarts on its next use."
+					: "Engine " + engineId + " was not running. It starts on its next use.";
+			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage(message));
 		}
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ENGINE_INFO);
+		return noun;
 	}
 
 	/**
-	 * Get inputs
+	 * Reads the engine ids to close, from the engine key when it is set and
+	 * otherwise from every input in the current row.
 	 * 
 	 * @return list of engines to close
 	 */
@@ -118,5 +120,22 @@ public class CloseEngineReactor extends AbstractReactor {
 			engineIds.add(this.curRow.get(i).toString());
 		}
 		return engineIds;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Close engines so their next use opens them again from their smss file and files. \
+				Use this to restart an engine, for example to pick up changed python files: closing \
+				shuts down the python process the engine owns. In a cluster every node closes the engine. \
+				The user must own the engines.""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The ids of the engines to close";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

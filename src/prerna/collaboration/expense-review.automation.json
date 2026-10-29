@@ -1,0 +1,109 @@
+{
+  "formatVersion": 2,
+  "description": "Collaboration expense review: read the approval requests that just reached the owner's inbox, review them against the owner's guideline documents, email the owner a suggested decision.",
+  "triggerBindings": [
+    {
+      "id": "manual",
+      "type": "manual"
+    }
+  ],
+  "graph": {
+    "nodes": [
+      {
+        "id": "start",
+        "type": "trigger.start",
+        "label": "Start",
+        "codeMode": "generated",
+        "config": {
+          "globals": [
+            {
+              "name": "owner_email",
+              "defaultValue": "",
+              "description": "Owner mailbox address, set by Collaboration"
+            },
+            {
+              "name": "timezone",
+              "defaultValue": "UTC",
+              "description": "Owner time zone the review is dated in, set by Collaboration"
+            },
+            {
+              "name": "thread_ids",
+              "defaultValue": [],
+              "description": "Brain thread id of each request, set by the mail import"
+            },
+            {
+              "name": "message_keys",
+              "defaultValue": [],
+              "description": "Brain message key of each request email, in the same order"
+            },
+            {
+              "name": "cc",
+              "defaultValue": [],
+              "description": "Addresses the owner copies each review to, set by Collaboration"
+            }
+          ]
+        }
+      },
+      {
+        "id": "gather",
+        "type": "developer.python",
+        "label": "Read the requests",
+        "outputVar": "context",
+        "codeMode": "custom",
+        "config": {}
+      },
+      {
+        "id": "review",
+        "type": "agent.run",
+        "label": "Review against the guidelines",
+        "outputVar": "review",
+        "codeMode": "generated",
+        "config": {
+          "engineId": "",
+          "command": "",
+          "collaborationRoutine": true,
+          "wait": true,
+          "waitTimeoutMs": "600000"
+        }
+      },
+      {
+        "id": "deliver",
+        "type": "developer.python",
+        "label": "Save drafts and email me the review",
+        "outputVar": "delivery",
+        "codeMode": "custom",
+        "config": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "start-gather",
+        "kind": "control",
+        "source": "start",
+        "sourcePort": "out",
+        "target": "gather",
+        "targetPort": "in"
+      },
+      {
+        "id": "gather-review",
+        "kind": "control",
+        "source": "gather",
+        "sourcePort": "out",
+        "target": "review",
+        "targetPort": "in"
+      },
+      {
+        "id": "review-deliver",
+        "kind": "control",
+        "source": "review",
+        "sourcePort": "out",
+        "target": "deliver",
+        "targetPort": "in"
+      }
+    ]
+  },
+  "nodeSources": {
+    "gather": "# Gather the requests that set this review off: each approval email as clean text, with the earlier mail of its thread.\nimport datetime\nimport json\nfrom zoneinfo import ZoneInfo\n\nfrom semoss import Insight\n\n# Bounds that keep a long request and its thread inside the model's context.\nMAX_TEXT = 12000\nEARLIER = 3\nEARLIER_TEXT = 1500\n\n\ndef _value(name, value):\n    # Pixel decodes \\u escapes, so mail text can never open an <encode> tag in the Pixel.\n    return name + \"=[\" + json.dumps(value).replace(\"<\", \"\\\\u003c\") + \"]\"\n\n\ndef _pixel(reactor, **args):\n    ret = Insight().run_pixel(reactor + \"(\" + \", \".join(_value(k, v) for k, v in args.items()) + \");\", raw=True)\n    last = ret[0][\"pixelReturn\"][-1]\n    if \"ERROR\" in str(last.get(\"operationType\")):\n        raise RuntimeError(reactor + \" failed: \" + str(last.get(\"output\")))\n    return last.get(\"output\") or {}\n\n\ndef _prompt_data(value):\n    # RunAgent URL-decodes a command holding \"%\", so escape it and \"+\" for the data to reach the model unchanged.\n    return json.dumps(value, ensure_ascii=False).replace(\"%\", \"%25\").replace(\"+\", \"%2B\")\n\n\ndef _clip(text, size):\n    text = str(text or \"\").strip()\n    return text if len(text) <= size else text[:size].rstrip() + \" [...]\"\n\n\ndef _who(message):\n    return message.get(\"fromName\") or message.get(\"fromAddress\")\n\n\ndef run(scope):\n    thread_ids = list(scope.get(\"thread_ids\") or [])\n    message_keys = list(scope.get(\"message_keys\") or [])\n    requests = []\n    for thread_id, key in zip(thread_ids, message_keys):\n        messages = _pixel(\"BrainGetThreadMessages\", threadId=thread_id, limit=20).get(\"messages\") or []\n        request = next((m for m in messages if m.get(\"emailRef\") == \"email:\" + key), None)\n        if request is None and messages:\n            # the mailbox no longer shows that email, or a rule hides it; the newest message stands in\n            request = messages[-1]\n        if request is None:\n            continue\n        earlier = [m for m in messages if m is not request][-EARLIER:]\n        requests.append({\"n\": len(requests) + 1, \"messageId\": request.get(\"id\"), \"subject\": request.get(\"subject\"),\n                         \"from\": _who(request),\n                         \"fromAddress\": request.get(\"fromAddress\"), \"at\": request.get(\"at\"),\n                         \"webLink\": request.get(\"webLink\"), \"text\": _clip(request.get(\"text\"), MAX_TEXT),\n                         \"earlierInThread\": [{\"from\": _who(m), \"at\": m.get(\"at\"), \"text\": _clip(m.get(\"text\"), EARLIER_TEXT)}\n                                             for m in earlier]})\n    if not requests:\n        raise RuntimeError(\"None of the approval requests could be read from the mailbox.\")\n    try:\n        zone = ZoneInfo(str(scope.get(\"timezone\") or \"UTC\"))\n    except Exception:\n        zone = datetime.timezone.utc\n    today = datetime.datetime.now(zone).strftime(\"%Y-%m-%d\")\n    # the Graph id is for deliver's draft reply only; a model that copies a long id can get it wrong\n    review = [{k: v for k, v in r.items() if k != \"messageId\"} for r in requests]\n    return {\"today\": today, \"requests\": requests,\n            \"reviewInput\": _prompt_data({\"today\": today, \"requests\": review})}\n",
+    "deliver": "# Save the review's draft replies in the owner's Outlook drafts, never sent, then email them the review as\n# Deloitte-styled HTML; the only links are Outlook's own, to the requests and to the drafts.\nimport html\nimport json\nimport re\n\nimport bs4\nimport markdown\nfrom semoss import Insight\n\nTITLE = \"Expense Review\"\nFOOTER = (\"Prepared by SEMOSS Collaboration from the approval request and your guideline documents. \"\n          \"This is a suggested decision for your review; nothing was approved or declined, and no reply was sent \"\n          \"on your behalf. Respond from the original request email or the MES Meeting & Event Approval Dashboard.\")\nFONT = \"Arial, Helvetica, sans-serif\"\n# Deloitte palette: black, Deloitte green (accents only; too light for text), cool grays, accessible link blue.\nBLACK = \"#000000\"\nGREEN = \"#86BC25\"\nGRAY_TEXT = \"#53565A\"\nGRAY_LINE = \"#D0D0CE\"\nGRAY_FILL = \"#F2F2F2\"\nBLUE = \"#0076A8\"\nMAX_SUBJECT = 120\n\n# Outlook ignores most stylesheet CSS, so every element gets inline styles.\nSTYLES = {\n    \"h1\": \"margin:24px 0 8px; padding:0 0 6px; border-bottom:2px solid \" + GREEN + \"; font-size:20px; font-weight:bold; color:\" + BLACK + \";\",\n    \"h2\": \"margin:24px 0 8px; padding:0 0 6px; border-bottom:2px solid \" + GREEN + \"; font-size:18px; font-weight:bold; color:\" + BLACK + \";\",\n    \"h3\": \"margin:16px 0 6px; font-size:15px; font-weight:bold; color:\" + BLACK + \";\",\n    \"p\": \"margin:0 0 10px;\",\n    \"ul\": \"margin:0 0 12px; padding:0 0 0 20px;\",\n    \"ol\": \"margin:0 0 12px; padding:0 0 0 20px;\",\n    \"li\": \"margin:0 0 6px;\",\n    \"a\": \"color:\" + BLUE + \"; text-decoration:underline;\",\n    \"strong\": \"color:\" + BLACK + \";\",\n    \"table\": \"border-collapse:collapse; width:100%; margin:0 0 12px;\",\n    \"th\": \"padding:6px 8px; border:1px solid \" + GRAY_LINE + \"; background:\" + GRAY_FILL + \"; text-align:left;\",\n    \"td\": \"padding:6px 8px; border:1px solid \" + GRAY_LINE + \";\",\n    \"blockquote\": \"margin:0 0 12px; padding:4px 12px; border-left:3px solid \" + GREEN + \"; color:\" + GRAY_TEXT + \";\",\n    \"code\": \"font-family:Consolas, monospace; background:\" + GRAY_FILL + \"; padding:1px 4px;\",\n    \"hr\": \"border:0; border-top:1px solid \" + GRAY_LINE + \"; margin:16px 0;\",\n}\nDECISION_STYLE = (\"margin:14px 0; padding:10px 14px; background:\" + GRAY_FILL + \"; border-left:4px solid \" + GREEN\n                  + \"; font-size:15px; color:\" + BLACK + \";\")\nNOTE_STYLE = \"margin:0 0 12px; font-size:13px; color:\" + GRAY_TEXT + \";\"\n# A Draft reply section's \"To: <name>, <address>\" line.\nTO_LINE = re.compile(r\"^\\s*to\\s*:\", re.I)\nADDRESS = re.compile(r\"[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+\")\n\n\ndef _pixel_value(name, value):\n    # Pixel decodes \\u escapes, so mail text can never open an <encode> tag in the Pixel.\n    return name + \"=[\" + json.dumps(value).replace(\"<\", \"\\\\u003c\") + \"]\"\n\n\ndef _pixel(reactor, **args):\n    ret = Insight().run_pixel(reactor + \"(\" + \", \".join(_pixel_value(k, v) for k, v in args.items()) + \");\", raw=True)\n    last = ret[0][\"pixelReturn\"][-1]\n    if \"ERROR\" in str(last.get(\"operationType\")):\n        raise RuntimeError(reactor + \" failed: \" + str(last.get(\"output\")))\n    return last.get(\"output\") or {}\n\n\ndef _request(heading, requests):\n    # The request a draft answers: by the MES number in its review's heading, else the only request.\n    review = heading.find_previous_sibling(\"h2\")\n    for number in re.findall(r\"\\((\\d+)\\)\", review.get_text() if review else \"\"):\n        found = [r for r in requests if \"(\" + number + \")\" in str(r.get(\"subject\") or \"\")]\n        if len(found) == 1:\n            return found[0]\n    return requests[0] if len(requests) == 1 else None\n\n\ndef _save_drafts(soup, requests, owner):\n    # Each Draft reply section becomes a native Outlook reply to its request, quoting it, never sent. The model gives\n    # only the text and the address, and an address outside the owner's organization is left off.\n    domain = owner.rpartition(\"@\")[2].lower()\n    saved = []\n    # one draft per request, however many times the model repeats its review\n    drafted = set()\n    for heading in soup.find_all(\"h3\"):\n        if not heading.get_text().strip().lower().startswith(\"draft\"):\n            continue\n        section = []\n        for tag in heading.find_next_siblings():\n            if tag.name in (\"h1\", \"h2\", \"h3\"):\n                break\n            section.append(tag)\n        quote = next((tag for tag in section if tag.name == \"blockquote\"), None)\n        blocks = (quote.find_all(recursive=False) or [quote]) if quote else []\n        to = \" \".join(tag.get_text() for tag in [t for t in section if t is not quote] + blocks\n                      if TO_LINE.match(tag.get_text()))\n        found = ADDRESS.search(to)\n        address = found.group(0).lower() if found else \"\"\n        if address.rpartition(\"@\")[2] != domain and not address.endswith(\".\" + domain):\n            address = \"\"\n        body = \"\\n\\n\".join(text for text in (b.get_text().strip() for b in blocks if not TO_LINE.match(b.get_text()))\n                           if text)\n        request = _request(heading, requests)\n        status = {\"subject\": request.get(\"subject\") if request else None, \"to\": address, \"saved\": False}\n        note, link = \"This draft could not be saved in your Outlook drafts; copy it from here.\", \"\"\n        if request and request.get(\"messageId\") in drafted:\n            status[\"duplicate\"] = True\n            note = \"A draft for this request is already in your Outlook drafts.\"\n        elif request and request.get(\"messageId\") and body:\n            args = {\"id\": request[\"messageId\"], \"body\": html.escape(body).replace(\"\\n\", \"<br>\"), \"html\": True,\n                    \"overrideRecipients\": True, \"asDraft\": True}\n            if address:\n                args[\"to\"] = [address]\n            try:\n                link = str(_pixel(\"MicrosoftOutlookReplyMail\", **args).get(\"webLink\") or \"\")\n                status[\"saved\"] = True\n                drafted.add(request[\"messageId\"])\n                note = (\"Saved in your Outlook drafts as a reply to the request\"\n                        + (\".\" if address else \", with no recipient: add one before you send it.\"))\n            except Exception as e:\n                status[\"error\"] = str(e)\n        saved.append(status)\n        paragraph = soup.new_tag(\"p\", style=NOTE_STYLE)\n        paragraph.string = note\n        if link.startswith(\"https://\"):\n            anchor = soup.new_tag(\"a\", href=link, style=STYLES[\"a\"])\n            anchor.string = \"Open the draft\"\n            paragraph.append(\" \")\n            paragraph.append(anchor)\n        (section or [heading])[-1].insert_after(paragraph)\n    return saved\n\n\ndef _links(requests):\n    # The request's own Outlook link, from Graph, so the owner responds from the original email.\n    items = \"\"\n    for request in requests:\n        label = html.escape(str(request.get(\"subject\") or \"Request\"))\n        link = str(request.get(\"webLink\") or \"\")\n        if link.startswith(\"https://\"):\n            label = '<a href=\"' + html.escape(link) + '\" style=\"' + STYLES[\"a\"] + '\">' + label + \"</a>\"\n        items += '<li style=\"' + STYLES[\"li\"] + '\">' + label + \"</li>\"\n    if not items:\n        return \"\"\n    return ('<h3 style=\"' + STYLES[\"h3\"] + '\">Respond from the original request</h3><ul style=\"' + STYLES[\"ul\"] + '\">'\n            + items + \"</ul>\")\n\n\ndef _email(content, date):\n    return (\n        '<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background:' + GRAY_FILL + ';\">'\n        '<tr><td align=\"center\" style=\"padding:24px 12px;\">'\n        '<table role=\"presentation\" width=\"640\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" '\n        'style=\"width:100%; max-width:640px; background:#FFFFFF; border:1px solid ' + GRAY_LINE + ';\">'\n        '<tr><td style=\"background:' + BLACK + '; padding:20px 28px; font-family:' + FONT + ';\">'\n        '<span style=\"font-size:24px; font-weight:bold; color:#FFFFFF;\">Deloitte</span>'\n        '<span style=\"font-size:24px; font-weight:bold; color:' + GREEN + ';\">.</span>'\n        '<div style=\"padding-top:6px; font-size:13px; color:#BBBCBC;\">' + TITLE + ' &middot; ' + html.escape(date) + '</div>'\n        '</td></tr>'\n        '<tr><td style=\"height:4px; line-height:4px; font-size:0; background:' + GREEN + ';\">&nbsp;</td></tr>'\n        '<tr><td style=\"padding:8px 28px 20px; font-family:' + FONT + '; font-size:14px; line-height:1.5; color:' + BLACK + ';\">'\n        + content +\n        '</td></tr>'\n        '<tr><td style=\"padding:14px 28px; border-top:1px solid ' + GRAY_LINE + '; font-family:' + FONT\n        + '; font-size:12px; line-height:1.4; color:' + GRAY_TEXT + ';\">'\n        + FOOTER +\n        '</td></tr>'\n        '</table></td></tr></table>'\n    )\n\n\ndef run(scope):\n    recipient = str(scope.get(\"owner_email\") or \"\").strip()\n    if not recipient:\n        raise ValueError(\"There is no owner mailbox address to send to.\")\n    requests = list(scope[\"context\"].get(\"requests\") or [])\n    # Thinking a model leaves in its answer ends at </think>; none of it is the review.\n    review = str(scope[\"review\"]).rpartition(\"</think>\")[2]\n    # Escape raw HTML first, so only Markdown formatting reaches the email.\n    escaped = review.replace(\"&\", \"&amp;\").replace(\"<\", \"&lt;\")\n    soup = bs4.BeautifulSoup(markdown.markdown(escaped, extensions=[\"tables\"]), \"html.parser\")\n    # the review starts at its first request heading; a lead-in written before it is dropped\n    first = soup.find(\"h2\")\n    for tag in first.find_previous_siblings() if first else []:\n        tag.decompose()\n    for image in soup.find_all(\"img\"):\n        image.decompose()\n    for link in soup.find_all(\"a\"):\n        # the model writes no links of its own; the request and draft links come from Outlook below\n        link.unwrap()\n    for tag in soup.find_all(list(STYLES)):\n        tag[\"style\"] = STYLES[tag.name]\n    for paragraph in soup.find_all(\"p\"):\n        if paragraph.get_text().lstrip().lower().startswith(\"suggested decision\"):\n            paragraph[\"style\"] = DECISION_STYLE\n    drafts = _save_drafts(soup, requests, recipient)\n    date = str(scope[\"context\"][\"today\"])\n    body = _email(str(soup) + _links(requests), date)\n    if len(requests) == 1 and requests[0].get(\"subject\"):\n        subject = str(requests[0][\"subject\"]).strip()\n        subject = TITLE + \": \" + (subject if len(subject) <= MAX_SUBJECT else subject[:MAX_SUBJECT].rstrip() + \"...\")\n    else:\n        subject = TITLE + \": \" + str(len(requests)) + \" requests - \" + date\n    # the owner's own copies, from Routines; Collaboration checked the addresses when the owner saved them\n    cc = [str(a).strip() for a in scope.get(\"cc\") or [] if str(a).strip().lower() != recipient.lower()]\n    pixel = \"MicrosoftOutlookSendMail(\" + \", \".join([\n        _pixel_value(\"to\", [recipient]),\n        *([_pixel_value(\"cc\", cc)] if cc else []),\n        _pixel_value(\"subject\", subject),\n        _pixel_value(\"body\", body),\n        _pixel_value(\"html\", True),\n    ]) + \");\"\n    ret = Insight().run_pixel(pixel, raw=True)\n    last = ret[0][\"pixelReturn\"][-1]\n    if \"ERROR\" in str(last.get(\"operationType\")):\n        raise RuntimeError(\"Sending the review failed: \" + str(last.get(\"output\")))\n    return {\"sent\": True, \"to\": recipient, \"cc\": cc, \"subject\": subject, \"html\": body, \"drafts\": drafts}\n"
+  }
+}

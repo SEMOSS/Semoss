@@ -487,6 +487,55 @@ class UserAuditTrailUtilsUnitTests {
 	}
 
 	@Test
+	void exportsStoreTheReactorAndWhetherTheVersionHistoryWasKept() throws Exception {
+		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
+			createAuditTable(db);
+			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+			UserAuditTrailUtils.recordEngineExport(null, AuditTargetType.DATABASE, "database-1", "Sales",
+					"ExportDatabase", true);
+			UserAuditTrailUtils.recordProjectExport(null, "project-1", "Planner", "CODE", "ExportProjectApp", null);
+
+			String engine = " FROM USER_AUDIT_EVENTS WHERE TARGET_ID='database-1'";
+			assertEquals("ENGINE_EXPORT", db.value("SELECT EVENT_TYPE" + engine));
+			assertEquals("DATABASE", db.value("SELECT TARGET_TYPE" + engine));
+			assertEquals("database-1", db.value("SELECT ENGINE_ID" + engine));
+			assertEquals("HIGH", db.value("SELECT SEVERITY" + engine));
+			String engineDetails = String.valueOf(db.value("SELECT DETAILS" + engine));
+			assertTrue(engineDetails.contains("\"reactor\":\"ExportDatabase\""), engineDetails);
+			assertTrue(engineDetails.contains("\"keepGit\":true"), engineDetails);
+
+			String project = " FROM USER_AUDIT_EVENTS WHERE TARGET_ID='project-1'";
+			assertEquals("PROJECT_EXPORT", db.value("SELECT EVENT_TYPE" + project));
+			assertEquals("project-1", db.value("SELECT PROJECT_ID" + project));
+			assertEquals("HIGH", db.value("SELECT SEVERITY" + project));
+			String projectDetails = String.valueOf(db.value("SELECT DETAILS" + project));
+			assertTrue(projectDetails.contains("\"reactor\":\"ExportProjectApp\""), projectDetails);
+			assertTrue(projectDetails.contains("\"projectType\":\"CODE\""), projectDetails);
+			// an app's files never carry the version history, so it is not recorded
+			assertFalse(projectDetails.contains("keepGit"), projectDetails);
+		}
+	}
+
+	@Test
+	void failedExportsAreAuditedAsExports() throws Exception {
+		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
+			createAuditTable(db);
+			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+			UserAuditTrailUtils.recordPixelFailure(null, "META | ExportEngine(engine=[\"engine-1\"]);", null,
+					new IllegalStateException("Disk full"), null);
+			UserAuditTrailUtils.recordPixelFailure(null, "ExportProjectApp(project=[\"project-1\"]);",
+					"ExportProjectAppReactor", new IllegalStateException("Disk full"), null);
+
+			assertEquals("ENGINE",
+					db.value("SELECT TARGET_TYPE FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE='ENGINE_EXPORT'"));
+			assertEquals("PROJECT",
+					db.value("SELECT TARGET_TYPE FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE='PROJECT_EXPORT'"));
+			assertEquals(0,
+					((Number) db.value("SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE STATUS='SUCCESS'")).intValue());
+		}
+	}
+
+	@Test
 	void eventTypesAreReadBackByTheirStoredName() {
 		for (AuditEventType type : AuditEventType.values()) {
 			assertEquals(type, AuditEventType.find(type.name()));
