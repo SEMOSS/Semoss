@@ -188,6 +188,11 @@ public enum AuditEventType {
 	WORKSPACE_UPDATE(WORKSPACE, LOW),
 	/** A workspace was deleted */
 	WORKSPACE_DELETE(WORKSPACE, MEDIUM),
+	/**
+	 * An admin closed a user's room with an agent, and its subagents' rooms,
+	 * cancelling every run in them that had not finished
+	 */
+	AGENT_ROOM_CLOSE(WORKSPACE, HIGH),
 
 	// engines
 
@@ -230,6 +235,22 @@ public enum AuditEventType {
 	GUARDRAIL_CREATE(ENGINE, LOW),
 	/** SQL or a query struct changed a database */
 	DATABASE_WRITE(ENGINE, MEDIUM),
+	/** A guardrail check stopped an engine call */
+	GUARDRAIL_BLOCK(ENGINE, MEDIUM),
+	/** A guardrail check masked an engine call's input, which then ran */
+	GUARDRAIL_MASK(ENGINE, LOW),
+	/** A guardrail check answered with its own message in place of the engine */
+	GUARDRAIL_RESPOND(ENGINE, LOW),
+	/** A room was closed after its guardrail hits reached a limit */
+	GUARDRAIL_ROOM_CLOSE(ENGINE, HIGH),
+	/**
+	 * A user was locked out of an engine after their guardrail hits reached a limit
+	 */
+	GUARDRAIL_USER_LOCK(ENGINE, HIGH),
+	/** An engine call was refused because the user is locked out of the engine */
+	GUARDRAIL_LOCKED_REQUEST(ENGINE, MEDIUM),
+	/** An engine's editor ended a user's guardrail lock early */
+	GUARDRAIL_LOCK_CLEAR(ENGINE, MEDIUM),
 
 	// automations
 
