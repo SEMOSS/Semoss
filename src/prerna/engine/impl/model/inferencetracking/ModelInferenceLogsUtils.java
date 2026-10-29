@@ -1344,13 +1344,19 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Checks whether a room is inactive for a specific user.
+	 * Checks whether a room is inactive for a specific user: its row is marked
+	 * inactive, as a guardrail, its user removing it or an admin closing it leaves
+	 * it. A room with no row yet, such as a subagent's before its first message, is
+	 * not inactive, and neither is a blank id.
 	 *
 	 * @param userId user identifier
 	 * @param roomId room identifier
 	 * @return {@code true} if the room is inactive
 	 */
 	public static boolean isRoomInActive(String userId, String roomId) {
+		if (userId == null || userId.isBlank() || roomId == null || roomId.isBlank()) {
+			return false;
+		}
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__IS_ACTIVE"));
@@ -1358,13 +1364,13 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", false, PixelDataType.BOOLEAN));
-		boolean inactive = false;
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
-			inactive = wrapper.hasNext();
+		qs.setLimit(1);
+		try {
+			return !QueryExecutionUtility.queryList(modelInferenceLogsDb, qs, rs -> Boolean.TRUE).isEmpty();
 		} catch (Exception e) {
 			classLogger.error("Failed to check inactive state for roomId '{}' and userId '{}'.", roomId, userId, e);
+			return false;
 		}
-		return inactive;
 	}
 
 	/**

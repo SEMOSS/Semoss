@@ -190,7 +190,7 @@ public final class HumanDelegationService {
 				AgentRunContext.DEFAULT_MAX_TURNS, AgentRunContext.DEFAULT_MAX_REFLECTIONS, null, null, ownerInsight)
 				.withParentRunId(parent.runId()).withCompletionMode(mode).withHumanExecutor(assignee.label());
 		try {
-			AgentRunStore.insertInputRequired(childRunId, childRequest, parent.userId());
+			AgentRunStore.insertInputRequired(childRunId, childRequest, parent.userId(), parent.userType());
 		} catch (RuntimeException e) {
 			AgentRunActionStore.cancelPendingForRun(childRunId);
 			throw e;

@@ -170,7 +170,8 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("COMPLETED_AT", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("USER_ID", VARCHAR_255)));
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("USER_TYPE", VARCHAR_255)));
 
 		addTable("AGENT_RUN_ACTION", Arrays.asList(
 				Pair.with("ACTION_ID", VARCHAR_50),

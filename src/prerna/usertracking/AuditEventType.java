@@ -165,6 +165,11 @@ public enum AuditEventType {
 	PROJECT_UPLOAD(PROJECT, MEDIUM),
 	/** An existing project's files were replaced by an upload */
 	PROJECT_REPLACE(PROJECT, MEDIUM),
+	/**
+	 * A project was exported for download, whole or as its app's files: a copy of
+	 * it leaves the platform
+	 */
+	PROJECT_EXPORT(PROJECT, HIGH),
 	/** A project was opened; recorded when it is refused */
 	PROJECT_VIEW(PROJECT, LOW),
 
@@ -183,6 +188,11 @@ public enum AuditEventType {
 	WORKSPACE_UPDATE(WORKSPACE, LOW),
 	/** A workspace was deleted */
 	WORKSPACE_DELETE(WORKSPACE, MEDIUM),
+	/**
+	 * An admin closed a user's room with an agent, and its subagents' rooms,
+	 * cancelling every run in them that had not finished
+	 */
+	AGENT_ROOM_CLOSE(WORKSPACE, HIGH),
 
 	// engines
 
@@ -208,6 +218,11 @@ public enum AuditEventType {
 	ENGINE_VISIBILITY_UPDATE(ENGINE, LOW),
 	/** An engine was deleted */
 	ENGINE_DELETE(ENGINE, HIGH),
+	/**
+	 * An engine was exported for download, with its files, settings and metadata: a
+	 * copy of it, and of any data it holds, leaves the platform
+	 */
+	ENGINE_EXPORT(ENGINE, HIGH),
 	/** A model engine was created */
 	MODEL_CREATE(ENGINE, LOW),
 	/** A vector database engine was created */
