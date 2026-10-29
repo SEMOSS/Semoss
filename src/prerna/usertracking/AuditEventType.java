@@ -188,6 +188,11 @@ public enum AuditEventType {
 	WORKSPACE_UPDATE(WORKSPACE, LOW),
 	/** A workspace was deleted */
 	WORKSPACE_DELETE(WORKSPACE, MEDIUM),
+	/**
+	 * An admin closed a user's room with an agent, and its subagents' rooms,
+	 * cancelling every run in them that had not finished
+	 */
+	AGENT_ROOM_CLOSE(WORKSPACE, HIGH),
 
 	// engines
 
