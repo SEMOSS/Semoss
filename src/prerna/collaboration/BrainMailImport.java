@@ -129,7 +129,7 @@ public final class BrainMailImport {
 		String teamsError = null;
 		// webhooks and chat pulls skip while this job runs; the lock covers one that began just before it
 		synchronized (CollaborationDbUtils.ownerLock(BrainSync.INGEST_LOCK, ownerId, ownerType)) {
-			Run run = new Run(ownerId, ownerType);
+			Run run = new Run(ownerId, ownerType, false);
 			String selfId = run.ensureSelf(myAddress, (String) me.get("displayName"),
 					(String) me.get("userPrincipalName"), aliases);
 
@@ -417,11 +417,19 @@ public final class BrainMailImport {
 		// the gate's lookups per source; only whether the source is on differs
 		final Map<String, BrainRulesGate.Known> known = new HashMap<>();
 		final Set<String> threads = new LinkedHashSet<>();
-		// [threadId, sent time] of each newly imported message the owner sent, so a sync can close answered work
+		// [threadId, sent time] of each owed message (new, or pending from a run cut off) the owner sent, so a sync can
+		// close answered work
 		final List<String[]> ownerSent = new ArrayList<>();
-		// [messageKey, threadId, subject] of each newly imported message to the owner, from someone else or a note they
-		// sent themselves, for the routines mail sets off
+		// [messageKey, threadId, subject] of each owed message to the owner, from someone else or a note they sent
+		// themselves, for the routines mail sets off
 		final List<String[]> inbound = new ArrayList<>();
+		// a sync, a chat's pull or the webhook, whose messages are owed the after-import steps (not the onboarding
+		// import): each is marked SYNC_PENDING with its import, until BrainSync takes it
+		final boolean followUps;
+		// keys still marked by a run that was cut off: read again, such a message is owed its steps once more
+		final Set<String> pending = new HashSet<>();
+		// keys of the messages this run owes the after-import steps, new and pending ones
+		final List<String> owed = new ArrayList<>();
 		final Set<String> selfAddresses = new HashSet<>();
 		String selfId;
 		String selfName;
@@ -433,9 +441,10 @@ public final class BrainMailImport {
 		// unique headers read so far, mail and Teams
 		int seen;
 
-		Run(String ownerId, String ownerType) {
+		Run(String ownerId, String ownerType, boolean followUps) {
 			this.ownerId = ownerId;
 			this.ownerType = ownerType;
+			this.followUps = followUps;
 			this.rules = BrainRulesGate.activeRules(ownerId, ownerType);
 			CollaborationDbUtils.query(
 					"SELECT PERSON_ID, EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
@@ -464,11 +473,14 @@ public final class BrainMailImport {
 					ownerId, ownerType);
 			CollaborationDbUtils.query(
 					"SELECT MESSAGE_KEY, DECISION, RULE_ID, THREAD_ID, SENDER_PERSON_ID, FOLDER, CATEGORIES_JSON, "
-							+ "FLAGGED FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+							+ "FLAGGED, SYNC_PENDING FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 					rs -> {
 						mailbox.put(rs.getString(1), new String[] { rs.getString(6),
 								CollaborationDbUtils.getString(rs, "CATEGORIES_JSON"),
 								String.valueOf(Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "FLAGGED"))) });
+						if (Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "SYNC_PENDING"))) {
+							pending.add(rs.getString(1));
+						}
 						return messages.put(rs.getString(1), BrainRulesGate.result(rs.getString(2), rs.getString(3),
 								rs.getString(4), rs.getString(5)));
 					}, ownerId, ownerType);
@@ -540,6 +552,13 @@ public final class BrainMailImport {
 							+ "AND MESSAGE_KEY = ? AND AUTO IS NULL", auto, ownerId, ownerType, messageKey);
 				}
 				skipped++;
+				// imported by a run cut off before its after-import steps: this run owes them instead
+				if (followUps && pending.remove(messageKey)) {
+					Map<String, String> names = new HashMap<>();
+					Map<String, Set<String>> roles = roles(header, names);
+					owe(messageKey, (String) prior.get("threadId"), header, isSelf(from, names.get(from)),
+							toMe(roles, names));
+				}
 				return;
 			}
 			String conversationId = (String) header.get("conversationId");
@@ -572,29 +591,17 @@ public final class BrainMailImport {
 			boolean senderHidden = BrainRulesGate.EXCLUDED.equals(decision.get("decision"));
 
 			// who was on it, by role; never-ingest recipients are left out entirely
-			Map<String, Set<String>> roles = new LinkedHashMap<>();
 			Map<String, String> names = new HashMap<>();
-			addRole(roles, names, header.get("from"), "from");
-			for (String field : List.of("toRecipients", "ccRecipients")) {
-				if (header.get(field) instanceof List<?> list) {
-					for (Object r : list) {
-						addRole(roles, names, r, field.startsWith("to") ? "to" : "cc");
-					}
-				}
-			}
+			Map<String, Set<String>> roles = roles(header, names);
 			boolean fromMe = isSelf(from, names.get(from));
 			// a big mailing adds no new people, only the sender and people already known
 			boolean broadcast = roles.size() > MAX_RECIPIENTS;
-			boolean toMe = false;
+			boolean toMe = toMe(roles, names);
 			String senderId = null;
 			for (Map.Entry<String, Set<String>> entry : roles.entrySet()) {
 				String address = entry.getKey();
 				boolean isSender = address.equals(from);
 				boolean self = isSelf(address, names.get(address));
-				// a note the owner sent themselves is to them too
-				if (self && (!isSender || entry.getValue().contains("to") || entry.getValue().contains("cc"))) {
-					toMe = true;
-				}
 				if (isSender && senderHidden) {
 					senderId = (String) decision.get("personId");
 					continue;
@@ -615,25 +622,20 @@ public final class BrainMailImport {
 			String sender = address(header.get("sender"));
 			boolean bulk = "other".equals(header.get("inferenceClassification"))
 					|| (sender != null && !sender.equals(from)) || broadcast || toList(header);
+			// marked in the same batch as the message, so a run cut off after it leaves its steps to the next sync
 			CollaborationDbUtils.update(
 					"UPDATE BRAIN_MESSAGE SET THREAD_ID = ?, SENDER_PERSON_ID = ?, TO_ME = ?, BULK = ?, MEETING = ?, "
-							+ "AUTO = ?, CATEGORIES_JSON = ?, FLAGGED = ?, IMPORTANCE = ?, ATTACHMENTS = ? WHERE "
-							+ "OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
+							+ "AUTO = ?, CATEGORIES_JSON = ?, FLAGGED = ?, IMPORTANCE = ?, ATTACHMENTS = ?, "
+							+ "SYNC_PENDING = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
 					threadId, senderId, fromMe ? null : toMe, bulk, meeting(header), autoSent(header),
 					BrainMailFolders.categories(header), BrainMailFolders.flagged(header),
-					BrainMailFolders.importance(header), BrainMailFolders.attachments(header), ownerId, ownerType,
-					messageKey);
+					BrainMailFolders.importance(header), BrainMailFolders.attachments(header),
+					followUps ? Boolean.TRUE : null, ownerId, ownerType, messageKey);
 			mailbox.put(messageKey, new String[] { (String) header.get("parentFolderId"),
 					BrainMailFolders.categories(header), String.valueOf(BrainMailFolders.flagged(header)) });
 			messages.put(messageKey, BrainRulesGate.result((String) decision.get("decision"),
 					(String) decision.get("ruleId"), threadId, senderId));
-			threads.add(threadId);
-			if (fromMe) {
-				ownerSent.add(new String[] { threadId, (String) header.get("receivedDateTime") });
-			}
-			if (!fromMe || toMe) {
-				inbound.add(new String[] { messageKey, threadId, (String) header.get("subject") });
-			}
+			owe(messageKey, threadId, header, fromMe, toMe);
 			imported++;
 			if (meeting(header)) {
 				meetings++;
@@ -645,6 +647,32 @@ public final class BrainMailImport {
 		boolean isSelf(String address, String name) {
 			return selfAddresses.contains(address)
 					|| (selfName != null && name != null && selfName.equalsIgnoreCase(name.trim()));
+		}
+
+		// the owner is on To or Cc, so a note they sent themselves is to them too
+		private boolean toMe(Map<String, Set<String>> roles, Map<String, String> names) {
+			for (Map.Entry<String, Set<String>> entry : roles.entrySet()) {
+				if ((entry.getValue().contains("to") || entry.getValue().contains("cc"))
+						&& isSelf(entry.getKey(), names.get(entry.getKey()))) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// what a message brings to the after-import steps: its thread, the owner's reply, mail to the owner
+		private void owe(String messageKey, String threadId, Map<String, Object> header, boolean fromMe,
+				boolean toMe) {
+			threads.add(threadId);
+			if (followUps) {
+				owed.add(messageKey);
+			}
+			if (fromMe) {
+				ownerSent.add(new String[] { threadId, (String) header.get("receivedDateTime") });
+			}
+			if (!fromMe || toMe) {
+				inbound.add(new String[] { messageKey, threadId, (String) header.get("subject") });
+			}
 		}
 
 		String ensureSelf(String address, String name, String upn, List<String> aliases) {
@@ -805,6 +833,20 @@ public final class BrainMailImport {
 				}
 			});
 		}
+	}
+
+	// who was on a message, by role (from, to, cc), and the names the header gives them
+	private static Map<String, Set<String>> roles(Map<String, Object> header, Map<String, String> names) {
+		Map<String, Set<String>> roles = new LinkedHashMap<>();
+		addRole(roles, names, header.get("from"), "from");
+		for (String field : List.of("toRecipients", "ccRecipients")) {
+			if (header.get(field) instanceof List<?> list) {
+				for (Object r : list) {
+					addRole(roles, names, r, field.startsWith("to") ? "to" : "cc");
+				}
+			}
+		}
+		return roles;
 	}
 
 	@SuppressWarnings("unchecked")

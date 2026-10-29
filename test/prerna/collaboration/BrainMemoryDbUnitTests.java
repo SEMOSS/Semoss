@@ -791,6 +791,25 @@ class BrainMemoryDbUnitTests {
 				.noneMatch(t -> "CompleteGoal".equals(t.get("name"))));
 	}
 
+	@Test
+	void showItemIsOnlyOfferedToTheOwnersRootChat() {
+		Room room = new Room();
+		room.setProjectId(CollaborationUtils.COLLABORATION_PROJECT_ID);
+		room.setOptionsMap(new LinkedHashMap<>());
+		Map<String, Object> tool = CollaborationAgentTools.definitions(room, user, true).stream()
+				.filter(definition -> "ShowItem".equals(definition.get("name"))).findFirst().orElseThrow();
+		assertEquals(MCPUtility.MCPExecution.AUTO.getValue(),
+				((Map<?, ?>) tool.get("_meta")).get(MCPUtility.SMSS_MCP_EXECUTION));
+		assertEquals(Set.of("emailRef", "threadId", "chatId", "path"),
+				((Map<?, ?>) ((Map<?, ?>) tool.get("inputSchema")).get("properties")).keySet());
+		assertTrue(CollaborationAgentTools.definitions().stream().noneMatch(t -> "ShowItem".equals(t.get("name"))));
+		assertTrue(CollaborationAgentTools.definitions(room, user, false).stream()
+				.noneMatch(t -> "ShowItem".equals(t.get("name"))));
+		room.setOptionsMap(Map.of(CollaborationUtils.ROOM_OPTION_DELEGATION_ACTION_ID, "delegation-1"));
+		assertTrue(CollaborationAgentTools.definitions(room, user, true).stream()
+				.noneMatch(t -> "ShowItem".equals(t.get("name"))));
+	}
+
 	// ---- settings and reset ----
 
 	@Test

@@ -92,6 +92,7 @@ import prerna.reactor.collaboration.WorkOpenSkillReactor;
 import prerna.reactor.collaboration.WorkPublishSkillReactor;
 import prerna.reactor.collaboration.WorkSaveCustomRoutineReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
+import prerna.reactor.collaboration.WorkShowItemReactor;
 import prerna.reactor.collaboration.WorkUseSkillInAssistantReactor;
 
 /**
@@ -142,6 +143,8 @@ public final class CollaborationAgentTools {
 		REACTORS.put("SaveDraft", MicrosoftOutlookSaveDraftReactor.class);
 		// one email attachment of this thread, on request, into the room's working directory
 		REACTORS.put("DownloadAttachment", WorkDownloadAttachmentReactor.class);
+		// puts one found email, thread, Teams chat, or room file beside the owner's chat, on request
+		REACTORS.put("ShowItem", WorkShowItemReactor.class);
 		REACTORS.put("ListTeams", MicrosoftTeamsListTeamsReactor.class);
 		REACTORS.put("ListChannels", MicrosoftTeamsListChannelsReactor.class);
 		REACTORS.put("ListChannelFiles", MicrosoftTeamsListFilesReactor.class);
@@ -181,8 +184,9 @@ public final class CollaborationAgentTools {
 	// calendar reads that take a timeZone, filled in with the owner's when the model leaves it out
 	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent");
 
-	// tools about the chat itself: only for the owner's chat at the root of the run, never a routine
-	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "CompleteGoal");
+	// tools about the chat itself: only for the owner's chat at the root of the run, never a routine;
+	// ShowItem needs the owner's chat on screen to show anything
+	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "CompleteGoal", "ShowItem");
 
 	// the email editor is open in the owner's chat; a routine has none, its delivery step sends the result
 	private static final Set<String> EDITOR_TOOLS = Set.of("ComposeEmail");

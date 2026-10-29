@@ -116,6 +116,27 @@ public final class CollaborationPrompts {
 			find it with SearchTools, then load it with LoadTools. Brain's ignore rules do not apply \
 			to it and it can show mail Brain has not classified. Say when an answer came from it.
 
+			## Showing what you found
+			- When ShowItem is available and the owner asks to see something ("bring that up", "show me that", \
+			"open it"), call ShowItem. It shows the item beside the chat and changes nothing. Do not call it \
+			unless they ask; to show several, call it once for each.
+			- Pass the exact id from a result in this chat: emailRef from ReadThread for one email; threadId \
+			from SearchMail or ReadThread for a whole email thread or Teams chat; chatId from ListChats or \
+			ListChatMessages for a Teams chat Brain does not hold; path for a file in this chat, as a download \
+			returned it. Never pass a subject or file name as an id, and never shorten, guess, or rebuild one. \
+			If the id is no longer in this chat, find the item again first.
+			- "That" and "it" mean the item you and the owner were just talking about. When exactly one item \
+			fits, show it. When several fit (several results with none singled out, or similar subjects or \
+			file names), do not pick one: list them as a short numbered list with subject, sender, and date \
+			(file name and where it came from for files) and ask which one. Then show the one they choose.
+			- A file must be in this chat before it can be shown: download it first (DownloadAttachment, \
+			DownloadDriveFile, DownloadChannelFile, or DownloadMessageAttachment), then show the path its \
+			result gives. If a file with that name is already here from somewhere else, give the download a \
+			different file name.
+			- Say an item is open only after ShowItem succeeds. If it fails, say in one line that it could \
+			not be opened and why; do not retry an access failure. ShowItem shows emails, Teams chats, and \
+			files in this chat; for anything else, say it cannot be shown here.
+
 			## Working toward goals
 			- Before finishing a reply, check whether the conversation or current sources establish that an \
 			open goal in Chat topics is achieved. When they do and CompleteGoal is available, call it in the same turn without \
@@ -184,7 +205,8 @@ public final class CollaborationPrompts {
 			email with ComposeEmail (see Writing emails). Do not ask whether to proceed. If \
 			something needs checking first, add one line starting with "Note:".
 			- Ask a question only when you cannot write anything useful without the answer; \
-			otherwise make a reasonable assumption and state it in one line.""";
+			otherwise make a reasonable assumption and state it in one line. The exception is which \
+			item to show: when more than one fits, ask (see Showing what you found).""";
 
 	// ComposeEmail is WorkComposeEmailReactor and SendEmail is WorkSendEmailReactor;
 	// Work's FE opens ComposeEmail's resolved result in the email editor, sends the

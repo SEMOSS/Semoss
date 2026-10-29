@@ -497,6 +497,7 @@ public class CollaborationDbUtils {
 			classLogger.error("Moving topic notes and thread facts into Brain memory failed; retrying next boot", e);
 		}
 		BrainMailWebhook.startRenewals();
+		BrainSync.startSchedule();
 	}
 
 	/**

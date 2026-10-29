@@ -61,7 +61,8 @@ public class BrainSaveSettingsReactor extends AbstractCollaborationReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (KEY.equals(key)) {
-			return "Partial settings: fileAt, askAt, sourcesJson {sourceId: bool}, memory {use: bool, learn: bool}, version";
+			return "Partial settings: fileAt, askAt, sourcesJson {sourceId: bool}, memory {use: bool, learn: bool}, "
+					+ "syncEveryMinutes (0 off, 15, 30, 60 or 240: how often mail syncs while the app is closed), version";
 		}
 		return super.getDescriptionForKey(key);
 	}
