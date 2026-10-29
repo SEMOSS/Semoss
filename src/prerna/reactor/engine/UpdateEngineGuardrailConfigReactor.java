@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.model;
+package prerna.reactor.engine;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -35,11 +35,13 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.javatuples.Pair;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -49,30 +51,34 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IModelEngine;
-import prerna.reactor.AbstractReactor;
+import prerna.engine.impl.model.inferencetracking.GuardrailHitStore;
+import prerna.engine.impl.pipeline.EngineProxyFactory;
+import prerna.engine.impl.pipeline.GuardrailHitLimit;
 import prerna.reactor.interceptor.GenericGuardrailInputReactor;
 import prerna.reactor.interceptor.GenericGuardrailOutputReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.GuardrailAudit;
 import prerna.util.EngineSyncUtility;
-import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 /**
- * Validates and writes a model engine's guardrail pipeline configuration (the
- * file the PIPELINE smss key points at). Because the guardrail proxy re-reads
- * the pipeline file every time the model is retrieved, writing the file is
- * enough for the change to apply immediately - no engine reload is required.
- * The PIPELINE smss key is added when missing. An empty pipelines map removes
- * all guardrails. Requires edit access to the engine.
+ * Validates and writes an engine's guardrail pipeline configuration (the file
+ * the PIPELINE smss key points at). Any engine but a guardrail engine can have
+ * one. Because the guardrail proxy re-reads the pipeline file every time the
+ * engine is retrieved, writing the file is enough for the change to apply
+ * immediately - no engine reload is required. The PIPELINE smss key is added
+ * when missing. An empty pipelines map removes all guardrails. The optional
+ * hitLimits list says how many hits of which checks close the room or lock the
+ * user out of the engine; it names checks by the checkId each check's params
+ * hold. Requires edit access to the engine.
  *
  * Note pixel map literals deliver numeric values as doubles (1 arrives as 1.0);
  * directParameters values are written as provided.
  */
-public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
+public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailConfigReactor {
 
 	private static final String PIPELINES_KEY = "pipelines";
 	private static final String INPUT_KEY = "input";
@@ -80,10 +86,10 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 	private static final String REACTOR_CLASS_KEY = "reactorClass";
 	private static final String PARAMS_KEY = "params";
 	private static final String GUARDRAIL_ENGINE_ID_KEY = "guardrailEngineId";
+	private static final String CHECK_ID_KEY = "checkId";
 	private static final String BLOCK_ON_FAILURE_KEY = "blockOnGuardrailFailure";
 	private static final String MASK_ON_FAILURE_KEY = "maskOnGuardrailFailure";
 	private static final String RESPOND_WITH_GUARDRAIL_MESSAGE_KEY = "respondWithGuardrailMessage";
-	private static final String CLOSE_ROOM_ON_BLOCK_KEY = "closeRoomOnBlock";
 	private static final String BLOCK_ERROR_MESSAGE_KEY = "blockErrorMessage";
 	private static final String INPUT_MAPPING_KEY = "inputMapping";
 	private static final String DIRECT_PARAMETERS_KEY = "directParameters";
@@ -97,12 +103,32 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 	private static final Set<String> OUTPUT_REACTOR_WHITELIST = new HashSet<>(
 			Arrays.asList(GenericGuardrailOutputReactor.class.getName()));
 
-	private static final Set<String> ALLOWED_PARAM_KEYS = new HashSet<>(Arrays.asList(GUARDRAIL_ENGINE_ID_KEY,
-			BLOCK_ON_FAILURE_KEY, MASK_ON_FAILURE_KEY, RESPOND_WITH_GUARDRAIL_MESSAGE_KEY, CLOSE_ROOM_ON_BLOCK_KEY,
+	private static final Set<String> ALLOWED_PARAM_KEYS = new HashSet<>(Arrays.asList(CHECK_ID_KEY,
+			GUARDRAIL_ENGINE_ID_KEY, BLOCK_ON_FAILURE_KEY, MASK_ON_FAILURE_KEY, RESPOND_WITH_GUARDRAIL_MESSAGE_KEY,
 			BLOCK_ERROR_MESSAGE_KEY, INPUT_MAPPING_KEY, DIRECT_PARAMETERS_KEY, SKIP_TOOL_CONTINUATION_ALL_KEY,
 			SKIP_TOOL_CONTINUATION_TOOLS_KEY, TOOL_CONTINUATION_ARG_KEY));
 
-	public UpdateModelGuardrailConfigReactor() {
+	/**
+	 * A guardrail configuration that passed validation, with its hit limits read.
+	 *
+	 * @param pipelines the pipelines map
+	 * @param hitLimits the hit limits, in order
+	 */
+	record ValidatedConfig(Map<String, Object> pipelines, List<GuardrailHitLimit> hitLimits) {
+
+		/** The configuration as the pipeline file stores it */
+		Map<String, Object> toFile() {
+			Map<String, Object> file = new LinkedHashMap<>();
+			file.put(PIPELINES_KEY, this.pipelines);
+			if (!this.hitLimits.isEmpty()) {
+				file.put(GuardrailHitLimit.HIT_LIMITS_KEY,
+						this.hitLimits.stream().map(GuardrailHitLimit::toMap).toList());
+			}
+			return file;
+		}
+	}
+
+	public UpdateEngineGuardrailConfigReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.MAP.getKey() };
 	}
 
@@ -111,23 +137,16 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		User user = this.insight.getUser();
-		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-			throw new IllegalArgumentException(
-					"Engine " + engineId + " does not exist or user does not have edit access to it");
-		}
-		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
-		if (typeAndSubtype[0] != IEngine.CATALOG_TYPE.MODEL) {
-			throw new IllegalArgumentException("Engine " + engineId + " is not a model engine");
-		}
+		IEngine engine = loadEditableEngine(engineId);
 
 		Map<String, Object> config = this.<String, Object>getGenericMap(ReactorKeysEnum.MAP.getKey(), null);
 		if (config == null) {
 			throw new IllegalArgumentException("Must provide the guardrail configuration map");
 		}
-		Map<String, Object> pipelines = validateConfigStructure(config);
-		validateGuardrailEngines(user, pipelines);
+		ValidatedConfig validated = validateConfigStructure(config);
+		validateGuardrailEngines(user, validated.pipelines());
 
-		String json = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create().toJson(config);
+		String json = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create().toJson(validated.toFile());
 		try {
 			new JSONObject(json).getJSONObject(PIPELINES_KEY);
 		} catch (JSONException e) {
@@ -135,21 +154,14 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 					"The guardrail configuration does not serialize to valid pipeline JSON: " + e.getMessage(), e);
 		}
 
-		IModelEngine model = Utility.getModel(engineId);
-		if (model == null) {
-			throw new IllegalArgumentException("Could not load model engine " + engineId);
-		}
-
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
 		lock.lock();
 		try {
-			String pipelineValue = model.getSmssProp().getProperty(IEngine.PIPELINE);
+			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			boolean addSmssKey = pipelineValue == null || pipelineValue.trim().isEmpty();
 			String pipelineFileName = addSmssKey ? DEFAULT_PIPELINE_FILE : pipelineValue.trim();
 
-			String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(model.getCatalogType(),
-					model.getEngineId(), model.getEngineName());
-			File pipelineFile = new File((assetsFolder + "/" + pipelineFileName).replace("\\", "/"));
+			File pipelineFile = EngineProxyFactory.pipelineFile(engine, pipelineFileName);
 			File parentDir = pipelineFile.getParentFile();
 			if (parentDir != null && !parentDir.exists() && !parentDir.mkdirs()) {
 				throw new IllegalStateException(
@@ -163,19 +175,21 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 
 			if (addSmssKey) {
 				try {
-					Utility.changePropertiesFileValue(model.getSmssFilePath(), IEngine.PIPELINE, DEFAULT_PIPELINE_FILE);
+					Utility.changePropertiesFileValue(engine.getSmssFilePath(), IEngine.PIPELINE,
+							DEFAULT_PIPELINE_FILE);
 				} catch (IOException e) {
 					throw new IllegalStateException(
 							"Wrote the guardrail configuration but was unable to add the PIPELINE key to the engine smss file: "
 									+ e.getMessage(),
 							e);
 				}
-				model.getSmssProp().setProperty(IEngine.PIPELINE, DEFAULT_PIPELINE_FILE);
+				engine.getSmssProp().setProperty(IEngine.PIPELINE, DEFAULT_PIPELINE_FILE);
 				ClusterUtil.pushEngineSmss(engineId);
 			}
 		} finally {
 			lock.unlock();
 		}
+		releaseLocksOfRemovedLimits(user, engine, validated.hitLimits());
 
 		if (ClusterUtil.IS_CLUSTER) {
 			ClusterUtil.pushEngine(engineId);
@@ -188,18 +202,46 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Structural validation with no database access - package visible so unit tests
-	 * can exercise it directly. Returns the pipelines map on success. An empty
-	 * pipelines map is valid and means all guardrails are removed.
+	 * Ends the locks of user limits the saved configuration no longer has, so no
+	 * user stays locked out by a limit that is gone, each recorded in the audit
+	 * trail as cleared by the user who saved.
 	 *
-	 * @param config
-	 * @return
+	 * @param user      the user who saved
+	 * @param engine    the engine
+	 * @param hitLimits the hit limits the engine has now
 	 */
-	static Map<String, Object> validateConfigStructure(Map<String, Object> config) {
+	private static void releaseLocksOfRemovedLimits(User user, IEngine engine, List<GuardrailHitLimit> hitLimits) {
+		List<String> userLimitIds = hitLimits.stream().filter(limit -> limit.scope() == GuardrailHitLimit.Scope.USER)
+				.map(GuardrailHitLimit::limitId).toList();
+		List<GuardrailHitStore.Lock> released;
+		try {
+			released = GuardrailHitStore.clearLocksOfRemovedLimits(engine.getEngineId(), userLimitIds,
+					User.getPrimaryUserIdAndTypePair(user), Utility.getCurrentSqlTimestampUTC());
+		} catch (Exception e) {
+			throw new IllegalStateException(
+					"Saved the guardrail configuration but was unable to unlock the users of the removed hit limits: "
+							+ e.getMessage(),
+					e);
+		}
+		for (GuardrailHitStore.Lock lock : released) {
+			GuardrailAudit.recordLockClear(user, engine.getEngineId(), engine.getEngineName(), engine.getCatalogType(),
+					Pair.with(lock.userId(), lock.userType()));
+		}
+	}
+
+	/**
+	 * Structural validation with no database access - package visible so unit tests
+	 * can exercise it directly. An empty pipelines map is valid and means all
+	 * guardrails are removed.
+	 *
+	 * @param config the configuration map
+	 * @return the pipelines and the hit limits, read and checked
+	 */
+	static ValidatedConfig validateConfigStructure(Map<String, Object> config) {
 		for (String key : config.keySet()) {
-			if (!PIPELINES_KEY.equals(key)) {
+			if (!PIPELINES_KEY.equals(key) && !GuardrailHitLimit.HIT_LIMITS_KEY.equals(key)) {
 				throw new IllegalArgumentException("Unknown key '" + key + "' in the guardrail configuration - only '"
-						+ PIPELINES_KEY + "' is allowed");
+						+ PIPELINES_KEY + "' and '" + GuardrailHitLimit.HIT_LIMITS_KEY + "' are allowed");
 			}
 		}
 		Object pipelinesObj = config.get(PIPELINES_KEY);
@@ -209,6 +251,7 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 		}
 		@SuppressWarnings("unchecked")
 		Map<String, Object> pipelines = (Map<String, Object>) pipelinesObj;
+		Set<String> checkIds = new HashSet<>();
 		for (Map.Entry<String, Object> pipelineEntry : pipelines.entrySet()) {
 			String method = pipelineEntry.getKey();
 			if (method == null || method.trim().isEmpty()) {
@@ -226,17 +269,19 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 							+ INPUT_KEY + "' and '" + OUTPUT_KEY + "' are allowed");
 				}
 			}
-			int entryCount = validateSlot(path, INPUT_KEY, pipeline.get(INPUT_KEY), INPUT_REACTOR_WHITELIST)
-					+ validateSlot(path, OUTPUT_KEY, pipeline.get(OUTPUT_KEY), OUTPUT_REACTOR_WHITELIST);
+			int entryCount = validateSlot(path, INPUT_KEY, pipeline.get(INPUT_KEY), INPUT_REACTOR_WHITELIST, checkIds)
+					+ validateSlot(path, OUTPUT_KEY, pipeline.get(OUTPUT_KEY), OUTPUT_REACTOR_WHITELIST, checkIds);
 			if (entryCount == 0) {
 				throw new IllegalArgumentException(
 						path + " must define at least one guardrail in '" + INPUT_KEY + "' or '" + OUTPUT_KEY + "'");
 			}
 		}
-		return pipelines;
+		return new ValidatedConfig(pipelines,
+				GuardrailHitLimit.parseAll(config.get(GuardrailHitLimit.HIT_LIMITS_KEY), checkIds));
 	}
 
-	private static int validateSlot(String path, String slotName, Object slot, Set<String> reactorWhitelist) {
+	private static int validateSlot(String path, String slotName, Object slot, Set<String> reactorWhitelist,
+			Set<String> checkIds) {
 		if (slot == null) {
 			return 0;
 		}
@@ -266,7 +311,7 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 			if (!(params instanceof Map)) {
 				throw new IllegalArgumentException(entryPath + "." + PARAMS_KEY + " must be a map");
 			}
-			validateParams(entryPath + "." + PARAMS_KEY, (Map<?, ?>) params, slotName, (String) reactorClass);
+			validateParams(entryPath + "." + PARAMS_KEY, (Map<?, ?>) params, slotName, (String) reactorClass, checkIds);
 		}
 		return entries.size();
 	}
@@ -315,18 +360,31 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 			throw new IllegalArgumentException(path + "." + TOOL_CONTINUATION_ARG_KEY + " can only be set when "
 					+ SKIP_TOOL_CONTINUATION_ALL_KEY + " or " + SKIP_TOOL_CONTINUATION_TOOLS_KEY + " is enabled");
 		}
-		if ((skipForAllTools != null || skipForTools != null || toolContinuationArg != null) && (!INPUT_KEY
-				.equals(slotName) || !GenericGuardrailInputReactor.class.getName().equals(reactorClass))) {
+		if ((skipForAllTools != null || skipForTools != null || toolContinuationArg != null)
+				&& (!INPUT_KEY.equals(slotName)
+						|| !GenericGuardrailInputReactor.class.getName().equals(reactorClass))) {
 			throw new IllegalArgumentException(path + ": skipping tool-result continuations requires an '" + INPUT_KEY
 					+ "' guardrail using " + GenericGuardrailInputReactor.class.getName());
 		}
 	}
 
-	private static void validateParams(String path, Map<?, ?> params, String slotName, String reactorClass) {
+	private static void validateParams(String path, Map<?, ?> params, String slotName, String reactorClass,
+			Set<String> checkIds) {
 		for (Object paramKey : params.keySet()) {
 			if (!ALLOWED_PARAM_KEYS.contains(paramKey)) {
 				throw new IllegalArgumentException(
 						path + " contains unknown key '" + paramKey + "' - allowed keys are " + ALLOWED_PARAM_KEYS);
+			}
+		}
+
+		Object checkId = params.get(CHECK_ID_KEY);
+		if (checkId != null) {
+			if (!(checkId instanceof String id) || id.isBlank() || id.length() > 255) {
+				throw new IllegalArgumentException(path + "." + CHECK_ID_KEY + " must be a non-empty string");
+			}
+			if (!checkIds.add(id)) {
+				throw new IllegalArgumentException(
+						path + "." + CHECK_ID_KEY + " '" + id + "' is used by more than one check");
 			}
 		}
 
@@ -347,10 +405,6 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 		if (respondWithGuardrailMessage != null && !(respondWithGuardrailMessage instanceof Boolean)) {
 			throw new IllegalArgumentException(path + "." + RESPOND_WITH_GUARDRAIL_MESSAGE_KEY + " must be a boolean");
 		}
-		Object closeRoomOnBlock = params.get(CLOSE_ROOM_ON_BLOCK_KEY);
-		if (closeRoomOnBlock != null && !(closeRoomOnBlock instanceof Boolean)) {
-			throw new IllegalArgumentException(path + "." + CLOSE_ROOM_ON_BLOCK_KEY + " must be a boolean");
-		}
 
 		boolean masksOnFailure = Boolean.TRUE.equals(maskOnFailure);
 		boolean respondsOnFailure = Boolean.TRUE.equals(respondWithGuardrailMessage);
@@ -365,10 +419,6 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 				|| !GenericGuardrailInputReactor.class.getName().equals(reactorClass))) {
 			throw new IllegalArgumentException(path + ": masking and returning the guardrail message require an '"
 					+ INPUT_KEY + "' guardrail using " + GenericGuardrailInputReactor.class.getName());
-		}
-		if (Boolean.TRUE.equals(closeRoomOnBlock) && !blocksOnFailure) {
-			throw new IllegalArgumentException(
-					path + "." + CLOSE_ROOM_ON_BLOCK_KEY + " can only be enabled when blocking on failure");
 		}
 		Object blockErrorMessage = params.get(BLOCK_ERROR_MESSAGE_KEY);
 		if (blockErrorMessage != null
@@ -481,16 +531,16 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Validates and saves the guardrail pipeline configuration (pipeline.json) for a model engine, applying it to the running engine immediately. An empty pipelines map removes all guardrails. Requires edit access to the engine.";
+		return "Validates and saves the guardrail pipeline configuration (pipeline.json) for an engine of any type but a guardrail, applying it to the running engine immediately: its pipelines, and the hit limits that close a room or lock a user out of the engine after enough hits of the checks they name. An empty pipelines map removes all guardrails. Requires edit access to the engine.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The id of the model engine";
+			return "The id of the engine";
 		}
 		if (key.equals(ReactorKeysEnum.MAP.getKey())) {
-			return "The guardrail configuration as a map matching the pipeline.json schema";
+			return "The guardrail configuration as a map matching the pipeline.json schema: pipelines, and optionally hitLimits";
 		}
 		return super.getDescriptionForKey(key);
 	}
