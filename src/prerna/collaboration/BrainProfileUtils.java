@@ -91,7 +91,8 @@ public final class BrainProfileUtils {
 		Map<String, Object> profile = CollaborationDbUtils
 				.queryOne(
 						"SELECT DISPLAY_NAME, EMAIL, ORG, ROLE, ROLE_STATE, ROLE_NOTE, TIMEZONE, WORKING_HOURS_JSON, "
-								+ "STYLE_SUMMARY, STYLE_STATE, STYLE_EXAMPLES_JSON FROM BRAIN_PROFILE "
+								+ "STYLE_SUMMARY, STYLE_STATE, STYLE_EXAMPLES_JSON, STYLE_VARIANTS_JSON, STYLE_PENDING_JSON, "
+								+ "STYLE_LEARNED_AT FROM BRAIN_PROFILE "
 								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 						BrainProfileUtils::mapProfile, ownerId, ownerType);
 		if (profile != null) {
@@ -125,8 +126,50 @@ public final class BrainProfileUtils {
 		Map<String, Object> style = (Map<String, Object>) profile.get("style");
 		if (style != null && Boolean.TRUE.equals(style.get("confirmed"))) {
 			appendField(out, "Writing style", style.get("summary"));
+			appendStyleDetails(out, style, user, CollaborationDbUtils.asString(profile.get("email")));
 		}
 		return out.toString();
+	}
+
+	// the agreed examples and audience variants; a pending proposal never reaches here
+	@SuppressWarnings("unchecked")
+	private static void appendStyleDetails(StringBuilder out, Map<String, Object> style, User user,
+			String email) {
+		appendExamples(out, "Writing examples", style.get("examples"));
+		Object variants = style.get("variants");
+		if (!(variants instanceof Map<?, ?> byAudience) || byAudience.isEmpty()) {
+			return;
+		}
+		out.append("\n- Adjust the writing style to the audience: use the internal style when every recipient is in the "
+				+ "owner's organisation, and the external style when any recipient is outside it");
+		try {
+			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+			BrainOrgDomains.Org org = BrainOrgDomains.load(owner.getValue0(), owner.getValue1(),
+					email == null ? null : email.substring(email.indexOf('@') + 1));
+			if (!org.domains().isEmpty()) {
+				appendField(out, "Organisation domains", String.join(", ", new java.util.TreeSet<>(org.domains())));
+			}
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not read the organisation domains for the writing style prompt", e);
+		}
+		for (String audience : AUDIENCES) {
+			if (byAudience.get(audience) instanceof Map<?, ?> variant) {
+				Map<String, Object> entry = (Map<String, Object>) variant;
+				appendField(out, "Writing style for " + audience + " recipients", entry.get("summary"));
+				appendExamples(out, "Writing examples for " + audience + " recipients", entry.get("examples"));
+			}
+		}
+	}
+
+	private static void appendExamples(StringBuilder out, String label, Object examples) {
+		if (!(examples instanceof List<?> list)) {
+			return;
+		}
+		for (Object example : list) {
+			if (example instanceof String text && !text.isBlank()) {
+				out.append("\n- ").append(label).append(": ").append(text.strip().replace("\n", " "));
+			}
+		}
 	}
 
 	private static void appendField(StringBuilder out, String label, Object value) {
@@ -164,14 +207,24 @@ public final class BrainProfileUtils {
 			if (style.containsKey("summary")) {
 				CollaborationDbUtils.addSet(sets, params, "STYLE_SUMMARY",
 						CollaborationDbUtils.asString(style.get("summary")));
-				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE", YOU);
+				// an accepted proposal stays "learned and confirmed"; what the owner typed is "you"
+				boolean accepted = Boolean.TRUE.equals(style.get("confirmed")) && LEARNED.equals(style.get("source"));
+				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE", accepted ? CONFIRMED : YOU);
 			} else if (style.containsKey("confirmed")) {
 				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE",
 						Boolean.TRUE.equals(style.get("confirmed")) ? CONFIRMED : LEARNED);
 			}
 			if (style.containsKey("examples")) {
 				CollaborationDbUtils.addSet(sets, params, "STYLE_EXAMPLES_JSON",
-						CollaborationDbUtils.toJson(style.get("examples")));
+						CollaborationDbUtils.toJson(cleanExamples(style.get("examples"))));
+			}
+			if (style.containsKey("variants")) {
+				CollaborationDbUtils.addSet(sets, params, "STYLE_VARIANTS_JSON",
+						CollaborationDbUtils.toJson(cleanVariants(style.get("variants"))));
+			}
+			// only the proposal's review clears it; a proposal is written by the style learning, never by a client
+			if (style.containsKey("pending") && isEmpty(style.get("pending"))) {
+				CollaborationDbUtils.addSet(sets, params, "STYLE_PENDING_JSON", null);
 			}
 		}
 		List<String> vips = changes.get("vips") instanceof List
@@ -235,6 +288,16 @@ public final class BrainProfileUtils {
 		style.put("confirmed", YOU.equals(styleState) || CONFIRMED.equals(styleState));
 		style.put("examples",
 				CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "STYLE_EXAMPLES_JSON")));
+		style.put("variants", cleanVariants(
+				CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "STYLE_VARIANTS_JSON"))));
+		String pending = CollaborationDbUtils.getString(rs, "STYLE_PENDING_JSON");
+		if (pending != null && !pending.isBlank()) {
+			style.put("pending", CollaborationDbUtils.parseMap(pending));
+		}
+		java.sql.Timestamp learnedAt = rs.getTimestamp("STYLE_LEARNED_AT");
+		if (learnedAt != null) {
+			style.put("learnedAt", learnedAt.toInstant().toString());
+		}
 
 		Map<String, Object> profile = new LinkedHashMap<>();
 		profile.put("id", "me");
@@ -246,6 +309,54 @@ public final class BrainProfileUtils {
 		profile.put("workingHours", CollaborationDbUtils.getString(rs, "WORKING_HOURS_JSON"));
 		profile.put("style", style);
 		return profile;
+	}
+
+	/** The audiences a style variant can be written for. */
+	static final List<String> AUDIENCES = List.of("internal", "external");
+	static final int MAX_EXAMPLES = 5;
+	static final int MAX_EXAMPLE_CHARS = 600;
+	static final int MAX_SUMMARY_CHARS = 1500;
+
+	private static boolean isEmpty(Object value) {
+		return value == null || (value instanceof String text && text.isBlank())
+				|| (value instanceof Map<?, ?> map && map.isEmpty());
+	}
+
+	// only short, non-blank strings, so a style can never smuggle in a large block
+	static List<String> cleanExamples(Object value) {
+		List<String> out = new ArrayList<>();
+		if (value instanceof List<?> list) {
+			for (Object item : list) {
+				if (item instanceof String text && !text.isBlank() && out.size() < MAX_EXAMPLES) {
+					String trimmed = text.strip();
+					out.add(trimmed.length() > MAX_EXAMPLE_CHARS ? trimmed.substring(0, MAX_EXAMPLE_CHARS) : trimmed);
+				}
+			}
+		}
+		return out;
+	}
+
+	// {internal, external}, each {summary, examples}; a variant with no summary is dropped
+	static Map<String, Object> cleanVariants(Object value) {
+		Map<String, Object> out = new LinkedHashMap<>();
+		if (!(value instanceof Map<?, ?> map)) {
+			return out;
+		}
+		for (String audience : AUDIENCES) {
+			if (!(map.get(audience) instanceof Map<?, ?> variant)) {
+				continue;
+			}
+			String summary = variant.get("summary") instanceof String text ? text.strip() : "";
+			if (summary.isEmpty()) {
+				continue;
+			}
+			Map<String, Object> entry = new LinkedHashMap<>();
+			entry.put("summary",
+					summary.length() > MAX_SUMMARY_CHARS ? summary.substring(0, MAX_SUMMARY_CHARS) : summary);
+			entry.put("examples", cleanExamples(variant.get("examples")));
+			out.put(audience, entry);
+		}
+		return out;
 	}
 
 	private static List<String> getVipIds(String ownerId, String ownerType) {
