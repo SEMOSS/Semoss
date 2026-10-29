@@ -8,6 +8,7 @@ The workflows in [.github/workflows](../../.github/workflows/) build Java artifa
 | --- | --- |
 | [dev_workflow.yml](../../.github/workflows/dev_workflow.yml) | Java build, test selection, artifact signing, and publication paths |
 | [python-builder.yml](../../.github/workflows/python-builder.yml) | Python runtime/dependency image |
+| [sandbox-builder.yml](../../.github/workflows/sandbox-builder.yml) | OpenShell sandbox image: python-builder plus the `py/` worker ([details](../deployment/executor_sandbox.md#image)) |
 | [tomcat-builder.yml](../../.github/workflows/tomcat-builder.yml) | Java/Tomcat builder image |
 | [all-docker-builds.yml](../../.github/workflows/all-docker-builds.yml) | Application image build orchestration |
 | [ubuntu2204.yml](../../.github/workflows/ubuntu2204.yml), [ubuntu2404.yml](../../.github/workflows/ubuntu2404.yml) | Ubuntu application images |
