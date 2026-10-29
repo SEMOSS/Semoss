@@ -8,6 +8,8 @@ This section provides guides and information relevant for developers contributin
     *   Core Configuration Files, Build Environment (`pom.xml`), Deployment.
 *   **[Java Developer Onboarding Guide](./java_developer_onboarding.md)**
     *   Getting Started, Running Locally, Key Modules, Contributions.
+*   **[REST and Pixel Operation Contracts](./operation_contracts.md)**
+    *   Shared Java metadata, contract records, `AbstractReactor2`, and client generation guidance.
 
 ## Agent development
 

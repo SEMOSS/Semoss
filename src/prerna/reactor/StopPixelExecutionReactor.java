@@ -31,34 +31,34 @@ import java.util.Objects;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.contract.Invocation;
+import prerna.contract.Key;
+import prerna.contract.Output;
+import prerna.contract.Reactor;
 import prerna.reactor.agent.AgentCancelHook;
 import prerna.sablecc2.comm.JobStreamEnvelopes;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.comm.PixelJobManager.InterruptResult;
 import prerna.sablecc2.comm.PixelJobRunner;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.SocketClient;
 
-public class StopPixelExecutionReactor extends AbstractReactor {
+@Reactor(name = "StopPixelExecution", description = "Stop the current execution of a pixel job")
+@Invocation(mode = Invocation.Mode.BOTH)
+public class StopPixelExecutionReactor extends AbstractReactor2<StopPixelExecutionReactor.Input, String> {
 
-	public StopPixelExecutionReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
-		this.keyRequired = new int[] { 1 };
-	}
+	public record Input(
+			@Key(description = "The id for the job. If running the pixel synchronously, the job id will be the same as the insight id.")
+			String id) {}
 
 	@Override
-	public NounMetadata execute() {
-		this.organizeKeys();
-
-		String jobId = this.keyValue.get(ReactorKeysEnum.ID.getKey());
+	@Output(name = "message",
+			description = "A message describing the cancellation outcome. The caller must own an existing job or be an administrator.")
+	protected String execute(Input input) {
+		String jobId = input.id();
 		PixelJobManager jobManager = PixelJobManager.getManager();
 		PixelJobRunner jobRunner = jobManager.getJob(jobId);
 		if (jobRunner == null) {
-			return new NounMetadata("Pixel job " + jobId + " not found", PixelDataType.CONST_STRING,
-					PixelOperationType.OPERATION);
+			return "Pixel job " + jobId + " not found";
 		}
 
 		User user = this.insight.getUser();
@@ -112,19 +112,7 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 		} else {
 			message = "Pixel job " + jobId + " not found";
 		}
-		return new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		return message;
 	}
 
-	@Override
-	public String getReactorDescription() {
-		return "Stop the current execution of a pixel job";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equalsIgnoreCase(ReactorKeysEnum.ID.getKey())) {
-			return "The id for the job. If running the pixel synchronously, the job id will be the same as the insight id.";
-		}
-		return super.getDescriptionForKey(key);
-	}
 }
