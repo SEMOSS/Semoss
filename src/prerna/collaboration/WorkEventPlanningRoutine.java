@@ -57,7 +57,7 @@ public final class WorkEventPlanningRoutine {
 	private static final int MAX_ID = 1024;
 	private static final Set<String> PIN_KINDS = Set.of("series", "event");
 	static final WorkRoutine.Kind KIND = new WorkRoutine.Kind(ID, "WORK_EVENT_PLANNING_ROUTINE",
-			"WorkRunEventPlanningRoutine();", "Event planning", "event-planning.automation.json", "deliver",
+			"WorkRunEventPlanningRoutine();", "Event planning", "event-planning.automation.json", "digest",
 			"event planning", "plan",
 			Map.of("time", "08:00", "days", List.of("MON"), "timezone", "UTC", "meetings", List.of(), "ignored",
 					List.of(), "preferences", ""),
