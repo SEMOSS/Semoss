@@ -189,6 +189,39 @@ class ResourceAuditReadServiceTest {
 	}
 
 	@Test
+	void guardrailHitsShowWhichCheckActedButNotWhatItScreened() throws Exception {
+		event("hit", "GUARDRAIL_MASK", "MODEL", "a", "a", null);
+		db.execute(
+				"UPDATE USER_AUDIT_EVENTS SET DETAILS='{\"checkId\":\"check-1\",\"guardrailEngineName\":\"PII\",\"methodName\":\"askRoom\",\"phase\":\"INPUT\",\"action\":\"MASK\",\"screened\":{\"prompt\":\"my ssn\"}}' WHERE EVENT_ID='hit'");
+
+		var hit = (Map<?, ?>) ((List<?>) ResourceAuditReadService.read(user, "ENGINE", "a", Map.of()).get("events"))
+				.get(0);
+		assertEquals("GUARDRAIL_MASK", hit.get("EVENT_TYPE"));
+		assertEquals(
+				"{\"checkId\":\"check-1\",\"guardrailEngineName\":\"PII\",\"methodName\":\"askRoom\",\"phase\":\"INPUT\",\"action\":\"MASK\"}",
+				hit.get("DETAILS"));
+	}
+
+	@Test
+	void exportsShowHowTheyRanAndNothingElse() throws Exception {
+		projectOwners.when(() -> SecurityProjectUtils.userIsOwner(user, "p")).thenReturn(true);
+		event("app", "PROJECT_EXPORT", "PROJECT", "p", null, "p");
+		event("engine", "ENGINE_EXPORT", "MODEL", "a", "a", null);
+		db.execute(
+				"UPDATE USER_AUDIT_EVENTS SET DETAILS='{\"reactor\":\"ExportProject\",\"projectType\":\"CODE\",\"keepGit\":false,\"zipPath\":\"/private/path\"}' WHERE EVENT_ID='app'",
+				"UPDATE USER_AUDIT_EVENTS SET DETAILS='{\"reactor\":\"ExportEngine\",\"keepGit\":true,\"token\":\"secret\"}' WHERE EVENT_ID='engine'");
+
+		var app = (Map<?, ?>) ((List<?>) ResourceAuditReadService.read(user, "PROJECT", "p", Map.of()).get("events"))
+				.get(0);
+		assertEquals("PROJECT_EXPORT", app.get("EVENT_TYPE"));
+		assertEquals("{\"reactor\":\"ExportProject\",\"projectType\":\"CODE\",\"keepGit\":false}", app.get("DETAILS"));
+		var engine = (Map<?, ?>) ((List<?>) ResourceAuditReadService.read(user, "ENGINE", "a", Map.of()).get("events"))
+				.get(0);
+		assertEquals("ENGINE_EXPORT", engine.get("EVENT_TYPE"));
+		assertEquals("{\"reactor\":\"ExportEngine\",\"keepGit\":true}", engine.get("DETAILS"));
+	}
+
+	@Test
 	void paginationAndSortAreStable() throws Exception {
 		event("1", "ENGINE_CREATE", "ENGINE", "a", "a", null);
 		event("2", "ENGINE_CREATE", "ENGINE", "a", "a", null);

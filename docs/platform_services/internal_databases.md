@@ -101,8 +101,10 @@ The model-inference database supports the persistent AI application, not only us
 | `ROOM` | Conversation identity, user/project/model associations, options, and serialized `MESSAGES` |
 | `WORKSPACE` | Agent identity, authored prompt, active state, and `CONFIG_JSON` |
 | `WORKSPACE_RESOURCE` | Attached resources such as MCP projects, skills, and prompts |
-| `AGENT_RUN` | Run ID, parent run, room/workspace/model/harness, request, progress, status, final output, and errors |
+| `AGENT_RUN` | Run ID, parent run, room/workspace/model/harness, request, progress, status, final output, errors, and the owner's id and login type (`USER_ID`, `USER_TYPE`) |
 | `AGENT_RUN_ACTION` | Pending tool action, arguments, decision/execution state, and result |
+| `GUARDRAIL_HIT` | Guardrail check hits that an engine's hit limits count: the engine, check, action, room, and the user's id and login type |
+| `GUARDRAIL_LOCK` | Users locked out of an engine after their hits reached one of its limits: when the lock started and ends, and who cleared it early |
 
 ### Conversation versus inference records
 

@@ -239,6 +239,26 @@ def test_reasoning_only_cutoff_still_returns_a_chat_string(
 
 
 @pytest.mark.parametrize("stream", [False, True])
+@pytest.mark.parametrize("tool", [False, True])
+def test_thinking_left_in_the_text_is_not_the_answer(sdk, stream, tool):
+    # a server without a reasoning parser sends the thinking as text, closed by </think>
+    create, _, _ = sdk
+    answer = "Checking." if tool else "5"
+    client = create(
+        completion(tool=tool, content="Add 2 and 3. Wait, recheck.</think>\n\n" + answer)
+    )
+    params = {"stream": stream, "max_tokens": 64}
+    if tool:
+        params.update(tools=[TOOL], tool_choice="required")
+    result = client.ask(message_json=json.dumps([user()]), **params)
+    assert [part for part in result["parts"] if part["type"] == "TEXT"] == [
+        {"type": "TEXT", "text": answer}
+    ]
+    if not tool:
+        assert result["response"] == answer
+
+
+@pytest.mark.parametrize("stream", [False, True])
 @pytest.mark.parametrize("reasoning_field", ["reasoning_content", "reasoning"])
 def test_default_openai_ignores_provider_reasoning_and_preserves_tool_contract(
     sdk, stream, reasoning_field

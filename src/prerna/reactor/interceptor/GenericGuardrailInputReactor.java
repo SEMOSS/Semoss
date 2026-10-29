@@ -237,11 +237,13 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 			}
 		}
 
-		Boolean closeRoomOnBlock = helper.getConfigParameter("closeRoomOnBlock", Boolean.class);
 		String blockErrorMessage = helper.getConfigParameter("blockErrorMessage", String.class);
 
 		Map<String, Object> resultMap = createInterimResult(output, this.getClass().getName(), masked, cannedResponse,
-				closeRoomOnBlock, blockErrorMessage);
+				blockErrorMessage);
+		resultMap.put(PipelineReactorUtils.GUARDRAIL_ENGINE_ID, guardrailEngineId);
+		resultMap.put(PipelineReactorUtils.GUARDRAIL_ENGINE_NAME, guardrailEngine.getEngineName());
+		resultMap.put(PipelineReactorUtils.SCREENED_PARAMETERS, guardrailEngineParams);
 
 		// Update the processedArguments with the interim result
 		processedArguments.put(PipelineReactorUtils.INTERIM_RESULT, resultMap);
@@ -336,7 +338,7 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 	 * @return
 	 */
 	private Map<String, Object> createInterimResult(GuardrailNounMetadata results, String interceptorName,
-			boolean masked, String cannedResponse, Boolean closeRoomOnBlock, String blockErrorMessage) {
+			boolean masked, String cannedResponse, String blockErrorMessage) {
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
 		// when we masked the input we neutralized the failure, so let it pass
@@ -347,9 +349,6 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		if (cannedResponse != null) {
 			resultMap.put(PipelineReactorUtils.SHORT_CIRCUIT_RESPONSE, cannedResponse);
 		}
-		if (Boolean.TRUE.equals(closeRoomOnBlock) && !results.isPass() && !masked && cannedResponse == null) {
-			resultMap.put(PipelineReactorUtils.CLOSE_ROOM, true);
-		}
 		if (blockErrorMessage != null && !blockErrorMessage.isEmpty()) {
 			resultMap.put(PipelineReactorUtils.BLOCK_ERROR_MESSAGE, blockErrorMessage);
 		}
@@ -358,20 +357,21 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 	}
 
 	/**
-	 * True when the guarded argument is a tool-result continuation this mount should
-	 * skip, never a real user turn.
+	 * True when the guarded argument is a tool-result continuation this mount
+	 * should skip, never a real user turn.
 	 *
-	 * {@code skipOnToolContinuationForAllTools} (Boolean), when {@code true}, skips any
-	 * tool-result continuation and ignores {@code skipOnToolContinuationForTools}
-	 * entirely. Otherwise a non-empty {@code skipOnToolContinuationForTools} (List)
-	 * skips only when every tool result on the message names a listed tool. A listed
-	 * name must be the name the model was given, which for a tool served by another
-	 * engine carries that engine's prefix, such as {@code a<engineId>_search}.
+	 * {@code skipOnToolContinuationForAllTools} (Boolean), when {@code true}, skips
+	 * any tool-result continuation and ignores
+	 * {@code skipOnToolContinuationForTools} entirely. Otherwise a non-empty
+	 * {@code skipOnToolContinuationForTools} (List) skips only when every tool
+	 * result on the message names a listed tool. A listed name must be the name the
+	 * model was given, which for a tool served by another engine carries that
+	 * engine's prefix, such as {@code a<engineId>_search}.
 	 *
 	 * Either way, the argument named by {@code toolContinuationArg} (default
-	 * {@value #DEFAULT_TOOL_CONTINUATION_ARG}) must be an {@link AbstractMessage} that
-	 * carries tool results and no user-authored text - a real user turn is always
-	 * screened, regardless of either flag.
+	 * {@value #DEFAULT_TOOL_CONTINUATION_ARG}) must be an {@link AbstractMessage}
+	 * that carries tool results and no user-authored text - a real user turn is
+	 * always screened, regardless of either flag.
 	 */
 	static boolean isToolContinuation(ReactorInputHelper helper) {
 		boolean blanket = Boolean.TRUE

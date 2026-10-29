@@ -28,6 +28,7 @@
 package prerna.collaboration;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
@@ -39,10 +40,13 @@ public final class WorkInboxRoutine {
 	public static final String ID = "inbox-daily-brief";
 	/** AUTOMATION_ID of the brief's runs in the scheduler database. */
 	public static final String AUTOMATION_ID = "collaboration:" + ID;
+	/** The brief's sections in writing order; the owner may turn any of them off, but not all. */
+	static final List<String> SECTIONS = List.of("priorities", "replies", "meetings", "actions");
 	static final WorkRoutine.Kind KIND = new WorkRoutine.Kind(ID, "WORK_INBOX_ROUTINE", "WorkRunInboxRoutine();",
 			"Daily inbox brief", "inbox-daily-brief.automation.json", "brief", "inbox brief", "brief",
-			Map.of("time", "08:00", "days", WorkRoutine.WEEKDAYS.subList(0, 5), "timezone", "UTC", "lookbackHours", 24),
-			WorkInboxRoutine::lookbackHours, WorkInboxRoutine::inputs, null);
+			Map.of("time", "08:00", "days", WorkRoutine.WEEKDAYS.subList(0, 5), "timezone", "UTC", "lookbackHours", 24,
+					"preferences", "", "sections", SECTIONS, "priorityCount", 5, "writeDrafts", true),
+			WorkInboxRoutine::settings, WorkInboxRoutine::inputs, null);
 
 	private WorkInboxRoutine() { }
 
@@ -79,15 +83,36 @@ public final class WorkInboxRoutine {
 		return WorkRoutine.definition(KIND, engineId);
 	}
 
-	private static void lookbackHours(Map<String, Object> input, Map<String, Object> config) {
+	private static void settings(Map<String, Object> input, Map<String, Object> config) {
 		Object hours = input.get("lookbackHours");
 		if (!(hours instanceof Number number) || number.doubleValue() != number.intValue() || number.intValue() < 1 || number.intValue() > 720) {
 			throw new IllegalArgumentException("lookbackHours must be an integer from 1 to 720");
 		}
 		config.put("lookbackHours", number.intValue());
+		// Settings saved before the brief had knobs have none: the whole brief, five priorities, drafts on.
+		Object sections = input.get("sections") == null ? SECTIONS : input.get("sections");
+		if (!(sections instanceof List<?> chosen) || chosen.isEmpty() || !SECTIONS.containsAll(chosen)
+				|| chosen.stream().distinct().count() != chosen.size()) {
+			throw new IllegalArgumentException("sections must be one or more of " + String.join(", ", SECTIONS));
+		}
+		Object count = input.get("priorityCount") == null ? 5 : input.get("priorityCount");
+		if (!(count instanceof Number priorities) || priorities.doubleValue() != priorities.intValue()
+				|| priorities.intValue() < 1 || priorities.intValue() > 10) {
+			throw new IllegalArgumentException("priorityCount must be an integer from 1 to 10");
+		}
+		Object drafts = input.get("writeDrafts") == null ? Boolean.TRUE : input.get("writeDrafts");
+		if (!(drafts instanceof Boolean writeDrafts)) {
+			throw new IllegalArgumentException("writeDrafts must be true or false");
+		}
+		config.put("sections", SECTIONS.stream().filter(chosen::contains).toList());
+		config.put("priorityCount", priorities.intValue());
+		config.put("writeDrafts", writeDrafts);
 	}
 
 	private static Map<String, Object> inputs(Map<String, Object> row, Map<String, Object> config) {
-		return Map.of("lookback_hours", ((Number) config.get("lookbackHours")).intValue());
+		return Map.of("lookback_hours", ((Number) config.get("lookbackHours")).intValue(), "sections", config.get("sections"),
+				"priority_count", ((Number) config.get("priorityCount")).intValue(), "write_drafts", config.get("writeDrafts"),
+				// approval requests get a review for the owner, never a drafted answer to the requester
+				"skip_reply_subjects", WorkExpenseRoutine.SUBJECTS);
 	}
 }
