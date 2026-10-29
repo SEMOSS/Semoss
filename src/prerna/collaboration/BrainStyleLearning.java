@@ -152,8 +152,8 @@ public final class BrainStyleLearning {
 		List<Sample> samples = new ArrayList<>(emails);
 		samples.addAll(chats);
 		if (samples.isEmpty()) {
-			throw new IllegalStateException(
-					"There is no sent mail or chat from the last " + WINDOW_DAYS + " days to learn from");
+			throw new IllegalStateException("No sent mail or chat messages from the last " + WINDOW_DAYS
+					+ " days were found. Import your mail under Brain > Sources, then try again");
 		}
 
 		job.step("Choosing samples", 50);
@@ -186,15 +186,14 @@ public final class BrainStyleLearning {
 		List<String> sentFolders = BrainMailFolders.load(ownerId, ownerType).byId().values().stream()
 				.filter(folder -> BrainMailFolders.SENT.equals(folder.kind())).map(BrainMailFolders.Folder::id)
 				.toList();
-		if (sentFolders.isEmpty()) {
-			return List.of();
-		}
-		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType, since));
+		// a source with no folder tree (the fixture mailbox) names its Sent folder ids "...-sentitems"
+		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType, since, "%sentitems"));
 		params.addAll(sentFolders);
+		String inSent = sentFolders.isEmpty() ? ""
+				: " OR FOLDER IN (" + String.join(",", Collections.nCopies(sentFolders.size(), "?")) + ")";
 		List<String[]> rows = CollaborationDbUtils.query(
 				CollaborationDbUtils.page("SELECT GRAPH_ID, FOLDER FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND "
-						+ "OWNER_TYPE = ? AND RECEIVED_AT >= ? AND FOLDER IN ("
-						+ String.join(",", Collections.nCopies(sentFolders.size(), "?"))
+						+ "OWNER_TYPE = ? AND RECEIVED_AT >= ? AND (FOLDER LIKE ?" + inSent
 						+ ") ORDER BY RECEIVED_AT DESC", MAX_EMAILS * 2, 0),
 				rs -> new String[] { rs.getString("GRAPH_ID"), rs.getString("FOLDER") }, params.toArray());
 		if (rows.isEmpty()) {
