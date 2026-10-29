@@ -34,6 +34,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -3614,8 +3615,16 @@ public class ModelInferenceLogsUtils {
 					SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineIds));
 		}
 
-		// Filter by date range if provided
-		addStartDateEndDateFitler(qs, startDate, endDate);
+		// Filter by date range if provided; the end date counts in full, so the range
+		// ends at the start of the next day
+		if (startDate != null && !startDate.trim().isEmpty() && endDate != null && !endDate.trim().isEmpty()) {
+			AndQueryFilter andFilters = new AndQueryFilter();
+			andFilters.addFilter(
+					SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", startDate.trim()));
+			andFilters.addFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", "<",
+					LocalDate.parse(endDate.trim()).plusDays(1).toString()));
+			qs.addExplicitFilter(andFilters);
+		}
 
 		// Group by engine
 		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
