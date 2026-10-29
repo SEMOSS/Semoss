@@ -33,6 +33,7 @@ import prerna.engine.impl.model.BedrockEngine;
 import prerna.engine.impl.model.EmbeddedModelEngine;
 import prerna.engine.impl.model.ModelRouterEngine;
 import prerna.engine.impl.model.OpenAiEngine;
+import prerna.engine.impl.model.RouterEngine;
 import prerna.engine.impl.model.TextEmbeddingsEngine;
 import prerna.engine.impl.model.TextGenerationEngine;
 import prerna.engine.impl.model.TypeSafeEngine;
@@ -48,6 +49,7 @@ public enum ModelTypeEnum {
 	AZURE_OPEN_AI("AZURE_OPEN_AI", AzureOpenAiEngine.class.getName()),
 	BEDROCK("BEDROCK", BedrockEngine.class.getName()),
 	OPEN_AI("OPEN_AI", OpenAiEngine.class.getName()),
+	ROUTER("ROUTER", RouterEngine.class.getName()),
 	VERTEX("VERTEX", VertexEngine.class.getName()),
 	TYPESAFE("TYPESAFE", TypeSafeEngine.class.getName()),
 
