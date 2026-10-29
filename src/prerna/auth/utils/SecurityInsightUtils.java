@@ -78,6 +78,8 @@ import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.parser.ParserException;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -113,6 +115,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
 
+		Insight insight = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				IHeadersDataRow dataRow = wrapper.next();
@@ -131,46 +134,46 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					if (legacyGetInsightReturn == null || legacyGetInsightReturn.isEmpty()) {
 						throw new IllegalArgumentException("Could not find insight with given insight id");
 					}
-					return legacyGetInsightReturn.get(0);
-				}
-
-				boolean cacheable = (boolean) values[index++];
-				Integer cacheMinutes = (Integer) values[index++];
-				if (cacheMinutes == null) {
-					cacheMinutes = -1;
-				}
-				String cacheCron = (String) values[index++];
-				Boolean cacheEncrypt = (Boolean) values[index++];
-				if (cacheEncrypt == null) {
-					cacheEncrypt = false;
-				}
-
-				List<String> pixel = securityGson.fromJson(pixelRecipe, List.class);
-				int pixelSize = pixel.size();
-
-				List<String> pixelList = new ArrayList<>(pixelSize);
-				for (int i = 0; i < pixelSize; i++) {
-					String pixelString = pixel.get(i).toString();
-					List<String> breakdown;
-					try {
-						breakdown = PixelUtility.parsePixel(pixelString);
-						pixelList.addAll(breakdown);
-					} catch (ParserException | LexerException | IOException e) {
-						classLogger.error("Unable to retrieve insight.", e);
-						throw new IllegalArgumentException("Error occurred parsing the pixel expression");
+					insight = legacyGetInsightReturn.get(0);
+				} else {
+					boolean cacheable = (boolean) values[index++];
+					Integer cacheMinutes = (Integer) values[index++];
+					if (cacheMinutes == null) {
+						cacheMinutes = -1;
 					}
-				}
+					String cacheCron = (String) values[index++];
+					Boolean cacheEncrypt = (Boolean) values[index++];
+					if (cacheEncrypt == null) {
+						cacheEncrypt = false;
+					}
 
-				Insight in = new Insight(projectId, project.getProjectName(), insightId, cacheable, cacheMinutes,
-						cacheCron, cacheEncrypt, pixel.size());
-				in.setInsightName(thisInsightName);
-				in.setPixelRecipe(pixelList);
-				return in;
+					List<String> pixel = securityGson.fromJson(pixelRecipe, List.class);
+					int pixelSize = pixel.size();
+
+					List<String> pixelList = new ArrayList<>(pixelSize);
+					for (int i = 0; i < pixelSize; i++) {
+						String pixelString = pixel.get(i).toString();
+						List<String> breakdown;
+						try {
+							breakdown = PixelUtility.parsePixel(pixelString);
+							pixelList.addAll(breakdown);
+						} catch (ParserException | LexerException | IOException e) {
+							classLogger.error("Unable to retrieve insight.", e);
+							throw new IllegalArgumentException("Error occurred parsing the pixel expression");
+						}
+					}
+
+					Insight in = new Insight(projectId, project.getProjectName(), insightId, cacheable, cacheMinutes,
+							cacheCron, cacheEncrypt, pixel.size());
+					in.setInsightName(thisInsightName);
+					in.setPixelRecipe(pixelList);
+					insight = in;
+				}
 			}
 		} catch (Exception e1) {
 			classLogger.error("Unable to retrieve insight.", e1);
 		}
-		return null;
+		return insight;
 	}
 
 	/**
@@ -192,15 +195,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				SimpleQueryFilter.makeColToValFilter(fun, "==", insightName.toLowerCase(), PixelDataType.CONST_STRING));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 
+		String insightId = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				return wrapper.next().getValues()[0].toString();
+				insightId = wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the insight name exists.", e);
 		}
 
-		return null;
+		return insightId;
 	}
 
 	/**
@@ -216,15 +220,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
 
+		String schemaName = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				return (String) wrapper.next().getValues()[0];
+				schemaName = (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve insight schema name.", e);
 		}
 
-		return null;
+		return schemaName;
 	}
 
 	/**
@@ -246,6 +251,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		String testSchemaName = schemaName;
 		int counter = 1;
+		String uniqueSchemaName = null;
 		do {
 			SelectQueryStruct qs = new SelectQueryStruct();
 			qs.addSelector(new QueryColumnSelector("INSIGHT__SCHEMANAME"));
@@ -259,7 +265,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 				if (!wrapper.hasNext()) {
-					return testSchemaName;
+					uniqueSchemaName = testSchemaName;
 				} else {
 					// this schema name already exists and we want it to be unique within a project
 					// so lets try to edit it
@@ -269,7 +275,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				classLogger.error("Unable to generate a unique insight schema name.", e);
 			}
 
-		} while (true);
+		} while (uniqueSchemaName == null);
+		return uniqueSchemaName;
 	}
 
 	/**
@@ -292,13 +299,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "!=", currInsightId));
 
+		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			return wrapper.hasNext();
+			exists = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the insight name already exists for another insight.", e);
 		}
 
-		return false;
+		return exists;
 	}
 
 	/**
@@ -557,18 +565,19 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", singleUserId));
 
+		Integer permission = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null && val instanceof Number) {
-					return ((Number) val).intValue();
+					permission = ((Number) val).intValue();
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve user insight permission.", e);
 		}
 
-		return null;
+		return permission;
 	}
 
 	/**
@@ -632,15 +641,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+		boolean global = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				// i already bound that global must be true
-				return true;
+				global = true;
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to determine whether the insight is global.", e);
 		}
-		return false;
+		return global;
 	}
 
 	/**
@@ -946,7 +956,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Unable to add user insight creator.", e);
+			classLogger.error("Failed to update insight {} in project {}", Utility.cleanLogString(insightId),
+					Utility.cleanLogString(projectId), e);
 		}
 	}
 
@@ -1011,7 +1022,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Unable to update insight name.", e);
+			classLogger.error("Failed to update the cache settings of insight {} in project {}",
+					Utility.cleanLogString(insightId), Utility.cleanLogString(projectId), e);
 		}
 	}
 
@@ -1379,11 +1391,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						.add(PermissionSubject.ofUser(newUserId, null), new PermissionGrant(permission, endDate))),
 				PermissionBatchOptions.userMode(),
 				new PermissionErrorRules(endDate)
-						.illegalArgument(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						.illegalArgument(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 								"This user already has access to this insight. Please edit the existing permission level.")
-						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding user permissions for this insight"));
 	}
 
@@ -1406,11 +1418,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						PermissionSubject.ofUser(existingUserId, null), new PermissionGrant(newPermission, endDate))),
 				PermissionBatchOptions.userMode(),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.Code.NO_ACCESS, NO_ACCESS)
-						.illegalAccess(PermissionProblem.Code.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
-						.illegalAccess(PermissionProblem.Code.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS, NO_ACCESS)
+						.illegalAccess(PermissionProblem.ErrorCode.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
+						.illegalAccess(PermissionProblem.ErrorCode.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred updating the user permissions for this insight"));
 	}
 
@@ -1432,15 +1444,15 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				PermissionBatchUtils.peopleChanges(PermissionChange.Action.CHANGE, requests, endDate),
 				PermissionBatchOptions.userMode(),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.Code.NO_PERMISSION,
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION,
 								"Insufficient privileges to modify insight permissions.")
-						.illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+						.illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
 								"Attempting to modify user permission for the following users who do not currently have access to the insight: ")
-						.illegalArgument(PermissionProblem.Code.CHANGES_AUTHOR,
+						.illegalArgument(PermissionProblem.ErrorCode.CHANGES_AUTHOR,
 								"As a non-owner, you cannot edit access of an owner.")
-						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR,
+						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR,
 								"As a non-owner, you cannot give a user access as an owner.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred updating the user permissions for this insight"));
 	}
 
@@ -1459,10 +1471,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.insight(projectId, insightId),
 				List.of(PermissionChange.remove(PermissionSubject.ofUser(existingUserId, null))),
 				PermissionBatchOptions.userMode(),
-				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.Code.NO_ACCESS, NO_ACCESS)
-						.illegalAccess(PermissionProblem.Code.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+				new PermissionErrorRules()
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS, NO_ACCESS)
+						.illegalAccess(PermissionProblem.ErrorCode.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing the user permissions for this insight"));
 	}
 
@@ -2178,7 +2191,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		} catch (Exception e) {
-			classLogger.error("Unable to update execution count.", e);
+			classLogger.error("Failed to read the metadata of insights in project {}",
+					Utility.cleanLogString(projectId), e);
 		}
 		return wrapper;
 	}
@@ -2223,7 +2237,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		} catch (Exception e) {
-			classLogger.error("Unable to update execution count.", e);
+			classLogger.error("Failed to read the insight metadata of {} projects", projectToInsightMap.size(), e);
 		}
 		return wrapper;
 	}
@@ -2279,7 +2293,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Unable to update execution count.", e);
+			classLogger.error("Failed to read the metadata of insight {} in project {}",
+					Utility.cleanLogString(insightId), Utility.cleanLogString(projectId), e);
 		}
 
 		return retMap;
@@ -2638,8 +2653,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			return QueryExecutionUtility.write(securityDb, connection -> {
 				// first truncate table clean
 				String truncateSql = "DELETE FROM " + tableName + " WHERE 1=1";
-				QueryExecutionUtility.executeUpdate(connection, truncateSql, deletePs -> {
-				});
+				QueryExecutionUtility.executeUpdate(connection, truncateSql, QueryExecutionUtility.NO_PARAMETERS);
 				try (PreparedStatement insertPs = connection.prepareStatement(securityDb.getQueryUtil()
 						.createInsertPreparedStatementString(tableName, new String[] { Constants.METAKEY,
 								Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS }))) {
@@ -2709,12 +2723,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				PermissionBatchUtils.peopleChanges(PermissionChange.Action.ADD, permission, endDate),
 				PermissionBatchOptions.userMode(),
 				new PermissionErrorRules(endDate)
-						.illegalArgument(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgumentWithIds(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						.illegalArgument(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 								"The following users already have access to this insight. Please edit the existing permission level: ")
-						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR,
+						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR,
 								"As a non-owner, you cannot add owner user access.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding user permissions for this insight"));
 	}
 
@@ -2733,12 +2747,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.insight(projectId, insightId),
 				PermissionChange.forPeople(PermissionChange.Action.REMOVE, existingUserIds, null),
 				PermissionBatchOptions.userMode(),
-				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+				new PermissionErrorRules()
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
 								"Attempting to modify user permission for the following users who do not currently have access to the insight: ")
-						.illegalArgument(PermissionProblem.Code.CHANGES_AUTHOR,
+						.illegalArgument(PermissionProblem.ErrorCode.CHANGES_AUTHOR,
 								"As a non-owner, you cannot remove access of an owner.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing the user permissions for this insight"));
 	}
 
@@ -2764,12 +2779,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight");
 		}
+		UserAuditTrailUtils.recordExpiredPermissionRemoval(AuditTargetType.INSIGHT, insightId, projectId, null,
+				insightId, userId);
 	}
 
 	/**
 	 * Approves access requests, as a permission batch: each person gets the level
-	 * they asked for, and the requests are marked approved in the same save. The
-	 * insight's editors can; only its owners give or change Author access.
+	 * they asked for, and the insight's own requests are marked approved in the
+	 * same transaction, so either the access and the approvals are all saved or
+	 * none of them is. The insight's editors can; only its owners give or change
+	 * Author access.
 	 *
 	 * @param user      the user approving
 	 * @param projectId the project the insight belongs to
@@ -2785,14 +2804,15 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		PermissionTargetResource target = PermissionTargetResource.insight(projectId, insightId);
 		PermissionBatchUtils.saveChanges(user, target, PermissionBatchUtils.approvalChanges(target, requests, endDate),
 				PermissionBatchOptions.userMode().approving(target, requests),
-				PermissionErrorRules.forApprovals(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION,
+				PermissionErrorRules.forApprovals(endDate).illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION,
 						"Insufficient privileges to modify this project's permissions."));
 	}
 
 	/**
-	 * Denies access requests to an insight: each is marked denied, by the user.
-	 * Only the insight's owners can, directly or through a team; an owner of its
-	 * project is an owner of the insight.
+	 * Denies access requests to an insight: each of the insight's own requests is
+	 * marked denied, by the user, in one transaction. Only the insight's owners
+	 * can, directly or through a team; an owner of its project is an owner of the
+	 * insight.
 	 *
 	 * @param user          the user denying
 	 * @param projectId     the project the insight belongs to
@@ -2805,11 +2825,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.denyRequests(user, PermissionTargetResource.insight(projectId, insightId), requestIdList,
 				PermissionBatchOptions.userMode(),
 				new PermissionErrorRules()
-						.illegalAccess(PermissionProblem.Code.NO_PERMISSION,
+						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION,
 								"Insufficient privileges to modify insight permissions.")
-						.illegalArgument(PermissionProblem.Code.OWNERS_ONLY,
+						.illegalArgument(PermissionProblem.ErrorCode.OWNERS_ONLY,
 								"Insufficient privileges to deny user access requests.")
-						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred while updating user access request"));
 	}
 
@@ -2939,7 +2959,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 					}
 				} catch (Exception e) {
-					classLogger.error("Unable to retrieve the insight alias for the given insight ID.", e);
+					classLogger.error(
+							"Failed to mark the earlier access requests of user {} for insight {} in project {} as old",
+							Utility.cleanLogString(userId), Utility.cleanLogString(insightId),
+							Utility.cleanLogString(projectId), e);
 					throw new IllegalArgumentException(
 							"An error occurred while marking old user access request with detailed message = "
 									+ e.getMessage());
@@ -2969,7 +2992,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 					}
 				} catch (Exception e) {
-					classLogger.error("Unable to retrieve the insight alias for the given insight ID.", e);
+					classLogger.error("Failed to add the access request of user {} for insight {} in project {}",
+							Utility.cleanLogString(userId), Utility.cleanLogString(insightId),
+							Utility.cleanLogString(projectId), e);
 					throw new IllegalArgumentException(
 							"An error occurred while adding user access request detailed message = " + e.getMessage());
 				}
@@ -2978,10 +3003,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Unable to retrieve the insight alias for the given insight ID.", e);
+			classLogger.error("Failed to save the access request of user {} for insight {} in project {}",
+					Utility.cleanLogString(userId), Utility.cleanLogString(insightId),
+					Utility.cleanLogString(projectId), e);
 			throw new IllegalArgumentException(
-					"An error occurred while marking old user access request with detailed message = "
-							+ e.getMessage());
+					"An error occurred while saving the user access request with detailed message = " + e.getMessage());
 		}
 	}
 

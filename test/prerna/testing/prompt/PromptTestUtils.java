@@ -58,6 +58,7 @@ import prerna.testing.ApiSemossTestInsightUtils;
 import prerna.testing.ApiSemossTestUtils;
 
 public class PromptTestUtils {
+
 	private static final String TITLE_INPUT = "title";
 	private static final String CONTEXT_INPUT = "context";
 	private static final String INTENT_INPUT = "intent";
@@ -278,7 +279,7 @@ public class PromptTestUtils {
 			try {
 				// Add user to security database with admin privileges
 				SecurityUpdateUtils.registerUser(username, username, username + "@test.com", "testpassword", "native",
-						null, null, null, isAdmin, false, false, null, null, null, null);
+						null, null, null, isAdmin, false, false, null);
 			} catch (Exception e) {
 				// User might already exist, which is fine
 				classLogger.debug("Note: User " + username + " may already exist in database: " + e.getMessage());

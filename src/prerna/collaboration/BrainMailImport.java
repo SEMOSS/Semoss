@@ -60,6 +60,8 @@ public final class BrainMailImport {
 	private static final Logger classLogger = LogManager.getLogger(BrainMailImport.class);
 	public static final int MAX_DAYS = 180;
 	private static final int MAX_PER_FOLDER = 5000;
+	// one read across every folder
+	private static final int MAX_MAIL = 10000;
 	private static final int BATCH = 25;
 	// more people than this on To and Cc is a mailing: no new people from it
 	private static final int MAX_RECIPIENTS = 25;
@@ -235,17 +237,69 @@ public final class BrainMailImport {
 		job.count("outsideOrgs", outside);
 	}
 
-	// Inbox and Sent since a time (and Teams since teamsSince, null to skip), through the gate in batches; shared
-	// by onboarding and BrainSync. Returns the Teams error, null when Teams was read or skipped
+	// Mail since a time (and Teams since teamsSince, null to skip), through the gate in batches, for BrainSync: also
+	// mail moved, flagged or categorized since. Returns the Teams error, null when Teams was read or skipped
 	static String importSince(User user, BrainMailHeaderSource source, CollaborationJobUtils.Job job, Run run,
 			Instant since, Instant teamsSince) throws Exception {
-		importMail(user, source, job, run, since, 5, 50);
+		importMail(user, source, job, run, since, true, 5, 50);
 		return teamsSince == null ? null : importTeams(user, source, job, run, teamsSince, 50, 85);
 	}
 
-	// Inbox and Sent, counted per folder as each is read
 	static void importMail(User user, BrainMailHeaderSource source, CollaborationJobUtils.Job job, Run run,
 			Instant since, int from, int to) throws Exception {
+		importMail(user, source, job, run, since, false, from, to);
+	}
+
+	/**
+	 * Every folder but the skipped ones (Deleted Items, Junk, Drafts, Outbox...) in one read, when the mailbox has
+	 * folders; otherwise Inbox and Sent. changed (a sync) reads what was received or changed since: mail it already
+	 * holds gets its folder, flag and categories brought up to date, older mail it does not hold stays out.
+	 */
+	static void importMail(User user, BrainMailHeaderSource source, CollaborationJobUtils.Job job, Run run,
+			Instant since, boolean changed, int from, int to) throws Exception {
+		job.step("reading folders", from);
+		BrainMailFolders.Tree tree = changed ? BrainMailFolders.current(user, source, run.ownerId, run.ownerType)
+				: java.util.Objects.requireNonNullElseGet(
+						BrainMailFolders.refresh(user, source, run.ownerId, run.ownerType),
+						() -> BrainMailFolders.load(run.ownerId, run.ownerType));
+		if (!tree.isEmpty()) {
+			job.step("reading mail", from + 1);
+			List<Map<String, Object>> read;
+			try {
+				read = source.allMail(user, since, MAX_MAIL, changed);
+			} catch (Exception e) {
+				if (!changed || e instanceof InterruptedException) {
+					throw e;
+				}
+				// a mailbox that will not filter on change time still gives what arrived
+				classLogger.warn("Reading changed mail failed; reading new mail only: {}", e.getMessage());
+				read = source.allMail(user, since, MAX_MAIL, false);
+			}
+			tree = BrainMailFolders.covering(user, source, run.ownerId, run.ownerType, tree, read);
+			List<Map<String, Object>> headers = BrainMailFolders.keep(tree, read);
+			if (changed) {
+				headers.removeIf(h -> !run.holds(h) && !received(h, since));
+			}
+			int inbox = 0;
+			int sent = 0;
+			Set<String> custom = new HashSet<>();
+			for (Map<String, Object> h : headers) {
+				String folder = (String) h.get("parentFolderId");
+				if (tree.sent(folder)) {
+					sent++;
+				} else if (tree.custom(folder) != null) {
+					custom.add(folder);
+				} else {
+					inbox++;
+				}
+			}
+			job.count("inboxMessages", inbox);
+			job.count("sentMessages", sent);
+			job.count("folderMessages", headers.size() - inbox - sent);
+			job.count("folders", custom.size());
+			importHeaders(job, run, headers, from + (to - from) / 3, to);
+			return;
+		}
 		List<Map<String, Object>> headers = new ArrayList<>();
 		int reading = (to - from) / 3;
 		for (String folder : BrainMailHeaderSource.FOLDERS) {
@@ -355,12 +409,19 @@ public final class BrainMailImport {
 		final Map<String, String> people = new HashMap<>();
 		final Map<String, String[]> threadsByKey = new HashMap<>();
 		final Map<String, Map<String, Object>> messages = new HashMap<>();
+		// message key to its stored folder, categories and flag, to see what changed in Outlook since
+		final Map<String, String[]> mailbox = new HashMap<>();
+		// threads with mail the owner moved to another folder since it was read
+		final Set<String> refiled = new LinkedHashSet<>();
 		final Map<String, Set<String>> participants = new HashMap<>();
 		// the gate's lookups per source; only whether the source is on differs
 		final Map<String, BrainRulesGate.Known> known = new HashMap<>();
 		final Set<String> threads = new LinkedHashSet<>();
 		// [threadId, sent time] of each newly imported message the owner sent, so a sync can close answered work
 		final List<String[]> ownerSent = new ArrayList<>();
+		// [messageKey, threadId, subject] of each newly imported message to the owner, from someone else or a note they
+		// sent themselves, for the routines mail sets off
+		final List<String[]> inbound = new ArrayList<>();
 		final Set<String> selfAddresses = new HashSet<>();
 		String selfId;
 		String selfName;
@@ -402,11 +463,15 @@ public final class BrainMailImport {
 											Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED"))) }),
 					ownerId, ownerType);
 			CollaborationDbUtils.query(
-					"SELECT MESSAGE_KEY, DECISION, RULE_ID, THREAD_ID, SENDER_PERSON_ID FROM "
-							+ "BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
-					rs -> messages.put(rs.getString(1),
-							BrainRulesGate.result(rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5))),
-					ownerId, ownerType);
+					"SELECT MESSAGE_KEY, DECISION, RULE_ID, THREAD_ID, SENDER_PERSON_ID, FOLDER, CATEGORIES_JSON, "
+							+ "FLAGGED FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+					rs -> {
+						mailbox.put(rs.getString(1), new String[] { rs.getString(6),
+								CollaborationDbUtils.getString(rs, "CATEGORIES_JSON"),
+								String.valueOf(Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "FLAGGED"))) });
+						return messages.put(rs.getString(1), BrainRulesGate.result(rs.getString(2), rs.getString(3),
+								rs.getString(4), rs.getString(5)));
+					}, ownerId, ownerType);
 			CollaborationDbUtils.query("SELECT THREAD_ID, PERSON_ID, ROLES_JSON FROM BRAIN_THREAD_PARTICIPANT WHERE "
 					+ "OWNER_ID = ? AND OWNER_TYPE = ?", rs -> {
 						Set<String> roles = new LinkedHashSet<>();
@@ -416,6 +481,32 @@ public final class BrainMailImport {
 						}
 						return participants.put(rs.getString(1) + "|" + rs.getString(2), roles);
 					}, ownerId, ownerType);
+		}
+
+		// a mail header this run already holds a message for
+		boolean holds(Map<String, Object> header) {
+			String messageId = messageId(header);
+			return messageId != null && messages
+					.containsKey(CollaborationDbUtils.deterministicId(ownerId, ownerType, SOURCE, messageId));
+		}
+
+		// mail read before: its folder (and Graph id, which a move changes), categories and flag as Outlook has them now
+		private void refresh(String messageKey, String threadId, Map<String, Object> header) {
+			String[] stored = mailbox.get(messageKey);
+			String folder = header.get("parentFolderId") instanceof String f ? f : null;
+			String categories = BrainMailFolders.categories(header);
+			boolean flagged = BrainMailFolders.flagged(header);
+			if (stored == null || folder == null || (folder.equals(stored[0]) && Objects.equals(categories, stored[1])
+					&& String.valueOf(flagged).equals(stored[2]))) {
+				return;
+			}
+			CollaborationDbUtils.update("UPDATE BRAIN_MESSAGE SET FOLDER = ?, GRAPH_ID = ?, CATEGORIES_JSON = ?, "
+					+ "FLAGGED = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?", folder, header.get("id"),
+					categories, flagged, ownerId, ownerType, messageKey);
+			if (!folder.equals(stored[0])) {
+				refiled.add(threadId);
+			}
+			mailbox.put(messageKey, new String[] { folder, categories, String.valueOf(flagged) });
 		}
 
 		BrainRulesGate.Known known(String source) {
@@ -439,6 +530,9 @@ public final class BrainMailImport {
 			String messageKey = CollaborationDbUtils.deterministicId(ownerId, ownerType, source, messageId);
 			Map<String, Object> prior = messages.get(messageKey);
 			if (prior != null && prior.get("threadId") != null) {
+				if (SOURCE.equals(source)) {
+					refresh(messageKey, (String) prior.get("threadId"), header);
+				}
 				// imported before these headers were read: fill them in once
 				Boolean auto = autoSent(header);
 				if (auto != null) {
@@ -497,7 +591,8 @@ public final class BrainMailImport {
 				String address = entry.getKey();
 				boolean isSender = address.equals(from);
 				boolean self = isSelf(address, names.get(address));
-				if (!isSender && self) {
+				// a note the owner sent themselves is to them too
+				if (self && (!isSender || entry.getValue().contains("to") || entry.getValue().contains("cc"))) {
 					toMe = true;
 				}
 				if (isSender && senderHidden) {
@@ -522,14 +617,22 @@ public final class BrainMailImport {
 					|| (sender != null && !sender.equals(from)) || broadcast || toList(header);
 			CollaborationDbUtils.update(
 					"UPDATE BRAIN_MESSAGE SET THREAD_ID = ?, SENDER_PERSON_ID = ?, TO_ME = ?, BULK = ?, MEETING = ?, "
-							+ "AUTO = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
-					threadId, senderId, fromMe ? null : toMe, bulk, meeting(header), autoSent(header), ownerId,
-					ownerType, messageKey);
+							+ "AUTO = ?, CATEGORIES_JSON = ?, FLAGGED = ?, IMPORTANCE = ?, ATTACHMENTS = ? WHERE "
+							+ "OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
+					threadId, senderId, fromMe ? null : toMe, bulk, meeting(header), autoSent(header),
+					BrainMailFolders.categories(header), BrainMailFolders.flagged(header),
+					BrainMailFolders.importance(header), BrainMailFolders.attachments(header), ownerId, ownerType,
+					messageKey);
+			mailbox.put(messageKey, new String[] { (String) header.get("parentFolderId"),
+					BrainMailFolders.categories(header), String.valueOf(BrainMailFolders.flagged(header)) });
 			messages.put(messageKey, BrainRulesGate.result((String) decision.get("decision"),
 					(String) decision.get("ruleId"), threadId, senderId));
 			threads.add(threadId);
 			if (fromMe) {
 				ownerSent.add(new String[] { threadId, (String) header.get("receivedDateTime") });
+			}
+			if (!fromMe || toMe) {
+				inbound.add(new String[] { messageKey, threadId, (String) header.get("subject") });
 			}
 			imported++;
 			if (meeting(header)) {
@@ -799,6 +902,15 @@ public final class BrainMailImport {
 			ids.add(id.group());
 		}
 		return ids;
+	}
+
+	// received at or after since; a header without a time counts as new
+	private static boolean received(Map<String, Object> header, Instant since) {
+		try {
+			return !(header.get("receivedDateTime") instanceof String at) || !Instant.parse(at).isBefore(since);
+		} catch (java.time.format.DateTimeParseException e) {
+			return true;
+		}
 	}
 
 	static String messageId(Map<String, Object> header) {

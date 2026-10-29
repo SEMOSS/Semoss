@@ -127,12 +127,13 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("GROUPMANAGERS__GROUPID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPMANAGERS__GROUPID", "==", groupId));
 		qs.addExplicitFilter(loginFilter);
+		boolean isManager = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			return wrapper.hasNext();
+			isManager = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user manages the group.", e);
 		}
-		return false;
+		return isManager;
 	}
 
 	/**
@@ -415,12 +416,13 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPMANAGERS__GROUPID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPMANAGERS__USERID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPMANAGERS__TYPE", "==", userType));
+		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			return wrapper.hasNext();
+			exists = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user manages the group.", e);
 		}
-		return false;
+		return exists;
 	}
 
 	/**
@@ -466,12 +468,12 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.teamManagers(groupId),
 				List.of(new PermissionChange(action, PermissionSubject.ofUser(userId, type), null)),
 				asAdmin ? PermissionBatchOptions.adminMode() : PermissionBatchOptions.userMode(),
-				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, MANAGERS_ONLY)
-						.illegalArgument(PermissionProblem.Code.INVALID_TARGET,
+				new PermissionErrorRules().illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, MANAGERS_ONLY)
+						.illegalArgument(PermissionProblem.ErrorCode.INVALID_TARGET,
 								"Group " + groupId + " is not a custom group")
-						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 								"User " + userId + " already manages group " + groupId)
-						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
 								"User " + userId + " does not manage group " + groupId));
 	}
 
@@ -706,12 +708,12 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 				List.of(new PermissionChange(action, PermissionSubject.ofUser(userId, type),
 						new PermissionGrant(null, end))),
 				asAdmin ? PermissionBatchOptions.adminMode() : PermissionBatchOptions.userMode(),
-				new PermissionErrorRules(end).illegalAccess(PermissionProblem.Code.NO_PERMISSION, MANAGERS_ONLY)
-						.illegalArgument(PermissionProblem.Code.INVALID_TARGET,
+				new PermissionErrorRules(end).illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, MANAGERS_ONLY)
+						.illegalArgument(PermissionProblem.ErrorCode.INVALID_TARGET,
 								"Group " + groupId + " is not a custom group")
-						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
 								"User " + userId + " already has access to group " + groupId)
-						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
 								"User " + userId + " does not have access to group " + groupId));
 	}
 

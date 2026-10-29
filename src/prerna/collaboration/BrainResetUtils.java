@@ -39,6 +39,9 @@ import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
+import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.project.AutomationProjectService;
+import prerna.reactor.automation.run.AutomationRunStore;
 
 // Wipes one owner's Collaboration data so onboarding starts fresh
 public final class BrainResetUtils {
@@ -72,6 +75,15 @@ public final class BrainResetUtils {
 					}
 				}
 			});
+			// the routines' runs keep mail, meetings and their results in the scheduler database
+			int runs = 0;
+			for (String automationId : List.of(WorkInboxRoutine.AUTOMATION_ID, WorkAgendaRoutine.AUTOMATION_ID,
+					WorkExpenseRoutine.AUTOMATION_ID)) {
+				runs += AutomationRunStore.deleteRuns(AutomationProjectService.inlineRunScope(user), automationId);
+			}
+			if (runs > 0) {
+				deleted.put(AutomationConstants.TABLE_AUTOMATION_RUNS, runs);
+			}
 			int total = deleted.values().stream().mapToInt(v -> (Integer) v).sum();
 			classLogger.info("Collaboration data reset for {} {}: {} rows", ownerType, ownerId, total);
 			Map<String, Object> result = new LinkedHashMap<>();

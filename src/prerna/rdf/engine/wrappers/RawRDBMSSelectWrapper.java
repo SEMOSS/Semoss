@@ -90,8 +90,30 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	// use this if we want to close the connection once the iterator is done
 	protected boolean closeConnectionAfterExecution = false;
 
+	// set when the caller supplied the prepared statement and its bindings, which
+	// leaves the wrapper no query of its own to run again
+	private boolean suppliedStatement = false;
+
+	/**
+	 * Runs the query through the engine and reads the result's columns. An
+	 * execution still open is closed first, keeping its connection unless it came
+	 * from a pool, and the row read ahead, the cached row count and the closed
+	 * state are cleared, so the wrapper iterates the new result from its first row
+	 * and {@link #close()} releases the new execution's resources. When the query
+	 * fails, the new execution's statement and result set are closed, with its
+	 * connection when it came from a pool or is not the engine's own, and the
+	 * wrapper is left closed.
+	 *
+	 * @throws Exception if the engine cannot run the query or its result cannot be
+	 *                   read
+	 */
 	@Override
 	public void execute() throws Exception {
+		release(this.dataSource != null);
+		startExecution();
+		this.conn = null;
+		this.dataSource = null;
+		this.useEngineConnection = false;
 		try {
 			Map<String, Object> map = (Map<String, Object>) engine.execQuery(query);
 			this.stmt = (Statement) map.get(IRDBMSEngine.STATEMENT_OBJECT);
@@ -108,13 +130,49 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			this.databaseZoneId = engine.getDatabaseZoneId();
 		} catch (Exception e) {
 			classLogger.error("Failed to execute RDBMS select query", e);
-			if (this.useEngineConnection) {
-				ConnectionUtils.closeAllConnections(null, stmt, rs);
-			} else {
-				ConnectionUtils.closeAllConnections(conn, stmt, rs);
-			}
+			// a pooled connection goes back to its pool, and the engine's shared
+			// connection stays open
+			boolean closeConnection = !this.useEngineConnection || this.dataSource != null;
+			ConnectionUtils.closeAllConnections(closeConnection ? this.conn : null, this.stmt, this.rs);
+			this.closedConnection = true;
 			throw e;
 		}
+	}
+
+	/**
+	 * Runs the query again on the connection the caller supplied. The current
+	 * execution is closed first, and the supplied connection is never closed here,
+	 * not even when the query fails.
+	 *
+	 * @throws SQLException when the query fails to run; the wrapper is left closed
+	 */
+	private void executeOnSuppliedConnection() throws SQLException {
+		release(false);
+		startExecution();
+		try {
+			this.stmt = this.conn.createStatement();
+			this.rs = this.stmt.executeQuery(this.query);
+			setVariables();
+		} catch (SQLException | RuntimeException e) {
+			classLogger.error("Failed to run the query again on the supplied connection", e);
+			ConnectionUtils.closeAllConnections(null, this.stmt, this.rs);
+			this.closedConnection = true;
+			throw e;
+		}
+	}
+
+	/**
+	 * Clears what an earlier execution left behind: its statement and result set,
+	 * the row read ahead, the cached row count and the closed state. The next
+	 * execution then iterates from its first row and is released by
+	 * {@link #close()}.
+	 */
+	private void startExecution() {
+		this.stmt = null;
+		this.rs = null;
+		this.currRow = null;
+		this.numRows = 0;
+		this.closedConnection = false;
 	}
 
 	@Override
@@ -393,21 +451,35 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		this.closeConnectionAfterExecution = closeConnectionAfterExecution;
 	}
 
+	/**
+	 * Closes the result set and statement. The connection is closed too when it
+	 * came from a pool, which gives it back, or when
+	 * {@link #setCloseConenctionAfterExecution(boolean)} asked for it; otherwise it
+	 * stays open for its owner. Closing a closed wrapper does nothing.
+	 */
 	@Override
 	public void close() {
-		if (this.closedConnection) {
-			return;
-		}
 		// if using a datasource
 		// we need to close the connection
 		// to give it back to the pool
-		if (this.dataSource != null || this.closeConnectionAfterExecution) {
-			ConnectionUtils.closeAllConnections(this.conn, this.stmt, this.rs);
-		} else {
-			ConnectionUtils.closeAllConnections(null, this.stmt, this.rs);
-		}
+		release(this.dataSource != null || this.closeConnectionAfterExecution);
+	}
 
+	/**
+	 * Closes the current execution's result set and statement, and its connection
+	 * when asked, then marks the wrapper closed and drops the row read ahead. A
+	 * failure to close is logged, not thrown. Does nothing when the wrapper is
+	 * already closed.
+	 *
+	 * @param closeConnection whether to close the connection as well
+	 */
+	private void release(boolean closeConnection) {
+		if (this.closedConnection) {
+			return;
+		}
 		this.closedConnection = true;
+		this.currRow = null;
+		ConnectionUtils.closeAllConnections(closeConnection ? this.conn : null, this.stmt, this.rs);
 	}
 
 	@Override
@@ -501,18 +573,35 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		return getNumRows() * this.numColumns;
 	}
 
+	/**
+	 * Runs the query again so the wrapper iterates from its first row, whether or
+	 * not the current execution was read to its end. The current execution is
+	 * closed first and a row read ahead by {@link #hasNext()} is dropped. A query
+	 * that ran through the engine runs through it again: a pooled connection goes
+	 * back to its pool and a new one is taken, and the engine's shared connection
+	 * stays open. A query that ran on a connection the caller supplied runs on that
+	 * connection again, and a reset never closes it. A later {@link #close()}
+	 * releases the new execution's resources. When the query fails to run, the
+	 * wrapper is left closed and the failure is thrown; a later reset can try
+	 * again.
+	 *
+	 * @throws UnsupportedOperationException when the wrapper was made from a result
+	 *                                       set or from a caller's prepared
+	 *                                       statement, which leave it no query of
+	 *                                       its own to run again; the wrapper is
+	 *                                       left as it was
+	 * @throws Exception                     when the query fails to run again
+	 */
 	@Override
 	public void reset() throws Exception {
-		// close current stuff
-		// but we shouldn't close the connection
-		// so store whatever that boolean is as temp
-		// and then reasign after we re-execute
-		boolean temp = this.closeConnectionAfterExecution;
-		this.closeConnectionAfterExecution = false;
-		close();
-		this.closeConnectionAfterExecution = temp;
-		// execute again
-		execute();
+		if (this.engine != null) {
+			execute();
+		} else if (this.conn != null && this.query != null && !this.suppliedStatement) {
+			executeOnSuppliedConnection();
+		} else {
+			throw new UnsupportedOperationException("This wrapper was made from a result set or a caller's "
+					+ "prepared statement, so it has no query of its own to run again");
+		}
 	}
 
 	/**
@@ -616,6 +705,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		User user = ThreadStore.getUser();
 		UserQueryTrackingThread queryT = new UserQueryTrackingThread(user, engineId);
 		RawRDBMSSelectWrapper wrapper = new RawRDBMSSelectWrapper();
+		wrapper.suppliedStatement = true;
 		try {
 			wrapper.query = query;
 			queryT.setQuery(wrapper.query);
@@ -662,6 +752,24 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			classLogger.error("Failed to initialize RDBMS wrapper from the supplied result set", e);
 			throw e;
 		}
+	}
+
+	/**
+	 * Wraps a result set someone else owns, so its rows convert as an engine
+	 * query's do, dates in the database's time zone included. Closing the wrapper,
+	 * or reading past its last row, closes only the result set.
+	 *
+	 * @param rs             the result set
+	 * @param databaseZoneId the database's time zone, for its dates
+	 * @return the wrapper
+	 * @throws SQLException when the driver cannot describe the result set's columns
+	 */
+	public static RawRDBMSSelectWrapper wrapResultSet(ResultSet rs, ZoneId databaseZoneId) throws SQLException {
+		RawRDBMSSelectWrapper wrapper = new RawRDBMSSelectWrapper();
+		wrapper.rs = rs;
+		wrapper.databaseZoneId = databaseZoneId;
+		wrapper.readResultMetadata();
+		return wrapper;
 	}
 
 	@Override

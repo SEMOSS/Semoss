@@ -59,9 +59,9 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
  *
  * <p>
  * The graph structure remains separate from implementation source. The graph is
- * the business-editable contract; generated Python and developer-owned blocks
- * implement that contract without changing its node, port, or capability
- * declarations.
+ * the business-editable contract; typed Java/direct implementations and explicit
+ * developer.python blocks implement that contract without changing its node,
+ * port, or capability declarations.
  */
 public final class AutomationDefinitionValidator {
 
@@ -192,15 +192,25 @@ public final class AutomationDefinitionValidator {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> nodeConfig = config instanceof Map<?, ?> map ? (Map<String, Object>) map : Map.of();
 			validateNodeConfig(nodeId, typedNode, nodeConfig);
+			if (typedNode != AutomationNodeType.DEVELOPER_PYTHON
+					&& nodeConfig.containsKey(AutomationConstants.CONFIG_PYTHON_SOURCE)) {
+				throw new IllegalArgumentException("Only developer.python nodes may own Python source; node '"
+						+ nodeId + "' is type '" + nodeType + "'.");
+			}
 			Object codeMode = node.get(AutomationConstants.NODE_FIELD_CODE_MODE);
 			if (codeMode != null && !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)
 					&& !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)) {
 				throw new IllegalArgumentException("Node '" + nodeId + "' has unsupported codeMode: " + codeMode + ".");
 			}
-			if (isJavaOwnedNode(typedNode)
+			if (typedNode == AutomationNodeType.DEVELOPER_PYTHON
+					&& !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)) {
+				throw new IllegalArgumentException(
+						"Explicit Python node '" + nodeId + "' must use custom mode.");
+			}
+			if (typedNode != AutomationNodeType.DEVELOPER_PYTHON
 					&& !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)) {
 				throw new IllegalArgumentException(
-						"Java-owned node '" + nodeId + "' must use generated mode.");
+						"Typed node '" + nodeId + "' must use generated mode; only developer.python may be custom.");
 			}
 			if (AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode) && !(config instanceof Map<?, ?>)) {
 				throw new IllegalArgumentException("Custom node '" + nodeId + "' must declare a config object.");
@@ -245,11 +255,6 @@ public final class AutomationDefinitionValidator {
 			requireConfigString(nodeId, config, "text");
 			validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
 		}
-		case MODEL_NER -> {
-			requireConfigString(nodeId, config, "text");
-			requireConfigStringListOrPlaceholder(nodeId, config, "entities");
-			validateOptionalStringListOrPlaceholder(nodeId, config, "maskEntities");
-		}
 		case MODEL_VISION -> {
 			requireConfigString(nodeId, config, "prompt");
 			validateOptionalConfigString(nodeId, config, "image");
@@ -290,11 +295,31 @@ public final class AutomationDefinitionValidator {
 		case FUNCTION_EXECUTE -> requireConfigObject(nodeId, config, "arguments");
 		case APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
 		case AGENT_RUN -> {
-			requireConfigString(nodeId, config, AutomationConstants.CONFIG_WORKSPACE_ID);
+			validateOptionalConfigString(nodeId, config, AutomationConstants.CONFIG_WORKSPACE_ID);
 			requireConfigString(nodeId, config, AutomationConstants.CONFIG_COMMAND);
 			validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
 			validateOptionalConfigObject(nodeId, config, "paramMap");
 			validateOptionalConfigObject(nodeId, config, "agentParams");
+			Object skills = config.get(AutomationConstants.CONFIG_SKILLS);
+			if (skills != null && !(skills instanceof List<?> list && list.stream().allMatch(String.class::isInstance))) {
+				throw new IllegalArgumentException(
+						"Automation agent node '" + nodeId + "' skills configuration must be a list of skill ids.");
+			}
+			Object routine = config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE);
+			if (routine != null && !(routine instanceof Boolean)) {
+				throw new IllegalArgumentException("Automation agent node '" + nodeId
+						+ "' collaborationRoutine configuration must be a boolean when provided.");
+			}
+			Object routineId = config.get(AutomationConstants.CONFIG_ROUTINE_ID);
+			if (routineId != null && !(routineId instanceof String)) {
+				throw new IllegalArgumentException("Automation agent node '" + nodeId
+						+ "' routineId configuration must be a string when provided.");
+			}
+			Object routineDelivery = config.get(AutomationConstants.CONFIG_ROUTINE_DELIVERY);
+			if (routineDelivery != null && !(routineDelivery instanceof String)) {
+				throw new IllegalArgumentException("Automation agent node '" + nodeId
+						+ "' routineDelivery configuration must be a string when provided.");
+			}
 			Object wait = config.get(AutomationConstants.CONFIG_WAIT);
 			if (wait != null && !(wait instanceof Boolean)) {
 				throw new IllegalArgumentException(
@@ -407,7 +432,6 @@ public final class AutomationDefinitionValidator {
 	}
 
 	private static void validateTriggerConfig(String nodeId, Map<String, Object> config) {
-		validateOptionalSource(nodeId, config, AutomationConstants.CONFIG_PYTHON_SOURCE);
 		if (!config.containsKey(AutomationConstants.CONFIG_GLOBALS)) {
 			return;
 		}
@@ -1129,13 +1153,8 @@ public final class AutomationDefinitionValidator {
 					throw new IllegalArgumentException("Loop node '" + loopNodeId
 							+ "' cannot contain an agent.run node because durable input waits inside iterations are not supported.");
 				}
-				if (requireExecutableGraph && AutomationConstants.NODE_DATABASE_QUERY.equals(bodyType)
-						&& !AutomationConstants.NODE_CODE_MODE_CUSTOM
-								.equals(bodyNode.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
-					throw new IllegalArgumentException("Loop node '" + loopNodeId
-							+ "' cannot contain a generated database.query node because frame outputs inside iterations are not supported.");
-				}
 			}
+
 			Map<String, String> bodyNodeTypes = validateNodes(bodyNodes, false);
 			for (String bodyNodeId : bodyNodeTypes.keySet()) {
 				if (!allNodeIds.add(bodyNodeId)) {
@@ -1143,6 +1162,7 @@ public final class AutomationDefinitionValidator {
 							"Automation definition has duplicate node id: " + bodyNodeId + ".");
 				}
 			}
+
 			for (Map<String, Object> bodyNode : bodyNodes) {
 				Object outputVariable = bodyNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
 				if (outputVariable instanceof String value && parentOutputVariables.contains(value)) {

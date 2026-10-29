@@ -1,5 +1,6 @@
 """Exercise the real SDK and HTTP serialization without a TypeSafe account."""
 
+import base64
 import json
 from unittest.mock import patch
 
@@ -51,7 +52,10 @@ def questions():
             "instructions": {"task": "Route this ticket"},
             "criteria": {"billing": None, "technical": ["bugs", "support"]},
         },
-        "frustration": {"type": "score", "criteria": ["calm", {"description": "angry"}]},
+        "frustration": {
+            "type": "score",
+            "criteria": ["calm", {"description": "angry"}],
+        },
         "is_urgent": {
             "type": "noul",
             "instructions": "Is this urgent?",
@@ -64,14 +68,14 @@ def questions():
 def make_client():
     clients = []
 
-    def build(handler):
+    def build(handler, **options):
         sdk = TypeSafeClient(
             api_key="test-key",
             model="jev-latest",
             transport=httpx2.MockTransport(handler),
         )
         with patch.object(TypeSafeClientWrapper, "_get_client", return_value=sdk):
-            wrapper = TypeSafeClientWrapper(api_key="test-key")
+            wrapper = TypeSafeClientWrapper(api_key="test-key", **options)
         clients.append(wrapper)
         return wrapper
 
@@ -80,11 +84,14 @@ def make_client():
         client.close()
 
 
-@pytest.mark.parametrize("state", [
-    "Quotes: \" ' ''' \\\n\t café 🚀",
-    {"ticket": "charged twice", "active": False, "count": 0, "context": None},
-    [{"role": "customer", "text": "help"}, None, True, 3],
-])
+@pytest.mark.parametrize(
+    "state",
+    [
+        "Quotes: \" ' ''' \\\n\t café 🚀",
+        {"ticket": "charged twice", "active": False, "count": 0, "context": None},
+        [{"role": "customer", "text": "help"}, None, True, 3],
+    ],
+)
 def test_round_trip_preserves_state_questions_and_every_answer(
     make_client, response_body, questions, state
 ):
@@ -104,7 +111,83 @@ def test_round_trip_preserves_state_questions_and_every_answer(
     assert result["answers"]["frustration"]["probabilities"]["1"] == 0.75
 
 
-def test_accepts_sdk_objects_and_preserves_future_fields(make_client, response_body, questions):
+def test_images_are_sent_as_aliased_assets_with_the_opt_in_header(
+    make_client, response_body, questions
+):
+    png = b"\x89PNG\r\n\x1a\nimage-bytes"
+    requests = []
+
+    def handle(request):
+        requests.append(request)
+        return httpx2.Response(200, json=response_body)
+
+    state = ["<image_1>", "What is in this screenshot?"]
+    result = make_client(handle).ask(
+        state, questions, assets={"<image_1>": base64.b64encode(png).decode()}
+    )
+    [request] = requests
+    assert request.headers["TypeSafe-Danger-Zone-Images"] == "true"
+    assert request.headers["content-type"].startswith("multipart/form-data")
+    body = request.content
+    assert json.dumps(state, separators=(",", ":")).encode() in body
+    assert b'"assets":{"<image_1>":{"type":"image","part":"asset-0"}}' in body
+    assert b"Content-Type: image/png" in body and png in body
+    assert result == response_body
+
+
+def test_images_format_sends_data_urls_in_json_without_aliases(
+    make_client, response_body, questions
+):
+    data = base64.b64encode(b"\xff\xd8\xffimage-bytes").decode()
+    requests = []
+
+    def handle(request):
+        requests.append(request)
+        return httpx2.Response(200, json=response_body)
+
+    result = make_client(handle, image_format="images").ask(
+        ["<image_1>", "What is in this screenshot?"],
+        questions,
+        assets={"<image_1>": data},
+    )
+    [request] = requests
+    assert "TypeSafe-Danger-Zone-Images" not in request.headers
+    assert json.loads(request.content) == {
+        "model": "jev-latest",
+        "state": "What is in this screenshot?",
+        "questions": questions,
+        "images": [f"data:image/jpeg;base64,{data}"],
+    }
+    assert result == response_body
+
+
+def test_unknown_image_format_is_rejected():
+    with pytest.raises(ValueError, match="image_format"):
+        TypeSafeClientWrapper(api_key="test-key", image_format="multipart")
+
+
+def test_usage_ceiling_never_reaches_the_request(make_client, response_body, questions):
+    requests = []
+
+    def handle(request):
+        requests.append(json.loads(request.content))
+        return httpx2.Response(200, json=response_body)
+
+    result = make_client(handle).ask(
+        "ticket",
+        questions,
+        {},
+        usage_ceiling={"tokens": 1000, "min_output_tokens": 256},
+    )
+    assert requests == [
+        {"model": "jev-latest", "state": "ticket", "questions": questions}
+    ]
+    assert result == response_body
+
+
+def test_accepts_sdk_objects_and_preserves_future_fields(
+    make_client, response_body, questions
+):
     response_body["answers"]["department"]["new_metric"] = 0.5
     response_body["answers"]["future"] = {"type": "future_kind", "value": [1, 2]}
     response_body["new_metadata"] = {"value": "kept"}
@@ -117,14 +200,22 @@ def test_accepts_sdk_objects_and_preserves_future_fields(make_client, response_b
     assert client.ask("ticket", typed) == response_body
 
 
-@pytest.mark.parametrize("questions", [
-    {}, [], {"": {"type": "noul"}}, {1: {"type": "noul"}},
-    {"q": "raw text"}, {"q": {"type": "unknown"}}, {"q": {"type": []}},
-    {"q": {"type": "choice", "criteria": {}}},
-    {"q": {"type": "score", "criteria": []}},
-    {"q": {"type": "score", "criteria": {"0": "calm", "1": "angry"}}},
-    {"q": {"type": "noul", "instruction": "misspelled field"}},
-])
+@pytest.mark.parametrize(
+    "questions",
+    [
+        {},
+        [],
+        {"": {"type": "noul"}},
+        {1: {"type": "noul"}},
+        {"q": "raw text"},
+        {"q": {"type": "unknown"}},
+        {"q": {"type": []}},
+        {"q": {"type": "choice", "criteria": {}}},
+        {"q": {"type": "score", "criteria": []}},
+        {"q": {"type": "score", "criteria": {"0": "calm", "1": "angry"}}},
+        {"q": {"type": "noul", "instruction": "misspelled field"}},
+    ],
+)
 def test_invalid_questions_fail_before_http(make_client, questions):
     def unexpected(request):
         pytest.fail("Invalid questions reached the provider")
@@ -136,14 +227,23 @@ def test_invalid_questions_fail_before_http(make_client, questions):
 @pytest.mark.parametrize("state", [None, True, 1, 1.5, object()])
 def test_invalid_state_fails_before_http(make_client, questions, state):
     with pytest.raises(ValidationError):
-        make_client(lambda request: pytest.fail("Invalid state reached HTTP")).ask(state, questions)
+        make_client(lambda request: pytest.fail("Invalid state reached HTTP")).ask(
+            state, questions
+        )
 
 
-@pytest.mark.parametrize("parameters", [
-    {"model": "another-model"}, {"temperature": 0.5}, {"max_retries": -1},
-    {"max_retries": True}, {"timeout": 0}, {"timeout": float("nan")},
-    {"extra_body": {"questions": {}}},
-])
+@pytest.mark.parametrize(
+    "parameters",
+    [
+        {"model": "another-model"},
+        {"temperature": 0.5},
+        {"max_retries": -1},
+        {"max_retries": True},
+        {"timeout": 0},
+        {"timeout": float("nan")},
+        {"extra_body": {"questions": {}}},
+    ],
+)
 def test_invalid_options_fail_before_http(make_client, questions, parameters):
     with pytest.raises(ValidationError):
         make_client(lambda request: pytest.fail("Invalid options reached HTTP")).ask(
@@ -164,7 +264,9 @@ def test_timeout_and_zero_retries_propagate_provider_error(make_client, question
     assert len(calls) == 1
 
 
-def test_invalid_known_answer_is_not_silently_returned(make_client, questions, response_body):
+def test_invalid_known_answer_is_not_silently_returned(
+    make_client, questions, response_body
+):
     response_body["answers"]["is_urgent"]["noul"] = "not a probability"
     client = make_client(lambda request: httpx2.Response(200, json=response_body))
     with pytest.raises(TypeSafeAPIResponseValidationError):
@@ -180,8 +282,11 @@ def test_null_usage_is_preserved(make_client, questions, response_body):
 def test_client_configuration_and_context_manager_close():
     with patch("genai_client.typesafe.typesafe_client.TypeSafeClient") as sdk:
         with TypeSafeClientWrapper(
-            api_key="test-key", model="jev-1.13.0", base_url="https://example.test",
-            timeout=5, max_retries=0,
+            api_key="test-key",
+            model="jev-1.13.0",
+            base_url="https://example.test",
+            timeout=5,
+            max_retries=0,
         ):
             options = sdk.call_args.kwargs
             assert options["base_url"] == "https://example.test"
@@ -190,6 +295,33 @@ def test_client_configuration_and_context_manager_close():
             assert options["retry"].max_retries == 0
         sdk.return_value.close.assert_called_once()
         options["http_client"].close()
+
+
+@pytest.mark.parametrize("compression, encoding", [(None, None), ("zstd", "zstd")])
+def test_large_bodies_compress_only_when_the_engine_opts_in(
+    compression, encoding, response_body, questions
+):
+    seen = []
+
+    def handler(request):
+        seen.append(request.headers.get("content-encoding"))
+        return httpx2.Response(200, json=response_body)
+
+    real_client = httpx2.Client
+    options = {} if compression is None else {"compression": compression}
+    with patch(
+        "genai_client.typesafe.typesafe_client.httpx2.Client",
+        side_effect=lambda **kw: real_client(transport=httpx2.MockTransport(handler), **kw),
+    ):
+        with TypeSafeClientWrapper(api_key="test-key", **options) as client:
+            # well over the SDK's 1 KB compression threshold
+            client.ask("x" * 4000, questions)
+    assert seen == [encoding]
+
+
+def test_unknown_compression_is_rejected():
+    with pytest.raises(ValueError, match="compression"):
+        TypeSafeClientWrapper(api_key="test-key", compression="gzip")
 
 
 def test_failed_initialization_closes_http_client():

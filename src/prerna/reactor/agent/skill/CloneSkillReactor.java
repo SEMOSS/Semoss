@@ -49,6 +49,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AssetUtility;
 
 /**
@@ -114,7 +117,7 @@ public class CloneSkillReactor extends AbstractReactor {
 					"Skill " + sourceSkillId + " does not exist or user does not have permission to view it");
 		}
 		if (!SecurityProjectUtils.userCanCloneProject(user, sourceSkillId)) {
-			throw new IllegalArgumentException("This skill is not enabled as a template and cannot be cloned.");
+			throw new IllegalArgumentException("This skill is not a template, so only its owners can clone it.");
 		}
 
 		if (!SkillProjects.isSkillProject(sourceSkillId)) {
@@ -169,6 +172,8 @@ public class CloneSkillReactor extends AbstractReactor {
 		response.put("name", newName);
 		response.put("slug", newSlug);
 		response.put("source_skill_id", sourceSkillId);
+		UserAuditTrailUtils.recordResourceEvent(user, AuditEventType.SKILL_CREATE, AuditTargetType.SKILL, newSkillId,
+				newName, newSkillId, null, null, Map.of("clonedFrom", sourceSkillId));
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

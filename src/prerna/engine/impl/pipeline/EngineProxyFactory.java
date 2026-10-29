@@ -40,6 +40,7 @@ import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IModelRouterEngine;
+import prerna.engine.api.IOpenAIDecisionsEngine;
 import prerna.engine.api.IRCloneStorage;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRDFDatabase;
@@ -84,6 +85,9 @@ public class EngineProxyFactory {
 		}
 		if (engine instanceof ITypeSafeEngine) {
 			classes.add(ITypeSafeEngine.class);
+		}
+		if (engine instanceof IOpenAIDecisionsEngine) {
+			classes.add(IOpenAIDecisionsEngine.class);
 		}
 		return (IModelEngine) Proxy.newProxyInstance(IEngine.class.getClassLoader(),
 				classes.toArray(new Class<?>[0]), handler);

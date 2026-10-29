@@ -55,6 +55,8 @@ final class PermissionBatchOptions {
 	 * allow is allowed
 	 */
 	private boolean adminMode;
+	/** Whether the caller records one bulk audit summary after the shared save. */
+	private boolean summaryAudit;
 	/** Whether people given access to a project or engine are notified */
 	private boolean notifyAdds = true;
 	/** Whether people whose access to a project or engine changes are notified */
@@ -66,12 +68,10 @@ final class PermissionBatchOptions {
 	 */
 	private boolean lenientLevels;
 	/**
-	 * Whether a change on an engine keeps the person's model limits rather than
-	 * setting them
+	 * Whether a change on an engine whose grant does not give its usage limit keeps
+	 * the limit of the person's or the team's grant rather than clearing it
 	 */
 	private boolean keepModelLimits;
-	/** Whether a model limit of 0 is stored as no limit */
-	private boolean zeroLimitsAsNone;
 	/**
 	 * Whether people may take away their own access to a project or engine,
 	 * whatever their level
@@ -116,6 +116,8 @@ final class PermissionBatchOptions {
 	}
 
 	/**
+	 * Makes the options Bulk Access Management checks and saves its batches with.
+	 *
 	 * @param adminMode whether in admin mode
 	 * @return Bulk Access Management's options: every add and change notifies, only
 	 *         a level's name is a level, and in admin mode the target must exist
@@ -127,6 +129,9 @@ final class PermissionBatchOptions {
 	}
 
 	/**
+	 * Makes the options the single and bulk permission methods start from when they
+	 * act with the user's own permissions.
+	 *
 	 * @return the starting options of the single and bulk permission methods, with
 	 *         the user's own permissions: no notifications, levels read as those
 	 *         methods read them, the admin-only add settings left to their
@@ -137,6 +142,9 @@ final class PermissionBatchOptions {
 	}
 
 	/**
+	 * Makes the starting options of the admin utilities' single and bulk permission
+	 * methods, which save in admin mode.
+	 *
 	 * @return {@link #userMode()} in admin mode, for the methods of
 	 *         {@code SecurityAdminUtils} and {@code AdminSecurityGroupUtils}
 	 */
@@ -155,6 +163,9 @@ final class PermissionBatchOptions {
 	}
 
 	/**
+	 * Sets whether the save notifies the people it gives access to a project or an
+	 * engine, and the people whose access to one it changes.
+	 *
 	 * @param adds    whether people given access are notified
 	 * @param changes whether people whose access changes are notified
 	 * @return these options
@@ -166,8 +177,21 @@ final class PermissionBatchOptions {
 	}
 
 	/**
-	 * @return these options, where a change on an engine keeps the person's model
-	 *         limits
+	 * A change on an engine whose grant does not give its usage limit
+	 * ({@link prerna.auth.access.PermissionGrant#isUsageLimitGiven()} is false and
+	 * the limit is null), such as a change of level only or a bulk row without a
+	 * {@code usageLimit} key, keeps the usage limit of the person's or the team's
+	 * grant as it is. A grant that gives its limit, null included, sets it.
+	 *
+	 * <p>
+	 * The engine methods that edit a person's or a team's level and end date,
+	 * single and bulk, turn it on, so an edit that does not mention the limit keeps
+	 * it. That also lets an editor change a level there, since only owners may
+	 * change a limit. Only a {@code CHANGE} keeps one; an add gives the limit its
+	 * grant gives.
+	 * </p>
+	 *
+	 * @return these options
 	 */
 	PermissionBatchOptions keepingModelLimits() {
 		this.keepModelLimits = true;
@@ -175,14 +199,9 @@ final class PermissionBatchOptions {
 	}
 
 	/**
-	 * @return these options, where a model limit of 0 is stored as no limit
-	 */
-	PermissionBatchOptions zeroLimitsAsNone() {
-		this.zeroLimitsAsNone = true;
-		return this;
-	}
-
-	/**
+	 * Lets people take away their own access to a project or an engine with no
+	 * other permission there, whatever their level.
+	 *
 	 * @return these options, where anyone can take away their own access to a
 	 *         project or an engine
 	 */
@@ -192,6 +211,9 @@ final class PermissionBatchOptions {
 	}
 
 	/**
+	 * Makes taking someone off a project also delete their permissions on the
+	 * project's insights, in the same transaction.
+	 *
 	 * @return these options, where taking someone off a project also takes away
 	 *         their permissions on its insights
 	 */
@@ -201,6 +223,9 @@ final class PermissionBatchOptions {
 	}
 
 	/**
+	 * Skips the check that a team given access to a project, an engine or an
+	 * insight is registered.
+	 *
 	 * @return these options, where a team need not be registered to be given access
 	 */
 	PermissionBatchOptions withoutTeamExistsCheck() {
@@ -209,6 +234,9 @@ final class PermissionBatchOptions {
 	}
 
 	/**
+	 * Stores a team's type exactly as the change gives it, rather than as the label
+	 * of the login provider the type names.
+	 *
 	 * @return these options, where a team's type is stored as given
 	 */
 	PermissionBatchOptions keepingTeamType() {
@@ -217,6 +245,9 @@ final class PermissionBatchOptions {
 	}
 
 	/**
+	 * Refuses, as {@code SAME_LEVEL}, a change that gives a team the level it
+	 * already has.
+	 *
 	 * @return these options, where giving a team the level it has is refused
 	 */
 	PermissionBatchOptions rejectingSameLevel() {
@@ -225,6 +256,9 @@ final class PermissionBatchOptions {
 	}
 
 	/**
+	 * Names who the saved rows say gave the access, or denied the access requests,
+	 * when it is not the user.
+	 *
 	 * @param grantorId   who the rows say gave the access
 	 * @param grantorType their login type
 	 * @return these options
@@ -236,7 +270,11 @@ final class PermissionBatchOptions {
 
 	/**
 	 * Marks access requests approved in the same transaction as the changes, by
-	 * whoever the rows say gave the access, each with the level it asked for.
+	 * whoever the rows say gave the access, each with the level it asked for. Only
+	 * the target's own requests are marked; a request of another project, engine or
+	 * insight is left as it is. A request asks only for a level, so a person who
+	 * has access already keeps their usage limit on a model
+	 * ({@link #keepingModelLimits()}).
 	 *
 	 * @param target   the project, engine or insight
 	 * @param requests the requests, each with {@code requestid} and
@@ -246,11 +284,24 @@ final class PermissionBatchOptions {
 	PermissionBatchOptions approving(PermissionTargetResource target, List<? extends Map<String, ?>> requests) {
 		this.approvedTarget = target;
 		this.approvedRequests = requests;
+		this.keepModelLimits = true;
 		return this;
 	}
 
 	boolean isAdminMode() {
 		return adminMode;
+	}
+
+	/**
+	 * Keep the existing bulk event instead of also recording each permission row.
+	 */
+	PermissionBatchOptions withSummaryAudit() {
+		this.summaryAudit = true;
+		return this;
+	}
+
+	boolean hasSummaryAudit() {
+		return summaryAudit;
 	}
 
 	boolean notifiesAdds() {
@@ -267,10 +318,6 @@ final class PermissionBatchOptions {
 
 	boolean keepsModelLimits() {
 		return keepModelLimits;
-	}
-
-	boolean storesZeroLimitsAsNone() {
-		return zeroLimitsAsNone;
 	}
 
 	boolean allowsSelfRemoval() {
@@ -302,6 +349,9 @@ final class PermissionBatchOptions {
 	}
 
 	/**
+	 * The id and login type the saved rows name as giving the access, set by
+	 * {@link #grantedBy}.
+	 *
 	 * @return who the rows say gave the access, or null for the user
 	 */
 	Pair<String, String> getGrantor() {
@@ -309,6 +359,9 @@ final class PermissionBatchOptions {
 	}
 
 	/**
+	 * The project, engine or insight whose access requests the save marks approved,
+	 * set by {@link #approving}.
+	 *
 	 * @return the target whose access requests the batch approves, or null
 	 */
 	PermissionTargetResource getApprovedTarget() {
@@ -316,6 +369,9 @@ final class PermissionBatchOptions {
 	}
 
 	/**
+	 * The access requests the save marks approved in its own transaction, set by
+	 * {@link #approving}.
+	 *
 	 * @return the access requests the batch approves, or null
 	 */
 	List<? extends Map<String, ?>> getApprovedRequests() {

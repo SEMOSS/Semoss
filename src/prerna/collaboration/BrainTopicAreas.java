@@ -45,11 +45,14 @@ final class BrainTopicAreas {
 
 	static final String INSTRUCTIONS = """
 			You help one person organize the topics found in their email and chats into broader areas of work. Each topic
-			has an id, a name, one sentence about it and how many conversations it has.
+			has an id, a name, one sentence about it and how many conversations it has. A topic with "outlookFolder" was
+			found from an Outlook folder the person made; the path runs from their top folder down.
 
 			Put topics that are part of the same ongoing work into one area: the same client, product, project, team or
 			responsibility. A one-time event (an outage, a launch, a review, a visit) belongs in the area of the ongoing
 			work it is part of. Keep topics in separate areas when they are different work. An area can hold one topic.
+			Topics whose folders sit under the same folder the person made are usually one area; name that area after
+			the shared folder.
 
 			Name each area the way the person would name a folder, in 2 to 5 words, after the ongoing work; never after one
 			event, a month, a date or a person. Write "about": one plain sentence, under 25 words, saying what mail belongs
@@ -58,7 +61,12 @@ final class BrainTopicAreas {
 			Use every topic id exactly once.
 			""";
 
-	record Topic(String name, String about, int conversations) {
+	// folder: the path of the Outlook folder the topic was found from, null when it was discovered
+	record Topic(String name, String about, int conversations, String folder) {
+
+		Topic(String name, String about, int conversations) {
+			this(name, about, conversations, null);
+		}
 	}
 
 	// members index the input topics
@@ -83,6 +91,9 @@ final class BrainTopicAreas {
 				card.put("about", topics.get(i).about());
 			}
 			card.put("conversations", topics.get(i).conversations());
+			if (topics.get(i).folder() != null) {
+				card.put("outlookFolder", topics.get(i).folder());
+			}
 			cards.add(card);
 		}
 		Map<String, Object> params = Map.of("temperature", 0, "schema", schema(ids), "max_tokens", 3000);

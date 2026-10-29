@@ -33,6 +33,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,6 +46,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,12 +62,11 @@ import com.google.gson.ToNumberPolicy;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.access.ModelUsageLimitRule.Metric;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.MessageFeedback;
-import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.owl.AbstractOwlCreator;
@@ -72,6 +75,7 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -82,12 +86,10 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.selectors.QueryTypedColumnSelector;
-import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -138,6 +140,12 @@ public class ModelInferenceLogsUtils {
 	 * Creates missing tables/columns and applies index/migration updates for the
 	 * model-inference logging schema.
 	 *
+	 * <p>
+	 * The DDL runs one statement at a time on the caller's connection, with no
+	 * transaction across statements, since several dialects commit DDL implicitly.
+	 * Each data migration stage runs in its own write on the shared executor, after
+	 * the schema changes before it are committed, so the stage is atomic.
+	 *
 	 * @param engine   model-inference logs engine
 	 * @param conn     database connection
 	 * @param dbSchema table and column metadata to apply
@@ -154,12 +162,18 @@ public class ModelInferenceLogsUtils {
 		// was roomId just added
 		if (roomIdColumnWasAdded) {
 			dropRoomMessageConstraints(conn);
-			migrateRoomAndMessageIds(conn);
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			migrateRoomAndMessageIds(engine);
 		}
 
 		// was modelId just added
 		if (modelIdColumnWasAdded) {
-			migrateAgentAndModelIds(conn);
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			migrateAgentAndModelIds(engine);
 		}
 
 		// create the indexes on the tables
@@ -168,6 +182,10 @@ public class ModelInferenceLogsUtils {
 				OwlIndex.of("MESSAGE_ROOM_ID_INDEX", "MESSAGE", "ROOM_ID"),
 				OwlIndex.of("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID"),
 				OwlIndex.of("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED"),
+				// usage limit counters are filled from these
+				OwlIndex.of("MESSAGE_USER_AGENT_DATE_INDEX", "MESSAGE", "USER_ID", "AGENT_ID", "DATE_CREATED"),
+				OwlIndex.of("MESSAGE_BILLED_AGENT_DATE_INDEX", "MESSAGE", "BILLED_SOURCE_TYPE", "BILLED_SUBJECT_ID",
+						"AGENT_ID", "DATE_CREATED"),
 				OwlIndex.of("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID"),
 				OwlIndex.of("ROOM_ROOM_ID_INDEX", "ROOM", "ROOM_ID"),
 				OwlIndex.of("ROOM_USER_ID_INDEX", "ROOM", "USER_ID"),
@@ -184,40 +202,64 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Backfills {@code ROOM_ID} values from legacy {@code INSIGHT_ID} values.
+	 * Backfills {@code ROOM_ID} values from legacy {@code INSIGHT_ID} values. Both
+	 * updates run in one write on the shared executor, so the ROOM and MESSAGE
+	 * backfills commit together or not at all. A failure is logged and startup
+	 * continues.
 	 *
-	 * @param conn database connection
+	 * @param engine model-inference logs engine
 	 */
-	private static void migrateRoomAndMessageIds(Connection conn) {
-		try (Statement stmt = conn.createStatement()) {
-			int rCount = stmt
-					.executeUpdate("UPDATE ROOM SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''");
-			int mCount = stmt
-					.executeUpdate("UPDATE MESSAGE SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''");
-			classLogger.info("Room/Message room_id migration updated {} ROOM rows and {} MESSAGE rows.", rCount,
-					mCount);
-		} catch (SQLException ex) {
+	private static void migrateRoomAndMessageIds(IRDBMSEngine engine) {
+		try {
+			int[] counts = runBackfill(engine,
+					"UPDATE ROOM SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''",
+					"UPDATE MESSAGE SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''");
+			classLogger.info("Room/Message room_id migration updated {} ROOM rows and {} MESSAGE rows.", counts[0],
+					counts[1]);
+		} catch (Exception ex) {
 			classLogger.error("Failed to migrate legacy ROOM_ID fields", ex);
 		}
-
 	}
 
 	/**
-	 * Backfills {@code MODEL_ID} values from legacy {@code AGENT_ID} values.
+	 * Backfills {@code MODEL_ID} values from legacy {@code AGENT_ID} values. Both
+	 * updates run in one write on the shared executor, so the ROOM and MESSAGE
+	 * backfills commit together or not at all. A failure is logged and startup
+	 * continues.
 	 *
-	 * @param conn database connection
+	 * @param engine model-inference logs engine
 	 */
-	private static void migrateAgentAndModelIds(Connection conn) {
-		try (Statement stmt = conn.createStatement()) {
-			int rCount = stmt
-					.executeUpdate("UPDATE ROOM SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''");
-			int mCount = stmt
-					.executeUpdate("UPDATE MESSAGE SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''");
-			classLogger.info("Room/Message model_id migration updated {} ROOM rows and {} MESSAGE rows.", rCount,
-					mCount);
-		} catch (SQLException ex) {
+	private static void migrateAgentAndModelIds(IRDBMSEngine engine) {
+		try {
+			int[] counts = runBackfill(engine,
+					"UPDATE ROOM SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''",
+					"UPDATE MESSAGE SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''");
+			classLogger.info("Room/Message model_id migration updated {} ROOM rows and {} MESSAGE rows.", counts[0],
+					counts[1]);
+		} catch (Exception ex) {
 			classLogger.error("Failed to migrate legacy AGENT_ID fields", ex);
 		}
+	}
+
+	/**
+	 * Runs the updates of one data migration stage, in order, in one write on the
+	 * shared executor.
+	 *
+	 * @param engine  model-inference logs engine
+	 * @param updates the stage's update statements
+	 * @return the update count of each statement, in order
+	 * @throws Exception if a statement fails; the whole stage is rolled back
+	 */
+	private static int[] runBackfill(IRDBMSEngine engine, String... updates) throws Exception {
+		return QueryExecutionUtility.write(engine, connection -> {
+			int[] counts = new int[updates.length];
+			try (Statement stmt = connection.createStatement()) {
+				for (int i = 0; i < updates.length; i++) {
+					counts[i] = stmt.executeUpdate(updates[i]);
+				}
+			}
+			return counts;
+		});
 	}
 
 	/**
@@ -269,22 +311,24 @@ public class ModelInferenceLogsUtils {
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, "MESSAGE__MESSAGE_ID", "Counts"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_ID", "==", messageId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__USER_ID", "==", userId));
+		boolean isAuthor = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
-					return false;
+					break;
 				}
 				int intVal = ((Number) val).intValue();
 				if (intVal > 0) {
-					return true;
+					isAuthor = true;
+					break;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to verify message ownership for userId '{}' and messageId '{}'.", userId,
 					messageId, e);
 		}
-		return false;
+		return isAuthor;
 	}
 
 	/**
@@ -348,10 +392,9 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Returns the stored input prompts for a batch as customId -> command map.
+	 * Returns the stored input prompts for a batch as transactionId -> command map.
 	 * Queries INPUT rows in the batch room (ROOM_ID = "mb_<batchId>") written at
-	 * submit time. TRANSACTION_ID has the form "batchId.customId", so customId is
-	 * extracted as the suffix after "batchId.".
+	 * submit time; ModelBatchManager.batchTransactionId gives a request's id.
 	 */
 	public static Map<String, String> getBatchInputs(String userId, String providerBatchId) {
 		Map<String, String> out = new HashMap<>();
@@ -360,7 +403,6 @@ public class ModelInferenceLogsUtils {
 			return out;
 		}
 		String roomId = "mb_" + providerBatchId;
-		String prefix = providerBatchId + ".";
 		String query = "SELECT TRANSACTION_ID, MESSAGE_DATA FROM MESSAGE"
 				+ " WHERE ROOM_ID = ? AND USER_ID = ? AND MESSAGE_TYPE = 'INPUT' AND MESSAGE_METHOD = 'batch'";
 		try {
@@ -373,8 +415,8 @@ public class ModelInferenceLogsUtils {
 						while (rs.next()) {
 							String txnId = rs.getString("TRANSACTION_ID");
 							String command = db.getQueryUtil().handleBlobRetrieval(rs, "MESSAGE_DATA");
-							if (txnId != null && txnId.startsWith(prefix) && command != null) {
-								out.put(txnId.substring(prefix.length()), command);
+							if (txnId != null && command != null) {
+								out.put(txnId, command);
 							}
 						}
 					}
@@ -385,6 +427,45 @@ public class ModelInferenceLogsUtils {
 			classLogger.warn("Failed to retrieve batch inputs for batch '{}'", providerBatchId, e);
 		}
 		return out;
+	}
+
+	/**
+	 * Reads which results of a batch already have their RESPONSE row, so a read of
+	 * the results neither bills nor records them again. The marks that dedupe reads
+	 * are lost when the in-memory counter store, or a Redis with no persistence,
+	 * restarts; these rows are not.
+	 *
+	 * @param providerBatchId the provider's batch id
+	 * @return the transaction ids ({@code batchId.customId}) of the results already
+	 *         recorded; empty when the inference logs are off or cannot be read
+	 */
+	public static Set<String> getRecordedBatchResults(String providerBatchId) {
+		Set<String> recorded = new HashSet<>();
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			return recorded;
+		}
+		String query = "SELECT TRANSACTION_ID FROM MESSAGE"
+				+ " WHERE ROOM_ID = ? AND MESSAGE_TYPE = 'RESPONSE' AND MESSAGE_METHOD = 'batch'";
+		try {
+			QueryExecutionUtility.read(db, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(query)) {
+					ps.setString(1, "mb_" + providerBatchId);
+					try (ResultSet rs = ps.executeQuery()) {
+						while (rs.next()) {
+							String txnId = rs.getString("TRANSACTION_ID");
+							if (txnId != null) {
+								recorded.add(txnId);
+							}
+						}
+					}
+				}
+				return null;
+			});
+		} catch (Exception e) {
+			classLogger.warn("Failed to read the recorded results of batch '{}'", providerBatchId, e);
+		}
+		return recorded;
 	}
 
 	/**
@@ -1114,6 +1195,33 @@ public class ModelInferenceLogsUtils {
 			Integer cacheCreationTokens, Integer thinkingTokens, Double reponseTime, ZonedDateTime dateCreated,
 			String agentId, String insightId, String sessionId, String roomId, String userId, String userName,
 			String userEmail) {
+		doRecordMessage(messageId, transactionId, messageType, messageData, messageMethod, tokenSize, inputTokens,
+				outputTokens, cacheReadTokens, cacheCreationTokens, thinkingTokens, reponseTime, dateCreated, agentId,
+				insightId, sessionId, roomId, userId, null, userName, userEmail, null, null, null, null);
+	}
+
+	/**
+	 * Records a message row with granular, nullable per-transaction token counts,
+	 * the primary login's id and type, and the usage limit source the call was
+	 * billed to. THINKING_TOKENS, RESPONSE_TIME and COST_MICROS are intended for
+	 * the RESPONSE row only; pass null for the INPUT row.
+	 *
+	 * @param userType          the primary login's type
+	 * @param billedSourceType  the source billed, for {@code BILLED_SOURCE_TYPE}:
+	 *                          {@code USER}, {@code TEAM}, {@code PUBLIC},
+	 *                          {@code ALL_MODELS} or {@code PLATFORM}, or null when
+	 *                          no limit applied
+	 * @param billedSubjectId   the id of the source billed, or null
+	 * @param billedSubjectType the type of the source billed, or null
+	 * @param costMicros        the call's cost in millionths of a dollar, or null
+	 *                          when the model has no known prices
+	 */
+	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
+			String messageMethod, Integer tokenSize, Integer inputTokens, Integer outputTokens, Integer cacheReadTokens,
+			Integer cacheCreationTokens, Integer thinkingTokens, Double reponseTime, ZonedDateTime dateCreated,
+			String agentId, String insightId, String sessionId, String roomId, String userId, String userType,
+			String userName, String userEmail, String billedSourceType, String billedSubjectId,
+			String billedSubjectType, Long costMicros) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		// convert the time to UTC
 		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
@@ -1122,8 +1230,9 @@ public class ModelInferenceLogsUtils {
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS,"
 				+ " INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS, RESPONSE_TIME,"
-				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
-				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID,"
+				+ " USER_TYPE, BILLED_SOURCE_TYPE, BILLED_SUBJECT_ID, BILLED_SUBJECT_TYPE, COST_MICROS) "
+				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		try {
 			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
 				QueryExecutionUtility.executeUpdate(connection, query, ps -> {
@@ -1180,6 +1289,15 @@ public class ModelInferenceLogsUtils {
 					ps.setString(index++, userId);
 					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userName);
 					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userEmail);
+					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userType);
+					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, billedSourceType);
+					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, billedSubjectId);
+					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, billedSubjectType);
+					if (costMicros != null) {
+						ps.setLong(index++, costMicros);
+					} else {
+						ps.setNull(index++, java.sql.Types.BIGINT);
+					}
 				});
 				return null;
 			});
@@ -1240,14 +1358,13 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", false, PixelDataType.BOOLEAN));
+		boolean inactive = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
-			if (wrapper.hasNext()) {
-				return true;
-			}
+			inactive = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Failed to check inactive state for roomId '{}' and userId '{}'.", roomId, userId, e);
 		}
-		return false;
+		return inactive;
 	}
 
 	/**
@@ -1833,7 +1950,10 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 
-	/** Same write as {@link #setRoomOptions}, but throws and returns the updated row count. */
+	/**
+	 * Same write as {@link #setRoomOptions}, but throws and returns the updated row
+	 * count.
+	 */
 	public static int updateRoomOptions(String roomId, String userId, Map<String, Object> options) throws Exception {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND ROOM_ID = ?";
@@ -1932,171 +2052,128 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Calculates total token usage or response time for one user and one engine for
-	 * a frequency window.
+	 * Adds up the usage of the {@code MESSAGE} rows a usage limit counter is filled
+	 * from, in a window. Tokens are every row's {@code MESSAGE_TOKENS}, prompt and
+	 * response; compute time is the RESPONSE rows' {@code RESPONSE_TIME}, so each
+	 * call counts once; cost is {@code COST_MICROS}.
 	 *
-	 * @param restrictionMode usage mode ({@code MAXTOKENS} or
-	 *                        {@code MAXRESPONSETIME})
-	 * @param user            user to evaluate
-	 * @param engineId        engine identifier
-	 * @param currentDateTime reference date/time
-	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
-	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
-	 * @return aggregate usage value, or {@code null} if unavailable
+	 * @param metric what to add up
+	 * @param filter which rows
+	 * @param start  the window's start, inclusive
+	 * @param end    the window's end, exclusive
+	 * @return the total, 0 when there are no rows
+	 * @throws Exception when the logs cannot be read
 	 */
-	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, User user, String engineId,
-			ZonedDateTime currentDateTime, String frequency) {
+	public static long sumModelUsage(Metric metric, ModelUsageLogFilter filter, Instant start, Instant end)
+			throws Exception {
+		String sum;
+		switch (metric) {
+		case TOKENS:
+			sum = "SUM(MESSAGE_TOKENS)";
+			break;
+		case COST:
+			sum = "SUM(COST_MICROS)";
+			break;
+		case COMPUTE_TIME:
+			sum = "SUM(RESPONSE_TIME)";
+			break;
+		default:
+			throw new IllegalArgumentException("Unknown usage metric " + metric);
+		}
+		List<Object> values = new ArrayList<>();
+		String where = usageWhere(filter, start, end, values);
+		if (metric == Metric.COMPUTE_TIME) {
+			where += " AND MESSAGE_TYPE = 'RESPONSE'";
+		}
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		if (restrictionMode == null) {
-			throw new IllegalArgumentException("Must pass in a valid restriction mode");
-		}
-
-		// Get the date range based on the frequency specification
-		// Supports: WEEK, MONTH, YEAR, ALL_TIME
-		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
-				currentDateTime);
-
-		// Extract start and end dates from the map
-		ZonedDateTime startDate = dates.get("start");
-		ZonedDateTime endDate = dates.get("end");
-
-		String sumColumn = null;
-		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(MESSAGE_TOKENS) ";
-		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(RESPONSE_TIME) ";
-		}
-
-		// SQL query to fetch the total tokens or response time
-		String query = "SELECT " + sumColumn
-				+ " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND AGENT_ID=? AND DATE_CREATED BETWEEN ? AND ?";
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int psIndex = 1;
-			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
-			ps.setString(psIndex++, engineId);
-			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(startDate.toLocalDateTime()));
-			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(endDate.toLocalDateTime()));
-
-			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
-					ps.getConnection(), ps, query, false);
-
-			if (wrapper.hasNext()) {
-				Number retNum = (Number) wrapper.next().getValues()[0];
-				// if this is null
-				// that means there are no logs currently for this model
-				// we will treat this as 0 usage
-				if (retNum == null) {
-					return 0;
-				}
-				return retNum;
-			}
-		} catch (Exception e) {
-			classLogger.error(
-					"Failed to calculate usage for userId '{}', engineId '{}', restrictionMode '{}', frequency '{}'.",
-					user.getAccessToken(user.getLogins().get(0)).getId(), engineId, restrictionMode, frequency, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
-		}
-		return null;
+		Number total = QueryExecutionUtility.queryOne(modelInferenceLogsDb,
+				"SELECT " + sum + " AS USAGE_TOTAL FROM MESSAGE" + where, ps -> bindUsageValues(ps, values),
+				rs -> (Number) rs.getObject(1));
+		return total == null ? 0 : (long) Math.ceil(total.doubleValue());
 	}
 
 	/**
-	 * Calculates total token usage or response time for a user across engines while
-	 * excluding restricted engines.
+	 * Adds up, for each model, the token counts of the {@code MESSAGE} rows a usage
+	 * limit counter is filled from that were written before calls recorded their
+	 * login type and cost, so their cost can be worked out at current prices.
 	 *
-	 * @param restrictionMode usage mode ({@code MAXTOKENS} or
-	 *                        {@code MAXRESPONSETIME})
-	 * @param user            user to evaluate
-	 * @param engineId        current engine id used to derive exclusions
-	 * @param currentDateTime reference date/time
-	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
-	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
-	 * @return aggregate usage value, or {@code null} if unavailable
+	 * @param filter which rows
+	 * @param start  the window's start, inclusive
+	 * @param end    the window's end, exclusive
+	 * @return the totals, one for each model
+	 * @throws Exception when the logs cannot be read
 	 */
-	public static Number getTotalUsageForUser(String restrictionMode, User user, String engineId,
-			ZonedDateTime currentDateTime, String frequency) {
+	public static List<ModelUsageLogTotals> sumModelUsageBeforeCost(ModelUsageLogFilter filter, Instant start,
+			Instant end) throws Exception {
+		List<Object> values = new ArrayList<>();
+		String where = usageWhere(filter, start, end, values) + " AND USER_TYPE IS NULL AND COST_MICROS IS NULL";
+		String sql = "SELECT AGENT_ID, "
+				+ "SUM(CASE WHEN MESSAGE_TYPE = 'INPUT' THEN MESSAGE_TOKENS ELSE 0 END) AS PROMPT_TOKENS, "
+				+ "SUM(CASE WHEN MESSAGE_TYPE = 'RESPONSE' THEN MESSAGE_TOKENS ELSE 0 END) AS RESPONSE_TOKENS, "
+				+ "SUM(CASE WHEN MESSAGE_TYPE = 'INPUT' THEN CACHE_READ_TOKENS ELSE 0 END) AS CACHE_READ, "
+				+ "SUM(CASE WHEN MESSAGE_TYPE = 'INPUT' THEN CACHE_CREATION_TOKENS ELSE 0 END) AS CACHE_WRITE, "
+				+ "SUM(CASE WHEN MESSAGE_TYPE = 'RESPONSE' THEN THINKING_TOKENS ELSE 0 END) AS THINKING "
+				+ "FROM MESSAGE" + where + " GROUP BY AGENT_ID";
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		if (restrictionMode == null) {
-			throw new IllegalArgumentException("Must pass in a valid restriction mode");
-		}
+		return QueryExecutionUtility.queryList(modelInferenceLogsDb, sql, ps -> bindUsageValues(ps, values),
+				rs -> new ModelUsageLogTotals(rs.getString("AGENT_ID"), rs.getLong("PROMPT_TOKENS"),
+						rs.getLong("CACHE_READ"), rs.getLong("CACHE_WRITE"), rs.getLong("RESPONSE_TOKENS"),
+						rs.getLong("THINKING")));
+	}
 
-		// Step 1: Get the list of Engine IDs with MAXRESPONSETIME or MAXTOKENS for the
-		// specific user
-		List<String> engineIdExcludeList = SecurityEngineUtils.getModelEngineIdsWithRestrictions(user, engineId);
-		String excludePSString = "";
-		if (engineIdExcludeList != null && !engineIdExcludeList.isEmpty()) {
-			StringBuilder excludeSB = new StringBuilder("AND AGENT_ID NOT IN (");
-			for (int i = 0; i < engineIdExcludeList.size(); i++) {
-				if (i > 0) {
-					excludeSB.append(",");
-				}
-				excludeSB.append("?");
+	/**
+	 * Builds the WHERE clause that picks the {@code MESSAGE} rows a usage limit
+	 * counter counts in a window, from the counter's filter.
+	 *
+	 * @return the WHERE clause for a usage limit counter's rows, with its values
+	 *         added to {@code values} in order
+	 */
+	private static String usageWhere(ModelUsageLogFilter filter, Instant start, Instant end, List<Object> values) {
+		StringBuilder where = new StringBuilder(" WHERE DATE_CREATED >= ? AND DATE_CREATED < ?");
+		values.add(Timestamp.valueOf(LocalDateTime.ofInstant(start, ZoneOffset.UTC)));
+		values.add(Timestamp.valueOf(LocalDateTime.ofInstant(end, ZoneOffset.UTC)));
+		if (filter.engineId() != null) {
+			where.append(" AND AGENT_ID = ?");
+			values.add(filter.engineId());
+		}
+		if (filter.userId() != null) {
+			where.append(" AND USER_ID = ?");
+			values.add(filter.userId());
+			if (filter.userType() != null) {
+				// rows written before USER_TYPE existed belong to the same id
+				where.append(" AND (USER_TYPE = ? OR USER_TYPE IS NULL)");
+				values.add(filter.userType());
 			}
-			excludeSB.append(")");
-			excludePSString = excludeSB.toString();
 		}
-
-		// Step 2: Get the date range based on the frequency specification
-		// Supports: WEEK, MONTH, YEAR, ALL_TIME
-		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
-				currentDateTime);
-		// Extract start and end dates from the map
-		ZonedDateTime startDate = dates.get("start");
-		ZonedDateTime endDate = dates.get("end");
-
-		// Step 3: Determine which column to sum (tokens or response time) based on
-		// restrictionMode
-		String sumColumn = null;
-		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(MESSAGE_TOKENS) ";
-		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(RESPONSE_TIME) ";
+		if (filter.billedSourceType() != null) {
+			where.append(" AND BILLED_SOURCE_TYPE = ?");
+			values.add(filter.billedSourceType());
 		}
+		if (filter.billedSubjectId() != null) {
+			where.append(" AND BILLED_SUBJECT_ID = ?");
+			values.add(filter.billedSubjectId());
+		}
+		if (filter.billedSubjectType() != null) {
+			where.append(" AND BILLED_SUBJECT_TYPE = ?");
+			values.add(filter.billedSubjectType());
+		}
+		if (filter.skipRouterRows()) {
+			// a router writes route_ask and route_embeddings rows for itself; the model
+			// it routes to writes the call again
+			where.append(" AND (MESSAGE_METHOD IS NULL OR MESSAGE_METHOD NOT LIKE 'route_%')");
+		}
+		return where.toString();
+	}
 
-		// Step 4: Get total usage for the user excluding the engines in the
-		// engineIdList
-		String query = "SELECT " + sumColumn
-				+ " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND DATE_CREATED BETWEEN ? AND ? "
-				+ excludePSString;
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-
-		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int psIndex = 1;
-			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
-			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
-			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
-			if (engineIdExcludeList != null && !engineIdExcludeList.isEmpty()) {
-				for (String excludeEngineId : engineIdExcludeList) {
-					ps.setString(psIndex++, excludeEngineId);
-				}
+	private static void bindUsageValues(PreparedStatement ps, List<Object> values) throws SQLException {
+		for (int i = 0; i < values.size(); i++) {
+			Object value = values.get(i);
+			if (value instanceof Timestamp) {
+				ps.setTimestamp(i + 1, (Timestamp) value);
+			} else {
+				ps.setString(i + 1, String.valueOf(value));
 			}
-
-			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
-					ps.getConnection(), ps, query, false);
-
-			if (wrapper.hasNext()) {
-				Number retNum = (Number) wrapper.next().getValues()[0];
-				// if this is null
-				// that means there are no logs currently for this model
-				// we will treat this as 0 usage
-				if (retNum == null) {
-					return 0;
-				}
-				return retNum;
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to calculate total usage for userId '{}', restrictionMode '{}', frequency '{}'.",
-					user.getAccessToken(user.getLogins().get(0)).getId(), restrictionMode, frequency, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
 		}
-
-		return null;
 	}
 
 	/* -------- ROOM PIECES ------- */
@@ -2245,7 +2322,8 @@ public class ModelInferenceLogsUtils {
 	 *
 	 * @param userId  user identifier
 	 * @param roomIds room identifiers
-	 * @return one map per open room: ROOM_ID, ROOM_NAME, PROJECT_ID, OPTIONS (JSON text), UPDATED_AT (Timestamp)
+	 * @return one map per open room: ROOM_ID, ROOM_NAME, PROJECT_ID, OPTIONS (JSON
+	 *         text), UPDATED_AT (Timestamp)
 	 */
 	public static List<Map<String, Object>> getActiveRoomSummaries(String userId, List<String> roomIds) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
@@ -2283,7 +2361,8 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * The user's open rooms in a project, with their options and without their messages.
+	 * The user's open rooms in a project, with their options and without their
+	 * messages.
 	 *
 	 * @param userId    user identifier
 	 * @param projectId project identifier
@@ -2638,12 +2717,27 @@ public class ModelInferenceLogsUtils {
 		if (raw == null) {
 			return null;
 		}
-		String text = String.valueOf(raw).trim();
-		if (text.isEmpty()) {
+		return parseWorkspaceConfigJson(workspaceId, String.valueOf(raw));
+	}
+
+	/**
+	 * Parses a stored {@code WORKSPACE.CONFIG_JSON} value.
+	 *
+	 * @param workspaceId workspace identifier, for the log
+	 * @param text        the stored value
+	 * @return parsed JSON object, or {@code null} when the value is null, blank or
+	 *         unparseable
+	 */
+	private static JSONObject parseWorkspaceConfigJson(String workspaceId, String text) {
+		if (text == null) {
+			return null;
+		}
+		String trimmed = text.trim();
+		if (trimmed.isEmpty()) {
 			return null;
 		}
 		try {
-			return new JSONObject(text);
+			return new JSONObject(trimmed);
 		} catch (Exception e) {
 			classLogger.warn("Failed to parse WORKSPACE.CONFIG_JSON for workspaceId '{}': {}", workspaceId,
 					e.getMessage());
@@ -2664,17 +2758,81 @@ public class ModelInferenceLogsUtils {
 			throw new IllegalArgumentException("workspaceId is required");
 		}
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 		String serialized = configJson == null ? null : configJson.toString();
 
 		try {
-			QueryExecutionUtility.executeUpdate(modelInferenceLogsDb,
-					"UPDATE WORKSPACE SET CONFIG_JSON = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?", ps -> {
-						int index = 1;
-						modelInferenceLogsDb.getQueryUtil().setNullableLargeText(ps, index++, serialized);
-						ps.setTimestamp(index++, now);
-						ps.setString(index++, workspaceId);
-					});
+			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				updateWorkspaceConfigJson(connection, modelInferenceLogsDb.getQueryUtil(), workspaceId, serialized);
+				return null;
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to update CONFIG_JSON for workspaceId '{}'.", workspaceId, e);
+			throw new SQLException("Failed to update workspace CONFIG_JSON: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Writes {@code WORKSPACE.CONFIG_JSON} and DATE_UPDATED for a workspace inside
+	 * the caller's transaction. Closes only the statement it creates.
+	 *
+	 * @param connection  connection whose transaction the caller owns
+	 * @param queryUtil   dialect of the model inference logs database
+	 * @param workspaceId workspace identifier
+	 * @param serialized  JSON text to persist, or {@code null} to clear the column
+	 * @throws Exception if the update fails
+	 */
+	private static void updateWorkspaceConfigJson(Connection connection, AbstractSqlQueryUtil queryUtil,
+			String workspaceId, String serialized) throws Exception {
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+		QueryExecutionUtility.executeUpdate(connection,
+				"UPDATE WORKSPACE SET CONFIG_JSON = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?", ps -> {
+					int index = 1;
+					queryUtil.setNullableLargeText(ps, index++, serialized);
+					ps.setTimestamp(index++, now);
+					ps.setString(index++, workspaceId);
+				});
+	}
+
+	/**
+	 * Reads and parses {@code WORKSPACE.CONFIG_JSON} inside the caller's
+	 * transaction. Closes only the statement and result it creates.
+	 *
+	 * @param connection  connection whose transaction the caller owns
+	 * @param workspaceId workspace identifier
+	 * @return parsed JSON object, or {@code null} when the workspace does not exist
+	 *         or its value is null, blank or unparseable
+	 * @throws Exception if the read fails
+	 */
+	private static JSONObject readWorkspaceConfigJson(Connection connection, String workspaceId) throws Exception {
+		String text = QueryExecutionUtility.queryOne(connection,
+				"SELECT CONFIG_JSON FROM WORKSPACE WHERE WORKSPACE_ID = ?", ps -> ps.setString(1, workspaceId),
+				rs -> rs.getString(1));
+		return parseWorkspaceConfigJson(workspaceId, text);
+	}
+
+	/**
+	 * Reads, changes and writes back {@code WORKSPACE.CONFIG_JSON} in one write on
+	 * the shared executor, so the change is applied to the value it read. The
+	 * change returns the JSON to store, or {@code null} to leave the column
+	 * untouched.
+	 *
+	 * @param workspaceId workspace identifier
+	 * @param change      builds the new config from the current one, which is
+	 *                    {@code null} when missing, blank or unparseable
+	 * @throws SQLException if the read or the write fails; nothing is changed
+	 */
+	private static void changeWorkspaceConfigJson(String workspaceId, UnaryOperator<JSONObject> change)
+			throws SQLException {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		try {
+			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				JSONObject updated = change.apply(readWorkspaceConfigJson(connection, workspaceId));
+				if (updated != null) {
+					updateWorkspaceConfigJson(connection, modelInferenceLogsDb.getQueryUtil(), workspaceId,
+							updated.toString());
+				}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update CONFIG_JSON for workspaceId '{}'.", workspaceId, e);
 			throw new SQLException("Failed to update workspace CONFIG_JSON: " + e.getMessage(), e);
@@ -2740,11 +2898,17 @@ public class ModelInferenceLogsUtils {
 	 * {@code { "skill_id": <id>, "pinned_version": <optional> }}. Note the key is
 	 * {@code skill_id} - NOT {@code id} as the MCP mirror uses.
 	 *
+	 * <p>
+	 * The config is read, changed and written back in one write on the shared
+	 * executor; a failed read changes nothing. The {@code WORKSPACE_RESOURCE} row
+	 * this mirrors is written by its caller in a separate operation, so the two
+	 * stores are kept in step by the caller, not by one transaction.
+	 *
 	 * @param workspaceId   workspace identifier
 	 * @param skillId       skill identifier to add
 	 * @param pinnedVersion optional pinned version; the key is omitted when
 	 *                      null/empty
-	 * @throws SQLException if the CONFIG_JSON write fails
+	 * @throws SQLException if the CONFIG_JSON read or write fails
 	 */
 	public static void addSkillToWorkspaceConfigJson(String workspaceId, String skillId, String pinnedVersion)
 			throws SQLException {
@@ -2754,31 +2918,32 @@ public class ModelInferenceLogsUtils {
 		if (skillId == null || skillId.isEmpty()) {
 			throw new IllegalArgumentException("skillId is required");
 		}
-		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
-		if (cfg == null) {
-			cfg = new JSONObject();
-			cfg.put("schema_version", 1);
-		}
-		JSONArray skills = cfg.optJSONArray("skills");
-		if (skills == null) {
-			skills = new JSONArray();
-		}
-		// Dedup by skill_id - keep the mirror idempotent like the attach reactor
-		// itself.
-		for (int i = 0; i < skills.length(); i++) {
-			JSONObject s = skills.optJSONObject(i);
-			if (s != null && skillId.equals(s.optString("skill_id", null))) {
-				return;
+		changeWorkspaceConfigJson(workspaceId, cfg -> {
+			if (cfg == null) {
+				cfg = new JSONObject();
+				cfg.put("schema_version", 1);
 			}
-		}
-		JSONObject entry = new JSONObject();
-		entry.put("skill_id", skillId);
-		if (pinnedVersion != null && !pinnedVersion.isEmpty()) {
-			entry.put("pinned_version", pinnedVersion);
-		}
-		skills.put(entry);
-		cfg.put("skills", skills);
-		updateWorkspaceConfigJson(workspaceId, cfg);
+			JSONArray skills = cfg.optJSONArray("skills");
+			if (skills == null) {
+				skills = new JSONArray();
+			}
+			// Dedup by skill_id - keep the mirror idempotent like the attach reactor
+			// itself.
+			for (int i = 0; i < skills.length(); i++) {
+				JSONObject s = skills.optJSONObject(i);
+				if (s != null && skillId.equals(s.optString("skill_id", null))) {
+					return null;
+				}
+			}
+			JSONObject entry = new JSONObject();
+			entry.put("skill_id", skillId);
+			if (pinnedVersion != null && !pinnedVersion.isEmpty()) {
+				entry.put("pinned_version", pinnedVersion);
+			}
+			skills.put(entry);
+			cfg.put("skills", skills);
+			return cfg;
+		});
 	}
 
 	/**
@@ -2787,9 +2952,15 @@ public class ModelInferenceLogsUtils {
 	 * when the workspace has no CONFIG_JSON, no {@code skills} array, or the skill
 	 * is not present.
 	 *
+	 * <p>
+	 * The config is read, changed and written back in one write on the shared
+	 * executor; a failed read changes nothing. The {@code WORKSPACE_RESOURCE} row
+	 * this mirrors is deleted by its caller in a separate operation, so the two
+	 * stores are kept in step by the caller, not by one transaction.
+	 *
 	 * @param workspaceId workspace identifier
 	 * @param skillId     skill identifier to remove
-	 * @throws SQLException if the CONFIG_JSON write fails
+	 * @throws SQLException if the CONFIG_JSON read or write fails
 	 */
 	public static void removeSkillFromWorkspaceConfigJson(String workspaceId, String skillId) throws SQLException {
 		if (workspaceId == null || workspaceId.isEmpty()) {
@@ -2798,29 +2969,30 @@ public class ModelInferenceLogsUtils {
 		if (skillId == null || skillId.isEmpty()) {
 			throw new IllegalArgumentException("skillId is required");
 		}
-		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
-		if (cfg == null) {
-			return;
-		}
-		JSONArray skills = cfg.optJSONArray("skills");
-		if (skills == null || skills.length() == 0) {
-			return;
-		}
-		JSONArray kept = new JSONArray();
-		boolean removed = false;
-		for (int i = 0; i < skills.length(); i++) {
-			JSONObject s = skills.optJSONObject(i);
-			if (s != null && skillId.equals(s.optString("skill_id", null))) {
-				removed = true;
-				continue;
+		changeWorkspaceConfigJson(workspaceId, cfg -> {
+			if (cfg == null) {
+				return null;
 			}
-			kept.put(skills.get(i));
-		}
-		if (!removed) {
-			return;
-		}
-		cfg.put("skills", kept);
-		updateWorkspaceConfigJson(workspaceId, cfg);
+			JSONArray skills = cfg.optJSONArray("skills");
+			if (skills == null || skills.length() == 0) {
+				return null;
+			}
+			JSONArray kept = new JSONArray();
+			boolean removed = false;
+			for (int i = 0; i < skills.length(); i++) {
+				JSONObject s = skills.optJSONObject(i);
+				if (s != null && skillId.equals(s.optString("skill_id", null))) {
+					removed = true;
+					continue;
+				}
+				kept.put(skills.get(i));
+			}
+			if (!removed) {
+				return null;
+			}
+			cfg.put("skills", kept);
+			return cfg;
+		});
 	}
 
 	/**
@@ -2879,6 +3051,7 @@ public class ModelInferenceLogsUtils {
 			qs.addOrderBy(sorts);
 		}
 
+		Map<String, Object> roomPage = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
 			Map<String, Object> workspaces = new HashMap<>();
 			List<Map<String, Object>> roomDetails = new ArrayList<>();
@@ -2915,11 +3088,11 @@ public class ModelInferenceLogsUtils {
 			}
 			workspaces.put("total_count", totalCount);
 			workspaces.put("rooms", roomDetails);
-			return workspaces;
+			roomPage = workspaces;
 		} catch (Exception e) {
 			classLogger.error("Failed to fetch workspace rooms for workspaceId '{}'.", workspaceId, e);
-			return null;
 		}
+		return roomPage;
 	}
 
 	/**
@@ -2993,6 +3166,7 @@ public class ModelInferenceLogsUtils {
 		qs.setCustomFrom(subQuery);
 		qs.setCustomFromAliasName("subquery");
 
+		Map<String, Object> workspacePage = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
 			Map<String, Object> workspaces = new HashMap<>();
 			List<Map<String, Object>> workspaceDetails = new ArrayList<>();
@@ -3028,11 +3202,11 @@ public class ModelInferenceLogsUtils {
 			}
 			workspaces.put("total_count", totalCount);
 			workspaces.put("workspaces", workspaceDetails);
-			return workspaces;
+			workspacePage = workspaces;
 		} catch (Exception e) {
 			classLogger.error("Failed to fetch workspace entries for user-visible workspace ids.", e);
-			return null;
 		}
+		return workspacePage;
 	}
 
 	/**
@@ -3076,6 +3250,7 @@ public class ModelInferenceLogsUtils {
 					SimpleQueryFilter.makeColToValFilter("WORKSPACE_RESOURCE__RESOURCE_TYPE", "==", resourceTypes));
 		}
 
+		List<Map<String, Object>> resources = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
 			List<Map<String, Object>> results = new ArrayList<>();
 			while (wrapper.hasNext()) {
@@ -3096,12 +3271,12 @@ public class ModelInferenceLogsUtils {
 				}
 				results.add(map);
 			}
-			return results;
+			resources = results;
 		} catch (Exception e) {
 			classLogger.error("Failed to fetch workspace resources for workspaceId '{}' and resourceTypes '{}'.",
 					workspaceId, resourceTypes, e);
-			return null;
 		}
+		return resources;
 	}
 
 	/**
@@ -3128,6 +3303,7 @@ public class ModelInferenceLogsUtils {
 					SimpleQueryFilter.makeColToValFilter("WORKSPACE_RESOURCE__RESOURCE_TYPE", "!=", resourceTypes));
 		}
 
+		List<Map<String, Object>> resources = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
 			List<Map<String, Object>> results = new ArrayList<>();
 			while (wrapper.hasNext()) {
@@ -3148,12 +3324,12 @@ public class ModelInferenceLogsUtils {
 				}
 				results.add(map);
 			}
-			return results;
+			resources = results;
 		} catch (Exception e) {
 			classLogger.error("Failed to fetch workspace resources for workspaceId '{}' and resourceTypes '{}'.",
 					workspaceId, resourceTypes, e);
-			return null;
 		}
+		return resources;
 	}
 
 	/**
@@ -3496,9 +3672,17 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, requestIf, "TOTAL_REQUESTS"));
 
-		// Filter by user ID
-		String userId = user.getPrimaryLoginToken().getId();
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", userId));
+		// usage belongs to the primary login, by its id and type; rows written before
+		// USER_TYPE existed belong to the same id
+		Pair<String, String> primary = User.getPrimaryUserIdAndTypePair(user);
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", primary.getValue0()));
+		OrQueryFilter typeFilter = new OrQueryFilter();
+		typeFilter.addFilter(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_TYPE", "==", primary.getValue1()));
+		typeFilter.addFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_TYPE", "==", null,
+				PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(typeFilter);
 
 		// Filter by engine IDs
 		if (engineIds != null && !engineIds.isEmpty()) {
@@ -3756,10 +3940,18 @@ public class ModelInferenceLogsUtils {
 	 * (see {@code AttachSkillToWorkspaceReactor}); delete must clear BOTH. Skipping
 	 * the mirror leaves a dangling skill id that
 	 * {@code AgentConfigLoader.resolveSkills} still returns, so the run-time
-	 * {@code SkillStager} fails it every run. The referencing workspaces are
-	 * captured before the row deletes so the mirror can be scrubbed afterward.
+	 * {@code SkillStager} fails it every run.
+	 *
+	 * <p>
+	 * The referencing workspaces are read and the rows deleted in one write on the
+	 * shared executor. The mirror is scrubbed after that write commits, one
+	 * workspace at a time through
+	 * {@link #removeSkillFromWorkspaceConfigJson(String, String)}; a scrub that
+	 * fails is logged and the remaining workspaces are still scrubbed.
 	 *
 	 * @param projectId skill project identifier
+	 * @throws IllegalArgumentException if the rows cannot be deleted; no mirror is
+	 *                                  scrubbed then
 	 */
 	public static void detachSkillFromAllWorkspaces(String projectId) {
 		if (!SystemEngineRegistry.isModelInferenceLogsDbLoaded()) {
@@ -3768,37 +3960,34 @@ public class ModelInferenceLogsUtils {
 			return;
 		}
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Connection con = null;
-		List<String> affectedWorkspaceIds = new ArrayList<>();
+		List<String> affectedWorkspaceIds;
 		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement sel = con.prepareStatement(
-					"SELECT DISTINCT WORKSPACE_ID FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
-				sel.setString(1, "SKILL");
-				sel.setString(2, projectId);
-				try (ResultSet rs = sel.executeQuery()) {
-					while (rs.next()) {
-						String wsId = rs.getString(1);
-						if (wsId != null && !wsId.trim().isEmpty()) {
-							affectedWorkspaceIds.add(wsId);
+			affectedWorkspaceIds = QueryExecutionUtility.write(modelInferenceLogsDb, con -> {
+				List<String> workspaceIds = new ArrayList<>();
+				try (PreparedStatement sel = con.prepareStatement(
+						"SELECT DISTINCT WORKSPACE_ID FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
+					sel.setString(1, "SKILL");
+					sel.setString(2, projectId);
+					try (ResultSet rs = sel.executeQuery()) {
+						while (rs.next()) {
+							String wsId = rs.getString(1);
+							if (wsId != null && !wsId.trim().isEmpty()) {
+								workspaceIds.add(wsId);
+							}
 						}
 					}
 				}
-			}
-			try (PreparedStatement ps = con
-					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
-				ps.setString(1, "SKILL");
-				ps.setString(2, projectId);
-				ps.execute();
-				if (!con.getAutoCommit()) {
-					con.commit();
+				try (PreparedStatement ps = con.prepareStatement(
+						"DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
+					ps.setString(1, "SKILL");
+					ps.setString(2, projectId);
+					ps.execute();
 				}
-			}
+				return workspaceIds;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to detach skill '{}' from workspaces.", projectId, e);
 			throw new IllegalArgumentException("Error detaching skill from workspaces: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 
 		for (String workspaceId : affectedWorkspaceIds) {

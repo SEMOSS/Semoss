@@ -27,9 +27,15 @@
  *******************************************************************************/
 package prerna.io.connector.calendar;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import prerna.io.connector.ConnectorOutput;
 
@@ -83,6 +89,67 @@ public record CalendarEvent(String id, String subject, EventTime start, EventTim
 	 *                     to return whatever length it is
 	 * @return the event as a reactor answers with it
 	 */
+	/**
+	 * The event as one row of a listing: at most maxAttendees attendees (with the total), no reminder, and the body,
+	 * when asked for, without the Teams join block (joinUrl carries it) and cut to maxBodyChars.
+	 */
+	public Map<String, Object> toListMap(boolean includeBody, int maxBodyChars, int maxAttendees) {
+		Map<String, Object> output = toMap(false, 0);
+		output.remove("reminderMinutesBeforeStart");
+		if (this.attendees.size() > maxAttendees) {
+			output.put("attendees", this.attendees.stream().limit(maxAttendees).map(EventAttendee::toMap).toList());
+			output.put("attendeeCount", this.attendees.size());
+			output.put("attendeesTruncated", true);
+		}
+		if (includeBody) {
+			ConnectorOutput.putText(output, "body", withoutJoinBlock(this.body), maxBodyChars);
+		}
+		return output;
+	}
+
+	/**
+	 * Shows an event's times in the caller's zone: start and end with that zone's offset, and a short when, such as
+	 * "Mon Oct 19, 9:00 AM - 9:05 AM", so a reader needs no conversion. A null zone leaves the UTC times as they are.
+	 */
+	public Map<String, Object> inZone(Map<String, Object> output, ZoneId zone) {
+		if (zone == null || this.start == null) {
+			return output;
+		}
+		output.put("start", this.start.format(zone));
+		ConnectorOutput.putIfPresent(output, "end", this.end == null ? null : this.end.format(zone));
+		output.put("when", when(zone));
+		// the calendar's own zone beside the converted times only invites a second conversion
+		output.remove("timeZone");
+		return output;
+	}
+
+	private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE MMM d", Locale.US);
+	private static final DateTimeFormatter CLOCK = DateTimeFormatter.ofPattern("h:mm a", Locale.US);
+
+	private String when(ZoneId zone) {
+		if (this.start.isDate()) {
+			// a whole day event ends at the start of the day after its last
+			LocalDate first = this.start.date();
+			LocalDate last = this.end == null || !this.end.isDate() ? first : this.end.date().minusDays(1);
+			return last.isAfter(first) ? DAY.format(first) + " - " + DAY.format(last) + ", all day"
+					: DAY.format(first) + ", all day";
+		}
+		LocalDateTime from = this.start.localIn(zone);
+		if (this.end == null) {
+			return DAY.format(from) + ", " + CLOCK.format(from);
+		}
+		LocalDateTime to = this.end.localIn(zone);
+		return DAY.format(from) + ", " + CLOCK.format(from) + " - "
+				+ (to.toLocalDate().equals(from.toLocalDate()) ? "" : DAY.format(to) + ", ") + CLOCK.format(to);
+	}
+
+	// Outlook appends the Teams join instructions after a line of underscores
+	private static final Pattern JOIN_BLOCK = Pattern.compile("_{10,}\\s*Microsoft Teams[\\s\\S]*$");
+
+	static String withoutJoinBlock(String body) {
+		return body == null ? null : JOIN_BLOCK.matcher(body).replaceFirst("").trim();
+	}
+
 	public Map<String, Object> toMap(boolean includeBody, int maxBodyChars) {
 		Map<String, Object> output = new LinkedHashMap<>();
 		output.put("id", this.id);

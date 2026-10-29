@@ -57,6 +57,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.security.HttpHelperUtility;
+import prerna.util.Utility;
 
 /**
  * The Outlook mail operations of Microsoft Graph, as plain calls.
@@ -111,6 +112,16 @@ public class MicrosoftOutlookMailHelper {
 	// graph refuses a message over this size on the simple send, and the limit is
 	// on the encoded form rather than the file, so it is checked after encoding
 	private static final long MAX_SEND_BYTES = 4L * 1024L * 1024L;
+	// graph takes a file under this in one attach request; larger needs an upload session
+	private static final int SMALL_ATTACHMENT_BYTES = 3 * 1024 * 1024;
+	// upload chunks are multiples of 320KiB and stay under the 4MB a request may carry
+	private static final int UPLOAD_CHUNK_BYTES = 320 * 1024 * 10;
+	// RDF_Map, else an environment variable: the largest message sent, in MB, files encoded;
+	// Exchange Online's default per mailbox, which an admin can raise to 150
+	public static final String MAX_MESSAGE_MB_SETTING = "MS_MAIL_MAX_MESSAGE_MB";
+	private static final int DEFAULT_MAX_MESSAGE_MB = 35;
+	// left for the body and headers when working out how much file fits
+	private static final long MESSAGE_HEADROOM_BYTES = 1024L * 1024L;
 
 	/**
 	 * The folders Graph addresses by name rather than by id. Anything else somebody
@@ -146,8 +157,10 @@ public class MicrosoftOutlookMailHelper {
 	 * @param mailbox         the mailbox to send as, or null for the signed in user
 	 * @param message         the message, as built by
 	 *                        {@link #buildMessage(String, String, boolean, String[], String[], String[], String, String, String[])}
-	 * @param saveToSentItems whether a copy is kept in Sent Items
-	 * @throws IOException when the message is too large for a single send
+	 * @param saveToSentItems whether a copy is kept in Sent Items; a message too
+	 *                        large for one send goes out as a draft, which always
+	 *                        keeps one
+	 * @throws IOException when the message is too large even without its files
 	 */
 	public void sendMail(String accessToken, String mailbox, Map<String, Object> message, boolean saveToSentItems)
 			throws IOException {
@@ -159,7 +172,17 @@ public class MicrosoftOutlookMailHelper {
 		// measured on the bytes rather than the characters, since the limit is on
 		// what goes over the wire and a body is not all ascii
 		int requestBytes = body.getBytes(StandardCharsets.UTF_8).length;
+		long maxMessageBytes = maxMessageBytes();
+		if (requestBytes > maxMessageBytes) {
+			throw new IOException("The email is " + (requestBytes / (1024 * 1024)) + " MB with its files encoded, over the "
+					+ (maxMessageBytes / (1024 * 1024)) + " MB limit for one message (" + MAX_MESSAGE_MB_SETTING + ")");
+		}
 		if (requestBytes > MAX_SEND_BYTES) {
+			if (message.get("attachments") instanceof List<?> files && !files.isEmpty()) {
+				// the files are what made it large: draft, upload them, then send
+				sendWithLargeAttachments(accessToken, mailbox, message, saveToSentItems);
+				return;
+			}
 			throw new IOException("The message is " + requestBytes + " bytes, over the " + MAX_SEND_BYTES
 					+ " byte limit Graph accepts on a single send");
 		}
@@ -171,6 +194,134 @@ public class MicrosoftOutlookMailHelper {
 		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), body,
 				ContentType.APPLICATION_JSON, null, null, null);
 		throwOnError(response, "send an email");
+	}
+
+	/**
+	 * The largest message sent, files encoded, from {@link #MAX_MESSAGE_MB_SETTING}.
+	 */
+	public static long maxMessageBytes() {
+		String value = Utility.getDIHelperProperty(MAX_MESSAGE_MB_SETTING);
+		if (value == null || value.isBlank()) {
+			value = System.getenv(MAX_MESSAGE_MB_SETTING);
+		}
+		long mb = DEFAULT_MAX_MESSAGE_MB;
+		if (value != null && !value.isBlank()) {
+			try {
+				mb = Math.max(1, Long.parseLong(value.trim()));
+			} catch (NumberFormatException e) {
+				classLogger.warn("{} is not a whole number of MB, using {}", MAX_MESSAGE_MB_SETTING,
+						DEFAULT_MAX_MESSAGE_MB);
+			}
+		}
+		return mb * 1024L * 1024L;
+	}
+
+	/**
+	 * How many bytes of files fit in one message under that limit, once base64
+	 * adds its third and the body and headers have their room.
+	 */
+	public static long maxAttachmentBytes() {
+		return Math.max(0, (maxMessageBytes() - MESSAGE_HEADROOM_BYTES) / 4 * 3);
+	}
+
+	/**
+	 * Sends a message whose files are over the single send limit: saved as a draft
+	 * with its files added one by one, then sent. A draft that fails part way is
+	 * deleted.
+	 */
+	private void sendWithLargeAttachments(String accessToken, String mailbox, Map<String, Object> message,
+			boolean saveToSentItems) {
+		if (!saveToSentItems) {
+			classLogger.info("A large message is sent from a draft, so a copy stays in Sent Items");
+		}
+		String draftId = draftId(createDraft(accessToken, mailbox, message));
+		boolean sent = false;
+		try {
+			sendDraft(accessToken, mailbox, draftId);
+			sent = true;
+		} finally {
+			if (!sent) {
+				deleteQuietly(accessToken, mailbox, draftId);
+			}
+		}
+	}
+
+	/**
+	 * Adds files to a draft one request each, through an upload session for the
+	 * ones too large for a single request.
+	 */
+	private void addAttachments(String accessToken, String mailbox, String draftId, List<Map<String, Object>> files) {
+		String attachmentsUrl = userPath(mailbox) + "/messages/" + encode(draftId) + "/attachments";
+		for (Map<String, Object> file : files) {
+			byte[] bytes = Base64.getDecoder().decode(String.valueOf(file.get("contentBytes")));
+			if (bytes.length >= SMALL_ATTACHMENT_BYTES) {
+				uploadAttachment(accessToken, attachmentsUrl, String.valueOf(file.get("name")), bytes);
+				continue;
+			}
+			String response = HttpHelperUtility.postRequestStringBody(attachmentsUrl, headers(accessToken),
+					GSON.toJson(file), ContentType.APPLICATION_JSON, null, null, null);
+			throwOnError(response, "attach a file to the draft email");
+			if (!(readMap(response).get("id") instanceof String attachmentId) || attachmentId.isBlank()) {
+				throw new IllegalArgumentException(
+						"The draft attachment could not be confirmed. Check the draft in Outlook.");
+			}
+		}
+	}
+
+	// refuses files that, encoded, are over the one message limit
+	private static void checkAttachmentSize(List<Map<String, Object>> files) {
+		long encoded = 0;
+		for (Map<String, Object> file : files) {
+			encoded += String.valueOf(file.get("contentBytes")).length();
+		}
+		long max = maxMessageBytes() - MESSAGE_HEADROOM_BYTES;
+		if (encoded > max) {
+			throw new IllegalArgumentException("The email's files are " + (encoded / 4 * 3 / (1024 * 1024))
+					+ " MB, over the " + (maxAttachmentBytes() / (1024 * 1024)) + " MB that fit in one message ("
+					+ MAX_MESSAGE_MB_SETTING + ")");
+		}
+	}
+
+	private static String draftId(Map<String, Object> draft) {
+		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
+			throw new IllegalStateException("Microsoft Graph did not return the draft to attach the files to");
+		}
+		return id;
+	}
+
+	private void deleteQuietly(String accessToken, String mailbox, String draftId) {
+		try {
+			deleteMessage(accessToken, mailbox, draftId);
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not delete the unsent draft {}", draftId, e);
+		}
+	}
+
+	/**
+	 * Uploads one file to a draft through an upload session, in chunks under the
+	 * 4MB a request may carry. The upload url is pre-authenticated, so no bearer
+	 * header is sent with the chunks.
+	 */
+	private static void uploadAttachment(String accessToken, String attachmentsUrl, String name, byte[] bytes) {
+		Map<String, Object> item = new LinkedHashMap<>();
+		item.put("attachmentType", "file");
+		item.put("name", name);
+		item.put("size", bytes.length);
+		String session = HttpHelperUtility.postRequestStringBody(attachmentsUrl + "/createUploadSession",
+				headers(accessToken), GSON.toJson(Map.of("AttachmentItem", item)), ContentType.APPLICATION_JSON, null,
+				null, null);
+		throwOnError(session, "start uploading a file to the email");
+		Object uploadUrl = readMap(session).get("uploadUrl");
+		if (uploadUrl == null) {
+			throw new IllegalStateException("Microsoft Graph did not return an upload session for " + name);
+		}
+		for (int offset = 0; offset < bytes.length; offset += UPLOAD_CHUNK_BYTES) {
+			int end = Math.min(offset + UPLOAD_CHUNK_BYTES, bytes.length);
+			Map<String, String> chunkHeaders = new HashMap<>();
+			chunkHeaders.put("Content-Range", "bytes " + offset + "-" + (end - 1) + "/" + bytes.length);
+			HttpHelperUtility.putRequestBytesBody(uploadUrl.toString(), chunkHeaders,
+					Arrays.copyOfRange(bytes, offset, end), ContentType.APPLICATION_OCTET_STREAM, null, null, null);
+		}
 	}
 
 	/**
@@ -188,15 +339,40 @@ public class MicrosoftOutlookMailHelper {
 	 * @return the draft as Graph created it, which carries the id it was given and
 	 *         a webLink that opens it in Outlook
 	 */
+	@SuppressWarnings("unchecked")
 	public Map<String, Object> createDraft(String accessToken, String mailbox, Map<String, Object> message) {
 		String url = userPath(mailbox) + "/messages";
 		classLogger.info("Saving a draft email through {}", url);
+		String body = GSON.toJson(message);
+		List<Map<String, Object>> files = null;
+		if (message.get("attachments") instanceof List<?> attached && !attached.isEmpty()
+				&& body.getBytes(StandardCharsets.UTF_8).length > MAX_SEND_BYTES) {
+			// too large for one request: save it bare, then add the files one by one
+			files = (List<Map<String, Object>>) attached;
+			checkAttachmentSize(files);
+			Map<String, Object> bare = new LinkedHashMap<>(message);
+			bare.remove("attachments");
+			body = GSON.toJson(bare);
+		}
 		// unlike sendMail, this answers with the message it created, since the id it
 		// was given is the only way to find it again
-		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), GSON.toJson(message),
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), body,
 				ContentType.APPLICATION_JSON, null, null, null);
 		throwOnError(response, "save a draft email");
-		return readMap(response);
+		Map<String, Object> draft = readMap(response);
+		if (files != null) {
+			String draftId = draftId(draft);
+			boolean attached = false;
+			try {
+				addAttachments(accessToken, mailbox, draftId, files);
+				attached = true;
+			} finally {
+				if (!attached) {
+					deleteQuietly(accessToken, mailbox, draftId);
+				}
+			}
+		}
+		return draft;
 	}
 
 	/**
@@ -508,17 +684,8 @@ public class MicrosoftOutlookMailHelper {
 		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
 			throw new IllegalArgumentException("The saved draft attachment target could not be confirmed.");
 		}
-		String url = userPath(null) + "/messages/" + encode((String) draft.get("id")) + "/attachments";
-		for (Map<String, Object> file : files) {
-			String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), GSON.toJson(file),
-					ContentType.APPLICATION_JSON, null, null, null);
-			throwOnError(response, "attach a file to the draft email");
-			Map<String, Object> receipt = readMap(response);
-			if (!(receipt.get("id") instanceof String attachmentId) || attachmentId.isBlank()) {
-				throw new IllegalArgumentException(
-						"The draft attachment could not be confirmed. Check the draft in Outlook.");
-			}
-		}
+		checkAttachmentSize(files);
+		addAttachments(accessToken, null, id, files);
 	}
 
 	/**
@@ -725,6 +892,25 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
+	 * Move a message to another folder and return the message as it is there.
+	 *
+	 * @param accessToken       the token to write with
+	 * @param mailbox           the mailbox, or null for the signed in user
+	 * @param messageId         the message to move
+	 * @param destinationFolder the folder to move it to, by well known name or id
+	 * @return the moved message, which carries the new id and webLink Graph gave it
+	 */
+	public Map<String, Object> moveMessageDetails(String accessToken, String mailbox, String messageId,
+			String destinationFolder) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/move";
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken),
+				GSON.toJson(Map.of("destinationId", destinationFolder)), ContentType.APPLICATION_JSON, null, null,
+				null);
+		throwOnError(response, "move a message");
+		return readMap(response);
+	}
+
+	/**
 	 * Delete a message. It goes to Deleted Items rather than disappearing, which is
 	 * the one thing Graph does more gently than the mail protocols.
 	 *
@@ -767,6 +953,62 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
+	 * List the folders directly inside one folder, or at the top of the mailbox
+	 * when no parent is given.
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param parentId    the parent folder id or well known name, or null for the top level
+	 * @return the folders, each with its id, displayName and childFolderCount
+	 */
+	public List<Map<String, Object>> listFolderChildren(String accessToken, String mailbox, String parentId) {
+		String base = userPath(mailbox) + "/mailFolders";
+		String url = (parentId == null ? base : base + "/" + encode(parentId) + "/childFolders")
+				+ "?$top=100&$select=id,displayName,childFolderCount";
+		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		throwOnError(response, "list the folders of the mailbox");
+		return readList(response);
+	}
+
+	/**
+	 * The id of a folder by its well known name, such as {@code drafts}.
+	 *
+	 * @return the folder id, or null when Graph has no such folder
+	 */
+	public String wellKnownFolderId(String accessToken, String mailbox, String wellKnownName) {
+		String url = userPath(mailbox) + "/mailFolders/" + encode(wellKnownName) + "?$select=id";
+		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		if (response == null || response.contains("\"error\"")) {
+			return null;
+		}
+		Map<String, Object> folder = readMap(response);
+		return folder == null ? null : (String) folder.get("id");
+	}
+
+	/**
+	 * Make a folder, or return the one of that name that is already there.
+	 *
+	 * @param accessToken the token to write with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param parentId    the parent folder id or well known name, or null for the top level
+	 * @param name        the folder name
+	 * @return the folder, with its id and displayName
+	 */
+	public Map<String, Object> createFolder(String accessToken, String mailbox, String parentId, String name) {
+		for (Map<String, Object> existing : listFolderChildren(accessToken, mailbox, parentId)) {
+			if (name.equalsIgnoreCase(String.valueOf(existing.get("displayName")))) {
+				return existing;
+			}
+		}
+		String base = userPath(mailbox) + "/mailFolders";
+		String url = parentId == null ? base : base + "/" + encode(parentId) + "/childFolders";
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken),
+				GSON.toJson(Map.of("displayName", name)), ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "create a folder");
+		return readMap(response);
+	}
+
+	/**
 	 * Find the id of a folder by the name a person would call it.
 	 *
 	 * <p>
@@ -785,6 +1027,40 @@ public class MicrosoftOutlookMailHelper {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Find a folder inside another one by name, making it when it is not there.
+	 *
+	 * @param accessToken the token to write with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param parent      the folder it sits in, by well known name or id
+	 * @param displayName the folder name
+	 * @return the folder as Graph returned it, with created true when it was made
+	 */
+	public Map<String, Object> ensureChildFolder(String accessToken, String mailbox, String parent,
+			String displayName) {
+		String url = userPath(mailbox) + "/mailFolders/" + encode(parent) + "/childFolders";
+		String response = HttpHelperUtility.getRequest(url + "?$select=id,displayName&$filter="
+				+ encode("displayName eq '" + displayName.replace("'", "''") + "'"), headers(accessToken), null, null,
+				null);
+		throwOnError(response, "find a mail folder");
+		List<Map<String, Object>> found = readList(response);
+		if (!found.isEmpty()) {
+			Map<String, Object> folder = new HashMap<>(found.get(0));
+			folder.put("created", false);
+			return folder;
+		}
+		response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken),
+				GSON.toJson(Map.of("displayName", displayName)), ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "create a mail folder");
+		Map<String, Object> made = readMap(response);
+		if (made == null) {
+			throw new IllegalStateException("Microsoft did not return the new mail folder.");
+		}
+		Map<String, Object> folder = new HashMap<>(made);
+		folder.put("created", true);
+		return folder;
 	}
 
 	/**

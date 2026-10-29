@@ -28,8 +28,28 @@
 package prerna.engine.api;
 
 import java.io.Closeable;
-import java.io.IOException;
 
+/**
+ * Runs a query against an engine and holds its results until it is closed.
+ *
+ * <p>
+ * Read a wrapper in a try-with-resources block, and keep what the read produces
+ * in a local declared before the block, returning that local after it. The
+ * wrapper closes as control leaves the block, so a {@code return} inside it
+ * would let a failure to close reach the catch and replace the value read with
+ * the fallback:
+ * </p>
+ *
+ * <pre>{@code
+ * boolean exists = false;
+ * try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
+ * 	exists = wrapper.hasNext();
+ * } catch (Exception e) {
+ * 	classLogger.error("Failed to check whether the row exists", e);
+ * }
+ * return exists;
+ * }</pre>
+ */
 public interface IEngineWrapper extends Closeable {
 
 	/**
@@ -39,38 +59,30 @@ public interface IEngineWrapper extends Closeable {
 
 	/**
 	 * Set the query
+	 * 
 	 * @param query
 	 */
 	void setQuery(String query);
-	
+
 	/**
 	 * Get the set query
+	 * 
 	 * @return
 	 */
 	String getQuery();
-	
+
 	/**
 	 * Set the engine
+	 * 
 	 * @param engine
 	 */
 	void setEngine(IDatabaseEngine engine);
 
 	/**
 	 * Get the engine
+	 * 
 	 * @return
 	 */
 	public IDatabaseEngine getEngine();
 
-//	/**
-//	 * 
-//	 * @param val
-//	 */
-//	void setTimeZone(TimeZone val);
-//
-//	/**
-//	 * 
-//	 * @return
-//	 */
-//	TimeZone getTimeZone();
-	
 }

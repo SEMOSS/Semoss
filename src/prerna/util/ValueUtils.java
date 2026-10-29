@@ -266,6 +266,33 @@ public final class ValueUtils {
 	}
 
 	/**
+	 * Read a positive whole number that may come as a number or as text, such as a
+	 * token amount read from request parameters, without failing on anything else.
+	 *
+	 * @param value the value
+	 * @return the number's long value (a decimal number is cut to a whole one), or
+	 *         the text read as a whole number; null when the value is null, not a
+	 *         number, or not above 0
+	 */
+	public static Long toPositiveLongOrNull(Object value) {
+		long number;
+		if (value instanceof Number numberValue) {
+			number = numberValue.longValue();
+		} else {
+			String trimmed = trimToNull(value);
+			if (trimmed == null) {
+				return null;
+			}
+			try {
+				number = Long.parseLong(trimmed);
+			} catch (NumberFormatException e) {
+				return null;
+			}
+		}
+		return number > 0 ? number : null;
+	}
+
+	/**
 	 * Read a set of values that may come as one value, a collection, nested
 	 * collections, or comma separated text, or any mixture of them.
 	 *

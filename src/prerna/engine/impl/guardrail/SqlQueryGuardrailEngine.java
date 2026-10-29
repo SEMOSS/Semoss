@@ -46,6 +46,7 @@ import prerna.engine.impl.function.FunctionParameter;
 import prerna.logging.IgnoreEngineLogging;
 import prerna.om.Insight;
 import prerna.query.parsers.SqlQueryPolicyParser;
+import prerna.query.parsers.SqlScriptSplitter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
@@ -97,6 +98,7 @@ public class SqlQueryGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 	public static final String MAX_QUERY_LENGTH_KEY = "MAX_QUERY_LENGTH";
 
 	private static final String QUERY_PARAM = "query";
+	private static final String SCRIPT_PARAM = "script";
 	private static final String DATABASE_ID_PARAM = "databaseId";
 
 	private final Map<String, Requirement> defaultFunctionPolicy = new LinkedHashMap<>();
@@ -125,14 +127,18 @@ public class SqlQueryGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 	private int maxQueryLength;
 
 	public SqlQueryGuardrailEngine() {
-		this.keysToGet = new String[] { QUERY_PARAM, DATABASE_ID_PARAM };
-		this.keyRequired = new int[] { 1, 0 };
+		this.keysToGet = new String[] { QUERY_PARAM, DATABASE_ID_PARAM, SCRIPT_PARAM };
+		// a call passes either query or script; with neither, the empty query is denied
+		this.keyRequired = new int[] { 0, 0, 0 };
 		this.functionName = "authorizeSqlQuery";
 		this.functionDescription = "Parses SQL and applies operation, identifier, structure, and database-access policies.";
 		this.parameters = List.of(new FunctionParameter(QUERY_PARAM, "String", "The SQL statement to authorize"),
 				new FunctionParameter(DATABASE_ID_PARAM, "String",
-						"The protected database engine id, used to resolve caller access"));
-		this.requiredParameters = List.of(QUERY_PARAM);
+						"The protected database engine id, used to resolve caller access"),
+				new FunctionParameter(SCRIPT_PARAM, "String",
+						"SQL statements that run in one transaction; each statement is authorized on its own"));
+		// a call passes query or script, so neither is required on its own
+		this.requiredParameters = List.of();
 		configurePolicy(new Properties());
 	}
 
@@ -184,48 +190,99 @@ public class SqlQueryGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 	}
 
 	private void loadDefaultIdentifierPolicy(SqlDialect dialect) {
+		Map<String, Map<String, Requirement>> builtIns = builtInIdentifierPolicies(dialect);
+		this.defaultFunctionPolicy.putAll(builtIns.get(FUNCTION_POLICY_KEY));
+		this.defaultVariablePolicy.putAll(builtIns.get(VARIABLE_POLICY_KEY));
+		this.defaultKeywordPolicy.putAll(builtIns.get(KEYWORD_POLICY_KEY));
+		this.defaultRelationPolicy.putAll(builtIns.get(RELATION_POLICY_KEY));
+		this.defaultRoutinePolicy.putAll(builtIns.get(ROUTINE_POLICY_KEY));
+	}
+
+	/**
+	 * The built-in identifier rules for a dialect, by the policy property each
+	 * belongs to: the known sensitive functions, variables, keywords and routines
+	 * the guardrail denies, and the system catalog relations it keeps to owners.
+	 * They apply when {@code PROTECT_UNMATCHED_IDENTIFIERS} is on, below any rule
+	 * the guardrail is configured with. GENERIC holds every dialect's rules. Each
+	 * map keeps the order its rules are listed in.
+	 *
+	 * @param dialect the dialect
+	 * @return each identifier policy property's built-in rules, name to access
+	 */
+	private static Map<String, Map<String, Requirement>> builtInIdentifierPolicies(SqlDialect dialect) {
+		Map<String, Requirement> functions = new LinkedHashMap<>();
+		Map<String, Requirement> variables = new LinkedHashMap<>();
+		Map<String, Requirement> keywords = new LinkedHashMap<>();
+		Map<String, Requirement> relations = new LinkedHashMap<>();
+		Map<String, Requirement> routines = new LinkedHashMap<>();
+
 		if (dialect == SqlDialect.GENERIC || dialect == SqlDialect.POSTGRESQL) {
-			addPolicies(this.defaultFunctionPolicy, Requirement.DENY, "PG_SLEEP*", "PG_READ_*", "PG_LS_*",
-					"PG_STAT_FILE", "PG_LOGDIR_LS", "LO_IMPORT", "LO_EXPORT", "DBLINK*", "VERSION", "CURRENT_DATABASE",
+			addPolicies(functions, Requirement.DENY, "PG_SLEEP*", "PG_READ_*", "PG_LS_*", "PG_STAT_FILE",
+					"PG_LOGDIR_LS", "LO_IMPORT", "LO_EXPORT", "DBLINK*", "VERSION", "CURRENT_DATABASE",
 					"CURRENT_SCHEMA", "CURRENT_SETTING", "INET_SERVER_ADDR", "INET_SERVER_PORT", "PG_BACKEND_PID",
 					"PG_CONF_LOAD_TIME", "PG_POSTMASTER_START_TIME", "PG_IS_IN_RECOVERY");
-			addSchemaPolicies(this.defaultRelationPolicy, Requirement.OWNER, "PG_CATALOG");
-			this.defaultRelationPolicy.put("PG_*", Requirement.OWNER);
+			addSchemaPolicies(relations, Requirement.OWNER, "PG_CATALOG");
+			relations.put("PG_*", Requirement.OWNER);
 		}
 		if (dialect == SqlDialect.GENERIC || dialect == SqlDialect.SQL_SERVER) {
-			addPolicies(this.defaultFunctionPolicy, Requirement.DENY, "DB_NAME", "DB_ID", "SERVERPROPERTY", "HOST_NAME",
-					"APP_NAME", "SUSER_SNAME", "IS_SRVROLEMEMBER", "HAS_DBACCESS", "DATABASEPROPERTYEX",
-					"OBJECT_DEFINITION", "LOGINPROPERTY", "OPENROWSET", "OPENDATASOURCE", "OPENQUERY");
-			addPolicies(this.defaultVariablePolicy, Requirement.DENY, "@@*");
-			addPolicies(this.defaultRoutinePolicy, Requirement.DENY, "XP_*", "SP_OA*", "SP_CONFIGURE", "SP_EXECUTESQL");
-			addSchemaPolicies(this.defaultRelationPolicy, Requirement.OWNER, "SYS");
-			addPolicies(this.defaultRelationPolicy, Requirement.OWNER, "SYSOBJECTS", "SYSCOLUMNS", "SYSDATABASES",
-					"SYSUSERS", "SYSPROCESSES");
+			addPolicies(functions, Requirement.DENY, "DB_NAME", "DB_ID", "SERVERPROPERTY", "HOST_NAME", "APP_NAME",
+					"SUSER_SNAME", "IS_SRVROLEMEMBER", "HAS_DBACCESS", "DATABASEPROPERTYEX", "OBJECT_DEFINITION",
+					"LOGINPROPERTY", "OPENROWSET", "OPENDATASOURCE", "OPENQUERY");
+			addPolicies(variables, Requirement.DENY, "@@*");
+			addPolicies(routines, Requirement.DENY, "XP_*", "SP_OA*", "SP_CONFIGURE", "SP_EXECUTESQL");
+			addSchemaPolicies(relations, Requirement.OWNER, "SYS");
+			addPolicies(relations, Requirement.OWNER, "SYSOBJECTS", "SYSCOLUMNS", "SYSDATABASES", "SYSUSERS",
+					"SYSPROCESSES");
 		}
 		if (dialect == SqlDialect.GENERIC || dialect == SqlDialect.MYSQL || dialect == SqlDialect.MARIADB) {
-			addPolicies(this.defaultFunctionPolicy, Requirement.DENY, "SLEEP", "BENCHMARK", "LOAD_FILE", "VERSION",
-					"DATABASE", "SCHEMA", "CONNECTION_ID");
-			addPolicies(this.defaultVariablePolicy, Requirement.DENY, "@@*");
-			addSchemaPolicies(this.defaultRelationPolicy, Requirement.OWNER, "MYSQL", "PERFORMANCE_SCHEMA", "SYS");
+			addPolicies(functions, Requirement.DENY, "SLEEP", "BENCHMARK", "LOAD_FILE", "VERSION", "DATABASE", "SCHEMA",
+					"CONNECTION_ID");
+			addPolicies(variables, Requirement.DENY, "@@*");
+			addSchemaPolicies(relations, Requirement.OWNER, "MYSQL", "PERFORMANCE_SCHEMA", "SYS");
 		}
 		if (dialect == SqlDialect.GENERIC || dialect == SqlDialect.ORACLE) {
-			addPolicies(this.defaultFunctionPolicy, Requirement.DENY, "DBMS_LOCK.SLEEP", "DBMS_SESSION.SLEEP",
-					"UTL_HTTP.REQUEST", "UTL_INADDR.GET_HOST_ADDRESS", "UTL_FILE.FOPEN", "SYS_CONTEXT",
-					"ORA_DATABASE_NAME");
-			addPolicies(this.defaultRoutinePolicy, Requirement.DENY, "DBMS_SCHEDULER.*", "DBMS_JOB.*", "UTL_FILE.*",
-					"UTL_HTTP.*", "UTL_INADDR.*", "DBMS_LDAP.*");
-			addSchemaPolicies(this.defaultRelationPolicy, Requirement.OWNER, "SYS", "SYSTEM");
-			this.defaultRelationPolicy.put("V$*", Requirement.OWNER);
-			this.defaultRelationPolicy.put("*.V$*", Requirement.OWNER);
-			this.defaultRelationPolicy.put("GV$*", Requirement.OWNER);
-			this.defaultRelationPolicy.put("*.GV$*", Requirement.OWNER);
-			addPolicies(this.defaultRelationPolicy, Requirement.OWNER, "DBA_*", "ALL_*", "USER_*");
+			addPolicies(functions, Requirement.DENY, "DBMS_LOCK.SLEEP", "DBMS_SESSION.SLEEP", "UTL_HTTP.REQUEST",
+					"UTL_INADDR.GET_HOST_ADDRESS", "UTL_FILE.FOPEN", "SYS_CONTEXT", "ORA_DATABASE_NAME");
+			addPolicies(routines, Requirement.DENY, "DBMS_SCHEDULER.*", "DBMS_JOB.*", "UTL_FILE.*", "UTL_HTTP.*",
+					"UTL_INADDR.*", "DBMS_LDAP.*");
+			addSchemaPolicies(relations, Requirement.OWNER, "SYS", "SYSTEM");
+			relations.put("V$*", Requirement.OWNER);
+			relations.put("*.V$*", Requirement.OWNER);
+			relations.put("GV$*", Requirement.OWNER);
+			relations.put("*.GV$*", Requirement.OWNER);
+			addPolicies(relations, Requirement.OWNER, "DBA_*", "ALL_*", "USER_*");
 		}
-		addPolicies(this.defaultFunctionPolicy, Requirement.DENY, "CURRENT_USER", "SESSION_USER", "SYSTEM_USER", "USER",
-				"CURRENT_ROLE");
-		addPolicies(this.defaultKeywordPolicy, Requirement.DENY, "CURRENT_USER", "SESSION_USER", "SYSTEM_USER", "USER",
-				"CURRENT_ROLE", "CURRENT_SCHEMA");
-		addSchemaPolicies(this.defaultRelationPolicy, Requirement.OWNER, "INFORMATION_SCHEMA");
+		addPolicies(functions, Requirement.DENY, "CURRENT_USER", "SESSION_USER", "SYSTEM_USER", "USER", "CURRENT_ROLE");
+		addPolicies(keywords, Requirement.DENY, "CURRENT_USER", "SESSION_USER", "SYSTEM_USER", "USER", "CURRENT_ROLE",
+				"CURRENT_SCHEMA");
+		addSchemaPolicies(relations, Requirement.OWNER, "INFORMATION_SCHEMA");
+
+		Map<String, Map<String, Requirement>> policies = new LinkedHashMap<>();
+		policies.put(FUNCTION_POLICY_KEY, functions);
+		policies.put(VARIABLE_POLICY_KEY, variables);
+		policies.put(KEYWORD_POLICY_KEY, keywords);
+		policies.put(RELATION_POLICY_KEY, relations);
+		policies.put(ROUTINE_POLICY_KEY, routines);
+		return policies;
+	}
+
+	/**
+	 * The built-in identifier rules for a dialect, as the SQL query policy form
+	 * shows them: by policy property, each name or pattern to the access it
+	 * requires.
+	 *
+	 * @param dialect a {@code SQL_DIALECT} value, such as POSTGRESQL
+	 * @return each identifier policy property's built-in rules, name to access
+	 * @throws IllegalArgumentException when the dialect is not supported
+	 */
+	public static Map<String, Map<String, String>> getBuiltInIdentifierPolicies(String dialect) {
+		Map<String, Map<String, String>> policies = new LinkedHashMap<>();
+		builtInIdentifierPolicies(SqlDialect.from(dialect)).forEach((policyKey, rules) -> {
+			Map<String, String> named = new LinkedHashMap<>();
+			rules.forEach((identifier, requirement) -> named.put(identifier, requirement.name()));
+			policies.put(policyKey, named);
+		});
+		return policies;
 	}
 
 	private static void addPolicies(Map<String, Requirement> policy, Requirement requirement, String... identifiers) {
@@ -250,10 +307,60 @@ public class SqlQueryGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 	@IgnoreEngineLogging
 	public GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow, IEngine targetEngine) {
 		Map<String, String> keyValue = organizeKeys(ns, curRow);
-		String query = keyValue.get(QUERY_PARAM);
 		String databaseId = resolveDatabaseId(targetEngine, keyValue.get(DATABASE_ID_PARAM));
 		CallerAccess callerAccess = resolveCallerAccess(ns, databaseId);
-		return evaluateQuery(query, callerAccess);
+		String script = keyValue.get(SCRIPT_PARAM);
+		if (script != null) {
+			return evaluateScript(script, callerAccess);
+		}
+		return evaluateQuery(keyValue.get(QUERY_PARAM), callerAccess);
+	}
+
+	/**
+	 * Authorizes the statements of a script that runs in one transaction. Each
+	 * statement is split out the way the engine runs it and checked on its own, so
+	 * the multi-statement policy never applies to the script as a whole. The first
+	 * statement that is not allowed blocks the script, with its 1-based position in
+	 * the details.
+	 *
+	 * @param script       the statements, as the engine call joined them
+	 * @param callerAccess the caller's access to the database
+	 * @return the first blocking statement's result, or an allowed result
+	 */
+	GuardrailNounMetadata evaluateScript(String script, CallerAccess callerAccess) {
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("parser", "JSQLParser");
+		details.put("dialectPolicy", this.dialect.name());
+		details.put("callerAccess", callerAccess.name());
+		List<Map<String, Object>> violations = new ArrayList<>();
+
+		List<SqlScriptSplitter.Statement> statements;
+		try {
+			statements = SqlScriptSplitter.split(script);
+		} catch (IllegalArgumentException e) {
+			details.put("parserStatus", "FAILED");
+			details.put("parserError", e.getMessage());
+			applyRequirement(violations, "PARSER_FAILURE", this.dialect.name(), this.parserFailurePolicy, callerAccess);
+			return result(script, details, violations);
+		}
+		details.put("statementCount", statements.size());
+		if (statements.isEmpty()) {
+			addViolation(violations, "QUERY", "EMPTY", Requirement.DENY, callerAccess);
+			return result(script, details, violations);
+		}
+		for (int index = 0; index < statements.size(); index++) {
+			GuardrailNounMetadata statementResult = evaluateQuery(statements.get(index).body(), callerAccess);
+			if (!statementResult.isPass()) {
+				if (statementResult.getFullDetails() instanceof Map<?, ?> statementDetails) {
+					@SuppressWarnings("unchecked")
+					Map<String, Object> blocked = (Map<String, Object>) statementDetails;
+					blocked.put("statement", index + 1);
+					blocked.put("statementCount", statements.size());
+				}
+				return statementResult;
+			}
+		}
+		return result(script, details, violations);
 	}
 
 	String resolveDatabaseId(IEngine targetEngine, String configuredDatabaseId) {
@@ -714,7 +821,11 @@ public class SqlQueryGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 				`RECURSIVE_CTE_POLICY`, `MAX_JOINS`, `JOIN_LIMIT_POLICY`, and `MAX_QUERY_LENGTH`.
 				`MULTI_STATEMENT_POLICY` applies when raw multi-statement SQL reaches one database engine call. The
 				`SqlQuery` reactor's supported batch path AST-splits the script first, so the engine guardrail checks
-				each resulting statement independently.
+				each resulting statement independently. A script that `SqlQuery` runs in one transaction
+				(`transaction=true`) reaches `executeInTransaction` as a list of statements; map it to the `script`
+				parameter, which checks each statement on its own and blocks the whole script before any statement
+				runs when one is not allowed. A database whose pipeline guards `execQuery`, `insertData` or
+				`removeData` but has no `executeInTransaction` entry, and no `*` entry, refuses `transaction=true`.
 				`PROTECT_UNMATCHED_IDENTIFIERS` defaults to `true`. When enabled, known-dangerous identifier rules apply
 				to identifiers not matched by a configured rule. When disabled, unmatched identifiers have no extra
 				guardrail restriction. A configured `*` decides every value in its policy map, so there are no unmatched
@@ -754,6 +865,15 @@ public class SqlQueryGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 				        "inputMapping": { "query": "arg0" },
 				        "blockOnGuardrailFailure": true,
 				        "blockErrorMessage": "The SQL statement is not permitted by database policy."
+				      }
+				    }]},
+				    "executeInTransaction": { "input": [{
+				      "reactorClass": "prerna.reactor.interceptor.GenericGuardrailInputReactor",
+				      "params": {
+				        "guardrailEngineId": "%1$s",
+				        "inputMapping": { "script": "arg0" },
+				        "blockOnGuardrailFailure": true,
+				        "blockErrorMessage": "The SQL script is not permitted by database policy."
 				      }
 				    }]}
 				  }

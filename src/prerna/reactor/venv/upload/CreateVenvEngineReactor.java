@@ -40,6 +40,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -54,6 +55,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -90,6 +94,10 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 
+		if (AbstractSecurityUtils.adminOnlyVenvAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+			throwFunctionalityOnlyExposedForAdminsError();
+		}
+
 		organizeKeys();
 
 		String venvName = getVenvName();
@@ -103,6 +111,16 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 		// String venvName = getVenvName();
 		Map<String, Object> venvDetails = getVenvDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
+
+		NounMetadata warning = null;
+		if (global) {
+			if (AbstractSecurityUtils.adminOnlyEngineSetPublic(IEngine.CATALOG_TYPE.VENV)
+					&& !SecurityAdminUtils.userIsAdmin(user)) {
+				warning = NounMetadata.getWarningNounMessage(
+						"Public access can only be enabled by administrators. This item will be created as private.");
+				global = false;
+			}
+		}
 
 		String venvTypeStr = (String) venvDetails.get(IVenvEngine.VENV_TYPE);
 		if (venvTypeStr == null || (venvTypeStr = venvTypeStr.trim()).isEmpty()) {
@@ -152,6 +170,8 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 
 			venv.pullRequirementsFile();
 			venv.createVirtualEnv();
+			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_CREATE, AuditTargetType.VENV, venvId,
+					venvName, Map.of("global", global, "venvType", venvType.getVenvName()));
 
 			if (ClusterUtil.IS_CLUSTER) {
 				File[] engineSubFiles = specificEngineFolder.listFiles();
@@ -170,7 +190,12 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), venvId);
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP,
+				PixelOperationType.MARKET_PLACE_ADDITION);
+		if (warning != null) {
+			retNoun.addAdditionalReturn(warning);
+		}
+		return retNoun;
 	}
 
 	/**
