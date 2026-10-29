@@ -31,9 +31,12 @@ import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -442,6 +445,50 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "userEmail"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * The name and email of each user, by id and login type. A user's name falls
+	 * back to their username when they have none.
+	 *
+	 * @param users each user's id and login type
+	 * @return each user's name and email, in that order, keyed by the user; a user
+	 *         with no login is left out
+	 */
+	public static Map<Pair<String, String>, String[]> getNamesAndEmails(Collection<Pair<String, String>> users) {
+		Map<Pair<String, String>, String[]> found = new HashMap<>();
+		if (users == null || users.isEmpty()) {
+			return found;
+		}
+		Set<Pair<String, String>> wanted = new HashSet<>(users);
+		Set<String> ids = new LinkedHashSet<>();
+		for (Pair<String, String> user : wanted) {
+			ids.add(user.getValue0());
+		}
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		for (List<String> batch : Lists.partition(new ArrayList<>(ids), 500)) {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", batch));
+			try {
+				for (String[] row : QueryExecutionUtility.queryList(securityDb, qs,
+						rs -> new String[] { rs.getString("ID"), rs.getString("TYPE"), rs.getString("NAME"),
+								rs.getString("USERNAME"), rs.getString("EMAIL") })) {
+					Pair<String, String> user = Pair.with(row[0], row[1]);
+					if (wanted.contains(user)) {
+						String name = row[2] != null && !row[2].isBlank() ? row[2] : row[3];
+						found.put(user, new String[] { name, row[4] });
+					}
+				}
+			} catch (Exception e) {
+				throw new IllegalStateException("Failed to read the names of the users", e);
+			}
+		}
+		return found;
 	}
 
 	/**

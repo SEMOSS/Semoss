@@ -409,7 +409,7 @@ final class AutomationRunExecutionService {
 			Handler.DATABASE_WRITE;
 		case AutomationConstants.NODE_VECTOR_ADD, AutomationConstants.NODE_VECTOR_DELETE -> Handler.VECTOR_WRITE;
 		case AutomationConstants.NODE_MODEL_CHAT, AutomationConstants.NODE_MODEL_EMBEDDINGS,
-				AutomationConstants.NODE_MODEL_VISION, AutomationConstants.NODE_MODEL_NER ->
+				AutomationConstants.NODE_MODEL_VISION ->
 			Handler.MODEL;
 		case AutomationConstants.NODE_STORAGE_READ, AutomationConstants.NODE_STORAGE_UPLOAD,
 				AutomationConstants.NODE_STORAGE_DELETE ->
@@ -1664,6 +1664,10 @@ final class AutomationRunExecutionService {
 		}
 		if (Boolean.TRUE.equals(config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE))) {
 			options.put(CollaborationUtils.ROOM_OPTION_ROUTINE, true);
+			String delivery = stringValue(config.get(AutomationConstants.CONFIG_ROUTINE_DELIVERY));
+			if (delivery != null && !delivery.isBlank()) {
+				options.put(CollaborationUtils.ROOM_OPTION_ROUTINE_DELIVERY, delivery.trim());
+			}
 		}
 		return options.isEmpty() ? null : options;
 	}
