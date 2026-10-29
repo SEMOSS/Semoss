@@ -189,6 +189,20 @@ class ResourceAuditReadServiceTest {
 	}
 
 	@Test
+	void guardrailHitsShowWhichCheckActedButNotWhatItScreened() throws Exception {
+		event("hit", "GUARDRAIL_MASK", "MODEL", "a", "a", null);
+		db.execute(
+				"UPDATE USER_AUDIT_EVENTS SET DETAILS='{\"checkId\":\"check-1\",\"guardrailEngineName\":\"PII\",\"methodName\":\"askRoom\",\"phase\":\"INPUT\",\"action\":\"MASK\",\"screened\":{\"prompt\":\"my ssn\"}}' WHERE EVENT_ID='hit'");
+
+		var hit = (Map<?, ?>) ((List<?>) ResourceAuditReadService.read(user, "ENGINE", "a", Map.of()).get("events"))
+				.get(0);
+		assertEquals("GUARDRAIL_MASK", hit.get("EVENT_TYPE"));
+		assertEquals(
+				"{\"checkId\":\"check-1\",\"guardrailEngineName\":\"PII\",\"methodName\":\"askRoom\",\"phase\":\"INPUT\",\"action\":\"MASK\"}",
+				hit.get("DETAILS"));
+	}
+
+	@Test
 	void exportsShowHowTheyRanAndNothingElse() throws Exception {
 		projectOwners.when(() -> SecurityProjectUtils.userIsOwner(user, "p")).thenReturn(true);
 		event("app", "PROJECT_EXPORT", "PROJECT", "p", null, "p");

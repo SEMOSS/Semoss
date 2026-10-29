@@ -31,7 +31,9 @@ import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -89,6 +91,32 @@ public class QueryExecutionUtility {
 	 */
 	public static final StatementBinder NO_PARAMETERS = statement -> {
 	};
+
+	/**
+	 * Binds a list of strings to consecutive placeholders, in list order, such as
+	 * the values of an {@code IN (?, ?, ?)} list.
+	 *
+	 * @param ps     the statement to bind
+	 * @param first  the 1-based index of the placeholder the first value binds to
+	 * @param values the values, one per placeholder
+	 * @throws SQLException when a value cannot be bound
+	 */
+	public static void bindAll(PreparedStatement ps, int first, List<String> values) throws SQLException {
+		for (int i = 0; i < values.size(); i++) {
+			ps.setString(first + i, values.get(i));
+		}
+	}
+
+	/**
+	 * The placeholders for a list of values, such as {@code ?, ?, ?} for three, to
+	 * write inside an {@code IN (...)} list and bind with {@link #bindAll}.
+	 *
+	 * @param count the number of values
+	 * @return the placeholders, separated by commas
+	 */
+	public static String placeholders(int count) {
+		return String.join(", ", Collections.nCopies(count, "?"));
+	}
 
 	/**
 	 * Describes SQL text, ordered JDBC bind values, and a requested result-row
