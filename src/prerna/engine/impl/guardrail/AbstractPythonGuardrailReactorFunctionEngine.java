@@ -28,6 +28,7 @@
 package prerna.engine.impl.guardrail;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -170,6 +171,25 @@ public abstract class AbstractPythonGuardrailReactorFunctionEngine extends Abstr
 					cpwToInit.shutdown(false);
 				}
 				throw e;
+			}
+		} finally {
+			this.startServerLock.unlock();
+		}
+	}
+
+	/**
+	 * Stops the python process this guardrail started, so an instance opened again
+	 * starts its own and runs the current python files. The process's folder is
+	 * kept: it is the engine's {@code py} folder, which the startup script puts on
+	 * the python path for the guardrail's own modules.
+	 */
+	@Override
+	public void close() throws IOException {
+		super.close();
+		this.startServerLock.lock();
+		try {
+			if (this.cpw != null) {
+				this.cpw.shutdown(false);
 			}
 		} finally {
 			this.startServerLock.unlock();
