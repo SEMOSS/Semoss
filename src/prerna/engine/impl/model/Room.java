@@ -1353,7 +1353,8 @@ public class Room implements Serializable {
 							throw new IllegalArgumentException("Tool map must contain an id");
 						}
 					} catch (Exception e) {
-						classLogger.error("Unable to add tool map from room mcp", e);
+						Object id = mcpMap != null ? mcpMap.get("id") : null;
+						classLogger.error("Skipping room mcp " + Utility.cleanLogString(String.valueOf(id)), e);
 					}
 				}
 			} catch (ClassCastException e) {
@@ -1374,6 +1375,10 @@ public class Room implements Serializable {
 										AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE));
 						for (Map<String, Object> tool : tools != null ? tools : List.<Map<String, Object>>of()) {
 							String toolId = (String) tool.get("resource_id");
+							if (toolId == null) {
+								classLogger.warn("Skipping workspace mcp with no resource_id for workspaceId={}",
+										workspaceId);
+							}
 							// marked seen even on failure so CONFIG_JSON.mcps doesn't retry it
 							if (toolId != null && ensureUnique.add(toolId)) {
 								// one resource that can't produce tools (e.g. a knowledge base without
@@ -1398,9 +1403,15 @@ public class Room implements Serializable {
 							for (int i = 0; i < arr.length(); i++) {
 								JSONObject mcp = arr.optJSONObject(i);
 								if (mcp == null) {
+									classLogger.warn("Skipping CONFIG_JSON mcps[{}] (not an object) for workspaceId={}",
+											i, workspaceId);
 									continue;
 								}
 								String toolId = mcp.optString("id", null);
+								if (toolId == null || toolId.isEmpty()) {
+									classLogger.warn("Skipping CONFIG_JSON mcps[{}] with no id for workspaceId={}", i,
+											workspaceId);
+								}
 								if (toolId != null && !toolId.isEmpty() && ensureUnique.add(toolId)) {
 									try {
 										aggregated.addAll(
@@ -1603,6 +1614,7 @@ public class Room implements Serializable {
 		}
 
 		// Fallback: always return an empty list if nothing found
+		classLogger.warn("Skipping mcp {}: it returned no tools", Utility.cleanLogString(engineId));
 		return Collections.emptyList();
 	}
 
