@@ -30,6 +30,7 @@ package prerna.collaboration;
 import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -86,6 +87,8 @@ public final class BrainThreadClassifier {
 	private static final int TODAY_DAYS = 1;
 	private static final int WEEK_DAYS = 7;
 	static final int WAY_OUT_ASK_BAND = 15;
+	// a VIP of the best topic writing on the thread: this much surer it belongs there (untuned)
+	static final int VIP_FILING_POINTS = 10;
 
 	private BrainThreadClassifier() {
 	}
@@ -167,7 +170,6 @@ public final class BrainThreadClassifier {
 				});
 	}
 
-	@SuppressWarnings("unchecked")
 	private static Map<String, Object> fileTopics(User user, Insight insight, Progress progress) {
 		Context ctx = context(user, insight, false);
 		List<String> ids = ctx.topics().isEmpty() ? List.of() : CollaborationDbUtils.query(
@@ -193,15 +195,15 @@ public final class BrainThreadClassifier {
 			results.addAll(runAll(pool, ids, threadId -> {
 					Map<String, Object> read = BrainThreadMessages.read(ctx.user(), ctx.ownerId(), ctx.ownerType(),
 							threadId, ctx.window().messages(), BrainMessageSource.current());
-					List<Map<String, Object>> messages = (List<Map<String, Object>>) read.get("messages");
-					if (Boolean.TRUE.equals(read.get("muted")) || messages == null || messages.isEmpty()) {
+					List<Map<String, Object>> messages = used(read);
+					if (messages.isEmpty()) {
 						return new Result(threadId, null, null, null, "skipped", null, null, null);
 					}
 					String subject = CollaborationDbUtils.queryOne("SELECT SUBJECT FROM BRAIN_THREAD WHERE OWNER_ID = ? "
 							+ "AND OWNER_TYPE = ? AND THREAD_ID = ?", rs -> CollaborationDbUtils.getString(rs, "SUBJECT"),
 							ctx.ownerId(), ctx.ownerType(), threadId);
-					Filing filing = fileTopic(ctx, threadId,
-							modelScores(ctx, threadId, subject, messages, false), true);
+					Filing filing = fileTopic(ctx, threadId, modelScores(ctx, threadId, subject, messages, false), true,
+							vipTopics(ctx, (String) read.get("source"), messages));
 					if (filing.topicId() != null) {
 						CollaborationDbUtils.update("UPDATE WORK_ITEM SET LINK_TOPIC_ID = ? WHERE OWNER_ID = ? AND "
 								+ "OWNER_TYPE = ? AND THREAD_ID = ? AND LINK_TOPIC_ID IS NULL", filing.topicId(),
@@ -305,7 +307,8 @@ public final class BrainThreadClassifier {
 
 	private record Context(User user, Insight insight, String ownerId, String ownerType, BrainClassifier classifier,
 			BrainClassifier.Cutoffs cutoffs, List<BrainClassifier.TopicOption> topics, int fileAt, int askAt,
-			boolean dryRun, Self self, Set<String> vips, Set<String> followed, Set<String> automatedSenders,
+			boolean dryRun, Self self, Set<String> vips, Map<String, Set<String>> topicVips,
+			List<BrainRulesGate.Rule> rules, Set<String> followed, Set<String> automatedSenders,
 			Map<String, BrainClassifier.Scores> scored, Window window, ZoneId timeZone, BrainMailFolders.Tree folders,
 			Map<String, String> linkedFolders) {
 	}
@@ -336,12 +339,12 @@ public final class BrainThreadClassifier {
 				rs -> rs.getString(1), ownerId, ownerType, BrainFollow.FOLLOWING));
 		return new Context(user, insight, ownerId, ownerType, classifier, cutoffs(engine, classifier), topics,
 				(Integer) settings.get("fileAt"), (Integer) settings.get("askAt"), dryRun, self(ownerId, ownerType),
-				vips, followed, ConcurrentHashMap.newKeySet(), new ConcurrentHashMap<>(), window(engine),
+				vips, BrainTopicUtils.vipTopics(ownerId, ownerType), BrainRulesGate.activeRules(ownerId, ownerType),
+				followed, ConcurrentHashMap.newKeySet(), new ConcurrentHashMap<>(), window(engine),
 				BrainProfileUtils.timeZone(user), BrainMailFolders.load(ownerId, ownerType),
 				BrainMailFolders.linkedTopics(ownerId, ownerType));
 	}
 
-	@SuppressWarnings("unchecked")
 	private static Result classifyOne(Context ctx, String threadId) {
 		// database checks first: an automated thread needs no Graph read and no model call
 		Map<String, Object> thread = CollaborationDbUtils
@@ -372,8 +375,8 @@ public final class BrainThreadClassifier {
 		}
 		Map<String, Object> read = BrainThreadMessages.read(ctx.user(), ctx.ownerId(), ctx.ownerType(), threadId,
 				ctx.window().messages(), BrainMessageSource.current());
-		List<Map<String, Object>> messages = (List<Map<String, Object>>) read.get("messages");
-		if (Boolean.TRUE.equals(read.get("muted")) || messages == null || messages.isEmpty()) {
+		List<Map<String, Object>> messages = used(read);
+		if (messages.isEmpty()) {
 			return new Result(threadId, null, null, null, "skipped", null, null, null);
 		}
 		Map<String, Object> newest = messages.get(messages.size() - 1);
@@ -393,12 +396,22 @@ public final class BrainThreadClassifier {
 		// Owner-made links are never touched and automated mail gets no topic (a dry run scores both anyway)
 		String byFolder = automated || ctx.dryRun() ? null
 				: BrainMailFolders.topicFor(ctx.ownerId(), ctx.ownerType(), threadId, ctx.linkedFolders());
+		String source = (String) thread.get("source");
 		Filing filing = byFolder != null && linkFolder(ctx.ownerId(), ctx.ownerType(), threadId, byFolder)
 				? new Filing(byFolder, 100, "filed")
-				: fileTopic(ctx, threadId, scores, ctx.dryRun() || (!automated && !kept));
+				: fileTopic(ctx, threadId, scores, ctx.dryRun() || (!automated && !kept),
+						vipTopics(ctx, source, messages));
 		String topicId = filing.topicId();
 		Integer confidence = filing.confidence();
 		String band = filing.band();
+		// who wrote last, judged against the thread's topics now that it is filed
+		Set<String> topicIds = new HashSet<>(CollaborationDbUtils.query("SELECT TOPIC_ID FROM BRAIN_THREAD_TOPIC "
+				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?", rs -> rs.getString(1), ctx.ownerId(),
+				ctx.ownerType(), threadId));
+		if (topicId != null) {
+			topicIds.add(topicId);
+		}
+		BrainRulesGate.Standing sender = standing(ctx, newest, source, topicIds);
 
 		// work: the newest message decides; one item per newest message
 		String work;
@@ -412,7 +425,12 @@ public final class BrainThreadClassifier {
 								+ "AND THREAD_ID = ?", true, ctx.ownerId(), ctx.ownerType(), threadId);
 			}
 			return new Result(threadId, topicId, confidence, band, "automated", null, signals, null);
-		} else if (Boolean.TRUE.equals(newest.get("meeting"))) {
+		}
+		// just filed in a topic that ignores the sender: their message is not used
+		if (sender.keptOut()) {
+			return new Result(threadId, topicId, confidence, band, "skipped", null, signals, null);
+		}
+		if (Boolean.TRUE.equals(newest.get("meeting"))) {
 			// an invite, reply, or cancellation: the calendar has it, nothing to wait on or answer here
 			work = "fyi";
 			askType = "fyi";
@@ -438,12 +456,13 @@ public final class BrainThreadClassifier {
 			reasons.add(suggested ? "Might need you; confirm" : "Asks you to act");
 		}
 		double urgency = scores.urgency();
-		// a VIP's ask moves up one level, someone you follow half a level
-		boolean fromVip = newest.get("fromId") != null && ctx.vips().contains(newest.get("fromId"));
+		// a VIP's ask moves up one level (a topic VIP's only on that topic's threads), someone you follow half a level
+		boolean topicVip = BrainRulesGate.TOPIC_VIP.equals(sender.level());
+		boolean fromVip = topicVip || BrainRulesGate.VIP.equals(sender.level());
 		boolean fromFollowed = newest.get("fromId") != null && ctx.followed().contains(newest.get("fromId"));
 		if (fromVip && !"fyi".equals(work)) {
 			urgency = Math.min(3, urgency + 0.8);
-			reasons.add("From a VIP");
+			reasons.add(topicVip ? "From a VIP in this topic" : "From a VIP");
 		} else if (fromFollowed && !"fyi".equals(work) && !"waiting".equals(work)) {
 			urgency = Math.min(3, urgency + 0.4);
 			reasons.add("From someone you follow");
@@ -494,8 +513,10 @@ public final class BrainThreadClassifier {
 	private record Filing(String topicId, Integer confidence, String band) {
 	}
 
-	// files, asks about, or leaves the thread's topic from its scores; writes links unless a dry run
-	private static Filing fileTopic(Context ctx, String threadId, BrainClassifier.Scores scores, boolean allowed) {
+	// files, asks about, or leaves the thread's topic from its scores; writes links unless a dry run. vipTopics are
+	// the topics a sender here is a VIP in (vipTopics below)
+	private static Filing fileTopic(Context ctx, String threadId, BrainClassifier.Scores scores, boolean allowed,
+			Set<String> vipTopics) {
 		String topicId = null;
 		Integer confidence = null;
 		String band = allowed ? "unassigned" : null;
@@ -520,6 +541,10 @@ public final class BrainThreadClassifier {
 				// the eval); a near
 				// tie reads as no pick, so it stays unassigned instead of suggesting a topic
 				confidence = (int) Math.min(100, Math.round(900 * margin));
+			}
+			// surer, never a different topic: the VIP only counts for the topic the model already ranks first
+			if (vipTopics.contains(bestId)) {
+				confidence = Math.min(100, confidence + VIP_FILING_POINTS);
 			}
 			if (OTHER_TOPIC.equals(bestId)) {
 				band = "unassigned";
@@ -605,18 +630,49 @@ public final class BrainThreadClassifier {
 	}
 
 	// the same scores classifyOne would ask for, without writing anything; null for a muted or empty thread
-	@SuppressWarnings("unchecked")
 	private static BrainClassifier.Scores scoreOnly(Context ctx, String threadId) {
-		Map<String, Object> read = BrainThreadMessages.read(ctx.user(), ctx.ownerId(), ctx.ownerType(), threadId,
-				ctx.window().messages(), BrainMessageSource.current());
-		List<Map<String, Object>> messages = (List<Map<String, Object>>) read.get("messages");
-		if (Boolean.TRUE.equals(read.get("muted")) || messages == null || messages.isEmpty()) {
+		List<Map<String, Object>> messages = used(BrainThreadMessages.read(ctx.user(), ctx.ownerId(), ctx.ownerType(),
+				threadId, ctx.window().messages(), BrainMessageSource.current()));
+		if (messages.isEmpty()) {
 			return null;
 		}
 		String subject = CollaborationDbUtils.queryOne("SELECT SUBJECT FROM BRAIN_THREAD WHERE OWNER_ID = ? AND "
 				+ "OWNER_TYPE = ? AND THREAD_ID = ?", rs -> CollaborationDbUtils.getString(rs, "SUBJECT"), ctx.ownerId(),
 				ctx.ownerType(), threadId);
 		return modelScores(ctx, threadId, subject, messages, hasKeptLink(ctx, threadId));
+	}
+
+	// the messages read, less those of people kept out of the thread, as summaries and the assistant leave them
+	// out; none for a muted thread
+	@SuppressWarnings("unchecked")
+	private static List<Map<String, Object>> used(Map<String, Object> read) {
+		if (Boolean.TRUE.equals(read.get("muted")) || !(read.get("messages") instanceof List<?> messages)) {
+			return List.of();
+		}
+		return ((List<Map<String, Object>>) messages).stream()
+				.filter(message -> !Boolean.TRUE.equals(message.get("excluded"))).toList();
+	}
+
+	// the topics a sender here is a VIP in, unless kept out of that topic
+	private static Set<String> vipTopics(Context ctx, String source, List<Map<String, Object>> messages) {
+		Set<String> out = new HashSet<>();
+		for (Map<String, Object> message : messages) {
+			for (String topicId : ctx.topicVips().getOrDefault(message.get("fromId"), Set.of())) {
+				if (BrainRulesGate.TOPIC_VIP.equals(standing(ctx, message, source, List.of(topicId)).level())) {
+					out.add(topicId);
+				}
+			}
+		}
+		return out;
+	}
+
+	// the message's sender on a thread with these topics (BrainRulesGate.standing)
+	private static BrainRulesGate.Standing standing(Context ctx, Map<String, Object> message, String source,
+			Collection<String> topicIds) {
+		String personId = (String) message.get("fromId");
+		String from = BrainRulesGate.norm(CollaborationDbUtils.asString(message.get("fromAddress")));
+		return BrainRulesGate.standing(ctx.rules(), from == null ? "" : from, personId, null, source, topicIds,
+				ctx.topicVips().getOrDefault(personId, Set.of()), ctx.vips().contains(personId));
 	}
 
 	// every other sender on the thread is automated or sent it as machine mail, and the owner never wrote

@@ -411,6 +411,27 @@ class BrainMemoryDbUnitTests {
 				refs(BrainMemoryUtils.find(ownerId, ownerType, onBoth)));
 	}
 
+	@Test
+	void aTopicVipIsAMembersFlagThatGoesWithTheMembershipAndSurvivesAMerge() throws Exception {
+		topic("t-a", "Acme renewal");
+		topic("t-b", "Acme");
+		BrainTopicUtils.setTopicPerson(user, "t-a", "p-priya", BrainTopicUtils.MEMBER, null, true);
+		assertEquals(Map.of("p-priya", Set.of("t-a")), BrainTopicUtils.vipTopics(ownerId, ownerType));
+		// a role change alone keeps it; leaving the topic drops it, and coming back does not bring it back
+		assertEquals(true,
+				BrainTopicUtils.setTopicPerson(user, "t-a", "p-priya", BrainTopicUtils.MEMBER, "Lead").get("vip"));
+		assertEquals(false,
+				BrainTopicUtils.setTopicPerson(user, "t-a", "p-priya", BrainTopicUtils.REMOVED, null).get("vip"));
+		assertEquals(false,
+				BrainTopicUtils.setTopicPerson(user, "t-a", "p-priya", BrainTopicUtils.MEMBER, null).get("vip"));
+		// on both topics: the target keeps its own row, and the VIP with it
+		BrainTopicUtils.setTopicPerson(user, "t-a", "p-priya", BrainTopicUtils.MEMBER, null, true);
+		BrainTopicUtils.setTopicPerson(user, "t-b", "p-priya", BrainTopicUtils.MEMBER, null);
+		BrainTopicUtils.mergeTopics(user, "t-a", "t-b");
+		assertEquals(Map.of("p-priya", Set.of("t-b")), BrainTopicUtils.vipTopics(ownerId, ownerType));
+		assertEquals(true, BrainTopicUtils.getPeople(ownerId, ownerType, "t-b").get(0).get("vip"));
+	}
+
 	// ---- recall ----
 
 	@Test
@@ -478,6 +499,49 @@ class BrainMemoryDbUnitTests {
 		assertNull(BrainMemoryRecall.promptBlock(user, room));
 		assertEquals(false, BrainMemoryRecall.recallMemories(user, "th-1", null).get("enabled"));
 		assertThrows(IllegalArgumentException.class, () -> BrainMemoryUtils.requireAssistantMemory(user));
+	}
+
+	@Test
+	void aTopicIgnoreHoldsOnlyOnThatTopicsThreadsAndNeverIngestHoldsEverywhere() throws Exception {
+		person("p-mark", "Mark Liu", true);
+		topic("t-acme", "Acme");
+		for (String threadId : List.of("th-1", "th-2")) {
+			sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT) VALUES (?, ?, ?, "
+					+ "'outlook', 'Q4 budget')", ownerId, ownerType, threadId);
+			sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID, INCLUDED) VALUES "
+					+ "(?, ?, ?, 'p-priya', TRUE)", ownerId, ownerType, threadId);
+		}
+		sql("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, SOURCE) VALUES (?, ?, 'th-1', "
+				+ "'t-acme', 'you')", ownerId, ownerType);
+		// the topic's ignore list: Priya, in Acme only
+		sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, TOPIC_ID, PERSON_ID, CREATED_AT) VALUES "
+				+ "(?, ?, 'r-ignore', 'exclude_topic', 't-acme', 'p-priya', CURRENT_TIMESTAMP)", ownerId, ownerType);
+		String aboutPriya = save("Priya approves budgets", null, ABOUT_PRIYA);
+		// Mark is on neither thread, but this memory would otherwise come in through the topic
+		save("Mark signs Acme contracts", null, Map.of("type", "person", "id", "p-mark"),
+				Map.of("type", "topic", "id", "t-acme"));
+
+		assertEquals(List.of(), ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-1", null, 4000)));
+		assertEquals(List.of(aboutPriya), ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-2", null, 4000)));
+		assertEquals(0, BrainMemoryUtils.search(user, "Mark contracts", null, null).get("total"));
+	}
+
+	@Test
+	void ignoringSomeoneInATopicDismissesWhatTheyRaisedThereOnlyUntilTheRuleGoes() throws Exception {
+		topic("t-acme", "Acme");
+		sql("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, SOURCE) VALUES (?, ?, 'th-1', "
+				+ "'t-acme', 'you')", ownerId, ownerType);
+		for (String threadId : List.of("th-1", "th-2")) {
+			sql("INSERT INTO WORK_ITEM (OWNER_ID, OWNER_TYPE, ITEM_ID, THREAD_ID, ORIGIN, STATUS, ACTOR_ID) VALUES (?, ?, "
+					+ "?, ?, 'brain', 'open', 'p-priya')", ownerId, ownerType, "w-" + threadId, threadId);
+		}
+		String ruleId = (String) BrainRuleUtils.saveRule(user,
+				Map.of("kind", "exclude_topic", "topicId", "t-acme", "personId", "p-priya")).get("id");
+		assertEquals("dismissed", value("SELECT STATUS FROM WORK_ITEM WHERE ITEM_ID = 'w-th-1'"));
+		assertEquals("open", value("SELECT STATUS FROM WORK_ITEM WHERE ITEM_ID = 'w-th-2'"));
+
+		BrainRuleUtils.deleteRule(user, ruleId);
+		assertEquals("open", value("SELECT STATUS FROM WORK_ITEM WHERE ITEM_ID = 'w-th-1'"));
 	}
 
 	@SafeVarargs
@@ -877,9 +941,14 @@ class BrainMemoryDbUnitTests {
 		return memory;
 	}
 
+	// never ingest is the person's exclude_everywhere rule, as the person drawer saves it
 	private void person(String personId, String name, boolean neverIngest) throws Exception {
-		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, NEVER_INGEST) VALUES (?, ?, ?, ?, ?)",
-				ownerId, ownerType, personId, name, neverIngest);
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME) VALUES (?, ?, ?, ?)", ownerId,
+				ownerType, personId, name);
+		if (neverIngest) {
+			sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, PERSON_ID, CREATED_AT) VALUES (?, ?, ?, "
+					+ "'exclude_everywhere', ?, CURRENT_TIMESTAMP)", ownerId, ownerType, "never-" + personId, personId);
+		}
 	}
 
 	private void topic(String topicId, String name) throws Exception {

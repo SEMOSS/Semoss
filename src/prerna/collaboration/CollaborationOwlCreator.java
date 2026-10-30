@@ -249,7 +249,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("ENGAGEMENT", INTEGER_DATATYPE_NAME),
 				Pair.with("REASON", CLOB_DATATYPE_NAME),
 				Pair.with("CHANGED_BY", VARCHAR_255),
-				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
+				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME),
+				// VIP in this topic only; read for members (BrainRulesGate.standing)
+				Pair.with("IS_VIP", BOOLEAN_DATATYPE_NAME)));
 		// a chat's topics: linked, suggested (a soft tag) or dismissed (not suggested again)
 		addTable("BRAIN_TOPIC_ROOM", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
