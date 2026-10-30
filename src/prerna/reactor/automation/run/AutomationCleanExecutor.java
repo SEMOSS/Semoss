@@ -250,7 +250,7 @@ final class AutomationCleanExecutor {
 			}
 			resultFrame = frame;
 			validateOutputSize(resultFrame, outputVariable);
-			synchronizePythonFrame(resultFrame, outputVariable);
+			synchronizePythonFrame(resultFrame, outputVariable, operation);
 			resultFrame.clearCachedMetrics();
 			resultFrame.clearQueryCache();
 			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable,
@@ -320,6 +320,23 @@ final class AutomationCleanExecutor {
 		throw new IllegalArgumentException("Unsupported multi-frame Transform operation: " + operation.getValue());
 	}
 
+	/**
+	 * Merges into an isolated copy of the left input through the standard BI reactor.
+	 * A failed result is closed even when Merge returns that same working copy;
+	 * distinct wrappers sharing Python bindings are closed only once.
+	 *
+	 * @param insight        execution Insight that owns the frames
+	 * @param outputVariable alias for the isolated result
+	 * @param left           upstream left frame, never closed or mutated here
+	 * @param right          upstream right frame read through a query
+	 * @param leftColumn     validated left join key
+	 * @param rightColumn    validated right join key
+	 * @param joinType       supported BI join type
+	 * @param nodeId         executing node identifier for diagnostics
+	 * @return registered joined frame
+	 * @throws IllegalArgumentException if the join type is unsupported
+	 * @throws IllegalStateException    if merging or publishing the result fails
+	 */
 	private static AutomationFrameOutput.RegisteredFrame executeStandardJoin(Insight insight, String outputVariable,
 			ITableDataFrame left, ITableDataFrame right, String leftColumn, String rightColumn, String joinType,
 			String nodeId) {
@@ -349,7 +366,7 @@ final class AutomationCleanExecutor {
 			}
 			resultFrame = frame;
 			validateOutputSize(resultFrame, outputVariable);
-			synchronizePythonFrame(resultFrame, outputVariable);
+			synchronizePythonFrame(resultFrame, outputVariable, AutomationFrameOperation.JOIN);
 			resultFrame.clearCachedMetrics();
 			resultFrame.clearQueryCache();
 			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable,
@@ -360,7 +377,7 @@ final class AutomationCleanExecutor {
 			if (resultFrame != null && resultFrame != working) {
 				close(insight, outputVariable, resultFrame);
 			}
-			if (working != null && !sharesPythonBindings(working, resultFrame)) {
+			if (working != null && (working == resultFrame || !sharesPythonBindings(working, resultFrame))) {
 				close(insight, outputVariable, working);
 			}
 			throw new IllegalStateException(
@@ -424,13 +441,26 @@ final class AutomationCleanExecutor {
 		return safeScriptLiteral(config, key, scope, nodeId, null);
 	}
 
+	/**
+	 * Resolves a nonempty literal supported by the BI script builder. Spaces are
+	 * meaningful delimiters and are preserved; quotes, escapes and control
+	 * characters remain unsupported.
+	 *
+	 * @param config   node configuration
+	 * @param key      literal configuration key
+	 * @param scope    current Automation scope
+	 * @param nodeId   executing node identifier for diagnostics
+	 * @param fallback default used only when the key is absent
+	 * @return resolved literal without trimming whitespace
+	 * @throws IllegalArgumentException if the resolved value is empty or unsupported
+	 */
 	private static String safeScriptLiteral(Map<String, Object> config, String key, Map<String, Object> scope,
 			String nodeId, String fallback) {
 		Object configured = config.containsKey(key) ? config.get(key) : fallback;
 		Object resolved = AutomationScopeResolver.resolveExactOrLiteral(configured, scope,
 				"Transform " + key + " for node '" + nodeId + "'");
-		if (!(resolved instanceof String value) || value.isBlank()) {
-			throw new IllegalArgumentException("Transform node '" + nodeId + "' requires a nonblank " + key + ".");
+		if (!(resolved instanceof String value) || value.isEmpty()) {
+			throw new IllegalArgumentException("Transform node '" + nodeId + "' requires a nonempty " + key + ".");
 		}
 		if (value.length() > 100 || value.contains("'") || value.contains("\"") || value.contains("\\")
 				|| value.chars().anyMatch(Character::isISOControl)) {
@@ -491,11 +521,25 @@ final class AutomationCleanExecutor {
 
 	/**
 	 * Keeps bindings and cached query selectors aligned with the BI result before
-	 * publication.
+	 * publication. Split Unpivot removes its temporary split columns, including
+	 * columns retained by an earlier Split operation. Rebuild its metadata through
+	 * the existing frame API so result paging does not select those removed columns.
+	 * Other operations retain their BI-provided metadata.
+	 *
+	 * @param frame          the result frame owned by the execution Insight
+	 * @param outputVariable the node output alias bound to the native dataframe
+	 * @param operation      the completed clean or transform operation
+	 * @throws RuntimeException if binding or metadata synchronization fails; the
+	 *                          caller closes the failed result
 	 */
-	static void synchronizePythonFrame(ITableDataFrame frame, String outputVariable) {
+	static void synchronizePythonFrame(ITableDataFrame frame, String outputVariable,
+			AutomationFrameOperation operation) {
 		if (frame instanceof PandasFrame python) {
 			python.runScript(outputVariable + " = " + python.getWrapperName() + ".cache['data']");
+			if (operation == AutomationFrameOperation.SPLIT_UNPIVOT) {
+				classLogger.debug("Refreshing Split Unpivot metadata for Automation frame '{}'", outputVariable);
+				python.recreateMeta();
+			}
 			python.syncHeaders();
 		}
 	}

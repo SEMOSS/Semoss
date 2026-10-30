@@ -39,19 +39,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
@@ -59,6 +69,8 @@ import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PandasSyntaxHelper;
+import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
 import prerna.om.Insight;
@@ -66,6 +78,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.definition.AutomationFrameOperation;
 import prerna.reactor.automation.definition.AutomationNodeType;
@@ -74,7 +87,11 @@ import prerna.reactor.frame.PurgeReactor;
 import prerna.reactor.frame.py.TrimColumnsReactor;
 import prerna.reactor.imports.IImporter;
 import prerna.reactor.imports.ImportFactory;
+import prerna.reactor.imports.ImportUtility;
+import prerna.reactor.imports.MergeReactor;
+import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 class AutomationCleanExecutorUnitTests {
@@ -259,9 +276,79 @@ class AutomationCleanExecutorUnitTests {
 	void synchronizesPythonBindingsAfterBiFiltering() {
 		PandasFrame frame = mock(PandasFrame.class);
 		when(frame.getWrapperName()).thenReturn("cleanedw");
-		AutomationCleanExecutor.synchronizePythonFrame(frame, "cleaned");
+		AutomationCleanExecutor.synchronizePythonFrame(frame, "cleaned", AutomationFrameOperation.FILTER_EMPTY);
 		verify(frame).runScript("cleaned = cleanedw.cache['data']");
+		verify(frame, never()).recreateMeta();
 		verify(frame).syncHeaders();
+	}
+
+	@ParameterizedTest
+	@ValueSource(ints = { 0, 4 })
+	void splitUnpivotRemovesStaleSplitColumnsBeforePagingAndCapture(int rowCount) throws Exception {
+		PyTranslator translator = mock(PyTranslator.class);
+		PandasFrame frame = spy(new PandasFrame("cleaned", translator));
+		String[] columns = { "LABEL", "NAME", "STATUS" };
+		String[] selectors = { "cleaned__LABEL", "cleaned__NAME", "cleaned__STATUS" };
+		try {
+			// Split Unpivot has removed LABEL_0/LABEL_1 from Python, but the BI metadata
+			// still contains the columns created by the preceding Split operation.
+			ImportUtility.parseTableColumnsAndTypesToFlatTable(frame.getMetaData(),
+					new String[] { "LABEL", "LABEL_0", "LABEL_1", "NAME", "STATUS" },
+					new String[] { "STRING", "STRING", "STRING", "STRING", "STRING" }, "cleaned");
+			frame.syncHeaders();
+			assertEquals(5, frame.getQsHeaders().length);
+			Map<String, List<String>> sources = frame.getMetaData().getHeaderToSources();
+			when(translator.getStringArray(PandasSyntaxHelper.getColumns("cleaned"))).thenReturn(columns);
+			when(translator.getStringArray(PandasSyntaxHelper.getTypes("cleaned")))
+					.thenReturn(new String[] { "object", "object", "object" });
+			doReturn((long) rowCount).when(frame).size("cleaned");
+
+			AutomationCleanExecutor.synchronizePythonFrame(frame, "cleaned", AutomationFrameOperation.SPLIT_UNPIVOT);
+			assertArrayEquals(selectors, frame.getQsHeaders());
+			assertArrayEquals(columns, frame.getColumnHeaders());
+			assertEquals(sources.get("cleaned__NAME"), frame.getMetaData().getHeaderToSources().get("cleaned__NAME"));
+			InOrder synchronization = inOrder(frame);
+			synchronization.verify(frame).runScript("cleaned = " + frame.getWrapperName() + ".cache['data']");
+			synchronization.verify(frame).recreateMeta();
+			synchronization.verify(frame).syncHeaders();
+
+			IRawSelectWrapper rows = mock(IRawSelectWrapper.class);
+			when(rows.hasNext()).thenReturn(true, true, true, true, false);
+			HeadersDataRow first = new HeadersDataRow(columns, new Object[] { "Alice", "Alice", "replace_me" });
+			HeadersDataRow second = new HeadersDataRow(columns, new Object[] { "replace_me", "Alice", "replace_me" });
+			when(rows.next()).thenReturn(first, first, second, second);
+			doAnswer(invocation -> {
+				SelectQueryStruct query = invocation.getArgument(0);
+				assertEquals(List.of(selectors), query.getSelectors().stream()
+						.map(selector -> selector.getQueryStructName()).toList());
+				assertFalse(query.isDistinct());
+				assertEquals(0L, query.getOffset());
+				assertEquals(rowCount, query.getLimit());
+				return rows;
+			}).when(frame).query(any(SelectQueryStruct.class));
+			Insight insight = new Insight();
+			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, "cleaned", frame);
+			assertSame(frame, insight.getVarStore().get("cleaned").getValue());
+			assertEquals(3, output.summary().get("columnCount"));
+			assertEquals(List.of(Map.of("name", "LABEL", "type", "STRING"),
+					Map.of("name", "NAME", "type", "STRING"), Map.of("name", "STATUS", "type", "STRING")),
+					output.columns());
+			AutomationTableCaptureService.TableCapture capture = AutomationTableCaptureService.capture(output, "unpivot");
+			assertEquals(rowCount, capture.rowCount());
+			List<Object> expected = rowCount == 0 ? List.of() : List.of(
+					Map.of("LABEL", "Alice", "NAME", "Alice", "STATUS", "replace_me"),
+					Map.of("LABEL", "Alice", "NAME", "Alice", "STATUS", "replace_me"),
+					Map.of("LABEL", "replace_me", "NAME", "Alice", "STATUS", "replace_me"),
+					Map.of("LABEL", "replace_me", "NAME", "Alice", "STATUS", "replace_me"));
+			assertEquals(expected, AutomationTableCaptureService.page(capture, 0, rowCount));
+			if (rowCount == 0) {
+				verify(frame, never()).query(any(SelectQueryStruct.class));
+			} else {
+				verify(rows).close();
+			}
+		} finally {
+			frame.close();
+		}
 	}
 
 	@ParameterizedTest
@@ -285,7 +372,7 @@ class AutomationCleanExecutorUnitTests {
 		when(metadata.getHeaderTypeAsString("cleaned__" + newColumn)).thenReturn("STRING");
 		when(metadata.getHeaderTypeAsString("cleaned__VALUE")).thenReturn("DOUBLE");
 		when(frame.getWrapperName()).thenReturn("cleanedw");
-		AutomationCleanExecutor.synchronizePythonFrame(frame, "cleaned");
+		AutomationCleanExecutor.synchronizePythonFrame(frame, "cleaned", AutomationFrameOperation.DUPLICATE_COLUMN);
 		assertArrayEquals(selectors.toArray(String[]::new), frame.getQsHeaders());
 
 		IRawSelectWrapper rows = mock(IRawSelectWrapper.class);
@@ -316,6 +403,212 @@ class AutomationCleanExecutorUnitTests {
 	@Test
 	void rejectsAndClosesAnOversizedSingleFrameResultBeforeRegistration() throws Exception {
 		exerciseCopy(false, false, AutomationConstants.SAVED_RESULT_MAX_ROWS + 1);
+	}
+
+	private static Stream<Arguments> supportedDelimiters() {
+		return Stream.concat(Stream.of(Arguments.of("concatenate", null, " ")),
+				Stream.of("concatenate", "split", "splitUnpivot").flatMap(operation -> Stream.of(
+						Arguments.of(operation, " ", " "),
+						Arguments.of(operation, "  ", "  "),
+						Arguments.of(operation, "${separator}", " "),
+						Arguments.of(operation, ",", ","))));
+	}
+
+	@ParameterizedTest
+	@MethodSource("supportedDelimiters")
+	void passesDelimitersUnchangedToTheBiReactor(String operation, String configured, String expected) throws Exception {
+		Insight insight = new Insight();
+		PandasFrame source = pythonFrame("input");
+		PandasFrame copied = pythonFrame("cleaned");
+		SelectQueryStruct query = source.getMetaData().getFlatTableQs(false);
+		IRawSelectWrapper rows = mock(IRawSelectWrapper.class);
+		IImporter importer = mock(IImporter.class);
+		when(source.query(query)).thenReturn(rows);
+		Class<? extends AbstractReactor> reactorClass = switch (operation) {
+			case "concatenate" -> prerna.reactor.frame.py.JoinColumnsReactor.class;
+			case "split" -> prerna.reactor.frame.py.SplitColumnsReactor.class;
+			default -> prerna.reactor.frame.py.SplitUnpivotReactor.class;
+		};
+		Map<String, Object> config = new LinkedHashMap<>(Map.of("source", "${input}", "operation", operation,
+				"columns", List.of("ID", "NAME"), "newColumn", "COMBINED"));
+		if (configured != null) {
+			config.put("delimiter", configured);
+		}
+		try (MockedStatic<FrameFactory> factory = mockStatic(FrameFactory.class);
+				MockedStatic<ImportFactory> imports = mockStatic(ImportFactory.class);
+				MockedConstruction<? extends AbstractReactor> reactors = mockConstruction(reactorClass,
+						(reactor, context) -> when(reactor.execute())
+								.thenReturn(new NounMetadata(copied, PixelDataType.FRAME)))) {
+			factory.when(() -> FrameFactory.getFrame(insight, "PY", "cleaned")).thenReturn(copied);
+			imports.when(() -> ImportFactory.getImporter(copied, query, rows)).thenReturn(importer);
+			AutomationFrameOutput.RegisteredFrame output = AutomationCleanExecutor.execute(insight, "cleaned",
+					AutomationNodeType.DATA_TRANSFORM, config,
+					Map.of("input", registeredFrame("input", source), "separator", " "), "transform");
+			ArgumentCaptor<NounStore> nouns = ArgumentCaptor.forClass(NounStore.class);
+			verify(reactors.constructed().get(0)).setNounStore(nouns.capture());
+			assertEquals(expected, nouns.getValue().getNoun(ReactorKeysEnum.DELIMITER.getKey()).get(0));
+			assertSame(copied, output.frame());
+			assertSame(copied, insight.getVarStore().get("cleaned").getValue());
+			assertFalse(query.isDistinct());
+			verify(importer).insertData();
+			verify(rows).close();
+			verify(source, never()).close();
+			verify(copied, never()).close();
+			if ("splitUnpivot".equals(operation)) {
+				verify(copied).recreateMeta();
+			} else {
+				verify(copied, never()).recreateMeta();
+			}
+		}
+	}
+
+	@Test
+	void closesSplitUnpivotCopyWhenMetadataRefreshFails() throws Exception {
+		Insight insight = new Insight();
+		PandasFrame source = pythonFrame("input");
+		PandasFrame copied = pythonFrame("cleaned");
+		insight.getVarStore().put("input", new NounMetadata(source, PixelDataType.FRAME));
+		SelectQueryStruct query = source.getMetaData().getFlatTableQs(false);
+		IRawSelectWrapper rows = mock(IRawSelectWrapper.class);
+		IImporter importer = mock(IImporter.class);
+		when(source.query(query)).thenReturn(rows);
+		IllegalStateException failure = new IllegalStateException("Metadata refresh failed");
+		doThrow(failure).when(copied).recreateMeta();
+		try (MockedStatic<FrameFactory> factory = mockStatic(FrameFactory.class);
+				MockedStatic<ImportFactory> imports = mockStatic(ImportFactory.class);
+				MockedConstruction<prerna.reactor.frame.py.SplitUnpivotReactor> reactors = mockConstruction(
+						prerna.reactor.frame.py.SplitUnpivotReactor.class,
+						(reactor, context) -> when(reactor.execute())
+								.thenReturn(new NounMetadata(copied, PixelDataType.FRAME)))) {
+			factory.when(() -> FrameFactory.getFrame(insight, "PY", "cleaned")).thenReturn(copied);
+			imports.when(() -> ImportFactory.getImporter(copied, query, rows)).thenReturn(importer);
+			IllegalStateException error = assertThrows(IllegalStateException.class,
+					() -> AutomationCleanExecutor.execute(insight, "cleaned", AutomationNodeType.DATA_TRANSFORM,
+							Map.of("source", "${input}", "operation", "splitUnpivot", "columns", List.of("NAME"),
+									"delimiter", " "), Map.of("input", registeredFrame("input", source)), "unpivot"));
+			assertSame(failure, error.getCause());
+			verify(copied).close();
+			verify(rows).close();
+			verify(source, never()).close();
+			assertNull(insight.getVarStore().get("cleaned"));
+			assertFalse(insight.getVarStore().getAllCreatedFrames().contains(copied));
+			assertSame(source, insight.getVarStore().get("input").getValue());
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "", "'", "\"", "\\", "\n", "\t" })
+	void rejectsUnsupportedDelimitersBeforeCopyingTheFrame(String delimiter) throws Exception {
+		PandasFrame source = pythonFrame("input");
+		assertThrows(IllegalArgumentException.class, () -> AutomationCleanExecutor.execute(new Insight(), "cleaned",
+				AutomationNodeType.DATA_TRANSFORM,
+				Map.of("source", "${input}", "operation", "split", "columns", List.of("NAME"), "delimiter", delimiter),
+				Map.of("input", registeredFrame("input", source)), "split"));
+		verify(source, never()).query(any(SelectQueryStruct.class));
+		verify(source, never()).close();
+	}
+
+	private enum JoinOutcome {
+		SUCCESS, OVERSIZED, HEADER_FAILURE, REGISTRATION_FAILURE
+	}
+
+	private static Stream<Arguments> joinOutcomes() {
+		return Stream.of(JoinOutcome.values()).flatMap(outcome -> Stream.of(
+				Arguments.of(outcome, false), Arguments.of(outcome, true)));
+	}
+
+	@ParameterizedTest
+	@MethodSource("joinOutcomes")
+	void joinOwnsOnlyTheWorkingResult(JoinOutcome outcome, boolean replacementWrapper) throws Exception {
+		Insight insight = new Insight();
+		PandasFrame left = pythonFrame("left");
+		PandasFrame right = pythonFrame("right");
+		PandasFrame copied = pythonFrame("joined");
+		PandasFrame result = replacementWrapper ? pythonFrame("joined") : copied;
+		insight.getVarStore().put("left", new NounMetadata(left, PixelDataType.FRAME));
+		insight.getVarStore().put("right", new NounMetadata(right, PixelDataType.FRAME));
+		SelectQueryStruct query = left.getMetaData().getFlatTableQs(false);
+		SelectQueryStruct rightQuery = right.getMetaData().getFlatTableQs(false);
+		IRawSelectWrapper rows = mock(IRawSelectWrapper.class);
+		IImporter importer = mock(IImporter.class);
+		when(left.query(query)).thenReturn(rows);
+		switch (outcome) {
+			case OVERSIZED -> when(result.size("joined")).thenReturn(AutomationConstants.SAVED_RESULT_MAX_ROWS + 1);
+			case HEADER_FAILURE -> doThrow(new IllegalStateException("Header synchronization failed"))
+					.when(result).syncHeaders();
+			case REGISTRATION_FAILURE -> when(result.getQsHeaders())
+					.thenThrow(new IllegalStateException("Result description failed"));
+			case SUCCESS -> { }
+		}
+		try (MockedStatic<FrameFactory> factory = mockStatic(FrameFactory.class);
+				MockedStatic<ImportFactory> imports = mockStatic(ImportFactory.class);
+				MockedConstruction<MergeReactor> reactors = mockConstruction(MergeReactor.class,
+						(reactor, context) -> when(reactor.execute()).thenAnswer(invocation -> {
+							NounMetadata noun = new NounMetadata(result, PixelDataType.FRAME);
+							// Merge may publish its result before Automation validates/registers it.
+							insight.getVarStore().put("joined", noun);
+							return noun;
+						}))) {
+			factory.when(() -> FrameFactory.getFrame(insight, "PY", "joined")).thenReturn(copied);
+			imports.when(() -> ImportFactory.getImporter(copied, query, rows)).thenReturn(importer);
+			Map<String, Object> config = Map.of("source", "${left}", "rightSource", "${right}",
+					"operation", "join", "column", "ID", "rightColumn", "ID", "joinType", "inner.join");
+			Map<String, Object> scope = Map.of("left", registeredFrame("left", left),
+					"right", registeredFrame("right", right));
+			if (outcome == JoinOutcome.SUCCESS) {
+				AutomationFrameOutput.RegisteredFrame output = AutomationCleanExecutor.execute(insight, "joined",
+						AutomationNodeType.DATA_TRANSFORM, config, scope, "join");
+				assertSame(result, output.frame());
+				assertSame(result, insight.getVarStore().get("joined").getValue());
+				verify(result, never()).close();
+				verify(copied, never()).close();
+			} else {
+				IllegalStateException error = assertThrows(IllegalStateException.class,
+						() -> AutomationCleanExecutor.execute(insight, "joined", AutomationNodeType.DATA_TRANSFORM,
+								config, scope, "join"));
+				assertTrue(error.getMessage().startsWith("Unable to join tables for node 'join':"));
+				assertNotNull(error.getCause());
+				verify(result).close();
+				if (replacementWrapper) {
+					verify(copied, never()).close();
+				}
+				assertNull(insight.getVarStore().get("joined"));
+				assertFalse(insight.getVarStore().getAllCreatedFrames().contains(result));
+			}
+			ArgumentCaptor<NounStore> nouns = ArgumentCaptor.forClass(NounStore.class);
+			verify(reactors.constructed().get(0)).setNounStore(nouns.capture());
+			assertSame(rightQuery, nouns.getValue().getNoun(ReactorKeysEnum.QUERY_STRUCT.getKey()).get(0));
+			assertFalse(query.isDistinct());
+			assertFalse(rightQuery.isDistinct());
+			verify(importer).insertData();
+			verify(rows).close();
+			verify(left, never()).close();
+			verify(right, never()).close();
+			assertSame(left, insight.getVarStore().get("left").getValue());
+			assertSame(right, insight.getVarStore().get("right").getValue());
+		}
+	}
+
+	/** Creates frame metadata without invoking Python or a platform engine. */
+	private static PandasFrame pythonFrame(String name) {
+		PandasFrame frame = mock(PandasFrame.class);
+		OwlTemporalEngineMeta metadata = mock(OwlTemporalEngineMeta.class);
+		when(frame.getName()).thenReturn(name);
+		when(frame.getWrapperName()).thenReturn(name + "w");
+		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
+		when(frame.getColumnHeaders()).thenReturn(new String[] { "ID", "NAME" });
+		when(frame.getQsHeaders()).thenReturn(new String[] { name + "__ID", name + "__NAME" });
+		when(frame.getMetaData()).thenReturn(metadata);
+		when(metadata.getHeaderTypeAsString(any(String.class))).thenReturn("STRING");
+		when(metadata.getFlatTableQs(false)).thenReturn(new SelectQueryStruct());
+		when(frame.getFrameFilters()).thenReturn(new GenRowFilters());
+		when(frame.size(name)).thenReturn(2L);
+		return frame;
+	}
+
+	private static AutomationFrameOutput.RegisteredFrame registeredFrame(String name, ITableDataFrame frame) {
+		return new AutomationFrameOutput.RegisteredFrame(name, frame,
+				Map.of("rowCount", 2L, "columnCount", 2, "dataType", "table"), "PY");
 	}
 
 	private void exerciseCopy(boolean fail, boolean replaceFrame) throws Exception {
