@@ -204,7 +204,7 @@ public final class CollaborationAgentTools {
 	// said first in a mail tool's description, so the model knows which side of Brain it is on
 	private static final Map<String, String> SOURCE_NOTES = Map.of(
 			"ListTopics", "[Brain: topics, or one topic in full with its people]",
-			"EditTopic", "[Brain: changes a topic]",
+			"EditTopic", "[Brain: changes a topic, or creates one]",
 			"CompleteGoal", "[Brain: completes an existing goal in this chat's topics]",
 			"EditThread", "[Brain: changes a thread's topics]",
 			"TagTopic", "[Brain: tags this chat with a topic]",
@@ -304,6 +304,12 @@ public final class CollaborationAgentTools {
 		JSONObject tool = tools().get(toolName);
 		if (tool == null) {
 			return ToolExecutionResult.error(null, "Unknown collaboration tool: " + toolName);
+		}
+		// models fill optional arguments with "" (ListTopics status "" failed, accountId "" matched no topic),
+		// so a blank argument is one left out
+		if (params != null) {
+			params = new LinkedHashMap<>(params);
+			params.values().removeIf(value -> value instanceof String text && text.isBlank());
 		}
 		JSONObject meta = tool.getJSONObject("_meta");
 		JSONObject inputSchema = tool.optJSONObject("inputSchema");

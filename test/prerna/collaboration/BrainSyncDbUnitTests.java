@@ -241,6 +241,55 @@ class BrainSyncDbUnitTests {
 	}
 
 	@Test
+	void theAssistantPutsEmailsBrainHasNotReadInATopicThroughTheSyncsImport() throws Exception {
+		// G1 is in Brain already; G2 and an Uber receipt are only in the mailbox
+		BrainSync.importHeaders(user, ownerId, ownerType, headers, List.of(mailbox.get(0)));
+		mailbox.add(email("G3", "conv-3", "Your Thursday morning trip with Uber", "noreply@uber.com",
+				"owner@test.com"));
+		mailbox.add(email("G4", "conv-4", "Your Friday trip with Uber", "noreply@uber.com", "owner@test.com"));
+		BrainMailHeaderSource outlook = new BrainMailHeaderSource() {
+			@Override
+			public Map<String, Object> me(User user) throws Exception {
+				return headers.me(user);
+			}
+
+			@Override
+			public Map<String, Object> manager(User user) {
+				return null;
+			}
+
+			@Override
+			public List<Map<String, Object>> list(User user, String folder, Instant since, int max) {
+				return List.of();
+			}
+
+			@Override
+			public Map<String, Object> message(User user, String messageId) {
+				return mailbox.stream().filter(header -> messageId.equals(header.get("id"))).findFirst().orElse(null);
+			}
+		};
+		try (MockedStatic<BrainMailHeaderSource> source = mockStatic(BrainMailHeaderSource.class)) {
+			source.when(BrainMailHeaderSource::current).thenReturn(outlook);
+			Map<String, Object> result = BrainAgentEdits.editTopic(user, null, null, "Uber", null, null, null, null,
+					null, null, null, null, null, List.of("G1", "G2", "G3"));
+			assertEquals(List.of("created Uber", "added 3 conversations"), result.get("changes"));
+			assertEquals(3, count("BRAIN_MESSAGE"));
+			assertEquals(3, count("BRAIN_THREAD_TOPIC"));
+
+			// an id the mailbox does not have, or mail that cannot come in, stops the call before the topic is made
+			assertThrows(IllegalArgumentException.class, () -> BrainAgentEdits.editTopic(user, null, null, "Lyft",
+					null, null, null, null, null, null, null, null, null, List.of("G9")));
+			sql("UPDATE SOURCE_CONNECTION SET ENABLED = FALSE WHERE OWNER_ID = ? AND OWNER_TYPE = ?", ownerId,
+					ownerType);
+			assertTrue(assertThrows(IllegalArgumentException.class, () -> BrainAgentEdits.editTopic(user, null, null,
+					"Lyft", null, null, null, null, null, null, null, null, null, List.of("G4"))).getMessage()
+					.contains("cannot be added"));
+		}
+		assertEquals(1, count("BRAIN_TOPIC"));
+		assertEquals(3, count("BRAIN_MESSAGE"));
+	}
+
+	@Test
 	void anOwnerWhoseSignInExpiredIsSkippedAndNotReportedAsSynced() throws Exception {
 		try (MockedStatic<MicrosoftGraphCredentialStore> credentials = mockStatic(MicrosoftGraphCredentialStore.class);
 				MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class)) {
