@@ -56,6 +56,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.Normalizer;
@@ -65,6 +66,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -4613,6 +4615,17 @@ public final class Utility {
 	public static java.sql.Timestamp getSqlTimestampUTC(SemossDate semossdate) {
 		ZonedDateTime gmt = semossdate.getLocalDateTime().atZone(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+	}
+
+	/**
+	 * A timestamp that holds UTC time, as {@link #getCurrentSqlTimestampUTC()}
+	 * gives, as ISO text, such as 2026-10-29T18:30:00Z.
+	 *
+	 * @param timestamp the UTC timestamp
+	 * @return the ISO text, ending in Z
+	 */
+	public static String getSqlTimestampToString(Timestamp timestamp) {
+		return timestamp.toLocalDateTime().toInstant(ZoneOffset.UTC).toString();
 	}
 
 	/**

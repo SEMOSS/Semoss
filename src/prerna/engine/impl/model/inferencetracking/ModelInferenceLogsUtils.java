@@ -198,7 +198,14 @@ public class ModelInferenceLogsUtils {
 				OwlIndex.of("AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN", "USER_ID", "WORKSPACE_ID",
 						"DATE_CREATED"),
 				OwlIndex.of("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN", "USER_ID", "ROOM_ID", "DATE_CREATED"),
-				OwlIndex.of("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID")));
+				OwlIndex.of("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID"),
+				// hit limits count a room's hits, a user's hits in a window, and check a
+				// user's lock on every call to an engine that has limits
+				OwlIndex.of("GUARDRAIL_HIT_ENGINE_ROOM_INDEX", "GUARDRAIL_HIT", "ENGINE_ID", "ROOM_ID"),
+				OwlIndex.of("GUARDRAIL_HIT_ENGINE_USER_DATE_INDEX", "GUARDRAIL_HIT", "ENGINE_ID", "USER_ID",
+						"DATE_CREATED"),
+				OwlIndex.of("GUARDRAIL_LOCK_ENGINE_USER_INDEX", "GUARDRAIL_LOCK", "ENGINE_ID", "USER_ID",
+						"LOCKED_UNTIL")));
 	}
 
 	/**

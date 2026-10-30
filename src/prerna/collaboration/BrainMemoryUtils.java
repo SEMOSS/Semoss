@@ -661,8 +661,12 @@ public final class BrainMemoryUtils {
 
 	/** People the owner excluded from assistant context; their memories are never recalled or searched. */
 	static Set<String> neverIngest(String ownerId, String ownerType) {
-		return new HashSet<>(CollaborationDbUtils.query("SELECT PERSON_ID FROM BRAIN_PERSON" + OWNED
-				+ " AND NEVER_INGEST = ?", rs -> rs.getString("PERSON_ID"), ownerId, ownerType, true));
+		// the person's never-ingest rules, as the gate and the person drawer read them; BRAIN_PERSON.NEVER_INGEST
+		// is never set
+		return new HashSet<>(CollaborationDbUtils.query("SELECT PERSON_ID FROM BRAIN_RULE" + OWNED
+				+ " AND DISABLED_AT IS NULL AND PERSON_ID IS NOT NULL AND KIND IN (?, ?)",
+				rs -> rs.getString("PERSON_ID"), ownerId, ownerType, BrainRuleUtils.EXCLUDE_EVERYWHERE,
+				BrainRuleUtils.NEVER_SENDER));
 	}
 
 	/** About, or said by, someone in excluded. */

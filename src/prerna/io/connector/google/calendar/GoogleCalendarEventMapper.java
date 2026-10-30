@@ -152,6 +152,8 @@ public final class GoogleCalendarEventMapper {
 				"transparent".equals(event.get("transparency")) ? "free" : "busy", null, ownResponse(event, organizer),
 				reminderOf(event.get("reminders")), colorId == null ? List.of() : List.of(colorId.toString()),
 				event.get("recurringEventId") != null || event.get("recurrence") != null,
+				event.get("recurrence") != null ? ValueUtils.toStringOrNull(event.get("id"))
+						: ValueUtils.toStringOrNull(event.get("recurringEventId")),
 				descriptionOf(event.get("description")));
 	}
 
