@@ -207,9 +207,11 @@ public final class BrainProfileUtils {
 			if (style.containsKey("summary")) {
 				CollaborationDbUtils.addSet(sets, params, "STYLE_SUMMARY",
 						CollaborationDbUtils.asString(style.get("summary")));
-				// an accepted proposal stays "learned and confirmed"; what the owner typed is "you"
+				// an accepted proposal stays "learned and confirmed"; what the owner typed is "you"; a reset
+				// style says confirmed false and goes back to unconfirmed whatever the summary is
 				boolean accepted = Boolean.TRUE.equals(style.get("confirmed")) && LEARNED.equals(style.get("source"));
-				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE", accepted ? CONFIRMED : YOU);
+				String state = Boolean.FALSE.equals(style.get("confirmed")) ? LEARNED : accepted ? CONFIRMED : YOU;
+				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE", state);
 			} else if (style.containsKey("confirmed")) {
 				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE",
 						Boolean.TRUE.equals(style.get("confirmed")) ? CONFIRMED : LEARNED);

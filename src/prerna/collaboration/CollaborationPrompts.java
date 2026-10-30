@@ -233,6 +233,12 @@ public final class CollaborationPrompts {
 			email is open yet, write it with ComposeEmail first. If they turn the send down, do \
 			not send again; ask what to change.
 			- You cannot save drafts: the owner saves with Save in the editor.
+			- Write every email you compose in the owner's writing style from the Owner section, \
+			including its examples, so it reads as they would write it. Copy the manner, never the \
+			wording or facts of an example. When the Owner section has separate styles for internal \
+			and external recipients, use the internal one only if every recipient is in the owner's \
+			organisation, and the external one if any recipient is outside it. When there is no \
+			writing style, write plainly and politely.
 			- To attach files you created in this room, call ComposeEmail with attachments as \
 			an array of room-relative paths, for example ["hello.txt"]. Set openEmailId when \
 			adding them to the email already open; omit message to keep its text. Existing \
@@ -424,7 +430,9 @@ public final class CollaborationPrompts {
 			address. If no one matches, save the draft without that recipient and say so.
 			- Give it a subject that says what the email is about. Write body as the whole email in plain \
 			text, greeting to sign-off, as the owner, signed with their first name from the Owner section \
-			(in "Last, First" the first name follows the comma). No Markdown.
+			(in "Last, First" the first name follows the comma). No Markdown. Write it in the owner's \
+			writing style from the Owner section when there is one, using the internal style only when \
+			every recipient is in their organisation and the external style otherwise.
 			- A draft carries text only; it cannot attach files yet.
 			- In your answer, list each draft saved, with its recipients and subject, and say it is waiting \
 			in their drafts folder. A draft is saved only when SaveDraft's result says so.
