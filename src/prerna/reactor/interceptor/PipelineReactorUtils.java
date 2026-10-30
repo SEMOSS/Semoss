@@ -37,7 +37,6 @@ public final class PipelineReactorUtils {
 	public static final String OUTPUT_REACTOR_NAME = "outputReactorName";
 	public static final String IS_SUCCESS = "isSuccess";
 
-	// public static final String REACTOR_SPAN_ID = "reactorSpanId";
 	public static final String METHOD_NAME = "methodName";
 	public static final String ARGUMENTS = "arguments";
 	public static final String RESULT = "result";
@@ -49,8 +48,14 @@ public final class PipelineReactorUtils {
 	public static final String PASS_DETAILS = "passDetails";
 	public static final String MASKED = "masked";
 	public static final String SHORT_CIRCUIT_RESPONSE = "shortCircuitResponse";
-	public static final String CLOSE_ROOM = "closeRoom";
 	public static final String BLOCK_ERROR_MESSAGE = "blockErrorMessage";
+	/** A check's id in its engine's pipeline file, which hit limits name it by */
+	public static final String CHECK_ID = "checkId";
+	/** The guardrail engine a check ran, and its name, for the audit trail */
+	public static final String GUARDRAIL_ENGINE_ID = "guardrailEngineId";
+	public static final String GUARDRAIL_ENGINE_NAME = "guardrailEngineName";
+	/** The values a check handed its guardrail engine to screen */
+	public static final String SCREENED_PARAMETERS = "guardrailEngineParams";
 
 	private PipelineReactorUtils() {
 		// private constructor to prevent instantiation

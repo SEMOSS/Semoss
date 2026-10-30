@@ -201,6 +201,7 @@ public final class UserAuditTrailUtils {
 			Map.entry("AddWorkspace", new AuditedAction(AuditEventType.WORKSPACE_CREATE, AuditTargetType.WORKSPACE)),
 			Map.entry("EditWorkspace", new AuditedAction(AuditEventType.WORKSPACE_UPDATE, AuditTargetType.WORKSPACE)),
 			Map.entry("DeleteWorkspace", new AuditedAction(AuditEventType.WORKSPACE_DELETE, AuditTargetType.WORKSPACE)),
+			Map.entry("AdminCloseRoom", new AuditedAction(AuditEventType.AGENT_ROOM_CLOSE, AuditTargetType.PROJECT)),
 			Map.entry("CreateAutomation",
 					new AuditedAction(AuditEventType.AUTOMATION_CREATE, AuditTargetType.AUTOMATION)),
 			Map.entry("SaveAutomation",
@@ -501,6 +502,31 @@ public final class UserAuditTrailUtils {
 		recordEvent(new AuditEvent().eventType(eventType).status(AuditStatus.SUCCESS).actorUser(user)
 				.target(AuditTargetType.WORKSPACE, workspaceId, workspaceName).context(workspaceId, null, null, null)
 				.details(details));
+	}
+
+	/**
+	 * Records that an admin closed a user's room with an agent, once its rooms are
+	 * closed and its runs cancelled. The room's user is the event's subject and its
+	 * agent the target.
+	 *
+	 * @param user            the admin who closed it
+	 * @param agentId         the agent the room's runs belong to
+	 * @param roomId          the room closed
+	 * @param userId          the user the room belongs to
+	 * @param userType        the login type of {@code userId}, or null when its
+	 *                        runs store none
+	 * @param closedRoomIds   the rooms closed: the room and its subagents' rooms
+	 * @param cancelledRunIds the runs cancelled
+	 */
+	public static void recordAgentRoomClose(User user, String agentId, String roomId, String userId, String userType,
+			List<String> closedRoomIds, List<String> cancelledRunIds) {
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put(REACTOR_DETAIL, "AdminCloseRoom");
+		details.put("closedRoomIds", closedRoomIds);
+		details.put("cancelledRunIds", cancelledRunIds);
+		recordEvent(new AuditEvent().eventType(AuditEventType.AGENT_ROOM_CLOSE).status(AuditStatus.SUCCESS)
+				.actorUser(user).subject(userId, userType, null).target(AuditTargetType.PROJECT, agentId, null)
+				.context(agentId, null, null, roomId).details(details));
 	}
 
 	public static void recordEngineLifecycle(User user, AuditEventType eventType, AuditTargetType targetType,
@@ -1037,8 +1063,8 @@ public final class UserAuditTrailUtils {
 					ps.setInt(index, (Integer) value);
 				}
 			}
-			case "OLD_VALUE", "NEW_VALUE", "DETAILS", "ERROR_MESSAGE" ->
-				queryUtil.setNullableLargeText(ps, index, (String) value);
+			case "OLD_VALUE", "NEW_VALUE", "DETAILS", "ERROR_MESSAGE" -> queryUtil.setNullableLargeText(ps, index,
+					(String) value);
 			default -> queryUtil.setNullableString(ps, index, (String) value);
 			}
 		}

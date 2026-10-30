@@ -70,13 +70,14 @@ import prerna.io.connector.ConnectorOutput;
  *                                   fires
  * @param categories                 what it is tagged with
  * @param isRecurring                whether it is one sitting of a series
+ * @param seriesId                   the series it is a sitting of, or null for a one-off
  * @param body                       the readable text of its description
  */
 public record CalendarEvent(String id, String subject, EventTime start, EventTime end, String timeZone,
 		boolean isAllDay, String location, String organizer, String organizerName, List<EventAttendee> attendees,
 		String webLink, String joinUrl, boolean isOnlineMeeting, boolean isCancelled, String showAs, String importance,
 		String responseStatus, Integer reminderMinutesBeforeStart, List<String> categories, boolean isRecurring,
-		String body) {
+		String seriesId, String body) {
 
 	public CalendarEvent {
 		attendees = attendees == null ? List.of() : List.copyOf(attendees);
@@ -172,6 +173,7 @@ public record CalendarEvent(String id, String subject, EventTime start, EventTim
 		ConnectorOutput.putIfPresent(output, "reminderMinutesBeforeStart", this.reminderMinutesBeforeStart);
 		output.put("categories", this.categories);
 		output.put("isRecurring", this.isRecurring);
+		ConnectorOutput.putIfPresent(output, "seriesId", this.seriesId);
 		if (includeBody) {
 			ConnectorOutput.putText(output, "body", this.body, maxBodyChars);
 		}

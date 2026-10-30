@@ -33,30 +33,35 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class WorkOpenRoutineRoomReactor extends AbstractCollaborationReactor {
 	private static final String ROUTINE_ID = "routineId";
 	private static final String STARTED_AT = "startedAt";
+	private static final String RUN_ID = "runId";
 
 	public WorkOpenRoutineRoomReactor() {
-		this.keysToGet = new String[] { ROUTINE_ID, STARTED_AT };
-		this.keyRequired = new int[] { 1, 0 };
+		this.keysToGet = new String[] { ROUTINE_ID, STARTED_AT, RUN_ID };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		getUser();
-		return mapResult(WorkRoutineRoom.open(this.insight, getString(ROUTINE_ID), getString(STARTED_AT)));
+		return mapResult(WorkRoutineRoom.open(this.insight, getString(ROUTINE_ID), getString(STARTED_AT), getString(RUN_ID)));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Opens the signed-in user's latest routine output as the first assistant message in a collaboration chat";
+		return "Opens the signed-in user's latest routine output, or one past run's output, as the first assistant message in a "
+				+ "collaboration chat";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (ROUTINE_ID.equals(key)) {
-			return "Routine id: inbox-daily-brief or weekly-meeting-agendas";
+			return "Routine id: inbox-daily-brief, weekly-meeting-agendas, event-planning, expense-review, or the id of one of the owner's own routines";
 		}
 		if (STARTED_AT.equals(key)) {
 			return "The displayed latest run's startedAt timestamp; rejects an output that changed since it was displayed";
+		}
+		if (RUN_ID.equals(key)) {
+			return "Optional id of one of the routine's past runs, from WorkListRoutineRuns; opens that run's output";
 		}
 		return super.getDescriptionForKey(key);
 	}

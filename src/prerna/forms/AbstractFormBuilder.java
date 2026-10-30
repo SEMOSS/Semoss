@@ -374,7 +374,7 @@ public abstract class AbstractFormBuilder {
 		PreparedStatement ps = null;
 
 		try {
-			ps = rdbmsEng.getPreparedStatement("INSERT INTO "+this.auditLogTableName+" (USER, ACTION, START_NODE, REL_NAME, END_NODE, PROP_NAME, PROP_VALUE, TIME) VALUES(?,?,?,?,?,?,?,?)");
+			ps = rdbmsEng.getPreparedStatement("INSERT INTO "+this.auditLogTableName+" (\"USER\", ACTION, START_NODE, REL_NAME, END_NODE, PROP_NAME, PROP_VALUE, TIME) VALUES(?,?,?,?,?,?,?,?)");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, cleanUser);
 			ps.setString(parameterIndex++, action);

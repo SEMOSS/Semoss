@@ -31,17 +31,18 @@ import prerna.auth.User;
 import prerna.collaboration.BrainTopicUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainSetTopicPerson(topicId=["..."], personId=["..."], state=["member"], role=["Client lead"]);
+// BrainSetTopicPerson(topicId=["..."], personId=["..."], state=["member"], role=["Client lead"], vip=[true]);
 public class BrainSetTopicPersonReactor extends AbstractCollaborationReactor {
 
 	private static final String TOPIC_ID = "topicId";
 	private static final String PERSON_ID = "personId";
 	private static final String STATE = "state";
 	private static final String ROLE = "role";
+	private static final String VIP = "vip";
 
 	public BrainSetTopicPersonReactor() {
-		this.keysToGet = new String[] { TOPIC_ID, PERSON_ID, STATE, ROLE };
-		this.keyRequired = new int[] { 1, 1, 1, 0 };
+		this.keysToGet = new String[] { TOPIC_ID, PERSON_ID, STATE, ROLE, VIP };
+		this.keyRequired = new int[] { 1, 1, 1, 0, 0 };
 	}
 
 	@Override
@@ -52,7 +53,8 @@ public class BrainSetTopicPersonReactor extends AbstractCollaborationReactor {
 		if (topicId == null || personId == null) {
 			throw new IllegalArgumentException("Must pass a topicId and personId");
 		}
-		return mapResult(BrainTopicUtils.setTopicPerson(user, topicId, personId, getString(STATE), getString(ROLE)));
+		return mapResult(BrainTopicUtils.setTopicPerson(user, topicId, personId, getString(STATE), getString(ROLE),
+				getBoolean(VIP)));
 	}
 
 	@Override
@@ -70,6 +72,8 @@ public class BrainSetTopicPersonReactor extends AbstractCollaborationReactor {
 			return "member, suggested, or removed; removing stops the person as a signal but keeps thread links";
 		} else if (ROLE.equals(key)) {
 			return "Role in the topic; defaults to the person's job title for a new member";
+		} else if (VIP.equals(key)) {
+			return "true makes a member a VIP in this topic only; omit to keep it, any state but member clears it";
 		}
 		return super.getDescriptionForKey(key);
 	}
