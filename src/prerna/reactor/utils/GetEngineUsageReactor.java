@@ -36,13 +36,11 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
-import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
@@ -128,12 +126,12 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static class EngineSelection {
 		private final String engineId;
 		private final IEngine.CATALOG_TYPE engineType;
-		private final boolean engineProvided;
+		private final String engineSubtype;
 
-		private EngineSelection(String engineId, IEngine.CATALOG_TYPE engineType, boolean engineProvided) {
+		private EngineSelection(String engineId, IEngine.CATALOG_TYPE engineType, String engineSubtype) {
 			this.engineId = engineId;
 			this.engineType = engineType;
-			this.engineProvided = engineProvided;
+			this.engineSubtype = engineSubtype;
 		}
 	}
 
@@ -148,17 +146,18 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		this.organizeKeys();
 		EngineSelection selection = resolveEngineSelection();
 		List<Map<String, Object>> output = getUsageForEngineType(selection.engineType, selection.engineId,
-				selection.engineProvided);
+				selection.engineSubtype);
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
 
 	private EngineSelection resolveEngineSelection() {
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		IEngine.CATALOG_TYPE engineType = null;
-		boolean engineProvided = engineId != null && !engineId.isEmpty();
-		if (engineProvided) {
+		String engineSubtype = null;
+		if (engineId != null && !engineId.isEmpty()) {
 			Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
 			engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
+			engineSubtype = (String) typeAndSubtype[1];
 		} else {
 			String engineTypeStr = this.keyValue.get(this.keysToGet[1]);
 			if (engineTypeStr != null && !engineTypeStr.isEmpty()) {
@@ -174,11 +173,11 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		if (engineType == null) {
 			throw new IllegalArgumentException("Must provide a valid engine id or a valid engine type");
 		}
-		return new EngineSelection(engineId, engineType, engineProvided);
+		return new EngineSelection(engineId, engineType, engineSubtype);
 	}
 
 	private List<Map<String, Object>> getUsageForEngineType(IEngine.CATALOG_TYPE engineType, String engineId,
-			boolean engineProvided) {
+			String engineSubtype) {
 		switch (engineType) {
 		case DATABASE:
 			return getDatabaseUsage(engineId);
@@ -187,7 +186,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		case MODEL:
 			return getModelUsage(engineId);
 		case VECTOR:
-			return getVectorUsage(engineId, engineProvided);
+			return getVectorUsage(engineId, engineSubtype);
 		case FUNCTION:
 			return getFunctionUsage(engineId);
 		case GUARDRAIL:
@@ -1758,16 +1757,10 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		return usage;
 	}
 
-	private List<Map<String, Object>> getVectorUsage(String engineId, boolean engineProvided) {
+	private List<Map<String, Object>> getVectorUsage(String engineId, String engineSubtype) {
 		List<Map<String, Object>> usage = new ArrayList<>();
-		boolean isAzureAiSearch = false;
-		if (engineProvided) {
-			IVectorDatabaseEngine engine = Utility.getVectorDatabase(engineId);
-			if (engine == null) {
-				throw new SemossPixelException("Unable to find engine");
-			}
-			isAzureAiSearch = engine.getVectorDatabaseType() == VectorDatabaseTypeEnum.AZURE_AI_SEARCH;
-		}
+		boolean isAzureAiSearch = VectorDatabaseTypeEnum.AZURE_AI_SEARCH.getVectorDatabaseName()
+				.equalsIgnoreCase(engineSubtype);
 		String azureIntroductionUsage = isAzureAiSearch ? getAzureAiSearchIntroductionUsage() : "";
 		String azurePixelUsage = isAzureAiSearch ? getAzureAiSearchPixelUsage() : "";
 		String azureJavaScriptUsage = isAzureAiSearch ? getAzureAiSearchJavaScriptUsage() : "";
