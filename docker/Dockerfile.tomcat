@@ -39,11 +39,11 @@ ARG FIPS_ENABLED=false
 # published to Maven Central.
 ARG BC_FIPS_VERSION=2.1.3
 ARG BCTLS_FIPS_VERSION=2.1.24
-ARG BCPKIX_FIPS_VERSION=2.1.12
-ARG BCUTIL_FIPS_VERSION=2.1.7
+ARG BCPKIX_FIPS_VERSION=2.1.13
+ARG BCUTIL_FIPS_VERSION=2.1.8
 
 # Maven default version
-ARG MAVEN_HOME=/opt/apache-maven-3.9.16
+ARG MAVEN_HOME=/opt/apache-maven-3.10.0
 
 # Tomcat default version
 ARG TOMCAT_VERSION=11.0.27
@@ -122,19 +122,19 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& echo '# container environment variables. Tomcat keeps its SystemPropertySource too,' >> $TOMCAT_HOME/bin/setenv.sh \
 	&& echo '# so -D overrides still work. Used by the <Manager> in conf/context.xml.' >> $TOMCAT_HOME/bin/setenv.sh \
 	&& echo 'CATALINA_OPTS="$CATALINA_OPTS -Dorg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource"' >> $TOMCAT_HOME/bin/setenv.sh \
-	&& wget https://archive.apache.org/dist/maven/maven-3/3.9.16/binaries/apache-maven-3.9.16-bin.tar.gz\
+	&& wget https://archive.apache.org/dist/maven/maven-3/3.10.0/binaries/apache-maven-3.10.0-bin.tar.gz\
 	&& tar -zxvf apache-maven-*.tar.gz \
-	&& mkdir /opt/apache-maven-3.9.16 \
-	&& mv apache-maven-3.9.16/* /opt/apache-maven-3.9.16/ \
-	&& rm -r apache-maven-3.9.16 \
-	&& rm apache-maven-3.9.16-bin.tar.gz \
+	&& mkdir /opt/apache-maven-3.10.0 \
+	&& mv apache-maven-3.10.0/* /opt/apache-maven-3.10.0/ \
+	&& rm -r apache-maven-3.10.0 \
+	&& rm apache-maven-3.10.0-bin.tar.gz \
 	&& apt-get -y install nano \
 	&& echo '#!/bin/sh' > $TOMCAT_HOME/bin/start.sh \
 	&& echo 'exec catalina.sh run' >> $TOMCAT_HOME/bin/start.sh \
 	&& echo '#!/bin/sh' > $TOMCAT_HOME/bin/stop.sh \
 	&& echo 'shutdown.sh -force' >> $TOMCAT_HOME/bin/stop.sh \
 	&& chmod 777 $TOMCAT_HOME/bin/*.sh \
-	&& chmod 777 /opt/apache-maven-3.9.16/bin/*.cmd \
+	&& chmod 777 /opt/apache-maven-3.10.0/bin/*.cmd \
 	&& apt-get clean all
 
 # ---------------------------------------------------------------------------
@@ -160,8 +160,8 @@ RUN if [ "$FIPS_ENABLED" != "true" ]; then echo "FIPS_ENABLED=$FIPS_ENABLED - sk
 	wget -q $M2/bcutil-fips/${BCUTIL_FIPS_VERSION}/bcutil-fips-${BCUTIL_FIPS_VERSION}.jar; \
 	{ echo "f55fc476ede820d5c03fe87e6ced5bb0095e1dc30b387445846a3ff0274f8c0e  bc-fips-${BC_FIPS_VERSION}.jar"; \
 	  echo "d2233207daecc2dfccdc317a53bd874b12c21a6dc5be78e390d8826eb726194c  bctls-fips-${BCTLS_FIPS_VERSION}.jar"; \
-	  echo "48f418d70c9551ac9225f333e5e9dfe872b4501cc566728b6d2bc7364a2223d4  bcpkix-fips-${BCPKIX_FIPS_VERSION}.jar"; \
-	  echo "a30e550f06dcfa0fd7da1e9a501f111421406fa237467522b3ca05187429832d  bcutil-fips-${BCUTIL_FIPS_VERSION}.jar"; } > sha256.manifest; \
+	  echo "cf161ba2f6b4505816f4661663b3e0771184a50ee5b178a0018c817b336f0e5c  bcpkix-fips-${BCPKIX_FIPS_VERSION}.jar"; \
+	  echo "f44904f61552c823bcc3686a24052ee3135212d547754eaa2ff6532e210103cb  bcutil-fips-${BCUTIL_FIPS_VERSION}.jar"; } > sha256.manifest; \
 	sha256sum -c sha256.manifest; \
 	rm sha256.manifest; \
 	\

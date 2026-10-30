@@ -49,19 +49,20 @@
 		     WEB-INF/lib is decided by Monolith's libraries-fips.xml assembly, not
 		     by this pom. -->
 		<bc.fips.version>2.1.3</bc.fips.version>
-		<bcpkix.fips.version>2.1.12</bcpkix.fips.version>
-		<bcutil.fips.version>2.1.7</bcutil.fips.version>
+		<bcpkix.fips.version>2.1.13</bcpkix.fips.version>
+		<bcutil.fips.version>2.1.8</bcutil.fips.version>
 		<!-- Non-FIPS BouncyCastle, pinned via dependencyManagement only. Version 1.85
 		     addresses the vulnerabilities inherited through SSHJ; keep this separate
 		     from the FIPS artifact line above. -->
-		<bc.jdk18on.version>1.85</bc.jdk18on.version>
+		<bc.jdk18on.version>1.86</bc.jdk18on.version>
 		<log4j2.version>2.26.1</log4j2.version>
 		<!-- Jackson 2.x. jackson-annotations tracks the minor line (2.22), while
 		     core/databind/datatype ship patch releases off it (2.22.2), so the two
 		     cannot share a single property. -->
 		<jackson2.version>2.22.4</jackson2.version>
 		<jackson2.annotations.version>2.22</jackson2.annotations.version>
-		<jackson3.version>3.1.7</jackson3.version>
+		<guava.version>33.7.2-jre</guava.version>
+		<jackson3.version>3.1.8</jackson3.version>
 		<!-- Keep these security pins in sync with Monolith/pom.xml. -->
 		<lz4.version>1.11.4</lz4.version>
 		<rabbitmq.version>5.37.0</rabbitmq.version>
@@ -690,6 +691,34 @@
 				<artifactId>jspecify</artifactId>
 				<version>1.0.1</version>
 			</dependency>
+			<!-- guava: clickhouse-jdbc and google-cloud-* still declare 33.3.1-jre -->
+			<dependency>
+				<groupId>com.google.guava</groupId>
+				<artifactId>guava</artifactId>
+				<version>${guava.version}</version>
+			</dependency>
+			<!-- guava 33.7 brings j2objc-annotations 3.1; clickhouse-jdbc still declares 3.0.0 -->
+			<dependency>
+				<groupId>com.google.j2objc</groupId>
+				<artifactId>j2objc-annotations</artifactId>
+				<version>3.1</version>
+			</dependency>
+			<!-- dse-java-driver-core 1.9.0 brings jnr-posix 3.0.44 (use after free); 3.1.8 needs newer jnr-ffi/jnr-constants. jnr-ffi 2.2.17+ keeps junit test-scoped -->
+			<dependency>
+				<groupId>com.github.jnr</groupId>
+				<artifactId>jnr-posix</artifactId>
+				<version>3.1.8</version>
+			</dependency>
+			<dependency>
+				<groupId>com.github.jnr</groupId>
+				<artifactId>jnr-ffi</artifactId>
+				<version>2.2.19</version>
+			</dependency>
+			<dependency>
+				<groupId>com.github.jnr</groupId>
+				<artifactId>jnr-constants</artifactId>
+				<version>0.10.2</version>
+			</dependency>
 			<!-- Source: https://mvnrepository.com/artifact/tools.jackson.core/jackson-core -->
 			<dependency>
 				<groupId>tools.jackson.core</groupId>
@@ -1272,7 +1301,7 @@
 		<dependency>
 			<groupId>org.checkerframework</groupId>
 			<artifactId>checker-qual</artifactId>
-			<version>3.54.0</version>
+			<version>3.55.1</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.github.spullara.mustache.java/compiler -->
 		<dependency>
@@ -1365,7 +1394,7 @@
 		<dependency>
 			<groupId>org.apache.thrift</groupId>
 			<artifactId>libthrift</artifactId>
-			<version>0.24.0</version>
+			<version>0.25.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1860,7 +1889,7 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<version>42.7.12</version>
+			<version>42.7.14</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.pgvector/pgvector -->
 		<dependency>
@@ -2985,7 +3014,7 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>33.3.1-jre</version>
+			<version>${guava.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.errorprone</groupId>
