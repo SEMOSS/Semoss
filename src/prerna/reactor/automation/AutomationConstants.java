@@ -206,6 +206,8 @@ public final class AutomationConstants {
 	public static final String NODE_STORAGE_DOWNLOAD = "storage.download";
 	public static final String NODE_STORAGE_DELETE = "storage.delete";
 	public static final String NODE_DATA_EXTRACT = "data.extract";
+	public static final String NODE_DATA_TRANSFORM = "data.transform";
+	public static final String NODE_CLEAN_PROCESS = "clean.process";
 	public static final String NODE_VECTOR_SEARCH = "vector.search";
 	public static final String NODE_VECTOR_ADD = "vector.add";
 	public static final String NODE_VECTOR_DELETE = "vector.delete";
