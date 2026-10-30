@@ -54,7 +54,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -66,6 +65,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.DeleteProjectRunner;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -83,6 +83,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.InsightsRDBMSUtils;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -114,17 +115,17 @@ public final class ProjectHelper {
 	}
 
 	/**
-	 * 
-	 * @param projectName
-	 * @param projectType
-	 * @param global
-	 * @param hasPortal
-	 * @param portalName
-	 * @param gitProvider
-	 * @param gitCloneUrl
-	 * @param user
-	 * @param logger
-	 * @return
+	 * Create a project with a new random id. See
+	 * {@link #generateNewProject(String, String, IProject.PROJECT_TYPE, boolean, String, String, User, Logger)}.
+	 *
+	 * @param projectName the project name
+	 * @param projectType the project type
+	 * @param global      whether the project is public (PROJECT.GLOBAL)
+	 * @param gitProvider the git provider written to the smss, or null
+	 * @param gitCloneUrl the git clone URL written to the smss, or null
+	 * @param user        the signed in user, who becomes the owner
+	 * @param logger      the logger for progress messages
+	 * @return the opened project
 	 */
 	public static IProject generateNewProject(String projectName, IProject.PROJECT_TYPE projectType, boolean global,
 			String gitProvider, String gitCloneUrl, User user, Logger logger) {
@@ -133,18 +134,27 @@ public final class ProjectHelper {
 	}
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param projectName
-	 * @param projectType
-	 * @param global
-	 * @param hasPortal
-	 * @param portalName
-	 * @param gitProvider
-	 * @param gitCloneUrl
-	 * @param user
-	 * @param logger
-	 * @return
+	 * Create a project: check that the user may create it, write and open its smss,
+	 * push it to the cluster when clustered, and register it in the security
+	 * database with the user as owner under each of their logins. When a step after
+	 * the checks fails, the partly created project is removed before the error is
+	 * thrown.
+	 *
+	 * @param projectId   the project id
+	 * @param projectName the project name
+	 * @param projectType the project type
+	 * @param global      whether the project is public (PROJECT.GLOBAL)
+	 * @param gitProvider the git provider written to the smss, or null
+	 * @param gitCloneUrl the git clone URL written to the smss, or null
+	 * @param user        the signed in user, who becomes the owner
+	 * @param logger      the logger for progress messages
+	 * @return the opened project
+	 * @throws IllegalArgumentException when the project name is null or empty
+	 * @throws SemossPixelException     when there is no signed in user, the user is
+	 *                                  anonymous, not a publisher or not an admin
+	 *                                  where those are required, a project folder
+	 *                                  with the name already exists, or creating
+	 *                                  the project fails
 	 */
 	public static IProject generateNewProject(String projectId, String projectName, IProject.PROJECT_TYPE projectType,
 			boolean global, String gitProvider, String gitCloneUrl, User user, Logger logger) {
@@ -174,8 +184,9 @@ public final class ProjectHelper {
 			AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
 		}
 
+		File newProjectFolder;
 		try {
-			File newProjectFolder = SmssUtilities.validateProject(user, projectName, projectId);
+			newProjectFolder = SmssUtilities.validateProject(user, projectName, projectId);
 			newProjectFolder.mkdirs();
 		} catch (IOException e) {
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
@@ -187,6 +198,8 @@ public final class ProjectHelper {
 		File tempSmss = null;
 		File smssFile = null;
 		boolean error = false;
+		boolean pushedToCluster = false;
+		boolean addedToSecurity = false;
 		try {
 			logger.info("Creating project workspace");
 			// Add database into DIHelper so that the web watcher doesn't try to load as
@@ -214,9 +227,11 @@ public final class ProjectHelper {
 			if (ClusterUtil.IS_CLUSTER) {
 				logger.info("Syncing project for cloud backup");
 				ClusterUtil.pushProject(projectId);
+				pushedToCluster = true;
 			}
 
 			SecurityProjectUtils.addProject(projectId, global, user);
+			addedToSecurity = true;
 			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for (AuthProvider ap : logins) {
@@ -231,34 +246,8 @@ public final class ProjectHelper {
 			throw new SemossPixelException(
 					NounMetadata.getErrorNounMessage("An error occurred creating the new project"));
 		} finally {
-			// if we had an error
 			if (error) {
-				if (smssFile != null && smssFile.exists() && smssFile.isFile()) {
-					smssFile.delete();
-				}
-				if (smssFile != null) {
-					File projectFolder = new File(FilenameUtils.getBaseName(smssFile.getAbsolutePath()));
-					// delete the engine folder and all its contents
-					if (projectFolder != null && projectFolder.exists() && projectFolder.isDirectory()) {
-						File[] files = projectFolder.listFiles();
-						if (files != null) { // some JVMs return null for empty dirs
-							for (File f : files) {
-								try {
-									FileUtils.forceDelete(f);
-								} catch (IOException e) {
-									classLogger.error("Failed to delete {} while cleaning up after project '{}' "
-											+ "could not be created", f, projectId, e);
-								}
-							}
-						}
-						try {
-							FileUtils.forceDelete(projectFolder);
-						} catch (IOException e) {
-							classLogger.error("Failed to delete folder {} while cleaning up after project '{}' "
-									+ "could not be created", projectFolder, projectId, e);
-						}
-					}
-				}
+				cleanUpFailedProject(project, projectId, smssFile, newProjectFolder, pushedToCluster, addedToSecurity);
 			}
 
 			// always delete temp smss
@@ -269,42 +258,100 @@ public final class ProjectHelper {
 	}
 
 	/**
-	 * Load the insights rdbms engine using the main engine properties
-	 * 
-	 * @param mainEngineProp
-	 * @return
-	 * @throws Exception
+	 * Undo a project creation that failed partway: close the project so its
+	 * insights database releases its files, remove it from DIHelper, delete its
+	 * smss and project folder, and delete its security rows and cluster copy when
+	 * it got that far. Each step logs its own failure so the rest still run.
+	 *
+	 * @param project         the project being created
+	 * @param projectId       the project id
+	 * @param smssFile        the project smss, or null when it was not written
+	 * @param projectFolder   the project folder
+	 * @param pushedToCluster whether the project was pushed to the cluster
+	 * @param addedToSecurity whether the project was added to the security database
+	 */
+	private static void cleanUpFailedProject(IProject project, String projectId, File smssFile, File projectFolder,
+			boolean pushedToCluster, boolean addedToSecurity) {
+		try {
+			project.close();
+		} catch (Exception e) {
+			classLogger.error("Failed to close project {} while cleaning up after it could not be created: {}",
+					projectId, e.getMessage(), e);
+		}
+
+		try {
+			UploadUtilities.removeProjectFromDIHelper(projectId);
+		} catch (Exception e) {
+			classLogger.error("Failed to remove project {} from DIHelper after it could not be created: {}", projectId,
+					e.getMessage(), e);
+		}
+
+		if (smssFile != null) {
+			FileUtils.deleteQuietly(smssFile);
+		}
+		try {
+			FileUtils.deleteDirectory(projectFolder);
+		} catch (IOException e) {
+			classLogger.error("Failed to delete folder {} while cleaning up after project {} could not be created: {}",
+					projectFolder, projectId, e.getMessage(), e);
+		}
+
+		if (addedToSecurity) {
+			try {
+				SecurityProjectUtils.deleteProject(projectId);
+			} catch (Exception e) {
+				classLogger.error("Failed to delete the security rows for project {} after it could not be created: {}",
+						projectId, e.getMessage(), e);
+			}
+		}
+
+		if (pushedToCluster) {
+			Thread.ofVirtual().start(new DeleteProjectRunner(projectId));
+		}
+	}
+
+	/**
+	 * Open a project's insights database from the project smss properties. A
+	 * missing database file is created with the project's RDBMS_INSIGHTS_TYPE, and
+	 * an existing database gets any missing insight tables and columns.
+	 *
+	 * @param mainEngineProp the project smss properties, which must set
+	 *                       RDBMS_INSIGHTS; RDBMS_INSIGHTS_TYPE defaults to H2_DB
+	 * @param logger         the logger for progress messages
+	 * @return the opened insights database
+	 * @throws Exception if RDBMS_INSIGHTS_TYPE is not a database type or the
+	 *                   database cannot be opened
 	 */
 	public static IRDBMSEngine loadInsightsEngine(Properties mainEngineProp, Logger logger) throws Exception {
 		String projectId = mainEngineProp.getProperty(Constants.PROJECT);
-		String projectName = mainEngineProp.getProperty(Constants.PROJECT_ALIAS);
 
 		String rdbmsInsightsTypeStr = mainEngineProp.getProperty(Constants.RDBMS_INSIGHTS_TYPE, "H2_DB");
 		RdbmsTypeEnum rdbmsInsightsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsInsightsTypeStr);
 		String insightDatabaseLoc = SmssUtilities.getInsightsRdbmsFile(mainEngineProp).getAbsolutePath();
-		return loadInsightsDatabase(projectId, projectName, rdbmsInsightsType, insightDatabaseLoc, logger);
+		return loadInsightsDatabase(projectId, rdbmsInsightsType, insightDatabaseLoc, logger);
 	}
 
 	/**
-	 * Load the insights rdbms engine
-	 * 
-	 * @param engineId
-	 * @param engineName
-	 * @param rdbmsInsightsType
-	 * @param insightDatabaseLoc
-	 * @param logger
-	 * @return
-	 * @throws Exception
+	 * Open the insights database file. When the file does not exist, a new database
+	 * of the given type is created in the file's folder with all the insight
+	 * tables. An existing database without the QUESTION_ID table gets all the
+	 * insight tables. Otherwise a missing INSIGHTMETA table and any missing cache
+	 * and schema columns on QUESTION_ID are added, and a failure there is logged
+	 * rather than thrown.
+	 *
+	 * @param projectId          the project id
+	 * @param rdbmsInsightsType  the database type: SQLITE, or H2 for any other type
+	 * @param insightDatabaseLoc the database file path
+	 * @param logger             the logger for progress messages
+	 * @return the opened insights database
+	 * @throws Exception if the database cannot be created or opened
 	 */
-	private static IRDBMSEngine loadInsightsDatabase(String projectId, String projectName,
-			RdbmsTypeEnum rdbmsInsightsType, String insightDatabaseLoc, Logger logger) throws Exception {
-		if (insightDatabaseLoc == null || !new File(insightDatabaseLoc).exists()) {
-			// make a new database
-			IRDBMSEngine insightsRdbms = InsightsRDBMSUtils.generateInsightsDatabase(projectId, projectName);
-			// UploadUtilities.addExploreInstanceInsight(projectId, projectName,
-			// insightsRdbms);
-			// UploadUtilities.addInsightUsageStats(projectId, projectName, insightsRdbms);
-			return insightsRdbms;
+	private static IRDBMSEngine loadInsightsDatabase(String projectId, RdbmsTypeEnum rdbmsInsightsType,
+			String insightDatabaseLoc, Logger logger) throws Exception {
+		File insightDatabaseFile = new File(insightDatabaseLoc);
+		if (!insightDatabaseFile.exists()) {
+			return InsightsRDBMSUtils.generateInsightsDatabase(projectId, rdbmsInsightsType,
+					insightDatabaseFile.getParent());
 		}
 		IRDBMSEngine insightsRdbms = new RDBMSNativeEngine();
 		Properties insightSmssProp = new Properties();
@@ -439,6 +486,16 @@ public final class ProjectHelper {
 		return insightsRdbms;
 	}
 
+	/**
+	 * Check through the JDBC metadata whether a table exists in a schema, ignoring
+	 * case.
+	 *
+	 * @param connection the database connection, left open
+	 * @param tableName  the table name
+	 * @param schema     the schema, or null for any schema
+	 * @return true when the table exists
+	 * @throws SQLException if the metadata cannot be read
+	 */
 	private static boolean metadataTableExists(Connection connection, String tableName, String schema)
 			throws SQLException {
 		try (ResultSet tables = connection.getMetaData().getTables(null, schema, null, new String[] { "TABLE" })) {
@@ -451,6 +508,16 @@ public final class ProjectHelper {
 		return false;
 	}
 
+	/**
+	 * List a table's column names from the JDBC metadata, in upper case. The table
+	 * name is matched ignoring case.
+	 *
+	 * @param connection the database connection, left open
+	 * @param tableName  the table name
+	 * @param schema     the schema, or null for any schema
+	 * @return the upper case column names, empty when the table does not exist
+	 * @throws SQLException if the metadata cannot be read
+	 */
 	private static List<String> metadataTableColumns(Connection connection, String tableName, String schema)
 			throws SQLException {
 		List<String> columns = new ArrayList<>();
@@ -465,14 +532,18 @@ public final class ProjectHelper {
 	}
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param projectFolder
-	 * @return
+	 * Find the engines a project's files refer to. Every UUID in the project's code
+	 * and json files is looked up in the engine table. The result has a "success"
+	 * map from engine id to its engineType, engineName and files, and a "failed"
+	 * map from each UUID that is not an engine to its files. Each files entry is a
+	 * list of filename and instances (the number of times the UUID appears).
+	 *
+	 * @param projectFolder the project folder to search
+	 * @return the "success" and "failed" maps
 	 */
-	public static Map<String, Object> extractEngineIdsFromProjectFolder(String projectId, File projectFolder) {
+	public static Map<String, Object> extractEngineIdsFromProjectFolder(File projectFolder) {
 		// extract engineIds from project including project_dependencies.json
-		Map<String, Map<String, Object>> uuidToFiles = ProjectHelper.extractEngineIdsFromProjectFolder(projectFolder);
+		Map<String, Map<String, Object>> uuidToFiles = ProjectHelper.countUuidsInProjectFolder(projectFolder);
 		// process engineIds and set project dependencies
 		Map<String, Object> engineInfo = ProjectHelper.validateProjectDependencies(uuidToFiles.keySet());
 		Map<String, Map<String, String>> successMap = (Map<String, Map<String, String>>) engineInfo.get("success");
@@ -507,13 +578,15 @@ public final class ProjectHelper {
 	}
 
 	/**
-	 * Extracts and returns engineIds from the files with the given extensions in
-	 * the project folder
-	 * 
-	 * @param finalProjectFolderF
-	 * @return
+	 * Count the version 4 UUIDs in every file under a folder whose extension is in
+	 * DEPENDENCIES_FILE_EXTENSIONS. A file that cannot be read is logged and
+	 * skipped.
+	 *
+	 * @param finalProjectFolderF the folder to search, including subfolders
+	 * @return each UUID mapped to a "files" list of filename and instances, empty
+	 *         when the folder is null or not a directory
 	 */
-	private static Map<String, Map<String, Object>> extractEngineIdsFromProjectFolder(File finalProjectFolderF) {
+	private static Map<String, Map<String, Object>> countUuidsInProjectFolder(File finalProjectFolderF) {
 		if (finalProjectFolderF == null || !finalProjectFolderF.isDirectory()) {
 			return new HashMap<>();
 		}
@@ -590,10 +663,11 @@ public final class ProjectHelper {
 	}
 
 	/**
-	 * Check if the extracted engineIds are present in the engine table or not
-	 * 
-	 * @param engineIds
-	 * @return
+	 * Split ids into those in the engine table and those that are not.
+	 *
+	 * @param engineIds the ids to check
+	 * @return a "success" map from engine id to its engineType and engineName, and
+	 *         a "failed" set of the ids that are not engines
 	 */
 	private static Map<String, Object> validateProjectDependencies(Collection<String> engineIds) {
 		Map<String, Map<String, String>> success = new HashMap<>();
@@ -622,18 +696,18 @@ public final class ProjectHelper {
 	}
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param projectName
-	 * @param projectType
-	 * @param global
-	 * @param hasPortal
-	 * @param portalName
-	 * @param gitProvider
-	 * @param gitCloneUrl
-	 * @param user
-	 * @param logger
-	 * @return
+	 * Create a project and tag it as a workspace project in PROJECTMETA. See
+	 * {@link #generateNewProject(String, String, IProject.PROJECT_TYPE, boolean, String, String, User, Logger)}.
+	 *
+	 * @param projectId   the project id
+	 * @param projectName the project name
+	 * @param projectType the project type
+	 * @param global      whether the project is public (PROJECT.GLOBAL)
+	 * @param gitProvider the git provider written to the smss, or null
+	 * @param gitCloneUrl the git clone URL written to the smss, or null
+	 * @param user        the signed in user, who becomes the owner
+	 * @param logger      the logger for progress messages
+	 * @return the opened project
 	 */
 	public static IProject createWorkspaceProject(String projectId, String projectName,
 			IProject.PROJECT_TYPE projectType, boolean global, String gitProvider, String gitCloneUrl, User user,
@@ -647,15 +721,18 @@ public final class ProjectHelper {
 	}
 
 	/**
-	 * 
-	 * @param projectId
-	 * @param projectName
-	 * @param global
-	 * @param gitProvider
-	 * @param gitCloneUrl
-	 * @param user
-	 * @param logger
-	 * @return
+	 * Create a SKILL project and tag it with {@link #SKILL_PROJECT_TAG} in
+	 * PROJECTMETA. See
+	 * {@link #generateNewProject(String, String, IProject.PROJECT_TYPE, boolean, String, String, User, Logger)}.
+	 *
+	 * @param projectId   the project id
+	 * @param projectName the project name
+	 * @param global      whether the project is public (PROJECT.GLOBAL)
+	 * @param gitProvider the git provider written to the smss, or null
+	 * @param gitCloneUrl the git clone URL written to the smss, or null
+	 * @param user        the signed in user, who becomes the owner
+	 * @param logger      the logger for progress messages
+	 * @return the opened project
 	 */
 	public static IProject createSkillProject(String projectId, String projectName, boolean global, String gitProvider,
 			String gitCloneUrl, User user, Logger logger) {

@@ -44,19 +44,19 @@ public enum RdbmsTypeEnum {
 	H2_DB("H2_DB", "org.h2.Driver", "jdbc:h2"), 
 	HIVE("HIVE", "org.apache.hive.jdbc.HiveDriver", "jdbc:hive2"),
 	IMPALA("IMPALA", "com.cloudera.impala.jdbc4.Driver", "jdbc:impala"),
-	REDSHIFT("REDSHIFT", "com.amazon.redshift.jdbc.Driver", "jdbc:redshift"),
 	MARIADB("MARIA_DB", "org.mariadb.jdbc.Driver", "jdbc:mariadb"),
 	MYSQL("MYSQL", "com.mysql.cj.jdbc.Driver", "jdbc:mysql"),
 	OPEN_SEARCH("OPEN_SEARCH", "org.opensearch.jdbc.Driver", "jdbc:opensearch"),
 	ORACLE("ORACLE", "oracle.jdbc.driver.OracleDriver", "jdbc:oracle:thin"),
 	PHOENIX("PHOENIX", "org.apache.phoenix.jdbc.PhoenixDriver", "jdbc:phoenix"),
 	POSTGRES("POSTGRES", "org.postgresql.Driver", "jdbc:postgresql"),
+	REDSHIFT("REDSHIFT", "com.amazon.redshift.jdbc.Driver", "jdbc:redshift"),
 	SAP_HANA("SAP_HANA", "com.sap.db.jdbc.Driver", "jdbc:sap"),
+	SNOWFLAKE("SNOWFLAKE", "net.snowflake.client.jdbc.SnowflakeDriver", "jdbc:snowflake"),
 	SPARK("SPARK", "com.simba.spark.jdbc41.Driver", "jdbc:spark"), 
 	SQLITE("SQLITE", "org.sqlite.JDBC", "jdbc:sqlite"),
-	SNOWFLAKE("SNOWFLAKE", "net.snowflake.client.jdbc.SnowflakeDriver", "jdbc:snowflake"),
-	SYNAPSE("SYNAPSE", "com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver"),
 	SQL_SERVER("SQL_SERVER", "com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver"),
+	SYNAPSE("SYNAPSE", "com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver"),
 	TERADATA("TERADATA", "com.teradata.jdbc.TeraDriver", "jdbc:teradata"),
 	TIBCO("TIBCO", "cs.jdbc.driver.CompositeDriver", "jdbc:compositesw:dbapi"),
 	TRINO("TRINO", "io.trino.jdbc.TrinoDriver", "jdbc:trino"),
@@ -74,23 +74,41 @@ public enum RdbmsTypeEnum {
 		this.urlPrefix = urlPrefix;
 	}
 
+	/**
+	 * Get the label, the name this type is written as in SMSS files. It matches the
+	 * constant name except for ASTER (ASTER_DB) and MARIADB (MARIA_DB).
+	 *
+	 * @return the label
+	 */
 	public String getLabel() {
 		return this.label;
 	}
 
+	/**
+	 * Get the JDBC driver class name for this type.
+	 *
+	 * @return the driver class name
+	 */
 	public String getDriver() {
 		return this.driver;
 	}
 
+	/**
+	 * Get the JDBC connection URL prefix for this type, such as jdbc:postgresql.
+	 *
+	 * @return the URL prefix
+	 */
 	public String getUrlPrefix() {
 		return this.urlPrefix;
 	}
 
 	/**
-	 * Get the driver based on the string
-	 * 
-	 * @param type
-	 * @return
+	 * Get the JDBC driver class name for a constant name or label, ignoring case.
+	 * The type is not trimmed.
+	 *
+	 * @param type the constant name or label, such as POSTGRES or MARIA_DB; must
+	 *             not be null
+	 * @return the driver class name, or null when the type matches nothing
 	 */
 	public static String getDriverFromString(String type) {
 		type = type.toUpperCase();
@@ -117,10 +135,12 @@ public enum RdbmsTypeEnum {
 	}
 
 	/**
-	 * Get the enum based on the type
-	 * 
-	 * @param type
-	 * @return
+	 * Get the type for a constant name or label, ignoring case. Constant names are
+	 * checked before labels. The type is not trimmed.
+	 *
+	 * @param type the constant name or label, such as POSTGRES or MARIA_DB; must
+	 *             not be null
+	 * @return the matching type, or null when the type matches nothing
 	 */
 	public static RdbmsTypeEnum getEnumFromString(String type) {
 		type = type.toUpperCase();
@@ -147,14 +167,15 @@ public enum RdbmsTypeEnum {
 	}
 
 	/**
-	 * Get the enum based on the type, normalizing surrounding whitespace and case
-	 * first. Unlike {@link #getEnumFromString(String)}, this throws a clear,
-	 * actionable exception naming the invalid configured value and the valid
-	 * constants instead of silently returning null when the type cannot be
-	 * resolved.
+	 * Get the type for a value that must name one, such as a configuration setting.
+	 * Matching ignores case and surrounding spaces, and checks constant names
+	 * before labels.
 	 *
-	 * @param type
-	 * @return
+	 * @param type the constant name or label, such as POSTGRES or MARIA_DB
+	 * @return the matching type
+	 * @throws IllegalArgumentException when the type is null, blank or matches
+	 *                                  nothing; the message names the value and
+	 *                                  lists the constant names
 	 */
 	public static RdbmsTypeEnum getEnumFromStringOrThrow(String type) {
 		String normalizedType = type == null ? null : type.trim();
@@ -168,10 +189,12 @@ public enum RdbmsTypeEnum {
 	}
 
 	/**
-	 * Get the enum from the driver
-	 * 
-	 * @param driver
-	 * @return
+	 * Get the type for a JDBC driver class name, ignoring case. SQL_SERVER and
+	 * SYNAPSE share a driver, so the SQL Server driver returns SQL_SERVER, which is
+	 * declared first.
+	 *
+	 * @param driver the driver class name; must not be null
+	 * @return the first type with that driver, or null when no type uses it
 	 */
 	public static RdbmsTypeEnum getEnumFromDriver(String driver) {
 		for (RdbmsTypeEnum rdbmsType : RdbmsTypeEnum.values()) {

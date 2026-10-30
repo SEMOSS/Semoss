@@ -57,40 +57,41 @@ public class ExtractAndSetDependenciesReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if(!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("The user does not have access to edit this project or project id is invalid");
+		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+			throw new IllegalArgumentException(
+					"The user does not have access to edit this project or project id is invalid");
 		}
-		
+
 		IProject project = Utility.getProject(projectId);
 
 		String fileRelativePath = this.keyValue.get(keysToGet[1]);
-		if(fileRelativePath != null && !(fileRelativePath=fileRelativePath.trim()).isEmpty()) {
+		if (fileRelativePath != null && !(fileRelativePath = fileRelativePath.trim()).isEmpty()) {
 			fileRelativePath = fileRelativePath.replace("\\", "/");
-			if(!fileRelativePath.startsWith("/")) {
-				fileRelativePath = "/"+fileRelativePath;
+			if (!fileRelativePath.startsWith("/")) {
+				fileRelativePath = "/" + fileRelativePath;
 			}
 		}
-		
+
 		// getting the asset folder path where UUIDs are present
-		String assetsFileLocation = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT, 
+		String assetsFileLocation = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
 				project.getProjectId(), project.getProjectName());
 		String projectFolderPath = assetsFileLocation;
-		if(fileRelativePath != null && !(fileRelativePath=fileRelativePath.trim()).isEmpty()) {
+		if (fileRelativePath != null && !(fileRelativePath = fileRelativePath.trim()).isEmpty()) {
 			fileRelativePath = fileRelativePath.replace("\\", "/");
-			if(!fileRelativePath.startsWith("/")) {
-				fileRelativePath = "/"+fileRelativePath;
+			if (!fileRelativePath.startsWith("/")) {
+				fileRelativePath = "/" + fileRelativePath;
 			}
 			projectFolderPath += fileRelativePath;
 		}
-		
+
 		File projectF = new File(projectFolderPath);
-		Map<String, Object> engineIdMap = ProjectHelper.extractEngineIdsFromProjectFolder(projectId, projectF);
+		Map<String, Object> engineIdMap = ProjectHelper.extractEngineIdsFromProjectFolder(projectF);
 		// update the project dependencies table only with valid engineIds
-		if(engineIdMap.containsKey("success")) {
+		if (engineIdMap.containsKey("success")) {
 			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
 			SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, successMap.keySet());
 		}
-		
+
 		// sending the success and failed list of engineIds to FE
 		Map<String, Object> retMap = new HashMap<>();
 		retMap.put("engineIds", engineIdMap);
@@ -106,7 +107,7 @@ public class ExtractAndSetDependenciesReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "This is an optional relative file path within the project assets folder to search";
-		} 
+		}
 		return super.getDescriptionForKey(key);
 	}
 

@@ -25,38 +25,30 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.project.impl;
+package prerna.reactor.frame;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.Properties;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.Test;
+import prerna.util.sql.RdbmsTypeEnum;
 
-import prerna.SemossUnitTest;
-import prerna.util.Constants;
+public class FrameFactoryUnitTests {
 
-public class ProjectHelperUnitTests extends SemossUnitTest {
+	@ParameterizedTest
+	@CsvSource({ "H2_DB, H2_DB", "' sqlite ', SQLITE", "postgres, POSTGRES" })
+	void testGetGridTypeResolvesGridDatabases(String configuredType, RdbmsTypeEnum expected) {
+		assertEquals(expected, FrameFactory.getGridType(configuredType));
+	}
 
-	private static final Logger logger = LogManager.getLogger(ProjectHelperUnitTests.class);
-
-	@Test
-	void testLoadInsightsEngineInvalidConfiguredRdbmsType() {
-		Properties mainEngineProp = new Properties();
-		mainEngineProp.setProperty(Constants.PROJECT, "pid");
-		mainEngineProp.setProperty(Constants.PROJECT_ALIAS, "pname");
-		mainEngineProp.setProperty(Constants.RDBMS_INSIGHTS_TYPE, "NOT_A_REAL_RDBMS_TYPE");
-
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> ProjectHelper.loadInsightsEngine(mainEngineProp, logger));
-
-		assertTrue(e.getMessage().contains("NOT_A_REAL_RDBMS_TYPE"),
-				"Error message should name the invalid configured value, was: " + e.getMessage());
-		assertTrue(e.getMessage().contains("H2_DB"),
-				"Error message should list the valid RdbmsTypeEnum constants, was: " + e.getMessage());
+	@ParameterizedTest
+	@NullAndEmptySource
+	@ValueSource(strings = { "   ", "ORACLE", "NOT_A_REAL_RDBMS_TYPE" })
+	void testGetGridTypeFallsBackToH2(String configuredType) {
+		assertEquals(RdbmsTypeEnum.H2_DB, FrameFactory.getGridType(configuredType));
 	}
 
 }

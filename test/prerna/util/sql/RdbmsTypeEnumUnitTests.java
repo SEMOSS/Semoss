@@ -77,4 +77,10 @@ public class RdbmsTypeEnumUnitTests {
 		assertThrows(IllegalArgumentException.class, () -> RdbmsTypeEnum.getEnumFromStringOrThrow(input));
 	}
 
+	@Test
+	void testGetEnumFromDriverSharedSqlServerDriver() {
+		assertEquals(RdbmsTypeEnum.SQL_SERVER,
+				RdbmsTypeEnum.getEnumFromDriver("com.microsoft.sqlserver.jdbc.SQLServerDriver"));
+	}
+
 }
