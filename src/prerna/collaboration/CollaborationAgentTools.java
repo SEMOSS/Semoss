@@ -92,6 +92,7 @@ import prerna.reactor.collaboration.WorkOpenSkillReactor;
 import prerna.reactor.collaboration.WorkPublishSkillReactor;
 import prerna.reactor.collaboration.WorkSaveCustomRoutineReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
+import prerna.reactor.collaboration.WorkShowItemReactor;
 import prerna.reactor.collaboration.WorkUseSkillInAssistantReactor;
 
 /**
@@ -142,6 +143,8 @@ public final class CollaborationAgentTools {
 		REACTORS.put("SaveDraft", MicrosoftOutlookSaveDraftReactor.class);
 		// one email attachment of this thread, on request, into the room's working directory
 		REACTORS.put("DownloadAttachment", WorkDownloadAttachmentReactor.class);
+		// puts one found email, thread, Teams chat, or room file beside the owner's chat, on request
+		REACTORS.put("ShowItem", WorkShowItemReactor.class);
 		REACTORS.put("ListTeams", MicrosoftTeamsListTeamsReactor.class);
 		REACTORS.put("ListChannels", MicrosoftTeamsListChannelsReactor.class);
 		REACTORS.put("ListChannelFiles", MicrosoftTeamsListFilesReactor.class);
@@ -181,8 +184,9 @@ public final class CollaborationAgentTools {
 	// calendar reads that take a timeZone, filled in with the owner's when the model leaves it out
 	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent");
 
-	// tools about the chat itself: only for the owner's chat at the root of the run, never a routine
-	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "CompleteGoal");
+	// tools about the chat itself: only for the owner's chat at the root of the run, never a routine;
+	// ShowItem needs the owner's chat on screen to show anything
+	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "CompleteGoal", "ShowItem");
 
 	// the email editor is open in the owner's chat; a routine has none, its delivery step sends the result
 	private static final Set<String> EDITOR_TOOLS = Set.of("ComposeEmail");
@@ -200,7 +204,7 @@ public final class CollaborationAgentTools {
 	// said first in a mail tool's description, so the model knows which side of Brain it is on
 	private static final Map<String, String> SOURCE_NOTES = Map.of(
 			"ListTopics", "[Brain: topics, or one topic in full with its people]",
-			"EditTopic", "[Brain: changes a topic]",
+			"EditTopic", "[Brain: changes a topic, or creates one]",
 			"CompleteGoal", "[Brain: completes an existing goal in this chat's topics]",
 			"EditThread", "[Brain: changes a thread's topics]",
 			"TagTopic", "[Brain: tags this chat with a topic]",
@@ -300,6 +304,12 @@ public final class CollaborationAgentTools {
 		JSONObject tool = tools().get(toolName);
 		if (tool == null) {
 			return ToolExecutionResult.error(null, "Unknown collaboration tool: " + toolName);
+		}
+		// models fill optional arguments with "" (ListTopics status "" failed, accountId "" matched no topic),
+		// so a blank argument is one left out
+		if (params != null) {
+			params = new LinkedHashMap<>(params);
+			params.values().removeIf(value -> value instanceof String text && text.isBlank());
 		}
 		JSONObject meta = tool.getJSONObject("_meta");
 		JSONObject inputSchema = tool.optJSONObject("inputSchema");

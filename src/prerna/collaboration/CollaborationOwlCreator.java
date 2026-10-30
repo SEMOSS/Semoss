@@ -99,7 +99,7 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 		// one table per routine kind (WorkRoutine.Kind), same columns
 		// WORK_CUSTOM_ROUTINE holds many per owner, told apart by ROUTINE_ID (null in the others)
 		for (String routine : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE", "WORK_EXPENSE_ROUTINE",
-				"WORK_CUSTOM_ROUTINE")) {
+				"WORK_EVENT_PLANNING_ROUTINE", "WORK_CUSTOM_ROUTINE")) {
 			addTable(routine, Arrays.asList(
 					OWNER_ID, OWNER_TYPE,
 					Pair.with("ROUTINE_ID", VARCHAR_50),
@@ -147,6 +147,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("DRAFT_FOLDER_NAME", VARCHAR_255),
 				// ids of the owner's own Collaboration skills staged in their assistant chats
 				Pair.with("ASSISTANT_SKILLS_JSON", CLOB_DATATYPE_NAME),
+				// minutes between scheduled syncs of the owner's mail while the app is closed (BrainSync); 0 is off,
+				// null the default 15
+				Pair.with("SYNC_EVERY_MINUTES", INTEGER_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// One resumable topic-review draft per owner; only profiles and bounded evidence metadata.
 		addTable("BRAIN_TOPIC_REVIEW", Arrays.asList(
@@ -246,7 +249,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("ENGAGEMENT", INTEGER_DATATYPE_NAME),
 				Pair.with("REASON", CLOB_DATATYPE_NAME),
 				Pair.with("CHANGED_BY", VARCHAR_255),
-				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
+				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME),
+				// VIP in this topic only; read for members (BrainRulesGate.standing)
+				Pair.with("IS_VIP", BOOLEAN_DATATYPE_NAME)));
 		// a chat's topics: linked, suggested (a soft tag) or dismissed (not suggested again)
 		addTable("BRAIN_TOPIC_ROOM", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
@@ -372,7 +377,10 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("CATEGORIES_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("FLAGGED", BOOLEAN_DATATYPE_NAME),
 				Pair.with("IMPORTANCE", VARCHAR_20),
-				Pair.with("ATTACHMENTS", BOOLEAN_DATATYPE_NAME)));
+				Pair.with("ATTACHMENTS", BOOLEAN_DATATYPE_NAME),
+				// imported by a sync, a chat's pull or the webhook, and still owed its after-import steps (reply
+				// cards, the expense review): a run cut off before them leaves it to the next sync; null when nothing is owed
+				Pair.with("SYNC_PENDING", BOOLEAN_DATATYPE_NAME)));
 
 		// --- Brain: control ---
 		addTable("BRAIN_RULE", Arrays.asList(
