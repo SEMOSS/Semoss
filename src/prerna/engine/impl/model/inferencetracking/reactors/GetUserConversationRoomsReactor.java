@@ -44,8 +44,10 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 	public GetUserConversationRoomsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.SORT.getKey(),
-				ReactorKeysEnum.PINNED.getKey(), "roomOptionsSearch", INCLUDE_UNNAMED_ROOMS, INCLUDE_CHILD_ROOMS };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				ReactorKeysEnum.PINNED.getKey(), "roomOptionsSearch", INCLUDE_UNNAMED_ROOMS, INCLUDE_CHILD_ROOMS,
+				ReactorKeysEnum.START_DATE.getKey(), ReactorKeysEnum.END_DATE.getKey(),
+				ReactorKeysEnum.SORT_BY.getKey() };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -98,18 +100,24 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		boolean includeUnnamedRooms = getBoolean(INCLUDE_UNNAMED_ROOMS, false);
 		boolean includeChildRooms = getBoolean(INCLUDE_CHILD_ROOMS, false);
 
+		// date-only bounds are whole days in the user's timezone
+		String startDate = ModelInferenceLogsUtils.toUtcDateBound(
+				this.keyValue.get(ReactorKeysEnum.START_DATE.getKey()), user.getZoneId(), false);
+		String endDate = ModelInferenceLogsUtils.toUtcDateBound(this.keyValue.get(ReactorKeysEnum.END_DATE.getKey()),
+				user.getZoneId(), true);
+		String sortBy = ModelInferenceLogsUtils.normalizeRoomSortBy(this.keyValue.get(ReactorKeysEnum.SORT_BY.getKey()));
 
 		// Call new overload of getUserConversations
 		List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(
 				user.getPrimaryLoginToken().getId(), projectId, limit, offset, sortDir, search, pinned,
-				roomOptionsSearch, includeUnnamedRooms, includeChildRooms);
+				roomOptionsSearch, includeUnnamedRooms, includeChildRooms, startDate, endDate, sortBy);
 
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Retrieves conversation rooms for the current user, with optional project scoping, paging, room-name search, sort direction, and pinned filtering.";
+		return "Retrieves conversation rooms for the current user, with optional project scoping, paging, room-name search, sort field/direction, pinned filtering, and a DATE_CREATED range filter.";
 	}
 
 	@Override
@@ -123,7 +131,9 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		} else if (ReactorKeysEnum.SEARCH.getKey().equals(key)) {
 			return "Optional room-name search term (case-insensitive).";
 		} else if (ReactorKeysEnum.SORT.getKey().equals(key)) {
-			return "Sort direction by room creation date. Accepts ASC or DESC (default is DESC).";
+			return "Sort direction for the field chosen by sortBy. Accepts ASC or DESC (default is DESC).";
+		} else if (ReactorKeysEnum.SORT_BY.getKey().equals(key)) {
+			return "Which timestamp to sort by: \"created\" (default) or \"modified\" (last update, falling back to creation time for rooms never updated). Any other value is an error.";
 		} else if (ReactorKeysEnum.PINNED.getKey().equals(key)) {
 			return "Optional pinned filter: true for pinned rooms only, false for unpinned rooms only, omit for no pinned filter.";
 		} else if ("roomOptionsSearch".equals(key)) {
@@ -132,6 +142,10 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 			return "Whether to include rooms with a null or empty name. Defaults to false.";
 		} else if (INCLUDE_CHILD_ROOMS.equals(key)) {
 			return "Whether to include rooms that have a parent room. Defaults to false.";
+		} else if (ReactorKeysEnum.START_DATE.getKey().equals(key)) {
+			return "Optional inclusive start of a room creation-date filter: yyyy-MM-dd in the user's timezone, or an ISO-8601 date-time. Can be used without endDate.";
+		} else if (ReactorKeysEnum.END_DATE.getKey().equals(key)) {
+			return "Optional inclusive end of a room creation-date filter: yyyy-MM-dd (covers that whole day in the user's timezone), or an ISO-8601 date-time (exclusive). Can be used without startDate.";
 		}
 		return super.getDescriptionForKey(key);
 	}

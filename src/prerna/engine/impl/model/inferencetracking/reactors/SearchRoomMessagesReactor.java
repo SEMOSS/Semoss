@@ -53,9 +53,13 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 				ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey(),
 				INCLUDE_UNNAMED_ROOMS,
-				INCLUDE_CHILD_ROOMS
+				INCLUDE_CHILD_ROOMS,
+				ReactorKeysEnum.START_DATE.getKey(),
+				ReactorKeysEnum.END_DATE.getKey(),
+				ReactorKeysEnum.SORT_BY.getKey(),
+				ReactorKeysEnum.SORT.getKey()
 		};
-		this.keyRequired = new int[] { 0, 1, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -105,11 +109,18 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 		long offset = requestedOffset == null ? 0L : requestedOffset;
 		boolean includeUnnamedRooms = getBoolean(INCLUDE_UNNAMED_ROOMS, false);
 		boolean includeChildRooms = getBoolean(INCLUDE_CHILD_ROOMS, false);
+		// resolved outside the try so bad input surfaces as a plain validation error
+		String startDate = ModelInferenceLogsUtils.toUtcDateBound(
+				this.keyValue.get(ReactorKeysEnum.START_DATE.getKey()), user.getZoneId(), false);
+		String endDate = ModelInferenceLogsUtils.toUtcDateBound(this.keyValue.get(ReactorKeysEnum.END_DATE.getKey()),
+				user.getZoneId(), true);
+		String sortBy = ModelInferenceLogsUtils.normalizeRoomSortBy(this.keyValue.get(ReactorKeysEnum.SORT_BY.getKey()));
+		String sortDir = this.keyValue.get(ReactorKeysEnum.SORT.getKey());
 
 		List<Map<String, Object>> results;
 		try {
 			results = ModelInferenceLogsUtils.searchMessages(userId, projectId, keyword, limit, offset,
-					includeUnnamedRooms, includeChildRooms);
+					includeUnnamedRooms, includeChildRooms, startDate, endDate, sortBy, sortDir);
 		} catch (Exception e) {
 			classLogger.error("Error searching room messages", e);
 			throw new RuntimeException("Could not search room messages: " + e.getMessage(), e);
@@ -126,7 +137,9 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 				+ "Unnamed and child rooms are excluded unless explicitly included. "
 				+ "Falls back to the current insight's context/project when projectId is omitted; "
 				+ "if none is available, searches all projects for the user. "
-				+ "Supports limit and offset for pagination over matching rooms.";
+				+ "Supports limit and offset for pagination over matching rooms, "
+				+ "an optional room creation-date range via startDate/endDate, "
+				+ "and sortBy (created/modified) with sort (ASC/DESC).";
 	}
 
 	@Override
@@ -143,6 +156,14 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 			return "Whether to include rooms with a null or empty name. Defaults to false.";
 		} else if (key.equals(INCLUDE_CHILD_ROOMS)) {
 			return "Whether to include rooms that have a parent room. Defaults to false.";
+		} else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
+			return "Optional inclusive start of a room creation-date filter: yyyy-MM-dd in the user's timezone, or an ISO-8601 date-time. Can be used without endDate.";
+		} else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
+			return "Optional inclusive end of a room creation-date filter: yyyy-MM-dd (covers that whole day in the user's timezone), or an ISO-8601 date-time (exclusive). Can be used without startDate.";
+		} else if (key.equals(ReactorKeysEnum.SORT_BY.getKey())) {
+			return "Which timestamp to sort rooms by: \"created\" (default) or \"modified\" (last update, falling back to creation time).";
+		} else if (key.equals(ReactorKeysEnum.SORT.getKey())) {
+			return "Sort direction for sortBy. Accepts ASC or DESC (default is DESC).";
 		}
 		return super.getDescriptionForKey(key);
 	}
