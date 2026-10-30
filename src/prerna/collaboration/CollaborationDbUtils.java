@@ -62,6 +62,7 @@ import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.util.ConnectionUtils;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
 // Loads the Collaboration database and holds the shared JDBC helpers for the *Utils classes
@@ -97,6 +98,12 @@ public class CollaborationDbUtils {
 
 	static IRDBMSEngine db() {
 		return SystemEngineRegistry.getCollaborationDb();
+	}
+
+	// quote a column name the backing db treats as a keyword (VALUE on H2 2.x, not on postgres)
+	static String column(String name) {
+		AbstractSqlQueryUtil queryUtil = db().getQueryUtil();
+		return queryUtil.isSelectorKeyword(name) ? queryUtil.getEscapeKeyword(name) : name;
 	}
 
 	static Timestamp now() {

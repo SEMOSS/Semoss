@@ -59,8 +59,15 @@ public final class BrainRuleUtils {
 			EXCLUDE_TOPIC, EXCLUDE_CHANNEL, EXCLUDE_EVERYWHERE, MUTE_SENDER);
 	public static final Set<String> RULE_CHANNELS = Set.of("email", "teams");
 
-	private static final String RULE_COLUMNS = "RULE_ID, KIND, VALUE, TOPIC_ID, PERSON_ID, CHANNEL, NOTE, "
-			+ "CREATED_BY, CREATED_AT, DISABLED_AT";
+	private static String ruleColumns() {
+		return "RULE_ID, KIND, " + valueColumn() + ", TOPIC_ID, PERSON_ID, CHANNEL, NOTE, "
+				+ "CREATED_BY, CREATED_AT, DISABLED_AT";
+	}
+
+	// VALUE is reserved on H2 2.x
+	static String valueColumn() {
+		return CollaborationDbUtils.column("VALUE");
+	}
 
 	private BrainRuleUtils() {
 
@@ -72,7 +79,7 @@ public final class BrainRuleUtils {
 	public static Map<String, Object> listRules(User user) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		List<Map<String, Object>> items = CollaborationDbUtils.query(
-				"SELECT " + RULE_COLUMNS + " FROM BRAIN_RULE "
+				"SELECT " + ruleColumns() + " FROM BRAIN_RULE "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND DISABLED_AT IS NULL ORDER BY CREATED_AT, RULE_ID",
 				BrainRuleUtils::mapRule, owner.getValue0(), owner.getValue1());
 		Map<String, Object> page = new LinkedHashMap<>();
@@ -83,7 +90,7 @@ public final class BrainRuleUtils {
 
 	static Map<String, Object> getRule(String ownerId, String ownerType, String ruleId) {
 		Map<String, Object> rule = CollaborationDbUtils.queryOne(
-				"SELECT " + RULE_COLUMNS + " FROM BRAIN_RULE "
+				"SELECT " + ruleColumns() + " FROM BRAIN_RULE "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND RULE_ID = ?",
 				BrainRuleUtils::mapRule, ownerId, ownerType, ruleId);
 		if (rule == null) {
@@ -122,7 +129,7 @@ public final class BrainRuleUtils {
 			checkRule(ownerId, ownerType, kind, value, (String) current.get("topicId"),
 					(String) current.get("personId"), (String) current.get("channel"));
 			CollaborationDbUtils.update(
-					"UPDATE BRAIN_RULE SET VALUE = ?, NOTE = ? "
+					"UPDATE BRAIN_RULE SET " + valueColumn() + " = ?, NOTE = ? "
 							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND RULE_ID = ?",
 					value, changes.containsKey("note") ? CollaborationDbUtils.asString(changes.get("note"))
 							: current.get("note"),
@@ -150,7 +157,7 @@ public final class BrainRuleUtils {
 		String ruleId = UUID.randomUUID().toString();
 		Timestamp now = CollaborationDbUtils.now();
 		CollaborationDbUtils.inTransaction(conn -> {
-			CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, VALUE, "
+			CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, " + valueColumn() + ", "
 					+ "TOPIC_ID, PERSON_ID, CHANNEL, NOTE, CREATED_BY, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 					ownerId, ownerType, ruleId, kind, value, topicId, personId, channel, note, BrainProfileUtils.YOU,
 					now);
@@ -312,7 +319,7 @@ public final class BrainRuleUtils {
 	private static String findActive(String ownerId, String ownerType, String kind, String value, String topicId,
 			String personId, String channel) {
 		return CollaborationDbUtils.queryOne("SELECT RULE_ID FROM BRAIN_RULE WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-				+ "AND KIND = ? AND DISABLED_AT IS NULL AND COALESCE(VALUE, '') = ? AND COALESCE(TOPIC_ID, '') = ? "
+				+ "AND KIND = ? AND DISABLED_AT IS NULL AND COALESCE(" + valueColumn() + ", '') = ? AND COALESCE(TOPIC_ID, '') = ? "
 				+ "AND COALESCE(PERSON_ID, '') = ? AND COALESCE(CHANNEL, '') = ? ORDER BY CREATED_AT, RULE_ID",
 				rs -> rs.getString(1), ownerId, ownerType, kind, value == null ? "" : value,
 				topicId == null ? "" : topicId, personId == null ? "" : personId, channel == null ? "" : channel);

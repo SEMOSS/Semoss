@@ -31,8 +31,11 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -54,9 +57,46 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 
 	public static final String BASE_H2_FILE_CONNECTION = "jdbc:h2:nio:" + "@" + Constants.BASE_FOLDER + "@"
 			+ DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@" + Constants.ENGINE + "@" + DIR_SEPARATOR
-			+ "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+			+ "database;query_timeout=180000;cache_size=32768";
+
+	// H2 1.x url settings that H2 2.x rejects (older smss files still carry some of these)
+	private static final Set<String> UNSUPPORTED_V1_URL_SETTINGS = Set.of("EARLY_FILTER", "LOG", "UNDO_LOG", "MVCC",
+			"MULTI_THREADED", "ALIAS_COLUMN_NAME", "COMPRESS_LOB", "ACCESS_MODE_LOG", "PERSISTENT",
+			"BINARY_COLLATION", "UUID_COLLATION");
+
+	// words H2 2.x reserves that the 1.x list in RDF_Map.prop is missing - merged in so
+	// installs that keep an older RDF_Map.prop still escape them
+	private static final List<String> H2_V2_RESERVED_WORDS = List.of("ANY", "ASYMMETRIC", "AUTHORIZATION", "CAST",
+			"CURRENT_CATALOG", "CURRENT_PATH", "CURRENT_ROLE", "CURRENT_SCHEMA", "DAY", "DEFAULT", "ELSE", "END", "HOUR",
+			"KEY", "MINUTE", "MONTH", "SECOND", "SESSION_USER", "SET", "SOME", "SYMMETRIC", "SYSTEM_USER", "TO",
+			"UESCAPE", "UNKNOWN", "USER", "USING", "VALUE", "WHEN", "YEAR");
 
 	private boolean forceFile;
+
+	// strip H2 1.x only settings so H2 2.x will accept the url
+	public static String removeUnsupportedUrlSettings(String connectionUrl) {
+		if (connectionUrl == null || connectionUrl.indexOf(';') < 0) {
+			return connectionUrl;
+		}
+		String[] parts = connectionUrl.split(";");
+		StringBuilder cleanUrl = new StringBuilder(parts[0]);
+		List<String> removed = new ArrayList<>();
+		for (int i = 1; i < parts.length; i++) {
+			String setting = parts[i];
+			int eq = setting.indexOf('=');
+			String key = (eq < 0 ? setting : setting.substring(0, eq)).trim().toUpperCase();
+			// MV_STORE=FALSE is left alone on purpose - dropping it would open an empty new db
+			if (UNSUPPORTED_V1_URL_SETTINGS.contains(key)) {
+				removed.add(key);
+			} else if (!setting.trim().isEmpty()) {
+				cleanUrl.append(';').append(setting);
+			}
+		}
+		if (!removed.isEmpty()) {
+			classLogger.warn("Removed H2 1.x connection settings {} that H2 2.x does not support", removed);
+		}
+		return cleanUrl.toString();
+	}
 
 	H2QueryUtil() {
 		super();
@@ -66,6 +106,20 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	H2QueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.H2_DB);
+	}
+
+	@Override
+	public void setReservedWords(List<String> reservedWords) {
+		List<String> allWords = new ArrayList<>();
+		if (reservedWords != null) {
+			allWords.addAll(reservedWords);
+		}
+		for (String word : H2_V2_RESERVED_WORDS) {
+			if (!allWords.contains(word)) {
+				allWords.add(word);
+			}
+		}
+		super.setReservedWords(allWords);
 	}
 
 	@Override
@@ -247,14 +301,14 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String getAllColumnDetails(String tableName, String database, String schema) {
 		// do not need to use the schema
-		return "SELECT COLUMN_NAME, TYPE_NAME, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
+		return "SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
 				+ tableName.toUpperCase() + "';";
 	}
 
 	@Override
 	public String columnDetailsQuery(String tableName, String columnName, String database, String schema) {
 		// do not need to use the schema
-		return "SELECT COLUMN_NAME, TYPE_NAME, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
+		return "SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
 				+ tableName.toUpperCase() + "' AND COLUMN_NAME='" + columnName.toUpperCase() + "';";
 	}
 
@@ -267,14 +321,14 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String getIndexDetails(String indexName, String tableName, String database, String schema) {
 		// do not use the schema
-		return "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME='"
+		return "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEX_COLUMNS WHERE INDEX_NAME='"
 				+ indexName.toUpperCase() + "' AND TABLE_NAME='" + tableName.toUpperCase() + "';";
 	}
 
 	@Override
 	public String allIndexForTableQuery(String tableName, String database, String schema) {
 		// do not need to use the schema
-		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME='"
+		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEX_COLUMNS WHERE TABLE_NAME='"
 				+ tableName.toUpperCase() + "';";
 	}
 
@@ -310,7 +364,7 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 		StringBuilder builder = new StringBuilder();
 		builder.append("UPDATE " + tableName + " SET ");
 		builder.append(String.join(",", Stream.of(columns)
-				.map(c -> c + " = HASH('SHA256', STRINGTOUTF8(" + c + "), 1000)").collect(Collectors.toList())));
+				.map(c -> c + " = RAWTOHEX(HASH('SHA256', STRINGTOUTF8(" + c + "), 1000))").collect(Collectors.toList())));
 		return builder.toString();
 	}
 }

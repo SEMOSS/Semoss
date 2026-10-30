@@ -258,6 +258,10 @@ public abstract class AbstractSqlQueryUtil {
 			throw new SQLException("Unable to find class: " + type.getDriver());
 		}
 
+		if (type == RdbmsTypeEnum.H2_DB) {
+			connectionUrl = H2QueryUtil.removeUnsupportedUrlSettings(connectionUrl);
+		}
+
 		// create the iterator
 		Connection conn;
 		try {
@@ -267,6 +271,13 @@ public abstract class AbstractSqlQueryUtil {
 				conn = DriverManager.getConnection(connectionUrl, userName, password);
 			}
 		} catch (SQLException e) {
+			// 90048 = file written by H2 1.x, which 2.x cannot open
+			if (type == RdbmsTypeEnum.H2_DB && e.getErrorCode() == 90048) {
+				String message = "H2 database at " + connectionUrl
+						+ " is in the old H2 1.x format. Run the SEMOSS h2-update-utility before starting this version.";
+				classLogger.error(message, e);
+				throw new SQLException(message, e);
+			}
 			classLogger.error("Failed to establish database connection to {}: {}", connectionUrl, e.getMessage(), e);
 			throw new SQLException("Could not get connection.");
 		}
