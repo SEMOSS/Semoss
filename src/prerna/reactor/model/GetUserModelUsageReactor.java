@@ -30,11 +30,7 @@ package prerna.reactor.model;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -169,15 +165,13 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
 		// If both dates are provided, validate them
 		if (hasStartDate && hasEndDate) {
-			DateTimeFormatter formatter = new DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd")
-					.parseDefaulting(ChronoField.HOUR_OF_DAY, 0).parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
-					.parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0).toFormatter().withZone(ZoneOffset.UTC);
-			ZonedDateTime start;
-			ZonedDateTime end;
+			// strict ISO parse, the same one the queries use, so 2026-02-30 is rejected here
+			LocalDate start;
+			LocalDate end;
 
 			// Parse and validate start date
 			try {
-				start = ZonedDateTime.parse(startDate.trim(), formatter);
+				start = LocalDate.parse(startDate.trim());
 			} catch (DateTimeParseException e) {
 				throw new IllegalArgumentException(
 						"Invalid startDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
@@ -185,15 +179,14 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
 			// Parse and validate end date
 			try {
-				end = ZonedDateTime.parse(endDate.trim(), formatter);
+				end = LocalDate.parse(endDate.trim());
 			} catch (DateTimeParseException e) {
 				throw new IllegalArgumentException(
 						"Invalid endDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
 			}
 
 			// Validate start date is not in the future
-			ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
-			if (start.isAfter(now)) {
+			if (start.isAfter(LocalDate.now(ZoneOffset.UTC))) {
 				throw new IllegalArgumentException("startDate cannot be in the future. Provided: startDate=" + startDate);
 			}
 

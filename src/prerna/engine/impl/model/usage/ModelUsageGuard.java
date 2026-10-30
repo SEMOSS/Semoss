@@ -664,14 +664,16 @@ public final class ModelUsageGuard {
 	 * @param start    the window's start, inclusive
 	 * @param end      the window's end, exclusive
 	 * @return the cost in millionths of a dollar, or null when the model has no
-	 *         known prices, or the logs are off or cannot be read
+	 *         known prices and no recorded cost, or the logs are off or cannot be
+	 *         read
 	 */
 	public static Long costUsedInLogs(String engineId, String userId, String userType, Instant start, Instant end) {
-		// a model with no known prices has no cost to count
-		if (prices.apply(engineId) == null) {
+		Long used = usedInLogs(ModelUsageCounterScope.personModel(engineId, userId, userType), Metric.COST, start, end);
+		// recorded cost still counts after a model's prices are removed
+		if (used != null && used == 0 && prices.apply(engineId) == null) {
 			return null;
 		}
-		return usedInLogs(ModelUsageCounterScope.personModel(engineId, userId, userType), Metric.COST, start, end);
+		return used;
 	}
 
 	/**
