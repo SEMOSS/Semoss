@@ -97,6 +97,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	public static final String METADATA = "metadata";
 	public static final String FILTERS_KEY = "filters";
 	public static final String METADATA_FILTERS_KEY = "metaFilters";
+	public static final String SEARCH_MODE_KEY = "searchMode";
+	public static final String SELECT_KEY = "select";
 
 	public static final String CSVPATH = "csvPath";
 	public static final String DOCUMENT = "document";
