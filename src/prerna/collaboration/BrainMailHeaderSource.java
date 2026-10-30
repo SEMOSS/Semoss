@@ -83,6 +83,11 @@ public interface BrainMailHeaderSource {
 		return Map.of();
 	}
 
+	// a profile photo by its Graph path (/me/photos/..., /users/{id}/photos/...); null when there is no directory
+	default byte[] photo(User user, String path) throws Exception {
+		return null;
+	}
+
 	// headers received at or after since, newest first, at most max
 	List<Map<String, Object>> list(User user, String folder, Instant since, int max) throws Exception;
 

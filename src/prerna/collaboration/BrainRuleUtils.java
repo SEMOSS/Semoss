@@ -174,19 +174,20 @@ public final class BrainRuleUtils {
 						EXCLUDE_TOPIC.equals(kind) ? topicId : channel);
 			}
 		});
-		// a sender kept out leaves Work too; deleting the rule brings the items back
+		// a sender kept out leaves Work too (a topic ignore, on that topic's threads); deleting the rule brings the
+		// items back
 		WorkItemUtils.dismissForRule(ownerId, ownerType, keptOutPeople(ownerId, ownerType, kind, value, personId),
-				ruleId);
+				EXCLUDE_TOPIC.equals(kind) ? topicId : null, ruleId);
 		// what a summary may say changed; each thread summarizes again when opened or when mail comes in
 		WorkThreadInsights.markStale(ownerId, ownerType, null);
 		return getRule(ownerId, ownerType, ruleId);
 	}
 
-	// people a sender, domain, or never-ingest rule covers
+	// people a sender, domain, never-ingest or topic-ignore rule covers
 	private static List<String> keptOutPeople(String ownerId, String ownerType, String kind, String value,
 			String personId) {
 		Set<String> out = new LinkedHashSet<>();
-		if (EXCLUDE_EVERYWHERE.equals(kind)) {
+		if (EXCLUDE_EVERYWHERE.equals(kind) || EXCLUDE_TOPIC.equals(kind)) {
 			out.add(personId != null ? personId : value);
 		} else if (NEVER_SENDER.equals(kind) || NEVER_DOMAIN.equals(kind)) {
 			// the gate's own matching, so Work and import agree

@@ -569,4 +569,49 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		assertEquals(curr, SmssUtilities.concealSmssSensitiveInfo(curr));
 	}
 
+	@Test
+	void testCreateTempProjectSmssWritesConfiguredInsightsTypeAsLabel() throws IOException {
+		Path base = tempDir.resolve("Semoss");
+		Files.createDirectories(base);
+		Properties coreProp = new Properties();
+		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
+		coreProp.setProperty(Constants.DEFAULT_INSIGHTS_RDBMS, " sqlite ");
+		DIHelper.getInstance().setCoreProp(coreProp);
+
+		Path project = base.resolve("project");
+		Files.createDirectories(project);
+
+		File f = SmssUtilities.createTemporaryProjectSmss("pid", "pname", IProject.PROJECT_TYPE.INSIGHTS, "github",
+				"github.com", null);
+
+		Properties load = new Properties();
+		load.load(Files.newInputStream(f.toPath()));
+
+		assertEquals("project/@PROJECT@/insights_database.sqlite", load.getProperty(Constants.RDBMS_INSIGHTS));
+		assertEquals("SQLITE", load.getProperty(Constants.RDBMS_INSIGHTS_TYPE));
+		assertEquals("org.sqlite.JDBC", load.getProperty(Constants.DRIVER));
+	}
+
+	@Test
+	void testCreateTempAssetWritesConfiguredInsightsTypeAsLabel() throws IOException {
+		Path base = tempDir.resolve("Semoss");
+		Files.createDirectories(base);
+		Properties coreProp = new Properties();
+		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
+		coreProp.setProperty(Constants.DEFAULT_INSIGHTS_RDBMS, " sqlite ");
+		DIHelper.getInstance().setCoreProp(coreProp);
+
+		Path user = base.resolve("user");
+		Files.createDirectories(user);
+
+		File f = SmssUtilities.createTemporaryAssetSmss("pid", "pname", null);
+
+		Properties load = new Properties();
+		load.load(Files.newInputStream(f.toPath()));
+
+		assertEquals("project/@PROJECT@/insights_database.sqlite", load.getProperty(Constants.RDBMS_INSIGHTS));
+		assertEquals("SQLITE", load.getProperty(Constants.RDBMS_INSIGHTS_TYPE));
+		assertEquals("org.sqlite.JDBC", load.getProperty(Constants.DRIVER));
+	}
+
 }

@@ -816,6 +816,19 @@ class WorkInboxRoutineUnitTests {
 				Set.of("context", "agendas", "owner_email", "timezone", "meetings", "days_ahead", "preferences"));
 	}
 
+	@Test
+	void eventPlanningDefinitionIsStrictlyValidAndKeepsItsSummaryApartFromTheEmail() {
+		AutomationDefinitionService.DefinitionFiles files = WorkRoutine.definition(WorkEventPlanningRoutine.KIND, "engine-1");
+		assertStrictDefinition(files, List.of("start", "sync", "wait_sync", "gather", "plan", "sheets", "digest", "deliver"),
+				List.of("wait_sync", "gather", "plan", "sheets", "digest", "deliver"), List.of(),
+				Set.of("owner_email", "timezone", "meetings", "days_ahead", "folder", "preferences", "plan_model"),
+				Set.of("context", "plan", "sheets", "digest", "owner_email", "timezone", "meetings", "days_ahead",
+						"preferences", "plan_model"));
+		// the summary is a step's text, and lastRun reads the HTML from the deliver step's output
+		assertEquals("digest", WorkEventPlanningRoutine.KIND.outputNode());
+		assertTrue(files.nodeSources().get("deliver").contains("\"html\": body"));
+	}
+
 	@ParameterizedTest
 	@ValueSource(booleans = { false, true })
 	@SuppressWarnings("unchecked")
@@ -848,6 +861,19 @@ class WorkInboxRoutineUnitTests {
 				: WorkInboxRoutine.save(user, config(false));
 		assertEquals(flow, saved.get("flow"));
 		automations.verifyNoInteractions();
+	}
+
+	@Test
+	void expenseReviewSaveAnswersWithTheSameShapeAsItsRead() {
+		Insight insight = mock(Insight.class);
+		when(insight.getUser()).thenReturn(user);
+		Map<String, Object> saved = WorkExpenseRoutine.save(user,
+				Map.of("enabled", false, "timezone", "UTC", "recipients", List.of("jbell@deloitte.com")));
+		// Routines parses both answers with one schema; a save without the folder and subjects was rejected there
+		assertEquals(WorkExpenseRoutine.get(insight), saved);
+		assertEquals(WorkExpenseRoutine.DOCUMENTS_ID, saved.get("documentsId"));
+		assertEquals(WorkExpenseRoutine.SUBJECTS, saved.get("subjects"));
+		assertEquals(List.of("jbell@deloitte.com"), saved.get("recipients"));
 	}
 
 	@Test
