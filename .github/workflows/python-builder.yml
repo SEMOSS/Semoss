@@ -23,6 +23,10 @@ on:
         description: "Base tag"
         required: true
         default: "22.04"
+  # Weekly rebuild so new CPython patches and wheels land without a code change.
+  # Runs before the nightly image builders (1:18 UTC) that copy this image.
+  schedule:
+    - cron: "30 0 * * 0"  # Sundays 0:30 UTC
   push:
     branches: ["dev", "main"]
     paths:
