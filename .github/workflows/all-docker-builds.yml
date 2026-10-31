@@ -26,7 +26,7 @@ jobs:
           REF: ${{ inputs.ref || github.ref_name }}
         run: |
           set -u
-          WORKFLOWS="docker-build-ubi9.yml ubuntu2204.yml ubuntu2404.yml"
+          WORKFLOWS="docker-build-ubi9.yml ubuntu2204.yml ubuntu2404.yml ubuntu2604.yml"
           failed=0
 
           echo "### All Docker Builds - ref \`$REF\`" >> "$GITHUB_STEP_SUMMARY"
