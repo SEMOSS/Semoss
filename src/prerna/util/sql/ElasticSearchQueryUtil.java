@@ -51,20 +51,20 @@ public class ElasticSearchQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Configuration map is null or empty");
 		}
 
-		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
+		this.connectionUrl = getOptionalStringValue(configMap, AbstractSqlQueryUtil.CONNECTION_URL, null);
 
-		this.httpType = (String) configMap.get(AbstractSqlQueryUtil.HTTP_TYPE);
+		this.httpType = getOptionalStringValue(configMap, AbstractSqlQueryUtil.HTTP_TYPE, null);
 		if (this.httpType == null || this.httpType.isEmpty()) {
 			this.httpType = "https";
 		}
 
-		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
+		this.hostname = getOptionalStringValue(configMap, AbstractSqlQueryUtil.HOSTNAME, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.hostname == null || this.hostname.isEmpty())) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
 
-		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
+		this.port = getOptionalStringValue(configMap, AbstractSqlQueryUtil.PORT, null);
 		String port = this.port;
 		if (port != null && !port.isEmpty()) {
 			port = ":" + port;
@@ -72,7 +72,7 @@ public class ElasticSearchQueryUtil extends AnsiSqlQueryUtil {
 			port = "";
 		}
 
-		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.additionalProps = getOptionalStringValue(configMap, AbstractSqlQueryUtil.ADDITIONAL, null);
 
 		// do we need to make the connection url?
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
@@ -92,20 +92,20 @@ public class ElasticSearchQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Properties object is null or empty");
 		}
 
-		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
+		this.connectionUrl = getOptionalStringValue(prop, AbstractSqlQueryUtil.CONNECTION_URL, null);
 
-		this.httpType = (String) prop.get(AbstractSqlQueryUtil.HTTP_TYPE);
+		this.httpType = getOptionalStringValue(prop, AbstractSqlQueryUtil.HTTP_TYPE, null);
 		if (this.httpType == null || this.httpType.isEmpty()) {
 			this.httpType = "https";
 		}
 
-		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
+		this.hostname = getOptionalStringValue(prop, AbstractSqlQueryUtil.HOSTNAME, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.hostname == null || this.hostname.isEmpty())) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
 
-		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
+		this.port = getOptionalStringValue(prop, AbstractSqlQueryUtil.PORT, null);
 		String port = this.port;
 		if (port != null && !port.isEmpty()) {
 			port = ":" + port;
@@ -113,7 +113,7 @@ public class ElasticSearchQueryUtil extends AnsiSqlQueryUtil {
 			port = "";
 		}
 
-		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.additionalProps = getOptionalStringValue(prop, AbstractSqlQueryUtil.ADDITIONAL, null);
 
 		// do we need to make the connection url?
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {

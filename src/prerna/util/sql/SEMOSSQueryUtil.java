@@ -56,14 +56,14 @@ public class SEMOSSQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Configuration map is null or empty");
 		}
 
-		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
+		this.connectionUrl = getOptionalStringValue(configMap, AbstractSqlQueryUtil.CONNECTION_URL, null);
 
-		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
+		this.hostname = getOptionalStringValue(configMap, AbstractSqlQueryUtil.HOSTNAME, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty()) && (hostname == null || hostname.isEmpty())) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
 
-		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
+		this.port = getOptionalStringValue(configMap, AbstractSqlQueryUtil.PORT, null);
 		String port = this.port;
 		if (port != null && !port.isEmpty()) {
 			port = ":" + port;
@@ -71,34 +71,34 @@ public class SEMOSSQueryUtil extends AnsiSqlQueryUtil {
 			port = "443";
 		}
 
-		this.projectId = (String) configMap.get(AbstractSqlQueryUtil.PROJECT);
+		this.projectId = getOptionalStringValue(configMap, AbstractSqlQueryUtil.PROJECT, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.projectId == null || this.projectId.isEmpty())) {
 			throw new RuntimeException("Must pass in project id");
 		}
 
-		this.insightId = (String) configMap.get(AbstractSqlQueryUtil.INSIGHT);
+		this.insightId = getOptionalStringValue(configMap, AbstractSqlQueryUtil.INSIGHT, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.insightId == null || this.insightId.isEmpty())) {
 			throw new RuntimeException("Must pass in insight id");
 		}
 
-		this.protocol = (String) configMap.get(AbstractSqlQueryUtil.PROTOCOL);
+		this.protocol = getOptionalStringValue(configMap, AbstractSqlQueryUtil.PROTOCOL, null);
 		if (this.protocol == null || this.protocol.isEmpty()) {
 			this.protocol = "https";
 		}
 
-		this.endpoint = (String) configMap.get(AbstractSqlQueryUtil.ENDPOINT);
+		this.endpoint = getOptionalStringValue(configMap, AbstractSqlQueryUtil.ENDPOINT, null);
 		if (this.endpoint == null || this.endpoint.isEmpty()) {
 			this.endpoint = "Monolith";
 		}
 
-		this.subURL = (String) configMap.get(AbstractSqlQueryUtil.SUB_URL);
+		this.subURL = getOptionalStringValue(configMap, AbstractSqlQueryUtil.SUB_URL, null);
 		if (this.subURL == null) {
 			this.subURL = "";
 		}
 
-		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.additionalProps = getOptionalStringValue(configMap, AbstractSqlQueryUtil.ADDITIONAL, null);
 
 		// do we need to make the connection url?
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
@@ -120,14 +120,14 @@ public class SEMOSSQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Properties object is null or empty");
 		}
 
-		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
+		this.connectionUrl = getOptionalStringValue(prop, AbstractSqlQueryUtil.CONNECTION_URL, null);
 
-		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
+		this.hostname = getOptionalStringValue(prop, AbstractSqlQueryUtil.HOSTNAME, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty()) && (hostname == null || hostname.isEmpty())) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
 
-		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
+		this.port = getOptionalStringValue(prop, AbstractSqlQueryUtil.PORT, null);
 		String port = this.port;
 		if (port != null && !port.isEmpty()) {
 			port = ":" + port;
@@ -135,34 +135,34 @@ public class SEMOSSQueryUtil extends AnsiSqlQueryUtil {
 			port = "443";
 		}
 
-		this.projectId = (String) prop.get(AbstractSqlQueryUtil.PROJECT);
+		this.projectId = getOptionalStringValue(prop, AbstractSqlQueryUtil.PROJECT, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.projectId == null || this.projectId.isEmpty())) {
 			throw new RuntimeException("Must pass in project id");
 		}
 
-		this.insightId = (String) prop.get(AbstractSqlQueryUtil.INSIGHT);
+		this.insightId = getOptionalStringValue(prop, AbstractSqlQueryUtil.INSIGHT, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.insightId == null || this.insightId.isEmpty())) {
 			throw new RuntimeException("Must pass in insight id");
 		}
 
-		this.protocol = (String) prop.get(AbstractSqlQueryUtil.PROTOCOL);
+		this.protocol = getOptionalStringValue(prop, AbstractSqlQueryUtil.PROTOCOL, null);
 		if (this.protocol == null || this.protocol.isEmpty()) {
 			this.protocol = "https";
 		}
 
-		this.endpoint = (String) prop.get(AbstractSqlQueryUtil.ENDPOINT);
+		this.endpoint = getOptionalStringValue(prop, AbstractSqlQueryUtil.ENDPOINT, null);
 		if (this.endpoint == null || this.endpoint.isEmpty()) {
 			this.endpoint = "Monolith";
 		}
 
-		this.subURL = (String) prop.get(AbstractSqlQueryUtil.SUB_URL);
+		this.subURL = getOptionalStringValue(prop, AbstractSqlQueryUtil.SUB_URL, null);
 		if (this.subURL == null) {
 			this.subURL = "";
 		}
 
-		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.additionalProps = getOptionalStringValue(prop, AbstractSqlQueryUtil.ADDITIONAL, null);
 
 		// do we need to make the connection url?
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
