@@ -8,9 +8,9 @@ ARG BASE_IMAGE=ubuntu
 ARG BASE_TAG=22.04
 
 # JAVA and JDK default version
-ARG AZUL_ZULU_VERSION=25.36.205
+ARG AZUL_ZULU_VERSION=25.38.109
 ARG JAVA_HOME=/usr/lib/jvm/zulu25
-ARG JDK_VERSION=25.0.4.1
+ARG JDK_VERSION=25.0.5.0.3
 
 # FIPS 140-3 build switch. This file produces two images from one definition:
 #
