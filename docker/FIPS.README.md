@@ -157,7 +157,7 @@ semoss:<ver>-ubuntu22
 semoss:<ver>-ubuntu22-fips
 ```
 
-Same pattern for ubuntu24, ubi8, ubi9, al2023 and cuda.
+Same pattern for ubuntu24, ubuntu26, ubi8, ubi9, al2023 and cuda.
 
 
 ## 6. Resolve: semoss-artifacts
