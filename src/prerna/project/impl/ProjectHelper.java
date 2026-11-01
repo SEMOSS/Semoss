@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -49,6 +50,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -329,6 +331,83 @@ public final class ProjectHelper {
 		RdbmsTypeEnum rdbmsInsightsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsInsightsTypeStr);
 		String insightDatabaseLoc = SmssUtilities.getInsightsRdbmsFile(mainEngineProp).getAbsolutePath();
 		return loadInsightsDatabase(projectId, rdbmsInsightsType, insightDatabaseLoc, logger);
+	}
+
+	// "format:1" in the MVStore header is H2 1.4; 2.x writes format:2 or later
+	private static final Pattern H2_V1_HEADER = Pattern.compile("^H:2,.*\\bformat:1\\b");
+
+	// projects whose legacy insights db was recreated and still needs a push
+	private static final Set<String> RECREATED_LEGACY_INSIGHTS = ConcurrentHashMap.newKeySet();
+
+	/**
+	 * An H2 1.x insights file (which H2 2.x cannot open) of a project that is not an INSIGHTS
+	 * project and has no saved insights (.mosfet) is renamed to {@code <file>.h2v1} so the load
+	 * recreates it empty. The migration utility migrates every other project the same way.
+	 *
+	 * @param smssProp     the project smss properties
+	 * @param insightsFile the project's insights database file
+	 * @param logger       the logger for the rename notice
+	 * @return true when the file was set aside
+	 */
+	public static boolean setAsideLegacyInsightsDatabase(Properties smssProp, File insightsFile, Logger logger) {
+		String projectType = smssProp.getProperty(Constants.PROJECT_ENUM_TYPE, "").trim();
+		// INSIGHTS, blank or missing (the SEMOSS default) keep their insights: migrate them instead
+		if (insightsFile == null || !insightsFile.isFile() || projectType.isEmpty()
+				|| IProject.PROJECT_TYPE.INSIGHTS.name().equalsIgnoreCase(projectType)
+				|| RdbmsTypeEnum.SQLITE.getLabel()
+						.equalsIgnoreCase(smssProp.getProperty(Constants.RDBMS_INSIGHTS_TYPE, "H2_DB").trim())) {
+			return false;
+		}
+		Path source = insightsFile.toPath();
+		try {
+			if (hasSavedInsights(source.getParent())) {
+				return false;
+			}
+			byte[] header = new byte[512];
+			int read;
+			try (java.io.InputStream in = Files.newInputStream(source)) {
+				read = in.readNBytes(header, 0, header.length);
+			}
+			if (!H2_V1_HEADER.matcher(new String(header, 0, read, StandardCharsets.ISO_8859_1)).find()) {
+				return false;
+			}
+			Path target = source.resolveSibling(source.getFileName() + ".h2v1");
+			Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+			String projectId = smssProp.getProperty(Constants.PROJECT);
+			if (projectId != null) {
+				RECREATED_LEGACY_INSIGHTS.add(projectId);
+			}
+			logger.warn("{} project {} had an H2 1.x insights database and no saved insights; moved it to {}"
+					+ " and recreating it", Utility.cleanLogString(projectType), Utility.cleanLogString(projectId),
+					Utility.cleanLogString(target.getFileName().toString()));
+			return true;
+		} catch (IOException e) {
+			// leave the file; the normal open reports the real error
+			logger.warn("Unable to check or move the insights database {}",
+					Utility.cleanLogString(source.toString()), e);
+			return false;
+		}
+	}
+
+	// every saved insight has a .mosfet file under app_root/version/<insightId>/
+	private static boolean hasSavedInsights(Path projectFolder) throws IOException {
+		Path version = projectFolder.resolve(Constants.APP_ROOT_FOLDER).resolve(Constants.VERSION_FOLDER);
+		if (!Files.isDirectory(version)) {
+			return false;
+		}
+		try (Stream<Path> files = Files.walk(version)) {
+			return files.anyMatch(path -> path.getFileName().toString().endsWith(".mosfet")
+					&& !path.toString().contains(File.separator + ".git" + File.separator));
+		}
+	}
+
+	/**
+	 * @param projectId the project id
+	 * @return true once if this project's legacy insights db was recreated and must be pushed
+	 *         to storage
+	 */
+	public static boolean consumeRecreatedLegacyInsights(String projectId) {
+		return projectId != null && RECREATED_LEGACY_INSIGHTS.remove(projectId);
 	}
 
 	/**
