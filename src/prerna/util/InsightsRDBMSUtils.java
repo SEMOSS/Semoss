@@ -119,7 +119,8 @@ public final class InsightsRDBMSUtils {
 						InsightAdministrator.SCHEMA_NAME_COL };
 				types = new String[] { "VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT",
 						"VARCHAR(255)", CLOB_DATATYPE, "VARCHAR(500)", BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, "INT",
-						"VARCHAR(25)", TIMESTAMP_DATATYPE, BOOLEAN_DATATYPE, "ARRAY", "VARCHAR(255)" };
+						"VARCHAR(25)", TIMESTAMP_DATATYPE, BOOLEAN_DATATYPE, "VARCHAR ARRAY", "VARCHAR(255)" };
+				// H2 2.x needs a typed array; matches what migrated 1.4 files get
 				// this is annoying
 				// need to adjust if the engine allows array data types
 				if (!queryUtil.allowArrayDatatype()) {
