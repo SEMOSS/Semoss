@@ -433,6 +433,17 @@ public interface ICloudClient {
 	void pushInsightDB(String projectId) throws IOException, InterruptedException;
 
 	/**
+	 * Deletes a project's insights database files from cloud storage, for a project
+	 * that never opens an insights database. The project is not looked up, so this
+	 * works while the project is still opening.
+	 *
+	 * @param projectId the project
+	 * @throws IOException          if the delete fails
+	 * @throws InterruptedException if the delete is interrupted
+	 */
+	void deleteInsightsDB(String projectId) throws IOException, InterruptedException;
+
+	/**
 	 * Uploads one folder of a project, making the folder at a path in the project's
 	 * cloud folder match the local folder.
 	 *

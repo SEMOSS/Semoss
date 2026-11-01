@@ -60,7 +60,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitPushUtils;
@@ -99,6 +98,10 @@ public class DeleteInsightReactor extends AbstractReactor {
 		String author = accessToken.getUsername();
 
 		IProject project = Utility.getProject(projectId);
+		if (!project.getProjectType().holdsInsights()) {
+			throw new IllegalArgumentException("Project " + projectId + " is a " + project.getProjectType()
+					+ " project, which does not hold insights");
+		}
 		String projectName = project.getProjectName();
 
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
@@ -117,7 +120,8 @@ public class DeleteInsightReactor extends AbstractReactor {
 			try {
 				admin.dropInsight(insightId);
 			} catch (RuntimeException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to drop insight {} from the insights database of project {}", insightId,
+						projectId, e);
 			}
 
 			// delete insight folder
@@ -147,13 +151,14 @@ public class DeleteInsightReactor extends AbstractReactor {
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to remove insight {} from the git history of project {}", insightId,
+						projectId, e);
 			} finally {
 				// delete folder
 				try {
 					FileUtils.deleteDirectory(insightFolder);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to delete the folder {} of insight {}", insightFolderPath, insightId, e);
 				}
 			}
 

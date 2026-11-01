@@ -28,7 +28,6 @@
 package prerna.reactor.utils;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -116,7 +115,6 @@ public class ExportProjectReactor extends AbstractReactor {
 		// boolean closed = false;
 		try {
 			// zip project
-			ZipOutputStream zos = null;
 			try {
 				// if(lock != null) {
 				// logger.info("Stopping the engine... ");
@@ -138,9 +136,16 @@ public class ExportProjectReactor extends AbstractReactor {
 							+ "/.git");
 				}
 
-				if (ClusterUtil.IS_CLUSTER) {
+				// the metadata files are zipped fresh below, so their copies on disk are left
+				// out
+				List<String> ignoreFiles = new ArrayList<>(
+						Arrays.asList(projectNameAndId + "/" + projectName + IEngine.METADATA_FILE_SUFFIX,
+								projectNameAndId + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX,
+								projectNameAndId + "/" + projectName + AgentProjectArchiveUtils.FILE_SUFFIX));
+
+				File insightsFile = null;
+				if (ClusterUtil.IS_CLUSTER && project.getProjectType().holdsInsights()) {
 					logger.info("Creating insight database ...");
-					File insightsFile = null;
 					try {
 						insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, outputDir);
 					} catch (Exception e) {
@@ -150,74 +155,53 @@ public class ExportProjectReactor extends AbstractReactor {
 								"Error occurred attemping to generate the insights database for this project");
 					}
 					logger.info("Done creating insight database ...");
+					// ignore the current insights database
+					ignoreFiles.add(projectNameAndId + "/" + FilenameUtils.getName(insightsFile.getAbsolutePath()));
+				}
 
-					// zip project folder minus insights
-					logger.info("Zipping project files...");
-					zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath, ignoreDirs,
-							// ignore the current insights database
-							// and the metadata files if they exist
-							Arrays.asList(
-									projectNameAndId + "/" + FilenameUtils.getName(insightsFile.getAbsolutePath()),
-									projectNameAndId + "/" + projectName + IEngine.METADATA_FILE_SUFFIX,
-									projectNameAndId + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX,
-									projectNameAndId + "/" + projectName + AgentProjectArchiveUtils.FILE_SUFFIX));
+				logger.info("Zipping project files...");
+				try (ZipOutputStream zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath, ignoreDirs, ignoreFiles)) {
 					logger.info("Done zipping project files...");
 
-					logger.info("Zipping insight database ...");
-					ZipUtils.addToZipFile(insightsFile, zos, projectNameAndId);
-					logger.info("Done zipping insight database...");
-				} else {
-					// zip project folder
-					logger.info("Zipping project files...");
-					zos = ZipUtils.zipFolder(thisProjectDir, zipFilePath, ignoreDirs,
-							Arrays.asList(projectNameAndId + "/" + projectName + IEngine.METADATA_FILE_SUFFIX,
-									projectNameAndId + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX,
-									projectNameAndId + "/" + projectName + AgentProjectArchiveUtils.FILE_SUFFIX));
-					logger.info("Done zipping project files...");
+					if (insightsFile != null) {
+						logger.info("Zipping insight database ...");
+						ZipUtils.addToZipFile(insightsFile, zos, projectNameAndId);
+						logger.info("Done zipping insight database...");
+					}
+
+					// zip up the project metadata
+					{
+						logger.info("Grabbing project metadata to write to temporary file to zip...");
+						Map<String, Object> projectMeta = SecurityProjectUtils.getAggregateProjectMetadata(projectId,
+								null, false);
+						ZipUtils.zipObjectToFile(zos, projectNameAndId,
+								outputDir + "/" + projectName + IEngine.METADATA_FILE_SUFFIX, projectMeta);
+						logger.info("Done zipping project metadata...");
+					}
+
+					// zip up the project dependencies
+					{
+						logger.info("Grabbing project dependencies to write to temporary file to zip...");
+						List<Map<String, Object>> projectDependencies = SecurityProjectUtils
+								.getProjectDependencyDetails(projectId, false);
+						ZipUtils.zipObjectToFile(zos, projectNameAndId,
+								outputDir + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX, projectDependencies);
+						logger.info("Done zipping project dependencies...");
+					}
+
+					AgentProjectArchiveUtils.exportAgent(zos, project, projectNameAndId);
+
+					// add smss file
+					logger.info("Zipping project smss...");
+					File smss = new File(baseProjectDir + "/" + projectNameAndId + ".smss");
+					ZipUtils.addToZipFile(smss, zos);
+					logger.info("Done zipping project smss files...");
+					logger.info("Zipping Complete");
 				}
-
-				// zip up the project metadata
-				{
-					logger.info("Grabbing project metadata to write to temporary file to zip...");
-					Map<String, Object> projectMeta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, null,
-							false);
-					ZipUtils.zipObjectToFile(zos, projectNameAndId,
-							outputDir + "/" + projectName + IEngine.METADATA_FILE_SUFFIX, projectMeta);
-					logger.info("Done zipping project metadata...");
-				}
-
-				// zip up the project dependencies
-				{
-					logger.info("Grabbing project dependencies to write to temporary file to zip...");
-					List<Map<String, Object>> projectDependencies = SecurityProjectUtils
-							.getProjectDependencyDetails(projectId, false);
-					ZipUtils.zipObjectToFile(zos, projectNameAndId,
-							outputDir + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX, projectDependencies);
-					logger.info("Done zipping project dependencies...");
-				}
-
-				AgentProjectArchiveUtils.exportAgent(zos, project, projectNameAndId);
-
-				// add smss file
-				logger.info("Zipping project smss...");
-				File smss = new File(baseProjectDir + "/" + projectNameAndId + ".smss");
-				ZipUtils.addToZipFile(smss, zos);
-				logger.info("Done zipping project smss files...");
-				logger.info("Zipping Complete");
 			} catch (Exception e) {
 				classLogger.error("Failed to export project {} to archive {}", projectId, zipFilePath, e);
 				throw new SemossPixelException(
 						"Error occurred generating zip file. Detailed message = " + e.getMessage());
-			} finally {
-				try {
-					if (zos != null) {
-						zos.flush();
-						zos.close();
-					}
-				} catch (IOException e) {
-					classLogger.error("Failed to finish writing the export archive {} for project {}", zipFilePath,
-							projectId, e);
-				}
 			}
 		} finally {
 			// since we do not include the insights database and it is auto generated

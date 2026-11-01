@@ -112,6 +112,13 @@ public final class ProjectHelper {
 	private static final String[] DEPENDENCIES_FILE_EXTENSIONS = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx",
 			".json" };
 
+	/**
+	 * The insights database files a project folder can hold: the H2 database and
+	 * its trace file, and the SQLite database.
+	 */
+	public static final List<String> INSIGHTS_DATABASE_FILES = List.of("insights_database.mv.db",
+			"insights_database.trace.db", "insights_database.sqlite");
+
 	private ProjectHelper() {
 
 	}
@@ -340,9 +347,10 @@ public final class ProjectHelper {
 	private static final Set<String> RECREATED_LEGACY_INSIGHTS = ConcurrentHashMap.newKeySet();
 
 	/**
-	 * An H2 1.x insights file (which H2 2.x cannot open) of a project that is not an INSIGHTS
-	 * project and has no saved insights (.mosfet) is renamed to {@code <file>.h2v1} so the load
-	 * recreates it empty. The migration utility migrates every other project the same way.
+	 * An H2 1.x insights file (which H2 2.x cannot open) of a project that is not
+	 * an INSIGHTS project and has no saved insights (.mosfet) is renamed to
+	 * {@code <file>.h2v1} so the load recreates it empty. The migration utility
+	 * migrates every other project the same way.
 	 *
 	 * @param smssProp     the project smss properties
 	 * @param insightsFile the project's insights database file
@@ -351,7 +359,8 @@ public final class ProjectHelper {
 	 */
 	public static boolean setAsideLegacyInsightsDatabase(Properties smssProp, File insightsFile, Logger logger) {
 		String projectType = smssProp.getProperty(Constants.PROJECT_ENUM_TYPE, "").trim();
-		// INSIGHTS, blank or missing (the SEMOSS default) keep their insights: migrate them instead
+		// INSIGHTS, blank or missing (the SEMOSS default) keep their insights: migrate
+		// them instead
 		if (insightsFile == null || !insightsFile.isFile() || projectType.isEmpty()
 				|| IProject.PROJECT_TYPE.INSIGHTS.name().equalsIgnoreCase(projectType)
 				|| RdbmsTypeEnum.SQLITE.getLabel()
@@ -377,14 +386,16 @@ public final class ProjectHelper {
 			if (projectId != null) {
 				RECREATED_LEGACY_INSIGHTS.add(projectId);
 			}
-			logger.warn("{} project {} had an H2 1.x insights database and no saved insights; moved it to {}"
-					+ " and recreating it", Utility.cleanLogString(projectType), Utility.cleanLogString(projectId),
+			logger.warn(
+					"{} project {} had an H2 1.x insights database and no saved insights; moved it to {}"
+							+ " and recreating it",
+					Utility.cleanLogString(projectType), Utility.cleanLogString(projectId),
 					Utility.cleanLogString(target.getFileName().toString()));
 			return true;
 		} catch (IOException e) {
 			// leave the file; the normal open reports the real error
-			logger.warn("Unable to check or move the insights database {}",
-					Utility.cleanLogString(source.toString()), e);
+			logger.warn("Unable to check or move the insights database {}", Utility.cleanLogString(source.toString()),
+					e);
 			return false;
 		}
 	}
@@ -403,11 +414,62 @@ public final class ProjectHelper {
 
 	/**
 	 * @param projectId the project id
-	 * @return true once if this project's legacy insights db was recreated and must be pushed
-	 *         to storage
+	 * @return true once if this project's legacy insights db was recreated and must
+	 *         be pushed to storage
 	 */
 	public static boolean consumeRecreatedLegacyInsights(String projectId) {
 		return projectId != null && RECREATED_LEGACY_INSIGHTS.remove(projectId);
+	}
+
+	/**
+	 * Delete the {@link #INSIGHTS_DATABASE_FILES} in a project's folder, for a
+	 * project that never opens an insights database: a user asset project, or a
+	 * project whose type does not hold insights. In a cluster their copies in cloud
+	 * storage are deleted too, on a virtual thread, since the project may still be
+	 * opening inside a pull that holds the project's sync lock. A failure is logged
+	 * rather than thrown, since the project opens without the files.
+	 *
+	 * @param smssProp the project smss properties
+	 */
+	static void deleteInsightsDatabase(Properties smssProp) {
+		String projectId = smssProp.getProperty(Constants.PROJECT);
+		File projectFolder;
+		try {
+			projectFolder = new File(Utility.getBaseFolder() + File.separator + Constants.PROJECT_FOLDER,
+					SmssUtilities.getUniqueName(smssProp.getProperty(Constants.PROJECT_ALIAS), projectId));
+		} catch (IllegalArgumentException e) {
+			classLogger.error("Failed to find the folder of project {} to delete its unused insights database",
+					projectId, e);
+			return;
+		}
+
+		boolean deleted = false;
+		for (String fileName : INSIGHTS_DATABASE_FILES) {
+			File insightsFile = new File(projectFolder, fileName);
+			if (!insightsFile.isFile()) {
+				continue;
+			}
+			try {
+				Files.delete(insightsFile.toPath());
+				deleted = true;
+				classLogger.info("Deleted the unused insights database file {} of project {}",
+						Utility.cleanLogString(insightsFile.getAbsolutePath()), projectId);
+			} catch (IOException e) {
+				classLogger.error("Failed to delete the unused insights database file {} of project {}",
+						Utility.cleanLogString(insightsFile.getAbsolutePath()), projectId, e);
+			}
+		}
+
+		if (deleted && ClusterUtil.IS_CLUSTER) {
+			Thread.ofVirtual().name("delete-insights-db-" + projectId).start(() -> {
+				try {
+					ClusterUtil.deleteInsightsDB(projectId);
+				} catch (RuntimeException e) {
+					classLogger.warn("The unused insights database of project {} is still in cloud storage,"
+							+ " until the next full push of the project", projectId);
+				}
+			});
+		}
 	}
 
 	/**
