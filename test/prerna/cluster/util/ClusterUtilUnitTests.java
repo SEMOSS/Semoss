@@ -70,6 +70,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.DefaultImageGeneratorUtil;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 import sun.misc.Unsafe;
 
 class ClusterUtilUnitTests {
@@ -381,6 +382,11 @@ class ClusterUtilUnitTests {
 		@Test
 		void testDelCloud_V() {
 			assertDoesNotThrow(() -> ClusterUtil.deleteEngineCloudFile("e", IEngine.CATALOG_TYPE.VECTOR, "/p"));
+		}
+
+		@Test
+		void testDelInsightsDb() {
+			assertDoesNotThrow(() -> ClusterUtil.deleteInsightsDB("p", RdbmsTypeEnum.H2_DB));
 		}
 
 		@Test
@@ -751,6 +757,19 @@ class ClusterUtilUnitTests {
 				ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
 				ClusterUtil.deleteEngineCloudFile("e11", IEngine.CATALOG_TYPE.FUNCTION, "/h");
 				verify(mock).deleteEngineCloudFile("e11", IEngine.CATALOG_TYPE.FUNCTION, "/h");
+			} finally {
+				setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);
+			}
+		}
+
+		@Test
+		void deleteInsightsDB() throws Exception {
+			setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
+			try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
+				CentralCloudStorage mock = mock(CentralCloudStorage.class);
+				ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
+				ClusterUtil.deleteInsightsDB("p12", RdbmsTypeEnum.H2_DB);
+				verify(mock).deleteInsightsDB("p12", RdbmsTypeEnum.H2_DB);
 			} finally {
 				setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);
 			}
@@ -1265,6 +1284,19 @@ class ClusterUtilUnitTests {
 						IEngine.CATALOG_TYPE.FUNCTION, "/h");
 				assertThrows(SemossPixelException.class,
 						() -> ClusterUtil.deleteEngineCloudFile("e", IEngine.CATALOG_TYPE.FUNCTION, "/h"));
+			} finally {
+				setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);
+			}
+		}
+
+		@Test
+		void deleteInsightsDB_error() throws Exception {
+			setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
+			try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
+				CentralCloudStorage mock = mock(CentralCloudStorage.class);
+				ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
+				doThrow(new RuntimeException("fail")).when(mock).deleteInsightsDB("p", RdbmsTypeEnum.H2_DB);
+				assertThrows(SemossPixelException.class, () -> ClusterUtil.deleteInsightsDB("p", RdbmsTypeEnum.H2_DB));
 			} finally {
 				setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);
 			}

@@ -61,7 +61,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitPushUtils;
@@ -159,6 +158,10 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		}
 
 		IProject project = Utility.getProject(projectId);
+		if (!project.getProjectType().holdsInsights()) {
+			throw new IllegalArgumentException("Project " + projectId + " is a " + project.getProjectType()
+					+ " project, which does not hold insights");
+		}
 
 		// WE DO NOT NEED TO SAVE THE FILES
 		// THEY SHOULD ALREADY BE LOADED INTO THE INSIGHT SPACE
@@ -258,7 +261,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 					recipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags,
 					schemaName, true);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write the mosfet file of insight {} in project {}", existingId, projectId, e);
 			logger.info(stepCounter + ") Unable to save recipe file...");
 		}
 		logger.info(stepCounter + ") Done...");

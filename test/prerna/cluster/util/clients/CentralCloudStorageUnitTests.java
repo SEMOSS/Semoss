@@ -41,6 +41,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -1198,6 +1199,30 @@ class CentralCloudStorageUnitTests {
 		}
 
 		@Test
+		void testPullInsightsDB_projectTypeWithoutInsights_copiesNothing() throws Exception {
+			IProject mockProject = mock(IProject.class);
+			when(mockProject.getProjectType()).thenReturn(IProject.PROJECT_TYPE.BLOCKS);
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class)) {
+				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
+				instance.pullInsightsDB("proj1");
+			}
+			verifyNoInteractions(mockStorageEngine);
+			verify(mockProject, never()).setInsightDatabase(any());
+		}
+
+		@Test
+		void testPushInsightDB_projectTypeWithoutInsights_copiesNothing() throws Exception {
+			IProject mockProject = mock(IProject.class);
+			when(mockProject.getProjectType()).thenReturn(IProject.PROJECT_TYPE.BLOCKS);
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class)) {
+				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
+				instance.pushInsightDB("proj1");
+			}
+			verifyNoInteractions(mockStorageEngine);
+			verify(mockProject, never()).setInsightDatabase(any());
+		}
+
+		@Test
 		void testPushProjectFolder_nullProject_throws() {
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class)) {
 				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(null);
@@ -1875,6 +1900,45 @@ class CentralCloudStorageUnitTests {
 				instance.deleteEngineCloudFile("eng1", IEngine.CATALOG_TYPE.DATABASE, localFile);
 
 				verify(mockStorageEngine).deleteFromStorage(argThat(s -> s.contains("eng1")));
+			}
+		}
+
+		// ------- deleteInsightsDB -------
+
+		@Test
+		void testDeleteInsightsDB_deletesTheH2File() throws Exception {
+			ReentrantLock lock = new ReentrantLock();
+			try (MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
+				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
+
+				instance.deleteInsightsDB("proj1", RdbmsTypeEnum.H2_DB);
+
+				verify(mockStorageEngine).deleteFromStorage(argThat(s -> s.endsWith("proj1/insights_database.mv.db")));
+				assertFalse(lock.isLocked());
+			}
+		}
+
+		@Test
+		void testDeleteInsightsDB_deletesTheSqliteFile() throws Exception {
+			ReentrantLock lock = new ReentrantLock();
+			try (MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
+				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
+
+				instance.deleteInsightsDB("proj1", RdbmsTypeEnum.SQLITE);
+
+				verify(mockStorageEngine).deleteFromStorage(argThat(s -> s.endsWith("proj1/insights_database.sqlite")));
+			}
+		}
+
+		@Test
+		void testDeleteInsightsDB_failedDeleteStillUnlocks() throws Exception {
+			ReentrantLock lock = new ReentrantLock();
+			doThrow(new RuntimeException("fail")).when(mockStorageEngine).deleteFromStorage(anyString());
+			try (MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
+				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
+
+				assertThrows(Exception.class, () -> instance.deleteInsightsDB("proj1", RdbmsTypeEnum.H2_DB));
+				assertFalse(lock.isLocked());
 			}
 		}
 
@@ -2778,6 +2842,7 @@ class CentralCloudStorageUnitTests {
 
 				IProject mockProject = mock(IProject.class);
 				when(mockProject.getProjectName()).thenReturn("P");
+				when(mockProject.getProjectType()).thenReturn(IProject.PROJECT_TYPE.INSIGHTS);
 				IRDBMSEngine mockInsightDb = mock(IRDBMSEngine.class);
 				when(mockProject.getInsightDatabase()).thenReturn(mockInsightDb);
 				when(mockInsightDb.getDbType()).thenReturn(RdbmsTypeEnum.SQLITE);
@@ -2820,6 +2885,7 @@ class CentralCloudStorageUnitTests {
 
 				IProject mockProject = mock(IProject.class);
 				when(mockProject.getProjectName()).thenReturn("P");
+				when(mockProject.getProjectType()).thenReturn(IProject.PROJECT_TYPE.INSIGHTS);
 				IRDBMSEngine mockInsightDb = mock(IRDBMSEngine.class);
 				when(mockProject.getInsightDatabase()).thenReturn(mockInsightDb);
 				when(mockInsightDb.getDbType()).thenReturn(RdbmsTypeEnum.SQLITE);
