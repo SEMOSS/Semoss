@@ -147,6 +147,7 @@ import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.om.IStringExportProcessor;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
@@ -1919,6 +1920,15 @@ public final class Utility {
 					if (smssFile != null) {
 						// actual load engine process
 						project = Utility.loadProject(smssFile, Utility.loadProperties(smssFile));
+						// a legacy insights db was recreated on load; replace the 1.x copy in storage
+						if (project != null && ProjectHelper.consumeRecreatedLegacyInsights(projectId)) {
+							try {
+								ClusterUtil.pushInsightDB(projectId);
+							} catch (Exception e) {
+								classLogger.warn("Unable to push the recreated insights database for project {}",
+										Utility.cleanLogString(projectId), e);
+							}
+						}
 					} else {
 						classLogger.debug("There is no SMSS File for the project {}...", projectId);
 					}

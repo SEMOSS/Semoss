@@ -309,6 +309,8 @@ public class Project implements IProject {
 		// if it is not defined directly in the smss
 		// we will not create an insights database
 		if (insightDatabaseLoc != null) {
+			ProjectHelper.setAsideLegacyInsightsDatabase(this.smssProp, new File(this.insightDatabaseLoc),
+					classLogger);
 			this.insightRdbms = ProjectHelper.loadInsightsEngine(this.smssProp, classLogger);
 		}
 	}
