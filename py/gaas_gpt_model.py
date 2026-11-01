@@ -206,35 +206,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return pixelReturn
 
-    def ner(
-        self,
-        text: str,
-        entities: List[str],
-        mask_entities: List[str] = [],
-        param_dict: Optional[Dict] = None,
-        insight_id: Optional[str] = None,
-    ):
-        if insight_id is None:
-            insight_id = self.insight_id
-
-        epoc = super().get_next_epoc()
-
-        pixel = f'NER(engine="{self.engine_id}", prompt="{text}", entities={entities}, maskEntities={mask_entities});'
-
-        pixelReturn = super().callReactor(
-            epoc=epoc,
-            pixel=pixel,
-            insight_id=insight_id,
-        )
-
-        if pixelReturn is not None and len(pixelReturn) > 0:
-            output = pixelReturn[0]["pixelReturn"][0]
-            if "ERROR" in output["operationType"]:
-                raise Exception(output["output"])
-            return output["output"]
-
-        return pixelReturn
-
     def get_conversation_history(self, insight_id: Optional[str] = None) -> List[Dict]:
         """This method is responsible to get message history back from the model logs database.
 
@@ -607,15 +578,6 @@ class ModelEngine(AbstractModelEngine):
         **kwargs,
     ):
         return self.model_engine.keyword_extraction(**kwargs)
-
-    def ner(
-        self,
-        insight_id: Optional[
-            str
-        ] = None,  # TODO remove once users stop using it. No longer needs to be set.
-        **kwargs,
-    ):
-        return self.model_engine.ner(**kwargs)
 
     def do_call(self, **kwargs: Any) -> Any:
         return self.model_engine.embeddings(**kwargs)

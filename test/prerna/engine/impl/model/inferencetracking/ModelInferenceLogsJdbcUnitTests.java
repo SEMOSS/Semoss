@@ -39,6 +39,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
@@ -251,6 +252,25 @@ class ModelInferenceLogsJdbcUnitTests {
 			assertFalse(ModelInferenceLogsUtils.doSetNameForRoomIfDefault("u", "r", "wrong", "name"));
 			assertTrue(ModelInferenceLogsUtils.doSetRoomToInactive("u", "r"));
 			assertEquals(false, db.value("SELECT IS_ACTIVE FROM ROOM"));
+		}
+	}
+
+	@Test
+	void aRoomIsInactiveOnlyOnceItsUsersRowIsMarkedSo() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			// the query struct names the table and columns as created below, with no OWL
+			when(db.engine.isBasic()).thenReturn(true);
+			db.execute("CREATE TABLE ROOM (ROOM_ID VARCHAR, USER_ID VARCHAR, IS_ACTIVE BOOLEAN)",
+					"INSERT INTO ROOM VALUES ('open', 'u', TRUE), ('unset', 'u', NULL), ('closed', 'u', FALSE)");
+
+			assertTrue(ModelInferenceLogsUtils.isRoomInActive("u", "closed"));
+			assertFalse(ModelInferenceLogsUtils.isRoomInActive("u", "open"));
+			assertFalse(ModelInferenceLogsUtils.isRoomInActive("u", "unset"));
+			// a subagent's room before its first message has no row yet
+			assertFalse(ModelInferenceLogsUtils.isRoomInActive("u", "missing"));
+			assertFalse(ModelInferenceLogsUtils.isRoomInActive("other", "closed"));
+			assertFalse(ModelInferenceLogsUtils.isRoomInActive("u", null));
+			assertFalse(ModelInferenceLogsUtils.isRoomInActive(" ", "closed"));
 		}
 	}
 }

@@ -174,15 +174,6 @@ final class AutomationPixelExpressionRenderer {
 			return "Embeddings(engine=" + json(engineId) + ",values=" + json(texts) + ",paramValues=["
 					+ json(parameters) + "],encoded=false);";
 		}
-		if (AutomationConstants.NODE_MODEL_NER.equals(nodeType)) {
-			String text = requiredString(config.get("text"), scope, "Model node '" + nodeId + "' text");
-			Object entities = AutomationScopeResolver.resolveConfig(config.get("entities"), scope,
-					"Model node '" + nodeId + "' entities");
-			Object masked = AutomationScopeResolver.resolveConfig(config.getOrDefault("maskEntities", List.of()), scope,
-					"Model node '" + nodeId + "' maskEntities");
-			return "NER(engine=" + json(engineId) + ",prompt=" + json(text) + ",entities=" + json(entities)
-					+ ",maskEntities=" + json(masked) + ");";
-		}
 		String prompt = modelPrompt(config.get("prompt"), scope, nodeId);
 		StringBuilder expression = new StringBuilder("LLM(engine=").append(json(engineId))
 				.append(",command=").append(json(prompt));
@@ -260,10 +251,6 @@ final class AutomationPixelExpressionRenderer {
 			throw new IllegalStateException("Model node '" + nodeId + "' response is missing content.");
 		}
 		Object value = response.get("response");
-		if (AutomationConstants.NODE_MODEL_NER.equals(nodeType) && value instanceof Map<?, ?> map
-				&& "error".equalsIgnoreCase(String.valueOf(map.get("status")))) {
-			throw new IllegalStateException(String.valueOf(map.get("message")));
-		}
 		if (AutomationConstants.NODE_MODEL_CHAT.equals(nodeType)
 				|| AutomationConstants.NODE_MODEL_VISION.equals(nodeType)) {
 			Map<String, Object> metadata = new LinkedHashMap<>();

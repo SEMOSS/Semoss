@@ -1087,6 +1087,45 @@ public final class AutomationRunStore {
 	}
 
 	/**
+	 * The newest runs of one automation in one run scope, newest first, with started and completed as timestamps.
+	 *
+	 * @param runScope     automation project ID or inline run scope
+	 * @param automationId logical automation stored in {@code AUTOMATION_ID}
+	 * @param limit        most runs returned
+	 * @return the runs; empty when the scheduler DB is unavailable
+	 */
+	public static List<Map<String, Object>> getRunsForAutomation(String runScope, String automationId, int limit) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) {
+			return new ArrayList<>();
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		for (String column : List.of(RUN_ID, PROJECT_ID, AUTOMATION_ID, STATUS, TRIGGER_TYPE, STARTED_AT, COMPLETED_AT,
+				FAILED_NODE_ID)) {
+			qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + column, column));
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + PROJECT_ID, "==", runScope,
+				PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + AUTOMATION_ID, "==", automationId,
+				PixelDataType.CONST_STRING));
+		qs.addOrderBy(TABLE_RUNS + "__" + STARTED_AT, QueryColumnOrderBySelector.ORDER_BY_DIRECTION.DESC.toString());
+		qs.setLimit(limit);
+		List<Map<String, Object>> results = new ArrayList<>();
+		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		if (rows != null) {
+			// exact match again: a case- or accent-insensitive database must not return a look-alike scope's runs
+			for (Map<String, Object> row : rows) {
+				if (runScope.equals(row.get(PROJECT_ID)) && automationId.equals(row.get(AUTOMATION_ID))) {
+					row.put(STARTED_AT, toTimestampSafe(row.get(STARTED_AT)));
+					row.put(COMPLETED_AT, toTimestampSafe(row.get(COMPLETED_AT)));
+					results.add(row);
+				}
+			}
+		}
+		return results;
+	}
+
+	/**
 	 * Deletes every run of one automation in one run scope, with its source
 	 * snapshot, node outputs, and waits, in one transaction.
 	 *

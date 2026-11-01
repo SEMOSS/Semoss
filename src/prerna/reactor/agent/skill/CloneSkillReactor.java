@@ -117,7 +117,7 @@ public class CloneSkillReactor extends AbstractReactor {
 					"Skill " + sourceSkillId + " does not exist or user does not have permission to view it");
 		}
 		if (!SecurityProjectUtils.userCanCloneProject(user, sourceSkillId)) {
-			throw new IllegalArgumentException("This skill is not enabled as a template and cannot be cloned.");
+			throw new IllegalArgumentException("This skill is not a template, so only its owners can clone it.");
 		}
 
 		if (!SkillProjects.isSkillProject(sourceSkillId)) {

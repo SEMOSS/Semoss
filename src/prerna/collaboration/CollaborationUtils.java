@@ -52,10 +52,12 @@ public final class CollaborationUtils {
 	public static final String ROOM_OPTION_DELEGATION_ACTION_ID = "delegation_action_id";
 	// Set on the room a scheduled routine's agent step runs in; nobody is watching it.
 	public static final String ROOM_OPTION_ROUTINE = "collaboration_routine";
+	// Where that routine's answer goes (email, teams, none); its prompt says so.
+	public static final String ROOM_OPTION_ROUTINE_DELIVERY = "collaboration_routine_delivery";
 	// Only the server sets these; client option writes cannot add, change, or drop
 	// them.
 	public static final List<String> SERVER_OWNED_ROOM_OPTIONS = List.of(ROOM_OPTION_DELEGATION_ACTION_ID,
-			ROOM_OPTION_ROUTINE);
+			ROOM_OPTION_ROUTINE, ROOM_OPTION_ROUTINE_DELIVERY);
 	// Set by Work on a thread's assistant room (threadId, contextRevision,
 	// modelId) until rooms opened from a thread switched to ROOM_OPTION_SOURCE.
 	public static final String ROOM_OPTION_WORK_THREAD = "workThread";
@@ -95,6 +97,13 @@ public final class CollaborationUtils {
 		}
 		Map<String, Object> options = room.getOptionsMap();
 		return options != null && Boolean.TRUE.equals(options.get(ROOM_OPTION_ROUTINE));
+	}
+
+	// a routine room's delivery; email when it was not set
+	public static String routineDelivery(Room room) {
+		Map<String, Object> options = room == null ? null : room.getOptionsMap();
+		Object delivery = options == null ? null : options.get(ROOM_OPTION_ROUTINE_DELIVERY);
+		return delivery instanceof String value && !value.isBlank() ? value : "email";
 	}
 
 	/**

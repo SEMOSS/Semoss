@@ -33,6 +33,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -183,7 +184,7 @@ public final class BrainTopicUtils {
 
 	static List<Map<String, Object>> getPeople(String ownerId, String ownerType, String topicId) {
 		return CollaborationDbUtils.query(
-				"SELECT tp.PERSON_ID, tp.ROLE_LABEL, tp.ENGAGEMENT, tp.STATE, tp.ORIGIN, tp.REASON, "
+				"SELECT tp.PERSON_ID, tp.ROLE_LABEL, tp.ENGAGEMENT, tp.STATE, tp.ORIGIN, tp.REASON, tp.IS_VIP, "
 						+ "p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_TOPIC_PERSON tp LEFT JOIN BRAIN_PERSON p "
 						+ "ON p.OWNER_ID = tp.OWNER_ID AND p.OWNER_TYPE = tp.OWNER_TYPE AND p.PERSON_ID = tp.PERSON_ID "
 						+ "WHERE tp.OWNER_ID = ? AND tp.OWNER_TYPE = ? AND tp.TOPIC_ID = ? ORDER BY tp.PERSON_ID",
@@ -423,13 +424,19 @@ public final class BrainTopicUtils {
 	// never re-suggests it
 	public static Map<String, Object> setTopicPerson(User user, String topicId, String personId, String state,
 			String role) {
+		return setTopicPerson(user, topicId, personId, state, role, null);
+	}
+
+	// vip null keeps a member's topic VIP; only a member can be one, so any other state clears it
+	public static Map<String, Object> setTopicPerson(User user, String topicId, String personId, String state,
+			String role, Boolean vip) {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
-				() -> setTopicPersonInReview(user, topicId, personId, state, role));
+				() -> setTopicPersonInReview(user, topicId, personId, state, role, vip));
 	}
 
 	private static Map<String, Object> setTopicPersonInReview(User user, String topicId, String personId, String state,
-			String role) {
+			String role, Boolean vip) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -455,22 +462,25 @@ public final class BrainTopicUtils {
 				? (String) current.get("origin")
 				: BrainProfileUtils.YOU;
 		String reason = REMOVED.equals(state) ? "Removed by you" : null;
+		boolean isVip = MEMBER.equals(state)
+				&& (vip != null ? vip : current != null && Boolean.TRUE.equals(current.get("vip")));
 		Timestamp now = CollaborationDbUtils.now();
 		CollaborationDbUtils.inTransaction(conn -> {
 			if (current == null) {
 				// a new member's role defaults to their job title
 				CollaborationDbUtils.update(conn,
 						"INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, "
-								+ "PERSON_ID, STATE, ORIGIN, ROLE_LABEL, REASON, CHANGED_BY, CHANGED_AT) "
-								+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+								+ "PERSON_ID, STATE, ORIGIN, ROLE_LABEL, REASON, CHANGED_BY, CHANGED_AT, IS_VIP) "
+								+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 						ownerId, ownerType, topicId, personId, state, origin,
-						role != null ? role : person.get("jobTitle"), reason, BrainProfileUtils.YOU, now);
+						role != null ? role : person.get("jobTitle"), reason, BrainProfileUtils.YOU, now, isVip);
 			} else {
 				CollaborationDbUtils.update(conn,
 						"UPDATE BRAIN_TOPIC_PERSON SET STATE = ?, ORIGIN = ?, "
-								+ "ROLE_LABEL = COALESCE(?, ROLE_LABEL), REASON = ?, CHANGED_BY = ?, CHANGED_AT = ? "
-								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND PERSON_ID = ?",
-						state, origin, role, reason, BrainProfileUtils.YOU, now, ownerId, ownerType, topicId, personId);
+								+ "ROLE_LABEL = COALESCE(?, ROLE_LABEL), REASON = ?, CHANGED_BY = ?, CHANGED_AT = ?, "
+								+ "IS_VIP = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND PERSON_ID = ?",
+						state, origin, role, reason, BrainProfileUtils.YOU, now, isVip, ownerId, ownerType, topicId,
+						personId);
 			}
 			touchTopic(conn, ownerId, ownerType, topicId, now);
 		});
@@ -480,9 +490,19 @@ public final class BrainTopicUtils {
 	private static Map<String, Object> getTopicPerson(String ownerId, String ownerType, String topicId,
 			String personId) {
 		return CollaborationDbUtils.queryOne(
-				"SELECT PERSON_ID, ROLE_LABEL, ENGAGEMENT, STATE, ORIGIN, REASON FROM BRAIN_TOPIC_PERSON "
+				"SELECT PERSON_ID, ROLE_LABEL, ENGAGEMENT, STATE, ORIGIN, REASON, IS_VIP FROM BRAIN_TOPIC_PERSON "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND PERSON_ID = ?",
 				BrainTopicUtils::mapPerson, ownerId, ownerType, topicId, personId);
+	}
+
+	// person -> the topics they are a VIP member of
+	static Map<String, Set<String>> vipTopics(String ownerId, String ownerType) {
+		Map<String, Set<String>> out = new HashMap<>();
+		CollaborationDbUtils.query("SELECT PERSON_ID, TOPIC_ID FROM BRAIN_TOPIC_PERSON WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ? AND STATE = ? AND IS_VIP = ?",
+				rs -> out.computeIfAbsent(rs.getString(1), k -> new HashSet<>()).add(rs.getString(2)), ownerId,
+				ownerType, MEMBER, true);
+		return out;
 	}
 
 	// ---- merge ----
@@ -539,7 +559,10 @@ public final class BrainTopicUtils {
 					"UPDATE BRAIN_THREAD_TOPIC SET TOPIC_ID = ?, CHANGED_BY = ?, " + "CHANGED_AT = ?" + owned,
 					targetTopicId, BrainProfileUtils.YOU, now, ownerId, ownerType, sourceTopicId);
 
-			// people already on the target keep the target's row
+			// people already on the target keep the target's row, and a topic VIP stays one
+			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC_PERSON SET IS_VIP = ?" + owned + " AND STATE = ? "
+					+ "AND PERSON_ID IN (SELECT PERSON_ID FROM BRAIN_TOPIC_PERSON" + owned + " AND IS_VIP = ?)", true,
+					ownerId, ownerType, targetTopicId, MEMBER, ownerId, ownerType, sourceTopicId, true);
 			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_TOPIC_PERSON" + owned + personOnTarget, ownerId,
 					ownerType, sourceTopicId, ownerId, ownerType, targetTopicId);
 			// the source's Outlook folders are the target's now; one on both keeps the target's link
@@ -791,6 +814,7 @@ public final class BrainTopicUtils {
 		person.put("state", CollaborationDbUtils.getString(rs, "STATE"));
 		person.put("origin", CollaborationDbUtils.getString(rs, "ORIGIN"));
 		person.put("reason", CollaborationDbUtils.getString(rs, "REASON"));
+		person.put("vip", Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "IS_VIP")));
 		return person;
 	}
 

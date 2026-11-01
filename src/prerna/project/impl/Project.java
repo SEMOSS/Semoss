@@ -74,6 +74,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IMCP;
@@ -308,6 +309,8 @@ public class Project implements IProject {
 		// if it is not defined directly in the smss
 		// we will not create an insights database
 		if (insightDatabaseLoc != null) {
+			ProjectHelper.setAsideLegacyInsightsDatabase(this.smssProp, new File(this.insightDatabaseLoc),
+					classLogger);
 			this.insightRdbms = ProjectHelper.loadInsightsEngine(this.smssProp, classLogger);
 		}
 	}
@@ -421,31 +424,16 @@ public class Project implements IProject {
 			}
 		}
 
-		// TODO: do we want to close the py process everything time we close?
-		// we close when we push insights (cause of the insights database) or update
-		// smss
-
-//		try {
-//			if(tcpClient != null) {
-//				// this should destroy the process as well
-//				tcpClient.stopPyServe(this.tcpServerDirectory);
-//			}
-//		} catch(Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//		}
-//		// but just in case above doesn't destroy it
-//		try {
-//			if(tcpServerProcess != null) {
-//				tcpServerProcess.destroy();
-//			}
-//		} catch(Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//			try {
-//				tcpServerProcess.destroy();
-//			} catch(Exception e1) {
-//				classLogger.error(Constants.STACKTRACE, e1);
-//			}
-//		}
+		// shut down the project's python process when it is running; a project opened
+		// again is a new instance that starts its own
+		if (this.cpw != null) {
+			try {
+				this.cpw.shutdown(false);
+			} catch (Exception e) {
+				classLogger.error("Failed to shut down the python process of project '{}'",
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
+			}
+		}
 	}
 
 	@Override
@@ -1318,6 +1306,17 @@ public class Project implements IProject {
 		}
 		this.pyTranslator.setSocketClient(this.cpw.getSocketClient());
 		return this.pyTranslator;
+	}
+
+	@Override
+	public Object clearPythonImports() {
+		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			return null;
+		}
+		// the translator's insight carries this project as its context, so the
+		// script runs with the project assets as its asset paths
+		this.pyTranslator.setSocketClient(this.cpw.getSocketClient());
+		return this.pyTranslator.runScript(PyUtils.CLEAR_APP_IMPORTS_SCRIPT);
 	}
 
 	/**

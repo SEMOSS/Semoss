@@ -654,6 +654,29 @@ public final class ModelUsageGuard {
 	}
 
 	/**
+	 * The cost a person's usage limit on a model counts in a window, worked out
+	 * from the inference logs as a cold counter is filled, whether or not a limit
+	 * applies.
+	 *
+	 * @param engineId the model
+	 * @param userId   the primary login's id
+	 * @param userType the primary login's type
+	 * @param start    the window's start, inclusive
+	 * @param end      the window's end, exclusive
+	 * @return the cost in millionths of a dollar, or null when the model has no
+	 *         known prices and no recorded cost, or the logs are off or cannot be
+	 *         read
+	 */
+	public static Long costUsedInLogs(String engineId, String userId, String userType, Instant start, Instant end) {
+		Long used = usedInLogs(ModelUsageCounterScope.personModel(engineId, userId, userType), Metric.COST, start, end);
+		// recorded cost still counts after a model's prices are removed
+		if (used != null && used == 0 && prices.apply(engineId) == null) {
+			return null;
+		}
+		return used;
+	}
+
+	/**
 	 * Fills a counter from the inference logs: what its rows add up to in the
 	 * window. Cost also prices the rows written before calls recorded their cost,
 	 * at each model's current base prices. This is the

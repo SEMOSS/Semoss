@@ -56,6 +56,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.Normalizer;
@@ -65,6 +66,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -145,6 +147,7 @@ import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.om.IStringExportProcessor;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
@@ -1917,6 +1920,15 @@ public final class Utility {
 					if (smssFile != null) {
 						// actual load engine process
 						project = Utility.loadProject(smssFile, Utility.loadProperties(smssFile));
+						// a legacy insights db was recreated on load; replace the 1.x copy in storage
+						if (project != null && ProjectHelper.consumeRecreatedLegacyInsights(projectId)) {
+							try {
+								ClusterUtil.pushInsightDB(projectId);
+							} catch (Exception e) {
+								classLogger.warn("Unable to push the recreated insights database for project {}",
+										Utility.cleanLogString(projectId), e);
+							}
+						}
 					} else {
 						classLogger.debug("There is no SMSS File for the project {}...", projectId);
 					}
@@ -3739,6 +3751,85 @@ public final class Utility {
 	}
 
 	/**
+	 * Determine if for this instance only the admin can add a virtual environment
+	 * 
+	 * @return true if only an admin can add a virtual environment
+	 */
+	public static boolean getApplicationAdminOnlyVenvAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_ADD);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can delete a virtual
+	 * environment
+	 * 
+	 * @return true if only an admin can delete a virtual environment
+	 */
+	public static boolean getApplicationAdminOnlyVenvDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_DELETE);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can add/set virtual environment
+	 * access
+	 * 
+	 * @return true if only an admin can add/set virtual environment access
+	 */
+	public static boolean getApplicationAdminOnlyVenvAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_ADD_ACCESS);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can set a virtual environment
+	 * public
+	 * 
+	 * @return true if only an admin can set a virtual environment public
+	 */
+	public static boolean getApplicationAdminOnlyVenvSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_SET_PUBLIC);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can set a virtual environment
+	 * discoverable
+	 * 
+	 * @return true if only an admin can set a virtual environment discoverable
+	 */
+	public static boolean getApplicationAdminOnlyVenvSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_SET_DISCOVERABLE);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
 	 * Get a comma separated list of widget ids to filter on
 	 * 
 	 * @return
@@ -4534,6 +4625,17 @@ public final class Utility {
 	public static java.sql.Timestamp getSqlTimestampUTC(SemossDate semossdate) {
 		ZonedDateTime gmt = semossdate.getLocalDateTime().atZone(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+	}
+
+	/**
+	 * A timestamp that holds UTC time, as {@link #getCurrentSqlTimestampUTC()}
+	 * gives, as ISO text, such as 2026-10-29T18:30:00Z.
+	 *
+	 * @param timestamp the UTC timestamp
+	 * @return the ISO text, ending in Z
+	 */
+	public static String getSqlTimestampToString(Timestamp timestamp) {
+		return timestamp.toLocalDateTime().toInstant(ZoneOffset.UTC).toString();
 	}
 
 	/**

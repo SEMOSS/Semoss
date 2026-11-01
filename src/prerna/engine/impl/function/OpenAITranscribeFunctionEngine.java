@@ -41,16 +41,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.om.Insight;
 import prerna.util.Utility;
 
 public class OpenAITranscribeFunctionEngine extends AbstractFunctionEngine {
-
-	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	public static final String URL = "URL";
 	public static final String API_KEY = "API_KEY";
@@ -59,7 +54,6 @@ public class OpenAITranscribeFunctionEngine extends AbstractFunctionEngine {
 	private String url;
 	private String apiKey;
 	private String model;
-	private String modelType;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -68,7 +62,6 @@ public class OpenAITranscribeFunctionEngine extends AbstractFunctionEngine {
 		this.apiKey = smssProp.getProperty(API_KEY);
 		this.url = smssProp.getProperty(URL);
 		this.model = smssProp.getProperty(MODEL);
-		this.modelType = smssProp.getProperty("MODEL_TYPE");
 
 		if (this.apiKey == null || (this.apiKey.isEmpty())) {
 			throw new RuntimeException("Must set API key. Use EMPTY if none.");
@@ -80,11 +73,6 @@ public class OpenAITranscribeFunctionEngine extends AbstractFunctionEngine {
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
-		Boolean healthCheck = performHealthCheck();
-		if (!healthCheck) {
-			throw new RuntimeException("Model " + this.model + "is offline.");
-		}
-
 		Insight insight = (Insight) parameterValues.getOrDefault("INSIGHT", null);
 		String instanceDir = Utility.normalizePath(insight.getInsightFolder());
 
@@ -190,48 +178,6 @@ public class OpenAITranscribeFunctionEngine extends AbstractFunctionEngine {
 			return json.substring(start + 1, end);
 		}
 		return json;
-	}
-
-	private static String buildHealthUrl(String rawUrl) {
-		if (rawUrl == null || rawUrl.isEmpty()) {
-			throw new IllegalArgumentException("URL is required for health check");
-		}
-
-		String base = rawUrl.endsWith("/") ? rawUrl.substring(0, rawUrl.length() - 1) : rawUrl;
-
-		base = base.replaceFirst("/v1/?$", "");
-
-		return base + "/v2/health/live";
-	}
-
-	private Boolean performHealthCheck() {
-		if (this.modelType == null || !this.modelType.equalsIgnoreCase("kserve")) {
-			return true;
-		}
-
-		try {
-			String healthUrl = buildHealthUrl(this.url);
-
-			HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
-
-			HttpRequest request = HttpRequest.newBuilder().uri(URI.create(healthUrl)).timeout(Duration.ofSeconds(10))
-					.GET().build();
-
-			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-			if (response.statusCode() / 100 != 2) {
-				throw new RuntimeException("Health check failed: HTTP " + response.statusCode());
-			}
-
-			JsonNode node = MAPPER.readTree(response.body());
-			if (node.has("live") && node.get("live").asBoolean()) {
-				return true;
-			} else {
-				throw new RuntimeException("Model not online at " + healthUrl + ". Response: " + response.body());
-			}
-		} catch (Exception e) {
-			throw new RuntimeException("Health check failed: " + e.getMessage(), e);
-		}
 	}
 
 	@Override

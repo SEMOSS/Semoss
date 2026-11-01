@@ -643,6 +643,12 @@ public class Constants {
 	public static final String ADMIN_ONLY_GUARDRAIL_SET_PUBLIC = "ADMIN_ONLY_GUARDRAIL_SET_PUBLIC";
 	public static final String ADMIN_ONLY_GUARDRAIL_SET_DISCOVERABLE = "ADMIN_ONLY_GUARDRAIL_SET_DISCOVERABLE";
 
+	public static final String ADMIN_ONLY_VENV_ADD = "ADMIN_ONLY_VENV_ADD";
+	public static final String ADMIN_ONLY_VENV_DELETE = "ADMIN_ONLY_VENV_DELETE";
+	public static final String ADMIN_ONLY_VENV_ADD_ACCESS = "ADMIN_ONLY_VENV_ADD_ACCESS";
+	public static final String ADMIN_ONLY_VENV_SET_PUBLIC = "ADMIN_ONLY_VENV_SET_PUBLIC";
+	public static final String ADMIN_ONLY_VENV_SET_DISCOVERABLE = "ADMIN_ONLY_VENV_SET_DISCOVERABLE";
+
 	public static final String ADMIN_ONLY_INSIGHT_SET_PUBLIC = "ADMIN_ONLY_INSIGHT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_INSIGHT_ADD_ACCESS = "ADMIN_ONLY_INSIGHT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_INSIGHT_SHARE = "ADMIN_ONLY_INSIGHT_SHARE";
@@ -685,7 +691,7 @@ public class Constants {
 	public static final String H2_BASE_CONNECTION_URL = "jdbc:h2:@" + Constants.BASE_FOLDER + "@"
 			+ System.getProperty("file.separator") + "@ENGINE" + Constants.ENGINE + "@"
 			+ System.getProperty("file.separator")
-			+ "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+			+ "database;query_timeout=180000;cache_size=32768";
 
 	// default rdbms insights type
 	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";

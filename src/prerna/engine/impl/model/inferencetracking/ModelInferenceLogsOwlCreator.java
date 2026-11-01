@@ -170,7 +170,8 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("COMPLETED_AT", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("USER_ID", VARCHAR_255)));
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("USER_TYPE", VARCHAR_255)));
 
 		addTable("AGENT_RUN_ACTION", Arrays.asList(
 				Pair.with("ACTION_ID", VARCHAR_50),
@@ -190,6 +191,34 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("DECIDED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("USER_ID", VARCHAR_255)));
+
+		// a guardrail check hit that an engine's hit limits count
+		addTable("GUARDRAIL_HIT", Arrays.asList(
+				Pair.with("HIT_ID", VARCHAR_50),
+				Pair.with("ENGINE_ID", VARCHAR_50),
+				Pair.with("CHECK_ID", VARCHAR_255),
+				Pair.with("GUARDRAIL_ENGINE_ID", VARCHAR_50),
+				Pair.with("METHOD_NAME", VARCHAR_255),
+				Pair.with("PHASE", VARCHAR_50),
+				Pair.with("ACTION", VARCHAR_50),
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("INSIGHT_ID", VARCHAR_50),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("USER_TYPE", VARCHAR_255),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME)));
+
+		// a user locked out of an engine after their hits reached one of its limits
+		addTable("GUARDRAIL_LOCK", Arrays.asList(
+				Pair.with("LOCK_ID", VARCHAR_50),
+				Pair.with("ENGINE_ID", VARCHAR_50),
+				Pair.with("LIMIT_ID", VARCHAR_255),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("USER_TYPE", VARCHAR_255),
+				Pair.with("LOCKED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("LOCKED_UNTIL", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CLEARED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CLEARED_BY_ID", VARCHAR_255),
+				Pair.with("CLEARED_BY_TYPE", VARCHAR_255)));
 		// @formatter:on
 	}
 

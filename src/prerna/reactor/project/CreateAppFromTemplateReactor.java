@@ -107,7 +107,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 		// Use the template to populate the parameters needed to create the new project
 		IProject.PROJECT_TYPE projectEnumType = templateProject.getProjectType();
 		if (!SecurityProjectUtils.userCanCloneProject(this.insight.getUser(), projectTemplateId)) {
-			throw new IllegalArgumentException("This project is not enabled as a template and cannot be cloned.");
+			throw new IllegalArgumentException("This project is not a template, so only its owners can clone it.");
 		}
 
 		// Create new project

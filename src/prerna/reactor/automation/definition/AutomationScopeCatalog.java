@@ -48,7 +48,7 @@ import prerna.reactor.automation.AutomationRuntime;
  * semantics. At a branch merge, outputs produced on only one branch are marked
  * conditional and use a safe {@code scope.get(...)} insertion expression.
  */
-final class AutomationScopeCatalog {
+public final class AutomationScopeCatalog {
 
 	private AutomationScopeCatalog() {
 	}
@@ -59,7 +59,7 @@ final class AutomationScopeCatalog {
 	 * @param definition validated Automation graph
 	 * @return ordered variables available or conditionally available at each node
 	 */
-	static Map<String, List<Map<String, Object>>> variablesByNode(
+	public static Map<String, List<Map<String, Object>>> variablesByNode(
 			AutomationDefinitionValidator.ValidatedDefinition definition) {
 		List<Map<String, Object>> orderedNodes = AutomationRuntime.nodesForRun(definition);
 		Map<String, List<String>> predecessors = predecessors(definition);

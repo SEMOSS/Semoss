@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -93,10 +94,12 @@ class WorkRoutineRoomUnitTests {
 		registry = mockStatic(SystemEngineRegistry.class);
 		registry.when(SystemEngineRegistry::getCollaborationDb).thenReturn(engine);
 		try (Statement statement = connection.createStatement()) {
-			for (String table : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE")) {
-				statement.execute("CREATE TABLE " + table + " (OWNER_ID VARCHAR, OWNER_TYPE VARCHAR, SETTINGS_JSON CLOB, "
-						+ "ENABLED BOOLEAN, RUN_STATUS VARCHAR, STARTED_AT TIMESTAMP, FINISHED_AT TIMESTAMP, "
-						+ "LAST_SUCCESS_AT TIMESTAMP, ROOM_ID VARCHAR, RUN_ID VARCHAR, SUMMARY CLOB, ERROR CLOB)");
+			for (String table : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE", "WORK_EXPENSE_ROUTINE",
+					"WORK_CUSTOM_ROUTINE")) {
+				statement.execute("CREATE TABLE " + table + " (OWNER_ID VARCHAR, OWNER_TYPE VARCHAR, ROUTINE_ID VARCHAR, "
+						+ "SETTINGS_JSON CLOB, ENABLED BOOLEAN, RUN_STATUS VARCHAR, STARTED_AT TIMESTAMP, "
+						+ "FINISHED_AT TIMESTAMP, LAST_SUCCESS_AT TIMESTAMP, ROOM_ID VARCHAR, RUN_ID VARCHAR, "
+						+ "SUMMARY CLOB, ERROR CLOB, ERROR_CAUSE VARCHAR)");
 			}
 		}
 		user = owner("owner-one");
@@ -252,6 +255,25 @@ class WorkRoutineRoomUnitTests {
 	}
 
 	@Test
+	void routineWithDocumentsGetsACopyInTheChatAndTheOutputNamesThem() {
+		completed(user, WorkExpenseRoutine.ID, STARTED, "Suggested decision");
+		utility.when(Utility::getBaseFolder).thenReturn("/base");
+		try (MockedStatic<WorkRoutineDocuments> documents = mockStatic(WorkRoutineDocuments.class)) {
+			documents.when(() -> WorkRoutineDocuments.copyInto(same(user), eq(WorkExpenseRoutine.DOCUMENTS_ID), anyString()))
+					.thenReturn(List.of("policy.pdf", "rates.xlsx"));
+
+			String id = open(WorkExpenseRoutine.ID);
+
+			documents.verify(() -> WorkRoutineDocuments.copyInto(same(user), eq(WorkExpenseRoutine.DOCUMENTS_ID),
+					eq("/base" + File.separator + "room" + File.separator + id)));
+			String content = ((ResponseMessage) storedRoom(id).getMessages().getFirst()).getContent();
+			assertTrue(content.startsWith("Suggested decision\n\n---\n\n"), content);
+			assertTrue(content.contains("\"documents\" folder"), content);
+			assertTrue(content.contains(": policy.pdf, rates.xlsx."), content);
+		}
+	}
+
+	@Test
 	void unknownRoutineCannotSelectAnArbitraryTable() {
 		assertThrows(IllegalArgumentException.class, () -> open("WORK_INBOX_ROUTINE"));
 		rooms.verifyNoInteractions();
@@ -262,7 +284,8 @@ class WorkRoutineRoomUnitTests {
 	}
 
 	private void completed(User owner, String routineId, String started, String summary) {
-		String table = WorkInboxRoutine.ID.equals(routineId) ? "WORK_INBOX_ROUTINE" : "WORK_AGENDA_ROUTINE";
+		String table = WorkInboxRoutine.ID.equals(routineId) ? "WORK_INBOX_ROUTINE"
+				: WorkExpenseRoutine.ID.equals(routineId) ? "WORK_EXPENSE_ROUTINE" : "WORK_AGENDA_ROUTINE";
 		var identity = CollaborationDbUtils.ownerOf(owner);
 		CollaborationDbUtils.update("DELETE FROM " + table + " WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				identity.getValue0(), identity.getValue1());

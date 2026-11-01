@@ -174,7 +174,7 @@ public class SmssUtilities {
 			return null;
 		}
 		String rdbmsInsightsType = prop.getProperty(Constants.RDBMS_INSIGHTS_TYPE, "H2_DB");
-		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsInsightsType);
+		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsInsightsType);
 
 		String baseFolder = Utility.getBaseFolder();
 		String rdbmsInsights = Utility.normalizePath(baseFolder) + DIR_SEPARATOR
@@ -493,7 +493,7 @@ public class SmssUtilities {
 		} else {
 			connectionUrl = "jdbc:h2:nio:" + baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR
 					+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR
-					+ "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+					+ "insights_database;query_timeout=180000;cache_size=32768";
 		}
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
@@ -552,15 +552,18 @@ public class SmssUtilities {
 			RdbmsTypeEnum rdbmsType = null;
 			if (forceInsightDatabaseType != null) {
 				rdbmsType = forceInsightDatabaseType;
-				rdbmsTypeStr = rdbmsType.getLabel();
 			} else {
 				rdbmsTypeStr = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 				if (rdbmsTypeStr == null) {
-					// default will be h2
-					rdbmsTypeStr = "H2_DB";
+					// default h2
+					rdbmsType = RdbmsTypeEnum.H2_DB;
+				} else {
+					rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
 				}
-				rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 			}
+			// the configured value may differ in case or spacing, so the smss gets the
+			// label
+			rdbmsTypeStr = rdbmsType.getLabel();
 
 			bufferedWriter.write(
 					Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation(rdbmsTypeStr) + newLine);
@@ -630,15 +633,18 @@ public class SmssUtilities {
 			RdbmsTypeEnum rdbmsType = null;
 			if (forceInsightDatabaseType != null) {
 				rdbmsType = forceInsightDatabaseType;
-				rdbmsTypeStr = rdbmsType.getLabel();
 			} else {
 				rdbmsTypeStr = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 				if (rdbmsTypeStr == null) {
-					// default will be h2
-					rdbmsTypeStr = "H2_DB";
+					// default h2
+					rdbmsType = RdbmsTypeEnum.H2_DB;
+				} else {
+					rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
 				}
-				rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 			}
+			// the configured value may differ in case or spacing, so the smss gets the
+			// label
+			rdbmsTypeStr = rdbmsType.getLabel();
 
 			// this smss is only ever generated for a user asset project
 			bufferedWriter.write(Constants.IS_ASSET_APP + tab + "true" + newLine);
@@ -707,7 +713,7 @@ public class SmssUtilities {
 			// default will be h2
 			rdbmsTypeStr = "H2_DB";
 		}
-		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
+		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
 
 		Properties insightSmssProp = new Properties();
 		/*
@@ -755,7 +761,8 @@ public class SmssUtilities {
 						"QUESTION_ORDER", "QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN",
 						"HIDDEN_INSIGHT", "CACHEABLE", "QUESTION_PKQL" };
 				types = new String[] { "VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT",
-						"VARCHAR(255)", "CLOB", "VARCHAR(500)", "BOOLEAN", "BOOLEAN", "ARRAY" };
+						"VARCHAR(255)", "CLOB", "VARCHAR(500)", "BOOLEAN", "BOOLEAN", "VARCHAR ARRAY" };
+				// H2 2.x needs a typed array; matches what migrated 1.4 files get
 				// this is annoying
 				// need to adjust if the engine allows array data types
 				if (!queryUtil.allowArrayDatatype()) {

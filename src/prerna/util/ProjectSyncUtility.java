@@ -31,10 +31,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.project.api.IProject;
 
 public class ProjectSyncUtility {
+
+	private static final Logger classLogger = LogManager.getLogger(ProjectSyncUtility.class);
 
 	private static ConcurrentMap<String, ReentrantLock> prorjectLocks = new ConcurrentHashMap<>();
 
@@ -42,12 +48,51 @@ public class ProjectSyncUtility {
 		prorjectLocks.putIfAbsent(projectId, new ReentrantLock());
 		return prorjectLocks.get(projectId);
 	}
-	
+
 	public static ConcurrentMap<String, ReentrantLock> getAllLocks(User user) {
-		if(!SecurityAdminUtils.userIsAdmin(user)) {
+		if (!SecurityAdminUtils.userIsAdmin(user)) {
 			throw new IllegalArgumentException("User must be an admin to perform this method");
 		}
 		return prorjectLocks;
 	}
-	
+
+	/**
+	 * Checks if a project is open on this node, meaning an instance of it is held
+	 * in DIHelper. A project that is only cataloged here, with its smss known but
+	 * never opened, is not open.
+	 *
+	 * @param projectId the project to check
+	 * @return true if the project is open on this node
+	 */
+	public static boolean isProjectOpen(String projectId) {
+		return DIHelper.getInstance().getProjectProperty(projectId) instanceof IProject;
+	}
+
+	/**
+	 * Clears the project modules cached in the python process of a project that is
+	 * open on this node, through {@link IProject#clearPythonImports()}. A project
+	 * that is not open on this node has nothing cached and is left alone, without
+	 * being loaded.
+	 *
+	 * @param projectId the project whose python imports to clear
+	 * @return the result of {@code smss_clear_app_imports()}, or null when the
+	 *         project or its python process is not running on this node
+	 */
+	public static Object clearLoadedProjectPythonImports(String projectId) {
+		Object loaded = DIHelper.getInstance().getProjectProperty(projectId);
+		if (!(loaded instanceof IProject openProject)) {
+			classLogger.info("Project {} is not open on this node, no python imports to clear",
+					Utility.cleanLogString(projectId));
+			return null;
+		}
+		Object cleared = openProject.clearPythonImports();
+		if (cleared == null) {
+			classLogger.info("Project {} python process is not running on this node, no python imports to clear",
+					Utility.cleanLogString(projectId));
+		} else {
+			classLogger.info("Cleared python imports for project {}: {}", Utility.cleanLogString(projectId), cleared);
+		}
+		return cleared;
+	}
+
 }

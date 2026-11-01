@@ -49,7 +49,8 @@ import prerna.auth.User;
 
 // Finds threads for the owner from what Brain stores (subject, summary, people, topics, dates), never from message
 // bodies: the threads related to one thread, and a search inside one topic. Both go through the same privacy
-// check: muted and automated threads, never-ingest people, and threads whose every message was kept out are left out.
+// check: muted and automated threads, never-ingest people, and threads whose every message was kept out are left out,
+// except that a topic search keeps the topic's automated threads.
 public final class BrainThreadFinder {
 
 	private static final int DEFAULT_LIMIT = 10;
@@ -143,7 +144,7 @@ public final class BrainThreadFinder {
 		candidateIds.addAll(viaAccount.keySet());
 		candidateIds = cap(candidateIds);
 
-		List<ThreadRow> rows = loadThreads(ownerId, ownerType, candidateIds);
+		List<ThreadRow> rows = loadThreads(ownerId, ownerType, candidateIds, false);
 		Privacy privacy = Privacy.load(ownerId, ownerType, ids(rows));
 		Map<String, String> topicNames = topicNames(ownerId, ownerType, myTopics.keySet());
 
@@ -253,7 +254,9 @@ public final class BrainThreadFinder {
 					+ "AUTOMATED = ?) ORDER BY COALESCE(LAST_MESSAGE_AT, CREATED_AT) DESC, THREAD_ID", CANDIDATE_CAP, 0),
 					rs -> rs.getString(1), ownerId, ownerType, false, false);
 		}
-		List<ThreadRow> rows = loadThreads(ownerId, ownerType, candidates);
+		// the topic page lists a topic's automated threads (the owner filed them; the classifier skips automated
+		// mail), so a search inside the topic finds them too
+		List<ThreadRow> rows = loadThreads(ownerId, ownerType, candidates, topic != null);
 		Privacy privacy = Privacy.load(ownerId, ownerType, ids(rows));
 
 		List<String> tokens = tokens(query);
@@ -441,20 +444,23 @@ public final class BrainThreadFinder {
 		return names;
 	}
 
-	// threads that are not muted and not marked automated
-	private static List<ThreadRow> loadThreads(String ownerId, String ownerType, Collection<String> ids) {
+	// threads that are not muted and, unless withAutomated, not marked automated
+	private static List<ThreadRow> loadThreads(String ownerId, String ownerType, Collection<String> ids,
+			boolean withAutomated) {
 		List<ThreadRow> rows = new ArrayList<>();
 		if (ids.isEmpty()) {
 			return rows;
 		}
 		byIds("SELECT THREAD_ID, SOURCE, SUBJECT, SUMMARY, LAST_MESSAGE_AT, MESSAGE_COUNT FROM BRAIN_THREAD WHERE "
-				+ "OWNER_ID = ? AND OWNER_TYPE = ? AND (MUTED IS NULL OR MUTED = ?) AND (AUTOMATED IS NULL OR AUTOMATED = ?) "
-				+ "AND THREAD_ID IN (", ")", ids, rs -> {
+				+ "OWNER_ID = ? AND OWNER_TYPE = ? AND (MUTED IS NULL OR MUTED = ?) "
+				+ (withAutomated ? "" : "AND (AUTOMATED IS NULL OR AUTOMATED = ?) ") + "AND THREAD_ID IN (", ")", ids,
+				rs -> {
 					rows.add(new ThreadRow(rs.getString("THREAD_ID"), rs.getString("SOURCE"),
 							CollaborationDbUtils.getString(rs, "SUBJECT"), CollaborationDbUtils.getString(rs, "SUMMARY"),
 							rs.getTimestamp("LAST_MESSAGE_AT"), CollaborationDbUtils.getInteger(rs, "MESSAGE_COUNT")));
 					return null;
-				}, ownerId, ownerType, false, false);
+				}, withAutomated ? new Object[] { ownerId, ownerType, false }
+						: new Object[] { ownerId, ownerType, false, false });
 		return rows;
 	}
 
