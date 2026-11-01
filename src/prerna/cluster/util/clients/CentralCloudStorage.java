@@ -1504,10 +1504,8 @@ public final class CentralCloudStorage implements ICloudClient {
 	}
 
 	@Override
-	public void deleteInsightsDB(String projectId, RdbmsTypeEnum insightsDbType)
-			throws IOException, InterruptedException {
-		String storageProjectInsightFilePath = PROJECT_CONTAINER_PREFIX + projectId + "/"
-				+ getInsightDbFileName(insightsDbType);
+	public void deleteInsightsDB(String projectId) throws IOException, InterruptedException {
+		String storageProjectFolder = PROJECT_CONTAINER_PREFIX + projectId;
 
 		// synchronize on the project id
 		classLogger.info("Applying lock for {} to delete insights db", projectId);
@@ -1515,8 +1513,11 @@ public final class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Project {} is locked", projectId);
 		try {
-			classLogger.info("Deleting remote={}", storageProjectInsightFilePath);
-			storageDelete(storageProjectInsightFilePath);
+			for (String fileName : ProjectHelper.INSIGHTS_DATABASE_FILES) {
+				String storageProjectInsightFilePath = storageProjectFolder + "/" + fileName;
+				classLogger.info("Deleting remote={}", storageProjectInsightFilePath);
+				storageDelete(storageProjectInsightFilePath);
+			}
 		} finally {
 			// always unlock regardless of errors
 			lock.unlock();

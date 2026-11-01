@@ -56,7 +56,6 @@ import prerna.util.Constants;
 import prerna.util.DefaultImageGeneratorUtil;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
-import prerna.util.sql.RdbmsTypeEnum;
 
 public class ClusterUtil {
 
@@ -754,18 +753,18 @@ public class ClusterUtil {
 	}
 
 	/**
-	 * Deletes a project's insights database from cloud storage, for a project whose
-	 * type does not hold insights. Does nothing outside a cluster. The other nodes
-	 * delete their own copy when they open the project, so they are not told.
+	 * Deletes a project's insights database files from cloud storage, for a project
+	 * that never opens an insights database. Does nothing outside a cluster. The
+	 * other nodes delete their own copies when they open the project, so they are
+	 * not told.
 	 *
-	 * @param projectId      the project whose insights database to delete
-	 * @param insightsDbType the insights database type, which names its file
+	 * @param projectId the project whose insights database files to delete
 	 * @throws SemossPixelException if the delete fails, which stops the pixel
 	 */
-	public static void deleteInsightsDB(String projectId, RdbmsTypeEnum insightsDbType) {
+	public static void deleteInsightsDB(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().deleteInsightsDB(projectId, insightsDbType);
+				getCentralStorageClient().deleteInsightsDB(projectId);
 			} catch (Exception e) {
 				classLogger.error("Failed to delete project '{}' insight database from cloud storage", projectId, e);
 				SemossPixelException err = new SemossPixelException(

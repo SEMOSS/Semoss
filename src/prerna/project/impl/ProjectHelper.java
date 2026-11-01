@@ -112,6 +112,13 @@ public final class ProjectHelper {
 	private static final String[] DEPENDENCIES_FILE_EXTENSIONS = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx",
 			".json" };
 
+	/**
+	 * The insights database files a project folder can hold: the H2 database and
+	 * its trace file, and the SQLite database.
+	 */
+	public static final List<String> INSIGHTS_DATABASE_FILES = List.of("insights_database.mv.db",
+			"insights_database.trace.db", "insights_database.sqlite");
+
 	private ProjectHelper() {
 
 	}
@@ -415,37 +422,53 @@ public final class ProjectHelper {
 	}
 
 	/**
-	 * Delete the insights database file a project smss names, for a project whose
-	 * type does not hold insights and so never opens it. In a cluster its copy in
-	 * cloud storage is deleted too, on a virtual thread, since the project may
-	 * still be opening inside a pull that holds the project's sync lock. A failure
-	 * is logged rather than thrown, since the project opens without the file.
+	 * Delete the {@link #INSIGHTS_DATABASE_FILES} in a project's folder, for a
+	 * project that never opens an insights database: a user asset project, or a
+	 * project whose type does not hold insights. In a cluster their copies in cloud
+	 * storage are deleted too, on a virtual thread, since the project may still be
+	 * opening inside a pull that holds the project's sync lock. A failure is logged
+	 * rather than thrown, since the project opens without the files.
 	 *
 	 * @param smssProp the project smss properties
 	 */
-	public static void deleteInsightsDatabase(Properties smssProp) {
+	static void deleteInsightsDatabase(Properties smssProp) {
 		String projectId = smssProp.getProperty(Constants.PROJECT);
+		File projectFolder;
 		try {
-			File insightDatabaseFile = SmssUtilities.getInsightsRdbmsFile(smssProp);
-			if (insightDatabaseFile != null && insightDatabaseFile.isFile()) {
-				classLogger.info("Deleting the unused insights database {} of project {}",
-						Utility.cleanLogString(insightDatabaseFile.getAbsolutePath()), projectId);
-				Files.delete(insightDatabaseFile.toPath());
-				if (ClusterUtil.IS_CLUSTER) {
-					RdbmsTypeEnum insightsDbType = RdbmsTypeEnum
-							.getEnumFromStringOrThrow(smssProp.getProperty(Constants.RDBMS_INSIGHTS_TYPE, "H2_DB"));
-					Thread.ofVirtual().name("delete-insights-db-" + projectId).start(() -> {
-						try {
-							ClusterUtil.deleteInsightsDB(projectId, insightsDbType);
-						} catch (RuntimeException e) {
-							classLogger.warn("The unused insights database of project {} is still in cloud storage,"
-									+ " until the next full push of the project", projectId);
-						}
-					});
-				}
+			projectFolder = new File(Utility.getBaseFolder() + File.separator + Constants.PROJECT_FOLDER,
+					SmssUtilities.getUniqueName(smssProp.getProperty(Constants.PROJECT_ALIAS), projectId));
+		} catch (IllegalArgumentException e) {
+			classLogger.error("Failed to find the folder of project {} to delete its unused insights database",
+					projectId, e);
+			return;
+		}
+
+		boolean deleted = false;
+		for (String fileName : INSIGHTS_DATABASE_FILES) {
+			File insightsFile = new File(projectFolder, fileName);
+			if (!insightsFile.isFile()) {
+				continue;
 			}
-		} catch (IOException | IllegalArgumentException e) {
-			classLogger.error("Failed to delete the unused insights database of project {}", projectId, e);
+			try {
+				Files.delete(insightsFile.toPath());
+				deleted = true;
+				classLogger.info("Deleted the unused insights database file {} of project {}",
+						Utility.cleanLogString(insightsFile.getAbsolutePath()), projectId);
+			} catch (IOException e) {
+				classLogger.error("Failed to delete the unused insights database file {} of project {}",
+						Utility.cleanLogString(insightsFile.getAbsolutePath()), projectId, e);
+			}
+		}
+
+		if (deleted && ClusterUtil.IS_CLUSTER) {
+			Thread.ofVirtual().name("delete-insights-db-" + projectId).start(() -> {
+				try {
+					ClusterUtil.deleteInsightsDB(projectId);
+				} catch (RuntimeException e) {
+					classLogger.warn("The unused insights database of project {} is still in cloud storage,"
+							+ " until the next full push of the project", projectId);
+				}
+			});
 		}
 	}
 

@@ -34,34 +34,44 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import prerna.SemossUnitTest;
 import prerna.util.Constants;
 
 class ProjectHelperUnitTests extends SemossUnitTest {
 
-	@Test
-	void testDeleteInsightsDatabase_deletesTheH2File() throws IOException {
+	@ParameterizedTest
+	@ValueSource(strings = { "insights_database.mv.db", "insights_database.trace.db", "insights_database.sqlite" })
+	void testDeleteInsightsDatabase_deletesEachInsightsDatabaseFile(String fileName) throws IOException {
 		String projectId = UUID.randomUUID().toString();
-		Path insightsFile = createProjectFile(projectId, "insights_database.mv.db");
+		Path insightsFile = createProjectFile(projectId, fileName);
 
-		ProjectHelper.deleteInsightsDatabase(smss(projectId, "project/@PROJECT@/insights_database", "H2_DB"));
+		ProjectHelper.deleteInsightsDatabase(smss(projectId));
 
 		assertFalse(Files.exists(insightsFile));
 	}
 
 	@Test
-	void testDeleteInsightsDatabase_deletesTheSqliteFile() throws IOException {
+	void testDeleteInsightsDatabase_deletesEveryInsightsDatabaseFileTogether() throws IOException {
 		String projectId = UUID.randomUUID().toString();
-		Path insightsFile = createProjectFile(projectId, "insights_database.sqlite");
+		List<Path> insightsFiles = new ArrayList<>();
+		for (String fileName : ProjectHelper.INSIGHTS_DATABASE_FILES) {
+			insightsFiles.add(createProjectFile(projectId, fileName));
+		}
 
-		ProjectHelper.deleteInsightsDatabase(smss(projectId, "project/@PROJECT@/insights_database.sqlite", "SQLITE"));
+		ProjectHelper.deleteInsightsDatabase(smss(projectId));
 
-		assertFalse(Files.exists(insightsFile));
+		for (Path insightsFile : insightsFiles) {
+			assertFalse(Files.exists(insightsFile));
+		}
 	}
 
 	@Test
@@ -70,34 +80,29 @@ class ProjectHelperUnitTests extends SemossUnitTest {
 		createProjectFile(projectId, "insights_database.mv.db");
 		Path otherFile = createProjectFile(projectId, "pipeline.json");
 
-		ProjectHelper.deleteInsightsDatabase(smss(projectId, "project/@PROJECT@/insights_database", "H2_DB"));
+		ProjectHelper.deleteInsightsDatabase(smss(projectId));
 
 		assertTrue(Files.exists(otherFile));
 	}
 
 	@Test
-	void testDeleteInsightsDatabase_noFileDoesNothing() {
+	void testDeleteInsightsDatabase_noProjectFolderDoesNothing() {
 		String projectId = UUID.randomUUID().toString();
 
-		assertDoesNotThrow(() -> ProjectHelper
-				.deleteInsightsDatabase(smss(projectId, "project/@PROJECT@/insights_database", "H2_DB")));
+		assertDoesNotThrow(() -> ProjectHelper.deleteInsightsDatabase(smss(projectId)));
 	}
 
 	@Test
-	void testDeleteInsightsDatabase_smssNamingNoneDoesNothing() {
-		Properties smssProp = new Properties();
-		smssProp.setProperty(Constants.PROJECT, UUID.randomUUID().toString());
-		smssProp.setProperty(Constants.PROJECT_ALIAS, "pname");
-
-		assertDoesNotThrow(() -> ProjectHelper.deleteInsightsDatabase(smssProp));
-	}
-
-	@Test
-	void testDeleteInsightsDatabase_unknownDatabaseTypeIsLogged() {
+	void testDeleteInsightsDatabase_deletesWhateverTheSmssNames() throws IOException {
 		String projectId = UUID.randomUUID().toString();
+		Path insightsFile = createProjectFile(projectId, "insights_database.mv.db");
+		Properties smssProp = smss(projectId);
+		smssProp.setProperty(Constants.RDBMS_INSIGHTS, "project/@PROJECT@/insights_database.sqlite");
+		smssProp.setProperty(Constants.RDBMS_INSIGHTS_TYPE, "SQLITE");
 
-		assertDoesNotThrow(() -> ProjectHelper
-				.deleteInsightsDatabase(smss(projectId, "project/@PROJECT@/insights_database", "NOT_A_TYPE")));
+		ProjectHelper.deleteInsightsDatabase(smssProp);
+
+		assertFalse(Files.exists(insightsFile));
 	}
 
 	/**
@@ -109,15 +114,13 @@ class ProjectHelperUnitTests extends SemossUnitTest {
 	}
 
 	/**
-	 * The smss of a BLOCKS project "pname" that still names an insights database.
+	 * The smss of a BLOCKS project "pname" with the given id.
 	 */
-	private static Properties smss(String projectId, String rdbmsInsights, String rdbmsInsightsType) {
+	private static Properties smss(String projectId) {
 		Properties smssProp = new Properties();
 		smssProp.setProperty(Constants.PROJECT, projectId);
 		smssProp.setProperty(Constants.PROJECT_ALIAS, "pname");
 		smssProp.setProperty(Constants.PROJECT_ENUM_TYPE, "BLOCKS");
-		smssProp.setProperty(Constants.RDBMS_INSIGHTS, rdbmsInsights);
-		smssProp.setProperty(Constants.RDBMS_INSIGHTS_TYPE, rdbmsInsightsType);
 		return smssProp;
 	}
 }

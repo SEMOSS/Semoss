@@ -242,12 +242,10 @@ public class Project implements IProject {
 
 		this.projectType = IProject.PROJECT_TYPE.fromSmss(this.smssProp);
 
-		if (!this.isAsset) {
-			if (this.projectType.holdsInsights()) {
-				loadInsightsRdbms();
-			} else {
-				ProjectHelper.deleteInsightsDatabase(this.smssProp);
-			}
+		if (!this.isAsset && this.projectType.holdsInsights()) {
+			loadInsightsRdbms();
+		} else {
+			ProjectHelper.deleteInsightsDatabase(this.smssProp);
 		}
 
 		this.projectProperties = new ProjectProperties(this.projectAssetFolder, this.projectName, this.projectId);

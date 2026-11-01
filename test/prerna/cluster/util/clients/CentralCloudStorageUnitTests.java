@@ -1906,27 +1906,17 @@ class CentralCloudStorageUnitTests {
 		// ------- deleteInsightsDB -------
 
 		@Test
-		void testDeleteInsightsDB_deletesTheH2File() throws Exception {
+		void testDeleteInsightsDB_deletesEveryInsightsDatabaseFile() throws Exception {
 			ReentrantLock lock = new ReentrantLock();
 			try (MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
 				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
-				instance.deleteInsightsDB("proj1", RdbmsTypeEnum.H2_DB);
+				instance.deleteInsightsDB("proj1");
 
-				verify(mockStorageEngine).deleteFromStorage(argThat(s -> s.endsWith("proj1/insights_database.mv.db")));
+				for (String fileName : ProjectHelper.INSIGHTS_DATABASE_FILES) {
+					verify(mockStorageEngine).deleteFromStorage(argThat(s -> s.endsWith("proj1/" + fileName)));
+				}
 				assertFalse(lock.isLocked());
-			}
-		}
-
-		@Test
-		void testDeleteInsightsDB_deletesTheSqliteFile() throws Exception {
-			ReentrantLock lock = new ReentrantLock();
-			try (MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
-				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
-
-				instance.deleteInsightsDB("proj1", RdbmsTypeEnum.SQLITE);
-
-				verify(mockStorageEngine).deleteFromStorage(argThat(s -> s.endsWith("proj1/insights_database.sqlite")));
 			}
 		}
 
@@ -1937,7 +1927,7 @@ class CentralCloudStorageUnitTests {
 			try (MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
 				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
-				assertThrows(Exception.class, () -> instance.deleteInsightsDB("proj1", RdbmsTypeEnum.H2_DB));
+				assertThrows(Exception.class, () -> instance.deleteInsightsDB("proj1"));
 				assertFalse(lock.isLocked());
 			}
 		}

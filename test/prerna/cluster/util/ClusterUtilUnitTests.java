@@ -70,7 +70,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.DefaultImageGeneratorUtil;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
-import prerna.util.sql.RdbmsTypeEnum;
 import sun.misc.Unsafe;
 
 class ClusterUtilUnitTests {
@@ -386,7 +385,7 @@ class ClusterUtilUnitTests {
 
 		@Test
 		void testDelInsightsDb() {
-			assertDoesNotThrow(() -> ClusterUtil.deleteInsightsDB("p", RdbmsTypeEnum.H2_DB));
+			assertDoesNotThrow(() -> ClusterUtil.deleteInsightsDB("p"));
 		}
 
 		@Test
@@ -768,8 +767,8 @@ class ClusterUtilUnitTests {
 			try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
 				CentralCloudStorage mock = mock(CentralCloudStorage.class);
 				ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-				ClusterUtil.deleteInsightsDB("p12", RdbmsTypeEnum.H2_DB);
-				verify(mock).deleteInsightsDB("p12", RdbmsTypeEnum.H2_DB);
+				ClusterUtil.deleteInsightsDB("p12");
+				verify(mock).deleteInsightsDB("p12");
 			} finally {
 				setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);
 			}
@@ -1295,8 +1294,8 @@ class ClusterUtilUnitTests {
 			try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
 				CentralCloudStorage mock = mock(CentralCloudStorage.class);
 				ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-				doThrow(new RuntimeException("fail")).when(mock).deleteInsightsDB("p", RdbmsTypeEnum.H2_DB);
-				assertThrows(SemossPixelException.class, () -> ClusterUtil.deleteInsightsDB("p", RdbmsTypeEnum.H2_DB));
+				doThrow(new RuntimeException("fail")).when(mock).deleteInsightsDB("p");
+				assertThrows(SemossPixelException.class, () -> ClusterUtil.deleteInsightsDB("p"));
 			} finally {
 				setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);
 			}
