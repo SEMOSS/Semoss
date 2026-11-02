@@ -530,8 +530,8 @@ public class MessageUtils {
 		JsonArray serializedMessages = GSON_FOR_PY.toJsonTree(msgs).getAsJsonArray();
 		for (int messageIndex = 0; messageIndex < msgs.size(); messageIndex++) {
 			AbstractMessage message = msgs.get(messageIndex);
-			String roomFolderPath = message == null ? null : message.getRoomFolderPath();
-			if (roomFolderPath == null || !serializedMessages.get(messageIndex).isJsonObject()) {
+			List<String> roots = message == null ? Collections.emptyList() : message.getFileResolutionRoots();
+			if (roots.isEmpty() || !serializedMessages.get(messageIndex).isJsonObject()) {
 				continue;
 			}
 
@@ -556,7 +556,7 @@ public class MessageUtils {
 					continue;
 				}
 				String output = outputElement.getAsString();
-				String resolved = resolveToolOutputImageRefs(output, roomFolderPath);
+				String resolved = resolveToolOutputImageRefs(output, roots);
 				if (!resolved.equals(output)) {
 					toolResult.addProperty("output", resolved);
 				}
@@ -571,8 +571,13 @@ public class MessageUtils {
 	 * blocks into inline base64 {@code image} or {@code document} blocks - one
 	 * output block per path. Blocks of other types are passed through unchanged.
 	 * Returns the original string on any parse error or if the envelope is absent.
+	 * <p>
+	 * Each path is looked up in {@code roots} in order (see
+	 * {@link AbstractMessage#getFileResolutionRoots()}) and must stay inside the
+	 * folder it is found in. A path found in none of them becomes a text block
+	 * saying so, and the other references in the output are still inlined.
 	 */
-	private static String resolveToolOutputImageRefs(String output, String roomFolderPath) {
+	private static String resolveToolOutputImageRefs(String output, List<String> roots) {
 		try {
 			JsonObject parsed = JsonParser.parseString(output).getAsJsonObject();
 			if (!parsed.has(MCPUtility.SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY)) {
@@ -611,14 +616,22 @@ public class MessageUtils {
 						return output;
 					}
 					for (String relPath : relPaths) {
-						Path resolvedPath = MCPUtility.resolveContainedMcpFile(roomFolderPath, relPath);
+						Path resolvedPath = resolveInRoots(roots, relPath);
+						String b64 = resolvedPath == null ? ""
+								: MessageInputMedia.encodeFileToBase64(resolvedPath.toString());
+						if (b64.isEmpty()) {
+							classLogger.warn("Tool result references {}, which could not be read from {}", relPath,
+									roots);
+							JsonObject missing = new JsonObject();
+							missing.addProperty("type", "text");
+							missing.addProperty("text", "[" + relPath + " could not be attached]");
+							resolved.add(missing);
+							anyResolved = true;
+							continue;
+						}
 						String absPath = resolvedPath.toString();
 						String format = MessageInputMedia.extractFormat(absPath);
 						String mime = MessageInputMedia.guessMimeType(absPath, format);
-						String b64 = MessageInputMedia.encodeFileToBase64(absPath);
-						if (b64.isEmpty()) {
-							return output;
-						}
 						String blockType = mime.startsWith("image/") ? "image" : "document";
 						JsonObject inlined = new JsonObject();
 						inlined.addProperty("type", blockType);
@@ -643,6 +656,22 @@ public class MessageUtils {
 			// Not the expected format or parse error - pass through unchanged
 			return output;
 		}
+	}
+
+	/**
+	 * Returns the first regular file {@code relPath} names inside one of
+	 * {@code roots}, or null when it is in none of them or would escape the folder
+	 * it is resolved in.
+	 */
+	static Path resolveInRoots(List<String> roots, String relPath) {
+		for (String root : roots) {
+			try {
+				return MCPUtility.resolveContainedMcpFile(root, relPath);
+			} catch (Exception e) {
+				// missing here, or outside this folder; try the next one
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -746,6 +775,7 @@ public class MessageUtils {
 		T copy = (T) GSON_FOR_DB.fromJson(GSON_FOR_DB.toJson(m), m.getClass());
 		copy.roomId = m.roomId;
 		copy.roomFolderPath = m.roomFolderPath;
+		copy.sharedFileRoots = m.sharedFileRoots;
 		// base64Data and the media room folder are not serialized; without them the
 		// provider gets attachments with no data
 		List<MessagePart> from = m.getParts();

@@ -30,6 +30,7 @@ package prerna.engine.impl.model.message;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -101,6 +102,8 @@ public abstract class AbstractMessage {
 
 	protected transient String roomId;
 	protected transient String roomFolderPath;
+	// folders of another room this room shares files with, see Room#getSharedFileRoots
+	protected transient List<String> sharedFileRoots = Collections.emptyList();
 
 	private SemossDate dateCreated;
 
@@ -333,6 +336,7 @@ public abstract class AbstractMessage {
 		if (room != null) {
 			this.roomId = room.getId();
 			this.roomFolderPath = room.getRoomFolderPath();
+			this.sharedFileRoots = room.getSharedFileRoots();
 		}
 	}
 
@@ -342,6 +346,26 @@ public abstract class AbstractMessage {
 
 	public String getRoomFolderPath() {
 		return this.roomFolderPath;
+	}
+
+	/**
+	 * Returns the folders that file references in this message's tool results are
+	 * resolved against, in order: the room's own folder, then the folders of the
+	 * room it shares files with.
+	 *
+	 * @return resolution folders; empty when the message is not bound to a room
+	 */
+	public List<String> getFileResolutionRoots() {
+		if (this.roomFolderPath == null) {
+			return Collections.emptyList();
+		}
+		List<String> roots = new ArrayList<>();
+		roots.add(this.roomFolderPath);
+		// null when GSON built the message without running field initializers
+		if (this.sharedFileRoots != null) {
+			roots.addAll(this.sharedFileRoots);
+		}
+		return roots;
 	}
 
 	public boolean isVisible() {

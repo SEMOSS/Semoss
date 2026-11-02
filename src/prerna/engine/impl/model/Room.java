@@ -80,6 +80,7 @@ import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
+import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.agent.run.DeferredAgentTools;
@@ -132,6 +133,7 @@ public class Room implements Serializable {
 
 	private transient Insight insight;
 	private String roomFolderPath;
+	private transient volatile SharedFileRoots sharedFileRoots;
 
 	/**
 	 * Per-call reverse lookup map: LLM-facing tool name to enriched tool entry
@@ -2376,6 +2378,78 @@ public class Room implements Serializable {
 	 */
 	public static String roomFolderPath(String roomId) {
 		return Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+	}
+
+	/**
+	 * Returns the folders, besides this room's own, that file references in this
+	 * room's tool results may point into. A subagent spawned to share its parent's
+	 * files reads and writes in the source room's folder, so its tools return paths
+	 * relative to that folder: Python tools relative to the run's working directory
+	 * (their ROOT), and room-file tools relative to the source room's root.
+	 * <p>
+	 * Only the server-written {@link AgentRunner#ROOM_OPTION_WORKING_DIR_SOURCE_ROOM}
+	 * authorizes another folder, and the working directory counts only when it lies
+	 * inside that source room, the same rule
+	 * {@code AgentRunner.resolveRoomWorkingDirectory} applies. The working directory
+	 * comes first so that both kinds of path resolve.
+	 *
+	 * @return canonical folder paths, working directory first; empty for rooms that
+	 *         do not share another room's files
+	 */
+	public List<String> getSharedFileRoots() {
+		Map<String, Object> opts = getOptionsMap();
+		Object sourceOpt = opts.get(AgentRunner.ROOM_OPTION_WORKING_DIR_SOURCE_ROOM);
+		Object workDirOpt = opts.get(AgentRunner.ROOM_OPTION_WORKING_DIR);
+		String sourceRoomId = sourceOpt == null ? null : StringUtils.trimToNull(String.valueOf(sourceOpt));
+		String workDir = workDirOpt == null ? null : StringUtils.trimToNull(String.valueOf(workDirOpt));
+		String key = sourceRoomId + "|" + workDir;
+		SharedFileRoots cached = this.sharedFileRoots;
+		if (cached != null && cached.key.equals(key)) {
+			return cached.roots;
+		}
+		List<String> roots = computeSharedFileRoots(this.room_id, sourceRoomId, workDir);
+		this.sharedFileRoots = new SharedFileRoots(key, roots);
+		return roots;
+	}
+
+	private static List<String> computeSharedFileRoots(String roomId, String sourceRoomId, String workDir) {
+		// a room id is a single folder name; anything else cannot name a sibling room
+		if (sourceRoomId == null || sourceRoomId.equals(roomId) || sourceRoomId.contains("/")
+				|| sourceRoomId.contains("\\") || sourceRoomId.startsWith(".")) {
+			return Collections.emptyList();
+		}
+		String sourceRoot;
+		try {
+			sourceRoot = new File(roomFolderPath(sourceRoomId)).getCanonicalPath();
+		} catch (Exception e) {
+			classLogger.warn("Could not resolve the source room folder {} for room {}", sourceRoomId, roomId, e);
+			return Collections.emptyList();
+		}
+		List<String> roots = new ArrayList<>(2);
+		if (workDir != null) {
+			try {
+				String canonicalWorkDir = new File(workDir).getCanonicalPath();
+				if (!canonicalWorkDir.equals(sourceRoot)
+						&& canonicalWorkDir.startsWith(sourceRoot + File.separator)) {
+					roots.add(canonicalWorkDir);
+				}
+			} catch (Exception e) {
+				// an unresolvable working directory adds nothing; the source root still applies
+			}
+		}
+		roots.add(sourceRoot);
+		return Collections.unmodifiableList(roots);
+	}
+
+	/** Shared folders computed for one pair of option values. */
+	private static final class SharedFileRoots {
+		private final String key;
+		private final List<String> roots;
+
+		private SharedFileRoots(String key, List<String> roots) {
+			this.key = key;
+			this.roots = roots;
+		}
 	}
 
 	// Core message accessors
