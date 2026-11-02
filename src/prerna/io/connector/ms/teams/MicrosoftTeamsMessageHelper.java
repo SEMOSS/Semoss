@@ -34,6 +34,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -192,13 +194,28 @@ public class MicrosoftTeamsMessageHelper {
 	 */
 	public static List<Map<String, Object>> listChats(String accessToken, String userEmail, boolean includeLastMessage,
 			boolean unreadOnly, int limit) throws Exception {
+		return listChats(accessToken, userEmail, includeLastMessage, unreadOnly, limit, null);
+	}
+
+	/**
+	 * Lists the chats the signed in user is in, newest last message first, stopping
+	 * at chats whose last message is older than {@code since}.
+	 *
+	 * @param since optional cutoff; null reads back as far as the other bounds allow
+	 * @see #listChats(String, String, boolean, boolean, int)
+	 */
+	public static List<Map<String, Object>> listChats(String accessToken, String userEmail, boolean includeLastMessage,
+			boolean unreadOnly, int limit, Instant since) throws Exception {
 		try {
-			boolean withPreview = includeLastMessage || unreadOnly;
-			String nextUrl = chatsUrl(withPreview ? MEMBERS_AND_PREVIEW : MEMBERS);
+			boolean withPreview = includeLastMessage || unreadOnly || since != null;
+			String nextUrl = chatsUrl(withPreview ? MEMBERS_AND_PREVIEW : MEMBERS, withPreview);
 
 			List<Map<String, Object>> chats = new ArrayList<>();
 			int scanned = 0;
 			boolean firstPage = true;
+			// the cutoff only ends the walk while Graph keeps the newest first order
+			Instant previous = null;
+			boolean ordered = true;
 			while (nextUrl != null) {
 				Map<String, Object> json;
 				try {
@@ -212,7 +229,7 @@ public class MicrosoftTeamsMessageHelper {
 					}
 					classLogger.warn("Reading the chats with both the members and the last message failed, "
 							+ "reading them without the members", e);
-					nextUrl = chatsUrl(LAST_MESSAGE_PREVIEW);
+					nextUrl = chatsUrl(LAST_MESSAGE_PREVIEW, true);
 					json = readMap(HttpHelperUtility.getRequest(nextUrl, headers(accessToken), null, null, null));
 				}
 				firstPage = false;
@@ -224,7 +241,22 @@ public class MicrosoftTeamsMessageHelper {
 					scanned++;
 					Map<String, Object> described = MicrosoftTeamsMessageMapper.toChat(chat, userEmail,
 							LIST_CHAT_MEMBERS);
-					if (unreadOnly && !Boolean.TRUE.equals(described.get(HAS_UNREAD))) {
+					Instant at = lastMessageAt(described);
+					if (at != null && previous != null && at.isAfter(previous)) {
+						ordered = false;
+					}
+					if (at != null) {
+						previous = at;
+					}
+					if (since != null && (at == null || at.isBefore(since))) {
+						if (ordered && at != null) {
+							return chats;
+						}
+						continue;
+					}
+					// a chat the user hid in Teams is not one they are waiting on
+					if (unreadOnly && (!Boolean.TRUE.equals(described.get(HAS_UNREAD))
+							|| Boolean.TRUE.equals(described.get("isHidden")))) {
 						continue;
 					}
 					chats.add(described);
@@ -252,10 +284,29 @@ public class MicrosoftTeamsMessageHelper {
 	 * The url a chat listing starts at.
 	 *
 	 * @param expand what to expand alongside each chat
+	 * @param newestFirst whether Graph sorts by the last message, newest first
 	 * @return the url
 	 */
-	private static String chatsUrl(String expand) {
-		return GRAPH_BASE + "/me/chats?$expand=" + expand + "&$top=" + CHAT_PAGE_SIZE;
+	private static String chatsUrl(String expand, boolean newestFirst) {
+		return GRAPH_BASE + "/me/chats?$expand=" + expand + "&$top=" + CHAT_PAGE_SIZE
+				+ (newestFirst ? "&$orderby=lastMessagePreview/createdDateTime%20desc" : "");
+	}
+
+	// when the chat's last message arrived; null when Graph gave none or the 0001 placeholder
+	private static Instant lastMessageAt(Map<String, Object> chat) {
+		if (!(chat.get("lastMessage") instanceof Map<?, ?> last)) {
+			return null;
+		}
+		String text = ValueUtils.toNonBlankString(last.get("createdDateTime"));
+		if (text == null) {
+			return null;
+		}
+		try {
+			Instant at = Instant.parse(text);
+			return at.isBefore(Instant.EPOCH) ? null : at;
+		} catch (DateTimeParseException e) {
+			return null;
+		}
 	}
 
 	/**
