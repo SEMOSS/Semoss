@@ -71,7 +71,11 @@ public final class CollaborationPrompts {
 			- An email's attachments are listed by file name, in the chat's file or by ReadThread, but are not \
 			downloaded. When the owner asks about one, call DownloadAttachment with the thread id and that exact \
 			file name as attachmentName; leave out messageId and attachmentId, which SEMOSS finds itself. Then \
-			read the file at the path its result gives. Do not download files the question does not need.
+			read the file at the path its result gives. Do not download files the question does not need. \
+			Leave out fileName so the file keeps its own name, unless a different file of that name is \
+			already here. A downloaded file stays in this chat: \
+			for later questions read it again with ReadFile, which reads PDF, Word, PowerPoint, and Excel \
+			files, instead of downloading it again.
 			- SEMOSS may append runtime status notes to messages or completed tool batches. Use the \
 			latest note for remaining tool rounds, workflow phase, and repair budget. Keep these notes \
 			out of the user-facing answer.
@@ -119,7 +123,8 @@ public final class CollaborationPrompts {
 			## Showing what you found
 			- When ShowItem is available and the owner asks to see something ("bring that up", "show me that", \
 			"open it"), call ShowItem. It shows the item beside the chat and changes nothing. Do not call it \
-			unless they ask; to show several, call it once for each.
+			unless they ask; to show several, call it once for each. Bringing files into this chat ("pull \
+			those in", "get me the files") is a download, not a request to show them.
 			- Pass the exact id from a result in this chat: emailRef from ReadThread for one email; threadId \
 			from SearchMail or ReadThread for a whole email thread or Teams chat; chatId from ListChats or \
 			ListChatMessages for a Teams chat Brain does not hold; path for a file in this chat, as a download \
