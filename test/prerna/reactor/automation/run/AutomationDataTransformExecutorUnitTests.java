@@ -75,30 +75,6 @@ class AutomationDataTransformExecutorUnitTests {
 		assertEquals(List.of("one", "two"), result.get("items"));
 	}
 
-	@Test
-	void channelVariablesExtractsOnlyConfiguredFieldsAndNullsMissingOnes() {
-		Map<String, Object> scope = Map.of("priorStep",
-				Map.of("truth", "42", "extra", "ignored"));
-		Map<String, Object> config = Map.of(AutomationConstants.CONFIG_SOURCE, "${priorStep}",
-				AutomationConstants.CONFIG_FIELDS, List.of("truth", "missingField"));
-
-		Map<String, Object> result = AutomationDataTransformExecutor.channelVariables(config, scope, "channel-1");
-
-		assertEquals("42", result.get("truth"));
-		assertTrue(result.containsKey("missingField"));
-		assertNull(result.get("missingField"));
-		assertFalse(result.containsKey("extra"));
-	}
-
-	@Test
-	void channelVariablesRejectsANonObjectSource() {
-		Map<String, Object> config = Map.of(AutomationConstants.CONFIG_SOURCE, "not-an-object",
-				AutomationConstants.CONFIG_FIELDS, List.of("truth"));
-
-		assertThrows(IllegalArgumentException.class,
-				() -> AutomationDataTransformExecutor.channelVariables(config, Map.of(), "channel-1"));
-	}
-
 	private static Map<String, Object> field(String name, Map<String, Object> node) {
 		Map<String, Object> field = new LinkedHashMap<>();
 		field.put("name", name);

@@ -105,17 +105,16 @@ public class AutomationNodeCatalogUnitTests {
 		assertTrue(fieldKeys.contains("fields"));
 	}
 
-	/** Pulls named fields out of a source JSON object, instead of building Transform's field tree. */
+	/** Declares named fields directly into scope, instead of building Transform's single result object. */
 	@Test
-	void channelVariablesIsOfferedInTheDataCategoryWithASourceAndFieldsList() {
-		AutomationNodeDefinition definition = find(AutomationConstants.NODE_DATA_CHANNEL_VARIABLES);
+	void declareVariableIsOfferedInTheDataCategoryWithAFieldsList() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_DATA_DECLARE_VARIABLE);
 		assertNotNull(definition);
 		assertEquals("data", definition.toMap().get("category"));
 		Set<Object> fieldKeys = new HashSet<>();
 		for (AutomationNodeDefinition.ConfigField field : definition.configFields()) {
 			fieldKeys.add(field.key());
 		}
-		assertTrue(fieldKeys.contains("source"));
 		assertTrue(fieldKeys.contains("fields"));
 	}
 

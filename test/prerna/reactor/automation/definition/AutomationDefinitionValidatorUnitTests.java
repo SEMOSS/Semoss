@@ -440,37 +440,38 @@ public class AutomationDefinitionValidatorUnitTests {
 						definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM, fields))));
 	}
 
-	/** Channel variables requires a source JSON reference and at least one field name. */
+	/** A declare-variable node requires at least one named field, like transform. */
 	@Test
-	void channelVariablesNodeRequiresASourceAndAtLeastOneField() {
+	void declareVariableNodeRequiresAtLeastOneField() {
 		assertThrows(IllegalArgumentException.class,
 				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
-						workNode(AutomationConstants.NODE_DATA_CHANNEL_VARIABLES, Map.of()))));
+						workNode(AutomationConstants.NODE_DATA_DECLARE_VARIABLE, Map.of()))));
 	}
 
 	@Test
-	void channelVariablesNodeAcceptsNamedFields() {
+	void declareVariableNodeAcceptsNamedFields() {
 		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
 				.parseAndValidateForAuthoring(definition(Map.of(),
-						workNode(AutomationConstants.NODE_DATA_CHANNEL_VARIABLES,
-								Map.of("source", "${request}", "fields", List.of("accountId")))));
+						workNode(AutomationConstants.NODE_DATA_DECLARE_VARIABLE, Map.of("fields", List.of(
+								Map.of("name", "accountId", "node", Map.of("kind", "value", "value", "${request}")))))));
 		assertEquals(2, validated.nodes().size());
 	}
 
 	@Test
-	void channelVariablesNodeRejectsAFieldNameThatIsNotAPythonIdentifier() {
+	void declareVariableNodeRejectsAFieldNameThatIsNotAPythonIdentifier() {
 		assertThrows(IllegalArgumentException.class,
 				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
-						workNode(AutomationConstants.NODE_DATA_CHANNEL_VARIABLES,
-								Map.of("source", "${request}", "fields", List.of("not a valid name"))))));
+						workNode(AutomationConstants.NODE_DATA_DECLARE_VARIABLE, Map.of("fields", List.of(Map.of(
+								"name", "not a valid name", "node", Map.of("kind", "value", "value", "x"))))))));
 	}
 
 	@Test
-	void channelVariablesNodeRejectsDuplicateFieldNames() {
+	void declareVariableNodeRejectsDuplicateFieldNames() {
 		assertThrows(IllegalArgumentException.class,
 				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
-						workNode(AutomationConstants.NODE_DATA_CHANNEL_VARIABLES,
-								Map.of("source", "${request}", "fields", List.of("accountId", "accountId"))))));
+						workNode(AutomationConstants.NODE_DATA_DECLARE_VARIABLE, Map.of("fields", List.of(
+								Map.of("name", "accountId", "node", Map.of("kind", "value", "value", "x")),
+								Map.of("name", "accountId", "node", Map.of("kind", "value", "value", "y"))))))));
 	}
 
 	@Test

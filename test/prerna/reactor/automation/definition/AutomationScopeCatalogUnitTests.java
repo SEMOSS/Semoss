@@ -71,22 +71,23 @@ public class AutomationScopeCatalogUnitTests {
 	}
 
 	/**
-	 * A {@code data.channelVariables} node's configured field names appear as
+	 * A {@code data.declare-variable} node's configured field names appear as
 	 * individually addressable variables downstream, in addition to its own
 	 * outputVar entry - mirroring how trigger globals are advertised.
 	 */
 	@Test
-	void advertisesEachChannelVariableFieldNameDownstream() {
+	void advertisesEachDeclaredVariableFieldNameDownstream() {
 		Map<String, Object> start = node("start", AutomationConstants.NODE_START, null, Map.of());
-		Map<String, Object> channelVariables = node("vars", AutomationConstants.NODE_DATA_CHANNEL_VARIABLES,
+		Map<String, Object> declareVariable = node("vars", AutomationConstants.NODE_DATA_DECLARE_VARIABLE,
 				"vars_result",
-				Map.of("source", "${request}", "fields", List.of("accountId")));
+				Map.of("fields", List.of(
+						Map.of("name", "accountId", "node", Map.of("kind", "value", "value", "${request}")))));
 		Map<String, Object> next = node("next", AutomationConstants.NODE_DEVELOPER_PYTHON, "next_result", Map.of());
 
 		Map<String, Object> definition = Map.of(AutomationConstants.DOC_FORMAT_VERSION,
 				AutomationConstants.PYTHON_DOC_CURRENT_VERSION, AutomationConstants.DOC_TRIGGER_BINDINGS,
 				List.of(Map.of("id", "manual", "type", "manual")), AutomationConstants.DOC_GRAPH,
-				Map.of(AutomationConstants.DOC_NODES, List.of(start, channelVariables, next),
+				Map.of(AutomationConstants.DOC_NODES, List.of(start, declareVariable, next),
 						AutomationConstants.DOC_EDGES,
 						List.of(edge("start-vars", "start", "out", "vars"),
 								edge("vars-next", "vars", "out", "next"))));
