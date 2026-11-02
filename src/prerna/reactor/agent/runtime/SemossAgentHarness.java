@@ -1356,6 +1356,23 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (!metaByName.isEmpty()) {
 			MCPUtility.updateToolResponseWithProjectMeta(response, null, metaByName);
 		}
+		// harness-added tools are not in the room lookup, so their card would show the raw name;
+		// only the title is copied, the call itself is left as the model made it
+		Map<String, Object> titleByName = new HashMap<>();
+		for (Map<String, Object> tool : tools) {
+			if (tool != null && tool.get("name") != null && tool.get("title") instanceof String title
+					&& !title.isBlank()) {
+				titleByName.putIfAbsent(String.valueOf(tool.get("name")), title);
+			}
+		}
+		List<Map<String, Object>> calls = response.getToolResponses();
+		for (Map<String, Object> call : calls == null ? List.<Map<String, Object>>of() : calls) {
+			Object name = call.get("name");
+			if (name != null && titleByName.containsKey(name) && (call.get("title") == null
+					|| String.valueOf(name).equals(call.get("title")))) {
+				call.put("title", titleByName.get(name));
+			}
+		}
 	}
 
 	/**
