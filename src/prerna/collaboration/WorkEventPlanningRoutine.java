@@ -55,6 +55,8 @@ public final class WorkEventPlanningRoutine {
 	private static final int MAX_IGNORED = 200;
 	private static final int MAX_TITLE = 120;
 	private static final int MAX_ID = 1024;
+	private static final int MAX_BRIEF = 2000;
+	private static final int MAX_TOPICS = 5;
 	private static final Set<String> PIN_KINDS = Set.of("series", "event");
 	static final WorkRoutine.Kind KIND = new WorkRoutine.Kind(ID, "WORK_EVENT_PLANNING_ROUTINE",
 			"WorkRunEventPlanningRoutine();", "Event planning", "event-planning.automation.json", "digest",
@@ -88,7 +90,7 @@ public final class WorkEventPlanningRoutine {
 		if (((List<?>) config.get("days")).size() != 1) {
 			throw new IllegalArgumentException("Choose one day of the week for event planning");
 		}
-		List<Map<String, Object>> meetings = pins(input.get("meetings"), MAX_MEETINGS, "meetings");
+		List<Map<String, Object>> meetings = pins(input.get("meetings"), MAX_MEETINGS, "meetings", true);
 		if (Boolean.TRUE.equals(config.get("enabled")) && meetings.isEmpty()) {
 			throw new IllegalArgumentException("Pin at least one meeting to plan");
 		}
@@ -102,7 +104,7 @@ public final class WorkEventPlanningRoutine {
 			titles.add(title);
 		}
 		List<Map<String, Object>> ignored = pins(input.get("ignored") == null ? List.of() : input.get("ignored"),
-				MAX_IGNORED, "ignored");
+				MAX_IGNORED, "ignored", false);
 		if (ignored.stream().anyMatch(pin -> meetings.stream().anyMatch(meeting -> sameMeeting(pin, meeting)))) {
 			throw new IllegalArgumentException("A meeting cannot be both pinned and ignored");
 		}
@@ -112,7 +114,9 @@ public final class WorkEventPlanningRoutine {
 
 	// A pin names one meeting: a series by its series id, a one-off by its event id; ids survive a rename.
 	// The title is how the owner saw it when pinning, kept for display and as the sheet's name.
-	private static List<Map<String, Object>> pins(Object value, int max, String name) {
+	// A planned meeting also carries the owner's goal for it and the topics it covers; the run reads those topics
+	// as the owner, so a topic id that is not theirs never resolves.
+	private static List<Map<String, Object>> pins(Object value, int max, String name, boolean planned) {
 		if (!(value instanceof List<?> list) || list.size() > max) {
 			throw new IllegalArgumentException(name + " must be a list of up to " + max + " meetings");
 		}
@@ -133,6 +137,26 @@ public final class WorkEventPlanningRoutine {
 			pin.put("kind", kind);
 			pin.put("id", id);
 			pin.put("title", title);
+			if (planned) {
+				String brief = text(map.get("brief"));
+				if (brief.length() > MAX_BRIEF) {
+					throw new IllegalArgumentException("A meeting goal is at most " + MAX_BRIEF + " characters");
+				}
+				List<String> topicIds = new ArrayList<>();
+				if (map.get("topicIds") instanceof List<?> ids) {
+					for (Object topicId : ids) {
+						String topic = text(topicId);
+						if (!topic.isEmpty() && topic.length() <= MAX_ID && !topicIds.contains(topic)) {
+							topicIds.add(topic);
+						}
+					}
+				}
+				if (topicIds.size() > MAX_TOPICS) {
+					throw new IllegalArgumentException("Link up to " + MAX_TOPICS + " topics to a meeting");
+				}
+				pin.put("brief", brief);
+				pin.put("topicIds", topicIds);
+			}
 			if (pins.stream().anyMatch(other -> sameMeeting(other, pin))) {
 				throw new IllegalArgumentException("A meeting is listed twice");
 			}
