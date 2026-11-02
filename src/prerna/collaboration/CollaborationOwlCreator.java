@@ -132,6 +132,11 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("STYLE_SUMMARY", CLOB_DATATYPE_NAME),
 				Pair.with("STYLE_STATE", VARCHAR_20),
 				Pair.with("STYLE_EXAMPLES_JSON", CLOB_DATATYPE_NAME),
+				// audience variants the owner agreed, {internal, external} each {summary, examples}
+				Pair.with("STYLE_VARIANTS_JSON", CLOB_DATATYPE_NAME),
+				// the learned proposal waiting for the owner's review; never used when drafting
+				Pair.with("STYLE_PENDING_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("STYLE_LEARNED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// no topic cap; FILE_AT 85 and ASK_AT 40 defaults are set by the service
 		addTable("BRAIN_SETTINGS", Arrays.asList(
