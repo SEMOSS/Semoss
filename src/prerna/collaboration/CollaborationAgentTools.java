@@ -201,7 +201,7 @@ public final class CollaborationAgentTools {
 	// tools the model loads on demand: direct Microsoft 365 mail, after Brain's own search, and deleting a skill
 	private static final Set<String> DEFERRED = Set.of("ListM365Mail", "DeleteMySkill");
 	// what the chat card calls a tool when its words alone would not say it
-	private static final Map<String, String> TITLES = Map.of("ShowItem", "Open beside chat");
+	private static final Map<String, String> TITLES = Map.of("ShowItem", "Open Beside Chat");
 
 	// said first in a mail tool's description, so the model knows which side of Brain it is on
 	private static final Map<String, String> SOURCE_NOTES = Map.of(
@@ -445,9 +445,8 @@ public final class CollaborationAgentTools {
 		return out.toString();
 	}
 
-	// DownloadAttachment -> Download attachment, so the card reads as words and not a tool name
+	// DownloadAttachment -> Download Attachment, so the card reads as words and not a tool name
 	static String words(String name) {
-		String spaced = name.replaceAll("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ");
-		return spaced.isEmpty() ? spaced : spaced.charAt(0) + spaced.substring(1).toLowerCase(java.util.Locale.ROOT);
+		return name.replaceAll("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ");
 	}
 }
