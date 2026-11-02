@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,6 +23,19 @@ final class CollaborationToolResults {
 	// enough of a last message to tell what the chat is about
 	private static final int LAST_MESSAGE_CHARS = 300;
 
+	// tools whose results carry UI-only copies, links and defaults the model never uses
+	private static final Set<String> CLEANED = Set.of("ReadThread", "ListChatMessages", "ListEvents", "ListM365Mail",
+			"SearchFiles");
+	// formatted originals and links: the model reads text and acts by id
+	private static final Set<String> DROPPED_KEYS = Set.of("displayBody", "webLink", "webUrl", "lastModifiedDateTime",
+			"hostedContents", "bodyTruncated", "uniqueBodyTruncated");
+	// a value that is just the default says nothing
+	private static final Map<String, Object> DEFAULTS = Map.of("importance", "normal", "messageType", "message",
+			"showAs", "busy", "fromType", "user");
+	// an invite body is mostly join details
+	private static final int EVENT_BODY_CHARS = 1000;
+	private static final int EVENT_ATTENDEES = 10;
+
 	private CollaborationToolResults() {
 
 	}
@@ -33,6 +47,10 @@ final class CollaborationToolResults {
 		try {
 			if ("ListChats".equals(toolName)) {
 				return listChats(output, user);
+			}
+			if (CLEANED.contains(toolName)) {
+				Object parsed = CollaborationDbUtils.parseMap(output);
+				return parsed == null ? output : CollaborationDbUtils.toJson(clean(toolName, null, parsed));
 			}
 		} catch (RuntimeException e) {
 			// a result we cannot read is passed as it came
@@ -92,6 +110,82 @@ final class CollaborationToolResults {
 		Map<String, Object> trimmed = new LinkedHashMap<>(result);
 		trimmed.put("chats", slim);
 		return CollaborationDbUtils.toJson(trimmed);
+	}
+
+	// drops UI copies, links, defaults and empty values everywhere in the result
+	@SuppressWarnings("unchecked")
+	private static Object clean(String toolName, String key, Object value) {
+		if (value instanceof Map<?, ?> map) {
+			Map<String, Object> in = (Map<String, Object>) map;
+			// a mail's uniqueBody is its new text, body repeats the quoted history
+			boolean unique = in.get("uniqueBody") instanceof String u && !u.isBlank();
+			Map<String, Object> out = new LinkedHashMap<>();
+			for (Map.Entry<String, Object> e : in.entrySet()) {
+				String k = e.getKey();
+				Object v = e.getValue();
+				if (DROPPED_KEYS.contains(k) || k.startsWith("@odata") || (unique && "body".equals(k))
+						|| (v != null && v.equals(DEFAULTS.get(k)))
+						|| (Boolean.FALSE.equals(v) && k.startsWith("is"))) {
+					continue;
+				}
+				if ("uniqueBody".equals(k)) {
+					k = "body";
+				}
+				if ("ListEvents".equals(toolName) && "attendees".equals(k) && v instanceof List<?> list) {
+					putAttendees(out, list);
+					continue;
+				}
+				if ("ListEvents".equals(toolName) && "body".equals(k) && v instanceof String text
+						&& text.length() > EVENT_BODY_CHARS) {
+					v = text.substring(0, EVENT_BODY_CHARS) + "...";
+				}
+				Object c = clean(toolName, k, v);
+				if (c != null && !(c instanceof String t && t.isBlank()) && !(c instanceof List<?> l && l.isEmpty())
+						&& !(c instanceof Map<?, ?> m && m.isEmpty())) {
+					out.put(k, c);
+				}
+			}
+			return out;
+		}
+		if (value instanceof List<?> list) {
+			List<Object> out = new ArrayList<>();
+			for (Object item : list) {
+				Object c = clean(toolName, key, item);
+				if (c != null) {
+					out.add(c);
+				}
+			}
+			return out;
+		}
+		return value;
+	}
+
+	// the first attendees by name and address, the response only when given, and the full count
+	private static void putAttendees(Map<String, Object> out, List<?> attendees) {
+		List<Map<String, Object>> kept = new ArrayList<>();
+		for (Object a : attendees) {
+			if (kept.size() >= EVENT_ATTENDEES) {
+				break;
+			}
+			if (a instanceof Map<?, ?> attendee) {
+				Map<String, Object> one = new LinkedHashMap<>();
+				put(one, "name", attendee.get("name"));
+				put(one, "address", attendee.get("address"));
+				if ("optional".equals(attendee.get("type"))) {
+					one.put("optional", true);
+				}
+				if (attendee.get("response") instanceof String r && !"none".equals(r)) {
+					one.put("response", r);
+				}
+				kept.add(one);
+			}
+		}
+		if (!kept.isEmpty()) {
+			out.put("attendees", kept);
+		}
+		if (attendees.size() > kept.size()) {
+			out.put("attendeeCount", attendees.size());
+		}
 	}
 
 	private static String ownEmail(User user) {
