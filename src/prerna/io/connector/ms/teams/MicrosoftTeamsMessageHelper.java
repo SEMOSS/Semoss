@@ -144,6 +144,8 @@ public class MicrosoftTeamsMessageHelper {
 	 * unread ones walks the list until it finds enough of them, so this is what
 	 * stops a user with nothing unread and a long history from paging forever.
 	 */
+	// older chats in a row that end a walk with a cutoff
+	private static final int OLDER_RUN_TO_STOP = 25;
 	private static final int MAX_CHATS_SCANNED = 500;
 
 	/**
@@ -216,9 +218,9 @@ public class MicrosoftTeamsMessageHelper {
 
 			List<Map<String, Object>> chats = new ArrayList<>();
 			int scanned = 0;
-			// the cutoff only ends the walk while Graph keeps the newest first order
-			Instant previous = null;
-			boolean ordered = true;
+			// Graph's newest first order is not strict, so the cutoff ends the walk only
+			// after a run of older chats rather than at the first one
+			int olderRun = 0;
 			walk: while (nextUrl != null) {
 				Map<String, Object> json = readMap(
 						HttpHelperUtility.getRequest(nextUrl, headers(accessToken), null, null, null));
@@ -231,14 +233,11 @@ public class MicrosoftTeamsMessageHelper {
 					Map<String, Object> described = MicrosoftTeamsMessageMapper.toChat(chat, userEmail,
 							LIST_CHAT_MEMBERS);
 					Instant at = lastMessageAt(described);
-					if (at != null && previous != null && at.isAfter(previous)) {
-						ordered = false;
-					}
-					if (at != null) {
-						previous = at;
+					if (since != null && at != null && !at.isBefore(since)) {
+						olderRun = 0;
 					}
 					if (since != null && (at == null || at.isBefore(since))) {
-						if (ordered && at != null) {
+						if (at != null && ++olderRun >= OLDER_RUN_TO_STOP) {
 							break walk;
 						}
 						continue;
