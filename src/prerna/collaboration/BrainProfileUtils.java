@@ -42,6 +42,7 @@ import org.javatuples.Pair;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.io.connector.mail.MailRecipientRules;
 import prerna.util.RuntimeTimeContext;
 import prerna.util.Utility;
 
@@ -101,7 +102,7 @@ public final class BrainProfileUtils {
 		return profile;
 	}
 
-	// who the assistant writes as; role and style only once the owner set or confirmed them
+	// Owner identity stays in the general prompt; writing style is retrieved only when drafting.
 	@SuppressWarnings("unchecked")
 	public static String promptBlock(User user) {
 		Map<String, Object> profile;
@@ -114,7 +115,8 @@ public final class BrainProfileUtils {
 		if (profile == null) {
 			return null;
 		}
-		StringBuilder out = new StringBuilder("## Owner\nThe owner you work for. Write and sign as them.");
+		StringBuilder out = new StringBuilder(
+				"## Owner\nThe owner you work for. Write and sign as them when drafting on their behalf.");
 		appendField(out, "Name", profile.get("name"));
 		appendField(out, "Email", profile.get("email"));
 		appendField(out, "Organization", profile.get("org"));
@@ -123,53 +125,48 @@ public final class BrainProfileUtils {
 		if (role != null && YOU.equals(role.get("source"))) {
 			appendField(out, "Role", role.get("value"));
 		}
-		Map<String, Object> style = (Map<String, Object>) profile.get("style");
-		if (style != null && Boolean.TRUE.equals(style.get("confirmed"))) {
-			appendField(out, "Writing style", style.get("summary"));
-			appendStyleDetails(out, style, user, CollaborationDbUtils.asString(profile.get("email")));
-		}
 		return out.toString();
 	}
 
-	// the agreed examples and audience variants; a pending proposal never reaches here
-	@SuppressWarnings("unchecked")
-	private static void appendStyleDetails(StringBuilder out, Map<String, Object> style, User user,
-			String email) {
-		appendExamples(out, "Writing examples", style.get("examples"));
-		Object variants = style.get("variants");
-		if (!(variants instanceof Map<?, ?> byAudience) || byAudience.isEmpty()) {
-			return;
+	/** Current, confirmed writing guidance; unknown recipients use only the general style. */
+	public static Map<String, Object> getWritingStyle(User user, List<String> recipients) {
+		List<String> addresses = MailRecipientRules.validate(recipients);
+		Map<String, Object> profile = getProfile(user);
+		Map<String, Object> out = new LinkedHashMap<>();
+		out.put("confirmed", false);
+		out.put("audience", "unknown");
+		out.put("summary", "");
+		out.put("examples", List.of());
+		if (profile == null || !(profile.get("style") instanceof Map<?, ?> style)
+				|| !Boolean.TRUE.equals(style.get("confirmed"))) {
+			return out;
 		}
-		out.append("\n- Adjust the writing style to the audience: use the internal style when every recipient is in the "
-				+ "owner's organisation, and the external style when any recipient is outside it");
+		out.put("confirmed", true);
+		String summary = style.get("summary") instanceof String text ? text.strip() : "";
+		out.put("summary", summary.substring(0, Math.min(summary.length(), MAX_SUMMARY_CHARS)));
+		out.put("examples", cleanExamples(style.get("examples")));
+		if (addresses.isEmpty()) {
+			return out;
+		}
 		try {
 			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+			String email = CollaborationDbUtils.asString(profile.get("email"));
 			BrainOrgDomains.Org org = BrainOrgDomains.load(owner.getValue0(), owner.getValue1(),
-					email == null ? null : email.substring(email.indexOf('@') + 1));
+					email == null || !email.contains("@") ? null : email.substring(email.lastIndexOf('@') + 1));
 			if (!org.domains().isEmpty()) {
-				appendField(out, "Organisation domains", String.join(", ", new java.util.TreeSet<>(org.domains())));
+				String audience = addresses.stream()
+						.allMatch(address -> org.isMine(address.substring(address.lastIndexOf('@') + 1)))
+						? "internal" : "external";
+				out.put("audience", audience);
+				Object variant = cleanVariants(style.get("variants")).get(audience);
+				if (variant != null) {
+					out.put("variant", variant);
+				}
 			}
 		} catch (RuntimeException e) {
-			classLogger.warn("Could not read the organisation domains for the writing style prompt", e);
+			classLogger.warn("Could not resolve the writing style audience; using the general style", e);
 		}
-		for (String audience : AUDIENCES) {
-			if (byAudience.get(audience) instanceof Map<?, ?> variant) {
-				Map<String, Object> entry = (Map<String, Object>) variant;
-				appendField(out, "Writing style for " + audience + " recipients", entry.get("summary"));
-				appendExamples(out, "Writing examples for " + audience + " recipients", entry.get("examples"));
-			}
-		}
-	}
-
-	private static void appendExamples(StringBuilder out, String label, Object examples) {
-		if (!(examples instanceof List<?> list)) {
-			return;
-		}
-		for (Object example : list) {
-			if (example instanceof String text && !text.isBlank()) {
-				out.append("\n- ").append(label).append(": ").append(text.strip().replace("\n", " "));
-			}
-		}
+		return out;
 	}
 
 	private static void appendField(StringBuilder out, String label, Object value) {

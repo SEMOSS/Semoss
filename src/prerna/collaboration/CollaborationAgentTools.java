@@ -77,6 +77,7 @@ import prerna.reactor.collaboration.BrainEditThreadReactor;
 import prerna.reactor.collaboration.BrainEditTopicReactor;
 import prerna.reactor.collaboration.BrainForgetReactor;
 import prerna.reactor.collaboration.BrainGetThreadMessagesReactor;
+import prerna.reactor.collaboration.BrainGetWritingStyleReactor;
 import prerna.reactor.collaboration.BrainListTopicsReactor;
 import prerna.reactor.collaboration.BrainRememberReactor;
 import prerna.reactor.collaboration.BrainSearchMemoriesReactor;
@@ -136,6 +137,7 @@ public final class CollaborationAgentTools {
 		// then Outlook directly, for what Brain does not hold; Brain's rules do not apply to it
 		REACTORS.put("ListM365Mail", MicrosoftOutlookListMailReactor.class);
 		// the email in the Work editor: written there, sent from it once the owner presses Send
+		REACTORS.put("GetWritingStyle", BrainGetWritingStyleReactor.class);
 		REACTORS.put("ComposeEmail", WorkComposeEmailReactor.class);
 		REACTORS.put("SendEmail", WorkSendEmailReactor.class);
 		// a routine has no editor: it saves drafts straight into the owner's Outlook, never sent
