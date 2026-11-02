@@ -200,6 +200,8 @@ public final class CollaborationAgentTools {
 
 	// tools the model loads on demand: direct Microsoft 365 mail, after Brain's own search, and deleting a skill
 	private static final Set<String> DEFERRED = Set.of("ListM365Mail", "DeleteMySkill");
+	// what the chat card calls a tool when its words alone would not say it
+	private static final Map<String, String> TITLES = Map.of("ShowItem", "Open Beside Chat");
 
 	// said first in a mail tool's description, so the model knows which side of Brain it is on
 	private static final Map<String, String> SOURCE_NOTES = Map.of(
@@ -346,9 +348,9 @@ public final class CollaborationAgentTools {
 				params = params == null ? new LinkedHashMap<>() : new LinkedHashMap<>(params);
 				params.put("timeZone", BrainProfileUtils.timeZone(insight.getUser()).getId());
 			}
-			Object output = MCPUtility.runPixelTool(null, insight, meta.getString(MCPUtility.SMSS_FUNCTION_NAME),
+			String output = MCPUtility.runPixelTool(null, insight, meta.getString(MCPUtility.SMSS_FUNCTION_NAME),
 					properties, params);
-			return ToolExecutionResult.success(output);
+			return ToolExecutionResult.success(CollaborationToolResults.forModel(toolName, output, insight.getUser()));
 		} catch (RuntimeException e) {
 			String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
 			return ToolExecutionResult.error(message, message);
@@ -407,7 +409,7 @@ public final class CollaborationAgentTools {
 					meta.put(MCPUtility.SMSS_MCP_DEFERRED, true);
 				}
 				tool.put("name", name);
-				tool.put("title", MCPUtility.formatToTitleCase(name));
+				tool.put("title", TITLES.getOrDefault(name, words(name)));
 				tool.getJSONObject("inputSchema").put("title", name + "_Arguments");
 				built.put(name, tool);
 			} catch (ReflectiveOperationException | RuntimeException e) {
@@ -454,5 +456,10 @@ public final class CollaborationAgentTools {
 		}
 		m.appendTail(out);
 		return out.toString();
+	}
+
+	// DownloadAttachment -> Download Attachment, so the card reads as words and not a tool name
+	static String words(String name) {
+		return name.replaceAll("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ");
 	}
 }
