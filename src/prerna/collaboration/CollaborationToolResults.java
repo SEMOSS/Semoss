@@ -60,12 +60,12 @@ final class CollaborationToolResults {
 			put(out, "id", chat.get("id"));
 			put(out, "chatType", chat.get("chatType"));
 			put(out, "name", chat.get("displayName") != null ? chat.get("displayName") : chat.get("topic"));
-			put(out, "lastAt", chat.get("lastUpdatedDateTime"));
 			put(out, "hasUnread", chat.get("hasUnread"));
+			// lastAt is when the last message came; Graph's lastUpdatedDateTime tracks chat edits, not messages
 			if (chat.get("lastMessage") instanceof Map<?, ?> last) {
+				put(out, "lastAt", last.get("createdDateTime"));
 				Map<String, Object> message = new LinkedHashMap<>();
 				put(message, "from", last.get("fromName"));
-				put(message, "at", last.get("createdDateTime"));
 				if (last.get("body") instanceof String body && !body.isBlank()) {
 					message.put("text", body.length() > LAST_MESSAGE_CHARS
 							? body.substring(0, LAST_MESSAGE_CHARS) + "..." : body);
@@ -76,11 +76,12 @@ final class CollaborationToolResults {
 			}
 			if ("oneOnOne".equals(chat.get("chatType")) && chat.get("members") instanceof List<?> members) {
 				for (Object m : members) {
-					if (m instanceof Map<?, ?> member && member.get("email") instanceof String email
-							&& !email.toLowerCase(Locale.ROOT).equals(me)) {
+					if (m instanceof Map<?, ?> member
+							&& !(member.get("email") instanceof String email && email.toLowerCase(Locale.ROOT).equals(me))
+							&& (member.get("name") != null || member.get("email") != null)) {
 						Map<String, Object> with = new LinkedHashMap<>();
 						put(with, "name", member.get("name"));
-						with.put("email", email);
+						put(with, "email", member.get("email"));
 						out.put("with", with);
 						break;
 					}
