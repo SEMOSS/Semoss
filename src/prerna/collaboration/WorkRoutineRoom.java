@@ -29,7 +29,9 @@ package prerna.collaboration;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,9 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 /** Opens a private discussion of one completed routine output without exposing its automation history. */
 public final class WorkRoutineRoom {
 	private static final int MAX_RUNS = 30;
+	// the sidebar shows the routines that ran last, each with its latest runs
+	private static final int RECENT_ROUTINES = 5;
+	private static final int RECENT_RUNS = 2;
 	private static final Set<String> FAILED = Set.of(AutomationConstants.STATUS_FAILED,
 			AutomationConstants.STATUS_INTERRUPTED, AutomationConstants.STATUS_CANCELLED);
 
@@ -99,15 +104,13 @@ public final class WorkRoutineRoom {
 		List<Map<String, Object>> runs = new ArrayList<>();
 		for (Map<String, Object> run : AutomationRunStore.getRunsForAutomation(
 				AutomationProjectService.inlineRunScope(insight.getUser()), slot.automationId(), MAX_RUNS)) {
-			String status = String.valueOf(run.get(AutomationConstants.STATUS));
 			Timestamp started = (Timestamp) run.get(AutomationConstants.STARTED_AT);
 			Timestamp finished = (Timestamp) run.get(AutomationConstants.COMPLETED_AT);
 			Map<String, Object> item = new LinkedHashMap<>();
 			item.put("runId", run.get(AutomationConstants.RUN_ID));
 			item.put("startedAt", CollaborationDbUtils.toIso(started));
 			item.put("finishedAt", CollaborationDbUtils.toIso(finished));
-			item.put("status", AutomationConstants.STATUS_SUCCESS.equals(status) ? "completed"
-					: FAILED.contains(status) ? "failed" : "running");
+			item.put("status", status(run));
 			item.put("trigger", AutomationConstants.TRIGGER_MANUAL.equals(run.get(AutomationConstants.TRIGGER_TYPE))
 					? "manual" : "scheduled");
 			item.put("durationMs", started == null || finished == null ? null : finished.getTime() - started.getTime());
@@ -116,6 +119,91 @@ public final class WorkRoutineRoom {
 			runs.add(item);
 		}
 		return runs;
+	}
+
+	/**
+	 * The owner's routines that ran last, newest first, each with its latest runs: the routine id, a custom routine's
+	 * name (null for the system routines, which the client names), and each run's id, status and times. A running run
+	 * of the owner's own routine also names its room, where it can be watched.
+	 */
+	public static List<Map<String, Object>> recentRuns(Insight insight) {
+		User user = insight.getUser();
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		List<WorkRoutine.Slot> slots = new ArrayList<>();
+		for (WorkRoutine.Kind kind : List.of(WorkInboxRoutine.KIND, WorkAgendaRoutine.KIND, WorkEventPlanningRoutine.KIND,
+				WorkExpenseRoutine.KIND)) {
+			slots.add(new WorkRoutine.Slot(kind, owner, null));
+		}
+		for (String routineId : WorkRoutine.routineIds(WorkCustomRoutine.KIND, owner)) {
+			slots.add(new WorkRoutine.Slot(WorkCustomRoutine.KIND, owner, routineId));
+		}
+		// the rows say when each routine last started, so only the routines shown read their run history
+		List<Last> last = new ArrayList<>();
+		for (WorkRoutine.Slot slot : slots) {
+			Map<String, Object> row = WorkRoutine.stored(slot);
+			if (row != null && row.get("startedAt") instanceof String startedAt) {
+				last.add(new Last(slot, row, Instant.parse(startedAt)));
+			}
+		}
+		last.sort(Comparator.comparing(Last::startedAt).reversed());
+		String scope = AutomationProjectService.inlineRunScope(user);
+		List<Map<String, Object>> recent = new ArrayList<>();
+		for (Last routine : last.subList(0, Math.min(RECENT_ROUTINES, last.size()))) {
+			WorkRoutine.Slot slot = routine.slot();
+			if ("running".equals(routine.row().get("status"))) {
+				// a run that ended or went stale reads as it does on Routines, never as running forever
+				WorkRoutine.settle(slot);
+			}
+			List<Map<String, Object>> runs = new ArrayList<>();
+			for (Map<String, Object> run : AutomationRunStore.getRunsForAutomation(scope, slot.automationId(),
+					RECENT_RUNS)) {
+				Timestamp started = (Timestamp) run.get(AutomationConstants.STARTED_AT);
+				if (started == null) {
+					continue;
+				}
+				String runId = (String) run.get(AutomationConstants.RUN_ID);
+				String status = status(run);
+				Map<String, Object> item = new LinkedHashMap<>();
+				item.put("runId", runId);
+				item.put("status", status);
+				item.put("startedAt", CollaborationDbUtils.toIso(started));
+				item.put("finishedAt", CollaborationDbUtils.toIso((Timestamp) run.get(AutomationConstants.COMPLETED_AT)));
+				// only the owner's own routines run in a room Collaboration opens
+				item.put("roomId", "running".equals(status) && slot.routineId() != null ? roomOf(runId) : null);
+				runs.add(item);
+			}
+			if (runs.isEmpty()) {
+				continue;
+			}
+			Map<String, Object> item = new LinkedHashMap<>();
+			item.put("routineId", slot.routineId() == null ? slot.kind().id() : slot.routineId());
+			item.put("name", slot.routineId() != null && routine.row().get("settings") instanceof Map<?, ?> settings
+					&& settings.get("name") instanceof String name && !name.isBlank() ? name : null);
+			item.put("runs", runs);
+			recent.add(item);
+		}
+		return recent;
+	}
+
+	// one routine's row, ranked by when the routine last started
+	private record Last(WorkRoutine.Slot slot, Map<String, Object> row, Instant startedAt) { }
+
+	/** An automation run's status in the words Routines uses. */
+	private static String status(Map<String, Object> run) {
+		String status = String.valueOf(run.get(AutomationConstants.STATUS));
+		return AutomationConstants.STATUS_SUCCESS.equals(status) ? "completed"
+				: FAILED.contains(status) ? "failed" : "running";
+	}
+
+	/** The room a run's agent works in, from its first node that names one; null until the agent starts. */
+	private static String roomOf(String runId) {
+		for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(runId)) {
+			if (node.get(AutomationConstants.PARENT_NODE_ID) == null
+					&& node.get(AutomationConstants.ROOM_ID) instanceof String roomId && !roomId.isBlank()) {
+				return roomId;
+			}
+		}
+		return null;
 	}
 
 	/** One run's result text, only when the run is this owner's run of this routine; null when it has none. */
