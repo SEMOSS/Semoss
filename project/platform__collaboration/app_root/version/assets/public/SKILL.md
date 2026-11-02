@@ -1,6 +1,6 @@
 ---
 name: collaboration
-description: Use for Teamwork tasks involving room files, documents, sources, email drafts, action items, scheduled routines, or writing the owner's own skills. For document text, load documents/read-and-extract.md and use the shared Docling wrapper smssutil.get_document_markdown on the actual file path. Load relevant references before doing the work. Python and PPTX are separate skills.
+description: Use for Teamwork tasks involving room files, documents, sources, email drafts, action items, scheduled routines, or writing the owner's own skills. For document text, load documents/read-and-extract.md and use the shared Docling wrapper smssutil.get_document_markdown on the actual file path. Load relevant references before doing the work. Python, Word, Excel, and PowerPoint have separate skills.
 ---
 
 # Collaboration work
@@ -34,8 +34,9 @@ parent-directory segments.
 | Schedule or change a routine, or give its result a lasting format | [routines/schedule-a-routine.md](references/routines/schedule-a-routine.md) |
 | Write, change, or publish one of the owner's skills | [skills/write-a-skill.md](references/skills/write-a-skill.md) |
 
-For Python execution, load the separate `python` skill. For creating, inspecting,
-or editing a presentation, load `pptx` only when it is listed as available. Use this
+For Python execution, load the separate `python` skill. For creating or editing Word
+documents load `docx`; for Excel workbooks load `xlsx`; for presentations load `pptx`,
+when the corresponding skill is listed as available. Use this
 collaboration skill's source and file guidance when those tasks use thread evidence
 or room files.
 For reading document text, load `documents/read-and-extract.md` and prefer
