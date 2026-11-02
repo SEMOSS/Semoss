@@ -1104,6 +1104,7 @@ public class Constants {
 	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
 	public static final String SKILL_COLLABORATION = "collaboration";
 	public static final String SKILL_DATABASE = "database";
+	public static final String SKILL_DOCX = "docx";
 	public static final String SKILL_EXPORTS = "exports";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";
 	public static final String SKILL_FRONTEND_DESIGN = "frontend-design";
@@ -1119,6 +1120,7 @@ public class Constants {
 	public static final String SKILL_USER = "user";
 	public static final String SKILL_VECTOR = "vector";
 	public static final String SKILL_WORKFLOW_AUTOMATION = "workflow-automation";
+	public static final String SKILL_XLSX = "xlsx";
 
 	// system (platform) mcp names
 	public static final String MCP_APP_FILESYSTEM = "app-filesystem";
@@ -1134,6 +1136,7 @@ public class Constants {
 	public static final String AGENT_COLLABORATION = "collaboration-agent";
 	public static final String AGENT_DATABASE_EXPLORER = "database-explorer";
 	public static final String AGENT_NOTEBOOK_ANALYST = "notebook-analyst";
+	public static final String AGENT_OFFICE = "office-agent";
 	public static final String AGENT_PPTX = "pptx-agent";
 	public static final String AGENT_PPTX_REVIEWER = "pptx-reviewer";
 	public static final String AGENT_WORKFLOW_AUTOMATION_BUILDER = "workflow-automation-builder";
