@@ -348,9 +348,9 @@ public final class CollaborationAgentTools {
 				params = params == null ? new LinkedHashMap<>() : new LinkedHashMap<>(params);
 				params.put("timeZone", BrainProfileUtils.timeZone(insight.getUser()).getId());
 			}
-			Object output = MCPUtility.runPixelTool(null, insight, meta.getString(MCPUtility.SMSS_FUNCTION_NAME),
+			String output = MCPUtility.runPixelTool(null, insight, meta.getString(MCPUtility.SMSS_FUNCTION_NAME),
 					properties, params);
-			return ToolExecutionResult.success(output);
+			return ToolExecutionResult.success(CollaborationToolResults.forModel(toolName, output, insight.getUser()));
 		} catch (RuntimeException e) {
 			String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
 			return ToolExecutionResult.error(message, message);
