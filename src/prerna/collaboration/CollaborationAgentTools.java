@@ -431,6 +431,19 @@ public final class CollaborationAgentTools {
 					property.put("description", renamed(property.optString("description"), reactorName, toolNameOf));
 				}
 			}
+			JSONObject meta = tool.getJSONObject("_meta");
+			JSONObject ui = meta.optJSONObject(MCPUtility.SMSS_MCP_UI);
+			if (ui == null) {
+				ui = new JSONObject();
+				meta.put(MCPUtility.SMSS_MCP_UI, ui);
+			}
+			// Connector views keep their own URI; the other tools share Collaboration's native view.
+			if (ui.optString(MCPUtility.UI_RESOURCE_URI).isBlank()) {
+				ui.put(MCPUtility.UI_RESOURCE_URI,
+						MCPUtility.UI_COMPONENT_SCHEME + "collaboration/tool?tool=" + tool.getString("name"));
+			}
+			// System tools have no MCP project to query for their approval fields.
+			meta.put("SMSS_TOOL_INPUT_SCHEMA", new JSONObject(tool.getJSONObject("inputSchema").toString()));
 		}
 		return built;
 	}
