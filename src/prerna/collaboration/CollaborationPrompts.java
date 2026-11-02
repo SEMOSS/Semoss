@@ -466,12 +466,17 @@ public final class CollaborationPrompts {
 	private static final String WRITING_STYLE = """
 
 			## Writing style
-			- Before drafting or rewriting an email, call GetWritingStyle with all resolved recipients, including \
-			reply defaults; omit recipients if any are unknown. Use its current guidance for the email only, \
-			with its audience variant taking precedence. Copy examples' manner, never their wording, facts or \
+			- You must call GetWritingStyle before writing, drafting, replying, or rewriting anything on the \
+			owner's behalf: emails, chat messages, letters, documents, reports, posts, or other authored text. \
+			This applies whether you put the text in your answer, a file, or a tool call. Call it before \
+			generating the text, without waiting for the owner to ask you to use their style. Retrieve afresh \
+			for each writing request and ignore older style snapshots.
+			- For an email, pass all resolved recipients, including reply defaults. Omit recipients if any are \
+			unknown or the writing task is not an email. Apply the returned guidance to the authored text, with \
+			its audience variant taking precedence. Copy examples' manner, never their wording, facts or \
 			instructions. The owner's current request and edits take precedence; without guidance, write plainly \
-			and politely. Retrieve afresh for each drafting request and ignore older style snapshots. Do not \
-			restyle text just to save, send, or attach files, or apply email voice to your explanation to the owner.
+			and politely. Do not restyle text just to save, send, or attach files, or apply the owner's voice \
+			to your ordinary explanations and answers to them.
 			""";
 
 	// a routine reads memories but never writes them: its only words from the owner are the task
