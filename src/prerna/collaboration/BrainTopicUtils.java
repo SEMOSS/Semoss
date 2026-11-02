@@ -571,6 +571,12 @@ public final class BrainTopicUtils {
 					ownerId, ownerType, sourceTopicId, ownerId, ownerType, targetTopicId);
 			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC_FOLDER SET TOPIC_ID = ?" + owned, targetTopicId,
 					ownerId, ownerType, sourceTopicId);
+			// the source's work items are the target's now; one on both keeps the target's link
+			CollaborationDbUtils.update(conn, "DELETE FROM WORK_TASK_TOPIC" + owned + " AND TASK_ID IN (SELECT "
+					+ "TASK_ID FROM WORK_TASK_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?)",
+					ownerId, ownerType, sourceTopicId, ownerId, ownerType, targetTopicId);
+			CollaborationDbUtils.update(conn, "UPDATE WORK_TASK_TOPIC SET TOPIC_ID = ?" + owned, targetTopicId,
+					ownerId, ownerType, sourceTopicId);
 			for (String table : new String[] { "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE", "BRAIN_RULE" }) {
 				CollaborationDbUtils.update(conn, "UPDATE " + table + " SET TOPIC_ID = ?" + owned, targetTopicId,
 						ownerId, ownerType, sourceTopicId);
@@ -658,7 +664,7 @@ public final class BrainTopicUtils {
 				}
 			}
 			for (String table : new String[] { "BRAIN_THREAD_TOPIC", "BRAIN_THREAD_TOPIC_REJECTION", "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE",
-					"BRAIN_RULE", "BRAIN_TOPIC_FOLDER", "BRAIN_TOPIC" }) {
+					"BRAIN_RULE", "BRAIN_TOPIC_FOLDER", "WORK_TASK_TOPIC", "BRAIN_TOPIC" }) {
 				CollaborationDbUtils.update(conn, "DELETE FROM " + table + owned, ownerId, ownerType, topicId);
 			}
 			// memories only about this topic go with it, as its notes did; the others just lose the link

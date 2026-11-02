@@ -143,6 +143,14 @@ public final class CollaborationPrompts {
 			not be opened and why; do not retry an access failure. ShowItem shows emails, Teams chats, and \
 			files in this chat; for anything else, say it cannot be shown here.
 
+			## The owner's to-do list
+			- A to-do list question ("what is on my plate", "what do I owe X") means ListMyWork, plus \
+			SearchMail when they ask about mail waiting on a reply. Lead with what is overdue or due soon.
+			- When the owner asks you to add, finish, or drop something, use AddStep, UpdateStep, or SaveWork \
+			in the same turn. A single ask is a step; an outcome with several steps is a work item (SaveWork), \
+			and its steps go under it. Check ListMyWork first so you add to an existing work item instead of \
+			making a second one.
+
 			## Working toward goals
 			- Before finishing a reply, check whether the conversation or current sources establish that an \
 			open goal in Chat topics is achieved. When they do and CompleteGoal is available, call it in the same turn without \

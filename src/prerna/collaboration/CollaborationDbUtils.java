@@ -652,7 +652,24 @@ public class CollaborationDbUtils {
 					OwlIndex.of("WORK_THREAD_FACT_THREAD_ID_INDEX", "WORK_THREAD_FACT", "OWNER_ID", "OWNER_TYPE",
 							"THREAD_ID"),
 					OwlIndex.of("WORK_OPEN_ROOM_THREAD_ID_INDEX", "WORK_OPEN_ROOM", "OWNER_ID", "OWNER_TYPE",
-							"THREAD_ID")));
+							"THREAD_ID"),
+					OwlIndex.of("WORK_THREAD_STEP_TASK_ID_INDEX", "WORK_THREAD_STEP", "OWNER_ID", "OWNER_TYPE", "TASK_ID"),
+
+					// work items
+					OwlIndex.of("WORK_TASK_TASK_ID_INDEX", "WORK_TASK", "OWNER_ID", "OWNER_TYPE", "TASK_ID"),
+					OwlIndex.of("WORK_TASK_TOPIC_TASK_ID_INDEX", "WORK_TASK_TOPIC", "OWNER_ID", "OWNER_TYPE", "TASK_ID"),
+					OwlIndex.of("WORK_TASK_TOPIC_TOPIC_ID_INDEX", "WORK_TASK_TOPIC", "OWNER_ID", "OWNER_TYPE",
+							"TOPIC_ID"),
+					OwlIndex.of("WORK_TASK_THREAD_TASK_ID_INDEX", "WORK_TASK_THREAD", "OWNER_ID", "OWNER_TYPE",
+							"TASK_ID"),
+					OwlIndex.of("WORK_TASK_THREAD_THREAD_ID_INDEX", "WORK_TASK_THREAD", "OWNER_ID", "OWNER_TYPE",
+							"THREAD_ID"),
+					OwlIndex.of("WORK_TASK_UPDATE_TASK_ID_INDEX", "WORK_TASK_UPDATE", "OWNER_ID", "OWNER_TYPE",
+							"TASK_ID"),
+					OwlIndex.of("WORK_CANDIDATE_THREAD_ID_INDEX", "WORK_CANDIDATE", "OWNER_ID", "OWNER_TYPE",
+							"THREAD_ID"),
+					OwlIndex.of("WORK_STEP_EVIDENCE_STEP_ID_INDEX", "WORK_STEP_EVIDENCE", "OWNER_ID", "OWNER_TYPE",
+							"STEP_ID")));
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();

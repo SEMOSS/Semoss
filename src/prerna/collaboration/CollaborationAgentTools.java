@@ -73,6 +73,11 @@ import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.collaboration.BrainCompleteGoalReactor;
+import prerna.reactor.collaboration.WorkAddStepReactor;
+import prerna.reactor.collaboration.WorkGetWorkReactor;
+import prerna.reactor.collaboration.WorkListMyWorkReactor;
+import prerna.reactor.collaboration.WorkSaveWorkReactor;
+import prerna.reactor.collaboration.WorkUpdateStepReactor;
 import prerna.reactor.collaboration.BrainEditThreadReactor;
 import prerna.reactor.collaboration.BrainEditTopicReactor;
 import prerna.reactor.collaboration.BrainForgetReactor;
@@ -126,6 +131,12 @@ public final class CollaborationAgentTools {
 		REACTORS.put("DeleteEvent", MicrosoftCalendarDeleteEventReactor.class);
 		REACTORS.put("RespondToEvent", MicrosoftCalendarRespondToEventReactor.class);
 		// mail through Brain first: the owner's classified threads, with never-ingest and exclusions applied
+		// the owner's work items and to-do list
+		REACTORS.put("ListMyWork", WorkListMyWorkReactor.class);
+		REACTORS.put("GetWork", WorkGetWorkReactor.class);
+		REACTORS.put("SaveWork", WorkSaveWorkReactor.class);
+		REACTORS.put("AddStep", WorkAddStepReactor.class);
+		REACTORS.put("UpdateStep", WorkUpdateStepReactor.class);
 		REACTORS.put("ListTopics", BrainListTopicsReactor.class);
 		REACTORS.put("SearchMail", BrainSearchThreadsReactor.class);
 		REACTORS.put("ReadThread", BrainGetThreadMessagesReactor.class);
@@ -207,6 +218,7 @@ public final class CollaborationAgentTools {
 
 	// said first in a mail tool's description, so the model knows which side of Brain it is on
 	private static final Map<String, String> SOURCE_NOTES = Map.of(
+			"ListMyWork", "[Brain: the owner's to-do list and work items, start here for what is on their plate]",
 			"ListTopics", "[Brain: topics, or one topic in full with its people]",
 			"EditTopic", "[Brain: changes a topic, or creates one]",
 			"CompleteGoal", "[Brain: completes an existing goal in this chat's topics]",
