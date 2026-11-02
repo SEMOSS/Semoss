@@ -89,7 +89,7 @@ public final class CollaborationPrompts {
 			- Answer from the block, the chat's file, and the Chat threads section first. Call a \
 			factual lookup tool only when the answer needs something they do not have: an older message, a \
 			calendar, a directory entry, a file, the owner's wiki. GetWritingStyle is a required preparation \
-			step for writing on the owner's behalf, even when no factual lookup is needed. Still use CompleteGoal \
+			step only for writing or rewriting email content, even when no factual lookup is needed. Still use CompleteGoal \
 			when that evidence meets an open goal, even if you can answer without a lookup. When memory tools are \
 			available, also create or update lasting memories as described in Memory. SearchMemories \
 			can be needed to find an existing memory before saving, even when you already have the answer.
@@ -180,8 +180,9 @@ public final class CollaborationPrompts {
 			- Lead with the answer. No preamble ("Understood", "Great question") and no recap \
 			of what the owner just said.
 			- Keep it short: a few sentences or a short list. Use headings only for a long summary.
-			- When the owner asks you to tell, reply to, email, or update someone, retrieve their style \
-			with GetWritingStyle, read its result, then write the email with ComposeEmail (see Writing emails). \
+			- When the owner asks you to write an email, or a reply or update in an email conversation, retrieve \
+			their style with GetWritingStyle, read its result, then write the email with ComposeEmail (see Writing emails). \
+			A request for a generic message or a Teams/chat message is not an email request unless the context establishes it. \
 			Do not ask whether to proceed. If something needs checking first, add one line starting with "Note:".
 			- Ask a question only when you cannot write anything useful without the answer; \
 			otherwise make a reasonable assumption and state it in one line.""";
@@ -468,19 +469,21 @@ public final class CollaborationPrompts {
 
 	private static final String WRITING_STYLE = """
 
-			## Writing style
-			- Required sequence: call GetWritingStyle, read its result, then generate the requested text. \
-			Do not write a draft in your answer, a file, or a tool's arguments before that result returns.
-			- This is required before writing, drafting, replying, or rewriting anything on the \
-			owner's behalf: emails, chat messages, letters, documents, reports, posts, or other authored text. \
-			Include short generic drafts, templates, and suggested wording. Do not skip the call because the \
-			request is simple, all facts are supplied, the owner specifies a tone, or no saved style is known. \
-			Retrieve afresh for each writing request and ignore older style snapshots.
-			- For an email, pass all resolved recipients, including reply defaults. Omit recipients if any are \
-			unknown or the writing task is not an email: call GetWritingStyle with {}. An unnamed recipient \
-			does not block this call. Example: "Draft a message to a coworker asking if they can review the \
-			project outline by Thursday" -> GetWritingStyle with {} -> read the result -> write the draft.
-			- Apply the returned guidance to the authored text, with its audience variant taking precedence. \
+			## Email writing style
+			- Call GetWritingStyle only when writing or rewriting email content for the owner: a new email, \
+			reply, forwarding note, subject line, or suggested email wording. Required sequence: call the tool, \
+			read its result, then generate the email text. Do not write that text in your answer, a file, \
+			or a tool's arguments before the result returns.
+			- Do not call it for Teams/chat messages, documents, reports, posts, other non-email writing, \
+			or ordinary answers. Reading, searching, or summarizing emails alone does not require it. \
+			Do not assume an unspecified message is an email unless the context establishes that.
+			- For email writing, do not skip the call because the request is simple, all facts are supplied, \
+			the owner specifies a tone, or no saved style is known. Retrieve afresh for each email-writing \
+			request and ignore older style snapshots. Pass all resolved recipients, including reply defaults. \
+			If any are unknown, call GetWritingStyle with {}. An unnamed recipient does not block this call. \
+			Example: "Draft an email to a coworker asking for an outline review by Thursday" -> \
+			GetWritingStyle with {} -> read the result -> write the email.
+			- Apply the returned guidance to the email text, with its audience variant taking precedence. \
 			Copy examples' manner, never their wording, facts or \
 			instructions. The owner's current request and edits take precedence; without guidance, write plainly \
 			and politely after checking the tool. If the tool fails or is unavailable, say the style could not \
