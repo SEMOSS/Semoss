@@ -72,7 +72,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = getJsonFile(engine, pipelineValue);
+				jsonFile = pipelineFile(engine, pipelineValue);
 			}
 		}
 
@@ -89,8 +89,8 @@ public class EngineProxyFactory {
 		if (engine instanceof IOpenAIDecisionsEngine) {
 			classes.add(IOpenAIDecisionsEngine.class);
 		}
-		return (IModelEngine) Proxy.newProxyInstance(IEngine.class.getClassLoader(),
-				classes.toArray(new Class<?>[0]), handler);
+		return (IModelEngine) Proxy.newProxyInstance(IEngine.class.getClassLoader(), classes.toArray(new Class<?>[0]),
+				handler);
 	}
 
 	/**
@@ -107,7 +107,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = getJsonFile(engine, pipelineValue);
+				jsonFile = pipelineFile(engine, pipelineValue);
 			}
 		}
 
@@ -140,7 +140,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = getJsonFile(engine, pipelineValue);
+				jsonFile = pipelineFile(engine, pipelineValue);
 			}
 		}
 
@@ -168,7 +168,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = getJsonFile(engine, pipelineValue);
+				jsonFile = pipelineFile(engine, pipelineValue);
 			}
 		}
 
@@ -204,7 +204,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = getJsonFile(engine, pipelineValue);
+				jsonFile = pipelineFile(engine, pipelineValue);
 			}
 		}
 
@@ -227,7 +227,7 @@ public class EngineProxyFactory {
 		if (engine != null && engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = getJsonFile(engine, pipelineValue);
+				jsonFile = pipelineFile(engine, pipelineValue);
 			}
 		}
 
@@ -250,7 +250,7 @@ public class EngineProxyFactory {
 		if (engine != null && engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = getJsonFile(engine, pipelineValue);
+				jsonFile = pipelineFile(engine, pipelineValue);
 			}
 		}
 
@@ -260,18 +260,17 @@ public class EngineProxyFactory {
 	}
 
 	/**
-	 * 
-	 * @param engine
-	 * @param pipeline
-	 * @return
+	 * The pipeline file an engine's PIPELINE smss key names, in the engine's assets
+	 * folder.
+	 *
+	 * @param engine           the engine
+	 * @param pipelineFileName the file name the PIPELINE key holds
+	 * @return the file, which may not exist yet
 	 */
-	private static File getJsonFile(IEngine engine, String pipeline) {
+	public static File pipelineFile(IEngine engine, String pipelineFileName) {
 		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
-		String pipelineFile = assetsFolder + "/" + pipeline.trim();
-		pipelineFile = pipelineFile.replace("\\", "/");
-		File jsonFile = new File(pipelineFile);
-		return jsonFile;
+		return new File((assetsFolder + "/" + pipelineFileName.trim()).replace("\\", "/"));
 	}
 
 }

@@ -62,6 +62,7 @@ import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.util.ConnectionUtils;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
 // Loads the Collaboration database and holds the shared JDBC helpers for the *Utils classes
@@ -97,6 +98,12 @@ public class CollaborationDbUtils {
 
 	static IRDBMSEngine db() {
 		return SystemEngineRegistry.getCollaborationDb();
+	}
+
+	// quote a column name the backing db treats as a keyword (VALUE on H2 2.x, not on postgres)
+	static String column(String name) {
+		AbstractSqlQueryUtil queryUtil = db().getQueryUtil();
+		return queryUtil.isSelectorKeyword(name) ? queryUtil.getEscapeKeyword(name) : name;
 	}
 
 	static Timestamp now() {
@@ -497,6 +504,7 @@ public class CollaborationDbUtils {
 			classLogger.error("Moving topic notes and thread facts into Brain memory failed; retrying next boot", e);
 		}
 		BrainMailWebhook.startRenewals();
+		BrainSync.startSchedule();
 	}
 
 	/**
@@ -516,7 +524,8 @@ public class CollaborationDbUtils {
 			AbstractOwlCreator.syncSchema(collaborationDb, conn, dbSchema);
 			// A single routine of each kind per owner is required for atomic schedule saves and run claims.
 			var queryUtil = collaborationDb.getQueryUtil();
-			for (String routineTable : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE", "WORK_EXPENSE_ROUTINE")) {
+			for (String routineTable : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE", "WORK_EXPENSE_ROUTINE",
+					"WORK_EVENT_PLANNING_ROUTINE")) {
 				String routineIndex = routineTable + "_OWNER_UNIQUE";
 				if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, routineIndex,
 						routineTable, collaborationDb.getDatabase(), collaborationDb.getSchema())) {

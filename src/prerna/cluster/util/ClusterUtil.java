@@ -753,6 +753,29 @@ public class ClusterUtil {
 	}
 
 	/**
+	 * Deletes a project's insights database files from cloud storage, for a project
+	 * that never opens an insights database. Does nothing outside a cluster. The
+	 * other nodes delete their own copies when they open the project, so they are
+	 * not told.
+	 *
+	 * @param projectId the project whose insights database files to delete
+	 * @throws SemossPixelException if the delete fails, which stops the pixel
+	 */
+	public static void deleteInsightsDB(String projectId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				getCentralStorageClient().deleteInsightsDB(projectId);
+			} catch (Exception e) {
+				classLogger.error("Failed to delete project '{}' insight database from cloud storage", projectId, e);
+				SemossPixelException err = new SemossPixelException(
+						"Failed to delete project '" + projectId + "' insight database from cloud storage");
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+
+	/**
 	 * Downloads a database's OWL file from cloud storage, through a write OWL
 	 * engine taken from the database. See {@link #pullOwl(String, WriteOWLEngine)}.
 	 *

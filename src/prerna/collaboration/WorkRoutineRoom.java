@@ -28,21 +28,47 @@
 package prerna.collaboration;
 
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.javatuples.Pair;
 
+import prerna.auth.User;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.om.Insight;
+import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.project.AutomationProjectService;
+import prerna.reactor.automation.run.AutomationRunStore;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 /** Opens a private discussion of one completed routine output without exposing its automation history. */
 public final class WorkRoutineRoom {
+	private static final int MAX_RUNS = 30;
+	// the sidebar shows the routines that ran last, each with its latest runs
+	private static final int RECENT_ROUTINES = 5;
+	private static final int RECENT_RUNS = 2;
+	private static final Set<String> FAILED = Set.of(AutomationConstants.STATUS_FAILED,
+			AutomationConstants.STATUS_INTERRUPTED, AutomationConstants.STATUS_CANCELLED);
+
 	private WorkRoutineRoom() { }
 
-	public static Map<String, Object> open(Insight insight, String routineId, String startedAt) {
+	// a routine id names its kind, its row and the documents its runs read
+	private record Target(WorkRoutine.Kind kind, String customId, String documentsId, Pair<String, String> owner,
+			Map<String, Object> row) {
+		WorkRoutine.Slot slot() {
+			return new WorkRoutine.Slot(kind, owner, customId);
+		}
+	}
+
+	private static Target target(Insight insight, String routineId) {
 		WorkRoutine.Kind kind;
 		// any other id names one of the owner's own routines
 		String customId = null;
@@ -52,6 +78,8 @@ public final class WorkRoutineRoom {
 			kind = WorkInboxRoutine.KIND;
 		} else if (WorkAgendaRoutine.ID.equals(routineId)) {
 			kind = WorkAgendaRoutine.KIND;
+		} else if (WorkEventPlanningRoutine.ID.equals(routineId)) {
+			kind = WorkEventPlanningRoutine.KIND;
 		} else if (WorkExpenseRoutine.ID.equals(routineId)) {
 			kind = WorkExpenseRoutine.KIND;
 			documentsId = WorkExpenseRoutine.DOCUMENTS_ID;
@@ -67,27 +95,196 @@ public final class WorkRoutineRoom {
 		if (row == null && customId != null) {
 			throw new IllegalArgumentException("Unknown routine");
 		}
-		if (row == null || !"completed".equals(row.get("status"))
-				|| !(row.get("summary") instanceof String summary) || summary.isBlank()
-				|| !(row.get("startedAt") instanceof String runStarted)) {
-			throw new IllegalArgumentException("This routine has no completed output to discuss");
+		return new Target(kind, customId, documentsId, owner, row);
+	}
+
+	/** The routine's past runs for the signed-in owner, newest first, from the scheduler history. */
+	public static List<Map<String, Object>> runs(Insight insight, String routineId) {
+		WorkRoutine.Slot slot = target(insight, routineId).slot();
+		List<Map<String, Object>> runs = new ArrayList<>();
+		for (Map<String, Object> run : AutomationRunStore.getRunsForAutomation(
+				AutomationProjectService.inlineRunScope(insight.getUser()), slot.automationId(), MAX_RUNS)) {
+			Timestamp started = (Timestamp) run.get(AutomationConstants.STARTED_AT);
+			Timestamp finished = (Timestamp) run.get(AutomationConstants.COMPLETED_AT);
+			Map<String, Object> item = new LinkedHashMap<>();
+			item.put("runId", run.get(AutomationConstants.RUN_ID));
+			item.put("startedAt", CollaborationDbUtils.toIso(started));
+			item.put("finishedAt", CollaborationDbUtils.toIso(finished));
+			item.put("status", status(run));
+			item.put("trigger", AutomationConstants.TRIGGER_MANUAL.equals(run.get(AutomationConstants.TRIGGER_TYPE))
+					? "manual" : "scheduled");
+			item.put("durationMs", started == null || finished == null ? null : finished.getTime() - started.getTime());
+			// a run that failed after its result node still has output to discuss, so the history checks the node
+			item.put("hasOutput", output(slot, (String) run.get(AutomationConstants.RUN_ID)) != null);
+			runs.add(item);
 		}
-		if (startedAt != null && !runStarted.equals(startedAt)) {
-			throw new IllegalArgumentException("The routine output has changed. Refresh Routines and open the latest output.");
+		return runs;
+	}
+
+	/**
+	 * The owner's routines that ran last, newest first, each with its latest runs: the routine id, a custom routine's
+	 * name (null for the system routines, which the client names), and each run's id, status and times. A running run
+	 * of the owner's own routine also names its room, where it can be watched.
+	 */
+	public static List<Map<String, Object>> recentRuns(Insight insight) {
+		User user = insight.getUser();
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		List<WorkRoutine.Slot> slots = new ArrayList<>();
+		for (WorkRoutine.Kind kind : List.of(WorkInboxRoutine.KIND, WorkAgendaRoutine.KIND, WorkEventPlanningRoutine.KIND,
+				WorkExpenseRoutine.KIND)) {
+			slots.add(new WorkRoutine.Slot(kind, owner, null));
 		}
-		String roomId = customId == null
-				? CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), "routine-discussion",
-						kind.id(), runStarted)
-				: CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), "routine-discussion",
-						kind.id(), customId, runStarted);
+		for (String routineId : WorkRoutine.routineIds(WorkCustomRoutine.KIND, owner)) {
+			slots.add(new WorkRoutine.Slot(WorkCustomRoutine.KIND, owner, routineId));
+		}
+		// the rows say when each routine last started, so only the routines shown read their run history
+		List<Last> last = new ArrayList<>();
+		for (WorkRoutine.Slot slot : slots) {
+			Map<String, Object> row = WorkRoutine.stored(slot);
+			if (row != null && row.get("startedAt") instanceof String startedAt) {
+				last.add(new Last(slot, row, Instant.parse(startedAt)));
+			}
+		}
+		last.sort(Comparator.comparing(Last::startedAt).reversed());
+		String scope = AutomationProjectService.inlineRunScope(user);
+		List<Map<String, Object>> recent = new ArrayList<>();
+		for (Last routine : last.subList(0, Math.min(RECENT_ROUTINES, last.size()))) {
+			WorkRoutine.Slot slot = routine.slot();
+			if ("running".equals(routine.row().get("status"))) {
+				// a run that ended or went stale reads as it does on Routines, never as running forever
+				WorkRoutine.settle(slot);
+			}
+			List<Map<String, Object>> runs = new ArrayList<>();
+			for (Map<String, Object> run : AutomationRunStore.getRunsForAutomation(scope, slot.automationId(),
+					RECENT_RUNS)) {
+				Timestamp started = (Timestamp) run.get(AutomationConstants.STARTED_AT);
+				if (started == null) {
+					continue;
+				}
+				String runId = (String) run.get(AutomationConstants.RUN_ID);
+				String status = status(run);
+				Map<String, Object> item = new LinkedHashMap<>();
+				item.put("runId", runId);
+				item.put("status", status);
+				item.put("startedAt", CollaborationDbUtils.toIso(started));
+				item.put("finishedAt", CollaborationDbUtils.toIso((Timestamp) run.get(AutomationConstants.COMPLETED_AT)));
+				// only the owner's own routines run in a room Collaboration opens
+				item.put("roomId", "running".equals(status) && slot.routineId() != null ? roomOf(runId) : null);
+				runs.add(item);
+			}
+			if (runs.isEmpty()) {
+				continue;
+			}
+			Map<String, Object> item = new LinkedHashMap<>();
+			item.put("routineId", slot.routineId() == null ? slot.kind().id() : slot.routineId());
+			item.put("name", slot.routineId() != null && routine.row().get("settings") instanceof Map<?, ?> settings
+					&& settings.get("name") instanceof String name && !name.isBlank() ? name : null);
+			item.put("runs", runs);
+			recent.add(item);
+		}
+		return recent;
+	}
+
+	// one routine's row, ranked by when the routine last started
+	private record Last(WorkRoutine.Slot slot, Map<String, Object> row, Instant startedAt) { }
+
+	/** An automation run's status in the words Routines uses. */
+	private static String status(Map<String, Object> run) {
+		String status = String.valueOf(run.get(AutomationConstants.STATUS));
+		return AutomationConstants.STATUS_SUCCESS.equals(status) ? "completed"
+				: FAILED.contains(status) ? "failed" : "running";
+	}
+
+	/** The room a run's agent works in, from its first node that names one; null until the agent starts. */
+	private static String roomOf(String runId) {
+		for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(runId)) {
+			if (node.get(AutomationConstants.PARENT_NODE_ID) == null
+					&& node.get(AutomationConstants.ROOM_ID) instanceof String roomId && !roomId.isBlank()) {
+				return roomId;
+			}
+		}
+		return null;
+	}
+
+	/** One run's result text, only when the run is this owner's run of this routine; null when it has none. */
+	private static String runOutput(WorkRoutine.Slot slot, User user, String runId) {
+		Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
+		if (run == null || !AutomationProjectService.inlineRunScope(user).equals(run.get(AutomationConstants.PROJECT_ID))
+				|| !slot.automationId().equals(run.get(AutomationConstants.AUTOMATION_ID))) {
+			return null;
+		}
+		return output(slot, runId);
+	}
+
+	private static String output(WorkRoutine.Slot slot, String runId) {
+		for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(runId)) {
+			if (slot.kind().outputNode().equals(node.get(AutomationConstants.NODE_ID))
+					&& node.get(AutomationConstants.PARENT_NODE_ID) == null
+					&& AutomationConstants.NODE_STATUS_SUCCESS.equals(node.get(AutomationConstants.STATUS))
+					&& node.get(AutomationConstants.OUTPUT_VALUE) instanceof String output) {
+				try {
+					Object text = AutomationRuntimeUtils.GSON.fromJson(output, Object.class);
+					return text instanceof String summary && !summary.isBlank() ? summary : null;
+				} catch (RuntimeException e) {
+					return null;
+				}
+			}
+		}
+		return null;
+	}
+
+	public static Map<String, Object> open(Insight insight, String routineId, String startedAt) {
+		return open(insight, routineId, startedAt, null);
+	}
+
+	/** Opens the latest output, or with a run id that past run's output, as a chat. */
+	public static Map<String, Object> open(Insight insight, String routineId, String startedAt, String runId) {
+		Target target = target(insight, routineId);
+		WorkRoutine.Kind kind = target.kind();
+		String customId = target.customId();
+		String documentsId = target.documentsId();
+		Pair<String, String> owner = target.owner();
+		Map<String, Object> row = target.row();
+		String summary;
+		String runStarted;
+		String roomId;
+		if (runId != null && !runId.isBlank()) {
+			// the run must be this owner's run of this routine; the client id is never trusted alone
+			summary = runOutput(target.slot(), insight.getUser(), runId.trim());
+			Map<String, Object> run = summary == null ? null : AutomationRunStore.getRunDetail(runId.trim());
+			if (run == null) {
+				throw new IllegalArgumentException("This run has no output to discuss");
+			}
+			Object started = run.get(AutomationConstants.STARTED_AT);
+			runStarted = started == null ? "" : String.valueOf(started);
+			roomId = CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), "routine-run-discussion",
+					kind.id(), customId == null ? "" : customId, runId.trim());
+		} else {
+			if (row == null || !"completed".equals(row.get("status"))
+					|| !(row.get("summary") instanceof String latest) || latest.isBlank()
+					|| !(row.get("startedAt") instanceof String latestStarted)) {
+				throw new IllegalArgumentException("This routine has no completed output to discuss");
+			}
+			if (startedAt != null && !latestStarted.equals(startedAt)) {
+				throw new IllegalArgumentException("The routine output has changed. Refresh Routines and open the latest output.");
+			}
+			summary = latest;
+			runStarted = latestStarted;
+			roomId = customId == null
+					? CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), "routine-discussion",
+							kind.id(), runStarted)
+					: CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), "routine-discussion",
+							kind.id(), customId, runStarted);
+		}
 		String title = customId != null && row.get("settings") instanceof Map<?, ?> settings
 				&& settings.get("name") instanceof String name && !name.isBlank() ? name : kind.jobName();
 		String messageId = CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), roomId, "output");
 		String modelId = BrainTopicModel.engine(insight.getUser());
 		Map<String, Object> options = modelId == null ? Map.of() : Map.of("modelId", modelId);
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {
-			RoomUtils.createRoomIfNotExists(roomId, insight, null, title + " - " + runStarted.substring(0, 10),
-					null, options, null, CollaborationUtils.COLLABORATION_PROJECT_ID, null);
+			String date = runStarted.length() >= 10 ? " - " + runStarted.substring(0, 10) : "";
+			RoomUtils.createRoomIfNotExists(roomId, insight, null, title + date, null, options, null,
+					CollaborationUtils.COLLABORATION_PROJECT_ID, null);
 			// the same copy a run gets, refreshed on every open so a document uploaded since is there too
 			List<String> documents = List.of();
 			if (documentsId != null) {

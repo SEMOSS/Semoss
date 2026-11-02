@@ -77,13 +77,13 @@ public class BrainEditThreadReactor extends AbstractCollaborationReactor {
 		return "Changes how one thread sits in the owner's Brain, as the owner would on the thread: tag it with a "
 				+ "topic, untag it from a topic, mute or unmute it, or correct it as not automated. Several changes "
 				+ "can go in one call. It waits for the owner to approve. Take the threadId from SearchMail "
-				+ "or the current thread";
+				+ "or the current thread, or pass an email's id from ListM365Mail";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (THREAD_ID.equals(key)) {
-			return "Thread id";
+			return "Thread id from SearchMail or ReadThread, or an email's id from ListM365Mail for its thread";
 		} else if (ADD_TOPIC.equals(key)) {
 			return "Topic to tag the thread with: its id or its name";
 		} else if (REMOVE_TOPIC.equals(key)) {

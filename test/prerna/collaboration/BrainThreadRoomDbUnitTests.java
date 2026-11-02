@@ -267,10 +267,10 @@ class BrainThreadRoomDbUnitTests {
 		when(messages.fetch(user, "email", "conv-th-1", "g3")).thenReturn(Map.of(
 				"subject", "Current subject", "body", Map.of("content", "Body stays private", "contentType", "text"),
 				"conversationId", "conv-th-1"));
-		assertEquals(Map.of("id", "g3", "subject", "Current subject"), compose("g3", messages));
+		assertEquals(Map.of("id", "g3", "subject", "Current subject", "threadId", "th-1"), compose("g3", messages));
 		verify(messages).fetch(user, "email", "conv-th-1", "g3");
 		when(messages.fetch(user, "email", "conv-th-1", "g3")).thenReturn(Map.of());
-		assertEquals(Map.of("id", "g3", "subject", ""), compose("g3", messages));
+		assertEquals(Map.of("id", "g3", "subject", "", "threadId", "th-1"), compose("g3", messages));
 	}
 
 	@Test
@@ -283,7 +283,7 @@ class BrainThreadRoomDbUnitTests {
 			Map<?, ?> latest = (Map<?, ?>) read.getLast();
 			assertEquals("g3", latest.get("id"));
 			assertEquals("email:key-g3", latest.get("emailRef"));
-			assertEquals(Map.of("id", "g3", "subject", "Message g3"),
+			assertEquals(Map.of("id", "g3", "subject", "Message g3", "threadId", "th-1"),
 					BrainThreadMessages.composeSource(user, (String) latest.get("emailRef")));
 		}
 	}

@@ -32,22 +32,45 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
+
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityQueryUtils;
+import prerna.io.connector.ms.MicrosoftGraphCredentialStore;
 import prerna.om.Insight;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.util.Utility;
 
-// Refresh (and later the Collaboration webhook): mail and Teams since the last finished import or sync, through the
-// same gate and classifier as onboarding, without its setup steps, then queues the summaries and action items of the
-// threads with new mail (WorkThreadInsights). One sync job per owner at a time.
+// A sync: mail and Teams since the last finished import or sync, through the same gate and classifier as onboarding,
+// without its setup steps, then queues the summaries and action items of the threads with new mail
+// (WorkThreadInsights). Refresh and the open page (every minute) start one, and so does the schedule here, for each
+// owner who saved background sign-in, as often as they chose on the Connections page (15 minutes unless they changed
+// it, or never), so mail is filed while their browser is closed. The Collaboration webhook comes later. One sync job
+// per owner at a time.
 public final class BrainSync {
+
+	private static final Logger classLogger = LogManager.getLogger(BrainSync.class);
 
 	public static final String KIND = "sync";
 	// re-read a little before the last run started; linked messages are skipped and the gate replays its decisions
@@ -75,6 +98,21 @@ public final class BrainSync {
 	// purposes paced apart, so a chat's polling never uses up the pull of the owner's next turn
 	static final String PULL_FOR_RUN = "run";
 	static final String PULL_FOR_READ = "read";
+	// the schedule looks every TICK for owners with a saved background sign-in whose own interval
+	// (BRAIN_SETTINGS.SYNC_EVERY_MINUTES) has passed since their last sync of any kind; an open page syncs every
+	// minute, so in practice it syncs them while their browser is closed
+	private static final Duration TICK = Duration.ofMinutes(5);
+	private static final Duration FIRST = Duration.ofMinutes(5);
+	// one scheduled sync at a time leaves the two job threads to imports and Refresh; a longer one goes on alone
+	private static final Duration WAIT_AT_MOST = Duration.ofMinutes(30);
+	private static final long WAIT_STEP_MS = 5_000;
+	static final String SIGN_IN_EXPIRED = "Microsoft sign-in expired. Sign in again to keep mail syncing.";
+	private static final AtomicBoolean SCHEDULED = new AtomicBoolean();
+	private static final ScheduledExecutorService SCHEDULE = Executors.newSingleThreadScheduledExecutor(runnable -> {
+		Thread thread = new Thread(runnable, "collaboration-sync-schedule");
+		thread.setDaemon(true);
+		return thread;
+	});
 
 	private BrainSync() {
 	}
@@ -99,7 +137,18 @@ public final class BrainSync {
 		BrainThreadClassifier.requireEngine(user);
 		// from then on new mail also arrives by itself; in the background, skipped when Graph cannot reach this server
 		BrainMailWebhook.ensureSubscribed(user);
-		return CollaborationJobUtils.start(ownerId, ownerType, KIND, Map.of(), job -> run(user, job, last));
+		keepBackgroundCurrent(user);
+		return CollaborationJobUtils.start(ownerId, ownerType, KIND, Map.of(), job -> {
+			try {
+				run(user, job, last);
+			} catch (Exception e) {
+				// the mail source says so (Needs sign-in); the failed run leaves lastRun, so its window is read again
+				if (signInExpired(e)) {
+					CollaborationSourceUtils.recordSourceError(ownerId, ownerType, EMAIL, SIGN_IN_EXPIRED, true);
+				}
+				throw e;
+			}
+		});
 	}
 
 	static void run(User user, CollaborationJobUtils.Job job, Timestamp last) throws Exception {
@@ -124,15 +173,13 @@ public final class BrainSync {
 		BrainMailImport.Run run;
 		String teamsError;
 		synchronized (CollaborationDbUtils.ownerLock(INGEST_LOCK, ownerId, ownerType)) {
-			run = new BrainMailImport.Run(ownerId, ownerType);
+			run = new BrainMailImport.Run(ownerId, ownerType, true);
 			run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"), aliases);
 			teamsError = BrainMailImport.importSince(user, source, job, run, since,
 					withTeams ? teamsSince(ownerId, ownerType, since, floor) : null);
 			job.step("threads", 86);
 			run.refreshThreads();
 		}
-		// an approval request among the new mail starts the owner's expense review
-		WorkExpenseRoutine.onNewMail(ownerId, ownerType, run.inbound);
 
 		// mail the owner moved into a folder a topic stands for is filed under that topic
 		job.count("filedByFolder", BrainThreadClassifier.fileByFolder(ownerId, ownerType, run.refiled));
@@ -176,6 +223,8 @@ public final class BrainSync {
 		summarize.removeIf(id -> AUTOMATED.equals(verdicts.get(id)) || "skipped".equals(verdicts.get(id)));
 		WorkThreadInsights.queue(user, ownerId, ownerType, summarize);
 		job.count("summarizing", summarize.size());
+		job.count("resumed", run.owed.size() - run.imported);
+		finishFollowUps(ownerId, ownerType, run);
 
 		CollaborationSourceUtils.recordSourceEvent(ownerId, ownerType, EMAIL);
 		if (withTeams && teamsError == null) {
@@ -275,7 +324,7 @@ public final class BrainSync {
 		fresh.sort(Comparator.comparing(header -> String.valueOf(header.get("receivedDateTime"))));
 		BrainMailImport.Run run;
 		synchronized (CollaborationDbUtils.ownerLock(INGEST_LOCK, ownerId, ownerType)) {
-			run = new BrainMailImport.Run(ownerId, ownerType);
+			run = new BrainMailImport.Run(ownerId, ownerType, true);
 			run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"), aliases);
 			CollaborationDbUtils.batch(conn -> {
 				for (Map<String, Object> header : fresh) {
@@ -284,12 +333,186 @@ public final class BrainSync {
 			});
 			run.refreshThreads();
 		}
-		WorkExpenseRoutine.onNewMail(ownerId, ownerType, run.inbound);
 		for (String[] sent : run.ownerSent) {
 			WorkItemUtils.closeOnReply(ownerId, ownerType, sent[0], sent[1]);
 		}
 		WorkThreadInsights.queue(user, ownerId, ownerType, run.threads);
+		finishFollowUps(ownerId, ownerType, run);
 		return run.threads;
+	}
+
+	/**
+	 * The last after-import step, since it is the one that must not run twice: the run takes its messages off the
+	 * pending list one at a time, so a sync and a webhook holding the same message cannot both act on it, then an
+	 * approval request among those it took starts the owner's expense review. A run cut off before this leaves its
+	 * messages pending; the next sync reads them again and runs every step once more, the others being safe to repeat.
+	 */
+	// shortcut: a server stopped between the take and the trigger loses that review; add a trigger outbox if it matters
+	static void finishFollowUps(String ownerId, String ownerType, BrainMailImport.Run run) {
+		Set<String> taken = take(ownerId, ownerType, run.owed);
+		List<String[]> requests = new ArrayList<>(run.inbound);
+		requests.removeIf(message -> !taken.contains(message[0]));
+		WorkExpenseRoutine.onNewMail(ownerId, ownerType, requests);
+	}
+
+	// clears SYNC_PENDING on each key still marked, in one commit; returns the keys this call cleared
+	static Set<String> take(String ownerId, String ownerType, Collection<String> keys) {
+		Set<String> taken = new HashSet<>();
+		if (keys.isEmpty()) {
+			return taken;
+		}
+		CollaborationDbUtils.batch(conn -> {
+			for (String key : keys) {
+				if (CollaborationDbUtils.update(conn, "UPDATE BRAIN_MESSAGE SET SYNC_PENDING = NULL WHERE OWNER_ID = ? "
+						+ "AND OWNER_TYPE = ? AND MESSAGE_KEY = ? AND SYNC_PENDING = ?", ownerId, ownerType, key, true) > 0) {
+					taken.add(key);
+				}
+			}
+		});
+		return taken;
+	}
+
+	// ---- schedule ----
+
+	/** Looks every 5 minutes for enrolled owners due a sync; once per server, and not where the scheduler is off. */
+	public static void startSchedule() {
+		if (!Utility.schedulerForceDisable() && SCHEDULED.compareAndSet(false, true)) {
+			SCHEDULE.scheduleWithFixedDelay(BrainSync::syncAll, FIRST.toMinutes(), TICK.toMinutes(), TimeUnit.MINUTES);
+		}
+	}
+
+	// shortcut: per server, like the owner locks, the jobs' ALIVE set and BrainMailWebhook.renewAll; before running
+	// more than one server, move this tick onto the clustered SEMOSS scheduler and give COLLAB_JOB a heartbeat
+	static void syncAll() {
+		try {
+			if (!CollaborationDbUtils.isInitalized()) {
+				return;
+			}
+			for (String[] owner : CollaborationDbUtils.query(
+					"SELECT OWNER_ID, OWNER_TYPE, MS_USER_ID FROM COLLAB_OWNER WHERE MS_USER_ID IS NOT NULL",
+					rs -> new String[] { rs.getString(1), rs.getString(2), rs.getString(3) })) {
+				try {
+					String outcome = syncInBackground(owner[0], owner[1], owner[2], Instant.now());
+					classLogger.debug("Scheduled sync of {} {}: {}", owner[1], owner[0], outcome);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					return;
+				} catch (Exception e) {
+					classLogger.warn("Scheduled sync of {} {} failed", owner[1], owner[0], e);
+				}
+			}
+		} catch (RuntimeException e) {
+			// thrown out of the tick it would end the schedule
+			classLogger.error("Scheduled sync failed; trying again on the next tick", e);
+		}
+	}
+
+	/**
+	 * One owner's scheduled sync, as their Refresh would run it but with their saved background sign-in, and waited
+	 * for. Skipped when the owner turned it off or a sync of theirs started within the interval they chose, while
+	 * mail is not ready or anything of theirs runs, and for owners with no background sign-in or a locked account. A
+	 * sign-in that cannot be renewed is recorded on the mail source (Needs sign-in) and no job is started, so nothing
+	 * reports the owner as synced. Returns what happened, for the log.
+	 */
+	static String syncInBackground(String ownerId, String ownerType, String msUserId, Instant now) throws Exception {
+		int every = BrainProfileUtils.syncEveryMinutes(ownerId, ownerType);
+		if (every == 0) {
+			return "background sync off";
+		}
+		if (!canIngest(ownerId, ownerType)) {
+			return "mail not ready";
+		}
+		if (CollaborationJobUtils.anyRunning(ownerId, ownerType)) {
+			return "busy";
+		}
+		Timestamp synced = CollaborationDbUtils.queryOne(
+				"SELECT MAX(STARTED_AT) FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND KIND = ?",
+				rs -> rs.getTimestamp(1), ownerId, ownerType, KIND);
+		if (synced != null && toInstant(synced).plus(Duration.ofMinutes(every)).isAfter(now)) {
+			return "synced lately";
+		}
+		if (MicrosoftGraphCredentialStore.get(msUserId) == null) {
+			return "no background sign-in";
+		}
+		if (SecurityQueryUtils.getUnlockedUser(ownerId, ownerType) == null) {
+			return "account locked";
+		}
+		AccessToken token;
+		try {
+			// renewed and saved first, so the sync starts with a token that lasts
+			MicrosoftGraphCredentialStore.accessToken(msUserId);
+			token = MicrosoftGraphCredentialStore.get(msUserId);
+		} catch (Exception e) {
+			// shortcut: HttpHelperUtility answers a refused refresh and an unreachable token endpoint alike (null), so
+			// an outage also reads as an expired sign-in until the next good sync clears it
+			classLogger.info("Background sign-in of {} {} could not be renewed: {}", ownerType, ownerId, e.getMessage());
+			CollaborationSourceUtils.recordSourceError(ownerId, ownerType, EMAIL, SIGN_IN_EXPIRED, true);
+			return "sign-in expired";
+		}
+		// turned off in Settings meanwhile
+		if (token == null) {
+			return "no background sign-in";
+		}
+		User user = BrainMailWebhook.ownerUser(ownerId, ownerType, token);
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		if (!ownerId.equals(owner.getValue0()) || !ownerType.equals(owner.getValue1())) {
+			return "background sign-in belongs to " + owner.getValue1() + " " + owner.getValue0();
+		}
+		Map<String, Object> job;
+		try {
+			job = start(user);
+		} catch (IllegalArgumentException | IllegalStateException e) {
+			// no model set, or an import began meanwhile
+			return "not started: " + e.getMessage();
+		}
+		Instant until = Instant.now().plus(WAIT_AT_MOST);
+		Object status = job.get("status");
+		while (CollaborationJobUtils.RUNNING.equals(status) && Instant.now().isBefore(until)) {
+			Thread.sleep(WAIT_STEP_MS);
+			Map<String, Object> current = CollaborationJobUtils.get(ownerId, ownerType, (String) job.get("id"));
+			status = current == null ? null : current.get("status");
+		}
+		// a Graph call during the sync may have renewed the token; keep the new pair for the next one
+		AccessToken current = user.getAccessToken(AuthProvider.MICROSOFT);
+		if (current != null && !Objects.equals(current.getAccess_token(), token.getAccess_token())
+				&& MicrosoftGraphCredentialStore.isRefreshable(current) && msUserId.equals(current.getId())) {
+			MicrosoftGraphCredentialStore.save(current);
+		}
+		return String.valueOf(status);
+	}
+
+	// Graph refused the token (401), or MicrosoftLoginUtils could not renew it and asks for a sign-in
+	static boolean signInExpired(Throwable error) {
+		for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+			if (cause instanceof SemossPixelException pixel && pixel.getNoun() != null
+					&& pixel.getNoun().getOpType().contains(PixelOperationType.LOGGIN_REQUIRED_ERROR)) {
+				return true;
+			}
+		}
+		return BrainMailHeaderSource.needsReauth(error);
+	}
+
+	// The owner signed in again: when they saved background sign-in for this Microsoft account (their consent), a
+	// renewable token that lasts longer replaces it, so background sync comes back. Never blocks the sync.
+	static void keepBackgroundCurrent(User user) {
+		AccessToken session = user.getAccessToken(AuthProvider.MICROSOFT);
+		if (!MicrosoftGraphCredentialStore.isRefreshable(session)) {
+			return;
+		}
+		try {
+			AccessToken saved = MicrosoftGraphCredentialStore.get(session.getId());
+			if (saved != null && expiresAt(session) > expiresAt(saved)) {
+				MicrosoftGraphCredentialStore.save(session);
+			}
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not keep the background sign-in of {} current", session.getId(), e);
+		}
+	}
+
+	private static long expiresAt(AccessToken token) {
+		return token.getStartTime() > 0 && token.getExpires_in() > 0
+				? token.getStartTime() + token.getExpires_in() * 1000L
+				: 0;
 	}
 
 	// mail is connected, the onboarding import has finished, and none is running

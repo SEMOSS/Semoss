@@ -38,9 +38,11 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -52,6 +54,7 @@ import org.apache.logging.log4j.ThreadContext;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.LoggerConfig;
+import org.javatuples.Pair;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -60,10 +63,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
+import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.RoomMessageStore;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
@@ -95,6 +97,7 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.GuardrailAudit;
 import prerna.util.gson.LocalDateTimeAdapter;
 import prerna.util.gson.ZoneIdTypeAdapter;
 import prerna.util.gson.ZoneOffsetTypeAdapter;
@@ -140,6 +143,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 	private final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
 	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
+	private GuardrailHitLimits hitLimits = GuardrailHitLimits.NONE;
 
 	// Store engine operations as function references instead
 	private final MethodInvoker engineInvoker;
@@ -151,6 +155,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 	private final String engineId;
 	private final String engineName;
+	private final IEngine.CATALOG_TYPE catalogType;
 	private final String engineType;
 	private final String engineSubType;
 
@@ -168,7 +173,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		this.engineInvoker = (method, args) -> method.invoke(realEngine, args);
 		this.engineId = realEngine.getEngineId();
 		this.engineName = realEngine.getEngineName();
-		this.engineType = realEngine.getCatalogType().name();
+		this.catalogType = realEngine.getCatalogType();
+		this.engineType = this.catalogType.name();
 		this.engineSubType = realEngine.getCatalogSubType(realEngine.getSmssProp());
 
 		this.getEngineLogger = () -> realEngine.getEngineLogger("EngineLogger");
@@ -229,6 +235,15 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		try (CloseableThreadContext.Instance ctc = CloseableThreadContext.putAll(newMdc)) {
 			Object result = null;
 
+			// Every call but an @IgnoreEngineLogging one is refused here for a locked
+			// out user or a closed room, whether or not the method has checks, and
+			// before any check runs, so a refused call costs no guardrail calls
+			if (!this.hitLimits.isEmpty()) {
+				Insight insight = contextInsight(args);
+				this.hitLimits.refuseIfLockedOrRoomClosed(guardedCall(method, args, insight, keepInputOutput), insight,
+						callerOf(insight));
+			}
+
 			// Find the correct pipeline for the called method
 			Pipeline specificPipeline = this.pipelinesMap.get(methodName);
 			if (specificPipeline == null) {
@@ -285,7 +300,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			}
 
 			// === INPUT PIPELINE EXECUTION ===
-			{
+			if (inputPipelines != null) {
 				int size = inputPipelines.size();
 				for (int pipelineIndex = 0; pipelineIndex < size; pipelineIndex++) {
 					IInputReactor reactor = newInvocationReactor(inputPipelines.get(pipelineIndex),
@@ -348,6 +363,11 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					logEngineCall(engineSpecificLogger, start, end, pass, request, response,
 							reactor.getClass().getSimpleName(), null, null, null, guardrailAction);
+					if (guardrailAction != null) {
+						recordGuardrailHitAndCheckLimit(method, args, "INPUT",
+								specificPipeline.getInputCheckIds().get(pipelineIndex), resultMap, guardrailAction,
+								keepInputOutput);
+					}
 
 					if (cannedResponse != null) {
 						if (!AskModelEngineResponse.class.isAssignableFrom(method.getReturnType())) {
@@ -360,7 +380,6 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					}
 
 					if (!pass) {
-						closeRoomIfRequested(resultMap, args);
 						throw new SemossPixelException(blockMessageOrDefault(resultMap,
 								"Unable to process this request due to content policy (guardrail input exception)"));
 					}
@@ -412,7 +431,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			}
 
 			// === OUTPUT PIPELINE EXECUTION ===
-			{
+			if (outputPipelines != null) {
 				int size = outputPipelines.size();
 				for (int pipelineIndex = 0; pipelineIndex < size; pipelineIndex++) {
 					IOutputReactor reactor = newInvocationReactor(outputPipelines.get(pipelineIndex),
@@ -463,9 +482,13 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					logEngineCall(engineSpecificLogger, start, end, pass, request, response, null,
 							reactor.getClass().getSimpleName(), null, null, guardrailAction);
+					if (guardrailAction != null) {
+						recordGuardrailHitAndCheckLimit(method, args, "OUTPUT",
+								specificPipeline.getOutputCheckIds().get(pipelineIndex), resultMap, guardrailAction,
+								keepInputOutput);
+					}
 
 					if (!pass) {
-						closeRoomIfRequested(resultMap, args);
 						throw new SemossPixelException(blockMessageOrDefault(resultMap,
 								"Unable to process this request due to content policy (guardrail output exception)"));
 					}
@@ -478,26 +501,77 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		}
 	}
 
-	private void closeRoomIfRequested(Map<String, Object> resultMap, Object[] args) {
-		if (!Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.CLOSE_ROOM))) {
-			return;
+	/**
+	 * Records a guardrail check that flagged this call in the audit trail, and
+	 * counts the hit toward the engine's hit limits that name the check.
+	 *
+	 * @param method          the intercepted method
+	 * @param args            the call's arguments
+	 * @param phase           INPUT or OUTPUT
+	 * @param checkId         the check's id in the pipeline file
+	 * @param resultMap       the check's interim result
+	 * @param guardrailAction what the check did: BLOCK, MASK or RESPOND
+	 * @param keepInputOutput whether the engine keeps its input and output
+	 * @throws SemossPixelException refusing the call when the hit reaches a limit
+	 */
+	private void recordGuardrailHitAndCheckLimit(Method method, Object[] args, String phase, String checkId,
+			Map<String, Object> resultMap, String guardrailAction, boolean keepInputOutput) {
+		Insight insight = contextInsight(args);
+		GuardrailAudit.Call call = guardedCall(method, args, insight, keepInputOutput);
+		String guardrailEngineId = text(resultMap, PipelineReactorUtils.GUARDRAIL_ENGINE_ID);
+		GuardrailAudit.recordHit(insight, call,
+				new GuardrailAudit.Hit(checkId, guardrailEngineId,
+						text(resultMap, PipelineReactorUtils.GUARDRAIL_ENGINE_NAME), phase,
+						GuardrailAudit.Action.valueOf(guardrailAction),
+						resultMap.get(PipelineReactorUtils.SCREENED_PARAMETERS)));
+		if (this.hitLimits.counts(checkId)) {
+			this.hitLimits.countHit(call, insight, callerOf(insight), checkId, guardrailEngineId, phase,
+					guardrailAction);
 		}
-		for (Object arg : args) {
-			if (arg instanceof Room) {
-				Room room = (Room) arg;
-				try {
-					String userId = room.getInsight().getUser().getPrimaryLoginToken().getId();
-					if (ModelInferenceLogsUtils.doSetRoomToInactive(userId, room.getId())) {
-						RoomMessageStore.evictRedisProjection(room.getId());
-					}
-					classLogger.warn("Guardrail closed room {} after a block", room.getId());
-				} catch (Exception e) {
-					// never let bookkeeping suppress the block itself
-					classLogger.error("Failed to close room after guardrail block", e);
+	}
+
+	private GuardrailAudit.Call guardedCall(Method method, Object[] args, Insight insight, boolean keepInputOutput) {
+		return new GuardrailAudit.Call(this.engineId, this.engineName, this.catalogType, method.getName(),
+				roomId(args, insight), keepInputOutput);
+	}
+
+	/**
+	 * The caller, by their primary login's id and type, as the rooms they own and
+	 * their hits and locks store them.
+	 *
+	 * @param insight the insight the call runs in, or null
+	 * @return the id and login type, or null with no signed in user
+	 */
+	private static Pair<String, String> callerOf(Insight insight) {
+		User user = insight == null ? null : insight.getUser();
+		if (user == null || user.isAnonymous() || user.getPrimaryLogin() == null) {
+			return null;
+		}
+		return User.getPrimaryUserIdAndTypePair(user);
+	}
+
+	/**
+	 * The room a call runs in: its Room argument, or else the room of the insight
+	 * it runs in, so a call an agent makes from a room into another engine is in
+	 * that room too.
+	 *
+	 * @param args    the call's arguments
+	 * @param insight the insight the call runs in, or null
+	 * @return the room id, or null for a call outside any room
+	 */
+	static String roomId(Object[] args, Insight insight) {
+		if (args != null) {
+			for (Object arg : args) {
+				if (arg instanceof Room room && room.getId() != null) {
+					return room.getId();
 				}
-				return;
 			}
 		}
+		return insight == null ? null : insight.getRoomId();
+	}
+
+	private static String text(Map<String, Object> map, String key) {
+		return map != null && map.get(key) instanceof String value ? value : null;
 	}
 
 	private String blockMessageOrDefault(Map<String, Object> resultMap, String fallback) {
@@ -709,12 +783,15 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			return;
 		}
 
+		Set<String> checkIds = new HashSet<>();
 		for (String methodName : pipelines.keySet()) {
 			JSONObject pipelineConfig = pipelines.getJSONObject(methodName);
 			List<IInputReactor> inputReactors = new ArrayList<>();
 			List<IOutputReactor> outputReactors = new ArrayList<>();
 			List<Map<String, Object>> inputParams = new ArrayList<>();
 			List<Map<String, Object>> outputParams = new ArrayList<>();
+			List<String> inputCheckIds = new ArrayList<>();
+			List<String> outputCheckIds = new ArrayList<>();
 
 			if (pipelineConfig.has("input")) {
 				JSONArray inputArray = pipelineConfig.getJSONArray("input");
@@ -725,6 +802,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 							.getGenRowStruct("param").get(0);
 					inputReactors.add(inputReactor);
 					inputParams.add(inputParam);
+					inputCheckIds.add(readCheckId(inputParam, methodName, "input", i, checkIds));
 				}
 			}
 
@@ -737,11 +815,36 @@ public class PipelineInvocationHandler implements InvocationHandler {
 							.getGenRowStruct("param").get(0);
 					outputParams.add(outputParam);
 					outputReactors.add(outputReactor);
+					outputCheckIds.add(readCheckId(outputParam, methodName, "output", i, checkIds));
 				}
 			}
 
-			this.pipelinesMap.put(methodName, new Pipeline(inputReactors, outputReactors, inputParams, outputParams));
+			this.pipelinesMap.put(methodName, new Pipeline(inputReactors, outputReactors, inputParams, outputParams,
+					inputCheckIds, outputCheckIds));
 		}
+
+		JSONArray hitLimits = root.optJSONArray(GuardrailHitLimit.HIT_LIMITS_KEY);
+		this.hitLimits = new GuardrailHitLimits(
+				GuardrailHitLimit.parseAll(hitLimits == null ? null : hitLimits.toList(), checkIds));
+	}
+
+	/**
+	 * A check's id: the one its params hold, or for a check saved before checks had
+	 * ids, its method, phase and position.
+	 *
+	 * @param params     the check's params
+	 * @param methodName the pipeline's method
+	 * @param phase      input or output
+	 * @param index      the check's position in its phase
+	 * @param checkIds   the ids read so far, which this adds to
+	 * @return the check's id
+	 */
+	private static String readCheckId(Map<String, Object> params, String methodName, String phase, int index,
+			Set<String> checkIds) {
+		Object stored = params == null ? null : params.get(PipelineReactorUtils.CHECK_ID);
+		String checkId = stored instanceof String id && !id.isBlank() ? id : methodName + "." + phase + "." + index;
+		checkIds.add(checkId);
+		return checkId;
 	}
 
 	/**
@@ -827,22 +930,26 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * context.
 	 */
 	private void setContextInsight(IReactor reactor, Object[] args) {
-		Insight contextInsight = null;
+		reactor.setInsight(contextInsight(args));
+	}
+
+	/**
+	 * The insight a call runs in: its Insight argument, or else the one the current
+	 * thread runs.
+	 *
+	 * @param args the call's arguments
+	 * @return the insight, or null when there is none
+	 */
+	private static Insight contextInsight(Object[] args) {
 		if (args != null) {
 			for (Object arg : args) {
 				if (arg instanceof Insight) {
-					contextInsight = (Insight) arg;
-					break;
+					return (Insight) arg;
 				}
 			}
 		}
-		if (contextInsight == null) {
-			String insightId = ThreadStore.getInsightId();
-			if (insightId != null) {
-				contextInsight = InsightStore.getInstance().get(insightId);
-			}
-		}
-		reactor.setInsight(contextInsight);
+		String insightId = ThreadStore.getInsightId();
+		return insightId == null ? null : InsightStore.getInstance().get(insightId);
 	}
 
 	/*
@@ -854,6 +961,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		private final List<IOutputReactor> outputPipeline;
 		private final List<Map<String, Object>> inputParams;
 		private final List<Map<String, Object>> outputParams;
+		private final List<String> inputCheckIds;
+		private final List<String> outputCheckIds;
 
 		/**
 		 * 
@@ -861,14 +970,26 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		 * @param outputPipeline
 		 * @param inputParams
 		 * @param outputParams
+		 * @param inputCheckIds  each input check's id, in order
+		 * @param outputCheckIds each output check's id, in order
 		 */
 		Pipeline(List<IInputReactor> inputPipeline, List<IOutputReactor> outputPipeline,
-				List<Map<String, Object>> inputParams, List<Map<String, Object>> outputParams) {
+				List<Map<String, Object>> inputParams, List<Map<String, Object>> outputParams,
+				List<String> inputCheckIds, List<String> outputCheckIds) {
 			this.inputPipeline = inputPipeline;
 			this.outputPipeline = outputPipeline;
 			this.inputParams = inputParams;
 			this.outputParams = outputParams;
+			this.inputCheckIds = inputCheckIds;
+			this.outputCheckIds = outputCheckIds;
+		}
 
+		List<String> getInputCheckIds() {
+			return this.inputCheckIds;
+		}
+
+		List<String> getOutputCheckIds() {
+			return this.outputCheckIds;
 		}
 
 		/**
