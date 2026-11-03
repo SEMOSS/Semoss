@@ -49,7 +49,10 @@ import prerna.reactor.automation.project.AutomationProjectService;
 import prerna.reactor.automation.run.AutomationRunStore;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
-/** Opens a private discussion of one completed routine output without exposing its automation history. */
+/**
+ * The owner's routine runs: their history, the latest runs for the sidebar, deleting one, and a private discussion of
+ * one completed output, without exposing the automation history behind them.
+ */
 public final class WorkRoutineRoom {
 	private static final int MAX_RUNS = 30;
 	// the sidebar shows the routines that ran last, each with its latest runs
@@ -206,14 +209,37 @@ public final class WorkRoutineRoom {
 		return null;
 	}
 
+	/**
+	 * Deletes one finished run of the owner's routine from its history. When it was the routine's latest run, Routines
+	 * stops showing its result too. Chats opened from the run stay; they are the owner's own conversations.
+	 */
+	public static void deleteRun(Insight insight, String routineId, String runId) {
+		WorkRoutine.Slot slot = target(insight, routineId).slot();
+		String id = runId == null ? "" : runId.trim();
+		Map<String, Object> run = id.isEmpty() ? null : ownRun(slot, insight.getUser(), id);
+		if (run == null) {
+			throw new IllegalArgumentException("Unknown run");
+		}
+		if ("running".equals(status(run))) {
+			throw new IllegalArgumentException("This run is still going. Delete it once it has finished.");
+		}
+		AutomationRunStore.deleteRun(AutomationProjectService.inlineRunScope(insight.getUser()), slot.automationId(), id);
+		// the row keeps its start, which orders the sidebar, and the older runs stay in the history
+		CollaborationDbUtils.update("UPDATE " + slot.kind().table() + " SET RUN_STATUS = NULL, FINISHED_AT = NULL, "
+				+ "ROOM_ID = NULL, RUN_ID = NULL, SUMMARY = NULL, ERROR = NULL, ERROR_CAUSE = NULL" + slot.where()
+				+ " AND RUN_ID = ?", slot.args(new Object[0], id));
+	}
+
+	/** The run, only when it is this owner's run of this routine; the client id is never trusted alone. */
+	private static Map<String, Object> ownRun(WorkRoutine.Slot slot, User user, String runId) {
+		Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
+		return run != null && AutomationProjectService.inlineRunScope(user).equals(run.get(AutomationConstants.PROJECT_ID))
+				&& slot.automationId().equals(run.get(AutomationConstants.AUTOMATION_ID)) ? run : null;
+	}
+
 	/** One run's result text, only when the run is this owner's run of this routine; null when it has none. */
 	private static String runOutput(WorkRoutine.Slot slot, User user, String runId) {
-		Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
-		if (run == null || !AutomationProjectService.inlineRunScope(user).equals(run.get(AutomationConstants.PROJECT_ID))
-				|| !slot.automationId().equals(run.get(AutomationConstants.AUTOMATION_ID))) {
-			return null;
-		}
-		return output(slot, runId);
+		return ownRun(slot, user, runId) == null ? null : output(slot, runId);
 	}
 
 	private static String output(WorkRoutine.Slot slot, String runId) {
