@@ -157,7 +157,7 @@ class BrainOutgoingEmailDbUnitTests {
 		BrainOutgoingEmail.trackDraft(insight, "draft-1");
 		CollaborationDbUtils.update("INSERT INTO SOURCE_CONNECTION (OWNER_ID, OWNER_TYPE, SOURCE, ENABLED) "
 				+ "VALUES (?, ?, 'email', TRUE)", ownerId, ownerType);
-		BrainMailImport.Run run = new BrainMailImport.Run(ownerId, ownerType);
+		BrainMailImport.Run run = new BrainMailImport.Run(ownerId, ownerType, false);
 		run.ensureSelf("owner@test.com", "Owner", "owner@test.com", List.of());
 		Map<String, Object> sent = new HashMap<>();
 		sent.put("id", "sent-1");

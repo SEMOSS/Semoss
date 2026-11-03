@@ -48,40 +48,43 @@ import org.json.JSONObject;
  * Materializes attached skills into a working directory so Claude Code's
  * {@code .claude/skills/} discovery picks them up at agent run time.
  *
- * <p>For each skill ref in the merged {@code agentConfig.getSkills()} list,
- * this stager:
+ * <p>
+ * For each skill ref in the merged {@code agentConfig.getSkills()} list, this
+ * stager:
  * <ol>
- *   <li>Resolves the skill project's identity and content folder via
- *       {@link SkillProjects#resolve} (SKILL.md frontmatter under the
- *       project's {@code version/assets/public/} or legacy
- *       {@code version/assets/skill/} folder).</li>
- *   <li>Checks the existing {@code .skill-meta} sidecar at
- *       {@code <workingDir>/.claude/skills/<slug>/.skill-meta}. If the source
- *       folder's last-modified time matches what we previously staged, the
- *       cache hits and the copy is skipped.</li>
- *   <li>Otherwise: wipes any previously-staged skill folder for this slug,
- *       copies the source folder over, then writes the {@code .skill-meta}
- *       sidecar.</li>
+ * <li>Resolves the skill project's identity and content folder via
+ * {@link SkillProjects#resolve} (SKILL.md frontmatter under the project's
+ * {@code version/assets/public/} or legacy {@code version/assets/skill/}
+ * folder).</li>
+ * <li>Checks the existing {@code .skill-meta} sidecar at
+ * {@code <workingDir>/.claude/skills/<slug>/.skill-meta}. If the source
+ * folder's last-modified time matches what we previously staged, the cache hits
+ * and the copy is skipped.</li>
+ * <li>Otherwise: wipes any previously-staged skill folder for this slug, copies
+ * the source folder over, then writes the {@code .skill-meta} sidecar.</li>
  * </ol>
  *
- * <p>This is a best-effort step - individual skill failures are logged and
- * the run continues.
+ * <p>
+ * This is a best-effort step - individual skill failures are logged and the run
+ * continues.
  *
- * <p>On-disk layout matches what
+ * <p>
+ * On-disk layout matches what
  * {@link prerna.reactor.agent.AppBuilderHarnessConfiguration} writes for
- * project-local skills, so Claude Code's skill discovery treats both
- * sources identically. When two attached skills resolve to the same slug,
- * the first one staged wins and the duplicate is skipped with a warning.
+ * project-local skills, so Claude Code's skill discovery treats both sources
+ * identically. When two attached skills resolve to the same slug, the first one
+ * staged wins and the duplicate is skipped with a warning.
  */
 public final class SkillStager {
 
 	private static final Logger logger = LogManager.getLogger(SkillStager.class);
 
-	private static final String CLAUDE_DIR      = ".claude";
-	private static final String SKILLS_DIR      = "skills";
+	private static final String CLAUDE_DIR = ".claude";
+	private static final String SKILLS_DIR = "skills";
 	private static final String SKILL_META_FILE = ".skill-meta";
 
-	private SkillStager() {}
+	private SkillStager() {
+	}
 
 	/**
 	 * Stage every skill ref in {@code skillRefs} under
@@ -114,7 +117,9 @@ public final class SkillStager {
 		int failed = 0;
 		Set<String> stagedSlugs = new HashSet<>();
 		for (Map<String, String> ref : skillRefs) {
-			if (ref == null) continue;
+			if (ref == null) {
+				continue;
+			}
 			String skillId = ref.get("skill_id");
 			if (skillId == null || skillId.isEmpty()) {
 				logger.warn("SkillStager: skipping skill ref with no skill_id: {}", ref);
@@ -137,19 +142,25 @@ public final class SkillStager {
 					continue;
 				}
 				StageOutcome outcome = stageFromSource(skillsRoot, info.slug, info.skillDir, skillId);
-				if (outcome == StageOutcome.STAGED) staged++;
-				else if (outcome == StageOutcome.CACHED) skipped++;
-				else failed++;
+				if (outcome == StageOutcome.STAGED) {
+					staged++;
+				} else if (outcome == StageOutcome.CACHED) {
+					skipped++;
+				} else {
+					failed++;
+				}
 			} catch (Exception e) {
 				logger.warn("SkillStager: failed to stage skill '{}': {}", skillId, e.getMessage(), e);
 				failed++;
 			}
 		}
-		logger.info("SkillStager: workingDir='{}' total={} staged={} cached={} duplicates={} failed={}",
-				workingDir, skillRefs.size(), staged, skipped, duplicates, failed);
+		logger.info("SkillStager: workingDir='{}' total={} staged={} cached={} duplicates={} failed={}", workingDir,
+				skillRefs.size(), staged, skipped, duplicates, failed);
 	}
 
-	private enum StageOutcome { STAGED, CACHED, FAILED }
+	private enum StageOutcome {
+		STAGED, CACHED, FAILED
+	}
 
 	/** Remove only managed copies of a skill that is no longer attached. */
 	public static void unstage(String workingDir, String skillId) {
@@ -255,8 +266,7 @@ public final class SkillStager {
 		JSONObject obj = new JSONObject();
 		obj.put("skill_id", skillId);
 		obj.put("source_fingerprint", sourceFingerprint);
-		Files.write(targetDir.resolve(SKILL_META_FILE),
-				obj.toString().getBytes(StandardCharsets.UTF_8));
+		Files.write(targetDir.resolve(SKILL_META_FILE), obj.toString().getBytes(StandardCharsets.UTF_8));
 	}
 
 	private static void copyTree(Path source, Path target) throws IOException {

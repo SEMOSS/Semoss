@@ -6,6 +6,12 @@ from anthropic import APIStatusError, APIConnectionError, APITimeoutError
 from botocore.exceptions import ClientError, BotoCoreError
 
 from ..message_builders.semoss_base.document_input import ContextBudgetError
+from ..usage_ceiling import (
+    UsageLimitDoesNotFitError,
+    USAGE_LIMIT_DOES_NOT_FIT,
+    DOES_NOT_FIT_CODE,
+    DOES_NOT_FIT_ERROR_TYPE,
+)
 
 # reason Java checks to compact/fork and retry instead of failing the room
 CONTEXT_OVERFLOW = "CONTEXT_OVERFLOW"
@@ -46,6 +52,10 @@ class ModelEngineException:
         self.traceback = traceback.format_exc()
 
     def parse_error(self) -> ErrorDetails:
+        # checked before the provider parsers: the refusal comes from this side,
+        # before any provider call, and reads the same for every client
+        if isinstance(self.error, UsageLimitDoesNotFitError):
+            return self._parse_usage_limit_error()
         details = self._parse_by_client()
         rule = self._context_overflow_rule(details)
         if rule:
@@ -69,6 +79,20 @@ class ModelEngineException:
             code=500,
             error_type="Internal Server Error",
         )
+
+    def _parse_usage_limit_error(self) -> ErrorDetails:
+        """A call refused before reaching the provider because its prompt left
+        too little of the usage ceiling. Java reads ``reason`` to release the
+        call's reservation and raise the usage limit error with ``message``;
+        ``reason_detail`` holds the prompt count, output left and need for the log."""
+        details = self._create_error_details(
+            message=str(self.error),
+            code=DOES_NOT_FIT_CODE,
+            error_type=DOES_NOT_FIT_ERROR_TYPE,
+        )
+        details.reason = USAGE_LIMIT_DOES_NOT_FIT
+        details.reason_detail = self.error.detail
+        return details
 
     def _context_overflow_rule(self, details: ErrorDetails) -> Optional[str]:
         # structured signals first, provider wording as the fallback

@@ -55,6 +55,8 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
@@ -141,6 +143,8 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		engineDependencyIds.remove(INotebookHelper.UNDEFINED_VALUE);
 		SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, engineDependencyIds);
 		SecurityProjectUtils.updateProjectLastEditedDate(projectId);
+		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_BLOCKS_UPDATE, projectId,
+				project.getProjectName(), Map.of("changedFields", List.of("blocks", "dependencies")));
 
 		return new NounMetadata(true, PixelDataType.MAP);
 	}

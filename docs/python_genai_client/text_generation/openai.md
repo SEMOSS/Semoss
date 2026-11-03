@@ -2,6 +2,66 @@
 
 This document covers the clients designed to interact with OpenAI's language models, both directly via the OpenAI API and through Microsoft's Azure OpenAI Service.
 
+## Decisions API
+
+The exported `genai_client.OpenAiClient` provides a dedicated
+`decisions(input=..., questions=..., **options)` method. It calls
+`client.decisions.create()` with the configured `model_name` and returns a
+JSON-compatible dictionary in the provider's native format: `model`, an ordered
+`answers` array, and `usage`. Question names, probabilities, confidence, score
+levels, and refusal answers are preserved.
+
+```python
+import os
+from genai_client import OpenAiClient
+
+client = OpenAiClient(
+    api_key=os.environ["OPENAI_API_KEY"],
+    model_name="gpt-6-luna",
+)
+result = client.decisions(
+    input="The report download fails for every member of our team.",
+    questions=[{
+        "name": "urgent",
+        "type": "predicate",
+        "instructions": "Does this report describe a problem affecting multiple users?",
+    }],
+)
+for answer in result["answers"]:
+    if answer["type"] == "refusal":
+        print("Declined:", answer["name"])
+    else:
+        print(answer["name"], answer["probability"])
+```
+
+Use OpenAI's native `predicate`, `choice`, and `score` question schemas. `input`
+accepts text or native input items, including image parts where supported by the
+endpoint. Options such as `prompt_cache_key`, `timeout`, and `extra_headers` pass
+directly to the SDK. `max_retries` accepts a nonnegative integer and applies only
+to that call. The configured model owns model selection; omit `model` from call
+options. SDK/API errors propagate to the caller.
+
+For a compatible server, set `endpoint="http://localhost:8080/v1"`, its API key,
+and a model name served there. Endpoint capabilities and limits still apply.
+This method requires OpenAI Python SDK 3.26.0 or newer; the project's pinned
+version satisfies that requirement.
+
+This is a direct Python client operation, separate from `ask()`: chat history,
+templates, and generation defaults are not applied. It is also available through
+the platform's
+[`OpenAIDecisions` Pixel reactor](../../how-to-guides/using_openai_decisions.md),
+which uses a registered OpenAI engine's credentials, access checks, usage limits,
+and inference logging. The platform's `usage_ceiling` is checked locally against
+the input token and cost budget before calling the provider; it is never sent to
+OpenAI. A request that does not fit becomes a platform usage-limit error.
+The platform returns a SEMOSS response envelope around
+the native result; the direct Python method returns only the native dictionary.
+The OpenAI passthrough endpoints and TypeSafe decision router do not expose this
+operation. The Azure controller does not expose it.
+
+See the [OpenAI Decisions guide](https://developers.openai.com/api/docs/guides/decisions)
+for question schemas and supported inputs.
+
 ## `OpenAITextGenerationClient` (from `openai_chat_completion_client.py`)
 
 This class provides a client for OpenAI's chat completion models (e.g., GPT-3.5 Turbo, GPT-4).

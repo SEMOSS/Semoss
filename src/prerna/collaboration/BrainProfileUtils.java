@@ -42,7 +42,9 @@ import org.javatuples.Pair;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.io.connector.mail.MailRecipientRules;
 import prerna.util.RuntimeTimeContext;
+import prerna.util.Utility;
 
 // Brain "you": BRAIN_PROFILE, BRAIN_SETTINGS, and the overview counts
 public final class BrainProfileUtils {
@@ -51,6 +53,10 @@ public final class BrainProfileUtils {
 
 	public static final int DEFAULT_FILE_AT = 85;
 	public static final int DEFAULT_ASK_AT = 40;
+	// how often BrainSync's schedule syncs the owner's mail while the app is closed, in minutes; 0 is off, and these
+	// are the choices Connections offers
+	static final int DEFAULT_SYNC_EVERY_MINUTES = 15;
+	static final List<Integer> SYNC_EVERY_MINUTES = List.of(0, 15, 30, 60, 240);
 
 	// ROLE_STATE and STYLE_STATE values
 	public static final String LEARNED = "learned";
@@ -90,7 +96,8 @@ public final class BrainProfileUtils {
 		Map<String, Object> profile = CollaborationDbUtils
 				.queryOne(
 						"SELECT DISPLAY_NAME, EMAIL, ORG, ROLE, ROLE_STATE, ROLE_NOTE, TIMEZONE, WORKING_HOURS_JSON, "
-								+ "STYLE_SUMMARY, STYLE_STATE, STYLE_EXAMPLES_JSON FROM BRAIN_PROFILE "
+								+ "STYLE_SUMMARY, STYLE_STATE, STYLE_EXAMPLES_JSON, STYLE_VARIANTS_JSON, STYLE_PENDING_JSON, "
+								+ "STYLE_LEARNED_AT FROM BRAIN_PROFILE "
 								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 						BrainProfileUtils::mapProfile, ownerId, ownerType);
 		if (profile != null) {
@@ -99,7 +106,7 @@ public final class BrainProfileUtils {
 		return profile;
 	}
 
-	// who the assistant writes as; role and style only once the owner set or confirmed them
+	// Owner identity stays in the general prompt; writing style is retrieved only when drafting.
 	@SuppressWarnings("unchecked")
 	public static String promptBlock(User user) {
 		Map<String, Object> profile;
@@ -112,7 +119,8 @@ public final class BrainProfileUtils {
 		if (profile == null) {
 			return null;
 		}
-		StringBuilder out = new StringBuilder("## Owner\nThe owner you work for. Write and sign as them.");
+		StringBuilder out = new StringBuilder(
+				"## Owner\nThe owner you work for. Write and sign as them when drafting on their behalf.");
 		appendField(out, "Name", profile.get("name"));
 		appendField(out, "Email", profile.get("email"));
 		appendField(out, "Organization", profile.get("org"));
@@ -121,11 +129,48 @@ public final class BrainProfileUtils {
 		if (role != null && YOU.equals(role.get("source"))) {
 			appendField(out, "Role", role.get("value"));
 		}
-		Map<String, Object> style = (Map<String, Object>) profile.get("style");
-		if (style != null && Boolean.TRUE.equals(style.get("confirmed"))) {
-			appendField(out, "Writing style", style.get("summary"));
-		}
 		return out.toString();
+	}
+
+	/** Current, confirmed writing guidance; unknown recipients use only the general style. */
+	public static Map<String, Object> getWritingStyle(User user, List<String> recipients) {
+		List<String> addresses = MailRecipientRules.validate(recipients);
+		Map<String, Object> profile = getProfile(user);
+		Map<String, Object> out = new LinkedHashMap<>();
+		out.put("confirmed", false);
+		out.put("audience", "unknown");
+		out.put("summary", "");
+		out.put("examples", List.of());
+		if (profile == null || !(profile.get("style") instanceof Map<?, ?> style)
+				|| !Boolean.TRUE.equals(style.get("confirmed"))) {
+			return out;
+		}
+		out.put("confirmed", true);
+		String summary = style.get("summary") instanceof String text ? text.strip() : "";
+		out.put("summary", summary.substring(0, Math.min(summary.length(), MAX_SUMMARY_CHARS)));
+		out.put("examples", cleanExamples(style.get("examples")));
+		if (addresses.isEmpty()) {
+			return out;
+		}
+		try {
+			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+			String email = CollaborationDbUtils.asString(profile.get("email"));
+			BrainOrgDomains.Org org = BrainOrgDomains.load(owner.getValue0(), owner.getValue1(),
+					email == null || !email.contains("@") ? null : email.substring(email.lastIndexOf('@') + 1));
+			if (!org.domains().isEmpty()) {
+				String audience = addresses.stream()
+						.allMatch(address -> org.isMine(address.substring(address.lastIndexOf('@') + 1)))
+						? "internal" : "external";
+				out.put("audience", audience);
+				Object variant = cleanVariants(style.get("variants")).get(audience);
+				if (variant != null) {
+					out.put("variant", variant);
+				}
+			}
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not resolve the writing style audience; using the general style", e);
+		}
+		return out;
 	}
 
 	private static void appendField(StringBuilder out, String label, Object value) {
@@ -163,14 +208,26 @@ public final class BrainProfileUtils {
 			if (style.containsKey("summary")) {
 				CollaborationDbUtils.addSet(sets, params, "STYLE_SUMMARY",
 						CollaborationDbUtils.asString(style.get("summary")));
-				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE", YOU);
+				// an accepted proposal stays "learned and confirmed"; what the owner typed is "you"; a reset
+				// style says confirmed false and goes back to unconfirmed whatever the summary is
+				boolean accepted = Boolean.TRUE.equals(style.get("confirmed")) && LEARNED.equals(style.get("source"));
+				String state = Boolean.FALSE.equals(style.get("confirmed")) ? LEARNED : accepted ? CONFIRMED : YOU;
+				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE", state);
 			} else if (style.containsKey("confirmed")) {
 				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE",
 						Boolean.TRUE.equals(style.get("confirmed")) ? CONFIRMED : LEARNED);
 			}
 			if (style.containsKey("examples")) {
 				CollaborationDbUtils.addSet(sets, params, "STYLE_EXAMPLES_JSON",
-						CollaborationDbUtils.toJson(style.get("examples")));
+						CollaborationDbUtils.toJson(cleanExamples(style.get("examples"))));
+			}
+			if (style.containsKey("variants")) {
+				CollaborationDbUtils.addSet(sets, params, "STYLE_VARIANTS_JSON",
+						CollaborationDbUtils.toJson(cleanVariants(style.get("variants"))));
+			}
+			// only the proposal's review clears it; a proposal is written by the style learning, never by a client
+			if (style.containsKey("pending") && isEmpty(style.get("pending"))) {
+				CollaborationDbUtils.addSet(sets, params, "STYLE_PENDING_JSON", null);
 			}
 		}
 		List<String> vips = changes.get("vips") instanceof List
@@ -234,6 +291,16 @@ public final class BrainProfileUtils {
 		style.put("confirmed", YOU.equals(styleState) || CONFIRMED.equals(styleState));
 		style.put("examples",
 				CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "STYLE_EXAMPLES_JSON")));
+		style.put("variants", cleanVariants(
+				CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "STYLE_VARIANTS_JSON"))));
+		String pending = CollaborationDbUtils.getString(rs, "STYLE_PENDING_JSON");
+		if (pending != null && !pending.isBlank()) {
+			style.put("pending", CollaborationDbUtils.parseMap(pending));
+		}
+		java.sql.Timestamp learnedAt = rs.getTimestamp("STYLE_LEARNED_AT");
+		if (learnedAt != null) {
+			style.put("learnedAt", learnedAt.toInstant().toString());
+		}
 
 		Map<String, Object> profile = new LinkedHashMap<>();
 		profile.put("id", "me");
@@ -245,6 +312,54 @@ public final class BrainProfileUtils {
 		profile.put("workingHours", CollaborationDbUtils.getString(rs, "WORKING_HOURS_JSON"));
 		profile.put("style", style);
 		return profile;
+	}
+
+	/** The audiences a style variant can be written for. */
+	static final List<String> AUDIENCES = List.of("internal", "external");
+	static final int MAX_EXAMPLES = 5;
+	static final int MAX_EXAMPLE_CHARS = 600;
+	static final int MAX_SUMMARY_CHARS = 1500;
+
+	private static boolean isEmpty(Object value) {
+		return value == null || (value instanceof String text && text.isBlank())
+				|| (value instanceof Map<?, ?> map && map.isEmpty());
+	}
+
+	// only short, non-blank strings, so a style can never smuggle in a large block
+	static List<String> cleanExamples(Object value) {
+		List<String> out = new ArrayList<>();
+		if (value instanceof List<?> list) {
+			for (Object item : list) {
+				if (item instanceof String text && !text.isBlank() && out.size() < MAX_EXAMPLES) {
+					String trimmed = text.strip();
+					out.add(trimmed.length() > MAX_EXAMPLE_CHARS ? trimmed.substring(0, MAX_EXAMPLE_CHARS) : trimmed);
+				}
+			}
+		}
+		return out;
+	}
+
+	// {internal, external}, each {summary, examples}; a variant with no summary is dropped
+	static Map<String, Object> cleanVariants(Object value) {
+		Map<String, Object> out = new LinkedHashMap<>();
+		if (!(value instanceof Map<?, ?> map)) {
+			return out;
+		}
+		for (String audience : AUDIENCES) {
+			if (!(map.get(audience) instanceof Map<?, ?> variant)) {
+				continue;
+			}
+			String summary = variant.get("summary") instanceof String text ? text.strip() : "";
+			if (summary.isEmpty()) {
+				continue;
+			}
+			Map<String, Object> entry = new LinkedHashMap<>();
+			entry.put("summary",
+					summary.length() > MAX_SUMMARY_CHARS ? summary.substring(0, MAX_SUMMARY_CHARS) : summary);
+			entry.put("examples", cleanExamples(variant.get("examples")));
+			out.put(audience, entry);
+		}
+		return out;
 	}
 
 	private static List<String> getVipIds(String ownerId, String ownerType) {
@@ -268,10 +383,16 @@ public final class BrainProfileUtils {
 	public static Map<String, Object> getSettings(String ownerId, String ownerType) {
 		ensureSettings(ownerId, ownerType);
 		Map<String, Object> settings = CollaborationDbUtils.queryOne(
-				"SELECT FILE_AT, ASK_AT, VERSION, MEMORY_USE, MEMORY_LEARN FROM BRAIN_SETTINGS "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				"SELECT FILE_AT, ASK_AT, VERSION, MEMORY_USE, MEMORY_LEARN, DRAFT_FOLDER_ID, DRAFT_FOLDER_NAME, "
+						+ "ASSISTANT_SKILLS_JSON, SYNC_EVERY_MINUTES "
+						+ "FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> {
 					Map<String, Object> row = new LinkedHashMap<>();
+					// blank when drafts stay in the mailbox's Drafts
+					String folderId = CollaborationDbUtils.getString(rs, "DRAFT_FOLDER_ID");
+					row.put("draftFolderId", folderId == null ? "" : folderId);
+					String folderName = CollaborationDbUtils.getString(rs, "DRAFT_FOLDER_NAME");
+					row.put("draftFolderName", folderName == null ? "" : folderName);
 					// read-only: one platform classifier (RDF_Map)
 					row.put("classifierEngineId", BrainThreadClassifier.platformEngine());
 					row.put("fileAt", CollaborationDbUtils.getInteger(rs, "FILE_AT"));
@@ -281,10 +402,20 @@ public final class BrainProfileUtils {
 					memory.put("use", !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "MEMORY_USE")));
 					memory.put("learn", !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "MEMORY_LEARN")));
 					row.put("memory", memory);
+					row.put("assistantSkills", skillIds(CollaborationDbUtils.getString(rs, "ASSISTANT_SKILLS_JSON")));
+					Integer syncEvery = CollaborationDbUtils.getInteger(rs, "SYNC_EVERY_MINUTES");
+					row.put("syncEveryMinutes", syncEvery == null ? DEFAULT_SYNC_EVERY_MINUTES : syncEvery);
 					return row;
 				}, ownerId, ownerType);
 		settings.put("sourcesJson", CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType));
 		return settings;
+	}
+
+	/** Minutes between the owner's scheduled syncs, 0 when they turned it off; the default before they choose. */
+	static int syncEveryMinutes(String ownerId, String ownerType) {
+		Integer minutes = CollaborationDbUtils.queryOne("SELECT SYNC_EVERY_MINUTES FROM BRAIN_SETTINGS WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ?", rs -> CollaborationDbUtils.getInteger(rs, "SYNC_EVERY_MINUTES"), ownerId, ownerType);
+		return minutes == null ? DEFAULT_SYNC_EVERY_MINUTES : minutes;
 	}
 
 	// partial Settings; a version, when sent, must match or the save is refused
@@ -329,6 +460,30 @@ public final class BrainProfileUtils {
 				CollaborationDbUtils.addSet(sets, params, "MEMORY_LEARN", isTrue(memory.get("learn")));
 			}
 		}
+		if (changes.containsKey("draftFolderId") || changes.containsKey("draftFolderName")) {
+			// the id picks the folder; a blank id puts drafts back in Drafts
+			String folderId = trimToNull(changes.get("draftFolderId"));
+			String folderName = trimToNull(changes.get("draftFolderName"));
+			if (folderId != null && (folderId.length() > 255 || (folderName != null && folderName.length() > 255))) {
+				throw new IllegalArgumentException("The folder id or name is too long");
+			}
+			CollaborationDbUtils.addSet(sets, params, "DRAFT_FOLDER_ID", folderId);
+			CollaborationDbUtils.addSet(sets, params, "DRAFT_FOLDER_NAME", folderId == null ? null : folderName);
+		}
+		if (changes.containsKey("syncEveryMinutes")) {
+			int minutes = CollaborationDbUtils.toInt(changes.get("syncEveryMinutes"), "syncEveryMinutes");
+			if (!SYNC_EVERY_MINUTES.contains(minutes)) {
+				throw new IllegalArgumentException("syncEveryMinutes must be one of " + SYNC_EVERY_MINUTES);
+			}
+			CollaborationDbUtils.addSet(sets, params, "SYNC_EVERY_MINUTES", minutes);
+		}
+		if (changes.containsKey("assistantSkills")) {
+			if (!(changes.get("assistantSkills") instanceof List<?> skills)) {
+				throw new IllegalArgumentException("assistantSkills must be a list of skill ids");
+			}
+			CollaborationDbUtils.addSet(sets, params, "ASSISTANT_SKILLS_JSON",
+					CollaborationDbUtils.toJson(CollaborationSkills.requireMine(user, skills)));
+		}
 		CollaborationDbUtils.addSet(sets, params, "VERSION", currentVersion + 1);
 		CollaborationDbUtils.addSet(sets, params, "UPDATED_AT", CollaborationDbUtils.now());
 		params.add(ownerId);
@@ -344,6 +499,64 @@ public final class BrainProfileUtils {
 					Boolean.TRUE.equals(source.getValue()));
 		}
 		return getSettings(ownerId, ownerType);
+	}
+
+	/**
+	 * The Outlook folder id the user keeps drafts in, or null for their own Drafts. Read only: it
+	 * creates nothing and answers null when Collaboration is off or the user has no settings yet.
+	 */
+	public static String draftFolderId(User user) {
+		try {
+			if (user == null || !Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
+				return null;
+			}
+			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+			return CollaborationDbUtils.queryOne(
+					"SELECT DRAFT_FOLDER_ID FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+					rs -> trimToNull(CollaborationDbUtils.getString(rs, "DRAFT_FOLDER_ID")), owner.getValue0(),
+					owner.getValue1());
+		} catch (Exception e) {
+			// a draft still gets saved, in Drafts, when the setting cannot be read
+			classLogger.warn("Could not read the draft folder setting: {}", e.getMessage());
+			return null;
+		}
+	}
+
+	/** Skill ids the owner turned on for their assistant; empty when Collaboration is off or nothing is set. */
+	public static List<String> assistantSkills(User user) {
+		try {
+			if (user == null || !Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
+				return List.of();
+			}
+			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+			List<String> ids = CollaborationDbUtils.queryOne(
+					"SELECT ASSISTANT_SKILLS_JSON FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+					rs -> skillIds(CollaborationDbUtils.getString(rs, "ASSISTANT_SKILLS_JSON")), owner.getValue0(),
+					owner.getValue1());
+			return ids == null ? List.of() : ids;
+		} catch (Exception e) {
+			// the chat still runs, without the owner's skills, when the setting cannot be read
+			classLogger.warn("Could not read the assistant skills setting: {}", e.getMessage());
+			return List.of();
+		}
+	}
+
+	private static List<String> skillIds(String json) {
+		List<String> ids = new ArrayList<>();
+		if (json != null && !json.isBlank()) {
+			for (Object id : CollaborationDbUtils.parseList(json)) {
+				ids.add(String.valueOf(id));
+			}
+		}
+		return ids;
+	}
+
+	private static String trimToNull(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String text = String.valueOf(value).trim();
+		return text.isEmpty() ? null : text;
 	}
 
 	/** Memories are recalled and the assistant gets its memory tools; on unless the owner turned it off. */

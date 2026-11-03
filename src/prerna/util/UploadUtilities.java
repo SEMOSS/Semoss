@@ -103,12 +103,6 @@ public final class UploadUtilities {
 	public static final String GRID_DELTA_INSIGHT_NAME = "Grid Delta";
 	public static final String GRID_DELTA_LAYOUT = "Grid";
 
-	public static final String AUDIT_MODIFICATION_VIEW_INSIGHT_NAME = "What are the modifications made to specific column(s)?";
-	public static final String AUDIT_MODIFICATION_VIEW_LAYOUT = "Bar";
-
-	public static final String AUDIT_TIMELINE_INSIGHT_NAME = "What are the modifications made to the specific column(s) over time?";
-	public static final String AUDIT_TIMELINE_LAYOUT = "Line";
-
 	public static final String INSERT_FORM_LAYOUT = "form-builder";
 	public static final String UPDATE_FORM_LAYOUT = "form-builder";
 
@@ -1751,126 +1745,6 @@ public final class UploadUtilities {
 			return retMap;
 		} catch (Exception e) {
 			classLogger.error("Failed to add grid delta insight for database {}: {}", databaseName, e.getMessage(), e);
-		}
-		return null;
-	}
-
-	/**
-	 * Add the insight to check the modifications made to a column from audit db
-	 * 
-	 * @param databaseId
-	 * @param insightEngine
-	 */
-	public static Map<String, Object> addAuditModificationView(String projectId, String projectName, String databaseId,
-			String databaseName, IRDBMSEngine insightEngine) {
-		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
-				+ "AuditModificationView.json";
-		File jsonFile = new File(jsonLoc);
-		if (jsonFile.exists()) {
-			String newPixel = "META | AddPanel(0); META | Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
-			try {
-				newPixel += new String(Files.readAllBytes(jsonFile.toPath())).replaceAll("\n|\r|\t", "")
-						.replace("<<ENGINE>>", databaseId)
-						.replace("<<INSIGHT_NAME>>", AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
-				newPixel += "} </encode>\" ) ;";
-				List<String> pixelRecipeToSave = new ArrayList<>();
-				pixelRecipeToSave.add(newPixel);
-				String insightName = getInsightName(databaseName, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
-				boolean global = true;
-				boolean cacheable = Utility.getApplicationCacheInsight();
-				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
-				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
-				String cacheCron = Utility.getApplicationCacheCron();
-				ZonedDateTime cachedOn = null;
-				String description = null;
-				List<String> tags = null;
-				String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
-
-				String insightId = admin.addInsight(insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave,
-						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
-				// write recipe to file
-				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName,
-						AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron,
-						cachedOn, cacheEncrypt, description, tags, schemaName);
-				// add the insight to git
-				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-				List<String> files = new ArrayList<>();
-				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-				GitRepoUtils.addSpecificFiles(gitFolder, files);
-				GitRepoUtils.commitAddedFiles(gitFolder,
-						GitUtils.getDateMessage("Saved " + insightName + " insight on"));
-
-				Map<String, Object> retMap = new HashMap<>();
-				retMap.put(INSIGHT_ID_KEY, insightId);
-				retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
-				retMap.put(INSIGHT_NAME_KEY, insightName);
-				retMap.put(SCHEMA_NAME_KEY, schemaName);
-				return retMap;
-			} catch (Exception e) {
-				classLogger.error("Failed to add audit modification view insight for database {}: {}", databaseName,
-						e.getMessage(), e);
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * Add the insight to check the modifications made to a column over time from
-	 * audit database
-	 * 
-	 * @param databaseId
-	 * @param insightEngine
-	 */
-	public static Map<String, Object> addAuditTimelineView(String projectId, String projectName, String databaseId,
-			String databaseName, IRDBMSEngine insightEngine) {
-		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
-				+ "AuditTimelineView.json";
-		File jsonFile = new File(jsonLoc);
-		if (jsonFile.exists()) {
-			String newPixel = "META | AddPanel(0); META | Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
-			try {
-				newPixel += new String(Files.readAllBytes(jsonFile.toPath())).replaceAll("\n|\r|\t", "")
-						.replace("<<ENGINE>>", databaseId).replace("<<INSIGHT_NAME>>", AUDIT_TIMELINE_INSIGHT_NAME);
-				newPixel += "} </encode>\" ) ;";
-				List<String> pixelRecipeToSave = new ArrayList<>();
-				pixelRecipeToSave.add(newPixel);
-				String insightName = getInsightName(databaseName, AUDIT_TIMELINE_INSIGHT_NAME);
-				boolean global = true;
-				boolean cacheable = Utility.getApplicationCacheInsight();
-				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
-				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
-				String cacheCron = Utility.getApplicationCacheCron();
-				ZonedDateTime cachedOn = null;
-				String description = null;
-				List<String> tags = null;
-				String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
-
-				String insightId = admin.addInsight(insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave, global,
-						cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
-				// write recipe to file
-				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_TIMELINE_LAYOUT,
-						pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
-						description, tags, schemaName);
-				// add the insight to git
-				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-				List<String> files = new ArrayList<>();
-				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-				GitRepoUtils.addSpecificFiles(gitFolder, files);
-				GitRepoUtils.commitAddedFiles(gitFolder,
-						GitUtils.getDateMessage("Saved " + insightName + " insight on"));
-
-				Map<String, Object> retMap = new HashMap<>();
-				retMap.put(INSIGHT_ID_KEY, insightId);
-				retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
-				retMap.put(INSIGHT_NAME_KEY, insightName);
-				retMap.put(SCHEMA_NAME_KEY, schemaName);
-				return retMap;
-			} catch (Exception e) {
-				classLogger.error("Failed to add audit timeline view insight for database {}: {}", databaseName,
-						e.getMessage(), e);
-			}
 		}
 		return null;
 	}

@@ -9,6 +9,9 @@ class OpenAiClientController:
     def ask(self, **kwargs) -> Dict:
         return self.openai_class.ask(**kwargs)
 
+    def decisions(self, **kwargs) -> Dict:
+        return self.openai_class.decisions(**kwargs)
+
     def embeddings(self, **kwargs) -> List[float]:
         return self.openai_class.embeddings(**kwargs)
 

@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.usertracking;
 
+import java.sql.Connection;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -36,170 +37,165 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IRDBMSEngine;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class EngineUsageUtils extends UserTrackingUtils {
 
 	private static Logger classLogger = LogManager.getLogger(EngineUsageUtils.class);
+
 	private static String EU_TN = "ENGINE_USES";
-	private static String EU_PRE = "ENGINE_USES__";
 
 	/**
-	 * Records usage of each queried database within the given insight.
+	 * Records usage of each queried database within the given insight. Every row is
+	 * inserted in one write on the shared executor, so the usage is recorded for
+	 * all of the databases or none. A failure is logged and not thrown.
 	 *
 	 * @param queriedDatabaseIds the ids of the databases/engines that were queried
 	 * @param insightId          the insight the queries ran in
 	 * @param projectId          the project owning the insight
 	 */
 	public static void add(Set<String> queriedDatabaseIds, String insightId, String projectId) {
-		queriedDatabaseIds.forEach(databaseId -> add(databaseId, insightId, projectId));
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
+		LocalDate date = LocalDate.now(ZoneId.of("UTC"));
+		try {
+			QueryExecutionUtility.write(userTrackingDb, connection -> {
+				for (String databaseId : queriedDatabaseIds) {
+					add(connection, databaseId, insightId, projectId, date);
+				}
+				return null;
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to insert engine usage rows for engines {} (insight {}, project {})",
+					queriedDatabaseIds, insightId, projectId, e);
+		}
 	}
 
 	/**
 	 * Reconciles recorded database usage for an insight: adds newly used databases,
-	 * refreshes still-used ones, and removes those no longer used.
+	 * refreshes still-used ones, and removes those no longer used. The recorded
+	 * databases are read and every change is written in one write on the shared
+	 * executor, so the insight's usage rows change together or not at all. A
+	 * failure is logged and not thrown.
 	 *
 	 * @param queriedDatabaseIds the ids of the databases/engines currently in use
 	 * @param insightId          the insight the queries ran in
 	 * @param projectId          the project owning the insight
 	 */
 	public static void update(Set<String> queriedDatabaseIds, String insightId, String projectId) {
-		List<String> existingDbs = get(insightId, projectId);
-
-		for (String db : queriedDatabaseIds) {
-			if (existingDbs.remove(db)) {
-				// update existing
-				update(db, insightId, projectId);
-			} else {
-				// add new
-				add(db, insightId, projectId);
-			}
-		}
-
-		for (String db : existingDbs) {
-			// remove no longer used
-			remove(db, insightId, projectId);
-		}
-	}
-
-	/**
-	 * Returns the database ids currently recorded as used by the given insight.
-	 *
-	 * @param insightId the insight to look up
-	 * @param projectId the project owning the insight
-	 * @return the list of database ids recorded for the insight
-	 */
-	private static List<String> get(String insightId, String projectId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(EU_PRE + "ENGINEID"));
-
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EU_PRE + "INSIGHTID", "==", insightId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EU_PRE + "PROJECTID", "==", projectId));
-
-		return QueryExecutionUtility.flushToListString(SystemEngineRegistry.getUserTrackingDb(), qs);
-	}
-
-	/**
-	 * Records a single database's usage within an insight, stamped with the current
-	 * UTC date.
-	 *
-	 * @param engineId  the id of the database/engine used
-	 * @param insightId the insight the query ran in
-	 * @param projectId the project owning the insight
-	 */
-	private static void add(String engineId, String insightId, String projectId) {
-		add(engineId, insightId, projectId, LocalDate.now(ZoneId.of("UTC")));
-	}
-
-	/**
-	 * Refreshes the recorded usage date of a single database within an insight to
-	 * the current UTC date.
-	 *
-	 * @param engineId  the id of the database/engine used
-	 * @param insightId the insight the query ran in
-	 * @param projectId the project owning the insight
-	 */
-	private static void update(String engineId, String insightId, String projectId) {
-		update(engineId, insightId, projectId, LocalDate.now(ZoneId.of("UTC")));
-	}
-
-	/**
-	 * Inserts a usage row for a database within an insight on the given date.
-	 *
-	 * @param engineId  the id of the database/engine used
-	 * @param insightId the insight the query ran in
-	 * @param projectId the project owning the insight
-	 * @param date      the date to record the usage under
-	 */
-	private static void add(String engineId, String insightId, String projectId, LocalDate date) {
-		String query = "INSERT INTO " + EU_TN + " VALUES (?, ?, ?, ?)";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
+		LocalDate date = LocalDate.now(ZoneId.of("UTC"));
 		try {
-			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
-				int index = 1;
-				ps.setString(index++, engineId);
-				ps.setString(index++, insightId);
-				ps.setString(index++, projectId);
-				ps.setDate(index++, java.sql.Date.valueOf(date));
+			QueryExecutionUtility.write(userTrackingDb, connection -> {
+				List<String> existingDbs = get(connection, insightId, projectId);
+
+				for (String db : queriedDatabaseIds) {
+					if (existingDbs.remove(db)) {
+						// update existing
+						update(connection, db, insightId, projectId, date);
+					} else {
+						// add new
+						add(connection, db, insightId, projectId, date);
+					}
+				}
+
+				for (String db : existingDbs) {
+					// remove no longer used
+					remove(connection, db, insightId, projectId);
+				}
+				return null;
 			});
 		} catch (Exception e) {
-			classLogger.error("Failed to insert engine usage row for engine {} (insight {}, project {})", engineId,
-					insightId, projectId, e);
+			classLogger.error("Failed to reconcile engine usage rows for insight {} (project {})", insightId, projectId,
+					e);
 		}
+	}
+
+	/**
+	 * Returns the database ids currently recorded as used by the given insight,
+	 * read inside the caller's transaction.
+	 *
+	 * @param connection connection whose transaction the caller owns
+	 * @param insightId  the insight to look up
+	 * @param projectId  the project owning the insight
+	 * @return the list of database ids recorded for the insight
+	 * @throws Exception if the read fails
+	 */
+	private static List<String> get(Connection connection, String insightId, String projectId) throws Exception {
+		String query = "SELECT ENGINEID FROM " + EU_TN + " WHERE INSIGHTID = ? AND PROJECTID = ?";
+		return QueryExecutionUtility.queryList(connection, query, ps -> {
+			int index = 1;
+			ps.setString(index++, insightId);
+			ps.setString(index++, projectId);
+		}, rs -> rs.getString(1));
+	}
+
+	/**
+	 * Inserts a usage row for a database within an insight on the given date,
+	 * inside the caller's transaction.
+	 *
+	 * @param connection connection whose transaction the caller owns
+	 * @param engineId   the id of the database/engine used
+	 * @param insightId  the insight the query ran in
+	 * @param projectId  the project owning the insight
+	 * @param date       the date to record the usage under
+	 * @throws Exception if the insert fails
+	 */
+	private static void add(Connection connection, String engineId, String insightId, String projectId, LocalDate date)
+			throws Exception {
+		String query = "INSERT INTO " + EU_TN + " VALUES (?, ?, ?, ?)";
+		QueryExecutionUtility.executeUpdate(connection, query, ps -> {
+			int index = 1;
+			ps.setString(index++, engineId);
+			ps.setString(index++, insightId);
+			ps.setString(index++, projectId);
+			ps.setDate(index++, java.sql.Date.valueOf(date));
+		});
 	}
 
 	/**
 	 * Updates the recorded usage date of a database within an insight to the given
-	 * date.
+	 * date, inside the caller's transaction.
 	 *
-	 * @param engineId  the id of the database/engine used
-	 * @param insightId the insight the query ran in
-	 * @param projectId the project owning the insight
-	 * @param date      the new date to record
+	 * @param connection connection whose transaction the caller owns
+	 * @param engineId   the id of the database/engine used
+	 * @param insightId  the insight the query ran in
+	 * @param projectId  the project owning the insight
+	 * @param date       the new date to record
+	 * @throws Exception if the update fails
 	 */
-	private static void update(String engineId, String insightId, String projectId, LocalDate date) {
+	private static void update(Connection connection, String engineId, String insightId, String projectId,
+			LocalDate date) throws Exception {
 		String query = "UPDATE " + EU_TN + " SET DATE = ? WHERE ENGINEID = ? AND INSIGHTID = ? " + "AND PROJECTID = ?";
-		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
-		try {
-			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
-				int index = 1;
+		QueryExecutionUtility.executeUpdate(connection, query, ps -> {
+			int index = 1;
 
-				ps.setDate(index++, java.sql.Date.valueOf(date));
-				ps.setString(index++, engineId);
-				ps.setString(index++, insightId);
-				ps.setString(index++, projectId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to update engine usage row for engine {} (insight {}, project {})", engineId,
-					insightId, projectId, e);
-		}
+			ps.setDate(index++, java.sql.Date.valueOf(date));
+			ps.setString(index++, engineId);
+			ps.setString(index++, insightId);
+			ps.setString(index++, projectId);
+		});
 	}
 
 	/**
-	 * Removes the recorded usage row for a database within an insight.
+	 * Removes the recorded usage row for a database within an insight, inside the
+	 * caller's transaction.
 	 *
-	 * @param engineId  the id of the database/engine to remove
-	 * @param insightId the insight the usage was recorded under
-	 * @param projectId the project owning the insight
+	 * @param connection connection whose transaction the caller owns
+	 * @param engineId   the id of the database/engine to remove
+	 * @param insightId  the insight the usage was recorded under
+	 * @param projectId  the project owning the insight
+	 * @throws Exception if the delete fails
 	 */
-	private static void remove(String engineId, String insightId, String projectId) {
+	private static void remove(Connection connection, String engineId, String insightId, String projectId)
+			throws Exception {
 		String query = "DELETE FROM " + EU_TN + " where ENGINEID = ? AND INSIGHTID = ? AND PROJECTID = ?";
-		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
-		try {
-			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
-				int index = 1;
-				ps.setString(index++, engineId);
-				ps.setString(index++, insightId);
-				ps.setString(index++, projectId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to remove engine usage row for engine {} (insight {}, project {})", engineId,
-					insightId, projectId, e);
-		}
+		QueryExecutionUtility.executeUpdate(connection, query, ps -> {
+			int index = 1;
+			ps.setString(index++, engineId);
+			ps.setString(index++, insightId);
+			ps.setString(index++, projectId);
+		});
 	}
 
 }

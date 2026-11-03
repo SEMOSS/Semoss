@@ -34,10 +34,12 @@ import java.util.Collection;
 import com.google.gson.GsonBuilder;
 
 import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.usage.ModelUsageBilledTo;
 import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
 import prerna.project.api.IProject;
@@ -73,6 +75,12 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	private Integer cacheCreationTokens;
 	// thinking tokens are recorded on the RESPONSE row only (assistant output)
 	private Integer thinkingTokens;
+	// the usage limit source the call was billed to, on both rows
+	private String billedSourceType;
+	private String billedSubjectId;
+	private String billedSubjectType;
+	// the call's cost in millionths of a dollar, on the RESPONSE row only
+	private Long costMicros;
 
 	// @formatter:off
     public ModelEngineInferenceLogsWorker(
@@ -154,6 +162,24 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
     }
     // @formatter:on
 
+	/**
+	 * Sets the source the call was billed to and what it cost, which the worker
+	 * writes on the call's {@code MESSAGE} rows.
+	 *
+	 * @param billedTo   the usage limit source the call was billed to, or null when
+	 *                   no limit applied
+	 * @param costMicros the call's cost in millionths of a dollar, or null when the
+	 *                   model has no known prices
+	 * @return this worker
+	 */
+	public ModelEngineInferenceLogsWorker withBilling(ModelUsageBilledTo billedTo, Long costMicros) {
+		this.billedSourceType = billedTo == null ? null : billedTo.sourceType();
+		this.billedSubjectId = billedTo == null ? null : billedTo.subjectId();
+		this.billedSubjectType = billedTo == null ? null : billedTo.subjectType();
+		this.costMicros = costMicros;
+		return this;
+	}
+
 	@Override
 	public void run() {
 		String agentType = engine.getCatalogSubType(engine.getSmssProp());
@@ -167,13 +193,16 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		String projectName = null;
 		if (projectId != null) {
 			IProject project = Utility.getProject(projectId);
-			if(project != null) {
+			if (project != null) {
 				projectName = project.getProjectName();
 			}
 		}
 
+		// usage belongs to the primary login, by its id and type
 		AccessToken userToken = user.getPrimaryLoginToken();
 		String userId = userToken.getId();
+		AuthProvider primaryLogin = user.getPrimaryLogin();
+		String userType = primaryLogin == null ? null : primaryLogin.getLabel();
 		String userName = userToken.getName();
 		String userUsername = userToken.getUsername();
 		String userEmail = userToken.getEmail();
@@ -249,7 +278,9 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		// @formatter:off
 		// Granular tokens split by row type so SUM(<col>) gives correct totals without
 		// filtering by MESSAGE_TYPE. INPUT row carries prompt-side counts (input + cache),
-		// RESPONSE row carries assistant-side counts (output + thinking).
+		// RESPONSE row carries assistant-side counts (output + thinking), the response
+		// time and the cost, so each call's time and cost count once. Both rows carry
+		// the source billed.
 		String messageBody = keepInputOutput ? this.prompt : null;
 		String responseBody = keepInputOutput ? this.response : null;
 		ModelInferenceLogsUtils.doRecordMessage(
@@ -264,15 +295,20 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			this.cacheReadTokens,
 			this.cacheCreationTokens,
 			null, // thinking tokens belong on the RESPONSE row
-			millisecondsDouble,
+			null, // response time belongs on the RESPONSE row
 			this.inputTime,
 			this.engine.getEngineId(),
 			insightId,
 			this.sessionId,
 			this.roomId,
 			userId,
+			userType,
 			userName,
-			userEmail
+			userEmail,
+			this.billedSourceType,
+			this.billedSubjectId,
+			this.billedSubjectType,
+			null // cost belongs on the RESPONSE row
 		);
 		ModelInferenceLogsUtils.doRecordMessage(
 			this.transactionId,
@@ -293,8 +329,13 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			this.sessionId,
 			this.roomId,
 			userId,
+			userType,
 			userName,
-			userEmail
+			userEmail,
+			this.billedSourceType,
+			this.billedSubjectId,
+			this.billedSubjectType,
+			this.costMicros
 		);
 		// @formatter:on
 	}

@@ -29,9 +29,11 @@ package prerna.collaboration;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.javatuples.Pair;
 
@@ -71,11 +73,21 @@ public final class BrainAgentEdits {
 
 	public static Map<String, Object> editTopic(User user, String topicId, String topicName, String name,
 			String description, String status, List<String> addPeople, List<String> removePeople, String addGoal,
-			String addNote, String deleteNoteId, String completeGoalId, String goalResolution) {
+			String addNote, String deleteNoteId, String completeGoalId, String goalResolution, List<String> addEmails) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
-		String topic = BrainThreadFinder.resolveTopic(ownerId, ownerType, topicId, topicName);
+		// no topic named: a name alone creates one, unless a topic already goes by that name
+		String topic = isSet(topicId) || isSet(topicName) || !isSet(name)
+				? BrainThreadFinder.resolveTopic(ownerId, ownerType, topicId, topicName)
+				: null;
+		String lowerName = isSet(name) ? name.trim().toLowerCase(Locale.ROOT) : null;
+		if (topic == null && CollaborationDbUtils.exists("SELECT TOPIC_ID FROM BRAIN_TOPIC WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ? AND (LOWER(NAME) = ? OR LOWER(SHORT_NAME) = ?)", ownerId, ownerType, lowerName,
+				lowerName)) {
+			throw new IllegalArgumentException("A topic named " + name.trim() + " already exists; pass it as topic "
+					+ "to change it");
+		}
 		if (isSet(goalResolution) && !isSet(completeGoalId)) {
 			throw new IllegalArgumentException("Pass completeGoalId with goalResolution");
 		}
@@ -89,25 +101,41 @@ public final class BrainAgentEdits {
 		for (String ref : clean(removePeople)) {
 			removes.add(person(ownerId, ownerType, ref));
 		}
+		// and every email, so one that cannot be added stops the call before the topic changes
+		List<String> threads = threads(user, ownerId, ownerType, clean(addEmails));
 
 		List<String> changes = new ArrayList<>();
 		try {
-			if (isSet(status)) {
-				BrainTopicUtils.setTopicStatus(user, topic, status.trim());
-				changes.add("status set to " + status.trim());
-			}
-			Map<String, Object> fields = new LinkedHashMap<>();
-			fields.put("id", topic);
-			if (isSet(name)) {
+			if (topic == null) {
+				// one insert, so a bad status creates nothing
+				Map<String, Object> fields = new LinkedHashMap<>();
 				fields.put("name", name.trim());
-				changes.add("renamed to " + name.trim());
-			}
-			if (description != null) {
-				fields.put("description", description);
-				changes.add("description updated");
-			}
-			if (fields.size() > 1) {
-				BrainTopicUtils.saveTopic(user, fields);
+				if (description != null) {
+					fields.put("description", description);
+				}
+				if (isSet(status)) {
+					fields.put("status", status.trim());
+				}
+				topic = (String) BrainTopicUtils.saveTopic(user, fields).get("id");
+				changes.add("created " + name.trim());
+			} else {
+				if (isSet(status)) {
+					BrainTopicUtils.setTopicStatus(user, topic, status.trim());
+					changes.add("status set to " + status.trim());
+				}
+				Map<String, Object> fields = new LinkedHashMap<>();
+				fields.put("id", topic);
+				if (isSet(name)) {
+					fields.put("name", name.trim());
+					changes.add("renamed to " + name.trim());
+				}
+				if (description != null) {
+					fields.put("description", description);
+					changes.add("description updated");
+				}
+				if (fields.size() > 1) {
+					BrainTopicUtils.saveTopic(user, fields);
+				}
 			}
 			for (Map<String, String> person : adds) {
 				BrainTopicUtils.setTopicPerson(user, topic, person.get("id"), BrainTopicUtils.MEMBER, null);
@@ -116,6 +144,12 @@ public final class BrainAgentEdits {
 			for (Map<String, String> person : removes) {
 				BrainTopicUtils.setTopicPerson(user, topic, person.get("id"), BrainTopicUtils.REMOVED, null);
 				changes.add("removed " + label(person));
+			}
+			for (String thread : threads) {
+				BrainThreadUtils.linkThreadTopic(user, thread, topic, false, false);
+			}
+			if (!threads.isEmpty()) {
+				changes.add("added " + threads.size() + (threads.size() == 1 ? " conversation" : " conversations"));
 			}
 			if (isSet(addGoal)) {
 				BrainTopicUtils.saveTopicNote(user, topic, null, BrainTopicUtils.GOAL, addGoal.trim(), "open");
@@ -179,7 +213,7 @@ public final class BrainAgentEdits {
 		if (!isSet(threadId)) {
 			throw new IllegalArgumentException("Must pass a threadId");
 		}
-		BrainThreadUtils.requireThread(ownerId, ownerType, threadId);
+		threadId = threads(user, ownerId, ownerType, List.of(threadId.trim())).get(0);
 
 		List<String> changes = new ArrayList<>();
 		Map<String, Object> out = new LinkedHashMap<>();
@@ -229,6 +263,71 @@ public final class BrainAgentEdits {
 		String name = CollaborationDbUtils.queryOne("SELECT NAME FROM BRAIN_TOPIC WHERE OWNER_ID = ? "
 				+ "AND OWNER_TYPE = ? AND TOPIC_ID = ?", rs -> rs.getString(1), ownerId, ownerType, topicId);
 		return name == null ? topicId : name;
+	}
+
+	// each a thread id, an emailRef (email:...), or an email's Outlook id, as the thread it is on; mail Brain does not
+	// hold yet is imported as a sync imports new mail, so the owner's rules and folders still decide
+	private static List<String> threads(User user, String ownerId, String ownerType, List<String> refs) {
+		Set<String> found = new LinkedHashSet<>();
+		Map<String, Map<String, Object>> fetched = new LinkedHashMap<>();
+		BrainMailHeaderSource source = null;
+		for (String ref : refs) {
+			String threadId = heldThread(ownerId, ownerType, ref);
+			if (threadId != null) {
+				found.add(threadId);
+				continue;
+			}
+			// a Brain id that is not there has nothing to import
+			if (ref.startsWith("th-") || ref.startsWith("email:")) {
+				throw new IllegalArgumentException("No email or thread has the id " + ref
+						+ "; copy it exactly from the search or read that found it");
+			}
+			Map<String, Object> header;
+			try {
+				source = source == null ? BrainMailHeaderSource.current() : source;
+				header = source.message(user, ref);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("Could not read the email " + ref + ": " + e.getMessage(), e);
+			}
+			if (header == null) {
+				throw new IllegalArgumentException("No email has the id " + ref);
+			}
+			fetched.put(ref, header);
+		}
+		if (fetched.isEmpty()) {
+			return new ArrayList<>(found);
+		}
+		// one import for all of them: each import that finds new mail loads the owner's whole Brain
+		try {
+			BrainSync.importHeaders(user, ownerId, ownerType, source, new ArrayList<>(fetched.values()));
+		} catch (Exception e) {
+			throw new IllegalStateException("Could not add the emails: " + e.getMessage(), e);
+		}
+		for (Map<String, Object> header : fetched.values()) {
+			String threadId = CollaborationDbUtils.queryOne("SELECT THREAD_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND MESSAGE_KEY = ? AND THREAD_ID IS NOT NULL", rs -> rs.getString(1),
+					ownerId, ownerType, CollaborationDbUtils.deterministicId(ownerId, ownerType, "email",
+							BrainMailImport.messageId(header)));
+			if (threadId == null) {
+				throw new IllegalArgumentException("The email \"" + header.get("subject") + "\" cannot be added: it "
+						+ "is in Junk, Deleted Items or Drafts, the owner keeps its sender out, or their mail is not "
+						+ "set up yet");
+			}
+			found.add(threadId);
+		}
+		return new ArrayList<>(found);
+	}
+
+	// the thread Brain holds by that id, an emailRef's message key, or the Outlook id it read an email with
+	private static String heldThread(String ownerId, String ownerType, String ref) {
+		if (CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+				+ "AND THREAD_ID = ?", ownerId, ownerType, ref)) {
+			return ref;
+		}
+		boolean emailRef = ref.startsWith("email:");
+		return CollaborationDbUtils.queryOne("SELECT THREAD_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND "
+				+ "OWNER_TYPE = ? AND " + (emailRef ? "MESSAGE_KEY" : "GRAPH_ID") + " = ? AND THREAD_ID IS NOT NULL",
+				rs -> rs.getString(1), ownerId, ownerType, emailRef ? ref.substring("email:".length()) : ref);
 	}
 
 	// a person by id, email, or name ("Weaver, Chrissy" and "Chrissy Weaver" both work); must pick exactly one

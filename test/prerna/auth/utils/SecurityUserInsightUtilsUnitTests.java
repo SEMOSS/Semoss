@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,9 +43,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class SecurityUserInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -484,6 +487,41 @@ public class SecurityUserInsightUtilsUnitTests extends AbstractSecurityUtilsUnit
 
 		// Should not throw exception - user has view permission
 		SecurityUserInsightUtils.setInsightFavorite(user2, "pid1", "iid1", true);
+	}
+
+	@Test
+	void testSetInsightFavorite_savesEveryLoginOrNone() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
+		AccessToken github = new AccessToken();
+		github.setId("admingithub");
+		github.setName("adminname");
+		github.setProvider(AuthProvider.GITHUB);
+		user.setAccessToken(github);
+
+		// the second login's row fails after the first login's was written
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"ALTER TABLE USERINSIGHTPREFERENCE ADD CONSTRAINT FAVORITE_FAIL CHECK (TYPE <> 'GITHUB')",
+				QueryExecutionUtility.NO_PARAMETERS);
+		try {
+			assertThrows(Exception.class,
+					() -> SecurityUserInsightUtils.setInsightFavorite(user, "pid1", "iid1", true));
+		} finally {
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"ALTER TABLE USERINSIGHTPREFERENCE DROP CONSTRAINT FAVORITE_FAIL",
+					QueryExecutionUtility.NO_PARAMETERS);
+		}
+		assertEquals(0L, favoriteRows("pid1", "iid1"));
+
+		SecurityUserInsightUtils.setInsightFavorite(user, "pid1", "iid1", true);
+		assertEquals(2L, favoriteRows("pid1", "iid1"));
+	}
+
+	private long favoriteRows(String projectId, String insightId) throws SQLException {
+		return ((Number) UnitTestGroupTables.queryValue(securityDb,
+				"SELECT COUNT(*) FROM USERINSIGHTPREFERENCE WHERE PROJECTID=? AND INSIGHTID=? AND FAVORITE=TRUE",
+				projectId, insightId)).longValue();
 	}
 
 	///

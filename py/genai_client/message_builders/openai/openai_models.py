@@ -120,6 +120,8 @@ class OpenAIMessage(BaseModel):
     ]
     tool_calls: Optional[List[OpenAIToolCall]] = None
     tool_call_id: Optional[str] = None
+    reasoning_content: Optional[str] = None
+    reasoning: Optional[str] = None
 
 
 # --------RESPONSES API MODELS ---------------

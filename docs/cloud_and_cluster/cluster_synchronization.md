@@ -35,6 +35,7 @@ The exact push/pull operation depends on the resource and mutation. Consult its 
 Redis also serves separate room/agent features:
 
 - `RoomMessageStore` can use Redis as a hot projection and coordination layer while persisting conversation history in `ROOM.MESSAGES`.
+- The cached projection is disposable. Each write sets a sliding expiry of `ROOM_MESSAGE_REDIS_TTL_HOURS` (default `1`), and the projection is evicted when a room is deleted, a guardrail closes it, or the user's session ends (logout or timeout). A missing projection reloads from `ROOM.MESSAGES` on the next read. Lock and turn-lease keys keep their own TTLs.
 - `ClusterRoomTurnLock` uses Redis for a renewable per-room agent lease when `AGENT_RUN_QUEUE_ENABLED` is enabled. The default follows Redis availability; an explicit opt-in still requires Redis.
 - `AGENT_RUN_ACTIVE_TTL_MS` controls that lease's lifetime, not an agent's execution budget.
 

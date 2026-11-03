@@ -493,8 +493,40 @@ class SqlQueryGuardrailEngineUnitTests {
 				});
 	}
 
+	@Test
+	void aScriptIsAuthorizedOneStatementAtATimeWithoutTheMultiStatementPolicy() {
+		String script = "INSERT INTO audit_log(id, message) VALUES (1, 'a');\n"
+				+ "UPDATE audit_log SET message = 'b' WHERE id = 1;";
+
+		GuardrailNounMetadata result = evaluateScript(script, SqlQueryGuardrailEngine.CallerAccess.EDIT);
+
+		assertTrue(result.isPass());
+		assertEquals(2, details(result).get("statementCount"));
+	}
+
+	@Test
+	void theFirstStatementAScriptMayNotRunBlocksTheWholeScript() {
+		String script = "INSERT INTO audit_log(id, message) VALUES (1, 'a');\nDELETE FROM audit_log;\nSELECT 1;";
+
+		GuardrailNounMetadata result = evaluateScript(script, SqlQueryGuardrailEngine.CallerAccess.OWNER);
+
+		assertFalse(result.isPass());
+		assertEquals(2, details(result).get("statement"));
+		assertEquals(3, details(result).get("statementCount"));
+	}
+
+	@Test
+	void aScriptThatCannotBeSplitFollowsTheParserFailurePolicy() {
+		assertFalse(evaluateScript("INSERT INTO audit_log VALUES ('open);", SqlQueryGuardrailEngine.CallerAccess.OWNER)
+				.isPass());
+	}
+
 	private static GuardrailNounMetadata evaluate(String query, SqlQueryGuardrailEngine.CallerAccess access) {
 		return new SqlQueryGuardrailEngine().evaluateQuery(query, access);
+	}
+
+	private static GuardrailNounMetadata evaluateScript(String script, SqlQueryGuardrailEngine.CallerAccess access) {
+		return new SqlQueryGuardrailEngine().evaluateScript(script, access);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -505,6 +537,37 @@ class SqlQueryGuardrailEngineUnitTests {
 	@SuppressWarnings("unchecked")
 	private static List<Map<String, Object>> violations(GuardrailNounMetadata result) {
 		return (List<Map<String, Object>>) details(result).get("violations");
+	}
+
+	@Test
+	void eachDialectListsItsBuiltInIdentifierRulesByPolicy() {
+		Map<String, Map<String, String>> postgres = SqlQueryGuardrailEngine.getBuiltInIdentifierPolicies("POSTGRESQL");
+
+		assertEquals(
+				List.of("FUNCTION_POLICY", "VARIABLE_POLICY", "KEYWORD_POLICY", "RELATION_POLICY", "ROUTINE_POLICY"),
+				List.copyOf(postgres.keySet()));
+		assertEquals("DENY", postgres.get("FUNCTION_POLICY").get("PG_SLEEP*"));
+		assertEquals("OWNER", postgres.get("RELATION_POLICY").get("PG_CATALOG.*"));
+		// the rules every dialect shares
+		assertEquals("DENY", postgres.get("KEYWORD_POLICY").get("CURRENT_USER"));
+		// another dialect's rules are not listed
+		assertNull(postgres.get("ROUTINE_POLICY").get("XP_*"));
+	}
+
+	@Test
+	void genericHoldsEveryDialectsBuiltInRules() {
+		Map<String, Map<String, String>> generic = SqlQueryGuardrailEngine.getBuiltInIdentifierPolicies("GENERIC");
+
+		assertEquals("DENY", generic.get("FUNCTION_POLICY").get("PG_SLEEP*"));
+		assertEquals("DENY", generic.get("ROUTINE_POLICY").get("XP_*"));
+		assertEquals("DENY", generic.get("VARIABLE_POLICY").get("@@*"));
+		assertEquals("OWNER", generic.get("RELATION_POLICY").get("V$*"));
+	}
+
+	@Test
+	void anUnsupportedDialectHasNoBuiltInRules() {
+		assertThrows(IllegalArgumentException.class,
+				() -> SqlQueryGuardrailEngine.getBuiltInIdentifierPolicies("NOT_A_DIALECT"));
 	}
 
 	private static List<String> violationValues(GuardrailNounMetadata result) {

@@ -291,8 +291,7 @@ public final class SubAgentToolSynthesizer {
                         + "(people they have emailed with), their Microsoft 365 directory, and accounts on this "
                         + "platform; returns up to 10 matches with name, email, title, and where each came from. "
                         + "Use it before writing an email to someone named but not in the context, or when the "
-                        + "user asks who someone is. Before " + TOOL_DELEGATE_TO_PERSON + " it is optional: that "
-                        + "tool accepts a name and the user picks the exact person in its card.");
+                        + "user asks who someone is.");
         tool.put("inputSchema", inputSchema);
 
         Map<String, Object> meta = new LinkedHashMap<>();

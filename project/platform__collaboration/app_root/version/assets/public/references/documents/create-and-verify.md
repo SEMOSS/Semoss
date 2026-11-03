@@ -7,8 +7,10 @@ layout choices, choose a readable design and continue. Ask only for a missing de
 that changes the substance or prevents useful work. Preserve a supplied template and
 the owner's existing edits. Separate factual source content from analysis and proposals.
 
-Load the separate `python` skill for execution and package guidance. For presentation
-work, load `pptx` when it is available. Use an installed format-appropriate library:
+Load the separate `python` skill for execution and package guidance. For Word work
+load `docx`, for Excel work load `xlsx`, and for presentation work load `pptx` when
+available. These skills cover native editing and format-specific verification.
+Use an installed format-appropriate library:
 for example `python-docx` for Word, `openpyxl` for Excel, and an available PDF writer
 or conversion tool for PDF.
 Check availability rather than assuming a package, renderer, or converter is enabled.

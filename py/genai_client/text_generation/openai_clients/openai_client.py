@@ -1,4 +1,4 @@
-from typing import Any, Dict, TYPE_CHECKING, Optional, Union
+from typing import Any, Dict, TYPE_CHECKING, Optional, Tuple, Union
 
 if TYPE_CHECKING:
 
@@ -21,6 +21,14 @@ from .openai_image_client import OpenAiImageClient
 from .openai_audio_client import OpenAiAudioClient
 from ..model_engine_exception import ModelEngineException, ErrorDetails
 from ...utils import string_to_bool
+from ...usage_ceiling import (
+    PromptCount,
+    TextCounter,
+    UsageCeiling,
+    UsageLimitDoesNotFitError,
+    count_prompt_tokens,
+    note_output_stop,
+)
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -43,6 +51,8 @@ class OpenAiClient(AbstractTextGenerationClient):
         "global_param_override",
         "simplify_messages",
         "native_document_mime_types",
+        "preserve_reasoning_content",
+        "chat_reasoning_mode",
     }
 
     def __init__(
@@ -134,6 +144,55 @@ class OpenAiClient(AbstractTextGenerationClient):
             timeout=kwargs.pop("timeout", 300.0),
         )
 
+    def decisions(
+        self,
+        input: str | list[dict[str, Any]],
+        questions: list[dict[str, Any]],
+        max_retries: int | None = None,
+        usage_ceiling: Any = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Evaluate native Decisions questions using this client's configured model.
+
+        Returns the provider's JSON shape, including refusals and usage. SDK
+        options pass through directly; chat settings and history do not apply.
+        ``max_retries`` overrides the SDK retry policy for this call only.
+        The platform's usage ceiling is checked locally and never sent to OpenAI.
+        SDK errors propagate to the caller, as with the batch methods.
+        """
+        client = self.client
+        if max_retries is not None:
+            if type(max_retries) is not int or max_retries < 0:
+                raise ValueError("max_retries must be a nonnegative integer")
+            client = client.with_options(max_retries=max_retries)
+        ceiling = UsageCeiling.from_value(usage_ceiling)
+        if ceiling is not None:
+            count_text, exact = self._usage_text_counter()
+            try:
+                # Decisions has no generated output budget to trim.
+                ceiling.require_input_fits(
+                    count_prompt_tokens(
+                        [input],
+                        [questions, kwargs.get("extra_body")],
+                        count_text=count_text,
+                        text_exact=exact,
+                        message_count=len(input) if isinstance(input, list) else 1,
+                    )
+                )
+            except UsageLimitDoesNotFitError as error:
+                return ModelEngineException(
+                    error=error,
+                    client=type(self).__name__,
+                    model=self.model_settings.model_name,
+                ).parse_error().model_dump()
+        decision = client.decisions.create(
+            model=self.model_settings.model_name,
+            input=input,
+            questions=questions,
+            **kwargs,
+        )
+        return decision.model_dump(mode="json", exclude_unset=True)
+
     def ask_call(
         self, prefix: str = "", **kwargs
     ) -> AskModelEngineResponse2 | ErrorDetails:
@@ -153,6 +212,9 @@ class OpenAiClient(AbstractTextGenerationClient):
                 openai_messages = self.message_builder.build_request(semoss_messages)
             except Exception as e:
                 raise ValueError(f"Error building OpenAI messages: {e}") from e
+            # fitted on the finished request, so the prompt counted is the one
+            # sent; a refusal becomes the USAGE_LIMIT_DOES_NOT_FIT error response below
+            self._apply_usage_ceiling(openai_messages, self.chat_type)
             if self.chat_type == "chat-completion":
                 return self.handle_chat_completion_response(
                     openai_messages, prefix=prefix
@@ -167,6 +229,117 @@ class OpenAiClient(AbstractTextGenerationClient):
             return ModelEngineException(
                 error=e, client="openai", model=self.model_settings.model_name
             ).parse_error()
+
+    # Output maximum keys by chat type, in the order they are looked for.
+    _OUTPUT_MAXIMUM_KEYS = {
+        "chat-completion": ("max_completion_tokens", "max_tokens"),
+        "responses": ("max_output_tokens",),
+        "completions": ("max_tokens", "max_completion_tokens", "max_new_tokens"),
+    }
+
+    def _apply_usage_ceiling(self, request: Dict[str, Any], chat_type: str) -> None:
+        """Fit the request to the usage ceiling of the call in progress.
+
+        The output maximum is lowered to what the prompt leaves, never
+        raised. Reasoning tokens count inside the output maximum on OpenAI
+        models, so the effort is left as it is.
+        """
+        keys = self._OUTPUT_MAXIMUM_KEYS.get(chat_type, ("max_tokens",))
+        present = [key for key in keys if request.get(key) is not None]
+        # with more than one maximum set, the smallest is the one that holds
+        requested = min(int(request[key]) for key in present) if present else None
+        fit = self.fit_output_to_usage_ceiling(
+            requested, lambda: self._count_prompt_tokens(request, chat_type)
+        )
+        if fit is None or not fit.lowered:
+            return
+        # every key the caller set is lowered, so none is left above the fit;
+        # with none set, the chat type's main key carries it
+        for key in present or keys[:1]:
+            request[key] = fit.max_tokens
+
+    def _count_prompt_tokens(
+        self, request: Dict[str, Any], chat_type: str
+    ) -> PromptCount:
+        """Count the prompt of a built request: tiktoken for OpenAI and Azure
+        models, the Hugging Face tokenizer for models served elsewhere, and a
+        conservative estimate otherwise. Images and files are estimated."""
+        count_text, exact = self._usage_text_counter()
+        if chat_type == "responses":
+            items = request.get("input")
+            parts = [request.get("instructions"), items]
+            definitions = [request.get("tools"), request.get("text")]
+        elif chat_type == "chat-completion":
+            items = request.get("messages")
+            parts = [items]
+            definitions = [request.get("tools"), request.get("response_format")]
+        else:
+            items = None
+            parts = [request.get("prompt")]
+            definitions = []
+        return count_prompt_tokens(
+            parts,
+            definitions,
+            count_text=count_text,
+            text_exact=exact,
+            message_count=len(items) if isinstance(items, list) else 1,
+        )
+
+    def _usage_text_counter(self) -> Tuple[Optional[TextCounter], bool]:
+        """The text counter for prompts, resolved once per client, and whether
+        it is exact for this model. None means estimate."""
+        resolved = getattr(self, "_usage_text_counter_resolved", None)
+        if resolved is None:
+            resolved = self._resolve_usage_text_counter()
+            self._usage_text_counter_resolved = resolved
+        return resolved
+
+    def _resolve_usage_text_counter(self) -> Tuple[Optional[TextCounter], bool]:
+        model_name = self.model_settings.model_name or ""
+        # a model name tiktoken knows: its own encoding, so the count is exact
+        try:
+            import tiktoken
+
+            encoding = tiktoken.encoding_for_model(model_name)
+            return (
+                lambda text: len(encoding.encode(text, disallowed_special=()))
+            ), True
+        except Exception:
+            pass
+
+        if self._serves_openai_models():
+            # deployment names (Azure) and new model names: current OpenAI models
+            # use o200k_base, so the count is close but not exact
+            try:
+                import tiktoken
+
+                encoding = tiktoken.get_encoding("o200k_base")
+                return (
+                    lambda text: len(encoding.encode(text, disallowed_special=()))
+                ), False
+            except Exception:
+                return None, False
+
+        # a model served elsewhere (vLLM, TGI, NVIDIA): its Hugging Face tokenizer
+        from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+        from ...tokenizers.local_tokenizer import LocalWordCountTokenizer
+
+        try:
+            tokenizer = HuggingfaceTokenizer(encoder_name=model_name, max_tokens=None)
+        except Exception:
+            return None, False
+        if isinstance(tokenizer.tokenizer, LocalWordCountTokenizer):
+            return None, False
+        return tokenizer.count_tokens, True
+
+    def _serves_openai_models(self) -> bool:
+        """True for OpenAI and Azure OpenAI endpoints, False for other servers."""
+        if self.is_azure:
+            return True
+        endpoint = (getattr(self, "endpoint", None) or "").lower()
+        return (
+            not endpoint or "openai.com" in endpoint or "openai.azure.com" in endpoint
+        )
 
     def handle_completions_response(
         self,
@@ -229,8 +402,9 @@ class OpenAiClient(AbstractTextGenerationClient):
             aggregated_content = ""
             aggregated_thinking = ""
             for chunk in response:
-                # Usage info typically comes in the final chunk
-                if "response.completed" in chunk.type:
+                # Usage comes in the final chunk, completed or stopped early
+                if chunk.type in ("response.completed", "response.incomplete"):
+                    note_output_stop(self._stopped_at_output_maximum(chunk.response))
                     response_tokens = chunk.response.usage.output_tokens
                     input_tokens = chunk.response.usage.input_tokens
                     cache_read_tokens = self._extract_cached_tokens(
@@ -465,6 +639,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     ),
                 )
         else:
+            note_output_stop(self._stopped_at_output_maximum(response))
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
             cache_read_tokens = self._extract_cached_tokens(
@@ -547,6 +722,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             streamed_tools = {}
             finish_reason = None
             aggregated_content = ""
+            reasoning_content = {}
             for chunk in response:
                 # Usage info typically comes in the final chunk
                 if hasattr(chunk, "usage") and chunk.usage is not None:
@@ -570,6 +746,17 @@ class OpenAiClient(AbstractTextGenerationClient):
                     )
 
                 if chunk.choices and (len(chunk.choices) > 0):
+                    reasoning_deltas = self._get_chat_reasoning_content(
+                        chunk.choices[0].delta
+                    )
+                    for source, reasoning_delta in reasoning_deltas.items():
+                        reasoning_content[source] = (
+                            reasoning_content.get(source, "") + reasoning_delta
+                        )
+                        smss_stream(
+                            StreamUtil.create_thinking_chunk(reasoning_delta),
+                            stream_type="thinking",
+                        )
                     # streaming text
                     if chunk.choices[0].delta.content:
                         content = chunk.choices[0].delta.content
@@ -644,6 +831,10 @@ class OpenAiClient(AbstractTextGenerationClient):
                     if chunk.choices[0].finish_reason:
                         finish_reason = chunk.choices[0].finish_reason
 
+            # "length" is the output maximum stopping the answer, which marks it
+            # usageCapped when the ceiling set that maximum
+            note_output_stop(finish_reason == "length")
+
             if streamed_tools:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="tool", interim=False)
@@ -672,7 +863,8 @@ class OpenAiClient(AbstractTextGenerationClient):
                         }
                     )
 
-                parts = (
+                aggregated_content = self._without_inline_reasoning(aggregated_content)
+                parts = self._chat_reasoning_parts(reasoning_content) + (
                     [{"type": "TEXT", "text": aggregated_content}]
                     if aggregated_content
                     else []
@@ -695,7 +887,12 @@ class OpenAiClient(AbstractTextGenerationClient):
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="content", interim=False)
 
-                reasoning = self._extract_reasoning_summary_chat(response)
+                aggregated_content = self._without_inline_reasoning(aggregated_content)
+                reasoning_parts = self._chat_reasoning_parts(reasoning_content)
+                if not reasoning_parts:
+                    reasoning = self._extract_reasoning_summary_chat(response)
+                    if reasoning:
+                        reasoning_parts = [{"type": "THINKING", "thinking": reasoning}]
                 return AskModelEngineResponse2(
                     response=aggregated_content,
                     response_tokens=response_tokens,
@@ -706,11 +903,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     schemaVersion=2,
                     io="OUTPUT",
                     parts=(
-                        (
-                            [{"type": "THINKING", "thinking": reasoning}]
-                            if reasoning
-                            else []
-                        )
+                        reasoning_parts
                         + (
                             [{"type": "TEXT", "text": aggregated_content}]
                             if aggregated_content
@@ -732,7 +925,14 @@ class OpenAiClient(AbstractTextGenerationClient):
                 cache_creation_tokens = None
                 thinking_tokens = None
 
-            final_content = response.choices[0].message.content
+            # "length" is the output maximum stopping the answer
+            note_output_stop(response.choices[0].finish_reason == "length")
+            final_content = self._without_inline_reasoning(
+                response.choices[0].message.content
+            )
+            if self.model_settings.preserve_reasoning_content and final_content is None:
+                # A reasoning-only cutoff must still satisfy Java's CHAT string contract.
+                final_content = ""
             tool_calls = response.choices[0].message.tool_calls
             if tool_calls:
                 return self._parse_tools_call_response(
@@ -744,7 +944,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                     thinking_tokens=thinking_tokens,
                 )
             else:
-                reasoning = self._extract_reasoning_summary_chat(response)
+                reasoning_parts = self._chat_reasoning_parts(
+                    self._get_chat_reasoning_content(response.choices[0].message)
+                )
+                if not reasoning_parts:
+                    reasoning = self._extract_reasoning_summary_chat(response)
+                    if reasoning:
+                        reasoning_parts = [{"type": "THINKING", "thinking": reasoning}]
                 return AskModelEngineResponse2(
                     response=final_content,
                     response_tokens=response_tokens,
@@ -755,11 +961,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     schemaVersion=2,
                     io="OUTPUT",
                     parts=(
-                        (
-                            [{"type": "THINKING", "thinking": reasoning}]
-                            if reasoning
-                            else []
-                        )
+                        reasoning_parts
                         + (
                             [{"type": "TEXT", "text": final_content}]
                             if final_content
@@ -767,6 +969,14 @@ class OpenAiClient(AbstractTextGenerationClient):
                         )
                     ),
                 )
+
+    @staticmethod
+    def _stopped_at_output_maximum(response: Any) -> bool:
+        """True when a Responses API response stopped at max_output_tokens."""
+        if getattr(response, "status", None) != "incomplete":
+            return False
+        details = getattr(response, "incomplete_details", None)
+        return getattr(details, "reason", None) == "max_output_tokens"
 
     def _parse_tools_call_response(
         self,
@@ -819,8 +1029,14 @@ class OpenAiClient(AbstractTextGenerationClient):
                 )
 
         preamble_text = None
+        reasoning_parts = []
         if self.chat_type == "chat-completion":
-            preamble_text = response.choices[0].message.content
+            preamble_text = self._without_inline_reasoning(
+                response.choices[0].message.content
+            )
+            reasoning_parts = self._chat_reasoning_parts(
+                self._get_chat_reasoning_content(response.choices[0].message)
+            )
         elif self.chat_type == "responses":
             preamble_text = getattr(response, "output_text", None)
 
@@ -838,7 +1054,8 @@ class OpenAiClient(AbstractTextGenerationClient):
             messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
-            parts=text_parts
+            parts=reasoning_parts
+            + text_parts
             + server_tool_parts
             + [{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
         )
@@ -1302,11 +1519,40 @@ class OpenAiClient(AbstractTextGenerationClient):
 
         return ""
 
+    def _get_chat_reasoning_content(self, message: Any) -> dict[str, str]:
+        if not self.model_settings.preserve_reasoning_content:
+            return {}
+        # Compatible servers use either field; replay the field actually received.
+        return {
+            source: value
+            for source in ("reasoning_content", "reasoning")
+            if isinstance(value := getattr(message, source, None), str) and value
+        }
+
+    @staticmethod
+    def _without_inline_reasoning(text: Any) -> Any:
+        """The answer after thinking a compatible server left in the text.
+
+        Without a reasoning parser, such a server returns the model's thinking as ordinary
+        text ended by </think>; the chat template usually opens the block, so only the
+        closing tag arrives.
+        """
+        if not isinstance(text, str) or "</think>" not in text:
+            return text
+        return text.rpartition("</think>")[2].lstrip()
+
+    @staticmethod
+    def _chat_reasoning_parts(reasoning: dict[str, str]) -> list[dict[str, str]]:
+        return [
+            {"type": "THINKING", "thinking": text, "source": source}
+            for source, text in reasoning.items()
+        ]
+
     def _extract_reasoning_summary_chat(self, response) -> str:
         """Extract reasoning metadata from Chat Completion API response.
 
-        Note: Chat-completion API does not expose reasoning text,
-        only token counts in usage stats.
+        OpenAI exposes token counts, not raw reasoning text. Compatible endpoints'
+        reasoning_content is handled separately and never synthesized from this summary.
         """
         if not hasattr(response, "usage"):
             return ""

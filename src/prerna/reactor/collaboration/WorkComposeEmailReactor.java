@@ -177,6 +177,7 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Write an email for the owner and open it in their email editor, where they review, edit, and send it. "
+				+ "Before authoring or rewriting message, call GetWritingStyle and read its result, then write the email text. "
 				+ "Use it to write a new email, reply to or forward one, or change the email they have open, passing only the fields "
 				+ "that change. It saves and sends nothing.";
 	}
@@ -186,7 +187,8 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 		if (ATTACHMENTS.equals(key)) {
 			return "Optional array of files in this room's working directory, using relative paths such as hello.txt. "
 					+ "Adds files to the email's attachment list for the owner to review; existing attachments stay. "
-					+ "Use openEmailId to attach to the open email without changing its text. At most 10 files, 2.5 MB total per call. "
+					+ "Use openEmailId to attach to the open email without changing its text. At most " + EmailAttachmentFiles.MAX_FILES + " files, "
+					+ (EmailAttachmentFiles.maxBytes() / (1024 * 1024)) + " MB total per call. "
 					+ "Never pass absolute paths. Nothing is sent until the owner presses Send.";
 		} else if (MESSAGE.equals(key)) {
 			return "The whole email in plain text, greeting to sign-off, written as the owner. No Markdown. "

@@ -242,6 +242,12 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
+	public String toExternalUri(String storagePath) {
+		String normalized = normalizeStoragePrefixPath(storagePath);
+		return normalized.isEmpty() ? "gs://" + this.BUCKET : "gs://" + this.BUCKET + "/" + normalized;
+	}
+
+	@Override
 	public StorageTypeEnum getStorageType() {
 		return StorageTypeEnum.GOOGLE_CLOUD_STORAGE;
 	}

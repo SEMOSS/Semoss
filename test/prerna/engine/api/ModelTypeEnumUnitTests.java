@@ -36,9 +36,6 @@ import org.junit.jupiter.api.Test;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.BedrockEngine;
 import prerna.engine.impl.model.EmbeddedModelEngine;
-import prerna.engine.impl.model.KServeImageEmbedEngine;
-import prerna.engine.impl.model.KServeVisionEngine;
-import prerna.engine.impl.model.NEREngine;
 import prerna.engine.impl.model.OpenAiEngine;
 import prerna.engine.impl.model.TextEmbeddingsEngine;
 import prerna.engine.impl.model.TextGenerationEngine;
@@ -59,27 +56,6 @@ public class ModelTypeEnumUnitTests {
 		ModelTypeEnum testEnum = ModelTypeEnum.EMBEDDED;
 		assertEquals("EMBEDDED", testEnum.getModelName());
 		assertEquals(EmbeddedModelEngine.class.getName(), testEnum.getModelClass());
-	}
-	
-	@Test
-	void testNER() {
-		ModelTypeEnum testEnum = ModelTypeEnum.NER;
-		assertEquals("NER", testEnum.getModelName());
-		assertEquals(NEREngine.class.getName(), testEnum.getModelClass());
-	}
-	
-	@Test
-	void testVision() {
-		ModelTypeEnum testEnum = ModelTypeEnum.KSERVE_VISION;
-		assertEquals("KSERVE_VISION", testEnum.getModelName());
-		assertEquals(KServeVisionEngine.class.getName(), testEnum.getModelClass());
-	}
-	
-	@Test
-	void testImageEmbed() {
-		ModelTypeEnum testEnum = ModelTypeEnum.KSERVE_IMAGE_EMBED;
-		assertEquals("KSERVE_IMAGE_EMBED", testEnum.getModelName());
-		assertEquals(KServeImageEmbedEngine.class.getName(), testEnum.getModelClass());
 	}
 	
 	@Test

@@ -39,13 +39,10 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
@@ -70,9 +67,11 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	}
 
 	/**
-	 * Get the active theme
-	 * 
-	 * @return
+	 * Get the active theme. A failure reading the theme database is logged and
+	 * gives an empty map, so the UI still loads without a theme.
+	 *
+	 * @return the active theme's row, or an empty map when no theme is active or
+	 *         the read fails
 	 */
 	public static Object getActiveAdminTheme() {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
@@ -89,15 +88,13 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ADMIN_THEME_PREFIX + "IS_ACTIVE", "==", true,
 				PixelDataType.BOOLEAN));
 
-		List<Map<String, Object>> retVal = null;
-		IRawSelectWrapper wrapper = null;
+		List<Map<String, Object>> retVal;
 		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, qs);
-			retVal = flushRsToMap(wrapper);
+			retVal = QueryExecutionUtility.flushRsToMap(themeDb, qs);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read the active admin theme", e);
+			return new HashMap<>();
 		}
-
 		if (retVal == null || retVal.isEmpty()) {
 			return new HashMap<>();
 		}
@@ -111,9 +108,10 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 */
 
 	/**
-	 * Get all the admin level themes
-	 * 
-	 * @return
+	 * Get all the admin level themes. A failure reading the theme database is
+	 * logged and gives an empty list, so the UI still loads.
+	 *
+	 * @return the admin themes, or an empty list when the read fails
 	 */
 	public List<Map<String, Object>> getAdminThemes(int limit, int offset) {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
@@ -130,33 +128,47 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			qs.setOffSet(offset);
 		}
 
-		IRawSelectWrapper wrapper;
 		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, qs);
-			return flushRsToMap(wrapper);
+			return QueryExecutionUtility.flushRsToMap(themeDb, qs);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read the admin themes", e);
+			return new ArrayList<>();
 		}
-
-		return new ArrayList<>();
 	}
 
 	/**
 	 * Set the active admin level theme This means setting the is_active boolean to
-	 * true for 1 theme while the previous true value to false;
-	 * 
-	 * @param themeId
-	 * @return
+	 * true for 1 theme while the previous true value to false.
+	 *
+	 * <p>
+	 * Both updates run in one write on the shared executor, so the previous theme
+	 * is deactivated only together with the new one being activated. The playground
+	 * theme cache is refreshed after that write commits; a failed write leaves the
+	 * cache as it was.
+	 *
+	 * @param themeId id of the theme to activate
+	 * @return true when the active theme was saved; false when the write failed
+	 *         (error logged)
 	 */
 	public boolean setActiveTheme(String themeId) {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
-		String query = "UPDATE ADMIN_THEME SET IS_ACTIVE=FALSE WHERE IS_ACTIVE=TRUE; UPDATE ADMIN_THEME SET IS_ACTIVE=TRUE WHERE ID='"
-				+ themeId + "'";
 		try {
-			themeDb.insertData(query);
-			themeDb.commit();
+			QueryExecutionUtility.write(themeDb, connection -> {
+				QueryExecutionUtility.executeUpdate(connection, "UPDATE ADMIN_THEME SET IS_ACTIVE=? WHERE IS_ACTIVE=?",
+						ps -> {
+							int parameterIndex = 1;
+							ps.setBoolean(parameterIndex++, false);
+							ps.setBoolean(parameterIndex++, true);
+						});
+				QueryExecutionUtility.executeUpdate(connection, "UPDATE ADMIN_THEME SET IS_ACTIVE=? WHERE ID=?", ps -> {
+					int parameterIndex = 1;
+					ps.setBoolean(parameterIndex++, true);
+					ps.setString(parameterIndex++, themeId);
+				});
+				return null;
+			});
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to set admin theme {} as the active theme", themeId, e);
 			return false;
 		}
 		PlaygroundThemeUtils.refreshCacheFromActiveTheme();
@@ -179,7 +191,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to set all admin themes inactive", e);
 			return false;
 		}
 
@@ -187,7 +199,9 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	}
 
 	/**
-	 * Insert a new admin level theme
+	 * Insert a new admin level theme. When the theme is active, it is then made the
+	 * only active theme by {@link #setActiveTheme(String)} in a separate write; a
+	 * failure there is logged and the inserted theme is kept.
 	 * 
 	 * @param themeId
 	 * @param themeName
@@ -211,7 +225,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create admin theme {} with id {}", themeName, themeId, e);
 			return null;
 		}
 
@@ -222,7 +236,9 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	}
 
 	/**
-	 * Edit an existing admin level theme
+	 * Edit an existing admin level theme. When the theme is active, it is then made
+	 * the only active theme by {@link #setActiveTheme(String)} in a separate write,
+	 * and the playground theme cache is refreshed again afterward.
 	 * 
 	 * @param themeId
 	 * @param themeName
@@ -244,7 +260,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to edit admin theme {} with name {}", themeId, themeName, e);
 			return false;
 		}
 
@@ -270,7 +286,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete admin theme {}", themeId, e);
 			return false;
 		}
 

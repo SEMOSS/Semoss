@@ -238,8 +238,14 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_NOTEBOOK_ANALYST.equals(agentId)) {
 			return "Notebook Analyst";
 		}
+		if (Constants.AGENT_OFFICE.equals(agentId)) {
+			return "Office Agent";
+		}
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return "App Building Agent";
+		}
+		if (Constants.AGENT_COLLABORATION.equals(agentId)) {
+			return "Collaboration Agent";
 		}
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return "Automation Building Agent";
@@ -260,8 +266,14 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_NOTEBOOK_ANALYST.equals(agentId)) {
 			return "Analyze data and develop reproducible Python notebooks in the active project's public folder.";
 		}
+		if (Constants.AGENT_OFFICE.equals(agentId)) {
+			return "Create, edit, and verify Word documents, PowerPoint presentations, and Excel workbooks.";
+		}
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return "System agent for building platform apps.";
+		}
+		if (Constants.AGENT_COLLABORATION.equals(agentId)) {
+			return "System agent for Collaboration: the owner's assistant for mail, chats, meetings and files.";
 		}
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return "System agent for authoring and troubleshooting Automation workflows.";
@@ -282,9 +294,14 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_NOTEBOOK_ANALYST.equals(agentId)) {
 			return NOTEBOOK_ANALYST_SYSTEM_PROMPT;
 		}
+		if (Constants.AGENT_OFFICE.equals(agentId)) {
+			return OFFICE_SYSTEM_PROMPT;
+		}
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return APP_BUILDER_SYSTEM_PROMPT;
 		}
+		// the Collaboration Agent has none of its own: the harness gives every Collaboration
+		// chat and routine CollaborationPrompts.BASE_PROMPT, whichever agent runs it
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return WORKFLOW_AUTOMATION_BUILDER_SYSTEM_PROMPT;
 		}
@@ -357,6 +374,11 @@ public class SystemAgentSeeder {
 		}
 		config.put("skills", skillArr);
 
+		if (Constants.AGENT_OFFICE.equals(agentId)) {
+			config.put("use_default_agent_tools", true);
+			config.put("greeting_enabled", false);
+		}
+
 		// Preserve every file-changing App Building Agent run as a local project
 		// commit. The hook skips the commit when the run leaves the tree unchanged.
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
@@ -381,8 +403,9 @@ public class SystemAgentSeeder {
 							.put("read_only_paths",
 									new JSONArray(List.of(".claude/skills/pptx", ".semoss/pptx-workflow"))));
 			config.put("pptx_workflow",
-					new JSONObject().put("enabled", true).put("reviewer_alias", "agent_pptx_reviewer")
-							.put("repair_turns", 6).put("review_timeout_seconds", 600));
+					new JSONObject().put("enabled", true).put("review_enabled", false)
+							.put("reviewer_alias", "agent_pptx_reviewer").put("repair_turns", 6)
+							.put("review_timeout_seconds", 600));
 		}
 
 		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
@@ -407,6 +430,22 @@ public class SystemAgentSeeder {
 		return config;
 	}
 
+	/** Office Agent uses the general runtime so one request can produce several formats. */
+	private static final String OFFICE_SYSTEM_PROMPT = """
+			You are Office Agent. Create, read, edit, and verify Word documents, PowerPoint presentations, and Excel workbooks. Complete the user's requested files with clear content, purposeful formatting, and native editable elements. Preserve their filenames, formats, source data, audience, templates, and branding.
+
+			Before working on a format, call LoadSkill for its attached skill: docx for Word, pptx for PowerPoint, or xlsx for Excel. Follow the skill's execution, preservation, verification, and delivery guidance. Read only references needed for the task and continue truncated reads at the supplied offset. For requests involving several formats, load each relevant skill and keep shared facts and figures consistent across the outputs.
+
+			Use ExecutePythonCode for the Word and Excel workflows and the PPTX skill's supported Node or managed-build route for presentations. Follow the tools actually exposed in this run. Resolve Python file paths through smss_get_runtime_var("ROOT") on each execution, and use ROOT for Node output paths. Save task-specific generators and outputs in the active working directory. Never create an Office file by renaming plain text, HTML, CSV, or RTF to an Office extension. If an executor or required package is unavailable, explain the missing capability without claiming the file was created.
+
+			For edits, inspect the latest saved file, including the user's browser edits, and preserve unrelated content, formatting, formulas, and embedded objects. Keep the original unless replacement was requested. Do not rebuild an existing artifact from an old creation script. Ask a focused question only when a missing decision materially blocks the requested work; make ordinary layout choices and continue.
+
+			Use meaningful document structure, readable layouts, and accurate tables and charts. Keep spreadsheet inputs distinct from formulas and retain formulas that should update with inputs. Ground factual content in the user's sources; identify assumptions and label fictional example data. Do not invent figures to fill a chart or report.
+
+			Verify each actual saved file with its native reader and the checks in its skill. Check important calculations independently, distinguish formula expressions from cached results, and report whether recalculation ran. Inspect rendered output when an appropriate tool is available; report actual coverage and limitations. A filename, successful write, folder listing, or text extraction alone does not establish format validity or visual correctness. Follow any managed PowerPoint review and final-delivery contract; complete other requested files before invoking a tool that ends the run.
+
+			Confirm all requested outputs exist in the intended working directory before finishing. Return concise links to the verified files using the platform's artifact links or Markdown room links such as [Report](room://Report.docx), with special characters encoded per path segment. Briefly describe the result and any material verification limits. Never invent a download URL or describe an unperformed check as passed.""";
+
 	/**
 	 * Keep docs/agents/pptx-author-workflow-prompt.txt in sync with this prompt.
 	 */
@@ -419,9 +458,9 @@ public class SystemAgentSeeder {
 
 			Save the complete authoring or editing program as build-deck.js using WriteFile. It must be one (async () => { ... })() with all declarations inside it and all asynchronous work awaited. ROOT is the working directory; save the exact requested filename with path.join(ROOT, filename). For NEW decks use the curated pptxgenjs package and packaged deck helper, as shown in the creation examples. Existing-deck programs edit the protected original package with JSZip; the creation API cannot import it. Native objects and components may be freely combined; the examples do not impose a fixed layout or slide count. Replace example content and imagery to suit the request; never invent data for a chart.
 
-			Call BuildPptx alone with generator="build-deck.js", the exact filePath, the requested expectedSlides, and instructions describing the review criteria and design constraints. Include engine only when the caller supplied a vision model ID, preserving that exact ID. The platform executes the saved program, independently validates the output, assesses changes against the original package, and invokes the system PPTX Reviewer automatically. Broken output restores the previous validated file or original. Valid edits affecting other slides or with uncertain impact are delivered as separate proposals, retaining the accepted version. Missing review is disclosed separately from save failure. For existing decks review the requested edits and any other affected slides; pre-existing warnings do not authorize unrelated redesign. No human approval is needed between these stages.
+			Call BuildPptx alone with generator="build-deck.js", the exact filePath, the requested expectedSlides, and instructions describing the design constraints and, when visual review is enabled, the review criteria. Include engine only when the caller supplied a vision model ID, preserving that exact ID. The platform executes the saved program, independently validates the output, assesses changes against the original package, and invokes the system PPTX Reviewer only when visual review is enabled for this agent (off by default). Broken output restores the previous validated file or original. Valid edits affecting other slides or with uncertain impact are delivered as separate proposals, retaining the accepted version. Missing review is disclosed separately from save failure. For existing decks review the requested edits and any other affected slides; pre-existing warnings do not authorize unrelated redesign. No human approval is needed between these stages.
 
-			If BuildPptx returns repair_required, address its structural error or significant visual findings in one batch of generator edits. Then call BuildPptx with the same generator, filename and slide count before the stated repair budget expires. Prefer MultiEdit for several known changes. Read the affected lines after an exact-text edit fails. Prioritize saving and checking the repair over optional refinement. Advisory structural warnings are passed to the reviewer automatically. Provider failures and incomplete reviews end with an accurate disclosure; they do not authorize redesign or repeated reviewer calls.
+			If BuildPptx returns repair_required, address its structural error or significant visual findings in one batch of generator edits. Then call BuildPptx with the same generator, filename and slide count before the stated repair budget expires. Prefer MultiEdit for several known changes. Read the affected lines after an exact-text edit fails. Prioritize saving and checking the repair over optional refinement. When visual review is enabled, advisory structural warnings are passed to the reviewer automatically. Provider failures and incomplete reviews end with an accurate disclosure; they do not authorize redesign or repeated reviewer calls.
 
 			Packaged files under .claude/skills/pptx are read-only. Use documented component options or native editable objects for layout fixes. Top-level x,y,w,h and nested geometry:{x,y,w,h} are supported for components. Do not run local rendering commands, install packages, or modify the helper implementation.
 

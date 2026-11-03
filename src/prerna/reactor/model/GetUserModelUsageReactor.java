@@ -27,21 +27,22 @@
  *******************************************************************************/
 package prerna.reactor.model;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.javatuples.Pair;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.usage.ModelUsageGuard;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -128,6 +129,21 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 			}
 		}
 
+		// COST_MICROS is the cost a usage limit on the model would count for the same
+		// rows, whether or not one applies: the recorded cost plus calls logged before
+		// costs were recorded, at current base prices. Null when the model has no
+		// known prices. The range covers the end date in full, as the token totals do.
+		boolean hasDates = startDate != null && !startDate.trim().isEmpty();
+		Instant start = hasDates ? LocalDate.parse(startDate.trim()).atStartOfDay(ZoneOffset.UTC).toInstant()
+				: Instant.EPOCH;
+		Instant end = (hasDates ? LocalDate.parse(endDate.trim()) : LocalDate.now(ZoneOffset.UTC)).plusDays(1)
+				.atStartOfDay(ZoneOffset.UTC).toInstant();
+		Pair<String, String> primary = User.getPrimaryUserIdAndTypePair(user);
+		for (Map<String, Object> row : result) {
+			row.put("COST_MICROS", ModelUsageGuard.costUsedInLogs((String) row.get("ENGINE_ID"), primary.getValue0(),
+					primary.getValue1(), start, end));
+		}
+
 		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
@@ -149,15 +165,13 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
 		// If both dates are provided, validate them
 		if (hasStartDate && hasEndDate) {
-			DateTimeFormatter formatter = new DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd")
-					.parseDefaulting(ChronoField.HOUR_OF_DAY, 0).parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
-					.parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0).toFormatter().withZone(ZoneOffset.UTC);
-			ZonedDateTime start;
-			ZonedDateTime end;
+			// strict ISO parse, the same one the queries use, so 2026-02-30 is rejected here
+			LocalDate start;
+			LocalDate end;
 
 			// Parse and validate start date
 			try {
-				start = ZonedDateTime.parse(startDate.trim(), formatter);
+				start = LocalDate.parse(startDate.trim());
 			} catch (DateTimeParseException e) {
 				throw new IllegalArgumentException(
 						"Invalid startDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
@@ -165,15 +179,14 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
 			// Parse and validate end date
 			try {
-				end = ZonedDateTime.parse(endDate.trim(), formatter);
+				end = LocalDate.parse(endDate.trim());
 			} catch (DateTimeParseException e) {
 				throw new IllegalArgumentException(
 						"Invalid endDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
 			}
 
 			// Validate start date is not in the future
-			ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
-			if (start.isAfter(now)) {
+			if (start.isAfter(LocalDate.now(ZoneOffset.UTC))) {
 				throw new IllegalArgumentException("startDate cannot be in the future. Provided: startDate=" + startDate);
 			}
 
@@ -190,7 +203,9 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 		return """
 				Returns model usage for the current user over a specified time period, broken down by engine. \
 				Reports INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS, \
-				TOTAL_TOKENS, and TOTAL_REQUESTS. Requires a list of engine IDs and optionally accepts a date range.
+				TOTAL_TOKENS, TOTAL_REQUESTS, and COST_MICROS (cost in millionths of a dollar, counted as usage \
+				limits count it; null when the model has no known prices). Requires a list of engine IDs and \
+				optionally accepts a date range; the end date is included in full.
 				""";
 	}
 

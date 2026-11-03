@@ -37,6 +37,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Continues a durable Automation run after its trace-linked child agent reaches
@@ -68,8 +70,7 @@ public class ResumeAutomationRunReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must provide a run id");
 		}
 
-		String projectId = AutomationProjectService.resolveRunScope(this.insight.getUser(), requestedProjectId,
-				true);
+		String projectId = AutomationProjectService.resolveRunScope(this.insight.getUser(), requestedProjectId, true);
 		Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
 		if (run == null || !projectId.equals(run.get(AutomationConstants.PROJECT_ID))) {
 			throw new IllegalArgumentException("Automation run not found: " + runId);
@@ -84,6 +85,8 @@ public class ResumeAutomationRunReactor extends AbstractReactor {
 
 		Map<String, Object> result = new AutomationRunExecutionService(this.insight, null).resumeWaitingRun(runId,
 				projectId);
+		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), AuditEventType.AUTOMATION_RUN_RESUME,
+				projectId, runId, null, null);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

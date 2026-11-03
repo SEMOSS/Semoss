@@ -29,6 +29,8 @@ package prerna.auth.utils;
 
 import java.sql.Timestamp;
 
+import prerna.auth.access.ModelUsageLimit;
+import prerna.auth.access.ModelUsageLimitKey;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionProblem;
 
@@ -40,7 +42,8 @@ import prerna.auth.access.PermissionProblem;
  * <li>Reading the change fills in the subject's id and type, the level and the
  * end date.</li>
  * <li>Validating it against the user's permissions and the rows that exist
- * fills in the subject's level in those rows.</li>
+ * fills in the subject's level in those rows and, on a model, the usage limit
+ * the change leaves.</li>
  * <li>Either step can block it, with a code and a reason. A change that is not
  * blocked is written from the values filled in.</li>
  * </ol>
@@ -71,17 +74,41 @@ final class PermissionChangeValidation {
 	 */
 	private boolean needsDirectoryAccount;
 	/**
-	 * Whether the person has a row with no level, which an add fills in. Favorites
-	 * and visibility used to be kept on the permission row, so saving one for a
-	 * person with no grant added such a row.
+	 * Whether the person has a permission row with no level, which counts as no
+	 * access. An add fills that row in rather than adding a second one.
 	 */
 	private boolean hasPreferenceRow;
+	/**
+	 * Where the change writes a usage limit: a person's or team's grant on a model,
+	 * its public use or its total; null when it writes none, such as on a project,
+	 * an engine that is not a model, or a change that keeps the limit. On a removal
+	 * from a model it is the grant whose limit is deleted with it.
+	 */
+	private ModelUsageLimitKey limitKey;
+	/**
+	 * The usage limit after the change, normalized, or null for no limit defined
+	 */
+	private ModelUsageLimit usageLimit;
+	/**
+	 * The usage limit before the change, on a model's grant, public use or total,
+	 * or null for no limit defined; the audit trail records it beside the new one
+	 */
+	private ModelUsageLimit currentUsageLimit;
+	/**
+	 * Whether the change leaves the current usage limit as it is, so it writes no
+	 * limit and needs no permission to set one. This is how an editor's change of
+	 * level passes, since only owners set usage limits.
+	 */
+	private boolean keepsUsageLimit;
 	/** Why the change cannot be made, or null while it can */
 	private String reason;
-	/** The kind of problem, when the change cannot be made */
-	private PermissionProblem.Code code;
+	/** The type of problem, when the change cannot be made */
+	private PermissionProblem.ErrorCode errorCode;
 
 	/**
+	 * Starts the validation of a change with only the change as sent, before it is
+	 * read.
+	 *
 	 * @param index  the change's index in its batch
 	 * @param change the change as sent
 	 */
@@ -93,15 +120,17 @@ final class PermissionChangeValidation {
 	/**
 	 * Notes why the change cannot be made, so it is not saved.
 	 *
-	 * @param code   the kind of problem
+	 * @param code   the type of problem
 	 * @param reason the message to show
 	 */
-	void block(PermissionProblem.Code code, String reason) {
-		this.code = code;
+	void block(PermissionProblem.ErrorCode errorCode, String reason) {
+		this.errorCode = errorCode;
 		this.reason = reason;
 	}
 
 	/**
+	 * Whether a reason has been given to block the change, so it is not saved.
+	 *
 	 * @return whether the change cannot be made
 	 */
 	boolean isBlocked() {
@@ -173,6 +202,93 @@ final class PermissionChangeValidation {
 	}
 
 	/**
+	 * The key of the usage limit the change writes, or, on a removal from a model,
+	 * of the grant whose limit is deleted with it.
+	 *
+	 * @return where the change writes a usage limit, or null when it writes none
+	 */
+	ModelUsageLimitKey getLimitKey() {
+		return limitKey;
+	}
+
+	void setLimitKey(ModelUsageLimitKey limitKey) {
+		this.limitKey = limitKey;
+	}
+
+	/**
+	 * The usage limit the subject has after the change, either the one it sets or
+	 * the current one it keeps.
+	 *
+	 * @return the usage limit after the change, or null for no limit defined
+	 */
+	ModelUsageLimit getUsageLimit() {
+		return usageLimit;
+	}
+
+	/**
+	 * Sets the usage limit the change writes, so it does not keep the current one.
+	 *
+	 * @param usageLimit the usage limit after the change, normalized, or null for
+	 *                   no limit defined
+	 */
+	void setUsageLimit(ModelUsageLimit usageLimit) {
+		this.usageLimit = usageLimit;
+		this.keepsUsageLimit = false;
+	}
+
+	/**
+	 * The usage limit the grant, public use or total has before the change.
+	 *
+	 * @return the usage limit before the change, or null for no limit defined
+	 */
+	ModelUsageLimit getCurrentUsageLimit() {
+		return currentUsageLimit;
+	}
+
+	/**
+	 * Notes the usage limit before the change, as read for the change.
+	 *
+	 * @param currentUsageLimit the usage limit now, or null for no limit defined
+	 */
+	void setCurrentUsageLimit(ModelUsageLimit currentUsageLimit) {
+		this.currentUsageLimit = currentUsageLimit;
+	}
+
+	/**
+	 * Whether the change leaves a usage limit different from the one before it,
+	 * which the audit trail records: a limit set, changed or removed, a grant's
+	 * removal with it included.
+	 *
+	 * @return whether the change writes a limit and the limit before or after it is
+	 *         defined
+	 */
+	boolean changesUsageLimit() {
+		return limitKey != null && !keepsUsageLimit && (currentUsageLimit != null || usageLimit != null);
+	}
+
+	/**
+	 * Leaves the current usage limit as it is, so the change writes none.
+	 *
+	 * @param current the current limit, or null
+	 */
+	void keepUsageLimit(ModelUsageLimit current) {
+		this.usageLimit = current;
+		this.keepsUsageLimit = true;
+	}
+
+	/**
+	 * Whether the change keeps the current usage limit, so it writes no limit and
+	 * needs no permission to set one.
+	 *
+	 * @return whether the change leaves the current usage limit as it is
+	 */
+	boolean keepsUsageLimit() {
+		return keepsUsageLimit;
+	}
+
+	/**
+	 * The message to show for a blocked change.
+	 *
 	 * @return why the change cannot be made, or null while it can
 	 */
 	String getReason() {
@@ -180,9 +296,11 @@ final class PermissionChangeValidation {
 	}
 
 	/**
-	 * @return the kind of problem, or null while the change can be made
+	 * The problem code for a blocked change.
+	 *
+	 * @return the type of problem, or null while the change can be made
 	 */
-	PermissionProblem.Code getCode() {
-		return code;
+	PermissionProblem.ErrorCode getErrorCode() {
+		return errorCode;
 	}
 }

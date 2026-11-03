@@ -58,7 +58,7 @@ prohibit reading references or continuing a truncated response.
 
 For a new deck, save the complete authoring IIFE as `build-deck.js` with `WriteFile`.
 Read [references/generation.md](references/generation.md). When `BuildPptx` is available,
-call it alone to execute the generator, validate the saved deck and start review automatically.
+call it alone to execute the generator, validate the saved deck and, when visual review is enabled for the agent, start review automatically.
 Use its `filePath` and `expectedSlides` arguments to preserve the request.
 Apply subsequent changes to that generator and rerun it. Do not repeatedly emit the
 complete deck in `ExecuteNodeCode` or patch files under `.claude/skills/pptx`.
@@ -106,8 +106,10 @@ labels editable. Never invent source values to fill an example chart.
 
 ## Review and completion
 
-When `BuildPptx` is available, SEMOSS owns validation, review and delivery. It
-sends advisory warnings to the reviewer immediately after structural success.
+When `BuildPptx` is available, SEMOSS owns validation, review and delivery. Visual
+review is off by default; the runtime status says whether it is enabled. When it is
+off, a structurally valid build is delivered immediately and no reviewer runs. When
+it is on, SEMOSS sends advisory warnings to the reviewer immediately after structural success.
 Only a repair request returns control to you: make the requested fixes and rebuild
 within the stated tool-round budget. SEMOSS allows one visual repair pass and one
 recheck, expanding coverage when other slides or shared assets change. It reports

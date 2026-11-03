@@ -163,7 +163,7 @@ public class ProjectReactorHelper {
 				}
 
 				ScanResult sr = new ClassGraph().overrideClasspath((new File(classesFolder).toURI().toURL()))
-						.enableClassInfo().whitelistPackages(packages).scan();
+						.enableClassInfo().acceptPackages(packages).scan();
 
 				// find everything implementing IReactor
 				// get implementing classes doesn't seem to work when overriding the classpath
@@ -252,7 +252,7 @@ public class ProjectReactorHelper {
 				}
 
 				ScanResult sr = new ClassGraph().overrideClasspath((new File(classesFolder).toURI().toURL()))
-						.whitelistPackages(packages).scan();
+						.acceptPackages(packages).scan();
 
 				String[] subclassSearch = new String[] { AbstractReactor.class.getName(),
 						prerna.sablecc2.reactor.AbstractReactor.class.getName(), };
@@ -414,25 +414,24 @@ public class ProjectReactorHelper {
 					built = true;
 				} else {
 					InvocationRequest request = new DefaultInvocationRequest();
-					// request.
 					request.setPomFile(pomFile);
 					request.setMavenOpts("-DoutputType=graphml -DoutputFile=\"" + outputFile.getAbsolutePath()
 							+ "\" -DincludeScope=runtime ");
-					request.setGoals(Collections.singletonList("dependency:list"));
+					request.addArgs(Collections.singletonList("dependency:list"));
+					request.setBaseDirectory(pomFile.getParentFile());
 
 					Invoker invoker = new DefaultInvoker();
-					invoker.setWorkingDirectory(pomFile.getParentFile());
 					invoker.setMavenHome(new File(Utility.normalizePath(mvnHome)));
 					InvocationResult result = invoker.execute(request);
 
 					if (result.getExitCode() != 0) {
 						built = false;
-						// throw new IllegalStateException( "Build failed." );
 					}
 				}
 			}
 
-			if (!built) { // may be maven is not set but mvn as a executor is available
+			if (!built) {
+				// may be maven is not set but mvn as a executor is available
 				// need to make the modification to this
 				CmdExecUtil ceu = new CmdExecUtil(null,
 						SmssUtilities.getUniqueName(project.getProjectName(), project.getProjectId()),

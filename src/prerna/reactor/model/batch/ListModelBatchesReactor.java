@@ -74,6 +74,6 @@ public class ListModelBatchesReactor extends AbstractModelBatchReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "List the batches visible to a model engine's provider credentials";
+		return "List the batches you submitted to a model engine, most recent first";
 	}
 }

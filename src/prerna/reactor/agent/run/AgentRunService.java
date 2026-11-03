@@ -27,10 +27,16 @@
  *******************************************************************************/
 package prerna.reactor.agent.run;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -44,6 +50,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUserUtils;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -57,6 +64,7 @@ import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.stream.ClaudeCodeRunActivityAdapter;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentMeta;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Utility;
 import prerna.util.ValueUtils;
 
@@ -87,9 +95,37 @@ public final class AgentRunService {
 
 	private static final String WAIT_TIMEOUT_MS = "AGENT_RUN_WAIT_TIMEOUT_MS";
 	private static final long DEFAULT_WAIT_TIMEOUT_MS = 3600000L;
+	/** Why a run in a closed room is refused, or cancelled before it starts */
+	static final String ROOM_CLOSED_MESSAGE = "Room is closed";
+	private static final String ADMIN_CLOSED_MESSAGE = "Agent run cancelled: an admin closed the room";
+	private static final String OWNER_CLOSED_MESSAGE = "Agent run cancelled: its user closed the room";
+	/** How many reads closing a room makes at most while following its runs */
+	private static final int MAX_ROOM_TREE_READS = 1000;
 	private static final AgentRunService INSTANCE = new AgentRunService();
 
 	private final AgentRunQueueLoop queueLoop;
+
+	/**
+	 * What closing a user's room covers.
+	 *
+	 * @param rooms each room it closes, the room itself first, with the user it
+	 *              belongs to
+	 * @param runs  the runs in those rooms and every run below them, the last found
+	 *              first, so a child is cancelled before the run waiting on it
+	 */
+	record RoomTree(Map<String, String> rooms, List<Map<String, Object>> runs) {
+	}
+
+	/**
+	 * What closing a user's room did.
+	 *
+	 * @param agentId         the agent the room's runs belong to
+	 * @param closedRoomIds   the rooms closed: the room and its subagents' rooms
+	 * @param cancelledRunIds the runs it cancelled; runs that had finished are left
+	 *                        as they were
+	 */
+	public record RoomClosure(String agentId, List<String> closedRoomIds, List<String> cancelledRunIds) {
+	}
 
 	public static AgentRunService get() {
 		return INSTANCE;
@@ -117,7 +153,12 @@ public final class AgentRunService {
 
 	private AgentRunHandle submitNewRun(String runId, AgentRunRequest request, boolean ownsUser) {
 		String userId = resolveUserId(request.getInsight());
-		AgentRunStore.insertSubmitted(runId, request, userId);
+		// A guardrail, the room's user or an admin closed it; no agent runs in it
+		// again.
+		if (ModelInferenceLogsUtils.isRoomInActive(userId, request.getRoomId())) {
+			throw new IllegalStateException(ROOM_CLOSED_MESSAGE);
+		}
+		AgentRunStore.insertSubmitted(runId, request, userId, resolveUserType(request.getInsight()));
 		if (supportsCanonicalStreaming(request.getHarnessType())) {
 			AgentRunStreamService.get().register(runId);
 		}
@@ -341,6 +382,215 @@ public final class AgentRunService {
 		return run;
 	}
 
+	/**
+	 * Returns any user's agent run, for the admin Agent Runs page. Its messages are
+	 * read from its user's room, as the run's owner sees them.
+	 *
+	 * @param access          proof that the caller is an admin
+	 * @param runId           agent run identifier
+	 * @param includeMessages whether room messages should be included
+	 * @return agent run details, with the user who ran it
+	 * @throws SecurityException when {@code access} is missing
+	 */
+	public Map<String, Object> getRunForAdmin(AdminAccess access, String runId, boolean includeMessages) {
+		AdminAccess.require(access);
+		if (runId == null || runId.isBlank()) {
+			throw new IllegalArgumentException("runId is required");
+		}
+		String trimmed = runId.trim();
+		Map<String, Object> run = AgentRunStore.getRunMapForAdmin(access, trimmed);
+		if (run == null) {
+			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + trimmed);
+		}
+		populatePendingActions(run, trimmed);
+		if (includeMessages) {
+			attachMessages(run, trimmed, ValueUtils.trimToNull(run.get("userId")));
+		}
+		return run;
+	}
+
+	/**
+	 * Closes any user's room as an admin, for the admin Agent Runs page, so that no
+	 * agent runs in it again: every run in it and its subagents' rooms that has not
+	 * finished is cancelled as a stop would, even while it executes, then the rooms
+	 * are closed, then any run that started meanwhile is cancelled too. The user no
+	 * longer sees the rooms in their conversations. The close is recorded in the
+	 * audit trail as {@code AGENT_ROOM_CLOSE}, with the admin as its actor.
+	 *
+	 * @param admin    the user closing the room, who must be an admin
+	 * @param roomId   the room to close
+	 * @param userId   the user the room belongs to
+	 * @param userType the login type of {@code userId}, or null to match the id
+	 *                 under any type
+	 * @return the rooms closed and the runs cancelled
+	 * @throws SecurityException when {@code admin} is not an admin; nothing is read
+	 *                           or closed
+	 */
+	public RoomClosure closeRoomForAdmin(User admin, String roomId, String userId, String userType) {
+		AdminAccess.of(admin);
+		RoomClosure closure = closeRoomTree(roomId, userId, userType, ADMIN_CLOSED_MESSAGE);
+		UserAuditTrailUtils.recordAgentRoomClose(admin, closure.agentId(), roomId, userId, userType,
+				closure.closedRoomIds(), closure.cancelledRunIds());
+		return closure;
+	}
+
+	/**
+	 * Closes one of the caller's own rooms so that no agent runs in it again, as an
+	 * admin closing it would. The rooms and runs are the caller's own, by the id
+	 * and login type of their primary login, so no one else's are touched.
+	 *
+	 * @param roomId  the caller's room to close
+	 * @param insight the caller's insight
+	 * @return the rooms closed and the runs cancelled
+	 * @throws SecurityException when the caller is not signed in
+	 */
+	public RoomClosure closeRoom(String roomId, Insight insight) {
+		String userId = resolveUserId(insight);
+		if (userId == null || userId.isBlank()) {
+			throw new SecurityException("Closing a room requires an authenticated user");
+		}
+		return closeRoomTree(roomId, userId, resolveUserType(insight), OWNER_CLOSED_MESSAGE);
+	}
+
+	/**
+	 * Cancels every run of a user's room and its subagents' rooms that has not
+	 * finished, closes the rooms, then cancels any run that started meanwhile. The
+	 * runs are cancelled first because a run whose room closes under it fails on
+	 * its next model call instead.
+	 *
+	 * @param roomId   the room to close
+	 * @param userId   the user the room belongs to
+	 * @param userType the login type of {@code userId}, or null to match the id
+	 *                 under any type
+	 * @param message  why the runs were cancelled, stored as their error
+	 * @return the rooms closed and the runs cancelled
+	 */
+	private RoomClosure closeRoomTree(String roomId, String userId, String userType, String message) {
+		RoomTree tree = roomTree(roomId, userId, userType);
+		if (tree.runs().isEmpty()) {
+			throw new IllegalArgumentException("No agent runs found in roomId=" + roomId + " for this user");
+		}
+		List<String> cancelledRunIds = cancelUnfinished(tree, message);
+		List<String> closedRoomIds = new ArrayList<>();
+		for (Map.Entry<String, String> room : tree.rooms().entrySet()) {
+			if (!ModelInferenceLogsUtils.doSetRoomToInactive(room.getValue(), room.getKey())) {
+				logger.warn("Unable to close roomId={}; its runs are still cancelled", room.getKey());
+			} else if (ModelInferenceLogsUtils.isRoomInActive(room.getValue(), room.getKey())) {
+				// a subagent's room with no messages yet has no row to close
+				RoomMessageStore.evictRedisProjection(room.getKey());
+				closedRoomIds.add(room.getKey());
+			}
+		}
+		cancelledRunIds.addAll(cancelUnfinished(roomTree(roomId, userId, userType), message));
+		logger.info("Closed roomId={} ({}): {} rooms closed, {} runs cancelled", roomId, message, closedRoomIds.size(),
+				cancelledRunIds.size());
+		return new RoomClosure(agentIdOf(roomId.trim(), tree.runs()), closedRoomIds, cancelledRunIds);
+	}
+
+	/**
+	 * Cancels the runs of a room tree that have not finished.
+	 *
+	 * @param tree    the rooms and runs
+	 * @param message why the runs were cancelled, stored as their error
+	 * @return the runs this call cancelled
+	 */
+	private List<String> cancelUnfinished(RoomTree tree, String message) {
+		List<String> cancelled = new ArrayList<>();
+		for (Map<String, Object> run : tree.runs()) {
+			String runId = ValueUtils.trimToNull(run.get("runId"));
+			if (runId != null && isUnfinished(run)
+					&& cancelAndRelease(runId, ValueUtils.trimToNull(run.get("parentRunId")), message)) {
+				cancelled.add(runId);
+			}
+		}
+		return cancelled;
+	}
+
+	/**
+	 * Collects what closing a user's room covers: the runs in the room, every run
+	 * below them wherever it runs, and the runs in each room they reach, such as a
+	 * continuation a subagent's result started in its own room.
+	 *
+	 * @param roomId   the room to close
+	 * @param userId   the user the room belongs to
+	 * @param userType the login type of {@code userId}, or null to match the id
+	 *                 under any type
+	 * @return the rooms and runs it covers; no runs when the user has none in the
+	 *         room
+	 */
+	static RoomTree roomTree(String roomId, String userId, String userType) {
+		String owner = userId.trim();
+		String type = ValueUtils.trimToNull(userType);
+		Map<String, String> rooms = new LinkedHashMap<>();
+		rooms.put(roomId.trim(), owner);
+		Deque<String> roomsToRead = new ArrayDeque<>(List.of(roomId.trim()));
+		Deque<String> runsToFollow = new ArrayDeque<>();
+		List<Map<String, Object>> found = new ArrayList<>();
+		Set<String> seen = new HashSet<>();
+		int reads = 0;
+		while ((!roomsToRead.isEmpty() || !runsToFollow.isEmpty()) && reads < MAX_ROOM_TREE_READS) {
+			reads++;
+			List<Map<String, Object>> reached = roomsToRead.isEmpty()
+					? AgentRunStore.getSubagentRunsOfAnyUser(runsToFollow.poll())
+					: AgentRunStore.getUserRunsForRoom(roomsToRead.poll(), owner, type);
+			for (Map<String, Object> run : reached) {
+				String runId = ValueUtils.trimToNull(run.get("runId"));
+				if (runId == null || !isOwnersRun(run, owner, type) || !seen.add(runId)) {
+					continue;
+				}
+				found.add(run);
+				runsToFollow.add(runId);
+				String runRoomId = ValueUtils.trimToNull(run.get("roomId"));
+				if (runRoomId != null && rooms.putIfAbsent(runRoomId, owner) == null) {
+					roomsToRead.add(runRoomId);
+				}
+			}
+		}
+		if (reads >= MAX_ROOM_TREE_READS) {
+			logger.warn("Closing roomId={} stopped following its runs after {} reads", roomId, reads);
+		}
+		List<Map<String, Object>> lastFoundFirst = new ArrayList<>(found);
+		Collections.reverse(lastFoundFirst);
+		return new RoomTree(rooms, lastFoundFirst);
+	}
+
+	/**
+	 * Whether a run is the room owner's: a subagent runs as the user who started
+	 * its parent, so any other user's run is never theirs to close. A run that
+	 * stores no login type matches the id alone.
+	 */
+	private static boolean isOwnersRun(Map<String, Object> run, String owner, String type) {
+		String runType = ValueUtils.trimToNull(run.get("userType"));
+		return owner.equals(ValueUtils.trimToNull(run.get("userId")))
+				&& (type == null || runType == null || type.equals(runType));
+	}
+
+	/**
+	 * Whether a run read as a map has not finished: submitted, running or waiting
+	 * for input
+	 */
+	private static boolean isUnfinished(Map<String, Object> run) {
+		String status = ValueUtils.trimToNull(run.get("status"));
+		return AgentRunStatus.SUBMITTED.name().equals(status) || AgentRunStatus.RUNNING.name().equals(status)
+				|| AgentRunStatus.INPUT_REQUIRED.name().equals(status);
+	}
+
+	/**
+	 * The agent of a room's runs, chosen as the admin room list chooses it: the
+	 * greatest agent id of the runs in the room.
+	 */
+	private static String agentIdOf(String roomId, List<Map<String, Object>> runs) {
+		String agentId = null;
+		for (Map<String, Object> run : runs) {
+			String runAgentId = ValueUtils.trimToNull(run.get("workspaceId"));
+			if (runAgentId != null && roomId.equals(ValueUtils.trimToNull(run.get("roomId")))
+					&& (agentId == null || runAgentId.compareTo(agentId) > 0)) {
+				agentId = runAgentId;
+			}
+		}
+		return agentId;
+	}
+
 	public Map<String, Object> waitForRun(String runId, Insight insight, long timeoutMs) throws InterruptedException {
 		if (runId == null || runId.trim().isEmpty()) {
 			throw new IllegalArgumentException("runId is required");
@@ -374,21 +624,38 @@ public final class AgentRunService {
 		if (record == null) {
 			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
 		}
+		cancelAndRelease(runId, record.request() == null ? null : record.request().getParentRunId(),
+				"Agent run cancelled");
+		return getRun(runId, insight);
+	}
+
+	/**
+	 * Cancels a run on behalf of someone stopping it, and frees what it holds on
+	 * this node.
+	 *
+	 * @param runId       the run to cancel
+	 * @param parentRunId the run that spawned it, or null for a root run
+	 * @param message     why the run was cancelled, stored as its error
+	 * @return {@code true} when this call moved the run to CANCELLED, {@code false}
+	 *         when it had already settled
+	 */
+	private boolean cancelAndRelease(String runId, String parentRunId, String message) {
 		// Frees the room even when the run's thread cannot be interrupted out of a
 		// blocking call. A run queued here or executing on another node has nothing to
 		// free locally; marking it cancelled below is what stops it.
 		queueLoop.cancel(runId);
 		prerna.reactor.agent.AgentCancelHook.onStop(runId);
-		if (AgentRunStore.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled")) {
-			notifyStreamCancelled(runId, "Agent run cancelled");
-			// Approvals the stopped run was waiting on, or the person's open request.
-			AgentRunActionStore.cancelPendingForRun(runId);
-			// A child cancelled while idle has no executor to report it.
-			if (record.request() != null && record.request().getParentRunId() != null) {
-				queueChildCompletion(runId);
-			}
+		if (!AgentRunStore.markCancelledIfNotTerminal(runId, runId, message)) {
+			return false;
 		}
-		return getRun(runId, insight);
+		notifyStreamCancelled(runId, message);
+		// Approvals the stopped run was waiting on, or the person's open request.
+		AgentRunActionStore.cancelPendingForRun(runId);
+		// A child cancelled while idle has no executor to report it.
+		if (parentRunId != null) {
+			queueChildCompletion(runId);
+		}
+		return true;
 	}
 
 	/**
@@ -579,6 +846,21 @@ public final class AgentRunService {
 			return null;
 		}
 		return user.getPrimaryLoginToken().getId();
+	}
+
+	/**
+	 * Reads the login type of the id {@link #resolveUserId} returns, from the same
+	 * primary login token.
+	 *
+	 * @param insight the caller's insight
+	 * @return the primary login's type, or null when there is no primary login
+	 */
+	private static String resolveUserType(Insight insight) {
+		if (insight == null || insight.getUser() == null) {
+			return null;
+		}
+		AccessToken token = insight.getUser().getPrimaryLoginToken();
+		return token == null || token.getProvider() == null ? null : token.getProvider().getLabel();
 	}
 
 	private static List<Map<String, Object>> collectRunMessages(Room room, String runId) {

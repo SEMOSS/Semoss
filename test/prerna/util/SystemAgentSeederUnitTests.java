@@ -59,6 +59,47 @@ import prerna.reactor.agent.config.AgentConfigLoader;
 class SystemAgentSeederUnitTests {
 
 	@Test
+	void officeAgentSeedsItsNameAndSkillsWithoutForcingAPresentationWorkflow() throws Exception {
+		String id = Constants.AGENT_OFFICE;
+		try (var registry = mockStatic(SystemEngineRegistry.class);
+				var workspaces = mockStatic(ModelInferenceLogsUtils.class)) {
+			registry.when(SystemEngineRegistry::isModelInferenceLogsDbLoaded).thenReturn(true);
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id)).thenReturn(null);
+			SystemAgentSeeder.seed(id);
+
+			var configCaptor = ArgumentCaptor.forClass(JSONObject.class);
+			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceConfigJson(eq(id), configCaptor.capture()));
+			JSONObject config = configCaptor.getValue();
+			String prompt = config.getString("system_prompt");
+			assertFalse(prompt.isBlank());
+			workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceEntry(eq(id), isNull(), eq("Office Agent"),
+					anyString(), eq(prompt), argThat(resources -> resources.size() == 3
+							&& resources.stream().allMatch(resource -> "SKILL".equals(resource.get("resource_type")))
+							&& resources.stream().map(resource -> resource.get("resource_id")).toList()
+									.equals(List.of("docx", "pptx", "xlsx")))));
+			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceCoreFields(eq(id), eq("Office Agent"),
+					anyString(), eq(prompt)));
+			assertFalse(config.has("model_id"));
+			assertFalse(config.getBoolean("greeting_enabled"));
+			assertTrue(config.getBoolean("use_default_agent_tools"));
+
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id))
+					.thenReturn(Map.of("name", "Office Agent", "system_prompt", prompt));
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceConfigJson(id)).thenReturn(config);
+			var loaded = AgentConfigLoader.load(mock(Room.class), null, "selected-model", Map.of(), Map.of(), 30, 0, id);
+			assertEquals(prompt, loaded.getAuthoredPrompt());
+			assertEquals("selected-model", loaded.getModelId());
+			assertEquals(List.of("docx", "pptx", "xlsx"),
+					loaded.getSkills().stream().map(skill -> skill.get("skill_id")).toList());
+			assertTrue(loaded.useDefaultAgentTools());
+			assertTrue(loaded.getDisabledDefaultTools().isEmpty());
+			assertTrue(loaded.getMcps().isEmpty());
+			assertFalse(loaded.hasPptxWorkflow());
+			assertNull(loaded.getResultTool());
+		}
+	}
+
+	@Test
 	void analysisAgentsSeedNamedWorkspacesAndLoadTheirRuntimeSkills() throws Exception {
 		for (var agent : Map.of(Constants.AGENT_DATABASE_EXPLORER, "Database Explorer",
 				Constants.AGENT_NOTEBOOK_ANALYST, "Notebook Analyst").entrySet()) {
@@ -147,6 +188,7 @@ class SystemAgentSeederUnitTests {
 			assertEquals(loaded.getPptxWorkflow().get("reviewer_alias"), reviewer.getAlias());
 			assertEquals(6, loaded.getPptxWorkflow().get("repair_turns"));
 			assertEquals(600, loaded.getPptxWorkflow().get("review_timeout_seconds"));
+			assertEquals(false, loaded.getPptxWorkflow().get("review_enabled"), "visual review is off by default");
 			assertEquals(Set.of("InspectPptx", "ExecuteNodeCode"), loaded.getDisabledDefaultTools());
 			assertEquals(Set.of(".claude/skills/pptx", ".semoss/pptx-workflow"), loaded.getReadOnlyPaths());
 			assertNull(loaded.getResultTool());

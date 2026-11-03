@@ -99,7 +99,7 @@ public final class BrainThreadMessages {
 				includeDisplayBody, cursor, includeAttachments);
 	}
 
-	/** An exact email the owner can compose against, with current source and ingestion checks. */
+	/** An exact email the owner can compose against or be shown, with current source and ingestion checks. */
 	public static Map<String, Object> composeSource(User user, String emailId) {
 		if (emailId == null || emailId.isBlank()) {
 			return null;
@@ -133,6 +133,7 @@ public final class BrainThreadMessages {
 		source.put("id", email.graphId());
 		String subject = CollaborationDbUtils.asString(email.message().get("subject"));
 		source.put("subject", subject == null ? "" : subject);
+		source.put("threadId", threadId);
 		return source;
 	}
 

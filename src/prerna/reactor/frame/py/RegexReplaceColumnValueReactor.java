@@ -126,6 +126,9 @@ public class RegexReplaceColumnValueReactor extends AbstractPyFrameReactor {
 			} else if (sType == SemossDataType.STRING) {
 				scripts[i] = wrapperFrameName + ".regex_replace_val('" + column + "', '" + regex + "' , '" + newValue
 						+ "')";
+			} else {
+				throw new IllegalArgumentException(
+						"Regex replace is not supported for " + sType + " column '" + column + "'");
 			}
 		}
 		// execute all of the routines after we have done our validation

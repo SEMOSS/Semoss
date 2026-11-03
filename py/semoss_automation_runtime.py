@@ -8,10 +8,11 @@ not a sandbox.
 """
 
 import base64
+import copy
 import json
 import re
 import xml.etree.ElementTree as ET
-from collections.abc import Callable
+from collections.abc import Callable, ItemsView, Iterator, KeysView, ValuesView
 from typing import Any
 
 
@@ -29,7 +30,59 @@ _MISSING = object()
 class AutomationScope(dict[str, Any]):
     """Read-only view of one run's inputs, metadata, and prior node outputs."""
 
-    __slots__ = ()
+    def __init__(
+        self,
+        values: dict[str, Any],
+        retained_values: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(values)
+        self._retained_values = retained_values or {}
+
+    def __getitem__(self, name: str) -> Any:
+        if name in self._retained_values:
+            retained = self._retained_values.pop(name)
+            # Each node that actually reads a retained value receives an isolated
+            # snapshot. Nodes that only need a loop-local value never copy the
+            # unchanged upstream collection.
+            dict.__setitem__(self, name, copy.deepcopy(retained))
+        return dict.__getitem__(self, name)
+
+    def get(self, name: str, default: Any = None) -> Any:
+        if name not in self:
+            return default
+        return self[name]
+
+    def keys(self) -> KeysView[str]:
+        # Overriding keys keeps dict(scope) on the mapping protocol so retained
+        # values resolve through __getitem__ instead of copying placeholders.
+        return dict.keys(self)
+
+    def __iter__(self) -> Iterator[str]:
+        return dict.__iter__(self)
+
+    def items(self) -> ItemsView[str, Any]:
+        self._resolve_all()
+        return dict.items(self)
+
+    def values(self) -> ValuesView[Any]:
+        self._resolve_all()
+        return dict.values(self)
+
+    def copy(self) -> dict[str, Any]:
+        self._resolve_all()
+        return dict.copy(self)
+
+    def __repr__(self) -> str:
+        self._resolve_all()
+        return dict.__repr__(self)
+
+    def __eq__(self, other: object) -> bool:
+        self._resolve_all()
+        return dict.__eq__(self, other)
+
+    def _resolve_all(self) -> None:
+        for name in tuple(self._retained_values):
+            self[name]
 
     def _raise_read_only(self, *args: Any, **kwargs: Any) -> None:
         raise TypeError(
@@ -272,9 +325,15 @@ def execute_node(
     output_variable: str,
     session_globals: dict[str, Any],
     frame_bindings: dict[str, str],
+    value_bindings: list[str] | None = None,
 ) -> Any:
     """Execute one persisted node module with a fresh module namespace."""
-    scope = _decode_scope(encoded_scope, session_globals, frame_bindings)
+    scope = _decode_scope(
+        encoded_scope,
+        session_globals,
+        frame_bindings,
+        value_bindings,
+    )
     source = _decode(encoded_source)
     module: dict[str, Any] = {
         "__name__": "__automation_node__",
@@ -293,6 +352,8 @@ def execute_node(
     if _retain_supported_frame(value, output_variable, session_globals):
         return {_RESULT_KIND_KEY: _RESULT_KIND_FRAME}
     result = _json_result(value, max_output_bytes)
+    if output_variable:
+        session_globals[output_variable] = result
     return {
         _RESULT_KIND_KEY: _RESULT_KIND_VALUE,
         _RESULT_VALUE_KEY: result,
@@ -307,11 +368,29 @@ def _decode_scope(
     value: str,
     session_globals: dict[str, Any] | None = None,
     frame_bindings: dict[str, str] | None = None,
+    value_bindings: list[str] | None = None,
 ) -> AutomationScope:
-    """Decode scope and bind live Insight-owned frames by output alias."""
+    """Decode scope and bind live Insight-owned values by output alias."""
     decoded = json.loads(_decode(value))
     if not isinstance(decoded, dict):
         raise ValueError("Automation scope must be a JSON object.")
+
+    # Ordinary JSON results stay in the run Insight so unchanged large values do
+    # not cross the Java-to-Python boundary for every later node. Retained values
+    # resolve lazily so a loop node that only reads its current item does not copy
+    # the complete upstream collection on every iteration.
+    retained_names = set(value_bindings or [])
+    frame_names = set((frame_bindings or {}).keys())
+    retained_values: dict[str, Any] = {}
+    for name in retained_names:
+        if name not in decoded:
+            continue
+        retained = (session_globals or {}).get(name, _MISSING)
+        if retained is _MISSING:
+            raise ValueError(
+                f"Automation retained scope value '{name}' is no longer available."
+            )
+        retained_values[name] = retained
     for name, backend in (frame_bindings or {}).items():
         if name not in decoded:
             continue
@@ -322,7 +401,16 @@ def _decode_scope(
                 "is no longer available."
             )
         decoded[name] = frame
-    return AutomationScope(decoded)
+
+    # Retain each freshly transported JSON value before user code receives its
+    # isolated copy. Java sends an unchanged value only once, then names it in
+    # value_bindings on later calls. A changed loop-local value is transported
+    # again and replaces the prior retained binding under the same scope name.
+    if session_globals is not None:
+        for name, item in decoded.items():
+            if name not in retained_names and name not in frame_names:
+                session_globals[name] = copy.deepcopy(item)
+    return AutomationScope(decoded, retained_values)
 
 
 def _is_supported_dataframe(value: Any) -> bool:
