@@ -16,6 +16,7 @@ from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...constants import AskModelEngineResponse2
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...message_builders.openai.openai_message_builder import OpenAIMessageBuilder
+from ...tokenizers.endpoint_tokenizer import EndpointTokenizer
 from smss_thread_local import get_smss_stream
 from .openai_image_client import OpenAiImageClient
 from .openai_audio_client import OpenAiAudioClient
@@ -62,6 +63,8 @@ class OpenAiClient(AbstractTextGenerationClient):
     ):
         self.is_azure = is_azure
         self.endpoint = kwargs.pop("endpoint", None)
+        # optional vLLM-style /tokenize URL for exact prompt counts
+        tokenize_endpoint = kwargs.pop("tokenize_endpoint", None)
 
         if self.endpoint:
             kwargs["base_url"] = self.endpoint
@@ -80,6 +83,15 @@ class OpenAiClient(AbstractTextGenerationClient):
 
         self.chat_type = self.model_settings.chat_type
         self.client = self._get_client(is_azure, **client_kwargs)
+        self.endpoint_tokenizer = (
+            EndpointTokenizer(
+                url=tokenize_endpoint,
+                model=self.model_settings.model_name,
+                api_key=getattr(self.client, "api_key", None),
+            )
+            if tokenize_endpoint
+            else None
+        )
         self.simplify_messages = string_to_bool(
             parent_kwargs.get("simplify_messages", False)
         )
@@ -264,6 +276,13 @@ class OpenAiClient(AbstractTextGenerationClient):
         """Count the prompt of a built request: tiktoken for OpenAI and Azure
         models, the Hugging Face tokenizer for models served elsewhere, and a
         conservative estimate otherwise. Images and files are estimated."""
+        tokenizer = getattr(self, "endpoint_tokenizer", None)
+        if tokenizer is not None and chat_type == "chat-completion":
+            tokens = tokenizer.count_chat(
+                request.get("messages") or [], request.get("tools")
+            )
+            if tokens is not None:
+                return PromptCount(tokens=tokens, estimated=False)
         count_text, exact = self._usage_text_counter()
         if chat_type == "responses":
             items = request.get("input")
@@ -284,6 +303,13 @@ class OpenAiClient(AbstractTextGenerationClient):
             text_exact=exact,
             message_count=len(items) if isinstance(items, list) else 1,
         )
+
+    def count_request_tokens(self, semoss_messages) -> Optional[PromptCount]:
+        """Count the request these messages build, with the same counter as the usage ceiling."""
+        # build_request can extend tool lists in place, so count from copies
+        copies = [message.model_copy(deep=True) for message in semoss_messages]
+        request = self.message_builder.build_request(copies)
+        return self._count_prompt_tokens(request, self.chat_type)
 
     def _usage_text_counter(self) -> Tuple[Optional[TextCounter], bool]:
         """The text counter for prompts, resolved once per client, and whether
