@@ -571,7 +571,11 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("STATE", VARCHAR_20),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("CLOSED_AT", TIMESTAMP_DATATYPE_NAME)));
+				Pair.with("CLOSED_AT", TIMESTAMP_DATATYPE_NAME),
+				// the owner's order on the Work page; null sorts after, newest first
+				Pair.with("SORT_ORDER", INTEGER_DATATYPE_NAME),
+				// the chat room the owner works this item in
+				Pair.with("ROOM_ID", VARCHAR_50)));
 		// a work item can sit under several topics: the products and the clients it touches
 		addTable("WORK_TASK_TOPIC", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
