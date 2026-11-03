@@ -44,7 +44,7 @@ import org.javatuples.Pair;
 
 import prerna.auth.User;
 
-// Brain topics: BRAIN_TOPIC with its notes, goals, and people
+// Brain topics: BRAIN_TOPIC with its people
 public final class BrainTopicUtils {
 
 	public static final String SUGGESTED = "suggested";
@@ -59,10 +59,6 @@ public final class BrainTopicUtils {
 	public static final List<String> PERSON_STATES = List.of(MEMBER, SUGGESTED, REMOVED);
 
 	public static final Set<String> KINDS = Set.of("client", "internal", "event", "personal");
-
-	// BRAIN_TOPIC_NOTE.KIND and the states each kind allows; topic notes are Brain memories linked to the topic now
-	public static final String GOAL = "goal";
-	private static final Map<String, List<String>> NOTE_STATES = Map.of(GOAL, List.of("open", "done"));
 
 	// an active topic with no activity and no owner edit for this long goes dormant
 	static final int DORMANT_AFTER_DAYS = 30;
@@ -155,31 +151,11 @@ public final class BrainTopicUtils {
 		}
 
 		// the topic's notes are memories linked to it (BrainListMemories)
-		List<Map<String, Object>> goals = new ArrayList<>();
-		for (Map<String, Object> note : getGoals(ownerId, ownerType, topicId)) {
-			Map<String, Object> goal = new LinkedHashMap<>();
-			goal.put("noteId", note.get("noteId"));
-			goal.put("text", note.get("text"));
-			goal.put("status", note.get("status"));
-			if (note.containsKey("resolution")) {
-				goal.put("resolution", note.get("resolution"));
-			}
-			goals.add(goal);
-		}
-		topic.put("goals", goals);
 		topic.put("openActionItems", BrainTopicBrief.openItems(ownerId, ownerType, topicId, OPEN_ITEMS_SHOWN));
 		topic.put("people", getPeople(ownerId, ownerType, topicId));
 		topic.put("folders", BrainMailFolders.ofTopic(ownerId, ownerType, topicId));
 
 		return topic;
-	}
-
-	static List<Map<String, Object>> getGoals(String ownerId, String ownerType, String topicId) {
-		return CollaborationDbUtils.query(
-				"SELECT NOTE_ID, KIND, TEXT, RESOLUTION, STATE, ORIGIN, SOURCE_REF, CREATED_AT FROM BRAIN_TOPIC_NOTE "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND KIND = ? "
-						+ "ORDER BY CREATED_AT, NOTE_ID",
-				BrainTopicUtils::mapNote, ownerId, ownerType, topicId, GOAL);
 	}
 
 	static List<Map<String, Object>> getPeople(String ownerId, String ownerType, String topicId) {
@@ -313,109 +289,6 @@ public final class BrainTopicUtils {
 			}
 		});
 		return getTopic(ownerId, ownerType, topicId);
-	}
-
-	// goals take open|done; no noteId creates. Topic notes are memories (BrainSaveMemory with a topic link).
-	public static Map<String, Object> saveTopicNote(User user, String topicId, String noteId, String kind, String text,
-			String state) {
-		var owner = CollaborationDbUtils.ownerOf(user);
-		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
-				() -> saveTopicNoteInReview(user, topicId, noteId, kind, text, state));
-	}
-
-	private static Map<String, Object> saveTopicNoteInReview(User user, String topicId, String noteId, String kind, String text,
-			String state) {
-		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		String ownerId = owner.getValue0();
-		String ownerType = owner.getValue1();
-		if (kind == null || !NOTE_STATES.containsKey(kind)) {
-			throw new IllegalArgumentException(
-					"Kind must be goal; save a topic note as a memory about the topic with BrainSaveMemory");
-		}
-		if (state == null || !NOTE_STATES.get(kind).contains(state)) {
-			throw new IllegalArgumentException("A " + kind + " state must be one of " + NOTE_STATES.get(kind));
-		}
-		if (text == null || text.isBlank()) {
-			throw new IllegalArgumentException("Note text is required");
-		}
-		requireTopic(ownerId, ownerType, topicId);
-
-		Timestamp now = CollaborationDbUtils.now();
-		String id = noteId == null ? UUID.randomUUID().toString() : noteId;
-		if (noteId != null && !CollaborationDbUtils.exists(
-				"SELECT 1 FROM BRAIN_TOPIC_NOTE "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND NOTE_ID = ?",
-				ownerId, ownerType, topicId, noteId)) {
-			throw new IllegalArgumentException("Note not found");
-		}
-		CollaborationDbUtils.inTransaction(conn -> {
-			if (noteId == null) {
-				CollaborationDbUtils.update(conn,
-						"INSERT INTO BRAIN_TOPIC_NOTE (OWNER_ID, OWNER_TYPE, NOTE_ID, TOPIC_ID, "
-								+ "KIND, TEXT, STATE, ORIGIN, CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-						ownerId, ownerType, id, topicId, kind, text, state, BrainProfileUtils.YOU, now, now);
-			} else {
-				CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC_NOTE SET KIND = ?, TEXT = ?, STATE = ?, "
-						+ "UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND NOTE_ID = ?", kind,
-						text, state, now, ownerId, ownerType, topicId, id);
-			}
-			touchTopic(conn, ownerId, ownerType, topicId, now);
-		});
-		return CollaborationDbUtils.queryOne(
-				"SELECT NOTE_ID, KIND, TEXT, RESOLUTION, STATE, ORIGIN, SOURCE_REF, CREATED_AT FROM BRAIN_TOPIC_NOTE "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND NOTE_ID = ?",
-				BrainTopicUtils::mapNote, ownerId, ownerType, id);
-	}
-
-	static void completeGoal(User user, String topicId, String noteId, String resolution) {
-		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		String ownerId = owner.getValue0();
-		String ownerType = owner.getValue1();
-		String outcome = resolution == null || resolution.isBlank() ? null : resolution.trim();
-		BrainTopicReviewProfiles.serialized(ownerId, ownerType, () -> {
-			requireTopic(ownerId, ownerType, topicId);
-			Timestamp now = CollaborationDbUtils.now();
-			CollaborationDbUtils.inTransaction(conn -> {
-				int updated = CollaborationDbUtils.update(conn,
-						"UPDATE BRAIN_TOPIC_NOTE SET STATE = ?, RESOLUTION = COALESCE(?, RESOLUTION), UPDATED_AT = ? "
-								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND NOTE_ID = ? AND KIND = ?",
-						"done", outcome, now, ownerId, ownerType, topicId, noteId, GOAL);
-				if (updated == 0) {
-					throw new IllegalArgumentException("This topic has no goal " + noteId + "; take the noteId from ListTopics");
-				}
-				touchTopic(conn, ownerId, ownerType, topicId, now);
-			});
-			return null;
-		});
-	}
-
-	public static Map<String, Object> deleteTopicNote(User user, String topicId, String noteId) {
-		var owner = CollaborationDbUtils.ownerOf(user);
-		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
-				() -> deleteTopicNoteInReview(user, topicId, noteId));
-	}
-
-	private static Map<String, Object> deleteTopicNoteInReview(User user, String topicId, String noteId) {
-		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		String ownerId = owner.getValue0();
-		String ownerType = owner.getValue1();
-		requireTopic(ownerId, ownerType, topicId);
-		Timestamp now = CollaborationDbUtils.now();
-		int[] deleted = new int[1];
-		CollaborationDbUtils.inTransaction(conn -> {
-			deleted[0] = CollaborationDbUtils.update(conn,
-					"DELETE FROM BRAIN_TOPIC_NOTE "
-							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND NOTE_ID = ?",
-					ownerId, ownerType, topicId, noteId);
-			touchTopic(conn, ownerId, ownerType, topicId, now);
-		});
-		if (deleted[0] == 0) {
-			throw new IllegalArgumentException("Note not found");
-		}
-		Map<String, Object> result = new LinkedHashMap<>();
-		result.put("topicId", topicId);
-		result.put("noteId", noteId);
-		return result;
 	}
 
 	// ---- people ----
@@ -794,22 +667,6 @@ public final class BrainTopicUtils {
 		row.put("status", CollaborationDbUtils.getString(rs, "STATUS"));
 		row.put("stats", stats);
 		return row;
-	}
-
-	private static Map<String, Object> mapNote(ResultSet rs) throws SQLException {
-		Map<String, Object> note = new LinkedHashMap<>();
-		note.put("noteId", CollaborationDbUtils.getString(rs, "NOTE_ID"));
-		note.put("kind", CollaborationDbUtils.getString(rs, "KIND"));
-		note.put("text", CollaborationDbUtils.getString(rs, "TEXT"));
-		String resolution = CollaborationDbUtils.getString(rs, "RESOLUTION");
-		if (resolution != null) {
-			note.put("resolution", resolution);
-		}
-		note.put("status", CollaborationDbUtils.getString(rs, "STATE"));
-		note.put("by", CollaborationDbUtils.getString(rs, "ORIGIN"));
-		note.put("date", CollaborationDbUtils.getTimestamp(rs, "CREATED_AT"));
-		note.put("source", CollaborationDbUtils.getString(rs, "SOURCE_REF"));
-		return note;
 	}
 
 	private static Map<String, Object> mapPerson(ResultSet rs) throws SQLException {

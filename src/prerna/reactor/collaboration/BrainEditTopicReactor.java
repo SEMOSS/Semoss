@@ -47,17 +47,14 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 	private static final String STATUS = "status";
 	private static final String ADD_PEOPLE = "addPeople";
 	private static final String REMOVE_PEOPLE = "removePeople";
-	private static final String ADD_GOAL = "addGoal";
 	private static final String ADD_NOTE = "addNote";
 	private static final String DELETE_NOTE_ID = "deleteNoteId";
-	private static final String COMPLETE_GOAL_ID = "completeGoalId";
-	private static final String GOAL_RESOLUTION = "goalResolution";
 	private static final String ADD_EMAILS = "addEmails";
 
 	public BrainEditTopicReactor() {
 		this.keysToGet = new String[] { TOPIC_ID, TOPIC, NAME, DESCRIPTION, STATUS, ADD_PEOPLE, REMOVE_PEOPLE,
-				ADD_GOAL, ADD_NOTE, DELETE_NOTE_ID, COMPLETE_GOAL_ID, GOAL_RESOLUTION, ADD_EMAILS };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				ADD_NOTE, DELETE_NOTE_ID, ADD_EMAILS };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -65,8 +62,7 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 		User user = getUser();
 		return mapResult(BrainAgentEdits.editTopic(user, getString(TOPIC_ID), getString(TOPIC), getString(NAME),
 				getString(DESCRIPTION), getString(STATUS), people(ADD_PEOPLE),
-				people(REMOVE_PEOPLE), getString(ADD_GOAL), getString(ADD_NOTE),
-				getString(DELETE_NOTE_ID), getString(COMPLETE_GOAL_ID), getString(GOAL_RESOLUTION),
+				people(REMOVE_PEOPLE), getString(ADD_NOTE), getString(DELETE_NOTE_ID),
 				getNounAsStringList(ADD_EMAILS)));
 	}
 
@@ -118,8 +114,8 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Changes one of the owner's Brain topics, as the owner would on the topic page: rename it, edit its "
-				+ "description, set its status, add or remove its people, put emails in it, add a goal or note, "
-				+ "complete a goal with an optional resolution, or delete one. "
+				+ "description, set its status, add or remove its people, put emails in it, or add or delete a "
+				+ "note. "
 				+ "Several changes can go in one call. To create a topic, leave out topicId and topic and pass its "
 				+ "name with any other changes; a name another topic has is refused. It waits for the owner to "
 				+ "approve. Read the topic with ListTopics first so you pass the right names";
@@ -141,22 +137,14 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 			return "People to add to the topic: a list of plain strings, each an email, a name, or a person id (not objects); a suggested person becomes a member";
 		} else if (REMOVE_PEOPLE.equals(key)) {
 			return "People to remove from the topic: a list of plain strings, each an email, a name, or a person id (not objects); their threads stay linked";
-		} else if (ADD_GOAL.equals(key)) {
-			return "Text of a goal to add";
 		} else if (ADD_NOTE.equals(key)) {
 			return "Text of a note to add; it is kept as the owner's memory about the topic";
 		} else if (DELETE_NOTE_ID.equals(key)) {
-			return "Id of a goal or note to delete, from ListTopics";
-		} else if (COMPLETE_GOAL_ID.equals(key)) {
-			return "Goal noteId from this topic's ListTopics goals to mark done; keeps the goal and its text";
+			return "Id of a note to delete, from ListTopics";
 		} else if (ADD_EMAILS.equals(key)) {
 			return "Emails to put in the topic: a list of plain strings, each a threadId from SearchMail or ReadThread, "
 					+ "an emailRef from ReadThread, or an email's id from ListM365Mail. Any email in the owner's "
 					+ "mailbox can be added, with its whole conversation";
-		} else if (GOAL_RESOLUTION.equals(key)) {
-			return "Optional short, plain-language accomplishment saved with completeGoalId, based on established facts. "
-					+ "Omit source labels, citations, and internal ids, including shortened thread/message ids; "
-					+ "omit to keep any existing resolution";
 		}
 		return super.getDescriptionForKey(key);
 	}

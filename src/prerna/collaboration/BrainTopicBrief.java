@@ -43,8 +43,8 @@ import prerna.collaboration.BrainTopicRoomUtils.Chat;
 import prerna.engine.impl.model.Room;
 
 /**
- * What the owner's assistant is told about the chat's topics on every turn: each topic's description, open goals
- * and open action items. It rides in the per-turn runtime note, not the system prompt, because goals and items
+ * What the owner's assistant is told about the chat's topics on every turn: each topic's description and open
+ * work items. It rides in the per-turn runtime note, not the system prompt, because work items
  * change mid-chat and the system prompt has to stay the same for caching.
  */
 public final class BrainTopicBrief {
