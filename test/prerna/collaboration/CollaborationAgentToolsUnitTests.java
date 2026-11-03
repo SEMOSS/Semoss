@@ -52,7 +52,7 @@ class CollaborationAgentToolsUnitTests {
 	@Test
 	void everyDedicatedToolHasAViewAndItsOwnApprovalSchema() throws Exception {
 		List<Map<String, Object>> tools = allDefinitions();
-		assertEquals(49, tools.size());
+		assertEquals(54, tools.size());
 		for (Map<String, Object> value : tools) {
 			JSONObject tool = new JSONObject(value);
 			JSONObject meta = tool.getJSONObject("_meta");

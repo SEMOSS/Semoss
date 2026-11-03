@@ -33,6 +33,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +44,9 @@ import prerna.auth.User;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
+import prerna.reactor.agent.runtime.AgentCodeExecutionContext;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.project.AutomationProjectService;
 import prerna.reactor.automation.run.AutomationRunStore;
@@ -68,6 +71,21 @@ public final class WorkRoutineRoom {
 			Map<String, Object> row) {
 		WorkRoutine.Slot slot() {
 			return new WorkRoutine.Slot(kind, owner, customId);
+		}
+
+		// the chat one run's output opens in, from History, the sidebar or Latest
+		String runRoom(String runId) {
+			return CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), "routine-run-discussion",
+					kind.id(), customId == null ? "" : customId, runId);
+		}
+
+		// the chat Latest opened by the row's start, before it opened the run's own
+		String latestRoom(String started) {
+			return customId == null
+					? CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), "routine-discussion",
+							kind.id(), started)
+					: CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), "routine-discussion",
+							kind.id(), customId, started);
 		}
 	}
 
@@ -210,24 +228,49 @@ public final class WorkRoutineRoom {
 	}
 
 	/**
-	 * Deletes one finished run of the owner's routine from its history. When it was the routine's latest run, Routines
-	 * stops showing its result too. Chats opened from the run stay; they are the owner's own conversations.
+	 * Deletes one finished run of the owner's routine from its history, with the chats opened from it and the rooms its
+	 * agent worked in. When it was the routine's latest run, Routines stops showing its result too.
+	 *
+	 * @return the rooms deleted, so a client showing one can leave it
 	 */
-	public static void deleteRun(Insight insight, String routineId, String runId) {
-		WorkRoutine.Slot slot = target(insight, routineId).slot();
+	public static List<String> deleteRun(Insight insight, String routineId, String runId) {
+		Target target = target(insight, routineId);
+		WorkRoutine.Slot slot = target.slot();
+		User user = insight.getUser();
 		String id = runId == null ? "" : runId.trim();
-		Map<String, Object> run = id.isEmpty() ? null : ownRun(slot, insight.getUser(), id);
+		Map<String, Object> run = id.isEmpty() ? null : ownRun(slot, user, id);
 		if (run == null) {
 			throw new IllegalArgumentException("Unknown run");
 		}
 		if ("running".equals(status(run))) {
 			throw new IllegalArgumentException("This run is still going. Delete it once it has finished.");
 		}
-		AutomationRunStore.deleteRun(AutomationProjectService.inlineRunScope(insight.getUser()), slot.automationId(), id);
+		// every run's agent gets rooms of its own, and only the run's history names them
+		Set<String> roomIds = new LinkedHashSet<>();
+		for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(id)) {
+			if (node.get(AutomationConstants.ROOM_ID) instanceof String roomId && !roomId.isBlank()) {
+				roomIds.add(roomId);
+			}
+		}
+		roomIds.add(target.runRoom(id));
+		Map<String, Object> row = target.row();
+		if (row != null && id.equals(row.get("runId")) && row.get("startedAt") instanceof String started) {
+			roomIds.add(target.latestRoom(started));
+		}
+		// as deleting a chat does; the chats go first, so after a failure deleting the run again finishes the job
+		for (String roomId : roomIds) {
+			if (!ModelInferenceLogsUtils.doSetRoomToInactive(target.owner().getValue0(), roomId)) {
+				throw new IllegalStateException("The run's chats could not be deleted. Try again.");
+			}
+			AgentCodeExecutionContext.removeForRoom(user, roomId);
+			RoomMessageStore.evictRedisProjection(roomId);
+		}
+		AutomationRunStore.deleteRun(AutomationProjectService.inlineRunScope(user), slot.automationId(), id);
 		// the row keeps its start, which orders the sidebar, and the older runs stay in the history
 		CollaborationDbUtils.update("UPDATE " + slot.kind().table() + " SET RUN_STATUS = NULL, FINISHED_AT = NULL, "
 				+ "ROOM_ID = NULL, RUN_ID = NULL, SUMMARY = NULL, ERROR = NULL, ERROR_CAUSE = NULL" + slot.where()
 				+ " AND RUN_ID = ?", slot.args(new Object[0], id));
+		return List.copyOf(roomIds);
 	}
 
 	/** The run, only when it is this owner's run of this routine; the client id is never trusted alone. */
@@ -283,8 +326,7 @@ public final class WorkRoutineRoom {
 			}
 			Object started = run.get(AutomationConstants.STARTED_AT);
 			runStarted = started == null ? "" : String.valueOf(started);
-			roomId = CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), "routine-run-discussion",
-					kind.id(), customId == null ? "" : customId, runId.trim());
+			roomId = target.runRoom(runId.trim());
 		} else {
 			if (row == null || !"completed".equals(row.get("status"))
 					|| !(row.get("summary") instanceof String latest) || latest.isBlank()
@@ -296,11 +338,11 @@ public final class WorkRoutineRoom {
 			}
 			summary = latest;
 			runStarted = latestStarted;
-			roomId = customId == null
-					? CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), "routine-discussion",
-							kind.id(), runStarted)
-					: CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), "routine-discussion",
-							kind.id(), customId, runStarted);
+			// the run's own chat, the one History opens, so deleting the run finds it; a chat opened earlier stays
+			String earlier = target.latestRoom(latestStarted);
+			roomId = row.get("runId") instanceof String latestRun && !ModelInferenceLogsUtils.doCheckRoomExists(earlier)
+					? target.runRoom(latestRun)
+					: earlier;
 		}
 		String title = customId != null && row.get("settings") instanceof Map<?, ?> settings
 				&& settings.get("name") instanceof String name && !name.isBlank() ? name : kind.jobName();

@@ -35,6 +35,8 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +63,10 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageIO;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
+import prerna.reactor.agent.runtime.AgentCodeExecutionContext;
+import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.project.AutomationProjectService;
+import prerna.reactor.automation.run.AutomationRunStore;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -125,6 +131,8 @@ class WorkRoutineRoomUnitTests {
 			return storedRoom(id);
 		});
 		logs = mockStatic(ModelInferenceLogsUtils.class);
+		logs.when(() -> ModelInferenceLogsUtils.doCheckRoomExists(anyString()))
+				.thenAnswer(call -> owners.containsKey(call.getArgument(0)));
 		logs.when(() -> ModelInferenceLogsUtils.getRoomById(anyString(), anyString())).thenAnswer(call -> {
 			String id = call.getArgument(0);
 			return call.getArgument(1).equals(owners.get(id)) ? storedRoom(id) : null;
@@ -277,6 +285,88 @@ class WorkRoutineRoomUnitTests {
 	void unknownRoutineCannotSelectAnArbitraryTable() {
 		assertThrows(IllegalArgumentException.class, () -> open("WORK_INBOX_ROUTINE"));
 		rooms.verifyNoInteractions();
+	}
+
+	@Test
+	void latestOutputOpensTheChatHistoryOpensForItsRun() {
+		completed(user, WorkInboxRoutine.ID, STARTED, "Saved output");
+		CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET RUN_ID = ?", "run-1");
+		try (MockedStatic<AutomationRunStore> history = runHistory("run-1", AutomationConstants.STATUS_SUCCESS)) {
+			String id = open(WorkInboxRoutine.ID);
+			assertEquals(id, WorkRoutineRoom.open(insight, WorkInboxRoutine.ID, null, "run-1").get("roomId"));
+			assertEquals(1, storedRoom(id).getMessages().size());
+		}
+	}
+
+	@Test
+	void aChatLatestOpenedBeforeItsRunWasKnownKeepsOpening() {
+		completed(user, WorkInboxRoutine.ID, STARTED, "Saved output");
+		String earlier = open(WorkInboxRoutine.ID);
+		CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET RUN_ID = ?", "run-1");
+		assertEquals(earlier, open(WorkInboxRoutine.ID));
+	}
+
+	@Test
+	void deletingARunDeletesItsChatsAndItsAgentsRoomsBeforeTheRun() {
+		completed(user, WorkInboxRoutine.ID, STARTED, "Saved output");
+		String latest = open(WorkInboxRoutine.ID);
+		CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET RUN_ID = ?", "run-1");
+		List<String> closed = new ArrayList<>();
+		logs.when(() -> ModelInferenceLogsUtils.doSetRoomToInactive(anyString(), anyString())).thenAnswer(call -> {
+			assertEquals("owner-one", call.getArgument(0));
+			closed.add(call.getArgument(1));
+			return true;
+		});
+		try (MockedStatic<AutomationRunStore> history = runHistory("run-1", AutomationConstants.STATUS_SUCCESS);
+				MockedStatic<AgentCodeExecutionContext> code = mockStatic(AgentCodeExecutionContext.class)) {
+			String chat = (String) WorkRoutineRoom.open(insight, WorkInboxRoutine.ID, null, "run-1").get("roomId");
+			history.when(() -> AutomationRunStore.deleteRun(anyString(), anyString(), anyString())).thenAnswer(call -> {
+				assertEquals(4, closed.size());
+				return 1;
+			});
+
+			List<String> deleted = WorkRoutineRoom.deleteRun(insight, WorkInboxRoutine.ID, "run-1");
+
+			assertEquals(List.of("agent-room", "loop-room", chat, latest), deleted);
+			assertEquals(deleted, closed);
+			history.verify(() -> AutomationRunStore.deleteRun(AutomationProjectService.inlineRunScope(user),
+					WorkInboxRoutine.KIND.automationId(), "run-1"));
+			code.verify(() -> AgentCodeExecutionContext.removeForRoom(user, chat));
+		}
+	}
+
+	@Test
+	void aChatThatCannotBeDeletedKeepsTheRunToTryAgain() {
+		completed(user, WorkInboxRoutine.ID, STARTED, "Saved output");
+		logs.when(() -> ModelInferenceLogsUtils.doSetRoomToInactive(anyString(), anyString())).thenReturn(false);
+		try (MockedStatic<AutomationRunStore> history = runHistory("run-1", AutomationConstants.STATUS_SUCCESS)) {
+			assertThrows(IllegalStateException.class,
+					() -> WorkRoutineRoom.deleteRun(insight, WorkInboxRoutine.ID, "run-1"));
+			history.verify(() -> AutomationRunStore.deleteRun(anyString(), anyString(), anyString()), never());
+		}
+	}
+
+	/** The scheduler's record of one of the owner's inbox runs: its output and the rooms its agent worked in. */
+	private MockedStatic<AutomationRunStore> runHistory(String runId, String status) {
+		MockedStatic<AutomationRunStore> history = mockStatic(AutomationRunStore.class);
+		Map<String, Object> run = new HashMap<>();
+		run.put(AutomationConstants.RUN_ID, runId);
+		run.put(AutomationConstants.PROJECT_ID, AutomationProjectService.inlineRunScope(user));
+		run.put(AutomationConstants.AUTOMATION_ID, WorkInboxRoutine.KIND.automationId());
+		run.put(AutomationConstants.STATUS, status);
+		run.put(AutomationConstants.STARTED_AT, Timestamp.valueOf("2026-10-15 12:00:05"));
+		history.when(() -> AutomationRunStore.getRunDetail(runId)).thenReturn(run);
+		Map<String, Object> agent = new HashMap<>();
+		agent.put(AutomationConstants.NODE_ID, WorkInboxRoutine.KIND.outputNode());
+		agent.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		agent.put(AutomationConstants.OUTPUT_VALUE, "\"Saved output\"");
+		agent.put(AutomationConstants.ROOM_ID, "agent-room");
+		Map<String, Object> loop = new HashMap<>();
+		loop.put(AutomationConstants.NODE_ID, "step");
+		loop.put(AutomationConstants.PARENT_NODE_ID, "loop");
+		loop.put(AutomationConstants.ROOM_ID, "loop-room");
+		history.when(() -> AutomationRunStore.getNodeOutputsForRun(runId)).thenReturn(List.of(agent, loop));
+		return history;
 	}
 
 	private String open(String routineId) {

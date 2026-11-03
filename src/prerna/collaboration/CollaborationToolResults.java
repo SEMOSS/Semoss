@@ -35,6 +35,8 @@ final class CollaborationToolResults {
 	// an invite body is mostly join details
 	private static final int EVENT_BODY_CHARS = 1000;
 	private static final int EVENT_ATTENDEES = 10;
+	// a page of mail shares one body budget, so a call for 50 or 100 full mails cannot fill the context
+	static final int MAIL_PAGE_BODY_CHARS = 30_000;
 
 	private CollaborationToolResults() {
 
@@ -50,7 +52,14 @@ final class CollaborationToolResults {
 			}
 			if (CLEANED.contains(toolName)) {
 				Object parsed = CollaborationDbUtils.parseMap(output);
-				return parsed == null ? output : CollaborationDbUtils.toJson(clean(toolName, null, parsed));
+				if (parsed == null) {
+					return output;
+				}
+				Object cleaned = clean(toolName, null, parsed);
+				if ("ListM365Mail".equals(toolName)) {
+					shareMailBodies(cleaned);
+				}
+				return CollaborationDbUtils.toJson(cleaned);
 			}
 		} catch (RuntimeException e) {
 			// a result we cannot read is passed as it came
@@ -110,6 +119,28 @@ final class CollaborationToolResults {
 		Map<String, Object> trimmed = new LinkedHashMap<>(result);
 		trimmed.put("chats", slim);
 		return CollaborationDbUtils.toJson(trimmed);
+	}
+
+	// cuts every body on the page to an equal share of MAIL_PAGE_BODY_CHARS, and says so
+	@SuppressWarnings("unchecked")
+	private static void shareMailBodies(Object result) {
+		if (!(result instanceof Map<?, ?> page) || !(page.get("messages") instanceof List<?> messages)
+				|| messages.isEmpty()) {
+			return;
+		}
+		int share = MAIL_PAGE_BODY_CHARS / messages.size();
+		boolean cut = false;
+		for (Object item : messages) {
+			if (item instanceof Map<?, ?> message && message.get("body") instanceof String body
+					&& body.length() > share) {
+				((Map<String, Object>) message).put("body", body.substring(0, share) + "...");
+				cut = true;
+			}
+		}
+		if (cut) {
+			((Map<String, Object>) page).put("note", "Bodies are cut to " + share + " characters each so the page "
+					+ "fits. For more of one message, list fewer messages or read its thread with conversationId.");
+		}
 	}
 
 	// drops UI copies, links, defaults and empty values everywhere in the result

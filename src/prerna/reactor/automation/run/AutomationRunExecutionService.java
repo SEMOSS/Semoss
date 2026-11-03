@@ -2508,7 +2508,7 @@ final class AutomationRunExecutionService {
 	private static String agentFailureMessage(Map<String, Object> result, String runId) {
 		String status = stringValue(result.get("status"));
 		if (Boolean.TRUE.equals(result.get("waitTimedOut"))) {
-			return "Agent run '" + runId + "' did not complete before the wait timeout.";
+			return "Agent run '" + runId + "'" + AutomationConstants.AGENT_WAIT_TIMEOUT_ERROR;
 		}
 		if (status == null) {
 			return "Agent run '" + runId + "' returned no durable status.";
