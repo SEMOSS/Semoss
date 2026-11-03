@@ -167,6 +167,8 @@ public final class BrainThreadClassifier {
 					for (String key : new String[] { "classifier", "threads", "topics", "errors" }) {
 						job.count(key, summary.get(key));
 					}
+					// the backlog's work items, now that its threads have topics
+					WorkPipeline.firstBuild(user);
 				});
 	}
 

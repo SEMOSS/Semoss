@@ -1087,6 +1087,8 @@ public class Constants {
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
 	// work items from mail: on replaces thread action items; uses COLLAB_LLM_ENGINE_ID
 	public static final String COLLAB_WORK_ITEMS_ENABLED = "COLLAB_WORK_ITEMS_ENABLED";
+	// work items runs at once across owners; each owner's own runs still go one at a time (default 3)
+	public static final String COLLAB_WORK_ITEMS_PARALLEL = "COLLAB_WORK_ITEMS_PARALLEL";
 	// threads the classifier sorts at once (default 8)
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
 	// characters of memories a thread's assistant gets in its prompt (default 4000)

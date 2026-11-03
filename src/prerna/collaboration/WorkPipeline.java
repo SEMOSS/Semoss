@@ -43,6 +43,8 @@ public final class WorkPipeline {
 	private static final int MAX_TOKENS = 4000;
 	private static final int MAX_NOTED = 60;
 	private static final int MAX_PENDING = 400;
+	// the most a new owner's first build reads
+	private static final int FIRST_BUILD_DAYS = 30;
 	private static final String ME = "me";
 	private static final String GROUP = "group";
 	private static final String UNCLEAR = "unclear";
@@ -87,11 +89,24 @@ public final class WorkPipeline {
 			Map.of("type", "array", "items", obj(props("kind", STR, "text", STR, "assignee", STR, "askedBy", STR,
 					"directedAtOwner", Map.of("type", "boolean"), "message", STR, "due", STR, "quote", STR)))));
 
-	private static final ExecutorService POOL = Executors.newSingleThreadExecutor(r -> {
+	// owners run side by side on a small pool (RDF_Map COLLAB_WORK_ITEMS_PARALLEL); each owner's runs go one at a
+	// time in their own lane, so one owner's big build never holds up another's sync
+	private static final int PARALLEL = 3;
+	private static final int MAX_PARALLEL = 16;
+	private static final ExecutorService POOL = Executors.newFixedThreadPool(parallel(), r -> {
 		Thread t = new Thread(r, "collaboration-work-items");
 		t.setDaemon(true);
 		return t;
 	});
+	private static final Map<String, Lane> LANES = new ConcurrentHashMap<>();
+
+	// one owner's queued runs; syncs that land while a run is going merge into one follow-up run
+	private static final class Lane {
+		final java.util.ArrayDeque<Runnable> jobs = new java.util.ArrayDeque<>();
+		final Set<String> syncThreads = new LinkedHashSet<>();
+		boolean busy;
+	}
+
 	// the last run per owner, for the status call
 	private static final Map<String, Map<String, Object>> RUNS = new ConcurrentHashMap<>();
 
@@ -115,8 +130,22 @@ public final class WorkPipeline {
 			classLogger.warn("Work items skipped: {}", e.getMessage());
 			return;
 		}
-		List<String> ids = new ArrayList<>(threadIds);
-		POOL.submit(() -> run(user, ownerId, ownerType, engine, ids));
+		Lane lane = lane(ownerId, ownerType);
+		synchronized (lane) {
+			boolean waiting = !lane.syncThreads.isEmpty();
+			lane.syncThreads.addAll(threadIds);
+			if (waiting) {
+				return; // joins the sync run already queued
+			}
+			submit(lane, () -> {
+				List<String> ids;
+				synchronized (lane) {
+					ids = new ArrayList<>(lane.syncThreads);
+					lane.syncThreads.clear();
+				}
+				run(user, ownerId, ownerType, engine, ids);
+			});
+		}
 	}
 
 	/**
@@ -148,7 +177,7 @@ public final class WorkPipeline {
 					ownerId, ownerType);
 		}
 		RUNS.put(key(ownerId, ownerType), new ConcurrentHashMap<>(Map.of("state", "queued", "threads", threads.size())));
-		POOL.submit(() -> run(user, ownerId, ownerType, engine, threads));
+		submit(lane(ownerId, ownerType), () -> run(user, ownerId, ownerType, engine, threads));
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("threads", threads.size());
 		out.put("retiredSteps", retired);
@@ -690,7 +719,7 @@ public final class WorkPipeline {
 		status.put("state", "tidying");
 		status.put("items", taskIds.size());
 		RUNS.put(key(ownerId, ownerType), status);
-		POOL.submit(() -> {
+		submit(lane(ownerId, ownerType), () -> {
 			synchronized (CollaborationDbUtils.ownerLock("work-items", ownerId, ownerType)) {
 				try {
 					IModelEngine model = Utility.getModel(engine);
@@ -710,6 +739,83 @@ public final class WorkPipeline {
 			}
 		});
 		return Map.of("items", taskIds.size(), "engine", engine);
+	}
+
+	// ---- lanes ----
+
+	private static Lane lane(String ownerId, String ownerType) {
+		return LANES.computeIfAbsent(key(ownerId, ownerType), k -> new Lane());
+	}
+
+	private static void submit(Lane lane, Runnable job) {
+		synchronized (lane) {
+			lane.jobs.add(job);
+			if (lane.busy) {
+				return;
+			}
+			lane.busy = true;
+		}
+		POOL.submit(() -> drain(lane));
+	}
+
+	// runs the lane's jobs in order on one pool thread, then frees it
+	private static void drain(Lane lane) {
+		while (true) {
+			Runnable next;
+			synchronized (lane) {
+				next = lane.jobs.poll();
+				if (next == null) {
+					lane.busy = false;
+					return;
+				}
+			}
+			try {
+				next.run();
+			} catch (Throwable e) {
+				classLogger.error("Work items job failed", e);
+			}
+		}
+	}
+
+	private static int parallel() {
+		String value = Utility.getDIHelperProperty(Constants.COLLAB_WORK_ITEMS_PARALLEL);
+		if (value == null || value.isBlank()) {
+			return PARALLEL;
+		}
+		try {
+			return Math.max(1, Math.min(MAX_PARALLEL, Integer.parseInt(value.trim())));
+		} catch (NumberFormatException e) {
+			classLogger.warn("{} is not a number; using {}", Constants.COLLAB_WORK_ITEMS_PARALLEL, PARALLEL);
+			return PARALLEL;
+		}
+	}
+
+	/**
+	 * After onboarding files the imported mail under the chosen topics: the first build over the imported window,
+	 * so a new owner's Work page starts from their backlog. Skipped once the owner has any work candidates.
+	 */
+	public static void firstBuild(User user) {
+		if (!enabled()) {
+			return;
+		}
+		try {
+			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+			String ownerId = owner.getValue0();
+			String ownerType = owner.getValue1();
+			Integer seen = CollaborationDbUtils.queryOne("SELECT COUNT(*) AS N FROM WORK_CANDIDATE WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ?", rs -> rs.getInt("N"), ownerId, ownerType);
+			if (seen != null && seen > 0) {
+				return;
+			}
+			Timestamp oldest = CollaborationDbUtils.queryOne("SELECT MIN(LAST_MESSAGE_AT) AS T FROM BRAIN_THREAD WHERE "
+					+ "OWNER_ID = ? AND OWNER_TYPE = ?", rs -> rs.getTimestamp("T"), ownerId, ownerType);
+			long days = oldest == null ? FIRST_BUILD_DAYS
+					: ChronoUnit.DAYS.between(oldest.toInstant(), Instant.now()) + 1;
+			backfill(user, (int) Math.max(1, Math.min(FIRST_BUILD_DAYS, days)), false);
+		} catch (RuntimeException e) {
+			// onboarding finishes either way; Build from mail on the Work page runs it later
+			classLogger.warn("First work items build skipped: {}", e.getMessage());
+		}
 	}
 
 	// ---- helpers ----
