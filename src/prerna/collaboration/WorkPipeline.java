@@ -113,14 +113,10 @@ public final class WorkPipeline {
 	private WorkPipeline() {
 	}
 
-	/** On when COLLAB_WORK_ITEMS_ENABLED is true: syncs feed work items and threads stop making their own steps. */
-	public static boolean enabled() {
-		return Boolean.parseBoolean(String.valueOf(Utility.getDIHelperProperty(Constants.COLLAB_WORK_ITEMS_ENABLED)));
-	}
 
 	/** After a sync: the threads with new mail, in the background. */
 	public static void queue(User user, String ownerId, String ownerType, Collection<String> threadIds) {
-		if (!enabled() || threadIds == null || threadIds.isEmpty()) {
+		if (threadIds == null || threadIds.isEmpty()) {
 			return;
 		}
 		String engine;
@@ -190,7 +186,6 @@ public final class WorkPipeline {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		Map<String, Object> run = RUNS.get(key(owner.getValue0(), owner.getValue1()));
 		Map<String, Object> out = new LinkedHashMap<>();
-		out.put("enabled", enabled());
 		out.put("pending", CollaborationDbUtils.queryOne("SELECT COUNT(*) AS N FROM WORK_CANDIDATE WHERE OWNER_ID = ? "
 				+ "AND OWNER_TYPE = ? AND RESULT IS NULL", rs -> rs.getInt("N"), owner.getValue0(), owner.getValue1()));
 		if (run != null) {
@@ -795,9 +790,6 @@ public final class WorkPipeline {
 	 * so a new owner's Work page starts from their backlog. Skipped once the owner has any work candidates.
 	 */
 	public static void firstBuild(User user) {
-		if (!enabled()) {
-			return;
-		}
 		try {
 			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 			String ownerId = owner.getValue0();

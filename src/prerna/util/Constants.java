@@ -1082,11 +1082,8 @@ public class Constants {
 	public static final String COLLAB_CLASSIFIER_ENGINE_ID = "COLLAB_CLASSIFIER_ENGINE_ID";
 	public static final String COLLAB_CLASSIFIER_CUTOFFS = "COLLAB_CLASSIFIER_CUTOFFS";
 	public static final String COLLAB_CLASSIFIER_WINDOW = "COLLAB_CLASSIFIER_WINDOW";
-	// a general text model for topic grouping and naming, and thread summaries and
-	// action items
+	// a general text model for topic grouping and naming, thread summaries and work items
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
-	// work items from mail: on replaces thread action items; uses COLLAB_LLM_ENGINE_ID
-	public static final String COLLAB_WORK_ITEMS_ENABLED = "COLLAB_WORK_ITEMS_ENABLED";
 	// work items runs at once across owners; each owner's own runs still go one at a time (default 3)
 	public static final String COLLAB_WORK_ITEMS_PARALLEL = "COLLAB_WORK_ITEMS_PARALLEL";
 	// threads the classifier sorts at once (default 8)
