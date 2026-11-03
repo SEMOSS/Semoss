@@ -121,7 +121,7 @@ public abstract class AbstractReplyMailReactor extends AbstractDraftDeliveryReac
 
 	@Override
 	protected final String getView() {
-		return "mail/compose?intent=reply";
+		return "mail-compose?intent=reply";
 	}
 
 	@Override

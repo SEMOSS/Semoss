@@ -77,7 +77,7 @@ public abstract class AbstractDeleteMailReactor extends AbstractMailReactor {
 
 	@Override
 	protected final String getView() {
-		return "mail/message?intent=delete";
+		return "mail-message?intent=delete";
 	}
 
 	@Override

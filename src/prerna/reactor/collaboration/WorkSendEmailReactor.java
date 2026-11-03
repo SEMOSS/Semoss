@@ -113,7 +113,7 @@ public class WorkSendEmailReactor extends AbstractCollaborationReactor {
 		// sends mail as the owner, so it waits for their approval
 		Map<String, String> meta = super.getMcpToolMetadata();
 		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
-		meta.put(MCPUtility.UI_COMPONENT, MCPUtility.COMPONENT_EMAIL_SEND);
+		meta.put(MCPUtility.UI_RESOURCE_URI, MCPUtility.UI_COMPONENT_SCHEME + MCPUtility.COMPONENT_EMAIL_SEND);
 		return meta;
 	}
 

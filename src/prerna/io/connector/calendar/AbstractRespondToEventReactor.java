@@ -118,7 +118,7 @@ public abstract class AbstractRespondToEventReactor extends AbstractCalendarReac
 
 	@Override
 	protected final String getView() {
-		return "calendar/event?intent=respond";
+		return "calendar-event?intent=respond";
 	}
 
 	@Override

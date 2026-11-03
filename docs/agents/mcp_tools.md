@@ -95,13 +95,38 @@ Details:
 
 | Key | Values | Notes |
 | --- | --- | --- |
-| `resourceURI` | String, portal path such as `"index.html"` or `"/"` | Opens the project's portal for the tool instead of the generic view. |
+| `resourceURI` | String: `component://<componentName>?<params>`, HTTP URL, `system://<package>/<path>`, or portal path such as `"index.html"` | The sole selector for a native view; other resources retain their page routing. |
 | `loadingMessage` | String | Shown while the tool runs. |
 | `displayLocation` | `"inline"`, `"sidebar"`, `"hidden"` | Invalid values are dropped at runtime and rejected by `MakePixelMCP`. |
-| `component` | Non-blank string | Native element for the call. Known names: `email-compose`, `email-draft`, `email-send`, `calendar-event`. Pages that do not know a name use the generic view. |
 | `autoOpen` | Boolean (or `"true"` / `"false"`) | Open the tool view automatically. |
 
-Tools with a `component` keep their `_meta` on calls even when they are `auto` (`SemossAgentHarness.restoreAskMetadataForParameterTools`).
+Native resources use one flat component name and optional URL-encoded query parameters:
+
+```json
+{"SMSS_MCP_UI": {"resourceURI": "component://email-compose?param1=abcd"}}
+```
+
+| Host views | Flat component names |
+| --- | --- |
+| Collaboration | `email-compose`, `email-draft`, `email-send`, `memory` |
+| Delegation in Collaboration | `delegation-request`, `delegation-submit` |
+| Mail connectors | `mail-list`, `mail-message`, `mail-compose` |
+| Calendar connectors | `calendar-agenda`, `calendar-event`, `calendar-event-edit`, `calendar-availability` |
+
+Connector URIs preserve `provider` and `intent`, for example
+`component://mail-compose?intent=send&provider=google`. Decoded query parameters
+configure the view separately from tool arguments. Library groups organize frontend
+registrations internally; they are not URI path segments.
+
+Each host renders only its registered views. Missing, malformed, unknown, and old
+path-style URIs such as `component://mail/compose` use generic rendering. Native
+resources never become iframe URLs or trigger project/portal lookups. The legacy
+`component` key is dropped by Java and Python metadata builders; neither that key
+nor tool-name matching selects a view. `SMSS_TOOL_KIND` remains a backend execution
+and workflow identifier for delegation, independent of presentation.
+
+Tools with a component resource URI keep their `_meta` on automatic calls as well
+as pending approvals (`SemossAgentHarness.restoreAskMetadataForParameterTools`).
 
 ## Keys the platform stamps
 
@@ -122,7 +147,7 @@ Do not set these in tool definitions. The platform writes them, and some overrid
 | `SMSS_MCP_EXECUTION` | Yes | Yes (validated) | Yes (`execution` key) | Yes | Yes | No, forced `auto` |
 | `SMSS_MCP_DEFERRED` | No | Yes, explicitly named reactors only | Yes (`deferred` key) | Yes, lost on regeneration | No | Not verified |
 | `resourceURI`, `loadingMessage`, `displayLocation` | Yes | Yes | Yes | Yes | Yes | No, forced `{}` |
-| `component`, `autoOpen` | Yes | Yes | Yes | Yes, lost on regeneration | Yes | No |
+| `autoOpen` | Yes | Yes | Yes | Yes, lost on regeneration | Yes | No |
 
 ## Setting metadata
 
@@ -136,7 +161,7 @@ public Map<String, String> getMcpToolMetadata() {
 	Map<String, String> meta = super.getMcpToolMetadata(); // auto + sidebar
 	meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
 	meta.put(MCPUtility.UI_LOADING_MESSAGE, "Sending email...");
-	meta.put(MCPUtility.UI_COMPONENT, MCPUtility.COMPONENT_EMAIL_COMPOSE);
+	meta.put(MCPUtility.UI_RESOURCE_URI, MCPUtility.UI_COMPONENT_SCHEME + MCPUtility.COMPONENT_EMAIL_COMPOSE);
 	return meta;
 }
 ```
@@ -161,7 +186,7 @@ Merge rules in `PixelMCPToolBuilder`:
 
 - `SMSS_MCP_EXECUTION`: an omitted value keeps the reactor's declared value (`auto` if none). An invalid non-blank value throws. A blank value becomes `auto` with a warning.
 - `SMSS_MCP_DEFERRED`: must be a boolean or the call throws. Only applied when `reactor` names the reactor; `package` and full scans never receive `mcpMetadata`.
-- `SMSS_MCP_UI`: if supplied, it replaces the reactor's `resourceURI`, `loadingMessage`, and `displayLocation`. Supplying only `loadingMessage` drops the reactor's default `displayLocation: sidebar`. The reactor's `component` and `autoOpen` stay unless overridden. An invalid `displayLocation` throws.
+- `SMSS_MCP_UI`: supplied supported keys override the reactor's corresponding defaults. Omitted keys, including `resourceURI` and `displayLocation`, retain their declarations. The legacy `component` key is ignored. An invalid `displayLocation` throws.
 
 `MakeRoomPixelMCP(roomId=[...], reactor=[...], mcpMetadata=[...])` and `MakeUserPixelMCP(filePath=[...], reactor=[...], mcpMetadata=[...], generator=[...])` use the same builder and rules.
 
@@ -180,7 +205,6 @@ from smssutil import mcp_metadata
     "loadingMessage": "Fetching price...",
     "displayLocation": "sidebar",
     "resourceURI": "index.html",
-    "component": "email-compose",
     "autoOpen": True,
 })
 def get_stock_price(symbol: str) -> float:
@@ -193,8 +217,8 @@ def get_stock_price(symbol: str) -> float:
 
 - Use a literal dict. If the driver cannot be imported, the generator falls back to AST parsing, which reads only literals.
 - `execution` matches exactly: anything other than `"auto"` or `"disabled"` becomes `"ask"`, including `"Disabled"`. A function without the decorator is `ask`.
-- The dict is flat. `execution` and `deferred` become `SMSS_MCP_EXECUTION` and `SMSS_MCP_DEFERRED`; `loadingMessage`, `resourceURI`, `displayLocation`, `component`, and `autoOpen` go into `SMSS_MCP_UI`. Other keys are dropped.
-- `deferred` must be the boolean `True`; the string `"true"` is ignored. `component` is trimmed and dropped when blank. `autoOpen` accepts a boolean or `"true"` / `"false"`.
+- The dict is flat. `execution` and `deferred` become `SMSS_MCP_EXECUTION` and `SMSS_MCP_DEFERRED`; `loadingMessage`, `resourceURI`, `displayLocation`, and `autoOpen` go into `SMSS_MCP_UI`. Other keys, including legacy `component`, are dropped.
+- `deferred` must be the boolean `True`; the string `"true"` is ignored. `autoOpen` accepts a boolean or `"true"` / `"false"`.
 - `@mcp_execution("ask")` still works but is deprecated.
 - Every top-level function whose name does not start with `_` becomes a tool, and every argument is marked required. Argument descriptions come only from a Google-style `Args:` section with `name (type): description` lines.
 
@@ -205,6 +229,21 @@ The runtime reads `_meta` from `pixel_mcp.json` and `py_mcp.json` as written, so
 - A generated tool replaces any existing tool with the same name, so a hand-added key on a generated tool is lost on the next `MakePixelMCP` or `MakePythonMCP`.
 - A hand-written tool survives when its name does not collide and it has no `SMSS_MCP_GENERATOR` stamp from that generator. Leave `SMSS_MCP_GENERATOR` off hand-written tools.
 - `MakePixelMCP` prunes tools it no longer generates only on a full scan. `MakeRoomPixelMCP` and `MakeUserPixelMCP` always prune their own stamp.
+
+### Flat URI release and catalog regeneration
+
+Deploy the frontend and backend changes together. Existing generated catalogs
+retain their old declarations until regenerated. Rerun the original generator
+(`MakePixelMCP`, `MakeRoomPixelMCP`, `MakeUserPixelMCP`, `MakeEngineMCP`, or
+`MakePythonMCP`) with the catalog's original scope, reactor list, and metadata
+overrides. Update Python decorators and explicit resource overrides to the flat
+names before regenerating. Playground's generated user connector catalog is
+rewritten when connector tool settings are saved; then sync the room's tools.
+Newly synthesized Collaboration and delegation tools use the current declarations.
+
+This is a strict cutover. Do not rewrite historical calls: saved calls without a
+supported flat URI use the generic view. No new host gains connector views through
+this migration.
 
 ## Runtime behavior
 

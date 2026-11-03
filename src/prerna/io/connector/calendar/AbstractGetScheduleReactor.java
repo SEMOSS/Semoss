@@ -93,7 +93,7 @@ public abstract class AbstractGetScheduleReactor extends AbstractCalendarReactor
 
 	@Override
 	protected final String getView() {
-		return "calendar/availability";
+		return "calendar-availability";
 	}
 
 	@Override

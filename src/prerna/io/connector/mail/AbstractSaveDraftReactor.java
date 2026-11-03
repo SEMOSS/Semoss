@@ -75,7 +75,7 @@ public abstract class AbstractSaveDraftReactor extends AbstractComposeMailReacto
 
 	@Override
 	protected final String getView() {
-		return "mail/compose?intent=draft";
+		return "mail-compose?intent=draft";
 	}
 
 	@Override

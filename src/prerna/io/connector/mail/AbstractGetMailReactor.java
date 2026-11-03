@@ -93,7 +93,7 @@ public abstract class AbstractGetMailReactor extends AbstractMailReactor {
 
 	@Override
 	protected final String getView() {
-		return "mail/message";
+		return "mail-message";
 	}
 
 	@Override

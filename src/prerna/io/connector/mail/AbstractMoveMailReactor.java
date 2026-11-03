@@ -83,7 +83,7 @@ public abstract class AbstractMoveMailReactor extends AbstractMailReactor {
 
 	@Override
 	protected final String getView() {
-		return "mail/message?intent=move";
+		return "mail-message?intent=move";
 	}
 
 	@Override

@@ -268,7 +268,8 @@ public final class SubAgentToolSynthesizer {
         // The user confirms who, what, and which files before anything is shared.
         meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
         meta.put(MCPUtility.SMSS_MCP_UI, new LinkedHashMap<>(
-                Map.of(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.INLINE.getValue())));
+                Map.of(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.INLINE.getValue(),
+                        MCPUtility.UI_RESOURCE_URI, MCPUtility.UI_COMPONENT_SCHEME + MCPUtility.COMPONENT_DELEGATION_REQUEST)));
         tool.put("_meta", meta);
         return tool;
     }
@@ -341,7 +342,8 @@ public final class SubAgentToolSynthesizer {
         meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
         // Confirm the send in the chat rather than the side dock.
         meta.put(MCPUtility.SMSS_MCP_UI, new LinkedHashMap<>(
-                Map.of(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.INLINE.getValue())));
+                Map.of(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.INLINE.getValue(),
+                        MCPUtility.UI_RESOURCE_URI, MCPUtility.UI_COMPONENT_SCHEME + MCPUtility.COMPONENT_DELEGATION_SUBMIT)));
         tool.put("_meta", meta);
         return tool;
     }

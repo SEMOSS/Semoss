@@ -59,7 +59,7 @@ public class BrainForgetReactor extends AbstractCollaborationReactor {
 	@Override
 	public Map<String, String> getMcpToolMetadata() {
 		Map<String, String> meta = super.getMcpToolMetadata();
-		meta.put(MCPUtility.UI_COMPONENT, MCPUtility.COMPONENT_MEMORY);
+		meta.put(MCPUtility.UI_RESOURCE_URI, MCPUtility.UI_COMPONENT_SCHEME + MCPUtility.COMPONENT_MEMORY);
 		return meta;
 	}
 

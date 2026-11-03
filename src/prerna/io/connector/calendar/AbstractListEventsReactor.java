@@ -165,7 +165,7 @@ public abstract class AbstractListEventsReactor extends AbstractCalendarReactor 
 
 	@Override
 	protected final String getView() {
-		return "calendar/agenda";
+		return "calendar-agenda";
 	}
 
 	@Override
