@@ -1,0 +1,438 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "annotations": {
+                    "internal.serving.kserve.io/storage-initializer-sourceuri": "hf://allenai/semoss-test-no-such-model",
+                    "prometheus.kserve.io/path": "/metrics",
+                    "prometheus.kserve.io/port": "8080",
+                    "serving.kserve.io/deploymentMode": "Standard",
+                    "serving.kserve.io/enable-metric-aggregation": "false",
+                    "serving.kserve.io/enable-prometheus-scraping": "false"
+                },
+                "creationTimestamp": "2026-10-27T19:06:58Z",
+                "generateName": "semoss-test-download-predictor-6dfdbf7bd-",
+                "generation": 1,
+                "labels": {
+                    "app": "isvc.semoss-test-download-predictor",
+                    "component": "predictor",
+                    "pod-template-hash": "6dfdbf7bd",
+                    "semoss.org/test": "failure",
+                    "serving.kserve.io/inferenceservice": "semoss-test-download"
+                },
+                "name": "semoss-test-download-predictor-6dfdbf7bd-rngxc",
+                "namespace": "semoss",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "ReplicaSet",
+                        "name": "semoss-test-download-predictor-6dfdbf7bd",
+                        "uid": "2fca9f20-574c-4b1a-9a2b-476882df0dbe"
+                    }
+                ],
+                "resourceVersion": "835893",
+                "uid": "8dea92a4-d6e8-49b0-a7f4-c0b4637ca923"
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "args": [
+                            "--served-model-name=semoss-test-download",
+                            "--host=0.0.0.0",
+                            "--port=8080",
+                            "--gpu-memory-utilization=0.5"
+                        ],
+                        "command": [
+                            "vllm",
+                            "serve",
+                            "/mnt/models"
+                        ],
+                        "env": [
+                            {
+                                "name": "HF_HUB_OFFLINE",
+                                "value": "1"
+                            },
+                            {
+                                "name": "INFERENCE_SERVICE_NAME",
+                                "value": "semoss-test-download"
+                            }
+                        ],
+                        "image": "nvcr.io/nvidia/vllm:25.11-py3",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "kserve-container",
+                        "ports": [
+                            {
+                                "containerPort": 8080,
+                                "name": "http1",
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "readinessProbe": {
+                            "failureThreshold": 3,
+                            "httpGet": {
+                                "path": "/health",
+                                "port": 8080,
+                                "scheme": "HTTP"
+                            },
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "timeoutSeconds": 1
+                        },
+                        "resources": {
+                            "limits": {
+                                "cpu": "1",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "256Mi"
+                            }
+                        },
+                        "startupProbe": {
+                            "failureThreshold": 180,
+                            "httpGet": {
+                                "path": "/health",
+                                "port": 8080,
+                                "scheme": "HTTP"
+                            },
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "timeoutSeconds": 1
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/dev/shm",
+                                "name": "devshm"
+                            },
+                            {
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                                "name": "kube-api-access-5k769",
+                                "readOnly": true
+                            },
+                            {
+                                "mountPath": "/mnt/models",
+                                "name": "kserve-provision-location",
+                                "readOnly": true
+                            }
+                        ]
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "enableServiceLinks": true,
+                "initContainers": [
+                    {
+                        "args": [
+                            "hf://allenai/semoss-test-no-such-model",
+                            "/mnt/models"
+                        ],
+                        "env": [
+                            {
+                                "name": "HF_HUB_ENABLE_HF_TRANSFER",
+                                "value": "1"
+                            },
+                            {
+                                "name": "HF_XET_HIGH_PERFORMANCE",
+                                "value": "1"
+                            },
+                            {
+                                "name": "HF_XET_NUM_CONCURRENT_RANGE_GETS",
+                                "value": "8"
+                            }
+                        ],
+                        "image": "kserve/storage-initializer:v0.21.0",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "storage-initializer",
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "memory": "4Gi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "256Mi"
+                            }
+                        },
+                        "securityContext": {
+                            "allowPrivilegeEscalation": false,
+                            "capabilities": {
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "privileged": false,
+                            "runAsNonRoot": true
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "FallbackToLogsOnError",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/mnt/models",
+                                "name": "kserve-provision-location"
+                            },
+                            {
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                                "name": "kube-api-access-5k769",
+                                "readOnly": true
+                            }
+                        ]
+                    }
+                ],
+                "nodeName": "spark-cbde",
+                "preemptionPolicy": "PreemptLowerPriority",
+                "priority": 0,
+                "restartPolicy": "Always",
+                "schedulerName": "default-scheduler",
+                "securityContext": {},
+                "serviceAccount": "default",
+                "serviceAccountName": "default",
+                "terminationGracePeriodSeconds": 30,
+                "tolerations": [
+                    {
+                        "effect": "NoExecute",
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "effect": "NoExecute",
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "volumes": [
+                    {
+                        "emptyDir": {
+                            "medium": "Memory",
+                            "sizeLimit": "4Gi"
+                        },
+                        "name": "devshm"
+                    },
+                    {
+                        "name": "kube-api-access-5k769",
+                        "projected": {
+                            "defaultMode": 420,
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "expirationSeconds": 3607,
+                                        "path": "token"
+                                    }
+                                },
+                                {
+                                    "configMap": {
+                                        "items": [
+                                            {
+                                                "key": "ca.crt",
+                                                "path": "ca.crt"
+                                            }
+                                        ],
+                                        "name": "kube-root-ca.crt"
+                                    }
+                                },
+                                {
+                                    "downwardAPI": {
+                                        "items": [
+                                            {
+                                                "fieldRef": {
+                                                    "apiVersion": "v1",
+                                                    "fieldPath": "metadata.namespace"
+                                                },
+                                                "path": "namespace"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "emptyDir": {},
+                        "name": "kserve-provision-location"
+                    }
+                ]
+            },
+            "status": {
+                "allocatedResources": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                },
+                "conditions": [
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-10-27T19:06:58Z",
+                        "observedGeneration": 1,
+                        "status": "True",
+                        "type": "PodReadyToStartContainers"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-10-27T19:06:58Z",
+                        "message": "containers with incomplete status: [storage-initializer]",
+                        "observedGeneration": 1,
+                        "reason": "ContainersNotInitialized",
+                        "status": "False",
+                        "type": "Initialized"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-10-27T19:06:58Z",
+                        "message": "containers with unready status: [kserve-container]",
+                        "observedGeneration": 1,
+                        "reason": "ContainersNotReady",
+                        "status": "False",
+                        "type": "Ready"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-10-27T19:06:58Z",
+                        "message": "containers with unready status: [kserve-container]",
+                        "observedGeneration": 1,
+                        "reason": "ContainersNotReady",
+                        "status": "False",
+                        "type": "ContainersReady"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-10-27T19:06:58Z",
+                        "observedGeneration": 1,
+                        "status": "True",
+                        "type": "PodScheduled"
+                    }
+                ],
+                "containerStatuses": [
+                    {
+                        "image": "nvcr.io/nvidia/vllm:25.11-py3",
+                        "imageID": "",
+                        "lastState": {},
+                        "name": "kserve-container",
+                        "ready": false,
+                        "restartCount": 0,
+                        "started": false,
+                        "state": {
+                            "waiting": {
+                                "reason": "PodInitializing"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/dev/shm",
+                                "name": "devshm"
+                            },
+                            {
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                                "name": "kube-api-access-5k769",
+                                "readOnly": true,
+                                "recursiveReadOnly": "Disabled"
+                            },
+                            {
+                                "mountPath": "/mnt/models",
+                                "name": "kserve-provision-location",
+                                "readOnly": true,
+                                "recursiveReadOnly": "Disabled"
+                            }
+                        ]
+                    }
+                ],
+                "hostIP": "172.29.151.190",
+                "hostIPs": [
+                    {
+                        "ip": "172.29.151.190"
+                    }
+                ],
+                "initContainerStatuses": [
+                    {
+                        "allocatedResources": {
+                            "cpu": "100m",
+                            "memory": "256Mi"
+                        },
+                        "containerID": "containerd://b8dcd5a1891acf7844066598fb9d1f27ab7e65866c39dc7a525b272fca5d5e60",
+                        "image": "docker.io/kserve/storage-initializer:v0.21.0",
+                        "imageID": "docker.io/kserve/storage-initializer@sha256:3a3a6a8053478c8d8d90f96fc5e54c1892c07784102dda70104374d4f89a3672",
+                        "lastState": {
+                            "terminated": {
+                                "containerID": "containerd://e26e1e0fc9213d574fae0839350db4f1ada9cdbf30454bceac17d5784153158a",
+                                "exitCode": 1,
+                                "finishedAt": "2026-10-27T19:06:59Z",
+                                "message": "2026-10-27 19:06:59.374 1 storage.initializer INFO [initializer-entrypoint:\u003cmodule\u003e():17] Initializing, args: (src_uri, dest_path): [('hf://allenai/semoss-test-no-such-model', '/mnt/models')]\n2026-10-27 19:06:59.374 1 storage.initializer INFO [kserve_storage.py:download():331] Copying contents of hf://allenai/semoss-test-no-such-model to local\n2026-10-27 19:06:59.709 1 storage.initializer ERROR [storage_errors.py:raise_storage_error():42] HuggingFace error for hf://allenai/semoss-test-no-such-model: 401 Client Error. (Request ID: Root=1-6ae0f653-62874217636750711f91ecb6;23b4d63f-9c9b-4cae-a869-53b22a6a1443)\n\nRepository Not Found for url: https://huggingface.co/api/models/allenai/semoss-test-no-such-model/revision/main.\nPlease make sure you specified the correct `repo_id` and `repo_type`.\nIf you are trying to access a private or gated repo, make sure you are authenticated. For more details, see https://huggingface.co/docs/huggingface_hub/authentication\nInvalid username or password.\n2026-10-27 19:06:59.709 1 storage.initializer ERROR [initializer-entrypoint:\u003cmodule\u003e():28] Storage initialization failed: HuggingFace authentication failed. Set HF_TOKEN or request access to the gated repository.\n",
+                                "reason": "Error",
+                                "startedAt": "2026-10-27T19:06:58Z"
+                            }
+                        },
+                        "name": "storage-initializer",
+                        "ready": false,
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "memory": "4Gi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "256Mi"
+                            }
+                        },
+                        "restartCount": 1,
+                        "started": true,
+                        "state": {
+                            "running": {
+                                "startedAt": "2026-10-27T19:07:00Z"
+                            }
+                        },
+                        "user": {
+                            "linux": {
+                                "gid": 1000,
+                                "supplementalGroups": [
+                                    1000
+                                ],
+                                "uid": 1000
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/mnt/models",
+                                "name": "kserve-provision-location"
+                            },
+                            {
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                                "name": "kube-api-access-5k769",
+                                "readOnly": true,
+                                "recursiveReadOnly": "Disabled"
+                            }
+                        ]
+                    }
+                ],
+                "observedGeneration": 1,
+                "phase": "Pending",
+                "podIP": "10.42.0.84",
+                "podIPs": [
+                    {
+                        "ip": "10.42.0.84"
+                    }
+                ],
+                "qosClass": "Burstable",
+                "resources": {
+                    "limits": {
+                        "cpu": "2",
+                        "memory": "4Gi"
+                    },
+                    "requests": {
+                        "cpu": "100m",
+                        "memory": "256Mi"
+                    }
+                },
+                "startTime": "2026-10-27T19:06:58Z"
+            }
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

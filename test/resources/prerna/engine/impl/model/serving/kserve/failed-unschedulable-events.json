@@ -1,0 +1,126 @@
+{
+  "items": [
+    {
+      "action": "Scheduling",
+      "apiVersion": "v1",
+      "eventTime": "2026-10-27T19:07:19.760023Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "semoss-test-unschedulable-predictor-59856fbcb4-p2x7w",
+        "namespace": "semoss",
+        "resourceVersion": "836116",
+        "uid": "399e4be4-6a4b-43cf-b5ea-68e2e3518b3c"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "0/1 nodes are available: 1 Insufficient cpu. no new claims to deallocate, preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling.",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:19Z",
+        "name": "semoss-test-unschedulable-predictor-59856fbcb4-p2x7w.18e27873a6b05a90",
+        "namespace": "semoss",
+        "resourceVersion": "836118",
+        "uid": "4edae849-2bdb-40e4-bb72-bfc15a71fa5e"
+      },
+      "reason": "FailedScheduling",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-spark-cbde",
+      "source": {},
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:19Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "semoss-test-unschedulable-predictor-59856fbcb4",
+        "namespace": "semoss",
+        "resourceVersion": "836110",
+        "uid": "5abd7392-21a4-4848-b9e8-0bc6002a5907"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:19Z",
+      "message": "Created pod: semoss-test-unschedulable-predictor-59856fbcb4-p2x7w",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:19Z",
+        "name": "semoss-test-unschedulable-predictor-59856fbcb4.18e27873a6a92f2f",
+        "namespace": "semoss",
+        "resourceVersion": "836117",
+        "uid": "6c13c270-b6bb-431e-95e3-6c5171ab8af9"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:19Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "name": "semoss-test-unschedulable-predictor",
+        "namespace": "semoss",
+        "resourceVersion": "836108",
+        "uid": "897463b9-5602-4222-8afb-17b26d027cc0"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:19Z",
+      "message": "Scaled up replica set semoss-test-unschedulable-predictor-59856fbcb4 from 0 to 1",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:19Z",
+        "name": "semoss-test-unschedulable-predictor.18e27873a5f8b26b",
+        "namespace": "semoss",
+        "resourceVersion": "836111",
+        "uid": "b5667b42-e9f7-42a2-bffa-8f9f29efa239"
+      },
+      "reason": "ScalingReplicaSet",
+      "reportingComponent": "deployment-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 4,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:07:19Z",
+      "involvedObject": {
+        "apiVersion": "serving.kserve.io/v1beta1",
+        "kind": "InferenceService",
+        "name": "semoss-test-unschedulable",
+        "namespace": "semoss",
+        "resourceVersion": "836103",
+        "uid": "2b420195-cdab-4d54-9a50-8647d6c24c61"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:19Z",
+      "message": "Istio VirtualService CRD not present; VirtualService reconciliation skipped. If you do not use Istio, set ingress.disableIstioVirtualHost=true.",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:07:19Z",
+        "name": "semoss-test-unschedulable.18e27873a5fb07fc",
+        "namespace": "semoss",
+        "resourceVersion": "836126",
+        "uid": "06c75057-e9f3-470a-bceb-cacdfcf61a5e"
+      },
+      "reason": "VirtualServiceCRDNotFound",
+      "reportingComponent": "v1beta1Controllers",
+      "reportingInstance": "",
+      "source": {
+        "component": "v1beta1Controllers"
+      },
+      "type": "Warning"
+    }
+  ]
+}

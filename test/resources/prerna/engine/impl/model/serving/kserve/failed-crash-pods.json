@@ -1,0 +1,287 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "annotations": {
+                    "serving.kserve.io/deploymentMode": "Standard",
+                    "serving.kserve.io/enable-metric-aggregation": "false",
+                    "serving.kserve.io/enable-prometheus-scraping": "false"
+                },
+                "creationTimestamp": "2026-10-27T19:07:12Z",
+                "generateName": "semoss-test-crash-predictor-596dffc7b-",
+                "generation": 1,
+                "labels": {
+                    "app": "isvc.semoss-test-crash-predictor",
+                    "component": "predictor",
+                    "pod-template-hash": "596dffc7b",
+                    "semoss.org/test": "failure",
+                    "serving.kserve.io/inferenceservice": "semoss-test-crash"
+                },
+                "name": "semoss-test-crash-predictor-596dffc7b-494ml",
+                "namespace": "semoss",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "ReplicaSet",
+                        "name": "semoss-test-crash-predictor-596dffc7b",
+                        "uid": "2e70b60b-21ff-450c-9269-99f9685ee945"
+                    }
+                ],
+                "resourceVersion": "836079",
+                "uid": "1e6ac993-88ad-461a-9820-25f781d61ca2"
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "command": [
+                            "python3",
+                            "-c",
+                            "import sys; print('ERROR semoss test: this model server fails on purpose', file=sys.stderr); sys.exit(3)"
+                        ],
+                        "env": [
+                            {
+                                "name": "INFERENCE_SERVICE_NAME",
+                                "value": "semoss-test-crash"
+                            }
+                        ],
+                        "image": "nvcr.io/nvidia/vllm:25.11-py3",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "kserve-container",
+                        "readinessProbe": {
+                            "failureThreshold": 3,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "tcpSocket": {
+                                "port": 8080
+                            },
+                            "timeoutSeconds": 1
+                        },
+                        "resources": {
+                            "limits": {
+                                "cpu": "500m",
+                                "memory": "256Mi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "256Mi"
+                            }
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                                "name": "kube-api-access-s84p7",
+                                "readOnly": true
+                            }
+                        ]
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "enableServiceLinks": true,
+                "nodeName": "spark-cbde",
+                "preemptionPolicy": "PreemptLowerPriority",
+                "priority": 0,
+                "restartPolicy": "Always",
+                "schedulerName": "default-scheduler",
+                "securityContext": {},
+                "serviceAccount": "default",
+                "serviceAccountName": "default",
+                "terminationGracePeriodSeconds": 30,
+                "tolerations": [
+                    {
+                        "effect": "NoExecute",
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "effect": "NoExecute",
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "volumes": [
+                    {
+                        "name": "kube-api-access-s84p7",
+                        "projected": {
+                            "defaultMode": 420,
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "expirationSeconds": 3607,
+                                        "path": "token"
+                                    }
+                                },
+                                {
+                                    "configMap": {
+                                        "items": [
+                                            {
+                                                "key": "ca.crt",
+                                                "path": "ca.crt"
+                                            }
+                                        ],
+                                        "name": "kube-root-ca.crt"
+                                    }
+                                },
+                                {
+                                    "downwardAPI": {
+                                        "items": [
+                                            {
+                                                "fieldRef": {
+                                                    "apiVersion": "v1",
+                                                    "fieldPath": "metadata.namespace"
+                                                },
+                                                "path": "namespace"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "status": {
+                "allocatedResources": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                },
+                "conditions": [
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-10-27T19:07:13Z",
+                        "observedGeneration": 1,
+                        "status": "True",
+                        "type": "PodReadyToStartContainers"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-10-27T19:07:12Z",
+                        "observedGeneration": 1,
+                        "status": "True",
+                        "type": "Initialized"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-10-27T19:07:12Z",
+                        "message": "containers with unready status: [kserve-container]",
+                        "observedGeneration": 1,
+                        "reason": "ContainersNotReady",
+                        "status": "False",
+                        "type": "Ready"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-10-27T19:07:12Z",
+                        "message": "containers with unready status: [kserve-container]",
+                        "observedGeneration": 1,
+                        "reason": "ContainersNotReady",
+                        "status": "False",
+                        "type": "ContainersReady"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-10-27T19:07:12Z",
+                        "observedGeneration": 1,
+                        "status": "True",
+                        "type": "PodScheduled"
+                    }
+                ],
+                "containerStatuses": [
+                    {
+                        "allocatedResources": {
+                            "cpu": "100m",
+                            "memory": "256Mi"
+                        },
+                        "containerID": "containerd://ed99a7d47e4ccce3d08b2d17a515ea34409f50da544daaa6771449b7a81357c0",
+                        "image": "nvcr.io/nvidia/vllm:25.11-py3",
+                        "imageID": "nvcr.io/nvidia/vllm@sha256:c94cef75a33ff40dd34d45429809d840b64f416f957fbe73af11944213b6b994",
+                        "lastState": {
+                            "terminated": {
+                                "containerID": "containerd://ed99a7d47e4ccce3d08b2d17a515ea34409f50da544daaa6771449b7a81357c0",
+                                "exitCode": 3,
+                                "finishedAt": "2026-10-27T19:07:14Z",
+                                "reason": "Error",
+                                "startedAt": "2026-10-27T19:07:14Z"
+                            }
+                        },
+                        "name": "kserve-container",
+                        "ready": false,
+                        "resources": {
+                            "limits": {
+                                "cpu": "500m",
+                                "memory": "256Mi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "256Mi"
+                            }
+                        },
+                        "restartCount": 1,
+                        "started": false,
+                        "state": {
+                            "waiting": {
+                                "message": "back-off 10s restarting failed container=kserve-container pod=semoss-test-crash-predictor-596dffc7b-494ml_semoss(1e6ac993-88ad-461a-9820-25f781d61ca2)",
+                                "reason": "CrashLoopBackOff"
+                            }
+                        },
+                        "user": {
+                            "linux": {
+                                "gid": 0,
+                                "supplementalGroups": [
+                                    0
+                                ],
+                                "uid": 0
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                                "name": "kube-api-access-s84p7",
+                                "readOnly": true,
+                                "recursiveReadOnly": "Disabled"
+                            }
+                        ]
+                    }
+                ],
+                "hostIP": "172.29.151.190",
+                "hostIPs": [
+                    {
+                        "ip": "172.29.151.190"
+                    }
+                ],
+                "observedGeneration": 1,
+                "phase": "Running",
+                "podIP": "10.42.0.87",
+                "podIPs": [
+                    {
+                        "ip": "10.42.0.87"
+                    }
+                ],
+                "qosClass": "Burstable",
+                "resources": {
+                    "limits": {
+                        "cpu": "500m",
+                        "memory": "256Mi"
+                    },
+                    "requests": {
+                        "cpu": "79m",
+                        "memory": "256Mi"
+                    }
+                },
+                "startTime": "2026-10-27T19:07:12Z"
+            }
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

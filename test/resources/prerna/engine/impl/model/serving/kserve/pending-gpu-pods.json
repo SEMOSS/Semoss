@@ -1,0 +1,284 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "internal.serving.kserve.io/storage-initializer-sourceuri": "hf://allenai/OLMo-2-0425-1B-Instruct",
+          "prometheus.kserve.io/path": "/metrics",
+          "prometheus.kserve.io/port": "8080",
+          "serving.kserve.io/deploymentMode": "Standard",
+          "serving.kserve.io/enable-metric-aggregation": "false",
+          "serving.kserve.io/enable-prometheus-scraping": "false",
+          "serving.kserve.io/stop": "false"
+        },
+        "creationTimestamp": "2026-10-27T00:00:42Z",
+        "generateName": "semoss-verify-pending-predictor-57bb8f5944-",
+        "generation": 1,
+        "labels": {
+          "app": "isvc.semoss-verify-pending-predictor",
+          "app.kubernetes.io/managed-by": "semoss-verify",
+          "component": "predictor",
+          "pod-template-hash": "57bb8f5944",
+          "serving.kserve.io/inferenceservice": "semoss-verify-pending"
+        },
+        "name": "semoss-verify-pending-predictor-57bb8f5944-g8m8k",
+        "namespace": "semoss",
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "ReplicaSet",
+            "name": "semoss-verify-pending-predictor-57bb8f5944",
+            "uid": "b325a0b8-1420-4b27-84dc-ea57abef82dc"
+          }
+        ],
+        "resourceVersion": "728857",
+        "uid": "ec8d1de8-f4cb-42b1-b376-1aa10de99743"
+      },
+      "spec": {
+        "containers": [
+          {
+            "args": [
+              "--served-model-name=semoss-verify-pending",
+              "--host=0.0.0.0",
+              "--port=8080",
+              "--gpu-memory-utilization=0.5",
+              "--gpu-memory-utilization=0.2"
+            ],
+            "command": [
+              "vllm",
+              "serve",
+              "/mnt/models"
+            ],
+            "env": [
+              {
+                "name": "HF_HUB_OFFLINE",
+                "value": "1"
+              },
+              {
+                "name": "INFERENCE_SERVICE_NAME",
+                "value": "semoss-verify-pending"
+              }
+            ],
+            "image": "nvcr.io/nvidia/vllm:25.11-py3",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "kserve-container",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "name": "http1",
+                "protocol": "TCP"
+              }
+            ],
+            "readinessProbe": {
+              "failureThreshold": 3,
+              "httpGet": {
+                "path": "/health",
+                "port": 8080,
+                "scheme": "HTTP"
+              },
+              "periodSeconds": 10,
+              "successThreshold": 1,
+              "timeoutSeconds": 1
+            },
+            "resources": {
+              "limits": {
+                "nvidia.com/gpu": "1"
+              },
+              "requests": {
+                "cpu": "1",
+                "memory": "2Gi",
+                "nvidia.com/gpu": "1"
+              }
+            },
+            "startupProbe": {
+              "failureThreshold": 180,
+              "httpGet": {
+                "path": "/health",
+                "port": 8080,
+                "scheme": "HTTP"
+              },
+              "periodSeconds": 10,
+              "successThreshold": 1,
+              "timeoutSeconds": 1
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/dev/shm",
+                "name": "devshm"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-zb57b",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/mnt/models",
+                "name": "kserve-provision-location",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "initContainers": [
+          {
+            "args": [
+              "hf://allenai/OLMo-2-0425-1B-Instruct",
+              "/mnt/models"
+            ],
+            "env": [
+              {
+                "name": "HF_HUB_ENABLE_HF_TRANSFER",
+                "value": "1"
+              },
+              {
+                "name": "HF_XET_HIGH_PERFORMANCE",
+                "value": "1"
+              },
+              {
+                "name": "HF_XET_NUM_CONCURRENT_RANGE_GETS",
+                "value": "8"
+              }
+            ],
+            "image": "kserve/storage-initializer:v0.21.0",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "storage-initializer",
+            "resources": {
+              "limits": {
+                "cpu": "2",
+                "memory": "4Gi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "runAsNonRoot": true
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeMounts": [
+              {
+                "mountPath": "/mnt/models",
+                "name": "kserve-provision-location"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-zb57b",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {},
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "emptyDir": {
+              "medium": "Memory",
+              "sizeLimit": "4Gi"
+            },
+            "name": "devshm"
+          },
+          {
+            "name": "kube-api-access-zb57b",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "emptyDir": {},
+            "name": "kserve-provision-location"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-10-27T00:00:42Z",
+            "message": "0/1 nodes are available: 1 Insufficient nvidia.com/gpu. no new claims to deallocate, preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod.",
+            "observedGeneration": 1,
+            "reason": "Unschedulable",
+            "status": "False",
+            "type": "PodScheduled"
+          }
+        ],
+        "phase": "Pending",
+        "qosClass": "Burstable"
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

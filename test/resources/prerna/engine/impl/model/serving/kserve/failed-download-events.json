@@ -1,0 +1,287 @@
+{
+  "items": [
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-10-27T19:06:58.464662Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "semoss-test-download-predictor-6dfdbf7bd-rngxc",
+        "namespace": "semoss",
+        "resourceVersion": "835858",
+        "uid": "8dea92a4-d6e8-49b0-a7f4-c0b4637ca923"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned semoss/semoss-test-download-predictor-6dfdbf7bd-rngxc to spark-cbde",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:06:58Z",
+        "name": "semoss-test-download-predictor-6dfdbf7bd-rngxc.18e2786eb162f546",
+        "namespace": "semoss",
+        "resourceVersion": "835864",
+        "uid": "07076f06-3594-4b9b-8f9e-9b11b01094f1"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-spark-cbde",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:06:58Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{storage-initializer}",
+        "kind": "Pod",
+        "name": "semoss-test-download-predictor-6dfdbf7bd-rngxc",
+        "namespace": "semoss",
+        "resourceVersion": "835861",
+        "uid": "8dea92a4-d6e8-49b0-a7f4-c0b4637ca923"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:00Z",
+      "message": "Container image \"kserve/storage-initializer:v0.21.0\" already present on machine and can be accessed by the pod",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:06:58Z",
+        "name": "semoss-test-download-predictor-6dfdbf7bd-rngxc.18e2786ecbb5926e",
+        "namespace": "semoss",
+        "resourceVersion": "835886",
+        "uid": "218d7c70-d657-490e-85ce-83809e2f4f9b"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:06:58Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{storage-initializer}",
+        "kind": "Pod",
+        "name": "semoss-test-download-predictor-6dfdbf7bd-rngxc",
+        "namespace": "semoss",
+        "resourceVersion": "835861",
+        "uid": "8dea92a4-d6e8-49b0-a7f4-c0b4637ca923"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:00Z",
+      "message": "Container created",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:06:58Z",
+        "name": "semoss-test-download-predictor-6dfdbf7bd-rngxc.18e2786eccd981ac",
+        "namespace": "semoss",
+        "resourceVersion": "835890",
+        "uid": "c74fb35d-f4e4-4930-87d4-fdd01a1d4544"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:06:58Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{storage-initializer}",
+        "kind": "Pod",
+        "name": "semoss-test-download-predictor-6dfdbf7bd-rngxc",
+        "namespace": "semoss",
+        "resourceVersion": "835861",
+        "uid": "8dea92a4-d6e8-49b0-a7f4-c0b4637ca923"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:00Z",
+      "message": "Container started",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:06:58Z",
+        "name": "semoss-test-download-predictor-6dfdbf7bd-rngxc.18e2786ecf7ba68b",
+        "namespace": "semoss",
+        "resourceVersion": "835892",
+        "uid": "253df0c9-b7ec-4acd-b78a-307f1be9a92b"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "spark-cbde",
+      "source": {
+        "component": "kubelet",
+        "host": "spark-cbde"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:06:58Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "semoss-test-download-predictor-6dfdbf7bd",
+        "namespace": "semoss",
+        "resourceVersion": "835850",
+        "uid": "2fca9f20-574c-4b1a-9a2b-476882df0dbe"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:06:58Z",
+      "message": "Created pod: semoss-test-download-predictor-6dfdbf7bd-rngxc",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:06:58Z",
+        "name": "semoss-test-download-predictor-6dfdbf7bd.18e2786eb13fb4ff",
+        "namespace": "semoss",
+        "resourceVersion": "835859",
+        "uid": "07db9a86-05a5-447b-9a4f-636ff2bc406f"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:06:58Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "name": "semoss-test-download-predictor",
+        "namespace": "semoss",
+        "resourceVersion": "835848",
+        "uid": "16f785a9-7778-4552-9726-1920cd53dbf1"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:06:58Z",
+      "message": "Scaled up replica set semoss-test-download-predictor-6dfdbf7bd from 0 to 1",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:06:58Z",
+        "name": "semoss-test-download-predictor.18e2786eab8ab338",
+        "namespace": "semoss",
+        "resourceVersion": "835854",
+        "uid": "1403f582-2a87-472e-9dc5-5c5a04a66d1a"
+      },
+      "reason": "ScalingReplicaSet",
+      "reportingComponent": "deployment-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 8,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:06:58Z",
+      "involvedObject": {
+        "apiVersion": "serving.kserve.io/v1beta1",
+        "kind": "InferenceService",
+        "name": "semoss-test-download",
+        "namespace": "semoss",
+        "resourceVersion": "835845",
+        "uid": "9e7898e5-e72c-43d3-b2f0-0143ef354476"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:07:00Z",
+      "message": "Istio VirtualService CRD not present; VirtualService reconciliation skipped. If you do not use Istio, set ingress.disableIstioVirtualHost=true.",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:06:58Z",
+        "name": "semoss-test-download.18e2786eab87a4a8",
+        "namespace": "semoss",
+        "resourceVersion": "835891",
+        "uid": "1ad7eea1-e4e5-489f-b633-780691753c2b"
+      },
+      "reason": "VirtualServiceCRDNotFound",
+      "reportingComponent": "v1beta1Controllers",
+      "reportingInstance": "",
+      "source": {
+        "component": "v1beta1Controllers"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:06:58Z",
+      "involvedObject": {
+        "apiVersion": "serving.kserve.io/v1beta1",
+        "kind": "InferenceService",
+        "name": "semoss-test-download",
+        "namespace": "semoss",
+        "resourceVersion": "835845",
+        "uid": "9e7898e5-e72c-43d3-b2f0-0143ef354476"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:06:58Z",
+      "message": "Failed to update status for InferenceService \"semoss-test-download\": Operation cannot be fulfilled on inferenceservices.serving.kserve.io \"semoss-test-download\": the object has been modified; please apply your changes to the latest version and try again",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:06:58Z",
+        "name": "semoss-test-download.18e2786eb187dd9e",
+        "namespace": "semoss",
+        "resourceVersion": "835866",
+        "uid": "f7db53c9-8498-40fc-97a7-474e9c2bc8b8"
+      },
+      "reason": "UpdateFailed",
+      "reportingComponent": "v1beta1Controllers",
+      "reportingInstance": "",
+      "source": {
+        "component": "v1beta1Controllers"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-27T19:06:58Z",
+      "involvedObject": {
+        "apiVersion": "serving.kserve.io/v1beta1",
+        "kind": "InferenceService",
+        "name": "semoss-test-download",
+        "namespace": "semoss",
+        "resourceVersion": "835845",
+        "uid": "9e7898e5-e72c-43d3-b2f0-0143ef354476"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-27T19:06:58Z",
+      "message": "fails to update InferenceService status: Operation cannot be fulfilled on inferenceservices.serving.kserve.io \"semoss-test-download\": the object has been modified; please apply your changes to the latest version and try again",
+      "metadata": {
+        "creationTimestamp": "2026-10-27T19:06:58Z",
+        "name": "semoss-test-download.18e2786eb188211e",
+        "namespace": "semoss",
+        "resourceVersion": "835867",
+        "uid": "c1935bdf-f1aa-41f0-b100-60f2ba0c550f"
+      },
+      "reason": "InternalError",
+      "reportingComponent": "v1beta1Controllers",
+      "reportingInstance": "",
+      "source": {
+        "component": "v1beta1Controllers"
+      },
+      "type": "Warning"
+    }
+  ]
+}

@@ -1,0 +1,157 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "minio",
+        "namespace": "semoss"
+      },
+      "spec": {
+        "clusterIP": "10.43.168.244",
+        "ports": [
+          {
+            "name": "s3",
+            "port": 9000,
+            "protocol": "TCP",
+            "targetPort": 9000
+          },
+          {
+            "name": "console",
+            "port": 9001,
+            "protocol": "TCP",
+            "targetPort": 9001
+          }
+        ],
+        "selector": {
+          "app": "minio"
+        },
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "olmo-2-1b-instruct-lb",
+        "namespace": "semoss"
+      },
+      "spec": {
+        "clusterIP": "10.43.184.167",
+        "ports": [
+          {
+            "name": "http",
+            "nodePort": 31407,
+            "port": 8000,
+            "protocol": "TCP",
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "component": "predictor",
+          "serving.kserve.io/inferenceservice": "olmo-2-1b-instruct"
+        },
+        "type": "LoadBalancer"
+      },
+      "status": {
+        "loadBalancer": {
+          "ingress": [
+            {
+              "ip": "10.0.0.218",
+              "ipMode": "VIP"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "postgres",
+        "namespace": "semoss"
+      },
+      "spec": {
+        "clusterIP": "10.43.162.81",
+        "ports": [
+          {
+            "port": 5432,
+            "protocol": "TCP",
+            "targetPort": 5432
+          }
+        ],
+        "selector": {
+          "app": "postgres"
+        },
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "redis-service",
+        "namespace": "semoss"
+      },
+      "spec": {
+        "clusterIP": "10.43.228.236",
+        "ports": [
+          {
+            "port": 6379,
+            "protocol": "TCP",
+            "targetPort": 6379
+          }
+        ],
+        "selector": {
+          "app": "redis"
+        },
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "semoss-service",
+        "namespace": "semoss"
+      },
+      "spec": {
+        "clusterIP": "10.43.166.111",
+        "ports": [
+          {
+            "nodePort": 31035,
+            "port": 8080,
+            "protocol": "TCP",
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/instance": "semoss",
+          "app.kubernetes.io/name": "semoss"
+        },
+        "type": "LoadBalancer"
+      },
+      "status": {
+        "loadBalancer": {
+          "ingress": [
+            {
+              "ip": "10.0.0.218",
+              "ipMode": "VIP"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "kind": "ServiceList"
+}

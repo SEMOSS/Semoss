@@ -1,0 +1,101 @@
+{
+    "apiVersion": "serving.kserve.io/v1beta1",
+    "kind": "InferenceService",
+    "metadata": {
+        "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"serving.kserve.io/v1beta1\",\"kind\":\"InferenceService\",\"metadata\":{\"annotations\":{\"serving.kserve.io/deploymentMode\":\"Standard\"},\"labels\":{\"semoss.org/test\":\"failure\"},\"name\":\"semoss-test-download\",\"namespace\":\"semoss\"},\"spec\":{\"predictor\":{\"maxReplicas\":1,\"minReplicas\":1,\"model\":{\"modelFormat\":{\"name\":\"vllm\"},\"resources\":{\"limits\":{\"cpu\":\"1\",\"memory\":\"1Gi\"},\"requests\":{\"cpu\":\"100m\",\"memory\":\"256Mi\"}},\"runtime\":\"nvidia-vllm\",\"storageUri\":\"hf://allenai/semoss-test-no-such-model\"}}}}\n",
+            "modelFormat": "vllm",
+            "serving.kserve.io/deploymentMode": "Standard"
+        },
+        "creationTimestamp": "2026-10-27T19:06:58Z",
+        "finalizers": [
+            "inferenceservice.finalizers"
+        ],
+        "generation": 1,
+        "labels": {
+            "semoss.org/test": "failure"
+        },
+        "name": "semoss-test-download",
+        "namespace": "semoss",
+        "resourceVersion": "835889",
+        "uid": "9e7898e5-e72c-43d3-b2f0-0143ef354476"
+    },
+    "spec": {
+        "predictor": {
+            "maxReplicas": 1,
+            "minReplicas": 1,
+            "model": {
+                "modelFormat": {
+                    "name": "vllm"
+                },
+                "name": "",
+                "resources": {
+                    "limits": {
+                        "cpu": "1",
+                        "memory": "1Gi"
+                    },
+                    "requests": {
+                        "cpu": "100m",
+                        "memory": "256Mi"
+                    }
+                },
+                "runtime": "nvidia-vllm",
+                "storageUri": "hf://allenai/semoss-test-no-such-model"
+            }
+        }
+    },
+    "status": {
+        "address": {
+            "url": "http://semoss-test-download-predictor.semoss.svc.cluster.local"
+        },
+        "clusterServingRuntimeName": "nvidia-vllm",
+        "components": {
+            "predictor": {}
+        },
+        "conditions": [
+            {
+                "lastTransitionTime": "2026-10-27T19:06:58Z",
+                "status": "True",
+                "type": "IngressReady"
+            },
+            {
+                "lastTransitionTime": "2026-10-27T19:06:58Z",
+                "message": "Deployment does not have minimum availability.",
+                "reason": "MinimumReplicasUnavailable",
+                "status": "False",
+                "type": "PredictorReady"
+            },
+            {
+                "lastTransitionTime": "2026-10-27T19:06:58Z",
+                "message": "Deployment does not have minimum availability.",
+                "reason": "MinimumReplicasUnavailable",
+                "status": "False",
+                "type": "Ready"
+            },
+            {
+                "lastTransitionTime": "2026-10-27T19:06:58Z",
+                "severity": "Info",
+                "status": "False",
+                "type": "Stopped"
+            }
+        ],
+        "deploymentMode": "Standard",
+        "modelStatus": {
+            "copies": {
+                "failedCopies": 0
+            },
+            "lastFailureInfo": {
+                "exitCode": 1,
+                "message": "2026-10-27 19:06:59.374 1 storage.initializer INFO [initializer-entrypoint:\u003cmodule\u003e():17] Initializing, args: (src_uri, dest_path): [('hf://allenai/semoss-test-no-such-model', '/mnt/models')]\n2026-10-27 19:06:59.374 1 storage.initializer INFO [kserve_storage.py:download():331] Copying contents of hf://allenai/semoss-test-no-such-model to local\n2026-10-27 19:06:59.709 1 storage.initializer ERROR [storage_errors.py:raise_storage_error():42] HuggingFace error for hf://allenai/semoss-test-no-such-model: 401 Client Error. (Request ID: Root=1-6ae0f653-62874217636750711f91ecb6;23b4d63f-9c9b-4cae-a869-53b22a6a1443)\n\nRepository Not Found for url: https://huggingface.co/api/models/allenai/semoss-test-no-such-model/revision/main.\nPlease make sure you specified the correct `repo_id` and `repo_type`.\nIf you are trying to access a private or gated repo, make sure you are authenticated. For more details, see https://huggingface.co/docs/huggingface_hub/authentication\nInvalid username or password.\n2026-10-27 19:06:59.709 1 storage.initializer ERROR [initializer-entrypoint:\u003cmodule\u003e():28] Storage initialization failed: HuggingFace authentication failed. Set HF_TOKEN or request access to the gated repository.\n",
+                "reason": "ModelLoadFailed"
+            },
+            "states": {
+                "activeModelState": "",
+                "targetModelState": "FailedToLoad"
+            },
+            "transitionStatus": "BlockedByFailedLoad"
+        },
+        "observedGeneration": 1,
+        "url": "http://semoss-test-download-semoss.example.com"
+    }
+}

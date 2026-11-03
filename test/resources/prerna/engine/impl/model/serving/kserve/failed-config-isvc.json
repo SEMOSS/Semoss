@@ -1,0 +1,107 @@
+{
+    "apiVersion": "serving.kserve.io/v1beta1",
+    "kind": "InferenceService",
+    "metadata": {
+        "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"serving.kserve.io/v1beta1\",\"kind\":\"InferenceService\",\"metadata\":{\"annotations\":{\"serving.kserve.io/deploymentMode\":\"Standard\"},\"labels\":{\"semoss.org/test\":\"failure\"},\"name\":\"semoss-test-config\",\"namespace\":\"semoss\"},\"spec\":{\"predictor\":{\"containers\":[{\"command\":[\"sleep\",\"3600\"],\"env\":[{\"name\":\"SEMOSS_TEST\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"value\",\"name\":\"semoss-test-no-such-secret\"}}}],\"image\":\"nvcr.io/nvidia/vllm:25.11-py3\",\"name\":\"kserve-container\",\"resources\":{\"limits\":{\"cpu\":\"100m\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"100m\",\"memory\":\"64Mi\"}}}],\"maxReplicas\":1,\"minReplicas\":1}}}\n",
+            "serving.kserve.io/deploymentMode": "Standard"
+        },
+        "creationTimestamp": "2026-10-27T19:07:07Z",
+        "finalizers": [
+            "inferenceservice.finalizers"
+        ],
+        "generation": 1,
+        "labels": {
+            "semoss.org/test": "failure"
+        },
+        "name": "semoss-test-config",
+        "namespace": "semoss",
+        "resourceVersion": "835996",
+        "uid": "0efa415c-0bb6-4fd3-a351-e236e0f6f6e1"
+    },
+    "spec": {
+        "predictor": {
+            "containers": [
+                {
+                    "command": [
+                        "sleep",
+                        "3600"
+                    ],
+                    "env": [
+                        {
+                            "name": "SEMOSS_TEST",
+                            "valueFrom": {
+                                "secretKeyRef": {
+                                    "key": "value",
+                                    "name": "semoss-test-no-such-secret"
+                                }
+                            }
+                        }
+                    ],
+                    "image": "nvcr.io/nvidia/vllm:25.11-py3",
+                    "name": "kserve-container",
+                    "resources": {
+                        "limits": {
+                            "cpu": "100m",
+                            "memory": "64Mi"
+                        },
+                        "requests": {
+                            "cpu": "100m",
+                            "memory": "64Mi"
+                        }
+                    }
+                }
+            ],
+            "maxReplicas": 1,
+            "minReplicas": 1
+        }
+    },
+    "status": {
+        "address": {
+            "url": "http://semoss-test-config-predictor.semoss.svc.cluster.local"
+        },
+        "components": {
+            "predictor": {}
+        },
+        "conditions": [
+            {
+                "lastTransitionTime": "2026-10-27T19:07:07Z",
+                "status": "True",
+                "type": "IngressReady"
+            },
+            {
+                "lastTransitionTime": "2026-10-27T19:07:08Z",
+                "message": "Deployment does not have minimum availability.",
+                "reason": "MinimumReplicasUnavailable",
+                "status": "False",
+                "type": "PredictorReady"
+            },
+            {
+                "lastTransitionTime": "2026-10-27T19:07:08Z",
+                "message": "Deployment does not have minimum availability.",
+                "reason": "MinimumReplicasUnavailable",
+                "status": "False",
+                "type": "Ready"
+            },
+            {
+                "lastTransitionTime": "2026-10-27T19:07:07Z",
+                "severity": "Info",
+                "status": "False",
+                "type": "Stopped"
+            }
+        ],
+        "deploymentMode": "Standard",
+        "modelStatus": {
+            "copies": {
+                "failedCopies": 0
+            },
+            "states": {
+                "activeModelState": "",
+                "targetModelState": "Pending"
+            },
+            "transitionStatus": "InProgress"
+        },
+        "observedGeneration": 1,
+        "url": "http://semoss-test-config-semoss.example.com"
+    }
+}
