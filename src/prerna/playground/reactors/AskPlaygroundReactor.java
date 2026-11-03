@@ -28,6 +28,7 @@
 package prerna.playground.reactors;
 
 import prerna.playground.PlaygroundUtils;
+import prerna.reactor.agent.runtime.PreChatContext;
 import prerna.reactor.model.AskRoomReactor;
 import prerna.theme.PlaygroundThemeUtils;
 
@@ -41,6 +42,11 @@ public class AskPlaygroundReactor extends AskRoomReactor {
 	@Override
 	protected boolean shouldHideSystemMessages() {
 		return PlaygroundThemeUtils.hidePlaygroundSystemMessages();
+	}
+
+	@Override
+	protected PreChatContext.Spec getPreChatTool() {
+		return PlaygroundThemeUtils.getPlaygroundPreChatTool();
 	}
 
 	@Override

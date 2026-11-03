@@ -46,6 +46,7 @@ import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.runtime.PreChatContext;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -104,6 +105,10 @@ public class AskRoomReactor extends AbstractReactor {
 		if (projectIdOverride != null) {
 			room.setProjectId(projectIdOverride);
 		}
+		// A prebuilt turn was produced by the client, so nothing runs ahead of it.
+		List<AbstractMessage> preChatMessages = responseParts == null
+				? PreChatContext.injectIfFirstMessage(room, this.insight, modelEngine, getPreChatTool())
+				: new ArrayList<>();
 		String givenSystemPrompt = room.getSystemPromptForModel();
 		List<String> copiedMedia = RoomUtils.copyFilesToRoomFolder(inputMedia, room, insight);
 
@@ -141,6 +146,14 @@ public class AskRoomReactor extends AbstractReactor {
 			extraMessagesList.add(pair);
 		}
 		pixelReturn.put("extraMessages", extraMessagesList);
+		if (!preChatMessages.isEmpty()) {
+			// hidden note and acknowledgement stored ahead of this turn
+			List<Map<String, Object>> preChatList = new ArrayList<>();
+			for (AbstractMessage message : preChatMessages) {
+				preChatList.add(jsonToMap(MessageUtils.toJsonWithImage(message)));
+			}
+			pixelReturn.put("preChatMessages", preChatList);
+		}
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
@@ -150,6 +163,14 @@ public class AskRoomReactor extends AbstractReactor {
 	 * creation derive the project from the current insight.
 	 */
 	protected String getProjectIdOverride() {
+		return null;
+	}
+
+	/**
+	 * Returns the tool to run once, before a new room's first message, or
+	 * {@code null} for none. Its result is stored as a hidden note for the model.
+	 */
+	protected PreChatContext.Spec getPreChatTool() {
 		return null;
 	}
 

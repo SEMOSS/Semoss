@@ -39,6 +39,7 @@ import org.json.JSONObject;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
@@ -55,6 +56,9 @@ public final class PlatformAgentTools {
 	private static final String PARAM_TOOLS = "tools";
 	private static final String PROP_DEFAULT_TOOLS_MCP_ID = "AGENT_DEFAULT_TOOLS_MCP_ID";
 	private static final String PROP_DEFAULT_TOOLS_MCP_PROJECT_ID = "AGENT_DEFAULT_TOOLS_MCP_PROJECT_ID";
+	private static final String PROP_PRE_CHAT_TOOL = "AGENT_DEFAULT_TOOLS_PRE_CHAT_TOOL";
+	private static final String PROP_PRE_CHAT_ARGS = "AGENT_DEFAULT_TOOLS_PRE_CHAT_ARGS";
+	private static final String PROP_PRE_CHAT_MAX_CHARS = "AGENT_DEFAULT_TOOLS_PRE_CHAT_MAX_CHARS";
 	private static final Set<String> DEFERRED_DEFAULT_TOOLS = Set.of("InspectPptx", "MultiEdit");
 
 	private static final Map<String, PlatformAgentToolHandlers.ToolHandler> PLATFORM_TOOLS =
@@ -88,6 +92,29 @@ public final class PlatformAgentTools {
 			resolved.removeIf(tool -> disabledNames.contains(String.valueOf(tool.get("name"))));
 		}
 		return resolved;
+	}
+
+	/**
+	 * The tool to run before a room's first message, from
+	 * {@code AGENT_DEFAULT_TOOLS_PRE_CHAT_TOOL}. Only set when the deployment
+	 * replaces the default tools ({@code AGENT_DEFAULT_TOOLS_MCP_ID}); the tool is
+	 * looked up in that toolbox. Returns {@code null} when unset, or when this
+	 * agent turns default tools off or disables that tool.
+	 */
+	static PreChatContext.Spec preChatSpec(AgentConfig agentConfig) {
+		String mcpId = getDefaultToolsMcpId();
+		String tool = Utility.getDIHelperProperty(PROP_PRE_CHAT_TOOL);
+		tool = tool != null ? tool.trim() : null;
+		if (mcpId == null || tool == null || tool.isEmpty()) {
+			return null;
+		}
+		if (agentConfig != null
+				&& (!agentConfig.useDefaultAgentTools() || agentConfig.getDisabledDefaultTools().contains(tool))) {
+			return null;
+		}
+		return PreChatContext.Spec.of(mcpId, tool,
+				PreChatContext.parseArgs(Utility.getDIHelperProperty(PROP_PRE_CHAT_ARGS)),
+				PreChatContext.parseInt(Utility.getDIHelperProperty(PROP_PRE_CHAT_MAX_CHARS)));
 	}
 
 	static ToolExecutionResult policyDenialResult(String toolName, AgentRunContext ctx) {
@@ -169,7 +196,7 @@ public final class PlatformAgentTools {
 		return !("false".equals(normalized) || "0".equals(normalized) || "no".equals(normalized));
 	}
 
-	private static String getDefaultToolsMcpId() {
+	static String getDefaultToolsMcpId() {
 		String id = Utility.getDIHelperProperty(PROP_DEFAULT_TOOLS_MCP_ID);
 		if (id == null || id.trim().isEmpty()) {
 			id = Utility.getDIHelperProperty(PROP_DEFAULT_TOOLS_MCP_PROJECT_ID);
@@ -206,7 +233,7 @@ public final class PlatformAgentTools {
 		return tools;
 	}
 
-	private static JSONObject findMcpTool(String mcpId, String toolName) {
+	static JSONObject findMcpTool(String mcpId, String toolName) {
 		JSONObject toolMap = getMcpToolsJson(mcpId);
 		JSONArray arr = toolMap != null ? toolMap.optJSONArray(PARAM_TOOLS) : null;
 		if (arr == null) {

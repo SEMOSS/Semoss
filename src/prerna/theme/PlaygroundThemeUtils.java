@@ -34,12 +34,14 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import prerna.engine.api.IRDBMSEngine;
+import prerna.reactor.agent.runtime.PreChatContext;
 import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 
@@ -53,6 +55,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	private static volatile String cachedGlobalSystemPrompt = null;
 	private static volatile Map<String, String> cachedSystemPromptVars = null;
 	private static volatile boolean cachedHideSystemMessages = false;
+	private static volatile PreChatContext.Spec cachedPreChatTool = null;
 	private static volatile boolean cacheInitialized = false;
 
 	private PlaygroundThemeUtils() {
@@ -100,6 +103,32 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	}
 
 	/**
+	 * Returns {@code playground.preChatTool} from the currently active theme, or
+	 * {@code null} when it is not set or names no toolbox or tool. Playground runs
+	 * this tool once, before a room's first message, and gives its result to the
+	 * model as a hidden note.
+	 * <p>
+	 * Expected JSON shape ({@code args} and {@code maxChars} are optional):
+	 *
+	 * <pre>
+	 * {
+	 *   "playground": {
+	 *     "preChatTool": {
+	 *       "toolboxId": "&lt;engine or project id&gt;",
+	 *       "tool": "GetRoomResources",
+	 *       "args": {},
+	 *       "maxChars": 60000
+	 *     }
+	 *   }
+	 * }
+	 * </pre>
+	 */
+	public static PreChatContext.Spec getPlaygroundPreChatTool() {
+		ensureCacheLoaded();
+		return cachedPreChatTool;
+	}
+
+	/**
 	 * Refreshes the in-memory cache from the active theme.
 	 */
 	public static void refreshCacheFromActiveTheme() {
@@ -114,6 +143,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 			cachedGlobalSystemPrompt = null;
 			cachedSystemPromptVars = null;
 			cachedHideSystemMessages = false;
+			cachedPreChatTool = null;
 			cacheInitialized = false;
 		}
 	}
@@ -129,6 +159,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 		cachedGlobalSystemPrompt = null;
 		cachedSystemPromptVars = new LinkedHashMap<>();
 		cachedHideSystemMessages = false;
+		cachedPreChatTool = null;
 		if (themeMapJson == null) {
 			return;
 		}
@@ -142,6 +173,8 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 
 			cachedHideSystemMessages = getBooleanValue(playground, "hide_system_messages",
 					getBooleanValue(playground, "hideSystemMessages", false));
+
+			cachedPreChatTool = parsePreChatTool(playground.get("preChatTool"));
 
 			JsonElement globalSystemPromptElem = playground.get("globalSystemPrompt");
 			if (globalSystemPromptElem != null && globalSystemPromptElem.isJsonPrimitive()) {
@@ -167,6 +200,40 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 		} catch (Exception e) {
 			classLogger.debug(Constants.STACKTRACE, e);
 		}
+	}
+
+	/**
+	 * Reads a {@code preChatTool} object; anything missing a toolbox id or tool
+	 * name yields {@code null}.
+	 */
+	static PreChatContext.Spec parsePreChatTool(JsonElement elem) {
+		if (elem == null || !elem.isJsonObject()) {
+			return null;
+		}
+		JsonObject obj = elem.getAsJsonObject();
+		Map<String, Object> args = null;
+		JsonElement argsElem = obj.get("args");
+		if (argsElem != null && argsElem.isJsonObject()) {
+			args = new JSONObject(argsElem.toString()).toMap();
+		}
+		Integer maxChars = null;
+		JsonElement maxElem = obj.get("maxChars");
+		try {
+			if (maxElem != null && maxElem.isJsonPrimitive() && maxElem.getAsJsonPrimitive().isNumber()) {
+				maxChars = maxElem.getAsInt();
+			}
+		} catch (NumberFormatException e) {
+			// out of range: use the default
+		}
+		return PreChatContext.Spec.of(getStringValue(obj, "toolboxId"), getStringValue(obj, "tool"), args, maxChars);
+	}
+
+	private static String getStringValue(JsonObject obj, String key) {
+		JsonElement elem = obj.get(key);
+		if (elem == null || !elem.isJsonPrimitive()) {
+			return null;
+		}
+		return StringUtils.trimToNull(elem.getAsString());
 	}
 
 	private static boolean getBooleanValue(JsonObject obj, String key, boolean defaultValue) {

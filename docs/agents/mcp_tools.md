@@ -218,6 +218,24 @@ The runtime reads `_meta` from `pixel_mcp.json` and `py_mcp.json` as written, so
 
 See [run lifecycle](agent_runs.md) for approval states and [the harness](semoss_harness.md#tools-and-execution-policy) for the built-in tool groups.
 
+## Pre-chat tool
+
+One toolbox tool can run once, when a room is set up and before its first message. Its result is stored at the start of the conversation as a hidden note and acknowledgement (`visible=false`, `platformGenerated`, ornament `preChatTool`): the model reads it on every later turn and the UI does not show it. A typical choice is a discovery tool such as ECU's `GetRoomResources`, so the model starts with the room's documents, skills and toolboxes in context instead of spending its first step calling the tool.
+
+| Surface | Configured by |
+| --- | --- |
+| `RunAgent` (native `semoss` harness) | Deployment properties, only when `AGENT_DEFAULT_TOOLS_MCP_ID` replaces the default tools: `AGENT_DEFAULT_TOOLS_PRE_CHAT_TOOL` (tool name in that toolbox), optional `AGENT_DEFAULT_TOOLS_PRE_CHAT_ARGS` (JSON object) and `AGENT_DEFAULT_TOOLS_PRE_CHAT_MAX_CHARS`. Skipped when the agent turns default tools off or lists the tool in `tool_policy.default_tools.disabled`, and for PPTX workflow runs. |
+| `AskPlayground` | `playground.preChatTool` in the active theme map: `{"toolboxId": "<engine or project id>", "tool": "GetRoomResources", "args": {}, "maxChars": 60000}`. The stored pair is returned as `preChatMessages`. |
+
+Both use [PreChatContext](../../src/prerna/reactor/agent/runtime/PreChatContext.java):
+
+- The tool runs through `MCPUtility.executeTool`, so the user's access to the toolbox is checked and `SMSS_FUNCTION_NAME` applies.
+- A tool that is missing, `disabled` or `ask` is skipped; nothing is shown to approve before the first message.
+- The insight must be unbound or bound to the room (chat mode binds it with `SetRoomForInsight`); an unbound insight is bound to the room first.
+- The result is cut to `maxChars` (default 60,000) and wrapped in `<pre_chat_context tool="...">` with a note telling the model it need not call the tool again unless something changed.
+- Any failure is logged and skipped, and the chat continues as it would without the setting. The tool stays available, so the model can still call it itself.
+- It runs once per room. Files added later are not reflected until the model calls the tool again.
+
 ## Pitfalls
 
 - Use lowercase execution values in hand-written JSON. The hide filter is case-sensitive.
@@ -238,4 +256,5 @@ See [run lifecycle](agent_runs.md) for approval states and [the harness](semoss_
 | Room tool assembly and alias lookup | [Room](../../src/prerna/engine/impl/model/Room.java) |
 | Deferred tools | [DeferredAgentTools](../../src/prerna/reactor/agent/run/DeferredAgentTools.java) |
 | Platform tool defaults | [PlatformAgentTools](../../src/prerna/reactor/agent/runtime/PlatformAgentTools.java) |
+| Pre-chat tool | [PreChatContext](../../src/prerna/reactor/agent/runtime/PreChatContext.java), [PlaygroundThemeUtils](../../src/prerna/theme/PlaygroundThemeUtils.java) |
 | Approval pauses | [HarnessToolExecutor](../../src/prerna/reactor/agent/runtime/HarnessToolExecutor.java), [AgentToolDecisionHandler](../../src/prerna/reactor/agent/mcp/AgentToolDecisionHandler.java) |

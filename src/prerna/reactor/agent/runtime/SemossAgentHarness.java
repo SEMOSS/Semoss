@@ -359,6 +359,14 @@ public class SemossAgentHarness implements IAgentHarness {
 				if (compactionOutcome == AutoCompactionOutcome.CONTEXT_WINDOW_UNAVAILABLE) {
 					autoCompactionContextWarningLogged = true;
 				}
+				// A deployment that replaces the default tools can name one to run before the
+				// room's first message; its result is stored as a hidden note for the model.
+				// Like compaction, it is not a message produced by this run, so it sits above
+				// runMessageStartIndex.
+				if (!focusedEdit && !agentConfig.hasPptxWorkflow() && room.getMessages().isEmpty()) {
+					PreChatContext.injectIfFirstMessage(room, ctx.getInsight(), ctx.getModelEngine(),
+							PlatformAgentTools.preChatSpec(agentConfig));
+				}
 				// Compaction messages are implementation history, not messages produced by this
 				// run. Start run tagging after any automatic compaction messages.
 				runMessageStartIndex = room.getMessages().size();
