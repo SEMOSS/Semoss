@@ -27,8 +27,10 @@
  *******************************************************************************/
 package prerna.theme;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -114,7 +116,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	 * {
 	 *   "playground": {
 	 *     "preChatTool": {
-	 *       "toolboxId": "&lt;engine or project id&gt;",
+	 *       "toolboxId": "&lt;engine or project id; defaults to defaultTools&gt;",
 	 *       "tool": "GetRoomResources",
 	 *       "args": {},
 	 *       "maxChars": 60000
@@ -174,7 +176,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 			cachedHideSystemMessages = getBooleanValue(playground, "hide_system_messages",
 					getBooleanValue(playground, "hideSystemMessages", false));
 
-			cachedPreChatTool = parsePreChatTool(playground.get("preChatTool"));
+			cachedPreChatTool = parsePreChatTool(playground.get("preChatTool"), playground.get("defaultTools"));
 
 			JsonElement globalSystemPromptElem = playground.get("globalSystemPrompt");
 			if (globalSystemPromptElem != null && globalSystemPromptElem.isJsonPrimitive()) {
@@ -203,14 +205,30 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	}
 
 	/**
-	 * Reads a {@code preChatTool} object; anything missing a toolbox id or tool
-	 * name yields {@code null}.
+	 * Reads a {@code preChatTool} object. Without its own {@code toolboxId}, the
+	 * tool is looked up in the theme's {@code defaultTools} (the toolboxes the UI
+	 * attaches to every new room), in order. Anything with no tool name or no
+	 * toolbox to look in yields {@code null}.
 	 */
-	static PreChatContext.Spec parsePreChatTool(JsonElement elem) {
+	static PreChatContext.Spec parsePreChatTool(JsonElement elem, JsonElement defaultTools) {
 		if (elem == null || !elem.isJsonObject()) {
 			return null;
 		}
 		JsonObject obj = elem.getAsJsonObject();
+		List<String> toolboxIds = new ArrayList<>();
+		String toolboxId = getStringValue(obj, "toolboxId");
+		if (toolboxId != null) {
+			toolboxIds.add(toolboxId);
+		} else if (defaultTools != null && defaultTools.isJsonArray()) {
+			for (JsonElement tool : defaultTools.getAsJsonArray()) {
+				if (tool != null && tool.isJsonObject()) {
+					String id = getStringValue(tool.getAsJsonObject(), "id");
+					if (id != null) {
+						toolboxIds.add(id);
+					}
+				}
+			}
+		}
 		Map<String, Object> args = null;
 		JsonElement argsElem = obj.get("args");
 		if (argsElem != null && argsElem.isJsonObject()) {
@@ -225,7 +243,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 		} catch (NumberFormatException e) {
 			// out of range: use the default
 		}
-		return PreChatContext.Spec.of(getStringValue(obj, "toolboxId"), getStringValue(obj, "tool"), args, maxChars);
+		return PreChatContext.Spec.anyOf(toolboxIds, getStringValue(obj, "tool"), args, maxChars);
 	}
 
 	private static String getStringValue(JsonObject obj, String key) {

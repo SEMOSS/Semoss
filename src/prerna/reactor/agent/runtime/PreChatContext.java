@@ -81,28 +81,48 @@ public final class PreChatContext {
 	/**
 	 * Which tool to run and with what arguments.
 	 *
-	 * @param toolboxId engine or project id of the toolbox (MCP)
-	 * @param tool      tool name as listed by the toolbox
-	 * @param args      tool arguments, never {@code null}
-	 * @param maxChars  result characters kept in the hidden note
+	 * @param toolboxIds engine or project ids of the toolboxes (MCPs) to look in,
+	 *                   in order; the first one that provides {@code tool} runs it
+	 * @param tool       tool name as listed by the toolbox
+	 * @param args       tool arguments, never {@code null}
+	 * @param maxChars   result characters kept in the hidden note
 	 */
-	public record Spec(String toolboxId, String tool, Map<String, Object> args, int maxChars) {
+	public record Spec(List<String> toolboxIds, String tool, Map<String, Object> args, int maxChars) {
 
 		public Spec {
+			toolboxIds = List.copyOf(toolboxIds);
 			args = args == null ? Collections.emptyMap() : Collections.unmodifiableMap(new LinkedHashMap<>(args));
 			maxChars = maxChars > 0 ? maxChars : DEFAULT_MAX_CHARS;
 		}
 
 		/**
-		 * Builds a spec, or returns {@code null} when the toolbox or tool is blank.
+		 * Builds a spec for one toolbox, or returns {@code null} when the toolbox or
+		 * tool is blank.
 		 */
 		public static Spec of(String toolboxId, String tool, Map<String, Object> args, Integer maxChars) {
-			toolboxId = trimToNull(toolboxId);
+			return anyOf(toolboxId == null ? List.of() : java.util.Arrays.asList(toolboxId), tool, args, maxChars);
+		}
+
+		/**
+		 * Builds a spec that looks for the tool in each toolbox in turn, or returns
+		 * {@code null} when no toolbox id is given or the tool is blank. Blank and
+		 * repeated ids are dropped.
+		 */
+		public static Spec anyOf(List<String> toolboxIds, String tool, Map<String, Object> args, Integer maxChars) {
 			tool = trimToNull(tool);
-			if (toolboxId == null || tool == null) {
+			java.util.Set<String> ids = new java.util.LinkedHashSet<>();
+			if (toolboxIds != null) {
+				for (String id : toolboxIds) {
+					id = trimToNull(id);
+					if (id != null) {
+						ids.add(id);
+					}
+				}
+			}
+			if (ids.isEmpty() || tool == null) {
 				return null;
 			}
-			return new Spec(toolboxId, tool, args, maxChars == null ? 0 : maxChars);
+			return new Spec(new ArrayList<>(ids), tool, args, maxChars == null ? 0 : maxChars);
 		}
 	}
 
@@ -134,10 +154,22 @@ public final class PreChatContext {
 				return new ArrayList<>();
 			}
 
-			JSONObject tool = PlatformAgentTools.findMcpTool(spec.toolboxId(), spec.tool());
+			String toolboxId = null;
+			JSONObject tool = null;
+			for (String candidate : spec.toolboxIds()) {
+				try {
+					tool = PlatformAgentTools.findMcpTool(candidate, spec.tool());
+				} catch (Exception e) {
+					logger.warn("PreChatContext: cannot read toolbox {}: {}", candidate, e.getMessage());
+				}
+				if (tool != null) {
+					toolboxId = candidate;
+					break;
+				}
+			}
 			if (tool == null) {
-				logger.warn("PreChatContext: skipped room={}: tool {} is missing or disabled in toolbox {}",
-						room.getId(), spec.tool(), spec.toolboxId());
+				logger.warn("PreChatContext: skipped room={}: tool {} is missing or disabled in toolboxes {}",
+						room.getId(), spec.tool(), spec.toolboxIds());
 				return new ArrayList<>();
 			}
 			JSONObject meta = tool.optJSONObject("_meta");
@@ -149,7 +181,7 @@ public final class PreChatContext {
 					: spec.tool();
 
 			long start = System.currentTimeMillis();
-			Object raw = MCPUtility.executeTool(spec.toolboxId(), functionName, new LinkedHashMap<>(spec.args()),
+			Object raw = MCPUtility.executeTool(toolboxId, functionName, new LinkedHashMap<>(spec.args()),
 					insight);
 			String output = stringify(raw);
 			if (output == null || output.isBlank() || output.startsWith("Error:")) {
@@ -160,8 +192,8 @@ public final class PreChatContext {
 
 			List<AbstractMessage> added = room.appendPreChatContext(note(spec.tool(), output, spec.maxChars()),
 					spec.tool(), modelEngine, insight);
-			logger.info("PreChatContext: room={} tool={} chars={} stored={} ms={}", room.getId(), spec.tool(),
-					output.length(), !added.isEmpty(), System.currentTimeMillis() - start);
+			logger.info("PreChatContext: room={} toolbox={} tool={} chars={} stored={} ms={}", room.getId(), toolboxId,
+					spec.tool(), output.length(), !added.isEmpty(), System.currentTimeMillis() - start);
 			return added;
 		} catch (Exception e) {
 			logger.warn("PreChatContext: skipped {} for room={}: {}", spec.tool(), room.getId(), e.getMessage(), e);

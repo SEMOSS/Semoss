@@ -30,6 +30,7 @@ package prerna.theme;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -43,20 +44,31 @@ class PlaygroundThemeUtilsUnitTests {
 	@Test
 	void readsPreChatTool() {
 		PreChatContext.Spec spec = PlaygroundThemeUtils.parsePreChatTool(JsonParser.parseString(
-				"{\"toolboxId\":\"ecu\",\"tool\":\"GetRoomResources\",\"args\":{\"mode\":\"brief\"},\"maxChars\":500}"));
-		assertEquals("ecu", spec.toolboxId());
+				"{\"toolboxId\":\"ecu\",\"tool\":\"GetRoomResources\",\"args\":{\"mode\":\"brief\"},\"maxChars\":500}"),
+				JsonParser.parseString("[{\"id\":\"other\"}]"));
+		assertEquals(List.of("ecu"), spec.toolboxIds());
 		assertEquals("GetRoomResources", spec.tool());
 		assertEquals(Map.of("mode", "brief"), spec.args());
 		assertEquals(500, spec.maxChars());
 	}
 
 	@Test
+	void fallsBackToThemeDefaultTools() {
+		PreChatContext.Spec spec = PlaygroundThemeUtils.parsePreChatTool(
+				JsonParser.parseString("{\"tool\":\"GetRoomResources\"}"),
+				JsonParser.parseString(
+						"[{\"type\":\"PROJECT\",\"id\":\"ecu\",\"name\":\"ECU\"},{\"id\":\" \"},\"bad\",{\"id\":\"other\"}]"));
+		assertEquals(List.of("ecu", "other"), spec.toolboxIds());
+		assertEquals("GetRoomResources", spec.tool());
+	}
+
+	@Test
 	void ignoresIncompleteOrMalformedPreChatTool() {
-		assertNull(PlaygroundThemeUtils.parsePreChatTool(null));
-		assertNull(PlaygroundThemeUtils.parsePreChatTool(JsonParser.parseString("\"GetRoomResources\"")));
-		assertNull(PlaygroundThemeUtils.parsePreChatTool(JsonParser.parseString("{\"tool\":\"GetRoomResources\"}")));
+		assertNull(PlaygroundThemeUtils.parsePreChatTool(null, null));
+		assertNull(PlaygroundThemeUtils.parsePreChatTool(JsonParser.parseString("\"GetRoomResources\""), null));
+		assertNull(PlaygroundThemeUtils.parsePreChatTool(JsonParser.parseString("{\"tool\":\"GetRoomResources\"}"), null));
 		PreChatContext.Spec spec = PlaygroundThemeUtils.parsePreChatTool(JsonParser.parseString(
-				"{\"toolboxId\":\"ecu\",\"tool\":\"T\",\"args\":[1],\"maxChars\":\"big\"}"));
+				"{\"toolboxId\":\"ecu\",\"tool\":\"T\",\"args\":[1],\"maxChars\":\"big\"}"), null);
 		assertEquals(Map.of(), spec.args());
 		assertEquals(PreChatContext.DEFAULT_MAX_CHARS, spec.maxChars());
 	}

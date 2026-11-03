@@ -225,7 +225,7 @@ One toolbox tool can run once, when a room is set up and before its first messag
 | Surface | Configured by |
 | --- | --- |
 | `RunAgent` (native `semoss` harness) | Deployment properties, only when `AGENT_DEFAULT_TOOLS_MCP_ID` replaces the default tools: `AGENT_DEFAULT_TOOLS_PRE_CHAT_TOOL` (tool name in that toolbox), optional `AGENT_DEFAULT_TOOLS_PRE_CHAT_ARGS` (JSON object) and `AGENT_DEFAULT_TOOLS_PRE_CHAT_MAX_CHARS`. Skipped when the agent turns default tools off or lists the tool in `tool_policy.default_tools.disabled`, and for PPTX workflow runs. |
-| `AskPlayground` | `playground.preChatTool` in the active theme map: `{"toolboxId": "<engine or project id>", "tool": "GetRoomResources", "args": {}, "maxChars": 60000}`. The stored pair is returned as `preChatMessages`. |
+| `AskPlayground` | `playground.preChatTool` in the active theme map: `{"tool": "GetRoomResources", "toolboxId": "<engine or project id>", "args": {}, "maxChars": 60000}`. Without `toolboxId`, the tool is looked up in `playground.defaultTools` (the toolboxes the UI attaches to every new room), in order. The stored pair is returned as `preChatMessages`. |
 
 Both use [PreChatContext](../../src/prerna/reactor/agent/runtime/PreChatContext.java):
 

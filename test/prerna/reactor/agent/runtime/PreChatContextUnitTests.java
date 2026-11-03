@@ -47,12 +47,15 @@ class PreChatContextUnitTests {
 		assertNull(PreChatContext.Spec.of(null, "GetRoomResources", null, null));
 		assertNull(PreChatContext.Spec.of("ecu", "  ", null, null));
 		PreChatContext.Spec spec = PreChatContext.Spec.of(" ecu ", " GetRoomResources ", null, null);
-		assertEquals("ecu", spec.toolboxId());
+		assertEquals(List.of("ecu"), spec.toolboxIds());
 		assertEquals("GetRoomResources", spec.tool());
 		assertTrue(spec.args().isEmpty());
 		assertEquals(PreChatContext.DEFAULT_MAX_CHARS, spec.maxChars());
 		assertEquals(PreChatContext.DEFAULT_MAX_CHARS, PreChatContext.Spec.of("e", "t", null, -5).maxChars());
 		assertEquals(10, PreChatContext.Spec.of("e", "t", Map.of("a", 1), 10).maxChars());
+		assertEquals(List.of("a", "b"),
+				PreChatContext.Spec.anyOf(java.util.Arrays.asList(" a ", null, "", "b", "a"), "t", null, null).toolboxIds());
+		assertNull(PreChatContext.Spec.anyOf(List.of(), "t", null, null));
 	}
 
 	@Test
