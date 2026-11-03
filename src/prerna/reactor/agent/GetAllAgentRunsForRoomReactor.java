@@ -25,41 +25,51 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.collaboration;
+package prerna.reactor.agent;
 
-import prerna.collaboration.BrainAgentEdits;
+import org.apache.commons.lang3.StringUtils;
+
+import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.run.AgentRunStore;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class BrainCompleteGoalReactor extends AbstractCollaborationReactor {
+/**
+ * Returns every run the caller has in one of their rooms, newest first, for the
+ * agent's Activity tab: its root runs and the subagent runs it holds, each with
+ * the room's name and whether it is closed. Only the caller's runs are read, by
+ * the id and login type of their primary login.
+ */
+public class GetAllAgentRunsForRoomReactor extends AbstractReactor {
 
-	public BrainCompleteGoalReactor() {
-		this.keysToGet = new String[] { "topicId", "goalId", "resolution" };
-		this.keyRequired = new int[] { 1, 1, 1 };
+	public GetAllAgentRunsForRoomReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		return mapResult(BrainAgentEdits.completeGoal(getUser(), this.insight.getRoomId(), getString("topicId"),
-				getString("goalId"), getString("resolution")));
+		organizeKeys();
+		String roomId = StringUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey()));
+		if (roomId == null) {
+			throw new IllegalArgumentException("Room id is required");
+		}
+		return new NounMetadata(AgentRunStore.getRunsForRoomByLogin(this.insight, roomId), PixelDataType.VECTOR,
+				PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Marks an existing goal in this chat's current topics done when the conversation or sources clearly "
-				+ "establish that it is achieved. Runs automatically; do not wait for the owner to ask. "
-				+ "Keeps the goal text and saves the outcome. Use exact ids from Chat topics or ListTopics. "
-				+ "A promise, plan, partial answer, or uncertain match is not completion. "
-				+ "Tell the owner which goal was marked done only after this succeeds.";
+		return "Returns every run you have in one of your rooms, newest first, subagent runs included, with the room's name and whether it is closed.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		return switch (key) {
-			case "topicId" -> "Topic id from the current Chat topics or ListTopics; must apply to this chat";
-			case "goalId" -> "The existing goal's noteId from this topic's open goals";
-			case "resolution" -> "One short, plain-language accomplishment with the established outcome and useful facts. "
-					+ "Omit source labels, citations, and internal ids, including shortened thread/message ids";
-			default -> super.getDescriptionForKey(key);
-		};
+		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
+			return "Your room whose runs are returned.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

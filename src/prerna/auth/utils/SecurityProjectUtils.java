@@ -150,8 +150,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * </p>
 	 * <ol>
 	 * <li>The insights database is opened: the loaded project's, or else the one
-	 * its smss file names. A failure to open it is thrown, and nothing is
-	 * written.</li>
+	 * its smss file names. A failure to open it is thrown, and nothing is written.
+	 * A project whose type does not hold insights has none, so step 3 is
+	 * skipped.</li>
 	 * <li>A first security database transaction registers the project, or updates
 	 * its name, type, cost and global flag when it is registered already. It
 	 * commits before the insights are copied, so the project is registered even
@@ -212,8 +213,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (Utility.projectLoaded(projectId)) {
 			rne = Utility.getProject(projectId).getInsightDatabase();
 			projectLoaded = true;
-		} else {
+		} else if (IProject.PROJECT_TYPE.fromSmss(prop).holdsInsights()) {
 			rne = ProjectHelper.loadInsightsEngine(prop, classLogger);
+		} else {
+			rne = null;
 		}
 
 		AbstractSqlQueryUtil securityQueryUtil = securityDb.getQueryUtil();
@@ -280,7 +283,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// the project's insights and their metadata, and on a reload the permissions
 		// of insights that no longer exist, in a second transaction, so a failure
 		// leaves the insight rows that were there
-		if (projectSaved) {
+		if (projectSaved && rne != null) {
 			try {
 				QueryExecutionUtility.write(securityDb, connection -> {
 					// on a reload, the insights with permissions now; an insight that still

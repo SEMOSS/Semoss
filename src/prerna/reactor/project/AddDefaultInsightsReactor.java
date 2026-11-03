@@ -102,6 +102,10 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 
 		logger.info("Retrieving database");
 		IProject project = Utility.getProject(projectId);
+		if (!project.getProjectType().holdsInsights()) {
+			throw new IllegalArgumentException("Project " + projectId + " is a " + project.getProjectType()
+					+ " project, which does not hold insights");
+		}
 		IRDBMSEngine insightEngine = project.getInsightDatabase();
 		String projectName = project.getProjectName();
 

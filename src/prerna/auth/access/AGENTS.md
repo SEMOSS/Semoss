@@ -419,6 +419,20 @@ showing or hiding an engine in their own lists (`ENGINE_VISIBILITY_UPDATE`) have
 on the Audit tab only. No code records `PROJECT_UPDATE` or `ENGINE_UPDATE`; they are kept so stored
 events of those types still read.
 
+Exporting a project or an engine for download records `PROJECT_EXPORT` (`ExportProject`,
+`ExportProjectApp`, `ExportApp`) or `ENGINE_EXPORT` (`ExportEngine`, `ExportDatabase`), both at `HIGH`
+severity, since a copy of the resource leaves the platform. `UserAuditTrailUtils.recordProjectExport`
+and `recordEngineExport` record it once the archive is built, with `details.reactor` (the pixel name,
+from `AbstractReactor.getPixelName`), the project's `projectType`, and `keepGit` where the export can
+keep the version history. An export that fails records its failure under the same event type
+(`AUDITED_REACTORS`), never a success. Owners see both on the Audit tab with those three details.
+
+An admin closing a user's room with an agent (`AdminCloseRoom`, from the admin Agent Runs page) records
+`AGENT_ROOM_CLOSE` at `HIGH`: the room's user is the subject, the agent the target (`PROJECT`), the room
+in the context, and `closedRoomIds` and `cancelledRunIds` in `details`. It is not on the agent's Audit
+tab, which would show its owners another user's conversation. `AgentRunService.closeRoomForAdmin` checks
+the caller is an admin and records the event itself, so no caller closes a room unchecked or unrecorded.
+
 ### Reads
 
 - `getPermissions` gives each grant on an engine its `usageLimit`. On a model

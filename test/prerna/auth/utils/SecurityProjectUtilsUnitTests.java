@@ -72,6 +72,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.notifications.NotificationDbUtils;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectHelper;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -2103,6 +2104,21 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	}
 
 	@Test
+	void testAddProject_aTypeWithoutInsightsOpensNoInsightsDatabase() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		stageUnloadedProject("blocksProject", IProject.PROJECT_TYPE.BLOCKS);
+
+		try (MockedStatic<ProjectHelper> projectHelper = mockStatic(ProjectHelper.class)) {
+			SecurityProjectUtils.addProject("blocksProject", false, user);
+			projectHelper.verify(() -> ProjectHelper.loadInsightsEngine(any(), any()), never());
+		}
+
+		assertTrue(SecurityProjectUtils.projectExists("blocksProject"));
+		assertEquals("BLOCKS", SecurityProjectUtils.getProjectTypeForId("blocksProject"));
+		assertEquals(0L, count("SELECT COUNT(*) FROM INSIGHT WHERE PROJECTID=?", "blocksProject"));
+	}
+
+	@Test
 	void testAddProject_aFailedInsightCopyKeepsTheProjectRegistered() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		stageProject("newProject", false, "first", "reject");
@@ -2209,17 +2225,14 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		File databaseFile = SecurityProjectUtils.createInsightsDatabase("exported", folder.toString());
 
 		assertTrue(databaseFile.isFile());
-		IRDBMSEngine exported = InsightsRDBMSUtils.generateInsightsDatabase("exported", RdbmsTypeEnum.H2_DB,
-				folder.toString());
-		try {
+		try (IRDBMSEngine exported = InsightsRDBMSUtils.generateInsightsDatabase("exported", RdbmsTypeEnum.H2_DB,
+				folder.toString())) {
 			assertEquals(List.of("insightId:insightName"),
 					QueryExecutionUtility.queryList(exported, "SELECT ID, QUESTION_NAME FROM QUESTION_ID",
 							QueryExecutionUtility.NO_PARAMETERS, rs -> rs.getString(1) + ":" + rs.getString(2)));
 			assertEquals(List.of("tagged"),
 					QueryExecutionUtility.queryList(exported, "SELECT METAVALUE FROM INSIGHTMETA WHERE INSIGHTID=?",
 							ps -> ps.setString(1, "insightId"), rs -> rs.getString(1)));
-		} finally {
-			exported.close();
 		}
 	}
 
@@ -2252,6 +2265,22 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		IProject project = mock(IProject.class);
 		when(project.getInsightDatabase()).thenReturn(insightsDb);
 		DIHelper.getInstance().setProjectProperty(projectId, project);
+		stagedProjects.add(projectId);
+	}
+
+	/**
+	 * Writes the smss file of a project of the given type that is not loaded, and
+	 * points DIHelper at it, as addProject reads it. The smss names no insights
+	 * database.
+	 */
+	private void stageUnloadedProject(String projectId, IProject.PROJECT_TYPE projectType) throws Exception {
+		Path folder = Files.createDirectories(dbDir.resolve(projectId + "_" + UUID.randomUUID()));
+		Properties props = new Properties();
+		props.setProperty(Constants.PROJECT, projectId);
+		props.setProperty(Constants.PROJECT_ALIAS, projectId + "Name");
+		props.setProperty(Constants.PROJECT_ENUM_TYPE, projectType.name());
+		Path smss = UnitTestSecurityAuthUtils.createSmssFileFromProps(props, folder, projectId + ".smss");
+		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smss.toString());
 		stagedProjects.add(projectId);
 	}
 

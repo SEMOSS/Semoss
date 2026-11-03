@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,18 +74,24 @@ class WorkExpenseRoutineUnitTests {
 		assertTrue(withDocuments.contains("${context.reviewInput}"));
 		assertFalse(withDocuments.contains("%"));
 		assertTrue(WorkExpenseRoutine.command("UTC", List.of()).contains("no guideline documents"));
-		// the owner reads the decision first, then the check behind it, then the request itself
+		// the owner reads the decision first, then what to ask and the draft that asks it, then the request itself
 		int decision = withDocuments.indexOf("\"Suggested decision:\"");
-		int check = withDocuments.indexOf("heading Guideline check");
+		int probes = withDocuments.indexOf("heading Before you respond");
+		int draft = withDocuments.indexOf("heading Draft reply");
 		int request = withDocuments.indexOf("heading Request");
-		assertTrue(decision > 0 && decision < check && check < request);
+		assertTrue(decision > 0 && decision < probes && probes < draft && draft < request);
+		assertFalse(withDocuments.contains("Guideline check"));
+		// the deliver step saves the draft; one the agent saved too would be a second copy
+		assertTrue(withDocuments.contains("Do not call SaveDraft"));
+		// approvers scan the summary for what breaks the guidelines, not for what passes
+		assertTrue(withDocuments.contains("Leave out everything that complies"));
 	}
 
 	@Test
 	void unscheduledKindValidatesWithoutATimeAndNeverFiresItsCron() throws Exception {
 		Map<String, Object> config = WorkRoutine.validate(WorkExpenseRoutine.KIND,
 				Map.of("enabled", true, "timezone", "America/New_York"));
-		assertEquals(Map.of("enabled", true, "timezone", "America/New_York"), config);
+		assertEquals(Map.of("enabled", true, "timezone", "America/New_York", "recipients", List.of()), config);
 		Map<String, Object> withTime = new HashMap<>(config);
 		withTime.put("time", "08:00");
 		assertThrows(IllegalArgumentException.class, () -> WorkRoutine.validate(WorkExpenseRoutine.KIND, withTime));
@@ -92,5 +99,18 @@ class WorkExpenseRoutineUnitTests {
 		assertTrue(WorkAgendaRoutine.KIND.scheduled());
 		CronExpression never = new CronExpression(WorkRoutine.cron(Map.of("timezone", "America/New_York")));
 		assertTrue(never.getNextValidTimeAfter(new java.util.Date()).getYear() + 1900 >= 2099);
+	}
+
+	@Test
+	void recipientsAreBareAddressesKeptOnceAndCopiedOnTheReview() {
+		Map<String, Object> config = WorkRoutine.validate(WorkExpenseRoutine.KIND, Map.of("enabled", false, "timezone",
+				"UTC", "recipients", List.of(" jbell@deloitte.com ", "JBell@deloitte.com", "lhughes@deloitte.com")));
+		assertEquals(List.of("jbell@deloitte.com", "lhughes@deloitte.com"), config.get("recipients"));
+		assertEquals(Map.of("cc", config.get("recipients")), WorkExpenseRoutine.KIND.inputs().apply(Map.of(), config));
+		for (Object recipients : List.of(List.of("Jen Bell"), List.of("a@x.com, b@x.com"), "a@x.com",
+				Collections.nCopies(WorkExpenseRoutine.MAX_RECIPIENTS + 1, "a@x.com"))) {
+			assertThrows(IllegalArgumentException.class, () -> WorkRoutine.validate(WorkExpenseRoutine.KIND,
+					Map.of("enabled", false, "timezone", "UTC", "recipients", recipients)));
+		}
 	}
 }

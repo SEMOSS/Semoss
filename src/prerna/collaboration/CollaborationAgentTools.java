@@ -72,11 +72,16 @@ import prerna.io.connector.ms.teams.MicrosoftTeamsUploadFileReactor;
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.reactor.collaboration.BrainCompleteGoalReactor;
+import prerna.reactor.collaboration.WorkAddStepReactor;
+import prerna.reactor.collaboration.WorkGetWorkReactor;
+import prerna.reactor.collaboration.WorkListMyWorkReactor;
+import prerna.reactor.collaboration.WorkSaveWorkReactor;
+import prerna.reactor.collaboration.WorkUpdateStepReactor;
 import prerna.reactor.collaboration.BrainEditThreadReactor;
 import prerna.reactor.collaboration.BrainEditTopicReactor;
 import prerna.reactor.collaboration.BrainForgetReactor;
 import prerna.reactor.collaboration.BrainGetThreadMessagesReactor;
+import prerna.reactor.collaboration.BrainGetWritingStyleReactor;
 import prerna.reactor.collaboration.BrainListTopicsReactor;
 import prerna.reactor.collaboration.BrainRememberReactor;
 import prerna.reactor.collaboration.BrainSearchMemoriesReactor;
@@ -92,6 +97,7 @@ import prerna.reactor.collaboration.WorkOpenSkillReactor;
 import prerna.reactor.collaboration.WorkPublishSkillReactor;
 import prerna.reactor.collaboration.WorkSaveCustomRoutineReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
+import prerna.reactor.collaboration.WorkShowItemReactor;
 import prerna.reactor.collaboration.WorkUseSkillInAssistantReactor;
 
 /**
@@ -124,24 +130,32 @@ public final class CollaborationAgentTools {
 		REACTORS.put("DeleteEvent", MicrosoftCalendarDeleteEventReactor.class);
 		REACTORS.put("RespondToEvent", MicrosoftCalendarRespondToEventReactor.class);
 		// mail through Brain first: the owner's classified threads, with never-ingest and exclusions applied
+		// the owner's work items and to-do list
+		REACTORS.put("ListMyWork", WorkListMyWorkReactor.class);
+		REACTORS.put("GetWork", WorkGetWorkReactor.class);
+		REACTORS.put("SaveWork", WorkSaveWorkReactor.class);
+		REACTORS.put("AddStep", WorkAddStepReactor.class);
+		REACTORS.put("UpdateStep", WorkUpdateStepReactor.class);
 		REACTORS.put("ListTopics", BrainListTopicsReactor.class);
 		REACTORS.put("SearchMail", BrainSearchThreadsReactor.class);
 		REACTORS.put("ReadThread", BrainGetThreadMessagesReactor.class);
 		// change the owner's Brain; both wait for the owner to approve
 		REACTORS.put("EditTopic", BrainEditTopicReactor.class);
 		REACTORS.put("EditThread", BrainEditThreadReactor.class);
-		REACTORS.put("CompleteGoal", BrainCompleteGoalReactor.class);
 		// tags the chat it runs in with a topic; no approval, the owner can undo or dismiss it
 		REACTORS.put("TagTopic", BrainTagTopicReactor.class);
 		// then Outlook directly, for what Brain does not hold; Brain's rules do not apply to it
 		REACTORS.put("ListM365Mail", MicrosoftOutlookListMailReactor.class);
 		// the email in the Work editor: written there, sent from it once the owner presses Send
+		REACTORS.put("GetWritingStyle", BrainGetWritingStyleReactor.class);
 		REACTORS.put("ComposeEmail", WorkComposeEmailReactor.class);
 		REACTORS.put("SendEmail", WorkSendEmailReactor.class);
 		// a routine has no editor: it saves drafts straight into the owner's Outlook, never sent
 		REACTORS.put("SaveDraft", MicrosoftOutlookSaveDraftReactor.class);
 		// one email attachment of this thread, on request, into the room's working directory
 		REACTORS.put("DownloadAttachment", WorkDownloadAttachmentReactor.class);
+		// puts one found email, thread, Teams chat, or room file beside the owner's chat, on request
+		REACTORS.put("ShowItem", WorkShowItemReactor.class);
 		REACTORS.put("ListTeams", MicrosoftTeamsListTeamsReactor.class);
 		REACTORS.put("ListChannels", MicrosoftTeamsListChannelsReactor.class);
 		REACTORS.put("ListChannelFiles", MicrosoftTeamsListFilesReactor.class);
@@ -181,8 +195,9 @@ public final class CollaborationAgentTools {
 	// calendar reads that take a timeZone, filled in with the owner's when the model leaves it out
 	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent");
 
-	// tools about the chat itself: only for the owner's chat at the root of the run, never a routine
-	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "CompleteGoal");
+	// tools about the chat itself: only for the owner's chat at the root of the run, never a routine;
+	// ShowItem needs the owner's chat on screen to show anything
+	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "ShowItem");
 
 	// the email editor is open in the owner's chat; a routine has none, its delivery step sends the result
 	private static final Set<String> EDITOR_TOOLS = Set.of("ComposeEmail");
@@ -194,14 +209,20 @@ public final class CollaborationAgentTools {
 	private static final Set<String> OWNER_TOOLS = Set.of("CreateRoutine", "ListRoutines", "ManageRoutine",
 			"ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant", "DeleteMySkill");
 
-	// tools the model loads on demand: direct Microsoft 365 mail, after Brain's own search, and deleting a skill
-	private static final Set<String> DEFERRED = Set.of("ListM365Mail", "DeleteMySkill");
+	// tools the model loads on demand (SearchTools/LoadTools): direct Microsoft 365 mail after Brain's own search,
+	// calendar changes, Teams channels and their files, one Teams chat or message by id, skills, Brain edits, and listing or managing routines
+	private static final Set<String> DEFERRED = Set.of("ListM365Mail", "DeleteMySkill", "CreateEvent", "UpdateEvent",
+			"DeleteEvent", "RespondToEvent", "ListChannels", "ListChannelFiles", "DownloadChannelFile",
+			"UploadChannelFile", "GetChat", "GetChatMessage", "ListMySkills", "OpenSkill", "PublishSkill",
+			"UseSkillInAssistant", "EditTopic", "EditThread", "ListRoutines", "ManageRoutine");
+	// what the chat card calls a tool when its words alone would not say it
+	private static final Map<String, String> TITLES = Map.of("ShowItem", "Open Beside Chat");
 
 	// said first in a mail tool's description, so the model knows which side of Brain it is on
 	private static final Map<String, String> SOURCE_NOTES = Map.of(
+			"ListMyWork", "[Brain: the owner's to-do list and work items, start here for what is on their plate]",
 			"ListTopics", "[Brain: topics, or one topic in full with its people]",
-			"EditTopic", "[Brain: changes a topic]",
-			"CompleteGoal", "[Brain: completes an existing goal in this chat's topics]",
+			"EditTopic", "[Brain: changes a topic, or creates one]",
 			"EditThread", "[Brain: changes a thread's topics]",
 			"TagTopic", "[Brain: tags this chat with a topic]",
 			"SaveDraft", "[Outlook: saves a draft in the owner's drafts folder for them to review; it never sends]",
@@ -301,6 +322,12 @@ public final class CollaborationAgentTools {
 		if (tool == null) {
 			return ToolExecutionResult.error(null, "Unknown collaboration tool: " + toolName);
 		}
+		// models fill optional arguments with "" (ListTopics status "" failed, accountId "" matched no topic),
+		// so a blank argument is one left out
+		if (params != null) {
+			params = new LinkedHashMap<>(params);
+			params.values().removeIf(value -> value instanceof String text && text.isBlank());
+		}
 		JSONObject meta = tool.getJSONObject("_meta");
 		JSONObject inputSchema = tool.optJSONObject("inputSchema");
 		JSONObject properties = inputSchema != null && inputSchema.has("properties")
@@ -336,9 +363,9 @@ public final class CollaborationAgentTools {
 				params = params == null ? new LinkedHashMap<>() : new LinkedHashMap<>(params);
 				params.put("timeZone", BrainProfileUtils.timeZone(insight.getUser()).getId());
 			}
-			Object output = MCPUtility.runPixelTool(null, insight, meta.getString(MCPUtility.SMSS_FUNCTION_NAME),
+			String output = MCPUtility.runPixelTool(null, insight, meta.getString(MCPUtility.SMSS_FUNCTION_NAME),
 					properties, params);
-			return ToolExecutionResult.success(output);
+			return ToolExecutionResult.success(CollaborationToolResults.forModel(toolName, output, insight.getUser()));
 		} catch (RuntimeException e) {
 			String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
 			return ToolExecutionResult.error(message, message);
@@ -397,7 +424,7 @@ public final class CollaborationAgentTools {
 					meta.put(MCPUtility.SMSS_MCP_DEFERRED, true);
 				}
 				tool.put("name", name);
-				tool.put("title", MCPUtility.formatToTitleCase(name));
+				tool.put("title", TITLES.getOrDefault(name, words(name)));
 				tool.getJSONObject("inputSchema").put("title", name + "_Arguments");
 				built.put(name, tool);
 			} catch (ReflectiveOperationException | RuntimeException e) {
@@ -419,6 +446,19 @@ public final class CollaborationAgentTools {
 					property.put("description", renamed(property.optString("description"), reactorName, toolNameOf));
 				}
 			}
+			JSONObject meta = tool.getJSONObject("_meta");
+			JSONObject ui = meta.optJSONObject(MCPUtility.SMSS_MCP_UI);
+			if (ui == null) {
+				ui = new JSONObject();
+				meta.put(MCPUtility.SMSS_MCP_UI, ui);
+			}
+			// Connector views keep their own URI; the other tools share Collaboration's native view.
+			if (ui.optString(MCPUtility.UI_RESOURCE_URI).isBlank()) {
+				ui.put(MCPUtility.UI_RESOURCE_URI,
+						MCPUtility.UI_COMPONENT_SCHEME + "collaboration/tool?tool=" + tool.getString("name"));
+			}
+			// System tools have no MCP project to query for their approval fields.
+			meta.put("SMSS_TOOL_INPUT_SCHEMA", new JSONObject(tool.getJSONObject("inputSchema").toString()));
 		}
 		return built;
 	}
@@ -431,5 +471,10 @@ public final class CollaborationAgentTools {
 		}
 		m.appendTail(out);
 		return out.toString();
+	}
+
+	// DownloadAttachment -> Download Attachment, so the card reads as words and not a tool name
+	static String words(String name) {
+		return name.replaceAll("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ");
 	}
 }

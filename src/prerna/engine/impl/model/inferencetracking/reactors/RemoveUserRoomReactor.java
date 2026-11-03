@@ -39,6 +39,21 @@ import prerna.reactor.agent.runtime.AgentCodeExecutionContext;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Removes one of the caller's own rooms, for the playground's delete: marks the
+ * room inactive for the caller's user id, so it no longer shows in their
+ * conversations, and clears its Redis copy and the Python and Node state its
+ * agent code left in this session.
+ *
+ * <p>
+ * It does not stop the room's agent runs or close its subagents' rooms: a run
+ * still going fails on its next model call in the closed room.
+ * {@link prerna.reactor.agent.CloseRoomReactor}, from the agent's Activity tab,
+ * and {@link prerna.reactor.agent.admin.AdminCloseRoomReactor}, for an admin
+ * closing any user's room, cancel every unfinished run in the room and its
+ * subagents' rooms first, then close them all, matching the user by id and
+ * login type.
+ */
 public class RemoveUserRoomReactor extends AbstractReactor {
 
 	public RemoveUserRoomReactor() {

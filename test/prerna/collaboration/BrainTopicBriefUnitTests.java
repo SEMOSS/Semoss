@@ -239,39 +239,6 @@ class BrainTopicBriefUnitTests {
 		assertNull(BrainTopicBrief.runtimeNote(user, delegation));
 	}
 
-	@Test
-	void briefCarriesGoalIdsAndReflectsCompletionOnTheNextCall() throws Exception {
-		Room room = room("chat", Map.of());
-		topic("nevada");
-		roomTopic("nevada", "linked", "you");
-		String goalId = (String) BrainTopicUtils.saveTopicNote(user, "nevada", null, BrainTopicUtils.GOAL,
-				"Get booking details for nevada", "open").get("noteId");
-		String before = BrainTopicBrief.runtimeNote(user, room);
-		assertTrue(before.contains("Get booking details for nevada (noteId " + goalId + ")"));
-		assertFalse(before.contains("more open goals"));
-
-		BrainTopicUtils.completeGoal(user, "nevada", goalId, "American flight 4884, arrival 11/01/2026");
-		String after = BrainTopicBrief.runtimeNote(user, room);
-		assertTrue(after.contains("Open goals: none"));
-		assertFalse(after.contains(goalId));
-		assertEquals("done", BrainTopicUtils.getGoals(ownerId, ownerType, "nevada").get(0).get("status"));
-	}
-
-	@Test
-	void reportsGoalsBeyondTheBriefLimit() throws Exception {
-		Room room = room("chat", Map.of());
-		topic("many-goals");
-		roomTopic("many-goals", "linked", "you");
-		for (int i = 0; i < BrainTopicBrief.MAX_GOALS + 2; i++) {
-			BrainTopicUtils.saveTopicNote(user, "many-goals", null, BrainTopicUtils.GOAL, "Goal " + i, "open");
-		}
-		BrainTopicUtils.saveTopicNote(user, "many-goals", null, BrainTopicUtils.GOAL, "Already finished", "done");
-		String brief = BrainTopicBrief.runtimeNote(user, room);
-		assertEquals(BrainTopicBrief.MAX_GOALS, brief.lines().filter(line -> line.contains("(noteId ")).count());
-		assertTrue(brief.contains("2 more open goals not shown; use ListTopics with this topic to review them."));
-		assertFalse(brief.contains("Already finished"));
-	}
-
 	private Room room(String id, Map<String, Object> options) {
 		Room room = mock(Room.class);
 		when(room.getId()).thenReturn(id);

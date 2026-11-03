@@ -53,7 +53,7 @@ public class BrainDeleteTopicReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Deletes a Brain topic with its goals, notes, people, and thread links; the threads themselves stay";
+		return "Deletes a Brain topic with its notes, people, and thread links; the threads themselves stay";
 	}
 
 	@Override

@@ -27,43 +27,52 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import prerna.auth.User;
-import prerna.collaboration.BrainTopicUtils;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import prerna.collaboration.WorkTaskUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainDeleteTopicNote(topicId=["..."], noteId=["..."]);
-public class BrainDeleteTopicNoteReactor extends AbstractCollaborationReactor {
-
+// WorkListMyWork(status=["open"], topicId=["..."], includeSuggested=[false]);
+public class WorkListMyWorkReactor extends AbstractWorkTaskReactor {
+	private static final String STATUS = "status";
 	private static final String TOPIC_ID = "topicId";
-	private static final String NOTE_ID = "noteId";
+	private static final String INCLUDE_SUGGESTED = "includeSuggested";
 
-	public BrainDeleteTopicNoteReactor() {
-		this.keysToGet = new String[] { TOPIC_ID, NOTE_ID };
-		this.keyRequired = new int[] { 1, 1 };
+	public WorkListMyWorkReactor() {
+		this.keysToGet = new String[] { STATUS, TOPIC_ID, INCLUDE_SUGGESTED };
+		this.keyRequired = new int[] { 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = getUser();
-		String topicId = getString(TOPIC_ID);
-		String noteId = getString(NOTE_ID);
-		if (topicId == null || noteId == null) {
-			throw new IllegalArgumentException("Must pass a topicId and noteId");
-		}
-		return mapResult(BrainTopicUtils.deleteTopicNote(user, topicId, noteId));
+		Map<String, Object> filter = new LinkedHashMap<>();
+		filter.put("status", getString(STATUS));
+		filter.put("topicId", getString(TOPIC_ID));
+		filter.put("includeSuggested", Boolean.TRUE.equals(getBoolean(INCLUDE_SUGGESTED)));
+		return mapResult(WorkTaskUtils.listMyWork(getUser(), filter));
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		return INCLUDE_SUGGESTED.equals(key) ? MCP_KEY_TYPE.BOOLEAN : super.getKeyTypeForMCP(key);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Deletes a goal from a Brain topic";
+		return "The owner's to-do list: their open work items (outcomes they are driving), each with its open steps, plus loose steps that belong to no work item. "
+				+ "Use it when the owner asks what is on their plate, for their to-do list, or what they owe someone. "
+				+ "It does not list mail waiting on a reply; use SearchMail for that";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (NOTE_ID.equals(key)) {
-			return "Note id";
+		if (STATUS.equals(key)) {
+			return "open (default), done, or all";
+		} else if (TOPIC_ID.equals(key)) {
+			return "Only work items under this topic";
+		} else if (INCLUDE_SUGGESTED.equals(key)) {
+			return "Also list the steps Brain pulled from mail that no work item holds yet; they are often noise";
 		}
 		return super.getDescriptionForKey(key);
 	}

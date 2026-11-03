@@ -47,16 +47,14 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 	private static final String STATUS = "status";
 	private static final String ADD_PEOPLE = "addPeople";
 	private static final String REMOVE_PEOPLE = "removePeople";
-	private static final String ADD_GOAL = "addGoal";
 	private static final String ADD_NOTE = "addNote";
 	private static final String DELETE_NOTE_ID = "deleteNoteId";
-	private static final String COMPLETE_GOAL_ID = "completeGoalId";
-	private static final String GOAL_RESOLUTION = "goalResolution";
+	private static final String ADD_EMAILS = "addEmails";
 
 	public BrainEditTopicReactor() {
 		this.keysToGet = new String[] { TOPIC_ID, TOPIC, NAME, DESCRIPTION, STATUS, ADD_PEOPLE, REMOVE_PEOPLE,
-				ADD_GOAL, ADD_NOTE, DELETE_NOTE_ID, COMPLETE_GOAL_ID, GOAL_RESOLUTION };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				ADD_NOTE, DELETE_NOTE_ID, ADD_EMAILS };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -64,8 +62,8 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 		User user = getUser();
 		return mapResult(BrainAgentEdits.editTopic(user, getString(TOPIC_ID), getString(TOPIC), getString(NAME),
 				getString(DESCRIPTION), getString(STATUS), people(ADD_PEOPLE),
-				people(REMOVE_PEOPLE), getString(ADD_GOAL), getString(ADD_NOTE),
-				getString(DELETE_NOTE_ID), getString(COMPLETE_GOAL_ID), getString(GOAL_RESOLUTION)));
+				people(REMOVE_PEOPLE), getString(ADD_NOTE), getString(DELETE_NOTE_ID),
+				getNounAsStringList(ADD_EMAILS)));
 	}
 
 	// each entry a string; a model that sends {name, email, personId} objects is read the same way
@@ -107,7 +105,7 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 
 	@Override
 	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (ADD_PEOPLE.equals(key) || REMOVE_PEOPLE.equals(key)) {
+		if (ADD_PEOPLE.equals(key) || REMOVE_PEOPLE.equals(key) || ADD_EMAILS.equals(key)) {
 			return MCP_KEY_TYPE.ARRAY;
 		}
 		return super.getKeyTypeForMCP(key);
@@ -116,20 +114,21 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Changes one of the owner's Brain topics, as the owner would on the topic page: rename it, edit its "
-				+ "description, set its status, add or remove its people, add a goal or note, "
-				+ "complete a goal with an optional resolution, or delete one. "
-				+ "Several changes can go in one call. It waits for the owner to approve. Read the topic with "
-				+ "ListTopics first so you pass the right names";
+				+ "description, set its status, add or remove its people, put emails in it, or add or delete a "
+				+ "note. "
+				+ "Several changes can go in one call. To create a topic, leave out topicId and topic and pass its "
+				+ "name with any other changes; a name another topic has is refused. It waits for the owner to "
+				+ "approve. Read the topic with ListTopics first so you pass the right names";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (TOPIC_ID.equals(key)) {
-			return "Topic id from ListTopics; pass this or topic";
+			return "Topic id from ListTopics; pass this or topic, or neither to create a topic named name";
 		} else if (TOPIC.equals(key)) {
 			return "Topic name, when the id is not known; must match one topic";
 		} else if (NAME.equals(key)) {
-			return "New topic name";
+			return "New topic name, or the name of the topic to create";
 		} else if (DESCRIPTION.equals(key)) {
 			return "New description; replaces the old one";
 		} else if (STATUS.equals(key)) {
@@ -138,18 +137,14 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 			return "People to add to the topic: a list of plain strings, each an email, a name, or a person id (not objects); a suggested person becomes a member";
 		} else if (REMOVE_PEOPLE.equals(key)) {
 			return "People to remove from the topic: a list of plain strings, each an email, a name, or a person id (not objects); their threads stay linked";
-		} else if (ADD_GOAL.equals(key)) {
-			return "Text of a goal to add";
 		} else if (ADD_NOTE.equals(key)) {
 			return "Text of a note to add; it is kept as the owner's memory about the topic";
 		} else if (DELETE_NOTE_ID.equals(key)) {
-			return "Id of a goal or note to delete, from ListTopics";
-		} else if (COMPLETE_GOAL_ID.equals(key)) {
-			return "Goal noteId from this topic's ListTopics goals to mark done; keeps the goal and its text";
-		} else if (GOAL_RESOLUTION.equals(key)) {
-			return "Optional short, plain-language accomplishment saved with completeGoalId, based on established facts. "
-					+ "Omit source labels, citations, and internal ids, including shortened thread/message ids; "
-					+ "omit to keep any existing resolution";
+			return "Id of a note to delete, from ListTopics";
+		} else if (ADD_EMAILS.equals(key)) {
+			return "Emails to put in the topic: a list of plain strings, each a threadId from SearchMail or ReadThread, "
+					+ "an emailRef from ReadThread, or an email's id from ListM365Mail. Any email in the owner's "
+					+ "mailbox can be added, with its whole conversation";
 		}
 		return super.getDescriptionForKey(key);
 	}

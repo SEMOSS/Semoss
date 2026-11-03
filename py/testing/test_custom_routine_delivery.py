@@ -7,6 +7,8 @@ import unittest
 from unittest.mock import Mock, patch
 
 import bs4
+# imported before patch.dict(sys.modules) so it is kept: a re-import mid-run makes a second Extension class
+import markdown.extensions.tables  # noqa: F401
 
 
 DEFINITION = Path(__file__).resolve().parents[2] / "src/prerna/collaboration/custom-routine.automation.json"
