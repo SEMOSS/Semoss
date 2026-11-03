@@ -44,6 +44,7 @@ Documentation for the SEMOSS core runtime, agents and harnesses, engine integrat
 - [Vector engines](engines/vector_engines.md)
 - [Storage engines](engines/storage_engines.md)
 - [Function engines](engines/function_engines.md)
+- [Guardrail pipelines and hit limits](engines/guardrail_pipelines.md): the checks on any engine's calls, and how many hits close a room or lock a user out.
 - [Jev policy guardrail](engines/jev_policy_guardrail.md)
 - [Projects](engines/project_engines.md)
 - [Supporting engine Docker examples](../docker-compose-examples/engines/README.md)

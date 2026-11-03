@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -35,12 +37,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import org.javatuples.Pair;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 
 // Brain people and accounts: BRAIN_PERSON with addresses, BRAIN_ACCOUNT
@@ -268,6 +274,62 @@ public final class BrainPeopleUtils {
 			}
 		}
 		return getPerson(ownerId, ownerType, personId);
+	}
+
+	// ---- photos ----
+
+	// a fixed Graph size: sharp for a 48px avatar on a 2x screen, a few KB each
+	private static final String PHOTO = "/photos/96x96/$value";
+	// the address goes into a Graph path as is, so only plain ones are asked about
+	private static final Pattern PLAIN_ADDRESS = Pattern.compile("[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+");
+
+	// what the Brain knows of an address: how it relates to the owner, and the directory's answer
+	private record Known(String relationship, String directoryId, boolean checked) {
+	}
+
+	/**
+	 * A person's Microsoft profile photo for their avatar, read with the owner's own Microsoft sign-in, so it is
+	 * only ever a photo Microsoft already shows them. Null when there is none to ask for: someone outside the
+	 * organization, a shared mailbox, list or bulk sender, or no directory at all (fixture mail).
+	 *
+	 * @throws Exception when Graph refuses, most often a 404 for someone who never set a photo
+	 */
+	public static byte[] photo(User user, String address) throws Exception {
+		return photo(user, address, BrainMailHeaderSource.current());
+	}
+
+	static byte[] photo(User user, String address, BrainMailHeaderSource source) throws Exception {
+		String email = address == null ? "" : address.trim().toLowerCase(Locale.ROOT);
+		if (!PLAIN_ADDRESS.matcher(email).matches()) {
+			return null;
+		}
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String personId = BrainRulesGate.findPerson(owner.getValue0(), owner.getValue1(), email);
+		Known person = personId == null ? null
+				: CollaborationDbUtils.queryOne(
+						"SELECT RELATIONSHIP, DIRECTORY_ID, DIRECTORY_CHECKED_AT FROM BRAIN_PERSON WHERE OWNER_ID = ? "
+								+ "AND OWNER_TYPE = ? AND PERSON_ID = ?",
+						rs -> new Known(rs.getString("RELATIONSHIP"), rs.getString("DIRECTORY_ID"),
+								rs.getTimestamp("DIRECTORY_CHECKED_AT") != null),
+						owner.getValue0(), owner.getValue1(), personId);
+		String relationship = person == null ? null : person.relationship();
+		AccessToken microsoft = user.getAccessToken(AuthProvider.MICROSOFT);
+		String path;
+		if ("self".equals(relationship) || (microsoft != null && email.equalsIgnoreCase(microsoft.getEmail()))) {
+			path = "/me" + PHOTO;
+		} else if (BrainSenderTyping.AUTOMATED.equals(relationship)) {
+			// shared mailboxes, lists and bulk senders
+			return null;
+		} else if (person != null && person.directoryId() != null) {
+			path = "/users/" + URLEncoder.encode(person.directoryId(), StandardCharsets.UTF_8) + PHOTO;
+		} else if (person != null && (person.checked() || "external".equals(relationship))) {
+			// the directory was asked and has no one, or the address is outside the organization
+			return null;
+		} else {
+			// not looked up yet, such as a directory search result: Graph finds a user by sign-in name
+			path = "/users/" + email + PHOTO;
+		}
+		return source.photo(user, path);
 	}
 
 	// ---- accounts ----

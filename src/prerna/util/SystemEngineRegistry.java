@@ -80,8 +80,9 @@ public final class SystemEngineRegistry {
 	 * We have a per-engine caller allowlist (prefix based: covers all subpackages)
 	 */
 
-	private static final Set<String> SECURITY_DB_ALLOWED = Set.of("prerna.auth", "prerna.reactor.security",
-			"prerna.semoss.web.services.config", "prerna.usertracking", "prerna.util", "prerna.web.conf");
+	private static final Set<String> SECURITY_DB_ALLOWED = Set.of("prerna.auth", "prerna.reactor.agent.admin",
+			"prerna.reactor.security", "prerna.semoss.web.services.config", "prerna.usertracking", "prerna.util",
+			"prerna.web.conf");
 
 	private static final Set<String> LOCAL_MASTER_DB_ALLOWED = Set.of("prerna.auth", "prerna.masterdatabase",
 			"prerna.reactor.masterdatabase", "prerna.reactor.utils", "prerna.util", "prerna.web.conf");

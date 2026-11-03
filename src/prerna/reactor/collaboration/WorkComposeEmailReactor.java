@@ -177,6 +177,7 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Write an email for the owner and open it in their email editor, where they review, edit, and send it. "
+				+ "Before authoring or rewriting message, call GetWritingStyle and read its result, then write the email text. "
 				+ "Use it to write a new email, reply to or forward one, or change the email they have open, passing only the fields "
 				+ "that change. It saves and sends nothing.";
 	}

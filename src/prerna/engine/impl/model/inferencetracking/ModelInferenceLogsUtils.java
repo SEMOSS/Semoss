@@ -34,6 +34,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -198,7 +199,14 @@ public class ModelInferenceLogsUtils {
 				OwlIndex.of("AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN", "USER_ID", "WORKSPACE_ID",
 						"DATE_CREATED"),
 				OwlIndex.of("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN", "USER_ID", "ROOM_ID", "DATE_CREATED"),
-				OwlIndex.of("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID")));
+				OwlIndex.of("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID"),
+				// hit limits count a room's hits, a user's hits in a window, and check a
+				// user's lock on every call to an engine that has limits
+				OwlIndex.of("GUARDRAIL_HIT_ENGINE_ROOM_INDEX", "GUARDRAIL_HIT", "ENGINE_ID", "ROOM_ID"),
+				OwlIndex.of("GUARDRAIL_HIT_ENGINE_USER_DATE_INDEX", "GUARDRAIL_HIT", "ENGINE_ID", "USER_ID",
+						"DATE_CREATED"),
+				OwlIndex.of("GUARDRAIL_LOCK_ENGINE_USER_INDEX", "GUARDRAIL_LOCK", "ENGINE_ID", "USER_ID",
+						"LOCKED_UNTIL")));
 	}
 
 	/**
@@ -1344,13 +1352,19 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Checks whether a room is inactive for a specific user.
+	 * Checks whether a room is inactive for a specific user: its row is marked
+	 * inactive, as a guardrail, its user removing it or an admin closing it leaves
+	 * it. A room with no row yet, such as a subagent's before its first message, is
+	 * not inactive, and neither is a blank id.
 	 *
 	 * @param userId user identifier
 	 * @param roomId room identifier
 	 * @return {@code true} if the room is inactive
 	 */
 	public static boolean isRoomInActive(String userId, String roomId) {
+		if (userId == null || userId.isBlank() || roomId == null || roomId.isBlank()) {
+			return false;
+		}
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__IS_ACTIVE"));
@@ -1358,13 +1372,13 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", false, PixelDataType.BOOLEAN));
-		boolean inactive = false;
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
-			inactive = wrapper.hasNext();
+		qs.setLimit(1);
+		try {
+			return !QueryExecutionUtility.queryList(modelInferenceLogsDb, qs, rs -> Boolean.TRUE).isEmpty();
 		} catch (Exception e) {
 			classLogger.error("Failed to check inactive state for roomId '{}' and userId '{}'.", roomId, userId, e);
+			return false;
 		}
-		return inactive;
 	}
 
 	/**
@@ -3614,8 +3628,16 @@ public class ModelInferenceLogsUtils {
 					SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineIds));
 		}
 
-		// Filter by date range if provided
-		addStartDateEndDateFitler(qs, startDate, endDate);
+		// Filter by date range if provided; the end date counts in full, so the range
+		// ends at the start of the next day
+		if (startDate != null && !startDate.trim().isEmpty() && endDate != null && !endDate.trim().isEmpty()) {
+			AndQueryFilter andFilters = new AndQueryFilter();
+			andFilters.addFilter(
+					SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", ">=", startDate.trim()));
+			andFilters.addFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "DATE_CREATED", "<",
+					LocalDate.parse(endDate.trim()).plusDays(1).toString()));
+			qs.addExplicitFilter(andFilters);
+		}
 
 		// Group by engine
 		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));

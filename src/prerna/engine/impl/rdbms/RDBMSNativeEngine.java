@@ -77,6 +77,7 @@ import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.H2QueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
@@ -184,6 +185,10 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			}
 		} catch (Exception ignore) {
 
+		}
+		if (this.dbType == RdbmsTypeEnum.H2_DB) {
+			// smss files written before 6.0 can carry H2 1.x settings
+			this.connectionURL = H2QueryUtil.removeUnsupportedUrlSettings(this.connectionURL);
 		}
 		if (this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
 			this.connectionURL = this.queryUtil.fillFileParameterizedConnectionUrl(this.connectionURL, this.engineId,

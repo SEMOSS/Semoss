@@ -62,7 +62,7 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GetPlaysheetParamsReactor.class);
 
 	private static final String PARAMETER_ID_PARAM_KEY = "@PARAMETER_ID";
-	// "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID FROM PARAMETER_ID WHERE PARAMETER_ID = '" + PARAMETER_ID_PARAM_KEY + "'";
+	// @formatter:off
 	private static final String GET_INFO_FOR_PARAM = "SELECT DISTINCT "
 					+ "PARAMETER_LABEL, "
 					+ "PARAMETER_TYPE, "
@@ -74,6 +74,7 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 					+ "PARAMETER_COMPONENT_FILTER_ID "
 					+ "FROM PARAMETER_ID "
 					+ "WHERE PARAMETER_ID = '" + PARAMETER_ID_PARAM_KEY + "'";
+	// @formatter:on
 
 	public GetPlaysheetParamsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey() };
@@ -84,7 +85,7 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		// TODO: ACCOUNTING FOR LEGACY PLAYSHEETS
-		if(projectId == null) {
+		if (projectId == null) {
 			projectId = this.store.getGenRowStruct("app").get(0) + "";
 		}
 		String insightId = this.keyValue.get(this.keysToGet[1]);
@@ -93,6 +94,10 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User does not have access to this insight");
 		}
 		IProject project = Utility.getProject(projectId);
+		if (!project.getProjectType().holdsInsights()) {
+			throw new IllegalArgumentException("Project " + projectId + " is a " + project.getProjectType()
+					+ " project, which does not hold insights");
+		}
 		Insight in = project.getInsight(insightId).get(0);
 		Map<String, Object> outputHash = new Hashtable<String, Object>();
 		outputHash.put("result", in.getRdbmsId());
@@ -123,57 +128,71 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 		IDatabaseEngine insightRDBMS = project.getInsightDatabase();
 		// TODO: ACCOUNTING FOR LEGACY PLAYSHEETS
 		IDatabaseEngine mainEngine = Utility.getDatabase(project.getProjectId());
-		
-		String query = GET_INFO_FOR_PARAM.replace(PARAMETER_ID_PARAM_KEY, parameterID);
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
-		String[] names = wrap.getVariables();
 
+		String query = GET_INFO_FOR_PARAM.replace(PARAMETER_ID_PARAM_KEY, parameterID);
 		Vector<SEMOSSParam> retParam = new Vector<SEMOSSParam>();
-		while(wrap.hasNext()) {
-			ISelectStatement ss = wrap.next();
-			String label = ss.getVar(names[0]) + "";
-			SEMOSSParam param = new SEMOSSParam();
-			param.setName(label);
-			if(ss.getVar(names[1]) != null)
-				param.setType(ss.getVar(names[1]) +"");
-			if(ss.getVar(names[2]) != null)
-				param.setOptions(ss.getVar(names[2]) + "");
-			if(ss.getVar(names[3]) != null)
-				param.setQuery(ss.getVar(names[3]) + "");
-			if(ss.getRawVar(names[4]) != null)
-				param.addDependVar(ss.getRawVar(names[4]) +"");
-			if(ss.getVar(names[5]) != null && !ss.getVar(names[5]).toString().isEmpty())
-				param.setDbQuery((boolean) ss.getVar(names[5]));
-			if(!ss.getVar(names[6]).toString().isEmpty())
-				param.setMultiSelect((boolean) ss.getVar(names[6]));
-			if(!ss.getVar(names[7]).toString().isEmpty())
-				param.setComponentFilterId(ss.getVar(names[7]) + "");
-			if(ss.getVar(names[0]) != null)
-				param.setParamID(ss.getVar(names[0]) +"");
-			retParam.addElement(param);
+		try (ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query)) {
+			String[] names = wrap.getVariables();
+			while (wrap.hasNext()) {
+				ISelectStatement ss = wrap.next();
+				String label = ss.getVar(names[0]) + "";
+				SEMOSSParam param = new SEMOSSParam();
+				param.setName(label);
+				if (ss.getVar(names[1]) != null) {
+					param.setType(ss.getVar(names[1]) + "");
+				}
+				if (ss.getVar(names[2]) != null) {
+					param.setOptions(ss.getVar(names[2]) + "");
+				}
+				if (ss.getVar(names[3]) != null) {
+					param.setQuery(ss.getVar(names[3]) + "");
+				}
+				if (ss.getRawVar(names[4]) != null) {
+					param.addDependVar(ss.getRawVar(names[4]) + "");
+				}
+				if (ss.getVar(names[5]) != null && !ss.getVar(names[5]).toString().isEmpty()) {
+					param.setDbQuery((boolean) ss.getVar(names[5]));
+				}
+				if (!ss.getVar(names[6]).toString().isEmpty()) {
+					param.setMultiSelect((boolean) ss.getVar(names[6]));
+				}
+				if (!ss.getVar(names[7]).toString().isEmpty()) {
+					param.setComponentFilterId(ss.getVar(names[7]) + "");
+				}
+				if (ss.getVar(names[0]) != null) {
+					param.setParamID(ss.getVar(names[0]) + "");
+				}
+				retParam.addElement(param);
+			}
+		} catch (IOException e) {
+			classLogger.error("Failed to close the query for parameter {} in project {}", parameterID,
+					project.getProjectId(), e);
 		}
 
 		List<Object> uris = new Vector<Object>();
-		if(!retParam.isEmpty()){
-			SEMOSSParam ourParam = retParam.get(0); // there should only be one as we are getting the param from a specific param URI
-			//if the param has options defined, we are all set
-			//grab the options and we are good to go
+		if (!retParam.isEmpty()) {
+			SEMOSSParam ourParam = retParam.get(0); // there should only be one as we are getting the param from a
+													// specific param URI
+			// if the param has options defined, we are all set
+			// grab the options and we are good to go
 			Vector<String> options = ourParam.getOptions();
 			if (options != null && !options.isEmpty()) {
 				uris.addAll(options);
-			}
-			else{
-				// if options are not defined, need to get uris either from custom sparql or type
+			} else {
+				// if options are not defined, need to get uris either from custom sparql or
+				// type
 				// need to use custom query if it has been specified in the xml
 				// otherwise use generic fill query
 				String paramQuery = ourParam.getQuery();
 				String type = ourParam.getType();
 				boolean isDbQuery = ourParam.isDbQuery();
-				// RDBMS right now does type:type... need to get just the second type. This will be fixed once insights don't store generic query
+				// RDBMS right now does type:type... need to get just the second type. This will
+				// be fixed once insights don't store generic query
 				// TODO: fix this logic. need to decide how to store param type for rdbms
-				if(paramQuery != null && !paramQuery.isEmpty()) {
-					//TODO: rdbms has type as null... this is confusing given the other comments here....
-					if(type != null && !type.isEmpty()) {
+				if (paramQuery != null && !paramQuery.isEmpty()) {
+					// TODO: rdbms has type as null... this is confusing given the other comments
+					// here....
+					if (type != null && !type.isEmpty()) {
 						if (mainEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS) {
 							if (type.contains(":")) {
 								String[] typeArray = type.split(":");
@@ -186,12 +205,12 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 						paramTable.put(Constants.ENTITY, typeList);
 						paramQuery = Utility.fillParam(paramQuery, paramTable);
 					}
-					if(isDbQuery) {
+					if (isDbQuery) {
 						uris = getRawValues(mainEngine, paramQuery);
 					} else {
 						uris = getRawValues(mainEngine.getBaseDataEngine(), paramQuery);
 					}
-				} else { 
+				} else {
 					// anything that is get Entity of Type must be on db
 					uris = mainEngine.getEntityOfType(type);
 				}
@@ -199,38 +218,29 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 		}
 		return uris;
 	}
-	
+
 	/**
 	 * Flush out results
+	 * 
 	 * @param engine
 	 * @param query
 	 * @return
 	 */
 	public List<Object> getRawValues(IDatabaseEngine engine, String query) {
 		List<Object> ret = new Vector<Object>();
-		IRawSelectWrapper wrap = null;
-		try {
-			wrap = WrapperManager.getInstance().getRawWrapper(engine, query);
-			while(wrap.hasNext()) {
+		try (IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(engine, query)) {
+			while (wrap.hasNext()) {
 				Object value = wrap.next().getRawValues()[0];
-				if(value instanceof Number) {
+				if (value instanceof Number) {
 					ret.add(value);
 				} else {
 					ret.add(value.toString());
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrap != null) {
-				try {
-					wrap.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Failed to read the parameter values with query {}", Utility.cleanLogString(query), e);
 		}
-		
+
 		return ret;
 	}
 }

@@ -56,6 +56,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.Normalizer;
@@ -65,6 +66,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -145,6 +147,7 @@ import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.om.IStringExportProcessor;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
@@ -1917,6 +1920,15 @@ public final class Utility {
 					if (smssFile != null) {
 						// actual load engine process
 						project = Utility.loadProject(smssFile, Utility.loadProperties(smssFile));
+						// a legacy insights db was recreated on load; replace the 1.x copy in storage
+						if (project != null && ProjectHelper.consumeRecreatedLegacyInsights(projectId)) {
+							try {
+								ClusterUtil.pushInsightDB(projectId);
+							} catch (Exception e) {
+								classLogger.warn("Unable to push the recreated insights database for project {}",
+										Utility.cleanLogString(projectId), e);
+							}
+						}
 					} else {
 						classLogger.debug("There is no SMSS File for the project {}...", projectId);
 					}
@@ -4613,6 +4625,17 @@ public final class Utility {
 	public static java.sql.Timestamp getSqlTimestampUTC(SemossDate semossdate) {
 		ZonedDateTime gmt = semossdate.getLocalDateTime().atZone(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+	}
+
+	/**
+	 * A timestamp that holds UTC time, as {@link #getCurrentSqlTimestampUTC()}
+	 * gives, as ISO text, such as 2026-10-29T18:30:00Z.
+	 *
+	 * @param timestamp the UTC timestamp
+	 * @return the ISO text, ending in Z
+	 */
+	public static String getSqlTimestampToString(Timestamp timestamp) {
+		return timestamp.toLocalDateTime().toInstant(ZoneOffset.UTC).toString();
 	}
 
 	/**

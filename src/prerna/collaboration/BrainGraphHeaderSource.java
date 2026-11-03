@@ -491,6 +491,13 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		return out;
 	}
 
+	@Override
+	public byte[] photo(User user, String path) throws Exception {
+		// User.Read covers the owner's own photo, anyone else's needs User.ReadBasic.All or more; 404 when none is set
+		return HttpHelperUtility.getRequestBytes(BASE + path,
+				MicrosoftLoginUtils.getBearerHeader(MicrosoftLoginUtils.getValidAccessToken(user)), null, null, null);
+	}
+
 	// person, guest, or a mailbox with no one signing in to it (shared, room, or a
 	// system sender)
 	private static Map<String, Object> person(Map<String, Object> row) {
