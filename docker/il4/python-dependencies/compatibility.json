@@ -122,6 +122,20 @@
       "to": "3.10.4",
       "reason": "Closes CVE-2026-81726 (HIGH, GHSA-8mgp-746c-j5xp) - model-artifact APIs (TransitionParser.train/parse, AveragedPerceptron.save/load, PerceptronTagger.save_to_json, save_maxent_params) used raw open() on caller-controlled paths instead of pathsec-aware helpers, letting them bypass nltk's own pathsec sandbox enforcement and read/write outside allowed roots - only reachable if the application enables pathsec.ENFORCE and lets untrusted workflows choose model import/export paths, which SEMOSS does not. fixedInVersion was reported as NotAvailable by Inspector2 (3.10.4 was released 2026-10-21, 3 days before this scan) but the fix already exists: confirmed via direct source diff against 3.10.3 that 3.10.4's nltk/tag/perceptron.py and nltk/parse/transitionparser.py route model-path file access through nltk.pathsec.open()/validate_path() and add explicit path-component validation (rejecting '..', path separators, NUL), matching the advisory's described remediation exactly. Same minor line (3.10.x), pure-python py3-none-any wheel - no ABI/platform compatibility risk. nltk's own declared constraint (nltk>=3.9.1 in pyproject.toml) already permits 3.10.4; only the lock needed updating.",
       "verification": "Hand-edited requirements-cpu.lock's nltk entry directly (version plus both hashes), the same minimal-diff technique used for pypdf/certifi above. Both hashes (sdist and the universal py3-none-any wheel) verified directly against PyPI's JSON API for nltk 3.10.4."
+    },
+    {
+      "requirement": "pypdf",
+      "from": "6.21.2",
+      "to": "6.21.4",
+      "reason": "Closes CVE-2026-119203 through CVE-2026-119209 (7 CVEs, all MEDIUM, AWS Inspector2 findings against the 2026-11-03 IL4-bcfips image). pypdf's own declared constraint (pypdf>=6.14.2 in pyproject.toml) already permits 6.21.4; only the lock needed updating.",
+      "verification": "Hand-edited requirements-cpu.lock's pypdf entry directly (version plus both hashes), the same minimal-diff technique used for nltk/certifi above. Both hashes (sdist and the universal py3-none-any wheel) verified directly against PyPI's JSON API for pypdf 6.21.4, then confirmed end to end by rebuilding the full IL4 image: hash verification passed during `uv pip install --require-hashes`, all 27 validate.py import checks and both functional checks passed, and uv pip check reported no conflicts."
+    },
+    {
+      "requirement": "pyasn1",
+      "from": "0.6.4",
+      "to": "0.6.5",
+      "reason": "Closes CVE-2026-119194 through CVE-2026-119197 (4 CVEs, all HIGH, AWS Inspector2 findings against the 2026-11-03 IL4-bcfips image). pyasn1 is a transitive dependency of pyasn1-modules, held to this minimum via an explicit override (pyasn1>=0.6.3 in overrides.in, forcing it past a vulnerable transitive 0.6.2 per CVE-2026-30922); 0.6.5 already satisfies that floor.",
+      "verification": "Hand-edited both requirements-cpu.lock's and overrides.lock's pyasn1 entries directly (version plus both hashes, kept in sync per the `-c requirements-cpu.lock` cross-reference), the same minimal-diff technique used for nltk/certifi above. Both hashes (sdist and the universal py3-none-any wheel) verified directly against PyPI's JSON API for pyasn1 0.6.5, then confirmed end to end by rebuilding the full IL4 image: hash verification passed during `uv pip install --require-hashes`, all 27 validate.py import checks and both functional checks passed, and uv pip check reported no conflicts."
     }
   ],
   "applied_source_patches": [
@@ -187,8 +201,8 @@
     }
   },
   "locks_sha256": {
-    "requirements-cpu.lock": "e3c277d817c3f72cc7c7e9f972e785485487dbbc1124024df29fb575f2f61592",
-    "overrides.lock": "103aae56dce45b80dd5d133de0da1dbab11ed5ca531b16cf2ee0332309a9abe5",
+    "requirements-cpu.lock": "0588082a49554ad209a3461cbff4ed598c6bd18c8ed6d394a04005ca5073752c",
+    "overrides.lock": "21e66596509dd10f75563bb0d35e1681db85dce01065882cc4245630e238c337",
     "build-requirements.lock": "859f97043fdf3cc94b9f9dd3e8d5163bc37e2cae402fdd2f6a162514cd0b3bee",
     "resolver-requirements.lock": "49968559cda4ccb40d5b53a656b57d1c8b2974f5d38372b4d736a9fa7d83f14f"
   },

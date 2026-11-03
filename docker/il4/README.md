@@ -56,7 +56,7 @@ Review them against your approved artifact inventory before promotion.
 ### Important scope and baseline changes
 
 - Three standard BC 1.78.1 JARs are replaced by the system-classloader FIPS suite.
-- Approved JDBC overlay: MariaDB 1.1.9 -> 3.5.10 and SQL Server
+- Approved JDBC overlay: MariaDB 1.1.9 -> 3.5.11 and SQL Server
   11.2.4.jre11 -> 13.6.0.jre11. PostgreSQL 42.7.11 remains unchanged.
   Original/replacement hashes are recorded; duplicate or unexpected originals
   fail assembly. See [database integration requirements](./integrations/jdbc/README.md).
@@ -168,7 +168,7 @@ every connector or external service is operational.
   unverified. Production connections to the owner's existing PostgreSQL servers
   also remain unverified.
   Selected versions are PostgreSQL 42.7.11, SQL Server 13.6.0.jre11, and MariaDB
-  3.5.10 following the owner's approval. Strict profiles and a credential-safe
+  3.5.11 following the owner's approval. Strict profiles and a credential-safe
   standalone validation command are documented in the
   [JDBC integration guide](./integrations/jdbc/README.md).
   Require server-certificate and hostname validation, least-privilege accounts,
@@ -213,6 +213,8 @@ Python 3.14 requires these explicitly documented compatibility changes:
 | certifi | 2026.10.18 | 2026.10.23 | Closes GHSA-6q48-6c7w-9gw2 (CRITICAL, AWS Inspector2 finding - a compromised, revoked root CA in the bundled trust store). Hand-edited rather than regenerated; see compatibility.json for why |
 | pillow | 12.3.0 | 13.0.0 | Closes 39 AWS Inspector2 findings (4 CRITICAL). Forced past pipecat-ai's declared `Pillow<13` via an override plus a hash-guarded metadata patch; see compatibility.json for why |
 | pypdf | 6.21.1 | 6.21.2 | Closes CVE-2026-115572, CVE-2026-115580, CVE-2026-115585 (all HIGH, PDF-parsing DoS). Next patch release; already permitted by pyproject.toml's own `pypdf>=6.14.2` |
+| pypdf | 6.21.2 | 6.21.4 | Closes CVE-2026-119203 through CVE-2026-119209 (7 CVEs, all MEDIUM, AWS Inspector2 findings). Already permitted by pyproject.toml's own `pypdf>=6.14.2` |
+| pyasn1 | 0.6.4 | 0.6.5 | Closes CVE-2026-119194 through CVE-2026-119197 (4 CVEs, all HIGH, AWS Inspector2 findings). Already permitted by the existing `pyasn1>=0.6.3` override (itself forcing it past a vulnerable transitive 0.6.2); re-locked in both requirements-cpu.lock and overrides.lock to stay consistent |
 | nltk | 3.10.3 | 3.10.4 | Closes CVE-2026-81726 (HIGH, GHSA-8mgp-746c-j5xp, pathsec sandbox bypass in model-artifact APIs). Inspector2 reported `fixedInVersion: NotAvailable`; confirmed via direct source diff that 3.10.4 (released 3 days before this scan) already contains the fix. Low reachability regardless - requires `pathsec.ENFORCE` plus untrusted model paths, which SEMOSS doesn't use |
 
 Additional constraints are `dill>=0.4.0` and `protobuf<7`; the upstream security

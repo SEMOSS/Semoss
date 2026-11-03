@@ -13,7 +13,7 @@ from audio_compat import patch_audio
 
 
 JDBC_OVERLAYS = (
-    ("mariadb-java-client-2.7.14.jar", "org.mariadb.jdbc:mariadb-java-client:3.5.10:jar"),
+    ("mariadb-java-client-2.7.14.jar", "org.mariadb.jdbc:mariadb-java-client:3.5.11:jar"),
     ("mssql-jdbc-11.2.4.jre11.jar", "com.microsoft.sqlserver:mssql-jdbc:13.6.0.jre11:jar"),
 )
 
