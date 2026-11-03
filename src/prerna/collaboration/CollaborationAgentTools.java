@@ -72,7 +72,11 @@ import prerna.io.connector.ms.teams.MicrosoftTeamsUploadFileReactor;
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.reactor.collaboration.BrainCompleteGoalReactor;
+import prerna.reactor.collaboration.WorkAddStepReactor;
+import prerna.reactor.collaboration.WorkGetWorkReactor;
+import prerna.reactor.collaboration.WorkListMyWorkReactor;
+import prerna.reactor.collaboration.WorkSaveWorkReactor;
+import prerna.reactor.collaboration.WorkUpdateStepReactor;
 import prerna.reactor.collaboration.BrainEditThreadReactor;
 import prerna.reactor.collaboration.BrainEditTopicReactor;
 import prerna.reactor.collaboration.BrainForgetReactor;
@@ -126,13 +130,18 @@ public final class CollaborationAgentTools {
 		REACTORS.put("DeleteEvent", MicrosoftCalendarDeleteEventReactor.class);
 		REACTORS.put("RespondToEvent", MicrosoftCalendarRespondToEventReactor.class);
 		// mail through Brain first: the owner's classified threads, with never-ingest and exclusions applied
+		// the owner's work items and to-do list
+		REACTORS.put("ListMyWork", WorkListMyWorkReactor.class);
+		REACTORS.put("GetWork", WorkGetWorkReactor.class);
+		REACTORS.put("SaveWork", WorkSaveWorkReactor.class);
+		REACTORS.put("AddStep", WorkAddStepReactor.class);
+		REACTORS.put("UpdateStep", WorkUpdateStepReactor.class);
 		REACTORS.put("ListTopics", BrainListTopicsReactor.class);
 		REACTORS.put("SearchMail", BrainSearchThreadsReactor.class);
 		REACTORS.put("ReadThread", BrainGetThreadMessagesReactor.class);
 		// change the owner's Brain; both wait for the owner to approve
 		REACTORS.put("EditTopic", BrainEditTopicReactor.class);
 		REACTORS.put("EditThread", BrainEditThreadReactor.class);
-		REACTORS.put("CompleteGoal", BrainCompleteGoalReactor.class);
 		// tags the chat it runs in with a topic; no approval, the owner can undo or dismiss it
 		REACTORS.put("TagTopic", BrainTagTopicReactor.class);
 		// then Outlook directly, for what Brain does not hold; Brain's rules do not apply to it
@@ -188,7 +197,7 @@ public final class CollaborationAgentTools {
 
 	// tools about the chat itself: only for the owner's chat at the root of the run, never a routine;
 	// ShowItem needs the owner's chat on screen to show anything
-	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "CompleteGoal", "ShowItem");
+	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "ShowItem");
 
 	// the email editor is open in the owner's chat; a routine has none, its delivery step sends the result
 	private static final Set<String> EDITOR_TOOLS = Set.of("ComposeEmail");
@@ -200,16 +209,20 @@ public final class CollaborationAgentTools {
 	private static final Set<String> OWNER_TOOLS = Set.of("CreateRoutine", "ListRoutines", "ManageRoutine",
 			"ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant", "DeleteMySkill");
 
-	// tools the model loads on demand: direct Microsoft 365 mail, after Brain's own search, and deleting a skill
-	private static final Set<String> DEFERRED = Set.of("ListM365Mail", "DeleteMySkill");
+	// tools the model loads on demand (SearchTools/LoadTools): direct Microsoft 365 mail after Brain's own search,
+	// calendar changes, Teams channels and their files, one Teams chat or message by id, skills, Brain edits, and listing or managing routines
+	private static final Set<String> DEFERRED = Set.of("ListM365Mail", "DeleteMySkill", "CreateEvent", "UpdateEvent",
+			"DeleteEvent", "RespondToEvent", "ListChannels", "ListChannelFiles", "DownloadChannelFile",
+			"UploadChannelFile", "GetChat", "GetChatMessage", "ListMySkills", "OpenSkill", "PublishSkill",
+			"UseSkillInAssistant", "EditTopic", "EditThread", "ListRoutines", "ManageRoutine");
 	// what the chat card calls a tool when its words alone would not say it
 	private static final Map<String, String> TITLES = Map.of("ShowItem", "Open Beside Chat");
 
 	// said first in a mail tool's description, so the model knows which side of Brain it is on
 	private static final Map<String, String> SOURCE_NOTES = Map.of(
+			"ListMyWork", "[Brain: the owner's to-do list and work items, start here for what is on their plate]",
 			"ListTopics", "[Brain: topics, or one topic in full with its people]",
 			"EditTopic", "[Brain: changes a topic, or creates one]",
-			"CompleteGoal", "[Brain: completes an existing goal in this chat's topics]",
 			"EditThread", "[Brain: changes a thread's topics]",
 			"TagTopic", "[Brain: tags this chat with a topic]",
 			"SaveDraft", "[Outlook: saves a draft in the owner's drafts folder for them to review; it never sends]",

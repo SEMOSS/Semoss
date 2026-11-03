@@ -222,6 +222,7 @@ public final class BrainSync {
 		Set<String> summarize = new LinkedHashSet<>(touched);
 		summarize.removeIf(id -> AUTOMATED.equals(verdicts.get(id)) || "skipped".equals(verdicts.get(id)));
 		WorkThreadInsights.queue(user, ownerId, ownerType, summarize);
+		WorkPipeline.queue(user, ownerId, ownerType, summarize);
 		job.count("summarizing", summarize.size());
 		job.count("resumed", run.owed.size() - run.imported);
 		finishFollowUps(ownerId, ownerType, run);
@@ -337,6 +338,7 @@ public final class BrainSync {
 			WorkItemUtils.closeOnReply(ownerId, ownerType, sent[0], sent[1]);
 		}
 		WorkThreadInsights.queue(user, ownerId, ownerType, run.threads);
+		WorkPipeline.queue(user, ownerId, ownerType, run.threads);
 		finishFollowUps(ownerId, ownerType, run);
 		return run.threads;
 	}

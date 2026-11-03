@@ -46,7 +46,9 @@ import prerna.auth.User;
 public final class WorkWorkspaceUtils {
 
 	public static final Set<String> STEP_KINDS = Set.of("reply", "task", "waiting_on", "errand", "approve");
-	public static final Set<String> STEP_STATUSES = Set.of("open", "waiting", "done", "suggested", "draft_ready");
+	// dropped closes a step the owner no longer needs
+	public static final Set<String> STEP_STATUSES = Set.of("open", "waiting", "done", "suggested", "draft_ready",
+			"dropped");
 	// a generated step the owner deleted: kept, unlisted, so a later summary does not add it again
 	static final String DISMISSED = "dismissed";
 	// a step changed in any of these is the owner's: thread insights no longer rewrite or drop it
