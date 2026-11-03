@@ -109,6 +109,9 @@ public final class WorkTaskUtils {
 			task.put("stepCount", steps.size());
 			steps.removeIf(step -> !STEP_OPEN.contains(step.get("status")));
 			task.put("openSteps", steps);
+			// the owner's when they have an open step; the rest someone else is driving
+			task.put("mine", steps.stream().anyMatch(step -> "open".equals(step.get("status"))
+					&& (step.get("assigneeId") == null || step.get("assigneeId").equals(self))));
 		}
 
 		// loose steps: the owner's open ones with no work item
@@ -292,8 +295,11 @@ public final class WorkTaskUtils {
 		String topicId = blankToNull(args.get("topicId"));
 		String assignee = blankToNull(args.get("assigneeId"));
 		String kind = lower(args.get("kind"));
+		// waiting with no assignee: a group's step
+		String wanted = lower(args.get("status"));
+		boolean waits = assignee != null || "waiting".equals(wanted);
 		if (kind == null) {
-			kind = assignee == null ? "task" : "waiting_on";
+			kind = waits ? "waiting_on" : "task";
 		}
 		if (!WorkWorkspaceUtils.STEP_KINDS.contains(kind)) {
 			throw new IllegalArgumentException("kind must be one of " + WorkWorkspaceUtils.STEP_KINDS);
@@ -314,7 +320,7 @@ public final class WorkTaskUtils {
 		Timestamp due = CollaborationDbUtils.toTimestamp(args.get("due"), "due");
 		Timestamp now = CollaborationDbUtils.now();
 		String stepId = UUID.randomUUID().toString();
-		String status = assignee == null ? "open" : "waiting";
+		String status = waits ? "waiting" : "open";
 		String finalTopic = topicId;
 		String finalKind = kind;
 		CollaborationDbUtils.inTransaction(conn -> {
@@ -365,7 +371,9 @@ public final class WorkTaskUtils {
 		}
 		if (status != null) {
 			CollaborationDbUtils.addSet(sets, values, "STATUS", status);
-			CollaborationDbUtils.addSet(sets, values, "CLOSED_BY", STEP_OPEN.contains(status) ? null : OWNER);
+			String closedBy = blankToNull(args.get("closedBy"));
+			CollaborationDbUtils.addSet(sets, values, "CLOSED_BY",
+					STEP_OPEN.contains(status) ? null : closedBy == null ? OWNER : closedBy);
 		}
 		if (args.containsKey("due")) {
 			CollaborationDbUtils.addSet(sets, values, "DUE_AT", CollaborationDbUtils.toTimestamp(args.get("due"), "due"));
@@ -393,6 +401,29 @@ public final class WorkTaskUtils {
 			}
 		});
 		return requireStep(ownerId, ownerType, stepId);
+	}
+
+	/** A timeline entry on a work item from a message: kind update, decision, ask, date, status or note. */
+	public static void addUpdate(User user, String taskId, String kind, String text, String threadId,
+			String messageAt, String origin) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		requireTask(ownerId, ownerType, taskId);
+		String body = trimmed(text);
+		if (body == null) {
+			return;
+		}
+		Timestamp now = CollaborationDbUtils.now();
+		CollaborationDbUtils.inTransaction(conn -> {
+			CollaborationDbUtils.update(conn, "INSERT INTO WORK_TASK_UPDATE (OWNER_ID, OWNER_TYPE, UPDATE_ID, TASK_ID, "
+					+ "KIND, TEXT, THREAD_ID, MESSAGE_AT, ORIGIN, STATE, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+					ownerId, ownerType, UUID.randomUUID().toString(), taskId,
+					UPDATE_KINDS.contains(kind) ? kind : "update", body, threadId,
+					CollaborationDbUtils.toTimestamp(messageAt, "messageAt"), origin == null ? OWNER : origin,
+					BRAIN.equals(origin) ? PROPOSED : ACCEPTED, now);
+			touch(conn, ownerId, ownerType, taskId, now);
+		});
 	}
 
 	// ---- helpers ----

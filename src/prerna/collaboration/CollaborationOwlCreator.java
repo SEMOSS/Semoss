@@ -308,7 +308,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("SUMMARY_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("MESSAGE_COUNT", INTEGER_DATATYPE_NAME),
 				Pair.with("LAST_MESSAGE_AT", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
+				// the newest message work candidates were pulled from
+				Pair.with("WORK_REF", VARCHAR_255)));
 		addTable("BRAIN_THREAD_TOPIC", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
 				Pair.with("THREAD_ID", VARCHAR_50),

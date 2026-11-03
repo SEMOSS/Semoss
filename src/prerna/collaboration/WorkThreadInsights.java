@@ -406,7 +406,10 @@ public final class WorkThreadInsights {
 					proposals.add(proposal);
 				}
 			}
-			save(ownerId, ownerType, threadId, answer.summary(), newest, plan(steps, proposals, self[0]), self[0]);
+			// work items own the steps now: keep the summary, leave the thread's steps alone
+			Plan stepsPlan = WorkPipeline.enabled() ? new Plan(List.of(), List.of(), List.of())
+					: plan(steps, proposals, self[0]);
+			save(ownerId, ownerType, threadId, answer.summary(), newest, stepsPlan, self[0]);
 		}
 	}
 

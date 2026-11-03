@@ -1085,6 +1085,8 @@ public class Constants {
 	// a general text model for topic grouping and naming, and thread summaries and
 	// action items
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
+	// work items from mail: on replaces thread action items; uses COLLAB_LLM_ENGINE_ID
+	public static final String COLLAB_WORK_ITEMS_ENABLED = "COLLAB_WORK_ITEMS_ENABLED";
 	// threads the classifier sorts at once (default 8)
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
 	// characters of memories a thread's assistant gets in its prompt (default 4000)
