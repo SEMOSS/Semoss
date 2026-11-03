@@ -48,7 +48,10 @@ import com.google.gson.JsonParser;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.collaboration.BrainProfileUtils;
 import prerna.collaboration.CollaborationMemoryRunHook;
+import prerna.collaboration.CollaborationRunMode;
+import prerna.collaboration.CollaborationSkills;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomSystemPrompt;
@@ -61,6 +64,7 @@ import prerna.reactor.agent.IAgentRunHook;
 import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.runtime.AgentsMdLoader;
+import prerna.reactor.agent.skill.SkillProjects;
 import prerna.util.SystemDefaultEngines;
 
 /**
@@ -199,7 +203,8 @@ public final class AgentConfigLoader {
 		b.mcps(resolveMcps(workspaceId, room, cfgJson));
 
 		// Skills follow the same layered merge and are staged later by AgentRunner.
-		b.skills(resolveSkills(workspaceId, room, cfgJson));
+		b.skills(resolveSkills(workspaceId, room, cfgJson,
+				room.getInsight() != null ? room.getInsight().getUser() : null));
 
 		// Hooks and subagents currently come from CONFIG_JSON only. resolveHooks
 		// classifies
@@ -389,7 +394,8 @@ public final class AgentConfigLoader {
 	 * and collaboration defaults, deduped by {@code skill_id}. Explicit references
 	 * retain their pinned version when also present in the defaults.
 	 */
-	private static List<Map<String, String>> resolveSkills(String workspaceId, Room room, JSONObject cfgJson) {
+	private static List<Map<String, String>> resolveSkills(String workspaceId, Room room, JSONObject cfgJson,
+			User user) {
 		List<Map<String, String>> out = new ArrayList<>();
 		Set<String> seen = new LinkedHashSet<>();
 
@@ -440,16 +446,32 @@ public final class AgentConfigLoader {
 			}
 		}
 
-		// room.options.skills[] additions.
+		// room.options.skills[] additions. Room options are client-written, so each
+		// one must be a skill the user can view.
 		for (Map<String, String> entry : extractRoomSkills(room)) {
 			String skillId = entry.get("skill_id");
 			if (skillId == null || skillId.isEmpty()) {
+				continue;
+			}
+			if (user != null && (!SkillProjects.isSkillProject(skillId)
+					|| !SecurityProjectUtils.userCanViewProject(user, skillId))) {
+				logger.warn("AgentConfigLoader: dropping room skill {} the user cannot use, room={}", skillId,
+						room.getId());
 				continue;
 			}
 			if (!seen.add(skillId)) {
 				continue;
 			}
 			out.add(entry);
+		}
+
+		// the owner's own Collaboration skills they turned on for their assistant, in chats and routines
+		if (user != null && CollaborationRunMode.of(room) != null) {
+			for (String skillId : CollaborationSkills.keepMine(user, BrainProfileUtils.assistantSkills(user))) {
+				if (seen.add(skillId)) {
+					out.add(skillRef(skillId, null));
+				}
+			}
 		}
 
 		// Resolve on every run, including agentless rooms, follow-ups, and resumes.
@@ -796,10 +818,11 @@ public final class AgentConfigLoader {
 	}
 
 	/**
-	 * An assistant room also reviews its finished chats for memories to suggest, whatever its agent configures.
+	 * An owner's chat also reviews its finished runs for memories to suggest, whatever its agent configures; a
+	 * routine's runs are not reviewed.
 	 */
 	private static List<IAgentRunHook> withBuiltInRunHooks(Room room, List<IAgentRunHook> configured) {
-		if (!CollaborationUtils.isAssistantRoom(room)) {
+		if (!CollaborationRunMode.isChat(room)) {
 			return configured;
 		}
 		List<IAgentRunHook> hooks = new ArrayList<>(configured);

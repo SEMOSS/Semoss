@@ -101,7 +101,7 @@ public final class BrainMemoryRecall {
 				return null;
 			}
 			return render(recall(owner.getValue0(), owner.getValue1(), threadId,
-					BrainTopicBrief.chatTopics(user, room), promptChars()));
+					BrainTopicBrief.chatTopics(user, room), promptChars()), CollaborationRunMode.isRoutine(room));
 		} catch (RuntimeException e) {
 			classLogger.warn("Could not recall memories for room {}; the run goes on without them", room.getId(), e);
 			return null;
@@ -193,9 +193,10 @@ public final class BrainMemoryRecall {
 						rs.getString("EMAIL_NORM"), rs.getString("ACCOUNT_ID") },
 				ownerId, ownerType, threadId)) {
 			String personId = row[0];
+			// kept out as the gate keeps them out; a VIP standing changes nothing here
 			boolean keep = !keptOut && Boolean.parseBoolean(row[1]) && !neverIngest.contains(personId)
-					&& BrainRulesGate.neverRule(rules, row[2] == null ? "" : row[2], personId, null) == null
-					&& BrainRulesGate.exclusionRule(rules, allTopics, source, personId) == null;
+					&& !BrainRulesGate.standing(rules, row[2] == null ? "" : row[2], personId, null, source, allTopics,
+							Set.of(), false).keptOut();
 			if (keep) {
 				people.add(personId);
 				if (row[3] != null) {
@@ -307,19 +308,27 @@ public final class BrainMemoryRecall {
 	// ---- the prompt ----
 
 	static String render(Recall recall) {
-		StringBuilder out = new StringBuilder(CollaborationPrompts.MEMORY);
-		out.append("\n\n### What you remember for this thread\n");
+		return render(recall, false);
+	}
+
+	// readOnly for a routine: it reads memories but has no Remember or Forget
+	static String render(Recall recall, boolean readOnly) {
+		StringBuilder out = new StringBuilder(readOnly ? CollaborationPrompts.ROUTINE_MEMORY : CollaborationPrompts.MEMORY);
+		out.append(readOnly ? "\n\n### What you remember\n" : "\n\n### What you remember for this thread\n");
 		List<Line> confirmed = new ArrayList<>();
 		List<Line> learned = new ArrayList<>();
 		for (Line line : recall.lines()) {
 			(line.memory().confirmed() ? confirmed : learned).add(line);
 		}
 		if (confirmed.isEmpty() && learned.isEmpty()) {
-			out.append("Nothing yet. Memories saved in other threads that do not apply here are not shown; use "
-					+ "SearchMemories to find relevant memories or check for an existing match before saving one.");
+			out.append(readOnly ? "Nothing shown here; use SearchMemories when the task needs one."
+					: "Nothing yet. Memories saved in other threads that do not apply here are not shown; use "
+							+ "SearchMemories to find relevant memories or check for an existing match before saving one.");
 			return out.toString();
 		}
-		out.append("Each line starts with the memory's id, for replaces and Forget.");
+		if (!readOnly) {
+			out.append("Each line starts with the memory's id, for replaces and Forget.");
+		}
 		if (!confirmed.isEmpty()) {
 			out.append("\nConfirmed by the owner:");
 			for (Line line : confirmed) {

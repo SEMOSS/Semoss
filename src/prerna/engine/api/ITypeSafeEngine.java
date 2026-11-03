@@ -39,6 +39,16 @@ import prerna.om.Insight;
 public interface ITypeSafeEngine extends IModelEngine {
 
 	/** Evaluate named typed questions against shared state without chat messages. */
-	TypeSafeModelEngineResponse evaluate(Object state, Map<String, Object> questions, Insight insight,
-			Map<String, Object> parameters);
+	default TypeSafeModelEngineResponse evaluate(Object state, Map<String, Object> questions, Insight insight,
+			Map<String, Object> parameters) {
+		return evaluate(state, questions, null, insight, parameters);
+	}
+
+	/**
+	 * Evaluate with images: base64 image bytes keyed by the alias the state or
+	 * questions refer to them by, delimited so it cannot match ordinary text (for
+	 * example "&lt;image_1&gt;").
+	 */
+	TypeSafeModelEngineResponse evaluate(Object state, Map<String, Object> questions, Map<String, String> images,
+			Insight insight, Map<String, Object> parameters);
 }

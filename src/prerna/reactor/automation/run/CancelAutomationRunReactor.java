@@ -42,6 +42,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Requests cancellation of a running or agent-waiting automation. Active
@@ -57,15 +59,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * <p>
  * Sets a cluster-safe cancellation flag
  * ({@code AUTOMATION_RUNS.CANCEL_REQUESTED}, via
- * {@link AutomationRunStore#setCancelRequested(String)}) that the
- * executing pod polls regardless of which pod owns the Python run. The same-pod
- * fast path also interrupts the matching Python socket job, allowing native
- * Python and blocking bridge calls to stop promptly. A running run's
- * {@code STATUS} is transitioned to CANCELLED by the executing pod, not by this
- * reactor; a truly orphaned run is caught by the periodic stale-heartbeat
- * sweep. A waiting run has no executing pod, so this reactor records the
- * request, stops the child agent, and reconciles the run to CANCELLED itself
- * without continuing the remaining graph.
+ * {@link AutomationRunStore#setCancelRequested(String)}) that the executing pod
+ * polls regardless of which pod owns the Python run. The same-pod fast path
+ * also interrupts the matching Python socket job, allowing native Python and
+ * blocking bridge calls to stop promptly. A running run's {@code STATUS} is
+ * transitioned to CANCELLED by the executing pod, not by this reactor; a truly
+ * orphaned run is caught by the periodic stale-heartbeat sweep. A waiting run
+ * has no executing pod, so this reactor records the request, stops the child
+ * agent, and reconciles the run to CANCELLED itself without continuing the
+ * remaining graph.
  */
 public class CancelAutomationRunReactor extends AbstractReactor {
 
@@ -104,7 +106,10 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 
 		String status = (String) runDetail.get(AutomationConstants.STATUS);
 		if (AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(status)) {
-			return cancelWaitingAgentRun(projectId, runId);
+			NounMetadata cancelled = cancelWaitingAgentRun(projectId, runId);
+			UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), AuditEventType.AUTOMATION_RUN_CANCEL,
+					projectId, runId, null, Map.of("previousStatus", status));
+			return cancelled;
 		}
 		if (!AutomationConstants.STATUS_RUNNING.equals(status)) {
 			throw new IllegalArgumentException(
@@ -120,6 +125,8 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 		boolean signalledLocally = AutomationRunRegistry.requestCancellation(runId);
 
 		classLogger.info("Cancel requested for automation run {}: signalledLocally={}", runId, signalledLocally);
+		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), AuditEventType.AUTOMATION_RUN_CANCEL,
+				projectId, runId, null, Map.of("previousStatus", status));
 
 		Map<String, Object> result = new HashMap<>();
 		result.put(AutomationConstants.RUN_ID, runId);

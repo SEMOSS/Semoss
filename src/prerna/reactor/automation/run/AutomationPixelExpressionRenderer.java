@@ -174,15 +174,6 @@ final class AutomationPixelExpressionRenderer {
 			return "Embeddings(engine=" + json(engineId) + ",values=" + json(texts) + ",paramValues=["
 					+ json(parameters) + "],encoded=false);";
 		}
-		if (AutomationConstants.NODE_MODEL_NER.equals(nodeType)) {
-			String text = requiredString(config.get("text"), scope, "Model node '" + nodeId + "' text");
-			Object entities = AutomationScopeResolver.resolveConfig(config.get("entities"), scope,
-					"Model node '" + nodeId + "' entities");
-			Object masked = AutomationScopeResolver.resolveConfig(config.getOrDefault("maskEntities", List.of()), scope,
-					"Model node '" + nodeId + "' maskEntities");
-			return "NER(engine=" + json(engineId) + ",prompt=" + json(text) + ",entities=" + json(entities)
-					+ ",maskEntities=" + json(masked) + ");";
-		}
 		String prompt = modelPrompt(config.get("prompt"), scope, nodeId);
 		StringBuilder expression = new StringBuilder("LLM(engine=").append(json(engineId))
 				.append(",command=").append(json(prompt));
@@ -260,10 +251,6 @@ final class AutomationPixelExpressionRenderer {
 			throw new IllegalStateException("Model node '" + nodeId + "' response is missing content.");
 		}
 		Object value = response.get("response");
-		if (AutomationConstants.NODE_MODEL_NER.equals(nodeType) && value instanceof Map<?, ?> map
-				&& "error".equalsIgnoreCase(String.valueOf(map.get("status")))) {
-			throw new IllegalStateException(String.valueOf(map.get("message")));
-		}
 		if (AutomationConstants.NODE_MODEL_CHAT.equals(nodeType)
 				|| AutomationConstants.NODE_MODEL_VISION.equals(nodeType)) {
 			Map<String, Object> metadata = new LinkedHashMap<>();
@@ -421,14 +408,43 @@ final class AutomationPixelExpressionRenderer {
 		if (files.isEmpty()) {
 			throw new IllegalStateException("No file was downloaded from storage path: " + request.storagePath());
 		}
+		List<String> downloadedFiles = downloadedFiles(files, request.storagePath());
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("success", transferResult);
 		result.put("storagePath", request.storagePath());
 		result.put("destination", request.destination());
 		result.put("space", "INSIGHT");
-		result.put("files", files);
-		result.put("filePath", files.size() == 1 ? files.get(0) : null);
+		result.put("files", downloadedFiles);
+		result.put("filePath", downloadedFiles.size() == 1 ? downloadedFiles.get(0) : null);
 		return result;
+	}
+
+	/**
+	 * Selects files whose basename matches a single-file storage request. Directory
+	 * requests keep the complete Insight asset search result.
+	 *
+	 * @param files       non-directory Insight asset paths after the transfer
+	 * @param storagePath source path requested from the storage engine
+	 * @return paths belonging to the current transfer, or the original paths when
+	 *         the request does not identify one matching file
+	 */
+	private static List<String> downloadedFiles(List<String> files, String storagePath) {
+		String normalizedStoragePath = storagePath.replace('\\', '/');
+		if (normalizedStoragePath.endsWith("/")) {
+			return files;
+		}
+		int separator = normalizedStoragePath.lastIndexOf('/');
+		String fileName = separator < 0 ? normalizedStoragePath : normalizedStoragePath.substring(separator + 1);
+		List<String> matches = new ArrayList<>();
+		for (String file : files) {
+			String normalizedFile = file.replace('\\', '/');
+			int fileSeparator = normalizedFile.lastIndexOf('/');
+			String assetName = fileSeparator < 0 ? normalizedFile : normalizedFile.substring(fileSeparator + 1);
+			if (fileName.equals(assetName)) {
+				matches.add(file);
+			}
+		}
+		return matches.isEmpty() ? files : matches;
 	}
 
 	private static String requiredString(Object configuredValue, Map<String, Object> scope, String valueName) {

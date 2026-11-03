@@ -54,6 +54,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -237,6 +238,12 @@ public class ExportProjectReactor extends AbstractReactor {
 			// }
 			// }
 		}
+
+		// recorded once the archive is built, so an export that fails records only its
+		// failure
+		IProject.PROJECT_TYPE projectType = project.getProjectType();
+		UserAuditTrailUtils.recordProjectExport(user, projectId, projectName,
+				projectType == null ? null : projectType.name(), getPixelName(), keepGit);
 
 		// Generate a new key for the name of the zip file.
 		String downloadKey = UUID.randomUUID().toString();

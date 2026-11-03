@@ -15,3 +15,4 @@ PIPELINE	pipeline.json
 # Keep credentials in the git-ignored platform__pixabay.smss.local file.
 # The driver also supports API_KEY here, or PIXABAY_API_KEY in the environment.
 API_KEY
+USE_PYTHON	project

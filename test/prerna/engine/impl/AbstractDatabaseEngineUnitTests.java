@@ -82,7 +82,6 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.engine.impl.owl.ReadOnlyOWLEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
-import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
@@ -229,17 +228,13 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 	/// Close
 	@Test
 	void closeDBsNotNull() throws IOException {
-		try (MockedConstruction<OWLEngineFactory> factoryMock = mockConstruction(OWLEngineFactory.class);
-				MockedConstruction<AuditDatabase> auditMock = mockConstruction(AuditDatabase.class)) {
+		try (MockedConstruction<OWLEngineFactory> factoryMock = mockConstruction(OWLEngineFactory.class)) {
 			RDFFileSesameEngine rdf = mock(RDFFileSesameEngine.class);
 			engine.setBaseDataEngine(rdf);
-			engine.generateAudit();
 
 			engine.close();
 
 			verify(rdf, times(1)).close();
-			AuditDatabase auditDatabase = auditMock.constructed().get(0);
-			verify(auditDatabase, times(1)).close();
 		}
 	}
 
@@ -313,6 +308,13 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 	@Test
 	void testIsConnected() {
 		assertFalse(engine.isConnected());
+	}
+
+	@Test
+	void testKeepInputOutputIgnoresTheSmssValue() {
+		// the value AbstractEngine.open reads from KEEP_INPUT_OUTPUT=false
+		engine.keepInputOutput = false;
+		assertTrue(engine.keepInputOutput());
 	}
 
 	@Test
@@ -440,6 +442,26 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 			assertEquals("testEngine", engine.getEngineId());
 			assertEquals("testEngineAlias", engine.getEngineName());
 			assertNull(engine.getDatabaseZoneId());
+		}
+
+		@Test
+		void testOpenSmssPropKeepInputOutputFalse() throws Exception {
+			Properties p = new Properties();
+			p.put(Constants.ENGINE, "testEngine");
+			p.put(Constants.ENGINE_ALIAS, "testEngineAlias");
+			p.put(Constants.DATABASE_ZONEID, "");
+			p.put(Constants.KEEP_INPUT_OUTPUT, "false");
+			try (OutputStream os = Files.newOutputStream(testProps)) {
+				p.store(os, null);
+			}
+
+			engine.setBasic(true);
+
+			engine.open(testPropsPath);
+
+			// a database does not follow KEEP_INPUT_OUTPUT, so the SQL of its calls is
+			// always in the audit logs
+			assertTrue(engine.keepInputOutput());
 		}
 
 		@Test

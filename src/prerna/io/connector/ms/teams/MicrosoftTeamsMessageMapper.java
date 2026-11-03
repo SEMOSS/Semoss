@@ -191,6 +191,14 @@ public class MicrosoftTeamsMessageMapper {
 	 * @return the chat as a map
 	 */
 	public static Map<String, Object> toChat(Map<String, Object> chat, String userEmail) {
+		return toChat(chat, userEmail, Integer.MAX_VALUE);
+	}
+
+	/**
+	 * The same, keeping at most {@code maxMembers} members and the total in memberCount; a list of chats uses it
+	 * so a large group chat does not fill the result.
+	 */
+	public static Map<String, Object> toChat(Map<String, Object> chat, String userEmail, int maxMembers) {
 		Map<String, Object> output = new LinkedHashMap<>();
 		output.put(ID, chat.get(ID));
 		putIfPresent(output, "chatType", chat.get("chatType"));
@@ -218,7 +226,11 @@ public class MicrosoftTeamsMessageMapper {
 
 		List<Map<String, Object>> members = new ArrayList<>();
 		List<String> otherNames = new ArrayList<>();
-		for (Map<String, Object> member : mapList(chat.get("members"))) {
+		List<Map<String, Object>> allMembers = mapList(chat.get("members"));
+		for (Map<String, Object> member : allMembers) {
+			if (members.size() >= maxMembers) {
+				break;
+			}
 			Map<String, Object> described = toMember(member);
 			members.add(described);
 			Object address = described.get(EMAIL);
@@ -232,12 +244,16 @@ public class MicrosoftTeamsMessageMapper {
 		if (!members.isEmpty()) {
 			output.put("members", members);
 		}
+		if (allMembers.size() > members.size()) {
+			output.put("memberCount", allMembers.size());
+		}
 
 		Object topic = chat.get(TOPIC);
 		if (topic != null && !topic.toString().trim().isEmpty()) {
 			output.put(DISPLAY_NAME, topic.toString());
 		} else if (!otherNames.isEmpty()) {
-			output.put(DISPLAY_NAME, String.join(", ", otherNames));
+			int others = allMembers.size() - members.size();
+			output.put(DISPLAY_NAME, String.join(", ", otherNames) + (others > 0 ? " and " + others + " others" : ""));
 		}
 		return output;
 	}

@@ -37,6 +37,9 @@ import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 
@@ -68,6 +71,10 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 		if (capabilityUpdates != null && !capabilityUpdates.isEmpty()) {
 			SecurityModelMetadataUtils.updateModelMetadata(engineId, capabilityUpdates);
 		}
+		IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
+		UserAuditTrailUtils.recordEngineLifecycle(this.insight.getUser(), AuditEventType.ENGINE_METADATA_UPDATE,
+				AuditTargetType.ofEngine(engineType), engineId, SecurityEngineUtils.getEngineDisplayNameForId(engineId),
+				Map.of("field", "metadata", "metadataKeys", List.copyOf(metadata.keySet())));
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(
 				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the engine"));

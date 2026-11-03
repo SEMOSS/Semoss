@@ -74,6 +74,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IMCP;
@@ -257,7 +258,7 @@ public class Project implements IProject {
 		this.portalsHelper = new ProjectPortalsHelper(this, this.projectPortalFolder, this.smssProp);
 		try {
 			loadCompiledProjectReactors();
-		} catch (Exception e) {
+		} catch (Exception | LinkageError e) {
 			classLogger.error("Unable to compile project reactors on project initialization for project '{}'",
 					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 		}
@@ -421,31 +422,16 @@ public class Project implements IProject {
 			}
 		}
 
-		// TODO: do we want to close the py process everything time we close?
-		// we close when we push insights (cause of the insights database) or update
-		// smss
-
-//		try {
-//			if(tcpClient != null) {
-//				// this should destroy the process as well
-//				tcpClient.stopPyServe(this.tcpServerDirectory);
-//			}
-//		} catch(Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//		}
-//		// but just in case above doesn't destroy it
-//		try {
-//			if(tcpServerProcess != null) {
-//				tcpServerProcess.destroy();
-//			}
-//		} catch(Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//			try {
-//				tcpServerProcess.destroy();
-//			} catch(Exception e1) {
-//				classLogger.error(Constants.STACKTRACE, e1);
-//			}
-//		}
+		// shut down the project's python process when it is running; a project opened
+		// again is a new instance that starts its own
+		if (this.cpw != null) {
+			try {
+				this.cpw.shutdown(false);
+			} catch (Exception e) {
+				classLogger.error("Failed to shut down the python process of project '{}'",
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
+			}
+		}
 	}
 
 	@Override
@@ -703,12 +689,19 @@ public class Project implements IProject {
 		boolean loadJars = jars != null && jars.length > 0;
 		boolean hasPom = pomFile.exists() && pomFile.isFile();
 
-		if (loadJars) {
-			compileReactorFromJars(jars);
-		} else if (hasPom) {
-			compileReactorsFromPom(pomFile);
-		} else {
-			compileReactorsFromJavaFiles();
+		// LinkageError covers classes built for a newer java version, which must not
+		// take the project down with them
+		try {
+			if (loadJars) {
+				compileReactorFromJars(jars);
+			} else if (hasPom) {
+				compileReactorsFromPom(pomFile);
+			} else {
+				compileReactorsFromJavaFiles();
+			}
+		} catch (Exception | LinkageError e) {
+			classLogger.error("Failed to compile reactors for project '{}'",
+					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 		}
 
 		this.lastReactorCompilationDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
@@ -791,8 +784,15 @@ public class Project implements IProject {
 					throw new IllegalArgumentException("Unable to load jar file : " + jars[i].getName());
 				}
 			}
-			projectSpecificHash = this.reactorHelper.loadReactorsFromJars(urls);
-			ProjectCustomReactorCompilator.setCompiled(this.projectId);
+			try {
+				projectSpecificHash = this.reactorHelper.loadReactorsFromJars(urls);
+				ProjectCustomReactorCompilator.setCompiled(this.projectId);
+			} catch (LinkageError e) {
+				// a jar built for a newer java version fails the same way every time, so it
+				// is not retried on every lookup, only once the class cache is cleared
+				ProjectCustomReactorCompilator.setFailed(this.projectId);
+				throw e;
+			}
 		}
 	}
 
@@ -807,7 +807,7 @@ public class Project implements IProject {
 
 		IReactor retReac = null;
 		try {
-			if (projectSpecificHash.containsKey(className.toUpperCase())) {
+			if (projectSpecificHash != null && projectSpecificHash.containsKey(className.toUpperCase())) {
 				Class<IReactor> thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 				retReac = thisReactorClass.getDeclaredConstructor().newInstance();
 			}
@@ -913,10 +913,6 @@ public class Project implements IProject {
 
 		if (hasPom) {
 			// this is maven
-
-			// TODO: need to figure out how we see if maven is already compiled and exists
-			// TODO: need to figure out how we see if maven is already compiled and exists
-			// TODO: need to figure out how we see if maven is already compiled and exists
 			// TODO: need to figure out how we see if maven is already compiled and exists
 
 		} else if (loadJars) {
@@ -960,7 +956,7 @@ public class Project implements IProject {
 					Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 					retReac = (IReactor) thisReactorClass.getDeclaredConstructor().newInstance();
 				}
-			} catch (Exception e) {
+			} catch (Exception | LinkageError e) {
 				classLogger.error("Failed to instantiate cached reactor '{}' for project '{}'", className,
 						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 			}
@@ -991,20 +987,22 @@ public class Project implements IProject {
 			boolean loadJars = jars != null && jars.length > 0;
 			boolean hasPom = pomFile.exists() && pomFile.isFile();
 
-			if (loadJars) {
-				retReac = getReactorFromJars(className, jars);
-			} else if (hasPom) {
-				retReac = getReactorsFromPom(className, pomFile);
-			} else {
-				compileReactorsFromJavaFiles();
-				try {
+			// LinkageError covers classes built for a newer java version
+			try {
+				if (loadJars) {
+					retReac = getReactorFromJars(className, jars);
+				} else if (hasPom) {
+					retReac = getReactorsFromPom(className, pomFile);
+				} else {
+					compileReactorsFromJavaFiles();
 					if (projectSpecificHash != null && projectSpecificHash.containsKey(className.toUpperCase())) {
 						Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 						retReac = (IReactor) thisReactorClass.getDeclaredConstructor().newInstance();
 					}
-				} catch (Exception e) {
-					classLogger.error("Failed to instantiate reactor '{}' from project java source", className, e);
 				}
+			} catch (Exception | LinkageError e) {
+				classLogger.error("Failed to load reactor '{}' for project '{}'", className,
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 			}
 
 			this.lastReactorCompilationDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
@@ -1306,6 +1304,17 @@ public class Project implements IProject {
 		}
 		this.pyTranslator.setSocketClient(this.cpw.getSocketClient());
 		return this.pyTranslator;
+	}
+
+	@Override
+	public Object clearPythonImports() {
+		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			return null;
+		}
+		// the translator's insight carries this project as its context, so the
+		// script runs with the project assets as its asset paths
+		this.pyTranslator.setSocketClient(this.cpw.getSocketClient());
+		return this.pyTranslator.runScript(PyUtils.CLEAR_APP_IMPORTS_SCRIPT);
 	}
 
 	/**

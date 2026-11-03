@@ -132,6 +132,8 @@ public class MicrosoftTeamsMessageHelper {
 	private static final List<String> CHAT_TYPES = Arrays.asList(ONE_ON_ONE, GROUP);
 
 	private static final String MEMBERS = "members";
+	// members kept per chat in a list of chats; GetChat returns them all
+	private static final int LIST_CHAT_MEMBERS = 5;
 	private static final String LAST_MESSAGE_PREVIEW = "lastMessagePreview";
 	private static final String MEMBERS_AND_PREVIEW = MEMBERS + "," + LAST_MESSAGE_PREVIEW;
 	private static final String HAS_UNREAD = "hasUnread";
@@ -220,7 +222,8 @@ public class MicrosoftTeamsMessageHelper {
 
 				for (Map<String, Object> chat : mapList(json.get(VALUE))) {
 					scanned++;
-					Map<String, Object> described = MicrosoftTeamsMessageMapper.toChat(chat, userEmail);
+					Map<String, Object> described = MicrosoftTeamsMessageMapper.toChat(chat, userEmail,
+							LIST_CHAT_MEMBERS);
 					if (unreadOnly && !Boolean.TRUE.equals(described.get(HAS_UNREAD))) {
 						continue;
 					}

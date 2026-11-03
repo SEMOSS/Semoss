@@ -39,6 +39,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.usage.ModelUsageTicket;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -86,6 +87,9 @@ public class LLMReactor extends AbstractReactor {
 		if (paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
+		// the usage ceiling comes from the usage limits that apply, never from the
+		// caller
+		paramMap.remove(ModelUsageTicket.USAGE_CEILING);
 		Boolean useHistoryParam = Boolean
 				.parseBoolean(this.keyValue.getOrDefault(ReactorKeysEnum.USE_HISTORY.getKey(), "true") + "");
 		paramMap.put("use_history", useHistoryParam);
@@ -143,6 +147,8 @@ public class LLMReactor extends AbstractReactor {
 	}
 
 	/**
+	 * Reads the model call's parameters: the {@code paramValues} map, else the
+	 * first map passed without a name; null when there is neither.
 	 * 
 	 * @return
 	 */

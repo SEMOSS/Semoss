@@ -49,11 +49,19 @@ public class PyTranslator {
 	static Map<String, SemossDataType> pyS = new HashMap<String, SemossDataType>();
 	static {
 		pyS.put("object", SemossDataType.STRING);
+		// pandas 3 reports string columns as "str" ("string" is the opt-in pd.NA variant)
+		pyS.put("str", SemossDataType.STRING);
+		pyS.put("string", SemossDataType.STRING);
 		pyS.put("category", SemossDataType.STRING);
 		pyS.put("int64", SemossDataType.INT);
 		pyS.put("float64", SemossDataType.DOUBLE);
+		pyS.put("bool", SemossDataType.BOOLEAN);
 		pyS.put("datetime64", SemossDataType.DATE);
 		pyS.put("datetime64[ns]", SemossDataType.TIMESTAMP);
+		// pandas 3 keeps the parsed resolution instead of forcing ns ("us" for parsed strings)
+		pyS.put("datetime64[us]", SemossDataType.TIMESTAMP);
+		pyS.put("datetime64[ms]", SemossDataType.TIMESTAMP);
+		pyS.put("datetime64[s]", SemossDataType.TIMESTAMP);
 	}
 
 	public static String curEncoding = null;

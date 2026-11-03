@@ -348,6 +348,19 @@ public interface IProject extends IEngine, IMCP {
 	PyTranslator getProjectPyTranslator();
 
 	/**
+	 * Clears the project modules cached in the project's dedicated python process
+	 * by running {@code smss_clear_app_imports()} with the project asset paths, so
+	 * the next import reads the current .py files. The process keeps running, and a
+	 * process that is not running is not started.
+	 *
+	 * @return the result of {@code smss_clear_app_imports()}, a map of the cleared
+	 *         module keys and MCP aliases, or null when the project python process
+	 *         is not running
+	 */
+	@IgnoreEngineLogging
+	Object clearPythonImports();
+
+	/**
 	 * 
 	 * @return
 	 */

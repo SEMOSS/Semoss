@@ -145,12 +145,13 @@ An error saying `"auto" tool choice requires --enable-auto-tool-choice and --too
 
 ## Managed authoring workflow
 
-The system PPTX Agent already includes this configuration. To enable the same workflow on an editable author, merge these fields into its existing configuration, preserving its model and other settings:
+The system PPTX Agent already includes this configuration. To enable the same workflow on an editable author, merge these fields into its existing configuration, preserving its model and other settings. Visual review is off unless `review_enabled` is `true`; the system agent ships with it off, and BuildPptx then delivers the structurally validated deck without spawning the reviewer:
 
 ```json
 {
   "pptx_workflow": {
     "enabled": true,
+    "review_enabled": false,
     "reviewer_alias": "agent_pptx_reviewer",
     "repair_turns": 6,
     "review_timeout_seconds": 600

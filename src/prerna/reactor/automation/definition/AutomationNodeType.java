@@ -59,8 +59,6 @@ public enum AutomationNodeType {
 			Permission.VIEW, true, true),
 	MODEL_VISION(AutomationConstants.NODE_MODEL_VISION, Category.MODEL, IEngine.CATALOG_TYPE.MODEL, Permission.VIEW,
 			true, true),
-	MODEL_NER(AutomationConstants.NODE_MODEL_NER, Category.MODEL, IEngine.CATALOG_TYPE.MODEL, Permission.VIEW, true,
-			true),
 	STORAGE_LIST(AutomationConstants.NODE_STORAGE_LIST, Category.STORAGE, IEngine.CATALOG_TYPE.STORAGE, Permission.VIEW,
 			true, true),
 	STORAGE_READ(AutomationConstants.NODE_STORAGE_READ, Category.STORAGE, IEngine.CATALOG_TYPE.STORAGE, Permission.EDIT,

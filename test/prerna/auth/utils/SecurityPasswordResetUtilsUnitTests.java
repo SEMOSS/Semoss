@@ -27,10 +27,10 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Map;
 
@@ -41,7 +41,7 @@ public class SecurityPasswordResetUtilsUnitTests extends AbstractSecurityUtilsUn
 	static String id = "test123";
 	static String email = "test123@test.com";
 	static String type = "NATIVE";
-	
+
 	@BeforeAll
 	static void setUp() {
 		// add user to security DB
@@ -53,18 +53,13 @@ public class SecurityPasswordResetUtilsUnitTests extends AbstractSecurityUtilsUn
 		boolean admin = true;
 		boolean publisher = false;
 		boolean exporter = false;
-		String modelUsageRestriction = null;
-		String modelUsageFrequency = null;
-		Integer modelMaxTokens = null;
-		Double modelMaxResponseTime = null;
 
 		boolean success = SecurityUpdateUtils.registerUser(id, name, email, password, type, phone, phoneextension,
-				countrycode, admin, publisher, exporter, modelUsageRestriction, modelUsageFrequency, modelMaxTokens,
-				modelMaxResponseTime);
+				countrycode, admin, publisher, exporter, null);
 
 		assertTrue(success, "Insertion of new user should be successful");
 	}
-	
+
 	@Test
 	void testUserEmailExists() throws Exception {
 		boolean exists = SecurityPasswordResetUtils.userEmailExists(email, type);
@@ -132,6 +127,5 @@ public class SecurityPasswordResetUtilsUnitTests extends AbstractSecurityUtilsUn
 			assertEquals("Invalid attempt trying to update password", e.getMessage());
 		}
 	}
-
 
 }

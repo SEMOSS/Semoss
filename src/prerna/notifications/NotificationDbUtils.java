@@ -166,7 +166,14 @@ public class NotificationDbUtils {
 	}
 
 	/**
-	 * Adapter for existing access-request notification producers.
+	 * Adapter for existing access-request notification producers. Notifies the
+	 * catalog's authors and the affected user.
+	 *
+	 * <p>
+	 * The recipients are read from the security database first. The notification
+	 * rows for every recipient are then inserted in one write on the notification
+	 * database, so either every recipient is notified or none is. A failed write is
+	 * logged and not thrown.
 	 */
 	public static void createNotification(User loggedInUser, String affectedUserId, String affectedUserType,
 			String catalogId, String notificationType, String notificationSource, String priority,
@@ -209,40 +216,45 @@ public class NotificationDbUtils {
 		String metadataJson = buildLegacyMetadata(affectedUserId, affectedUserType, affectedUserPreviousRole,
 				affectedUserNewRole, notificationType, notificationSource);
 
-		String query = "INSERT INTO NOTIFICATION_EVENT (NOTIFICATION_ID,TYPE,SCOPE_TYPE,SCOPE_ID,AUDIENCE_TYPE,AUDIENCE_ID,AUDIENCE_USER_TYPE,TITLE,MESSAGE,PRIORITY,DISPLAY_SURFACE,SOURCE_TYPE,SOURCE_ID,TARGET_TYPE,TARGET_ID,METADATA_JSON,CREATED_BY,CREATED_AT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		List<Map<String, Object>> notified = new ArrayList<>();
 		for (Map<String, Object> recipient : recipients) {
-			if (recipient == null || recipient.get("userId") == null) {
-				continue;
+			if (recipient != null && recipient.get("userId") != null) {
+				notified.add(recipient);
 			}
-			try {
-				QueryExecutionUtility.executeUpdate(notificationDb, query, ps -> {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, GUID.v7().toUUID().toString());
-					ps.setString(parameterIndex++, type);
-					ps.setString(parameterIndex++, scopeType);
-					ps.setString(parameterIndex++, scopeId);
-					ps.setString(parameterIndex++, NotificationConstants.Audience.USER);
-					ps.setString(parameterIndex++, String.valueOf(recipient.get("userId")));
-					ps.setString(parameterIndex++,
-							recipient.get("userType") == null ? null : String.valueOf(recipient.get("userType")));
-					ps.setString(parameterIndex++, "NOTIFICATION");
-					ps.setString(parameterIndex++, null);
-					ps.setString(parameterIndex++, normalizePriority(priority));
-					ps.setString(parameterIndex++, normalizeDisplaySurface(displaySurface));
-					ps.setString(parameterIndex++, sourceType);
-					ps.setString(parameterIndex++, catalogId);
-					ps.setString(parameterIndex++, targetType);
-					ps.setString(parameterIndex++, catalogId);
-					ps.setString(parameterIndex++, metadataJson);
-					ps.setString(parameterIndex++, createdBy);
-					ps.setTimestamp(parameterIndex++, createdAt);
-				});
-			} catch (RuntimeException e) {
-				throw e;
-			} catch (Exception e) {
-				classLogger.error("Failed to insert notification for recipient {} (type {}) on catalog {}",
-						recipient.get("userId"), recipient.get("userType"), catalogId, e);
-			}
+		}
+		if (notified.isEmpty()) {
+			return;
+		}
+
+		String query = "INSERT INTO NOTIFICATION_EVENT (NOTIFICATION_ID,TYPE,SCOPE_TYPE,SCOPE_ID,AUDIENCE_TYPE,AUDIENCE_ID,AUDIENCE_USER_TYPE,TITLE,MESSAGE,PRIORITY,DISPLAY_SURFACE,SOURCE_TYPE,SOURCE_ID,TARGET_TYPE,TARGET_ID,METADATA_JSON,CREATED_BY,CREATED_AT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		try {
+			QueryExecutionUtility.executeBatch(notificationDb, query, notified, (ps, recipient) -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, GUID.v7().toUUID().toString());
+				ps.setString(parameterIndex++, type);
+				ps.setString(parameterIndex++, scopeType);
+				ps.setString(parameterIndex++, scopeId);
+				ps.setString(parameterIndex++, NotificationConstants.Audience.USER);
+				ps.setString(parameterIndex++, String.valueOf(recipient.get("userId")));
+				ps.setString(parameterIndex++,
+						recipient.get("userType") == null ? null : String.valueOf(recipient.get("userType")));
+				ps.setString(parameterIndex++, "NOTIFICATION");
+				ps.setString(parameterIndex++, null);
+				ps.setString(parameterIndex++, normalizePriority(priority));
+				ps.setString(parameterIndex++, normalizeDisplaySurface(displaySurface));
+				ps.setString(parameterIndex++, sourceType);
+				ps.setString(parameterIndex++, catalogId);
+				ps.setString(parameterIndex++, targetType);
+				ps.setString(parameterIndex++, catalogId);
+				ps.setString(parameterIndex++, metadataJson);
+				ps.setString(parameterIndex++, createdBy);
+				ps.setTimestamp(parameterIndex++, createdAt);
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to insert notifications for {} recipients on catalog {}", notified.size(),
+					catalogId, e);
 		}
 	}
 

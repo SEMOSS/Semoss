@@ -241,6 +241,9 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return "App Building Agent";
 		}
+		if (Constants.AGENT_COLLABORATION.equals(agentId)) {
+			return "Collaboration Agent";
+		}
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return "Automation Building Agent";
 		}
@@ -262,6 +265,9 @@ public class SystemAgentSeeder {
 		}
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return "System agent for building platform apps.";
+		}
+		if (Constants.AGENT_COLLABORATION.equals(agentId)) {
+			return "System agent for Collaboration: the owner's assistant for mail, chats, meetings and files.";
 		}
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return "System agent for authoring and troubleshooting Automation workflows.";
@@ -285,6 +291,8 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return APP_BUILDER_SYSTEM_PROMPT;
 		}
+		// the Collaboration Agent has none of its own: the harness gives every Collaboration
+		// chat and routine CollaborationPrompts.BASE_PROMPT, whichever agent runs it
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return WORKFLOW_AUTOMATION_BUILDER_SYSTEM_PROMPT;
 		}
@@ -381,8 +389,9 @@ public class SystemAgentSeeder {
 							.put("read_only_paths",
 									new JSONArray(List.of(".claude/skills/pptx", ".semoss/pptx-workflow"))));
 			config.put("pptx_workflow",
-					new JSONObject().put("enabled", true).put("reviewer_alias", "agent_pptx_reviewer")
-							.put("repair_turns", 6).put("review_timeout_seconds", 600));
+					new JSONObject().put("enabled", true).put("review_enabled", false)
+							.put("reviewer_alias", "agent_pptx_reviewer").put("repair_turns", 6)
+							.put("review_timeout_seconds", 600));
 		}
 
 		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
@@ -419,9 +428,9 @@ public class SystemAgentSeeder {
 
 			Save the complete authoring or editing program as build-deck.js using WriteFile. It must be one (async () => { ... })() with all declarations inside it and all asynchronous work awaited. ROOT is the working directory; save the exact requested filename with path.join(ROOT, filename). For NEW decks use the curated pptxgenjs package and packaged deck helper, as shown in the creation examples. Existing-deck programs edit the protected original package with JSZip; the creation API cannot import it. Native objects and components may be freely combined; the examples do not impose a fixed layout or slide count. Replace example content and imagery to suit the request; never invent data for a chart.
 
-			Call BuildPptx alone with generator="build-deck.js", the exact filePath, the requested expectedSlides, and instructions describing the review criteria and design constraints. Include engine only when the caller supplied a vision model ID, preserving that exact ID. The platform executes the saved program, independently validates the output, assesses changes against the original package, and invokes the system PPTX Reviewer automatically. Broken output restores the previous validated file or original. Valid edits affecting other slides or with uncertain impact are delivered as separate proposals, retaining the accepted version. Missing review is disclosed separately from save failure. For existing decks review the requested edits and any other affected slides; pre-existing warnings do not authorize unrelated redesign. No human approval is needed between these stages.
+			Call BuildPptx alone with generator="build-deck.js", the exact filePath, the requested expectedSlides, and instructions describing the design constraints and, when visual review is enabled, the review criteria. Include engine only when the caller supplied a vision model ID, preserving that exact ID. The platform executes the saved program, independently validates the output, assesses changes against the original package, and invokes the system PPTX Reviewer only when visual review is enabled for this agent (off by default). Broken output restores the previous validated file or original. Valid edits affecting other slides or with uncertain impact are delivered as separate proposals, retaining the accepted version. Missing review is disclosed separately from save failure. For existing decks review the requested edits and any other affected slides; pre-existing warnings do not authorize unrelated redesign. No human approval is needed between these stages.
 
-			If BuildPptx returns repair_required, address its structural error or significant visual findings in one batch of generator edits. Then call BuildPptx with the same generator, filename and slide count before the stated repair budget expires. Prefer MultiEdit for several known changes. Read the affected lines after an exact-text edit fails. Prioritize saving and checking the repair over optional refinement. Advisory structural warnings are passed to the reviewer automatically. Provider failures and incomplete reviews end with an accurate disclosure; they do not authorize redesign or repeated reviewer calls.
+			If BuildPptx returns repair_required, address its structural error or significant visual findings in one batch of generator edits. Then call BuildPptx with the same generator, filename and slide count before the stated repair budget expires. Prefer MultiEdit for several known changes. Read the affected lines after an exact-text edit fails. Prioritize saving and checking the repair over optional refinement. When visual review is enabled, advisory structural warnings are passed to the reviewer automatically. Provider failures and incomplete reviews end with an accurate disclosure; they do not authorize redesign or repeated reviewer calls.
 
 			Packaged files under .claude/skills/pptx are read-only. Use documented component options or native editable objects for layout fixes. Top-level x,y,w,h and nested geometry:{x,y,w,h} are supported for components. Do not run local rendering commands, install packages, or modify the helper implementation.
 

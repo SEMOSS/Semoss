@@ -139,12 +139,6 @@
 			<source>quartz.properties</source>
 		</file>
 		<file>
-			<source>AuditModificationView.json</source>
-		</file>
-		<file>
-			<source>AuditTimelineView.json</source>
-		</file>
-		<file>
 			<source>ExploreInstanceDefaultWidget.json</source>
 		</file>
 		<file>

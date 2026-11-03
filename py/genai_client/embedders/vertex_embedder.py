@@ -14,6 +14,7 @@ from vertexai.preview.language_models import TextEmbeddingModel
 from ..clients.client_initializer import google_initializer
 from .abstract_embedder import AbstractEmbedder
 from ..constants import EmbeddingsModelEngineResponse
+from ..usage_ceiling import PromptCount
 
 
 class VertexAiEmbedder(AbstractEmbedder):
@@ -68,6 +69,14 @@ class VertexAiEmbedder(AbstractEmbedder):
         )
 
         return model_engine_response
+
+    def count_embedding_tokens(self, strings_to_embed: List[str]) -> PromptCount:
+        """Count the input with the model's count_tokens endpoint."""
+        try:
+            total = self.tokenizer.count_tokens(strings_to_embed).total_tokens
+            return PromptCount(tokens=int(total), estimated=False)
+        except Exception:
+            return super().count_embedding_tokens(strings_to_embed)
 
     def _encode_texts_to_embeddings(
         self, sentences: List[str]

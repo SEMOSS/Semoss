@@ -49,8 +49,10 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
 		final String DOUBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
+		final String VARCHAR_20 = "VARCHAR(20)";
 		final String VARCHAR_50 = "VARCHAR(50)";
 		final String VARCHAR_255 = "VARCHAR(255)";
+		final String BIGINT_DATATYPE_NAME = "BIGINT";
 
 		this.allSchemas = new ArrayList<>();
 
@@ -108,7 +110,17 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("SESSIONID", VARCHAR_255),
 				Pair.with("USER_ID", VARCHAR_255),
 				Pair.with("USER_NAME", VARCHAR_255),
-				Pair.with("USER_EMAIL_ID", VARCHAR_50)));
+				Pair.with("USER_EMAIL_ID", VARCHAR_50),
+				// the primary login's type, beside USER_ID
+				Pair.with("USER_TYPE", VARCHAR_255),
+				// the usage limit source the call was billed to: USER, TEAM, PUBLIC,
+				// ALL_MODELS or PLATFORM, or null when no limit applied
+				Pair.with("BILLED_SOURCE_TYPE", VARCHAR_20),
+				Pair.with("BILLED_SUBJECT_ID", VARCHAR_255),
+				Pair.with("BILLED_SUBJECT_TYPE", VARCHAR_255),
+				// the call's cost in millionths of a dollar, on the RESPONSE row, or null
+				// when the model has no known prices
+				Pair.with("COST_MICROS", BIGINT_DATATYPE_NAME)));
 
 		addTable("FEEDBACK", Arrays.asList(
 				Pair.with("MESSAGE_ID", VARCHAR_50),
@@ -158,7 +170,8 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("COMPLETED_AT", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("USER_ID", VARCHAR_255)));
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("USER_TYPE", VARCHAR_255)));
 
 		addTable("AGENT_RUN_ACTION", Arrays.asList(
 				Pair.with("ACTION_ID", VARCHAR_50),
@@ -178,6 +191,34 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("DECIDED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("USER_ID", VARCHAR_255)));
+
+		// a guardrail check hit that an engine's hit limits count
+		addTable("GUARDRAIL_HIT", Arrays.asList(
+				Pair.with("HIT_ID", VARCHAR_50),
+				Pair.with("ENGINE_ID", VARCHAR_50),
+				Pair.with("CHECK_ID", VARCHAR_255),
+				Pair.with("GUARDRAIL_ENGINE_ID", VARCHAR_50),
+				Pair.with("METHOD_NAME", VARCHAR_255),
+				Pair.with("PHASE", VARCHAR_50),
+				Pair.with("ACTION", VARCHAR_50),
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("INSIGHT_ID", VARCHAR_50),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("USER_TYPE", VARCHAR_255),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME)));
+
+		// a user locked out of an engine after their hits reached one of its limits
+		addTable("GUARDRAIL_LOCK", Arrays.asList(
+				Pair.with("LOCK_ID", VARCHAR_50),
+				Pair.with("ENGINE_ID", VARCHAR_50),
+				Pair.with("LIMIT_ID", VARCHAR_255),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("USER_TYPE", VARCHAR_255),
+				Pair.with("LOCKED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("LOCKED_UNTIL", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CLEARED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CLEARED_BY_ID", VARCHAR_255),
+				Pair.with("CLEARED_BY_TYPE", VARCHAR_255)));
 		// @formatter:on
 	}
 

@@ -90,6 +90,8 @@ public class ReplaceColumnValueReactor extends AbstractPyFrameReactor {
 		for (int i = 0; i < numColumns; i++) {
 			String column = columnNames.get(i);
 			SemossDataType columnDataType = SemossDataType.convertStringToDataType(getColumnType(frame, column));
+			// assign back instead of df['col'].fillna(..., inplace=True): that is chained assignment, a no-op under pandas 3
+			String colRef = frame.getName() + "['" + column + "']";
 
 			if (columnDataType == SemossDataType.INT || columnDataType == SemossDataType.DOUBLE) {
 				if (newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na")
@@ -101,7 +103,7 @@ public class ReplaceColumnValueReactor extends AbstractPyFrameReactor {
 				// Account for nulls, na, nan
 				if (oldValue.isEmpty() || oldValue.equalsIgnoreCase("null") || oldValue.equalsIgnoreCase("na")
 						|| oldValue.equalsIgnoreCase("nan")) {
-					scripts[i] = frame.getName() + "['" + column + "'].fillna(" + newValue + ",inplace=True)";
+					scripts[i] = colRef + " = " + colRef + ".fillna(" + newValue + ")";
 				} else {
 					scripts[i] = wrapperFrameName + ".replace_val('" + column + "'," + oldValue + " , " + newValue
 							+ ")";
@@ -113,8 +115,7 @@ public class ReplaceColumnValueReactor extends AbstractPyFrameReactor {
 					if (newD == null) {
 						throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
 					}
-					scripts[i] = frame.getName() + "['" + column + "'].fillna(value=pd.to_datetime('" + newD
-							+ "'),inplace=True)";
+					scripts[i] = colRef + " = " + colRef + ".fillna(value=pd.to_datetime('" + newD + "'))";
 				} else {
 					SemossDate oldD = SemossDate.genDateObj(oldValue);
 					SemossDate newD = SemossDate.genDateObj(newValue);
@@ -142,8 +143,7 @@ public class ReplaceColumnValueReactor extends AbstractPyFrameReactor {
 							throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
 						}
 					}
-					scripts[i] = frame.getName() + "['" + column + "'].fillna(value=pd.to_datetime('" + newD
-							+ "'),inplace=True)";
+					scripts[i] = colRef + " = " + colRef + ".fillna(value=pd.to_datetime('" + newD + "'))";
 				} else {
 					SemossDate oldD = SemossDate.genTimeStampDateObj(oldValue);
 					SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
@@ -165,13 +165,18 @@ public class ReplaceColumnValueReactor extends AbstractPyFrameReactor {
 							+ "pd.to_datetime('" + newD + "') )";
 				}
 			} else if (columnDataType == SemossDataType.STRING) {
+				// escaped for a double-quoted python string literal
+				String escapedNewValue = newValue.replace("\\", "\\\\").replace("\"", "\\\"");
 				if (oldValue.equalsIgnoreCase("null")) {
-					String escapedNewValue = newValue.replace("\"", "\\\"");
-					scripts[i] = frame.getName() + "['" + column + "'].fillna(" + escapedNewValue + ", inplace=True)";
+					scripts[i] = colRef + " = " + colRef + ".fillna(\"" + escapedNewValue + "\")";
 				} else {
-					scripts[i] = wrapperFrameName + ".replace_val('" + column + "', \"" + oldValue + "\", \"" + newValue
-							+ "\"" + ", False)";
+					String escapedOldValue = oldValue.replace("\\", "\\\\").replace("\"", "\\\"");
+					scripts[i] = wrapperFrameName + ".replace_val('" + column + "', \"" + escapedOldValue + "\", \""
+							+ escapedNewValue + "\"" + ", False)";
 				}
+			} else {
+				throw new IllegalArgumentException(
+						"Replacing values is not supported for " + columnDataType + " column '" + column + "'");
 			}
 		}
 

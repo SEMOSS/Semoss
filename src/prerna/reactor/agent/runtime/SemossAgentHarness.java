@@ -42,6 +42,7 @@ import prerna.collaboration.BrainMemoryRecall;
 import prerna.collaboration.BrainProfileUtils;
 import prerna.collaboration.CollaborationAgentTools;
 import prerna.collaboration.CollaborationPrompts;
+import prerna.collaboration.CollaborationRunMode;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
@@ -197,7 +198,7 @@ public class SemossAgentHarness implements IAgentHarness {
 					HumanDelegationService.requesterName(ctx.getInsight(), delegationActionId)));
 		} else if (CollaborationUtils.isCollaborationRoom(ctx.getRoom())
 				&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH && !agentConfig.hasPptxWorkflow()) {
-			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
+			// DelegateToPerson is on hold; FindPerson stays for email addresses
 			subAgentTools.add(SubAgentToolSynthesizer.buildFindPersonTool());
 		}
 		// Microsoft 365 tools for every agent in a collaboration room
@@ -231,21 +232,22 @@ public class SemossAgentHarness implements IAgentHarness {
 		boolean hadPromptOverride = opts.containsKey("overrideSystemPrompt");
 		Object originalPromptOverride = opts.get("overrideSystemPrompt");
 
-		// a PPTX workflow run has no collaboration tools, so it keeps the general
-		// baseline
-		StringBuilder composed = new StringBuilder(
-				CollaborationUtils.isAssistantRoom(room) && !agentConfig.hasPptxWorkflow()
-						? CollaborationPrompts.THREAD_PROMPT
-						: SemossHarnessPrompts.SYSTEM_PROMPT);
+		// A PPTX workflow run has no collaboration tools, so it keeps the general
+		// baseline. A routine run has its own baseline: nobody is watching and its
+		// answer is delivered.
+		StringBuilder composed = new StringBuilder(!collaborationBaseline(ctx, room)
+				? SemossHarnessPrompts.SYSTEM_PROMPT
+				: CollaborationRunMode.isRoutine(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+						? CollaborationPrompts.routinePrompt(CollaborationUtils.routineDelivery(room))
+						: CollaborationPrompts.BASE_PROMPT);
 		composed.append("\n\n").append(DeferredAgentTools.PROMPT);
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
 		}
 		// Advertise skills materialized into the working dir (by SkillStager, earlier
-		// in the run) so
-		// the model knows what it can pull in via LoadSkill. Empty when no skills are
-		// present.
+		// in the run) so the model knows what it can pull in via LoadSkill. Empty when
+		// no skills are present.
 		String availableSkillsBlock = buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir());
 		if (!availableSkillsBlock.isEmpty()) {
 			composed.append("\n\n").append(availableSkillsBlock);
@@ -253,9 +255,9 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
-		// what the owner's thread assistant remembers; after the static parts so they
-		// stay cacheable
-		if (CollaborationUtils.isAssistantRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+		// who the owner is and what they asked to remember, in their chat or routine;
+		// after the static parts so they stay cacheable
+		if (CollaborationRunMode.of(room) != null && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
 				&& !agentConfig.hasPptxWorkflow()) {
 			String ownerBlock = BrainProfileUtils.promptBlock(ctx.getInsight().getUser());
 			if (ownerBlock != null) {
@@ -546,22 +548,33 @@ public class SemossAgentHarness implements IAgentHarness {
 					state.getToolCallRecordsSnapshot(), state.getReflectionsUsed(), inputMessageId,
 					delivery.getMessageId(), completionError);
 		} finally {
-			state.progress().close(Thread.currentThread().isInterrupted() ? "cancelled" : progressOutcome);
-			// Always restore -- we always mutated options.instructions above.
-			opts = room.getOptionsMap();
-			if (hadInstructions) {
-				opts.put("instructions", originalInstructions);
-			} else {
-				opts.remove("instructions");
-			}
-			if (hadPromptOverride) {
-				opts.put("overrideSystemPrompt", originalPromptOverride);
-			} else {
-				opts.remove("overrideSystemPrompt");
-			}
-			room.setOptionsMap(opts);
-			if (rootJobIdRegistered != null) {
-				AgentSubAgentRegistry.getManager().unregisterRoot(rootJobIdRegistered);
+			// A cancel interrupts this virtual thread, and socket I/O while the flag is set
+			// fails and closes the connection it uses. Clear the flag so the run's last
+			// progress is written, and set it again after, so the caller still sees the
+			// cancel.
+			boolean interrupted = Thread.interrupted();
+			try {
+				state.progress().close(interrupted ? "cancelled" : progressOutcome);
+				// Always restore -- we always mutated options.instructions above.
+				opts = room.getOptionsMap();
+				if (hadInstructions) {
+					opts.put("instructions", originalInstructions);
+				} else {
+					opts.remove("instructions");
+				}
+				if (hadPromptOverride) {
+					opts.put("overrideSystemPrompt", originalPromptOverride);
+				} else {
+					opts.remove("overrideSystemPrompt");
+				}
+				room.setOptionsMap(opts);
+				if (rootJobIdRegistered != null) {
+					AgentSubAgentRegistry.getManager().unregisterRoot(rootJobIdRegistered);
+				}
+			} finally {
+				if (interrupted) {
+					Thread.currentThread().interrupt();
+				}
 			}
 		}
 	}
@@ -1234,27 +1247,10 @@ public class SemossAgentHarness implements IAgentHarness {
 				- Verify generated outputs through working-directory file tools before reporting completion. \
 				Also reopen binary documents with a format-appropriate reader at the exact ROOT destination.\
 				""");
-		if (CollaborationUtils.isCollaborationRoom(room)) {
-			sb.append(
-					"""
-
-							## Collaboration file delivery
-							- Before reading documents, load collaboration/references/documents/read-and-extract.md \
-							and python. For source text, use from smssutil import get_document_markdown, then \
-							get_document_markdown("<actual relative file path>"). The shared Docling wrapper includes \
-							notes/source labels and leaves originals unchanged. Use this route before raw ZIP/XML parsing \
-							or visual inspection for a text-reading task; use visual tools when visuals matter.
-							- Before creating or repairing files, load the relevant collaboration references and the \
-							python or pptx skill for that execution route. Continue truncated reads as needed.
-							- For every verified output saved inside this room, include a Markdown file link in the final answer: \
-							[summary.docx](room://summary.docx). Use the path relative to the room folder, including any subdirectory, \
-							and percent-encode spaces in each path segment. The link opens the file panel with Download. \
-							A bare filename is not a file handoff. Never link an unverified file or one outside the room. \
-							Do not offer email as a substitute for returning the file.
-							- Repair authorized local outputs without another permission turn, preserving the owner's edits. \
-							Ask only for a blocking new decision or unrelated overwrite. Do not bypass an access failure or retry \
-							a rejected external action. Finish with the verified artifact and a concise outcome.\
-							""");
+		// the Collaboration prompt carries this itself; other agents in a Collaboration
+		// room get it here
+		if (CollaborationUtils.isCollaborationRoom(room) && !collaborationBaseline(ctx, room)) {
+			sb.append("\n\n").append(CollaborationPrompts.FILES_PROMPT);
 		}
 		if (ctx.getAgentConfig().hasPptxWorkflow()) {
 			sb.append("""
@@ -1578,6 +1574,12 @@ public class SemossAgentHarness implements IAgentHarness {
 			throw new IllegalStateException("Agent model returned no response " + phase);
 		}
 		return response;
+	}
+
+	// a Collaboration chat or routine starts from the Collaboration prompt; a PPTX
+	// workflow agent keeps its own
+	private static boolean collaborationBaseline(AgentRunContext ctx, Room room) {
+		return CollaborationRunMode.of(room) != null && !ctx.getAgentConfig().hasPptxWorkflow();
 	}
 
 }

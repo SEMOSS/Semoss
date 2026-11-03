@@ -41,6 +41,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -66,6 +67,7 @@ import prerna.om.ThreadStore;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.definition.AutomationDefinitionValidator;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
@@ -347,6 +349,54 @@ public class AutomationRunExecutionServiceUnitTests {
 				() -> AutomationRunExecutionService.loopItems("${missing}", Map.of(), "loop"));
 		assertThrows(IllegalArgumentException.class,
 				() -> AutomationRunExecutionService.loopItems(42, Map.of(), "loop"));
+	}
+
+	@Test
+	void appendsLoopResultsWithoutReserializingPriorIterations() {
+		List<Map<String, Object>> results = new ArrayList<>();
+		long encodedBytes = 2L;
+		Map<String, Object> first = Map.of("index", 0, "outputs", Map.of("value", "seven"));
+		Map<String, Object> second = Map.of("index", 1, "outputs", Map.of("value", "neuf é"));
+
+		encodedBytes = AutomationRunExecutionService.appendBoundedLoopResult(results, first, encodedBytes, 1024,
+				"loop results");
+		encodedBytes = AutomationRunExecutionService.appendBoundedLoopResult(results, second, encodedBytes, 1024,
+				"loop results");
+
+		assertEquals(List.of(first, second), results);
+		assertEquals(AutomationRuntimeUtils.toRuntimeJson(results).getBytes(StandardCharsets.UTF_8).length,
+				encodedBytes);
+	}
+
+	@Test
+	void rejectsLoopResultBeforeItExceedsTheEncodedLimit() {
+		List<Map<String, Object>> results = new ArrayList<>();
+		Map<String, Object> first = Map.of("value", "first");
+		long encodedBytes = AutomationRunExecutionService.appendBoundedLoopResult(results, first, 2L, 1024,
+				"loop results");
+		int exactBytes = Math.toIntExact(encodedBytes);
+
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+				() -> AutomationRunExecutionService.appendBoundedLoopResult(results, Map.of("value", "second"),
+						exactBytes, exactBytes, "loop results"));
+
+		assertEquals("loop results exceeds the maximum of " + exactBytes + " UTF-8 bytes.", error.getMessage());
+		assertEquals(List.of(first), results);
+	}
+
+	@Test
+	void replacesLiveFramesBeforeSerializingLoopResults() {
+		Map<String, Object> summary = Map.of("dataType", "table", "rowCount", 1L, "columnCount", 1);
+		AutomationFrameOutput.RegisteredFrame frame =
+				new AutomationFrameOutput.RegisteredFrame("query_result", null, summary, "PY");
+		Map<String, Object> outputs = Map.of("query_result", frame,
+				"nested", List.of(Map.of("frame", frame)));
+
+		Object normalized = AutomationRunExecutionService.persistableValue(outputs);
+
+		assertEquals(Map.of("query_result", summary, "nested", List.of(Map.of("frame", summary))), normalized);
+		assertEquals(frame, outputs.get("query_result"));
+		AutomationRuntimeUtils.toRuntimeJson(normalized);
 	}
 
 	@Test

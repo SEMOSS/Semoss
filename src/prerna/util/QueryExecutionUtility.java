@@ -31,7 +31,9 @@ import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -52,6 +54,8 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.interpreters.sql.ParameterizedSqlInterpreter;
+import prerna.query.interpreters.sql.ParameterizedSqlInterpreter.CompiledQuery;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -81,6 +85,38 @@ public class QueryExecutionUtility {
 
 	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
+
+	/**
+	 * Binds nothing, for a statement that takes no parameters.
+	 */
+	public static final StatementBinder NO_PARAMETERS = statement -> {
+	};
+
+	/**
+	 * Binds a list of strings to consecutive placeholders, in list order, such as
+	 * the values of an {@code IN (?, ?, ?)} list.
+	 *
+	 * @param ps     the statement to bind
+	 * @param first  the 1-based index of the placeholder the first value binds to
+	 * @param values the values, one per placeholder
+	 * @throws SQLException when a value cannot be bound
+	 */
+	public static void bindAll(PreparedStatement ps, int first, List<String> values) throws SQLException {
+		for (int i = 0; i < values.size(); i++) {
+			ps.setString(first + i, values.get(i));
+		}
+	}
+
+	/**
+	 * The placeholders for a list of values, such as {@code ?, ?, ?} for three, to
+	 * write inside an {@code IN (...)} list and bind with {@link #bindAll}.
+	 *
+	 * @param count the number of values
+	 * @return the placeholders, separated by commas
+	 */
+	public static String placeholders(int count) {
+		return String.join(", ", Collections.nCopies(count, "?"));
+	}
 
 	/**
 	 * Describes SQL text, ordered JDBC bind values, and a requested result-row
@@ -316,6 +352,61 @@ public class QueryExecutionUtility {
 				return rows;
 			}
 		}
+	}
+
+	/**
+	 * Compiles a structured SELECT into SQL with separate bindings, as
+	 * {@link #flushPreparedRsToMap(IRDBMSEngine, SelectQueryStruct)} does, and maps
+	 * each row with no statement timeout. See
+	 * {@link #queryList(IRDBMSEngine, SelectQueryStruct, RowMapper, int)}.
+	 *
+	 * @param engine relational engine whose dialect and metadata compile the query
+	 * @param qs     structured SELECT, with its filters, ordering and pagination
+	 * @param mapper maps the current row without advancing the cursor
+	 * @return a mutable list of the mapped rows in result order, or an empty list
+	 *         for no rows
+	 * @throws Exception if the query cannot be compiled, or preparing, executing or
+	 *                   mapping fails
+	 */
+	public static <T> List<T> queryList(IRDBMSEngine engine, SelectQueryStruct qs, RowMapper<T> mapper)
+			throws Exception {
+		return queryList(engine, qs, mapper, 0);
+	}
+
+	/**
+	 * Compiles a structured SELECT into SQL with separate bindings, as
+	 * {@link #flushPreparedRsToMap(IRDBMSEngine, SelectQueryStruct)} does, and maps
+	 * each row with the caller's mapper. The mapper reads the JDBC values itself,
+	 * so a column keeps its own type, such as a timestamp's exact value, rather
+	 * than the wrapper's conversion. Values are bound in order with
+	 * {@link PreparedStatement#setObject(int, Object)}. Owns a read transaction and
+	 * closes the statement and result set on all paths.
+	 *
+	 * @param engine              relational engine whose dialect and metadata
+	 *                            compile the query
+	 * @param qs                  structured SELECT, with its filters, ordering and
+	 *                            pagination
+	 * @param mapper              maps the current row without advancing the cursor
+	 * @param queryTimeoutSeconds non-negative JDBC timeout in seconds; zero means
+	 *                            no timeout
+	 * @return a mutable list of the mapped rows in result order, or an empty list
+	 *         for no rows
+	 * @throws IllegalArgumentException if the timeout is negative, or the query
+	 *                                  shape or a value is unsupported
+	 * @throws Exception                if preparing, executing or mapping fails
+	 */
+	public static <T> List<T> queryList(IRDBMSEngine engine, SelectQueryStruct qs, RowMapper<T> mapper,
+			int queryTimeoutSeconds) throws Exception {
+		if (queryTimeoutSeconds < 0) {
+			throw new IllegalArgumentException("The query timeout cannot be negative");
+		}
+		CompiledQuery query = new ParameterizedSqlInterpreter(engine).compile(qs);
+		return queryList(engine, query.sql(), statement -> {
+			statement.setQueryTimeout(queryTimeoutSeconds);
+			for (int i = 0; i < query.parameters().size(); i++) {
+				statement.setObject(i + 1, query.parameters().get(i));
+			}
+		}, mapper);
 	}
 
 	/**
