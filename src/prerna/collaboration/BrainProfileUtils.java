@@ -494,9 +494,22 @@ public final class BrainProfileUtils {
 		if (updated == 0) {
 			throw new IllegalArgumentException("Settings were changed elsewhere; reload and try again");
 		}
+		Map<String, Boolean> wasEnabled = CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType);
+		boolean turnedOn = false;
 		for (Map.Entry<String, Object> source : sources.entrySet()) {
-			CollaborationSourceUtils.setSourceEnabled(ownerId, ownerType, source.getKey(),
-					Boolean.TRUE.equals(source.getValue()));
+			boolean on = Boolean.TRUE.equals(source.getValue());
+			CollaborationSourceUtils.setSourceEnabled(ownerId, ownerType, source.getKey(), on);
+			// calendar is read live; only mail and Teams are pulled in by the sync
+			turnedOn |= on && !Boolean.TRUE.equals(wasEnabled.get(source.getKey()))
+					&& !"calendar".equals(source.getKey());
+		}
+		if (turnedOn && BrainSync.lastRun(ownerId, ownerType) != null) {
+			// pull in what was missed (or Teams' first window) now instead of at the next check
+			try {
+				BrainSync.start(user);
+			} catch (RuntimeException e) {
+				classLogger.warn("Sync after turning a source on did not start: {}", e.getMessage());
+			}
 		}
 		return getSettings(ownerId, ownerType);
 	}
