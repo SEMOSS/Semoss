@@ -20,7 +20,7 @@ when comparing it with the assessed application baseline.
 | Final OS | `registry1.dso.mil/ironbank/redhat/ubi/ubi10:10.2` |
 | Python runtime donor | `registry1.dso.mil/ironbank/opensource/python:v3.14` (Python 3.14.7, UBI 10.2) |
 | Tomcat | 9.0.119 (SEMOSS 5.4 uses `javax.servlet`, not Tomcat 10/11's Jakarta API) |
-| BC FIPS | bc-fips 2.1.3, bctls-fips 2.1.24, bcpkix-fips 2.1.12, bcutil-fips 2.1.7 |
+| BC FIPS | bc-fips 2.1.3, bctls-fips 2.1.24, bcpkix-fips 2.1.13, bcutil-fips 2.1.8 |
 
 All three images have **digest-pinned defaults** in [Dockerfile](./Dockerfile).
 The development GitHub build resolves fresh digests behind those same version
@@ -173,6 +173,14 @@ every connector or external service is operational.
   [JDBC integration guide](./integrations/jdbc/README.md).
   Require server-certificate and hostname validation, least-privilege accounts,
   and trusted CA material before enabling production connectors.
+- **Redis:** not configured in this template - `compose.dev.yml` and
+  `entrypoint.sh` set neither `REDIS_ENABLED` nor `SEMOSS_IS_CLUSTER_REDIS`.
+  This is deliberate, not a gap: `dev`'s model-usage-limit guard already
+  treats Redis as optional and falls back to the in-memory
+  `LocalModelUsageCounterStore` when neither variable is set, so usage-limit
+  rules still enforce - just per server rather than cluster-wide. Wire up
+  both variables and a reachable Redis before running more than one instance
+  behind a shared usage-limit rule.
 
 SEMOSS external database registration writes connection properties, potentially
 including passwords, to `.smss` files when no supported secrets connector is
@@ -299,6 +307,17 @@ tooling, and compiler flags are recorded in
 `x86-64-v3`, not the build host's `-march=native`. Build tools and caches are not
 copied into the final image. The lock pins **inputs**, not reproducible byte hashes
 of locally compiled wheels. No pre-approved offline wheelhouse is claimed.
+
+This hash-pinned `uv==0.11.17` is a different, narrower use of `uv` than
+`dev`'s own `docker/Dockerfile.python`, which deliberately runs an unpinned,
+weekly-rebuilt `uv` so it keeps picking up new CPython 3.14.x security
+patches automatically. That concern doesn't apply here: this template's
+Python interpreter version is fixed by the Iron Bank `python:v3.14` base
+image digest (see [Images and supply chain](#images-and-supply-chain)), not
+by `uv`, which this build only ever uses to resolve and hash-verify Python
+*packages* against `requirements-cpu.lock`. Keep `install.sh`'s `uv` pin as
+reproducibility tooling for the dependency lock, not something to float to
+match `dev`'s CI image.
 
 The complete environment is copied to the same absolute path in the runtime.
 Set `PYTHONHOME /opt/semoss-python` in SEMOSS's RDF properties, **not** as an
