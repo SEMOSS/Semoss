@@ -135,6 +135,7 @@ public final class WorkTaskUtils {
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("workItems", tasks);
 		out.put("looseSteps", looseSteps);
+		putIfNotNull(out, "selfId", self);
 		if (!includeSuggested) {
 			out.put("suggestedStepCount", CollaborationDbUtils.queryOne("SELECT COUNT(*) AS N FROM WORK_THREAD_STEP"
 					+ OWNED + " AND TASK_ID IS NULL AND STATUS = ? AND ORIGIN = ? AND (STEP_OWNER_ID IS NULL OR "
@@ -449,9 +450,15 @@ public final class WorkTaskUtils {
 	}
 
 	private static List<Map<String, Object>> steps(String ownerId, String ownerType, String taskId) {
-		return CollaborationDbUtils.query("SELECT " + STEP_COLUMNS + " FROM WORK_THREAD_STEP" + OWNED
-				+ " AND TASK_ID = ? AND (STATUS IS NULL OR STATUS <> ?) ORDER BY CREATED_AT", WorkTaskUtils::mapStep,
-				ownerId, ownerType, taskId, WorkWorkspaceUtils.DISMISSED);
+		// with the assignee's name, so the UI need not load people
+		return CollaborationDbUtils.query("SELECT " + STEP_COLUMNS + ", (SELECT p.DISPLAY_NAME FROM BRAIN_PERSON p "
+				+ "WHERE p.OWNER_ID = WORK_THREAD_STEP.OWNER_ID AND p.OWNER_TYPE = WORK_THREAD_STEP.OWNER_TYPE AND "
+				+ "p.PERSON_ID = WORK_THREAD_STEP.STEP_OWNER_ID) AS ASSIGNEE_NAME FROM WORK_THREAD_STEP" + OWNED
+				+ " AND TASK_ID = ? AND (STATUS IS NULL OR STATUS <> ?) ORDER BY CREATED_AT", rs -> {
+					Map<String, Object> step = mapStep(rs);
+					putIfNotNull(step, "assigneeName", CollaborationDbUtils.getString(rs, "ASSIGNEE_NAME"));
+					return step;
+				}, ownerId, ownerType, taskId, WorkWorkspaceUtils.DISMISSED);
 	}
 
 	private static List<Map<String, Object>> topics(String ownerId, String ownerType, String taskId) {
