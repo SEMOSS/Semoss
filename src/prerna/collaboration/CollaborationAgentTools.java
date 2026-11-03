@@ -210,11 +210,11 @@ public final class CollaborationAgentTools {
 			"ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant", "DeleteMySkill");
 
 	// tools the model loads on demand (SearchTools/LoadTools): direct Microsoft 365 mail after Brain's own search,
-	// calendar changes, Teams channels and their files, one Teams chat or message by id, skills, and Brain edits
+	// calendar changes, Teams channels and their files, one Teams chat or message by id, skills, Brain edits, and listing or managing routines
 	private static final Set<String> DEFERRED = Set.of("ListM365Mail", "DeleteMySkill", "CreateEvent", "UpdateEvent",
 			"DeleteEvent", "RespondToEvent", "ListChannels", "ListChannelFiles", "DownloadChannelFile",
 			"UploadChannelFile", "GetChat", "GetChatMessage", "ListMySkills", "OpenSkill", "PublishSkill",
-			"UseSkillInAssistant", "EditTopic", "EditThread");
+			"UseSkillInAssistant", "EditTopic", "EditThread", "ListRoutines", "ManageRoutine");
 	// what the chat card calls a tool when its words alone would not say it
 	private static final Map<String, String> TITLES = Map.of("ShowItem", "Open Beside Chat");
 
