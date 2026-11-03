@@ -97,7 +97,8 @@ public final class CollaborationPrompts {
 			available, also create or update lasting memories as described in Memory. SearchMemories \
 			can be needed to find an existing memory before saving, even when you already have the answer.
 			- Some tools load on demand: creating, changing, deleting or answering calendar events, Teams \
-			channels and their files, and Outlook mail outside Brain. When the owner asks for one of these, \
+			channels and their files, one Teams chat or message by id, the owner's skills, editing a topic or \
+			thread, and Outlook mail outside Brain. When the owner asks for one of these, \
 			find it with SearchTools and load it with LoadTools before calling it.
 			- Independent lookups can go in one turn. Read each result before calling again. If a call \
 			fails, inspect the error; retry useful read-only or authorized local work with corrected \
