@@ -36,8 +36,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 
 /**
  * Identity resolution for skill projects. A skill is a Project of type
@@ -197,6 +199,17 @@ public final class SkillProjects {
 	public static String contentSubfolder(String projectId) {
 		Path skillDir = resolveSkillDir(projectId);
 		return "/" + (skillDir != null ? skillDir.getFileName().toString() : Skill.SKILL_ASSET_SUBFOLDER);
+	}
+
+	/**
+	 * Copies the skill project's files to cloud storage after its content changes, so a pod that pulls the project
+	 * later, such as a new pod after a rollout, has them. The project is pushed once when it is created, before it has
+	 * any content. Does nothing outside a cluster.
+	 */
+	public static void pushContent(String projectId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			ClusterUtil.pushProjectFolder(Utility.getProject(projectId), AssetUtility.getProjectAppRootFolder(projectId));
+		}
 	}
 
 	private static String displayNameQuiet(String projectId) {

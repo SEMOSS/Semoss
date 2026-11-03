@@ -59,6 +59,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.quartz.CronExpression;
 import org.quartz.CronTrigger;
@@ -77,6 +78,8 @@ import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.io.connector.ms.MicrosoftGraphCredentialStore;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry.Subscription;
+import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
 import prerna.om.Insight;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationRuntime;
@@ -126,7 +129,9 @@ class WorkInboxRoutineUnitTests {
 			for (Pair<String, List<Pair<String, String>>> table : new CollaborationOwlCreator(queryUtil).getDBSchema()) {
 				List<String> columns = new ArrayList<>();
 				for (Pair<String, String> column : table.getValue1()) {
-					columns.add(column.getValue0() + " " + column.getValue1());
+					// quoted as the server quotes them: H2 2.x reserves words such as VALUE
+					String name = column.getValue0();
+					columns.add((queryUtil.isSelectorKeyword(name) ? queryUtil.getEscapeKeyword(name) : name) + " " + column.getValue1());
 				}
 				statement.execute("CREATE TABLE " + table.getValue0() + " (" + String.join(", ", columns) + ")");
 			}
@@ -508,6 +513,33 @@ class WorkInboxRoutineUnitTests {
 			assertEquals("brief-room", unsent.get("roomId"));
 			automations.verify(() -> RunAutomationDefinitionReactor.runDefinition(any(), anyString(), anyString(), any(),
 					anyMap(), anyString(), isNull()), times(2));
+		}
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void aBriefCutOffByItsTimeLimitSaysSoAndTellsTheOwner() throws Exception {
+		Insight insight = enabledRoutine();
+		at("2026-10-12T08:00:00Z");
+		finished(AutomationConstants.STATUS_FAILED, AutomationConstants.NODE_STATUS_FAILED, null);
+		// the agent node's error as the automation writes it when waitTimeoutMs runs out
+		store.when(() -> AutomationRunStore.getNodeOutputsForRun(anyString())).thenReturn(List.of(Map.of(
+				AutomationConstants.NODE_ID, "brief", AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_FAILED,
+				AutomationConstants.ROOM_ID, "brief-room", AutomationConstants.ERROR_MESSAGE,
+				"Agent run 'agent-1'" + AutomationConstants.AGENT_WAIT_TIMEOUT_ERROR)));
+		try (MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class);
+				MockedStatic<MicrosoftLoginUtils> login = mockStatic(MicrosoftLoginUtils.class);
+				MockedConstruction<MicrosoftOutlookMailHelper> mail = mockConstruction(MicrosoftOutlookMailHelper.class)) {
+			accounts.when(() -> SecurityQueryUtils.getUnlockedUser("owner-one", AuthProvider.NATIVE.getLabel())).thenReturn(Map.of("id", "owner-one"));
+			login.when(() -> MicrosoftLoginUtils.getValidAccessToken(user)).thenReturn("owner-token");
+			assertEquals("failed", WorkInboxRoutine.run(insight).get("status"));
+			Map<?, ?> failed = (Map<?, ?>) WorkInboxRoutine.get(user).get("lastRun");
+			assertTrue(((String) failed.get("error")).startsWith("The inbox brief ran out of time"));
+			assertEquals("brief-room", failed.get("roomId"));
+			ArgumentCaptor<Map<String, Object>> message = ArgumentCaptor.forClass(Map.class);
+			verify(mail.constructed().get(0)).sendMail(eq("owner-token"), isNull(), message.capture(), eq(true));
+			assertEquals("Your inbox brief ran out of time", message.getValue().get("subject"));
+			assertEquals(1, mail.constructed().size());
 		}
 	}
 

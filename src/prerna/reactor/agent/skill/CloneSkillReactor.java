@@ -161,6 +161,7 @@ public class CloneSkillReactor extends AbstractReactor {
 					: "";
 			String finalContent = Skill.buildFrontmatter(newName, sourceDescription) + bodyOnly;
 			Files.write(newSkillFile, finalContent.getBytes(StandardCharsets.UTF_8));
+			SkillProjects.pushContent(newSkillId);
 		} catch (Exception e) {
 			classLogger.error("Failed to clone skill into '{}' (id {})", newName, newSkillId, e);
 			throw new IllegalArgumentException("Failed to clone skill: " + e.getMessage(), e);

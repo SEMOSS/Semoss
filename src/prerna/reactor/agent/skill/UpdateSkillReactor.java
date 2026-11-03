@@ -176,6 +176,7 @@ public class UpdateSkillReactor extends AbstractReactor {
 				throw new IllegalStateException("Failed to create skill content folder: " + skillDir.getAbsolutePath());
 			}
 			Files.write(skillFile, finalContent.getBytes(StandardCharsets.UTF_8));
+			SkillProjects.pushContent(skillId);
 		} catch (Exception e) {
 			classLogger.error("Failed to update skill '{}'", skillId, e);
 			throw new IllegalArgumentException("Failed to update skill: " + e.getMessage(), e);

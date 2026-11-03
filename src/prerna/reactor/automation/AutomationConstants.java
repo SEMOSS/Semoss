@@ -298,6 +298,8 @@ public final class AutomationConstants {
 	public static final String LOOP_MODE_REPEAT = "repeat";
 	public static final String LOOP_MODE_WHILE = "while";
 	public static final String CONFIG_WAIT_TIMEOUT_MS = "waitTimeoutMs";
+	/** How the ERROR_MESSAGE of an agent node cut off by its waitTimeoutMs ends. */
+	public static final String AGENT_WAIT_TIMEOUT_ERROR = " did not complete before the wait timeout.";
 	public static final String CONFIG_APP_ID = "appId";
 
 	// -- Node execution defaults / bounds
