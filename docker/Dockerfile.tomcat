@@ -33,10 +33,11 @@ ARG FIPS_ENABLED=false
 # travel with the existing "COPY --from=tomcat_builder /usr/lib/jvm/zulu25"
 # in every downstream image.
 #
-# Only bc-fips is the CMVP-validated module - bctls/bcpkix/bcutil are companion
-# libraries outside the certificate boundary that call into it. Before bumping
-# BC_FIPS_VERSION, confirm the new version is on the CMVP active list, not just
-# published to Maven Central.
+# Only bc-fips is the validated module - bctls/bcpkix/bcutil are companion
+# libraries outside its boundary that call into it. Before bumping
+# BC_FIPS_VERSION, confirm the new version's validation status, not just that
+# it is published to Maven Central. Current validation status and certificate
+# references live in the SSP/Controls package, not here.
 ARG BC_FIPS_VERSION=2.1.3
 ARG BCTLS_FIPS_VERSION=2.1.24
 ARG BCPKIX_FIPS_VERSION=2.1.12

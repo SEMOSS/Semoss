@@ -1,9 +1,9 @@
 # HTTPS certificate staging and replacement
 
-HTTPS server certificates identify this SEMOSS endpoint. They are **not** CMVP
-cryptographic-module validation certificates and do not establish FIPS compliance
-or IL4 authorization. Inbound HTTPS identity is also separate from outbound
-database CA trust; see [GovCloud RDS trust](./RDS.md).
+HTTPS server certificates identify this SEMOSS endpoint. They are **not**
+cryptographic-module validation evidence and do not by themselves establish FIPS
+compliance or IL4 authorization. Inbound HTTPS identity is also separate from
+outbound database CA trust; see [GovCloud RDS trust](./RDS.md).
 
 | Image variant | Server keystore | Format |
 | --- | --- | --- |

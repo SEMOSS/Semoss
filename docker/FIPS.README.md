@@ -14,8 +14,10 @@ SEMOSS are consumers. Three things have to be true:
 3. All security-relevant cryptography goes through it
 
 The module is **BouncyCastle BC-FJA** (`bc-fips`). The companion jars
-(`bctls-fips`, `bcpkix-fips`, `bcutil-fips`) sit **outside** the certificate
-boundary and call into it. Only `bc-fips` carries the CMVP certificate.
+(`bctls-fips`, `bcpkix-fips`, `bcutil-fips`) sit **outside** the validation
+boundary and call into it. Only `bc-fips` is the validated module; current
+validation status and certificate references live in the SSP/Controls
+package, not here.
 
 Note what this does NOT require: the JVM does not have to be incapable of
 computing a non-approved algorithm. See section 8.
@@ -128,6 +130,12 @@ appending ours, never by in-place substitution - a substitution silently no-ops
 if the property ever stops shipping, which puts the image back on the broken
 default with a green build.
 
+`jdk.tls.disabledAlgorithms` additionally lists `X25519, X448, Ed25519, Ed448`.
+BC-FIPS's `approved_only` mode already excludes the Curve25519/Ed25519 family
+structurally, so this is defense-in-depth for if that mode is ever disabled,
+not the primary control - verified by capturing a raw ClientHello and
+confirming none of the four appear among the offered groups/signature schemes.
+
 `tomcat-builder.yml` crosses `arch` with `fips` (4 build jobs, 2 merge jobs) and
 asserts each variant is genuinely what it claims - including that the standard
 image contains **no** FIPS artifacts, which catches `FIPS_ENABLED` leaking.
@@ -178,7 +186,7 @@ Either form adds `-Dmonolith.lib.classifier=libraries-fips`, which
 because it is shared.
 
 
-## 7. Session IDs
+## 7. Session IDs and CSRF tokens
 
 Tomcat's `SessionIdGeneratorBase` defaults to `secureRandomAlgorithm="SHA1PRNG"`
 with no provider. **BCFIPS does not implement SHA1PRNG**, so that lookup resolves
@@ -202,6 +210,30 @@ which `setenv.sh` sets for all images. Without it the `:-` defaults still apply,
 so nothing breaks on an older base.
 
 The setenv.sh is predefined in Dockerfile.tomcat inside the FIPS_ENABLED=true block.
+
+### 7.1 CSRF tokens
+
+Tomcat's `CsrfPreventionFilterBase` has the identical problem one layer up:
+its `randomClass` init-param is instantiated via
+`Class.forName(name).getConstructor().newInstance()`, so there is no way to
+hand it a provider or algorithm directly - only a public, no-arg-constructible
+class name.
+
+`FipsPreferredSecureRandom` fills that gap: a `SecureRandom` subclass that
+tries the same provider pairs session IDs already pin, in order -
+`DEFAULT`/`BCFIPS`, then `LibCryptoRng`/`AmazonCorrettoCryptoProvider` - and
+falls back to the platform default `SecureRandom` when neither is registered
+(a non-IL4 deployment).
+
+It is compiled standalone into the default package, like
+`RdsTrust.java`/`FipsCheck.java`/`AccpCheck.java`, and installed directly into
+Tomcat's own `$CATALINA_HOME/lib/`, not packaged inside Monolith's WAR.
+`CsrfPreventionFilterBase`'s `Class.forName(name)` resolves using Tomcat's
+shared/common classloader (that class lives in `tomcat-catalina.jar`), not the
+webapp's - a class bundled in the WAR is invisible to it no matter how it is
+packaged there. Confirmed by decompiling the real
+`tomcat-catalina-11.0.27.jar` and, the first time around, by reproducing the
+exact `ClassNotFoundException` locally.
 
 
 ## 8. What approved-only mode does and does not catch
@@ -264,6 +296,14 @@ FipsUnapprovedOperationError: password must be at least 112 bits
 That reads like a database problem and is not - the driver refuses to compute the
 hash. The same floor applies to MinIO/S3 keys and to
 `PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD`.
+
+**SEMOSS's own user-password hashing also runs through PBKDF2.** New
+credentials hash via `PBKDF2WithHmacSHA256`, replacing BCrypt (not a
+FIPS-approved primitive); existing BCrypt-hashed accounts rehash automatically
+on next login. This landed alongside the Tomcat 9 -> 11 / Jakarta EE 11
+migration (required for VA TRM compliance in FedRAMP Moderate deployments,
+where Tomcat 9 is out of scope). The same 14-character / 112-bit floor above
+applies to these credentials too.
 
 `POSTGRES_PASSWORD` only applies at `initdb`, so an existing stack needs
 `docker compose down -v`.

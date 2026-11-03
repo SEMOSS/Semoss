@@ -1327,7 +1327,7 @@ Two alternatives were investigated separately from the working deployment:
 
 | Candidate | Evidence | Disposition |
 | --- | --- | --- |
-| Red Hat OpenJDK 25 / NSS on RHEL 9 | Certificate #5022 identifies NSS module `3.90.0-4408e3bb8a34af3a`, supplied in `nss-softokn` and `nss-softokn-freebl` `3.90.0-6.el9_2`. The current public UBI9/OpenJDK25 image inspected contains NSS `3.124.0-5.el9_6`, not this documented baseline. Red Hat Java25 support starts at RHEL9.7; the validated RPMs are from the RHEL9.2 EUS stream. | Paused: no supported public package/runtime combination was established. Do not blindly downgrade NSS or assume the newest package is validated. |
+| Red Hat OpenJDK 25 / NSS on RHEL 9 | The validated NSS module build is `3.90.0-4408e3bb8a34af3a`, supplied in `nss-softokn` and `nss-softokn-freebl` `3.90.0-6.el9_2`. The current public UBI9/OpenJDK25 image inspected contains NSS `3.124.0-5.el9_6`, not this validated baseline. Red Hat Java25 support starts at RHEL9.7; the validated RPMs are from the RHEL9.2 EUS stream. | Paused: no supported public package/runtime combination was established. Do not blindly downgrade NSS or assume the newest package is validated. |
 | ACCP-FIPS / AWS-LC | Maven Central's published `2.5.0` Linux x86-64 artifact was checksum-verified and reports AWS-LC-FIPS `3.0.0` at runtime. Isolated Java25 compatibility checks passed, but required PBKDF2 operations fell back to SunJCE. | Evaluation only: neither complete cryptographic routing nor exact certificate coverage was established. Do not promote it as a compliant replacement. |
 
 The inspected Red Hat base was
@@ -1371,10 +1371,10 @@ BCFIPS/BCJSSE providers were not registered in the probe. This was not a full
 Tomcat, JDBC, login/SSO, Python, or approved-service validation test.
 
 The ACCP main-branch documentation describes `2.6.0` using AWS-LC-FIPS `3.1.0`,
-but that release was not available from Maven Central when checked. Certificate
-#5314 covers the static `3.1.0` module; it must not be attributed to the tested
+but that release was not available from Maven Central when checked. The static
+`3.1.0` module's validation record must not be attributed to the tested
 `3.0.0` binary without separate evidence. Its listed operating environment is
-Amazon Linux 2023 on specified hardware, not UBI10. Any applicable CMVP
+Amazon Linux 2023 on specified hardware, not UBI10. Any applicable
 user-affirmation portability route requires a documented, accepted assessment;
 a local compatibility pass does not supply it. Python cryptography remains a
 separate assessment regardless of Java provider.
@@ -1386,15 +1386,15 @@ the current image while those gates remain unresolved.
 
 Sources:
 
-- [Red Hat compliance matrix](https://access.redhat.com/compliance/fips),
-  [NSS certificate #5022](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5022),
+- [Red Hat compliance matrix](https://access.redhat.com/compliance/fips)
   and [validated-package advisory](https://access.redhat.com/errata/RHSA-2024:0791).
 - [Red Hat OpenJDK support matrix](https://access.redhat.com/articles/1299013)
   and [UBI content availability](https://access.redhat.com/support/policy/updates/ubi).
 - [Published ACCP-FIPS versions](https://repo.maven.apache.org/maven2/software/amazon/cryptools/AmazonCorrettoCryptoProvider-FIPS/maven-metadata.xml)
   and [ACCP 2.5.0 documentation](https://github.com/corretto/amazon-corretto-crypto-provider/blob/2.5.0/README.md).
-- [AWS-LC certificate #5314](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5314)
-  and [its security policy](https://csrc.nist.gov/CSRC/media/projects/cryptographic-module-validation-program/documents/security-policies/140sp5314.pdf).
+
+Current certificate numbers and validation records for each candidate module
+live in the SSP/Controls package, not here.
 
 ### Current BC-based image
 
@@ -1412,14 +1412,15 @@ silently relying on unsupported JDK constraint syntax.
 Python's OpenSSL and cryptography packages do not route through Java's BCFIPS
 provider. The Python donor's catalog status and a successful Python smoke test
 do not establish FIPS operation for Python TLS, cryptography, or AI libraries.
-Only the cryptographic module has a CMVP validation boundary. `SUN` remains
-registered for JVM functionality and can still supply algorithms outside BCFIPS;
-pure-Java algorithms and explicitly selected providers need separate analysis.
-Java 25 + this OS/module combination must be checked against the module's
-applicable security policy and your authorization requirements. The
-[certificate 4943 page](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/4943)
-reviewed for this template lists Java 8/11/17/21 test environments, not Java 25.
-Do not infer Java 25 validation from a successful runtime test.
+Only the cryptographic module itself carries a validation boundary. `SUN`
+remains registered for JVM functionality and can still supply algorithms
+outside BCFIPS; pure-Java algorithms and explicitly selected providers need
+separate analysis. Java 25 + this OS/module combination must be checked
+against the module's applicable security policy and your authorization
+requirements - the module version reviewed for this template lists Java
+8/11/17/21 test environments, not Java 25. Do not infer Java 25 validation
+from a successful runtime test. Current certificate status for this module
+lives in the SSP/Controls package.
 
 FIPS-mode PBKDF2 has password/key-strength constraints (commonly at least 112 bits
 of password input). Test real database authentication, stored encrypted data,
