@@ -113,6 +113,8 @@ public class MicrosoftOneDriveItemMapper {
 		putIfPresent(output, "parentId", parentIdOf(described));
 		putIfPresent(output, "createdDateTime", described.get("createdDateTime"));
 		putIfPresent(output, "lastModifiedDateTime", described.get("lastModifiedDateTime"));
+		// changes only when the content does, unlike eTag
+		putIfPresent(output, "cTag", described.get("cTag"));
 		putIfPresent(output, "createdBy", displayNameOf(described.get("createdBy")));
 		putIfPresent(output, "lastModifiedBy", displayNameOf(described.get("lastModifiedBy")));
 

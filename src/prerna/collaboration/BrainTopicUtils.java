@@ -510,8 +510,7 @@ public final class BrainTopicUtils {
 	// moves thread links, people, notes, keywords, rules, and work-item links into
 	// the target, then drops the source
 	public static Map<String, Object> mergeTopics(User user, String sourceTopicId, String targetTopicId) {
-		var owner = CollaborationDbUtils.ownerOf(user);
-		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+		return BrainTopicFiles.changeTopic(user, sourceTopicId, targetTopicId,
 				() -> mergeTopicsInReview(user, sourceTopicId, targetTopicId));
 	}
 
@@ -571,6 +570,13 @@ public final class BrainTopicUtils {
 					ownerId, ownerType, sourceTopicId, ownerId, ownerType, targetTopicId);
 			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC_FOLDER SET TOPIC_ID = ?" + owned, targetTopicId,
 					ownerId, ownerType, sourceTopicId);
+			// likewise linked Microsoft 365 files; one linked to both keeps the target's link
+			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_TOPIC_LINK" + owned + " AND EXISTS (SELECT 1 FROM "
+					+ "BRAIN_TOPIC_LINK t WHERE t.OWNER_ID = BRAIN_TOPIC_LINK.OWNER_ID AND t.OWNER_TYPE = "
+					+ "BRAIN_TOPIC_LINK.OWNER_TYPE AND t.TOPIC_ID = ? AND t.DRIVE_ID = BRAIN_TOPIC_LINK.DRIVE_ID "
+					+ "AND t.ITEM_ID = BRAIN_TOPIC_LINK.ITEM_ID)", ownerId, ownerType, sourceTopicId, targetTopicId);
+			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC_LINK SET TOPIC_ID = ?" + owned, targetTopicId,
+					ownerId, ownerType, sourceTopicId);
 			for (String table : new String[] { "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE", "BRAIN_RULE" }) {
 				CollaborationDbUtils.update(conn, "UPDATE " + table + " SET TOPIC_ID = ?" + owned, targetTopicId,
 						ownerId, ownerType, sourceTopicId);
@@ -622,9 +628,7 @@ public final class BrainTopicUtils {
 	// thread that loses
 	// its primary link gets its next most confident link as primary
 	public static Map<String, Object> deleteTopic(User user, String topicId) {
-		var owner = CollaborationDbUtils.ownerOf(user);
-		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
-				() -> deleteTopicInReview(user, topicId));
+		return BrainTopicFiles.changeTopic(user, topicId, null, () -> deleteTopicInReview(user, topicId));
 	}
 
 	private static Map<String, Object> deleteTopicInReview(User user, String topicId) {
@@ -658,7 +662,7 @@ public final class BrainTopicUtils {
 				}
 			}
 			for (String table : new String[] { "BRAIN_THREAD_TOPIC", "BRAIN_THREAD_TOPIC_REJECTION", "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE",
-					"BRAIN_RULE", "BRAIN_TOPIC_FOLDER", "BRAIN_TOPIC" }) {
+					"BRAIN_RULE", "BRAIN_TOPIC_FOLDER", "BRAIN_TOPIC_LINK", "BRAIN_TOPIC" }) {
 				CollaborationDbUtils.update(conn, "DELETE FROM " + table + owned, ownerId, ownerType, topicId);
 			}
 			// memories only about this topic go with it, as its notes did; the others just lose the link

@@ -107,7 +107,7 @@ public final class AgentLoopState {
         return "[SEMOSS runtime status]\n" + progress.guidance()
                 + (currentTimeZone == null ? "" : "\n" + RuntimeTimeContext.capture(currentTimeZone).guidance())
                 + (pptxWorkflow == null ? "" : "\n" + pptxWorkflow.guidance(iterations))
-                + (topics == null ? "" : "\n" + topics)
+                + (topics == null ? "" : "\n" + topics + "\n" + prerna.collaboration.BrainTopicFiles.RUNTIME_NOTE)
                 + (threads == null ? "" : "\n" + threads)
                 + "\n[/SEMOSS runtime status]";
     }
