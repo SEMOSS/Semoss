@@ -61,7 +61,9 @@ public final class WorkPipeline {
 			- commitment: the owner said they would do something.
 			- decision: something was decided.
 			- update: news on some piece of work (progress, a date moved, a blocker).
-			- done_claim: a message says something was finished, sent, merged, fixed, scheduled or answered.
+			- done_claim: a message says something was finished, sent, merged, fixed, scheduled or answered. A \
+			message that delivers what was asked (the owner sends the reply, file or answer someone asked for, or \
+			someone else delivers what the owner was waiting on) is a done_claim for that ask.
 			text: one short line. Tasks and commitments are imperative ("Send Kira the budget"). Use people's names, never p1.. ids.
 			assignee (who has to do it), never empty for task and commitment:
 			- "me" when the owner was asked by name or directly (a 1:1 chat with the owner, "@owner", "can you" \
@@ -428,6 +430,10 @@ public final class WorkPipeline {
 			}
 			try {
 				saver.save(topic);
+				for (String taskId : saver.touched) {
+					saver.merged += tidyItem(user, ownerId, ownerType, model, taskId);
+				}
+				saver.touched.clear();
 			} catch (RuntimeException e) {
 				classLogger.warn("Saving work items failed for topic {}", topic.get("topicId"), e);
 				saver.failedTopics.add(String.valueOf(topic.get("topicId")));
@@ -438,6 +444,7 @@ public final class WorkPipeline {
 		counts.put("steps", saver.steps);
 		counts.put("updates", saver.updates);
 		counts.put("closed", saver.closed);
+		counts.put("mergedSteps", saver.merged);
 		return counts;
 	}
 
@@ -449,6 +456,9 @@ public final class WorkPipeline {
 		final Map<String, Map<String, Object>> byShort;
 		final Set<String> handled = new HashSet<>();
 		final Set<String> failedTopics = new HashSet<>();
+		// items that got steps this topic; their duplicates are folded after the save
+		final Set<String> touched = new LinkedHashSet<>();
+		int merged;
 		int items;
 		int steps;
 		int updates;
@@ -534,6 +544,9 @@ public final class WorkPipeline {
 			List<Map<String, Object>> rows = rows(step.get("evidence"));
 			if (rows.isEmpty()) {
 				return;
+			}
+			if (taskId != null) {
+				touched.add(taskId);
 			}
 			Map<String, Object> first = rows.get(0);
 			boolean mine = ME.equals(step.get("assignee"));
@@ -630,6 +643,72 @@ public final class WorkPipeline {
 			List<Map<String, Object>> r = rows(shortIds);
 			return r.isEmpty() ? BRAIN : (String) r.get(0).get("candidateId");
 		}
+	}
+
+	// ---- tidy ----
+
+	/** Folds one item's duplicate open steps into one; returns how many steps were folded. */
+	@SuppressWarnings("unchecked")
+	static int tidyItem(User user, String ownerId, String ownerType, IModelEngine model, String taskId) {
+		try {
+			Map<String, Object> work = WorkTaskUtils.getWork(user, taskId);
+			List<Map<String, Object>> open = new ArrayList<>();
+			for (Map<String, Object> st : (List<Map<String, Object>>) work.getOrDefault("steps", List.of())) {
+				if (WorkTaskUtils.STEP_OPEN.contains(st.get("status"))) {
+					Map<String, Object> row = new LinkedHashMap<>();
+					row.put("id", st.get("id"));
+					row.put("text", st.get("text"));
+					Object name = st.get("assigneeName");
+					row.put("assignee", st.get("assigneeId") == null ? ME : name == null ? st.get("assigneeId") : name);
+					open.add(row);
+				}
+			}
+			int n = 0;
+			for (Map<String, Object> g : WorkReconcile.tidy(user, model, str(work.get("title")), open)) {
+				n += WorkTaskUtils.mergeSteps(ownerId, ownerType, taskId, (String) g.get("keep"),
+						(String) g.get("text"), (List<String>) g.get("merge"));
+			}
+			return n;
+		} catch (RuntimeException e) {
+			classLogger.warn("Tidying work item {} failed", taskId, e);
+			return 0;
+		}
+	}
+
+	/** Folds duplicate steps on every open item, in the background; status reports progress. */
+	public static Map<String, Object> tidyAll(User user) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		String engine = engine(user);
+		List<String> taskIds = new ArrayList<>();
+		for (Map<String, Object> t : list(WorkTaskUtils.listMyWork(user, Map.of()).get("workItems"))) {
+			taskIds.add((String) t.get("id"));
+		}
+		Map<String, Object> status = new ConcurrentHashMap<>();
+		status.put("state", "tidying");
+		status.put("items", taskIds.size());
+		RUNS.put(key(ownerId, ownerType), status);
+		POOL.submit(() -> {
+			synchronized (CollaborationDbUtils.ownerLock("work-items", ownerId, ownerType)) {
+				try {
+					IModelEngine model = Utility.getModel(engine);
+					int merged = 0;
+					int done = 0;
+					for (String taskId : taskIds) {
+						merged += tidyItem(user, ownerId, ownerType, model, taskId);
+						status.put("tidied", ++done);
+						status.put("mergedSteps", merged);
+					}
+					status.put("state", "done");
+				} catch (Throwable e) {
+					classLogger.error("Tidying work items failed", e);
+					status.put("state", "error");
+					status.put("error", String.valueOf(e.getMessage()));
+				}
+			}
+		});
+		return Map.of("items", taskIds.size(), "engine", engine);
 	}
 
 	// ---- helpers ----

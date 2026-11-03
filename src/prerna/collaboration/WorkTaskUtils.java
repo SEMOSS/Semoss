@@ -457,6 +457,36 @@ public final class WorkTaskUtils {
 		return getWork(user, intoId);
 	}
 
+	/**
+	 * Folds duplicate steps of one item into keepId: their evidence moves to it, they close as dropped, and the
+	 * kept step takes the new text unless the owner edited it. Steps the owner edited are never folded.
+	 */
+	static int mergeSteps(String ownerId, String ownerType, String taskId, String keepId, String text,
+			List<String> mergeIds) {
+		Timestamp now = CollaborationDbUtils.now();
+		int[] merged = { 0 };
+		CollaborationDbUtils.inTransaction(conn -> {
+			for (String id : mergeIds) {
+				int n = CollaborationDbUtils.update(conn, "UPDATE WORK_THREAD_STEP SET STATUS = ?, CLOSED_BY = ?, "
+						+ "UPDATED_AT = ?" + OWNED + " AND STEP_ID = ? AND TASK_ID = ? AND STATUS IN (?, ?) AND "
+						+ "(EDITED IS NULL OR EDITED = ?)", DROPPED, keepId, now, ownerId, ownerType, id, taskId,
+						"open", "waiting", false);
+				if (n == 0) {
+					continue;
+				}
+				merged[0]++;
+				CollaborationDbUtils.update(conn, "UPDATE WORK_STEP_EVIDENCE SET STEP_ID = ?" + OWNED
+						+ " AND STEP_ID = ?", keepId, ownerId, ownerType, id);
+			}
+			if (merged[0] > 0 && text != null) {
+				CollaborationDbUtils.update(conn, "UPDATE WORK_THREAD_STEP SET TEXT = ?, UPDATED_AT = ?" + OWNED
+						+ " AND STEP_ID = ? AND (EDITED IS NULL OR EDITED = ?)", clip(text, 500), now, ownerId,
+						ownerType, keepId, false);
+			}
+		});
+		return merged[0];
+	}
+
 	/** The room the owner works an item in; the room must be their own assistant chat. */
 	public static void setRoom(User user, String taskId, String roomId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);

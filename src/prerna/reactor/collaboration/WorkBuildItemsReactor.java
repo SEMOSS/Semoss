@@ -31,17 +31,18 @@ import prerna.auth.User;
 import prerna.collaboration.WorkPipeline;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// WorkBuildItems(days=[14], replaceOld=[true]); WorkBuildItems(status=[true]);
+// WorkBuildItems(days=[14], replaceOld=[true]); WorkBuildItems(status=[true]); WorkBuildItems(tidy=[true]);
 public class WorkBuildItemsReactor extends AbstractCollaborationReactor {
 
 	private static final String DAYS = "days";
 	private static final String REPLACE_OLD = "replaceOld";
 	private static final String STATUS = "status";
+	private static final String TIDY = "tidy";
 	private static final int DEFAULT_DAYS = 14;
 
 	public WorkBuildItemsReactor() {
-		this.keysToGet = new String[] { DAYS, REPLACE_OLD, STATUS };
-		this.keyRequired = new int[] { 0, 0, 0 };
+		this.keysToGet = new String[] { DAYS, REPLACE_OLD, STATUS, TIDY };
+		this.keyRequired = new int[] { 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -49,6 +50,9 @@ public class WorkBuildItemsReactor extends AbstractCollaborationReactor {
 		User user = getUser();
 		if (Boolean.TRUE.equals(getBoolean(STATUS))) {
 			return mapResult(WorkPipeline.status(user));
+		}
+		if (Boolean.TRUE.equals(getBoolean(TIDY))) {
+			return mapResult(WorkPipeline.tidyAll(user));
 		}
 		String days = getString(DAYS);
 		int n = days == null || days.isBlank() ? DEFAULT_DAYS : (int) Double.parseDouble(days.trim());
@@ -68,6 +72,8 @@ public class WorkBuildItemsReactor extends AbstractCollaborationReactor {
 			return "true to retire the steps threads made on their own and read every thread again";
 		} else if (STATUS.equals(key)) {
 			return "true to report the last build instead of starting one";
+		} else if (TIDY.equals(key)) {
+			return "true to fold duplicate steps on every open item instead of building";
 		}
 		return super.getDescriptionForKey(key);
 	}
