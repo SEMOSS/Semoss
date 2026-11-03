@@ -111,8 +111,9 @@ public final class WorkTaskUtils {
 			steps.removeIf(step -> !STEP_OPEN.contains(step.get("status")));
 			task.put("openSteps", steps);
 			// the owner's when they have an open step; the rest someone else is driving
-			task.put("mine", steps.stream().anyMatch(step -> "open".equals(step.get("status"))
-					&& (step.get("assigneeId") == null || step.get("assigneeId").equals(self))));
+			// a step nobody was named for (a group ask) counts as the owner's
+			task.put("mine", steps.stream().anyMatch(step -> step.get("assigneeId") == null
+					|| step.get("assigneeId").equals(self)));
 		}
 
 		// loose steps: the owner's open ones with no work item
@@ -465,6 +466,11 @@ public final class WorkTaskUtils {
 			List<String> mergeIds) {
 		Timestamp now = CollaborationDbUtils.now();
 		int[] merged = { 0 };
+		// the kept step is the owner's to do when any folded step was
+		boolean ownerOpen = !mergeIds.isEmpty() && CollaborationDbUtils.queryOne("SELECT COUNT(*) AS N FROM "
+				+ "WORK_THREAD_STEP" + OWNED + " AND TASK_ID = ? AND STATUS = ? AND STEP_OWNER_ID IS NULL AND STEP_ID IN ("
+				+ CollaborationDbUtils.placeholders(mergeIds.size()) + ")", rs -> rs.getInt("N"),
+				concat(List.of(ownerId, ownerType, taskId, "open"), mergeIds)) > 0;
 		CollaborationDbUtils.inTransaction(conn -> {
 			for (String id : mergeIds) {
 				int n = CollaborationDbUtils.update(conn, "UPDATE WORK_THREAD_STEP SET STATUS = ?, CLOSED_BY = ?, "
@@ -477,6 +483,10 @@ public final class WorkTaskUtils {
 				merged[0]++;
 				CollaborationDbUtils.update(conn, "UPDATE WORK_STEP_EVIDENCE SET STEP_ID = ?" + OWNED
 						+ " AND STEP_ID = ?", keepId, ownerId, ownerType, id);
+			}
+			if (merged[0] > 0 && ownerOpen) {
+				CollaborationDbUtils.update(conn, "UPDATE WORK_THREAD_STEP SET STATUS = ?" + OWNED + " AND STEP_ID = ? "
+						+ "AND STATUS = ? AND STEP_OWNER_ID IS NULL", "open", ownerId, ownerType, keepId, "waiting");
 			}
 			if (merged[0] > 0 && text != null) {
 				CollaborationDbUtils.update(conn, "UPDATE WORK_THREAD_STEP SET TEXT = ?, UPDATED_AT = ?" + OWNED
@@ -715,6 +725,12 @@ public final class WorkTaskUtils {
 		}
 		String s = String.valueOf(value).trim();
 		return s.isEmpty() ? null : s;
+	}
+
+	private static Object[] concat(List<Object> head, List<String> tail) {
+		List<Object> all = new ArrayList<>(head);
+		all.addAll(tail);
+		return all.toArray();
 	}
 
 	private static String clip(String text, int max) {

@@ -659,7 +659,8 @@ public final class WorkPipeline {
 					row.put("id", st.get("id"));
 					row.put("text", st.get("text"));
 					Object name = st.get("assigneeName");
-					row.put("assignee", st.get("assigneeId") == null ? ME : name == null ? st.get("assigneeId") : name);
+					row.put("assignee", st.get("assigneeId") != null ? (name == null ? st.get("assigneeId") : name)
+							: "open".equals(st.get("status")) ? ME : GROUP);
 					open.add(row);
 				}
 			}
