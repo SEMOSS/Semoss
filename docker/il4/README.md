@@ -84,25 +84,26 @@ installed RPM inventory in `/opt/provenance`. Embedded private/shaded crypto
 outside the `org.bouncycastle` namespace is not exhaustively detected by this
 check; application cryptographic routing still needs review.
 
-**`commons-configuration` 1.10** stays unfixed (CVE-2025-46392, MEDIUM,
-uncontrolled resource consumption loading untrusted configurations) - no
-fixed release exists in the 1.x line at all; Apache's own advisory states
-the 1.x line won't be patched and recommends migrating to 2.x, which is not
-a drop-in replacement (separate Maven coordinate and Java package
-namespace). `pom.xml` already documents why: it's pinned explicitly, with
-all of its own transitive dependencies excluded, solely to satisfy
-`org.janusgraph:janusgraph-core`'s declared requirement - SEMOSS's own code
-never calls `org.apache.commons.configuration.*` directly (confirmed via
-direct search of both this repo and Monolith), and `commons-configuration2`
-is already present in the same `WEB-INF/lib` for anything written against
-the current API. Confirmed via a direct `docker run` against both the
-BC-FIPS and ACCP images that the identical jar (same byte size, same build
-timestamp) is present in both - an earlier Inspector2 scan pair showed this
-finding only against BC-FIPS, which was scan-correlation timing, not a real
-difference between the two builds. Reassess if JanusGraph ever ships a
-release depending on `commons-configuration2` instead, or if any future
-code change has SEMOSS load an untrusted configuration file through this
-library directly.
+**`commons-configuration` 1.10** (CVE-2025-46392, MEDIUM, uncontrolled resource
+consumption loading untrusted configurations) is no longer shipped. No fixed
+release exists in the 1.x line at all - Apache's advisory says the 1.x line won't
+be patched and recommends migrating to 2.x, which is a separate Maven coordinate
+and Java package - so instead of waiting on a fix the jar was removed after
+proving nothing needs it. `pom.xml` used to pin it explicitly (with all of its
+own transitives excluded) solely because `org.janusgraph:janusgraph-core` and
+`org.owasp.esapi:esapi` declare it. A bytecode scan of every jar in the built
+image's `WEB-INF/lib` (every jar, class files searched for the
+`org/apache/commons/configuration/` namespace, plus the dotted and string forms)
+found exactly one real user: ESAPI's reference access-control policy loader
+(`org.owasp.esapi.reference.accesscontrol.policyloader`, 4 classes), which
+SEMOSS never calls - `Utility.java` is the only SEMOSS use of ESAPI and doesn't
+touch its access controller. `janusgraph-core`'s own classes reference only
+`commons-configuration2` (already shipped separately), so its declared 1.x
+dependency is vestigial. The explicit pin is deleted and both parents now
+exclude it; `mvn dependency:tree -Dincludes=commons-configuration` shows it
+absent from the graph. Reassess if a new dependency, or a JanusGraph/ESAPI
+upgrade, starts referencing the 1.x namespace - the symptom would be a
+`NoClassDefFoundError` for `org.apache.commons.configuration.*` at runtime.
 
 **`gremlin-shaded` 3.7.7** (pulled in transitively via `org.janusgraph:janusgraph-core`
 and SEMOSS's own `gremlin-core`/`tinkergraph-gremlin`/`neo4j-gremlin` dependencies,
@@ -209,7 +210,8 @@ Python 3.14 requires these explicitly documented compatibility changes:
 | pipecat-ai | 1.0.0 | 1.4.0 | Closes CVE-2026-44716, CVE-2026-54695 (AWS Inspector2 findings) |
 | claude-agent-sdk | 0.2.116 | 0.2.168 | Closes CVE-2026-96620 (CRITICAL, AWS Inspector2 finding) |
 | pipecat-ai | 1.4.0 | 1.13.0 | Closes CVE-2026-102682 (AWS Inspector2 finding) |
-| fsspec | 2023.10.0 (incidental) | 2023.10.0 (now explicit) | Had no pin anywhere; the above two bumps would have silently floated it to 2025.10.0, breaking the hash-guarded patch below |
+| fsspec | 2023.10.0 | 2026.6.0 | Closes CVE-2026-104851 (GHSA-27vj-qcqg-25rc, HIGH, AWS Inspector2 finding - Jinja template injection to RCE in `ReferenceFileSystem`). Taken directly from the first patched release; retires the hash-guarded `fsspec_compat.py` source patch. Reachable because datasets 5.0.1 allows `fsspec[http]<=2026.6.0` |
+| datasets | 4.4.0 | 5.0.1 | Closes CVE-2026-66007 (GHSA-379c-qx7v-6h59, MEDIUM, AWS Inspector2 finding - path traversal via unsanitized `file_name` metadata in folder-based dataset builders). Needs only `pyarrow>=21.0.0`, so pyarrow stays at 23.0.1 |
 | certifi | 2026.10.18 | 2026.10.23 | Closes GHSA-6q48-6c7w-9gw2 (CRITICAL, AWS Inspector2 finding - a compromised, revoked root CA in the bundled trust store). Hand-edited rather than regenerated; see compatibility.json for why |
 | pillow | 12.3.0 | 13.0.0 | Closes 39 AWS Inspector2 findings (4 CRITICAL). Forced past pipecat-ai's declared `Pillow<13` via an override plus a hash-guarded metadata patch; see compatibility.json for why |
 | pypdf | 6.21.1 | 6.21.2 | Closes CVE-2026-115572, CVE-2026-115580, CVE-2026-115585 (all HIGH, PDF-parsing DoS). Next patch release; already permitted by pyproject.toml's own `pypdf>=6.14.2` |
@@ -224,29 +226,34 @@ Datasets 4.x no longer supports dataset loading scripts. Review existing saved
 datasets, pickle migrations, custom loaders, and external model integrations
 before migrating production data.
 
-`fsspec` stays pinned at 2023.10.0 rather than bumped to 2026.6.0: reaching
-that version needs `datasets>=5.1.0`, which needs `pyarrow>=24.0.0`, reopening
-the pyarrow pin above. This pin is now explicit in `pyproject.toml` - it was
-previously only incidental (held down by some other package's then-current
-transitive constraint), and bumping claude-agent-sdk/pipecat-ai to close
-unrelated CVEs silently floated it to 2025.10.0 before this was caught. CVE-2026-104851 (GHSA-27vj-qcqg-25rc, RCE via
-`ReferenceFileSystem`'s Kerchunk template parsing, a feature SEMOSS does not
-use) is closed instead with a targeted, hash-guarded source patch
-([fsspec_compat.py](./python-dependencies/fsspec_compat.py)) applying the
-exact upstream fix. See `applied_source_patches` in
-[compatibility.json](./python-dependencies/compatibility.json) for the full
-verification, including reproducing the advisory's RCE proof-of-concept
-against both the unpatched and patched package.
+`fsspec` 2026.6.0 and `datasets` 5.0.1 close CVE-2026-104851 (GHSA-27vj-qcqg-25rc,
+HIGH: Jinja template injection to RCE through `ReferenceFileSystem`'s Kerchunk
+reference parsing) and CVE-2026-66007 (GHSA-379c-qx7v-6h59, MEDIUM: path traversal via
+unsanitized `file_name` metadata in folder-based dataset builders). Earlier revisions
+of this document held both back, believing `fsspec>=2026.6.0` required
+`datasets>=5.1.0`, which requires `pyarrow>=24.0.0`, which would reopen the
+CPython 3.14 pyarrow pin. PyPI's own published metadata shows that was true only of
+5.1.0: `datasets` 5.0.1 requires `pyarrow>=21.0.0` and permits
+`fsspec[http]<=2026.6.0`, so both fixes land with pyarrow, pandas and numpy
+unchanged (pyarrow stays 23.0.1; the "Deferred" pandas/pyarrow currency note below
+is unaffected). This replaces the earlier hash-guarded `fsspec_compat.py` source patch,
+which has been removed along with its Dockerfile step.
 
-`datasets` likewise stays at 4.4.0 rather than bumped to 5.0.1 for the same
-pyarrow-pin reason, leaving CVE-2026-66007 (path traversal via unsanitized
-`file_name` metadata in folder-based dataset builders, triggered only via
-`save_to_disk`/`push_to_hub`) open rather than source-patched. Unlike fsspec,
-this is accepted as-is rather than patched: SEMOSS's only `datasets` usage is
-in-memory `Dataset.from_dict`/`concatenate_datasets` construction, and neither
-a folder-based `load_dataset()` builder nor `save_to_disk`/`push_to_hub`
-appears anywhere in the codebase, so neither precondition the exploit needs is
-present. See `accepted_vulnerabilities` in
+Verified beyond dependency resolution, in throwaway CPython 3.14 venvs with the locked
+versions: the advisory's own proof-of-concept (a Kerchunk reference JSON whose
+generator key calls `os.system`) creates its marker file under fsspec 2023.10.0 and
+does not under 2026.6.0. 2026.6.0 also ignores Jinja `gen` entries by default
+(`simple_templates=True`), and when a caller opts back in with
+`simple_templates=False` the sandbox raises `jinja2.exceptions.SecurityError` on the
+malicious payload while a benign `{{i}}` generator still expands. SEMOSS does not use
+`ReferenceFileSystem`/Kerchunk, so nothing it relies on changes. For datasets 5.0.1:
+validate.py's create/map/`to_pandas`/multiprocess check, `Dataset.from_dict` and
+`concatenate_datasets` (the only usage in `py/`), and the legacy pickle-to-parquet
+migration (a `Dataset` pickled under 4.4.0, converted under 5.0.1: 3 files converted,
+0 failed, columns preserved) all pass. Both new packages are pure-Python
+`py3-none-any` wheels, and all four hashes were re-checked against PyPI's JSON API
+independently of the lock's author. Datasets 5.x is still a major-version update;
+see `approved_compatibility_changes` in
 [compatibility.json](./python-dependencies/compatibility.json).
 
 **Deferred:** the 2026-10-24 `dev` merge brought `py/install_config/pyproject.toml`
@@ -257,7 +264,7 @@ at `pandas==2.3.3`/`pyarrow==23.0.1` for now. Neither bump is security-driven -
 pandas has no open advisory, and pyarrow's only relevant one (CVE-2026-25087)
 is already closed at this pin - so there is nothing to patch, only currency to
 gain. Adopting it later would not reopen the fsspec/datasets chain above:
-`datasets==4.4.0` declares only `pyarrow>=21.0.0` with no ceiling, so pyarrow
+`datasets==5.0.1` declares only `pyarrow>=21.0.0` with no ceiling, so pyarrow
 can move independently of `datasets`/`fsspec` (that chain only reopens if
 `fsspec` itself is bumped first). Both `pandas-3.0.6` and `pyarrow-26.0.0`
 ship cp314 wheels and numpy's installed `2.5.3` already clears both floors, so
@@ -1179,25 +1186,27 @@ registry-verified integrity hash) and independently verified with a real
 `npm ci`/`pnpm install --frozen-lockfile` in an isolated copy, confirming
 `undici@7.30.1` resolves cleanly with no other package affected.
 
-`zod` 3.25.76, present in the same three lockfiles as a peer dependency of
-`@modelcontextprotocol/sdk` and `zod-to-json-schema` (MCP tool-schema
-validation; not imported directly anywhere in this codebase), has a HIGH
-finding (CVE-2023-54404, first appearing in the same 2026-10-24 rescan) left
-unfixed rather than patched like `undici` above: an unbounded `z.array()`/
-`z.set()`/`z.map()` schema accumulates one validation-issue object per
-element with no cap, exhausting memory on a large input. Inspector2
-suggests 4.6.6, but the advisory's own text says that release "only moves
-the `.max()`, `.length()` and `.size()` size checks to run before element
-parsing, so it rejects oversized input for schemas that declare an explicit
-upper bound; per the maintainer, unbounded containers are unchanged" - the
-advisory's text ends there, mid-sentence, but its own documented remediation
-only protects schemas that already declare a bound, not the unbounded
-("default configuration") case the finding itself describes as reachable.
-Migrating major versions (zod's own well-known breaking rewrite of its
-parsing API and error format) for a release that does not fix the actual
-reachable vulnerability is not a trade worth making. Kept as an accepted
-exception: gated behind the same Node.js-runtime absence as `undici` above,
-and no released version remediates the underlying case regardless.
+`zod` was bumped from 3.25.76 to 4.6.7 in `js/node_env/package.json`/
+`package-lock.json`, closing GHSA-mrhx-c7xc-m3w5 / CVE-2023-54404 (HIGH,
+unbounded memory use validating oversized collections; fixed in 4.6.6). This
+reverses an earlier decision to keep it as an accepted exception, which rested on
+two premises that no longer hold. First, it was described as a transitive peer
+dependency of `@modelcontextprotocol/sdk`/`zod-to-json-schema` in three
+lockfiles; those came from the `shadcn` CLI, which has since been removed (see
+below), leaving `js/node_env` as the only place `zod` appears - and there it is a
+plain direct dependency with no dependents (confirmed by walking every package's
+dependency/peer/optional maps in the lockfile), not imported by any SEMOSS-authored
+code. Second, the cost was framed as a risky major migration, but nothing in this
+repo consumes the 3.x API; `node_env` is a curated convenience environment for
+agent-written scripts, and Node isn't installed in this image at all. The caveat
+that 4.6.6 only protects schemas declaring an explicit `.max()`/`.length()`/
+`.size()` bound still stands for any script that builds unbounded container
+schemas over untrusted input, but that is now the script author's schema, not a
+vulnerable pin shipped by default. Agent scripts written against the 3.x API
+should import `zod/v3` (bundled in 4.x) rather than `zod`. Regenerated with
+`npm install --package-lock-only` in a scratch copy; a structural diff of the
+full lockfile showed only `zod` itself moved, and `npm ci --omit=dev` plus a
+`require('zod')` smoke test passed.
 
 `fast-uri` 3.1.8 is pinned via a `pnpm.overrides` entry (alongside
 `@modelcontextprotocol/sdk`, `proxy-addr`, and others - the same
@@ -1325,19 +1334,14 @@ for the workspace root and the standalone `client/` lockfile.
 
 This accounts for all eight packages with findings first appearing in the
 2026-10-24 rescan across these lockfiles: `undici`, `fast-uri`,
-`body-parser`, `vite`, `@modelcontextprotocol/sdk`, `ip-address`, and `hono`
-fixed; `zod` documented above as an accepted exception since no released
-version remediates its reachable case.
+`body-parser`, `vite`, `@modelcontextprotocol/sdk`, `ip-address`, `hono`, and
+(initially left as an exception, fixed in a later round - see above) `zod`.
 
 **Reassess if**: Node.js, npm, or pnpm is added to `docker/il4/Dockerfile`
 for any reason - at that point this needs the same actual decision as
 Playwright above (feature flag, permission/role gate, DoDI 8552.01
 categorization of LLM-directed code execution), not continued reliance on
-the toolchain's absence. Separately for `zod`: reassess if a future zod
-release actually remediates unbounded array/set/map schemas, or if any
-SEMOSS-authored code (as opposed to MCP SDK's own internal validation, or
-LLM-generated ExecuteNodeCode scripts) comes to construct a zod container
-schema without an explicit size bound over attacker-influenced input.
+the toolchain's absence.
 
 `shadcn` 4.21.0 was removed from `client/package.json` entirely rather than
 patched, closing GHSA-gcqx-w48m-w2h4 (MEDIUM, one of the findings carried in
