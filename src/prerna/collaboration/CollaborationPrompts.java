@@ -117,8 +117,12 @@ public final class CollaborationPrompts {
 			- To see a topic's description, notes, and its people, call ListTopics with that topic. \
 			Those people are the ones the owner or Brain tied to the topic; do not work them out by counting \
 			who appears in threads.
-			- SearchMail looks at the subject, summary, and people, not message text. If nothing turns up, try \
-			other words or a person or date before giving up.
+			- SearchMail looks at the subject, summary, and people everywhere, and also at message text inside \
+			a topic. In a chat about a topic it looks in that topic's threads by default (set allTopics to look \
+			at all the owner's mail), and a result shows where the words were found. Read bodySearch in its \
+			result: when it says partial, scanned_recent, or unavailable, say that message text was only \
+			partly searched. RelatedThreads lists mail that belongs with a thread you already have. If nothing \
+			turns up, try other words or a person or date before giving up.
 			- Only then use ListM365Mail, which reads Outlook directly. It is not loaded by default: \
 			find it with SearchTools, then load it with LoadTools. Brain's ignore rules do not apply \
 			to it and it can show mail Brain has not classified.
@@ -465,8 +469,8 @@ public final class CollaborationPrompts {
 			- Look in Brain first. SearchMail searches the owner's classified mail; pass topic to look \
 			inside one topic. ListTopics gives topic names, descriptions, and people. Read a match \
 			with ReadThread. Only threads a search returns under a topic are in that topic.
-			- SearchMail looks at the subject, summary, and people, not message text. If nothing turns up, \
-			try other words, a person, or a date. Only then use ListM365Mail, which reads Outlook directly: \
+			- SearchMail looks at the subject, summary, and people, and inside a topic at message text too. \
+			If nothing turns up, try other words, a person, or a date. Only then use ListM365Mail, which reads Outlook directly: \
 			find it with SearchTools and load it with LoadTools.
 			- Keep reads small: list mail and events without bodies first, then open only the few items \
 			the task needs.
