@@ -150,6 +150,11 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// the Outlook folder drafts are left in; null means the mailbox's own Drafts
 				Pair.with("DRAFT_FOLDER_ID", VARCHAR_255),
 				Pair.with("DRAFT_FOLDER_NAME", VARCHAR_255),
+				// how drafts look: font (null is Aptos 12pt) and the signature copied from sent mail; null on is on
+				Pair.with("DRAFT_FONT", VARCHAR_255),
+				Pair.with("DRAFT_FONT_SIZE", INTEGER_DATATYPE_NAME),
+				Pair.with("DRAFT_SIGNATURE_HTML", CLOB_DATATYPE_NAME),
+				Pair.with("DRAFT_SIGNATURE_ON", BOOLEAN_DATATYPE_NAME),
 				// ids of the owner's own Collaboration skills staged in their assistant chats
 				Pair.with("ASSISTANT_SKILLS_JSON", CLOB_DATATYPE_NAME),
 				// minutes between scheduled syncs of the owner's mail while the app is closed (BrainSync); 0 is off,

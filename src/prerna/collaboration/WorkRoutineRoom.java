@@ -62,7 +62,7 @@ public final class WorkRoutineRoom {
 	private static final int RECENT_ROUTINES = 5;
 	private static final int RECENT_RUNS = 2;
 	private static final Set<String> FAILED = Set.of(AutomationConstants.STATUS_FAILED,
-			AutomationConstants.STATUS_INTERRUPTED, AutomationConstants.STATUS_CANCELLED);
+			AutomationConstants.STATUS_INTERRUPTED);
 
 	private WorkRoutineRoom() { }
 
@@ -213,7 +213,13 @@ public final class WorkRoutineRoom {
 	private static String status(Map<String, Object> run) {
 		String status = String.valueOf(run.get(AutomationConstants.STATUS));
 		return AutomationConstants.STATUS_SUCCESS.equals(status) ? "completed"
+				: AutomationConstants.STATUS_CANCELLED.equals(status) ? "stopped"
 				: FAILED.contains(status) ? "failed" : "running";
+	}
+
+	/** Stops the owner's running run of the routine, so it can be run again. */
+	public static void stopRun(Insight insight, String routineId) {
+		WorkRoutine.stop(target(insight, routineId).slot());
 	}
 
 	/** The room a run's agent works in, from its first node that names one; null until the agent starts. */

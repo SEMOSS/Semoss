@@ -30,6 +30,7 @@ package prerna.io.connector.ms.outlook;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.collaboration.BrainDraftFormat;
 import prerna.io.connector.mail.AbstractSaveDraftReactor;
 import prerna.io.connector.mail.ComposedMail;
 import prerna.io.connector.mail.MailApp;
@@ -54,9 +55,14 @@ public class MicrosoftOutlookSaveDraftReactor extends AbstractSaveDraftReactor {
 
 	@Override
 	protected ComposedMail saveDraft(User user, OutgoingMail mail) throws Exception {
-		// no from address, so the draft belongs to the mailbox the token belongs to
-		Map<String, Object> message = MicrosoftOutlookMailHelper.buildMessage(mail.subject(), mail.body(), mail.html(),
-				mail.toArray(), mail.ccArray(), mail.bccArray(), null, null, mail.attachmentPaths());
+		// a Collaboration owner's draft is in their font and signature, from their own address so Outlook lists a
+		// sender; anyone else's goes as given with no from address, so it belongs to the token's mailbox
+		BrainDraftFormat.Format look = BrainDraftFormat.forOwner(user);
+		String[] sender = look == null ? null : BrainDraftFormat.sender(user);
+		Map<String, Object> message = MicrosoftOutlookMailHelper.buildMessage(mail.subject(),
+				look == null ? mail.body() : BrainDraftFormat.body(look, mail.body(), mail.html()), look != null || mail.html(),
+				mail.toArray(), mail.ccArray(), mail.bccArray(), sender == null ? null : sender[0],
+				sender == null ? null : sender[1], mail.attachmentPaths());
 		// a null mailbox addresses /me, so the draft is saved in the signed in user's
 		// own mailbox and nowhere else
 		Map<String, Object> draft = new MicrosoftOutlookMailHelper()

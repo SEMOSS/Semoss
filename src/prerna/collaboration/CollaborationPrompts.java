@@ -245,7 +245,9 @@ public final class CollaborationPrompts {
 			one matches, leave to empty and say so in a Note.
 			- message is the whole email in plain text, greeting to sign-off, written as the \
 			owner and signed with their first name from the Owner section (in "Last, First" \
-			the first name follows the comma). No Markdown and no quoted earlier messages.
+			the first name follows the comma). No Markdown and no quoted earlier messages. End at the \
+			first name: never add a signature block (name, title, company, phone), even when their \
+			writing style shows one; the app adds the owner's own.
 			- When the block has openEmail, the owner has that email open, with any edits they \
 			made. To change it, call ComposeEmail with openEmailId set to its id and only the \
 			fields that change: the whole new to or cc list to change recipients, the whole new \
@@ -447,7 +449,9 @@ public final class CollaborationPrompts {
 			address. If no one matches, save the draft without that recipient and say so.
 			- Give it a subject that says what the email is about. Write body as the whole email in plain \
 			text, greeting to sign-off, as the owner, signed with their first name from the Owner section \
-			(in "Last, First" the first name follows the comma). No Markdown.
+			(in "Last, First" the first name follows the comma). No Markdown. End at the first name: never \
+			add a signature block (name, title, company, phone), even when their writing style shows one; \
+			the app adds the owner's own.
 			- A draft carries text only; it cannot attach files yet.
 			- In your answer, list each draft saved, with its recipients and subject, and say it is waiting \
 			in their drafts folder. A draft is saved only when SaveDraft's result says so.

@@ -123,7 +123,9 @@ public final class BrainSync {
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
 		if (!Boolean.TRUE.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(EMAIL))) {
-			throw new IllegalArgumentException("Mail is not connected yet; finish the onboarding import first");
+			throw new IllegalArgumentException(lastRun(ownerId, ownerType) == null
+					? "Mail is not connected yet; finish the onboarding import first"
+					: "Mail is turned off; turn it on in Settings > Connections");
 		}
 		Map<String, Object> importing = CollaborationJobUtils.latest(ownerId, ownerType, BrainMailImport.KIND);
 		if (importing != null && CollaborationJobUtils.RUNNING.equals(importing.get("status"))) {
@@ -586,11 +588,32 @@ public final class BrainSync {
 		// When the first Teams import was partial there is no successful Teams checkpoint yet.
 		// Retry its selected window instead of using mail's newer checkpoint and losing skipped chats.
 		Map<String, Object> imported = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
-				"SELECT COUNTS_JSON FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND KIND = ? "
-						+ "AND STATUS = ? ORDER BY STARTED_AT DESC", 1, 0),
-				rs -> CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "COUNTS_JSON")),
-				ownerId, ownerType, BrainMailImport.KIND, CollaborationJobUtils.DONE);
-		return retryTeamsSince(since, floor, imported);
+				"SELECT COUNTS_JSON, PARAMS_JSON, STARTED_AT FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "AND KIND = ? AND STATUS = ? ORDER BY STARTED_AT DESC", 1, 0),
+				rs -> {
+					Map<String, Object> row = new HashMap<>();
+					row.put("counts", CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "COUNTS_JSON")));
+					row.put("params", CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "PARAMS_JSON")));
+					row.put("started", rs.getTimestamp("STARTED_AT"));
+					return row;
+				}, ownerId, ownerType, BrainMailImport.KIND, CollaborationJobUtils.DONE);
+		if (imported == null) {
+			return since;
+		}
+		@SuppressWarnings("unchecked")
+		Map<String, Object> counts = (Map<String, Object>) imported.get("counts");
+		if (counts != null && counts.get("teamsSince") != null) {
+			return retryTeamsSince(since, floor, counts);
+		}
+		// Teams turned on after an import without it: read chats back as far as that import read mail
+		@SuppressWarnings("unchecked")
+		Map<String, Object> params = (Map<String, Object>) imported.get("params");
+		if (params != null && params.get("days") instanceof Number days
+				&& imported.get("started") instanceof Timestamp started) {
+			Instant window = started.toInstant().minus(Duration.ofDays(days.longValue()));
+			return window.isBefore(since) ? later(window, floor) : since;
+		}
+		return since;
 	}
 
 	static Instant retryTeamsSince(Instant since, Instant floor, Map<String, Object> imported) {

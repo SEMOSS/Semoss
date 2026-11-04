@@ -384,6 +384,7 @@ public final class BrainProfileUtils {
 		ensureSettings(ownerId, ownerType);
 		Map<String, Object> settings = CollaborationDbUtils.queryOne(
 				"SELECT FILE_AT, ASK_AT, VERSION, MEMORY_USE, MEMORY_LEARN, DRAFT_FOLDER_ID, DRAFT_FOLDER_NAME, "
+						+ "DRAFT_FONT, DRAFT_FONT_SIZE, DRAFT_SIGNATURE_HTML, DRAFT_SIGNATURE_ON, "
 						+ "ASSISTANT_SKILLS_JSON, SYNC_EVERY_MINUTES "
 						+ "FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> {
@@ -393,6 +394,14 @@ public final class BrainProfileUtils {
 					row.put("draftFolderId", folderId == null ? "" : folderId);
 					String folderName = CollaborationDbUtils.getString(rs, "DRAFT_FOLDER_NAME");
 					row.put("draftFolderName", folderName == null ? "" : folderName);
+					String font = CollaborationDbUtils.getString(rs, "DRAFT_FONT");
+					row.put("draftFont", font == null ? BrainDraftFormat.DEFAULT_FONT : font);
+					Integer fontSize = CollaborationDbUtils.getInteger(rs, "DRAFT_FONT_SIZE");
+					row.put("draftFontSize", fontSize == null ? BrainDraftFormat.DEFAULT_SIZE : fontSize);
+					String signature = CollaborationDbUtils.getString(rs, "DRAFT_SIGNATURE_HTML");
+					row.put("draftSignatureHtml", signature == null ? "" : signature);
+					row.put("draftSignatureOn",
+							!Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "DRAFT_SIGNATURE_ON")));
 					// read-only: one platform classifier (RDF_Map)
 					row.put("classifierEngineId", BrainThreadClassifier.platformEngine());
 					row.put("fileAt", CollaborationDbUtils.getInteger(rs, "FILE_AT"));
@@ -470,6 +479,29 @@ public final class BrainProfileUtils {
 			CollaborationDbUtils.addSet(sets, params, "DRAFT_FOLDER_ID", folderId);
 			CollaborationDbUtils.addSet(sets, params, "DRAFT_FOLDER_NAME", folderId == null ? null : folderName);
 		}
+		if (changes.containsKey("draftFont")) {
+			String font = trimToNull(changes.get("draftFont"));
+			if (font != null && !BrainDraftFormat.validFont(font)) {
+				throw new IllegalArgumentException("Choose a font name of letters, digits and spaces");
+			}
+			CollaborationDbUtils.addSet(sets, params, "DRAFT_FONT", font);
+		}
+		if (changes.containsKey("draftFontSize")) {
+			int size = CollaborationDbUtils.toInt(changes.get("draftFontSize"), "draftFontSize");
+			if (size < BrainDraftFormat.MIN_SIZE || size > BrainDraftFormat.MAX_SIZE) {
+				throw new IllegalArgumentException("draftFontSize must be " + BrainDraftFormat.MIN_SIZE + " to "
+						+ BrainDraftFormat.MAX_SIZE);
+			}
+			CollaborationDbUtils.addSet(sets, params, "DRAFT_FONT_SIZE", size);
+		}
+		if (changes.containsKey("draftSignatureOn")) {
+			CollaborationDbUtils.addSet(sets, params, "DRAFT_SIGNATURE_ON", isTrue(changes.get("draftSignatureOn")));
+		}
+		if (changes.containsKey("draftSignatureHtml")) {
+			// cleaned like a learned one; blank removes it
+			CollaborationDbUtils.addSet(sets, params, "DRAFT_SIGNATURE_HTML",
+					BrainDraftFormat.clean(trimToNull(changes.get("draftSignatureHtml"))));
+		}
 		if (changes.containsKey("syncEveryMinutes")) {
 			int minutes = CollaborationDbUtils.toInt(changes.get("syncEveryMinutes"), "syncEveryMinutes");
 			if (!SYNC_EVERY_MINUTES.contains(minutes)) {
@@ -494,9 +526,22 @@ public final class BrainProfileUtils {
 		if (updated == 0) {
 			throw new IllegalArgumentException("Settings were changed elsewhere; reload and try again");
 		}
+		Map<String, Boolean> wasEnabled = CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType);
+		boolean turnedOn = false;
 		for (Map.Entry<String, Object> source : sources.entrySet()) {
-			CollaborationSourceUtils.setSourceEnabled(ownerId, ownerType, source.getKey(),
-					Boolean.TRUE.equals(source.getValue()));
+			boolean on = Boolean.TRUE.equals(source.getValue());
+			CollaborationSourceUtils.setSourceEnabled(ownerId, ownerType, source.getKey(), on);
+			// calendar is read live; only mail and Teams are pulled in by the sync
+			turnedOn |= on && !Boolean.TRUE.equals(wasEnabled.get(source.getKey()))
+					&& !"calendar".equals(source.getKey());
+		}
+		if (turnedOn && BrainSync.lastRun(ownerId, ownerType) != null) {
+			// pull in what was missed (or Teams' first window) now instead of at the next check
+			try {
+				BrainSync.start(user);
+			} catch (RuntimeException e) {
+				classLogger.warn("Sync after turning a source on did not start: {}", e.getMessage());
+			}
 		}
 		return getSettings(ownerId, ownerType);
 	}
