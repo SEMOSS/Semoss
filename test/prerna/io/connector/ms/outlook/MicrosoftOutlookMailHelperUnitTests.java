@@ -61,6 +61,7 @@ package prerna.io.connector.ms.outlook;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -70,6 +71,7 @@ import static org.mockito.Mockito.mockStatic;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +83,7 @@ import org.mockito.MockedStatic;
 
 import com.google.gson.Gson;
 
+import prerna.query.parsers.MailSearchParser;
 import prerna.security.HttpHelperUtility;
 
 class MicrosoftOutlookMailHelperUnitTests {
@@ -149,14 +152,14 @@ class MicrosoftOutlookMailHelperUnitTests {
 		query.since = Date.from(Instant.parse("2026-10-12T12:00:00Z"));
 		query.until = Date.from(Instant.parse("2026-10-13T12:00:00Z"));
 		query.skip = 50;
-		response = new Gson().toJson(Map.of("value", List.of(
-				Map.of("id", "before", "receivedDateTime", "2026-10-12T11:59:59.999Z"),
-				Map.of("id", "at-start", "receivedDateTime", "2026-10-12T12:00:00Z"),
-				Map.of("id", "at-end", "receivedDateTime", "2026-10-13T12:00:00Z"),
-				Map.of("id", "after", "receivedDateTime", "2026-10-13T12:00:00.001Z"))));
+		response = new Gson().toJson(Map.of("value",
+				List.of(Map.of("id", "before", "receivedDateTime", "2026-10-12T11:59:59.999Z"),
+						Map.of("id", "at-start", "receivedDateTime", "2026-10-12T12:00:00Z"),
+						Map.of("id", "at-end", "receivedDateTime", "2026-10-13T12:00:00Z"),
+						Map.of("id", "after", "receivedDateTime", "2026-10-13T12:00:00.001Z"))));
 		List<Map<String, Object>> messages = helper.listMessages("test-token", null, query);
-		assertEquals(List.of("at-start", "at-end"), messages.stream().map(message -> message.get("id")).toList());
-		assertTrue(request.contains("&$search=\"subject:daily brief\""));
+		assertEquals(List.of("at-end", "at-start"), messages.stream().map(message -> message.get("id")).toList());
+		assertTrue(request.contains("&$search=\"subject:daily AND subject:brief\""));
 		assertFalse(request.contains("$filter="));
 		assertFalse(request.contains("$orderby="));
 		assertFalse(request.contains("$skip="));
@@ -174,5 +177,98 @@ class MicrosoftOutlookMailHelperUnitTests {
 		assertTrue(request.endsWith("&$filter=conversationId eq 'conversation''one'"));
 		assertFalse(request.contains("$orderby="));
 		assertFalse(request.contains("$search="));
+	}
+
+	@Test
+	void typedSearchNarrowsEachWordToItsFieldAndKeepsPhrasesTogether() {
+		query.terms = MailSearchParser.parse("from:ada subject:budget report \"next quarter\" body:\"due friday\"");
+		query.subject = "q3 plan";
+		helper.listMessages("test-token", null, query);
+		assertTrue(request.contains("&$search=\"from:ada AND subject:budget AND report AND \\\"next quarter\\\""
+				+ " AND body:\\\"due friday\\\" AND subject:q3 AND subject:plan\""));
+	}
+
+	@Test
+	void keywordSyntaxTypedAsTextIsSearchedAsWords() {
+		assertEquals("budget AND and AND q3 AND report",
+				MicrosoftOutlookMailHelper.keywordQuery(MailSearchParser.parse("(budget AND q3) report")));
+		assertEquals("Re AND budget", MicrosoftOutlookMailHelper.keywordQuery(MailSearchParser.parse("Re: budget")));
+		assertEquals("hasattachment:true AND to:bob",
+				MicrosoftOutlookMailHelper.keywordQuery(MailSearchParser.parse("hasattachment:true to:bob")));
+		assertEquals("", MicrosoftOutlookMailHelper.keywordQuery(MailSearchParser.parse("\"\" ()")));
+	}
+
+	@Test
+	void textSearchResultsComeBackNewestFirstRatherThanByRelevance() {
+		query.subject = "budget";
+		response = new Gson().toJson(Map.of("value",
+				List.of(Map.of("id", "older", "receivedDateTime", "2026-10-01T09:00:00Z"),
+						Map.of("id", "newest", "receivedDateTime", "2026-10-20T09:00:00Z"),
+						Map.of("id", "middle", "receivedDateTime", "2026-10-10T09:00:00Z"))));
+		List<Map<String, Object>> messages = helper.listMessages("test-token", null, query);
+		assertEquals(List.of("newest", "middle", "older"),
+				messages.stream().map(message -> message.get("id")).toList());
+	}
+
+	@Test
+	void folderTreeListsEachFolderRightBeforeTheFoldersInsideIt() {
+		stubFolderTree();
+		List<MicrosoftOutlookMailHelper.FolderNode> tree = helper.listFolderTree("test-token", null);
+		assertEquals(List.of("Inbox", "Inbox/Projects", "Inbox/Projects/Alpha", "Sent Items"),
+				tree.stream().map(MicrosoftOutlookMailHelper.FolderNode::path).toList());
+		assertEquals(List.of(0, 1, 2, 0), tree.stream().map(MicrosoftOutlookMailHelper.FolderNode::depth).toList());
+		assertNull(tree.get(0).parentId());
+		assertEquals("inbox-id", tree.get(1).parentId());
+		assertEquals("projects-id", tree.get(2).parentId());
+	}
+
+	@Test
+	void nestedFoldersResolveByPathOrByTheShallowestFolderOfThatName() {
+		stubFolderTree();
+		assertEquals("alpha-id", helper.resolveDestination("test-token", null, "inbox/projects/alpha"));
+		assertEquals("projects-id", helper.resolveDestination("test-token", null, "Projects"));
+		assertEquals("inbox", helper.resolveDestination("test-token", null, "Inbox"));
+	}
+
+	@Test
+	void folderIdsPassStraightThroughWithoutReadingTheFolderTree() {
+		String id = "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQ=";
+		assertEquals(id, helper.resolveDestination("test-token", null, id));
+		assertNull(request);
+	}
+
+	@Test
+	void readsTheBodyAsItWasWrittenRatherThanOutlooksTextRendering() {
+		List<Map<String, String>> sent = new ArrayList<>();
+		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
+				.thenAnswer(call -> {
+					request = URLDecoder.decode(call.getArgument(0), StandardCharsets.UTF_8);
+					sent.add(call.getArgument(1));
+					return "{\"body\":{\"contentType\":\"html\",\"content\":\"<p>Hi</p>\"}}";
+				});
+		Map<String, Object> message = helper.getMessageBody("test-token", null, "m/1");
+		assertTrue(request.endsWith("/me/messages/m/1?$select=body"));
+		assertFalse(sent.get(0).containsKey("Prefer"));
+		assertEquals(Map.of("contentType", "html", "content", "<p>Hi</p>"), message.get("body"));
+	}
+
+	private void stubFolderTree() {
+		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
+				.thenAnswer(call -> {
+					String url = URLDecoder.decode(call.getArgument(0), StandardCharsets.UTF_8);
+					if (url.contains("/mailFolders/inbox-id/childFolders")) {
+						return folders(Map.of("id", "projects-id", "displayName", "Projects", "childFolderCount", 1));
+					}
+					if (url.contains("/mailFolders/projects-id/childFolders")) {
+						return folders(Map.of("id", "alpha-id", "displayName", "Alpha", "childFolderCount", 0));
+					}
+					return folders(Map.of("id", "inbox-id", "displayName", "Inbox", "childFolderCount", 1),
+							Map.of("id", "sent-id", "displayName", "Sent Items", "childFolderCount", 0));
+				});
+	}
+
+	@SafeVarargs
+	private static String folders(Map<String, ?>... folders) {
+		return new Gson().toJson(Map.of("value", List.of(folders)));
 	}
 }

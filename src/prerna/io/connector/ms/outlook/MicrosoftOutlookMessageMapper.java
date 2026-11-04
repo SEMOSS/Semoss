@@ -337,17 +337,19 @@ public class MicrosoftOutlookMessageMapper {
 	}
 
 	/**
-	 * Describe one folder the way every mail reactor answers with it.
+	 * Describe one folder of the folder tree the way every mail reactor answers
+	 * with it.
 	 *
-	 * @param folder the folder as Graph returned it
+	 * @param node the folder, where it sits in the tree
 	 * @return the folder
 	 */
-	public static MailFolder toMailFolder(Map<String, Object> folder) {
+	public static MailFolder toMailFolder(MicrosoftOutlookMailHelper.FolderNode node) {
+		Map<String, Object> folder = node.folder();
 		Object total = folder.get("totalItemCount");
 		Object unread = folder.get("unreadItemCount");
 		return new MailFolder(ValueUtils.toStringOrNull(folder.get("id")),
-				ValueUtils.toStringOrNull(folder.get("displayName")), MailFolder.FOLDER,
-				total instanceof Number ? ((Number) total).longValue() : null,
+				ValueUtils.toStringOrNull(folder.get("displayName")), MailFolder.FOLDER, node.parentId(), node.path(),
+				node.depth(), total instanceof Number ? ((Number) total).longValue() : null,
 				unread instanceof Number ? ((Number) unread).longValue() : null);
 	}
 

@@ -139,16 +139,28 @@ public final class GoogleGmailMessageMapper {
 	/**
 	 * Describe one label as a place mail is filed.
 	 *
-	 * @param label the label as Gmail returned it
+	 * <p>
+	 * Gmail names a nested label by its whole path, such as {@code Projects/Alpha},
+	 * which is the folder's path; its own name is what follows the path of the
+	 * label it sits under.
+	 * </p>
+	 *
+	 * @param label      the label as Gmail returned it
+	 * @param parentId   the id of the label it sits under, or null at the top
+	 * @param parentPath the name of the label it sits under, or null at the top
+	 * @param depth      how many labels it sits under
 	 * @return the folder
 	 */
-	public static MailFolder toMailFolder(Map<String, Object> label) {
+	public static MailFolder toMailFolder(Map<String, Object> label, String parentId, String parentPath, int depth) {
 		boolean system = "system".equalsIgnoreCase(String.valueOf(label.get("type")));
 		Object total = label.get("messagesTotal");
 		Object unread = label.get("messagesUnread");
 		String id = ValueUtils.toStringOrNull(label.get("id"));
-		return new MailFolder(id, system ? systemName(id) : ValueUtils.toStringOrNull(label.get("name")),
-				system ? MailFolder.SYSTEM : MailFolder.LABEL,
+		String path = system ? systemName(id) : ValueUtils.toStringOrNull(label.get("name"));
+		String name = path != null && parentPath != null && path.length() > parentPath.length()
+				? path.substring(parentPath.length() + 1)
+				: path;
+		return new MailFolder(id, name, system ? MailFolder.SYSTEM : MailFolder.LABEL, parentId, path, depth,
 				total instanceof Number ? ((Number) total).longValue() : null,
 				unread instanceof Number ? ((Number) unread).longValue() : null);
 	}
@@ -187,6 +199,29 @@ public final class GoogleGmailMessageMapper {
 		List<Map<?, ?>> leaves = new ArrayList<>();
 		collectLeaves(payload, leaves);
 		return leaves.stream().filter(GoogleGmailMessageMapper::isAttachment).toList();
+	}
+
+	/**
+	 * The parts of a message its html body can show by content id, such as the
+	 * picture in a signature, whether or not they carry a file name.
+	 *
+	 * @param message the message as Gmail returned it in full
+	 * @return the parts with a {@code Content-ID} header
+	 */
+	public static List<Map<?, ?>> contentIdParts(Map<String, Object> message) {
+		Map<?, ?> payload = message.get("payload") instanceof Map<?, ?> map ? map : Map.of();
+		List<Map<?, ?>> leaves = new ArrayList<>();
+		collectLeaves(payload, leaves);
+		return leaves.stream().filter(part -> contentId(part) != null).toList();
+	}
+
+	/**
+	 * @param part a part of a message
+	 * @return the part's {@code Content-ID} header, angle brackets and all, or null
+	 *         when it has none
+	 */
+	public static String contentId(Map<?, ?> part) {
+		return header(part, "Content-ID");
 	}
 
 	/**

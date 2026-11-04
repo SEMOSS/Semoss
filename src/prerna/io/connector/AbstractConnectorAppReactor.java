@@ -76,6 +76,7 @@ public abstract class AbstractConnectorAppReactor extends AbstractConnectorReact
 			Map.entry("unreadOnly", MCP_KEY_TYPE.BOOLEAN), Map.entry("includeBody", MCP_KEY_TYPE.BOOLEAN),
 			Map.entry("includeAttachments", MCP_KEY_TYPE.BOOLEAN),
 			Map.entry("includeDisplayBody", MCP_KEY_TYPE.BOOLEAN),
+			Map.entry("includeInlineImages", MCP_KEY_TYPE.BOOLEAN),
 			Map.entry("includeReplyRecipients", MCP_KEY_TYPE.BOOLEAN), Map.entry("html", MCP_KEY_TYPE.BOOLEAN),
 			Map.entry("replyAll", MCP_KEY_TYPE.BOOLEAN), Map.entry("asDraft", MCP_KEY_TYPE.BOOLEAN),
 			Map.entry("overrideRecipients", MCP_KEY_TYPE.BOOLEAN), Map.entry("read", MCP_KEY_TYPE.BOOLEAN),

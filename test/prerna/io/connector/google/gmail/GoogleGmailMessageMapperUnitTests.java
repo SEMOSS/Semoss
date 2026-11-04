@@ -29,6 +29,7 @@ package prerna.io.connector.google.gmail;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -40,6 +41,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import prerna.io.connector.mail.MailAttachment;
+import prerna.io.connector.mail.MailFolder;
 import prerna.io.connector.mail.MailMessage;
 
 class GoogleGmailMessageMapperUnitTests {
@@ -98,12 +100,28 @@ class GoogleGmailMessageMapperUnitTests {
 
 	@Test
 	void labelsGmailKeepsReadAsFoldersByName() {
-		assertEquals("Inbox",
-				GoogleGmailMessageMapper.toMailFolder(Map.of("id", "INBOX", "name", "INBOX", "type", "system")).name());
-		assertEquals("Drafts",
-				GoogleGmailMessageMapper.toMailFolder(Map.of("id", "DRAFT", "name", "DRAFT", "type", "system")).name());
+		assertEquals("Inbox", GoogleGmailMessageMapper
+				.toMailFolder(Map.of("id", "INBOX", "name", "INBOX", "type", "system"), null, null, 0).name());
+		assertEquals("Drafts", GoogleGmailMessageMapper
+				.toMailFolder(Map.of("id", "DRAFT", "name", "DRAFT", "type", "system"), null, null, 0).name());
 		assertFalse(GoogleGmailMessageMapper.isFiled(Map.of("id", "UNREAD", "type", "system")));
 		assertTrue(GoogleGmailMessageMapper.isFiled(Map.of("id", "Label_1", "type", "user")));
+	}
+
+	@Test
+	void nestedLabelIsNamedAfterTheLabelItSitsUnder() {
+		MailFolder nested = GoogleGmailMessageMapper.toMailFolder(
+				Map.of("id", "Label_2", "name", "Projects/Alpha/Specs", "type", "user"), "Label_1", "Projects", 1);
+		assertEquals("Alpha/Specs", nested.name());
+		assertEquals("Projects/Alpha/Specs", nested.path());
+		assertEquals("Label_1", nested.parentId());
+		assertEquals(1, nested.depth());
+
+		MailFolder top = GoogleGmailMessageMapper
+				.toMailFolder(Map.of("id", "Label_1", "name", "Projects", "type", "user"), null, null, 0);
+		assertEquals("Projects", top.name());
+		assertEquals("Projects", top.path());
+		assertNull(top.parentId());
 	}
 
 	private static Map<String, Object> message() {
@@ -126,6 +144,29 @@ class GoogleGmailMessageMapperUnitTests {
 								Map.of("partId", "1", "mimeType", "application/pdf", "filename", "plan.pdf", "headers",
 										List.of(header("Content-Disposition", "attachment; filename=\"plan.pdf\"")),
 										"body", Map.of("attachmentId", "att1", "size", 1234L)))));
+	}
+
+	@Test
+	void findsThePartsTheBodyCanShowByContentIdWithOrWithoutAFileName() {
+		Map<String, Object> message = Map.of("id", "m2", "payload",
+				Map.of("mimeType", "multipart/related", "parts",
+						List.of(Map.of("mimeType", "text/html", "body",
+								Map.of("data", encode("<img src=\"cid:ii_logo\"><img src=\"cid:sig\">"))),
+								Map.of("partId", "1", "mimeType", "image/png", "headers",
+										List.of(header("Content-ID", "<ii_logo>")), "body",
+										Map.of("attachmentId", "att-logo", "size", 10L)),
+								Map.of("partId", "2", "mimeType", "image/jpeg", "filename", "sig.jpg", "headers",
+										List.of(header("Content-ID", "<sig>"),
+												header("Content-Disposition", "inline; filename=\"sig.jpg\"")),
+										"body", Map.of("data", encode("jpeg"))),
+								Map.of("partId", "3", "mimeType", "application/pdf", "filename", "plan.pdf", "body",
+										Map.of("attachmentId", "att-plan")))));
+		List<Map<?, ?>> parts = GoogleGmailMessageMapper.contentIdParts(message);
+		assertEquals(List.of("1", "2"), parts.stream().map(part -> part.get("partId")).toList());
+		assertEquals("<ii_logo>", GoogleGmailMessageMapper.contentId(parts.get(0)));
+		assertNull(GoogleGmailMessageMapper.inlineBytes(parts.get(0)));
+		assertEquals("att-logo", GoogleGmailMessageMapper.attachmentId(parts.get(0)));
+		assertEquals("jpeg", new String(GoogleGmailMessageMapper.inlineBytes(parts.get(1)), StandardCharsets.UTF_8));
 	}
 
 	private static Map<String, Object> header(String name, String value) {

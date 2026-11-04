@@ -42,8 +42,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  */
 public abstract class AbstractGetMailReactor extends AbstractMailReactor {
 
+	/**
+	 * Whether the pictures the display body shows by content id come back with it.
+	 */
+	public static final String INCLUDE_INLINE_IMAGES = "includeInlineImages";
+
 	private static final String[] KEYS = { ID, MAX_BODY_CHARS, INCLUDE_ATTACHMENTS, INCLUDE_DISPLAY_BODY,
-			INCLUDE_REPLY_RECIPIENTS };
+			INCLUDE_INLINE_IMAGES, INCLUDE_REPLY_RECIPIENTS };
 
 	/**
 	 * What to read about one message.
@@ -52,11 +57,21 @@ public abstract class AbstractGetMailReactor extends AbstractMailReactor {
 	 * @param includeAttachments     whether what is attached is listed
 	 * @param includeDisplayBody     whether the body for showing to a person comes
 	 *                               back
+	 * @param includeInlineImages    whether the pictures that body shows by content
+	 *                               id come back inside it
 	 * @param includeReplyRecipients whether who a reply to everybody would go to
 	 *                               comes back
 	 */
 	public record GetMailRequest(String id, boolean includeAttachments, boolean includeDisplayBody,
-			boolean includeReplyRecipients) {
+			boolean includeInlineImages, boolean includeReplyRecipients) {
+
+		/**
+		 * @return whether the display body comes back carrying its pictures, which
+		 *         takes asking for both
+		 */
+		public boolean readsInlineImages() {
+			return this.includeDisplayBody && this.includeInlineImages;
+		}
 	}
 
 	protected AbstractGetMailReactor(String... extraKeys) {
@@ -80,7 +95,7 @@ public abstract class AbstractGetMailReactor extends AbstractMailReactor {
 		return run("read the message", () -> {
 			GetMailRequest request = new GetMailRequest(requireId("read a message"),
 					readBoolean(INCLUDE_ATTACHMENTS, true), readBoolean(INCLUDE_DISPLAY_BODY, false),
-					readBoolean(INCLUDE_REPLY_RECIPIENTS, false));
+					readBoolean(INCLUDE_INLINE_IMAGES, false), readBoolean(INCLUDE_REPLY_RECIPIENTS, false));
 			int maxBodyChars = readCount(MAX_BODY_CHARS, DEFAULT_MAX_BODY_CHARS, Integer.MAX_VALUE);
 			return getMail(this.insight.getUser(), request).toMap(true, maxBodyChars);
 		});
@@ -110,6 +125,13 @@ public abstract class AbstractGetMailReactor extends AbstractMailReactor {
 		case INCLUDE_DISPLAY_BODY:
 			return "Optional boolean to also return displayBody, the original body for showing to a person, with its "
 					+ "content type. Defaults to false.";
+		case INCLUDE_INLINE_IMAGES:
+			return "Optional boolean, with includeDisplayBody, for the displayBody to also carry inlineImages: the "
+					+ "pictures its html shows by cid, each with contentId, contentType and base64 data, up to "
+					+ (MailInlineImages.MAX_IMAGE_BYTES / (1024 * 1024)) + " MB each and "
+					+ (MailInlineImages.MAX_TOTAL_BYTES / (1024 * 1024))
+					+ " MB in all, and inlineImagesOmitted, how many were left out. Only for showing the email to a "
+					+ "person; defaults to false.";
 		case INCLUDE_REPLY_RECIPIENTS:
 			return "Optional boolean to also return replyRecipients, who a reply to everybody would go to, without "
 					+ "the user's own address. Defaults to false.";

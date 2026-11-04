@@ -165,6 +165,30 @@ public class MicrosoftTeamsMessageHelper {
 	private static final int CHAT_PREVIEW_PAGE_SIZE = 50;
 
 	/**
+	 * How many hits one message search asks Graph for. Graph documents 500 as the
+	 * largest search page but shows message searches with 25, so this stays at 25
+	 * and follows the paging from there.
+	 */
+	private static final int SEARCH_PAGE_SIZE = 25;
+
+	/**
+	 * How many hits a message search reads through before it stops. Keeping only
+	 * the chat messages can drop most of a page, so this is what bounds a search
+	 * that keeps finding channel posts.
+	 */
+	private static final int MAX_SEARCH_HITS_SCANNED = 500;
+
+	/**
+	 * One page of a message search.
+	 *
+	 * @param messages   the messages found, newest first
+	 * @param nextOffset the offset the next page starts from
+	 * @param hasMore    whether Graph holds more matches past this page
+	 */
+	public record MessageSearchPage(List<Map<String, Object>> messages, int nextOffset, boolean hasMore) {
+	}
+
+	/**
 	 * Utility class constructor intentionally hidden.
 	 */
 	private MicrosoftTeamsMessageHelper() {
@@ -205,14 +229,16 @@ public class MicrosoftTeamsMessageHelper {
 	 * Lists the chats the signed in user is in, newest last message first, stopping
 	 * at chats whose last message is older than {@code since}.
 	 *
-	 * @param since optional cutoff; null reads back as far as the other bounds allow
+	 * @param since optional cutoff; null reads back as far as the other bounds
+	 *              allow
 	 * @see #listChats(String, String, boolean, boolean, int)
 	 */
 	public static List<Map<String, Object>> listChats(String accessToken, String userEmail, boolean includeLastMessage,
 			boolean unreadOnly, int limit, Instant since) throws Exception {
 		try {
 			boolean withPreview = includeLastMessage || unreadOnly || since != null;
-			// the last message names most 1:1 chats, so only a plain listing pays for the members
+			// the last message names most 1:1 chats, so only a plain listing pays for the
+			// members
 			String nextUrl = withPreview ? chatsUrl(LAST_MESSAGE_PREVIEW, CHAT_PREVIEW_PAGE_SIZE, true)
 					: chatsUrl(MEMBERS, CHAT_PAGE_SIZE, false);
 
@@ -271,7 +297,8 @@ public class MicrosoftTeamsMessageHelper {
 		}
 	}
 
-	// A 1:1 chat has no topic and was listed without members: name it after the other person,
+	// A 1:1 chat has no topic and was listed without members: name it after the
+	// other person,
 	// taken from the last message when they sent it, else from that chat's members.
 	private static void nameOneOnOnes(String accessToken, String userEmail, List<Map<String, Object>> chats) {
 		String myId = null;
@@ -309,7 +336,8 @@ public class MicrosoftTeamsMessageHelper {
 					members.add(described);
 					Object email = described.get("email");
 					Object name = described.get("name");
-					boolean isMe = userEmail != null && email != null && userEmail.trim().equalsIgnoreCase(email.toString());
+					boolean isMe = userEmail != null && email != null
+							&& userEmail.trim().equalsIgnoreCase(email.toString());
 					if (!isMe && name != null && chat.get(DISPLAY_NAME) == null) {
 						chat.put(DISPLAY_NAME, name.toString());
 					}
@@ -327,7 +355,7 @@ public class MicrosoftTeamsMessageHelper {
 	/**
 	 * The url a chat listing starts at.
 	 *
-	 * @param expand what to expand alongside each chat
+	 * @param expand      what to expand alongside each chat
 	 * @param pageSize    how many chats one page asks for
 	 * @param newestFirst whether Graph sorts by the last message, newest first
 	 * @return the url
@@ -337,7 +365,8 @@ public class MicrosoftTeamsMessageHelper {
 				+ (newestFirst ? "&$orderby=lastMessagePreview/createdDateTime%20desc" : "");
 	}
 
-	// when the chat's last message arrived; null when Graph gave none or the 0001 placeholder
+	// when the chat's last message arrived; null when Graph gave none or the 0001
+	// placeholder
 	private static Instant lastMessageAt(Map<String, Object> chat) {
 		if (!(chat.get("lastMessage") instanceof Map<?, ?> last)) {
 			return null;
@@ -447,7 +476,14 @@ public class MicrosoftTeamsMessageHelper {
 	}
 
 	/**
-	 * Reads the messages of a chat.
+	 * Reads the messages of a chat, newest first by when each was sent.
+	 *
+	 * <p>
+	 * Graph sorts a chat's messages by when each last changed unless told
+	 * otherwise, so an old message somebody edited or reacted to would land among
+	 * the newest. The listing asks for the order they were sent in instead, which
+	 * is what makes a limit keep the latest part of the conversation.
+	 * </p>
 	 *
 	 * @param accessToken  Microsoft Graph access token for the user
 	 * @param chatId       id of the chat to read
@@ -455,7 +491,7 @@ public class MicrosoftTeamsMessageHelper {
 	 *                     return whatever length it is
 	 * @param limit        maximum number of messages to return; values less than or
 	 *                     equal to 0 return every message
-	 * @return the messages, most recent first, as Graph orders them
+	 * @return the messages, newest first by when each was sent
 	 * @throws IllegalArgumentException if required inputs are missing
 	 * @throws Exception                if the list retrieval fails
 	 */
@@ -470,7 +506,7 @@ public class MicrosoftTeamsMessageHelper {
 		try {
 			requireValue(chatId, "Chat ID is required to read Microsoft Teams chat messages.");
 
-			String url = chatPath(chatId) + "/messages?$top=" + pageSize(limit);
+			String url = chatPath(chatId) + "/messages?$top=" + pageSize(limit) + "&$orderby=createdDateTime%20desc";
 			List<Map<String, Object>> result = new ArrayList<>();
 			for (Map<String, Object> message : getPagedValues(accessToken, url, limit)) {
 				Map<String, Object> described = MicrosoftTeamsMessageMapper.toMessage(message, maxBodyChars, false);
@@ -485,6 +521,96 @@ public class MicrosoftTeamsMessageHelper {
 			classLogger.error("Failed to read the messages of Microsoft Teams chat '{}'.", chatId, e);
 			throw e;
 		}
+	}
+
+	/**
+	 * Searches the Teams messages the signed in user can read, in their chats and
+	 * in the channels of their teams.
+	 *
+	 * <p>
+	 * This is the Microsoft Search index rather than a message listing: it matches
+	 * the text of a message, the name of whoever sent it and the files attached to
+	 * it, and it reads Keyword Query Language such as {@code from:ada} or
+	 * {@code sent>2026-10-01}. Graph cannot sort a message search, so the page is
+	 * put newest first here once it is read.
+	 * </p>
+	 *
+	 * <p>
+	 * Graph cannot be asked for chat messages alone, so leaving out channel posts
+	 * happens here, reading on past them until the page is full. The offset that
+	 * comes back counts every match read, kept or not, which is what lets the next
+	 * page start where this one stopped.
+	 * </p>
+	 *
+	 * @param accessToken Microsoft Graph access token for the user
+	 * @param search      what to look for
+	 * @param offset      how many matches to skip first
+	 * @param limit       how many messages the page holds
+	 * @param chatsOnly   whether channel posts are left out
+	 * @return the page
+	 * @throws IllegalArgumentException if required inputs are missing
+	 * @throws Exception                if the search fails
+	 */
+	public static MessageSearchPage searchMessages(String accessToken, String search, int offset, int limit,
+			boolean chatsOnly) throws Exception {
+		try {
+			requireValue(search, "Search text is required to search Microsoft Teams messages.");
+
+			List<Map<String, Object>> found = new ArrayList<>();
+			int start = Math.max(0, offset);
+			int next = start;
+			boolean hasMore = true;
+			while (found.size() < limit && hasMore && next - start < MAX_SEARCH_HITS_SCANNED) {
+				int size = chatsOnly ? SEARCH_PAGE_SIZE : Math.min(SEARCH_PAGE_SIZE, limit - found.size());
+				Map<String, Object> container = searchHits(accessToken, search.trim(), next, size);
+				List<Map<String, Object>> hits = mapList(container == null ? null : container.get("hits"));
+				if (hits.isEmpty()) {
+					hasMore = false;
+					break;
+				}
+				int read = 0;
+				for (Map<String, Object> hit : hits) {
+					read++;
+					Map<String, Object> described = MicrosoftTeamsMessageMapper.toSearchHit(hit);
+					if (described == null
+							|| (chatsOnly && MicrosoftTeamsMessageMapper.CHANNEL.equals(described.get("kind")))) {
+						continue;
+					}
+					found.add(described);
+					if (found.size() >= limit) {
+						break;
+					}
+				}
+				next += read;
+				hasMore = read < hits.size() || Boolean.TRUE.equals(container.get("moreResultsAvailable"));
+			}
+			found.sort((a, b) -> MicrosoftTeamsMessageMapper.compareNewestFirst(a.get("createdDateTime"),
+					b.get("createdDateTime")));
+			return new MessageSearchPage(found, next, hasMore);
+		} catch (Exception e) {
+			classLogger.error("Failed to search Microsoft Teams messages for '{}'.", search, e);
+			throw e;
+		}
+	}
+
+	/**
+	 * Asks the search index for one page of Teams messages.
+	 *
+	 * @return the page's hits container, or null when Graph answered with none
+	 */
+	private static Map<String, Object> searchHits(String accessToken, String search, int from, int size)
+			throws Exception {
+		Map<String, Object> request = new LinkedHashMap<>();
+		request.put("entityTypes", List.of("chatMessage"));
+		request.put("query", Map.of("queryString", search));
+		request.put("from", from);
+		request.put("size", size);
+		String response = HttpHelperUtility.postRequestStringBody(GRAPH_BASE + "/search/query", headers(accessToken),
+				GSON.toJson(Map.of("requests", List.of(request))), ContentType.APPLICATION_JSON, null, null, null);
+		List<Map<String, Object>> answers = mapList(readValue(response));
+		List<Map<String, Object>> containers = answers.isEmpty() ? List.of()
+				: mapList(answers.get(0).get("hitsContainers"));
+		return containers.isEmpty() ? null : containers.get(0);
 	}
 
 	/**

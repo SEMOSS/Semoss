@@ -29,7 +29,10 @@ package prerna.io.connector.google.gmail;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import prerna.auth.User;
 import prerna.io.connector.ConnectorPage;
@@ -37,6 +40,7 @@ import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.io.connector.mail.AbstractListMailReactor;
 import prerna.io.connector.mail.MailApp;
 import prerna.io.connector.mail.MailMessage;
+import prerna.query.parsers.MailSearchParser;
 
 /**
  * Reads the mail of the signed in user's own Gmail mailbox.
@@ -47,6 +51,19 @@ import prerna.io.connector.mail.MailMessage;
  * </p>
  */
 public class GoogleGmailListMailReactor extends AbstractListMailReactor {
+
+	/**
+	 * What Gmail's search syntax reads as its own, taken as plain text in a search.
+	 */
+	private static final Pattern SEARCH_SYNTAX = Pattern.compile("[\"(){}:]");
+
+	/**
+	 * A word naming one of Gmail's own search operators, such as has:attachment.
+	 */
+	private static final Pattern SEARCH_OPERATOR = Pattern.compile("[A-Za-z_]+:[A-Za-z0-9@._+\\-]+");
+
+	/** The words Gmail joins terms with, searched as words instead. */
+	private static final Set<String> SEARCH_JOINS = Set.of("OR", "AND", "AROUND");
 
 	@Override
 	protected MailApp getMailApp() {
@@ -97,12 +114,7 @@ public class GoogleGmailListMailReactor extends AbstractListMailReactor {
 		if (target.archive()) {
 			terms.add(GoogleGmailFolders.ARCHIVE_QUERY);
 		}
-		if (request.subject() != null) {
-			terms.add("subject:(" + searchText(request.subject()) + ")");
-		}
-		if (request.from() != null) {
-			terms.add("from:(" + searchText(request.from()) + ")");
-		}
+		terms.addAll(searchTerms(request.terms()));
 		if (request.unreadOnly()) {
 			terms.add("is:unread");
 		}
@@ -113,11 +125,46 @@ public class GoogleGmailListMailReactor extends AbstractListMailReactor {
 	}
 
 	/**
-	 * @return text a caller searched for, without what would change the meaning of
-	 *         the search around it
+	 * Write a search's terms the way Gmail's search box reads them, every term
+	 * having to match.
+	 *
+	 * <p>
+	 * Each word of a term is a term of its own, so words typed for the subject each
+	 * have to be in it, and a phrase keeps its words together in quotes. Gmail has
+	 * no operator for the body, so a body term searches the whole email, as a bare
+	 * word does. What Gmail would read as its own, such as parentheses, a leading
+	 * minus, and a bare {@code OR}, is searched as plain text, and a word such as
+	 * {@code has:attachment} passes through as one of Gmail's own operators.
+	 * </p>
+	 *
+	 * @param terms the search's terms
+	 * @return the terms as Gmail reads them
 	 */
-	private static String searchText(String text) {
-		return text.replaceAll("[()\"]", " ").trim();
+	static List<String> searchTerms(List<MailSearchParser.Term> terms) {
+		List<String> written = new ArrayList<>();
+		for (MailSearchParser.Term term : terms) {
+			MailSearchParser.Field field = term.field();
+			String prefix = field == MailSearchParser.Field.ANY || field == MailSearchParser.Field.BODY ? ""
+					: field.getPrefix() + ":";
+			if (term.phrase()) {
+				String phrase = SEARCH_SYNTAX.matcher(term.value()).replaceAll(" ").trim();
+				if (!phrase.isEmpty()) {
+					written.add(prefix + "\"" + phrase + "\"");
+				}
+				continue;
+			}
+			if (prefix.isEmpty() && SEARCH_OPERATOR.matcher(term.value()).matches()) {
+				written.add(term.value());
+				continue;
+			}
+			for (String word : SEARCH_SYNTAX.matcher(term.value()).replaceAll(" ").trim().split("\\s+")) {
+				String plain = word.replaceFirst("^-+", "");
+				if (!plain.isEmpty()) {
+					written.add(prefix + (SEARCH_JOINS.contains(plain) ? plain.toLowerCase(Locale.ROOT) : plain));
+				}
+			}
+		}
+		return written;
 	}
 
 	@SuppressWarnings("unchecked")
