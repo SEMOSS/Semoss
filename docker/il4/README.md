@@ -1339,6 +1339,39 @@ SEMOSS-authored code (as opposed to MCP SDK's own internal validation, or
 LLM-generated ExecuteNodeCode scripts) comes to construct a zod container
 schema without an explicit size bound over attacker-influenced input.
 
+`shadcn` 4.21.0 was removed from `client/package.json` entirely rather than
+patched, closing GHSA-gcqx-w48m-w2h4 (MEDIUM, one of the findings carried in
+the 2026-11-03 image scan): a prototype-pollution bug in its pinned
+`deepmerge` 4.3.1's `mergeObject()`, which doesn't validate keys before
+writing them onto the target object's prototype. Unlike every other fix in
+this section, there's no newer version to pin to - `deepmerge` 4.3.1
+(2023-03-16) is the last version npm has ever published, and GitHub's own
+advisory lists `fixedInVersion: NotAvailable`. Searching the full dependency
+graph in both lockfiles (not just the direct package list) confirmed `shadcn`
+is the only package depending on `deepmerge` at all, so there was no override
+target to force a different resolution onto - the whole CLI package had to go.
+
+The template's only runtime use of `shadcn` (as opposed to `@shadcn/react`,
+the actual UI component library, which stays and does not depend on
+`deepmerge`) was `src/index.css` importing its bundled `tailwind.css` base
+theme (Radix-state custom variants and `@theme` design tokens) - not the CLI
+itself, which no committed script ever invoked. Vendored that one file as
+`src/shadcn-tailwind.css` (copied verbatim from the pinned `shadcn@4.21.0`,
+with provenance noted at the top of the file) and repointed the import at the
+local copy. Removing `shadcn` also dropped its own vulnerable MCP-integration
+transitive tree wholesale - the `@modelcontextprotocol/sdk`, `ip-address`,
+`fast-uri`, and `hono` `pnpm.overrides` entries documented above existed only
+to patch that tree and are now dead weight, left in place since an unmatched
+override is a harmless no-op, not a correctness risk. Future component
+scaffolding should run the CLI ad hoc (`pnpm dlx shadcn@latest add ...`)
+instead of reinstalling it as a dependency.
+
+Verified beyond dependency resolution: confirmed `deepmerge` and `shadcn` are
+gone from both lockfiles entirely (not just re-pinned), and the project's
+actual `tsc -b && vite build` command ran clean and produced the same shape
+of `portals/` output - independently for the workspace root and the
+standalone `client/` lockfile.
+
 ## FIPS boundaries
 
 ### Alternative-provider feasibility (2026-10-01)
