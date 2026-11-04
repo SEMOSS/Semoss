@@ -51,8 +51,8 @@ ENV UV_INSTALL_DIR="/usr/lib/uv/"
 ENV PATH=$UV_INSTALL_DIR:$PATH
 ENV PATH=$VIRTUAL_ENV/bin:$PATH
 
-# Unpinned on purpose: uv decides which CPython patch "3.14" resolves to, so a
-# pinned uv silently holds back Python security releases.
+# Unpinned on purpose: uv only installs CPython patches it knows about, so a
+# pinned uv breaks once PYTHON_VERSION (python-builder.yml) names a newer patch.
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && uv --version
 
 ARG PYTHON_VERSION

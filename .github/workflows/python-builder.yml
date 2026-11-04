@@ -6,7 +6,7 @@ on:
       python_version:
         description: "Python Version to install"
         required: true
-        default: "3.14"
+        default: "3.14.10"
       compute_type:
         description: "Install either CPU or GPU packages"
         required: true
@@ -23,7 +23,7 @@ on:
         description: "Base tag"
         required: true
         default: "22.04"
-  # Weekly rebuild so new CPython patches and wheels land without a code change.
+  # Weekly rebuild so new wheels land without a code change (CPython stays on the PYTHON_VERSION patch).
   # Runs before the nightly image builders (1:18 UTC) that copy this image.
   schedule:
     - cron: "30 0 * * 0"  # Sundays 0:30 UTC
@@ -37,7 +37,7 @@ on:
 
 env:
   IMAGE: quay.io/semoss/python-builder
-  PYTHON_VERSION: ${{ github.event.inputs.python_version || '3.14' }}
+  PYTHON_VERSION: ${{ github.event.inputs.python_version || '3.14.10' }}
   COMPUTE_TYPE: ${{ github.event.inputs.compute_type || 'cpu' }}
   BASE_REGISTRY: ${{ github.event.inputs.base_registry || 'public.ecr.aws/docker/library' }}
   BASE_IMAGE: ${{ github.event.inputs.base_image || 'ubuntu' }}
@@ -148,10 +148,13 @@ jobs:
         id: meta
         shell: bash
         run: |
-          TAGS=( "-t" "${IMAGE}:${PYTHON_VERSION}-${COMPUTE_TYPE}" )
+          # Tag by minor version (3.14.10 -> 3.14): the runtime Dockerfiles copy python-builder:3.14-<compute>.
+          TAG="${IMAGE}:$(cut -d. -f1,2 <<< "$PYTHON_VERSION")-${COMPUTE_TYPE}"
+          TAGS=( "-t" "${TAG}" )
           if [[ "${{ vars.RELEASE }}" == "TRUE" ]]; then
-            TAGS+=( "-t" "${IMAGE}:${PYTHON_VERSION}-${COMPUTE_TYPE}-${{ vars.VERSION }}" )
+            TAGS+=( "-t" "${TAG}-${{ vars.VERSION }}" )
           fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "args=${TAGS[*]}" >> "$GITHUB_OUTPUT"
 
       - name: Create and push manifest list
@@ -161,4 +164,4 @@ jobs:
             $(printf "${IMAGE}@sha256:%s " *)
 
       - name: Inspect manifest list
-        run: docker buildx imagetools inspect "${IMAGE}:${PYTHON_VERSION}-${COMPUTE_TYPE}"
+        run: docker buildx imagetools inspect "${{ steps.meta.outputs.tag }}"
