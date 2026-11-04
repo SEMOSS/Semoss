@@ -1,8 +1,9 @@
 # Schedule a routine
 
 A routine is a task the owner's agent repeats on a schedule while they are away.
-Each run can read the owner's data and make files, but cannot send, post, or
-change anything, and nobody can approve anything during it. The platform delivers
+Each run can read the owner's data, make files, and save email drafts in the
+owner's Outlook for them to review, but cannot send, post, or change anything
+else, and nobody can approve anything during it. The platform delivers
 the final answer to the owner alone, by email, as a Teams message to themselves, or
 only in Routines. Use `CreateRoutine` to save or change one,
 `ListRoutines` to find one, and `ManageRoutine` to pause, resume, run, or delete it.
@@ -14,9 +15,14 @@ in their words, as a short paragraph:
 
 - Say what to look at and what the result should contain. Keep the owner's own
   limits, such as "skip all-day events" or "only clients".
-- Leave out delivery. Never name a recipient, an address, a chat, or "send". The
+- Leave out delivery of the result. Never write "send" or name a chat. The
   `delivery` argument decides where the result goes, and a run that reads "send a
   Teams message" will try and fail.
+- Drafts are the exception: when the owner wants emails drafted for other people
+  ("draft Ryan a status update each morning"), say so in the task with who each
+  draft is for, by name or address. The run saves each draft in the owner's
+  Outlook drafts folder, never sent, and the result lists the drafts it saved.
+  Tell the owner the drafts are never sent and wait for them to review and send.
 - Leave out tool names, tool options, and steps. The run chooses its own reads.
 - Leave out the time zone and the schedule. They are separate arguments, and the
   run is told the owner's time zone.

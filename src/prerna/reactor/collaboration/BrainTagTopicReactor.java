@@ -65,7 +65,7 @@ public class BrainTagTopicReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Puts this chat under one of the owner's topics when the owner asks for it, so that topic's notes, "
-				+ "goals and context follow the chat. Brain already tags chats on its own as the owner talks, so use "
+				+ "work items and context follow the chat. Brain already tags chats on its own as the owner talks, so use "
 				+ "this only on the owner's request. With confident true it applies right away and the owner can undo "
 				+ "it; otherwise it is a suggestion the owner accepts or dismisses. A topic the owner removed from "
 				+ "this chat is never tagged again. Take topic ids from ListTopics";

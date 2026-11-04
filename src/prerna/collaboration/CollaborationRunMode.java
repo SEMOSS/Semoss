@@ -65,7 +65,7 @@ public enum CollaborationRunMode {
 		return this == CHAT;
 	}
 
-	/** Tools about the chat itself (TagTopic, CompleteGoal), the thread brief and the after-run memory review. */
+	/** Tools about the chat itself (TagTopic, ShowItem), the thread brief and the after-run memory review. */
 	public boolean chatOnly() {
 		return this == CHAT;
 	}

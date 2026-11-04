@@ -355,6 +355,45 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						}
 						```
 
+						Decisions (TypeSafe engines)
+
+						Only for model engines registered with `MODEL_TYPE` `TYPESAFE` (for example Jev). Instead of generating text, the model answers named questions about `state` with calibrated values. It creates no chat messages and uses no room. Pixel is the only way to call it for now; the Python, JavaScript, and LangChain clients do not wrap it yet.
+
+						```
+						TypeSafe(engine = "<engineid>", state = [{"ticket": "I was charged twice and need a refund today."}], questions = [{
+						    "department": {"type": "choice", "instructions": "Which team should handle this ticket?", "criteria": {"billing": "Payments and refunds", "technical": "Bugs and errors"}},
+						    "frustration": {"type": "score", "instructions": "How frustrated is the customer?", "criteria": ["Calm", "Frustrated but civil", "Very angry"]},
+						    "is_urgent": {"type": "noul", "instructions": "Does this require action today?"}
+						}], paramValues = [{"timeout": 30, "max_retries": 2}]);
+						```
+
+						| Argument | What to pass |
+						| --- | --- |
+						| `state` | text, a map, or a list to judge. Put a list inside a map (`{"records": [...]}`) to keep its shape |
+						| `questions` | a map of answer names to questions. `type` is `choice` (criteria is a map of option to description), `score` (criteria is a list of levels, lowest first), or `noul` (yes/no, no criteria) |
+						| `paramValues` | optional; only `timeout` (seconds) and `max_retries`. The engine owns the model and credentials |
+
+						Example Output
+
+						Same envelope; `pixelReturn[0].output.response.answers` is keyed by your question names.
+
+						```json
+						"output": {
+						    "response": {
+						        "model": "jev-1.13.0",
+						        "answers": {
+						            "department": {"type": "choice", "choice": "billing", "confidence": 0.8, "probabilities": {"billing": 0.9, "technical": 0.1}},
+						            "frustration": {"type": "score", "score": 0.75, "confidence": 0.6, "legend": {"0": "Calm", "1": "Frustrated but civil", "2": "Very angry"}},
+						            "is_urgent": {"type": "noul", "noul": 0.99}
+						        }
+						    },
+						    "numberOfTokensInPrompt": 425,
+						    "numberOfTokensInResponse": 73
+						}
+						```
+
+						`score` is the level index, counting from 0 and possibly fractional (`legend` maps each index to its level); `noul` is the probability of yes. OpenAI models with the Decisions API use the separate `OpenAIDecisions(engine, input, questions, paramValues)` reactor, which takes OpenAI's native question format.
+
 						Additional parameters: [OpenAI Parameter Spec](https://platform.openai.com/docs/api-reference/chat/create)
 						""",
 				engineId);

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.collaboration.BrainDraftFormat;
 import prerna.io.connector.mail.AbstractForwardMailReactor;
 import prerna.io.connector.mail.ComposedMail;
 import prerna.io.connector.mail.MailApp;
@@ -68,8 +69,11 @@ public class MicrosoftOutlookForwardMailReactor extends AbstractForwardMailReact
 		List<Map<String, Object>> files = MicrosoftOutlookMailHelper.fileAttachments(
 				request.attachments().stream().map(file -> file.getAbsolutePath()).toArray(String[]::new));
 		String[] to = request.to().toArray(new String[0]);
-		Map<String, Object> draft = request.html()
-				? helper.forwardHtmlDraft(accessToken, request.id(), to, request.body())
+		// a Collaboration owner's note is in their font and signature; anyone else's goes as given
+		BrainDraftFormat.Format look = BrainDraftFormat.forOwner(user);
+		Map<String, Object> draft = look != null || request.html()
+				? helper.forwardHtmlDraft(accessToken, request.id(), to,
+						look == null ? request.body() : BrainDraftFormat.body(look, request.body(), request.html()))
 				: helper.forward(accessToken, null, request.id(), to, request.body(), true);
 		helper.attachToDraft(accessToken, draft, files);
 		return MicrosoftOutlookMessageMapper.toComposedMail(draft, request.body() == null ? "" : request.body(),

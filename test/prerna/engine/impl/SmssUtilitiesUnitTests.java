@@ -41,6 +41,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -376,7 +377,9 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		assertEquals("Semoss", fp.getParent().getParent().getFileName().toString());
 
 		Properties load = new Properties();
-		load.load(Files.newInputStream(f.toPath()));
+		try (InputStream in = Files.newInputStream(f.toPath())) {
+			load.load(in);
+		}
 
 		assertEquals("pid", load.getProperty(Constants.PROJECT));
 		assertEquals("pname", load.getProperty(Constants.PROJECT_ALIAS));
@@ -392,8 +395,39 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		assertEquals("sa", load.getProperty(Constants.USERNAME));
 		assertEquals("", load.getProperty(Constants.PASSWORD));
 		assertEquals(
-				"jdbc:h2:nio:@BaseFolder@/project/pname__pid/insights_database;query_timeout=180000;query_cache_size=24;cache_size=32768",
+				"jdbc:h2:nio:@BaseFolder@/project/pname__pid/insights_database;query_timeout=180000;cache_size=32768",
 				load.getProperty(Constants.CONNECTION_URL));
+	}
+
+	@Test
+	void testCreateTempProjectSmssWritesNoInsightsDatabaseForATypeWithoutInsights() throws IOException {
+		Path base = tempDir.resolve("Semoss");
+		Files.createDirectories(base);
+		Properties coreProp = new Properties();
+		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
+		DIHelper.getInstance().setCoreProp(coreProp);
+
+		Path project = base.resolve("project");
+		Files.createDirectories(project);
+
+		File f = SmssUtilities.createTemporaryProjectSmss("pid", "pname", IProject.PROJECT_TYPE.BLOCKS, null, null,
+				RdbmsTypeEnum.H2_DB);
+
+		Properties load = new Properties();
+		try (InputStream in = Files.newInputStream(f.toPath())) {
+			load.load(in);
+		}
+
+		assertEquals("pid", load.getProperty(Constants.PROJECT));
+		assertEquals("BLOCKS", load.getProperty(Constants.PROJECT_ENUM_TYPE));
+		assertEquals("pipeline.json", load.getProperty(IEngine.PIPELINE));
+		assertNull(load.getProperty(Constants.RDBMS_INSIGHTS));
+		assertNull(load.getProperty(Constants.RDBMS_INSIGHTS_TYPE));
+		assertNull(load.getProperty(Constants.DRIVER));
+		assertNull(load.getProperty(Constants.RDBMS_TYPE));
+		assertNull(load.getProperty(Constants.USERNAME));
+		assertNull(load.getProperty(Constants.CONNECTION_URL));
+		assertNull(SmssUtilities.getInsightsRdbmsFile(load));
 	}
 
 	@Test
@@ -418,7 +452,9 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		assertEquals("Semoss", fp.getParent().getParent().getFileName().toString());
 
 		Properties load = new Properties();
-		load.load(Files.newInputStream(f.toPath()));
+		try (InputStream in = Files.newInputStream(f.toPath())) {
+			load.load(in);
+		}
 
 		assertEquals("pid", load.getProperty(Constants.PROJECT));
 		assertEquals("pname", load.getProperty(Constants.PROJECT_ALIAS));
@@ -430,7 +466,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		assertEquals("sa", load.getProperty(Constants.USERNAME));
 		assertEquals("", load.getProperty(Constants.PASSWORD));
 		assertEquals(
-				"jdbc:h2:nio:@BaseFolder@/project/pname__pid/insights_database;query_timeout=180000;query_cache_size=24;cache_size=32768",
+				"jdbc:h2:nio:@BaseFolder@/project/pname__pid/insights_database;query_timeout=180000;cache_size=32768",
 				load.getProperty(Constants.CONNECTION_URL));
 	}
 
@@ -563,6 +599,55 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 	}
 
 	@Test
+	void testCreateTempProjectSmssWritesConfiguredInsightsTypeAsLabel() throws IOException {
+		Path base = tempDir.resolve("Semoss");
+		Files.createDirectories(base);
+		Properties coreProp = new Properties();
+		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
+		coreProp.setProperty(Constants.DEFAULT_INSIGHTS_RDBMS, " sqlite ");
+		DIHelper.getInstance().setCoreProp(coreProp);
+
+		Path project = base.resolve("project");
+		Files.createDirectories(project);
+
+		File f = SmssUtilities.createTemporaryProjectSmss("pid", "pname", IProject.PROJECT_TYPE.INSIGHTS, "github",
+				"github.com", null);
+
+		Properties load = new Properties();
+		try (InputStream in = Files.newInputStream(f.toPath())) {
+			load.load(in);
+		}
+
+		assertEquals("project/@PROJECT@/insights_database.sqlite", load.getProperty(Constants.RDBMS_INSIGHTS));
+		assertEquals("SQLITE", load.getProperty(Constants.RDBMS_INSIGHTS_TYPE));
+		assertEquals("org.sqlite.JDBC", load.getProperty(Constants.DRIVER));
+	}
+
+	@Test
+	void testCreateTempAssetWritesConfiguredInsightsTypeAsLabel() throws IOException {
+		Path base = tempDir.resolve("Semoss");
+		Files.createDirectories(base);
+		Properties coreProp = new Properties();
+		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
+		coreProp.setProperty(Constants.DEFAULT_INSIGHTS_RDBMS, " sqlite ");
+		DIHelper.getInstance().setCoreProp(coreProp);
+
+		Path user = base.resolve("user");
+		Files.createDirectories(user);
+
+		File f = SmssUtilities.createTemporaryAssetSmss("pid", "pname", null);
+
+		Properties load = new Properties();
+		try (InputStream in = Files.newInputStream(f.toPath())) {
+			load.load(in);
+		}
+
+		assertEquals("project/@PROJECT@/insights_database.sqlite", load.getProperty(Constants.RDBMS_INSIGHTS));
+		assertEquals("SQLITE", load.getProperty(Constants.RDBMS_INSIGHTS_TYPE));
+		assertEquals("org.sqlite.JDBC", load.getProperty(Constants.DRIVER));
+	}
+
+	@Test
 	void testGetInsightsRdbmsFileInvalidConfiguredRdbmsType() {
 		Properties prop = new Properties();
 		prop.setProperty(Constants.RDBMS_INSIGHTS, "@PROJECT@" + File.separator + "data");
@@ -638,5 +723,4 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		assertTrue(e.getMessage().contains("H2_DB"),
 				"Error message should list the valid RdbmsTypeEnum constants, was: " + e.getMessage());
 	}
-
 }

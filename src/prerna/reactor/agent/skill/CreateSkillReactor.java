@@ -148,6 +148,7 @@ public class CreateSkillReactor extends AbstractReactor {
 			}
 			Path skillFile = skillDir.toPath().resolve(Skill.SKILL_FILE);
 			Files.write(skillFile, contentToWrite.getBytes(StandardCharsets.UTF_8));
+			SkillProjects.pushContent(skillId);
 		} catch (Exception e) {
 			classLogger.error("Failed to create skill '{}' (id {})", name, skillId, e);
 			throw new IllegalArgumentException("Failed to create skill: " + e.getMessage(), e);

@@ -104,9 +104,11 @@ public final class AgentLoopState {
     String runtimeContext() {
         String topics = topicRoom == null ? null : BrainTopicBrief.runtimeNote(topicUser, topicRoom);
         String threads = threadBrief == null ? null : threadBrief.next();
+        String work = topicRoom == null ? null : prerna.collaboration.WorkTaskBrief.runtimeNote(topicUser, topicRoom);
         return "[SEMOSS runtime status]\n" + progress.guidance()
                 + (currentTimeZone == null ? "" : "\n" + RuntimeTimeContext.capture(currentTimeZone).guidance())
                 + (pptxWorkflow == null ? "" : "\n" + pptxWorkflow.guidance(iterations))
+                + (work == null ? "" : "\n" + work)
                 + (topics == null ? "" : "\n" + topics)
                 + (threads == null ? "" : "\n" + threads)
                 + "\n[/SEMOSS runtime status]";

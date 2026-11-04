@@ -140,13 +140,6 @@ public final class AutomationNodeCatalog {
 						field("prompt", ConfigFieldType.TEXT, "Question about the media", true, ""),
 						field("paramValues", ConfigFieldType.JSON, "Model parameters", false, Map.of())),
 				controlInputs(), controlAndResultOutputs()));
-		definitions.add(definition(AutomationNodeType.MODEL_NER, "Extract entities", "Find named entities in text.",
-				orderedConfig("engineId", "", "text", "", "entities", List.of(), "maskEntities", List.of()),
-				List.of(engineField(IEngine.CATALOG_TYPE.MODEL),
-						field("text", ConfigFieldType.TEXT, "Text to analyze", true, ""),
-						field("entities", ConfigFieldType.STRING_LIST, "Entity types", true, List.of()),
-						field("maskEntities", ConfigFieldType.STRING_LIST, "Entity types to mask", false, List.of())),
-				controlInputs(), controlAndResultOutputs()));
 
 		definitions.add(storageDefinition(AutomationNodeType.STORAGE_LIST, "List files",
 				"List files in connected storage.", false, false));

@@ -531,6 +531,17 @@ final class HarnessToolExecutor {
 			return new ToolExecOutcome(tc.rawToolName + " needs the owner's approval, and this scheduled routine runs "
 					+ "without them. Nothing was run. Do not retry it; your answer is delivered to the owner.", false);
 		}
+		// listed or not, a routine never changes memories
+		if (CollaborationRunMode.isRoutine(ctx.getRoom()) && CollaborationAgentTools.writesMemory(tc.rawToolName)) {
+			return new ToolExecOutcome(tc.rawToolName + " is not available in a scheduled routine; it reads memories "
+					+ "but cannot change them. Nothing was run. Do not retry it.", false);
+		}
+		// a chat writes email in the editor; only a routine saves drafts directly
+		if (!CollaborationRunMode.isRoutine(ctx.getRoom()) && CollaborationAgentTools.appliesTo(ctx.getRoom())
+				&& CollaborationAgentTools.routineOnly(tc.rawToolName)) {
+			return new ToolExecOutcome(tc.rawToolName + " is only for scheduled routines. Write the email with "
+					+ "ComposeEmail instead. Nothing was run.", false);
+		}
 		if (DeferredAgentTools.isControlTool(tc.rawToolName)) {
 			ToolExecutionResult result = DeferredAgentTools.execute(tc.rawToolName, tc.toolParams, ctx.getRoom(), paramMap);
 			return new ToolExecOutcome(result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError(),
