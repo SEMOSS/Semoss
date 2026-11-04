@@ -1,4 +1,5 @@
 from .openai_embedder import OpenAiEmbedder
+from ..utils import azure_openai_client
 
 
 class AzureOpenAiEmbedder(OpenAiEmbedder):
@@ -18,6 +19,4 @@ class AzureOpenAiEmbedder(OpenAiEmbedder):
         self.model_name = model_name
 
     def _get_client(self, api_key, **kwargs):
-        from openai import AzureOpenAI
-
-        return AzureOpenAI(api_key=api_key, **kwargs)
+        return azure_openai_client(api_key, kwargs.pop("azure_endpoint"), **kwargs)
