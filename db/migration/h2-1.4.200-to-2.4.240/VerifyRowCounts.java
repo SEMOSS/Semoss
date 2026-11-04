@@ -13,7 +13,7 @@ import java.util.List;
  * migrate-h2-database.sh after RunScript so a silent partial replay can't
  * pass as a successful migration.
  *
- * Usage: java -cp h2-2.2.220.jar VerifyRowCounts.java <jdbcUrl> <assertionsFile>
+ * Usage: java -cp h2-2.4.240.jar VerifyRowCounts.java <jdbcUrl> <assertionsFile>
  * assertionsFile lines are "<expectedCount>|<query>", one per table.
  */
 public class VerifyRowCounts {

@@ -12,7 +12,8 @@
 #
 # Skips (with a note, not a failure) any .mv.db whose backup already exists,
 # since migrate-h2-database.sh treats that as "already handled or in
-# progress" rather than silently re-touching it. Exits non-zero if any
+# progress" rather than silently re-touching it, and any file already in the
+# H2 2.x format (e.g. one migrated earlier to 2.2.220), which 2.4.240 opens as is. Exits non-zero if any
 # individual migration failed; successful ones are not rolled back just
 # because a later one in the batch failed.
 set -euo pipefail
@@ -30,7 +31,11 @@ if [[ ! -d "$BASE_FOLDER" ]]; then
 	exit 1
 fi
 
-mapfile -d '' -t MV_DB_FILES < <(find "$BASE_FOLDER" -name '*.mv.db' -print0)
+# while-read instead of mapfile so this also runs under macOS's bash 3.2
+MV_DB_FILES=()
+while IFS= read -r -d '' mv_db; do
+	MV_DB_FILES+=("$mv_db")
+done < <(find "$BASE_FOLDER" -name '*.mv.db' -print0)
 
 if [[ ${#MV_DB_FILES[@]} -eq 0 ]]; then
 	echo "No .mv.db files found under $BASE_FOLDER"
@@ -50,13 +55,17 @@ for mv_db in "${MV_DB_FILES[@]}"; do
 	echo "=============================================================="
 	echo "Migrating: $db_base_path"
 	echo "=============================================================="
-	if [[ -f "$db_base_path.mv.db.pre-2.2.220" ]]; then
-		echo "Skipping - a .pre-2.2.220 backup already exists (already migrated, or a prior attempt needs manual cleanup first)."
+	if [[ -f "$db_base_path.mv.db.pre-2.4.240" ]]; then
+		echo "Skipping - a .pre-2.4.240 backup already exists (already migrated, or a prior attempt needs manual cleanup first)."
 		SKIPPED+=("$db_base_path")
 		continue
 	fi
-	if "$SCRIPT_DIR/migrate-h2-database.sh" "$db_base_path" "${2:-}" "${3:-}"; then
+	rc=0
+	"$SCRIPT_DIR/migrate-h2-database.sh" "$db_base_path" "${2:-}" "${3:-}" || rc=$?
+	if [[ $rc -eq 0 ]]; then
 		SUCCEEDED+=("$db_base_path")
+	elif [[ $rc -eq 3 ]]; then
+		SKIPPED+=("$db_base_path")
 	else
 		FAILED+=("$db_base_path")
 	fi
