@@ -1089,6 +1089,23 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		assertEquals(1, settings.size());
 	}
 
+	@Test
+	void testGetAllEngineSettings_sortsByDisplayName() throws Exception {
+		UnitTestSecurityAuthUtils.createEngine("engine1", "alpha", adminUser);
+		UnitTestSecurityAuthUtils.createEngine("engine2", "beta", adminUser);
+		QueryExecutionUtility.executeUpdate(securityDb, "UPDATE ENGINE SET ENGINEDISPLAYNAME=? WHERE ENGINEID=?",
+				ps -> {
+					ps.setString(1, "Zulu");
+					ps.setString(2, "engine1");
+				});
+
+		// Map.of throws on the null key check the engine sort runs
+		Map<String, String> sortFields = new HashMap<>(Map.of("ENGINENAME", "ASC"));
+		List<Map<String, Object>> settings = instance.getAllEngineSettings(null, null, null, null, null, null,
+				sortFields);
+		assertEquals(List.of("engine2", "engine1"), settings.stream().map(s -> s.get("engine_id")).toList());
+	}
+
 	///
 	/// getAllProjectSettings
 	///
@@ -1107,6 +1124,21 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		List<Map<String, Object>> settings = instance.getAllProjectSettings(null, null, null, null, null, null);
 		assertNotNull(settings);
 		assertEquals(1, settings.size());
+	}
+
+	@Test
+	void testGetAllProjectSettings_sortsByDisplayName() throws Exception {
+		UnitTestSecurityAuthUtils.createProject("project1", "alpha", adminUser);
+		UnitTestSecurityAuthUtils.createProject("project2", "beta", adminUser);
+		QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET PROJECTDISPLAYNAME=? WHERE PROJECTID=?",
+				ps -> {
+					ps.setString(1, "Zulu");
+					ps.setString(2, "project1");
+				});
+
+		List<Map<String, Object>> settings = instance.getAllProjectSettings(null, null, null, null, null, null,
+				Map.of("PROJECTNAME", "ASC"));
+		assertEquals(List.of("project2", "project1"), settings.stream().map(s -> s.get("project_id")).toList());
 	}
 
 	///
