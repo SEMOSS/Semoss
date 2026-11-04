@@ -29,6 +29,7 @@ package prerna.io.connector;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
@@ -122,6 +123,18 @@ public abstract class AbstractConnectorAppReactor extends AbstractConnectorReact
 		return null;
 	}
 
+	/**
+	 * The keys only a viewer sends, which the tool an agent sees leaves out. A
+	 * viewer still passes them in its pixel; an agent never learns of them, since
+	 * what they bring back, such as an email's pictures, is for showing to a person
+	 * and would only fill a model's context.
+	 *
+	 * @return the keys, empty when an agent may send every key
+	 */
+	protected Set<String> getViewerKeys() {
+		return Set.of();
+	}
+
 	@Override
 	protected final AuthProvider getAuthProvider() {
 		return getApp().getAuthProvider();
@@ -179,6 +192,9 @@ public abstract class AbstractConnectorAppReactor extends AbstractConnectorReact
 	@Override
 	public final JSONObject getMcpProperties() {
 		JSONObject properties = super.getMcpProperties();
+		for (String key : getViewerKeys()) {
+			properties.remove(key);
+		}
 		for (String key : properties.keySet()) {
 			if (getKeyTypeForMCP(key) == MCP_KEY_TYPE.ARRAY) {
 				// a schema that says array without saying of what is refused by some
