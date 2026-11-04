@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -50,12 +49,7 @@ public class BrowseInsightAssetsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		String relativeFilePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		if (relativeFilePath != null) {

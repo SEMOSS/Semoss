@@ -52,25 +52,26 @@ public class CreateNewRdbmsInternalDatabaseReactor extends CreateNewRdbmsDatabas
 	}
 
 	@Override
-	protected Map<String, Object> editConnectionDetails(Map<String, Object> connectionDetails, RdbmsTypeEnum driverEnum) {
+	protected Map<String, Object> editConnectionDetails(Map<String, Object> connectionDetails,
+			RdbmsTypeEnum driverEnum) {
 		connectionDetails.put(AbstractSqlQueryUtil.FORCE_FILE, true);
-		
+
 		String dbFileName = (String) connectionDetails.get(AbstractSqlQueryUtil.DATABASE);
 		connectionDetails.put(Constants.RDBMS_TYPE, driverEnum);
-		
+
 		if (dbFileName == null) {
 			throw new IllegalArgumentException("Database cannot be null in connection details");
 		}
-		
-		String localHostName = "@BaseFolder@" + File.separator + Constants.DATABASE_FOLDER
-				+ File.separator + "@ENGINE@" + File.separator + dbFileName;
-		
+
+		String localHostName = "@BaseFolder@" + File.separator + Constants.DATABASE_FOLDER + File.separator + "@ENGINE@"
+				+ File.separator + dbFileName;
+
 		if (driverEnum == RdbmsTypeEnum.SQLITE) {
 			localHostName += ".sqlite";
 		}
 
 		connectionDetails.put(AbstractSqlQueryUtil.HOSTNAME, localHostName);
-		
+
 		return connectionDetails;
 	}
 

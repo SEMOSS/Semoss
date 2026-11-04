@@ -37,7 +37,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -86,9 +85,6 @@ public class MakeUserPixelMCPReactor extends AbstractReactor {
 		organizeKeys();
 
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 		IProject project = user.getAssetProject();
 		if (project == null) {
 			throw new IllegalArgumentException("Unable to find user asset app");

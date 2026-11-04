@@ -31,7 +31,6 @@ import java.io.File;
 import java.util.UUID;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.InsightFile;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -52,12 +51,7 @@ public class DownloadUserAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		IProject project = user.getAssetProject();
 		if (project == null) {

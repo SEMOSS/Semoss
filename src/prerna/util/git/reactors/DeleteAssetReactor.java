@@ -39,7 +39,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -64,9 +63,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 		organizeKeys();
 		// check if user is logged in
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();

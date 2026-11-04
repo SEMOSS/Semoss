@@ -43,7 +43,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
@@ -146,11 +145,7 @@ public class MakeDefaultRoomToolsForEngineReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {

@@ -544,7 +544,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 */
 	private static Pair<String, String> callerOf(Insight insight) {
 		User user = insight == null ? null : insight.getUser();
-		if (user == null || user.isAnonymous() || user.getPrimaryLogin() == null) {
+		if (user == null || user.getPrimaryLogin() == null) {
 			return null;
 		}
 		return User.getPrimaryUserIdAndTypePair(user);
@@ -926,8 +926,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	/**
 	 * Engine methods such as database execQuery do not carry an Insight argument.
 	 * In that case, recover the current insight from ThreadStore so an
-	 * authorization guardrail evaluates the actual caller rather than an anonymous
-	 * context.
+	 * authorization guardrail evaluates the actual caller rather than a context
+	 * with no user.
 	 */
 	private void setContextInsight(IReactor reactor, Object[] args) {
 		reactor.setInsight(contextInsight(args));

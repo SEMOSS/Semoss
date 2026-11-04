@@ -571,8 +571,6 @@ public class Constants {
 
 	// Security
 	public static final String SECURITY_DB = "security";
-	public static final String ANONYMOUS_USER_ALLOWED = "anonymous-users-allowed";
-	public static final String ANONYMOUS_USER_UPLOAD_DATA = "anonymous-users-upload-data";
 	public static final String USE_LOGOUT_PAGE = "use-logout-page";
 	public static final String CUSTOM_LOGOUT_URL = "custom-logout-url";
 	public static final String SESSION_USER = "semoss_user";
@@ -690,8 +688,7 @@ public class Constants {
 	public static final String USE_CONNECTION_POOLING = "USE_CONNECTION_POOLING";
 	public static final String H2_BASE_CONNECTION_URL = "jdbc:h2:@" + Constants.BASE_FOLDER + "@"
 			+ System.getProperty("file.separator") + "@ENGINE" + Constants.ENGINE + "@"
-			+ System.getProperty("file.separator")
-			+ "database;query_timeout=180000;cache_size=32768";
+			+ System.getProperty("file.separator") + "database;query_timeout=180000;cache_size=32768";
 
 	// default rdbms insights type
 	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";
@@ -1082,9 +1079,11 @@ public class Constants {
 	public static final String COLLAB_CLASSIFIER_ENGINE_ID = "COLLAB_CLASSIFIER_ENGINE_ID";
 	public static final String COLLAB_CLASSIFIER_CUTOFFS = "COLLAB_CLASSIFIER_CUTOFFS";
 	public static final String COLLAB_CLASSIFIER_WINDOW = "COLLAB_CLASSIFIER_WINDOW";
-	// a general text model for topic grouping and naming, thread summaries and work items
+	// a general text model for topic grouping and naming, thread summaries and work
+	// items
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
-	// work items runs at once across owners; each owner's own runs still go one at a time (default 3)
+	// work items runs at once across owners; each owner's own runs still go one at
+	// a time (default 3)
 	public static final String COLLAB_WORK_ITEMS_PARALLEL = "COLLAB_WORK_ITEMS_PARALLEL";
 	// threads the classifier sorts at once (default 8)
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";

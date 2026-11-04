@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationService;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -57,10 +56,7 @@ public class CreateAppNotificationReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Notifications are not enabled on this instance");
 		}
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		String notificationId = NotificationService.createAppAnnouncement(user,
 				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()), this.keyValue.get(TITLE),

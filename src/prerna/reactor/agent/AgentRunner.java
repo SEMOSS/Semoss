@@ -727,9 +727,8 @@ public final class AgentRunner {
 		}
 
 		if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
-			if (insight == null || insight.getUser() == null || insight.getUser().isAnonymous()
-					|| insight.getUser().getPrimaryLogin() == null) {
-				throw new IllegalArgumentException("Must be logged in as a non-anonymous user to access user assets");
+			if (insight == null || insight.getUser() == null || insight.getUser().getPrimaryLogin() == null) {
+				throw new IllegalArgumentException("Must be logged in to access user assets");
 			}
 			IProject project = insight.getUser().getAssetProject();
 			if (project == null) {

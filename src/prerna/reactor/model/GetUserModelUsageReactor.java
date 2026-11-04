@@ -59,11 +59,7 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = insight.getUser();
-
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 
 		// Get the parameters
 		List<String> engineIds = getList(ReactorKeysEnum.ENGINE.getKey());
@@ -81,13 +77,13 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 		List<Map<String, Object>> usageData = ModelInferenceLogsUtils.getUserModelUsagePerEngine(user, engineIds,
 				startDate, endDate);
 
-		// Look up engine names from the input engineIds — always use the input list so
+		// Look up engine names from the input engineIds — always use the input list
+		// so
 		// engines with zero usage still get a named zero row
 		Map<Object, Object> idToAlias = SecurityEngineUtils.getEngineAliasForIds(engineIds);
 
 		// Index returned usage rows by engine ID for easy lookup
-		List<String> detailKeys = Arrays.asList(
-				"DETAIL_INPUT_TOKENS", "DETAIL_OUTPUT_TOKENS",
+		List<String> detailKeys = Arrays.asList("DETAIL_INPUT_TOKENS", "DETAIL_OUTPUT_TOKENS",
 				"DETAIL_CACHE_READ_TOKENS", "DETAIL_CACHE_CREATION_TOKENS", "DETAIL_THINKING_TOKENS");
 
 		Map<String, Map<String, Object>> usageByEngineId = new HashMap<>();
@@ -105,7 +101,8 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 			}
 		}
 
-		// Ensure every requested engine has a row — fill zeros for engines with no usage
+		// Ensure every requested engine has a row — fill zeros for engines with no
+		// usage
 		List<Map<String, Object>> result = new ArrayList<>();
 		for (String engineId : engineIds) {
 			if (usageByEngineId.containsKey(engineId)) {
@@ -165,7 +162,8 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
 		// If both dates are provided, validate them
 		if (hasStartDate && hasEndDate) {
-			// strict ISO parse, the same one the queries use, so 2026-02-30 is rejected here
+			// strict ISO parse, the same one the queries use, so 2026-02-30 is rejected
+			// here
 			LocalDate start;
 			LocalDate end;
 
@@ -187,7 +185,8 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
 			// Validate start date is not in the future
 			if (start.isAfter(LocalDate.now(ZoneOffset.UTC))) {
-				throw new IllegalArgumentException("startDate cannot be in the future. Provided: startDate=" + startDate);
+				throw new IllegalArgumentException(
+						"startDate cannot be in the future. Provided: startDate=" + startDate);
 			}
 
 			// Validate start date is before or equal to end date
