@@ -30,6 +30,7 @@ package prerna.io.connector.ms.outlook;
 import java.util.List;
 import java.util.Map;
 
+import org.jsoup.nodes.Entities;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainDraftFormat;
@@ -72,16 +73,21 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractReplyMailReactor {
 		List<Map<String, Object>> files = MicrosoftOutlookMailHelper.fileAttachments(
 				request.attachments().stream().map(file -> file.getAbsolutePath()).toArray(String[]::new));
 
+		// a Collaboration owner's reply is HTML in their font and signature; anyone else's goes as given
+		BrainDraftFormat.Format look = BrainDraftFormat.forOwner(user);
+		boolean html = look != null || request.html();
+		String body = look == null ? request.body() : BrainDraftFormat.body(look, request.body(), request.html());
 		Map<String, Object> draft;
 		MailRecipients recipients = request.recipients();
 		if (recipients != null) {
 			// graph only takes chosen recipients on the formatted draft, so a plain
 			// text reply is written as html that reads the same
-			draft = helper.replyHtmlDraft(accessToken, request.id(), asHtml(user, request.body(), request.html()),
+			draft = helper.replyHtmlDraft(accessToken, request.id(), asHtml(body, html),
 					request.replyAll(), recipients.to().toArray(new String[0]), recipients.cc().toArray(new String[0]));
+		} else if (html) {
+			draft = helper.replyHtmlDraft(accessToken, request.id(), body, request.replyAll());
 		} else {
-			draft = helper.replyHtmlDraft(accessToken, request.id(), asHtml(user, request.body(), request.html()),
-					request.replyAll());
+			draft = helper.reply(accessToken, null, request.id(), request.body(), request.replyAll(), true);
 		}
 		helper.attachToDraft(accessToken, draft, files);
 		return MicrosoftOutlookMessageMapper.toComposedMail(draft, request.body(), request.html(),
@@ -105,8 +111,10 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractReplyMailReactor {
 	 * @param html whether it is html already
 	 * @return the body as html, keeping the lines of a plain text one
 	 */
-	private static String asHtml(User user, String body, boolean html) {
-		// in the owner's font and signature
-		return html ? BrainDraftFormat.htmlBody(user, body) : BrainDraftFormat.html(user, body);
+	private static String asHtml(String body, boolean html) {
+		if (html) {
+			return body;
+		}
+		return Entities.escape(body == null ? "" : body).replace("\n", "<br>");
 	}
 }

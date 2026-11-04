@@ -57,11 +57,14 @@ public final class BrainDraftFormat {
 	public record Format(String font, int size, String signatureHtml) {
 	}
 
-	/** Defaults, and no signature, when Collaboration is off or the settings cannot be read. */
-	public static Format of(User user) {
+	/**
+	 * The Collaboration owner's draft look; null when Collaboration is off, the user has no Brain settings or they
+	 * cannot be read, so the mail connectors keep their own formatting for everyone else.
+	 */
+	public static Format forOwner(User user) {
 		try {
 			if (user == null || !Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
-				return new Format(DEFAULT_FONT, DEFAULT_SIZE, null);
+				return null;
 			}
 			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 			Format format = CollaborationDbUtils.queryOne("SELECT DRAFT_FONT, DRAFT_FONT_SIZE, DRAFT_SIGNATURE_HTML, "
@@ -74,20 +77,27 @@ public final class BrainDraftFormat {
 								size == null ? DEFAULT_SIZE : size, on && signature != null && !signature.isBlank()
 										? signature : null);
 					}, owner.getValue0(), owner.getValue1());
-			return format == null ? new Format(DEFAULT_FONT, DEFAULT_SIZE, null) : format;
+			return format;
 		} catch (Exception e) {
-			// a draft is still written, in the default look
+			// a draft is still written, as the connector writes it
 			classLogger.warn("Could not read the draft format settings: {}", e.getMessage());
-			return new Format(DEFAULT_FONT, DEFAULT_SIZE, null);
+			return null;
 		}
 	}
 
-	/** Plain text as Outlook-style HTML: one div per line (no paragraph gaps), the owner's font, their signature. */
+	/** Collaboration's own drafts: the owner's look, or the default one before they have Brain settings. */
 	public static String html(User user, String text) {
-		return html(of(user), text);
+		Format format = forOwner(user);
+		return html(format == null ? new Format(DEFAULT_FONT, DEFAULT_SIZE, null) : format, text);
 	}
 
-	static String html(Format format, String text) {
+	/** A draft body, plain or editor HTML, as HTML in the given look. */
+	public static String body(Format format, String body, boolean html) {
+		return html ? htmlBody(format, body) : html(format, body);
+	}
+
+	/** Plain text as Outlook-style HTML: one div per line (no paragraph gaps), the owner's font, their signature. */
+	public static String html(Format format, String text) {
 		if (format.signatureHtml() != null) {
 			text = stripTyped(text, signatureKeys(format.signatureHtml()));
 		}
@@ -111,8 +121,7 @@ public final class BrainDraftFormat {
 	 * HTML from the editor in the owner's look: no paragraph gaps (Outlook's own mail has none), their font, and their
 	 * signature unless it is already there.
 	 */
-	public static String htmlBody(User user, String html) {
-		Format format = of(user);
+	public static String htmlBody(Format format, String html) {
 		Document doc = Jsoup.parseBodyFragment(html == null ? "" : html);
 		doc.outputSettings().prettyPrint(false);
 		if (format.signatureHtml() != null && doc.selectFirst("#Signature") == null) {
@@ -133,8 +142,8 @@ public final class BrainDraftFormat {
 
 	/** The text without a signature typed at its end, when the owner's saved one is added anyway. */
 	public static String withoutTypedSignature(User user, String text) {
-		Format format = of(user);
-		return format.signatureHtml() == null ? text : stripTyped(text, signatureKeys(format.signatureHtml()));
+		Format format = forOwner(user);
+		return format == null || format.signatureHtml() == null ? text : stripTyped(text, signatureKeys(format.signatureHtml()));
 	}
 
 	// the signature's lines, letters and digits only, so "571-363-9720" matches "571 363 9720"

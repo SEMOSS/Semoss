@@ -55,13 +55,14 @@ public class MicrosoftOutlookSaveDraftReactor extends AbstractSaveDraftReactor {
 
 	@Override
 	protected ComposedMail saveDraft(User user, OutgoingMail mail) throws Exception {
-		// the body goes in as HTML in the owner's font and signature, so Outlook does not space every line;
-		// from is the owner's own address, so the draft lists a sender
-		String[] sender = BrainDraftFormat.sender(user);
+		// a Collaboration owner's draft is in their font and signature, from their own address so Outlook lists a
+		// sender; anyone else's goes as given with no from address, so it belongs to the token's mailbox
+		BrainDraftFormat.Format look = BrainDraftFormat.forOwner(user);
+		String[] sender = look == null ? null : BrainDraftFormat.sender(user);
 		Map<String, Object> message = MicrosoftOutlookMailHelper.buildMessage(mail.subject(),
-				mail.html() ? BrainDraftFormat.htmlBody(user, mail.body()) : BrainDraftFormat.html(user, mail.body()), true, mail.toArray(),
-				mail.ccArray(), mail.bccArray(), sender == null ? null : sender[0], sender == null ? null : sender[1],
-				mail.attachmentPaths());
+				look == null ? mail.body() : BrainDraftFormat.body(look, mail.body(), mail.html()), look != null || mail.html(),
+				mail.toArray(), mail.ccArray(), mail.bccArray(), sender == null ? null : sender[0],
+				sender == null ? null : sender[1], mail.attachmentPaths());
 		// a null mailbox addresses /me, so the draft is saved in the signed in user's
 		// own mailbox and nowhere else
 		Map<String, Object> draft = new MicrosoftOutlookMailHelper()

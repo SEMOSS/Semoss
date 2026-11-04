@@ -69,9 +69,12 @@ public class MicrosoftOutlookForwardMailReactor extends AbstractForwardMailReact
 		List<Map<String, Object>> files = MicrosoftOutlookMailHelper.fileAttachments(
 				request.attachments().stream().map(file -> file.getAbsolutePath()).toArray(String[]::new));
 		String[] to = request.to().toArray(new String[0]);
-		// a plain note goes in the owner's font and signature
-		Map<String, Object> draft = helper.forwardHtmlDraft(accessToken, request.id(), to,
-				request.html() ? BrainDraftFormat.htmlBody(user, request.body()) : BrainDraftFormat.html(user, request.body()));
+		// a Collaboration owner's note is in their font and signature; anyone else's goes as given
+		BrainDraftFormat.Format look = BrainDraftFormat.forOwner(user);
+		Map<String, Object> draft = look != null || request.html()
+				? helper.forwardHtmlDraft(accessToken, request.id(), to,
+						look == null ? request.body() : BrainDraftFormat.body(look, request.body(), request.html()))
+				: helper.forward(accessToken, null, request.id(), to, request.body(), true);
 		helper.attachToDraft(accessToken, draft, files);
 		return MicrosoftOutlookMessageMapper.toComposedMail(draft, request.body() == null ? "" : request.body(),
 				request.html(), request.attachments().stream().map(OutgoingMail::attachmentName).toList());
