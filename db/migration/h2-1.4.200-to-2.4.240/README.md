@@ -1,10 +1,17 @@
-# H2 1.4.200 -> 2.2.220 data migration
+# H2 1.4.200 -> 2.4.240 data migration
 
-SEMOSS's H2 dependency moved from 1.4.200 to 2.2.220 to close 4 Dependabot
-alerts (CVE-2021-42392, CVE-2022-23221, CVE-2021-23463, CVE-2022-45868), all
+SEMOSS's H2 dependency moved from 1.4.200 to 2.2.220 and is now at 2.4.240. The
+first move closed 4 Dependabot alerts (CVE-2021-42392, CVE-2022-23221, CVE-2021-23463, CVE-2022-45868), all
 specific to H2's web admin console and `JdbcSQLXML.getSource(DOMSource.class)`
 - neither of which SEMOSS uses - so this is a hygiene/compliance fix, not a
 response to an active exploit path.
+
+**Which files need migrating.** Only 1.4.200-format files (MVStore format 1).
+H2 2.4.240 opens a 2.2.220-format file (format 3) as is - checked with a
+database that has identity columns, CHECK/FK constraints and CLOB/BLOB data -
+so a deployment that already ran the 2.2.220 version of this tooling needs no
+further migration. The scripts read the format from the file header and skip
+2.x files (exit code 3, reported as `SKIPPED` by the bulk script).
 
 The version bump alone is not enough to deploy, though: **H2 2.x cannot open a
 1.4.200-format `.mv.db` file**. Any already-deployed SEMOSS instance has to
@@ -45,7 +52,7 @@ insight cache directory, deleted in `H2Frame.close()`) are ephemeral and do
 
 ## Prerequisites
 
-- Both H2 jars available: `h2-1.4.200.jar` and `h2-2.2.220.jar`. Both scripts
+- Both H2 jars available: `h2-1.4.200.jar` and `h2-2.4.240.jar`. Both scripts
   default to the standard Maven local-repo location
   (`~/.m2/repository/com/h2database/h2/<version>/h2-<version>.jar`) and will
   fetch whichever is missing via `mvn dependency:get` if `mvn` is on PATH;
@@ -82,11 +89,12 @@ Or migrate a single database (path **without** the `.mv.db` extension):
 For each database, `migrate-h2-database.sh`:
 
 1. Refuses to run if the backup path from a previous attempt already exists
-   (`<path>.mv.db.pre-2.2.220`) - this is also how the bulk script decides
-   whether something was already migrated.
+   (`<path>.mv.db.pre-2.4.240`) - this is also how the bulk script decides
+   whether something was already migrated. A file whose header says it is
+   already an H2 2.x file is skipped with exit code 3.
 2. Dumps the database to `<path>.migration.sql` with the old jar.
 3. Moves the original `.mv.db` (and `.trace.db`, if any) to
-   `<path>.mv.db.pre-2.2.220` / `<path>.trace.db.pre-2.2.220`.
+   `<path>.mv.db.pre-2.4.240` / `<path>.trace.db.pre-2.4.240`.
 4. Replays the dump into a fresh file at the original path with the new jar.
    If this step fails, the script automatically restores the step-3 backup so
    the original file is left exactly as it was.
@@ -96,10 +104,10 @@ For each database, `migrate-h2-database.sh`:
    catches a silent partial replay that RunScript itself didn't treat as a
    hard failure.
 
-Nothing deletes the `.migration.sql` dump or the `.pre-2.2.220` backup on
+Nothing deletes the `.migration.sql` dump or the `.pre-2.4.240` backup on
 success - remove them yourself once you've confirmed the upgraded deployment
-is good. To roll back after the fact, stop SEMOSS, delete the 2.2.220
-`.mv.db`, rename `.mv.db.pre-2.2.220` back to `.mv.db`, and reinstall the
+is good. To roll back after the fact, stop SEMOSS, delete the 2.4.240
+`.mv.db`, rename `.mv.db.pre-2.4.240` back to `.mv.db`, and reinstall the
 1.4.200 dependency.
 
 ## Validation
@@ -111,7 +119,17 @@ index, a CHECK constraint, and a foreign key - confirming after migration
 that: every row count matched, CLOB content round-tripped byte-for-byte, the
 identity sequence correctly continued from its prior value for a brand-new
 insert, and the CHECK/FK constraints and index were all still enforced/
-present under 2.2.220.
+present under 2.4.240 (first verified under 2.2.220, then re-verified under
+2.4.240 on 2026-11-04). The 2.4.240 re-validation also ran the bulk
+script on a mixed tree (two 1.4.200 files, one 2.2.220 file): the 1.4.200 files
+migrated, the 2.2.220 file was skipped, and a second run skipped all three.
+
+One thing to know when writing your own test database: a 1.4.200 `CHECK`
+declared inline without a name and a primary key can both be auto-named
+`CONSTRAINT_A`, and the dump then fails on replay with `Constraint
+"CONSTRAINT_A" already exists`. That is a property of such a source file, not of
+the version pair - it fails identically on 2.2.220. Name the constraint in the
+source schema if you hit it.
 
 ## If the *old* jar can't open your file either
 

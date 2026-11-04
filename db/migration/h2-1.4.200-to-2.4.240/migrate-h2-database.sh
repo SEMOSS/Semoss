@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Migrates one SEMOSS H2 database file from the 1.4.200 on-disk format
-# (MVStore "format 1") to 2.2.220 ("format 3"). H2 2.x refuses to open a
+# (MVStore "format 1") to 2.4.240 ("format 3"). H2 2.x refuses to open a
 # 1.4.200 .mv.db file directly ("Unsupported database file version or
 # invalid file header") - this follows H2's own documented upgrade path:
 # dump the old database to SQL with the OLD jar's Script tool, then replay
@@ -16,29 +16,31 @@
 #   [old-h2-jar]    Path to h2-1.4.200.jar. Defaults to $OLD_H2_JAR, then to
 #                   the standard Maven local-repo location; if neither exists
 #                   and `mvn` is on PATH, it is fetched automatically.
-#   [new-h2-jar]    Path to h2-2.2.220.jar. Same default/fetch behavior via
+#   [new-h2-jar]    Path to h2-2.4.240.jar. Same default/fetch behavior via
 #                   $NEW_H2_JAR.
 #
 # What it does, in order (see README.md in this directory for the full
 # write-up, including how to find every .mv.db file in a deployment):
 #   1. Refuses to run if <db-base-path>.mv.db doesn't exist, or if a backup
 #      from a previous attempt already exists at
-#      <db-base-path>.mv.db.pre-2.2.220 (never overwrites a backup - if a
+#      <db-base-path>.mv.db.pre-2.4.240 (never overwrites a backup - if a
 #      prior run failed partway, move that backup back into place by hand
 #      first, or remove it once you've confirmed it's no longer needed).
 #   2. Dumps the OLD database to <db-base-path>.migration.sql with
 #      h2-1.4.200.jar's bundled org.h2.tools.Script.
 #   3. Moves the original .mv.db (and .trace.db, if H2 left one behind) aside
-#      to <db-base-path>.mv.db.pre-2.2.220 / .trace.db.pre-2.2.220 - this is
+#      to <db-base-path>.mv.db.pre-2.4.240 / .trace.db.pre-2.4.240 - this is
 #      the rollback path if anything below fails.
 #   4. Replays the .sql script into a brand-new file at the original path
-#      with h2-2.2.220.jar's bundled org.h2.tools.RunScript.
+#      with h2-2.4.240.jar's bundled org.h2.tools.RunScript.
 #   5. Re-runs the per-table "-- N +/- SELECT COUNT(*) FROM SCHEMA.TABLE;"
 #      assertions that H2's own Script tool embeds in the dump, against the
 #      new database, so a silent partial RunScript failure can't pass as a
 #      success.
 #
-# Nothing here deletes the .migration.sql dump or the .pre-2.2.220 backup -
+# Exit codes: 0 migrated, 3 skipped (already an H2 2.x file), anything else failed.
+#
+# Nothing here deletes the .migration.sql dump or the .pre-2.4.240 backup -
 # that's left to the operator once the migrated deployment has been
 # confirmed good.
 set -euo pipefail
@@ -50,7 +52,7 @@ fi
 
 DB_BASE_PATH="$1"
 OLD_H2_JAR="${2:-${OLD_H2_JAR:-$HOME/.m2/repository/com/h2database/h2/1.4.200/h2-1.4.200.jar}}"
-NEW_H2_JAR="${3:-${NEW_H2_JAR:-$HOME/.m2/repository/com/h2database/h2/2.2.220/h2-2.2.220.jar}}"
+NEW_H2_JAR="${3:-${NEW_H2_JAR:-$HOME/.m2/repository/com/h2database/h2/2.4.240/h2-2.4.240.jar}}"
 
 fetch_jar_if_missing() {
 	local jar_path="$1" version="$2"
@@ -68,12 +70,12 @@ fetch_jar_if_missing() {
 }
 
 fetch_jar_if_missing "$OLD_H2_JAR" "1.4.200"
-fetch_jar_if_missing "$NEW_H2_JAR" "2.2.220"
+fetch_jar_if_missing "$NEW_H2_JAR" "2.4.240"
 
 MV_DB="$DB_BASE_PATH.mv.db"
 TRACE_DB="$DB_BASE_PATH.trace.db"
-BACKUP_MV_DB="$DB_BASE_PATH.mv.db.pre-2.2.220"
-BACKUP_TRACE_DB="$DB_BASE_PATH.trace.db.pre-2.2.220"
+BACKUP_MV_DB="$DB_BASE_PATH.mv.db.pre-2.4.240"
+BACKUP_TRACE_DB="$DB_BASE_PATH.trace.db.pre-2.4.240"
 DUMP_SQL="$DB_BASE_PATH.migration.sql"
 
 if [[ ! -f "$MV_DB" ]]; then
@@ -84,6 +86,16 @@ if [[ -f "$BACKUP_MV_DB" ]]; then
 	echo "A backup from a previous attempt already exists: $BACKUP_MV_DB" >&2
 	echo "Move it back into place (or remove it) before re-running." >&2
 	exit 1
+fi
+
+# The MVStore header records the file format: 1 for H2 1.4.200, 3 for H2 2.x.
+# A 2.x file (e.g. one migrated earlier to 2.2.220) already opens in 2.4.240 and
+# the 1.4.200 jar cannot read it, so there is nothing to migrate. Exit 3 lets
+# migrate-all-h2-databases.sh report it as skipped rather than failed.
+FILE_FORMAT="$(head -c 4096 "$MV_DB" | LC_ALL=C grep -a -o -m1 'format:[0-9]*' | head -1 || true)"
+if [[ -n "$FILE_FORMAT" && "$FILE_FORMAT" != "format:1" ]]; then
+	echo "Skipping $MV_DB: header says $FILE_FORMAT (already H2 2.x), which 2.4.240 opens as is." >&2
+	exit 3
 fi
 
 echo "==> Dumping $MV_DB (H2 1.4.200 format) to $DUMP_SQL"
@@ -100,7 +112,7 @@ if [[ -f "$TRACE_DB" ]]; then
 	mv "$TRACE_DB" "$BACKUP_TRACE_DB"
 fi
 
-echo "==> Replaying $DUMP_SQL into a fresh H2 2.2.220 database at $DB_BASE_PATH"
+echo "==> Replaying $DUMP_SQL into a fresh H2 2.4.240 database at $DB_BASE_PATH"
 if ! java -cp "$NEW_H2_JAR" org.h2.tools.RunScript \
 	-url "jdbc:h2:nio:$DB_BASE_PATH" -user sa -password "" -script "$DUMP_SQL"; then
 	echo "RunScript failed - rolling back to the 1.4.200 file so the original is undisturbed." >&2
@@ -127,7 +139,7 @@ elif ! java -cp "$NEW_H2_JAR" "$SCRIPT_DIR/VerifyRowCounts.java" \
 fi
 rm -f "$ASSERTIONS_FILE"
 
-echo "==> Done. $DB_BASE_PATH is now an H2 2.2.220 database."
+echo "==> Done. $DB_BASE_PATH is now an H2 2.4.240 database."
 echo "    Dump kept at:        $DUMP_SQL"
 echo "    1.4.200 backup kept: $BACKUP_MV_DB"
 echo "    Remove both once you've confirmed the migrated deployment is good."

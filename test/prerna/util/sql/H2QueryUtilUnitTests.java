@@ -49,8 +49,8 @@ import org.junit.jupiter.api.io.TempDir;
 import prerna.engine.impl.CaseInsensitiveProperties;
 
 /**
- * These exercise a real H2 2.2.220 driver/engine (no mocks) specifically
- * because the 1.4.200 -> 2.2.220 upgrade changed INFORMATION_SCHEMA shapes and
+ * These exercise a real H2 2.4.240 driver/engine (no mocks) specifically
+ * because the 1.4.200 -> 2.x upgrade changed INFORMATION_SCHEMA shapes and
  * removed/reinterpreted several connection settings; the goal is to prove the
  * rewritten queries and trimmed connection string actually work against the
  * new engine rather than assuming compatibility from release notes.
