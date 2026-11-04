@@ -74,6 +74,8 @@ public final class BrainConnection {
 		result.put("mailbox", mailbox.get("upn"));
 		result.put("background", background);
 		result.put("sources", CollaborationSourceUtils.getSourceStatuses(owner.getValue0(), owner.getValue1()));
+		// a finished import, so turning mail off reads as paused rather than never set up
+		result.put("imported", BrainSync.lastRun(owner.getValue0(), owner.getValue1()) != null);
 		// which Outlook folders mail is read from, and how many topics stand for one
 		result.put("folders", BrainMailFolders.summary(owner.getValue0(), owner.getValue1()));
 		return result;

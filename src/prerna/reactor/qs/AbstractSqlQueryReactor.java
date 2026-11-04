@@ -577,7 +577,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 
 		if (writes) {
 			DatabaseWriteAudit.record(this.insight, engine,
-					new DatabaseWriteAudit.Write(reactorName(), DatabaseWriteAudit.Transaction.ONE_TRANSACTION,
+					new DatabaseWriteAudit.Write(getPixelName(), DatabaseWriteAudit.Transaction.ONE_TRANSACTION,
 							statements.size(), result.getRanCount(), result.getFailedStatement(),
 							auditOutcome(result.getOutcome()), sqlQuery, result.getMessage(), timeoutSeconds));
 		}
@@ -595,7 +595,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 	private void recordNotRun(String sqlQuery, IRDBMSEngine engine, int statementCount, String message,
 			Integer timeoutSeconds) {
 		DatabaseWriteAudit.record(this.insight, engine,
-				new DatabaseWriteAudit.Write(reactorName(), DatabaseWriteAudit.Transaction.ONE_TRANSACTION,
+				new DatabaseWriteAudit.Write(getPixelName(), DatabaseWriteAudit.Transaction.ONE_TRANSACTION,
 						statementCount, 0, null, DatabaseWriteAudit.Outcome.ROLLED_BACK, sqlQuery, message,
 						timeoutSeconds));
 	}
@@ -740,7 +740,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 
 	private void recordWrite(IRDBMSEngine engine, String sql, int statements, int succeeded, int committedWrites,
 			Throwable error) {
-		DatabaseWriteAudit.record(this.insight, engine, DatabaseWriteAudit.Write.perStatement(reactorName(), sql,
+		DatabaseWriteAudit.record(this.insight, engine, DatabaseWriteAudit.Write.perStatement(getPixelName(), sql,
 				statements, succeeded, committedWrites, error));
 	}
 
@@ -762,12 +762,6 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 					"The changes were saved, but the database could not be pushed to cloud storage: "
 							+ e.getMessage()));
 		}
-	}
-
-	/** The pixel name of this reactor, such as SqlQuery */
-	private String reactorName() {
-		String name = getClass().getSimpleName();
-		return name.endsWith("Reactor") ? name.substring(0, name.length() - "Reactor".length()) : name;
 	}
 
 	private static boolean parseFlag(String value) {

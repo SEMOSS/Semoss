@@ -35,6 +35,7 @@ import java.io.IOException;
 
 import org.json.JSONObject;
 import prerna.auth.User;
+import prerna.collaboration.BrainDraftFormat;
 import prerna.collaboration.BrainThreadMessages;
 import prerna.collaboration.CollaborationUtils;
 import prerna.collaboration.EmailAttachmentFiles;
@@ -71,7 +72,8 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		String message = getString(MESSAGE);
+		// the saved signature is added on save, so a copy the agent typed would show twice
+		String message = BrainDraftFormat.withoutTypedSignature(user, getString(MESSAGE));
 		String openEmailId = getString(OPEN_EMAIL_ID);
 		String replyTo = getString(REPLY_TO);
 		String forward = getString(FORWARD);
@@ -177,6 +179,7 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Write an email for the owner and open it in their email editor, where they review, edit, and send it. "
+				+ "Before authoring or rewriting message, call GetWritingStyle and read its result, then write the email text. "
 				+ "Use it to write a new email, reply to or forward one, or change the email they have open, passing only the fields "
 				+ "that change. It saves and sends nothing.";
 	}

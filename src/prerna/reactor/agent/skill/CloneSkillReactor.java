@@ -117,7 +117,7 @@ public class CloneSkillReactor extends AbstractReactor {
 					"Skill " + sourceSkillId + " does not exist or user does not have permission to view it");
 		}
 		if (!SecurityProjectUtils.userCanCloneProject(user, sourceSkillId)) {
-			throw new IllegalArgumentException("This skill is not enabled as a template and cannot be cloned.");
+			throw new IllegalArgumentException("This skill is not a template, so only its owners can clone it.");
 		}
 
 		if (!SkillProjects.isSkillProject(sourceSkillId)) {
@@ -161,6 +161,7 @@ public class CloneSkillReactor extends AbstractReactor {
 					: "";
 			String finalContent = Skill.buildFrontmatter(newName, sourceDescription) + bodyOnly;
 			Files.write(newSkillFile, finalContent.getBytes(StandardCharsets.UTF_8));
+			SkillProjects.pushContent(newSkillId);
 		} catch (Exception e) {
 			classLogger.error("Failed to clone skill into '{}' (id {})", newName, newSkillId, e);
 			throw new IllegalArgumentException("Failed to clone skill: " + e.getMessage(), e);

@@ -30,6 +30,7 @@ package prerna.project.api;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeSet;
 import java.util.Vector;
 
@@ -48,6 +49,7 @@ import prerna.reactor.IReactor;
 import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.NotebookExecution;
 import prerna.tcp.client.SocketClient;
+import prerna.util.Constants;
 
 /**
  * Contract for SEMOSS project engines and their project-scoped resources.
@@ -71,7 +73,33 @@ public interface IProject extends IEngine, IMCP {
 	 * Project capabilities used to select the correct creation and lifecycle path.
 	 */
 	enum PROJECT_TYPE {
-		BLOCKS, CODE, WORKSPACE, SKILL, INSIGHTS, NOTEBOOK, AUTOMATION,
+		BLOCKS, CODE, WORKSPACE, SKILL, INSIGHTS, NOTEBOOK, AUTOMATION;
+
+		/**
+		 * Whether a project of this type holds insights, and so has an insights
+		 * database. Only an INSIGHTS project does.
+		 *
+		 * @return true for INSIGHTS
+		 */
+		public boolean holdsInsights() {
+			return this == INSIGHTS;
+		}
+
+		/**
+		 * Read a project's type from its smss PROJECT_ENUM_TYPE. A project whose smss
+		 * does not set it is an INSIGHTS project.
+		 *
+		 * @param smssProp the project smss properties
+		 * @return the project type
+		 * @throws IllegalArgumentException when PROJECT_ENUM_TYPE is not a project type
+		 */
+		public static PROJECT_TYPE fromSmss(Properties smssProp) {
+			String projectType = smssProp.getProperty(Constants.PROJECT_ENUM_TYPE);
+			if (projectType == null || projectType.isBlank()) {
+				return INSIGHTS;
+			}
+			return valueOf(projectType.trim());
+		}
 	};
 
 	/**
@@ -134,9 +162,10 @@ public interface IProject extends IEngine, IMCP {
 	Vector<Insight> getInsight(String... id);
 
 	/**
-	 * Get the insight database
-	 * 
-	 * @return
+	 * Get the insights database. A project has one only when its type holds
+	 * insights and it is not a user asset project.
+	 *
+	 * @return the insights database, or null when the project has none
 	 */
 	@IgnoreEngineLogging
 	IRDBMSEngine getInsightDatabase();
@@ -346,6 +375,19 @@ public interface IProject extends IEngine, IMCP {
 	 */
 	@IgnoreEngineLogging
 	PyTranslator getProjectPyTranslator();
+
+	/**
+	 * Clears the project modules cached in the project's dedicated python process
+	 * by running {@code smss_clear_app_imports()} with the project asset paths, so
+	 * the next import reads the current .py files. The process keeps running, and a
+	 * process that is not running is not started.
+	 *
+	 * @return the result of {@code smss_clear_app_imports()}, a map of the cleared
+	 *         module keys and MCP aliases, or null when the project python process
+	 *         is not running
+	 */
+	@IgnoreEngineLogging
+	Object clearPythonImports();
 
 	/**
 	 * 

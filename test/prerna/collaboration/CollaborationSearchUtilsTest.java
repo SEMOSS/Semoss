@@ -63,7 +63,9 @@ class CollaborationSearchUtilsTest {
 		var queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB);
 		try (var statement = connection.createStatement()) {
 			for (var table : new CollaborationOwlCreator(queryUtil).getDBSchema()) {
-				String columns = String.join(", ", table.getValue1().stream().map(c -> c.getValue0() + " " + c.getValue1()).toList());
+				// quoted as the server quotes them: H2 2.x reserves words such as VALUE
+				String columns = String.join(", ", table.getValue1().stream().map(c -> (queryUtil.isSelectorKeyword(c.getValue0())
+						? queryUtil.getEscapeKeyword(c.getValue0()) : c.getValue0()) + " " + c.getValue1()).toList());
 				statement.execute("CREATE TABLE " + table.getValue0() + " (" + columns + ")");
 			}
 		}

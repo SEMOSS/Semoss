@@ -402,8 +402,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		// push new project to cloud
 		ClusterUtil.pushProject(projectId);
 
-		Map<String, Object> engineIdMap = ProjectHelper.extractEngineIdsFromProjectFolder(projectId,
-				finalProjectFolderF);
+		Map<String, Object> engineIdMap = ProjectHelper.extractEngineIdsFromProjectFolder(finalProjectFolderF);
 		// update the project dependencies table only with valid engineIds
 		if (agentMetadata == null && engineIdMap.containsKey("success")) {
 			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");

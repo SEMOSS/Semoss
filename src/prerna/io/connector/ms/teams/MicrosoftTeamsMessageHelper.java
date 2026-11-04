@@ -34,6 +34,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -135,7 +137,6 @@ public class MicrosoftTeamsMessageHelper {
 	// members kept per chat in a list of chats; GetChat returns them all
 	private static final int LIST_CHAT_MEMBERS = 5;
 	private static final String LAST_MESSAGE_PREVIEW = "lastMessagePreview";
-	private static final String MEMBERS_AND_PREVIEW = MEMBERS + "," + LAST_MESSAGE_PREVIEW;
 	private static final String HAS_UNREAD = "hasUnread";
 
 	/**
@@ -143,6 +144,8 @@ public class MicrosoftTeamsMessageHelper {
 	 * unread ones walks the list until it finds enough of them, so this is what
 	 * stops a user with nothing unread and a long history from paging forever.
 	 */
+	// older chats in a row that end a walk with a cutoff
+	private static final int OLDER_RUN_TO_STOP = 25;
 	private static final int MAX_CHATS_SCANNED = 500;
 
 	/**
@@ -157,6 +160,9 @@ public class MicrosoftTeamsMessageHelper {
 	 * will actually answer and follows the paging from there.
 	 */
 	private static final int CHAT_PAGE_SIZE = 25;
+
+	// the largest chat page Graph answers when only the last message is expanded
+	private static final int CHAT_PREVIEW_PAGE_SIZE = 50;
 
 	/**
 	 * Utility class constructor intentionally hidden.
@@ -192,30 +198,32 @@ public class MicrosoftTeamsMessageHelper {
 	 */
 	public static List<Map<String, Object>> listChats(String accessToken, String userEmail, boolean includeLastMessage,
 			boolean unreadOnly, int limit) throws Exception {
+		return listChats(accessToken, userEmail, includeLastMessage, unreadOnly, limit, null);
+	}
+
+	/**
+	 * Lists the chats the signed in user is in, newest last message first, stopping
+	 * at chats whose last message is older than {@code since}.
+	 *
+	 * @param since optional cutoff; null reads back as far as the other bounds allow
+	 * @see #listChats(String, String, boolean, boolean, int)
+	 */
+	public static List<Map<String, Object>> listChats(String accessToken, String userEmail, boolean includeLastMessage,
+			boolean unreadOnly, int limit, Instant since) throws Exception {
 		try {
-			boolean withPreview = includeLastMessage || unreadOnly;
-			String nextUrl = chatsUrl(withPreview ? MEMBERS_AND_PREVIEW : MEMBERS);
+			boolean withPreview = includeLastMessage || unreadOnly || since != null;
+			// the last message names most 1:1 chats, so only a plain listing pays for the members
+			String nextUrl = withPreview ? chatsUrl(LAST_MESSAGE_PREVIEW, CHAT_PREVIEW_PAGE_SIZE, true)
+					: chatsUrl(MEMBERS, CHAT_PAGE_SIZE, false);
 
 			List<Map<String, Object>> chats = new ArrayList<>();
 			int scanned = 0;
-			boolean firstPage = true;
-			while (nextUrl != null) {
-				Map<String, Object> json;
-				try {
-					json = readMap(HttpHelperUtility.getRequest(nextUrl, headers(accessToken), null, null, null));
-				} catch (Exception e) {
-					// expanding both is what the unread comparison needs and is not
-					// answered everywhere. The members only shape the caller of the
-					// read marker asked for, so the members are what gets dropped
-					if (!firstPage || !withPreview) {
-						throw e;
-					}
-					classLogger.warn("Reading the chats with both the members and the last message failed, "
-							+ "reading them without the members", e);
-					nextUrl = chatsUrl(LAST_MESSAGE_PREVIEW);
-					json = readMap(HttpHelperUtility.getRequest(nextUrl, headers(accessToken), null, null, null));
-				}
-				firstPage = false;
+			// Graph's newest first order is not strict, so the cutoff ends the walk only
+			// after a run of older chats rather than at the first one
+			int olderRun = 0;
+			walk: while (nextUrl != null) {
+				Map<String, Object> json = readMap(
+						HttpHelperUtility.getRequest(nextUrl, headers(accessToken), null, null, null));
 				if (json == null) {
 					break;
 				}
@@ -224,12 +232,24 @@ public class MicrosoftTeamsMessageHelper {
 					scanned++;
 					Map<String, Object> described = MicrosoftTeamsMessageMapper.toChat(chat, userEmail,
 							LIST_CHAT_MEMBERS);
-					if (unreadOnly && !Boolean.TRUE.equals(described.get(HAS_UNREAD))) {
+					Instant at = lastMessageAt(described);
+					if (since != null && at != null && !at.isBefore(since)) {
+						olderRun = 0;
+					}
+					if (since != null && (at == null || at.isBefore(since))) {
+						if (at != null && ++olderRun >= OLDER_RUN_TO_STOP) {
+							break walk;
+						}
+						continue;
+					}
+					// a chat the user hid in Teams is not one they are waiting on
+					if (unreadOnly && (!Boolean.TRUE.equals(described.get(HAS_UNREAD))
+							|| Boolean.TRUE.equals(described.get("isHidden")))) {
 						continue;
 					}
 					chats.add(described);
 					if (limit > 0 && chats.size() >= limit) {
-						return chats;
+						break walk;
 					}
 				}
 				// narrowing to the unread ones walks the whole list when nothing is
@@ -241,6 +261,9 @@ public class MicrosoftTeamsMessageHelper {
 				Object next = json.get(NEXT_LINK);
 				nextUrl = next == null ? null : next.toString();
 			}
+			if (withPreview) {
+				nameOneOnOnes(accessToken, userEmail, chats);
+			}
 			return chats;
 		} catch (Exception e) {
 			classLogger.error("Failed to list the Microsoft Teams chats of the signed in user.", e);
@@ -248,14 +271,87 @@ public class MicrosoftTeamsMessageHelper {
 		}
 	}
 
+	// A 1:1 chat has no topic and was listed without members: name it after the other person,
+	// taken from the last message when they sent it, else from that chat's members.
+	private static void nameOneOnOnes(String accessToken, String userEmail, List<Map<String, Object>> chats) {
+		String myId = null;
+		boolean myIdRead = false;
+		for (Map<String, Object> chat : chats) {
+			if (!ONE_ON_ONE.equals(chat.get("chatType")) || chat.get(DISPLAY_NAME) != null) {
+				continue;
+			}
+			if (!myIdRead) {
+				myIdRead = true;
+				try {
+					myId = signedInUserId(accessToken);
+				} catch (Exception e) {
+					// without it every unnamed 1:1 reads its members instead
+					classLogger.warn("Could not read the signed in user's Microsoft id", e);
+				}
+			}
+			if (chat.get("lastMessage") instanceof Map<?, ?> last && myId != null
+					&& last.get("fromId") instanceof String fromId && !fromId.equals(myId)
+					&& last.get("fromName") instanceof String fromName && !fromName.isBlank()) {
+				Map<String, Object> other = new LinkedHashMap<>();
+				other.put("userId", fromId);
+				other.put("name", fromName);
+				chat.put(MEMBERS, new ArrayList<>(List.of(other)));
+				chat.put(DISPLAY_NAME, fromName);
+				continue;
+			}
+			try {
+				String url = chatPath(String.valueOf(chat.get("id"))) + "/members";
+				Map<String, Object> json = readMap(
+						HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null));
+				List<Map<String, Object>> members = new ArrayList<>();
+				for (Map<String, Object> member : mapList(json == null ? null : json.get(VALUE))) {
+					Map<String, Object> described = MicrosoftTeamsMessageMapper.toMember(member);
+					members.add(described);
+					Object email = described.get("email");
+					Object name = described.get("name");
+					boolean isMe = userEmail != null && email != null && userEmail.trim().equalsIgnoreCase(email.toString());
+					if (!isMe && name != null && chat.get(DISPLAY_NAME) == null) {
+						chat.put(DISPLAY_NAME, name.toString());
+					}
+				}
+				if (!members.isEmpty()) {
+					chat.put(MEMBERS, members);
+				}
+			} catch (Exception e) {
+				// the chat still lists, with its last message, just without a name
+				classLogger.warn("Could not read the members of Microsoft Teams chat '{}'", chat.get("id"), e);
+			}
+		}
+	}
+
 	/**
 	 * The url a chat listing starts at.
 	 *
 	 * @param expand what to expand alongside each chat
+	 * @param pageSize    how many chats one page asks for
+	 * @param newestFirst whether Graph sorts by the last message, newest first
 	 * @return the url
 	 */
-	private static String chatsUrl(String expand) {
-		return GRAPH_BASE + "/me/chats?$expand=" + expand + "&$top=" + CHAT_PAGE_SIZE;
+	private static String chatsUrl(String expand, int pageSize, boolean newestFirst) {
+		return GRAPH_BASE + "/me/chats?$expand=" + expand + "&$top=" + pageSize
+				+ (newestFirst ? "&$orderby=lastMessagePreview/createdDateTime%20desc" : "");
+	}
+
+	// when the chat's last message arrived; null when Graph gave none or the 0001 placeholder
+	private static Instant lastMessageAt(Map<String, Object> chat) {
+		if (!(chat.get("lastMessage") instanceof Map<?, ?> last)) {
+			return null;
+		}
+		String text = ValueUtils.toNonBlankString(last.get("createdDateTime"));
+		if (text == null) {
+			return null;
+		}
+		try {
+			Instant at = Instant.parse(text);
+			return at.isBefore(Instant.EPOCH) ? null : at;
+		} catch (DateTimeParseException e) {
+			return null;
+		}
 	}
 
 	/**

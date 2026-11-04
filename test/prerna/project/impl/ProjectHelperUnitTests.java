@@ -27,21 +27,107 @@
  *******************************************************************************/
 package prerna.project.impl;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import prerna.SemossUnitTest;
 import prerna.util.Constants;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class ProjectHelperUnitTests extends SemossUnitTest {
+class ProjectHelperUnitTests extends SemossUnitTest {
 
 	private static final Logger logger = LogManager.getLogger(ProjectHelperUnitTests.class);
+
+	@ParameterizedTest
+	@ValueSource(strings = { "insights_database.mv.db", "insights_database.trace.db", "insights_database.sqlite" })
+	void testDeleteInsightsDatabase_deletesEachInsightsDatabaseFile(String fileName) throws IOException {
+		String projectId = UUID.randomUUID().toString();
+		Path insightsFile = createProjectFile(projectId, fileName);
+
+		ProjectHelper.deleteInsightsDatabase(smss(projectId));
+
+		assertFalse(Files.exists(insightsFile));
+	}
+
+	@Test
+	void testDeleteInsightsDatabase_deletesEveryInsightsDatabaseFileTogether() throws IOException {
+		String projectId = UUID.randomUUID().toString();
+		List<Path> insightsFiles = new ArrayList<>();
+		for (String fileName : ProjectHelper.INSIGHTS_DATABASE_FILES) {
+			insightsFiles.add(createProjectFile(projectId, fileName));
+		}
+
+		ProjectHelper.deleteInsightsDatabase(smss(projectId));
+
+		for (Path insightsFile : insightsFiles) {
+			assertFalse(Files.exists(insightsFile));
+		}
+	}
+
+	@Test
+	void testDeleteInsightsDatabase_leavesTheRestOfTheProjectFolder() throws IOException {
+		String projectId = UUID.randomUUID().toString();
+		createProjectFile(projectId, "insights_database.mv.db");
+		Path otherFile = createProjectFile(projectId, "pipeline.json");
+
+		ProjectHelper.deleteInsightsDatabase(smss(projectId));
+
+		assertTrue(Files.exists(otherFile));
+	}
+
+	@Test
+	void testDeleteInsightsDatabase_noProjectFolderDoesNothing() {
+		String projectId = UUID.randomUUID().toString();
+
+		assertDoesNotThrow(() -> ProjectHelper.deleteInsightsDatabase(smss(projectId)));
+	}
+
+	@Test
+	void testDeleteInsightsDatabase_deletesWhateverTheSmssNames() throws IOException {
+		String projectId = UUID.randomUUID().toString();
+		Path insightsFile = createProjectFile(projectId, "insights_database.mv.db");
+		Properties smssProp = smss(projectId);
+		smssProp.setProperty(Constants.RDBMS_INSIGHTS, "project/@PROJECT@/insights_database.sqlite");
+		smssProp.setProperty(Constants.RDBMS_INSIGHTS_TYPE, "SQLITE");
+
+		ProjectHelper.deleteInsightsDatabase(smssProp);
+
+		assertFalse(Files.exists(insightsFile));
+	}
+
+	/**
+	 * Creates a file in the folder of the project "pname" with the given id.
+	 */
+	private static Path createProjectFile(String projectId, String fileName) throws IOException {
+		Path projectFolder = Files.createDirectories(projectDir.resolve("pname__" + projectId));
+		return Files.createFile(projectFolder.resolve(fileName));
+	}
+
+	/**
+	 * The smss of a BLOCKS project "pname" with the given id.
+	 */
+	private static Properties smss(String projectId) {
+		Properties smssProp = new Properties();
+		smssProp.setProperty(Constants.PROJECT, projectId);
+		smssProp.setProperty(Constants.PROJECT_ALIAS, "pname");
+		smssProp.setProperty(Constants.PROJECT_ENUM_TYPE, "BLOCKS");
+		return smssProp;
+	}
 
 	@Test
 	void testLoadInsightsEngineInvalidConfiguredRdbmsType() {
@@ -58,5 +144,4 @@ public class ProjectHelperUnitTests extends SemossUnitTest {
 		assertTrue(e.getMessage().contains("H2_DB"),
 				"Error message should list the valid RdbmsTypeEnum constants, was: " + e.getMessage());
 	}
-
 }

@@ -74,6 +74,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IMCP;
@@ -239,15 +240,12 @@ public class Project implements IProject {
 			GitRepoUtils.init(this.projectVersionFolder);
 		}
 
-		String projectTypeStr = this.smssProp.getProperty(Constants.PROJECT_ENUM_TYPE);
-		if (projectTypeStr != null) {
-			this.projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
-		} else {
-			this.projectType = IProject.PROJECT_TYPE.INSIGHTS;
-		}
+		this.projectType = IProject.PROJECT_TYPE.fromSmss(this.smssProp);
 
-		if (!isAsset) {
+		if (!this.isAsset && this.projectType.holdsInsights()) {
 			loadInsightsRdbms();
+		} else {
+			ProjectHelper.deleteInsightsDatabase(this.smssProp);
 		}
 
 		this.projectProperties = new ProjectProperties(this.projectAssetFolder, this.projectName, this.projectId);
@@ -297,17 +295,17 @@ public class Project implements IProject {
 	}
 
 	/**
-	 * Load the insights database
-	 * 
-	 * @throws Exception
+	 * Load the insights database the smss RDBMS_INSIGHTS names, creating its file
+	 * when it does not exist. A project whose smss names none has no insights
+	 * database.
+	 *
+	 * @throws Exception if the insights database cannot be opened
 	 */
 	protected void loadInsightsRdbms() throws Exception {
-		// load the rdbms insights db
-		this.insightDatabaseLoc = SmssUtilities.getInsightsRdbmsFile(this.smssProp).getAbsolutePath();
-
-		// if it is not defined directly in the smss
-		// we will not create an insights database
-		if (insightDatabaseLoc != null) {
+		File insightDatabaseFile = SmssUtilities.getInsightsRdbmsFile(this.smssProp);
+		if (insightDatabaseFile != null) {
+			this.insightDatabaseLoc = insightDatabaseFile.getAbsolutePath();
+			ProjectHelper.setAsideLegacyInsightsDatabase(this.smssProp, insightDatabaseFile, classLogger);
 			this.insightRdbms = ProjectHelper.loadInsightsEngine(this.smssProp, classLogger);
 		}
 	}
@@ -364,6 +362,9 @@ public class Project implements IProject {
 
 	@Override
 	public Vector<String> getPerspectives() {
+		if (this.insightRdbms == null) {
+			return new Vector<>();
+		}
 		Vector<String> perspectives = Utility.getVectorOfReturn(GET_ALL_PERSPECTIVES_QUERY, insightRdbms, false);
 		if (perspectives.contains("")) {
 			int index = perspectives.indexOf("");
@@ -374,6 +375,9 @@ public class Project implements IProject {
 
 	@Override
 	public Vector<String> getInsights(String perspective) {
+		if (this.insightRdbms == null) {
+			return new Vector<>();
+		}
 		String insightsInPerspective = null;
 		if (perspective.equals("Semoss-Base-Perspective")) {
 			perspective = null;
@@ -389,6 +393,9 @@ public class Project implements IProject {
 
 	@Override
 	public Vector<String> getInsights() {
+		if (this.insightRdbms == null) {
+			return new Vector<>();
+		}
 		return Utility.getVectorOfReturn(GET_ALL_INSIGHTS_QUERY, insightRdbms, false);
 	}
 
@@ -421,31 +428,16 @@ public class Project implements IProject {
 			}
 		}
 
-		// TODO: do we want to close the py process everything time we close?
-		// we close when we push insights (cause of the insights database) or update
-		// smss
-
-//		try {
-//			if(tcpClient != null) {
-//				// this should destroy the process as well
-//				tcpClient.stopPyServe(this.tcpServerDirectory);
-//			}
-//		} catch(Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//		}
-//		// but just in case above doesn't destroy it
-//		try {
-//			if(tcpServerProcess != null) {
-//				tcpServerProcess.destroy();
-//			}
-//		} catch(Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//			try {
-//				tcpServerProcess.destroy();
-//			} catch(Exception e1) {
-//				classLogger.error(Constants.STACKTRACE, e1);
-//			}
-//		}
+		// shut down the project's python process when it is running; a project opened
+		// again is a new instance that starts its own
+		if (this.cpw != null) {
+			try {
+				this.cpw.shutdown(false);
+			} catch (Exception e) {
+				classLogger.error("Failed to shut down the python process of project '{}'",
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
+			}
+		}
 	}
 
 	@Override
@@ -504,6 +496,9 @@ public class Project implements IProject {
 
 	@Override
 	public Vector<Insight> getInsight(String... questionIDs) {
+		if (this.insightRdbms == null) {
+			return new Vector<>();
+		}
 		String idString = "";
 		int numIDs = questionIDs.length;
 		Vector<Insight> insightV = new Vector<Insight>(numIDs);
@@ -525,9 +520,7 @@ public class Project implements IProject {
 			String query = GET_INSIGHT_INFO_QUERY.replace(QUESTION_PARAM_KEY, idString);
 			classLogger.info("Running insights query {}", Utility.cleanLogString(query));
 
-			IRawSelectWrapper wrap = null;
-			try {
-				wrap = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
+			try (IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(insightRdbms, query)) {
 				while (wrap.hasNext()) {
 					IHeadersDataRow dataRow = wrap.next();
 					Object[] values = dataRow.getValues();
@@ -537,15 +530,6 @@ public class Project implements IProject {
 					String insightName = values[1] + "";
 
 					String insightMakeup = (String) values[2];
-//					Clob insightMakeup = (Clob) values[2];
-//					InputStream insightMakeupIs = null;
-//					if(insightMakeup != null) {
-//						try {
-//							insightMakeupIs = insightMakeup.getAsciiStream();
-//						} catch (SQLException e) {
-//							logger.error(Constants.STACKTRACE, e);
-//						}
-//					}
 					String layout = values[4] + "";
 					String dataTableAlign = values[6] + "";
 					String dataMakerName = values[7] + "";
@@ -565,16 +549,6 @@ public class Project implements IProject {
 					if (insightRdbms.getQueryUtil().allowArrayDatatype()) {
 						pixel = (Object[]) values[12];
 					} else {
-//						Clob pixelArray = (Clob) values[9];
-//						InputStream pixelArrayIs = null;
-//						if(pixelArray != null) {
-//							try {
-//								pixelArrayIs = pixelArray.getAsciiStream();
-//							} catch (SQLException e) {
-//								logger.error(Constants.STACKTRACE, e);
-//							}
-//						}
-
 						// flush input stream to string
 						String pixelArray = (String) values[12];
 						Gson gson = new Gson();
@@ -625,14 +599,6 @@ public class Project implements IProject {
 				throw e;
 			} catch (Exception e) {
 				classLogger.error("Failed to retrieve insights for query IDs {}", idString, e);
-			} finally {
-				if (wrap != null) {
-					try {
-						wrap.close();
-					} catch (IOException e) {
-						classLogger.error("Failed to close insight query wrapper for query IDs {}", idString, e);
-					}
-				}
 			}
 		}
 		return insightV;
@@ -641,11 +607,12 @@ public class Project implements IProject {
 	@Override
 	public String getInsightDefinition() {
 		StringBuilder stringBuilder = new StringBuilder();
+		if (this.insightRdbms == null) {
+			return stringBuilder.toString();
+		}
 		// call script command to get everything necessary to recreate rdbms engine on
 		// the other side//
-		ISelectWrapper wrap = null;
-		try {
-			wrap = WrapperManager.getInstance().getSWrapper(insightRdbms, "SCRIPT");
+		try (ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRdbms, "SCRIPT")) {
 			String[] names = wrap.getVariables();
 			while (wrap.hasNext()) {
 				ISelectStatement ss = wrap.next();
@@ -654,14 +621,6 @@ public class Project implements IProject {
 		} catch (Exception e) {
 			classLogger.error("Failed to generate insight definition script for project '{}'",
 					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
-		} finally {
-			if (wrap != null) {
-				try {
-					wrap.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to close SCRIPT wrapper while generating insight definition", e);
-				}
-			}
 		}
 		return stringBuilder.toString();
 	}
@@ -878,8 +837,8 @@ public class Project implements IProject {
 	public String getTargetFolder(File pomFile) {
 		String targetFolder = null;
 
-		try {
-			InputSource is = new InputSource(new FileInputStream(pomFile));
+		try (FileInputStream pomStream = new FileInputStream(pomFile)) {
+			InputSource is = new InputSource(pomStream);
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			// Use this if the JAXP parser accepts it
 			dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
@@ -1318,6 +1277,17 @@ public class Project implements IProject {
 		}
 		this.pyTranslator.setSocketClient(this.cpw.getSocketClient());
 		return this.pyTranslator;
+	}
+
+	@Override
+	public Object clearPythonImports() {
+		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			return null;
+		}
+		// the translator's insight carries this project as its context, so the
+		// script runs with the project assets as its asset paths
+		this.pyTranslator.setSocketClient(this.cpw.getSocketClient());
+		return this.pyTranslator.runScript(PyUtils.CLEAR_APP_IMPORTS_SCRIPT);
 	}
 
 	/**

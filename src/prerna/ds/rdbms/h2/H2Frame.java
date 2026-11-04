@@ -137,11 +137,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		// build the connection url
 		Map<String, Object> connDetails = new HashMap<>();
 		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, fileLocation);
-		// LOG/UNDO_LOG were PageStore-only settings removed in H2 2.x (MVStore is now
-		// mandatory and always maintains its own undo log); LOCK_MODE's old meaning
-		// doesn't apply under MVStore's MVCC either. H2 2.x throws "Unsupported
-		// connection setting" for any of the three, so only CACHE_SIZE carries over.
-		connDetails.put(AbstractSqlQueryUtil.ADDITIONAL, "CACHE_SIZE=65536");
+		connDetails.put(AbstractSqlQueryUtil.ADDITIONAL, "CACHE_SIZE=65536;LOCK_MODE=1");
 		String connectionUrl = this.util.setConnectionDetailsfromMap(connDetails);
 		// get the connection
 		this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.H2_DB, connectionUrl, "sa", "");

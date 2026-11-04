@@ -493,7 +493,7 @@ public class SmssUtilities {
 		} else {
 			connectionUrl = "jdbc:h2:nio:" + baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR
 					+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR
-					+ "insights_database;query_timeout=180000;query_cache_size=24;cache_size=32768";
+					+ "insights_database;query_timeout=180000;cache_size=32768";
 		}
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
@@ -501,17 +501,20 @@ public class SmssUtilities {
 	}
 
 	/**
-	 * Generate the SMSS for the project
-	 * 
-	 * @param projectId
-	 * @param projectName
-	 * @param hasPortal
-	 * @param portalName
-	 * @param gitProvider
-	 * @param gitCloneUrl
-	 * @param forceInsightDatabaseType
-	 * @return
-	 * @throws IOException
+	 * Write a new project's smss to a .temp file. Only a project type that holds
+	 * insights gets the insights database properties, so no other project ever
+	 * makes an insights database file.
+	 *
+	 * @param projectId                the project id
+	 * @param projectName              the project name
+	 * @param projectEnumType          the project type
+	 * @param gitProvider              the git provider, or null
+	 * @param gitCloneUrl              the git clone URL, or null
+	 * @param forceInsightDatabaseType the insights database type, or null for the
+	 *                                 DEFAULT_INSIGHTS_RDBMS setting (H2 when it is
+	 *                                 not set)
+	 * @return the .temp smss file
+	 * @throws IOException if the file cannot be written
 	 */
 	public static File createTemporaryProjectSmss(String projectId, String projectName,
 			IProject.PROJECT_TYPE projectEnumType, String gitProvider, String gitCloneUrl,
@@ -548,35 +551,40 @@ public class SmssUtilities {
 				bufferedWriter.write(Constants.PROJECT_GIT_CLONE + tab + gitCloneUrl + newLine);
 			}
 
-			String rdbmsTypeStr = null;
-			RdbmsTypeEnum rdbmsType = null;
-			if (forceInsightDatabaseType != null) {
-				rdbmsType = forceInsightDatabaseType;
-				rdbmsTypeStr = rdbmsType.getLabel();
-			} else {
-				rdbmsTypeStr = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
-				if (rdbmsTypeStr == null) {
-					// default will be h2
-					rdbmsTypeStr = "H2_DB";
+			if (projectEnumType.holdsInsights()) {
+				String rdbmsTypeStr = null;
+				RdbmsTypeEnum rdbmsType = null;
+				if (forceInsightDatabaseType != null) {
+					rdbmsType = forceInsightDatabaseType;
+				} else {
+					rdbmsTypeStr = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
+					if (rdbmsTypeStr == null) {
+						// default h2
+						rdbmsType = RdbmsTypeEnum.H2_DB;
+					} else {
+						rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
+					}
 				}
-				rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
-			}
+				// the configured value may differ in case or spacing, so the smss gets the
+				// label
+				rdbmsTypeStr = rdbmsType.getLabel();
 
-			bufferedWriter.write(
-					Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation(rdbmsTypeStr) + newLine);
-			bufferedWriter.write(Constants.RDBMS_INSIGHTS_TYPE + tab + rdbmsTypeStr + newLine);
-			bufferedWriter.write(Constants.DRIVER + tab + rdbmsType.getDriver() + newLine);
-			bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType.getLabel() + newLine);
-			if (rdbmsType == RdbmsTypeEnum.SQLITE) {
-				// sqlite has no username/password
-				bufferedWriter.write(Constants.USERNAME + tab + "" + newLine);
-				bufferedWriter.write(Constants.PASSWORD + tab + "" + newLine);
-			} else {
-				bufferedWriter.write(Constants.USERNAME + tab + "sa" + newLine);
-				bufferedWriter.write(Constants.PASSWORD + tab + "" + newLine);
+				bufferedWriter.write(
+						Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation(rdbmsTypeStr) + newLine);
+				bufferedWriter.write(Constants.RDBMS_INSIGHTS_TYPE + tab + rdbmsTypeStr + newLine);
+				bufferedWriter.write(Constants.DRIVER + tab + rdbmsType.getDriver() + newLine);
+				bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType.getLabel() + newLine);
+				if (rdbmsType == RdbmsTypeEnum.SQLITE) {
+					// sqlite has no username/password
+					bufferedWriter.write(Constants.USERNAME + tab + "" + newLine);
+					bufferedWriter.write(Constants.PASSWORD + tab + "" + newLine);
+				} else {
+					bufferedWriter.write(Constants.USERNAME + tab + "sa" + newLine);
+					bufferedWriter.write(Constants.PASSWORD + tab + "" + newLine);
+				}
+				String connectionUrl = getParamedNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
+				bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
 			}
-			String connectionUrl = getParamedNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
-			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
 
 			bufferedWriter.write(IEngine.PIPELINE + tab + "pipeline.json" + newLine);
 		} catch (IOException e) {
@@ -630,15 +638,18 @@ public class SmssUtilities {
 			RdbmsTypeEnum rdbmsType = null;
 			if (forceInsightDatabaseType != null) {
 				rdbmsType = forceInsightDatabaseType;
-				rdbmsTypeStr = rdbmsType.getLabel();
 			} else {
 				rdbmsTypeStr = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 				if (rdbmsTypeStr == null) {
-					// default will be h2
-					rdbmsTypeStr = "H2_DB";
+					// default h2
+					rdbmsType = RdbmsTypeEnum.H2_DB;
+				} else {
+					rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
 				}
-				rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
 			}
+			// the configured value may differ in case or spacing, so the smss gets the
+			// label
+			rdbmsTypeStr = rdbmsType.getLabel();
 
 			// this smss is only ever generated for a user asset project
 			bufferedWriter.write(Constants.IS_ASSET_APP + tab + "true" + newLine);
@@ -755,7 +766,8 @@ public class SmssUtilities {
 						"QUESTION_ORDER", "QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN",
 						"HIDDEN_INSIGHT", "CACHEABLE", "QUESTION_PKQL" };
 				types = new String[] { "VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT",
-						"VARCHAR(255)", "CLOB", "VARCHAR(500)", "BOOLEAN", "BOOLEAN", "ARRAY" };
+						"VARCHAR(255)", "CLOB", "VARCHAR(500)", "BOOLEAN", "BOOLEAN", "VARCHAR ARRAY" };
+				// H2 2.x needs a typed array; matches what migrated 1.4 files get
 				// this is annoying
 				// need to adjust if the engine allows array data types
 				if (!queryUtil.allowArrayDatatype()) {

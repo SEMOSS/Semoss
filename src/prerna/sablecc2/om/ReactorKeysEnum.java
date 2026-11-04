@@ -97,7 +97,6 @@ public enum ReactorKeysEnum {
 	END_ROW("endRow",	 									    "The ending row number to import from a file."),
 	ENGINE("engine",											"Id/Name of the engine"),
 	ENGINE_TYPE("engineTypes",									"The type of engine to filter into (DATABASE, STORAGE, MODEL, etc.)"),
-	ENTITIES("entities",                                        "The entities to locate within a given text"),
 	EXPIRES_ON("expires",	 									"The date when the api expires"),
 	EXPORT_AUDIT("exportAudit",	                             	"Boolean to include an audit sheet for parameters to excel exports"),
 	EXPORT_TEMPLATE("export_template",					    	"Template file to use for the export of this data"),
@@ -134,7 +133,6 @@ public enum ReactorKeysEnum {
 	HEADERS("headers",                                      	"All the headers strings we want to push as part of the header on the excel / powerpoint export"),
 	HEADERS_MAP("headersMap", 									"Map containing key-value pairs to send in the headers of a request"),		
 	HEIGHT("height", 											"The height to use for screenshot capture."),
-	HF_MODEL_ID("hfModelId", 									"The model id for the HF model"),
 	HOST("host",                    	                        "The host URL"),
 	HTML("html",                        	                    "HTML text"),
 	MARKDOWN("markdown",                	                    "Markdown text"),
@@ -164,7 +162,6 @@ public enum ReactorKeysEnum {
 	LOGICAL_NAME("logicalNames", 								"Column alias to be added to the master database"),
 	MAINTAIN_COLUMNS("maintainCols", 							"Any additional columns to keep in the frame"),
 	MAP("map", 													"Map that is the equivalent of a JSON for key-value properties"),
-	MASK_ENTITIES("maskEntities",                               "The entities to mask when returning results from an NER model"),
 	MAX("max", 													"Maximum value of something. Typically a threshold"),
 	MCP("mcp",                                         			"List of MCPs for the reactor to use"),
 	MCP_METADATA("mcpMetadata", 								"""

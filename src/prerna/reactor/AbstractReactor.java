@@ -493,6 +493,18 @@ public abstract class AbstractReactor implements IReactor {
 		return this.reactorName;
 	}
 
+	/**
+	 * The name a pixel calls this reactor by: its class name without the
+	 * {@code Reactor} suffix, such as {@code ExportEngine}. A subclass gets its own
+	 * name, not its parent's.
+	 *
+	 * @return the pixel name of this reactor
+	 */
+	protected String getPixelName() {
+		String name = this.getClass().getSimpleName();
+		return name.endsWith("Reactor") ? name.substring(0, name.length() - "Reactor".length()) : name;
+	}
+
 	@Override
 	public void setPixelPlanner(PixelPlanner planner) {
 		this.planner = planner;
@@ -883,10 +895,7 @@ public abstract class AbstractReactor implements IReactor {
 	@Override
 	public JSONObject asMcpTool() {
 		JSONObject tool = new JSONObject();
-		String name = this.getClass().getSimpleName();
-		if (name.endsWith("Reactor")) {
-			name = name.substring(0, name.length() - "Reactor".length());
-		}
+		String name = getPixelName();
 		tool.put("name", name);
 		tool.put("title", MCPUtility.formatToTitleCase(name));
 		String overallDescription = getReactorDescription();

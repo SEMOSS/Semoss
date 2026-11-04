@@ -897,7 +897,7 @@ public final class HttpHelperUtility {
 					} else {
 						resultHolder[0] = null;
 					}
-					classLogger.info("Request response = {}", Utility.cleanLogString(resultHolder[0]));
+					classLogger.debug("Request response = {}", Utility.cleanLogString(resultHolder[0]));
 
 					if (status == 200 && extract) {
 						if (json) {
@@ -978,7 +978,7 @@ public final class HttpHelperUtility {
 					} else {
 						resultHolder[0] = null;
 					}
-					classLogger.info("Request response = {}", Utility.cleanLogString(resultHolder[0]));
+					classLogger.debug("Request response = {}", Utility.cleanLogString(resultHolder[0]));
 
 					if (status == 200 && extract) {
 						if (json) {
