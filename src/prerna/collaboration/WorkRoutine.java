@@ -107,6 +107,7 @@ final class WorkRoutine {
 	static final String CAUSE_AGENT = "agent";
 	static final String CAUSE_DELIVERY = "delivery";
 	static final String CAUSE_INTERRUPTED = "interrupted";
+	static final String CAUSE_CANCELLED = "cancelled";
 
 	// how long Run now waits for the job to mark its run: 20 x 250 ms
 	private static final int RUN_NOW_WAIT_STEPS = 20;
@@ -376,6 +377,46 @@ final class WorkRoutine {
 				return;
 			}
 		}
+	}
+
+	/**
+	 * Stops the owner's running run: cancels its automation, which cancels its agent, and frees the row at once so
+	 * Run now can start another while the old run winds down; its own finish then matches no running row.
+	 */
+	static void stop(Slot slot) {
+		Kind kind = slot.kind();
+		Map<String, Object> row = stored(slot);
+		if (row == null) {
+			throw new IllegalArgumentException("Routine not found");
+		}
+		if (!"running".equals(row.get("status"))) {
+			throw new IllegalArgumentException("The " + kind.label() + " is not running");
+		}
+		String started = (String) row.get("startedAt");
+		String runId = (String) row.get("runId");
+		String roomId = null;
+		if (runId != null) {
+			// the run id is attached just before the automation row exists; wait briefly so the cancel reaches it
+			Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
+			for (int i = 0; run == null && i < RUN_NOW_WAIT_STEPS; i++) {
+				try {
+					Thread.sleep(RUN_NOW_WAIT_STEP_MS);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+				run = AutomationRunStore.getRunDetail(runId);
+			}
+			if (run != null) {
+				if (!TERMINAL.contains(run.get(AutomationConstants.STATUS))) {
+					RunAutomationDefinitionReactor.cancelRun(runId);
+				}
+				// keep the room the run worked in, so Open run still shows how far it got
+				roomId = (String) lastRun(row).get("roomId");
+			}
+		}
+		finish(slot, "failed", null, "You stopped this run. Run it again when you are ready.", roomId, started,
+				CAUSE_CANCELLED);
 	}
 
 	/**
