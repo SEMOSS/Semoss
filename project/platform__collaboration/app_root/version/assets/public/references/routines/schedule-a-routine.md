@@ -8,6 +8,10 @@ the final answer to the owner alone, by email, as a Teams message to themselves,
 only in Routines. Use `CreateRoutine` to save or change one,
 `ListRoutines` to find one, and `ManageRoutine` to pause, resume, run, or delete it.
 
+The owner can also add skills from their skill catalog and tools they can use,
+such as a database or another app's toolbox, to a routine in Routines. A run uses
+those tools too, except one that asks for approval, which never runs in a routine.
+
 ## Write the task
 
 The `prompt` is what the run reads every time. Write it as the owner's request,

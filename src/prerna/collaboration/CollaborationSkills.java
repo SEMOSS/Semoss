@@ -34,6 +34,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -50,7 +51,8 @@ import prerna.reactor.agent.skill.SkillProjects;
 
 /**
  * The owner's own skills for Collaboration: private skill projects the owner made, tagged collaboration. Only these
- * are offered to routines and the owner's assistant, so a shared or public skill never comes in by search.
+ * are offered to the owner's assistant, so a shared or public skill never comes in by search. A routine can also use
+ * any other skill the owner can view, when they pick it for that routine ({@link #isUsable}).
  */
 public final class CollaborationSkills {
 
@@ -124,15 +126,49 @@ public final class CollaborationSkills {
 		}
 	}
 
+	/**
+	 * Whether the owner can pick this skill for one of their routines: any skill project they can view, such as one
+	 * from their SEMOSS skill catalog, the same rule a room's own skills follow.
+	 */
+	public static boolean isUsable(User user, String skillId) {
+		if (user == null || skillId == null || skillId.isBlank() || !SkillProjects.isSkillProject(skillId)) {
+			return false;
+		}
+		try {
+			return SecurityProjectUtils.userCanViewProject(user, skillId);
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not check skill {}: {}", skillId, e.getMessage());
+			return false;
+		}
+	}
+
 	/** Keeps the ids the user owns and tagged, in order and without repeats; throws on any other. */
 	public static List<String> requireMine(User user, Collection<?> skillIds) {
+		return require(skillIds, skillId -> isMine(user, skillId), "Pick one of your own Collaboration skills; ");
+	}
+
+	/** Drops the ids the user no longer owns or untagged; used at run time, when nobody can be asked. */
+	public static List<String> keepMine(User user, Collection<?> skillIds) {
+		return keep(skillIds, skillId -> isMine(user, skillId));
+	}
+
+	/** Keeps the ids the user can use, in order and without repeats; throws on any other. */
+	public static List<String> requireUsable(User user, Collection<?> skillIds) {
+		return require(skillIds, skillId -> isUsable(user, skillId), "Pick a skill you can use; ");
+	}
+
+	/** Drops the ids the user can no longer use; used at run time, when nobody can be asked. */
+	public static List<String> keepUsable(User user, Collection<?> skillIds) {
+		return keep(skillIds, skillId -> isUsable(user, skillId));
+	}
+
+	private static List<String> require(Collection<?> skillIds, Predicate<String> allowed, String refusal) {
 		Set<String> ids = new LinkedHashSet<>();
 		if (skillIds != null) {
 			for (Object value : skillIds) {
 				String skillId = value == null ? "" : String.valueOf(value).trim();
-				if (!isMine(user, skillId)) {
-					throw new IllegalArgumentException("Pick one of your own Collaboration skills; " + skillId
-							+ " is not one of them");
+				if (!allowed.test(skillId)) {
+					throw new IllegalArgumentException(refusal + skillId + " is not one of them");
 				}
 				ids.add(skillId);
 			}
@@ -143,13 +179,12 @@ public final class CollaborationSkills {
 		return new ArrayList<>(ids);
 	}
 
-	/** Drops the ids the user no longer owns or untagged; used at run time, when nobody can be asked. */
-	public static List<String> keepMine(User user, Collection<?> skillIds) {
+	private static List<String> keep(Collection<?> skillIds, Predicate<String> allowed) {
 		List<String> kept = new ArrayList<>();
 		if (skillIds != null) {
 			for (Object value : skillIds) {
 				String skillId = value == null ? null : String.valueOf(value).trim();
-				if (isMine(user, skillId) && !kept.contains(skillId)) {
+				if (allowed.test(skillId) && !kept.contains(skillId)) {
 					kept.add(skillId);
 				}
 			}

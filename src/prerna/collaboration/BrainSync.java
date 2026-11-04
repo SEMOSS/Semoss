@@ -327,11 +327,15 @@ public final class BrainSync {
 		fresh.sort(Comparator.comparing(header -> String.valueOf(header.get("receivedDateTime"))));
 		BrainMailImport.Run run;
 		synchronized (CollaborationDbUtils.ownerLock(INGEST_LOCK, ownerId, ownerType)) {
+			// again under the lock: a reset that held it meanwhile leaves nothing this import may add to
+			if (!canIngest(ownerId, ownerType)) {
+				return Set.of();
+			}
 			run = new BrainMailImport.Run(ownerId, ownerType, true);
 			run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"), aliases);
 			CollaborationDbUtils.batch(conn -> {
 				for (Map<String, Object> header : fresh) {
-					run.importOne(header);
+					run.importIsolated(conn, header);
 				}
 			});
 			run.refreshThreads();

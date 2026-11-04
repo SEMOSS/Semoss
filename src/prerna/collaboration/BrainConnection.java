@@ -99,7 +99,10 @@ public final class BrainConnection {
 	/** Removes the saved background access; scheduled routines stop until it is saved again. */
 	public static Map<String, Object> forgetBackground(User user) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		SecurityExternalConnectorsUtils.deleteMicrosoftGraphCredential(mailbox(owner).get("id"));
+		String mailboxId = mailbox(owner).get("id");
+		SecurityExternalConnectorsUtils.deleteMicrosoftGraphCredential(mailboxId);
+		// the new-mail subscription keeps a sign-in of its own, and a routine would restore background access from it
+		BrainMailWebhook.unsubscribe(mailboxId);
 		return status(user);
 	}
 
