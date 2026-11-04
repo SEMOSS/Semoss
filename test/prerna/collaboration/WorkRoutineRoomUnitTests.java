@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -263,21 +262,18 @@ class WorkRoutineRoomUnitTests {
 	}
 
 	@Test
-	void routineWithDocumentsGetsACopyInTheChatAndTheOutputNamesThem() {
+	void aRoutineWhoseAgentAnsweredOpensTheRoomItWorkedInWithoutAChat() {
 		completed(user, WorkExpenseRoutine.ID, STARTED, "Suggested decision");
-		utility.when(Utility::getBaseFolder).thenReturn("/base");
-		try (MockedStatic<WorkRoutineDocuments> documents = mockStatic(WorkRoutineDocuments.class)) {
-			documents.when(() -> WorkRoutineDocuments.copyInto(same(user), eq(WorkExpenseRoutine.DOCUMENTS_ID), anyString()))
-					.thenReturn(List.of("policy.pdf", "rates.xlsx"));
-
-			String id = open(WorkExpenseRoutine.ID);
-
-			documents.verify(() -> WorkRoutineDocuments.copyInto(same(user), eq(WorkExpenseRoutine.DOCUMENTS_ID),
-					eq("/base" + File.separator + "room" + File.separator + id)));
-			String content = ((ResponseMessage) storedRoom(id).getMessages().getFirst()).getContent();
-			assertTrue(content.startsWith("Suggested decision\n\n---\n\n"), content);
-			assertTrue(content.contains("\"documents\" folder"), content);
-			assertTrue(content.contains(": policy.pdf, rates.xlsx."), content);
+		User other = owner("owner-two");
+		try (MockedStatic<AutomationRunStore> history = runHistory(WorkExpenseRoutine.KIND, "run-1",
+				AutomationConstants.STATUS_SUCCESS)) {
+			assertEquals("automation-room", open(WorkExpenseRoutine.ID));
+			assertEquals("agent-room", WorkRoutineRoom.open(insight, WorkExpenseRoutine.ID, null, "run-1").get("roomId"));
+			assertThrows(IllegalArgumentException.class,
+					() -> WorkRoutineRoom.open(insight(other), WorkExpenseRoutine.ID, null, "run-1"));
+			rooms.verifyNoInteractions();
+		} finally {
+			other.removeUserMemory();
 		}
 	}
 
@@ -348,16 +344,20 @@ class WorkRoutineRoomUnitTests {
 
 	/** The scheduler's record of one of the owner's inbox runs: its output and the rooms its agent worked in. */
 	private MockedStatic<AutomationRunStore> runHistory(String runId, String status) {
+		return runHistory(WorkInboxRoutine.KIND, runId, status);
+	}
+
+	private MockedStatic<AutomationRunStore> runHistory(WorkRoutine.Kind kind, String runId, String status) {
 		MockedStatic<AutomationRunStore> history = mockStatic(AutomationRunStore.class);
 		Map<String, Object> run = new HashMap<>();
 		run.put(AutomationConstants.RUN_ID, runId);
 		run.put(AutomationConstants.PROJECT_ID, AutomationProjectService.inlineRunScope(user));
-		run.put(AutomationConstants.AUTOMATION_ID, WorkInboxRoutine.KIND.automationId());
+		run.put(AutomationConstants.AUTOMATION_ID, kind.automationId());
 		run.put(AutomationConstants.STATUS, status);
 		run.put(AutomationConstants.STARTED_AT, Timestamp.valueOf("2026-10-15 12:00:05"));
 		history.when(() -> AutomationRunStore.getRunDetail(runId)).thenReturn(run);
 		Map<String, Object> agent = new HashMap<>();
-		agent.put(AutomationConstants.NODE_ID, WorkInboxRoutine.KIND.outputNode());
+		agent.put(AutomationConstants.NODE_ID, kind.outputNode());
 		agent.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
 		agent.put(AutomationConstants.OUTPUT_VALUE, "\"Saved output\"");
 		agent.put(AutomationConstants.ROOM_ID, "agent-room");

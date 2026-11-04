@@ -48,8 +48,8 @@ public class WorkOpenRoutineRoomReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Opens the signed-in user's latest routine output, or one past run's output, as the first assistant message in a "
-				+ "collaboration chat";
+		return "Opens the signed-in user's latest routine output, or one past run's output: the room the routine's agent "
+				+ "worked in for an expense review or one of the owner's own routines, else a collaboration chat that starts with it";
 	}
 
 	@Override

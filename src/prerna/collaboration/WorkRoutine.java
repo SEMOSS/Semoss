@@ -987,7 +987,7 @@ final class WorkRoutine {
 	}
 
 	/** The run's top-level result node, or null when the run never reached it. */
-	private static Map<String, Object> resultNode(Kind kind, String runId) {
+	static Map<String, Object> resultNode(Kind kind, String runId) {
 		Map<String, Object> result = null;
 		for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(runId)) {
 			if (kind.outputNode().equals(node.get(AutomationConstants.NODE_ID)) && node.get(AutomationConstants.PARENT_NODE_ID) == null) {
