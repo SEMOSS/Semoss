@@ -165,6 +165,8 @@ public final class AutomationNodeCatalog {
 						field(AutomationConstants.CONFIG_NULL_VALUE, ConfigFieldType.JSON, "If the value is null", false,
 								null)),
 				controlInputs(), controlAndResultOutputs()));
+		definitions.add(transformDefinition());
+		definitions.add(cleanProcessDefinition());
 		definitions.add(vectorDefinition(AutomationNodeType.VECTOR_SEARCH, "Search vectors",
 				"Search records in a vector database.", true));
 		definitions.add(vectorDefinition(AutomationNodeType.VECTOR_ADD, "Add vector documents",
@@ -251,6 +253,50 @@ public final class AutomationNodeCatalog {
 				"Run custom Python for advanced transformations.", AutomationConstants.NODE_CODE_MODE_CUSTOM, Map.of(),
 				List.of(), List.of(), controlInputs(), controlAndResultOutputs()));
 		return Collections.unmodifiableList(definitions);
+	}
+
+	private static AutomationNodeDefinition cleanProcessDefinition() {
+		Map<String, Object> defaults = orderedConfig("source", "", "operation", "purge", "columns", List.of(),
+				"value", "", "newValue", "", "filters", List.of());
+		List<ConfigField> fields = List.of(
+				field("source", ConfigFieldType.STRING, "Input table", true, ""),
+				field("operation", ConfigFieldType.STRING, "Operation", true, "purge"),
+				field("columns", ConfigFieldType.STRING_LIST, "Columns", false, List.of()),
+				field("value", ConfigFieldType.STRING, "Find value", false, ""),
+				field("newValue", ConfigFieldType.STRING, "Replacement", false, ""),
+				field("filters", ConfigFieldType.JSON, "Rows to remove", false, List.of()));
+		return definition(AutomationNodeType.CLEAN_PROCESS, "Clean data",
+				"Apply a selected cleaning operation to an upstream table.", defaults, fields, controlInputs(),
+				List.of(CONTROL_OUTPUT, port("result", "Cleaned table", PortKind.DATA, PortDirection.OUTPUT, "table")));
+	}
+
+	private static AutomationNodeDefinition transformDefinition() {
+		Map<String, Object> defaults = orderedConfig("source", "", "operation", "changeType", "columns", List.of(),
+				"column", "", "dataType", "STRING", "newColumn", "", "delimiter", " ", "pivotColumn", "",
+				"valueColumn", "", "maintainColumns", List.of(), "aggregateFunction", "",
+				"includeTime", false, "sigDigits", 2, "by100", false, "rightSource", "", "rightColumn", "",
+				"joinType", "inner.join");
+		List<ConfigField> fields = List.of(
+				field("source", ConfigFieldType.STRING, "Input table", true, ""),
+				field("operation", ConfigFieldType.STRING, "Operation", true, "changeType"),
+				field("columns", ConfigFieldType.STRING_LIST, "Columns", false, List.of()),
+				field("column", ConfigFieldType.STRING, "Column", false, ""),
+				field("dataType", ConfigFieldType.STRING, "New type", false, "STRING"),
+				field("newColumn", ConfigFieldType.STRING, "New column name", false, ""),
+				field("delimiter", ConfigFieldType.STRING, "Delimiter", false, " "),
+				field("pivotColumn", ConfigFieldType.STRING, "Pivot column", false, ""),
+				field("valueColumn", ConfigFieldType.STRING, "Value column", false, ""),
+				field("maintainColumns", ConfigFieldType.STRING_LIST, "Columns to keep", false, List.of()),
+				field("aggregateFunction", ConfigFieldType.STRING, "Aggregate function", false, ""),
+				field("includeTime", ConfigFieldType.BOOLEAN, "Include time", false, false),
+				optionalBoundedIntegerField("sigDigits", "Significant digits", 2, 0, 20),
+				field("by100", ConfigFieldType.BOOLEAN, "Multiply by 100", false, false),
+				field("rightSource", ConfigFieldType.STRING, "Right table", false, ""),
+				field("rightColumn", ConfigFieldType.STRING, "Right column", false, ""),
+				field("joinType", ConfigFieldType.STRING, "Join type", false, "inner.join"));
+		return definition(AutomationNodeType.DATA_TRANSFORM, "Transform data",
+				"Apply a column, string, reshape, or type transformation to an upstream table.", defaults, fields, controlInputs(),
+				List.of(CONTROL_OUTPUT, port("result", "Transformed table", PortKind.DATA, PortDirection.OUTPUT, "table")));
 	}
 
 	private static AutomationNodeDefinition databaseWriteDefinition(AutomationNodeType nodeType, String label,
