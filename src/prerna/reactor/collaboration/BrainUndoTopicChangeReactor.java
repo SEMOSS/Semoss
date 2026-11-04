@@ -53,13 +53,13 @@ public class BrainUndoTopicChangeReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Undo: puts back a Brain topic delete or merge from the changeId it returned, if nothing changed since";
+		return "Undo: puts back a Brain topic merge from the changeId it returned, if nothing changed since";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (CHANGE_ID.equals(key)) {
-			return "changeId returned by BrainDeleteTopic or BrainMergeTopics";
+			return "changeId returned by BrainMergeTopics";
 		}
 		return super.getDescriptionForKey(key);
 	}

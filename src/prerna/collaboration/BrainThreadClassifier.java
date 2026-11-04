@@ -844,7 +844,7 @@ public final class BrainThreadClassifier {
 		return CollaborationDbUtils.query(
 				"SELECT t.TOPIC_ID, t.NAME, t.DESCRIPTION, t.SUGGEST_REASON, t.KEYWORDS_JSON, " + "a.NAME AS ACCOUNT "
 						+ "FROM BRAIN_TOPIC t LEFT JOIN BRAIN_ACCOUNT a ON a.OWNER_ID = t.OWNER_ID AND a.OWNER_TYPE = t.OWNER_TYPE "
-						+ "AND a.ACCOUNT_ID = t.ACCOUNT_ID WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.STATUS IN (?, ?) "
+						+ "AND a.ACCOUNT_ID = t.ACCOUNT_ID WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.STATUS IN (?, ?, ?) "
 						+ "ORDER BY t.TOPIC_ID",
 				rs -> {
 					StringBuilder describe = new StringBuilder();
@@ -881,7 +881,7 @@ public final class BrainThreadClassifier {
 					}
 					return new BrainClassifier.TopicOption(rs.getString("TOPIC_ID"),
 							CollaborationDbUtils.getString(rs, "NAME"), describe.toString().trim());
-				}, ownerId, ownerType, BrainTopicUtils.ACTIVE, BrainTopicUtils.DORMANT);
+				}, ownerId, ownerType, BrainTopicUtils.ACTIVE, BrainTopicUtils.DORMANT, BrainTopicUtils.HIBERNATED);
 	}
 
 	// a dry run looks at every unmuted thread; a real run only at threads with no
@@ -956,7 +956,7 @@ public final class BrainThreadClassifier {
 		boolean[] written = { false };
 		CollaborationDbUtils.batch(conn -> {
 			BrainTopicReviewProfiles.lock(ownerId, ownerType);
-			BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
+			BrainTopicLifecycle.requireFiling(ownerId, ownerType, topicId);
 			BrainThreadTopicDecisions.lockThread(ownerId, ownerType, threadId);
 			String owned = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?";
 			if (BrainThreadTopicDecisions.rejected(ownerId, ownerType, threadId).contains(topicId)
@@ -1026,7 +1026,7 @@ public final class BrainThreadClassifier {
 		boolean[] written = { false };
 		CollaborationDbUtils.batch(conn -> {
 			BrainTopicReviewProfiles.lock(ctx.ownerId(), ctx.ownerType());
-			BrainTopicUtils.requireTopic(ctx.ownerId(), ctx.ownerType(), topicId);
+			BrainTopicLifecycle.requireFiling(ctx.ownerId(), ctx.ownerType(), topicId);
 			BrainThreadTopicDecisions.lockThread(ctx.ownerId(), ctx.ownerType(), threadId);
 			if (BrainThreadTopicDecisions.rejected(ctx.ownerId(), ctx.ownerType(), threadId).contains(topicId)
 					|| hasKeptLink(ctx, threadId)) {

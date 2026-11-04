@@ -75,6 +75,7 @@ public final class WorkTaskUtils {
 		String topicId = blankToNull(filter.get("topicId"));
 		String personId = blankToNull(filter.get("personId"));
 		boolean includeSuggested = Boolean.TRUE.equals(filter.get("includeSuggested"));
+		boolean attentionOnly = topicId == null && !Boolean.TRUE.equals(filter.get("includeInactive")) && (status == null || "open".equals(status));
 
 		StringBuilder sql = new StringBuilder("SELECT " + TASK_COLUMNS + " FROM WORK_TASK t" + OWNED);
 		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType));
@@ -96,6 +97,7 @@ public final class WorkTaskUtils {
 			sql.append(" AND TASK_ID IN (SELECT TASK_ID FROM WORK_TASK_TOPIC" + OWNED + " AND TOPIC_ID = ?)");
 			params.addAll(List.of(ownerId, ownerType, topicId));
 		}
+		if (attentionOnly) sql.append(" AND ").append(BrainTopicLifecycle.taskAttention("t"));
 		// the owner's order first; the rest newest first
 		sql.append(" ORDER BY CASE WHEN SORT_ORDER IS NULL THEN 1 ELSE 0 END, SORT_ORDER, UPDATED_AT DESC");
 		List<Map<String, Object>> tasks = CollaborationDbUtils.query(sql.toString(), WorkTaskUtils::mapTask,
@@ -117,7 +119,7 @@ public final class WorkTaskUtils {
 		}
 
 		// loose steps: the owner's open ones with no work item
-		StringBuilder loose = new StringBuilder("SELECT " + STEP_COLUMNS + " FROM WORK_THREAD_STEP" + OWNED
+		StringBuilder loose = new StringBuilder("SELECT " + STEP_COLUMNS + " FROM WORK_THREAD_STEP loose_step" + OWNED
 				+ " AND TASK_ID IS NULL AND STATUS = ? AND (STEP_OWNER_ID IS NULL OR STEP_OWNER_ID = ?)");
 		List<Object> looseParams = new ArrayList<>(List.of(ownerId, ownerType, "open", self == null ? "" : self));
 		if (!includeSuggested) {
@@ -128,6 +130,7 @@ public final class WorkTaskUtils {
 			loose.append(" AND LINK_TOPIC_ID = ?");
 			looseParams.add(topicId);
 		}
+		if (attentionOnly) loose.append(" AND ").append(BrainTopicLifecycle.stepAttention("loose_step"));
 		loose.append(" ORDER BY DUE_AT, CREATED_AT DESC");
 		List<Map<String, Object>> looseSteps = kind != null || personId != null ? List.of()
 				: CollaborationDbUtils.query(loose.toString(), WorkTaskUtils::mapStep, looseParams.toArray());
@@ -139,9 +142,9 @@ public final class WorkTaskUtils {
 		out.put("looseSteps", looseSteps);
 		putIfNotNull(out, "selfId", self);
 		if (!includeSuggested) {
-			out.put("suggestedStepCount", CollaborationDbUtils.queryOne("SELECT COUNT(*) AS N FROM WORK_THREAD_STEP"
+			out.put("suggestedStepCount", CollaborationDbUtils.queryOne("SELECT COUNT(*) AS N FROM WORK_THREAD_STEP suggested_step"
 					+ OWNED + " AND TASK_ID IS NULL AND STATUS = ? AND ORIGIN = ? AND (STEP_OWNER_ID IS NULL OR "
-					+ "STEP_OWNER_ID = ?)", rs -> rs.getInt("N"), ownerId, ownerType, "open", BRAIN,
+					+ "STEP_OWNER_ID = ?)" + (attentionOnly ? " AND " + BrainTopicLifecycle.stepAttention("suggested_step") : ""), rs -> rs.getInt("N"), ownerId, ownerType, "open", BRAIN,
 					self == null ? "" : self));
 		}
 		return out;

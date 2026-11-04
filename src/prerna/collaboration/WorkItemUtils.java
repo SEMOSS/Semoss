@@ -103,7 +103,7 @@ public final class WorkItemUtils {
 			"dueAt", "assignee", "linkTopicId", "roomId", "suggested");
 
 	public static final Set<String> FILTER_KEYS = Set.of("statuses", "askTypes", "notAskTypes", "channel", "topicId",
-			"threadId", "suggested", "assigned", "closedSince", "sort", "waitingOnOthers", "hideMuted");
+			"threadId", "suggested", "assigned", "closedSince", "sort", "waitingOnOthers", "hideMuted", "attentionOnly");
 
 	public static final Set<String> VIEWS = Set.of("needs_me", "waiting", "suggested", "done_today", "all");
 
@@ -145,8 +145,13 @@ public final class WorkItemUtils {
 		}
 
 		List<Map<String, Object>> items = CollaborationDbUtils.query(CollaborationDbUtils
-				.page("SELECT " + ITEM_COLUMNS + " FROM WORK_ITEM w" + where + order, limit, offset),
-				WorkItemUtils::mapItem, params.toArray());
+				.page("SELECT " + ITEM_COLUMNS + ", CASE WHEN " + BrainTopicLifecycle.itemAttention("w")
+				+ " THEN true ELSE false END AS ATTENTION_ELIGIBLE FROM WORK_ITEM w" + where + order, limit, offset),
+				rs -> {
+					Map<String, Object> item = mapItem(rs);
+					item.put("attentionEligible", CollaborationDbUtils.getBoolean(rs, "ATTENTION_ELIGIBLE"));
+					return item;
+				}, params.toArray());
 		addTopicIds(ownerId, ownerType, items);
 
 		Map<String, Object> page = new LinkedHashMap<>();
@@ -187,6 +192,8 @@ public final class WorkItemUtils {
 		}
 		if (topicId != null) {
 			filter.put("topicId", topicId);
+		} else if (!"all".equals(v) && !"done_today".equals(v)) {
+			filter.put("attentionOnly", true);
 		}
 		if (channel != null) {
 			filter.put("channel", channel);
@@ -200,6 +207,8 @@ public final class WorkItemUtils {
 		fyi.put("statuses", List.of(OPEN));
 		fyi.put("askTypes", List.of("fyi"));
 		fyi.put("hideMuted", true);
+		if (topicId == null) fyi.put("attentionOnly", true);
+		else fyi.put("topicId", topicId);
 		page.put("fyiCount", countItems(user, fyi));
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		page.put("automatedSkippedCount",
@@ -818,6 +827,9 @@ public final class WorkItemUtils {
 			}
 		}
 		StringBuilder where = new StringBuilder(" WHERE w.OWNER_ID = ? AND w.OWNER_TYPE = ?");
+		if (Boolean.TRUE.equals(filter.get("attentionOnly"))) {
+			where.append(" AND ").append(BrainTopicLifecycle.itemAttention("w"));
+		}
 		params.add(ownerId);
 		params.add(ownerType);
 		inList(where, params, "w.STATUS", false, filter.get("statuses"), STATUSES, "status");

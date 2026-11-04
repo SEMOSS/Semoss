@@ -671,6 +671,8 @@ public class CollaborationDbUtils {
 					OwlIndex.of("WORK_STEP_EVIDENCE_STEP_ID_INDEX", "WORK_STEP_EVIDENCE", "OWNER_ID", "OWNER_TYPE",
 							"STEP_ID")));
 
+			BrainTopicLifecycle.upgrade(conn);
+
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}

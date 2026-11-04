@@ -49,9 +49,10 @@ public final class BrainTopicUtils {
 
 	public static final String SUGGESTED = "suggested";
 	public static final String ACTIVE = "active";
-	public static final String DORMANT = "dormant";
+	public static final String DORMANT = "dormant"; // Legacy idle state, treated as active.
+	public static final String HIBERNATED = "hibernated";
 	public static final String ARCHIVED = "archived";
-	public static final Set<String> STATUSES = Set.of(SUGGESTED, ACTIVE, DORMANT, ARCHIVED);
+	public static final Set<String> STATUSES = Set.of(SUGGESTED, ACTIVE, DORMANT, HIBERNATED, ARCHIVED);
 
 	// BRAIN_TOPIC_PERSON.STATE
 	public static final String MEMBER = "member";
@@ -60,15 +61,20 @@ public final class BrainTopicUtils {
 
 	public static final Set<String> KINDS = Set.of("client", "internal", "event", "personal");
 
-	// an active topic with no activity and no owner edit for this long goes dormant
-	static final int DORMANT_AFTER_DAYS = 30;
+	// Inactivity is a hint only; it never changes the owner-selected lifecycle.
+	static final int IDLE_AFTER_DAYS = 30;
 
 	public static final int DEFAULT_LIMIT = 30;
 	// open action items listed on one topic in full
 	private static final int OPEN_ITEMS_SHOWN = 20;
 
 	private static final String SUMMARY_COLUMNS = "TOPIC_ID, NAME, SHORT_NAME, ACCOUNT_ID, KIND, COLOR, STATUS, "
-			+ "LAST_ACTIVITY_AT";
+			+ "LAST_ACTIVITY_AT, CREATED_AT, (SELECT MAX(activity_thread.LAST_MESSAGE_AT) "
+			+ "FROM BRAIN_THREAD_TOPIC activity_link JOIN BRAIN_THREAD activity_thread ON "
+			+ "activity_thread.OWNER_ID = activity_link.OWNER_ID AND activity_thread.OWNER_TYPE = activity_link.OWNER_TYPE "
+			+ "AND activity_thread.THREAD_ID = activity_link.THREAD_ID WHERE activity_link.OWNER_ID = BRAIN_TOPIC.OWNER_ID "
+			+ "AND activity_link.OWNER_TYPE = BRAIN_TOPIC.OWNER_TYPE AND activity_link.TOPIC_ID = BRAIN_TOPIC.TOPIC_ID "
+			+ "AND (activity_link.SOURCE IS NULL OR activity_link.SOURCE <> 'suggested')) AS THREAD_ACTIVITY_AT";
 	// a memory's link to one topic: owner, REF_TYPE topic, REF_ID
 	private static final String MEMORY_TOPIC_LINK = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REF_TYPE = ? "
 			+ "AND REF_ID = ?";
@@ -87,7 +93,6 @@ public final class BrainTopicUtils {
 		for (String status : statuses) {
 			checkStatus(status);
 		}
-		markDormant(ownerId, ownerType);
 
 		StringBuilder where = new StringBuilder(" WHERE OWNER_ID = ? AND OWNER_TYPE = ?");
 		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType));
@@ -114,7 +119,6 @@ public final class BrainTopicUtils {
 
 	public static Map<String, Object> getTopic(User user, String topicId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		markDormant(owner.getValue0(), owner.getValue1());
 		return getTopic(owner.getValue0(), owner.getValue1(), topicId);
 	}
 
@@ -198,6 +202,8 @@ public final class BrainTopicUtils {
 		}
 		if (changes.containsKey("status")) {
 			checkStatus(CollaborationDbUtils.asString(changes.get("status")));
+			changes = new LinkedHashMap<>(changes);
+			if (DORMANT.equals(changes.get("status"))) changes.put("status", HIBERNATED);
 		}
 		BrainPeopleUtils.requireAccount(ownerId, ownerType, CollaborationDbUtils.asString(changes.get("accountId")));
 
@@ -245,6 +251,9 @@ public final class BrainTopicUtils {
 		}
 
 		String current = requireTopic(ownerId, ownerType, topicId);
+		if (!SUGGESTED.equals(current) && SUGGESTED.equals(changes.get("status"))) {
+			throw new IllegalArgumentException("A topic cannot be set back to suggested");
+		}
 		if (SUGGESTED.equals(current) && !changes.containsKey("status")) {
 			CollaborationDbUtils.addSet(sets, params, "STATUS", ACTIVE);
 		}
@@ -252,12 +261,13 @@ public final class BrainTopicUtils {
 		params.addAll(List.of(ownerId, ownerType, topicId));
 		String savedId = topicId;
 		boolean archive = ARCHIVED.equals(CollaborationDbUtils.asString(changes.get("status")));
+		if (archive) BrainThreadRoomUtils.seedOlderChats(user, ownerId, ownerType);
 		CollaborationDbUtils.inTransaction(conn -> {
 			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC SET " + String.join(", ", sets)
 					+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?", params.toArray());
 			// an archived topic leaves its chats
 			if (archive) {
-				BrainTopicRoomUtils.removeRooms(conn, ownerId, ownerType, savedId);
+				BrainTopicRoomUtils.detachRooms(conn, ownerId, ownerType, savedId);
 			}
 		});
 		return getTopic(ownerId, ownerType, topicId);
@@ -266,7 +276,7 @@ public final class BrainTopicUtils {
 	public static Map<String, Object> setTopicStatus(User user, String topicId, String status) {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
-				() -> setTopicStatusInReview(user, topicId, status));
+				() -> setTopicStatusInReview(user, topicId, DORMANT.equals(status) ? HIBERNATED : status));
 	}
 
 	private static Map<String, Object> setTopicStatusInReview(User user, String topicId, String status) {
@@ -278,6 +288,7 @@ public final class BrainTopicUtils {
 			throw new IllegalArgumentException("A topic cannot be set back to suggested");
 		}
 		requireTopic(ownerId, ownerType, topicId);
+		if (ARCHIVED.equals(status)) BrainThreadRoomUtils.seedOlderChats(user, ownerId, ownerType);
 		CollaborationDbUtils.inTransaction(conn -> {
 			CollaborationDbUtils.update(conn,
 					"UPDATE BRAIN_TOPIC SET STATUS = ?, UPDATED_AT = ? "
@@ -285,7 +296,7 @@ public final class BrainTopicUtils {
 					status, CollaborationDbUtils.now(), ownerId, ownerType, topicId);
 			// an archived topic leaves its chats
 			if (ARCHIVED.equals(status)) {
-				BrainTopicRoomUtils.removeRooms(conn, ownerId, ownerType, topicId);
+				BrainTopicRoomUtils.detachRooms(conn, ownerId, ownerType, topicId);
 			}
 		});
 		return getTopic(ownerId, ownerType, topicId);
@@ -523,10 +534,7 @@ public final class BrainTopicUtils {
 		Timestamp now = CollaborationDbUtils.now();
 		String owned = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?";
 
-		String[] changeId = new String[1];
 		CollaborationDbUtils.inTransaction(conn -> {
-			BrainTopicChangeUtils.Snapshot snapshot = BrainTopicChangeUtils.capture(conn, ownerId, ownerType, topicId,
-					null);
 			for (Pair<String, String> thread : newPrimaries) {
 				if (thread.getValue1() != null) {
 					CollaborationDbUtils.update(conn,
@@ -565,19 +573,17 @@ public final class BrainTopicUtils {
 					"UPDATE BRAIN_REVIEW SET STATUS = ?, RESOLVED_AT = ? "
 							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REF_ID = ? AND STATUS = ?",
 					"dismissed", now, ownerId, ownerType, topicId, "open");
-			changeId[0] = BrainTopicChangeUtils.record(conn, snapshot, BrainTopicChangeUtils.DELETE, topicId, null,
-					now);
 		});
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("topicId", topicId);
 		result.put("threadsUnlinked", threadsUnlinked);
-		// pass to BrainUndoTopicChange
-		result.put("changeId", changeId[0]);
+		result.put("deleted", true);
+		result.put("canUndo", false);
 		return result;
 	}
 
-	// an owner edit counts as activity for the dormant rule
+	// Record an owner edit without changing lifecycle.
 	private static void touchTopic(Connection conn, String ownerId, String ownerType, String topicId, Timestamp now)
 			throws SQLException {
 		CollaborationDbUtils.update(conn,
@@ -594,20 +600,6 @@ public final class BrainTopicUtils {
 			throw new IllegalArgumentException("Topic not found");
 		}
 		return status;
-	}
-
-	// ---- dormant ----
-
-	// flips stale active topics to dormant; an owner edit (UPDATED_AT) counts as
-	// activity
-	static void markDormant(String ownerId, String ownerType) {
-		Timestamp now = CollaborationDbUtils.now();
-		Timestamp cutoff = Timestamp.valueOf(now.toLocalDateTime().minusDays(DORMANT_AFTER_DAYS));
-		CollaborationDbUtils.update(
-				"UPDATE BRAIN_TOPIC SET STATUS = ?, UPDATED_AT = ? "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND STATUS = ? "
-						+ "AND COALESCE(LAST_ACTIVITY_AT, CREATED_AT) < ? AND (UPDATED_AT IS NULL OR UPDATED_AT < ?)",
-				DORMANT, now, ownerId, ownerType, ACTIVE, cutoff, cutoff);
 	}
 
 	// ---- stats ----
@@ -655,7 +647,15 @@ public final class BrainTopicUtils {
 		Map<String, Object> stats = new LinkedHashMap<>();
 		stats.put("threads", threads.getOrDefault(topicId, 0));
 		stats.put("openItems", openItems.getOrDefault(topicId, 0));
-		stats.put("lastActivity", CollaborationDbUtils.getTimestamp(rs, "LAST_ACTIVITY_AT"));
+		Timestamp activity = rs.getTimestamp("LAST_ACTIVITY_AT");
+		Timestamp threadActivity = rs.getTimestamp("THREAD_ACTIVITY_AT");
+		if (threadActivity != null && (activity == null || threadActivity.after(activity))) activity = threadActivity;
+		stats.put("lastActivity", CollaborationDbUtils.toIso(activity));
+		if (activity == null) activity = rs.getTimestamp("CREATED_AT");
+		long idleDays = activity == null ? 0 : Math.max(0, java.time.Duration.between(
+				activity.toLocalDateTime(), CollaborationDbUtils.now().toLocalDateTime()).toDays());
+		stats.put("idleDays", idleDays);
+		stats.put("idle", idleDays >= IDLE_AFTER_DAYS);
 
 		Map<String, Object> row = new LinkedHashMap<>();
 		row.put("id", topicId);

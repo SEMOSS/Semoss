@@ -52,6 +52,7 @@ public final class BrainTopicRoomUtils {
 	public static final String LINKED = "linked";
 	public static final String SUGGESTED = "suggested";
 	public static final String DISMISSED = "dismissed";
+	static final String DETACHED = "detached";
 	static final String AGENT = "agent";
 	static final String THREAD = "thread";
 	// origin "brain": the background classifier (BrainChatTopics)
@@ -76,7 +77,7 @@ public final class BrainTopicRoomUtils {
 		List<Map<String, Object>> topics = CollaborationDbUtils.query("SELECT r.TOPIC_ID, r.STATE, r.ORIGIN, "
 				+ "r.CHANGED_AT, t.NAME, t.COLOR FROM BRAIN_TOPIC_ROOM r JOIN BRAIN_TOPIC t ON t.OWNER_ID = r.OWNER_ID "
 				+ "AND t.OWNER_TYPE = r.OWNER_TYPE AND t.TOPIC_ID = r.TOPIC_ID "
-				+ "WHERE r.OWNER_ID = ? AND r.OWNER_TYPE = ? AND r.ROOM_ID = ? ORDER BY r.CHANGED_AT DESC, r.TOPIC_ID",
+				+ "WHERE r.OWNER_ID = ? AND r.OWNER_TYPE = ? AND r.ROOM_ID = ? AND r.STATE <> 'detached' ORDER BY r.CHANGED_AT DESC, r.TOPIC_ID",
 				rs -> {
 					Map<String, Object> row = new LinkedHashMap<>();
 					row.put("topicId", CollaborationDbUtils.getString(rs, "TOPIC_ID"));
@@ -162,6 +163,13 @@ public final class BrainTopicRoomUtils {
 	/** The owner sets or removes one of the chat's topics; a removed topic stays dismissed. */
 	public static Map<String, Object> linkRoomTopic(User user, String roomId, String topicId, String topicName,
 			boolean remove) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> linkRoomTopicInReview(user, roomId, topicId, topicName, remove));
+	}
+
+	private static Map<String, Object> linkRoomTopicInReview(User user, String roomId, String topicId, String topicName,
+			boolean remove) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -182,6 +190,12 @@ public final class BrainTopicRoomUtils {
 	 * owner: a dismissed topic is not tagged again and a linked one is left as it is.
 	 */
 	public static Map<String, Object> tagRoomTopic(User user, String roomId, String topicRef, boolean confident) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> tagRoomTopicInReview(user, roomId, topicRef, confident));
+	}
+
+	private static Map<String, Object> tagRoomTopicInReview(User user, String roomId, String topicRef, boolean confident) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -197,7 +211,7 @@ public final class BrainTopicRoomUtils {
 			String state = CollaborationDbUtils.queryOne(
 					"SELECT STATE FROM BRAIN_TOPIC_ROOM" + OWNED_ROOM + " AND TOPIC_ID = ?",
 					rs -> CollaborationDbUtils.getString(rs, "STATE"), ownerId, ownerType, chat.roomId(), topic);
-			if (DISMISSED.equals(state)) {
+			if (DISMISSED.equals(state) || DETACHED.equals(state)) {
 				outcome = "The owner removed this topic from this chat. Do not tag it again.";
 			} else if (LINKED.equals(state)) {
 				outcome = "This chat already has this topic.";
@@ -221,6 +235,12 @@ public final class BrainTopicRoomUtils {
 	 * Returns linked, suggested or none.
 	 */
 	static String brainTag(String ownerId, String ownerType, Chat chat, String topicId, boolean confident) {
+		return BrainTopicReviewProfiles.serialized(ownerId, ownerType,
+				() -> brainTagInReview(ownerId, ownerType, chat, topicId, confident));
+	}
+
+	private static String brainTagInReview(String ownerId, String ownerType, Chat chat, String topicId, boolean confident) {
+		if (!BrainTopicLifecycle.canFile(BrainTopicLifecycle.lockStatus(ownerId, ownerType, topicId))) return "none";
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
 			seedFromThread(ownerId, ownerType, chat);
 			String[] row = CollaborationDbUtils.queryOne(
@@ -264,6 +284,29 @@ public final class BrainTopicRoomUtils {
 				ownerType, topicId);
 	}
 
+	// Archive removes applicability, but retains a marker so restored topics cannot be inherited again.
+	static void detachRooms(Connection conn, String ownerId, String ownerType, String topicId) throws SQLException {
+		List<String> inherited = CollaborationDbUtils.query(conn,
+				"SELECT DISTINCT tr.ROOM_ID FROM BRAIN_THREAD_ROOM tr JOIN BRAIN_THREAD_TOPIC tt ON "
+				+ "tt.OWNER_ID = tr.OWNER_ID AND tt.OWNER_TYPE = tr.OWNER_TYPE AND tt.THREAD_ID = tr.THREAD_ID "
+				+ "WHERE tr.OWNER_ID = ? AND tr.OWNER_TYPE = ? AND tr.STATE = ? AND tt.TOPIC_ID = ? "
+				+ "AND (tt.SOURCE IS NULL OR tt.SOURCE <> ?)", rs -> rs.getString(1),
+				ownerId, ownerType, LINKED, topicId, SUGGESTED);
+		Timestamp now = CollaborationDbUtils.now();
+		for (String room : inherited) {
+			if (CollaborationDbUtils.query(conn, "SELECT 1 FROM BRAIN_TOPIC_ROOM WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND ROOM_ID = ? AND TOPIC_ID = ?", rs -> rs.getInt(1),
+					ownerId, ownerType, room, topicId).isEmpty()) {
+				CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, "
+						+ "TOPIC_ID, STATE, ORIGIN, CHANGED_AT) VALUES (?, ?, ?, ?, ?, ?, ?)",
+						ownerId, ownerType, room, topicId, DETACHED, "archive", now);
+			}
+		}
+		CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC_ROOM SET STATE = ?, ORIGIN = ?, CHANGED_AT = ? "
+				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND STATE IN (?, ?)",
+				DETACHED, "archive", now, ownerId, ownerType, topicId, LINKED, SUGGESTED);
+	}
+
 	// ---- helpers ----
 
 	// a thread chat with no topic rows yet takes its thread's confirmed topics as linked
@@ -305,7 +348,7 @@ public final class BrainTopicRoomUtils {
 	}
 
 	private static void requireOpenTopic(String ownerId, String ownerType, String topicId) {
-		String status = BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
+		String status = BrainTopicLifecycle.lockStatus(ownerId, ownerType, topicId);
 		if (BrainTopicUtils.ARCHIVED.equals(status)) {
 			throw new IllegalArgumentException("That topic is archived; restore it first");
 		}
