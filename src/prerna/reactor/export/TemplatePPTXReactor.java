@@ -111,11 +111,10 @@ public class TemplatePPTXReactor extends AbstractReactor {
             AbstractReactor.throwUserNotExporterError();
         }
 
-        String templatePath = keyValue.get(ReactorKeysEnum.TEMPLATE_FILE.getKey());
-        if (templatePath == null || templatePath.isBlank()) {
-            throw new IllegalArgumentException("'template_file' is required.");
-        }
-        templatePath = Utility.normalizePath(templatePath);
+		String rawTemplatePath = keyValue.get(ReactorKeysEnum.TEMPLATE_FILE.getKey());
+		if (rawTemplatePath == null || rawTemplatePath.isBlank()) {
+			throw new IllegalArgumentException("'template_file' is required.");
+		}
 
         String payloadJson = keyValue.get(PAYLOAD_KEY);
         Map<String, JsonObject> replacements = parsePayload(payloadJson);
@@ -137,10 +136,7 @@ public class TemplatePPTXReactor extends AbstractReactor {
         }
         insightFile.setFilePath(fileLocation);
 
-        File templateFile = new File(templatePath);
-        if (!templateFile.exists()) {
-            throw new IllegalArgumentException("Template file not found: " + templatePath);
-        }
+        File templateFile = resolveTemplateFile(rawTemplatePath);
 
         try (FileInputStream fis = new FileInputStream(templateFile);
                 XMLSlideShow ppt = new XMLSlideShow(fis)) {
@@ -161,6 +157,28 @@ public class TemplatePPTXReactor extends AbstractReactor {
         retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the pptx file"));
         return retNoun;
     }
+
+    // Resolve power point template file path
+    File resolveTemplateFile(String rawValue) {
+		String normalized = Utility.normalizePath(rawValue);
+
+		// Insight-relative file path
+		File insightRelative = new File(this.insight.getInsightFolder(), normalized);
+		if (insightRelative.exists()) {
+			return insightRelative;
+		}
+
+		// OR Absolute path
+		File absolute = new File(normalized);
+		if (absolute.isAbsolute() && absolute.exists()) {
+			return absolute;
+		}
+
+		throw new IllegalArgumentException(
+				"Template file not found. Looked in insight folder: '"
+				+ insightRelative.getAbsolutePath()
+				+ "' and as absolute path: '" + normalized + "'.");
+	}
 
     // Parse Payload
     Map<String, JsonObject> parsePayload(String payloadJson) {

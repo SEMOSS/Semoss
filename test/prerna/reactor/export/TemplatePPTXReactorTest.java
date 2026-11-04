@@ -340,6 +340,88 @@ class TemplatePPTXReactorTest {
     }
 
     // =========================================================================
+    // resolveTemplateFile
+    // =========================================================================
+    @Test
+    void resolveTemplateFile_insightRelativePath_returnsFileInInsightFolder(@TempDir Path tempDir)
+            throws IOException {
+        java.nio.file.Files.createFile(tempDir.resolve("template.pptx"));
+
+        File resolved = resolveWithInsightFolder(tempDir, "template.pptx");
+
+        assertEquals(new File(tempDir.toFile(), "template.pptx"), resolved);
+    }
+
+    @Test
+    void resolveTemplateFile_insightRelativeSubfolder_returnsFileInInsightFolder(@TempDir Path tempDir)
+            throws IOException {
+        java.nio.file.Files.createDirectories(tempDir.resolve("assets"));
+        java.nio.file.Files.createFile(tempDir.resolve("assets").resolve("template.pptx"));
+
+        File resolved = resolveWithInsightFolder(tempDir, "assets/template.pptx");
+
+        assertEquals(new File(tempDir.toFile(), "assets/template.pptx"), resolved);
+    }
+
+    @Test
+    void resolveTemplateFile_absolutePathOutsideInsightFolder_returnsAbsoluteFile(@TempDir Path tempDir)
+            throws IOException {
+        Path insightFolder = java.nio.file.Files.createDirectories(tempDir.resolve("insight"));
+        Path template = java.nio.file.Files.createFile(tempDir.resolve("template.pptx"));
+
+        File resolved = resolveWithInsightFolder(insightFolder, template.toString());
+
+        assertEquals(template.toFile(), resolved);
+    }
+
+    @Test
+    void resolveTemplateFile_missingRelativePath_throwsWithSearchedLocations(@TempDir Path tempDir) {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> resolveWithInsightFolder(tempDir, "missing.pptx"));
+
+        assertTrue(e.getMessage().contains("Template file not found"));
+        assertTrue(e.getMessage().contains(new File(tempDir.toFile(), "missing.pptx").getAbsolutePath()));
+    }
+
+    @Test
+    void resolveTemplateFile_missingAbsolutePath_throws(@TempDir Path tempDir) {
+        String missing = tempDir.resolve("missing.pptx").toString();
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> resolveWithInsightFolder(tempDir, missing));
+
+        assertTrue(e.getMessage().contains("Template file not found"));
+    }
+
+    @Test
+    void resolveTemplateFile_normalizesRawValueBeforeLookup(@TempDir Path tempDir) throws IOException {
+        java.nio.file.Files.createFile(tempDir.resolve("template.pptx"));
+        Insight insight = mock(Insight.class);
+        when(insight.getInsightFolder()).thenReturn(tempDir.toString());
+        reactor.setInsight(insight);
+
+        try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+            utility.when(() -> Utility.normalizePath("raw\\template.pptx")).thenReturn("template.pptx");
+
+            File resolved = reactor.resolveTemplateFile("raw\\template.pptx");
+
+            assertEquals(new File(tempDir.toFile(), "template.pptx"), resolved);
+            utility.verify(() -> Utility.normalizePath("raw\\template.pptx"));
+        }
+    }
+
+    private File resolveWithInsightFolder(Path insightFolder, String rawValue) {
+        Insight insight = mock(Insight.class);
+        when(insight.getInsightFolder()).thenReturn(insightFolder.toString());
+        reactor.setInsight(insight);
+        try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+            utility.when(() -> Utility.normalizePath(anyString()))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+            return reactor.resolveTemplateFile(rawValue);
+        }
+    }
+
+    // =========================================================================
     // execute — SEMOSS runtime and Insight export registration
     // =========================================================================
 
