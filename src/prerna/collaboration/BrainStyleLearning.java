@@ -149,6 +149,12 @@ public final class BrainStyleLearning {
 		job.step("Reading chats", 30);
 		List<Sample> chats = sampleChats(user, ownerId, ownerType, since, emails.size());
 		job.count("chats", chats.size());
+		// the signature and font come with the style, without replacing ones already set
+		try {
+			BrainDraftFormat.learnInto(user, true);
+		} catch (Exception e) {
+			classLogger.warn("Could not copy the signature and font from sent mail: {}", e.getMessage());
+		}
 		List<Sample> samples = new ArrayList<>(emails);
 		samples.addAll(chats);
 		if (samples.isEmpty()) {

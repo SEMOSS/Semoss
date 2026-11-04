@@ -30,9 +30,9 @@ package prerna.io.connector.ms.outlook;
 import java.util.List;
 import java.util.Map;
 
-import org.jsoup.nodes.Entities;
 
 import prerna.auth.User;
+import prerna.collaboration.BrainDraftFormat;
 import prerna.io.connector.mail.AbstractReplyMailReactor;
 import prerna.io.connector.mail.ComposedMail;
 import prerna.io.connector.mail.MailApp;
@@ -77,12 +77,11 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractReplyMailReactor {
 		if (recipients != null) {
 			// graph only takes chosen recipients on the formatted draft, so a plain
 			// text reply is written as html that reads the same
-			draft = helper.replyHtmlDraft(accessToken, request.id(), asHtml(request.body(), request.html()),
+			draft = helper.replyHtmlDraft(accessToken, request.id(), asHtml(user, request.body(), request.html()),
 					request.replyAll(), recipients.to().toArray(new String[0]), recipients.cc().toArray(new String[0]));
-		} else if (request.html()) {
-			draft = helper.replyHtmlDraft(accessToken, request.id(), request.body(), request.replyAll());
 		} else {
-			draft = helper.reply(accessToken, null, request.id(), request.body(), request.replyAll(), true);
+			draft = helper.replyHtmlDraft(accessToken, request.id(), asHtml(user, request.body(), request.html()),
+					request.replyAll());
 		}
 		helper.attachToDraft(accessToken, draft, files);
 		return MicrosoftOutlookMessageMapper.toComposedMail(draft, request.body(), request.html(),
@@ -106,10 +105,8 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractReplyMailReactor {
 	 * @param html whether it is html already
 	 * @return the body as html, keeping the lines of a plain text one
 	 */
-	private static String asHtml(String body, boolean html) {
-		if (html) {
-			return body;
-		}
-		return Entities.escape(body == null ? "" : body).replace("\n", "<br>");
+	private static String asHtml(User user, String body, boolean html) {
+		// in the owner's font and signature
+		return html ? BrainDraftFormat.htmlBody(user, body) : BrainDraftFormat.html(user, body);
 	}
 }

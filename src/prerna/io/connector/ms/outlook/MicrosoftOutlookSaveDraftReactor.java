@@ -30,6 +30,7 @@ package prerna.io.connector.ms.outlook;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.collaboration.BrainDraftFormat;
 import prerna.io.connector.mail.AbstractSaveDraftReactor;
 import prerna.io.connector.mail.ComposedMail;
 import prerna.io.connector.mail.MailApp;
@@ -54,9 +55,13 @@ public class MicrosoftOutlookSaveDraftReactor extends AbstractSaveDraftReactor {
 
 	@Override
 	protected ComposedMail saveDraft(User user, OutgoingMail mail) throws Exception {
-		// no from address, so the draft belongs to the mailbox the token belongs to
-		Map<String, Object> message = MicrosoftOutlookMailHelper.buildMessage(mail.subject(), mail.body(), mail.html(),
-				mail.toArray(), mail.ccArray(), mail.bccArray(), null, null, mail.attachmentPaths());
+		// the body goes in as HTML in the owner's font and signature, so Outlook does not space every line;
+		// from is the owner's own address, so the draft lists a sender
+		String[] sender = BrainDraftFormat.sender(user);
+		Map<String, Object> message = MicrosoftOutlookMailHelper.buildMessage(mail.subject(),
+				mail.html() ? BrainDraftFormat.htmlBody(user, mail.body()) : BrainDraftFormat.html(user, mail.body()), true, mail.toArray(),
+				mail.ccArray(), mail.bccArray(), sender == null ? null : sender[0], sender == null ? null : sender[1],
+				mail.attachmentPaths());
 		// a null mailbox addresses /me, so the draft is saved in the signed in user's
 		// own mailbox and nowhere else
 		Map<String, Object> draft = new MicrosoftOutlookMailHelper()
