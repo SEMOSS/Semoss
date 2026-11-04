@@ -161,8 +161,10 @@ public final class AgentConfigLoader {
 		b.authoredPrompt(resolveAuthoredPrompt(room, workspaceId, workspaceRow, cfgJson));
 
 		// Workdir AGENTS.md / CLAUDE.md exact-dir lookup only (no walk-up). Loader
-		// tolerates null workingDir.
-		b.workdirAgentsMd(AgentsMdLoader.discover(workingDir));
+		// tolerates null workingDir. A Collaboration room's folder holds files
+		// downloaded from mail, Teams and OneDrive, so an outsider names them: one
+		// called AGENTS.md there is never instructions.
+		b.workdirAgentsMd(CollaborationUtils.isCollaborationRoom(room) ? null : AgentsMdLoader.discover(workingDir));
 
 		// Selected-engines block: read fresh from the project dependency store
 		// every run so workbench selections are always current and prompt-visible.

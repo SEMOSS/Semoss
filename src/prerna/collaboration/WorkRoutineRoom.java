@@ -143,17 +143,9 @@ public final class WorkRoutineRoom {
 	public static List<Map<String, Object>> recentRuns(Insight insight) {
 		User user = insight.getUser();
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		List<WorkRoutine.Slot> slots = new ArrayList<>();
-		for (WorkRoutine.Kind kind : List.of(WorkInboxRoutine.KIND, WorkAgendaRoutine.KIND, WorkEventPlanningRoutine.KIND,
-				WorkExpenseRoutine.KIND)) {
-			slots.add(new WorkRoutine.Slot(kind, owner, null));
-		}
-		for (String routineId : WorkRoutine.routineIds(WorkCustomRoutine.KIND, owner)) {
-			slots.add(new WorkRoutine.Slot(WorkCustomRoutine.KIND, owner, routineId));
-		}
 		// the rows say when each routine last started, so only the routines shown read their run history
 		List<Last> last = new ArrayList<>();
-		for (WorkRoutine.Slot slot : slots) {
+		for (WorkRoutine.Slot slot : slots(owner)) {
 			Map<String, Object> row = WorkRoutine.stored(slot);
 			if (row != null && row.get("startedAt") instanceof String startedAt) {
 				last.add(new Last(slot, row, Instant.parse(startedAt)));
@@ -244,19 +236,78 @@ public final class WorkRoutineRoom {
 		if ("running".equals(status(run))) {
 			throw new IllegalArgumentException("This run is still going. Delete it once it has finished.");
 		}
-		// every run's agent gets rooms of its own, and only the run's history names them
+		Set<String> roomIds = rooms(target, id);
+		// the chats go first, so after a failure deleting the run again finishes the job
+		deleteRooms(user, target, roomIds);
+		AutomationRunStore.deleteRun(AutomationProjectService.inlineRunScope(user), slot.automationId(), id);
+		// the row keeps its start, which orders the sidebar, and the older runs stay in the history
+		CollaborationDbUtils.update("UPDATE " + slot.kind().table() + " SET RUN_STATUS = NULL, FINISHED_AT = NULL, "
+				+ "ROOM_ID = NULL, RUN_ID = NULL, SUMMARY = NULL, ERROR = NULL, ERROR_CAUSE = NULL" + slot.where()
+				+ " AND RUN_ID = ?", slot.args(new Object[0], id));
+		return List.copyOf(roomIds);
+	}
+
+	/**
+	 * Deletes every run of all the owner's routines, with the chats opened from them and the rooms their agents worked
+	 * in, and removes each routine's schedule. Reset calls it before it deletes the routine rows, which name the
+	 * routines; while one is running it refuses before deleting anything.
+	 *
+	 * @return the runs deleted
+	 */
+	static int deleteAll(User user) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		List<WorkRoutine.Slot> slots = slots(owner);
+		for (WorkRoutine.Slot slot : slots) {
+			WorkRoutine.settle(slot);
+			Map<String, Object> row = WorkRoutine.stored(slot);
+			if (row != null && "running".equals(row.get("status"))) {
+				throw new IllegalStateException("A routine is running; wait for it to finish or stop it, then reset");
+			}
+		}
+		String scope = AutomationProjectService.inlineRunScope(user);
+		int deleted = 0;
+		for (WorkRoutine.Slot slot : slots) {
+			Target target = new Target(slot.kind(), slot.routineId(), owner, WorkRoutine.stored(slot));
+			for (Map<String, Object> run : AutomationRunStore.getRunsForAutomation(scope, slot.automationId(), -1)) {
+				deleteRooms(user, target, rooms(target, String.valueOf(run.get(AutomationConstants.RUN_ID))));
+			}
+			deleted += AutomationRunStore.deleteRuns(scope, slot.automationId());
+			WorkRoutine.unschedule(slot);
+		}
+		return deleted;
+	}
+
+	// the four system routines and each of the owner's own
+	private static List<WorkRoutine.Slot> slots(Pair<String, String> owner) {
+		List<WorkRoutine.Slot> slots = new ArrayList<>();
+		for (WorkRoutine.Kind kind : List.of(WorkInboxRoutine.KIND, WorkAgendaRoutine.KIND, WorkEventPlanningRoutine.KIND,
+				WorkExpenseRoutine.KIND)) {
+			slots.add(new WorkRoutine.Slot(kind, owner, null));
+		}
+		for (String routineId : WorkRoutine.routineIds(WorkCustomRoutine.KIND, owner)) {
+			slots.add(new WorkRoutine.Slot(WorkCustomRoutine.KIND, owner, routineId));
+		}
+		return slots;
+	}
+
+	// every run's agent gets rooms of its own, and only the run's history names them; plus the chats opened from it
+	private static Set<String> rooms(Target target, String runId) {
 		Set<String> roomIds = new LinkedHashSet<>();
-		for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(id)) {
+		for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(runId)) {
 			if (node.get(AutomationConstants.ROOM_ID) instanceof String roomId && !roomId.isBlank()) {
 				roomIds.add(roomId);
 			}
 		}
-		roomIds.add(target.runRoom(id));
+		roomIds.add(target.runRoom(runId));
 		Map<String, Object> row = target.row();
-		if (row != null && id.equals(row.get("runId")) && row.get("startedAt") instanceof String started) {
+		if (row != null && runId.equals(row.get("runId")) && row.get("startedAt") instanceof String started) {
 			roomIds.add(target.latestRoom(started));
 		}
-		// as deleting a chat does; the chats go first, so after a failure deleting the run again finishes the job
+		return roomIds;
+	}
+
+	// as deleting a chat does
+	private static void deleteRooms(User user, Target target, Set<String> roomIds) {
 		for (String roomId : roomIds) {
 			if (!ModelInferenceLogsUtils.doSetRoomToInactive(target.owner().getValue0(), roomId)) {
 				throw new IllegalStateException("The run's chats could not be deleted. Try again.");
@@ -264,12 +315,6 @@ public final class WorkRoutineRoom {
 			AgentCodeExecutionContext.removeForRoom(user, roomId);
 			RoomMessageStore.evictRedisProjection(roomId);
 		}
-		AutomationRunStore.deleteRun(AutomationProjectService.inlineRunScope(user), slot.automationId(), id);
-		// the row keeps its start, which orders the sidebar, and the older runs stay in the history
-		CollaborationDbUtils.update("UPDATE " + slot.kind().table() + " SET RUN_STATUS = NULL, FINISHED_AT = NULL, "
-				+ "ROOM_ID = NULL, RUN_ID = NULL, SUMMARY = NULL, ERROR = NULL, ERROR_CAUSE = NULL" + slot.where()
-				+ " AND RUN_ID = ?", slot.args(new Object[0], id));
-		return List.copyOf(roomIds);
 	}
 
 	/** The run, only when it is this owner's run of this routine; the client id is never trusted alone. */
