@@ -1128,24 +1128,11 @@
 			<artifactId>commons-codec</artifactId>
 			<version>1.19.0</version>
 		</dependency>
-		<!-- No fixed release exists in the 1.x line for CVE-2025-46392 (low severity).
-		     Pinned explicitly (rather than left to resolve transitively through
-		     org.janusgraph:janusgraph-core, which depends on it) specifically so the
-		     "exclude everything" below can strip ITS OWN transitive dependencies
-		     (e.g. an old commons-logging) without touching anything else. SEMOSS's
-		     own code never calls org.apache.commons.configuration.* directly -
-		     confirmed via direct search - so this exists only to satisfy JanusGraph. -->
-		<dependency>
-			<groupId>commons-configuration</groupId>
-			<artifactId>commons-configuration</artifactId>
-			<version>1.10</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
+		<!-- commons-configuration 1.10 (CVE-2025-46392, no fixed 1.x release) is deliberately not
+		     shipped. janusgraph-core's classes only use commons-configuration2, and esapi
+		     references the 1.x namespace solely in its reference access-control policy loader
+		     (never called by SEMOSS); both exclude it below. A bytecode scan of every jar in
+		     WEB-INF/lib found no other reference. Reassess if a new dependency needs it. -->
 		<dependency>
 			<groupId>commons-collections</groupId>
 			<artifactId>commons-collections</artifactId>
@@ -2167,10 +2154,12 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/io.opentelemetry/opentelemetry-sdk -->
+		<!-- 1.62.0 -> 1.67.0 closes CVE-2026-118259 (MEDIUM) in opentelemetry-api; the sdk pins
+		     api/context/common to its own version, so this one entry moves the whole family. -->
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-sdk</artifactId>
-			<version>1.62.0</version>
+			<version>1.67.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/jakarta.ws.rs/jakarta.ws.rs-api -->
 		<dependency>
@@ -2410,6 +2399,10 @@
 			<artifactId>janusgraph-core</artifactId>
     		<version>1.2.0-20260818-222253.cbd6fc2</version>
 			<exclusions>
+				<exclusion>
+					<groupId>commons-configuration</groupId>
+					<artifactId>commons-configuration</artifactId>
+				</exclusion>
 				<exclusion>
 					<groupId>org.apache.tinkerpop</groupId>
 					<artifactId>*</artifactId>
@@ -2678,6 +2671,10 @@
 			<version>2.6.2.0</version>
 			<classifier>jakarta</classifier>
 			<exclusions>
+				<exclusion>
+					<groupId>commons-configuration</groupId>
+					<artifactId>commons-configuration</artifactId>
+				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
