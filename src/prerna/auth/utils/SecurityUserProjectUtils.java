@@ -85,28 +85,27 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static String getActualUserProjectPermission(User user, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// String userFilters = getUserFilters(user);
-		// String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM
-		// ENGINEPERMISSION "
-		// + "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
-		// IRawSelectWrapper wrapper =
-		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		String userPermission = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null) {
 					int permission = ((Number) val).intValue();
-					return AccessPermissionEnum.getPermissionValueById(permission);
+					userPermission = AccessPermissionEnum.getPermissionValueById(permission);
+					break;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the user's effective project permission.", e);
+		}
+		if (userPermission != null) {
+			return userPermission;
 		}
 
 		// see if project is public
@@ -178,28 +177,24 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static Integer getUserProjectPermission(String singleUserId, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM
-		// ENGINEPERMISSION "
-		// + "WHERE ENGINEID='" + engineId + "' AND USERID='" + singleUserId + "'";
-		// IRawSelectWrapper wrapper =
-		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", singleUserId));
+		Integer permission = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null && val instanceof Number) {
-					return ((Number) val).intValue();
+					permission = ((Number) val).intValue();
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve user project permission.", e);
 		}
 
-		return null;
+		return permission;
 	}
 
 	/**
@@ -217,18 +212,19 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		// TODO: account for different logins with different levels of access
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		Integer permission = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null && val instanceof Number) {
-					return ((Number) val).intValue();
+					permission = ((Number) val).intValue();
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve user project permission.", e);
 		}
 
-		return null;
+		return permission;
 	}
 
 	/**
@@ -259,22 +255,24 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
+		boolean isOwner = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
-					return false;
+					break;
 				}
 				int permission = ((Number) val).intValue();
 				if (AccessPermissionEnum.isOwner(permission)) {
-					return true;
+					isOwner = true;
+					break;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user has owner-level access.", e);
 		}
 
-		return false;
+		return isOwner;
 	}
 
 	/**
@@ -310,15 +308,14 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(orFilter);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
 		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
+		boolean canView = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				// if you are here, you can view
-				return true;
-			}
+			// if you are here, you can view
+			canView = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user can view project.", e);
 		}
-		return false;
+		return canView;
 	}
 
 	/**
@@ -346,21 +343,23 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		boolean canEdit = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
-					return false;
+					break;
 				}
 				int permission = ((Number) val).intValue();
 				if (AccessPermissionEnum.isEditor(permission)) {
-					return true;
+					canEdit = true;
+					break;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user can edit project.", e);
 		}
-		return false;
+		return canEdit;
 	}
 
 	/**
@@ -387,19 +386,18 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs.addOrderBy(new QueryColumnOrderBySelector("PROJECTPERMISSION__PERMISSION"));
+		int maxPermission = AccessPermissionEnum.READ_ONLY.getId();
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
+			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
-				if (val == null) {
-					return AccessPermissionEnum.READ_ONLY.getId();
+				if (val != null) {
+					maxPermission = ((Number) val).intValue();
 				}
-				int permission = ((Number) val).intValue();
-				return permission;
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the user's highest project permission.", e);
 		}
-		return AccessPermissionEnum.READ_ONLY.getId();
+		return maxPermission;
 	}
 
 	/**

@@ -78,7 +78,7 @@ Review them against your approved artifact inventory before promotion.
 - Three standard BC 1.78.1 JARs are replaced by the existing BC API compatibility
   libraries. They remain on the classloader, but ACCP/SunJSSE replace the
   registered BCFIPS/BCJSSE providers.
-- Approved JDBC overlay: MariaDB 1.1.9 -> 3.5.10 and SQL Server
+- Approved JDBC overlay: MariaDB 1.1.9 -> 3.5.11 and SQL Server
   11.2.4.jre11 -> 13.6.0.jre11. PostgreSQL 42.7.11 remains unchanged.
   Original/replacement hashes are recorded; duplicate or unexpected originals
   fail assembly. See [database integration requirements](./integrations/jdbc/README.md).
@@ -106,25 +106,26 @@ installed RPM inventory in `/opt/provenance`. Embedded private/shaded crypto
 outside the `org.bouncycastle` namespace is not exhaustively detected by this
 check; application cryptographic routing still needs review.
 
-**`commons-configuration` 1.10** stays unfixed (CVE-2025-46392, MEDIUM,
-uncontrolled resource consumption loading untrusted configurations) - no
-fixed release exists in the 1.x line at all; Apache's own advisory states
-the 1.x line won't be patched and recommends migrating to 2.x, which is not
-a drop-in replacement (separate Maven coordinate and Java package
-namespace). `pom.xml` already documents why: it's pinned explicitly, with
-all of its own transitive dependencies excluded, solely to satisfy
-`org.janusgraph:janusgraph-core`'s declared requirement - SEMOSS's own code
-never calls `org.apache.commons.configuration.*` directly (confirmed via
-direct search of both this repo and Monolith), and `commons-configuration2`
-is already present in the same `WEB-INF/lib` for anything written against
-the current API. Confirmed via a direct `docker run` against both the
-BC-FIPS and ACCP images that the identical jar (same byte size, same build
-timestamp) is present in both - an earlier Inspector2 scan pair showed this
-finding only against BC-FIPS, which was scan-correlation timing, not a real
-difference between the two builds. Reassess if JanusGraph ever ships a
-release depending on `commons-configuration2` instead, or if any future
-code change has SEMOSS load an untrusted configuration file through this
-library directly.
+**`commons-configuration` 1.10** (CVE-2025-46392, MEDIUM, uncontrolled resource
+consumption loading untrusted configurations) is no longer shipped. No fixed
+release exists in the 1.x line at all - Apache's advisory says the 1.x line won't
+be patched and recommends migrating to 2.x, which is a separate Maven coordinate
+and Java package - so instead of waiting on a fix the jar was removed after
+proving nothing needs it. `pom.xml` used to pin it explicitly (with all of its
+own transitives excluded) solely because `org.janusgraph:janusgraph-core` and
+`org.owasp.esapi:esapi` declare it. A bytecode scan of every jar in the built
+image's `WEB-INF/lib` (every jar, class files searched for the
+`org/apache/commons/configuration/` namespace, plus the dotted and string forms)
+found exactly one real user: ESAPI's reference access-control policy loader
+(`org.owasp.esapi.reference.accesscontrol.policyloader`, 4 classes), which
+SEMOSS never calls - `Utility.java` is the only SEMOSS use of ESAPI and doesn't
+touch its access controller. `janusgraph-core`'s own classes reference only
+`commons-configuration2` (already shipped separately), so its declared 1.x
+dependency is vestigial. The explicit pin is deleted and both parents now
+exclude it; `mvn dependency:tree -Dincludes=commons-configuration` shows it
+absent from the graph. Reassess if a new dependency, or a JanusGraph/ESAPI
+upgrade, starts referencing the 1.x namespace - the symptom would be a
+`NoClassDefFoundError` for `org.apache.commons.configuration.*` at runtime.
 
 **`gremlin-shaded` 3.7.7** (pulled in transitively via `org.janusgraph:janusgraph-core`
 and SEMOSS's own `gremlin-core`/`tinkergraph-gremlin`/`neo4j-gremlin` dependencies,
@@ -173,6 +174,14 @@ HTTPS UI/backend readiness, native administrator login, an administrator-only
 operation, wrong-password rejection, registration disabled after bootstrap, and
 actual SEMOSS registration/query/TLS/read-only checks against PostgreSQL 15.19
 and MariaDB 11.8.9. Both returned three synthetic rows with sum `12`. All fixture
+- **Redis:** not configured in this template - `compose.dev.yml` and
+  `entrypoint.sh` set neither `REDIS_ENABLED` nor `SEMOSS_IS_CLUSTER_REDIS`.
+  This is deliberate, not a gap: `dev`'s model-usage-limit guard already
+  treats Redis as optional and falls back to the in-memory
+  `LocalModelUsageCounterStore` when neither variable is set, so usage-limit
+  rules still enforce - just per server rather than cluster-wide. Wire up
+  both variables and a reachable Redis before running more than one instance
+  behind a shared usage-limit rule.
 resources were removed. This is local evidence, not proof of a published GitHub
 build; CI repeats the same gate before publishing its independently built image.
 
@@ -204,8 +213,10 @@ build; CI repeats the same gate before publishing its independently built image.
 - **SQL Server:** driver loading/profile checks pass, but live connections remain
   unverified. Production connections to existing database servers remain unverified.
   Selected versions are PostgreSQL 42.7.11, SQL Server 13.6.0.jre11, and MariaDB
-  3.5.10 following the owner's approval. Strict profiles and a credential-safe
+  3.5.11 following the owner's approval. Strict profiles and a credential-safe
   standalone validation command are documented in the
+| pypdf | 6.21.2 | 6.21.4 | Closes CVE-2026-119203 through CVE-2026-119209 (7 CVEs, all MEDIUM, AWS Inspector2 findings). Already permitted by pyproject.toml's own `pypdf>=6.14.2` |
+| pyasn1 | 0.6.4 | 0.6.5 | Closes CVE-2026-119194 through CVE-2026-119197 (4 CVEs, all HIGH, AWS Inspector2 findings). Already permitted by the existing `pyasn1>=0.6.3` override (itself forcing it past a vulnerable transitive 0.6.2); re-locked in both requirements-cpu.lock and overrides.lock to stay consistent |
   [JDBC integration guide](./integrations/jdbc/README.md).
   Require server-certificate and hostname validation, least-privilege accounts,
   and trusted CA material before enabling production connectors.
@@ -237,7 +248,8 @@ Python 3.14 requires these explicitly documented compatibility changes:
 | pipecat-ai | 1.0.0 | 1.4.0 | Closes CVE-2026-44716, CVE-2026-54695 (AWS Inspector2 findings) |
 | claude-agent-sdk | 0.2.116 | 0.2.168 | Closes CVE-2026-96620 (CRITICAL, AWS Inspector2 finding) |
 | pipecat-ai | 1.4.0 | 1.13.0 | Closes CVE-2026-102682 (AWS Inspector2 finding) |
-| fsspec | 2023.10.0 (incidental) | 2023.10.0 (now explicit) | Had no pin anywhere; the above two bumps would have silently floated it to 2025.10.0, breaking the hash-guarded patch below |
+| fsspec | 2023.10.0 | 2026.6.0 | Closes CVE-2026-104851 (GHSA-27vj-qcqg-25rc, HIGH, AWS Inspector2 finding - Jinja template injection to RCE in `ReferenceFileSystem`). Taken directly from the first patched release; retires the hash-guarded `fsspec_compat.py` source patch. Reachable because datasets 5.0.1 allows `fsspec[http]<=2026.6.0` |
+| datasets | 4.4.0 | 5.0.1 | Closes CVE-2026-66007 (GHSA-379c-qx7v-6h59, MEDIUM, AWS Inspector2 finding - path traversal via unsanitized `file_name` metadata in folder-based dataset builders). Needs only `pyarrow>=21.0.0`, so pyarrow stays at 23.0.1 |
 | certifi | 2026.10.18 | 2026.10.23 | Closes GHSA-6q48-6c7w-9gw2 (CRITICAL, AWS Inspector2 finding - a compromised, revoked root CA in the bundled trust store). Hand-edited rather than regenerated; see compatibility.json for why |
 | pillow | 12.3.0 | 13.0.0 | Closes 39 AWS Inspector2 findings (4 CRITICAL). Forced past pipecat-ai's declared `Pillow<13` via an override plus a hash-guarded metadata patch; see compatibility.json for why |
 | pypdf | 6.21.1 | 6.21.2 | Closes CVE-2026-115572, CVE-2026-115580, CVE-2026-115585 (all HIGH, PDF-parsing DoS). Next patch release; already permitted by pyproject.toml's own `pypdf>=6.14.2` |
@@ -250,29 +262,34 @@ Datasets 4.x no longer supports dataset loading scripts. Review existing saved
 datasets, pickle migrations, custom loaders, and external model integrations
 before migrating production data.
 
-`fsspec` stays pinned at 2023.10.0 rather than bumped to 2026.6.0: reaching
-that version needs `datasets>=5.1.0`, which needs `pyarrow>=24.0.0`, reopening
-the pyarrow pin above. This pin is now explicit in `pyproject.toml` - it was
-previously only incidental (held down by some other package's then-current
-transitive constraint), and bumping claude-agent-sdk/pipecat-ai to close
-unrelated CVEs silently floated it to 2025.10.0 before this was caught. CVE-2026-104851 (GHSA-27vj-qcqg-25rc, RCE via
-`ReferenceFileSystem`'s Kerchunk template parsing, a feature SEMOSS does not
-use) is closed instead with a targeted, hash-guarded source patch
-([fsspec_compat.py](./python-dependencies/fsspec_compat.py)) applying the
-exact upstream fix. See `applied_source_patches` in
-[compatibility.json](./python-dependencies/compatibility.json) for the full
-verification, including reproducing the advisory's RCE proof-of-concept
-against both the unpatched and patched package.
+`fsspec` 2026.6.0 and `datasets` 5.0.1 close CVE-2026-104851 (GHSA-27vj-qcqg-25rc,
+HIGH: Jinja template injection to RCE through `ReferenceFileSystem`'s Kerchunk
+reference parsing) and CVE-2026-66007 (GHSA-379c-qx7v-6h59, MEDIUM: path traversal via
+unsanitized `file_name` metadata in folder-based dataset builders). Earlier revisions
+of this document held both back, believing `fsspec>=2026.6.0` required
+`datasets>=5.1.0`, which requires `pyarrow>=24.0.0`, which would reopen the
+CPython 3.14 pyarrow pin. PyPI's own published metadata shows that was true only of
+5.1.0: `datasets` 5.0.1 requires `pyarrow>=21.0.0` and permits
+`fsspec[http]<=2026.6.0`, so both fixes land with pyarrow, pandas and numpy
+unchanged (pyarrow stays 23.0.1; the "Deferred" pandas/pyarrow currency note below
+is unaffected). This replaces the earlier hash-guarded `fsspec_compat.py` source patch,
+which has been removed along with its Dockerfile step.
 
-`datasets` likewise stays at 4.4.0 rather than bumped to 5.0.1 for the same
-pyarrow-pin reason, leaving CVE-2026-66007 (path traversal via unsanitized
-`file_name` metadata in folder-based dataset builders, triggered only via
-`save_to_disk`/`push_to_hub`) open rather than source-patched. Unlike fsspec,
-this is accepted as-is rather than patched: SEMOSS's only `datasets` usage is
-in-memory `Dataset.from_dict`/`concatenate_datasets` construction, and neither
-a folder-based `load_dataset()` builder nor `save_to_disk`/`push_to_hub`
-appears anywhere in the codebase, so neither precondition the exploit needs is
-present. See `accepted_vulnerabilities` in
+Verified beyond dependency resolution, in throwaway CPython 3.14 venvs with the locked
+versions: the advisory's own proof-of-concept (a Kerchunk reference JSON whose
+generator key calls `os.system`) creates its marker file under fsspec 2023.10.0 and
+does not under 2026.6.0. 2026.6.0 also ignores Jinja `gen` entries by default
+(`simple_templates=True`), and when a caller opts back in with
+`simple_templates=False` the sandbox raises `jinja2.exceptions.SecurityError` on the
+malicious payload while a benign `{{i}}` generator still expands. SEMOSS does not use
+`ReferenceFileSystem`/Kerchunk, so nothing it relies on changes. For datasets 5.0.1:
+validate.py's create/map/`to_pandas`/multiprocess check, `Dataset.from_dict` and
+`concatenate_datasets` (the only usage in `py/`), and the legacy pickle-to-parquet
+migration (a `Dataset` pickled under 4.4.0, converted under 5.0.1: 3 files converted,
+0 failed, columns preserved) all pass. Both new packages are pure-Python
+`py3-none-any` wheels, and all four hashes were re-checked against PyPI's JSON API
+independently of the lock's author. Datasets 5.x is still a major-version update;
+see `approved_compatibility_changes` in
 [compatibility.json](./python-dependencies/compatibility.json).
 
 **Deferred:** the 2026-10-24 `dev` merge brought `py/install_config/pyproject.toml`
@@ -283,7 +300,7 @@ at `pandas==2.3.3`/`pyarrow==23.0.1` for now. Neither bump is security-driven -
 pandas has no open advisory, and pyarrow's only relevant one (CVE-2026-25087)
 is already closed at this pin - so there is nothing to patch, only currency to
 gain. Adopting it later would not reopen the fsspec/datasets chain above:
-`datasets==4.4.0` declares only `pyarrow>=21.0.0` with no ceiling, so pyarrow
+`datasets==5.0.1` declares only `pyarrow>=21.0.0` with no ceiling, so pyarrow
 can move independently of `datasets`/`fsspec` (that chain only reopens if
 `fsspec` itself is bumped first). Both `pandas-3.0.6` and `pyarrow-26.0.0`
 ship cp314 wheels and numpy's installed `2.5.3` already clears both floors, so
@@ -300,6 +317,17 @@ pin drifts far enough to make the next security-driven bump here require it.
 bundled package as of the 2026-10-23 rescan (4 CRITICAL, mostly TIFF/GIF/APNG/
 XBM/MSP/BMP/MPO/DCX/SPIDER/JPEG2000 decoder memory-safety bugs; all fixed
 upstream in a single release). `pipecat-ai`'s current pin - and PyPI's own
+This hash-pinned `uv==0.11.17` is a different, narrower use of `uv` than
+`dev`'s own `docker/Dockerfile.python`, which deliberately runs an unpinned,
+weekly-rebuilt `uv` so it keeps picking up new CPython 3.14.x security
+patches automatically. That concern doesn't apply here: this template's
+Python interpreter version is fixed by the Iron Bank `python:v3.14` base
+image digest (see [Images and supply chain](#images-and-supply-chain)), not
+by `uv`, which this build only ever uses to resolve and hash-verify Python
+*packages* against `requirements-cpu.lock`. Keep `install.sh`'s `uv` pin as
+reproducibility tooling for the dependency lock, not something to float to
+match `dev`'s CI image.
+
 latest release, so no newer one exists to pick up instead - declares
 `Pillow<13`; reaching 13.0.0 requires overriding that bound via
 `overrides.in`/`overrides.lock` (the same mechanism already used for
@@ -560,6 +588,13 @@ service is required.
 
 Reporting is **off by default**. For an individual manual run on `IL4-dev-ACCP`,
 select the `image_reports` input. To opt in for push builds, set the repository
+Use the [portable configuration baseline and deployment checklist](./DEPLOYMENT-CHECKLIST.md)
+to separate reusable container safeguards from site-specific identity, network,
+storage, audit, and authorization requirements. It includes prerequisites,
+post-deployment acceptance, evidence ownership, and recurring checks; completion
+does not itself establish IL4 authorization. This branch's ACCP stack is
+NONVALIDATED; its evidence gaps remain open.
+
 Actions variable `IL4_ACCP_IMAGE_REPORTS` to the exact value `true`.
 This change does not set that variable or change the baseline reporting policy.
 
@@ -683,52 +718,78 @@ export SEMOSS_TLS_PASSWORD='/absolute/path/server.password'
 export SEMOSS_READINESS_CA='/absolute/path/approved-ca.pem'
 
 docker compose -p semoss-accp-dev -f compose.dev.yml \
-  --profile hardened-dev config --quiet
-docker compose -p semoss-accp-dev -f compose.dev.yml \
-  --profile hardened-dev up -d
+### Read-only runtime configuration and drift audit
+
+[audit_runtime.py](./audit_runtime.py) is a host-side, standard-library Python
+3.9+ helper for Docker deployments. It only inspects an existing container and
+an already-local expected image; it does not pull, start, stop, modify, or repair
+anything. The caller needs Docker inspection access. Other orchestrators need
+equivalent runtime-specific inspection rather than fabricated Docker metadata.
+
+```sh
+umask 077
+python3 audit_runtime.py \
+  --container semoss-accp-dev-semoss-1 \
+  --expected-image "$SEMOSS_IMAGE" \
+  > /secure/evidence/runtime-current.json
 ```
 
-Use the exact candidate digest from its build summary for reproducible testing;
-the example uses your locally built tag. It is not a production approval.
-The host paths must exist;
-missing files are not silently created. The configuration command validates
-Compose structure, not file readability or certificate validity.
-Bind mounts do **not** fix ownership or permissions: provision files readable
-by container UID/GID `10001:10001`, restricting private-key/password access.
-Port 8443 must be free; the profile will not replace an existing container
-already using it. Use a distinct, unused Compose project name for a new instance.
+Use a repository-qualified `@sha256:` image reference, not a tag. The audit
+compares the container's actual image ID to the inspected expected image and
+checks that image's repository digests; a matching configured tag is not enough.
+The expected image must already be available to the Docker daemon.
 
-The profile enforces the existing documented runtime restrictions: non-root,
-read-only root, dropped capabilities, no new privileges, noexec/nosuid/nodev
-temporary mounts, and memory/CPU/PID limits. A 60-second stop grace period
-allows orderly shutdown. Docker's local logging driver bounds each container's
-diagnostic logs to three 10 MB files (plus rotation/compression overhead).
-Those logs are not centralized audit retention; existing logs are not migrated.
+The 17 named checks cover image identity, running/healthy state, numeric
+non-root identity, no privileged mode, dropped capabilities, no new privileges,
+read-only root, positive memory/CPU/PID limits, namespace isolation, device and
+runtime-socket exposure, writable home, allowed writable mounts, hardened
+temporary mounts, read-only TLS mounts, bounded local logs, and a health check.
+The filesystem/logging checks target this template's reference layout and
+Docker `local` logging pattern, not every valid production architecture.
+Loopback/non-loopback publication counts are recorded, not treated as a
+universal ingress policy. Resource sizes remain workload-specific.
 
-A new project-scoped home volume is seeded from the image. Subsequent launches
-retain it; existing homes are not selected, migrated, overwritten, or deleted.
-Do not use `down -v` for data you intend to keep. Keep these files available:
-the readiness helper is bind-mounted read-only rather than baked into the image.
+Default output is **report-only**: inspect `checks` even when exit status is 0.
+Use `--strict` to opt into exit 1 for a failed check or detected drift. Invalid
+input, malformed inspection/baseline data, unavailable Docker resources, or
+inspection failure returns 2 with a concise diagnostic, never a clean report.
+Each Docker inspection has a 10-second timeout.
 
-[readiness.py](./readiness.py) verifies CA trust and hostname, HTTP 200, and the
-exact JSON boolean `startupComplete: true`. It rejects redirects, credentials
-in URLs, malformed/oversized responses, and bounded-timeout failures without
-logging response bodies. The default URL is
-`https://localhost:8443/Monolith/health/ready`; its hostname must match the
-certificate. If setting `SEMOSS_READINESS_URL`, use a certificate-matching
-hostname that resolves to **this container**, not another deployment.
-Health checks report status only: Compose does not restart an unhealthy
-container automatically. This Python probe does not establish FIPS validation
-or IL4 compliance, and does not weaken TLS verification.
+After reviewing a successful report and the deployment manifest, save that
+report as the approved baseline in the site's controlled evidence repository.
+Compare later without overwriting that baseline:
 
-Run its hermetic tests with
-`python3 -m unittest discover -s tests -p 'test_readiness.py' -v`.
-The helper and its tests are deliberately excluded from the image build
-context; the full host-side test suite includes them.
+```sh
+python3 audit_runtime.py \
+  --container semoss-accp-dev-semoss-1 \
+  --expected-image "$SEMOSS_IMAGE" \
+  --baseline /secure/evidence/runtime-approved.json --strict \
+  > /secure/evidence/runtime-current.json
+```
 
-`CATALINA_OPTS` can set reviewed heap limits. The entrypoint rejects global
-`JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`, and `JAVA_OPTS` injection. Treat all
-deployment-controlled JVM flags as trusted configuration.
+Reports contain `schema_version`, `scope`, `image_id`, named boolean `checks`,
+a normalized `snapshot`, and `drift` with `compared`, `detected`, and changed
+field names. Baselines must be valid versioned reports; they cannot waive the
+built-in checks. Snapshots exclude environment values, host paths, secret
+contents, raw health output, and publication addresses. Comparison covers
+only this normalized subset, including observed health/running state; it will
+not detect every manifest difference, changed mounted file content, credential
+rotation, or application configuration change. Compare reviewed manifests and
+appropriate content evidence separately. Keep reports controlled.
+
+This metadata audit cannot prove effective kernel enforcement, actual file
+permissions, certificate trust, readiness endpoint identity, FIPS validation,
+or authorization. Test those separately using the deployment checklist.
+It does not impose egress policy, schedule checks, or send alerts.
+
+Run all host-side hermetic tests from this directory:
+
+```sh
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+The audit, readiness helper, and their tests remain excluded from the image
+build context. Adding them does not change the built image or existing data.
 
 ## Security audit logging
 
@@ -1013,29 +1074,64 @@ resources whose content you don't control, and this survey found none to
 protect - if a site later adds a genuine CDN dependency, it should get an SRI
 hash at that point, not a placeholder one now.
 
-### Node.js code execution (ExecuteNodeCode) - inert by omission, not by control
+### Browser automation (Playwright) - inert by omission, not by control
 
-`NodeUtils.java` resolves a `NODE_HOME` environment variable (or RDF_Map
-property) to a real `node` executable, and an agent tool handler
-(`PlatformAgentToolHandlers`, `HarnessToolExecutor`, `PptxWorkflow`) can
-invoke arbitrary LLM-generated JavaScript against a curated dependency set in
-`js/node_env/` - including a self-healing `npm ci --omit=dev` if the
-installed tree doesn't match `package-lock.json`. A related, separately
-documented agent workflow (`BuildAndPublishApp`, used by the App Builder's
-React app templates under `project/platform__*`) depends on the same
-`node`/`npm`/`pnpm` toolchain to bundle a cloned app's `client/` source via
-Vite. `docker/il4/Dockerfile` has no Node.js install step anywhere
-(confirmed: zero matches for "node" in the whole file), so `NODE_HOME` never
-resolves and both paths fail closed today - an incidental protection, not a
-feature flag or permission check written for this: nothing stops a future,
-unrelated Dockerfile change that installs Node.js for some other reason from
-silently reactivating both LLM-directed JavaScript execution and the
-app-build pipeline.
+The `dev`-line merge of 2026-10-21 brought in a Playwright-based browser
+automation subsystem (`src/prerna/reactor/playwright/` -
+`GeneratePlaywrightFieldActionsReactor`, `PlanNextPlaywrightActionReactor`,
+`PlaywrightSessionUtility`, and related reactors). `PlaywrightBrowserProvider`
+unconditionally lazy-launches a real headless Chromium process directly on the
+host JVM the first time any of these reactors runs; there is no `_ENABLED`
+flag, config property, or permission check anywhere in that package. An LLM
+selects or generates the next browser action
+(`PlanNextPlaywrightActionReactor`, `GeneratePlaywrightAutomationGoalReactor`),
+which puts this in the same risk family as the Python-pixel-execution surface
+discussed above - server-side code acting on model-directed instructions,
+not a fixed, auditable script.
+
+This is currently a non-issue only because of the pre-existing baseline
+choice recorded above ("browser binaries... are not provisioned"):
+`docker/il4/Dockerfile` has no Playwright/Chromium install step, unlike
+`docker/Dockerfile.ubuntu22.04`/`ubuntu24.04`, which explicitly run
+`install_Playwright_linux_dependencies.sh`. Launching the browser in the
+actual IL4 image would fail today. **That protection is incidental, not a
+control written for this feature** - it predates Playwright's addition to
+SEMOSS and exists for an unrelated reason (R/JEP/browser binaries were never
+needed by anything else this template provisions). Nothing stops a future,
+unrelated Dockerfile change from installing Chromium for some other purpose
+and silently reactivating this unreviewed code path.
+
+**Reassess if**: Playwright, Chromium, or any browser-binary install step is
+added to `docker/il4/Dockerfile` for any reason. At that point this needs an
+actual decision - a feature flag defaulting to disabled, a permission/role
+gate, and a DoDI 8552.01 categorization of LLM-directed browser actions
+(Category 2 or 3 depending on what "sandboxed" means for a server-side
+headless browser, not a browser-sandboxed script) - rather than continuing to
+rely on the binary's absence.
+
+### Node.js code execution (ExecuteNodeCode) - also inert by omission
+
+The same pattern applies to a separate subsystem: `NodeUtils.java` resolves a
+`NODE_HOME` environment variable (or RDF_Map property) to a real `node`
+executable, and an agent tool handler (`PlatformAgentToolHandlers`,
+`HarnessToolExecutor`, `PptxWorkflow`) can invoke arbitrary LLM-generated
+JavaScript against a curated dependency set in `js/node_env/` - including a
+self-healing `npm ci --omit=dev` if the installed tree doesn't match
+`package-lock.json`. A related, separately-documented agent workflow
+(`BuildAndPublishApp`, used by the App Builder's React app templates under
+`project/platform__*`) depends on the same `node`/`npm`/`pnpm` toolchain to
+bundle a cloned app's `client/` source via Vite. `docker/il4/Dockerfile` has
+no Node.js install step anywhere (confirmed: zero matches for "node" in the
+whole file), so `NODE_HOME` never resolves and both paths fail closed today -
+the same incidental, not-written-as-a-control protection as Playwright's
+missing Chromium, with the same fragility: any future, unrelated Dockerfile
+change that installs Node.js for some other reason would silently reactivate
+both LLM-directed JavaScript execution and the app-build pipeline.
 
 Despite being currently unreachable, the dependency manifests this feature
-would install from are kept patched rather than left vulnerable, since that
-reachability depends entirely on an incidental Dockerfile omission, not a
-deliberate control: `js/node_env/package-lock.json` and two copies of
+would install from are kept patched rather than left vulnerable, since
+reachability here depends entirely on an incidental Dockerfile omission, not
+a deliberate control: `js/node_env/package-lock.json` and two copies of
 `project/platform__react-template/.../pnpm-lock.yaml` (root workspace and its
 nested `client/`) all pinned `undici` 7.29.1 (a transitive dependency of
 `cheerio`), vulnerable to three HIGH AWS Inspector2 findings first appearing
@@ -1052,25 +1148,27 @@ registry-verified integrity hash) and independently verified with a real
 `npm ci`/`pnpm install --frozen-lockfile` in an isolated copy, confirming
 `undici@7.30.1` resolves cleanly with no other package affected.
 
-`zod` 3.25.76, present in the same three lockfiles as a peer dependency of
-`@modelcontextprotocol/sdk` and `zod-to-json-schema` (MCP tool-schema
-validation; not imported directly anywhere in this codebase), has a HIGH
-finding (CVE-2023-54404, first appearing in the same 2026-10-24 rescan) left
-unfixed rather than patched like `undici` above: an unbounded `z.array()`/
-`z.set()`/`z.map()` schema accumulates one validation-issue object per
-element with no cap, exhausting memory on a large input. Inspector2
-suggests 4.6.6, but the advisory's own text says that release "only moves
-the `.max()`, `.length()` and `.size()` size checks to run before element
-parsing, so it rejects oversized input for schemas that declare an explicit
-upper bound; per the maintainer, unbounded containers are unchanged" - the
-advisory's text ends there, mid-sentence, but its own documented remediation
-only protects schemas that already declare a bound, not the unbounded
-("default configuration") case the finding itself describes as reachable.
-Migrating major versions (zod's own well-known breaking rewrite of its
-parsing API and error format) for a release that does not fix the actual
-reachable vulnerability is not a trade worth making. Kept as an accepted
-exception: gated behind the same Node.js-runtime absence as `undici` above,
-and no released version remediates the underlying case regardless.
+`zod` was bumped from 3.25.76 to 4.6.7 in `js/node_env/package.json`/
+`package-lock.json`, closing GHSA-mrhx-c7xc-m3w5 / CVE-2023-54404 (HIGH,
+unbounded memory use validating oversized collections; fixed in 4.6.6). This
+reverses an earlier decision to keep it as an accepted exception, which rested on
+two premises that no longer hold. First, it was described as a transitive peer
+dependency of `@modelcontextprotocol/sdk`/`zod-to-json-schema` in three
+lockfiles; those came from the `shadcn` CLI, which has since been removed (see
+below), leaving `js/node_env` as the only place `zod` appears - and there it is a
+plain direct dependency with no dependents (confirmed by walking every package's
+dependency/peer/optional maps in the lockfile), not imported by any SEMOSS-authored
+code. Second, the cost was framed as a risky major migration, but nothing in this
+repo consumes the 3.x API; `node_env` is a curated convenience environment for
+agent-written scripts, and Node isn't installed in this image at all. The caveat
+that 4.6.6 only protects schemas declaring an explicit `.max()`/`.length()`/
+`.size()` bound still stands for any script that builds unbounded container
+schemas over untrusted input, but that is now the script author's schema, not a
+vulnerable pin shipped by default. Agent scripts written against the 3.x API
+should import `zod/v3` (bundled in 4.x) rather than `zod`. Regenerated with
+`npm install --package-lock-only` in a scratch copy; a structural diff of the
+full lockfile showed only `zod` itself moved, and `npm ci --omit=dev` plus a
+`require('zod')` smoke test passed.
 
 `fast-uri` 3.1.8 is pinned via a `pnpm.overrides` entry (alongside
 `@modelcontextprotocol/sdk`, `proxy-addr`, and others - the same
@@ -1198,19 +1296,47 @@ for the workspace root and the standalone `client/` lockfile.
 
 This accounts for all eight packages with findings first appearing in the
 2026-10-24 rescan across these lockfiles: `undici`, `fast-uri`,
-`body-parser`, `vite`, `@modelcontextprotocol/sdk`, `ip-address`, and `hono`
-fixed; `zod` documented above as an accepted exception since no released
-version remediates its reachable case.
+`body-parser`, `vite`, `@modelcontextprotocol/sdk`, `ip-address`, `hono`, and
+(initially left as an exception, fixed in a later round - see above) `zod`.
 
 **Reassess if**: Node.js, npm, or pnpm is added to `docker/il4/Dockerfile`
-for any reason - at that point this needs an actual decision (a feature flag
-defaulting to disabled, a permission/role gate, and a DoDI 8552.01
+for any reason - at that point this needs the same actual decision as
+Playwright above (feature flag, permission/role gate, DoDI 8552.01
 categorization of LLM-directed code execution), not continued reliance on
-the toolchain's absence. Separately for `zod`: reassess if a future zod
-release actually remediates unbounded array/set/map schemas, or if any
-SEMOSS-authored code (as opposed to MCP SDK's own internal validation, or
-LLM-generated ExecuteNodeCode scripts) comes to construct a zod container
-schema without an explicit size bound over attacker-influenced input.
+the toolchain's absence.
+
+`shadcn` 4.21.0 was removed from `client/package.json` entirely rather than
+patched, closing GHSA-gcqx-w48m-w2h4 (MEDIUM, one of the findings carried in
+the 2026-11-03 image scan): a prototype-pollution bug in its pinned
+`deepmerge` 4.3.1's `mergeObject()`, which doesn't validate keys before
+writing them onto the target object's prototype. Unlike every other fix in
+this section, there's no newer version to pin to - `deepmerge` 4.3.1
+(2023-03-16) is the last version npm has ever published, and GitHub's own
+advisory lists `fixedInVersion: NotAvailable`. Searching the full dependency
+graph in both lockfiles (not just the direct package list) confirmed `shadcn`
+is the only package depending on `deepmerge` at all, so there was no override
+target to force a different resolution onto - the whole CLI package had to go.
+
+The template's only runtime use of `shadcn` (as opposed to `@shadcn/react`,
+the actual UI component library, which stays and does not depend on
+`deepmerge`) was `src/index.css` importing its bundled `tailwind.css` base
+theme (Radix-state custom variants and `@theme` design tokens) - not the CLI
+itself, which no committed script ever invoked. Vendored that one file as
+`src/shadcn-tailwind.css` (copied verbatim from the pinned `shadcn@4.21.0`,
+with provenance noted at the top of the file) and repointed the import at the
+local copy. Removing `shadcn` also dropped its own vulnerable MCP-integration
+transitive tree wholesale - the `@modelcontextprotocol/sdk`, `ip-address`,
+`fast-uri`, and `hono` `pnpm.overrides` entries documented above existed only
+to patch that tree and are now dead weight, left in place since an unmatched
+override is a harmless no-op, not a correctness risk. Future component
+scaffolding should run the CLI ad hoc (`pnpm dlx shadcn@latest add ...`)
+instead of reinstalling it as a dependency.
+
+Verified beyond dependency resolution: confirmed `deepmerge` and `shadcn` are
+gone from both lockfiles entirely (not just re-pinned), and the project's
+actual `tsc -b && vite build` command ran clean and produced the same shape
+of `portals/` output - independently for the workspace root and the
+standalone `client/` lockfile.
 
 ## Cryptographic boundaries: NONVALIDATED experiment
 
@@ -1231,10 +1357,12 @@ compatibility testing; it is not an exception approval or a FIPS mode switch.
 Successful TLS handshakes do not prove every cryptographic operation uses a
 validated implementation.
 
-The bundled AWS-LC-FIPS 3.0.0 is not established here as covered by
-[certificate #5314](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5314),
-which identifies the static 3.1.0 module. Resolve exact binary/build/certificate
-mapping and actual operating-environment applicability before promotion.
+The bundled AWS-LC-FIPS 3.0.0 is not established here as covered by any module
+validation record; a record for the static 3.1.0 module must not be attributed to
+this 3.0.0 binary without separate evidence. Current certificate numbers and
+validation records live in the SSP/Controls package, not here. Resolve exact
+binary/build/certificate mapping and actual operating-environment applicability
+before promotion.
 Python TLS, cryptography, AI libraries, and embedded private implementations
 remain outside this Java-provider assessment. No IL4 authorization is implied.
 

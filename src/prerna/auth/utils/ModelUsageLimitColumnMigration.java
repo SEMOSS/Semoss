@@ -275,8 +275,7 @@ final class ModelUsageLimitColumnMigration {
 
 		// 1. lock the rows to copy from, so another server's copy waits for this one
 		QueryExecutionUtility.executeUpdate(connection, "UPDATE " + table + " SET " + restriction + " = " + restriction
-				+ " WHERE " + restriction + " IS NOT NULL", ps -> {
-				});
+				+ " WHERE " + restriction + " IS NOT NULL", QueryExecutionUtility.NO_PARAMETERS);
 
 		// 2. clear the limits copied before that nobody has changed since
 		String copied = COPIED_LIMITS + engineIs;
@@ -308,9 +307,9 @@ final class ModelUsageLimitColumnMigration {
 			select.append(", ").append(hasColumn(allCols, column) ? column : "NULL");
 		}
 		select.append(" FROM ").append(table).append(" WHERE ").append(restriction).append(" IS NOT NULL");
-		List<Object[]> rows = QueryExecutionUtility.queryList(connection, select.toString(), ps -> {
-		}, rs -> new Object[] { rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getObject(5),
-				rs.getObject(6) });
+		List<Object[]> rows = QueryExecutionUtility.queryList(connection, select.toString(),
+				QueryExecutionUtility.NO_PARAMETERS, rs -> new Object[] { rs.getString(1), rs.getString(2),
+						rs.getString(3), rs.getString(4), rs.getObject(5), rs.getObject(6) });
 		int copiedCount = 0;
 		int skipped = 0;
 		for (Object[] row : rows) {

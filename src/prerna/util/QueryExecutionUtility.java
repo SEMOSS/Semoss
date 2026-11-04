@@ -85,6 +85,12 @@ public class QueryExecutionUtility {
 			.disableHtmlEscaping().create();
 
 	/**
+	 * Binds nothing, for a statement that takes no parameters.
+	 */
+	public static final StatementBinder NO_PARAMETERS = statement -> {
+	};
+
+	/**
 	 * Describes SQL text, ordered JDBC bind values, and a requested result-row
 	 * limit for reuse by query consumers.
 	 *

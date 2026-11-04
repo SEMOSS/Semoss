@@ -100,6 +100,7 @@ import prerna.util.sql.H2QueryUtil;
 import prerna.util.sql.SqlQueryUtilFactory;
 
 public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
+
 	private User user;
 	private Insight insight;
 	private PGVectorDatabaseEngine engine;
@@ -841,6 +842,18 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		String vectorDatabaseTypeStr = VectorDatabaseTypeEnum.PGVECTOR.toString();
 		// smss properties can be null for this test
 		assertEquals(vectorDatabaseTypeStr, engine.getCatalogSubType(null));
+	}
+
+	@Test
+	void testKeepInputOutputFollowsTheSmssLikeAVectorDatabase() throws Exception {
+		// built on the database engine, which always keeps its input and output, but
+		// follows KEEP_INPUT_OUTPUT as a vector database does; openEngine sets it false
+		openEngine(tempDir, engine, null);
+		assertFalse(engine.keepInputOutput());
+
+		PGVectorDatabaseEngine keeping = new PGVectorDatabaseEngine();
+		openEngine(tempDir, keeping, Map.of(Constants.KEEP_INPUT_OUTPUT, "true"));
+		assertTrue(keeping.keepInputOutput());
 	}
 
 	@Test

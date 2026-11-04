@@ -27,8 +27,7 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.Connection;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -48,13 +47,6 @@ import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.ModelUsageLimitKey;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.api.IRawSelectWrapper;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.AndQueryFilter;
-import prerna.query.querystruct.filters.OrQueryFilter;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditSeverity;
@@ -64,6 +56,7 @@ import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
@@ -87,6 +80,24 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 */
 	private static final String MOVE_ALL_MODELS_DEFAULT = "UPDATE MODELUSAGELIMIT SET SUBJECTID=?, SUBJECTTYPE=? "
 			+ "WHERE LIMITTYPE=? AND ENGINEID IS NULL AND SUBJECTID=? AND SUBJECTTYPE";
+	/**
+	 * Finds the row an admin added for a person: ADMIN_ADDED_USER as its name or
+	 * username, then the person's id and their email, or their id again when they
+	 * have no email
+	 */
+	private static final String FIND_ADMIN_ADDED_USER = "SELECT ID, TYPE FROM SMSS_USER WHERE (NAME=? OR USERNAME=?) "
+			+ "AND (ID=? OR ID=?)";
+	/**
+	 * Gives the row an admin added the id, login type, name, username, email and
+	 * last login a person signs in with: the row's id last
+	 */
+	private static final String ADOPT_ADMIN_ADDED_USER = "UPDATE SMSS_USER SET ID=?, TYPE=?, NAME=?, USERNAME=?, "
+			+ "EMAIL=?, LASTLOGIN=? WHERE ID=?";
+	/** Adds a person who signs in with a login provider */
+	private static final String INSERT_OAUTH_USER = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, "
+			+ "PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN) VALUES (?,?,?,?,?,?,?,?,?,?)";
+	/** Finds a user id, whatever its login type */
+	private static final String FIND_USER_ID = "SELECT ID FROM SMSS_USER WHERE ID=?";
 
 	/**
 	 * Only used for static references
@@ -96,10 +107,21 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Adds a new user to the database. Does not create any relations, simply the
-	 * node.
-	 * 
-	 * @param userName String representing the name of the user to add
+	 * Adds a person who signs in with a login provider. Does not create any
+	 * relations, simply the node.
+	 * <p>
+	 * A person an admin added, under their id or their email, takes over that row
+	 * the first time they sign in: the row gets the id, login type, name, username,
+	 * email and last login they sign in with, and the permissions and model usage
+	 * limits the admin set move to their id and login type, all in one transaction.
+	 * Anyone else is added in one transaction, unless they exist already or the
+	 * user limit is reached.
+	 *
+	 * @param newUser the person's access token; the email is lower cased
+	 * @return true when the person is added, false when they took over a row an
+	 *         admin added, exist already, or cannot be saved, in which case nothing
+	 *         is saved
+	 * @throws IllegalArgumentException when the token has no id
 	 */
 	public static boolean addOAuthUser(AccessToken newUser) throws IllegalArgumentException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -111,158 +133,70 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			newUser.setEmail(newUser.getEmail().toLowerCase());
 		}
 
-		// see if the user was added by an admin
-		// this means it could be on the ID or the EMAIL
-		// but name is the admin_added_user constant
-		SelectQueryStruct adminAddedUserQs = new SelectQueryStruct();
-		adminAddedUserQs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
-		adminAddedUserQs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
-		AndQueryFilter nameAndIdMatchFiltre = new AndQueryFilter();
-		{
-			OrQueryFilter or = new OrQueryFilter();
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "==", ADMIN_ADDED_USER));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "==", ADMIN_ADDED_USER));
-			nameAndIdMatchFiltre.addFilter(or);
-		}
-		{
-			// need to account for a null check on email
-			// since that is not necessarily required
-			// id is always required
-			if (newUser.getEmail() == null || newUser.getEmail().trim().isEmpty()) {
-				nameAndIdMatchFiltre
-						.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", newUser.getId()));
-			} else {
-				// this matching the ID field to the email because admin added user only sets
-				// the id field
-				OrQueryFilter or = new OrQueryFilter();
-				or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", newUser.getId()));
-				or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", newUser.getEmail()));
-				nameAndIdMatchFiltre.addFilter(or);
+		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
+		try {
+			// see if the user was added by an admin, and if so take over that row
+			Boolean limitsMoved = QueryExecutionUtility.write(securityDb,
+					connection -> adoptAdminAddedUser(connection, queryUtil, newUser));
+			if (limitsMoved != null) {
+				if (limitsMoved) {
+					SecurityModelUsageLimitUtils.markChanged();
+				}
+				return false;
 			}
-		}
-		adminAddedUserQs.addExplicitFilter(nameAndIdMatchFiltre);
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, adminAddedUserQs)) {
-			if (wrapper.hasNext()) {
-				// this was the old id and type that was added when the admin
-				Object[] adminAddedValues = wrapper.next().getValues();
-				String oldId = adminAddedValues[0].toString();
-				String oldType = adminAddedValues[1] == null ? null : adminAddedValues[1].toString();
-				String newId = newUser.getId();
-				// this user was added by the user
-				// and we need to update
-				{
-					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-					String updateQuery = "UPDATE SMSS_USER SET ID=?, TYPE=?, NAME=?, USERNAME=?, EMAIL=?, LASTLOGIN=? WHERE ID=?";
-					PreparedStatement ps = null;
+			// not added by admin
+			// lets see if he exists or not
+			boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
+			if (userExists) {
+				classLogger.info("User {} already exists", newUser.getId());
+				return false;
+			}
+
+			// need to synchronize the adding of new users
+			// so that we do not enter here from different threads
+			// and add the same user twice
+			synchronized (SecurityUpdateUtils.class) {
+
+				// also add the max user limit check
+				String userLimitStr = Utility.getDIHelperProperty(Constants.MAX_USER_LIMIT);
+				if (userLimitStr != null && !userLimitStr.trim().isEmpty()) {
 					try {
-						int parameterIndex = 1;
-						ps = securityDb.getPreparedStatement(updateQuery);
-						ps.setString(parameterIndex++, newId);
-						ps.setString(parameterIndex++, newUser.getProvider().toString());
-						securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getName());
-						securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getUsername());
-						securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getEmail());
-						ps.setTimestamp(parameterIndex++, timestamp);
-						ps.setString(parameterIndex++, oldId);
-						ps.execute();
-						if (!ps.getConnection().getAutoCommit()) {
-							ps.getConnection().commit();
+						int userLimit = Integer.parseInt(userLimitStr);
+						int currentUserCount = SecurityQueryUtils.getApplicationUserCount();
+
+						if (userLimit > 0 && currentUserCount + 1 > userLimit) {
+							throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
 						}
-					} catch (SQLException e) {
+					} catch (NumberFormatException e) {
 						classLogger.error("Unable to add or synchronize OAuth user records.", e);
-					} finally {
-						if (ps != null) {
-							ps.close();
-						}
-						if (ps != null && securityDb.isConnectionPooling()) {
-							ps.getConnection().close();
-						}
+						classLogger.error("User limit is not a valid numeric value");
 					}
 				}
 
-				// need to update any other permissions that were set for this user, and the
-				// model usage limits the admin set, which are kept
-				moveAdminAddedUser(securityDb, oldId, oldType, newId, newUser.getProvider().toString());
-
-			} else {
-				// not added by admin
-				// lets see if he exists or not
-				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
-				if (userExists) {
-					classLogger.info("User {} already exists", newUser.getId());
-					return false;
-				}
-
-				// need to synchronize the adding of new users
-				// so that we do not enter here from different threads
-				// and add the same user twice
-				synchronized (SecurityUpdateUtils.class) {
-
-					// also add the max user limit check
-					String userLimitStr = Utility.getDIHelperProperty(Constants.MAX_USER_LIMIT);
-					if (userLimitStr != null && !userLimitStr.trim().isEmpty()) {
-						try {
-							int userLimit = Integer.parseInt(userLimitStr);
-							int currentUserCount = SecurityQueryUtils.getApplicationUserCount();
-
-							if (userLimit > 0 && currentUserCount + 1 > userLimit) {
-								throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
-							}
-						} catch (NumberFormatException e) {
-							classLogger.error("Unable to add or synchronize OAuth user records.", e);
-							classLogger.error("User limit is not a valid numeric value");
-						}
+				// the check and the insert share a transaction that commits inside this
+				// lock, so 2 threads cannot add the same user
+				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
+				return QueryExecutionUtility.write(securityDb, connection -> {
+					if (userIdExists(connection, newUser.getId())) {
+						return false;
 					}
-
-					// need to prevent 2 threads attempting to add the same user
-					userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
-					if (!userExists) {
-						java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-
-						String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN) "
-								+ "VALUES (?,?,?,?,?,?,?,?,?,?)";
-						PreparedStatement ps = null;
-						try {
-							ps = securityDb.getPreparedStatement(insertQuery);
-							int parameterIndex = 1;
-							ps.setString(parameterIndex++, newUser.getId());
-							securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getName());
-							securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getUsername());
-							securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getEmail());
-							ps.setString(parameterIndex++, newUser.getProvider().toString());
-							// we never add ADMIN this way
-							ps.setBoolean(parameterIndex++, false);
-							ps.setBoolean(parameterIndex++, !adminSetPublisher());
-							ps.setBoolean(parameterIndex++, !adminSetExporter());
-							ps.setTimestamp(parameterIndex++, timestamp);
-							ps.setTimestamp(parameterIndex++, timestamp);
-							ps.execute();
-							if (!ps.getConnection().getAutoCommit()) {
-								ps.getConnection().commit();
-							}
-						} catch (SQLException e) {
-							classLogger.error("Unable to add or synchronize OAuth user records.", e);
-						} finally {
-							if (ps != null) {
-								try {
-									ps.close();
-									if (securityDb.isConnectionPooling()) {
-										try {
-											ps.getConnection().close();
-										} catch (SQLException e) {
-											classLogger.error("Unable to add or synchronize OAuth user records.", e);
-										}
-									}
-								} catch (SQLException e) {
-									classLogger.error("Unable to add or synchronize OAuth user records.", e);
-								}
-							}
-						}
-
-						return true;
-					}
-				}
+					QueryExecutionUtility.executeUpdate(connection, INSERT_OAUTH_USER, ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newUser.getId());
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getName());
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getUsername());
+						queryUtil.setNullableString(ps, parameterIndex++, newUser.getEmail());
+						ps.setString(parameterIndex++, newUser.getProvider().toString());
+						// we never add ADMIN this way
+						ps.setBoolean(parameterIndex++, false);
+						ps.setBoolean(parameterIndex++, !adminSetPublisher());
+						ps.setBoolean(parameterIndex++, !adminSetExporter());
+						ps.setTimestamp(parameterIndex++, timestamp);
+						ps.setTimestamp(parameterIndex++, timestamp);
+					});
+					return true;
+				});
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to add or synchronize OAuth user records.", e);
@@ -272,62 +206,127 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Moves what an admin set up for a person to the id and login type they sign in
-	 * with the first time, in one transaction: their permissions, the model usage
-	 * limits on their grants and their all-models default, which keeps the limits
-	 * the admin set.
+	 * Takes over the row an admin added for a person signing in for the first time,
+	 * in the caller's transaction. The admin added the row under the person's id or
+	 * email, with {@code ADMIN_ADDED_USER} as its name or username. The row gets
+	 * the id, login type, name, username, email and last login they sign in with,
+	 * and what the admin set up moves with it (see {@link #moveAdminAddedUser}).
 	 *
-	 * @param securityDb the security database
+	 * @param connection the connection of the caller's transaction
+	 * @param queryUtil  the security database's query utility
+	 * @param newUser    the person's access token
+	 * @return null when no admin added the person, otherwise whether model usage
+	 *         limits moved, so the caller marks them changed after the commit
+	 * @throws Exception when a statement fails
+	 */
+	private static Boolean adoptAdminAddedUser(Connection connection, AbstractSqlQueryUtil queryUtil,
+			AccessToken newUser) throws Exception {
+		// need to account for a null check on email
+		// since that is not necessarily required
+		// id is always required
+		// this matching the ID field to the email because admin added user only sets
+		// the id field
+		String email = newUser.getEmail();
+		String idOrEmail = email == null || email.trim().isEmpty() ? newUser.getId() : email;
+		String[] adminAdded = QueryExecutionUtility.queryOne(connection, FIND_ADMIN_ADDED_USER, ps -> {
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, ADMIN_ADDED_USER);
+			ps.setString(parameterIndex++, ADMIN_ADDED_USER);
+			ps.setString(parameterIndex++, newUser.getId());
+			ps.setString(parameterIndex++, idOrEmail);
+		}, rs -> new String[] { rs.getString(1), rs.getString(2) });
+		if (adminAdded == null) {
+			return null;
+		}
+		// this was the old id and type that was added when the admin
+		String oldId = adminAdded[0];
+		String oldType = adminAdded[1];
+		String newId = newUser.getId();
+		String newType = newUser.getProvider().toString();
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
+		QueryExecutionUtility.executeUpdate(connection, ADOPT_ADMIN_ADDED_USER, ps -> {
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, newId);
+			ps.setString(parameterIndex++, newType);
+			queryUtil.setNullableString(ps, parameterIndex++, newUser.getName());
+			queryUtil.setNullableString(ps, parameterIndex++, newUser.getUsername());
+			queryUtil.setNullableString(ps, parameterIndex++, newUser.getEmail());
+			ps.setTimestamp(parameterIndex++, timestamp);
+			ps.setString(parameterIndex++, oldId);
+		});
+		// need to update any other permissions that were set for this user, and the
+		// model usage limits the admin set, which are kept
+		return moveAdminAddedUser(connection, oldId, oldType, newId, newType);
+	}
+
+	/**
+	 * Whether the security database has a row with this user id, read in the
+	 * caller's transaction.
+	 *
+	 * @param connection the connection of the caller's transaction
+	 * @param userId     the user id
+	 * @return whether a row has the id, whatever its login type
+	 * @throws Exception when the query fails
+	 */
+	private static boolean userIdExists(Connection connection, String userId) throws Exception {
+		return QueryExecutionUtility.queryOne(connection, FIND_USER_ID, ps -> ps.setString(1, userId),
+				rs -> rs.getString(1)) != null;
+	}
+
+	/**
+	 * Moves what an admin set up for a person to the id and login type they sign in
+	 * with the first time, in the caller's transaction: their permissions, the
+	 * model usage limits on their grants and their all-models default, which keeps
+	 * the limits the admin set. The caller marks the limits changed after its
+	 * transaction commits, when this returns true.
+	 *
+	 * @param connection the connection of the caller's transaction
 	 * @param oldId      the id the admin added the person with
 	 * @param oldType    the login type the admin added the person with, or null
 	 * @param newId      the id they sign in with
 	 * @param newType    the login type they sign in with
+	 * @return whether anything moved: false when the id and the login type are the
+	 *         ones the admin used
+	 * @throws Exception when a statement fails
 	 */
-	static void moveAdminAddedUser(IRDBMSEngine securityDb, String oldId, String oldType, String newId,
-			String newType) {
+	static boolean moveAdminAddedUser(Connection connection, String oldId, String oldType, String newId, String newType)
+			throws Exception {
 		boolean idChanges = !oldId.equals(newId);
 		if (!idChanges && Objects.equals(oldType, newType)) {
-			return;
+			return false;
 		}
 		String userKeyType = ModelUsageLimitKey.Type.USER.name();
 		String moveAllModelsDefault = MOVE_ALL_MODELS_DEFAULT + (oldType == null ? " IS NULL" : "=?");
 		String moveDirectLimits = MOVE_DIRECT_LIMITS + (oldType == null ? ")" : " OR SUBJECTTYPE=?)");
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				if (idChanges) {
-					for (String updateQuery : MOVE_PERMISSIONS) {
-						QueryExecutionUtility.executeUpdate(connection, updateQuery, ps -> {
-							ps.setString(1, newId);
-							ps.setString(2, oldId);
-						});
-					}
-				}
-				QueryExecutionUtility.executeUpdate(connection, moveDirectLimits, ps -> {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newId);
-					ps.setString(parameterIndex++, newType);
-					ps.setString(parameterIndex++, userKeyType);
-					ps.setString(parameterIndex++, oldId);
-					if (oldType != null) {
-						ps.setString(parameterIndex++, oldType);
-					}
+		if (idChanges) {
+			for (String updateQuery : MOVE_PERMISSIONS) {
+				QueryExecutionUtility.executeUpdate(connection, updateQuery, ps -> {
+					ps.setString(1, newId);
+					ps.setString(2, oldId);
 				});
-				QueryExecutionUtility.executeUpdate(connection, moveAllModelsDefault, ps -> {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newId);
-					ps.setString(parameterIndex++, newType);
-					ps.setString(parameterIndex++, userKeyType);
-					ps.setString(parameterIndex++, oldId);
-					if (oldType != null) {
-						ps.setString(parameterIndex++, oldType);
-					}
-				});
-				return null;
-			});
-			SecurityModelUsageLimitUtils.markChanged();
-		} catch (Exception e) {
-			classLogger.error("Unable to move the permissions and model usage limits of an admin added user.", e);
+			}
 		}
+		QueryExecutionUtility.executeUpdate(connection, moveDirectLimits, ps -> {
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, newId);
+			ps.setString(parameterIndex++, newType);
+			ps.setString(parameterIndex++, userKeyType);
+			ps.setString(parameterIndex++, oldId);
+			if (oldType != null) {
+				ps.setString(parameterIndex++, oldType);
+			}
+		});
+		QueryExecutionUtility.executeUpdate(connection, moveAllModelsDefault, ps -> {
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, newId);
+			ps.setString(parameterIndex++, newType);
+			ps.setString(parameterIndex++, userKeyType);
+			ps.setString(parameterIndex++, oldId);
+			if (oldType != null) {
+				ps.setString(parameterIndex++, oldType);
+			}
+		});
+		return true;
 	}
 
 	/**

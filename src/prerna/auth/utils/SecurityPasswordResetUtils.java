@@ -85,13 +85,14 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", type));
 
+		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			return wrapper.hasNext();
+			exists = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user email exists.", e);
 		}
 
-		return false;
+		return exists;
 	}
 
 	/**
@@ -106,15 +107,16 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(USERID_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", type));
+		String userId = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				return (String) wrapper.next().getValues()[0];
+				userId = (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve user ID from email.", e);
 		}
 
-		return null;
+		return userId;
 	}
 
 	/**

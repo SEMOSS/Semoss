@@ -30,15 +30,19 @@ package prerna.engine.impl.rdbms;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -47,6 +51,7 @@ import static org.mockito.Mockito.when;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -57,9 +62,11 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 
 import com.google.gson.Gson;
+import com.zaxxer.hikari.HikariDataSource;
 
 import prerna.engine.api.SqlTransactionException;
 import prerna.engine.api.SqlTransactionResult;
@@ -364,6 +371,160 @@ class RDBMSNativeEngineTransactionUnitTests {
 		verify(connection).rollback();
 	}
 
+	@Test
+	void anUnexpectedErrorRollsTheScriptBackBeforeItsConnectionCloses() throws Exception {
+		RDBMSNativeEngine engine = mockedEngine();
+		Statement statement = mock(Statement.class);
+		Connection connection = mockConnection(statement);
+		AssertionError error = new AssertionError("driver bug");
+		when(statement.execute(anyString())).thenReturn(false).thenThrow(error);
+
+		try (MockedStatic<AbstractSqlQueryUtil> connections = openConnection(connection)) {
+			List<String> statements = List.of("UPDATE orders SET note = 'a';", "UPDATE orders SET note = 'b';");
+			assertSame(error, assertThrows(AssertionError.class, () -> engine.executeInTransaction(statements, 0, 0)));
+		}
+		// a driver such as Oracle's commits what is pending when its connection closes
+		InOrder order = inOrder(connection);
+		order.verify(connection).rollback();
+		order.verify(connection).close();
+		verify(connection, never()).commit();
+		verify(connection, never()).setAutoCommit(true);
+	}
+
+	@Test
+	void aFailedWriteRollsBackTheSharedConnectionBeforeItIsUsedAgain() throws Exception {
+		insertOrder(1, "a");
+		Connection shared = spy(DriverManager.getConnection(this.url));
+		shared.setAutoCommit(false);
+		RDBMSNativeEngine engine = engine();
+		engine.setConnection(shared);
+		clearInvocations(shared);
+
+		SQLException failure = assertThrows(SQLException.class,
+				() -> engine.insertData("INSERT INTO orders VALUES (1, 'duplicate')"));
+		assertEquals("23505", failure.getSQLState());
+		engine.insertData("INSERT INTO orders VALUES (2, 'b')");
+
+		InOrder order = inOrder(shared);
+		order.verify(shared).rollback();
+		order.verify(shared).prepareStatement("INSERT INTO orders VALUES (2, 'b')");
+		order.verify(shared).commit();
+		// the engine's shared connection stays open for its other callers
+		verify(shared, never()).close();
+		assertEquals(2, count());
+		shared.close();
+	}
+
+	@Test
+	void aFailedWriteOnAConnectionThatCommitsOnItsOwnHasNothingToRollBack() throws Exception {
+		Connection shared = sharedConnection(true);
+		PreparedStatement statement = mock(PreparedStatement.class);
+		when(shared.prepareStatement(anyString())).thenReturn(statement);
+		SQLException failure = new SQLException("relation does not exist", "42P01");
+		when(statement.execute()).thenThrow(failure);
+		RDBMSNativeEngine engine = mockedEngine();
+		engine.setConnection(shared);
+
+		assertSame(failure, assertThrows(SQLException.class, () -> engine.removeData("DELETE FROM missing")));
+		verify(statement).close();
+		verify(shared, never()).rollback();
+		verify(shared, never()).commit();
+		verify(shared, never()).close();
+	}
+
+	@Test
+	void aRollbackThatFailsIsKeptOnTheWritesOwnFailure() throws Exception {
+		Connection shared = sharedConnection(false);
+		Statement statement = mock(Statement.class);
+		when(shared.createStatement()).thenReturn(statement);
+		SQLException failure = new SQLException("syntax error", "42601");
+		when(statement.executeUpdate(anyString())).thenThrow(failure);
+		SQLException rollbackFailure = new SQLException("Connection reset", "08006");
+		doThrow(rollbackFailure).when(shared).rollback();
+		RDBMSNativeEngine engine = mockedEngine();
+		engine.setConnection(shared);
+
+		// a CREATE runs as a plain statement
+		assertSame(failure, assertThrows(SQLException.class, () -> engine.insertData("CREATE TABLE extra (id INT")));
+		assertEquals(1, failure.getSuppressed().length);
+		assertSame(rollbackFailure, failure.getSuppressed()[0]);
+		verify(shared, never()).prepareStatement(anyString());
+		verify(shared, never()).commit();
+	}
+
+	@Test
+	void aCreateInAnyCaseAfterLeadingWhitespaceRunsAsAPlainStatement() throws Exception {
+		Connection shared = sharedConnection(true);
+		Statement statement = mock(Statement.class);
+		when(shared.createStatement()).thenReturn(statement);
+		RDBMSNativeEngine engine = mockedEngine();
+		engine.setConnection(shared);
+
+		// the trigger's :NEW is a bind marker to a prepared statement on Oracle
+		String trigger = "  create or replace trigger stamp before insert on orders for each row "
+				+ "begin :NEW.note := 'a'; end;";
+		String table = "\nCreate Table extra (id INT)";
+		engine.insertData(trigger);
+		engine.insertData(table);
+
+		verify(statement).executeUpdate(trigger);
+		verify(statement).executeUpdate(table);
+		verify(shared, never()).prepareStatement(anyString());
+	}
+
+	@Test
+	void aCreateDatabaseRunsAsAPreparedStatement() throws Exception {
+		Connection shared = sharedConnection(true);
+		PreparedStatement statement = mock(PreparedStatement.class);
+		when(shared.prepareStatement(anyString())).thenReturn(statement);
+		RDBMSNativeEngine engine = mockedEngine();
+		engine.setConnection(shared);
+
+		engine.insertData(" create  database extra");
+
+		verify(statement).execute();
+		verify(shared, never()).createStatement();
+	}
+
+	@Test
+	void aCommitThatFailsIsRolledBack() throws Exception {
+		Connection shared = sharedConnection(false);
+		when(shared.prepareStatement(anyString())).thenReturn(mock(PreparedStatement.class));
+		SQLException failure = new SQLException("deferred constraint", "23503");
+		doThrow(failure).when(shared).commit();
+		RDBMSNativeEngine engine = mockedEngine();
+		engine.setConnection(shared);
+
+		assertSame(failure,
+				assertThrows(SQLException.class, () -> engine.insertData("INSERT INTO orders VALUES (1, 'a')")));
+		verify(shared).rollback();
+		verify(shared, never()).close();
+	}
+
+	@Test
+	void aPooledConnectionIsRolledBackBeforeItGoesBackToItsPool() throws Exception {
+		Connection lease = mock(Connection.class);
+		PreparedStatement statement = mock(PreparedStatement.class);
+		when(lease.getAutoCommit()).thenReturn(false);
+		when(lease.prepareStatement(anyString())).thenReturn(statement);
+		when(statement.execute()).thenReturn(false).thenThrow(new SQLException("duplicate key", "23505"));
+		HikariDataSource pool = mock(HikariDataSource.class);
+		when(pool.getConnection()).thenReturn(lease);
+		RDBMSNativeEngine engine = mockedEngine();
+		engine.dataSource = pool;
+
+		engine.insertData("INSERT INTO orders VALUES (1, 'a')");
+		assertThrows(SQLException.class, () -> engine.insertData("INSERT INTO orders VALUES (1, 'duplicate')"));
+
+		InOrder order = inOrder(lease);
+		order.verify(lease).commit();
+		order.verify(lease).close();
+		order.verify(lease).rollback();
+		order.verify(lease).close();
+		verify(lease, times(1)).commit();
+		verify(lease, times(1)).rollback();
+	}
+
 	/** An engine on the H2 test database */
 	private static RDBMSNativeEngine engine() {
 		return engine(SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB));
@@ -394,6 +555,17 @@ class RDBMSNativeEngineTransactionUnitTests {
 		when(connection.getMetaData()).thenReturn(mock(DatabaseMetaData.class));
 		when(connection.getAutoCommit()).thenReturn(true);
 		when(connection.createStatement()).thenReturn(statement);
+		return connection;
+	}
+
+	/**
+	 * A shared engine connection in the given commit mode, which passes the check
+	 * the engine makes before each use
+	 */
+	private static Connection sharedConnection(boolean autoCommit) throws SQLException {
+		Connection connection = mock(Connection.class);
+		when(connection.getAutoCommit()).thenReturn(autoCommit);
+		when(connection.isValid(anyInt())).thenReturn(true);
 		return connection;
 	}
 

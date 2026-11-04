@@ -200,6 +200,28 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	}
 
 	@Test
+	void roomIdBackfillRunsAsOneAtomicWrite() throws Exception {
+		java.lang.reflect.Method migrate = ModelInferenceLogsUtils.class.getDeclaredMethod("migrateRoomAndMessageIds",
+				IRDBMSEngine.class);
+		migrate.setAccessible(true);
+		when(conn.createStatement()).thenReturn(stmt);
+		when(stmt.executeUpdate(anyString())).thenReturn(2).thenThrow(new SQLException("message backfill failed"));
+
+		migrate.invoke(null, engine);
+		verify(stmt).executeUpdate("UPDATE ROOM SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''");
+		verify(stmt).executeUpdate("UPDATE MESSAGE SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''");
+		verify(conn).rollback();
+		verify(conn, never()).commit();
+
+		Mockito.doReturn(2, 3).when(stmt).executeUpdate(anyString());
+		migrate.invoke(null, engine);
+		verify(conn).commit();
+		verify(conn, times(1)).rollback();
+		verify(stmt, times(2)).close();
+		verify(conn, never()).close();
+	}
+
+	@Test
 	void userIsMessageAuthor() throws Exception {
 		try (MockedStatic<WrapperManager> staticWrapperManager = Mockito.mockStatic(WrapperManager.class)) {
 			staticWrapperManager.when(() -> WrapperManager.getInstance()).thenReturn(wrapperManager);

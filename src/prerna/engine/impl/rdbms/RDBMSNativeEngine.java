@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -90,6 +91,11 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	private static final int MAX_STATEMENT_RESULTS = 10_000;
 	/** The most rows a script's statement asks the driver to fetch at a time */
 	private static final int MAX_FETCH_SIZE = 1_000;
+	/** A CREATE statement, in any case and after any leading whitespace */
+	private static final Pattern CREATE_STATEMENT = Pattern.compile("\\s*CREATE\\b", Pattern.CASE_INSENSITIVE);
+	/** A CREATE DATABASE statement, in any case and with any whitespace between */
+	private static final Pattern CREATE_DATABASE_STATEMENT = Pattern.compile("\\s*CREATE\\s+DATABASE\\b",
+			Pattern.CASE_INSENSITIVE);
 
 	private boolean engineConnected = false;
 	private boolean datasourceConnected = false;
@@ -334,8 +340,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 						this.queryUtil.getConnectionUrl(), this.userName, this.password);
 				setDataSourceProperties(this.dataSource);
 				this.datasourceConnected = true;
-				classLogger.info("Established connection pooling for "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Established connection pooling for {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
 				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL,
 						this.smssProp);
@@ -346,8 +352,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 					this.engineConn.setTransactionIsolation(this.transactionIsolationType);
 				}
 				this.queryUtil.enhanceConnection(this.engineConn);
-				classLogger.info(
-						"Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Established connection for {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 			this.engineConnected = true;
 		} catch (SQLException e) {
@@ -505,8 +511,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 						userName, password);
 				setDataSourceProperties(this.dataSource);
 				this.datasourceConnected = true;
-				classLogger.info("Established connection pooling for "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Established connection pooling for {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 
 			// return/generate a connection object
@@ -534,13 +540,13 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				setDataSourceProperties(this.dataSource);
 				this.engineConn = this.dataSource.getConnection();
 				this.datasourceConnected = true;
-				classLogger.info("Established connection pooling for "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Established connection pooling for {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
 				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL,
 						this.smssProp);
-				classLogger.info(
-						"Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Established connection for {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 			this.queryUtil.enhanceConnection(this.engineConn);
 			if (this.autoCommit != null) {
@@ -557,33 +563,111 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	@Override
 	public void insertData(String query) throws SQLException {
-		Connection conn = null;
+		// a CREATE runs as a plain statement: its body (a trigger, procedure or
+		// function) can hold text a prepared statement reads as bind markers, such as
+		// Oracle's :NEW and :OLD
+		boolean plainStatement = CREATE_STATEMENT.matcher(query).lookingAt()
+				&& !CREATE_DATABASE_STATEMENT.matcher(query).lookingAt();
+		executeWrite(query, plainStatement);
+	}
+
+	/**
+	 * Runs one write on the engine's connection and commits it when the connection
+	 * does not commit on its own. A write whose statement or commit fails is rolled
+	 * back before the connection is used again, so no caller runs inside the failed
+	 * write's transaction: an engine without a pool shares one connection with
+	 * every caller, and PostgreSQL, for one, refuses every statement in a
+	 * transaction a statement failed in until it ends. The write's own failure is
+	 * thrown, with a failed rollback added to it as suppressed. A pooled connection
+	 * goes back to its pool either way; a failure to give it back is logged and
+	 * never changes the write's outcome. An engine without a pool holds the lock on
+	 * its shared connection for the whole write, the same lock
+	 * QueryExecutionUtility takes, so another caller's transaction on that
+	 * connection is never committed or rolled back by this write.
+	 *
+	 * @param query          the SQL to run
+	 * @param plainStatement true to run the SQL as a plain statement, false to run
+	 *                       it as a prepared statement
+	 * @throws SQLException when the statement or its commit fails
+	 */
+	private void executeWrite(String query, boolean plainStatement) throws SQLException {
+		Connection conn = getConnection();
+		if (this.dataSource != null) {
+			executeWrite(conn, query, plainStatement);
+			return;
+		}
+		synchronized (conn) {
+			executeWrite(conn, query, plainStatement);
+		}
+	}
+
+	/**
+	 * Runs the write on the connection, commits or rolls it back, and gives a
+	 * pooled connection back to its pool, as described in
+	 * {@link #executeWrite(String, boolean)}.
+	 *
+	 * @param conn           the connection the write runs on
+	 * @param query          the SQL to run
+	 * @param plainStatement true to run the SQL as a plain statement, false to run
+	 *                       it as a prepared statement
+	 * @throws SQLException when the statement or its commit fails
+	 */
+	private void executeWrite(Connection conn, String query, boolean plainStatement) throws SQLException {
 		try {
-			conn = getConnection();
-			if (query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))) {
+			if (plainStatement) {
 				try (Statement statement = conn.createStatement()) {
 					statement.executeUpdate(query);
-				} catch (SQLException e) {
-					classLogger.error("Failed to execute CREATE statement: {}", e.getMessage(), e);
-					throw e;
 				}
 			} else {
 				try (PreparedStatement statement = conn.prepareStatement(query)) {
 					statement.execute();
-				} catch (SQLException e) {
-					classLogger.error("Failed to execute insert/update prepared statement: {}", e.getMessage(), e);
-					throw e;
 				}
 			}
 			// you have to commit on the connection itself
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
-		} finally {
-			// if datasource, give back the conn to the pool
-			if (this.datasourceConnected && conn != null) {
-				conn.close();
+		} catch (SQLException | RuntimeException | Error e) {
+			classLogger.error("Failed to execute write statement: {}", e.getMessage(), e);
+			rollbackFailedWrite(conn, e);
+			releaseWriteConnection(conn, e);
+			throw e;
+		}
+		releaseWriteConnection(conn, null);
+	}
+
+	/**
+	 * Rolls back what a failed write left open when the connection does not commit
+	 * on its own. When the connection cannot say whether it commits on its own, the
+	 * rollback is tried anyway. A failure here is logged and added to the write's
+	 * failure as suppressed.
+	 *
+	 * @param conn    the connection the write ran on
+	 * @param failure the write's failure
+	 */
+	private static void rollbackFailedWrite(Connection conn, Throwable failure) {
+		try {
+			if (conn.getAutoCommit()) {
+				return;
 			}
+		} catch (SQLException | RuntimeException e) {
+			ConnectionUtils.jdbcCleanupFailure(failure, e, "Error reading the commit mode after a failed write");
+		}
+		ConnectionUtils.jdbcCleanupFailure(failure, ConnectionUtils.rollbackConnection(conn));
+	}
+
+	/**
+	 * Gives a pooled connection back to its pool once a write is done. An engine
+	 * without a pool keeps its shared connection open.
+	 *
+	 * @param conn    the connection the write ran on
+	 * @param failure the write's failure, which a failure to give the connection
+	 *                back is added to as suppressed, or null when the write
+	 *                committed
+	 */
+	private void releaseWriteConnection(Connection conn, Throwable failure) {
+		if (this.dataSource != null) {
+			ConnectionUtils.jdbcCleanupFailure(failure, ConnectionUtils.closeConnection(conn));
 		}
 	}
 
@@ -606,10 +690,12 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			throw e;
 		}
 		Boolean originalAutoCommit = null;
+		boolean inTransaction = false;
 		boolean transactionEnded = false;
 		try {
 			originalAutoCommit = connection.getAutoCommit();
 			connection.setAutoCommit(false);
+			inTransaction = true;
 
 			// the limit covers the statements, so it starts once the connection is ready
 			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds);
@@ -658,6 +744,14 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			transactionEnded = true;
 			result.committed();
 			return result;
+		} catch (RuntimeException | Error e) {
+			// an unexpected failure once statements could have run: roll them back before
+			// the connection is closed or evicted, since a driver such as Oracle's commits
+			// what is pending when its connection closes
+			if (inTransaction && !transactionEnded) {
+				ConnectionUtils.jdbcCleanupFailure(e, ConnectionUtils.rollbackConnection(connection));
+			}
+			throw e;
 		} finally {
 			releaseTransactionConnection(connection, transactionEnded, originalAutoCommit);
 		}
@@ -915,7 +1009,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			// if you can execute, you are valid
 			return true;
 		} catch (Exception e) {
-			classLogger.warn("Connection is not valid. Error message = " + e.getMessage());
+			classLogger.warn("Connection is not valid: the connection test query failed for database {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 		}
 
 		return false;
@@ -1082,39 +1177,13 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	@Override
 	public void removeData(String query) throws SQLException {
-		Connection conn = null;
-		try {
-			conn = getConnection();
-			try (PreparedStatement statement = conn.prepareStatement(query)) {
-				statement.execute();
-			} catch (SQLException e) {
-				classLogger.error("Failed to execute remove/delete prepared statement: {}", e.getMessage(), e);
-				throw e;
-			}
-			// you have to commit on the connection itself
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
-		} finally {
-			// if datasource, give back the conn to the pool
-			if (this.datasourceConnected && conn != null) {
-				conn.close();
-			}
-		}
+		executeWrite(query, false);
 	}
 
 	@Override
 	public void commit() {
 		try {
 			if (this.datasourceConnected && this.dataSource != null) {
-				classLogger.warn(
-						"You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
-				classLogger.warn(
-						"You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
-				classLogger.warn(
-						"You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
-				classLogger.warn(
-						"You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
 				classLogger.warn(
 						"You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
 				return;
@@ -1130,7 +1199,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	@Override
 	public void delete() {
-		classLogger.debug("Deleting RDBMS Engine: " + this.engineName);
+		classLogger.debug("Deleting RDBMS Engine: {}", this.engineName);
 		try {
 			close();
 			if (this.dbType == RdbmsTypeEnum.H2_DB) {
@@ -1419,7 +1488,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		} catch (SQLException e) {
 			classLogger.error("Failed to read columns from result set: {}", e.getMessage(), e);
 		}
-		classLogger.info("Found " + retVector.size() + " elements in result set");
+		classLogger.info("Found {} elements in result set", retVector.size());
 		return retVector;
 	}
 

@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -396,12 +397,179 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 		List<String> columns = QueryExecutionUtility.queryList(securityDb,
 				"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME = 'MODELUSAGELIMIT_SUBJECT_INDEX' "
 						+ "ORDER BY ORDINAL_POSITION",
-				ps -> {
-				}, rs -> rs.getString(1));
+				QueryExecutionUtility.NO_PARAMETERS, rs -> rs.getString(1));
 
 		// SUBJECTTYPE is left out, so the key fits the index size MySQL allows with
 		// utf8mb4
 		assertEquals(List.of("ENGINEID", "LIMITTYPE", "SUBJECTID"), columns);
+	}
+
+	@Test
+	void testInitialize_backfillsEngineTypesAndDisplayNames() throws Exception {
+		execute("INSERT INTO ENGINE (ENGINEID, ENGINENAME) VALUES (?,?)", "engine1", "name1");
+
+		AbstractSecurityUtils.initialize();
+
+		assertEquals(IEngine.CATALOG_TYPE.DATABASE.toString(),
+				queryValue("SELECT ENGINETYPE FROM ENGINE WHERE ENGINEID=?", "engine1"));
+		assertEquals("name1", queryValue("SELECT ENGINEDISPLAYNAME FROM ENGINE WHERE ENGINEID=?", "engine1"));
+	}
+
+	@Test
+	void testInitialize_engineBackfillFailureRollsBackTheEngineTypes() throws Exception {
+		securityDb.insertData(
+				"ALTER TABLE ENGINE ADD CONSTRAINT TEST_REFUSE_DISPLAY_NAME CHECK (ENGINEDISPLAYNAME <> 'refused')");
+		try {
+			execute("INSERT INTO ENGINE (ENGINEID, ENGINENAME) VALUES (?,?)", "engine1", "refused");
+
+			// the display name backfill fails after the type backfill, and start up stops
+			assertThrows(Exception.class, AbstractSecurityUtils::initialize);
+
+			assertNull(queryValue("SELECT ENGINETYPE FROM ENGINE WHERE ENGINEID=?", "engine1"));
+			assertNull(queryValue("SELECT ENGINEDISPLAYNAME FROM ENGINE WHERE ENGINEID=?", "engine1"));
+		} finally {
+			securityDb.insertData("ALTER TABLE ENGINE DROP CONSTRAINT IF EXISTS TEST_REFUSE_DISPLAY_NAME");
+		}
+	}
+
+	@Test
+	void testInitialize_backfillsProjectDisplayNamesAndTemplateFlags() throws Exception {
+		execute("INSERT INTO PROJECT (PROJECTID, PROJECTNAME) VALUES (?,?)", "project1", "name1");
+
+		AbstractSecurityUtils.initialize();
+
+		assertEquals("name1", queryValue("SELECT PROJECTDISPLAYNAME FROM PROJECT WHERE PROJECTID=?", "project1"));
+		assertEquals(Boolean.FALSE, queryValue("SELECT IS_TEMPLATE FROM PROJECT WHERE PROJECTID=?", "project1"));
+	}
+
+	@Test
+	void testInitialize_projectBackfillFailureRollsBackTheDisplayNames() throws Exception {
+		securityDb.insertData("ALTER TABLE PROJECT ADD CONSTRAINT TEST_REFUSE_TEMPLATE CHECK "
+				+ "(IS_TEMPLATE IS NULL OR PROJECTNAME <> 'refused')");
+		try {
+			execute("INSERT INTO PROJECT (PROJECTID, PROJECTNAME) VALUES (?,?)", "project1", "refused");
+
+			// the template flag backfill fails after the display name backfill, and start
+			// up stops
+			assertThrows(Exception.class, AbstractSecurityUtils::initialize);
+
+			assertNull(queryValue("SELECT PROJECTDISPLAYNAME FROM PROJECT WHERE PROJECTID=?", "project1"));
+			assertNull(queryValue("SELECT IS_TEMPLATE FROM PROJECT WHERE PROJECTID=?", "project1"));
+		} finally {
+			securityDb.insertData("ALTER TABLE PROJECT DROP CONSTRAINT IF EXISTS TEST_REFUSE_TEMPLATE");
+		}
+	}
+
+	@Test
+	void testInitialize_fillsTheEngineTypesOfProjectDependencies() throws Exception {
+		execute("INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE) VALUES (?,?,?)", "engine1", "name1", "MODEL");
+		execute("INSERT INTO PROJECT (PROJECTID, PROJECTNAME) VALUES (?,?)", "project1", "name1");
+		execute("INSERT INTO PROJECTDEPENDENCIES (PROJECTID, ENGINEID) VALUES (?,?)", "app", "engine1");
+		execute("INSERT INTO PROJECTDEPENDENCIES (PROJECTID, ENGINEID) VALUES (?,?)", "app", "project1");
+
+		AbstractSecurityUtils.initialize();
+
+		assertEquals("MODEL", queryValue("SELECT ENGINETYPE FROM PROJECTDEPENDENCIES WHERE ENGINEID=?", "engine1"));
+		assertEquals("PROJECT", queryValue("SELECT ENGINETYPE FROM PROJECTDEPENDENCIES WHERE ENGINEID=?", "project1"));
+	}
+
+	@Test
+	void testInitialize_metaKeyDefaultsAreReplacedInOneTransaction() throws Exception {
+		execute("DELETE FROM " + Constants.PROJECT_METAKEYS);
+		execute("INSERT INTO " + Constants.PROJECT_METAKEYS + " (METAKEY, SINGLEMULTI, DISPLAYORDER, DISPLAYOPTIONS) "
+				+ "VALUES (?,?,?,?)", "custom", "single", 0, "textarea");
+		UnitTestFailingTrigger.install(securityDb, "TEST_REFUSE_PROJECTMETAKEYS", "INSERT", Constants.PROJECT_METAKEYS);
+		try {
+			// a table with fewer than the defaults is emptied and gets them; the inserts
+			// fail, so the row deleted before them is back, and start up goes on
+			AbstractSecurityUtils.initialize();
+
+			assertEquals(List.of("custom"), strings("SELECT METAKEY FROM " + Constants.PROJECT_METAKEYS));
+		} finally {
+			UnitTestFailingTrigger.drop(securityDb, "TEST_REFUSE_PROJECTMETAKEYS");
+		}
+
+		AbstractSecurityUtils.initialize();
+
+		assertEquals(6L, count("SELECT COUNT(*) FROM " + Constants.PROJECT_METAKEYS));
+		assertEquals(0L, count("SELECT COUNT(*) FROM " + Constants.PROJECT_METAKEYS + " WHERE METAKEY = 'custom'"));
+	}
+
+	@Test
+	void testInitialize_permissionLevelsAreReplacedInOneTransaction() throws Exception {
+		execute("INSERT INTO PERMISSION (ID, NAME) VALUES (?,?)", 4, "EXTRA");
+		try {
+			UnitTestFailingTrigger.install(securityDb, "TEST_REFUSE_PERMISSION", "INSERT", "PERMISSION");
+			try {
+				// a table with more than the three levels is emptied and gets them; the
+				// inserts fail, so the rows deleted before them are back
+				AbstractSecurityUtils.initialize();
+
+				assertEquals(List.of("OWNER", "EDIT", "READ_ONLY", "EXTRA"),
+						strings("SELECT NAME FROM PERMISSION ORDER BY ID"));
+			} finally {
+				UnitTestFailingTrigger.drop(securityDb, "TEST_REFUSE_PERMISSION");
+			}
+
+			AbstractSecurityUtils.initialize();
+
+			assertEquals(List.of("OWNER", "EDIT", "READ_ONLY"), strings("SELECT NAME FROM PERMISSION ORDER BY ID"));
+		} finally {
+			// the levels are kept between tests
+			execute("DELETE FROM PERMISSION WHERE ID=?", 4);
+		}
+	}
+
+	@Test
+	void testUpdateUserTypeEnum_aColumnThatFailsKeepsItsValuesAndTheOthersChange() throws Exception {
+		execute("INSERT INTO SMSS_USER (ID, NAME, TYPE) VALUES (?,?,?)", "user1", "name1", "Native");
+		execute("INSERT INTO PASSWORD_HISTORY (ID, USERID, TYPE) VALUES (?,?,?)", "history1", "user1", "Native");
+		UnitTestFailingTrigger.install(securityDb, "TEST_REFUSE_PASSWORD_HISTORY", "UPDATE", "PASSWORD_HISTORY");
+		try {
+			updateUserTypeEnum();
+
+			assertEquals("NATIVE", queryValue("SELECT TYPE FROM SMSS_USER WHERE ID=?", "user1"));
+			assertEquals("Native", queryValue("SELECT TYPE FROM PASSWORD_HISTORY WHERE ID=?", "history1"));
+		} finally {
+			UnitTestFailingTrigger.drop(securityDb, "TEST_REFUSE_PASSWORD_HISTORY");
+		}
+
+		updateUserTypeEnum();
+
+		assertEquals("NATIVE", queryValue("SELECT TYPE FROM PASSWORD_HISTORY WHERE ID=?", "history1"));
+	}
+
+	/**
+	 * Runs the private start up step that changes stored login types to their
+	 * provider's label.
+	 */
+	private static void updateUserTypeEnum() throws Exception {
+		Method method = AbstractSecurityUtils.class.getDeclaredMethod("updateUserTypeEnum");
+		method.setAccessible(true);
+		method.invoke(null);
+	}
+
+	/**
+	 * Reads the first column of the first row of a query on the security database.
+	 *
+	 * @return the value, or null when there is no row
+	 */
+	private Object queryValue(String sql, Object... values) throws Exception {
+		return QueryExecutionUtility.queryOne(securityDb, sql, ps -> {
+			for (int i = 0; i < values.length; i++) {
+				ps.setObject(i + 1, values[i]);
+			}
+		}, rs -> rs.getObject(1));
+	}
+
+	/**
+	 * Reads the first column of every row of a query on the security database.
+	 *
+	 * @return the values, in row order
+	 */
+	private List<String> strings(String sql) throws Exception {
+		return QueryExecutionUtility.queryList(securityDb, sql, QueryExecutionUtility.NO_PARAMETERS,
+				rs -> rs.getString(1));
 	}
 
 	private void execute(String sql, Object... values) throws Exception {

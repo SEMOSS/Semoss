@@ -179,7 +179,7 @@ public class OwlTemporalEngineMeta {
 		this.myEng.addStatement(new Object[] { sub, pred, obj, true });
 
 		// add the unique name as an alias as well
-//		setAliasToVertex(vertexName, vertexName);
+		// setAliasToVertex(vertexName, vertexName);
 	}
 
 	public void setDataTypeToVertex(String vertexName, String dataType) {
@@ -550,8 +550,7 @@ public class OwlTemporalEngineMeta {
 		Set<String> eIds = new HashSet<>();
 
 		// @formatter:off
-		String query = "select distinct ?qs "
-				+ "where {"
+		String query = "select distinct ?qs " + "where {"
 				+ "{"
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
 				+ "{?header <" + ALIAS_PRED + "> ?alias}"
@@ -595,7 +594,9 @@ public class OwlTemporalEngineMeta {
 		Map<String, List<String[]>> ret = new HashMap<String, List<String[]>>();
 
 		// @formatter:off
-		String query = "select distinct " + "?header " + "?alias "
+		String query = "select distinct "
+				+ "?header "
+				+ "?alias "
 				+ "(coalesce(?qs, 'unknown') as ?qsName) "
 				+ "where {"
 				+ "{"
@@ -648,7 +649,8 @@ public class OwlTemporalEngineMeta {
 
 	public List<String[]> getDatabaseInformation(String uniqueName) {
 		// @formatter:off
-		String query = "select distinct " + "?header "
+		String query = "select distinct "
+				+ "?header "
 				+ "(coalesce(?qs, 'unknown') as ?qsName) "
 				+ "where {"
 				+ "{"
@@ -690,8 +692,7 @@ public class OwlTemporalEngineMeta {
 	 */
 	public boolean validateUniqueName(String uniqueName) {
 		// @formatter:off
-		String query = "select distinct ?header "
-				+ "where {"
+		String query = "select distinct ?header " + "where {"
 				+ "{"
 				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
@@ -703,15 +704,14 @@ public class OwlTemporalEngineMeta {
 				+ "}"
 				+ "} limit 1";
 		// @formatter:on
+		boolean exists = false;
 		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
-			if (it.hasNext()) {
-				return true;
-			}
+			exists = it.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
-		return false;
+		return exists;
 	}
 
 	public List<String> getUniqueNames() {
@@ -755,15 +755,16 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		// @formatter:on
 
+		String uniqueName = null;
 		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			if (it.hasNext()) {
-				return it.next().getValues()[0].toString();
+				uniqueName = it.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
 			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
-		return null;
+		return uniqueName;
 	}
 
 	public Map<String, String> getUniqueNameToAlias() {
@@ -809,23 +810,27 @@ public class OwlTemporalEngineMeta {
 				+ "{?header <" + ALIAS_PRED + "> ?alias}"
 				+ "}"
 				+ "}";
-		// @formatter:on
+		// @formatter:on 
 
+		String alias = null;
 		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			if (it.hasNext()) {
 				Object[] values = it.next().getValues();
-				return values[1].toString();
+				alias = values[1].toString();
 			}
 		} catch (Exception e) {
 			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
-		return null;
+		return alias;
 	}
 
 	public Object[] getComplexSelector(String uniqueName) {
 		// @formatter:off
-		String query = "select distinct " + "?header " + "?queryType " + "?queryJson "
+		String query = "select distinct "
+				+ "?header "
+				+ "?queryType "
+				+ "?queryJson "
 				+ "where {"
 				+ "{"
 				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
@@ -841,15 +846,16 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		// @formatter:on
 
+		Object[] complexSelector = null;
 		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			if (it.hasNext()) {
-				return it.next().getValues();
+				complexSelector = it.next().getValues();
 			}
 		} catch (Exception e) {
 			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
-		return null;
+		return complexSelector;
 	}
 
 	/*
@@ -858,7 +864,9 @@ public class OwlTemporalEngineMeta {
 	 */
 	public List<String> getFrameSelectors() {
 		// @formatter:off
-		String query = "select distinct " + "?header (coalesce(?prim, 'false') as ?isPrim) "
+		String query = "select distinct "
+				+ "?header "
+				+ "(coalesce(?prim, 'false') as ?isPrim) "
 				+ "(coalesce(lcase(?alias), lcase(?header)) as ?loweralias) "
 				+ "where {"
 				+ "{"
@@ -941,7 +949,9 @@ public class OwlTemporalEngineMeta {
 	 */
 	public String getPhysicalName(String uniqueName) {
 		// @formatter:off
-		String query = "select distinct " + "?header ?physical "
+		String query = "select distinct "
+				+ "?header "
+				+ "?physical "
 				+ "where {"
 				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
@@ -949,16 +959,17 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		// @formatter:on
 
+		String physicalName = uniqueName;
 		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
-			while (it.hasNext()) {
+			if (it.hasNext()) {
 				Object[] row = it.next().getValues();
-				return row[1].toString();
+				physicalName = row[1].toString();
 			}
 		} catch (Exception e) {
 			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
-		return uniqueName;
+		return physicalName;
 	}
 
 	/*
@@ -1139,39 +1150,30 @@ public class OwlTemporalEngineMeta {
 			// we have a property
 			// @formatter:off
 			query = "select distinct ?header ?datatype where {"
-					+ "bind(<"
-					+ SEMOSS_PROPERTY_PREFIX
-					+ "/"
-					+ uniqueName
-					+ "> as ?header)"
-					+ "{?header <"
-					+ RDF.TYPE
-					+ "> <"
-					+ SEMOSS_PROPERTY_PREFIX
-					+ ">}"
-					+ "{?header <"
-					+ OWL.DATATYPEPROPERTY
-					+ "> ?datatype}"
+					+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+					+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+					+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
 					// in case you do a funky load
 					// and load a property without its parent
 					// we shouldn't bind and assume there is a parent present
-//					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
-//					+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-//					+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+					// + "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
+					// + "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+					// + "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
 					+ "}";
 			// @formatter:on
 		}
 
+		SemossDataType dataType = null;
 		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
-			while (it.hasNext()) {
+			if (it.hasNext()) {
 				Object[] row = it.next().getValues();
-				return SemossDataType.convertStringToDataType(row[1].toString());
+				dataType = SemossDataType.convertStringToDataType(row[1].toString());
 			}
 		} catch (Exception e) {
 			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
-		return null;
+		return dataType;
 	}
 
 	public String getHeaderTypeAsString(String uniqueName) {
@@ -1202,24 +1204,25 @@ public class OwlTemporalEngineMeta {
 					// in case you do a funky load
 					// and load a property without its parent
 					// we shouldn't bind and assume there is a parent present
-//					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
-//					+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-//					+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+					// + "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
+					// + "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+					// + "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
 					+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
 					+ "}";
 			// @formatter:on
 		}
 
+		String dataType = null;
 		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
-			while (it.hasNext()) {
+			if (it.hasNext()) {
 				Object[] row = it.next().getValues();
-				return row[1].toString();
+				dataType = row[1].toString();
 			}
 		} catch (Exception e) {
 			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
-		return null;
+		return dataType;
 	}
 
 	public String getHeaderAdtlType(String uniqueName) {
@@ -1247,24 +1250,25 @@ public class OwlTemporalEngineMeta {
 			query = "select distinct ?header ?adtlDataType where {"
 					+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
 					+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
-//					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
-//					+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-//					+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+					// + "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
+					// + "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+					// + "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
 					+ "{?header <" + ADDTL_DATATYPE_PRED + "> ?adtlDataType}"
 					+ "}";
 			// @formatter:on
 		}
 
+		String adtlType = null;
 		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
-			while (it.hasNext()) {
+			if (it.hasNext()) {
 				Object[] row = it.next().getValues();
-				return row[1].toString();
+				adtlType = row[1].toString();
 			}
 		} catch (Exception e) {
 			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
-		return null;
+		return adtlType;
 	}
 
 	/**
@@ -1319,7 +1323,13 @@ public class OwlTemporalEngineMeta {
 		Map<String, String[]> returnMap = new HashMap<>();
 
 		// @formatter:off
-		String query = "select distinct " + "?header " + "?alias " + "?dataType " + "?qsInfo " + "?queryType " + "?queryJson "
+		String query = "select distinct "
+				+ "?header "
+				+ "?alias "
+				+ "?dataType "
+				+ "?qsInfo "
+				+ "?queryType "
+				+ "?queryJson "
 				+ "where {"
 				+ "{?header <" + QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"^^xsd:boolean}"
 				+ "{?header <" + ALIAS_PRED + "> ?alias}"
@@ -1381,16 +1391,17 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		// @formatter:on
 
+		String ordering = null;
 		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
-			while (it.hasNext()) {
+			if (it.hasNext()) {
 				Object[] row = it.next().getValues();
-				return row[1].toString();
+				ordering = row[1].toString();
 			}
 		} catch (Exception e) {
 			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
-		return null;
+		return ordering;
 	}
 
 	/**
@@ -1437,7 +1448,8 @@ public class OwlTemporalEngineMeta {
 		}
 
 		// @formatter:off
-		String query = "select distinct " + "?header "
+		String query = "select distinct "
+				+ "?header "
 				+ "(coalesce(?prim, 'false') as ?isPrim) "
 				+ "(coalesce(?dt, 'unknown') as ?dataType) "
 				+ "(coalesce(?adt, 'unknown') as ?adtlType) "
@@ -1448,7 +1460,8 @@ public class OwlTemporalEngineMeta {
 				+ "(coalesce(?derived, 'false') as ?isDerived) "
 				+ "where {"
 				+ "{"
-				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + filter.toString()
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ filter.toString()
 				+ "optional{?header <" + ADDTL_DATATYPE_PRED + "> ?adt}"
 				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
 				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
@@ -1459,7 +1472,8 @@ public class OwlTemporalEngineMeta {
 				+ "union"
 				+ "{"
 				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
-				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}" + filter.toString()
+				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+				+ filter.toString()
 				+ "optional{?header <" + ADDTL_DATATYPE_PRED + "> ?adt}"
 				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
 				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
@@ -1594,7 +1608,8 @@ public class OwlTemporalEngineMeta {
 		Map<String, Object> metamodel = new HashMap<String, Object>();
 		// get the nodes
 		// @formatter:off
-		String nodesQuery = "select distinct " + "?concept "
+		String nodesQuery = "select distinct "
+				+ "?concept "
 				+ "(coalesce(?qs, 'unknown') as ?qsName) "
 				+ "(coalesce(?alias, ?concept) as ?displayName) "
 				+ "(coalesce(?prim, 'false') as ?primKey) "
@@ -1607,8 +1622,7 @@ public class OwlTemporalEngineMeta {
 				+ "optional{?concept <" + QUERY_STRUCT_PRED + "> ?qs} "
 				+ "optional{?concept <" + ALIAS_PRED + "> ?alias} "
 				+ "optional{?concept <" + IS_PRIM_KEY_PRED + "> ?prim} "
-				+ "optional "
-				+ "{"
+				+ "optional " + "{"
 				+ "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
 				+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} "
 				+ "optional{?prop <" + QUERY_STRUCT_PRED + "> ?property_qs} "
@@ -1616,7 +1630,7 @@ public class OwlTemporalEngineMeta {
 				+ "optional{?prop <" + IS_PRIM_KEY_PRED + "> ?property_prim} "
 				+ "} "
 				+ "filter(?concept != <" + SEMOSS_CONCEPT_PREFIX + ">)"
-//				+ "filter(?prop != <" + SEMOSS_PROPERTY_PREFIX + ">)"
+				// + "filter(?prop != <" + SEMOSS_PROPERTY_PREFIX + ">)"
 				+ "}";
 		// @formatter:on
 
@@ -1773,7 +1787,8 @@ public class OwlTemporalEngineMeta {
 		String nodesQuery = null;
 		if (includeDataTypes) {
 			// @formatter:off
-			nodesQuery = "select distinct " + "?concept "
+			nodesQuery = "select distinct "
+					+ "?concept "
 					+ "(coalesce(?alias, ?concept) as ?displayName) "
 					+ "(coalesce(?prop, 'noprops') as ?property) "
 					+ "(coalesce(?property_alias, ?property) as ?propAlias) "
@@ -1786,8 +1801,7 @@ public class OwlTemporalEngineMeta {
 					+ "optional{?concept <" + ALIAS_PRED + "> ?alias} "
 					+ "optional{?concept <" + OWL.DATATYPEPROPERTY + "> ?cType} "
 					+ "optional{?concept <" + ADDTL_DATATYPE_PRED + "> ?cAdtlType}"
-					+ "optional "
-					+ "{"
+					+ "optional " + "{"
 					+ "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
 					+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} "
 					+ "optional{?prop <" + ALIAS_PRED + "> ?property_alias} "
@@ -1799,15 +1813,15 @@ public class OwlTemporalEngineMeta {
 			// @formatter:on
 		} else {
 			// @formatter:off
-			nodesQuery = "select distinct " + "?concept "
+			nodesQuery = "select distinct "
+					+ "?concept "
 					+ "(coalesce(?alias, ?concept) as ?displayName) "
 					+ "(coalesce(?prop, 'noprops') as ?property) "
 					+ "(coalesce(?property_alias, ?property) as ?propAlias) "
 					+ "where {"
 					+ "{?concept <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} "
 					+ "optional{?concept <" + ALIAS_PRED + "> ?alias} "
-					+ "optional "
-					+ "{"
+					+ "optional " + "{"
 					+ "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
 					+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} "
 					+ "optional{?prop <" + ALIAS_PRED + "> ?property_alias} "
@@ -1927,7 +1941,8 @@ public class OwlTemporalEngineMeta {
 
 		// query to get all headers + aliases
 		// @formatter:off
-		String query = "select distinct " + "?header "
+		String query = "select distinct "
+				+ "?header "
 				+ "(coalesce(?display, ?header) as ?alias) "
 				+ "(coalesce(?prim, 'false') as ?isPrim) "
 				+ "(coalesce(lcase(?display), lcase(?header)) as ?loweralias) "
@@ -1999,8 +2014,7 @@ public class OwlTemporalEngineMeta {
 		List<Object[]> ret = new ArrayList<>();
 
 		// @formatter:off
-		String query = "select distinct ?header ?datatype (lcase(?header) as ?loweralias) "
-				+ "where {"
+		String query = "select distinct ?header ?datatype (lcase(?header) as ?loweralias) " + "where {"
 				+ "{"
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
 				+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
@@ -2098,7 +2112,9 @@ public class OwlTemporalEngineMeta {
 		final String EMPTY_VALUE = "not_present";
 
 		// @formatter:off
-		String headerPropertiesQuery = "select distinct " + "?parent " + "?property "
+		String headerPropertiesQuery = "select distinct "
+				+ "?parent "
+				+ "?property "
 				+ "(coalesce(?prim, '" + EMPTY_VALUE + "') as ?isPrim) "
 				+ "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
 				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) "
@@ -2182,7 +2198,8 @@ public class OwlTemporalEngineMeta {
 
 		// first query to get all the information on the header
 		// @formatter:off
-		String headerInfoQuery = "select distinct " + "?header "
+		String headerInfoQuery = "select distinct "
+				+ "?header "
 				+ "(coalesce(?prim, '" + EMPTY_VALUE + "') as ?isPrim) "
 				+ "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
 				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) "
@@ -2211,7 +2228,9 @@ public class OwlTemporalEngineMeta {
 
 		// second query to get all the header to properties triples
 		// @formatter:off
-		String headerPropertiesQuery = "select distinct " + "?header " + "?property "
+		String headerPropertiesQuery = "select distinct "
+				+ "?header "
+				+ "?property "
 				+ "(coalesce(?prim, '" + EMPTY_VALUE + "') as ?isPrim) "
 				+ "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
 				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) "
@@ -2240,7 +2259,10 @@ public class OwlTemporalEngineMeta {
 
 		// third query to get all the upstream relationships
 		// @formatter:off
-		String upstreamRelsQuery = "select distinct " + "?myHeader " + "?rel " + "?otherHeader "
+		String upstreamRelsQuery = "select distinct "
+				+ "?myHeader "
+				+ "?rel "
+				+ "?otherHeader "
 				+ "where {"
 				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + oldTableName + "> as ?myHeader)"
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
@@ -2261,7 +2283,10 @@ public class OwlTemporalEngineMeta {
 
 		// fourth query to get all the downstream relationships
 		// @formatter:off
-		String downstreamRelsQuery = "select distinct " + "?otherHeader " + "?rel " + "?myHeader "
+		String downstreamRelsQuery = "select distinct "
+				+ "?otherHeader "
+				+ "?rel "
+				+ "?myHeader "
 				+ "where {"
 				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + oldTableName + "> as ?myHeader)"
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
@@ -2396,7 +2421,8 @@ public class OwlTemporalEngineMeta {
 
 		// first query to get all the information on the header
 		// @formatter:off
-		String headerInfoQuery = "select distinct " + "?header "
+		String headerInfoQuery = "select distinct "
+				+ "?header "
 				+ "(coalesce(?prim, '" + EMPTY_VALUE + "') as ?isPrim) "
 				+ "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
 				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) "
@@ -2424,7 +2450,9 @@ public class OwlTemporalEngineMeta {
 
 		// second query to get all the header to properties triples
 		// @formatter:off
-		String headerPropertiesQuery = "select distinct " + "?header " + "?property "
+		String headerPropertiesQuery = "select distinct "
+				+ "?header "
+				+ "?property "
 				+ "(coalesce(?prim, '" + EMPTY_VALUE + "') as ?isPrim) "
 				+ "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
 				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) "
@@ -2453,7 +2481,10 @@ public class OwlTemporalEngineMeta {
 
 		// third query to get all the upstream relationships
 		// @formatter:off
-		String upstreamRelsQuery = "select distinct " + "?myHeader " + "?rel " + "?otherHeader "
+		String upstreamRelsQuery = "select distinct "
+				+ "?myHeader "
+				+ "?rel "
+				+ "?otherHeader "
 				+ "where {"
 				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?myHeader)"
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
@@ -2474,7 +2505,10 @@ public class OwlTemporalEngineMeta {
 
 		// fourth query to get all the downstream relationships
 		// @formatter:off
-		String downstreamRelsQuery = "select distinct " + "?otherHeader " + "?rel " + "?myHeader "
+		String downstreamRelsQuery = "select distinct "
+				+ "?otherHeader "
+				+ "?rel "
+				+ "?myHeader "
 				+ "where {"
 				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?myHeader)"
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
@@ -2578,7 +2612,9 @@ public class OwlTemporalEngineMeta {
 		final String EMPTY_VALUE = "not_present";
 
 		// @formatter:off
-		String headerPropertiesQuery = "select distinct " + "?parent " + "?property "
+		String headerPropertiesQuery = "select distinct "
+				+ "?parent "
+				+ "?property "
 				+ "(coalesce(?prim, '" + EMPTY_VALUE + "') as ?isPrim) "
 				+ "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
 				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) "
@@ -2640,7 +2676,9 @@ public class OwlTemporalEngineMeta {
 		OwlTemporalEngineMeta newMeta = new OwlTemporalEngineMeta();
 
 		// @formatter:off
-		String query = "select distinct ?s ?p ?o where {?s ?p ?o}";
+		String query = "select distinct ?s ?p ?o where {"
+				+ "?s ?p ?o"
+				+ "}";
 		// @formatter:on
 		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {

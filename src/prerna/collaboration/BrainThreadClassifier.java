@@ -131,7 +131,7 @@ public final class BrainThreadClassifier {
 				job.count("total", total);
 				job.step("classifying", total == 0 ? 99 : Math.max(1, 99 * done / total));
 			});
-			for (String key : new String[] { "classifier", "threads", "topics", "work", "errors", "automatedPeople",
+			for (String key : new String[] { "classifier", "threads", "topics", "work", "errors", "errorReason", "automatedPeople",
 					"automatedSenders", "senderVoteCalls" }) {
 				job.count(key, summary.get(key));
 			}
@@ -995,10 +995,15 @@ public final class BrainThreadClassifier {
 		Map<String, Integer> bands = new LinkedHashMap<>();
 		Map<String, Integer> work = new LinkedHashMap<>();
 		int errors = 0;
+		String errorReason = null;
 		List<Map<String, Object>> rows = new ArrayList<>();
 		for (Result r : results) {
 			if (r.error() != null) {
 				errors++;
+				// one reason is enough for the owner to see why; the log has every thread
+				if (errorReason == null) {
+					errorReason = r.error().length() > 300 ? r.error().substring(0, 300) : r.error();
+				}
 			}
 			if (r.band() != null) {
 				bands.merge(r.band(), 1, Integer::sum);
@@ -1024,6 +1029,7 @@ public final class BrainThreadClassifier {
 		summary.put("topics", bands);
 		summary.put("work", work);
 		summary.put("errors", errors);
+		summary.put("errorReason", errorReason);
 		summary.put("results", rows);
 		return summary;
 	}
@@ -1033,6 +1039,7 @@ public final class BrainThreadClassifier {
 		while (t.getCause() != null) {
 			t = t.getCause();
 		}
-		return t.getMessage();
+		// a message-less failure (an NPE) still counts as one
+		return t.getMessage() != null ? t.getMessage() : t.getClass().getSimpleName();
 	}
 }

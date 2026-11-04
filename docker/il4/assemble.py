@@ -14,7 +14,7 @@ from accp_support import ACCP_COORDINATE, install_accp
 
 
 JDBC_OVERLAYS = (
-    ("mariadb-java-client-2.7.14.jar", "org.mariadb.jdbc:mariadb-java-client:3.5.10:jar"),
+    ("mariadb-java-client-2.7.14.jar", "org.mariadb.jdbc:mariadb-java-client:3.5.11:jar"),
     ("mssql-jdbc-11.2.4.jre11.jar", "com.microsoft.sqlserver:mssql-jdbc:13.6.0.jre11:jar"),
 )
 
@@ -297,6 +297,7 @@ def main(output=Path("/out")):
         "semoss_commit": "565b2c1825011304a93eabcb21cf2cd33135a42a",
         "mode": "assemble published 5.4.0 binaries; not a source rebuild",
         "removed_standard_bc_jars": removed,
+        "pruned_semossweb_source": pruned_semossweb_source,
         "excluded_connectors": excluded_connectors,
         "pruned_semossweb_source": pruned_semossweb_source,
         "jdbc_overlays": jdbc_overlays,

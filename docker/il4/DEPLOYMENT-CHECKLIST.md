@@ -64,7 +64,8 @@ environment values, secret contents, and host mount paths.
 Development may use the explicitly opted-in, per-deployment self-signed setup in
 [TLS.md](./TLS.md). Replace it with the site's approved server identity before
 operational use; verify its matching private key, chain, SAN, expiry, readiness
-trust, and rotation procedure. This does not close CMVP module-validation gaps.
+trust, and rotation procedure. This does not close module-validation gaps; see
+the SSP/Controls package for that posture.
 
 | Input | Existing interface or required implementation |
 | --- | --- |

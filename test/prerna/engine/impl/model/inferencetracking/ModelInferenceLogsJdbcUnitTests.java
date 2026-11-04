@@ -34,6 +34,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.util.List;
@@ -43,6 +47,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 import prerna.util.JdbcTestDatabase;
+import prerna.util.SystemEngineRegistry;
 
 class ModelInferenceLogsJdbcUnitTests {
 
@@ -100,6 +105,75 @@ class ModelInferenceLogsJdbcUnitTests {
 			ModelInferenceLogsUtils.updateWorkspaceCoreFields("w", "final", " description ", " prompt ");
 			assertEquals("final", db.value("SELECT NAME FROM WORKSPACE"));
 			assertEquals(" description ", db.value("SELECT DESCRIPTION FROM WORKSPACE"));
+		}
+	}
+
+	@Test
+	void skillMirrorChangesReadAndWriteTheConfigInOneWrite() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			schema(db);
+			db.execute(
+					"INSERT INTO WORKSPACE (WORKSPACE_ID, CONFIG_JSON) VALUES ('w', '{\"skills\":[{\"skill_id\":\"old\"}],\"keep\":1}')");
+			db.manual();
+			ModelInferenceLogsUtils.addSkillToWorkspaceConfigJson("w", "new", "2");
+			db.connection.rollback();
+			var config = new org.json.JSONObject((String) db.value("SELECT CONFIG_JSON FROM WORKSPACE"));
+			assertEquals(1, config.getInt("keep"));
+			assertEquals(2, config.getJSONArray("skills").length());
+			assertEquals("2", config.getJSONArray("skills").getJSONObject(1).getString("pinned_version"));
+			ModelInferenceLogsUtils.addSkillToWorkspaceConfigJson("w", "new", null);
+			ModelInferenceLogsUtils.removeSkillFromWorkspaceConfigJson("w", "old");
+			db.connection.rollback();
+			config = new org.json.JSONObject((String) db.value("SELECT CONFIG_JSON FROM WORKSPACE"));
+			assertEquals(1, config.getJSONArray("skills").length());
+			assertEquals("new", config.getJSONArray("skills").getJSONObject(0).getString("skill_id"));
+			verify(db.connection, times(3)).commit();
+		}
+	}
+
+	@Test
+	void skillMirrorReadFailureLeavesTheConfigUntouched() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			schema(db);
+			db.execute("INSERT INTO WORKSPACE (WORKSPACE_ID, CONFIG_JSON) VALUES ('w', '{\"keep\":1}')");
+			doThrow(new java.sql.SQLException("read failed")).when(db.connection)
+					.prepareStatement("SELECT CONFIG_JSON FROM WORKSPACE WHERE WORKSPACE_ID = ?");
+			db.manual();
+			assertThrows(java.sql.SQLException.class,
+					() -> ModelInferenceLogsUtils.addSkillToWorkspaceConfigJson("w", "new", null));
+			assertEquals("{\"keep\":1}", db.value("SELECT CONFIG_JSON FROM WORKSPACE"));
+			verify(db.connection).rollback();
+			verify(db.connection, never()).commit();
+		}
+	}
+
+	@Test
+	void skillDetachDeletesRowsInOneWriteThenScrubsEachMirror() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			schema(db);
+			db.registry.when(SystemEngineRegistry::isModelInferenceLogsDbLoaded).thenReturn(true);
+			db.execute(
+					"INSERT INTO WORKSPACE (WORKSPACE_ID, CONFIG_JSON) VALUES ('w1', '{\"skills\":[{\"skill_id\":\"skill\"},{\"skill_id\":\"other\"}]}'), ('w2', 'not json')",
+					"INSERT INTO WORKSPACE_RESOURCE VALUES ('r1','w1','skill','SKILL',NULL),('r2','w2','skill','SKILL',NULL),('r3','w1','other','SKILL',NULL)");
+			doThrow(new java.sql.SQLException("delete failed")).when(db.connection)
+					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?");
+			assertThrows(IllegalArgumentException.class,
+					() -> ModelInferenceLogsUtils.detachSkillFromAllWorkspaces("skill"));
+			assertEquals(3, db.count("WORKSPACE_RESOURCE"));
+			assertEquals(2,
+					new org.json.JSONObject(
+							(String) db.value("SELECT CONFIG_JSON FROM WORKSPACE WHERE WORKSPACE_ID='w1'"))
+							.getJSONArray("skills").length());
+			doCallRealMethod().when(db.connection)
+					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?");
+			ModelInferenceLogsUtils.detachSkillFromAllWorkspaces("skill");
+			assertEquals("other", db.value("SELECT RESOURCE_ID FROM WORKSPACE_RESOURCE"));
+			var skills = new org.json.JSONObject(
+					(String) db.value("SELECT CONFIG_JSON FROM WORKSPACE WHERE WORKSPACE_ID='w1'"))
+					.getJSONArray("skills");
+			assertEquals(1, skills.length());
+			assertEquals("other", skills.getJSONObject(0).getString("skill_id"));
+			assertEquals("not json", db.value("SELECT CONFIG_JSON FROM WORKSPACE WHERE WORKSPACE_ID='w2'"));
 		}
 	}
 

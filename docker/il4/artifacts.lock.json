@@ -7,8 +7,8 @@
   {"coordinate":"software.amazon.cryptools:AmazonCorrettoCryptoProvider-FIPS:2.5.0:jar:linux-x86_64","sha256":"55f20ce012de076137c35bb6d505ac87334e8315b4c762289bf1a225a4da3796"},
   {"coordinate":"org.bouncycastle:bc-fips:2.1.3:jar","sha256":"f55fc476ede820d5c03fe87e6ced5bb0095e1dc30b387445846a3ff0274f8c0e"},
   {"coordinate":"org.bouncycastle:bctls-fips:2.1.24:jar","sha256":"d2233207daecc2dfccdc317a53bd874b12c21a6dc5be78e390d8826eb726194c"},
-  {"coordinate":"org.bouncycastle:bcpkix-fips:2.1.12:jar","sha256":"48f418d70c9551ac9225f333e5e9dfe872b4501cc566728b6d2bc7364a2223d4"},
-  {"coordinate":"org.bouncycastle:bcutil-fips:2.1.7:jar","sha256":"a30e550f06dcfa0fd7da1e9a501f111421406fa237467522b3ca05187429832d"},
-  {"coordinate":"org.mariadb.jdbc:mariadb-java-client:3.5.10:jar","sha256":"919b8c1c771d9ee3465811462f242c9543ab401e140c64988ddbf1d8abcb18b2"},
+  {"coordinate":"org.bouncycastle:bcpkix-fips:2.1.13:jar","sha256":"cf161ba2f6b4505816f4661663b3e0771184a50ee5b178a0018c817b336f0e5c"},
+  {"coordinate":"org.bouncycastle:bcutil-fips:2.1.8:jar","sha256":"f44904f61552c823bcc3686a24052ee3135212d547754eaa2ff6532e210103cb"},
+  {"coordinate":"org.mariadb.jdbc:mariadb-java-client:3.5.11:jar","sha256":"42604178b9e57ec08ee0035079961516f086e455d0141f0b22c6eff29fb2fff4"},
   {"coordinate":"com.microsoft.sqlserver:mssql-jdbc:13.6.0.jre11:jar","sha256":"4c566e4022c4dcf1489aeb639fe49a0f6ffae3d796fdc2f56b5b8882d4c3bf5a"}
 ]

@@ -232,9 +232,16 @@ public interface IEngine extends Closeable {
 	Logger getEngineLogger(String loggerName);
 
 	/**
-	 * True if we are to log the input/output for an engine
-	 * 
-	 * @return
+	 * Whether the engine's calls keep their input and output. Only then does the
+	 * engine proxy write each call's request and response to the audit logs, a
+	 * model or vector database keep the prompt and response in the model inference
+	 * logs, and a model keep a room's history. Most engines follow
+	 * KEEP_INPUT_OUTPUT in their SMSS, which is meant for models and vector
+	 * databases, whose calls carry prompts and document text. A database always
+	 * returns true, so the audit log row of each of its calls holds the SQL and its
+	 * DATABASE_WRITE events always hold the SQL's hash.
+	 *
+	 * @return true when the engine's calls keep their input and output
 	 */
 	@IgnoreEngineLogging
 	boolean keepInputOutput();

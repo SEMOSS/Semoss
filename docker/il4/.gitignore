@@ -14,6 +14,7 @@
 !pin_dev_artifacts.py
 !build-dev-artifacts.Dockerfile
 !readiness.py
+!audit_runtime.py
 !compose.dev.yml
 !prepare_dev_tls.py
 !TLS.md
@@ -48,6 +49,5 @@
 !python-dependencies/*.json
 !python-dependencies/install.sh
 !python-dependencies/validate.py
-!python-dependencies/fsspec_compat.py
 !python-dependencies/pipecat_pillow_compat.py
 /dev-build-artifacts/

@@ -29,6 +29,7 @@ package prerna.auth.utils;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -169,18 +170,34 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	private static final String DELETE_INSIGHT_USER = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? "
 			+ "AND INSIGHTID=?";
 
+	// a statement on access requests reads or marks only the target's own, so a
+	// request of another project, engine or insight is left as it is
+	private static final String PROJECT_REQUEST_TARGET = " AND PROJECTID = ?";
+	private static final String ENGINE_REQUEST_TARGET = " AND ENGINEID = ?";
+	private static final String INSIGHT_REQUEST_TARGET = " AND PROJECTID = ? AND INSIGHTID = ?";
 	private static final String APPROVE_REQUEST_COLUMNS = " SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, "
 			+ "APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
-	private static final String APPROVE_PROJECT_REQUEST = "UPDATE PROJECTACCESSREQUEST" + APPROVE_REQUEST_COLUMNS;
+	private static final String APPROVE_PROJECT_REQUEST = "UPDATE PROJECTACCESSREQUEST" + APPROVE_REQUEST_COLUMNS
+			+ PROJECT_REQUEST_TARGET;
 	private static final String APPROVE_ENGINE_REQUEST = "UPDATE ENGINEACCESSREQUEST" + APPROVE_REQUEST_COLUMNS
-			+ " AND ENGINEID = ?";
-	private static final String APPROVE_INSIGHT_REQUEST = "UPDATE INSIGHTACCESSREQUEST" + APPROVE_REQUEST_COLUMNS;
+			+ ENGINE_REQUEST_TARGET;
+	private static final String APPROVE_INSIGHT_REQUEST = "UPDATE INSIGHTACCESSREQUEST" + APPROVE_REQUEST_COLUMNS
+			+ INSIGHT_REQUEST_TARGET;
 	private static final String DENY_REQUEST_COLUMNS = " SET APPROVER_USERID = ?, APPROVER_TYPE = ?, "
 			+ "APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
-	private static final String DENY_PROJECT_REQUEST = "UPDATE PROJECTACCESSREQUEST" + DENY_REQUEST_COLUMNS;
+	private static final String DENY_PROJECT_REQUEST = "UPDATE PROJECTACCESSREQUEST" + DENY_REQUEST_COLUMNS
+			+ PROJECT_REQUEST_TARGET;
 	private static final String DENY_ENGINE_REQUEST = "UPDATE ENGINEACCESSREQUEST" + DENY_REQUEST_COLUMNS
-			+ " AND ENGINEID = ?";
-	private static final String DENY_INSIGHT_REQUEST = "UPDATE INSIGHTACCESSREQUEST" + DENY_REQUEST_COLUMNS;
+			+ ENGINE_REQUEST_TARGET;
+	private static final String DENY_INSIGHT_REQUEST = "UPDATE INSIGHTACCESSREQUEST" + DENY_REQUEST_COLUMNS
+			+ INSIGHT_REQUEST_TARGET;
+	private static final String REQUESTER_COLUMNS = "SELECT ID, REQUEST_USERID, REQUEST_TYPE, PERMISSION FROM ";
+	private static final String PROJECT_REQUESTER = REQUESTER_COLUMNS + "PROJECTACCESSREQUEST WHERE ID = ?"
+			+ PROJECT_REQUEST_TARGET;
+	private static final String ENGINE_REQUESTER = REQUESTER_COLUMNS + "ENGINEACCESSREQUEST WHERE ID = ?"
+			+ ENGINE_REQUEST_TARGET;
+	private static final String INSIGHT_REQUESTER = REQUESTER_COLUMNS + "INSIGHTACCESSREQUEST WHERE ID = ?"
+			+ INSIGHT_REQUEST_TARGET;
 
 	private static final String INSERT_PROJECT_GROUP = "INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, "
 			+ "PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES (?,?,?,?,?,?,?,?)";
@@ -626,17 +643,15 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Marks access requests approved, each with the level it asked for.
+	 * Marks access requests approved, each with the level it asked for. Only the
+	 * target's own requests are marked; a request of another project, engine or
+	 * insight is left as it is.
 	 *
 	 * @param approver who the rows say gave the access: an id and a login type
 	 */
 	private static void markApproved(Connection conn, PermissionTargetResource target,
 			List<? extends Map<String, ?>> requests, Pair<String, String> approver, Timestamp now) throws Exception {
-		boolean isEngine = target.getResourceType() == PermissionTargetResource.TargetResourceType.ENGINE;
-		String sql = isEngine ? APPROVE_ENGINE_REQUEST
-				: target.getResourceType() == PermissionTargetResource.TargetResourceType.INSIGHT
-						? APPROVE_INSIGHT_REQUEST
-						: APPROVE_PROJECT_REQUEST;
+		String sql = requestStatement(target, APPROVE_PROJECT_REQUEST, APPROVE_ENGINE_REQUEST, APPROVE_INSIGHT_REQUEST);
 		QueryExecutionUtility.executeBatch(conn, sql, requests, (ps, request) -> {
 			int index = 1;
 			ps.setInt(index++,
@@ -646,10 +661,39 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			ps.setString(index++, "APPROVED");
 			ps.setTimestamp(index++, now);
 			ps.setString(index++, ValueUtils.toStringOrNull(request.get("requestid")));
-			if (isEngine) {
-				ps.setString(index++, target.getId());
-			}
+			bindRequestTarget(ps, index, target);
 		});
+	}
+
+	/**
+	 * Picks the statement on access requests for the target's type.
+	 *
+	 * @return the project's, the engine's or the insight's statement
+	 */
+	private static String requestStatement(PermissionTargetResource target, String project, String engine,
+			String insight) {
+		switch (target.getResourceType()) {
+		case ENGINE:
+			return engine;
+		case INSIGHT:
+			return insight;
+		default:
+			return project;
+		}
+	}
+
+	/**
+	 * Binds the target that keeps a statement on access requests to the target's
+	 * own: the engine id, the project id, or the project id and the insight id.
+	 *
+	 * @param index the first parameter the target binds
+	 */
+	private static void bindRequestTarget(PreparedStatement ps, int index, PermissionTargetResource target)
+			throws SQLException {
+		if (target.getResourceType() == PermissionTargetResource.TargetResourceType.INSIGHT) {
+			ps.setString(index++, target.getProjectId());
+		}
+		ps.setString(index, target.getId());
 	}
 
 	/*
@@ -658,13 +702,21 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Denies access requests to a project, an engine or an insight: each request is
-	 * marked denied, by the user, in one transaction. Who can use the target does
-	 * not change, so there is no batch to validate, but the user's permissions are
-	 * read as they are for a batch ({@link #readPermissionAllowedChanges}): outside
-	 * admin mode, only the target's owners can deny, by their current level, given
-	 * to them directly or through a team. A user who is not an editor is blocked as
+	 * marked denied, by the user, and its requester is read back, in one
+	 * transaction. Only the target's own requests are marked; a request of another
+	 * project, engine or insight is left as it is and is not returned. Who can use
+	 * the target does not change, so there is no batch to validate, but the user's
+	 * permissions are read as they are for a batch
+	 * ({@link #readPermissionAllowedChanges}): outside admin mode, only the
+	 * target's owners can deny, by their current level, given to them directly or
+	 * through a team. A user who is not an editor is blocked as
 	 * {@code NO_PERMISSION}, and an editor who is not an owner as
 	 * {@code OWNERS_ONLY}.
+	 *
+	 * <p>
+	 * Nothing is sent from here: the caller tells the requesters after this
+	 * returns, once the denials are committed, from the rows it returns.
+	 * </p>
 	 *
 	 * @param user       the user denying; in admin mode, null for a method that
 	 *                   names who denied them with
@@ -674,9 +726,13 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	 * @param options    {@link PermissionBatchOptions#userMode()} or
 	 *                   {@link PermissionBatchOptions#adminMode()}
 	 * @param errors     the exceptions the method throws for the problems found
+	 * @return the requests denied, in the order of their ids, each with
+	 *         {@code requestId}, the requester's {@code userId} and login
+	 *         {@code type}, and the {@code permission} it asked for, as a level id
+	 *         or null
 	 * @throws IllegalAccessException when the errors say so
 	 */
-	static void denyRequests(User user, PermissionTargetResource target, List<String> requestIds,
+	static List<Map<String, Object>> denyRequests(User user, PermissionTargetResource target, List<String> requestIds,
 			PermissionBatchOptions options, PermissionErrorRules errors) throws IllegalAccessException {
 		String missingField = findMissingTargetField(target);
 		if (missingField != null) {
@@ -697,25 +753,31 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 
 		Pair<String, String> denier = options.getGrantor() != null ? options.getGrantor()
 				: User.getPrimaryUserIdAndTypePair(user);
-		boolean isEngine = target.getResourceType() == PermissionTargetResource.TargetResourceType.ENGINE;
-		String sql = isEngine ? DENY_ENGINE_REQUEST
-				: target.getResourceType() == PermissionTargetResource.TargetResourceType.INSIGHT ? DENY_INSIGHT_REQUEST
-						: DENY_PROJECT_REQUEST;
+		String deny = requestStatement(target, DENY_PROJECT_REQUEST, DENY_ENGINE_REQUEST, DENY_INSIGHT_REQUEST);
+		String requester = requestStatement(target, PROJECT_REQUESTER, ENGINE_REQUESTER, INSIGHT_REQUESTER);
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+		List<Map<String, Object>> denied;
 		try {
-			QueryExecutionUtility.write(SystemEngineRegistry.getSecurityDb(), conn -> {
-				QueryExecutionUtility.executeBatch(conn, sql, requestIds, (ps, requestId) -> {
+			// the denials and the requesters the caller tells afterwards are one
+			// transaction, so only requests that were denied are returned
+			denied = QueryExecutionUtility.write(SystemEngineRegistry.getSecurityDb(), conn -> {
+				QueryExecutionUtility.executeBatch(conn, deny, requestIds, (ps, requestId) -> {
 					int index = 1;
 					ps.setString(index++, denier.getValue0());
 					ps.setString(index++, denier.getValue1());
 					ps.setString(index++, "DENIED");
 					ps.setTimestamp(index++, now);
 					ps.setString(index++, requestId);
-					if (isEngine) {
-						ps.setString(index++, target.getId());
-					}
+					bindRequestTarget(ps, index, target);
 				});
-				return null;
+				List<Map<String, Object>> requests = new ArrayList<>();
+				for (String requestId : requestIds) {
+					QueryExecutionUtility.queryList(conn, requester, ps -> {
+						ps.setString(1, requestId);
+						bindRequestTarget(ps, 2, target);
+					}, PermissionBatchUtils::readRequester, requests);
+				}
+				return requests;
 			});
 		} catch (Exception e) {
 			classLogger.error("Could not deny the access requests to {}", target.describe(), e);
@@ -723,20 +785,44 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 					"The access requests could not be denied", target, null);
 			throw exceptionFor(errors, List.of(failed), new IllegalArgumentException(failed.getMessage(), e));
 		}
-		PermissionBatchAudit.recordDenials(user, target, requestIds, options);
-		classLogger.info("User {} denied {} access requests to {}", User.getSingleLogginName(user), requestIds.size(),
+		List<String> deniedIds = new ArrayList<>();
+		for (Map<String, Object> request : denied) {
+			deniedIds.add((String) request.get("requestId"));
+		}
+		PermissionBatchAudit.recordDenials(user, target, deniedIds, options);
+		classLogger.info("User {} denied {} access requests to {}", User.getSingleLogginName(user), deniedIds.size(),
 				target.describe());
+		return denied;
+	}
+
+	/**
+	 * Reads the requester of the access request at the result's current row.
+	 *
+	 * @return the request's {@code requestId}, the requester's {@code userId} and
+	 *         login {@code type}, and the {@code permission} it asked for, as a
+	 *         level id or null
+	 */
+	private static Map<String, Object> readRequester(ResultSet rs) throws SQLException {
+		Map<String, Object> request = new HashMap<>();
+		request.put("requestId", rs.getString(1));
+		request.put("userId", rs.getString(2));
+		request.put("type", rs.getString(3));
+		int permission = rs.getInt(4);
+		request.put("permission", rs.wasNull() ? null : permission);
+		return request;
 	}
 
 	/**
 	 * {@link #denyRequests} for the methods that do not declare
 	 * {@link IllegalAccessException}: it is thrown as an
 	 * {@link IllegalArgumentException} with the same message.
+	 *
+	 * @return the requests denied, as {@link #denyRequests} returns them
 	 */
-	static void denyRequestsNoCheckedException(User user, PermissionTargetResource target, List<String> requestIds,
-			PermissionBatchOptions options, PermissionErrorRules errors) {
+	static List<Map<String, Object>> denyRequestsNoCheckedException(User user, PermissionTargetResource target,
+			List<String> requestIds, PermissionBatchOptions options, PermissionErrorRules errors) {
 		try {
-			denyRequests(user, target, requestIds, options, errors);
+			return denyRequests(user, target, requestIds, options, errors);
 		} catch (IllegalAccessException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
@@ -1029,13 +1115,14 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
+		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance()
 				.getRawWrapper(SystemEngineRegistry.getSecurityDb(), qs)) {
-			return wrapper.hasNext();
+			exists = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Could not check whether insight {} exists", insightId, e);
-			return false;
 		}
+		return exists;
 	}
 
 	/**
