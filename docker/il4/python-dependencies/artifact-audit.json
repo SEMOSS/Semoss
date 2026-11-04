@@ -527,13 +527,13 @@
     },
     {
       "name": "datasets",
-      "version": "4.4.0",
+      "version": "5.0.1",
       "source_build": false,
       "compatible_wheels": [
         {
-          "filename": "datasets-4.4.0-py3-none-any.whl",
-          "sha256": "b7e6d1d48c2e1d3a95d6b378e8fc3d7ab29f24f14ddf505a8d417dd09c692f19",
-          "url": "https://files.pythonhosted.org/packages/1e/31/d552336985f747b19f0a852d98ca7a2ef4727ba956b38041cfbda08dde0a/datasets-4.4.0-py3-none-any.whl"
+          "filename": "datasets-5.0.1-py3-none-any.whl",
+          "sha256": "9fbf73688f8c18f7529b4fe592abd04015f81d1e58001e4bac73ffb2b39d7cc4",
+          "url": "https://files.pythonhosted.org/packages/44/0b/98fc6eb83333508ca5f44c52b3e287ea8137a0ad582714e2cbc67a02154b/datasets-5.0.1-py3-none-any.whl"
         }
       ]
     },
@@ -741,13 +741,13 @@
     },
     {
       "name": "fsspec",
-      "version": "2023.10.0",
+      "version": "2026.6.0",
       "source_build": false,
       "compatible_wheels": [
         {
-          "filename": "fsspec-2023.10.0-py3-none-any.whl",
-          "sha256": "346a8f024efeb749d2a5fca7ba8854474b1ff9af7c3faaf636a4548781136529",
-          "url": "https://files.pythonhosted.org/packages/e8/f6/3eccfb530aac90ad1301c582da228e4763f19e719ac8200752a4841b0b2d/fsspec-2023.10.0-py3-none-any.whl"
+          "filename": "fsspec-2026.6.0-py3-none-any.whl",
+          "sha256": "02e0b71817df9b2169dc30a16832045764def1191b43dcff5bb85bdee212d2a1",
+          "url": "https://files.pythonhosted.org/packages/e5/22/4222d7ddf3da30f363edaa98e329c2bce6c65497c9cb2810931c8b2c0fbc/fsspec-2026.6.0-py3-none-any.whl"
         }
       ]
     },

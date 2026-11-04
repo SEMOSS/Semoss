@@ -927,9 +927,9 @@ dask==2026.8.0 \
     --hash=sha256:8a94c37b5de6d869343340dc26c3c3acca7ec48a3abdabe00ea3abb1125884d5 \
     --hash=sha256:ccc0c83a189b0398602435189771d28dad7b5773b6089bb8dce14ae732dd782c
     # via swifter
-datasets==4.4.0 \
-    --hash=sha256:0430d39b9f13b53c37afb80c23c7e5d8c6ceccc014c14a14d15fa2b4e8688d2a \
-    --hash=sha256:b7e6d1d48c2e1d3a95d6b378e8fc3d7ab29f24f14ddf505a8d417dd09c692f19
+datasets==5.0.1 \
+    --hash=sha256:9fbf73688f8c18f7529b4fe592abd04015f81d1e58001e4bac73ffb2b39d7cc4 \
+    --hash=sha256:ce22bb851efd7494f08aad33b940803784434f6e77763d00679a0dc45fcf686a
     # via semoss (pyproject.toml)
 dateparser==1.4.3 \
     --hash=sha256:bab8c43a746266e68142f4926e69438ce551441aa88e54e78bb6410bf3ee7000 \
@@ -1203,9 +1203,9 @@ frozenlist==1.8.0 \
     # via
     #   aiohttp
     #   aiosignal
-fsspec==2023.10.0 \
-    --hash=sha256:330c66757591df346ad3091a53bd907e15348c2ba17d63fd54f5c39c4457d2a5 \
-    --hash=sha256:346a8f024efeb749d2a5fca7ba8854474b1ff9af7c3faaf636a4548781136529
+fsspec==2026.6.0 \
+    --hash=sha256:02e0b71817df9b2169dc30a16832045764def1191b43dcff5bb85bdee212d2a1 \
+    --hash=sha256:f5bac145310fe30e16e1471bd6840b2d990d609e872251d7e674241822abf01a
     # via
     #   semoss (pyproject.toml)
     #   dask
@@ -4104,7 +4104,6 @@ requests==2.34.2 \
     # via
     #   azure-core
     #   datasets
-    #   fsspec
     #   google-api-core
     #   google-auth
     #   google-cloud-storage
