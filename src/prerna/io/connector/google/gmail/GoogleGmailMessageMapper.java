@@ -160,7 +160,8 @@ public final class GoogleGmailMessageMapper {
 		String name = path != null && parentPath != null && path.length() > parentPath.length()
 				? path.substring(parentPath.length() + 1)
 				: path;
-		return new MailFolder(id, name, system ? MailFolder.SYSTEM : MailFolder.LABEL, parentId, path, depth,
+		return new MailFolder(id, name, system ? MailFolder.SYSTEM : MailFolder.LABEL,
+				system && GoogleGmailFolders.INBOX.equals(id) ? MailFolder.INBOX : null, parentId, path, depth,
 				total instanceof Number ? ((Number) total).longValue() : null,
 				unread instanceof Number ? ((Number) unread).longValue() : null);
 	}
@@ -216,6 +217,8 @@ public final class GoogleGmailMessageMapper {
 	}
 
 	/**
+	 * The content id a part carries, which an html body names it by.
+	 *
 	 * @param part a part of a message
 	 * @return the part's {@code Content-ID} header, angle brackets and all, or null
 	 *         when it has none

@@ -233,6 +233,9 @@ public final class MailInlineImages {
 	}
 
 	/**
+	 * The picture type a media type names, which is what a data address says the
+	 * bytes are.
+	 *
 	 * @param contentType a media type, possibly with parameters such as a name
 	 * @return the media type without its parameters, in lower case, or null when it
 	 *         is not a picture

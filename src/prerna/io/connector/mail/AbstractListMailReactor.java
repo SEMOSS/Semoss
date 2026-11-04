@@ -169,8 +169,11 @@ public abstract class AbstractListMailReactor extends AbstractMailReactor {
 		case SEARCH:
 			return "Optional search, as a person types it in Outlook or Gmail. Words match the sender, subject or "
 					+ "body; from:, to:, cc:, subject: and body: narrow the word or \"quoted phrase\" after them to "
-					+ "that part, as in from:ada subject:\"budget report\" invoice. Every word has to match. Gmail "
-					+ "has no body: and searches the whole email for it.";
+					+ "that part, as in from:ada subject:\"budget report\" invoice. Every word has to match, and a "
+					+ "leading minus, as in -draft or -from:ada, asks for mail without it. The mailbox's own "
+					+ "operators pass through, such as received>=2026-10-01 or hasattachment:true in Outlook and "
+					+ "after:2026/10/01 or label:\"Client X\" in Gmail; any other name before a colon is searched "
+					+ "for as a word. Gmail has no body: and searches the whole email for it.";
 		case SUBJECT:
 			return "Optional words the subject has to contain, each of them; a \"quoted phrase\" has to appear as "
 					+ "typed.";

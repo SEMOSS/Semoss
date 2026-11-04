@@ -531,8 +531,9 @@ public class MicrosoftTeamsMessageHelper {
 	 * This is the Microsoft Search index rather than a message listing: it matches
 	 * the text of a message, the name of whoever sent it and the files attached to
 	 * it, and it reads Keyword Query Language such as {@code from:ada} or
-	 * {@code sent>2026-10-01}. Graph cannot sort a message search, so the page is
-	 * put newest first here once it is read.
+	 * {@code sent>2026-10-01}. Graph answers newest first and takes no other order;
+	 * the page is put newest first again here once it is read, so its order holds
+	 * whatever Graph sends.
 	 * </p>
 	 *
 	 * <p>

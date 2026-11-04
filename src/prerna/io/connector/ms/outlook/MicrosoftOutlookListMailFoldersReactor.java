@@ -51,10 +51,15 @@ public class MicrosoftOutlookListMailFoldersReactor extends AbstractListMailFold
 
 	@Override
 	protected ConnectorPage<MailFolder> listFolders(User user, int offset, int limit) throws Exception {
+		String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+		MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
+		// the inbox is named in the user's language, so it is told apart by its id
+		String inboxId = helper.wellKnownFolderId(accessToken, null, MailFolder.INBOX);
 		// graph lists one level at a time, so the whole tree is read and the page cut
 		// from it
-		return ConnectorPage
-				.of(new MicrosoftOutlookMailHelper().listFolderTree(MicrosoftLoginUtils.getValidAccessToken(user), null)
-						.stream().map(MicrosoftOutlookMessageMapper::toMailFolder).toList(), offset, limit);
+		return ConnectorPage.of(
+				helper.listFolderTree(accessToken, null).stream()
+						.map(node -> MicrosoftOutlookMessageMapper.toMailFolder(node, inboxId)).toList(),
+				offset, limit);
 	}
 }

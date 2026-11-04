@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.io.connector.mail;
 
+import java.util.Set;
+
 import prerna.auth.User;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -66,8 +68,10 @@ public abstract class AbstractGetMailReactor extends AbstractMailReactor {
 			boolean includeInlineImages, boolean includeReplyRecipients) {
 
 		/**
-		 * @return whether the display body comes back carrying its pictures, which
-		 *         takes asking for both
+		 * Whether the display body comes back carrying its pictures, which takes asking
+		 * for both.
+		 *
+		 * @return true when both were asked for
 		 */
 		public boolean readsInlineImages() {
 			return this.includeDisplayBody && this.includeInlineImages;
@@ -107,6 +111,12 @@ public abstract class AbstractGetMailReactor extends AbstractMailReactor {
 	}
 
 	@Override
+	protected final Set<String> getViewerKeys() {
+		// pictures are megabytes of base64, for showing the email to a person
+		return Set.of(INCLUDE_INLINE_IMAGES);
+	}
+
+	@Override
 	protected final String getView() {
 		return "mail/message";
 	}
@@ -130,8 +140,8 @@ public abstract class AbstractGetMailReactor extends AbstractMailReactor {
 					+ "pictures its html shows by cid, each with contentId, contentType and base64 data, up to "
 					+ (MailInlineImages.MAX_IMAGE_BYTES / (1024 * 1024)) + " MB each and "
 					+ (MailInlineImages.MAX_TOTAL_BYTES / (1024 * 1024))
-					+ " MB in all, and inlineImagesOmitted, how many were left out. Only for showing the email to a "
-					+ "person; defaults to false.";
+					+ " MB in all, and inlineImagesOmitted, how many were left out. Only a viewer sends it, to show "
+					+ "the email to a person, so it is not offered to agents; defaults to false.";
 		case INCLUDE_REPLY_RECIPIENTS:
 			return "Optional boolean to also return replyRecipients, who a reply to everybody would go to, without "
 					+ "the user's own address. Defaults to false.";

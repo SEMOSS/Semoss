@@ -109,6 +109,23 @@ class GoogleGmailMessageMapperUnitTests {
 	}
 
 	@Test
+	void onlyTheInboxGoesByTheWellKnownName() {
+		assertEquals(MailFolder.INBOX, GoogleGmailMessageMapper
+				.toMailFolder(Map.of("id", "INBOX", "name", "INBOX", "type", "system"), null, null, 0).wellKnownName());
+		assertNull(GoogleGmailMessageMapper
+				.toMailFolder(Map.of("id", "DRAFT", "name", "DRAFT", "type", "system"), null, null, 0).wellKnownName());
+		assertNull(GoogleGmailMessageMapper
+				.toMailFolder(Map.of("id", "Label_1", "name", "INBOX", "type", "user"), null, null, 0).wellKnownName());
+		assertEquals("inbox",
+				GoogleGmailMessageMapper
+						.toMailFolder(Map.of("id", "INBOX", "name", "INBOX", "type", "system"), null, null, 0).toMap()
+						.get("wellKnownName"));
+		assertFalse(GoogleGmailMessageMapper
+				.toMailFolder(Map.of("id", "Label_1", "name", "Clients", "type", "user"), null, null, 0).toMap()
+				.containsKey("wellKnownName"));
+	}
+
+	@Test
 	void nestedLabelIsNamedAfterTheLabelItSitsUnder() {
 		MailFolder nested = GoogleGmailMessageMapper.toMailFolder(
 				Map.of("id", "Label_2", "name", "Projects/Alpha/Specs", "type", "user"), "Label_1", "Projects", 1);

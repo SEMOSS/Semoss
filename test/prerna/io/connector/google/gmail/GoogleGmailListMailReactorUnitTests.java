@@ -54,7 +54,33 @@ class GoogleGmailListMailReactorUnitTests {
 
 	@Test
 	void gmailSyntaxTypedAsTextIsSearchedAsWordsAndItsOperatorsPassThrough() {
-		assertEquals(List.of("budget", "or", "q3", "report", "has:attachment", "to:bob"), GoogleGmailListMailReactor
+		assertEquals(List.of("budget", "or", "q3", "-report", "has:attachment", "to:bob"), GoogleGmailListMailReactor
 				.searchTerms(MailSearchParser.parse("(budget OR q3) -report has:attachment to:bob")));
+	}
+
+	@Test
+	void excludedTermsKeepTheirMinusAndALoneMinusIsDropped() {
+		assertEquals(List.of("-from:ada", "-\"weekly digest\"", "-label:promotions", "q3", "budget"),
+				GoogleGmailListMailReactor.searchTerms(
+						MailSearchParser.parse("-from:ada -\"weekly digest\" -label:promotions q3 - budget")));
+	}
+
+	@Test
+	void gmailOperatorsKeepTheirDatesAndQuotedValues() {
+		assertEquals(List.of("after:2026/10/01", "label:\"Client X\"", "older_than:2d"), GoogleGmailListMailReactor
+				.searchTerms(MailSearchParser.parse("after:2026/10/01 label:\"Client X\" older_than:2d")));
+	}
+
+	@Test
+	void aNameGmailDoesNotReadIsSearchedAsWords() {
+		assertEquals(List.of("Re", "budget", "ticket", "123", "received", "10/01/2026", "size", "100"),
+				GoogleGmailListMailReactor
+						.searchTerms(MailSearchParser.parse("Re:budget ticket:123 received:10/01/2026 size>100")));
+	}
+
+	@Test
+	void aMinusInsideTextForOneFieldIsNotAnExclusion() {
+		assertEquals(List.of("subject:draft", "subject:notes"), GoogleGmailListMailReactor
+				.searchTerms(MailSearchParser.parse(MailSearchParser.Field.SUBJECT, "-draft notes")));
 	}
 }

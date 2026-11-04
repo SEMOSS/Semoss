@@ -58,9 +58,19 @@ public class GoogleGmailListMailReactor extends AbstractListMailReactor {
 	private static final Pattern SEARCH_SYNTAX = Pattern.compile("[\"(){}:]");
 
 	/**
-	 * A word naming one of Gmail's own search operators, such as has:attachment.
+	 * The operators Gmail's search reads beyond the fields a search names itself,
+	 * which a search passes through when typed before a value, as in
+	 * {@code after:2026/10/01}.
 	 */
-	private static final Pattern SEARCH_OPERATOR = Pattern.compile("[A-Za-z_]+:[A-Za-z0-9@._+\\-]+");
+	private static final Set<String> SEARCH_OPERATORS = Set.of("after", "before", "older", "newer", "older_than",
+			"newer_than", "has", "is", "in", "label", "filename", "larger", "smaller", "size", "category", "list",
+			"deliveredto", "rfc822msgid", "bcc");
+
+	/**
+	 * What the value of one of those operators may hold unquoted: words, addresses,
+	 * and dates such as {@code 2026/10/01}.
+	 */
+	private static final Pattern SEARCH_VALUE = Pattern.compile("[A-Za-z0-9@._+\\-/:]+");
 
 	/** The words Gmail joins terms with, searched as words instead. */
 	private static final Set<String> SEARCH_JOINS = Set.of("OR", "AND", "AROUND");
@@ -126,15 +136,18 @@ public class GoogleGmailListMailReactor extends AbstractListMailReactor {
 
 	/**
 	 * Write a search's terms the way Gmail's search box reads them, every term
-	 * having to match.
+	 * having to match and an excluded one led by a minus.
 	 *
 	 * <p>
 	 * Each word of a term is a term of its own, so words typed for the subject each
 	 * have to be in it, and a phrase keeps its words together in quotes. Gmail has
 	 * no operator for the body, so a body term searches the whole email, as a bare
-	 * word does. What Gmail would read as its own, such as parentheses, a leading
-	 * minus, and a bare {@code OR}, is searched as plain text, and a word such as
-	 * {@code has:attachment} passes through as one of Gmail's own operators.
+	 * word does. A term typed after one of Gmail's own operators, such as
+	 * {@code after:2026/10/01} or {@code label:"Client X"}, passes through as that
+	 * operator; any other name, such as the {@code Re} of {@code Re:budget}, is
+	 * searched for as a word. What Gmail would read as its own, such as
+	 * parentheses, a leading minus, and a bare {@code OR}, is searched as plain
+	 * text.
 	 * </p>
 	 *
 	 * @param terms the search's terms
@@ -143,28 +156,76 @@ public class GoogleGmailListMailReactor extends AbstractListMailReactor {
 	static List<String> searchTerms(List<MailSearchParser.Term> terms) {
 		List<String> written = new ArrayList<>();
 		for (MailSearchParser.Term term : terms) {
-			MailSearchParser.Field field = term.field();
-			String prefix = field == MailSearchParser.Field.ANY || field == MailSearchParser.Field.BODY ? ""
-					: field.getPrefix() + ":";
-			if (term.phrase()) {
-				String phrase = SEARCH_SYNTAX.matcher(term.value()).replaceAll(" ").trim();
-				if (!phrase.isEmpty()) {
-					written.add(prefix + "\"" + phrase + "\"");
-				}
-				continue;
-			}
-			if (prefix.isEmpty() && SEARCH_OPERATOR.matcher(term.value()).matches()) {
-				written.add(term.value());
-				continue;
-			}
-			for (String word : SEARCH_SYNTAX.matcher(term.value()).replaceAll(" ").trim().split("\\s+")) {
-				String plain = word.replaceFirst("^-+", "");
-				if (!plain.isEmpty()) {
-					written.add(prefix + (SEARCH_JOINS.contains(plain) ? plain.toLowerCase(Locale.ROOT) : plain));
-				}
+			for (String part : searchParts(term)) {
+				written.add(term.excluded() ? "-" + part : part);
 			}
 		}
 		return written;
+	}
+
+	/**
+	 * Write one term as Gmail search terms: one for a phrase or for an operator
+	 * Gmail reads, and one for each word otherwise.
+	 *
+	 * @param term the term
+	 * @return the terms, empty when the term holds nothing to look for
+	 */
+	private static List<String> searchParts(MailSearchParser.Term term) {
+		MailSearchParser.Operator operator = term.operator();
+		if (operator != null) {
+			String name = operator.name().toLowerCase(Locale.ROOT);
+			// Gmail compares nothing, so only a colon makes a name one of its operators
+			if (SEARCH_OPERATORS.contains(name) && ":".equals(operator.relation())) {
+				if (term.phrase()) {
+					String phrase = searchText(term.value());
+					return phrase.isEmpty() ? List.of() : List.of(name + ":\"" + phrase + "\"");
+				}
+				if (SEARCH_VALUE.matcher(term.value()).matches()) {
+					return List.of(name + ":" + term.value());
+				}
+			}
+			return searchWords("", operator.name() + " " + term.value());
+		}
+		MailSearchParser.Field field = term.field();
+		String prefix = field == MailSearchParser.Field.ANY || field == MailSearchParser.Field.BODY ? ""
+				: field.getPrefix() + ":";
+		if (term.phrase()) {
+			String phrase = searchText(term.value());
+			return phrase.isEmpty() ? List.of() : List.of(prefix + "\"" + phrase + "\"");
+		}
+		return searchWords(prefix, term.value());
+	}
+
+	/**
+	 * Text a search typed, without what Gmail's search syntax would read as its
+	 * own.
+	 *
+	 * @param text the text
+	 * @return the text, trimmed
+	 */
+	private static String searchText(String text) {
+		return SEARCH_SYNTAX.matcher(text).replaceAll(" ").trim();
+	}
+
+	/**
+	 * Write text as one search term for each of its words.
+	 *
+	 * @param prefix the operator every word is narrowed by, such as
+	 *               {@code subject:}, or empty
+	 * @param text   the text
+	 * @return the terms
+	 */
+	private static List<String> searchWords(String prefix, String text) {
+		List<String> words = new ArrayList<>();
+		for (String word : searchText(text).split("\\s+")) {
+			// a leading minus would exclude the word, and only the term says what is
+			// excluded
+			String plain = word.replaceFirst("^-+", "");
+			if (!plain.isEmpty()) {
+				words.add(prefix + (SEARCH_JOINS.contains(plain) ? plain.toLowerCase(Locale.ROOT) : plain));
+			}
+		}
+		return words;
 	}
 
 	@SuppressWarnings("unchecked")

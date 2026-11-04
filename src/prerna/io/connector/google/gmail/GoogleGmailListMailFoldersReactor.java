@@ -100,7 +100,7 @@ public class GoogleGmailListMailFoldersReactor extends AbstractListMailFoldersRe
 	 * @param labels the labels, each sorted before the ones nested under it
 	 * @return the labels in the same order, each with where it sits
 	 */
-	private static List<PlacedLabel> place(List<Map<String, Object>> labels) {
+	static List<PlacedLabel> place(List<Map<String, Object>> labels) {
 		Map<String, PlacedLabel> byName = new HashMap<>();
 		List<PlacedLabel> placed = new ArrayList<>();
 		for (Map<String, Object> label : labels) {
@@ -129,6 +129,6 @@ public class GoogleGmailListMailFoldersReactor extends AbstractListMailFoldersRe
 	 * @param parentPath the name of the label it is nested under, or null
 	 * @param depth      how many labels it is nested under
 	 */
-	private record PlacedLabel(Map<String, Object> label, String parentId, String parentPath, int depth) {
+	record PlacedLabel(Map<String, Object> label, String parentId, String parentPath, int depth) {
 	}
 }

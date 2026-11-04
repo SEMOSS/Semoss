@@ -35,6 +35,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import prerna.query.parsers.MailSearchParser.Field;
+import prerna.query.parsers.MailSearchParser.Operator;
 import prerna.query.parsers.MailSearchParser.Term;
 
 class MailSearchParserUnitTests {
@@ -70,9 +71,42 @@ class MailSearchParserUnitTests {
 	}
 
 	@Test
-	void aNameThatIsNotAFieldStaysPartOfTheWord() {
-		assertEquals(List.of(new Term(Field.ANY, "has:attachment", false), new Term(Field.ANY, "Re:", false)),
-				MailSearchParser.parse("has:attachment Re:"));
+	void aNameThatIsNotAFieldIsKeptAsAnOperatorWithItsValueWhole() {
+		assertEquals(
+				List.of(new Term(Field.ANY, new Operator("has", ":"), "attachment", false, false),
+						new Term(Field.ANY, new Operator("received", ">="), "2026-10-01", false, false),
+						new Term(Field.ANY, new Operator("after", ":"), "2026/10/01", false, false),
+						new Term(Field.ANY, new Operator("label", ":"), "Client X", true, false),
+						new Term(Field.ANY, new Operator("Re", ":"), "budget", false, false)),
+				MailSearchParser
+						.parse("has:attachment received>=2026-10-01 after:2026/10/01 label:\"Client X\" Re: budget"));
+	}
+
+	@Test
+	void anOperatorTypedLastWithNothingAfterItIsAWord() {
+		assertEquals(List.of(new Term(Field.ANY, "budget", false), new Term(Field.ANY, "Re", false)),
+				MailSearchParser.parse("budget Re:"));
+	}
+
+	@Test
+	void aLeadingMinusExcludesAWordAPhraseAFieldOrAnOperator() {
+		assertEquals(List.of(new Term(Field.ANY, null, "draft", false, true),
+				new Term(Field.ANY, null, "weekly digest", true, true), new Term(Field.FROM, null, "ada", false, true),
+				new Term(Field.ANY, new Operator("label", ":"), "promotions", false, true),
+				new Term(Field.SUBJECT, null, "notes", false, true)),
+				MailSearchParser.parse("-draft -\"weekly digest\" -from:ada -label:promotions -subject: notes"));
+	}
+
+	@Test
+	void aMinusOnItsOwnIsAWordAndNoExclusion() {
+		assertEquals(List.of(new Term(Field.ANY, "Q3", false), new Term(Field.ANY, "-", false),
+				new Term(Field.ANY, "budget", false)), MailSearchParser.parse("Q3 - budget"));
+	}
+
+	@Test
+	void textForOneFieldReadsNeitherMinusNorOperator() {
+		assertEquals(List.of(new Term(Field.SUBJECT, "-draft", false), new Term(Field.SUBJECT, "label:x", false)),
+				MailSearchParser.parse(Field.SUBJECT, "-draft label:x"));
 	}
 
 	@Test

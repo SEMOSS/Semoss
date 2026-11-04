@@ -340,16 +340,19 @@ public class MicrosoftOutlookMessageMapper {
 	 * Describe one folder of the folder tree the way every mail reactor answers
 	 * with it.
 	 *
-	 * @param node the folder, where it sits in the tree
+	 * @param node    the folder, where it sits in the tree
+	 * @param inboxId the id of the mailbox's inbox, which goes by whatever name the
+	 *                user's language gives it, or null when it is not known
 	 * @return the folder
 	 */
-	public static MailFolder toMailFolder(MicrosoftOutlookMailHelper.FolderNode node) {
+	public static MailFolder toMailFolder(MicrosoftOutlookMailHelper.FolderNode node, String inboxId) {
 		Map<String, Object> folder = node.folder();
 		Object total = folder.get("totalItemCount");
 		Object unread = folder.get("unreadItemCount");
-		return new MailFolder(ValueUtils.toStringOrNull(folder.get("id")),
-				ValueUtils.toStringOrNull(folder.get("displayName")), MailFolder.FOLDER, node.parentId(), node.path(),
-				node.depth(), total instanceof Number ? ((Number) total).longValue() : null,
+		String id = ValueUtils.toStringOrNull(folder.get("id"));
+		return new MailFolder(id, ValueUtils.toStringOrNull(folder.get("displayName")), MailFolder.FOLDER,
+				id != null && id.equals(inboxId) ? MailFolder.INBOX : null, node.parentId(), node.path(), node.depth(),
+				total instanceof Number ? ((Number) total).longValue() : null,
 				unread instanceof Number ? ((Number) unread).longValue() : null);
 	}
 

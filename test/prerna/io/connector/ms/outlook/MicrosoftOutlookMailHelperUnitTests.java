@@ -62,6 +62,7 @@ package prerna.io.connector.ms.outlook;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -199,7 +200,34 @@ class MicrosoftOutlookMailHelperUnitTests {
 	}
 
 	@Test
-	void textSearchResultsComeBackNewestFirstRatherThanByRelevance() {
+	void excludedTermsAreLedByNotAndALoneMinusIsNoExclusion() {
+		assertEquals("NOT from:ada AND NOT \\\"weekly digest\\\" AND q3 AND budget", MicrosoftOutlookMailHelper
+				.keywordQuery(MailSearchParser.parse("-from:ada -\"weekly digest\" q3 - budget")));
+		assertEquals("NOT report", MicrosoftOutlookMailHelper.keywordQuery(MailSearchParser.parse("-report")));
+		assertEquals("subject:draft AND subject:notes", MicrosoftOutlookMailHelper
+				.keywordQuery(MailSearchParser.parse(MailSearchParser.Field.SUBJECT, "-draft notes")));
+	}
+
+	@Test
+	void graphPropertiesKeepTheirDatesComparisonsRangesAndQuotedValues() {
+		assertEquals("received:10/01/2026",
+				MicrosoftOutlookMailHelper.keywordQuery(MailSearchParser.parse("received:10/01/2026")));
+		assertEquals("received>=2026-10-01 AND size>100",
+				MicrosoftOutlookMailHelper.keywordQuery(MailSearchParser.parse("received>=2026-10-01 size>100")));
+		assertEquals("participants:\\\"Ada L\\\"",
+				MicrosoftOutlookMailHelper.keywordQuery(MailSearchParser.parse("participants:\"Ada L\"")));
+		assertEquals("size:1..500000",
+				MicrosoftOutlookMailHelper.keywordQuery(MailSearchParser.parse("size:1..500000")));
+	}
+
+	@Test
+	void aNameGraphDoesNotReadIsSearchedAsWords() {
+		assertEquals("Re AND budget AND ticket AND 123 AND label AND Client AND X", MicrosoftOutlookMailHelper
+				.keywordQuery(MailSearchParser.parse("Re:budget ticket:123 label:\"Client X\"")));
+	}
+
+	@Test
+	void textSearchResultsComeBackInTheOrderTheyArrivedNewestFirst() {
 		query.subject = "budget";
 		response = new Gson().toJson(Map.of("value",
 				List.of(Map.of("id", "older", "receivedDateTime", "2026-10-01T09:00:00Z"),
@@ -235,6 +263,96 @@ class MicrosoftOutlookMailHelperUnitTests {
 		String id = "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQ=";
 		assertEquals(id, helper.resolveDestination("test-token", null, id));
 		assertNull(request);
+	}
+
+	@Test
+	void aLongPathIsLookedUpRatherThanTakenForAnId() {
+		String path = "Inbox/Clients/Contoso/Projects/2026/Deliverables/Final-Reports";
+		assertEquals(62, path.length());
+		stubFolderTree();
+		helper.resolveDestination("test-token", null, path);
+		assertTrue(request.contains("/mailFolders"));
+	}
+
+	@Test
+	void theShallowestFolderOfANameWinsWhereverTheWalkMeetsItFirst() {
+		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
+				.thenAnswer(call -> {
+					String url = URLDecoder.decode(call.getArgument(0), StandardCharsets.UTF_8);
+					if (url.contains("/mailFolders/a-id/childFolders")) {
+						return folders(Map.of("id", "c-id", "displayName", "C", "childFolderCount", 1));
+					}
+					if (url.contains("/mailFolders/c-id/childFolders")) {
+						return folders(Map.of("id", "deep-x-id", "displayName", "Reports", "childFolderCount", 0));
+					}
+					if (url.contains("/mailFolders/b-id/childFolders")) {
+						return folders(Map.of("id", "near-x-id", "displayName", "Reports", "childFolderCount", 0));
+					}
+					return folders(Map.of("id", "a-id", "displayName", "A", "childFolderCount", 1),
+							Map.of("id", "b-id", "displayName", "B", "childFolderCount", 1));
+				});
+		// the walk meets A/C/Reports first, two levels down, and B/Reports after it
+		assertEquals("near-x-id", helper.resolveFolderId("test-token", null, "reports"));
+		assertEquals("deep-x-id", helper.resolveFolderId("test-token", null, "A/C/Reports"));
+	}
+
+	@Test
+	void aLevelOfFoldersIsReadAcrossItsPages() {
+		List<String> urls = new ArrayList<>();
+		String next = "https://graph.microsoft.com/v1.0/me/mailFolders?$skiptoken=page2";
+		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
+				.thenAnswer(call -> {
+					String url = call.getArgument(0);
+					urls.add(url);
+					if (url.equals(next)) {
+						return folders(Map.of("id", "c-id", "displayName", "C", "childFolderCount", 0));
+					}
+					return new Gson().toJson(Map.of("value",
+							List.of(Map.of("id", "a-id", "displayName", "A", "childFolderCount", 0),
+									Map.of("id", "b-id", "displayName", "B", "childFolderCount", 0)),
+							"@odata.nextLink", next));
+				});
+		List<MicrosoftOutlookMailHelper.FolderNode> tree = helper.listFolderTree("test-token", null);
+		assertEquals(List.of("A", "B", "C"), tree.stream().map(MicrosoftOutlookMailHelper.FolderNode::path).toList());
+		assertEquals(2, urls.size());
+		assertEquals(next, urls.get(1));
+	}
+
+	@Test
+	void theWalkStopsTenLevelsDown() {
+		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
+				.thenAnswer(call -> {
+					String url = URLDecoder.decode(call.getArgument(0), StandardCharsets.UTF_8);
+					int level = url.contains("/childFolders")
+							? Integer.parseInt(url.replaceAll(".*/mailFolders/level-(\\d+)/childFolders.*", "$1")) + 1
+							: 0;
+					return folders(Map.of("id", "level-" + level, "displayName", "L" + level, "childFolderCount", 1));
+				});
+		List<MicrosoftOutlookMailHelper.FolderNode> tree = helper.listFolderTree("test-token", null);
+		assertEquals(10, tree.size());
+		assertEquals(9, tree.get(tree.size() - 1).depth());
+	}
+
+	@Test
+	void aLevelGraphWillNotReadIsLeftOutAndTheWalkGoesOn() {
+		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
+				.thenAnswer(call -> {
+					String url = URLDecoder.decode(call.getArgument(0), StandardCharsets.UTF_8);
+					if (url.contains("/mailFolders/shared-id/childFolders")) {
+						return "{\"error\":{\"code\":\"ErrorAccessDenied\",\"message\":\"Access is denied.\"}}";
+					}
+					return folders(Map.of("id", "shared-id", "displayName", "Shared", "childFolderCount", 2),
+							Map.of("id", "sent-id", "displayName", "Sent Items", "childFolderCount", 0));
+				});
+		List<MicrosoftOutlookMailHelper.FolderNode> tree = helper.listFolderTree("test-token", null);
+		assertEquals(List.of("Shared", "Sent Items"),
+				tree.stream().map(MicrosoftOutlookMailHelper.FolderNode::path).toList());
+	}
+
+	@Test
+	void theTopOfTheMailboxThatGraphWillNotReadFailsTheWalk() {
+		response = "{\"error\":{\"code\":\"ErrorAccessDenied\",\"message\":\"Access is denied.\"}}";
+		assertThrows(IllegalArgumentException.class, () -> helper.listFolderTree("test-token", null));
 	}
 
 	@Test

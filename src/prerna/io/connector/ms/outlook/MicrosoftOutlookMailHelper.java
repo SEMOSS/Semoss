@@ -84,8 +84,10 @@ import prerna.util.Utility;
  * Two Graph rules are worth knowing, because they are the ones that shape
  * {@link MessageQuery}: {@code $search} and {@code $filter} cannot be combined
  * on messages, and {@code $orderby} is ignored while searching. So a query that
- * asks for text finds by search, then narrows and orders newest first in
- * memory, and one that does not filters and orders on the server.
+ * asks for text finds by search, which Graph orders by when each message was
+ * sent, then narrows the result in memory and orders it by when each message
+ * arrived, as every listing is; one that does not filters and orders on the
+ * server.
  */
 public class MicrosoftOutlookMailHelper {
 
@@ -140,8 +142,9 @@ public class MicrosoftOutlookMailHelper {
 			"syncissues");
 
 	/**
-	 * Messages by when they arrived, newest first, for the reads Graph cannot
-	 * order.
+	 * Messages by when they arrived, newest first, for the reads Graph does not
+	 * order that way: a search, which it orders by when each message was sent, and
+	 * a conversation, which it will not order alongside its filter.
 	 */
 	private static final Comparator<Map<String, Object>> NEWEST_FIRST = Comparator
 			.comparing((Map<String, Object> message) -> String.valueOf(message.getOrDefault("receivedDateTime", "")))
@@ -154,10 +157,19 @@ public class MicrosoftOutlookMailHelper {
 	private static final Pattern KEYWORD_SYNTAX = Pattern.compile("[\"\\\\():<>=]");
 
 	/**
-	 * A word naming one of Graph's own search properties, such as
-	 * hasattachment:true.
+	 * The message properties Graph's keyword query reads beyond the fields a search
+	 * names itself, which a search passes through when typed before a value, as in
+	 * {@code received>=2026-10-01}.
 	 */
-	private static final Pattern KEYWORD_OPERATOR = Pattern.compile("[A-Za-z]+:[A-Za-z0-9@._+\\-]+");
+	private static final Set<String> KEYWORD_PROPERTIES = Set.of("attachment", "bcc", "hasattachment", "hasattachments",
+			"importance", "kind", "participants", "received", "recipients", "sent", "size");
+
+	/**
+	 * What the value of one of those properties may hold unquoted: words,
+	 * addresses, dates such as {@code 10/01/2026}, and ranges such as
+	 * {@code 1..500000}.
+	 */
+	private static final Pattern KEYWORD_VALUE = Pattern.compile("[A-Za-z0-9@._+\\-/:]+");
 
 	/**
 	 * The words the keyword query syntax joins clauses with, searched as words
@@ -181,10 +193,11 @@ public class MicrosoftOutlookMailHelper {
 	private static final int MAX_TREE_DEPTH = 10;
 
 	/**
-	 * A Graph folder id is a long run of base64 characters, which no name a person
-	 * gives a folder looks like.
+	 * A Graph folder id is a long run of the characters Graph writes ids with,
+	 * which no name a person gives a folder looks like. A slash is not among them,
+	 * so a long path such as {@code Inbox/Clients/Contoso} is never taken for one.
 	 */
-	private static final Pattern FOLDER_ID = Pattern.compile("[A-Za-z0-9+/=_-]{60,}");
+	private static final Pattern FOLDER_ID = Pattern.compile("[A-Za-z0-9+=_-]{60,}");
 
 	private final String graphBaseUrl;
 
@@ -809,7 +822,8 @@ public class MicrosoftOutlookMailHelper {
 
 		if (searching) {
 			// what the server could not be asked for alongside the text search, and the
-			// order, since a search answers by relevance and the page is cut from this
+			// order every listing has, by arrival, since a search comes back by when
+			// each message was sent and the page is cut from this
 			List<Map<String, Object>> narrowed = new ArrayList<>();
 			for (Map<String, Object> message : messages) {
 				if (query.unreadOnly && Boolean.TRUE.equals(message.get("isRead"))) {
@@ -831,16 +845,19 @@ public class MicrosoftOutlookMailHelper {
 
 	/**
 	 * Write a search's terms as the keyword query Graph's {@code $search} reads on
-	 * messages, every clause joined by {@code AND}.
+	 * messages, every clause joined by {@code AND} and an excluded one led by
+	 * {@code NOT}.
 	 *
 	 * <p>
 	 * Each word of a term is a clause of its own, so {@code subject:budget report}
 	 * typed for the subject means a subject holding both words, where the query
 	 * syntax would narrow only the first. A phrase keeps its words together in
-	 * quotes, escaped because the whole query sits in quotes too. What the syntax
-	 * would read as its own, such as parentheses, quotes, and a bare {@code AND},
-	 * is searched as plain text, and a word such as {@code hasattachment:true}
-	 * passes through as one of Graph's own properties.
+	 * quotes, escaped because the whole query sits in quotes too. A term typed
+	 * after one of the properties Graph reads, such as {@code received>=2026-10-01}
+	 * or {@code participants:"Ada L"}, passes through as that property; any other
+	 * name, such as the {@code Re} of {@code Re:budget}, is searched for as a word.
+	 * What the syntax would read as its own, such as parentheses, quotes, a leading
+	 * minus, and a bare {@code AND}, is searched as plain text.
 	 * </p>
 	 *
 	 * @param terms the search's terms
@@ -849,25 +866,74 @@ public class MicrosoftOutlookMailHelper {
 	static String keywordQuery(List<MailSearchParser.Term> terms) {
 		List<String> clauses = new ArrayList<>();
 		for (MailSearchParser.Term term : terms) {
-			String prefix = term.field().getPrefix() == null ? "" : term.field().getPrefix() + ":";
-			if (term.phrase()) {
-				String phrase = KEYWORD_SYNTAX.matcher(term.value()).replaceAll(" ").trim();
-				if (!phrase.isEmpty()) {
-					clauses.add(prefix + "\\\"" + phrase + "\\\"");
-				}
-				continue;
-			}
-			if (prefix.isEmpty() && KEYWORD_OPERATOR.matcher(term.value()).matches()) {
-				clauses.add(term.value());
-				continue;
-			}
-			for (String word : KEYWORD_SYNTAX.matcher(term.value()).replaceAll(" ").trim().split("\\s+")) {
-				if (!word.isEmpty()) {
-					clauses.add(prefix + (KEYWORD_JOINS.contains(word) ? word.toLowerCase(Locale.ROOT) : word));
-				}
+			for (String clause : keywordClauses(term)) {
+				clauses.add(term.excluded() ? "NOT " + clause : clause);
 			}
 		}
 		return String.join(" AND ", clauses);
+	}
+
+	/**
+	 * Write one term as keyword query clauses: one for a phrase or for a property
+	 * Graph reads, and one for each word otherwise.
+	 *
+	 * @param term the term
+	 * @return the clauses, empty when the term holds nothing to look for
+	 */
+	private static List<String> keywordClauses(MailSearchParser.Term term) {
+		MailSearchParser.Operator operator = term.operator();
+		if (operator != null) {
+			String property = operator.name().toLowerCase(Locale.ROOT);
+			if (KEYWORD_PROPERTIES.contains(property)) {
+				if (term.phrase()) {
+					String phrase = keywordText(term.value());
+					return phrase.isEmpty() ? List.of()
+							: List.of(property + operator.relation() + "\\\"" + phrase + "\\\"");
+				}
+				if (KEYWORD_VALUE.matcher(term.value()).matches()) {
+					return List.of(property + operator.relation() + term.value());
+				}
+			}
+			return keywordWords("", operator.name() + " " + term.value());
+		}
+		String prefix = term.field().getPrefix() == null ? "" : term.field().getPrefix() + ":";
+		if (term.phrase()) {
+			String phrase = keywordText(term.value());
+			return phrase.isEmpty() ? List.of() : List.of(prefix + "\\\"" + phrase + "\\\"");
+		}
+		return keywordWords(prefix, term.value());
+	}
+
+	/**
+	 * Text a search typed, without what the keyword query syntax would read as its
+	 * own.
+	 *
+	 * @param text the text
+	 * @return the text, trimmed
+	 */
+	private static String keywordText(String text) {
+		return KEYWORD_SYNTAX.matcher(text).replaceAll(" ").trim();
+	}
+
+	/**
+	 * Write text as one clause for each of its words.
+	 *
+	 * @param prefix the field every word is narrowed to, such as {@code subject:},
+	 *               or empty
+	 * @param text   the text
+	 * @return the clauses
+	 */
+	private static List<String> keywordWords(String prefix, String text) {
+		List<String> clauses = new ArrayList<>();
+		for (String word : keywordText(text).split("\\s+")) {
+			// a leading minus would exclude the word, and only the term says what is
+			// excluded
+			String plain = word.replaceFirst("^-+", "");
+			if (!plain.isEmpty()) {
+				clauses.add(prefix + (KEYWORD_JOINS.contains(plain) ? plain.toLowerCase(Locale.ROOT) : plain));
+			}
+		}
+		return clauses;
 	}
 
 	/**
@@ -1035,34 +1101,6 @@ public class MicrosoftOutlookMailHelper {
 		String url = userPath(mailbox) + "/messages/" + encode(messageId);
 		String response = HttpHelperUtility.deleteRequestStringBody(url, headers(accessToken), null, null, null);
 		throwOnError(response, "delete a message");
-	}
-
-	/**
-	 * List the folders of a mailbox.
-	 *
-	 * @param accessToken the token to read with
-	 * @param mailbox     the mailbox, or null for the signed in user
-	 * @return the folders as Graph returned them
-	 */
-	public List<Map<String, Object>> listFolders(String accessToken, String mailbox) {
-		return listFolders(accessToken, mailbox, 100, 0);
-	}
-
-	/**
-	 * List one page of the folders of a mailbox.
-	 *
-	 * @param accessToken the token to read with
-	 * @param mailbox     the mailbox, or null for the signed in user
-	 * @param top         how many folders to read
-	 * @param skip        how many folders to skip first
-	 * @return the folders as Graph returned them
-	 */
-	public List<Map<String, Object>> listFolders(String accessToken, String mailbox, int top, int skip) {
-		String url = userPath(mailbox) + "/mailFolders?$top=" + Math.max(1, top) + "&$skip=" + Math.max(0, skip)
-				+ "&$select=id,displayName,totalItemCount,unreadItemCount";
-		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
-		throwOnError(response, "list the folders of the mailbox");
-		return readList(response);
 	}
 
 	/**

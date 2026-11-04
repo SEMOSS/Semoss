@@ -51,8 +51,10 @@ import prerna.util.ValueUtils;
  * </p>
  * <ul>
  * <li>{@code Chat.Read} for {@code POST /search/query} with the
- * {@code chatMessage} entity type. {@code Chat.ReadWrite} also satisfies
- * it.</li>
+ * {@code chatMessage} entity type, which finds the messages of the user's
+ * chats. {@code Chat.ReadWrite} also satisfies it.</li>
+ * <li>{@code ChannelMessage.Read.All} as well for matches in the channels of
+ * the user's teams, which a search without it leaves out.</li>
  * </ul>
  *
  * <p>
@@ -67,8 +69,9 @@ import prerna.util.ValueUtils;
  * </p>
  *
  * <p>
- * Graph cannot sort a message search, so each page is put newest first once it
- * is read. Graph cannot be asked for chat messages alone either, so
+ * Graph answers a message search newest first and cannot be asked for another
+ * order; each page is put newest first again once it is read, so its order
+ * holds whatever Graph sends. Graph cannot be asked for chat messages alone, so
  * {@code chatsOnly} drops channel posts here and reads on until the page is
  * full; {@code nextOffset} counts every match read, kept or not, and is the
  * {@code offset} of the next page.
