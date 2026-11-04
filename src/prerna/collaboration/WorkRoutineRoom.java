@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.collaboration;
 
-import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -41,7 +40,6 @@ import java.util.Set;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
-import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -53,8 +51,8 @@ import prerna.reactor.automation.run.AutomationRunStore;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 /**
- * The owner's routine runs: their history, the latest runs for the sidebar, deleting one, and a private discussion of
- * one completed output, without exposing the automation history behind them.
+ * The owner's routine runs: their history, the latest runs for the sidebar, deleting one, and opening one completed
+ * output, in the room its agent worked in or, for a routine with no agent, a private chat that starts with it.
  */
 public final class WorkRoutineRoom {
 	private static final int MAX_RUNS = 30;
@@ -66,9 +64,8 @@ public final class WorkRoutineRoom {
 
 	private WorkRoutineRoom() { }
 
-	// a routine id names its kind, its row and the documents its runs read
-	private record Target(WorkRoutine.Kind kind, String customId, String documentsId, Pair<String, String> owner,
-			Map<String, Object> row) {
+	// a routine id names its kind and its row
+	private record Target(WorkRoutine.Kind kind, String customId, Pair<String, String> owner, Map<String, Object> row) {
 		WorkRoutine.Slot slot() {
 			return new WorkRoutine.Slot(kind, owner, customId);
 		}
@@ -93,8 +90,6 @@ public final class WorkRoutineRoom {
 		WorkRoutine.Kind kind;
 		// any other id names one of the owner's own routines
 		String customId = null;
-		// the reference documents the routine's runs read; the inbox and agenda routines have none
-		String documentsId = null;
 		if (WorkInboxRoutine.ID.equals(routineId)) {
 			kind = WorkInboxRoutine.KIND;
 		} else if (WorkAgendaRoutine.ID.equals(routineId)) {
@@ -103,11 +98,9 @@ public final class WorkRoutineRoom {
 			kind = WorkEventPlanningRoutine.KIND;
 		} else if (WorkExpenseRoutine.ID.equals(routineId)) {
 			kind = WorkExpenseRoutine.KIND;
-			documentsId = WorkExpenseRoutine.DOCUMENTS_ID;
 		} else if (routineId != null && !routineId.isBlank()) {
 			kind = WorkCustomRoutine.KIND;
 			customId = routineId.trim();
-			documentsId = customId;
 		} else {
 			throw new IllegalArgumentException("Unknown routine");
 		}
@@ -116,7 +109,7 @@ public final class WorkRoutineRoom {
 		if (row == null && customId != null) {
 			throw new IllegalArgumentException("Unknown routine");
 		}
-		return new Target(kind, customId, documentsId, owner, row);
+		return new Target(kind, customId, owner, row);
 	}
 
 	/** The routine's past runs for the signed-in owner, newest first, from the scheduler history. */
@@ -312,12 +305,13 @@ public final class WorkRoutineRoom {
 		return open(insight, routineId, startedAt, null);
 	}
 
-	/** Opens the latest output, or with a run id that past run's output, as a chat. */
+	/**
+	 * Opens the latest output, or with a run id that past run's output. A routine whose answer is its agent's opens the
+	 * room that agent worked in, tool calls and all; the others get a chat that starts with the output.
+	 */
 	public static Map<String, Object> open(Insight insight, String routineId, String startedAt, String runId) {
 		Target target = target(insight, routineId);
 		WorkRoutine.Kind kind = target.kind();
-		String customId = target.customId();
-		String documentsId = target.documentsId();
 		Pair<String, String> owner = target.owner();
 		Map<String, Object> row = target.row();
 		String summary;
@@ -350,39 +344,39 @@ public final class WorkRoutineRoom {
 					? target.runRoom(latestRun)
 					: earlier;
 		}
-		String title = customId != null && row.get("settings") instanceof Map<?, ?> settings
-				&& settings.get("name") instanceof String name && !name.isBlank() ? name : kind.jobName();
+		// past the same checks as a chat: the owner's own run, with output, and still the one shown
+		if (kind.agent() != null) {
+			return Map.of("roomId", agentRoom(target, runId));
+		}
 		String messageId = CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), roomId, "output");
 		String modelId = BrainTopicModel.engine(insight.getUser());
 		Map<String, Object> options = modelId == null ? Map.of() : Map.of("modelId", modelId);
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {
 			String date = runStarted.length() >= 10 ? " - " + runStarted.substring(0, 10) : "";
-			RoomUtils.createRoomIfNotExists(roomId, insight, null, title + date, null, options, null,
+			RoomUtils.createRoomIfNotExists(roomId, insight, null, kind.jobName() + date, null, options, null,
 					CollaborationUtils.COLLABORATION_PROJECT_ID, null);
-			// the same copy a run gets, refreshed on every open so a document uploaded since is there too
-			List<String> documents = List.of();
-			if (documentsId != null) {
-				try {
-					documents = WorkRoutineDocuments.copyInto(insight.getUser(), documentsId, Room.roomFolderPath(roomId));
-				} catch (IOException e) {
-					throw new IllegalStateException("Could not copy the routine's reference documents into the chat", e);
-				}
-			}
 			// A deterministic message makes retries safe even if the room was created before persistence failed.
 			RoomMessageStore.appendPlatformMessageIfAbsent(roomId, insight.getUser().getPrimaryLoginToken().getId(),
-					messageId, withDocuments(summary, documents), null);
+					messageId, summary, null);
 		}
 		return Map.of("roomId", roomId);
 	}
 
-	// shortcut: the note names the documents present at first open; a later upload is copied on reopen but stays
-	// unnamed here, so add a per-turn runtime note if owners add documents mid-chat
-	static String withDocuments(String summary, List<String> documents) {
-		if (documents.isEmpty()) {
-			return summary;
+	/**
+	 * The room the run's agent answered in, which already holds the output after its tool calls and the reference
+	 * documents the run read: the past run's, else the latest run's from the routine's row.
+	 */
+	private static String agentRoom(Target target, String runId) {
+		Object roomId;
+		if (runId != null && !runId.isBlank()) {
+			Map<String, Object> result = WorkRoutine.resultNode(target.kind(), runId.trim());
+			roomId = result == null ? null : result.get(AutomationConstants.ROOM_ID);
+		} else {
+			roomId = target.row().get("roomId");
 		}
-		return summary + "\n\n---\n\nThe routine's reference documents are in the \"" + WorkRoutineDocuments.FOLDER
-				+ "\" folder of this chat's working folder: " + String.join(", ", documents)
-				+ ". Read the ones a question needs with the file tools, or the document reader for Office files and PDFs.";
+		if (!(roomId instanceof String id) || id.isBlank()) {
+			throw new IllegalArgumentException("This run has no room to open");
+		}
+		return id;
 	}
 }
