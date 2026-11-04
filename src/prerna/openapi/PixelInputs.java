@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor;
+package prerna.openapi;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -33,19 +33,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * Marks an {@link AbstractReactor2} whose output has no fixed type, such as one
- * that returns a {@code NounMetadata} it was given. The contract then describes
- * the output as any value, and the reason is written into the OpenAPI document
- * so SDK users know why it is untyped.
- */
+/** Holds repeated {@link PixelInput} annotations. */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface DynamicOutput {
-
-	/**
-	 * Why the output has no fixed type, for example "returns its input".
-	 */
-	String value();
+public @interface PixelInputs {
+	PixelInput[] value();
 }

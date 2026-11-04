@@ -25,13 +25,39 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor;
+package prerna.openapi;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * The input of an {@link AbstractReactor2} that takes no inputs.
+ * Declares what a reactor returns, so the SDKs can type its output. Without it
+ * the output is published as any value: a reactor's code does not say what it
+ * returns, so it cannot be inferred.
+ *
+ * <pre>{@code
+ * @PixelOutput(value = String.class, description = "The id of the current insight")
+ * public class GetCurrentInsightIdReactor extends AbstractReactor {
+ * }</pre>
  */
-@Schema(description = "No inputs")
-public record NoInput() {
+@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface PixelOutput {
+
+	/**
+	 * The type of the output: {@code String}, {@code Integer}, {@code Long},
+	 * {@code Double}, {@code Boolean}, an enum, {@code Map}, {@code List} (with
+	 * {@link #items()}), a record, or {@code Object} for any value.
+	 */
+	Class<?> value();
+
+	/** The element type when {@link #value()} is {@code List}. */
+	Class<?> items() default Void.class;
+
+	/** What the output is. */
+	String description() default "";
 }

@@ -40,7 +40,7 @@ import java.lang.annotation.Target;
  * everyone; this is a warning, not access control.
  * <p>
  * Put it on a resource method, on a resource class (every operation in it), or on
- * an {@code AbstractReactor2} class. To leave something out of the document and
+ * a reactor class. To leave something out of the document and
  * the SDKs entirely, use swagger-core's {@code @Hidden} instead.
  */
 @Documented

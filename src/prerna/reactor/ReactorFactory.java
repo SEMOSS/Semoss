@@ -501,44 +501,25 @@ public class ReactorFactory {
 				// ignore abstract and engines
 				if (!Modifier.isAbstract(actualClass.getModifiers())
 						&& !Arrays.asList(actualClass.getInterfaces()).contains(IEngine.class)) {
-					String[] packagePaths = packageName.split("\\.");
-					// System.out.println("Package name " + packageName);
-					packageName = packagePaths[packagePaths.length - 1];
-					boolean frame = false;
-					if (packagePaths.length > 2) {
-						frame = packagePaths[packagePaths.length - 2].equalsIgnoreCase("frame");
-					}
-					// we will allow for 1 more level
-					// i.e. things of the form so *.frame.r.?
-					if (!frame && packagePaths.length > 3) {
-						packageName = packagePaths[packagePaths.length - 2];
-						frame = packagePaths[packagePaths.length - 3].equalsIgnoreCase("frame");
-					}
-					String reactorName = name;
-					final String REACTOR_KEY = "REACTOR";
-					if (reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
-						reactorName = reactorName.substring(0, reactorName.length() - REACTOR_KEY.length());
-					}
+					// ReactorNames holds these rules so the OpenAPI export reads reactors the same way
+					String reactorName = ReactorNames.pixelName(name);
+					String frameType = ReactorNames.frameType(packageName);
 
-					if (frame) {
-						if (packageName.equalsIgnoreCase("rdbms")) {
+					if (frameType != null) {
+						if (frameType.equalsIgnoreCase("rdbms")) {
 							h2FrameHash.put(reactorName, actualClass);
-						} else if (packageName.equalsIgnoreCase("r")) {
+						} else if (frameType.equalsIgnoreCase("r")) {
 							rFrameHash.put(reactorName, actualClass);
-						} else if (packageName.equalsIgnoreCase("py")) {
+						} else if (frameType.equalsIgnoreCase("py")) {
 							pandasFrameHash.put(reactorName, actualClass);
-						} else if (packageName.equalsIgnoreCase("tinker") || packageName.equalsIgnoreCase("graph")) {
+						} else {
+							// tinker or graph
 							tinkerFrameHash.put(reactorName, actualClass);
-						} else {// nullify the package name
-							packageName = null;
-							// general reactor
-							// example - frame filters
-							reactorHash.put(reactorName, actualClass);
 						}
-						if (packageName != null) {
-							reactorName = packageName + "_" + reactorName;
-						}
+						reactorName = frameType + "_" + reactorName;
 					} else {
+						// general reactor, including those under a frame package that is
+						// not a frame type, such as frame filters
 						reactorHash.put(reactorName, actualClass);
 					}
 					nmList.add(reactorName);

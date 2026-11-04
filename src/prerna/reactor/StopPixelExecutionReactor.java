@@ -29,7 +29,7 @@ package prerna.reactor;
 
 import java.util.Objects;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import prerna.openapi.PixelOutput;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.agent.AgentCancelHook;
@@ -37,21 +37,30 @@ import prerna.sablecc2.comm.JobStreamEnvelopes;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.comm.PixelJobManager.InterruptResult;
 import prerna.sablecc2.comm.PixelJobRunner;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.SocketClient;
 
-public class StopPixelExecutionReactor extends AbstractReactor2<StopPixelExecutionReactor.Input, String> {
+@PixelOutput(value = String.class, description = "Whether the job was not found, asked to cancel, or already completed")
+public class StopPixelExecutionReactor extends AbstractReactor {
 
-	public record Input(
-			@Schema(description = "The id for the job. If running the pixel synchronously, the job id will be the same as the insight id.") String id) {
+	public StopPixelExecutionReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
-	protected String run(Input input) {
-		String jobId = input.id();
+	public NounMetadata execute() {
+		this.organizeKeys();
+
+		String jobId = this.keyValue.get(ReactorKeysEnum.ID.getKey());
 		PixelJobManager jobManager = PixelJobManager.getManager();
 		PixelJobRunner jobRunner = jobManager.getJob(jobId);
 		if (jobRunner == null) {
-			return "Pixel job " + jobId + " not found";
+			return new NounMetadata("Pixel job " + jobId + " not found", PixelDataType.CONST_STRING,
+					PixelOperationType.OPERATION);
 		}
 
 		User user = this.insight.getUser();
@@ -105,11 +114,19 @@ public class StopPixelExecutionReactor extends AbstractReactor2<StopPixelExecuti
 		} else {
 			message = "Pixel job " + jobId + " not found";
 		}
-		return message;
+		return new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
 		return "Stop the current execution of a pixel job";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equalsIgnoreCase(ReactorKeysEnum.ID.getKey())) {
+			return "The id for the job. If running the pixel synchronously, the job id will be the same as the insight id.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

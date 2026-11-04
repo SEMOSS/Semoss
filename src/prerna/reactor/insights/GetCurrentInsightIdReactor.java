@@ -27,19 +27,17 @@
  *******************************************************************************/
 package prerna.reactor.insights;
 
-import prerna.reactor.AbstractReactor2;
-import prerna.reactor.NoInput;
+import prerna.openapi.PixelOutput;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GetCurrentInsightIdReactor extends AbstractReactor2<NoInput, String> {
-
-	@Override
-	protected String run(NoInput input) {
-		return this.insight.getInsightId();
-	}
+@PixelOutput(value = String.class, description = "The id of the current insight")
+public class GetCurrentInsightIdReactor extends AbstractReactor {
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns the id of the current insight";
+	public NounMetadata execute() {
+		return new NounMetadata(this.insight.getInsightId(), PixelDataType.CONST_STRING);
 	}
 
 }

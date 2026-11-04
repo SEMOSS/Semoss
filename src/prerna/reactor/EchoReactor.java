@@ -27,21 +27,22 @@
  *******************************************************************************/
 package prerna.reactor;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import prerna.openapi.PixelInput;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-@DynamicOutput("returns the value it is given, whatever its type")
-public class EchoReactor extends AbstractReactor2<EchoReactor.Input, NounMetadata> {
+@PixelInput(name = "value", type = Object.class)
+public class EchoReactor extends AbstractReactor {
 
-	public record Input(
-			@Schema(description = "The value to echo back", requiredMode = Schema.RequiredMode.NOT_REQUIRED) Object value) {
+	public EchoReactor() {
+		this.keysToGet = new String[] {ReactorKeysEnum.VALUE.getKey()};
 	}
-
+	
 	@Override
-	protected NounMetadata run(Input input) {
-		// returns the noun itself, so the value keeps the type it was given
+	public NounMetadata execute() {
+		organizeKeys();
 		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getNoun(0);
@@ -52,6 +53,14 @@ public class EchoReactor extends AbstractReactor2<EchoReactor.Input, NounMetadat
 		}
 		
 		return new NounMetadata("", PixelDataType.CONST_STRING);
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.VALUE.getKey())) {
+			return "The value to echo back";
+		}
+		return super.getDescriptionForKey(key);
 	}
 	
 	@Override
