@@ -288,6 +288,12 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             return 512, True
         return 1, True
 
+    def count_request_tokens(self, semoss_messages) -> Optional[PromptCount]:
+        """Count the request these messages build, with the same counter as the usage ceiling."""
+        copies = [message.model_copy(deep=True) for message in semoss_messages]
+        built = GoogleGenAIMessageBuilder().build_messages(copies, self.model_settings)
+        return self._count_prompt_tokens(built["messages"], built["provider_config"])
+
     def _count_prompt_tokens(
         self, contents: List[types.Content], config: types.GenerateContentConfig
     ) -> PromptCount:
