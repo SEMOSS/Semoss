@@ -103,10 +103,7 @@ public class AddToolExecutionReactor extends AbstractReactor {
 		List<Map<String, Object>> responseParts = getList(RESPONSE_PARTS_KEY);
 		String hiddenMessage = this.keyValue.get(HIDDEN_MESSAGE_KEY);
 
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 		String userId = user.getPrimaryLoginToken().getId();
 		if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
 			throw new IllegalArgumentException(
@@ -156,8 +153,8 @@ public class AddToolExecutionReactor extends AbstractReactor {
 			if (prebuiltResponse != null) {
 				if (hiddenMessage != null && !hiddenMessage.isEmpty()
 						&& responseMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
-					appendHiddenPairWithPersist(room, modelEngine, hiddenMessage, responseMessage.getMessageId(), userId,
-							extraMessages);
+					appendHiddenPairWithPersist(room, modelEngine, hiddenMessage, responseMessage.getMessageId(),
+							userId, extraMessages);
 				}
 			} else if (responseMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
 				RoomMessageStore.persist(room, userId);

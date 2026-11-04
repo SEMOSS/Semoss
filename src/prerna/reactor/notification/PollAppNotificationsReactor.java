@@ -30,7 +30,6 @@ package prerna.reactor.notification;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
@@ -47,10 +46,7 @@ public class PollAppNotificationsReactor extends AbstractReactor {
 		if (!Utility.isNotificationDatabaseEnabled()) {
 			throw new IllegalArgumentException("Notifications are not enabled on this instance");
 		}
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		String projectId = this.insight.getContextProjectId();
 		if (StringUtils.isBlank(projectId)) {

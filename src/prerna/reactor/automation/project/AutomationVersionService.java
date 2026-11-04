@@ -79,8 +79,8 @@ final class AutomationVersionService {
 
 	private static final String WORKFLOW_GIT_PATH = "assets/"
 			+ AutomationConstants.AUTOMATION_PYTHON_DEFINITION_FILE_NAME;
-	private static final String NODES_GIT_PREFIX = "assets/"
-			+ AutomationConstants.AUTOMATION_NODE_SOURCES_FOLDER_NAME + "/";
+	private static final String NODES_GIT_PREFIX = "assets/" + AutomationConstants.AUTOMATION_NODE_SOURCES_FOLDER_NAME
+			+ "/";
 	private static final String RESTORE_COMMIT_PREFIX = "Restore automation definition from ";
 
 	private AutomationVersionService() {
@@ -133,7 +133,8 @@ final class AutomationVersionService {
 	 * Restores one historical aggregate using the normal project save path.
 	 *
 	 * @param project          editable Automation project
-	 * @param revision         full SHA returned by {@link #listVersions(IProject, int)}
+	 * @param revision         full SHA returned by
+	 *                         {@link #listVersions(IProject, int)}
 	 * @param expectedRevision current aggregate revision returned by GetAutomation
 	 * @param user             user performing the restore
 	 * @return newly persisted aggregate
@@ -141,7 +142,8 @@ final class AutomationVersionService {
 	static AutomationDefinitionService.DefinitionFiles restore(IProject project, String revision,
 			String expectedRevision, User user) {
 		if (revision == null || !revision.matches("[0-9a-fA-F]{40}")) {
-			throw new IllegalArgumentException("revision must be a full commit SHA returned by ListAutomationVersions.");
+			throw new IllegalArgumentException(
+					"revision must be a full commit SHA returned by ListAutomationVersions.");
 		}
 		if (expectedRevision == null || expectedRevision.isBlank()) {
 			throw new IllegalArgumentException("expectedRevision must be provided.");
@@ -165,17 +167,15 @@ final class AutomationVersionService {
 			AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator
 					.parseAndValidateForAuthoring(definitionJson);
 			for (Map<String, Object> node : AutomationRuntime.allNodes(definition)) {
-				if (!AutomationConstants.NODE_DEVELOPER_PYTHON
-						.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				if (!AutomationConstants.NODE_DEVELOPER_PYTHON.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
 					continue;
 				}
 				String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 				String path = NODES_GIT_PREFIX + AutomationDefinitionService.safeNodeFileName(node) + ".py";
 				String source = readFile(repository, target, path);
 				if (source == null) {
-					throw new IllegalArgumentException(
-							"Developer source for automation node '" + nodeId + "' is unavailable at revision: "
-									+ revision);
+					throw new IllegalArgumentException("Developer source for automation node '" + nodeId
+							+ "' is unavailable at revision: " + revision);
 				}
 				nodeSources.put(nodeId, source);
 			}

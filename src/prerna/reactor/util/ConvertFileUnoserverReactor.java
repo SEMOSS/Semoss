@@ -35,7 +35,6 @@ import org.apache.commons.io.FilenameUtils;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -58,9 +57,6 @@ public class ConvertFileUnoserverReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		String fileRelativePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 		String targetFormat = this.keyValue.get(this.keysToGet[1]);
@@ -82,7 +78,8 @@ public class ConvertFileUnoserverReactor extends AbstractReactor {
 
 		File targetFile = null;
 		String convertedRelativePath = null;
-		if (outputRelativePath == null || (outputRelativePath = Utility.normalizePath(outputRelativePath.trim())).isEmpty()) {
+		if (outputRelativePath == null
+				|| (outputRelativePath = Utility.normalizePath(outputRelativePath.trim())).isEmpty()) {
 			String outputFileName = FilenameUtils.getBaseName(sourceFile.getName()) + "." + targetFormat;
 			targetFile = new File(sourceFile.getParentFile(), outputFileName);
 			convertedRelativePath = FilenameUtils.getPath(fileRelativePath) + outputFileName;

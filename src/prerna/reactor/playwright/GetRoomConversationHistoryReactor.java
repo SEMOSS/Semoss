@@ -36,7 +36,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.User;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -80,10 +79,7 @@ public class GetRoomConversationHistoryReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		requireUser();
 
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		if (roomId == null || roomId.trim().isEmpty()) {

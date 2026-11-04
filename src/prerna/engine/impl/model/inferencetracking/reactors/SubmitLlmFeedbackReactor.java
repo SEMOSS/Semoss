@@ -29,14 +29,13 @@ package prerna.engine.impl.model.inferencetracking.reactors;
 
 import java.util.List;
 
-import prerna.auth.User;
 import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
-import prerna.engine.impl.model.message.MessageIO;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.MessageIO;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -52,6 +51,7 @@ public class SubmitLlmFeedbackReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		requireUser();
 
 		String roomId = this.keyValue.get(this.keysToGet[0]);
 		String messageId = this.keyValue.get(this.keysToGet[1]);
@@ -64,26 +64,12 @@ public class SubmitLlmFeedbackReactor extends AbstractReactor {
 		}
 		final Boolean rating = inRating;
 
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
-
-		// boolean output =
-		// ModelInferenceLogsUtils.userIsMessageAuthor(user.getPrimaryLoginToken().getId(),
-		// messageId);
-		// if (!output) {
-		// throw new SemossPixelException("User is not the author of this message and
-		// cannot provide feedback");
-		// }
-
 		try {
 			// Load room
 			Room room = RoomUtils.getOrLoadRoom(roomId, insight);
 
 			if (!room.isMessageAuthor(messageId)) {
-				throw new SemossPixelException(
-						"User is not the author of this message and cannot provide feedback");
+				throw new SemossPixelException("User is not the author of this message and cannot provide feedback");
 			}
 
 			// Get messages
@@ -91,8 +77,7 @@ public class SubmitLlmFeedbackReactor extends AbstractReactor {
 
 			// Find the target message
 			AbstractMessage targetMessage = messagesList.parallelStream()
-					.filter(msg -> msg.getMessageId().equals(messageId))
-					.findFirst()
+					.filter(msg -> msg.getMessageId().equals(messageId)).findFirst()
 					.orElseThrow(() -> new SemossPixelException("Message not found with id: " + messageId));
 
 			// Validate the message is a response

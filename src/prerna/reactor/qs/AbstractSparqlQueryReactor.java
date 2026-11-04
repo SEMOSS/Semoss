@@ -41,7 +41,6 @@ import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -62,14 +61,7 @@ public abstract class AbstractSparqlQueryReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to run this operation",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
+		User user = requireUser();
 
 		organizeKeys();
 		String sparqlQuery = getDecodedQuery();

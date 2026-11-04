@@ -268,11 +268,10 @@ class ResourceAuditReadServiceTest {
 	}
 
 	@Test
-	void adminsAndAnonymousUsersNeedNoOwnerCheck() throws Exception {
+	void adminsAndMissingUsersNeedNoOwnerCheck() throws Exception {
 		admins.when(() -> SecurityAdminUtils.userIsAdmin(user)).thenReturn(true);
 		assertTrue(ResourceAuditReadService.isOwner(user, "ENGINE", "b"));
-		when(user.isAnonymous()).thenReturn(true);
-		assertFalse(ResourceAuditReadService.isOwner(user, "ENGINE", "a"));
+		assertFalse(ResourceAuditReadService.isOwner(null, "ENGINE", "a"));
 		engineOwners.verify(() -> SecurityEngineUtils.userIsOwner(any(), any()), never());
 	}
 
@@ -312,11 +311,10 @@ class ResourceAuditReadServiceTest {
 	}
 
 	@Test
-	void disabledTrackingAndAnonymousFailClosed() throws Exception {
+	void disabledTrackingAndMissingUserFailClosed() throws Exception {
 		utility.when(Utility::isUserTrackingDisabled).thenReturn(true);
 		assertThrows(IllegalStateException.class, () -> ResourceAuditReadService.read(user, "ENGINE", "a", Map.of()));
-		when(user.isAnonymous()).thenReturn(true);
-		assertFalse(ResourceAuditReadService.isOwner(user, "ENGINE", "a"));
+		assertFalse(ResourceAuditReadService.isOwner(null, "ENGINE", "a"));
 	}
 
 	@Test

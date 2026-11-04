@@ -93,20 +93,7 @@ public class UploadProjectReactor extends AbstractReactor {
 		// check security
 		// Need to check this, will the same methods work/enhanced to check the
 		// permissions on project?
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create or upload a project",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		// throw error is user doesn't have rights to publish new apps
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {

@@ -61,7 +61,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -781,9 +780,6 @@ public abstract class AbstractReactor implements IReactor {
 		if (engine == null) {
 			throw new NullPointerException("Engine/Project is null");
 		}
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		if (engine instanceof IProject) {
 			if (!SecurityProjectUtils.userCanViewProject(user, engine.getEngineId())) {
@@ -1044,16 +1040,6 @@ public abstract class AbstractReactor implements IReactor {
 	 */
 
 	/**
-	 * Throw error since anonymous user
-	 */
-	public static void throwAnonymousUserError() {
-		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(
-				"Must be logged in to perform this operation", PixelOperationType.ANONYMOUS_USER_ERROR));
-		exception.setContinueThreadOfExecution(false);
-		throw exception;
-	}
-
-	/**
 	 * Throw error since user doesn't have access to publish
 	 */
 	public static void throwUserNotPublisherError() {
@@ -1081,6 +1067,24 @@ public abstract class AbstractReactor implements IReactor {
 				NounMetadata.getErrorNounMessage("User does not have access to export data"));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
+	}
+
+	/**
+	 * Requires a signed in user before reactor work starts. Requests reach a
+	 * reactor only with a signed in session, so this guards runs whose insight has
+	 * no user.
+	 *
+	 * @return the insight's user
+	 */
+	protected User requireUser() {
+		User user = this.insight == null ? null : this.insight.getUser();
+		if (user == null) {
+			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(
+					"Must be logged in to perform this operation", PixelOperationType.LOGGIN_REQUIRED_ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+		return user;
 	}
 
 	/**
