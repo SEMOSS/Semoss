@@ -76,6 +76,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.collaboration.BrainEditThreadReactor;
 import prerna.reactor.collaboration.BrainEditTopicReactor;
 import prerna.reactor.collaboration.BrainForgetReactor;
+import prerna.reactor.collaboration.BrainGetRelatedItemsReactor;
 import prerna.reactor.collaboration.BrainGetThreadMessagesReactor;
 import prerna.reactor.collaboration.BrainGetWritingStyleReactor;
 import prerna.reactor.collaboration.BrainListTopicsReactor;
@@ -143,6 +144,7 @@ public final class CollaborationAgentTools {
 		REACTORS.put("ListTopics", BrainListTopicsReactor.class);
 		REACTORS.put("SearchMail", BrainSearchThreadsReactor.class);
 		REACTORS.put("ReadThread", BrainGetThreadMessagesReactor.class);
+		REACTORS.put("RelatedThreads", BrainGetRelatedItemsReactor.class);
 		// change the owner's Brain; both wait for the owner to approve
 		REACTORS.put("EditTopic", BrainEditTopicReactor.class);
 		REACTORS.put("EditThread", BrainEditThreadReactor.class);
@@ -249,7 +251,8 @@ public final class CollaborationAgentTools {
 			"[Brain: tags this chat with a topic]", "SaveDraft",
 			"[Outlook: saves a draft in the owner's drafts folder for them to review; it never sends]", "SearchMail",
 			"[Brain: the owner's classified mail, start here; one topic or all]", "ReadThread",
-			"[Brain: reads a thread found in Brain]", "ListM365Mail",
+			"[Brain: reads a thread found in Brain]", "RelatedThreads",
+			"[Brain: other mail, meetings, and chats that belong with a thread you already have]", "ListM365Mail",
 			"[Microsoft 365, direct: Outlook as it is now, outside Brain. Brain's never-ingest rules "
 					+ "and exclusions do NOT apply here, and mail Brain has not classified can show up. Use it after "
 					+ "SearchMail finds nothing, or when the owner asks about Outlook itself.]");

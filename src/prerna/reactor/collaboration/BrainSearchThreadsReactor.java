@@ -27,9 +27,14 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadFinder;
 import prerna.reactor.ReactorDefinition;
+import prerna.collaboration.BrainTopicBrief;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSearchThreads(topic=["Air Force AIMES"], query=["renewal pricing"], person=["priya"], from=["2026-09-01"], to=["2026-10-05"], limit=[10]);
@@ -42,10 +47,19 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 	private static final String FROM = "from";
 	private static final String TO = "to";
 	private static final String LIMIT = "limit";
+	private static final String ALL_TOPICS = "allTopics";
 
 	public BrainSearchThreadsReactor() {
-		this.keysToGet = new String[] { TOPIC_ID, TOPIC, QUERY, PERSON, FROM, TO, LIMIT };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { TOPIC_ID, TOPIC, QUERY, PERSON, FROM, TO, LIMIT, ALL_TOPICS };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (ALL_TOPICS.equals(key)) {
+			return MCP_KEY_TYPE.BOOLEAN;
+		}
+		return super.getKeyTypeForMCP(key);
 	}
 
 	@Override
@@ -58,23 +72,50 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 			return mapResult(BrainThreadFinder.searchTopic(user, topicId, topic, getString(QUERY), getString(PERSON),
 					getString(FROM), getString(TO), getIntFromKeyOrCurRow(LIMIT)));
 		}
+		// in a chat about topics the search stays in them, unless the assistant asks for everything
+		if (!Boolean.TRUE.equals(getBoolean(ALL_TOPICS))) {
+			List<String> chatTopics = chatTopics(user);
+			if (!chatTopics.isEmpty()) {
+				Map<String, Object> result = BrainThreadFinder.searchTopics(user, chatTopics, getString(QUERY),
+						getString(PERSON), getString(FROM), getString(TO), getIntFromKeyOrCurRow(LIMIT));
+				result = new LinkedHashMap<>(result);
+				result.put("scope", "this chat's topics; pass allTopics to search all of the owner's mail");
+				return mapResult(result);
+			}
+		}
 		return mapResult(BrainThreadFinder.searchAll(user, getString(QUERY), getString(PERSON), getString(FROM),
 				getString(TO), getIntFromKeyOrCurRow(LIMIT)));
+	}
+
+	// the topics of the chat this runs in; none outside an owner's chat, or when the chat has no topic yet
+	private List<String> chatTopics(User user) {
+		String roomId = this.insight.getRoomId();
+		if (roomId == null) {
+			return List.of();
+		}
+		try {
+			return BrainTopicBrief.chatTopics(user, roomId);
+		} catch (RuntimeException e) {
+			return List.of();
+		}
 	}
 
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Finds threads in the owner's Brain by words in the subject or summary, by person, or by date, newest "
-						+ "first; each result names its topics. Pass a topic to look only inside it, and with nothing else "
-						+ "it lists that topic's newest threads. It does not search message text; read a match with "
-						+ "BrainGetThreadMessages. Never-ingest and muted content is left out")
+				"Finds threads in the owner's Brain by words in the subject, summary, or people, by person, or by date, "
+						+ "newest first; each result names its topics. Pass a topic to look only inside it, and with nothing "
+						+ "else it lists that topic's newest threads. Inside a topic it also searches the text of the "
+						+ "messages, and a match there shows the passage and who wrote it. In a chat that has topics it looks "
+						+ "inside them unless allTopics is set. Read a match with BrainGetThreadMessages. Never-ingest and "
+						+ "muted content is left out")
 				.key(TOPIC_ID, "Only threads in this topic, by id from ListTopics")
 				.key(TOPIC, "Only threads in this topic, by name, when the id is not known; must match one topic")
 				.key(QUERY, "Optional. Words to look for in the thread subject, summary, and people")
 				.key(PERSON, "Only threads with a person whose name or email contains this")
 				.key(FROM, "Only threads with a message on or after this date (YYYY-MM-DD)")
 				.key(TO, "Only threads with a message on or before this date (YYYY-MM-DD)")
-				.key(LIMIT, "Best N threads, default 10, at most 25");
+				.key(LIMIT, "Best N threads, default 10, at most 25")
+				.key(ALL_TOPICS, "true to search all of the owner's threads even though this chat has topics");
 	}
 }

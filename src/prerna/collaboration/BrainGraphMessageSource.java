@@ -31,6 +31,7 @@ import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -49,6 +50,8 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 
 	private static final String BASE = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0";
 	private static final int BATCH = 20;
+	private static final int SEARCH_PAGE = 50;
+	private static final String SEARCH_SELECT = "id,conversationId,subject,from,receivedDateTime,parentFolderId";
 	private static final int RETRIES = 3;
 	private static final long MAX_WAIT_MS = 10000;
 	private static final String MAIL_SELECT = "subject,from,toRecipients,ccRecipients,body,uniqueBody,receivedDateTime,"
@@ -66,6 +69,45 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 		Map<String, Object> message = CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(BASE + path,
 				MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
 		return "teams".equals(source) ? fromChat(message) : message;
+	}
+
+	// Graph's own index over subject and body: one search, followed page by page up to max. $search cannot be combined
+	// with $filter, so the dates ride in the query; a source that rejects them is asked again without
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> search(User user, List<String> terms, boolean all, Instant from, Instant to,
+			int max) throws Exception {
+		String token = MicrosoftLoginUtils.getValidAccessToken(user);
+		String words = String.join(all ? " AND " : " OR ", terms.stream().map(t -> t.replace("\"", " ")).toList());
+		String range = from == null || to == null ? ""
+				: " AND received:" + from.toString().substring(0, 10) + ".." + to.toString().substring(0, 10);
+		for (String query : range.isEmpty() ? List.of(words) : List.of("(" + words + ")" + range, words)) {
+			List<Map<String, Object>> out = new ArrayList<>();
+			String url = BASE + "/me/messages?$search=" + encode("\"" + query + "\"") + "&$top=" + SEARCH_PAGE
+					+ "&$select=" + SEARCH_SELECT;
+			try {
+				while (url != null && out.size() < max) {
+					Map<String, Object> page = CollaborationDbUtils.parseMap(
+							HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
+					if (page.get("value") instanceof List<?> values) {
+						for (Object value : values) {
+							out.add((Map<String, Object>) value);
+						}
+					}
+					url = page.get("@odata.nextLink") instanceof String next ? next : null;
+				}
+			} catch (SemossPixelException e) {
+				throw e;
+			} catch (Exception e) {
+				if (query.equals(words)) {
+					throw e;
+				}
+				continue;
+			}
+			out.sort((a, b) -> String.valueOf(b.get("receivedDateTime")).compareTo(String.valueOf(a.get("receivedDateTime"))));
+			return out.size() > max ? new ArrayList<>(out.subList(0, max)) : out;
+		}
+		return List.of();
 	}
 
 	// Graph $batch, 20 a call: one round trip instead of one per message

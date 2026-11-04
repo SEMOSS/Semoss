@@ -47,10 +47,11 @@ import org.javatuples.Pair;
 
 import prerna.auth.User;
 
-// Finds threads for the owner from what Brain stores (subject, summary, people, topics, dates), never from message
-// bodies: the threads related to one thread, and a search inside one topic. Both go through the same privacy
-// check: muted and automated threads, never-ingest people, and threads whose every message was kept out are left out,
-// except that a topic search keeps the topic's automated threads.
+// Finds threads for the owner from what Brain stores (subject, summary, people, topics, dates): the threads related to
+// one thread, and a search inside topics. A topic search also looks in message text, live in the mailbox and only in
+// the topic's own threads (BrainTopicBodySearch). All of it goes through the same privacy check: muted and automated
+// threads, never-ingest people, and threads whose every message was kept out are left out, except that a topic search
+// keeps the topic's automated threads.
 public final class BrainThreadFinder {
 
 	private static final int DEFAULT_LIMIT = 10;
@@ -214,20 +215,27 @@ public final class BrainThreadFinder {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
-		return search(ownerId, ownerType, resolveTopic(ownerId, ownerType, topicId, topicName), query, person, from, to,
-				limit);
+		return search(ownerId, ownerType, List.of(resolveTopic(ownerId, ownerType, topicId, topicName)), query,
+				person, from, to, limit, user, true);
+	}
+
+	// the same inside several topics at once, by id, such as the topics of the chat the assistant is in
+	public static Map<String, Object> searchTopics(User user, List<String> topicIds, String query, String person,
+			String from, String to, Integer limit) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		return search(owner.getValue0(), owner.getValue1(), topicIds, query, person, from, to, limit, user, true);
 	}
 
 	// the same search across all of the owner's threads, newest first up to the candidate cap
 	public static Map<String, Object> searchAll(User user, String query, String person, String from, String to,
 			Integer limit) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		return search(owner.getValue0(), owner.getValue1(), null, query, person, from, to, limit);
+		return search(owner.getValue0(), owner.getValue1(), null, query, person, from, to, limit, user, false);
 	}
 
-	// topic null means every thread
-	private static Map<String, Object> search(String ownerId, String ownerType, String topic, String query,
-			String person, String from, String to, Integer limit) {
+	// topics null means every thread; message text is searched only inside topics
+	private static Map<String, Object> search(String ownerId, String ownerType, List<String> topics, String query,
+			String person, String from, String to, Integer limit, User user, boolean bodies) {
 		boolean noPerson = person == null || person.isBlank();
 		Timestamp after = CollaborationDbUtils.toTimestamp(from, "from");
 		Timestamp before = CollaborationDbUtils.toTimestamp(to, "to");
@@ -241,12 +249,16 @@ public final class BrainThreadFinder {
 		// every thread linked to the topic (a link still waiting for the owner counts, and says so)
 		Map<String, String> linkSource = new LinkedHashMap<>();
 		Collection<String> candidates;
-		if (topic != null) {
-			CollaborationDbUtils.query("SELECT THREAD_ID, SOURCE FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? "
-					+ "AND OWNER_TYPE = ? AND TOPIC_ID = ?", rs -> {
-						linkSource.put(rs.getString(1), rs.getString(2));
-						return null;
-					}, ownerId, ownerType, topic);
+		if (topics != null) {
+			for (String topic : topics) {
+				CollaborationDbUtils.query("SELECT THREAD_ID, SOURCE FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? "
+						+ "AND OWNER_TYPE = ? AND TOPIC_ID = ?", rs -> {
+							// a link the owner confirmed in any of the topics outranks a suggestion in another
+							linkSource.merge(rs.getString(1), rs.getString(2),
+									(old, now) -> "suggested".equals(old) ? now : old);
+							return null;
+						}, ownerId, ownerType, topic);
+			}
 			candidates = cap(linkSource.keySet());
 		} else {
 			candidates = CollaborationDbUtils.query(CollaborationDbUtils.page("SELECT THREAD_ID FROM BRAIN_THREAD WHERE "
@@ -256,12 +268,16 @@ public final class BrainThreadFinder {
 		}
 		// the topic page lists a topic's automated threads (the owner filed them; the classifier skips automated
 		// mail), so a search inside the topic finds them too
-		List<ThreadRow> rows = loadThreads(ownerId, ownerType, candidates, topic != null);
+		List<ThreadRow> rows = loadThreads(ownerId, ownerType, candidates, topics != null);
 		Privacy privacy = Privacy.load(ownerId, ownerType, ids(rows));
 
 		List<String> tokens = tokens(query);
 		String personNeedle = noPerson ? null : person.trim().toLowerCase(Locale.ROOT);
 		List<Map<String, Object>> hits = new ArrayList<>();
+		// the threads that passed every filter but the words, and whether one already holds all of them in what Brain
+		// stores: then the mailbox need not be asked
+		List<ThreadRow> eligible = new ArrayList<>();
+		boolean fullMatch = false;
 		for (ThreadRow row : rows) {
 			if (!privacy.visible(row.id())) {
 				continue;
@@ -274,6 +290,7 @@ public final class BrainThreadFinder {
 			if (personNeedle != null && !people.contains(personNeedle)) {
 				continue;
 			}
+			eligible.add(row);
 			String subject = lower(row.subject());
 			String summary = lower(row.summary());
 			List<String> matched = new ArrayList<>();
@@ -286,6 +303,9 @@ public final class BrainThreadFinder {
 					continue;
 				}
 				score = 3 * inSubject + inSummary + 2 * inPeople;
+				if (tokens.stream().allMatch(t -> (subject + " " + summary + " " + people).contains(t))) {
+					fullMatch = true;
+				}
 				if (inSubject > 0) {
 					matched.add("subject");
 				}
@@ -310,22 +330,133 @@ public final class BrainThreadFinder {
 			}
 			hits.add(item);
 		}
+		Map<String, Object> bodySearch = null;
+		if (bodies && topics != null && !tokens.isEmpty()) {
+			if (fullMatch) {
+				bodySearch = Map.of("status", "skipped", "note",
+						"A thread already matches every word in its subject, summary, or people, so message text was not searched. "
+								+ "Search again with other words to look in message text.");
+			} else {
+				bodySearch = addBodyMatches(user, ownerId, ownerType, eligible, tokens, from, to, hits, privacy, selfId,
+						linkSource);
+			}
+		}
 		hits.sort(Comparator.<Map<String, Object>>comparingDouble(i -> -((Number) i.get("score")).doubleValue())
 				.thenComparing(i -> String.valueOf(i.get("lastAt")), Comparator.reverseOrder()));
 
 		List<Map<String, Object>> page = hits.size() > max ? new ArrayList<>(hits.subList(0, max)) : hits;
 		addTopicNames(ownerId, ownerType, page);
 		Map<String, Object> out = new LinkedHashMap<>();
-		if (topic != null) {
-			out.put("topicId", topic);
+		if (topics != null) {
+			out.put("topicIds", topics);
+			if (topics.size() == 1) {
+				out.put("topicId", topics.get(0));
+			}
 		}
 		out.put("total", hits.size());
 		out.put("items", page);
-		// so the model knows what a miss means: bodies are not searched
-		out.put("searchedOn", List.of("subject", "summary", "people", "dates"));
-		out.put("note", "Matches the thread subject, summary, and people only, not message text. "
-				+ "Read a thread to see its messages.");
+		// so the model knows what a miss means
+		boolean readText = bodySearch != null && List.of(BrainTopicBodySearch.SEARCHED, BrainTopicBodySearch.PARTIAL,
+				BrainTopicBodySearch.SCANNED_RECENT).contains(bodySearch.get("status"));
+		out.put("searchedOn", readText ? List.of("subject", "summary", "people", "dates", "message text")
+				: List.of("subject", "summary", "people", "dates"));
+		if (bodySearch != null) {
+			out.put("bodySearch", bodySearch);
+		}
+		out.put("note", readText
+				? "Matches the thread subject, summary, and people, and message text in this topic's threads. A match on "
+						+ "message text shows where it was found. Read a thread to see its messages."
+				: "Matches the thread subject, summary, and people only, not message text. "
+						+ "Read a thread to see its messages.");
 		return out;
+	}
+
+	// message text, asked of the mailbox for the topic's threads; adds the threads it finds to the hits and says how
+	// far the search reached
+	private static Map<String, Object> addBodyMatches(User user, String ownerId, String ownerType,
+			List<ThreadRow> eligible, List<String> tokens, String from, String to, List<Map<String, Object>> hits,
+			Privacy privacy, String selfId, Map<String, String> linkSource) {
+		Map<String, Object> status = new LinkedHashMap<>();
+		BrainTopicBodySearch.Result result;
+		try {
+			result = BrainTopicBodySearch.search(user, ownerId, ownerType, ids(eligible), tokens, from, to, privacy);
+		} catch (prerna.sablecc2.om.execptions.SemossPixelException e) {
+			throw e;
+		} catch (RuntimeException e) {
+			status.put("status", BrainTopicBodySearch.UNAVAILABLE);
+			status.put("note", "Message text could not be searched right now: " + e.getMessage());
+			return status;
+		}
+		Map<String, Map<String, Object>> byId = new HashMap<>();
+		hits.forEach(hit -> byId.put((String) hit.get("threadId"), hit));
+		Map<String, ThreadRow> rowById = new HashMap<>();
+		eligible.forEach(row -> rowById.put(row.id(), row));
+		for (BrainTopicBodySearch.Hit hit : result.hits().values()) {
+			Map<String, Object> item = byId.get(hit.threadId());
+			ThreadRow row = rowById.get(hit.threadId());
+			if (item == null) {
+				item = item(row, privacy, selfId);
+				item.put("score", 0d);
+				if ("suggested".equals(linkSource.get(row.id()))) {
+					item.put("topicLink", "suggested");
+				}
+				hits.add(item);
+			}
+			item.put("score", ((Number) item.get("score")).doubleValue() + 2 + Math.min(hit.matches(), 5) * 0.1);
+			@SuppressWarnings("unchecked")
+			List<String> matchedOn = (List<String>) item.computeIfAbsent("matchedOn", k -> new ArrayList<String>());
+			matchedOn.add("message text");
+			Map<String, Object> found = new LinkedHashMap<>();
+			found.put("snippet", hit.snippet());
+			found.put("messageId", hit.messageId());
+			found.put("matchingMessages", hit.matches());
+			if (hit.from() != null) {
+				found.put("from", hit.from());
+			}
+			if (hit.at() != null) {
+				found.put("at", CollaborationDbUtils.toIso(hit.at()));
+			}
+			item.put("textMatch", found);
+		}
+		status.put("status", result.status());
+		status.put("threadsMatched", result.hits().size());
+		if (!result.note().isEmpty()) {
+			status.put("note", result.note());
+		}
+		return status;
+	}
+
+	/** How many threads a topic holds that the assistant may use, and when the newest one last had mail. */
+	public record TopicThreads(int confirmed, int suggested, Timestamp newest) {
+	}
+
+	/** The topic's visible threads, split into the ones the owner confirmed and the ones still only suggested. */
+	public static TopicThreads topicThreads(String ownerId, String ownerType, String topicId) {
+		Map<String, String> linkSource = new LinkedHashMap<>();
+		CollaborationDbUtils.query("SELECT THREAD_ID, SOURCE FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+				+ "AND TOPIC_ID = ?", rs -> {
+					linkSource.put(rs.getString(1), rs.getString(2));
+					return null;
+				}, ownerId, ownerType, topicId);
+		List<ThreadRow> rows = loadThreads(ownerId, ownerType, cap(linkSource.keySet()), true);
+		Privacy privacy = Privacy.load(ownerId, ownerType, ids(rows));
+		int confirmed = 0;
+		int suggested = 0;
+		Timestamp newest = null;
+		for (ThreadRow row : rows) {
+			if (!privacy.visible(row.id())) {
+				continue;
+			}
+			if ("suggested".equals(linkSource.get(row.id()))) {
+				suggested++;
+			} else {
+				confirmed++;
+			}
+			if (row.lastAt() != null && (newest == null || row.lastAt().after(newest))) {
+				newest = row.lastAt();
+			}
+		}
+		return new TopicThreads(confirmed, suggested, newest);
 	}
 
 	// ---- shared pieces ----
@@ -465,7 +596,7 @@ public final class BrainThreadFinder {
 	}
 
 	// runs prefix + ?,?,... + suffix once per chunk of ids; the fixed params come before the ids, the ids last
-	private static void byIds(String prefix, String suffix, Collection<String> ids, CollaborationDbUtils.RowMapper<Void> mapper,
+	static void byIds(String prefix, String suffix, Collection<String> ids, CollaborationDbUtils.RowMapper<Void> mapper,
 			Object... fixed) {
 		// the muted and automated flags in loadThreads are fixed params that follow the owner, so they are
 		// passed in the caller's order; the id list is always the last placeholder group
@@ -553,7 +684,7 @@ public final class BrainThreadFinder {
 	// What may be shown for a set of threads: who is on them and whether they are visible at all. A person is hidden
 	// when flagged never-ingest or covered by a never-ingest rule today; a thread is visible when at least one of its
 	// messages was not kept out, or (with no messages stored, such as a meeting) at least one person on it is not hidden.
-	private static final class Privacy {
+	static final class Privacy {
 		private final Map<String, List<String>> participants = new HashMap<>();
 		private final Map<String, List<String[]>> messages = new HashMap<>();
 		private final Map<String, String[]> people = new HashMap<>();

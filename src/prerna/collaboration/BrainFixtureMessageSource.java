@@ -31,11 +31,13 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -87,6 +89,34 @@ final class BrainFixtureMessageSource implements BrainMessageSource {
 			return chat == null ? null : BrainGraphMessageSource.fromChat(chat);
 		}
 		return "email".equals(source) && graphId != null ? byId.get(graphId) : null;
+	}
+
+	// the same search over mail.json: the terms are looked for in each message's subject and body text
+	@Override
+	public List<Map<String, Object>> search(User user, List<String> terms, boolean all, Instant from, Instant to,
+			int max) {
+		List<Map<String, Object>> out = new ArrayList<>();
+		for (Map<String, Object> message : byId.values()) {
+			Object at = message.get("receivedDateTime");
+			if (at == null || (from != null && at.toString().compareTo(from.toString()) < 0)
+					|| (to != null && at.toString().compareTo(to.toString()) > 0)) {
+				continue;
+			}
+			Object body = message.get("body") instanceof Map<?, ?> b ? b.get("content") : null;
+			String text = (message.get("subject") + " " + body).replaceAll("<[^>]*>", " ").toLowerCase(Locale.ROOT);
+			boolean hit = all ? terms.stream().allMatch(t -> text.contains(t.toLowerCase(Locale.ROOT)))
+					: terms.stream().anyMatch(t -> text.contains(t.toLowerCase(Locale.ROOT)));
+			if (hit) {
+				Map<String, Object> found = new LinkedHashMap<>();
+				for (String key : List.of("id", "conversationId", "subject", "from", "receivedDateTime",
+						"parentFolderId")) {
+					found.put(key, message.get(key));
+				}
+				out.add(found);
+			}
+		}
+		out.sort((a, b) -> String.valueOf(b.get("receivedDateTime")).compareTo(String.valueOf(a.get("receivedDateTime"))));
+		return out.size() > max ? new ArrayList<>(out.subList(0, max)) : out;
 	}
 
 	// a mail.json message may carry "attachments" in Graph shape, with base64 contentBytes

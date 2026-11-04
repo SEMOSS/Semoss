@@ -28,6 +28,7 @@
 package prerna.collaboration;
 
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +67,14 @@ public interface BrainMessageSource {
 			}
 		}
 		return out;
+	}
+
+	// email whose subject or body holds the terms (every term when all is set, else any), newest first and at most max,
+	// each in Graph shape without the body: id, conversationId, subject, from, receivedDateTime, parentFolderId. A
+	// source that cannot search returns null; a login problem (SemossPixelException) is thrown
+	default List<Map<String, Object>> search(User user, List<String> terms, boolean all, Instant from, Instant to,
+			int max) throws Exception {
+		return null;
 	}
 
 	// what is attached to messages already known to have attachments, by message id, as
