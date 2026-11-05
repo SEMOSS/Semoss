@@ -48,7 +48,9 @@ public class PermissionSubject {
 		 * A model's total, for everyone together, whose usage limit a batch can change,
 		 * with the same rules as {@link #PUBLIC}
 		 */
-		MODEL
+		MODEL,
+		/** A supported non-model engine's total, changed through a permission batch. */
+		ENGINE
 	}
 
 	/** What the subject is */
@@ -128,6 +130,8 @@ public class PermissionSubject {
 			return "public use";
 		case MODEL:
 			return "the model's total";
+		case ENGINE:
+			return "the engine's total";
 		default:
 			return "user " + id;
 		}

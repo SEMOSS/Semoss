@@ -39,6 +39,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
@@ -113,6 +114,22 @@ public final class SecurityAccessPermissionBatchUtils {
 			throw new IllegalArgumentException("The permission batches are not valid: " + e.getMessage());
 		}
 		PermissionBatchUtils.requireBatches(batches);
+		// Preserve the distinction between an additive field omitted by old clients
+		// and an explicit null that clears a new engine category's policy.
+		var input=JsonParser.parseString(json).getAsJsonArray();
+		for(int i=0;i<batches.size();i++) {
+			var batch=batches.get(i);
+			if(batch==null || batch.getChanges()==null || !input.get(i).isJsonObject())continue;
+			var raw=input.get(i).getAsJsonObject().get("changes");
+			if(raw==null || !raw.isJsonArray())continue;
+			for(int j=0;j<batch.getChanges().size();j++) {
+				var change=batch.getChanges().get(j);
+				if(change==null || change.getTo()==null || !raw.getAsJsonArray().get(j).isJsonObject())continue;
+				var to=raw.getAsJsonArray().get(j).getAsJsonObject().get("to");
+				if(to!=null && to.isJsonObject() && to.getAsJsonObject().has("engineUsageLimit"))
+					change.getTo().withEngineUsageLimit(change.getTo().getEngineUsageLimit());
+			}
+		}
 		return batches;
 	}
 

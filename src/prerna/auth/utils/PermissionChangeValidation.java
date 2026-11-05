@@ -33,6 +33,8 @@ import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.ModelUsageLimitKey;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionProblem;
+import prerna.engine.impl.usage.UsageLimit;
+import prerna.engine.impl.usage.UsageLimitKey;
 
 /**
  * The validation of one change of a permission batch. Saving a batch works from
@@ -100,6 +102,22 @@ final class PermissionChangeValidation {
 	 * level passes, since only owners set usage limits.
 	 */
 	private boolean keepsUsageLimit;
+	private UsageLimitKey engineLimitKey;
+	private UsageLimit engineUsageLimit;
+	private UsageLimit currentEngineUsageLimit;
+	private boolean keepsEngineUsageLimit = true;
+
+	void setEngineUsageLimitChange(UsageLimitKey key, UsageLimit before, UsageLimit after, boolean keep) {
+		this.engineLimitKey = key;
+		this.currentEngineUsageLimit = before;
+		this.engineUsageLimit = after;
+		this.keepsEngineUsageLimit = keep;
+	}
+
+	UsageLimitKey getEngineLimitKey() { return engineLimitKey; }
+	UsageLimit getEngineUsageLimit() { return engineUsageLimit; }
+	UsageLimit getCurrentEngineUsageLimit() { return currentEngineUsageLimit; }
+	boolean keepsEngineUsageLimit() { return keepsEngineUsageLimit; }
 	/** Why the change cannot be made, or null while it can */
 	private String reason;
 	/** The type of problem, when the change cannot be made */

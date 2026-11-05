@@ -41,6 +41,11 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.database.usage.DatabaseUsageGuard;
+import prerna.engine.impl.usage.UsageLimitException;
+import prerna.engine.impl.database.usage.UsageTrackingSelectWrapper;
+import prerna.engine.impl.database.usage.UsageTrackingLegacyWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.json.JsonWrapper;
 import prerna.engine.impl.json.JsonWrapper2;
 import prerna.engine.impl.web.WebWrapper;
@@ -53,6 +58,8 @@ import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.usertracking.UserQueryTrackingThread;
 import prerna.util.Constants;
 import prerna.util.SystemDefaultEngines;
+import prerna.engine.api.IEngineWrapper;
+import prerna.engine.impl.rdbms.MultiRDBMSNativeEngine;
 
 public final class WrapperManager {
 
@@ -168,6 +175,15 @@ public final class WrapperManager {
 	}
 
 	public IRawSelectWrapper getRawWrapper(IDatabaseEngine engine, SelectQueryStruct qs, boolean delayExecIfPossible)
+			throws Exception {
+		if (engine instanceof RDBMSNativeEngine || engine instanceof MultiRDBMSNativeEngine
+				|| !DatabaseUsageGuard.external(engine) || ThreadStore.getUser() == null) {
+			return getRawWrapperUnmetered(engine, qs, delayExecIfPossible);
+		}
+		return UsageTrackingSelectWrapper.create(engine, () -> getRawWrapperUnmetered(engine, qs, false), delayExecIfPossible);
+	}
+
+	private IRawSelectWrapper getRawWrapperUnmetered(IDatabaseEngine engine, SelectQueryStruct qs, boolean delayExecIfPossible)
 			throws Exception {
 		String engineId = engine.getEngineId();
 		boolean ignoreQueryLogging = ignoreDatabases.contains(engineId)
@@ -310,6 +326,7 @@ public final class WrapperManager {
 
 			if (genQueryString) {
 				boolean error = false;
+				boolean usageDenied = false;
 				String query = null;
 				try {
 					long start = System.currentTimeMillis();
@@ -358,9 +375,14 @@ public final class WrapperManager {
 					if (queryT != null) {
 						queryT.setFailed();
 					}
-					classLogger.error(
-							"Failed to compose or execute SelectQueryStruct query for engine {} (database type {}). Generated query = {}",
-							engine.getEngineId(), engine.getDatabaseType(), query, e);
+					usageDenied = e instanceof UsageLimitException;
+					if (usageDenied) {
+						classLogger.debug("Read denied by usage policy for engine {}", engine.getEngineId());
+					} else {
+						classLogger.error(
+								"Failed to compose or execute SelectQueryStruct query for engine {} (database type {}). Generated query = {}",
+								engine.getEngineId(), engine.getDatabaseType(), query, e);
+					}
 					error = true;
 					throw e;
 				} finally {
@@ -368,7 +390,7 @@ public final class WrapperManager {
 					// if the wrapper is created
 					// but not returned
 					if (error && returnWrapper != null) {
-						if (classLogger.isDebugEnabled()) {
+						if (classLogger.isDebugEnabled() && !usageDenied) {
 							classLogger.error("Error occurred executing query on engine {} with query = {}",
 									engine.getEngineId(), query);
 						}
@@ -398,6 +420,10 @@ public final class WrapperManager {
 	 * @throws Exception
 	 */
 	public IRawSelectWrapper getRawWrapper(IDatabaseEngine engine, String query) throws Exception {
+		return UsageTrackingSelectWrapper.create(engine, () -> getRawWrapperUnmetered(engine, query), false);
+	}
+
+	private IRawSelectWrapper getRawWrapperUnmetered(IDatabaseEngine engine, String query) throws Exception {
 		String engineId = engine.getEngineId();
 		boolean ignoreQueryLogging = ignoreDatabases.contains(engineId)
 				|| engineId.endsWith(Constants.OWL_ENGINE_SUFFIX)
@@ -475,6 +501,7 @@ public final class WrapperManager {
 			}
 
 			boolean error = false;
+			boolean usageDenied = false;
 			try {
 				returnWrapper.setEngine(engine);
 				returnWrapper.setQuery(query);
@@ -512,9 +539,13 @@ public final class WrapperManager {
 				if (queryT != null) {
 					queryT.setFailed();
 				}
-				;
-				classLogger.error("Failed to execute raw query for engine {} (database type {}). Query = {}",
-						engine.getEngineId(), engine.getDatabaseType(), query, e);
+				usageDenied = e instanceof UsageLimitException;
+				if (usageDenied) {
+					classLogger.debug("Read denied by usage policy for engine {}", engine.getEngineId());
+				} else {
+					classLogger.error("Failed to execute raw query for engine {} (database type {}). Query = {}",
+							engine.getEngineId(), engine.getDatabaseType(), query, e);
+				}
 				error = true;
 				throw e;
 			} finally {
@@ -522,7 +553,7 @@ public final class WrapperManager {
 				// if the wrapper is created
 				// but not returned
 				if (error && returnWrapper != null) {
-					if (classLogger.isDebugEnabled()) {
+					if (classLogger.isDebugEnabled() && !usageDenied) {
 						classLogger.error("Error occurred executing query on engine {} with query = {}",
 								engine.getEngineId(), query);
 					}
@@ -552,8 +583,19 @@ public final class WrapperManager {
 	 * Deprecated methods
 	 */
 
+	private static void propagateUsageDenied(Exception failure,IEngineWrapper wrapper) {
+		if(failure instanceof UsageLimitException denied) {
+			try {wrapper.close();} catch(Exception close) {denied.addSuppressed(close);}
+			throw denied;
+		}
+	}
+
 	@Deprecated
 	public ISelectWrapper getSWrapper(IDatabaseEngine engine, String query) {
+		return UsageTrackingLegacyWrapper.create(engine,ISelectWrapper.class,() -> getSWrapperUnmetered(engine,query));
+	}
+
+	private ISelectWrapper getSWrapperUnmetered(IDatabaseEngine engine, String query) {
 		ISelectWrapper returnWrapper = null;
 		switch (engine.getDatabaseType()) {
 		case SESAME: {
@@ -584,6 +626,7 @@ public final class WrapperManager {
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
+			propagateUsageDenied(e,returnWrapper);
 			classLogger.error(
 					"Failed to execute deprecated getSWrapper query on engine {} (database type {}). Query = {}",
 					engine.getEngineId(), engine.getDatabaseType(), query, e);
@@ -595,6 +638,10 @@ public final class WrapperManager {
 
 	@Deprecated
 	public IConstructWrapper getCWrapper(IDatabaseEngine engine, String query) {
+		return UsageTrackingLegacyWrapper.create(engine,IConstructWrapper.class,() -> getCWrapperUnmetered(engine,query));
+	}
+
+	private IConstructWrapper getCWrapperUnmetered(IDatabaseEngine engine, String query) {
 		IConstructWrapper returnWrapper = null;
 		switch (engine.getDatabaseType()) {
 		case SESAME: {
@@ -623,6 +670,7 @@ public final class WrapperManager {
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
+			propagateUsageDenied(e,returnWrapper);
 			classLogger.error(
 					"Failed to execute deprecated getCWrapper query on engine {} (database type {}). Query = {}",
 					engine.getEngineId(), engine.getDatabaseType(), query, e);
@@ -632,6 +680,10 @@ public final class WrapperManager {
 
 	@Deprecated
 	public IConstructWrapper getChWrapper(IDatabaseEngine engine, String query) {
+		return UsageTrackingLegacyWrapper.create(engine,IConstructWrapper.class,() -> getChWrapperUnmetered(engine,query));
+	}
+
+	private IConstructWrapper getChWrapperUnmetered(IDatabaseEngine engine, String query) {
 		IConstructWrapper returnWrapper = null;
 		switch (engine.getDatabaseType()) {
 		case SESAME: {
@@ -665,6 +717,7 @@ public final class WrapperManager {
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
+			propagateUsageDenied(e,returnWrapper);
 			classLogger.error(
 					"Failed to execute deprecated getChWrapper query on engine {} (database type {}). Query = {}",
 					engine.getEngineId(), engine.getDatabaseType(), query, e);

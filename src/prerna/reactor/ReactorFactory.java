@@ -390,6 +390,8 @@ import prerna.util.Utility;
 import prerna.util.usertracking.reactors.ExtractDatabaseMetaReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationsReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
+import prerna.reactor.database.GetDatabaseUsageLimitsReactor;
+import prerna.reactor.database.SetDatabaseUsageLimitReactor;
 
 public class ReactorFactory {
 
@@ -691,6 +693,8 @@ public class ReactorFactory {
 		reactorHash.put("RegexFilter", RegexFilterReactor.class);
 		reactorHash.put("Having", HavingReactor.class);
 		reactorHash.put("Query", QueryReactor.class);
+		reactorHash.put("SetDatabaseUsageLimit", SetDatabaseUsageLimitReactor.class);
+		reactorHash.put("GetDatabaseUsageLimits", GetDatabaseUsageLimitsReactor.class);
 		reactorHash.put("Distinct", DistinctReactor.class);
 		reactorHash.put("ImplicitFilterOverride", ImplicitFilterOverrideReactor.class);
 		reactorHash.put("QueryAll", QueryAllReactor.class);

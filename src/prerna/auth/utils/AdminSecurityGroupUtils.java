@@ -266,6 +266,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					}
 				}
 				SecurityModelUsageLimitUtils.deleteTeamLimits(conn, groupId, groupType);
+				SecurityEngineUsageLimitUtils.deleteTeamPolicies(conn, groupId, groupType);
 				return null;
 			});
 			UserAuditTrailUtils.recordGroupAdmin(null, true, AuditEventType.GROUP_DELETE, groupId, groupType, null,
@@ -276,6 +277,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		// the team's grants and limits are gone, so the cached limits are read again
 		SecurityModelUsageLimitUtils.markChanged();
+		SecurityEngineUsageLimitUtils.markChanged();
 	}
 
 	/**
@@ -349,9 +351,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, curGroupType);
 					});
 				}
+				SecurityEngineUsageLimitUtils.renameTeamPolicies(conn, curGroupId, newGroupId, curGroupType);
 				return null;
 			});
 			SecurityModelUsageLimitUtils.markChanged();
+			SecurityEngineUsageLimitUtils.markChanged();
 			Map<String, Object> newDetails = new HashMap<>();
 			newDetails.put("groupId", newGroupId);
 			newDetails.put("description", newDescription);

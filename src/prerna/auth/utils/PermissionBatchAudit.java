@@ -205,7 +205,7 @@ final class PermissionBatchAudit {
 	 */
 	private static boolean isModelLimit(PermissionChangeValidation validation) {
 		SubjectCategory category = validation.getChange().getSubject().getCategory();
-		return category == SubjectCategory.PUBLIC || category == SubjectCategory.MODEL;
+		return category == SubjectCategory.PUBLIC || category == SubjectCategory.MODEL || category == SubjectCategory.ENGINE;
 	}
 
 	private static AuditEvent event(User user, PermissionBatchOptions options, AuditEventType type,

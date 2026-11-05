@@ -31,20 +31,16 @@ import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import org.javatuples.Pair;
 
-import prerna.auth.AccessToken;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.ModelUsageLimitKey;
@@ -94,8 +90,6 @@ import prerna.util.ValueUtils;
  * </ul>
  */
 public final class ModelUsageLimitResolver {
-
-	private static final String CUSTOM = SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE;
 
 	private ModelUsageLimitResolver() {
 
@@ -153,45 +147,9 @@ public final class ModelUsageLimitResolver {
 		if (user == null || user.isAnonymous()) {
 			throw new IllegalArgumentException("Sign in to use models");
 		}
-		Pair<String, String> primary = User.getPrimaryUserIdAndTypePair(user);
-		List<Pair<String, String>> logins = new ArrayList<>();
-		logins.add(primary);
-		for (Pair<String, String> login : User.getUserIdAndType(user)) {
-			if (!logins.contains(login)) {
-				logins.add(login);
-			}
-		}
-		List<TeamMembership> teams = new ArrayList<>();
-		Set<String> seen = new HashSet<>();
-		AuthProvider primaryLogin = user.getPrimaryLogin();
-		List<AuthProvider> ordered = new ArrayList<>();
-		ordered.add(primaryLogin);
-		for (AuthProvider login : user.getLogins()) {
-			if (login != primaryLogin) {
-				ordered.add(login);
-			}
-		}
-		for (AuthProvider login : ordered) {
-			AccessToken token = user.getAccessToken(login);
-			if (token == null) {
-				continue;
-			}
-			for (TeamMembership membership : readCustomMemberships(token.getId(), login.getLabel())) {
-				if (seen.add(membership.teamType() + ":" + membership.teamId())) {
-					teams.add(membership);
-				}
-			}
-			Collection<String> providerGroups = token.getUserGroups();
-			String providerGroupType = token.getUserGroupType();
-			if (providerGroups != null && providerGroupType != null) {
-				for (String groupId : providerGroups) {
-					if (seen.add(providerGroupType + ":" + groupId)) {
-						teams.add(new TeamMembership(groupId, providerGroupType, null));
-					}
-				}
-			}
-		}
-		return new Person(primary.getValue0(), primary.getValue1(), logins, teams);
+		EngineUsageIdentity.Person person = EngineUsageIdentity.personOf(user);
+		return new Person(person.userId(), person.type(), person.logins(), person.teams().stream()
+				.map(team -> new TeamMembership(team.teamId(), team.teamType(), team.joined())).toList());
 	}
 
 	/**
@@ -205,7 +163,9 @@ public final class ModelUsageLimitResolver {
 	 */
 	public static Person storedPerson(String userId, String type) {
 		ValueUtils.requireNonBlank(userId, "Must define the user");
-		return new Person(userId, type, List.of(Pair.with(userId, type)), readCustomMemberships(userId, type));
+		EngineUsageIdentity.Person person = EngineUsageIdentity.storedPerson(userId, type);
+		return new Person(person.userId(), person.type(), person.logins(), person.teams().stream()
+				.map(team -> new TeamMembership(team.teamId(), team.teamType(), team.joined())).toList());
 	}
 
 	/**
@@ -396,27 +356,6 @@ public final class ModelUsageLimitResolver {
 
 	private static boolean hasEnded(Timestamp endDate, Timestamp now) {
 		return endDate != null && endDate.before(now);
-	}
-
-	private static List<TeamMembership> readCustomMemberships(String userId, String type) {
-		if (userId == null || type == null) {
-			return Collections.emptyList();
-		}
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Timestamp now = Utility.getCurrentSqlTimestampUTC();
-		try {
-			List<TeamMembership> memberships = QueryExecutionUtility.queryList(securityDb,
-					"SELECT GROUPID, DATEADDED, ENDDATE FROM CUSTOMGROUPASSIGNMENT WHERE USERID = ? AND TYPE = ?",
-					ps -> {
-						ps.setString(1, userId);
-						ps.setString(2, type);
-					}, rs -> hasEnded(rs.getTimestamp("ENDDATE"), now) ? null
-							: new TeamMembership(rs.getString("GROUPID"), CUSTOM, rs.getTimestamp("DATEADDED")));
-			memberships.removeIf(Objects::isNull);
-			return memberships;
-		} catch (Exception e) {
-			throw new IllegalStateException("Unable to read the person's teams", e);
-		}
 	}
 
 	/**

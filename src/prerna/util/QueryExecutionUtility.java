@@ -60,6 +60,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.engine.impl.database.usage.JdbcReadUsage;
 
 /**
  * Executes database queries and materializes their results as Java scalars and
@@ -438,8 +439,8 @@ public class QueryExecutionUtility {
 		if (pooling) {
 			return withJdbcConnection(engine, connection, write, work);
 		}
-		// Engine proxies can share the same non-pooled connection.
-		synchronized (connection) {
+		// Metered proxies can differ while sharing the same non-pooled handle.
+		synchronized (JdbcReadUsage.transactionIdentity(connection)) {
 			return withJdbcConnection(engine, connection, write, work);
 		}
 	}

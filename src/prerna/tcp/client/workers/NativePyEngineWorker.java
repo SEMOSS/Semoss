@@ -40,6 +40,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.IStringExportProcessor;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
@@ -74,6 +75,8 @@ public class NativePyEngineWorker implements Runnable {
 	@Override
 	public void run() {
 		IRawSelectWrapper wrapper = null;
+		User previousUser = ThreadStore.getUser();
+		ThreadStore.setUser(this.user);
 		try {
 			String engineId = ps.objId;
 			boolean canAccess = SecurityEngineUtils.userCanViewEngine(user, engineId); 
@@ -123,12 +126,17 @@ public class NativePyEngineWorker implements Runnable {
 			ps.ex = errorMessage;
 			ps.response = true;
 		} finally {
-			if(wrapper != null) {
-				try {
+			try {
+				if (wrapper != null) {
 					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
 				}
+			} catch (IOException | RuntimeException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				if (ps.ex == null) {
+					ps.ex = "Unable to finish the database read";
+				}
+			} finally {
+				ThreadStore.setUser(previousUser);
 			}
 		}
 		output = ps;

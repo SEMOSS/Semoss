@@ -27,94 +27,12 @@
  *******************************************************************************/
 package prerna.engine.impl.model.usage;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
+import prerna.engine.impl.usage.UsageReservation;
 
-/**
- * What a call holds on its counters while it runs. Each counter keeps its
- * reservations in buckets named by the minute they expire in, so a call that is
- * lost, with its node or otherwise, stops holding anything once its reservation
- * expires.
- *
- * <p>
- * What is still held is tracked here too, so releases taken from it, such as
- * the parts of a batch billed as they come in, never give back more than was
- * reserved.
- * </p>
- */
-public final class ModelUsageReservation {
-
-	private final long expiryMinute;
-	private final Map<String, Long> remaining = new LinkedHashMap<>();
-
-	/**
-	 * Makes the reservation of what a call holds on each counter. An amount of 0 or
-	 * less is left out.
-	 *
-	 * @param expiryMinute the epoch minute the reservation expires in; it counts
-	 *                     while the current minute is before it
-	 * @param amounts      what is held on each counter
-	 */
+/** Model compatibility name for an engine-neutral reservation. */
+public final class ModelUsageReservation extends UsageReservation {
 	public ModelUsageReservation(long expiryMinute, Map<String, Long> amounts) {
-		this.expiryMinute = expiryMinute;
-		if (amounts != null) {
-			for (Map.Entry<String, Long> entry : amounts.entrySet()) {
-				if (entry.getValue() != null && entry.getValue() > 0) {
-					this.remaining.merge(entry.getKey(), entry.getValue(), Long::sum);
-				}
-			}
-		}
-	}
-
-	/**
-	 * The epoch minute the reservation expires in, which names the bucket each
-	 * counter keeps it in.
-	 *
-	 * @return the epoch minute the reservation expires in
-	 */
-	public long getExpiryMinute() {
-		return expiryMinute;
-	}
-
-	/**
-	 * Whether the reservation holds nothing on any counter, so there is nothing to
-	 * give back.
-	 *
-	 * @return whether nothing is held any more
-	 */
-	public synchronized boolean isEmpty() {
-		return remaining.isEmpty();
-	}
-
-	/**
-	 * Takes part of what is held on one counter, for a store to release.
-	 *
-	 * @param key    the counter
-	 * @param amount the most to take
-	 * @return what was taken, never more than is held
-	 */
-	public synchronized long take(String key, long amount) {
-		Long held = remaining.get(key);
-		if (held == null || amount <= 0) {
-			return 0;
-		}
-		long taken = Math.min(held, amount);
-		if (held - taken <= 0) {
-			remaining.remove(key);
-		} else {
-			remaining.put(key, held - taken);
-		}
-		return taken;
-	}
-
-	/**
-	 * Takes everything still held, for a store to release.
-	 *
-	 * @return what was held on each counter
-	 */
-	public synchronized Map<String, Long> takeAll() {
-		Map<String, Long> all = new LinkedHashMap<>(remaining);
-		remaining.clear();
-		return all;
+		super(expiryMinute, amounts);
 	}
 }

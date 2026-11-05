@@ -72,6 +72,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.usage.ModelUsageCost;
+import prerna.engine.impl.usage.UsageLimitKey.Source;
 import prerna.io.connector.ms.MicrosoftGraphUserLookup;
 import prerna.notifications.NotificationDbUtils;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -466,6 +467,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		SecurityModelUsageLimitUtils.markChanged();
 
 		PermissionBatchAudit.recordChanges(user, toSave, options);
+		EngineUsagePermissionSupport.audit(user,toSave,options.isAdminMode());
 
 		// Step 6: after the save, the people given access to a project or an engine,
 		// or whose access to one changed, are notified as the options say, so nobody
@@ -541,6 +543,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		if (row.containsKey(USAGE_LIMIT_KEY)) {
 			grant.withUsageLimit(readUsageLimit(row.get(USAGE_LIMIT_KEY)));
 		}
+		if(row.containsKey("engineUsageLimit")) grant.withEngineUsageLimit(SecurityEngineUsageLimitUtils.decode(row.get("engineUsageLimit") instanceof String json ? json : GsonUtility.getDefaultGson().toJson(row.get("engineUsageLimit"))));
 		return grant;
 	}
 
@@ -988,12 +991,15 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			} else if (target.getResourceType() == PermissionTargetResource.TargetResourceType.TEAM_MANAGERS) {
 				validateManagerChange(target, allowed, change);
 			} else if (isModelLimitSubject(subject)) {
-				validateModelLimitChange(target, allowed, change, limits);
+				if (limits != null && limits.generic != null) EngineUsagePermissionSupport.validate(target,allowed,change,limits.generic);
+				else validateModelLimitChange(target, allowed, change, limits);
 			} else if (subject.getCategory() == PermissionSubject.SubjectCategory.TEAM) {
 				validateTeamChange(target, allowed, change, options, limits);
 			} else {
 				validatePersonChange(user, target, allowed, change, existingLevels, options, limits);
 			}
+			if (!change.isBlocked() && !isModelLimitSubject(subject))
+				EngineUsagePermissionSupport.validate(target,allowed,change,limits == null ? null : limits.generic);
 		}
 		return validation;
 	}
@@ -1492,6 +1498,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	 */
 	private static boolean hasLimitOnlyOwnersChange(PermissionTargetResource target, PermissionAllowedChanges allowed,
 			PermissionChangeValidation validation, EngineUsageLimits limits) {
+		if (limits != null && limits.generic != null) return !allowed.isOwner() && limits.generic.hasDirect(validation.getSubjectId());
 		if (limits == null || !limits.isModel() || allowed.canChangeModelLimits()) {
 			return false;
 		}
@@ -1651,6 +1658,10 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			return;
 		}
 
+		// The legacy MODEL subject and payload remain model-only.
+		if (validation.getChange().getSubject().getCategory() == PermissionSubject.SubjectCategory.ENGINE) {
+			validation.block(PermissionProblem.ErrorCode.INVALID_USAGE_LIMIT,"This target does not support engine usage limits");return;
+		}
 		// Step 2: only a model has a public use limit and a total
 		if (!limits.isModel()) {
 			validation.block(PermissionProblem.ErrorCode.INVALID_USAGE_LIMIT, MODEL_LIMITS_ONLY_ON_MODELS);
@@ -2248,6 +2259,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	 */
 	private static void writeUsageLimit(Connection conn, PermissionChangeValidation validation, Pair<String, String> by)
 			throws Exception {
+		EngineUsagePermissionSupport.write(conn,validation,by);
 		ModelUsageLimitKey key = validation.getLimitKey();
 		if (key == null || validation.keepsUsageLimit()) {
 			return;
@@ -2346,7 +2358,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		for (Map<String, Object> row : peopleRows) {
 			Map<String, Object> person = new LinkedHashMap<>();
 			person.put("subject", personSubject(row));
-			person.put("access", isTeam ? null : grantOf(row, directLimit(limits, row)));
+			person.put("access", isTeam ? null : grantOf(row, directLimit(limits, row),limits));
 			people.add(person);
 		}
 
@@ -2365,6 +2377,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 									String.valueOf(row.get("TYPE")))));
 			Map<String, Object> team = new LinkedHashMap<>();
 			team.put("subject", subject);
+			if(limits != null && limits.generic != null) limits.generic.decorateGrant(access,Source.TEAM,String.valueOf(row.get("ID")),String.valueOf(row.get("TYPE")));
 			team.put("access", access);
 			teams.add(team);
 		}
@@ -2399,6 +2412,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			result.put("costLimitsAvailable", limits.costLimitsAvailable());
 			result.put("price", ModelUsageCost.priceEntry(engineId));
 		}
+		if(limits != null && limits.generic != null) limits.generic.decorateSettings(result,allowedChanges,allowed.isOwner());
 		return result;
 	}
 
@@ -2455,9 +2469,9 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			Map<String, Object> inTarget = targetRows.get(personKey(target, row));
 			Map<String, Object> copy = new LinkedHashMap<>();
 			copy.put("subject", personSubject(row));
-			copy.put("source", isTeamTarget(source) ? null : grantOf(row, directLimit(sourceLimits, row)));
+			copy.put("source", isTeamTarget(source) ? null : grantOf(row, directLimit(sourceLimits, row),sourceLimits));
 			copy.put("target", inTarget == null || isTeamTarget(target) ? null
-					: grantOf(inTarget, directLimit(targetLimits, inTarget)));
+					: grantOf(inTarget, directLimit(targetLimits, inTarget),targetLimits));
 			copy.put("inTarget", inTarget != null);
 			rows.add(copy);
 		}
@@ -2605,11 +2619,12 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	 * @return the grant in the shape batches use: {@code level}, {@code endDate}
 	 *         and {@code usageLimit}
 	 */
-	private static Map<String, Object> grantOf(Map<String, Object> person, ModelUsageLimit limit) {
+	private static Map<String, Object> grantOf(Map<String, Object> person, ModelUsageLimit limit,EngineUsageLimits limits) {
 		Map<String, Object> grant = new LinkedHashMap<>();
 		grant.put("level", person.get("permission"));
 		grant.put("endDate", toIsoUtc(person.get("end_date")));
 		grant.put("usageLimit", limit);
+		if(limits != null && limits.generic != null) limits.generic.decorateGrant(grant,Source.DIRECT,String.valueOf(person.get("id")),ValueUtils.toStringOrNull(person.get("type")));
 		return grant;
 	}
 
@@ -2727,7 +2742,8 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	 */
 	private static boolean isModelLimitSubject(PermissionSubject subject) {
 		return subject != null && (subject.getCategory() == PermissionSubject.SubjectCategory.PUBLIC
-				|| subject.getCategory() == PermissionSubject.SubjectCategory.MODEL);
+				|| subject.getCategory() == PermissionSubject.SubjectCategory.MODEL
+				|| subject.getCategory() == PermissionSubject.SubjectCategory.ENGINE);
 	}
 
 	/**
@@ -2780,12 +2796,14 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		private final String engineId;
 		private final boolean isModel;
 		private final Map<ModelUsageLimitKey, ModelUsageLimit> current;
+		private final EngineUsagePermissionSupport.Context generic;
 		private Boolean costLimitsAvailable;
 
 		private EngineUsageLimits(String engineId, boolean isModel, Map<ModelUsageLimitKey, ModelUsageLimit> current) {
 			this.engineId = engineId;
 			this.isModel = isModel;
 			this.current = current;
+			this.generic = EngineUsagePermissionSupport.read(engineId,isModel);
 		}
 
 		/**

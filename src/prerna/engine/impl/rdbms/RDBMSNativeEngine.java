@@ -62,6 +62,7 @@ import prerna.engine.api.SqlTransactionException;
 import prerna.engine.api.SqlTransactionResult;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.database.usage.JdbcReadUsage;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.parsers.SqlScriptSplitter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -529,7 +530,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				conn.setTransactionIsolation(this.transactionIsolationType);
 			}
 			this.queryUtil.enhanceConnection(conn);
-			return conn;
+			return JdbcReadUsage.wrap(this, conn);
 		}
 
 		// re-establish bad connections
@@ -563,7 +564,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			this.engineConnected = true;
 		}
 
-		return this.engineConn;
+		return JdbcReadUsage.wrap(this, this.engineConn);
 	}
 
 	@Override
@@ -1074,6 +1075,11 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		} catch (SQLException e) {
 			classLogger.warn("Error with query {}", query);
 			classLogger.error("Failed to execute query: {}", e.getMessage(), e);
+			hasError = true;
+			throw e;
+		} catch (RuntimeException e) {
+			// Usage admission may refuse before JDBC executes. Release the statement
+			// and any pooled connection just as for a driver failure.
 			hasError = true;
 			throw e;
 		} finally {

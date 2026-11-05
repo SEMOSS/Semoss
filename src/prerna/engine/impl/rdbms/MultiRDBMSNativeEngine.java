@@ -61,6 +61,7 @@ import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.engine.impl.database.usage.JdbcReadUsage;
 
 public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSEngine {
 
@@ -272,7 +273,8 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 
 	@Override
 	public Connection getConnection() throws SQLException {
-		return getContext().getConnection();
+		RDBMSNativeEngine context = getContext();
+		return JdbcReadUsage.withEngine(this, context::getConnection);
 	}
 
 	@Override
@@ -293,7 +295,8 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 
 	@Override
 	public Map<String, Object> execQuery(String query) throws SQLException {
-		return getContext().execQuery(query);
+		RDBMSNativeEngine context = getContext();
+		return JdbcReadUsage.withEngine(this, () -> context.execQuery(query));
 	}
 
 	@Override
@@ -379,7 +382,8 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 
 	@Override
 	public java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException {
-		return getContext().getPreparedStatement(sql);
+		RDBMSNativeEngine context = getContext();
+		return JdbcReadUsage.withEngine(this, () -> context.getPreparedStatement(sql));
 	}
 
 	@Override

@@ -1128,16 +1128,18 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
 				SecurityModelUsageLimitUtils.deleteEngineLimits(connection, engineId);
+				SecurityEngineUsageLimitUtils.deleteEnginePolicies(connection, engineId);
 				return null;
 			});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to delete the engine's model usage limits", e);
+			classLogger.error("Failed to delete the engine's usage limits", e);
 		} finally {
 			// the grants are gone even when the limits are not, so the cached limits are
 			// read again
 			SecurityModelUsageLimitUtils.markChanged();
+			SecurityEngineUsageLimitUtils.markChanged();
 		}
 	}
 
@@ -1213,6 +1215,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, engineId);
 				});
 				SecurityModelUsageLimitUtils.deleteDirectLimitsWithoutGrant(connection, userId);
+				SecurityEngineUsageLimitUtils.deleteDirectPolicies(connection,engineId,userId);
 				return null;
 			});
 			SecurityModelUsageLimitUtils.markChanged();

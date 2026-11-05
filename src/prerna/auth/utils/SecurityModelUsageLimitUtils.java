@@ -66,6 +66,7 @@ import prerna.util.Utility;
 import prerna.util.ValueUtils;
 import prerna.util.gson.GsonUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.engine.impl.usage.UsagePolicyVersion;
 
 /**
  * Reads and writes model usage limits, kept in {@code MODELUSAGELIMIT} (one row
@@ -171,6 +172,8 @@ public final class SecurityModelUsageLimitUtils {
 	 */
 	static void markChanged() {
 		VERSION.incrementAndGet();
+		// Grants and memberships also determine policies of other engine catalogs.
+		UsagePolicyVersion.changed();
 	}
 
 	/*

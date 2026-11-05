@@ -1290,6 +1290,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			QueryExecutionUtility.write(securityDb, connection -> {
 				SecurityModelUsageLimitUtils.deleteAllModelsDefault(connection, userIdToDelete, userTypeToDelete);
 				SecurityModelUsageLimitUtils.deleteDirectLimitsWithoutGrant(connection, userIdToDelete);
+				SecurityEngineUsageLimitUtils.deleteUserPolicies(connection, userIdToDelete, userTypeToDelete);
 				return null;
 			});
 		} catch (RuntimeException e) {
@@ -1300,6 +1301,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			// the person's grants and team memberships are gone even when the limits are
 			// not, so the cached limits are read again
 			SecurityModelUsageLimitUtils.markChanged();
+			SecurityEngineUsageLimitUtils.markChanged();
 		}
 //		{
 //			String[] deleteQueries = new String[] {

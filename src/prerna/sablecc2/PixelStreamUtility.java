@@ -123,6 +123,11 @@ public class PixelStreamUtility {
 	 */
 	public static StreamingOutput collectPixelData(PixelRunner runner, PixelJobRunner pixelJobRunner,
 			Runnable afterWrite) {
+		// Deferred queries may run on a different response thread than the Pixel job.
+		// Capture the trusted actor, not whichever user happens to be on that thread.
+		var executionInsight = pixelJobRunner == null ? null : pixelJobRunner.getInsight();
+		if (executionInsight == null && runner != null) executionInsight = runner.getInsight();
+		var executionUser = executionInsight == null ? null : executionInsight.getUser();
 		// get the default gson object
 		Gson gson = GsonUtility.getDefaultGson();
 
@@ -137,6 +142,7 @@ public class PixelStreamUtility {
 						pixelJobRunner.setStatus(PixelJobStatus.STREAMING);
 					}
 					try {
+						ThreadStore.setUser(executionUser);
 						ps = new PrintStream(outputStream, true, StandardCharsets.UTF_8);
 						// we want to ignore the first index since it will be a job
 						classLogger.debug("Starting to generate response");
@@ -613,9 +619,17 @@ public class PixelStreamUtility {
 						}
 					} catch (Exception e) {
 						classLogger.error("Failed to flush task {} data to stream", task.getId(), e);
-						// let us send back an error
-						ps.print("\"output\":");
-						ps.print(gson.toJson(e.getMessage()));
+						// A quota can be reached after rows have already been streamed. Close
+						// the partial result rather than emitting malformed JSON or success.
+						if (!first) {
+							if (!flushable) ps.print("]");
+							ps.print(",\"headers\":" + gson.toJson(headers));
+							ps.print(",\"rawHeaders\":" + gson.toJson(rawHeaders));
+							ps.print("},\"incomplete\":true,\"errorMessage\":" + gson.toJson(e.getMessage()) + "}");
+						} else {
+							ps.print("\"output\":");
+							ps.print(gson.toJson(e.getMessage()));
+						}
 						ps.print(",\"operationType\":");
 						ps.print(gson.toJson(new PixelOperationType[] { PixelOperationType.ERROR }));
 						// close the map
@@ -628,7 +642,7 @@ public class PixelStreamUtility {
 						// close resources before returning
 						try {
 							task.close();
-						} catch (IOException e2) {
+						} catch (IOException | RuntimeException e2) {
 							classLogger.error("Failed to close task {} after streaming error", task.getId(), e2);
 						}
 						return;

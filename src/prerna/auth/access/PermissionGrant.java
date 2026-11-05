@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.auth.access;
 
+import prerna.engine.impl.usage.UsageLimit;
+
 /**
  * The access a subject has, or will have: a level, an optional end date, and
  * for a model engine an optional usage limit, {@link #getUsageLimit()}. In
@@ -57,6 +59,18 @@ public class PermissionGrant {
 	 * limit.
 	 */
 	private transient boolean usageLimitGiven;
+	/** New engine categories' policy; the model usageLimit contract is unchanged. */
+	private UsageLimit engineUsageLimit;
+	private transient boolean engineUsageLimitGiven;
+
+	public PermissionGrant withEngineUsageLimit(UsageLimit limit) {
+		this.engineUsageLimit = limit;
+		this.engineUsageLimitGiven = true;
+		return this;
+	}
+
+	public UsageLimit getEngineUsageLimit() { return engineUsageLimit; }
+	public boolean isEngineUsageLimitGiven() { return engineUsageLimitGiven; }
 
 	public PermissionGrant() {
 

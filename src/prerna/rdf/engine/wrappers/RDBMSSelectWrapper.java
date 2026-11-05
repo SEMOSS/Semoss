@@ -45,6 +45,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.util.SQLQueryParser;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.engine.impl.usage.UsageLimitException;
 
 public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrapper {
 
@@ -73,13 +74,15 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 
 			setVariables(); // get the variables
 		} catch (Exception e) {
-			classLogger.error("Error executing the query and retrieving the result set", e);
+			boolean usageDenied = e instanceof UsageLimitException;
+			if (!usageDenied) classLogger.error("Error executing the query and retrieving the result set", e);
 			// in case query times out, close rs object..
 			if (useEngineConnection) {
 				ConnectionUtils.closeAllConnections(null, stmt, rs);
 			} else {
 				ConnectionUtils.closeAllConnections(conn, stmt, rs);
 			}
+			if (usageDenied) throw (UsageLimitException) e;
 		}
 	}
 

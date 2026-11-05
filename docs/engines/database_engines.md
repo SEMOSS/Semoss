@@ -4,6 +4,15 @@ Engines of the `DATABASE` catalog type provide connectivity to various database 
 
 These engines are fundamental for accessing and working with structured and semi-structured data from sources like relational databases (PostgreSQL, MySQL, Oracle, SQL Server, H2), RDF triple stores (Jena, Sesame), graph databases (Neo4j, JanusGraph), and more.
 
+## Read usage limits
+
+Database reads support cumulative query-count, row, and elapsed-time budgets.
+Owners configure database policies through `SetDatabaseUsageLimit`; admins can
+also configure user/team totals and defaults across databases. Writes are not
+metered. See [shared engine usage limits](../engine_usage_limits/README.md) for
+the policy contract, execution coverage, recovery limitations, and examples.
+Existing model-limit contracts are unchanged.
+
 ## Core Concepts for Database Engines
 
 ### `prerna.engine.api.IDatabaseEngine` Interface

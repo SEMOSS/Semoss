@@ -40,6 +40,9 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.ModelUsageLimitKey;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
+import prerna.engine.impl.usage.UsageLimitKey;
+import prerna.engine.impl.usage.UsageLimitKey.Source;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
 import prerna.auth.access.PermissionGrant;
@@ -557,9 +560,11 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				// the team limit belongs to the grant
 				SecurityModelUsageLimitUtils.setLimit(conn, ModelUsageLimitKey.team(engineId, groupId, groupType), null,
 						null);
+				SecurityEngineUsageLimitUtils.setLimit(conn,new UsageLimitKey(CATALOG_TYPE.DATABASE,Source.TEAM,engineId,groupId,groupType),null,null);
 				return null;
 			});
 			SecurityModelUsageLimitUtils.markChanged();
+			SecurityEngineUsageLimitUtils.markChanged();
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

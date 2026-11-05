@@ -34,6 +34,7 @@ import java.util.Objects;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.database.usage.JdbcReadUsage;
 import prerna.query.interpreters.sql.ParameterizedSqlInterpreter.CompiledQuery;
 import prerna.usertracking.UserQueryTrackingThread;
 import prerna.util.ConnectionUtils;
@@ -258,7 +259,8 @@ public class RawPreparedRDBMSSelectWrapper extends RawRDBMSSelectWrapper {
 				tracker.setStartTimeNow();
 			}
 			IRDBMSEngine database = (IRDBMSEngine) this.engine;
-			this.conn = ownsReadTransaction ? database.getConnection() : borrowedConnection;
+			this.conn = JdbcReadUsage.wrap(database,
+					ownsReadTransaction ? database.getConnection() : borrowedConnection);
 			// Observe the existing mode without changing auto-commit. A borrowed
 			// connection never becomes our transaction to finish, even in manual mode.
 			this.manualReadTransaction = ownsReadTransaction && !this.conn.getAutoCommit();
@@ -327,7 +329,8 @@ public class RawPreparedRDBMSSelectWrapper extends RawRDBMSSelectWrapper {
 					count = QueryExecutionUtility.queryOne((IRDBMSEngine) engine, countSql, binder,
 							result -> result.getLong(1));
 				} else {
-					Connection countConnection = ownsReadTransaction ? conn : borrowedConnection;
+					Connection countConnection = JdbcReadUsage.wrap(engine,
+							ownsReadTransaction ? conn : borrowedConnection);
 					count = QueryExecutionUtility.queryOne(countConnection, countSql, binder,
 							result -> result.getLong(1));
 				}

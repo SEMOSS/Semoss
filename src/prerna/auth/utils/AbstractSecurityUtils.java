@@ -1118,6 +1118,9 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(sql);
 			}
 
+			// New catalog adapters use additive tables; never migrate or reset model limits.
+			EngineUsageSchema.initialize(securityDb, conn);
+
 			// ENGINEPERMISSION
 			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "PERMISSIONGRANTEDBY",
 					"PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };

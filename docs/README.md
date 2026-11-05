@@ -54,6 +54,7 @@ Documentation for the SEMOSS core runtime, agents and harnesses, engine integrat
 - [Internal databases and agent persistence](platform_services/internal_databases.md)
 - [Authentication and authorization](platform_services/authentication_and_authorization.md)
 - [Model usage limits](model_usage_limits/README.md): token, cost and compute-time limits on model calls, who sets them, and how every call is checked and billed.
+- [Shared engine usage limits](engine_usage_limits/README.md): database read query, row and elapsed-time budgets, shared counters, and model compatibility. See the [prioritized continuation backlog](engine_usage_limits/TODO.md) for remaining implementation and release checks.
 - [Java–Python communication](platform_services/java_python_communication.md)
 - [Monolith integration and API request flow](integrations/monolith_interaction.md)
 - [Monolith endpoints by application](https://github.com/SEMOSS/Monolith/blob/dev/docs/endpoints.md): `/api` engine routes, compatibility APIs, webhooks, health, tokens, and administrator setup.

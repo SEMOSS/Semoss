@@ -158,6 +158,24 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("WINDOWLENGTH", INTEGER_DATATYPE_NAME),
 				Pair.with("COUNTS", VARCHAR_20)));
 
+		// Catalog-scoped policies and recovery journal for new usage adapters.
+		addTable("ENGINEUSAGELIMIT", Arrays.asList(
+				Pair.with("ID", "VARCHAR(64)"),
+				Pair.with("CATALOGTYPE", "VARCHAR(32)"),
+				Pair.with("ENGINEID", VARCHAR_255),
+				Pair.with("LIMITSOURCE", "VARCHAR(32)"),
+				Pair.with("SUBJECTID", VARCHAR_255),
+				Pair.with("SUBJECTTYPE", VARCHAR_255),
+				Pair.with("LIMITJSON", CLOB_DATATYPE_NAME),
+				Pair.with("MODIFIEDAT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("MODIFIEDBY", VARCHAR_255),
+				Pair.with("MODIFIEDBYTYPE", VARCHAR_255)));
+		addTable("ENGINEUSAGEHISTORY", Arrays.asList(
+				Pair.with("ID", "VARCHAR(64)"),
+				Pair.with("COUNTERID", "VARCHAR(128)"),
+				Pair.with("AMOUNT", "BIGINT"),
+				Pair.with("EXPIRESAT", "BIGINT")));
+
 		addTable("PROJECT", Arrays.asList(
 				Pair.with("PROJECTID", VARCHAR_255),
 				Pair.with("PROJECTNAME", VARCHAR_255),
