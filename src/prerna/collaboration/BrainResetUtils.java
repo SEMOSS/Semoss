@@ -48,7 +48,8 @@ public final class BrainResetUtils {
 
 	// the owner row and source connections carry the Microsoft link; everything
 	// else goes
-	private static final Set<String> KEPT = Set.of("COLLAB_OWNER", "SOURCE_CONNECTION");
+	// BRAIN_OWN_MAIL is kept so a fresh import after a reset still skips mail Collaboration sent
+	private static final Set<String> KEPT = Set.of("COLLAB_OWNER", "SOURCE_CONNECTION", "BRAIN_OWN_MAIL");
 
 	private BrainResetUtils() {
 	}

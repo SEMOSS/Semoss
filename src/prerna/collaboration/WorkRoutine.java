@@ -1032,8 +1032,9 @@ final class WorkRoutine {
 				MicrosoftTeamsMessageHelper.sendChatMessage(token, MicrosoftTeamsSendChatMessageReactor.SELF_CHAT_ID,
 						text, false, null, null, null, 0);
 			} else {
-				new MicrosoftOutlookMailHelper().sendMail(token, null, MicrosoftOutlookMailHelper.buildMessage(subject,
-						text, false, new String[] { recipient }, null, null, null, null, null), true);
+				// marked and recorded, so mail import never reads the note back as the owner's
+				BrainOwnMail.send(user, token, MicrosoftOutlookMailHelper.buildMessage(subject, text, false,
+						new String[] { recipient }, null, null, null, null, null), "notice");
 			}
 		} catch (Exception e) {
 			classLogger.warn("Could not tell the owner their {} ran out of time", kind.label(), e);

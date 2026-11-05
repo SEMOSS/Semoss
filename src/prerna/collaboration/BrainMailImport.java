@@ -403,6 +403,7 @@ public final class BrainMailImport {
 		job.count("unsaved", run.unsaved);
 		job.count("alreadyImported", run.skipped);
 		job.count("keptOut", run.keptOut);
+		job.count("ownMail", run.ownMail);
 		// calendar mail seen; 0 on a real mailbox means Graph gave no @odata.type
 		job.count("meetingMessages", run.meetings);
 		job.count("threads", run.threads.size());
@@ -446,6 +447,10 @@ public final class BrainMailImport {
 		int imported;
 		int skipped;
 		int keptOut;
+		// mail Collaboration sent the owner, never read back
+		int ownMail;
+		// keys of that mail when the run started; a message sent during the run is looked up
+		final Set<String> sentByUs;
 		int meetings;
 		int newPeople;
 		// unique headers read so far, mail and Teams
@@ -458,6 +463,7 @@ public final class BrainMailImport {
 			this.ownerType = ownerType;
 			this.followUps = followUps;
 			this.rules = BrainRulesGate.activeRules(ownerId, ownerType);
+			this.sentByUs = BrainOwnMail.keys(ownerId, ownerType);
 			load(true);
 		}
 
@@ -627,6 +633,12 @@ public final class BrainMailImport {
 					owe(messageKey, (String) prior.get("threadId"), header, isSelf(from, names.get(from)),
 							toMe(roles, names));
 				}
+				return;
+			}
+			// mail Collaboration sent the owner: no thread, work, topic or routine trigger comes from it
+			if (SOURCE.equals(source) && (sentByUs.contains(messageKey) || BrainOwnMail.marked(header)
+					|| (selfAddresses.contains(from) && !BrainOwnMail.keys(ownerId, ownerType, messageKey).isEmpty()))) {
+				ownMail++;
 				return;
 			}
 			String conversationId = (String) header.get("conversationId");
