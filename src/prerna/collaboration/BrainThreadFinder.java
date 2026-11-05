@@ -337,8 +337,8 @@ public final class BrainThreadFinder {
 						"A thread already matches every word in its subject, summary, or people, so message text was not searched. "
 								+ "Search again with other words to look in message text.");
 			} else {
-				bodySearch = addBodyMatches(user, ownerId, ownerType, eligible, tokens, from, to, hits, privacy, selfId,
-						linkSource);
+				bodySearch = addBodyMatches(user, ownerId, ownerType, eligible, query, tokens, from, to, hits, privacy,
+						selfId, linkSource);
 			}
 		}
 		hits.sort(Comparator.<Map<String, Object>>comparingDouble(i -> -((Number) i.get("score")).doubleValue())
@@ -374,12 +374,13 @@ public final class BrainThreadFinder {
 	// message text, asked of the mailbox for the topic's threads; adds the threads it finds to the hits and says how
 	// far the search reached
 	private static Map<String, Object> addBodyMatches(User user, String ownerId, String ownerType,
-			List<ThreadRow> eligible, List<String> tokens, String from, String to, List<Map<String, Object>> hits,
-			Privacy privacy, String selfId, Map<String, String> linkSource) {
+			List<ThreadRow> eligible, String question, List<String> tokens, String from, String to,
+			List<Map<String, Object>> hits, Privacy privacy, String selfId, Map<String, String> linkSource) {
 		Map<String, Object> status = new LinkedHashMap<>();
 		BrainTopicBodySearch.Result result;
 		try {
-			result = BrainTopicBodySearch.search(user, ownerId, ownerType, ids(eligible), tokens, from, to, privacy);
+			result = BrainTopicJudge.search(user, ownerId, ownerType, ids(eligible), question, tokens, from, to,
+					privacy);
 		} catch (prerna.sablecc2.om.execptions.SemossPixelException e) {
 			throw e;
 		} catch (RuntimeException e) {
@@ -402,7 +403,10 @@ public final class BrainThreadFinder {
 				}
 				hits.add(item);
 			}
-			item.put("score", ((Number) item.get("score")).doubleValue() + 2 + Math.min(hit.matches(), 5) * 0.1);
+			// a model's judgement is worth more the more sure it is; a bare word match is worth two
+			double worth = hit.confidence() == null ? 2
+					: "high".equals(hit.confidence()) ? 3 : "medium".equals(hit.confidence()) ? 2 : 1;
+			item.put("score", ((Number) item.get("score")).doubleValue() + worth + Math.min(hit.matches(), 5) * 0.1);
 			@SuppressWarnings("unchecked")
 			List<String> matchedOn = (List<String>) item.computeIfAbsent("matchedOn", k -> new ArrayList<String>());
 			matchedOn.add("message text");
@@ -410,6 +414,16 @@ public final class BrainThreadFinder {
 			found.put("snippet", hit.snippet());
 			found.put("messageId", hit.messageId());
 			found.put("matchingMessages", hit.matches());
+			if (hit.confidence() != null) {
+				found.put("foundBy", "a model judged this passage relevant");
+				found.put("confidence", hit.confidence());
+				found.put("quote", hit.quote());
+				if (hit.reason() != null && !hit.reason().isBlank()) {
+					found.put("reason", hit.reason());
+				}
+			} else {
+				found.put("foundBy", "the search words");
+			}
 			if (hit.from() != null) {
 				found.put("from", hit.from());
 			}
@@ -420,6 +434,9 @@ public final class BrainThreadFinder {
 		}
 		status.put("status", result.status());
 		status.put("threadsMatched", result.hits().size());
+		if (!result.stats().isEmpty()) {
+			status.put("stats", result.stats());
+		}
 		if (!result.note().isEmpty()) {
 			status.put("note", result.note());
 		}
