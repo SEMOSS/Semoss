@@ -62,6 +62,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
@@ -598,7 +599,6 @@ public class S3StorageEngine extends AbstractStorageEngine {
 					if (versionId != null) {
 						lastVersionId.set(versionId);
 					}
-					// the object key, not the local path - rollbackUploads deletes by key
 					return new TransferOutcome(fileKey, null);
 				} catch (Exception e) {
 					classLogger.error("Failed to upload file: {}", file, e);
@@ -614,13 +614,14 @@ public class S3StorageEngine extends AbstractStorageEngine {
 				failedFiles.add(outcome.fileKey());
 			}
 		}
-		if (!failedFiles.isEmpty()) {
-			// rolled back once at the end rather than inside the loop, which used to
-			// re-delete the whole failed list on every failure
-			rollbackUploads(this.client, failedFiles);
-		}
-		// Delete empty blobs from S3
+
+		// folder marker cleanup logs and continues on failure, so it
+		// never turns a successful upload into a failed one
 		deleteEmptyBlobsFromS3(storageFolderPath);
+
+		if (!failedFiles.isEmpty()) {
+			throw new IOException("Upload to S3 failed for files: " + failedFiles);
+		}
 		if (uploadedFiles.isEmpty()) {
 			classLogger.debug("No files were uploaded.");
 		} else {
@@ -947,31 +948,30 @@ public class S3StorageEngine extends AbstractStorageEngine {
 		String normalizedPrefix = normalizeStoragePrefixPath(storagePrefix);
 		String prefix = normalizedPrefix.isEmpty() ? "" : normalizedPrefix + "/";
 
-		ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(this.bucket).prefix(prefix).build();
-		ListObjectsV2Iterable response = this.client.listObjectsV2Paginator(request);
-		SdkIterable<S3Object> contents = response.contents();
-		for (S3Object s3Object : contents) {
-			if (isFolderPlaceholder(s3Object.key(), s3Object.size())) {
-				DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket)
-						.key(s3Object.key()).build();
-				this.client.deleteObject(deleteRequest);
-				classLogger.debug("Deleted folder placeholder from S3: {}", s3Object.key());
-			}
-		}
-	}
-
-	private void rollbackUploads(S3Client client, List<String> failedFiles) {
-		for (String fileKey : failedFiles) {
-			try {
-				retryOperation(() -> {
-					DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket).key(fileKey)
-							.build();
+		try {
+			ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(this.bucket).prefix(prefix).build();
+			ListObjectsV2Iterable response = this.client.listObjectsV2Paginator(request);
+			SdkIterable<S3Object> contents = response.contents();
+			for (S3Object s3Object : contents) {
+				// only zero byte keys ending in "/" are folder markers; real files,
+				// including empty ones, are never deleted
+				if (!isFolderPlaceholder(s3Object.key(), s3Object.size())) {
+					continue;
+				}
+				try {
+					DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket)
+							.key(s3Object.key()).build();
 					this.client.deleteObject(deleteRequest);
-					classLogger.info("Rolled back failed upload: {}", fileKey);
-				}, "Rolling back failed upload: " + fileKey);
-			} catch (Exception e) {
-				classLogger.error("Rollback failed for: {}", fileKey, e);
+					classLogger.debug("Deleted folder placeholder from S3: {}", s3Object.key());
+				} catch (SdkException e) {
+					classLogger.warn("Could not delete folder placeholder {} in bucket {}: {}", s3Object.key(),
+							this.bucket, e.getMessage());
+				}
 			}
+		} catch (SdkException e) {
+			classLogger.warn(
+					"Could not list objects under prefix '{}' in bucket {}, skipping folder placeholder cleanup: {}",
+					prefix, this.bucket, e.getMessage());
 		}
 	}
 
