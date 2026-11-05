@@ -63,8 +63,8 @@ final class BrainTopicBodySearch {
 	// messages read for the fallback and for snippets
 	static final int MAX_SCAN = 40;
 	static final int MAX_SNIPPET_MESSAGES = 15;
-	private static final int SNIPPET_BEFORE = 80;
-	private static final int SNIPPET_AFTER = 140;
+	static final int SNIPPET_BEFORE = 80;
+	static final int SNIPPET_AFTER = 140;
 
 	static final String SEARCHED = "searched";
 	static final String PARTIAL = "partial";
@@ -75,15 +75,47 @@ final class BrainTopicBodySearch {
 	}
 
 	/** One thread whose text matched: what was found, where, and how many messages matched. */
-	record Hit(String threadId, String snippet, String messageId, Timestamp at, String from, int matches) {
+	record Hit(String threadId, String snippet, String messageId, Timestamp at, String from, int matches,
+			String quote, String reason, String confidence) {
+
+		/** A match found by words alone: no quote, reason, or confidence. */
+		Hit(String threadId, String snippet, String messageId, Timestamp at, String from, int matches) {
+			this(threadId, snippet, messageId, at, from, matches, null, null, null);
+		}
 	}
 
 	/** The matches by thread, and how far the search reached: searched, partial, scanned_recent or unavailable. */
-	record Result(Map<String, Hit> hits, String status, String note) {
+	record Result(Map<String, Hit> hits, String status, String note, Map<String, Object> stats) {
+
+		Result(Map<String, Hit> hits, String status, String note) {
+			this(hits, status, note, Map.of());
+		}
 	}
 
-	private record Row(String threadId, String graphId, String personId, String folder, Timestamp at,
-			String decision) {
+	record Row(String threadId, String graphId, String personId, String folder, Timestamp at, String decision) {
+	}
+
+	/** The topic's stored messages and what the rules need, loaded once for a search. */
+	record Context(List<Row> rows, Map<String, String> byConversation, Map<String, Row> byGraphId, Gate gate) {
+	}
+
+	static Context context(String ownerId, String ownerType, Collection<String> threadIds,
+			BrainThreadFinder.Privacy privacy) {
+		List<Row> rows = new ArrayList<>();
+		BrainThreadFinder.byIds("SELECT THREAD_ID, GRAPH_ID, SENDER_PERSON_ID, FOLDER, RECEIVED_AT, DECISION FROM "
+				+ "BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IN (", ")", threadIds, rs -> {
+					rows.add(new Row(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
+							rs.getTimestamp(5), rs.getString(6)));
+					return null;
+				}, ownerId, ownerType);
+		Map<String, Row> byGraphId = new HashMap<>();
+		rows.forEach(row -> {
+			if (row.graphId() != null) {
+				byGraphId.put(row.graphId(), row);
+			}
+		});
+		return new Context(rows, conversations(ownerId, ownerType, threadIds), byGraphId,
+				Gate.load(ownerId, ownerType, threadIds, privacy));
 	}
 
 	static Result search(User user, String ownerId, String ownerType, Collection<String> threadIds, List<String> terms,
@@ -222,7 +254,7 @@ final class BrainTopicBodySearch {
 	// ---- the rules ----
 
 	/** What keeps a message out of search results, decided once for the topic's threads. */
-	private static final class Gate {
+	static final class Gate {
 		private final List<BrainRulesGate.Rule> rules;
 		private final BrainThreadFinder.Privacy privacy;
 		private final Map<String, String> personByAddress = new HashMap<>();
@@ -290,7 +322,7 @@ final class BrainTopicBodySearch {
 
 	// ---- helpers ----
 
-	private static Map<String, String> conversations(String ownerId, String ownerType, Collection<String> threadIds) {
+	static Map<String, String> conversations(String ownerId, String ownerType, Collection<String> threadIds) {
 		Map<String, String> out = new HashMap<>();
 		BrainThreadFinder.byIds("SELECT THREAD_ID, THREAD_KEY FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 				+ "AND SOURCE = 'email' AND THREAD_ID IN (", ")", threadIds, rs -> {
@@ -312,7 +344,7 @@ final class BrainTopicBodySearch {
 	}
 
 	// the dates of the topic's mail, narrowed by the caller's own from and to; null leaves a side open
-	private static Instant[] window(List<Row> rows, String from, String to) {
+	static Instant[] window(List<Row> rows, String from, String to) {
 		Timestamp min = null;
 		Timestamp max = null;
 		for (Row row : rows) {
@@ -337,13 +369,13 @@ final class BrainTopicBodySearch {
 		return new Instant[] { start, end };
 	}
 
-	private static String address(Map<String, Object> message) {
+	static String address(Map<String, Object> message) {
 		return message.get("from") instanceof Map<?, ?> from && from.get("emailAddress") instanceof Map<?, ?> a
 				? CollaborationDbUtils.asString(a.get("address"))
 				: null;
 	}
 
-	private static String sender(Map<String, Object> message) {
+	static String sender(Map<String, Object> message) {
 		if (message.get("from") instanceof Map<?, ?> from && from.get("emailAddress") instanceof Map<?, ?> a) {
 			String name = CollaborationDbUtils.asString(a.get("name"));
 			return name != null && !name.isBlank() ? name : CollaborationDbUtils.asString(a.get("address"));
@@ -352,11 +384,11 @@ final class BrainTopicBodySearch {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static Map<String, Object> content(Object value) {
+	static Map<String, Object> content(Object value) {
 		return value instanceof Map<?, ?> map ? (Map<String, Object>) map : Map.of();
 	}
 
-	private static String plain(String html) {
+	static String plain(String html) {
 		return html == null ? "" : html.replaceAll("(?s)<(script|style)[^>]*>.*?</\\1>", " ").replaceAll("<[^>]*>", " ")
 				.replace("&nbsp;", " ").replace("&amp;", "&").replaceAll("\\s+", " ").trim();
 	}
@@ -383,7 +415,7 @@ final class BrainTopicBodySearch {
 		return (start > 0 ? "..." : "") + flat.substring(start, end).trim() + (end < flat.length() ? "..." : "");
 	}
 
-	private static Timestamp timestamp(Object value) {
+	static Timestamp timestamp(Object value) {
 		try {
 			// stored times are UTC wall-clock, so these compare with them
 			return value == null ? null
@@ -393,7 +425,7 @@ final class BrainTopicBodySearch {
 		}
 	}
 
-	private static int compare(Timestamp a, Timestamp b) {
+	static int compare(Timestamp a, Timestamp b) {
 		return a == null ? (b == null ? 0 : -1) : b == null ? 1 : a.compareTo(b);
 	}
 }

@@ -117,12 +117,15 @@ public final class CollaborationPrompts {
 			- To see a topic's description, notes, and its people, call ListTopics with that topic. \
 			Those people are the ones the owner or Brain tied to the topic; do not work them out by counting \
 			who appears in threads.
-			- SearchMail looks at the subject, summary, and people everywhere, and also at message text inside \
-			a topic. In a chat about a topic it looks in that topic's threads by default (set allTopics to look \
-			at all the owner's mail), and a result shows where the words were found. Read bodySearch in its \
-			result: when it says partial, scanned_recent, or unavailable, say that message text was only \
-			partly searched. RelatedThreads lists mail that belongs with a thread you already have. If nothing \
-			turns up, try other words or a person or date before giving up.
+			- SearchMail looks at the subject, summary, and people everywhere. Inside a topic it also reads the \
+			messages and a model picks the passages that answer the question, so pass the question in the owner's \
+			own words and do not guess keywords. In a chat about a topic it looks in that topic by default; set \
+			allTopics only when the owner asks for mail outside the topic, because message text is then not \
+			searched. A result with textMatch shows the quoted passage, who wrote it, and a confidence: answer \
+			from a high one, say so when it is medium or low. One search is enough: when bodySearch says searched \
+			and nothing answers, tell the owner it was not found instead of searching again with other words. When \
+			it says partial, scanned_recent, or unavailable, say that message text was only partly searched. \
+			RelatedThreads lists mail that belongs with a thread you already have.
 			- Only then use ListM365Mail, which reads Outlook directly. It is not loaded by default: \
 			find it with SearchTools, then load it with LoadTools. Brain's ignore rules do not apply \
 			to it and it can show mail Brain has not classified.

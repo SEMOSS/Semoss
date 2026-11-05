@@ -103,10 +103,12 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 	public String getReactorDescription() {
 		return "Finds threads in the owner's Brain by words in the subject, summary, or people, by person, or by date, "
 				+ "newest first; each result names its topics. Pass a topic to look only inside it, and with nothing "
-				+ "else it lists that topic's newest threads. Inside a topic it also searches the text of the "
-				+ "messages, and a match there shows the passage and who wrote it. In a chat that has topics it looks "
-				+ "inside them unless allTopics is set. Read a match with BrainGetThreadMessages. Never-ingest and "
-				+ "muted content is left out";
+				+ "else it lists that topic's newest threads. Inside a topic it also reads the messages and a model "
+				+ "picks the passages that answer the question, so ask in a full sentence with the question's own "
+				+ "words; a match shows the quoted passage, who wrote it, and how sure the model is. In a chat that "
+				+ "has topics it looks inside them by default; set allTopics only when the owner asks for mail "
+				+ "outside the topic, because message text is then not searched. Read a match with "
+				+ "BrainGetThreadMessages. Never-ingest and muted content is left out";
 	}
 
 	@Override
@@ -126,7 +128,7 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 		} else if (LIMIT.equals(key)) {
 			return "Best N threads, default 10, at most 25";
 		} else if (ALL_TOPICS.equals(key)) {
-			return "true to search all of the owner's threads even though this chat has topics";
+			return "true only when the owner asks for mail outside this chat's topics; message text is not searched then";
 		}
 		return super.getDescriptionForKey(key);
 	}
