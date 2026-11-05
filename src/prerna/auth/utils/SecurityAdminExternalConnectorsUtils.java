@@ -90,13 +90,14 @@ public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", getUserFiltersQs(user)));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		boolean isAdmin = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			return wrapper.hasNext();
+			isAdmin = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Failed to verify whether the user has admin access", e);
 		}
 
-		return false;
+		return isAdmin;
 	}
 
 	/**

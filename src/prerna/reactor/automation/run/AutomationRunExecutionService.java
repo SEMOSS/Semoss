@@ -409,7 +409,7 @@ final class AutomationRunExecutionService {
 			Handler.DATABASE_WRITE;
 		case AutomationConstants.NODE_VECTOR_ADD, AutomationConstants.NODE_VECTOR_DELETE -> Handler.VECTOR_WRITE;
 		case AutomationConstants.NODE_MODEL_CHAT, AutomationConstants.NODE_MODEL_EMBEDDINGS,
-				AutomationConstants.NODE_MODEL_VISION, AutomationConstants.NODE_MODEL_NER ->
+				AutomationConstants.NODE_MODEL_VISION ->
 			Handler.MODEL;
 		case AutomationConstants.NODE_STORAGE_READ, AutomationConstants.NODE_STORAGE_UPLOAD,
 				AutomationConstants.NODE_STORAGE_DELETE ->
@@ -1647,10 +1647,10 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Room options a generated agent node asks for: extra skills (access is checked when the run loads them) and the
-	 * Collaboration routine flag, which only narrows what the run may do.
+	 * Room options a generated agent node asks for: extra skills and MCP tools (access is checked when the run loads
+	 * them) and the Collaboration routine flag, which only narrows what the run may do.
 	 */
-	private static Map<String, Object> generatedAgentRoomOptions(Map<String, Object> config) {
+	static Map<String, Object> generatedAgentRoomOptions(Map<String, Object> config) {
 		Map<String, Object> options = new LinkedHashMap<>();
 		if (config.get(AutomationConstants.CONFIG_SKILLS) instanceof List<?> skills && !skills.isEmpty()) {
 			List<Map<String, Object>> refs = new ArrayList<>();
@@ -1662,8 +1662,25 @@ final class AutomationRunExecutionService {
 			}
 			options.put("skills", refs);
 		}
+		if (config.get(AutomationConstants.CONFIG_MCPS) instanceof List<?> mcps && !mcps.isEmpty()) {
+			List<Map<String, Object>> refs = new ArrayList<>();
+			for (Object mcp : mcps) {
+				String mcpId = mcp instanceof Map<?, ?> ref ? stringValue(ref.get("id")) : null;
+				if (mcpId != null && !mcpId.isBlank()) {
+					// the room's own mcp shape: a run reads the id, the room's settings show the name and type
+					Map<?, ?> ref = (Map<?, ?>) mcp;
+					refs.add(Map.of("id", mcpId.trim(), "name", String.valueOf(ref.get("name")), "type",
+							String.valueOf(ref.get("type"))));
+				}
+			}
+			options.put("mcp", refs);
+		}
 		if (Boolean.TRUE.equals(config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE))) {
 			options.put(CollaborationUtils.ROOM_OPTION_ROUTINE, true);
+			String delivery = stringValue(config.get(AutomationConstants.CONFIG_ROUTINE_DELIVERY));
+			if (delivery != null && !delivery.isBlank()) {
+				options.put(CollaborationUtils.ROOM_OPTION_ROUTINE_DELIVERY, delivery.trim());
+			}
 		}
 		return options.isEmpty() ? null : options;
 	}
@@ -2504,7 +2521,7 @@ final class AutomationRunExecutionService {
 	private static String agentFailureMessage(Map<String, Object> result, String runId) {
 		String status = stringValue(result.get("status"));
 		if (Boolean.TRUE.equals(result.get("waitTimedOut"))) {
-			return "Agent run '" + runId + "' did not complete before the wait timeout.";
+			return "Agent run '" + runId + "'" + AutomationConstants.AGENT_WAIT_TIMEOUT_ERROR;
 		}
 		if (status == null) {
 			return "Agent run '" + runId + "' returned no durable status.";

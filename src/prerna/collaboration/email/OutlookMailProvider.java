@@ -30,9 +30,9 @@ package prerna.collaboration.email;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.apache.commons.text.StringEscapeUtils;
 
 import prerna.auth.User;
+import prerna.collaboration.BrainDraftFormat;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMessageMapper;
@@ -45,8 +45,10 @@ final class OutlookMailProvider implements MailProvider {
 	private final MicrosoftOutlookMailHelper mail = new MicrosoftOutlookMailHelper();
 	private final String accessToken;
 	private final String account;
+	private final User user;
 
 	OutlookMailProvider(User user) throws Exception {
+		this.user = user;
 		this.accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 		this.account = MicrosoftLoginUtils.getMicrosoftEmail(user);
 	}
@@ -61,13 +63,16 @@ final class OutlookMailProvider implements MailProvider {
 		Map<String, Object> draft;
 		if (email.isReply()) {
 			// a reply-all draft keeps the thread; given lists replace the native ones
+			String html = BrainDraftFormat.html(user, email.message());
 			draft = email.to().length > 0 || email.cc().length > 0
-					? mail.replyHtmlDraft(accessToken, email.replyTo(), html(email.message()), true, email.to(),
-							email.cc())
-					: mail.reply(accessToken, null, email.replyTo(), email.message(), true, true);
+					? mail.replyHtmlDraft(accessToken, email.replyTo(), html, true, email.to(), email.cc())
+					: mail.replyHtmlDraft(accessToken, email.replyTo(), html, true);
 		} else {
+			// in the owner's font and signature, from their own address so Outlook lists a sender
+			String[] sender = BrainDraftFormat.sender(user);
 			draft = mail.createDraft(accessToken, null, MicrosoftOutlookMailHelper.buildMessage(email.subject(),
-					email.message(), false, email.to(), email.cc(), email.bcc(), null, null, null));
+					BrainDraftFormat.html(user, email.message()), true, email.to(), email.cc(), email.bcc(),
+					sender == null ? null : sender[0], sender == null ? null : sender[1], null));
 		}
 		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
 			throw new IllegalStateException("The draft could not be confirmed. Check Outlook before retrying.");
@@ -96,10 +101,5 @@ final class OutlookMailProvider implements MailProvider {
 				MicrosoftOutlookMessageMapper.addressList(draft.get("ccRecipients")));
 		MicrosoftOutlookMessageMapper.putIfPresent(sent, "subject", draft.get("subject"));
 		return sent;
-	}
-
-	// plain text as HTML lines, for the reply draft that carries edited recipients
-	private static String html(String text) {
-		return StringEscapeUtils.escapeHtml4(text == null ? "" : text).replace("\r\n", "\n").replace("\n", "<br>");
 	}
 }

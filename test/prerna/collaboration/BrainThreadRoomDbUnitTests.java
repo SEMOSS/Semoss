@@ -103,7 +103,9 @@ class BrainThreadRoomDbUnitTests {
 					.getDBSchema()) {
 				List<String> columns = new ArrayList<>();
 				for (Pair<String, String> column : table.getValue1()) {
-					columns.add(column.getValue0() + " " + column.getValue1());
+					// quoted as the server quotes them: H2 2.x reserves words such as VALUE
+					String name = column.getValue0();
+					columns.add((queryUtil.isSelectorKeyword(name) ? queryUtil.getEscapeKeyword(name) : name) + " " + column.getValue1());
 				}
 				statement.execute("CREATE TABLE " + table.getValue0() + " (" + String.join(", ", columns) + ")");
 			}
@@ -267,10 +269,10 @@ class BrainThreadRoomDbUnitTests {
 		when(messages.fetch(user, "email", "conv-th-1", "g3")).thenReturn(Map.of(
 				"subject", "Current subject", "body", Map.of("content", "Body stays private", "contentType", "text"),
 				"conversationId", "conv-th-1"));
-		assertEquals(Map.of("id", "g3", "subject", "Current subject"), compose("g3", messages));
+		assertEquals(Map.of("id", "g3", "subject", "Current subject", "threadId", "th-1"), compose("g3", messages));
 		verify(messages).fetch(user, "email", "conv-th-1", "g3");
 		when(messages.fetch(user, "email", "conv-th-1", "g3")).thenReturn(Map.of());
-		assertEquals(Map.of("id", "g3", "subject", ""), compose("g3", messages));
+		assertEquals(Map.of("id", "g3", "subject", "", "threadId", "th-1"), compose("g3", messages));
 	}
 
 	@Test
@@ -283,7 +285,7 @@ class BrainThreadRoomDbUnitTests {
 			Map<?, ?> latest = (Map<?, ?>) read.getLast();
 			assertEquals("g3", latest.get("id"));
 			assertEquals("email:key-g3", latest.get("emailRef"));
-			assertEquals(Map.of("id", "g3", "subject", "Message g3"),
+			assertEquals(Map.of("id", "g3", "subject", "Message g3", "threadId", "th-1"),
 					BrainThreadMessages.composeSource(user, (String) latest.get("emailRef")));
 		}
 	}
@@ -320,13 +322,14 @@ class BrainThreadRoomDbUnitTests {
 
 	@Test
 	void composeRechecksLiveSenderAndKeywordRules() throws Exception {
-		sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, VALUE, CREATED_AT) "
+		sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, " + BrainRuleUtils.valueColumn() + ", CREATED_AT) "
 				+ "VALUES (?, ?, 'r-1', 'never_sender', 'blocked@test.com', CURRENT_TIMESTAMP)", ownerId, ownerType);
 		BrainMessageSource messages = mock(BrainMessageSource.class);
 		when(messages.fetch(user, "email", "conv-th-1", "g3")).thenReturn(
 				Map.of("from", Map.of("emailAddress", Map.of("address", "blocked@test.com"))));
 		assertNull(compose("g3", messages));
-		sql("UPDATE BRAIN_RULE SET KIND = 'never_keyword', VALUE = 'Confidential' WHERE RULE_ID = 'r-1'");
+		sql("UPDATE BRAIN_RULE SET KIND = 'never_keyword', " + BrainRuleUtils.valueColumn()
+				+ " = 'Confidential' WHERE RULE_ID = 'r-1'");
 		when(messages.fetch(user, "email", "conv-th-1", "g3"))
 				.thenReturn(Map.of("subject", "Confidential details"));
 		assertNull(compose("g3", messages));

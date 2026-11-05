@@ -429,8 +429,8 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			return QueryExecutionUtility.read(securityDb, connection -> {
 				String query = securityDb.getQueryUtil().getAllColumnDetails(SMSS_USER_ACCESS_KEYS_TABLE_NAME,
 						securityDb.getDatabase(), securityDb.getSchema());
-				List<String> allCols = QueryExecutionUtility.queryList(connection, query, statement -> {
-				}, result -> result.getString(1).toUpperCase());
+				List<String> allCols = QueryExecutionUtility.queryList(connection, query,
+						QueryExecutionUtility.NO_PARAMETERS, result -> result.getString(1).toUpperCase());
 				return allCols.contains(OLD_USERID_COL) || allCols.contains(OLD_USERID_COL.toLowerCase());
 			});
 		} catch (Exception e) {

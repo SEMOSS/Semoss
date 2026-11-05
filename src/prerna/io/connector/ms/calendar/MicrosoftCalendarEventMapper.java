@@ -93,7 +93,11 @@ public class MicrosoftCalendarEventMapper {
 				reminder instanceof Number ? ((Number) reminder).intValue() : null, stringList(categories),
 				// a series master is the rule, and an occurrence or an exception is one
 				// sitting of it, so this says whether the event repeats at all
-				event.get("seriesMasterId") != null || "seriesMaster".equals(event.get("type")), bodyOf(event));
+				event.get("seriesMasterId") != null || "seriesMaster".equals(event.get("type")),
+				// every sitting names its master; the master is its own series
+				"seriesMaster".equals(event.get("type")) ? ValueUtils.toStringOrNull(event.get("id"))
+						: ValueUtils.toStringOrNull(event.get("seriesMasterId")),
+				bodyOf(event));
 	}
 
 	/**

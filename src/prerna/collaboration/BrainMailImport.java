@@ -27,6 +27,9 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -35,6 +38,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -66,6 +70,10 @@ public final class BrainMailImport {
 	// more people than this on To and Cc is a mailing: no new people from it
 	private static final int MAX_RECIPIENTS = 25;
 	private static final String SOURCE = "email";
+	// BRAIN_PERSON.DISPLAY_NAME is VARCHAR(255)
+	private static final int DISPLAY_NAME_CHARS = 255;
+	// a run with more messages it could not save than this has a problem of its own, not one bad message
+	private static final int MAX_UNSAVED = 5;
 	private static final String TEAMS = "teams";
 	private static final int MAX_CHATS = 300;
 	private static final int MAX_PER_CHAT = 200;
@@ -129,7 +137,7 @@ public final class BrainMailImport {
 		String teamsError = null;
 		// webhooks and chat pulls skip while this job runs; the lock covers one that began just before it
 		synchronized (CollaborationDbUtils.ownerLock(BrainSync.INGEST_LOCK, ownerId, ownerType)) {
-			Run run = new Run(ownerId, ownerType);
+			Run run = new Run(ownerId, ownerType, false);
 			String selfId = run.ensureSelf(myAddress, (String) me.get("displayName"),
 					(String) me.get("userPrincipalName"), aliases);
 
@@ -367,7 +375,8 @@ public final class BrainMailImport {
 	}
 
 	// oldest first so a thread takes its first subject; a message sent to yourself is in both folders once.
-	// One connection and one commit per batch; a failed batch rolls back and a re-run picks it up
+	// One connection and one commit per batch. A message that cannot be saved is undone alone and the batch keeps the
+	// rest; a run with more of them than MAX_UNSAVED fails, its batch rolls back, and a re-run picks it up
 	private static void importHeaders(CollaborationJobUtils.Job job, Run run, List<Map<String, Object>> headers,
 			int from, int to) throws Exception {
 		headers.sort(Comparator.comparing(h -> String.valueOf(h.get("receivedDateTime"))));
@@ -382,7 +391,7 @@ public final class BrainMailImport {
 			List<Map<String, Object>> part = all.subList(start, Math.min(all.size(), start + BATCH));
 			CollaborationDbUtils.batch(conn -> {
 				for (Map<String, Object> header : part) {
-					run.importOne(header);
+					run.importIsolated(conn, header);
 				}
 			});
 			job.count("imported", run.imported);
@@ -391,6 +400,7 @@ public final class BrainMailImport {
 			job.step("importing", from + (to - from) * (start + part.size()) / Math.max(1, all.size()));
 		}
 		job.count("imported", run.imported);
+		job.count("unsaved", run.unsaved);
 		job.count("alreadyImported", run.skipped);
 		job.count("keptOut", run.keptOut);
 		// calendar mail seen; 0 on a real mailbox means Graph gave no @odata.type
@@ -417,8 +427,19 @@ public final class BrainMailImport {
 		// the gate's lookups per source; only whether the source is on differs
 		final Map<String, BrainRulesGate.Known> known = new HashMap<>();
 		final Set<String> threads = new LinkedHashSet<>();
-		// [threadId, sent time] of each newly imported message the owner sent, so a sync can close answered work
+		// [threadId, sent time] of each owed message (new, or pending from a run cut off) the owner sent, so a sync can
+		// close answered work
 		final List<String[]> ownerSent = new ArrayList<>();
+		// [messageKey, threadId, subject] of each owed message to the owner, from someone else or a note they sent
+		// themselves, for the routines mail sets off
+		final List<String[]> inbound = new ArrayList<>();
+		// a sync, a chat's pull or the webhook, whose messages are owed the after-import steps (not the onboarding
+		// import): each is marked SYNC_PENDING with its import, until BrainSync takes it
+		final boolean followUps;
+		// keys still marked by a run that was cut off: read again, such a message is owed its steps once more
+		final Set<String> pending = new HashSet<>();
+		// keys of the messages this run owes the after-import steps, new and pending ones
+		final List<String> owed = new ArrayList<>();
 		final Set<String> selfAddresses = new HashSet<>();
 		String selfId;
 		String selfName;
@@ -429,11 +450,26 @@ public final class BrainMailImport {
 		int newPeople;
 		// unique headers read so far, mail and Teams
 		int seen;
+		// messages whose writes failed and were undone alone
+		int unsaved;
 
-		Run(String ownerId, String ownerType) {
+		Run(String ownerId, String ownerType, boolean followUps) {
 			this.ownerId = ownerId;
 			this.ownerType = ownerType;
+			this.followUps = followUps;
 			this.rules = BrainRulesGate.activeRules(ownerId, ownerType);
+			load(true);
+		}
+
+		// what the owner's Brain holds, read again after one message's writes are undone; the cut-off keys this run
+		// already took stay taken, so none is owed its steps twice
+		private void load(boolean withPending) {
+			people.clear();
+			threadsByKey.clear();
+			messages.clear();
+			mailbox.clear();
+			participants.clear();
+			known.clear();
 			CollaborationDbUtils.query(
 					"SELECT PERSON_ID, EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 							+ "AND EMAIL_NORM IS NOT NULL",
@@ -461,11 +497,14 @@ public final class BrainMailImport {
 					ownerId, ownerType);
 			CollaborationDbUtils.query(
 					"SELECT MESSAGE_KEY, DECISION, RULE_ID, THREAD_ID, SENDER_PERSON_ID, FOLDER, CATEGORIES_JSON, "
-							+ "FLAGGED FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+							+ "FLAGGED, SYNC_PENDING FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 					rs -> {
 						mailbox.put(rs.getString(1), new String[] { rs.getString(6),
 								CollaborationDbUtils.getString(rs, "CATEGORIES_JSON"),
 								String.valueOf(Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "FLAGGED"))) });
+						if (withPending && Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "SYNC_PENDING"))) {
+							pending.add(rs.getString(1));
+						}
 						return messages.put(rs.getString(1), BrainRulesGate.result(rs.getString(2), rs.getString(3),
 								rs.getString(4), rs.getString(5)));
 					}, ownerId, ownerType);
@@ -478,6 +517,50 @@ public final class BrainMailImport {
 						}
 						return participants.put(rs.getString(1) + "|" + rs.getString(2), roles);
 					}, ownerId, ownerType);
+		}
+
+		/**
+		 * One header inside the batch's transaction. When its writes fail they are undone alone, with what this run
+		 * noted for it, and the batch keeps the rest; more than MAX_UNSAVED such messages in one run is not one bad
+		 * message, so the run fails as before and its window is read again.
+		 */
+		void importIsolated(Connection conn, Map<String, Object> header) throws SQLException {
+			Savepoint savepoint = conn.setSavepoint();
+			int[] sizes = { ownerSent.size(), inbound.size(), owed.size(), threads.size(), refiled.size() };
+			int[] counts = { imported, skipped, keptOut, meetings, newPeople };
+			try {
+				importOne(header);
+			} catch (RuntimeException e) {
+				conn.rollback(savepoint);
+				if (++unsaved > MAX_UNSAVED) {
+					throw e;
+				}
+				classLogger.warn("Skipped message {}: it could not be saved, and the rest of its batch was kept",
+						messageId(header), e);
+				ownerSent.subList(sizes[0], ownerSent.size()).clear();
+				inbound.subList(sizes[1], inbound.size()).clear();
+				owed.subList(sizes[2], owed.size()).clear();
+				keepFirst(threads, sizes[3]);
+				keepFirst(refiled, sizes[4]);
+				imported = counts[0];
+				skipped = counts[1];
+				keptOut = counts[2];
+				meetings = counts[3];
+				newPeople = counts[4];
+				// the caches may name rows the rollback took back
+				load(false);
+			}
+		}
+
+		// insertion order: what was added after the first size entries goes
+		private static void keepFirst(Set<String> set, int size) {
+			Iterator<String> it = set.iterator();
+			for (int i = 0; it.hasNext(); i++) {
+				it.next();
+				if (i >= size) {
+					it.remove();
+				}
+			}
 		}
 
 		// a mail header this run already holds a message for
@@ -537,6 +620,13 @@ public final class BrainMailImport {
 							+ "AND MESSAGE_KEY = ? AND AUTO IS NULL", auto, ownerId, ownerType, messageKey);
 				}
 				skipped++;
+				// imported by a run cut off before its after-import steps: this run owes them instead
+				if (followUps && pending.remove(messageKey)) {
+					Map<String, String> names = new HashMap<>();
+					Map<String, Set<String>> roles = roles(header, names);
+					owe(messageKey, (String) prior.get("threadId"), header, isSelf(from, names.get(from)),
+							toMe(roles, names));
+				}
 				return;
 			}
 			String conversationId = (String) header.get("conversationId");
@@ -569,28 +659,17 @@ public final class BrainMailImport {
 			boolean senderHidden = BrainRulesGate.EXCLUDED.equals(decision.get("decision"));
 
 			// who was on it, by role; never-ingest recipients are left out entirely
-			Map<String, Set<String>> roles = new LinkedHashMap<>();
 			Map<String, String> names = new HashMap<>();
-			addRole(roles, names, header.get("from"), "from");
-			for (String field : List.of("toRecipients", "ccRecipients")) {
-				if (header.get(field) instanceof List<?> list) {
-					for (Object r : list) {
-						addRole(roles, names, r, field.startsWith("to") ? "to" : "cc");
-					}
-				}
-			}
+			Map<String, Set<String>> roles = roles(header, names);
 			boolean fromMe = isSelf(from, names.get(from));
 			// a big mailing adds no new people, only the sender and people already known
 			boolean broadcast = roles.size() > MAX_RECIPIENTS;
-			boolean toMe = false;
+			boolean toMe = toMe(roles, names);
 			String senderId = null;
 			for (Map.Entry<String, Set<String>> entry : roles.entrySet()) {
 				String address = entry.getKey();
 				boolean isSender = address.equals(from);
 				boolean self = isSelf(address, names.get(address));
-				if (!isSender && self) {
-					toMe = true;
-				}
 				if (isSender && senderHidden) {
 					senderId = (String) decision.get("personId");
 					continue;
@@ -611,22 +690,20 @@ public final class BrainMailImport {
 			String sender = address(header.get("sender"));
 			boolean bulk = "other".equals(header.get("inferenceClassification"))
 					|| (sender != null && !sender.equals(from)) || broadcast || toList(header);
+			// marked in the same batch as the message, so a run cut off after it leaves its steps to the next sync
 			CollaborationDbUtils.update(
 					"UPDATE BRAIN_MESSAGE SET THREAD_ID = ?, SENDER_PERSON_ID = ?, TO_ME = ?, BULK = ?, MEETING = ?, "
-							+ "AUTO = ?, CATEGORIES_JSON = ?, FLAGGED = ?, IMPORTANCE = ?, ATTACHMENTS = ? WHERE "
-							+ "OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
+							+ "AUTO = ?, CATEGORIES_JSON = ?, FLAGGED = ?, IMPORTANCE = ?, ATTACHMENTS = ?, "
+							+ "SYNC_PENDING = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
 					threadId, senderId, fromMe ? null : toMe, bulk, meeting(header), autoSent(header),
 					BrainMailFolders.categories(header), BrainMailFolders.flagged(header),
-					BrainMailFolders.importance(header), BrainMailFolders.attachments(header), ownerId, ownerType,
-					messageKey);
+					BrainMailFolders.importance(header), BrainMailFolders.attachments(header),
+					followUps ? Boolean.TRUE : null, ownerId, ownerType, messageKey);
 			mailbox.put(messageKey, new String[] { (String) header.get("parentFolderId"),
 					BrainMailFolders.categories(header), String.valueOf(BrainMailFolders.flagged(header)) });
 			messages.put(messageKey, BrainRulesGate.result((String) decision.get("decision"),
 					(String) decision.get("ruleId"), threadId, senderId));
-			threads.add(threadId);
-			if (fromMe) {
-				ownerSent.add(new String[] { threadId, (String) header.get("receivedDateTime") });
-			}
+			owe(messageKey, threadId, header, fromMe, toMe);
 			imported++;
 			if (meeting(header)) {
 				meetings++;
@@ -638,6 +715,32 @@ public final class BrainMailImport {
 		boolean isSelf(String address, String name) {
 			return selfAddresses.contains(address)
 					|| (selfName != null && name != null && selfName.equalsIgnoreCase(name.trim()));
+		}
+
+		// the owner is on To or Cc, so a note they sent themselves is to them too
+		private boolean toMe(Map<String, Set<String>> roles, Map<String, String> names) {
+			for (Map.Entry<String, Set<String>> entry : roles.entrySet()) {
+				if ((entry.getValue().contains("to") || entry.getValue().contains("cc"))
+						&& isSelf(entry.getKey(), names.get(entry.getKey()))) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// what a message brings to the after-import steps: its thread, the owner's reply, mail to the owner
+		private void owe(String messageKey, String threadId, Map<String, Object> header, boolean fromMe,
+				boolean toMe) {
+			threads.add(threadId);
+			if (followUps) {
+				owed.add(messageKey);
+			}
+			if (fromMe) {
+				ownerSent.add(new String[] { threadId, (String) header.get("receivedDateTime") });
+			}
+			if (!fromMe || toMe) {
+				inbound.add(new String[] { messageKey, threadId, (String) header.get("subject") });
+			}
 		}
 
 		String ensureSelf(String address, String name, String upn, List<String> aliases) {
@@ -684,13 +787,13 @@ public final class BrainMailImport {
 			}
 			String id = "p-" + CollaborationDbUtils.deterministicId(ownerId, ownerType, "person", address);
 			Timestamp now = CollaborationDbUtils.now();
+			String displayName = displayName(name == null || name.isBlank() ? address : name.trim());
 			CollaborationDbUtils.inTransaction(conn -> {
 				CollaborationDbUtils.update(conn,
 						"INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, EMAIL_NORM, "
 								+ "DISPLAY_NAME, IS_VIP, NEVER_INGEST, STRENGTH, CREATED_AT, UPDATED_AT) "
 								+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-						ownerId, ownerType, id, address, name == null || name.isBlank() ? address : name.trim(), false,
-						false, 0, now, now);
+						ownerId, ownerType, id, address, displayName, false, false, 0, now, now);
 				CollaborationDbUtils.update(conn,
 						"INSERT INTO BRAIN_PERSON_ADDRESS (OWNER_ID, OWNER_TYPE, PERSON_ID, "
 								+ "KIND, VALUE_NORM, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?)",
@@ -798,6 +901,20 @@ public final class BrainMailImport {
 				}
 			});
 		}
+	}
+
+	// who was on a message, by role (from, to, cc), and the names the header gives them
+	private static Map<String, Set<String>> roles(Map<String, Object> header, Map<String, String> names) {
+		Map<String, Set<String>> roles = new LinkedHashMap<>();
+		addRole(roles, names, header.get("from"), "from");
+		for (String field : List.of("toRecipients", "ccRecipients")) {
+			if (header.get(field) instanceof List<?> list) {
+				for (Object r : list) {
+					addRole(roles, names, r, field.startsWith("to") ? "to" : "cc");
+				}
+			}
+		}
+		return roles;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -924,6 +1041,16 @@ public final class BrainMailImport {
 		clean = clean.trim();
 		clean = clean.isEmpty() ? "(no subject)" : clean;
 		return clean.length() > 255 ? clean.substring(0, 255) : clean;
+	}
+
+	// a sender picks their own display name (a directory allows 256 characters): one longer than DISPLAY_NAME's 255
+	// would roll back its batch, and every later sync of the same window, so it is cut, never a pair split
+	static String displayName(String name) {
+		if (name.length() <= DISPLAY_NAME_CHARS) {
+			return name;
+		}
+		return name.substring(0,
+				Character.isHighSurrogate(name.charAt(DISPLAY_NAME_CHARS - 1)) ? DISPLAY_NAME_CHARS - 1 : DISPLAY_NAME_CHARS);
 	}
 
 	static String domain(String address) {

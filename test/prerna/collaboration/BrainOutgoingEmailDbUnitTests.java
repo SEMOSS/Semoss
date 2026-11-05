@@ -89,7 +89,9 @@ class BrainOutgoingEmailDbUnitTests {
 			for (Pair<String, List<Pair<String, String>>> table : new CollaborationOwlCreator(queryUtil).getDBSchema()) {
 				List<String> columns = new ArrayList<>();
 				for (Pair<String, String> column : table.getValue1()) {
-					columns.add(column.getValue0() + " " + column.getValue1());
+					// quoted as the server quotes them: H2 2.x reserves words such as VALUE
+					String name = column.getValue0();
+					columns.add((queryUtil.isSelectorKeyword(name) ? queryUtil.getEscapeKeyword(name) : name) + " " + column.getValue1());
 				}
 				statement.execute("CREATE TABLE " + table.getValue0() + " (" + String.join(", ", columns) + ")");
 			}
@@ -157,7 +159,7 @@ class BrainOutgoingEmailDbUnitTests {
 		BrainOutgoingEmail.trackDraft(insight, "draft-1");
 		CollaborationDbUtils.update("INSERT INTO SOURCE_CONNECTION (OWNER_ID, OWNER_TYPE, SOURCE, ENABLED) "
 				+ "VALUES (?, ?, 'email', TRUE)", ownerId, ownerType);
-		BrainMailImport.Run run = new BrainMailImport.Run(ownerId, ownerType);
+		BrainMailImport.Run run = new BrainMailImport.Run(ownerId, ownerType, false);
 		run.ensureSelf("owner@test.com", "Owner", "owner@test.com", List.of());
 		Map<String, Object> sent = new HashMap<>();
 		sent.put("id", "sent-1");

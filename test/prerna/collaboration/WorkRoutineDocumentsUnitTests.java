@@ -52,6 +52,26 @@ class WorkRoutineDocumentsUnitTests {
 	}
 
 	@Test
+	void copyIntoGivesAnEmailAsItsText() throws Exception {
+		Path folder = Files.createDirectories(temp.resolve("routine"));
+		Files.writeString(folder.resolve("pushback.eml"), "From: \"Bell, Jen\" <jbell@example.com>\r\n"
+				+ "To: \"Myers, Deanette\" <dmyers@example.com>\r\nSubject: RE: Meeting Approval (102241)\r\n"
+				+ "Content-Type: text/plain; charset=\"Windows-1252\"\r\nContent-Transfer-Encoding: quoted-printable\r\n"
+				+ "\r\nWhat differentiates it from the official onboard=\r\ning program?\r\n");
+		Files.writeString(folder.resolve("broken.msg"), "not an Outlook file");
+		Path target = temp.resolve("room").resolve(WorkRoutineDocuments.FOLDER);
+
+		assertEquals(List.of("broken.msg.txt", "pushback.eml.txt"), WorkRoutineDocuments.copyInto(folder, target));
+
+		assertEquals("From: \"Bell, Jen\" <jbell@example.com>\nTo: \"Myers, Deanette\" <dmyers@example.com>\n"
+				+ "Subject: RE: Meeting Approval (102241)\n\nWhat differentiates it from the official onboarding program?",
+				Files.readString(target.resolve("pushback.eml.txt")));
+		// one that cannot be read as an email still reaches the run, as it is
+		assertEquals("not an Outlook file", Files.readString(target.resolve("broken.msg.txt")));
+		assertFalse(Files.exists(target.resolve("pushback.eml")));
+	}
+
+	@Test
 	void copyIntoReplacesAnEarlierCopy() throws Exception {
 		Path folder = Files.createDirectories(temp.resolve("routine"));
 		Files.writeString(folder.resolve("plan.md"), "newer");

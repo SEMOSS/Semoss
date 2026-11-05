@@ -130,14 +130,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to run this operation",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
+		User user = requireUser();
 
 		organizeKeys();
 		String sqlQuery = getDecodedQuery();
@@ -427,14 +420,11 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 		if (!(value instanceof ITask)) {
 			throw new IllegalStateException("Read statement did not return a query task");
 		}
-		ITask task = (ITask) value;
-		try {
+		try (ITask task = (ITask) value) {
 			result.put("type", "TABLE");
 			result.put("output", task.collect(false).get("data"));
 			result.put("timeToRun", elapsedMillis(startedAt));
 			return result;
-		} finally {
-			task.close();
 		}
 	}
 
@@ -577,7 +567,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 
 		if (writes) {
 			DatabaseWriteAudit.record(this.insight, engine,
-					new DatabaseWriteAudit.Write(reactorName(), DatabaseWriteAudit.Transaction.ONE_TRANSACTION,
+					new DatabaseWriteAudit.Write(getPixelName(), DatabaseWriteAudit.Transaction.ONE_TRANSACTION,
 							statements.size(), result.getRanCount(), result.getFailedStatement(),
 							auditOutcome(result.getOutcome()), sqlQuery, result.getMessage(), timeoutSeconds));
 		}
@@ -595,7 +585,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 	private void recordNotRun(String sqlQuery, IRDBMSEngine engine, int statementCount, String message,
 			Integer timeoutSeconds) {
 		DatabaseWriteAudit.record(this.insight, engine,
-				new DatabaseWriteAudit.Write(reactorName(), DatabaseWriteAudit.Transaction.ONE_TRANSACTION,
+				new DatabaseWriteAudit.Write(getPixelName(), DatabaseWriteAudit.Transaction.ONE_TRANSACTION,
 						statementCount, 0, null, DatabaseWriteAudit.Outcome.ROLLED_BACK, sqlQuery, message,
 						timeoutSeconds));
 	}
@@ -740,7 +730,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 
 	private void recordWrite(IRDBMSEngine engine, String sql, int statements, int succeeded, int committedWrites,
 			Throwable error) {
-		DatabaseWriteAudit.record(this.insight, engine, DatabaseWriteAudit.Write.perStatement(reactorName(), sql,
+		DatabaseWriteAudit.record(this.insight, engine, DatabaseWriteAudit.Write.perStatement(getPixelName(), sql,
 				statements, succeeded, committedWrites, error));
 	}
 
@@ -762,12 +752,6 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 					"The changes were saved, but the database could not be pushed to cloud storage: "
 							+ e.getMessage()));
 		}
-	}
-
-	/** The pixel name of this reactor, such as SqlQuery */
-	private String reactorName() {
-		String name = getClass().getSimpleName();
-		return name.endsWith("Reactor") ? name.substring(0, name.length() - "Reactor".length()) : name;
 	}
 
 	private static boolean parseFlag(String value) {

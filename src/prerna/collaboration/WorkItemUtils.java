@@ -523,14 +523,21 @@ public final class WorkItemUtils {
 				"message deleted");
 	}
 
-	// a keep-out rule now covers these senders: dismiss what they raised, remembering the rule
-	public static List<String> dismissForRule(String ownerId, String ownerType, List<String> personIds, String ruleId) {
+	// a keep-out rule now covers these senders: dismiss what they raised (only on the topic's threads when topicId
+	// is set, for a topic ignore), remembering the rule
+	public static List<String> dismissForRule(String ownerId, String ownerType, List<String> personIds, String topicId,
+			String ruleId) {
 		if (personIds.isEmpty()) {
 			return List.of();
 		}
-		List<String> ids = closeWhere(ownerId, ownerType,
-				" AND ACTOR_ID IN (" + String.join(", ", Collections.nCopies(personIds.size(), "?")) + ")",
-				new ArrayList<>(personIds), DISMISSED, "kept_out", "kept out by a rule");
+		String and = " AND ACTOR_ID IN (" + String.join(", ", Collections.nCopies(personIds.size(), "?")) + ")";
+		List<Object> params = new ArrayList<>(personIds);
+		if (topicId != null) {
+			and += " AND THREAD_ID IN (SELECT THREAD_ID FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+					+ "AND TOPIC_ID = ?)";
+			params.addAll(List.of(ownerId, ownerType, topicId));
+		}
+		List<String> ids = closeWhere(ownerId, ownerType, and, params, DISMISSED, "kept_out", "kept out by a rule");
 		for (String itemId : ids) {
 			CollaborationDbUtils.update("UPDATE WORK_ITEM SET CLOSED_RULE_ID = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 					+ "AND ITEM_ID = ?", ruleId, ownerId, ownerType, itemId);

@@ -86,15 +86,13 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 
 	@Test
 	void testCreateTokenForInvalidUser() {
-		user.setAnonymous(true);
-		// test anonymous user
 		Exception e = assertThrows(IllegalArgumentException.class,
-				() -> SecurityShareSessionUtils.createToken(user, null, null, false, false));
-		assertEquals("Cannot share a session for a user who is not logged in", e.getMessage());
-		// test null user
-		e = assertThrows(IllegalArgumentException.class,
 				() -> SecurityShareSessionUtils.createToken(null, null, null, false, false));
 		assertEquals("Cannot share a session for a user who is not logged in", e.getMessage());
+		// a user with no login
+		e = assertThrows(IllegalArgumentException.class,
+				() -> SecurityShareSessionUtils.createToken(new User(), null, null, false, false));
+		assertEquals("User must have primary login", e.getMessage());
 	}
 
 	@Test

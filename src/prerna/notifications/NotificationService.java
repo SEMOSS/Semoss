@@ -53,8 +53,9 @@ public final class NotificationService {
 	}
 
 	/**
-	 * Notifies the authenticated insight user within the insight's active app context.
-	 * This has no public reactor because callers must not be able to target other users.
+	 * Notifies the authenticated insight user within the insight's active app
+	 * context. This has no public reactor because callers must not be able to
+	 * target other users.
 	 */
 	public static String createAppUserNotification(Insight insight, String title, String message, String priority) {
 		if (insight == null) {
@@ -62,8 +63,9 @@ public final class NotificationService {
 		}
 		String projectId = requireValue(insight.getContextProjectId(), "app context project id");
 		User user = insight.getUser();
-		if (user == null || user.isAnonymous()) {
-			throw new IllegalArgumentException("A signed-in insight user is required to create an app user notification");
+		if (user == null) {
+			throw new IllegalArgumentException(
+					"A signed-in insight user is required to create an app user notification");
 		}
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException("Insight user does not have access to the active app project");
@@ -75,7 +77,8 @@ public final class NotificationService {
 		}
 		AccessToken token = user.getAccessToken(provider);
 		if (token == null) {
-			throw new IllegalArgumentException("Insight user does not have an access token for the primary login provider");
+			throw new IllegalArgumentException(
+					"Insight user does not have an access token for the primary login provider");
 		}
 		return createAppUserNotification(projectId, requireValue(token.getId(), "user id"), provider.toString(), title,
 				message, priority);
@@ -89,16 +92,15 @@ public final class NotificationService {
 	 *
 	 * <p>
 	 * The id doubles as an idempotency key: calling again with the same id returns
-	 * the existing notification, so producers can safely retry. Title, message,
-	 * and metadata are shown to the recipient.
+	 * the existing notification, so producers can safely retry. Title, message, and
+	 * metadata are shown to the recipient.
 	 *
 	 * <p>
 	 * Server-side only: never expose this through a reactor, or callers could
 	 * message arbitrary users.
 	 */
 	public static String createCollaborationNotification(String notificationId, String type, String recipientId,
-			String recipientType, String title, String message, String senderId, String roomId,
-			String metadataJson) {
+			String recipientType, String title, String message, String senderId, String roomId, String metadataJson) {
 		String normalizedTitle = requireValue(title, "title");
 		if (normalizedTitle.length() > 255) {
 			throw new IllegalArgumentException("Notification title cannot exceed 255 characters");
@@ -114,7 +116,10 @@ public final class NotificationService {
 				metadataJson, senderId);
 	}
 
-	/** Clears a notification from one recipient's inbox once it no longer needs attention. */
+	/**
+	 * Clears a notification from one recipient's inbox once it no longer needs
+	 * attention.
+	 */
 	public static int dismissUserNotification(String notificationId, String recipientId, String recipientType) {
 		return NotificationDbUtils.deleteNotification(recipientId, recipientType, notificationId);
 	}
@@ -135,10 +140,10 @@ public final class NotificationService {
 		String normalizedMessage = requireValue(message, "message");
 		String normalizedPriority = normalizePriority(priority);
 		return NotificationDbUtils.insertNotificationEvent(NotificationConstants.Type.ANNOUNCEMENT,
-				NotificationConstants.Scope.APP, normalizedProjectId,
-				audienceType, audienceId, audienceUserType, normalizedTitle, normalizedMessage, normalizedPriority,
-				NotificationConstants.DisplaySurface.BELL, NotificationConstants.Source.PROJECT, normalizedProjectId,
-				NotificationConstants.Target.APP, normalizedProjectId, null, createdBy);
+				NotificationConstants.Scope.APP, normalizedProjectId, audienceType, audienceId, audienceUserType,
+				normalizedTitle, normalizedMessage, normalizedPriority, NotificationConstants.DisplaySurface.BELL,
+				NotificationConstants.Source.PROJECT, normalizedProjectId, NotificationConstants.Target.APP,
+				normalizedProjectId, null, createdBy);
 	}
 
 	private static String normalizePriority(String priority) {

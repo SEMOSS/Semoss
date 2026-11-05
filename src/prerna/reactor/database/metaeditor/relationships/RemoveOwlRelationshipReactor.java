@@ -43,7 +43,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
@@ -54,19 +53,21 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 	private static final String CLASS_NAME = RemoveOwlRelationshipReactor.class.getName();
 
 	/*
-	 * This class assumes that the start table, start column, end table, and end column have already been defined
+	 * This class assumes that the start table, start column, end table, and end
+	 * column have already been defined
 	 */
-	
+
 	public RemoveOwlRelationshipReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), "startT", "endT", "startC", "endC", STORE_VALUES_FRAME};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), "startT", "endT", "startC", "endC",
+				STORE_VALUES_FRAME };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		String databaseId = getDatabaseInput();
 		// we may have the alias
 		databaseId = testDatabaseId(databaseId, true);
-		
+
 		// get tables
 		List<String> startTList = getValues(this.keysToGet[1], 1);
 		List<String> endTList = getValues(this.keysToGet[2], 2);
@@ -76,22 +77,22 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 		List<String> endCList = getValues(this.keysToGet[4], 4);
 
 		int size = startTList.size();
-		if(size != endTList.size() && size != startCList.size() && size != endCList.size()) {
+		if (size != endTList.size() && size != startCList.size() && size != endCList.size()) {
 			throw new IllegalArgumentException("Input values are not the same size");
 		}
-		
+
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+		try (WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
 			ClusterUtil.pullOwl(databaseId, owlEngine);
 
-			for(int i = 0; i < size; i++) {
+			for (int i = 0; i < size; i++) {
 				String startT = startTList.get(i);
 				String endT = endTList.get(i);
 				String startC = startCList.get(i);
 				String endC = endCList.get(i);
 				// define the rel
 				String rel = startT + "." + startC + "." + endT + "." + endC;
-				
+
 				// add the relationship
 				owlEngine.removeRelation(startT, endT, rel);
 			}
@@ -100,64 +101,67 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 				owlEngine.commit();
 				owlEngine.export();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to commit the removed relationships to the OWL of database {}", databaseId,
+						e);
 				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add the relationships defined", 
-						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				noun.addAdditionalReturn(
+						new NounMetadata("An error occurred attempting to add the relationships defined",
+								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				return noun;
 			}
 			EngineSyncUtility.clearEngineCache(databaseId);
 			ClusterUtil.pushOwl(databaseId, owlEngine);
-			
+
 		} catch (IOException | InterruptedException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Failed to remove relationships from the OWL of database {}", databaseId, e1);
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to modify the OWL", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to modify the OWL",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
 
 		// store user inputed values
 		storeUserInputs(getLogger(CLASS_NAME), startTList, startCList, endTList, endCList, "removed");
-		
+
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully adding relationships", 
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		noun.addAdditionalReturn(new NounMetadata("Successfully adding relationships", PixelDataType.CONST_STRING,
+				PixelOperationType.SUCCESS));
 		return noun;
 	}
-	
+
 	///////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////
 	///////////// GRAB INPUTS FROM PIXEL REACTOR //////////////
 	///////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////
-	
+
 	public String getDatabaseInput() {
 		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
-		if (grs != null && !grs.isEmpty()) {	
+		if (grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}
-		
+
 		// if we got to this point
 		// it better be single values
 		organizeKeys();
 		return this.keyValue.get(this.keysToGet[0]);
 	}
-	
+
 	public List<String> getValues(String keyToGet, int index) {
 		List<String> values = new Vector<String>();
 		GenRowStruct grs = this.store.getGenRowStruct(keyToGet);
 		if (grs != null && !grs.isEmpty()) {
-			for(int i = 0; i < grs.size(); i++) {
+			for (int i = 0; i < grs.size(); i++) {
 				values.add(grs.get(i).toString());
 			}
 			return values;
 		}
-		
+
 		// if we got to this point
 		// it better be single values
 		organizeKeys();
 		values.add(this.keyValue.get(keyToGet));
 		return values;
 	}
-	
+
 }

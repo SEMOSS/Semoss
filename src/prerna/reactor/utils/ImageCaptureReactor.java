@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.utils;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -48,7 +47,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ImageCaptureReactor extends AbstractReactor {
@@ -60,7 +58,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public ImageCaptureReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.URL.getKey(), 
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.URL.getKey(),
 				ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.IMAGE_WAIT_TIME.getKey() };
 	}
 
@@ -69,7 +67,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		logger.info("Starting image capture...");
 		logger.info("Operation can take up to 10 seconds to complete");
-		
+
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String feUrl = this.keyValue.get(this.keysToGet[1]);
@@ -86,63 +84,61 @@ public class ImageCaptureReactor extends AbstractReactor {
 
 		Integer waitTime = null;
 		String waitTimeStr = this.keyValue.get(this.keysToGet[3]);
-		if(waitTimeStr != null && (waitTimeStr=waitTimeStr.trim()).isEmpty()) {
+		if (waitTimeStr != null && (waitTimeStr = waitTimeStr.trim()).isEmpty()) {
 			try {
 				waitTime = Integer.parseInt(waitTimeStr);
-			} catch(NumberFormatException e) {
-				throw new IllegalArgumentException("Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
+			} catch (NumberFormatException e) {
+				throw new IllegalArgumentException(
+						"Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
 			}
 		}
-		
+
 		IProject coreProject = Utility.getProject(projectId);
+		if (!coreProject.getProjectType().holdsInsights()) {
+			throw new IllegalArgumentException("Project " + projectId + " is a " + coreProject.getProjectType()
+					+ " project, which does not hold insights");
+		}
 		// loop through the insights
 		IDatabaseEngine insightsEng = coreProject.getInsightDatabase();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(insightsEng, "select distinct id from question_id");
-			while(wrapper.hasNext()) {
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightsEng,
+				"select distinct id from question_id")) {
+			while (wrapper.hasNext()) {
 				String id = wrapper.next().getValues()[0] + "";
 				runImageCapture(feUrl, projectId, id, param, sessionId, waitTime);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper!=null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Failed to capture the insight images of project {}", projectId, e);
 		}
 
 		ClusterUtil.pushProject(projectId);
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	public static void runImageCapture(String feUrl, String projectId, String insightId, String params, String sessionId, Integer waitTime) {
+	public static void runImageCapture(String feUrl, String projectId, String insightId, String params,
+			String sessionId, Integer waitTime) {
 		IProject coreProject = Utility.getProject(projectId);
-		if(coreProject == null) {
+		if (coreProject == null) {
 			throw new IllegalArgumentException("Cannot find project = " + projectId);
 		}
 		runImageCapture(feUrl, coreProject, projectId, insightId, params, sessionId, waitTime);
 	}
-	
-	public static void runImageCapture(String feUrl, IProject coreProject, String appId, String insightId, String params, String sessionId, Integer waitTime) {
+
+	public static void runImageCapture(String feUrl, IProject coreProject, String appId, String insightId,
+			String params, String sessionId, Integer waitTime) {
 		Insight insight = null;
 		try {
 			insight = coreProject.getInsight(insightId).get(0);
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (Exception e) {
+			classLogger.error("Failed to load insight {} of project {} for its image", insightId, appId, e);
 		}
-		if(insight instanceof OldInsight) {
+		if (insight instanceof OldInsight) {
 			return;
 		}
 		List<String> recipe = insight.getPixelList().getPixelRecipe();
-		if(params != null || !PixelUtility.isNotCacheable(recipe)) {
+		if (params != null || !PixelUtility.isNotCacheable(recipe)) {
 			runHeadlessChrome(feUrl, insight, params, sessionId, waitTime);
 		}
-		
+
 //		if(params != null || !PixelUtility.hasParam(recipe)) {
 //			String[] cmd = getCmdArray(feUrl, insight, params);
 //			Process p = null;
@@ -174,19 +170,21 @@ public class ImageCaptureReactor extends AbstractReactor {
 
 	/**
 	 * Run headless chrome via selenium
+	 * 
 	 * @param feUrl
 	 * @param insight
 	 * @param params
 	 * @param sessionId
 	 */
-	private static void runHeadlessChrome(String feUrl, Insight insight, String params, String sessionId, Integer waitTime) {
+	private static void runHeadlessChrome(String feUrl, Insight insight, String params, String sessionId,
+			Integer waitTime) {
 		feUrl = feUrl.trim();
 		String id = insight.getRdbmsId();
 		String projectId = insight.getProjectId();
 		String projectName = insight.getProjectName();
 //		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String imageDirStr = "";
-		if(params == null) {
+		if (params == null) {
 //			imageDirStr = baseFolder + 
 //				DIR_SEPARATOR + "db" + 
 //				DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + 
@@ -195,23 +193,22 @@ public class ImageCaptureReactor extends AbstractReactor {
 			imageDirStr = AssetUtility.getProjectVersionFolder(projectName, projectId) + DIR_SEPARATOR + id;
 		} else {
 			// params is already encodeed
-			imageDirStr = AssetUtility.getProjectVersionFolder(projectName, projectId) +
-					DIR_SEPARATOR + id + 
-					DIR_SEPARATOR + "params" + 
-					DIR_SEPARATOR + params;
+			imageDirStr = AssetUtility.getProjectVersionFolder(projectName, projectId) + DIR_SEPARATOR + id
+					+ DIR_SEPARATOR + "params" + DIR_SEPARATOR + params;
 		}
-		
-		String url = null;
-		if(params != null) {
-			url = feUrl+ "#!/insight?type=multi&engine=" + projectId + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&drop=5000&animation=false";
-		} else {
-			url = feUrl+ "#!/insight?type=multi&engine=" + projectId + "&id=" + id + "&hideMenu=true&drop=5000&animation=false";
-		}
-		insight.getChromeDriver().captureImage(feUrl, url, imageDirStr + DIR_SEPARATOR + "image.png", sessionId, waitTime);
-	}
-	
 
-	
+		String url = null;
+		if (params != null) {
+			url = feUrl + "#!/insight?type=multi&engine=" + projectId + "&id=" + id + "&parameters=" + params
+					+ "&hideMenu=true&drop=5000&animation=false";
+		} else {
+			url = feUrl + "#!/insight?type=multi&engine=" + projectId + "&id=" + id
+					+ "&hideMenu=true&drop=5000&animation=false";
+		}
+		insight.getChromeDriver().captureImage(feUrl, url, imageDirStr + DIR_SEPARATOR + "image.png", sessionId,
+				waitTime);
+	}
+
 //	private static String[] getCmdArray(String feUrl, Insight in, String params) {
 //		String id = in.getRdbmsId();
 //		String engineId = in.getEngineId();

@@ -40,8 +40,9 @@ import org.json.JSONObject;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.collaboration.CollaborationRunMode;
 import prerna.cluster.util.ClusterUtil;
+import prerna.collaboration.CollaborationRunMode;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelCapabilityEnum;
@@ -135,7 +136,10 @@ public final class AgentRunner {
 	/** Override enforcement mode per-run: {@code ENFORCE} | {@code DISABLED}. */
 	public static final String PARAM_SANDBOX_ENFORCE = "sandbox_enforce";
 
-	/** agentParams key for the words the user typed when input wraps them in caller context. */
+	/**
+	 * agentParams key for the words the user typed when input wraps them in caller
+	 * context.
+	 */
 	public static final String AGENT_PARAM_USER_TEXT = "userText";
 
 	/** The user's own words from agentParams, else the full input. */
@@ -248,6 +252,8 @@ public final class AgentRunner {
 				: (modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userText)
 						: RoomUtils.getOrLoadRoom(roomId, insight));
 		room.setInsight(insight);
+		// before anything reads the room's mode: the owner following up in a routine's room makes it their chat
+		CollaborationUtils.handOverRoutineRoom(room, runId);
 
 		Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
 		Map<String, Object> agentParams = agentParamMap != null ? new HashMap<>(agentParamMap) : new HashMap<>();
@@ -255,8 +261,10 @@ public final class AgentRunner {
 		// Resolve and strip any per-run workspace override before model + working-dir
 		// lookup.
 		String explicitWorkspaceId = extractExplicitWorkspaceId(params);
-		// a Collaboration chat or routine with no agent of its own runs the Collaboration Agent
-		if (explicitWorkspaceId == null && extractWorkspaceIdFromOptionField(room.getOptionsMap().get("workspace")) == null
+		// a Collaboration chat or routine with no agent of its own runs the
+		// Collaboration Agent
+		if (explicitWorkspaceId == null
+				&& extractWorkspaceIdFromOptionField(room.getOptionsMap().get("workspace")) == null
 				&& CollaborationRunMode.of(room) != null) {
 			explicitWorkspaceId = Constants.AGENT_COLLABORATION;
 		}
@@ -375,18 +383,32 @@ public final class AgentRunner {
 				} catch (Exception e) {
 					logger.warn("AgentRunner: post-agent target push failed for target={}", target, e);
 				}
-			}
-		}
-
-		if (ClusterUtil.IS_CLUSTER) {
-			try {
-				ClusterUtil.pushRoom(roomId);
-			} catch (Exception e) {
-				logger.warn("AgentRunner: post-agent room push to cloud failed for room='{}'", roomId, e);
+				pushRoomAfterRun(roomId);
 			}
 		}
 
 		return result;
+	}
+
+	/**
+	 * Pushes the room folder to cloud storage once a run ends, however it ended, so
+	 * the transcript and files of a run that was stopped or failed reach the other
+	 * servers too. A stopped run's thread is still interrupted, and socket I/O on
+	 * an interrupted virtual thread fails, so that push runs on a thread of its
+	 * own.
+	 *
+	 * @param roomId the room the run ran in
+	 */
+	private static void pushRoomAfterRun(String roomId) {
+		if (Thread.currentThread().isInterrupted()) {
+			ClusterUtil.pushRoomAsync(roomId);
+			return;
+		}
+		try {
+			ClusterUtil.pushRoom(roomId);
+		} catch (Exception e) {
+			logger.warn("AgentRunner: post-agent room push to cloud failed for room='{}'", roomId, e);
+		}
 	}
 
 	private static void validateSelectedModel(Insight insight, String modelId) {
@@ -705,9 +727,8 @@ public final class AgentRunner {
 		}
 
 		if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
-			if (insight == null || insight.getUser() == null || insight.getUser().isAnonymous()
-					|| insight.getUser().getPrimaryLogin() == null) {
-				throw new IllegalArgumentException("Must be logged in as a non-anonymous user to access user assets");
+			if (insight == null || insight.getUser() == null || insight.getUser().getPrimaryLogin() == null) {
+				throw new IllegalArgumentException("Must be logged in to access user assets");
 			}
 			IProject project = insight.getUser().getAssetProject();
 			if (project == null) {

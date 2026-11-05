@@ -147,10 +147,11 @@ public final class ModelUsageLimitResolver {
 	 *
 	 * @param user the signed in user
 	 * @return the user as a person limits apply to, with every login's teams
-	 * @throws IllegalArgumentException for an anonymous user, who cannot use models
+	 * @throws IllegalArgumentException for a missing user or one with no login, who
+	 *                                  cannot use models
 	 */
 	public static Person personOf(User user) {
-		if (user == null || user.isAnonymous()) {
+		if (user == null) {
 			throw new IllegalArgumentException("Sign in to use models");
 		}
 		Pair<String, String> primary = User.getPrimaryUserIdAndTypePair(user);

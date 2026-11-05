@@ -571,8 +571,6 @@ public class Constants {
 
 	// Security
 	public static final String SECURITY_DB = "security";
-	public static final String ANONYMOUS_USER_ALLOWED = "anonymous-users-allowed";
-	public static final String ANONYMOUS_USER_UPLOAD_DATA = "anonymous-users-upload-data";
 	public static final String USE_LOGOUT_PAGE = "use-logout-page";
 	public static final String CUSTOM_LOGOUT_URL = "custom-logout-url";
 	public static final String SESSION_USER = "semoss_user";
@@ -643,6 +641,12 @@ public class Constants {
 	public static final String ADMIN_ONLY_GUARDRAIL_SET_PUBLIC = "ADMIN_ONLY_GUARDRAIL_SET_PUBLIC";
 	public static final String ADMIN_ONLY_GUARDRAIL_SET_DISCOVERABLE = "ADMIN_ONLY_GUARDRAIL_SET_DISCOVERABLE";
 
+	public static final String ADMIN_ONLY_VENV_ADD = "ADMIN_ONLY_VENV_ADD";
+	public static final String ADMIN_ONLY_VENV_DELETE = "ADMIN_ONLY_VENV_DELETE";
+	public static final String ADMIN_ONLY_VENV_ADD_ACCESS = "ADMIN_ONLY_VENV_ADD_ACCESS";
+	public static final String ADMIN_ONLY_VENV_SET_PUBLIC = "ADMIN_ONLY_VENV_SET_PUBLIC";
+	public static final String ADMIN_ONLY_VENV_SET_DISCOVERABLE = "ADMIN_ONLY_VENV_SET_DISCOVERABLE";
+
 	public static final String ADMIN_ONLY_INSIGHT_SET_PUBLIC = "ADMIN_ONLY_INSIGHT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_INSIGHT_ADD_ACCESS = "ADMIN_ONLY_INSIGHT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_INSIGHT_SHARE = "ADMIN_ONLY_INSIGHT_SHARE";
@@ -684,8 +688,7 @@ public class Constants {
 	public static final String USE_CONNECTION_POOLING = "USE_CONNECTION_POOLING";
 	public static final String H2_BASE_CONNECTION_URL = "jdbc:h2:@" + Constants.BASE_FOLDER + "@"
 			+ System.getProperty("file.separator") + "@ENGINE" + Constants.ENGINE + "@"
-			+ System.getProperty("file.separator")
-			+ "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+			+ System.getProperty("file.separator") + "database;query_timeout=180000;cache_size=32768";
 
 	// default rdbms insights type
 	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";
@@ -1076,9 +1079,12 @@ public class Constants {
 	public static final String COLLAB_CLASSIFIER_ENGINE_ID = "COLLAB_CLASSIFIER_ENGINE_ID";
 	public static final String COLLAB_CLASSIFIER_CUTOFFS = "COLLAB_CLASSIFIER_CUTOFFS";
 	public static final String COLLAB_CLASSIFIER_WINDOW = "COLLAB_CLASSIFIER_WINDOW";
-	// a general text model for topic grouping and naming, and thread summaries and
-	// action items
+	// a general text model for topic grouping and naming, thread summaries and work
+	// items
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
+	// work items runs at once across owners; each owner's own runs still go one at
+	// a time (default 3)
+	public static final String COLLAB_WORK_ITEMS_PARALLEL = "COLLAB_WORK_ITEMS_PARALLEL";
 	// threads the classifier sorts at once (default 8)
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
 	// characters of memories a thread's assistant gets in its prompt (default 4000)
@@ -1098,6 +1104,7 @@ public class Constants {
 	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
 	public static final String SKILL_COLLABORATION = "collaboration";
 	public static final String SKILL_DATABASE = "database";
+	public static final String SKILL_DOCX = "docx";
 	public static final String SKILL_EXPORTS = "exports";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";
 	public static final String SKILL_FRONTEND_DESIGN = "frontend-design";
@@ -1113,6 +1120,7 @@ public class Constants {
 	public static final String SKILL_USER = "user";
 	public static final String SKILL_VECTOR = "vector";
 	public static final String SKILL_WORKFLOW_AUTOMATION = "workflow-automation";
+	public static final String SKILL_XLSX = "xlsx";
 
 	// system (platform) mcp names
 	public static final String MCP_APP_FILESYSTEM = "app-filesystem";
@@ -1128,6 +1136,7 @@ public class Constants {
 	public static final String AGENT_COLLABORATION = "collaboration-agent";
 	public static final String AGENT_DATABASE_EXPLORER = "database-explorer";
 	public static final String AGENT_NOTEBOOK_ANALYST = "notebook-analyst";
+	public static final String AGENT_OFFICE = "office-agent";
 	public static final String AGENT_PPTX = "pptx-agent";
 	public static final String AGENT_PPTX_REVIEWER = "pptx-reviewer";
 	public static final String AGENT_WORKFLOW_AUTOMATION_BUILDER = "workflow-automation-builder";

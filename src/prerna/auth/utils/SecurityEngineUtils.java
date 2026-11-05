@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.io.IOException;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -98,6 +98,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	private static final String INSUFFICIENT_PRIVILEGES = "Insufficient privileges to modify this engine's permissions.";
 	private static final String NOT_HIGH_ENOUGH = "The user doesn't have the high enough permissions to modify this users engine permission.";
 	private static final String CANNOT_GIVE_OWNER = "Cannot give owner level access to this engine since you are not currently an owner.";
+	private static final String INSERT_ENGINE = "INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE, ENGINESUBTYPE, "
+			+ "COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, ENGINEDISPLAYNAME) "
+			+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 
 	/**
 	 * Add an entire database into the security db
@@ -252,40 +255,57 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	public static void addEngine(String engineId, String engineName, String engineDisplayName,
 			IEngine.CATALOG_TYPE engineType, String engineSubType, String engineCost, boolean global, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String query = "INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, ENGINEDISPLAYNAME) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
-
 		try {
-			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, engineId);
-				securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, engineName);
-				ps.setString(parameterIndex++, engineType.toString());
-				securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, engineSubType);
-				securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, engineCost);
-				ps.setBoolean(parameterIndex++, global);
-				ps.setBoolean(parameterIndex++, false);
-				if (user != null) {
-					AuthProvider ap = user.getPrimaryLogin();
-					AccessToken token = user.getAccessToken(ap);
-					ps.setString(parameterIndex++, token.getId());
-					ps.setString(parameterIndex++, ap.toString());
-				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-				}
-				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-				if (engineDisplayName == null || engineDisplayName.trim().isEmpty()) {
-					ps.setString(parameterIndex++, engineName);
-				} else {
-					ps.setString(parameterIndex++, engineDisplayName);
-				}
+			QueryExecutionUtility.write(securityDb, connection -> {
+				insertEngine(connection, securityDb.getQueryUtil(), engineId, engineName, engineDisplayName, engineType,
+						engineSubType, engineCost, global, user);
+				return null;
 			});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
 			classLogger.error("Failed to create the engine record in the security database", e);
 		}
+	}
+
+	/**
+	 * Inserts an engine's ENGINE row on the caller's connection, in its
+	 * transaction. The engine is not discoverable, it was created now, and the
+	 * user, when given, is recorded as its creator. A blank display name gives the
+	 * engine's name as its display name.
+	 *
+	 * @param connection the security database connection, in the caller's
+	 *                   transaction
+	 * @param queryUtil  the security database's query util, for its binders
+	 */
+	private static void insertEngine(Connection connection, AbstractSqlQueryUtil queryUtil, String engineId,
+			String engineName, String engineDisplayName, IEngine.CATALOG_TYPE engineType, String engineSubType,
+			String engineCost, boolean global, User user) throws Exception {
+		QueryExecutionUtility.executeUpdate(connection, INSERT_ENGINE, ps -> {
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, engineId);
+			queryUtil.setNullableString(ps, parameterIndex++, engineName);
+			ps.setString(parameterIndex++, engineType.toString());
+			queryUtil.setNullableString(ps, parameterIndex++, engineSubType);
+			queryUtil.setNullableString(ps, parameterIndex++, engineCost);
+			ps.setBoolean(parameterIndex++, global);
+			ps.setBoolean(parameterIndex++, false);
+			if (user != null) {
+				AuthProvider ap = user.getPrimaryLogin();
+				AccessToken token = user.getAccessToken(ap);
+				ps.setString(parameterIndex++, token.getId());
+				ps.setString(parameterIndex++, ap.toString());
+			} else {
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			}
+			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+			if (engineDisplayName == null || engineDisplayName.trim().isEmpty()) {
+				queryUtil.setNullableString(ps, parameterIndex++, engineName);
+			} else {
+				ps.setString(parameterIndex++, engineDisplayName);
+			}
+		});
 	}
 
 	public static void updateEngineTypeAndSubType(String engineId, IEngine.CATALOG_TYPE engineType,
@@ -572,8 +592,16 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Approves access requests, as a permission batch: each person gets the level
-	 * they asked for, and the requests are marked approved in the same save. The
-	 * engine's editors can; only its owners give or change Author access.
+	 * they asked for, and the engine's own requests are marked approved in the same
+	 * transaction, so either the access and the approvals are all saved or none of
+	 * them is. The engine's editors can; only its owners give or change Author
+	 * access.
+	 *
+	 * <p>
+	 * Once the save has committed, each requester is sent a notification and an
+	 * email. Each is sent on its own, and a failure is logged and does not undo the
+	 * save; nothing is sent when the save fails.
+	 * </p>
 	 *
 	 * @param user     the user approving
 	 * @param engineId the engine
@@ -594,7 +622,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		// notifications and emails go out after the save, and a failure does not
 		// undo it
 		if (Utility.isNotificationDatabaseEnabled()) {
-			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
+			String engineType = readEngineTypeForNotifications(engineId);
+			if (engineType == null) {
+				return;
+			}
 			for (Map<String, String> request : requests) {
 				try {
 					NotificationDbUtils.createNotification(user, request.get("userid"), request.get("type"), engineId,
@@ -612,9 +643,16 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Denies access requests to an engine: each is marked denied, by the user, and
-	 * each requester is told. Only the engine's owners can, directly or through a
-	 * team.
+	 * Denies access requests to an engine: each of the engine's own requests is
+	 * marked denied, by the user, and its requester is read back, in one
+	 * transaction. Only the engine's owners can, directly or through a team.
+	 *
+	 * <p>
+	 * Once the denials have committed, each requester is sent a notification, from
+	 * the requesters read in that transaction. Each is sent on its own, and a
+	 * failure is logged and does not undo the denials; nothing is sent when the
+	 * denials fail.
+	 * </p>
 	 *
 	 * @param user       the user denying
 	 * @param engineId   the engine
@@ -623,8 +661,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void denyEngineUserAccessRequests(User user, String engineId, List<String> requestIds)
 			throws IllegalAccessException {
-		PermissionBatchUtils.denyRequests(user, PermissionTargetResource.engine(engineId), requestIds,
-				PermissionBatchOptions.userMode(),
+		List<Map<String, Object>> denied = PermissionBatchUtils.denyRequests(user,
+				PermissionTargetResource.engine(engineId), requestIds, PermissionBatchOptions.userMode(),
 				new PermissionErrorRules()
 						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
 						.illegalArgument(PermissionProblem.ErrorCode.OWNERS_ONLY,
@@ -634,21 +672,45 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		// notifications go out after the save, and a failure does not undo it
 		if (Utility.isNotificationDatabaseEnabled()) {
-			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
-			for (String requestId : requestIds) {
+			String engineType = readEngineTypeForNotifications(engineId);
+			if (engineType == null) {
+				return;
+			}
+			for (Map<String, Object> request : denied) {
+				Integer permission = (Integer) request.get("permission");
+				if (permission == null) {
+					// the notification names the level asked for, so a request with none
+					// gets no notification
+					continue;
+				}
 				try {
-					for (Map<String, Object> request : getUserDetailsFromEngineAccessRequest(requestId)) {
-						NotificationDbUtils.createNotification(user, (String) request.get("userId"),
-								(String) request.get("type"), engineId, NotificationConstants.Type.REQUEST_DENIAL,
-								engineType, NotificationConstants.Priority.MEDIUM, null,
-								AccessPermissionEnum.getPermissionValueById((Integer) request.get("permission")),
-								NotificationConstants.DisplaySurface.BELL);
-					}
+					NotificationDbUtils.createNotification(user, (String) request.get("userId"),
+							(String) request.get("type"), engineId, NotificationConstants.Type.REQUEST_DENIAL,
+							engineType, NotificationConstants.Priority.MEDIUM, null,
+							AccessPermissionEnum.getPermissionValueById(permission),
+							NotificationConstants.DisplaySurface.BELL);
 				} catch (Exception e) {
-					classLogger.warn("Could not tell the requester that request {} for engine {} was denied", requestId,
-							engineId, e);
+					classLogger.warn("Could not tell the requester that request {} for engine {} was denied",
+							request.get("requestId"), engineId, e);
 				}
 			}
+		}
+	}
+
+	/**
+	 * Reads an engine's type for the notifications sent after a save, in lower
+	 * case. The save has committed by then, so a failure to read it is logged, and
+	 * no notification is sent, rather than thrown.
+	 *
+	 * @param engineId the engine
+	 * @return the engine's type in lower case, or null when it cannot be read
+	 */
+	private static String readEngineTypeForNotifications(String engineId) {
+		try {
+			return String.valueOf(getEngineType(engineId)).toLowerCase();
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not read the type of engine {} for notifications", engineId, e);
+			return null;
 		}
 	}
 
@@ -694,14 +756,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
+		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				return true;
-			}
+			exists = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Failed to check whether engine exists", e);
 		}
-		return false;
+		return exists;
 	}
 
 	/**
@@ -720,14 +781,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
+		boolean global = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				return true;
-			}
+			global = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Failed to determine whether engine is global", e);
 		}
-		return false;
+		return global;
 	}
 
 	/**
@@ -1646,25 +1706,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if (wrapper.hasNext()) {
-				// if you are here, you can request
-				return true;
-			}
+		boolean discoverable = false;
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			// if there is a row, you can request
+			discoverable = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Failed to determine whether engine is discoverable", e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to determine whether engine is discoverable", e);
-				}
-			}
 		}
-		return false;
+		return discoverable;
 	}
 
 	/**
@@ -1765,30 +1814,22 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				requesterDetails.getValue1()));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__ENGINEID", "==", engineId));
 		qs.addOrderBy("ENGINEACCESSREQUEST__REQUEST_TIMESTAMP", "desc");
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		int pendingPermission = -1;
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (it.hasNext()) {
 				Object[] values = it.next().getValues();
 				String mostRecentAction = (String) values[0];
 				if (!mostRecentAction.equals("APPROVED") && !mostRecentAction.equals("DENIED")
 						&& !mostRecentAction.equals("OLD")) {
-					return ((Number) values[1]).intValue();
+					pendingPermission = ((Number) values[1]).intValue();
+					break;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to retrieve pending user access requests", e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to retrieve pending user access requests", e);
-				}
-			}
 		}
 
-		return -1;
+		return pendingPermission;
 	}
 
 	/**
@@ -2689,8 +2730,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			return QueryExecutionUtility.write(securityDb, connection -> {
 				// first truncate table clean
 				String truncateSql = "DELETE FROM " + tableName + " WHERE 1=1";
-				QueryExecutionUtility.executeUpdate(connection, truncateSql, deletePs -> {
-				});
+				QueryExecutionUtility.executeUpdate(connection, truncateSql, QueryExecutionUtility.NO_PARAMETERS);
 				try (PreparedStatement insertPs = connection.prepareStatement(securityDb.getQueryUtil()
 						.createInsertPreparedStatementString(tableName, new String[] { Constants.METAKEY,
 								Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS }))) {
@@ -2715,39 +2755,48 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Replaces a person's engine permissions with the ones given, such as their
-	 * login provider's, in one transaction. Engines not yet registered are added
-	 * first. The model usage limits on the grants kept stay as they are, and the
-	 * limits on grants no longer given are removed.
+	 * login provider's, in one transaction: the engines not yet registered are
+	 * added, the person's grants are replaced, and the model usage limits on the
+	 * grants no longer given are removed, all saved together or not at all. The
+	 * limits on the grants kept stay as they are.
 	 *
 	 * @param user              the person
 	 * @param enginePermissions each engine's {@code engineId}, {@code engineName},
 	 *                          {@code engineType}, {@code engineSubType} and
 	 *                          {@code permission}
 	 * @return the permissions whose engines were added
-	 * @throws IllegalArgumentException when the permissions cannot be saved
+	 * @throws IllegalArgumentException when the permissions cannot be saved;
+	 *                                  nothing is saved, the engines it would add
+	 *                                  included
 	 */
 	public static List<Map<String, Object>> updateEngineUserPermissions(User user,
 			List<Map<String, Object>> enginePermissions) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		List<Map<String, Object>> newEngines = new ArrayList<>();
+		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
 		List<Map<String, Object>> permissions = enginePermissions == null ? List.of() : enginePermissions;
 		String userId = User.getPrimaryUserIdAndTypePair(user).getValue0();
+		String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID = ?";
+		String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, DATEADDED) "
+				+ "VALUES (?, ?, ?, ?)";
+		Timestamp currentTimestamp = Utility.getCurrentSqlTimestampUTC();
+		List<Map<String, Object>> newEngines;
 		try {
-			// engines not yet registered are added on their own, before the transaction
-			for (Map<String, Object> permissionMap : permissions) {
-				String engineId = (String) permissionMap.get("engineId");
-				if (!engineExists(engineId)) {
-					newEngines.add(permissionMap);
-					addEngine(engineId, (String) permissionMap.get("engineName"),
-							(IEngine.CATALOG_TYPE) permissionMap.get("engineType"),
-							(String) permissionMap.get("engineSubType"), "", false, null);
+			newEngines = QueryExecutionUtility.write(securityDb, connection -> {
+				// engines not yet registered are added in the same transaction, so a grant
+				// is never saved without its engine
+				List<Map<String, Object>> added = new ArrayList<>();
+				for (Map<String, Object> permissionMap : permissions) {
+					String engineId = (String) permissionMap.get("engineId");
+					if (QueryExecutionUtility.queryOne(connection, "SELECT ENGINEID FROM ENGINE WHERE ENGINEID=?",
+							ps -> ps.setString(1, engineId), rs -> rs.getString(1)) == null) {
+						added.add(permissionMap);
+						String engineName = (String) permissionMap.get("engineName");
+						insertEngine(connection, queryUtil, engineId, engineName, engineName,
+								(IEngine.CATALOG_TYPE) permissionMap.get("engineType"),
+								(String) permissionMap.get("engineSubType"), "", false, null);
+					}
 				}
-			}
 
-			String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID = ?";
-			String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, DATEADDED) VALUES (?, ?, ?, ?)";
-			Timestamp currentTimestamp = Utility.getCurrentSqlTimestampUTC();
-			QueryExecutionUtility.write(securityDb, connection -> {
 				QueryExecutionUtility.executeUpdate(connection, deleteQuery, ps -> ps.setString(1, userId));
 				if (!permissions.isEmpty()) {
 					QueryExecutionUtility.executeBatch(connection, insertQuery, permissions, (ps, permissionMap) -> {
@@ -2759,15 +2808,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					});
 				}
 				SecurityModelUsageLimitUtils.deleteDirectLimitsWithoutGrant(connection, userId);
-				return null;
+				return added;
 			});
-			// the grants decide which limits apply, so the cached limits are read again
-			SecurityModelUsageLimitUtils.markChanged();
-			return newEngines;
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine user permissions", e);
 			throw new IllegalArgumentException("An error occurred while updating the user engine permissions in db ");
 		}
+		// the grants decide which limits apply, so the cached limits are read again
+		SecurityModelUsageLimitUtils.markChanged();
+		return newEngines;
 	}
 
 	public static void updateEngineToolApp(String engineId, String projectId) {

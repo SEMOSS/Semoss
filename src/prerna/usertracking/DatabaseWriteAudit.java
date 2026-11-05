@@ -44,9 +44,11 @@ import prerna.util.Utility;
  * many statements ran and what the request left in the database. The SQL text
  * is kept by the engine proxy in {@code AUDIT_LOGS}, not here, though the
  * database's error message for a failed write, which the event keeps, can quote
- * part of it, as H2's messages do. When the engine keeps its input and output,
- * the event holds the SHA-256 of the SQL so a script file can be matched to its
- * run.
+ * part of it, as H2's messages do. The event holds the SHA-256 of the SQL, so a
+ * script file can be matched to its run, whenever the engine keeps its input
+ * and output ({@link IEngine#keepInputOutput()}). A database always does; a
+ * vector database built on a database engine follows its KEEP_INPUT_OUTPUT
+ * setting.
  */
 public final class DatabaseWriteAudit {
 
@@ -186,7 +188,8 @@ public final class DatabaseWriteAudit {
 	 *
 	 * @param write           what ran and how it ended
 	 * @param keepInputOutput whether the engine keeps its input and output, which
-	 *                        decides whether the SQL's hash is kept
+	 *                        decides whether the SQL's hash is kept; always true
+	 *                        for a database
 	 * @return the details, in a fixed order
 	 */
 	static Map<String, Object> details(Write write, boolean keepInputOutput) {

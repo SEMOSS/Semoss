@@ -123,7 +123,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	public static String createToken(User user, String sessionId, String routeId, boolean sessionToken,
 			boolean authToken) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (user == null || user.isAnonymous()) {
+		if (user == null) {
 			throw new IllegalArgumentException("Cannot share a session for a user who is not logged in");
 		}
 
@@ -211,14 +211,15 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(QS_USERID));
 		qs.addSelector(new QueryColumnSelector(QS_TYPE));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(QS_SHARE_VAL, "==", shareToken));
+		Object[] sessionDetails = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				return wrapper.next().getValues();
+				sessionDetails = wrapper.next().getValues();
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve share session details.", e);
 		}
-		return null;
+		return sessionDetails;
 	}
 
 	/**

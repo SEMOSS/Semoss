@@ -40,7 +40,6 @@ import org.h2.store.fs.FileUtils;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.engine.impl.InsightAdministrator;
@@ -52,20 +51,18 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 import prerna.util.git.GitRepoUtils;
 
 public class UploadInsightReactor extends AbstractInsightReactor {
-	
-	// TODO: change to project from database
-	
+
 	private static final String CLASS_NAME = UploadInsightReactor.class.getName();
 
 	public UploadInsightReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.SPACE.getKey() };
 	}
 
 	@Override
@@ -77,9 +74,6 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 
 		// security
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 		if (!SecurityEngineUtils.userCanEditEngine(user, projectId)) {
 			throw new IllegalArgumentException("User does not have permission to add insights in the proejct");
 		}
@@ -93,6 +87,10 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		String mosfetFileLoc = null;
 		File mosfetFile = null;
 		IProject project = Utility.getProject(projectId);
+		if (!project.getProjectType().holdsInsights()) {
+			throw new IllegalArgumentException("Project " + projectId + " is a " + project.getProjectType()
+					+ " project, which does not hold insights");
+		}
 		String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 		// unzip asset to db folder
 		try {
@@ -127,7 +125,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 			}
 
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Failed to unzip {} into the version folder of project {}", zipFilePath, projectId, e);
 			SemossPixelException exception = new SemossPixelException(
 					NounMetadata.getErrorNounMessage("Unable to unzip files."));
 			exception.setContinueThreadOfExecution(false);
@@ -141,7 +139,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		try {
 			mosfet = MosfetFile.generateFromFile(mosfetFile);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Failed to read the mosfet file {} of project {}", mosfetFileLoc, projectId, e);
 			SemossPixelException exception = new SemossPixelException(
 					NounMetadata.getErrorNounMessage("Unable to load the mosfet file."));
 			exception.setContinueThreadOfExecution(false);
@@ -164,9 +162,9 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		ZonedDateTime cachedOn = mosfet.getCachedOn();
 		boolean cacheEncrypt = mosfet.isCacheEncrypt();
 		String schemaName = mosfet.getSchemaName();
-		
-		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, pixelRecipeToSave, hidden, 
-				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+
+		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, pixelRecipeToSave, hidden, cacheable,
+				cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
 		logger.info(step + ") Done...");
 		step++;
 
@@ -181,9 +179,8 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		step++;
 
 		logger.info(step + ") Regsiter insight...");
-		SecurityInsightUtils.addInsight(projectId, newInsightId, insightName, true, 
-				layout, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, 
-				pixelRecipeToSave, schemaName);
+		SecurityInsightUtils.addInsight(projectId, newInsightId, insightName, true, layout, cacheable, cacheMinutes,
+				cacheCron, cachedOn, cacheEncrypt, pixelRecipeToSave, schemaName);
 		if (this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, newInsightId);
 		}
@@ -198,7 +195,8 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		returnMap.put("app_name", project.getProjectName());
 		returnMap.put("app_id", projectId);
 		returnMap.put("recipe", pixelRecipeToSave);
-		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
+		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.SAVE_INSIGHT);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully added new insight."));
 		return noun;
 	}

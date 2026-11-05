@@ -49,12 +49,13 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 	private static final String DELIVERY = "delivery";
 	private static final String SKILLS = "skills";
 	private static final String AGENT_ID = "agentId";
+	private static final String TOOLS = "tools";
 	private static final String ENABLED = "enabled";
 
 	public WorkSaveCustomRoutineReactor() {
 		this.keysToGet = new String[] { ROUTINE_ID, NAME, PROMPT, TIME, DAYS, TIMEZONE, DELIVERY, SKILLS, AGENT_ID,
-				ENABLED };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				TOOLS, ENABLED };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -71,6 +72,11 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 			if (values != null) {
 				changes.put(key, DAYS.equals(key) ? values.stream().map(String::toUpperCase).toList() : values);
 			}
+		}
+		// tools are {id, name, type} maps, so they are not split like the lists above
+		GenRowStruct tools = this.store.getNoun(TOOLS);
+		if (tools != null) {
+			changes.put(TOOLS, tools.getAllValues());
 		}
 		if (getBoolean(ENABLED) != null) {
 			changes.put(ENABLED, getBoolean(ENABLED));
@@ -105,7 +111,7 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 
 	@Override
 	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (DAYS.equals(key) || SKILLS.equals(key)) {
+		if (DAYS.equals(key) || SKILLS.equals(key) || TOOLS.equals(key)) {
 			return MCP_KEY_TYPE.ARRAY;
 		}
 		if (ENABLED.equals(key)) {
@@ -121,7 +127,8 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 				+ "regularly (\"every weekday at 8, summarize what my clients asked for and email it to me\"). Leave "
 				+ "out routineId to create one; pass it, from ListRoutines, to change one, sending only what changes. "
 				+ "The owner approves the exact routine on a card before it is saved. A routine can never send to "
-				+ "anyone else. To try a saved routine now, use ManageRoutine with action run. Load "
+				+ "anyone else, but it can save email drafts for others in the owner's Outlook, never sent, for "
+				+ "the owner to review (\"draft Ryan a status update each morning\"). To try a saved routine now, use ManageRoutine with action run. Load "
 				+ "collaboration/references/routines/schedule-a-routine.md before creating one.";
 	}
 
@@ -147,7 +154,11 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 			return "Where the answer goes, always only to the owner: email (their own inbox, with any files the run "
 					+ "makes attached), teams (a Teams message to themselves, text only) or none (kept in Routines). Default email.";
 		case SKILLS:
-			return "Ids of the owner's own skills the agent loads, from ListMySkills. Optional.";
+			return "Ids of the skills the agent loads: the owner's own from ListMySkills, or other skills they can use. "
+					+ "Optional.";
+		case TOOLS:
+			return "Tools and knowledge bases the owner added to the routine in Routines, as {id, name, type}. Leave "
+					+ "out to keep them.";
 		case AGENT_ID:
 			return "Agent to run it, when the owner names one; blank uses their assistant's agent.";
 		case ENABLED:

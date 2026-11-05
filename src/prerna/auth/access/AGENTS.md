@@ -189,7 +189,13 @@ Denying access requests changes no one's access, so it is not a batch, but it
 goes through `PermissionBatchUtils.denyRequests` all the same: the same
 permissions (`readPermissionAllowedChanges`, so only owners, directly or through
 a team, can deny), the same `PermissionErrorRules`, and the request rows
-written in one transaction.
+written in one transaction. That transaction also reads back the requesters of
+the requests it denied, which `denyRequests` returns; the project and engine
+methods notify them from those rows once it has committed.
+
+Approving and denying touch only the target's own access requests: a request
+id of another project, engine or insight is left as it is, and is not
+returned or recorded as denied.
 
 Admin mode is proven only by holding `SecurityAdminUtils` or
 `AdminSecurityGroupUtils` from their `getInstance(user)`, which returns null
@@ -231,12 +237,14 @@ where Dana edits the project, Alice has Read-Only access and Bob has none.
    currently have access to the project: bob".
 
 When no change is blocked, `save` adds Microsoft directory accounts for anyone
-who needs one, validates again, writes every change in one transaction, records
-the audit trail (`PermissionBatchAudit`), sends the notifications, and the error
-rules are never used. The audit trail gets one event per change of access, or a
-summary the caller records when the options say `withSummaryAudit()`, and one
-`USAGE_LIMIT_UPDATE` event per usage limit a change sets, changes or removes,
-summary or not. A database failure rolls the
+who needs one, validates again, writes every change in one transaction, and
+once it has committed records the audit trail (`PermissionBatchAudit`) and
+sends the notifications, and the error rules are never used. Each notification
+is written on its own, so one that fails is logged and does not undo the save,
+and a save that fails sends none. The audit trail gets one event per change of
+access, or a summary the caller records when the options say
+`withSummaryAudit()`, and one `USAGE_LIMIT_UPDATE` event per usage limit a
+change sets, changes or removes, summary or not. A database failure rolls the
 transaction back, and `saveChanges` reports it as a `WRITE_FAILED` problem.
 
 Bulk Access Management takes the same path from step 3, through
@@ -279,7 +287,7 @@ The builders each keep one method's behavior:
 | `keepingTeamType()` | A team's type is stored as given |
 | `rejectingSameLevel()` | Giving a team the level it has is refused |
 | `grantedBy(id, type)` | Who the rows say gave the access, when it is not the user |
-| `approving(target, requests)` | The access requests are marked approved in the same transaction, and people who have access already keep their usage limit |
+| `approving(target, requests)` | The target's own access requests are marked approved in the same transaction, and people who have access already keep their usage limit |
 
 `PermissionBatchUtils` reads them through the accessors, such as `isAdminMode()`
 and `notifiesAdds()`.
@@ -410,6 +418,20 @@ an app's blocks (`PROJECT_BLOCKS_UPDATE`), replacing an app by upload (`PROJECT_
 showing or hiding an engine in their own lists (`ENGINE_VISIBILITY_UPDATE`) have their own events too,
 on the Audit tab only. No code records `PROJECT_UPDATE` or `ENGINE_UPDATE`; they are kept so stored
 events of those types still read.
+
+Exporting a project or an engine for download records `PROJECT_EXPORT` (`ExportProject`,
+`ExportProjectApp`, `ExportApp`) or `ENGINE_EXPORT` (`ExportEngine`, `ExportDatabase`), both at `HIGH`
+severity, since a copy of the resource leaves the platform. `UserAuditTrailUtils.recordProjectExport`
+and `recordEngineExport` record it once the archive is built, with `details.reactor` (the pixel name,
+from `AbstractReactor.getPixelName`), the project's `projectType`, and `keepGit` where the export can
+keep the version history. An export that fails records its failure under the same event type
+(`AUDITED_REACTORS`), never a success. Owners see both on the Audit tab with those three details.
+
+An admin closing a user's room with an agent (`AdminCloseRoom`, from the admin Agent Runs page) records
+`AGENT_ROOM_CLOSE` at `HIGH`: the room's user is the subject, the agent the target (`PROJECT`), the room
+in the context, and `closedRoomIds` and `cancelledRunIds` in `details`. It is not on the agent's Audit
+tab, which would show its owners another user's conversation. `AgentRunService.closeRoomForAdmin` checks
+the caller is an admin and records the event itself, so no caller closes a room unchecked or unrecorded.
 
 ### Reads
 

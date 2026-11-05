@@ -37,6 +37,8 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.playground.PlaygroundUtils;
 import prerna.util.Constants;
 
@@ -52,10 +54,14 @@ public final class CollaborationUtils {
 	public static final String ROOM_OPTION_DELEGATION_ACTION_ID = "delegation_action_id";
 	// Set on the room a scheduled routine's agent step runs in; nobody is watching it.
 	public static final String ROOM_OPTION_ROUTINE = "collaboration_routine";
+	// Where that routine's answer goes (email, teams, none); its prompt says so.
+	public static final String ROOM_OPTION_ROUTINE_DELIVERY = "collaboration_routine_delivery";
+	// Set on that room once its owner follows up there; it is their chat from then on.
+	public static final String ROOM_OPTION_ROUTINE_HANDED_OVER = "collaboration_routine_handed_over";
 	// Only the server sets these; client option writes cannot add, change, or drop
 	// them.
 	public static final List<String> SERVER_OWNED_ROOM_OPTIONS = List.of(ROOM_OPTION_DELEGATION_ACTION_ID,
-			ROOM_OPTION_ROUTINE);
+			ROOM_OPTION_ROUTINE, ROOM_OPTION_ROUTINE_DELIVERY, ROOM_OPTION_ROUTINE_HANDED_OVER);
 	// Set by Work on a thread's assistant room (threadId, contextRevision,
 	// modelId) until rooms opened from a thread switched to ROOM_OPTION_SOURCE.
 	public static final String ROOM_OPTION_WORK_THREAD = "workThread";
@@ -85,10 +91,7 @@ public final class CollaborationUtils {
 		return room != null && (COLLABORATION_PROJECT_ID.equals(room.getProjectId()) || isRoutineRoom(room));
 	}
 
-	/**
-	 * A routine's unattended run room: it gets the collaboration read tools, and its ask tools are refused
-	 * rather than paused, since nobody is there to approve them.
-	 */
+	/** A room a routine's agent step ran in; it stays a Collaboration room after the run. */
 	public static boolean isRoutineRoom(Room room) {
 		if (room == null) {
 			return false;
@@ -98,12 +101,54 @@ public final class CollaborationUtils {
 	}
 
 	/**
+	 * A routine's run room nobody is watching: it gets the collaboration read tools, and its ask tools are refused
+	 * rather than paused, since nobody is there to approve them. Its owner following up there ends that.
+	 */
+	public static boolean isUnattendedRoom(Room room) {
+		return isRoutineRoom(room) && !Boolean.TRUE.equals(room.getOptionsMap().get(ROOM_OPTION_ROUTINE_HANDED_OVER));
+	}
+
+	/**
+	 * Hands a routine's run room to its owner when a run other than the routine's own starts there: the owner is
+	 * following up, so that run and every later one runs as their chat. The routine's run keeps its id when it
+	 * resumes, and its first message carries that id, so it stays unattended.
+	 *
+	 * @param runId the run starting in the room
+	 */
+	public static void handOverRoutineRoom(Room room, String runId) {
+		if (runId == null || !isUnattendedRoom(room)) {
+			return;
+		}
+		for (AbstractMessage message : room.getMessages()) {
+			AgentRunMessageContext run = message.getAgentRun();
+			if (run == null || run.getRunId() == null) {
+				continue;
+			}
+			if (!run.getRunId().equals(runId)) {
+				Map<String, Object> options = new LinkedHashMap<>(room.getOptionsMap());
+				options.put(ROOM_OPTION_ROUTINE_HANDED_OVER, true);
+				// a failed write only costs the next run the same check
+				ModelInferenceLogsUtils.setRoomOptions(room.getId(), room.getUserId(), options);
+				room.setOptionsMap(options);
+			}
+			return;
+		}
+	}
+
+	// a routine room's delivery; email when it was not set
+	public static String routineDelivery(Room room) {
+		Map<String, Object> options = room == null ? null : room.getOptionsMap();
+		Object delivery = options == null ? null : options.get(ROOM_OPTION_ROUTINE_DELIVERY);
+		return delivery instanceof String value && !value.isBlank() ? value : "email";
+	}
+
+	/**
 	 * The owner's own assistant chat: a collaboration room started from the home
-	 * page or opened from a thread. An assignee's delegation room and a routine's
-	 * run room are not one.
+	 * page or opened from a thread, or a routine's run room they followed up in.
+	 * An assignee's delegation room and an unattended routine room are not one.
 	 */
 	public static boolean isAssistantRoom(Room room) {
-		if (!isCollaborationRoom(room) || isRoutineRoom(room)) {
+		if (!isCollaborationRoom(room) || isUnattendedRoom(room)) {
 			return false;
 		}
 		Map<String, Object> options = room.getOptionsMap();

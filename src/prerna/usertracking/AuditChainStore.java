@@ -76,15 +76,13 @@ public final class AuditChainStore {
 			}
 		}
 		if (QueryExecutionUtility.queryOne(engine, "SELECT LAST_SEQUENCE FROM " + TABLE + " WHERE CHAIN_ID='GLOBAL'",
-				p -> {
-				}, r -> r.getLong(1)) == null) {
+				QueryExecutionUtility.NO_PARAMETERS, r -> r.getLong(1)) == null) {
 			Long existing = QueryExecutionUtility.queryOne(engine, "SELECT MAX(AUDIT_SEQUENCE) FROM USER_AUDIT_EVENTS",
-					p -> {
-					}, r -> r.getObject(1) == null ? null : r.getLong(1));
+					QueryExecutionUtility.NO_PARAMETERS, r -> r.getObject(1) == null ? null : r.getLong(1));
 			if (existing != null) {
 				if (QueryExecutionUtility.queryOne(engine,
-						"SELECT LAST_SEQUENCE FROM " + TABLE + " WHERE CHAIN_ID='GLOBAL'", p -> {
-						}, r -> r.getLong(1)) == null) {
+						"SELECT LAST_SEQUENCE FROM " + TABLE + " WHERE CHAIN_ID='GLOBAL'",
+						QueryExecutionUtility.NO_PARAMETERS, r -> r.getLong(1)) == null) {
 					throw new IllegalStateException(
 							"Audit chain head is missing; restore it from a trusted backup before accepting writes");
 				}
@@ -92,12 +90,12 @@ public final class AuditChainStore {
 			}
 			try {
 				QueryExecutionUtility.executeUpdate(engine,
-						"INSERT INTO " + TABLE + " (CHAIN_ID,LAST_SEQUENCE,LAST_HASH) VALUES ('GLOBAL',0,NULL)", p -> {
-						});
+						"INSERT INTO " + TABLE + " (CHAIN_ID,LAST_SEQUENCE,LAST_HASH) VALUES ('GLOBAL',0,NULL)",
+						QueryExecutionUtility.NO_PARAMETERS);
 			} catch (Exception failure) {
 				if (QueryExecutionUtility.queryOne(engine,
-						"SELECT LAST_SEQUENCE FROM " + TABLE + " WHERE CHAIN_ID='GLOBAL'", p -> {
-						}, r -> r.getLong(1)) == null) {
+						"SELECT LAST_SEQUENCE FROM " + TABLE + " WHERE CHAIN_ID='GLOBAL'",
+						QueryExecutionUtility.NO_PARAMETERS, r -> r.getLong(1)) == null) {
 					throw failure;
 				}
 			}
@@ -110,20 +108,20 @@ public final class AuditChainStore {
 	 */
 	static Head advance(Connection connection) throws Exception {
 		int updated = QueryExecutionUtility.executeUpdate(connection,
-				"UPDATE " + TABLE + " SET LAST_SEQUENCE=LAST_SEQUENCE+1 WHERE CHAIN_ID='GLOBAL'", p -> {
-				});
+				"UPDATE " + TABLE + " SET LAST_SEQUENCE=LAST_SEQUENCE+1 WHERE CHAIN_ID='GLOBAL'",
+				QueryExecutionUtility.NO_PARAMETERS);
 		if (updated != 1) {
 			throw new IllegalStateException("Audit chain is not initialized");
 		}
 		return QueryExecutionUtility.queryOne(connection,
-				"SELECT LAST_SEQUENCE,LAST_HASH FROM " + TABLE + " WHERE CHAIN_ID='GLOBAL'", p -> {
-				}, r -> new Head(r.getLong(1), r.getString(2)));
+				"SELECT LAST_SEQUENCE,LAST_HASH FROM " + TABLE + " WHERE CHAIN_ID='GLOBAL'",
+				QueryExecutionUtility.NO_PARAMETERS, r -> new Head(r.getLong(1), r.getString(2)));
 	}
 
 	public static long snapshot(IRDBMSEngine engine) throws Exception {
 		Long sequence = QueryExecutionUtility.queryOne(engine,
-				"SELECT LAST_SEQUENCE FROM " + TABLE + " WHERE CHAIN_ID='GLOBAL'", p -> {
-				}, r -> r.getLong(1));
+				"SELECT LAST_SEQUENCE FROM " + TABLE + " WHERE CHAIN_ID='GLOBAL'", QueryExecutionUtility.NO_PARAMETERS,
+				r -> r.getLong(1));
 		if (sequence == null) {
 			throw new IllegalStateException("Audit chain is not initialized");
 		}
@@ -168,8 +166,8 @@ public final class AuditChainStore {
 	public static long verify(IRDBMSEngine engine) throws Exception {
 		return QueryExecutionUtility.read(engine, c -> {
 			Head head = QueryExecutionUtility.queryOne(c,
-					"SELECT LAST_SEQUENCE,LAST_HASH FROM " + TABLE + " WHERE CHAIN_ID='GLOBAL'", p -> {
-					}, r -> new Head(r.getLong(1), r.getString(2)));
+					"SELECT LAST_SEQUENCE,LAST_HASH FROM " + TABLE + " WHERE CHAIN_ID='GLOBAL'",
+					QueryExecutionUtility.NO_PARAMETERS, r -> new Head(r.getLong(1), r.getString(2)));
 			if (head == null) {
 				throw new IllegalStateException("Audit chain is not initialized");
 			}

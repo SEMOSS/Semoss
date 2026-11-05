@@ -56,6 +56,11 @@ public final class BrainOrgDomains {
 			this.domains = domains;
 		}
 
+		/** The organisation's domains, as saved. */
+		public Set<String> domains() {
+			return Set.copyOf(domains);
+		}
+
 		/**
 		 * The domain, or one it is a subdomain of, belongs to the owner's organisation.
 		 */

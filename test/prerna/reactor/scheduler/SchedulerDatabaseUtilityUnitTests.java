@@ -27,13 +27,36 @@
  *******************************************************************************/
 package prerna.reactor.scheduler;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
+
 import prerna.util.JdbcTestDatabase;
 
 class SchedulerDatabaseUtilityUnitTests {
+
 	@Test
 	void tagReplacementRollsBackOnBatchFailureAndRetainsTrimming() throws Exception {
 		try (var db = new JdbcTestDatabase()) {
@@ -160,6 +183,151 @@ class SchedulerDatabaseUtilityUnitTests {
 		} finally {
 			SchedulerDatabaseUtility.queryUtil = null;
 		}
+	}
+
+	@Test
+	void jobListsKeepJobsReadBeforeACursorFailureAndEndManualTransactions() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			SchedulerDatabaseUtility.queryUtil = db.engine.getQueryUtil();
+			var statement = mock(java.sql.PreparedStatement.class);
+			var result = mock(java.sql.ResultSet.class);
+			doReturn(statement).when(db.connection).prepareStatement(startsWith("SELECT SMSS_JOB_RECIPES.USER_ID"));
+			when(statement.executeQuery()).thenReturn(result);
+			when(result.next()).thenReturn(true).thenThrow(new java.sql.SQLException("cursor failure"));
+			when(result.getString(SchedulerConstants.JOB_ID)).thenReturn("job");
+			when(result.getString(SchedulerConstants.JOB_GROUP)).thenReturn("project");
+			db.manual();
+			var jobs = SchedulerDatabaseUtility.retrieveUsersJobsForProject("project", "alice", null);
+			assertEquals(java.util.Set.of("project.job"), jobs.keySet());
+			assertEquals("INACTIVE", jobs.get("project.job").get(SchedulerConstants.NEXT_FIRE_TIME));
+			verify(statement).setBoolean(1, true);
+			verify(statement).setString(2, "alice");
+			verify(statement).setString(3, "project");
+			verify(db.connection).rollback();
+			verify(db.connection, never()).commit();
+			verify(statement).close();
+			verify(result).close();
+		} finally {
+			SchedulerDatabaseUtility.queryUtil = null;
+		}
+	}
+
+	@Test
+	void unreadableBlobContentKeepsTheJobWhileColumnFailuresEndTheRead() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			var util = spy(db.engine.getQueryUtil());
+			SchedulerDatabaseUtility.queryUtil = util;
+			createJobListTables(db);
+			var tz = java.util.TimeZone.getTimeZone("UTC");
+			assertTrue(SchedulerDatabaseUtility.insertIntoJobRecipesTable("alice", "job", "Name", "project", "cron", tz,
+					"recipe text", "parameter text", "category", false, "{ui}", null));
+			doThrow(new java.io.IOException("unreadable")).when(util).handleBlobRetrieval(any(java.sql.ResultSet.class),
+					eq(SchedulerConstants.UI_STATE));
+			var job = SchedulerDatabaseUtility.retrieveAllJobs(null).get("project.job");
+			assertEquals("recipe text", job.get("recipe"));
+			assertEquals("parameter text", job.get("recipeParameters"));
+			assertFalse(job.containsKey(ScheduleJobReactor.UI_STATE));
+			doThrow(new java.sql.SQLException("column failure")).when(util)
+					.handleBlobRetrieval(any(java.sql.ResultSet.class), eq(SchedulerConstants.PIXEL_RECIPE));
+			db.manual();
+			assertTrue(SchedulerDatabaseUtility.retrieveAllJobs(null).isEmpty());
+			verify(db.connection).rollback();
+		} finally {
+			SchedulerDatabaseUtility.queryUtil = null;
+		}
+	}
+
+	@Test
+	void jobListsReportAnUnavailableConnectionAsAnEmptyList() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			SchedulerDatabaseUtility.queryUtil = db.engine.getQueryUtil();
+			doThrow(new java.sql.SQLException("down")).when(db.engine).getConnection();
+			assertTrue(SchedulerDatabaseUtility.retrieveJobsForProject("p", null).isEmpty());
+			assertTrue(SchedulerDatabaseUtility.retrieveUsersJobs("u", null).isEmpty());
+			assertTrue(SchedulerDatabaseUtility.retrieveAllJobs(null).isEmpty());
+			assertEquals(0, SchedulerDatabaseUtility.computeSchedulerAuditStats(java.time.Instant.EPOCH).totalRuns());
+		} finally {
+			SchedulerDatabaseUtility.queryUtil = null;
+		}
+	}
+
+	@Test
+	void auditStatsKeepRowsCountedBeforeACursorFailure() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			var statement = mock(java.sql.PreparedStatement.class);
+			var result = mock(java.sql.ResultSet.class);
+			doReturn(statement).when(db.connection).prepareStatement(startsWith("SELECT at.JOB_ID"));
+			when(statement.executeQuery()).thenReturn(result);
+			when(result.next()).thenReturn(true).thenReturn(true)
+					.thenThrow(new java.sql.SQLException("cursor failure"));
+			when(result.getString("JOB_ID")).thenReturn("job");
+			when(result.getBoolean("SUCCESS")).thenReturn(false);
+			when(result.getString("EXECUTION_DELTA")).thenReturn("10").thenReturn(" 30 ");
+			when(result.getString("JOB_NAME")).thenReturn("Name");
+			db.manual();
+			var stats = SchedulerDatabaseUtility.computeSchedulerAuditStats(java.time.Instant.EPOCH);
+			assertEquals(2, stats.totalRuns());
+			assertEquals(2, stats.failures());
+			assertEquals(20, stats.avgDurationMs());
+			assertEquals(30, stats.p95DurationMs());
+			assertEquals("job", stats.worstJobId());
+			assertEquals("Name", stats.worstJobName());
+			assertEquals(2, stats.worstConsecutiveFailures());
+			verify(db.connection).rollback();
+			verify(db.connection, never()).commit();
+			verify(statement).close();
+			verify(result).close();
+		}
+	}
+
+	@Test
+	void triggerOnLoadFiresJobsOnlyAfterTheReadEnds() throws Exception {
+		try (var db = new JdbcTestDatabase(); var factories = mockStatic(SchedulerFactorySingleton.class)) {
+			var scheduler = mockScheduler(factories);
+			db.execute(
+					"CREATE TABLE SMSS_JOB_RECIPES (JOB_ID VARCHAR, JOB_NAME VARCHAR, JOB_GROUP VARCHAR, TRIGGER_ON_LOAD BOOLEAN)",
+					"INSERT INTO SMSS_JOB_RECIPES VALUES ('a','A','g',TRUE),('b','B','g',TRUE),('c','C','g',FALSE)");
+			db.manual();
+			SchedulerDatabaseUtility.executeAllTriggerOnLoads();
+			var order = inOrder(db.connection, scheduler);
+			order.verify(db.connection).rollback();
+			order.verify(scheduler, times(2)).triggerJob(any(org.quartz.JobKey.class));
+			verify(scheduler).triggerJob(org.quartz.JobKey.jobKey("a", "g"));
+			verify(scheduler).triggerJob(org.quartz.JobKey.jobKey("b", "g"));
+			verify(db.connection, never()).commit();
+		}
+	}
+
+	@Test
+	void triggerOnLoadFiresNothingWhenTheReadFailsAndStopsAtAQuartzFailure() throws Exception {
+		try (var db = new JdbcTestDatabase(); var factories = mockStatic(SchedulerFactorySingleton.class)) {
+			var scheduler = mockScheduler(factories);
+			SchedulerDatabaseUtility.executeAllTriggerOnLoads();
+			verify(scheduler, never()).triggerJob(any(org.quartz.JobKey.class));
+			db.execute(
+					"CREATE TABLE SMSS_JOB_RECIPES (JOB_ID VARCHAR, JOB_NAME VARCHAR, JOB_GROUP VARCHAR, TRIGGER_ON_LOAD BOOLEAN)",
+					"INSERT INTO SMSS_JOB_RECIPES VALUES ('a','A','g',TRUE),('b','B','g',TRUE)");
+			doThrow(new org.quartz.SchedulerException("refused")).when(scheduler)
+					.triggerJob(any(org.quartz.JobKey.class));
+			assertDoesNotThrow(SchedulerDatabaseUtility::executeAllTriggerOnLoads);
+			verify(scheduler, times(1)).triggerJob(any(org.quartz.JobKey.class));
+		}
+	}
+
+	private static org.quartz.Scheduler mockScheduler(org.mockito.MockedStatic<SchedulerFactorySingleton> factories) {
+		var factory = mock(SchedulerFactorySingleton.class);
+		var scheduler = mock(org.quartz.Scheduler.class);
+		factories.when(SchedulerFactorySingleton::getInstance).thenReturn(factory);
+		when(factory.getScheduler()).thenReturn(scheduler);
+		return scheduler;
+	}
+
+	private static void createJobListTables(JdbcTestDatabase db) throws Exception {
+		db.execute(
+				"CREATE TABLE SMSS_JOB_RECIPES (USER_ID VARCHAR, JOB_ID VARCHAR PRIMARY KEY, JOB_NAME VARCHAR, JOB_GROUP VARCHAR, CRON_EXPRESSION VARCHAR, CRON_TIMEZONE VARCHAR, PIXEL_RECIPE BLOB, PIXEL_RECIPE_PARAMETERS BLOB, JOB_CATEGORY VARCHAR, TRIGGER_ON_LOAD BOOLEAN, UI_STATE BLOB)",
+				"CREATE TABLE SMSS_JOB_TAGS (JOB_ID VARCHAR, JOB_TAG VARCHAR)",
+				"CREATE TABLE QRTZ_TRIGGERS (JOB_NAME VARCHAR, JOB_GROUP VARCHAR, NEXT_FIRE_TIME BIGINT, TRIGGER_STATE VARCHAR)",
+				"CREATE TABLE SMSS_AUDIT_TRAIL (JOB_ID VARCHAR, IS_LATEST BOOLEAN, EXECUTION_START TIMESTAMP)");
 	}
 
 	@Test

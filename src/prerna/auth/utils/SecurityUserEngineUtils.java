@@ -78,16 +78,21 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		String userPermission = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null) {
 					int permission = ((Number) val).intValue();
-					return AccessPermissionEnum.getPermissionValueById(permission);
+					userPermission = AccessPermissionEnum.getPermissionValueById(permission);
+					break;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the user's effective engine permission.", e);
+		}
+		if (userPermission != null) {
+			return userPermission;
 		}
 
 		// see if engine is public
@@ -162,18 +167,19 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
+		Integer permission = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null && val instanceof Number) {
-					return ((Number) val).intValue();
+					permission = ((Number) val).intValue();
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve user engine permission.", e);
 		}
 
-		return null;
+		return permission;
 	}
 
 	/**
@@ -191,18 +197,19 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		// TODO: account for different logins with different levels of access
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		Integer permission = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null && val instanceof Number) {
-					return ((Number) val).intValue();
+					permission = ((Number) val).intValue();
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve user engine permission.", e);
 		}
 
-		return null;
+		return permission;
 	}
 
 	/**
@@ -232,22 +239,24 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+		boolean isOwner = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
-					return false;
+					break;
 				}
 				int permission = ((Number) val).intValue();
 				if (AccessPermissionEnum.isOwner(permission)) {
-					return true;
+					isOwner = true;
+					break;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user has owner-level access.", e);
 		}
 
-		return false;
+		return isOwner;
 	}
 
 	/**
@@ -285,16 +294,15 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(orFilter);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		boolean canView = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				// if you are here, you can view
-				return true;
-			}
+			// if you are here, you can view
+			canView = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user can view engine.", e);
 		}
 
-		return false;
+		return canView;
 	}
 
 	/**
@@ -321,22 +329,24 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		boolean canEdit = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
-					return false;
+					break;
 				}
 				int permission = ((Number) val).intValue();
 				if (AccessPermissionEnum.isEditor(permission)) {
-					return true;
+					canEdit = true;
+					break;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user can edit engine.", e);
 		}
 
-		return false;
+		return canEdit;
 	}
 
 	/**
@@ -385,19 +395,18 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINEPERMISSION__PERMISSION"));
+		int maxPermission = AccessPermissionEnum.READ_ONLY.getId();
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
+			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
-				if (val == null) {
-					return AccessPermissionEnum.READ_ONLY.getId();
+				if (val != null) {
+					maxPermission = ((Number) val).intValue();
 				}
-				int permission = ((Number) val).intValue();
-				return permission;
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the user's highest engine permission.", e);
 		}
-		return AccessPermissionEnum.READ_ONLY.getId();
+		return maxPermission;
 	}
 
 	/**

@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.io.connector.ms.teams;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,16 +77,21 @@ public class MicrosoftTeamsListChatsReactor extends AbstractMicrosoftTeamsMessag
 
 	private static final String INCLUDE_LAST_MESSAGE = "includeLastMessage";
 	private static final String UNREAD_ONLY = "unreadOnly";
+	private static final String DAYS = "days";
 
 	/** How many chats come back when a caller does not say. */
-	private static final int DEFAULT_LIMIT = 50;
+	private static final int DEFAULT_LIMIT = 20;
+
+	// unread chats older than this are ones never opened (meeting and bot chats), not ones waited on
+	private static final int DEFAULT_UNREAD_DAYS = 14;
+	private static final int MAX_DAYS = 365;
 
 	/** The most a caller can ask for. */
 	private static final int MAX_LIMIT = 200;
 
 	public MicrosoftTeamsListChatsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), INCLUDE_LAST_MESSAGE, UNREAD_ONLY };
-		this.keyRequired = new int[] { 0, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), INCLUDE_LAST_MESSAGE, UNREAD_ONLY, DAYS };
+		this.keyRequired = new int[] { 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -95,6 +102,10 @@ public class MicrosoftTeamsListChatsReactor extends AbstractMicrosoftTeamsMessag
 		// asking which chats are unread is asking for the last message of each, so
 		// the narrower key is the one that decides
 		boolean includeLastMessage = unreadOnly || Boolean.parseBoolean(this.keyValue.get(INCLUDE_LAST_MESSAGE));
+		// unread looks back two weeks unless told otherwise; a plain listing only when asked
+		boolean daysGiven = this.keyValue.get(DAYS) != null && !this.keyValue.get(DAYS).isBlank();
+		int days = positiveInt(DAYS, unreadOnly ? DEFAULT_UNREAD_DAYS : 0, MAX_DAYS);
+		Instant since = (unreadOnly || daysGiven) && days > 0 ? Instant.now().minus(Duration.ofDays(days)) : null;
 
 		try {
 			User user = this.insight.getUser();
@@ -103,10 +114,13 @@ public class MicrosoftTeamsListChatsReactor extends AbstractMicrosoftTeamsMessag
 			// chat is given
 			String userEmail = MicrosoftLoginUtils.getMicrosoftEmail(user);
 			List<Map<String, Object>> chats = MicrosoftTeamsMessageHelper.listChats(accessToken, userEmail,
-					includeLastMessage, unreadOnly, limit);
+					includeLastMessage, unreadOnly, limit, since);
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put("count", chats.size());
+			if (since != null) {
+				output.put("days", days);
+			}
 			if (includeLastMessage) {
 				output.put("unreadCount",
 						chats.stream().filter(chat -> Boolean.TRUE.equals(chat.get("hasUnread"))).count());
@@ -136,7 +150,11 @@ public class MicrosoftTeamsListChatsReactor extends AbstractMicrosoftTeamsMessag
 		} else if (key.equals(INCLUDE_LAST_MESSAGE)) {
 			return "Optional boolean for whether the last message of each chat comes back, which is also what decides whether the chat is reported as unread. Defaults to false.";
 		} else if (key.equals(UNREAD_ONLY)) {
-			return "Optional boolean for returning only the chats holding messages the signed in user has not read. Defaults to false.";
+			return "Optional boolean for returning only the chats holding messages the signed in user has not read, newest first. Looks back "
+					+ DEFAULT_UNREAD_DAYS + " days unless days is given. Defaults to false.";
+		} else if (key.equals(DAYS)) {
+			return "Optional number of days back to look, by when each chat's last message arrived. Defaults to "
+					+ DEFAULT_UNREAD_DAYS + " with unreadOnly and to no limit otherwise; capped at " + MAX_DAYS + ".";
 		}
 		return super.getDescriptionForKey(key);
 	}

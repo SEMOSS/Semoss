@@ -39,6 +39,26 @@ import org.junit.jupiter.api.Test;
 class SystemDefaultEnginesUnitTests {
 
 	@Test
+	void officeSkillsAreRegisteredAndAvailableInCollaborationRooms() {
+		for (String id : List.of("docx", "xlsx")) {
+			assertTrue(SystemDefaultEngines.getSystemSkills().contains(id));
+			assertTrue(SystemDefaultEngines.isSystemProject(id));
+			assertTrue(SystemDefaultEngines.getCollaborationSkills().contains(id));
+			assertTrue(SystemDefaultEngines.getSystemAgentSkills(Constants.AGENT_COLLABORATION).contains(id));
+			assertFalse(SystemDefaultEngines.getSystemAgentSkills(Constants.AGENT_PPTX).contains(id));
+		}
+	}
+
+	@Test
+	void officeAgentReceivesExactlyTheThreeOfficeSkills() {
+		assertTrue(SystemDefaultEngines.getSystemAgents().contains("office-agent"));
+		assertTrue(SystemDefaultEngines.isSystemProject("office-agent"));
+		assertEquals(List.of("docx", "pptx", "xlsx"),
+				SystemDefaultEngines.getSystemAgentSkills(Constants.AGENT_OFFICE));
+		assertTrue(SystemDefaultEngines.getSystemAgentMCPs(Constants.AGENT_OFFICE).isEmpty());
+	}
+
+	@Test
 	void systemProjectClassificationUsesExactRegisteredIdsAcrossProjectKinds() {
 		for (String id : List.of(Constants.APP_REACT_TEMPLATE, Constants.SKILL_DATABASE, Constants.MCP_APP_FILESYSTEM,
 				Constants.AGENT_APP_BUILDER)) {

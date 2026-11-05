@@ -35,7 +35,6 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -73,6 +72,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = this.getLogger(CLASS_NAME);
 		organizeKeys();
+
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
 		List<String> insightsToAdd = getDefaultInsights();
@@ -81,10 +81,6 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			addAll = true;
 		}
 		boolean pullDatabase = true;
-		// security and stuff
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException("User does not have permission to add insights in the project");
@@ -102,6 +98,10 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 
 		logger.info("Retrieving database");
 		IProject project = Utility.getProject(projectId);
+		if (!project.getProjectType().holdsInsights()) {
+			throw new IllegalArgumentException("Project " + projectId + " is a " + project.getProjectType()
+					+ " project, which does not hold insights");
+		}
 		IRDBMSEngine insightEngine = project.getInsightDatabase();
 		String projectName = project.getProjectName();
 

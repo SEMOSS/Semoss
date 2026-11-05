@@ -43,7 +43,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRDBMSEngine;
@@ -87,18 +86,16 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 		int numError = 0;
 
 		if (rdbmsId == null) {
-			// we will run for all the insights
-			// so you need to be the app owner
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-
 			if (!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
 				throw new IllegalArgumentException(
 						"User must be an owner of the app to update all the app mosfet files");
 			}
 
 			IProject project = Utility.getProject(projectId);
+			if (!project.getProjectType().holdsInsights()) {
+				throw new IllegalArgumentException("Project " + projectId + " is a " + project.getProjectType()
+						+ " project, which does not hold insights");
+			}
 			String projectName = project.getProjectName();
 			List<String> insightIds = project.getInsights();
 
@@ -130,7 +127,8 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 					mosfet.write(mosfetPath, true);
 					numUpdated++;
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to write the mosfet file of insight {} in project {} to {}", id,
+							projectId, mosfetPath, e);
 					numError++;
 				}
 
@@ -143,22 +141,20 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 						GitUtils.getDateMessage("Writing new " + mosfet.getInsightName() + " mosfet file"));
 			}
 		} else {
-			// need edit access to the insight
-			// override is assumed to be true
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-
 			if (!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, rdbmsId)) {
 				throw new IllegalArgumentException("User does not have permission to edit this insight");
 			}
 
 			IProject project = Utility.getProject(projectId);
+			if (!project.getProjectType().holdsInsights()) {
+				throw new IllegalArgumentException("Project " + projectId + " is a " + project.getProjectType()
+						+ " project, which does not hold insights");
+			}
 			MosfetFile mosfet = null;
 			try {
 				mosfet = generateMosfetFromInsight(project, rdbmsId);
 			} catch (IllegalArgumentException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to make the mosfet file of insight {} in project {}", rdbmsId, projectId, e);
 				throw e;
 			}
 
@@ -170,7 +166,8 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				mosfet.write(mosfetPath, true);
 				numUpdated++;
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to write the mosfet file of insight {} in project {} to {}", rdbmsId,
+						projectId, mosfetPath, e);
 				numError++;
 			}
 
@@ -207,9 +204,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 		MosfetFile mosfet = new MosfetFile();
 
 		IRDBMSEngine insightRdbms = project.getInsightDatabase();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightRdbms, query)) {
 			while (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 
@@ -227,26 +222,21 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 						try {
 							pixelArrayIs = pixelArray.getAsciiStream();
 						} catch (SQLException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to read the recipe of insight {} in project {}", insightId,
+									project.getProjectId(), e);
 						}
 					}
 					// flush input stream to string
 					Gson gson = new Gson();
-					InputStreamReader reader = new InputStreamReader(pixelArrayIs);
-					List<String> pixel = gson.fromJson(reader, List.class);
-					mosfet.setRecipe(pixel);
+					try (InputStreamReader reader = new InputStreamReader(pixelArrayIs)) {
+						List<String> pixel = gson.fromJson(reader, List.class);
+						mosfet.setRecipe(pixel);
+					}
 				}
 			}
-		} catch (Exception e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+		} catch (Exception e) {
+			classLogger.error("Failed to read insight {} from the insights database of project {}", insightId,
+					project.getProjectId(), e);
 		}
 
 		if (mosfet.getRecipe() == null || mosfet.getRecipe().size() == 0) {
@@ -259,8 +249,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 
 		query = "SELECT DISTINCT INSIGHTID, METAKEY, METAVALUE, METAORDER FROM INSIGHTMETA WHERE INSIGHTID='"
 				+ insightId + "' ORDER BY METAORDER";
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightRdbms, query)) {
 			while (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				String value = (String) values[2];
@@ -272,15 +261,8 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Failed to read the metadata of insight {} from the insights database of project {}",
+					insightId, project.getProjectId(), e);
 		}
 
 		if (description != null) {

@@ -164,13 +164,14 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", getUserFiltersQs(user)));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		boolean isAdmin = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			return wrapper.hasNext();
+			isAdmin = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Failed to verify whether the user has admin access", e);
 		}
 
-		return false;
+		return isAdmin;
 	}
 
 	/**
@@ -188,13 +189,14 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", type));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		boolean isAdmin = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			return wrapper.hasNext();
+			isAdmin = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Failed to verify whether the user has admin access", e);
 		}
 
-		return false;
+		return isAdmin;
 	}
 
 	public boolean otherAdminsExist(String userId, String type) {
@@ -204,20 +206,22 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		boolean otherAdminExists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				if ((row[0] + "").equals(userId) && (row[1] + "").equals(type)) {
 					continue;
 				} else {
-					return true;
+					otherAdminExists = true;
+					break;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to check whether another admin exists", e);
 		}
 
-		return false;
+		return otherAdminExists;
 	}
 
 	/*
@@ -1566,7 +1570,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param offset               how many engines to skip; null or empty for none
 	 * @param sortFields           sort keys and directions: {@code ENGINENAME} or
 	 *                             {@code DATECREATED} mapped to {@code ASC} or
-	 *                             {@code DESC}; null or empty to sort by name
+	 *                             {@code DESC}; null or empty to sort by name. The
+	 *                             name sort uses the display name, else the name,
+	 *                             ignoring case
 	 * @param permissionUser       the id of the user whose grants
 	 *                             {@code effectivePermissions} checks; when set,
 	 *                             each row also reports that user's direct grant as
@@ -1612,7 +1618,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "engine_created_by"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "engine_created_by_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME",
+		// the name sort follows the name shown, as the user's own list does
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, QueryFunctionSelector
+				.makeCoalesceSelector("ENGINE__ENGINEDISPLAYNAME", "ENGINE__ENGINENAME", "display_name"),
 				"low_engine_name"));
 
 		// legacy alias names
@@ -1816,7 +1824,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param sortFields            sort keys and directions: {@code PROJECTNAME},
 	 *                              {@code DATECREATED}, or {@code DATELASTEDITED}
 	 *                              mapped to {@code ASC} or {@code DESC}; null or
-	 *                              empty to sort by name
+	 *                              empty to sort by name. The name sort uses the
+	 *                              display name, else the name, ignoring case
 	 * @param permissionUser        the id of the user whose grants
 	 *                              {@code effectivePermissions} checks; when set,
 	 *                              each row also reports that user's direct grant
@@ -1875,8 +1884,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 				new QueryColumnSelector(projectPrefix + "REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
 		qs.addSelector(
 				new QueryColumnSelector(projectPrefix + "REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
-		// for sort
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME",
+		// the name sort follows the name shown, as the user's own list does
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, QueryFunctionSelector
+				.makeCoalesceSelector("PROJECT__PROJECTDISPLAYNAME", "PROJECT__PROJECTNAME", "display_name"),
 				"low_project_name"));
 
 		if (projectFilter != null && !projectFilter.isEmpty()) {
@@ -3459,15 +3469,16 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(fun);
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		int numAdmins = 0;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				return ((Number) wrapper.next().getValues()[0]).intValue();
+				numAdmins = ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to retrieve the number of admin users", e);
 		}
 
-		return 0;
+		return numAdmins;
 	}
 
 	/**
@@ -3483,15 +3494,16 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
+		Object[] adminIdAndType = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				return wrapper.next().getValues();
+				adminIdAndType = wrapper.next().getValues();
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to retrieve admin user identifiers and types", e);
 		}
 
-		return null;
+		return adminIdAndType;
 	}
 
 	/**

@@ -140,7 +140,13 @@ class BrainAttachmentsUnitTests {
     }
 
     private Map<String, Object> stage(FakeSource source, String fileName, boolean includeText, long maxBytes) {
-        return withThread("native-id", false, () -> BrainAttachments.stage(null, "owner", "type", dir.toString(),
+        return stage(dir, source, fileName, includeText, maxBytes);
+    }
+
+    /** Stages into one chat's folder; a chat that already holds the attachment reuses it. */
+    private Map<String, Object> stage(Path folder, FakeSource source, String fileName, boolean includeText,
+            long maxBytes) {
+        return withThread("native-id", false, () -> BrainAttachments.stage(null, "owner", "type", folder.toString(),
                 "thread", "native-id", "att-1", fileName, includeText, source, maxBytes));
     }
 
@@ -166,26 +172,41 @@ class BrainAttachmentsUnitTests {
         String text = Files.readString(dir.resolve("Budget-a1b2c3.docx.txt"), StandardCharsets.UTF_8);
         assertTrue(text.startsWith("Attachment: Budget.docx\nFrom the email \"Q3 budget\" sent by Jane Doe"), text);
         assertTrue(text.contains("Budget line one"), text);
-        // the temporary download name never survives
+        // the temporary download name never survives; .claude holds the chat's list of staged files
         try (var files = Files.list(dir)) {
-            assertEquals(2, files.count());
+            assertEquals(List.of(".claude", "Budget-a1b2c3.docx", "Budget-a1b2c3.docx.txt"),
+                    files.map(path -> path.getFileName().toString()).sorted().toList());
         }
+    }
+
+    @Test
+    void askingAgainInTheSameChatReusesTheStagedFile() throws Exception {
+        byte[] bytes = docx("Budget line one");
+        FakeSource source = new FakeSource(file("Budget.docx", bytes.length), bytes);
+        stage(source, "Budget.docx", false, 10 * MB);
+        Map<String, Object> again = stage(source, "Other.docx", true, 10 * MB);
+
+        assertEquals(1, source.downloads.get());
+        assertEquals(true, again.get("alreadyInChat"));
+        assertEquals("Budget.docx", again.get("filePath"));
+        assertEquals("Budget.docx.txt", again.get("textPath"));
+        assertFalse(Files.exists(dir.resolve("Other.docx")));
     }
 
     @Test
     void noTextCopyUnlessAskedOrReadable() throws Exception {
         byte[] bytes = docx("Budget line one");
-        Map<String, Object> plain = stage(new FakeSource(file("Budget.docx", bytes.length), bytes), "a.docx", false,
-                10 * MB);
+        Map<String, Object> plain = stage(dir.resolve("chat-1"), new FakeSource(file("Budget.docx", bytes.length),
+                bytes), "a.docx", false, 10 * MB);
         assertFalse(plain.containsKey("textPath"));
-        Map<String, Object> pdf = stage(new FakeSource(file("Report.pdf", 4), "%PDF".getBytes()), "b.pdf", true,
-                10 * MB);
+        Map<String, Object> pdf = stage(dir.resolve("chat-2"), new FakeSource(file("Report.pdf", 4),
+                "%PDF".getBytes()), "b.pdf", true, 10 * MB);
         assertFalse(pdf.containsKey("textPath"));
-        Map<String, Object> broken = stage(new FakeSource(file("Broken.docx", 3), "abc".getBytes()), "c.docx", true,
-                10 * MB);
+        Map<String, Object> broken = stage(dir.resolve("chat-3"), new FakeSource(file("Broken.docx", 3),
+                "abc".getBytes()), "c.docx", true, 10 * MB);
         assertFalse(broken.containsKey("textPath"));
         assertEquals("The text of this file could not be read.", broken.get("textError"));
-        assertTrue(Files.exists(dir.resolve("c.docx")));
+        assertTrue(Files.exists(dir.resolve("chat-3").resolve("c.docx")));
     }
 
     @Test
@@ -271,7 +292,7 @@ class BrainAttachmentsUnitTests {
         assertTrue(Files.exists(dir.resolve("evil.pdf")));
         assertEquals("semoss", BrainAttachments.baseName(".semoss"));
         assertNull(BrainAttachments.baseName("../.."));
-        assertEquals("x.pdf", stage(source, null, false, 10 * MB).get("filePath"));
+        assertEquals("x.pdf", stage(dir.resolve("other-chat"), source, null, false, 10 * MB).get("filePath"));
     }
 
     @Test
