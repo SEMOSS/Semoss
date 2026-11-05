@@ -95,9 +95,6 @@ public class Room implements Serializable {
 
 	private static final Logger classLogger = LogManager.getLogger(Room.class);
 
-	/** Ornament naming the tool whose result a pre-chat hidden pair holds. */
-	public static final String PRE_CHAT_TOOL_ORNAMENT = "preChatTool";
-
 	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
 
@@ -642,43 +639,6 @@ public class Room implements Serializable {
 				messages.add(response);
 				RoomMessageStore.persist(this, userId);
 				return response;
-			}
-		} finally {
-			lock.unlock();
-		}
-	}
-
-	/**
-	 * Stores a pre-chat tool result as a hidden note and acknowledgement at the
-	 * start of the conversation. The model sees the pair on every later turn; the
-	 * UI does not show it. Nothing is added when the room already has messages,
-	 * checked again under the room lock against the latest stored history.
-	 *
-	 * @param note        model-facing text holding the tool result
-	 * @param toolName    tool that produced it, recorded as an ornament
-	 * @param modelEngine model associated with the hidden input
-	 * @param insight     caller insight, used for the user id when persisting
-	 * @return the appended pair, or an empty list when nothing was added
-	 */
-	public List<AbstractMessage> appendPreChatContext(String note, String toolName, IModelEngine modelEngine,
-			Insight insight) {
-		ReentrantLock lock = getMessageLock();
-		lock.lock();
-		try {
-			String userId = insight.getUser().getPrimaryLoginToken().getId();
-			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
-				this.insight = insight;
-				RoomMessageStore.refreshFromLatestProjection(this, userId);
-				if (!messages.isEmpty()) {
-					return new ArrayList<>();
-				}
-				List<AbstractMessage> added = new ArrayList<>();
-				MessageUtils.appendHiddenPair(this, modelEngine, note, null, added);
-				for (AbstractMessage message : added) {
-					message.setOrnament(PRE_CHAT_TOOL_ORNAMENT, toolName);
-				}
-				RoomMessageStore.persist(this, userId);
-				return added;
 			}
 		} finally {
 			lock.unlock();

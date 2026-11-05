@@ -360,20 +360,23 @@ public class SemossAgentHarness implements IAgentHarness {
 					autoCompactionContextWarningLogged = true;
 				}
 				// A deployment that replaces the default tools can name one to run before the
-				// room's first message; its result is stored as a hidden note for the model.
-				// Like compaction, it is not a message produced by this run, so it sits above
-				// runMessageStartIndex.
-				if (!focusedEdit && !agentConfig.hasPptxWorkflow() && room.getMessages().isEmpty()) {
-					PreChatContext.injectIfFirstMessage(room, ctx.getInsight(), ctx.getModelEngine(),
-							PlatformAgentTools.preChatSpec(agentConfig));
-				}
+				// room's first message; its result is injected as a hidden prefix in the first
+				// message text so the model sees it without a separate message pair.
+				String preChatNote = (!focusedEdit && !agentConfig.hasPptxWorkflow() && room.getMessages().isEmpty())
+						? PreChatContext.runForSystemPrompt(room, ctx.getInsight(),
+								PlatformAgentTools.preChatSpec(agentConfig))
+						: null;
 				// Compaction messages are implementation history, not messages produced by this
 				// run. Start run tagging after any automatic compaction messages.
 				runMessageStartIndex = room.getMessages().size();
 
 				String priorRequests = focusedEdit ? PptxEditContext.priorRequests(room.getMessages()) : "";
+				String modelText = ctx.getInput() + priorRequests + "\n\n" + state.runtimeContext();
+				if (preChatNote != null) {
+					modelText = preChatNote + "\n\n" + modelText;
+				}
 				InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
-						.withText(ctx.getInput() + priorRequests + "\n\n" + state.runtimeContext(), ctx.getUserText())
+						.withText(modelText, ctx.getUserText())
 						.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
 						.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
 				tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);

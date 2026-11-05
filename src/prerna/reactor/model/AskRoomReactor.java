@@ -105,16 +105,24 @@ public class AskRoomReactor extends AbstractReactor {
 		if (projectIdOverride != null) {
 			room.setProjectId(projectIdOverride);
 		}
-		// A prebuilt turn was produced by the client, so nothing runs ahead of it.
-		List<AbstractMessage> preChatMessages = responseParts == null
-				? PreChatContext.injectIfFirstMessage(room, this.insight, modelEngine, getPreChatTool())
-				: new ArrayList<>();
+		// Run the pre-chat tool and prepend its result to the first user message as
+		// a hidden prefix: the model sees it, the UI shows only the user's question.
+		// Nothing is added to room history.
+		String preChatNote = responseParts == null
+				? PreChatContext.runForSystemPrompt(room, this.insight, getPreChatTool())
+				: null;
 		String givenSystemPrompt = room.getSystemPromptForModel();
 		List<String> copiedMedia = RoomUtils.copyFilesToRoomFolder(inputMedia, room, insight);
 
-		InputMessage inputMessage = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
-				.withMediaInputs(copiedMedia, room).withMediaUrls(inputMediaURLs).withText(question)
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+		InputMessage.Builder msgBuilder = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
+				.withMediaInputs(copiedMedia, room).withMediaUrls(inputMediaURLs)
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap);
+		if (preChatNote != null) {
+			msgBuilder.withText(preChatNote + "\n\n" + question, question);
+		} else {
+			msgBuilder.withText(question);
+		}
+		InputMessage inputMessage = msgBuilder.build();
 
 		List<AbstractMessage> extraMessages = new ArrayList<>();
 		ResponseMessage responseMessage;
@@ -146,14 +154,6 @@ public class AskRoomReactor extends AbstractReactor {
 			extraMessagesList.add(pair);
 		}
 		pixelReturn.put("extraMessages", extraMessagesList);
-		if (!preChatMessages.isEmpty()) {
-			// hidden note and acknowledgement stored ahead of this turn
-			List<Map<String, Object>> preChatList = new ArrayList<>();
-			for (AbstractMessage message : preChatMessages) {
-				preChatList.add(jsonToMap(MessageUtils.toJsonWithImage(message)));
-			}
-			pixelReturn.put("preChatMessages", preChatList);
-		}
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}

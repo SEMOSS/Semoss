@@ -127,78 +127,79 @@ public final class PreChatContext {
 	}
 
 	/**
-	 * Runs the tool and stores its result when the room has no messages yet.
+	 * Runs the tool and returns its result as a system-prompt note when the room
+	 * has no messages yet. Used by playground chat, where the result is injected
+	 * into the first message's system prompt rather than stored as a hidden pair.
 	 *
-	 * @param room        room about to receive its first message
-	 * @param insight     caller insight; must be unbound or bound to {@code room}
-	 * @param modelEngine model the first message will be sent to
-	 * @param spec        tool to run; {@code null} does nothing
-	 * @return the hidden pair that was stored, or an empty list
+	 * @param room    room about to receive its first message
+	 * @param insight caller insight; must be unbound or bound to {@code room}
+	 * @param spec    tool to run; {@code null} returns {@code null}
+	 * @return formatted note to append to the system prompt, or {@code null} to skip
 	 */
-	public static List<AbstractMessage> injectIfFirstMessage(Room room, Insight insight, IModelEngine modelEngine,
-			Spec spec) {
-		if (spec == null || room == null || insight == null || modelEngine == null
-				|| !room.getMessages().isEmpty()) {
-			return new ArrayList<>();
+	public static String runForSystemPrompt(Room room, Insight insight, Spec spec) {
+		if (spec == null || room == null || insight == null || !room.getMessages().isEmpty()) {
+			return null;
 		}
 		try {
-			// Room-scoped tools read the room from the insight. In chat mode the client
-			// binds it with SetRoomForInsight; bind it here if it has not, and never run
-			// against a different room.
-			String boundRoomId = trimToNull(insight.getRoomId());
-			if (boundRoomId == null) {
-				insight.setRoomForInsight(room);
-			} else if (!boundRoomId.equals(room.getId())) {
-				logger.warn("PreChatContext: skipped {} for room={}: insight is bound to room={}", spec.tool(),
-						room.getId(), boundRoomId);
-				return new ArrayList<>();
-			}
-
-			String toolboxId = null;
-			JSONObject tool = null;
-			for (String candidate : spec.toolboxIds()) {
-				try {
-					tool = PlatformAgentTools.findMcpTool(candidate, spec.tool());
-				} catch (Exception e) {
-					logger.warn("PreChatContext: cannot read toolbox {}: {}", candidate, e.getMessage());
-				}
-				if (tool != null) {
-					toolboxId = candidate;
-					break;
-				}
-			}
-			if (tool == null) {
-				logger.warn("PreChatContext: skipped room={}: tool {} is missing or disabled in toolboxes {}",
-						room.getId(), spec.tool(), spec.toolboxIds());
-				return new ArrayList<>();
-			}
-			JSONObject meta = tool.optJSONObject("_meta");
-			if (meta != null && MCPExecution.ASK.getValue().equalsIgnoreCase(meta.optString(MCPUtility.SMSS_MCP_EXECUTION))) {
-				logger.warn("PreChatContext: skipped room={}: tool {} needs user approval", room.getId(), spec.tool());
-				return new ArrayList<>();
-			}
-			String functionName = meta != null ? meta.optString(MCPUtility.SMSS_FUNCTION_NAME, spec.tool())
-					: spec.tool();
-
-			long start = System.currentTimeMillis();
-			Object raw = MCPUtility.executeTool(toolboxId, functionName, new LinkedHashMap<>(spec.args()),
-					insight);
-			String output = stringify(raw);
-			if (output == null || output.isBlank() || output.startsWith("Error:")) {
-				logger.warn("PreChatContext: skipped room={}: tool {} returned no usable result", room.getId(),
-						spec.tool());
-				return new ArrayList<>();
-			}
-
-			List<AbstractMessage> added = room.appendPreChatContext(note(spec.tool(), output, spec.maxChars()),
-					spec.tool(), modelEngine, insight);
-			logger.info("PreChatContext: room={} toolbox={} tool={} chars={} stored={} ms={}", room.getId(), toolboxId,
-					spec.tool(), output.length(), !added.isEmpty(), System.currentTimeMillis() - start);
-			return added;
+			return runTool(room, insight, spec);
 		} catch (Exception e) {
 			logger.warn("PreChatContext: skipped {} for room={}: {}", spec.tool(), room.getId(), e.getMessage(), e);
-			return new ArrayList<>();
+			return null;
 		}
+	}
+
+	/**
+	 * Shared tool-execution core: binds the insight to the room if needed, finds
+	 * the tool in the configured toolboxes, runs it, and returns the formatted note
+	 * string, or {@code null} when the tool should be skipped.
+	 */
+	private static String runTool(Room room, Insight insight, Spec spec) {
+		String boundRoomId = trimToNull(insight.getRoomId());
+		if (boundRoomId == null) {
+			insight.setRoomForInsight(room);
+		} else if (!boundRoomId.equals(room.getId())) {
+			logger.warn("PreChatContext: skipped {} for room={}: insight is bound to room={}", spec.tool(),
+					room.getId(), boundRoomId);
+			return null;
+		}
+
+		String toolboxId = null;
+		JSONObject tool = null;
+		for (String candidate : spec.toolboxIds()) {
+			try {
+				tool = PlatformAgentTools.findMcpTool(candidate, spec.tool());
+			} catch (Exception e) {
+				logger.warn("PreChatContext: cannot read toolbox {}: {}", candidate, e.getMessage());
+			}
+			if (tool != null) {
+				toolboxId = candidate;
+				break;
+			}
+		}
+		if (tool == null) {
+			logger.warn("PreChatContext: skipped room={}: tool {} is missing or disabled in toolboxes {}",
+					room.getId(), spec.tool(), spec.toolboxIds());
+			return null;
+		}
+		JSONObject meta = tool.optJSONObject("_meta");
+		if (meta != null && MCPExecution.ASK.getValue().equalsIgnoreCase(meta.optString(MCPUtility.SMSS_MCP_EXECUTION))) {
+			logger.warn("PreChatContext: skipped room={}: tool {} needs user approval", room.getId(), spec.tool());
+			return null;
+		}
+		String functionName = meta != null ? meta.optString(MCPUtility.SMSS_FUNCTION_NAME, spec.tool())
+				: spec.tool();
+
+		long start = System.currentTimeMillis();
+		Object raw = MCPUtility.executeTool(toolboxId, functionName, new LinkedHashMap<>(spec.args()), insight);
+		String output = stringify(raw);
+		if (output == null || output.isBlank() || output.startsWith("Error:")) {
+			logger.warn("PreChatContext: skipped room={}: tool {} returned no usable result", room.getId(),
+					spec.tool());
+			return null;
+		}
+		logger.info("PreChatContext: room={} toolbox={} tool={} chars={} ms={}", room.getId(), toolboxId,
+				spec.tool(), output.length(), System.currentTimeMillis() - start);
+		return note(spec.tool(), output, spec.maxChars());
 	}
 
 	/**
