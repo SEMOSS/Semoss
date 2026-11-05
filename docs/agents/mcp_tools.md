@@ -220,12 +220,12 @@ See [run lifecycle](agent_runs.md) for approval states and [the harness](semoss_
 
 ## Pre-chat tool
 
-One toolbox tool can run once, when a room is set up and before its first message. Its result is stored at the start of the conversation as a hidden note and acknowledgement (`visible=false`, `platformGenerated`, ornament `preChatTool`): the model reads it on every later turn and the UI does not show it. A typical choice is a discovery tool such as ECU's `GetRoomResources`, so the model starts with the room's documents, skills and toolboxes in context instead of spending its first step calling the tool.
+One toolbox tool can run once, when a room is set up and before its first message. Its result goes in front of the text of that first user message: the model reads it there on this and every later turn, and the UI shows only what the user typed (the message's `uiText`). Nothing else is added to the room's history. A typical choice is a discovery tool such as ECU's `GetRoomResources`, so the model starts with the room's documents, skills and toolboxes in context instead of spending its first step calling the tool.
 
 | Surface | Configured by |
 | --- | --- |
 | `RunAgent` (native `semoss` harness) | Deployment properties, only when `AGENT_DEFAULT_TOOLS_MCP_ID` replaces the default tools: `AGENT_DEFAULT_TOOLS_PRE_CHAT_TOOL` (tool name in that toolbox), optional `AGENT_DEFAULT_TOOLS_PRE_CHAT_ARGS` (JSON object) and `AGENT_DEFAULT_TOOLS_PRE_CHAT_MAX_CHARS`. Skipped when the agent turns default tools off or lists the tool in `tool_policy.default_tools.disabled`, and for PPTX workflow runs. |
-| `AskPlayground` | `playground.preChatTool` in the active theme map: `{"tool": "GetRoomResources", "toolboxId": "<engine or project id>", "args": {}, "maxChars": 60000}`. Without `toolboxId`, the tool is looked up in `playground.defaultTools` (the toolboxes the UI attaches to every new room), in order. The stored pair is returned as `preChatMessages`. |
+| `AskPlayground` | `playground.preChatTool` in the active theme map: `{"tool": "GetRoomResources", "toolboxId": "<engine or project id>", "args": {}, "maxChars": 60000}`. Without `toolboxId`, the tool is looked up in `playground.defaultTools` (the toolboxes the UI attaches to every new room), in order. |
 
 Both use [PreChatContext](../../src/prerna/reactor/agent/runtime/PreChatContext.java):
 
@@ -234,7 +234,7 @@ Both use [PreChatContext](../../src/prerna/reactor/agent/runtime/PreChatContext.
 - The insight must be unbound or bound to the room (chat mode binds it with `SetRoomForInsight`); an unbound insight is bound to the room first.
 - The result is cut to `maxChars` (default 60,000) and wrapped in `<pre_chat_context tool="...">` with a note telling the model it need not call the tool again unless something changed.
 - Any failure is logged and skipped, and the chat continues as it would without the setting. The tool stays available, so the model can still call it itself.
-- It runs once per room. Files added later are not reflected until the model calls the tool again.
+- It runs once per room, only while the room has no messages. Files added later are not reflected until the model calls the tool again.
 
 ## Pitfalls
 

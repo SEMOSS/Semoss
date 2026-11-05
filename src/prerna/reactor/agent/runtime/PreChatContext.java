@@ -48,7 +48,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Runs one toolbox tool when a room is set up, before its first message, and
- * stores the result as a hidden note the model reads but the UI does not show.
+ * returns the result as a note that goes in front of that message's text. The
+ * model reads it; the UI shows only what the user typed ({@code uiText}).
  * <p>
  * Two surfaces use it:
  * <ul>
@@ -83,7 +84,7 @@ public final class PreChatContext {
 	 *                   in order; the first one that provides {@code tool} runs it
 	 * @param tool       tool name as listed by the toolbox
 	 * @param args       tool arguments, never {@code null}
-	 * @param maxChars   result characters kept in the hidden note
+	 * @param maxChars   result characters kept in the note
 	 */
 	public record Spec(List<String> toolboxIds, String tool, Map<String, Object> args, int maxChars) {
 
