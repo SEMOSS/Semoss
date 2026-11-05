@@ -401,7 +401,7 @@ public class Room implements Serializable {
 				// Try to infer/set roomName if missing
 				if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
 					for (AbstractMessage m : this.messages) {
-						if (m instanceof InputMessage && !m.isPlatformGenerated()) {
+						if (m instanceof InputMessage) {
 							InputMessage im = (InputMessage) m;
 							String prompt = im.getInputUIPrompt();
 							if (prompt != null && !prompt.trim().isEmpty()) {
@@ -497,7 +497,7 @@ public class Room implements Serializable {
 				String prevRoomName = roomName;
 				if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
 					for (AbstractMessage m : messages) {
-						if (m instanceof InputMessage && !m.isPlatformGenerated()) {
+						if (m instanceof InputMessage) {
 							String prompt = ((InputMessage) m).getInputUIPrompt();
 							if (prompt != null && !prompt.trim().isEmpty()) {
 								roomName = prompt.substring(0, Math.min(prompt.length(), 100));
