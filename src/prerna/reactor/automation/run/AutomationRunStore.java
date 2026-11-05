@@ -308,7 +308,7 @@ public final class AutomationRunStore {
 	private static final String UPDATE_NODE_OUTPUT_SUCCESS = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
 			DURATION_MS = ?, OUTPUT_VAR_NAME = ?, OUTPUT_KIND = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
-			MODEL_MESSAGE_ID = ?, AGENT_RUN_ID = ? \
+			MODEL_MESSAGE_ID = ?, AGENT_RUN_ID = ?, SCOPE_SNAPSHOT = ? \
 			WHERE RUN_ID = ? AND NODE_ID = ?""";
 
 	private static final String UPDATE_NODE_OUTPUT_FAILED = """
@@ -1441,7 +1441,7 @@ public final class AutomationRunStore {
 	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
 			String outputVar, String outputValue, String outputPreview, String modelMessageId, String agentRunId) {
 		updateNodeSuccess(runId, nodeId, startedAt, durationMs, outputVar, null, outputValue, outputPreview,
-				modelMessageId, agentRunId);
+				modelMessageId, agentRunId, (String) null);
 	}
 
 	/** Updates a node output and its internal storage kind after successful execution. */
@@ -1449,13 +1449,29 @@ public final class AutomationRunStore {
 			String outputVar, String outputKind, String outputValue, String outputPreview, String modelMessageId,
 			String agentRunId) {
 		updateNodeSuccess(runId, nodeId, startedAt, durationMs, outputVar, outputKind, outputValue, outputPreview,
-				modelMessageId, agentRunId, null);
+				modelMessageId, agentRunId, (String) null);
+	}
+
+	/** Updates a node output and its internal storage kind, retaining a run-scope snapshot, after successful execution. */
+	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
+			String outputVar, String outputKind, String outputValue, String outputPreview, String modelMessageId,
+			String agentRunId, String scopeSnapshot) {
+		updateNodeSuccess(runId, nodeId, startedAt, durationMs, outputVar, outputKind, outputValue, outputPreview,
+				modelMessageId, agentRunId, scopeSnapshot, null);
 	}
 
 	/** Publishes a captured table and node success in one scheduler transaction. */
 	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
 			String outputVar, String outputKind, String outputValue, String outputPreview, String modelMessageId,
 			String agentRunId, AutomationTableCaptureService.TableCapture tableCapture) {
+		updateNodeSuccess(runId, nodeId, startedAt, durationMs, outputVar, outputKind, outputValue, outputPreview,
+				modelMessageId, agentRunId, null, tableCapture);
+	}
+
+	/** Publishes a captured table and node success, retaining a run-scope snapshot, in one scheduler transaction. */
+	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
+			String outputVar, String outputKind, String outputValue, String outputPreview, String modelMessageId,
+			String agentRunId, String scopeSnapshot, AutomationTableCaptureService.TableCapture tableCapture) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the successful automation node result");
 
 		try {
@@ -1478,6 +1494,7 @@ public final class AutomationRunStore {
 					ps.setString(index++, outputPreview);
 					schedulerDb.getQueryUtil().setNullableString(ps, index++, modelMessageId);
 					schedulerDb.getQueryUtil().setNullableString(ps, index++, agentRunId);
+					queryUtil.setNullableLargeText(ps, index++, scopeSnapshot);
 					ps.setString(index++, runId);
 					ps.setString(index++, nodeId);
 					requireSingleRow(ps.executeUpdate(), "persist the successful node result", runId, nodeId);
@@ -1676,6 +1693,8 @@ public final class AutomationRunStore {
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + AutomationConstants.SOURCE_NODE_ID,
 				AutomationConstants.SOURCE_NODE_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + ERROR_MESSAGE, ERROR_MESSAGE));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + AutomationConstants.SCOPE_SNAPSHOT,
+				AutomationConstants.SCOPE_SNAPSHOT));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_NODE_OUTPUTS + "__" + RUN_ID, "==", runId,
 				PixelDataType.CONST_STRING));
@@ -1773,6 +1792,7 @@ public final class AutomationRunStore {
 				nodeResult.put(AutomationConstants.OUTPUT_VALUE, outputValue);
 			}
 			nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
+			nodeResult.put(AutomationConstants.RESULT_SCOPE_SNAPSHOT, output.get(AutomationConstants.SCOPE_SNAPSHOT));
 			Map<String, Object> trace = new LinkedHashMap<>();
 			putIfPresent(trace, AutomationConstants.TRACE_AUTOMATION_RUN_ID, output.get(AutomationConstants.RUN_ID));
 			putIfPresent(trace, AutomationConstants.TRACE_NODE_ID, output.get(AutomationConstants.NODE_ID));

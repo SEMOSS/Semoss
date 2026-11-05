@@ -717,12 +717,12 @@ final class AutomationRunExecutionService {
 					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation loop '" + loopNodeId + "' output");
 			Map<String, Object> prospectiveScope = new LinkedHashMap<>(parentContext.values());
 			prospectiveScope.put(loopOutputVar, value);
-			AutomationRuntimeUtils.toBoundedRuntimeJson(normalizeScope(prospectiveScope),
+			String scopeSnapshot = AutomationRuntimeUtils.toBoundedRuntimeJson(normalizeScope(prospectiveScope),
 					AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope");
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
-			AutomationRunStore.updateNodeSuccess(runId, loopNodeId, started, duration, loopOutputVar, output, preview,
-					null, null);
+			AutomationRunStore.updateNodeSuccess(runId, loopNodeId, started, duration, loopOutputVar, null, output,
+					preview, null, null, scopeSnapshot);
 			AutomationRunRegistry.nodeCompleted(runId);
 			streamNodeProgress(runId, loopNode, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 			return nodeResult(loopNodeId, AutomationConstants.NODE_STATUS_SUCCESS, value, null);
@@ -1131,9 +1131,12 @@ final class AutomationRunExecutionService {
 
 			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(decision,
 					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation Jev decision '" + nodeId + "' output");
+			String scopeSnapshot = AutomationRuntimeUtils.toBoundedRuntimeJson(normalizeScope(scope),
+					AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope");
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
-			AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview, null, null);
+			AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration, null, null, output, preview, null,
+					null, scopeSnapshot);
 			AutomationRunRegistry.nodeCompleted(runId);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, decision, null);
@@ -1456,10 +1459,13 @@ final class AutomationRunExecutionService {
 			Map<String, Object> decision = Map.of("branch", selectedPort, "value", matched);
 			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(decision,
 					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation condition '" + nodeId + "' output");
+			String scopeSnapshot = AutomationRuntimeUtils.toBoundedRuntimeJson(normalizeScope(scope),
+					AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope");
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
 			AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration,
-					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview, null, null);
+					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), null, output, preview, null, null,
+					scopeSnapshot);
 			AutomationRunRegistry.nodeCompleted(runId);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, decision, null);
@@ -1496,11 +1502,12 @@ final class AutomationRunExecutionService {
 			}
 			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(globals,
 					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation trigger output");
-			AutomationRuntimeUtils.toBoundedRuntimeJson(context.values(), AutomationConstants.RUN_SCOPE_MAX_BYTES,
-					"Automation run scope");
+			String scopeSnapshot = AutomationRuntimeUtils.toBoundedRuntimeJson(context.values(),
+					AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope");
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
-			AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview, null, null);
+			AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration, null, null, output, preview, null,
+					null, scopeSnapshot);
 			AutomationRunRegistry.nodeCompleted(runId);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 			Map<String, Object> result = nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, output, null);
@@ -2290,7 +2297,7 @@ final class AutomationRunExecutionService {
 		}
 		AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration,
 				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), outputKind, output, preview,
-				modelMessageId, agentRunId, tableCapture);
+				modelMessageId, agentRunId, prepared.scopeSnapshot(), tableCapture);
 		AutomationRunRegistry.nodeCompleted(runId);
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null,
 				traceForNode(node, traceRoomId, modelMessageId, agentRunId));

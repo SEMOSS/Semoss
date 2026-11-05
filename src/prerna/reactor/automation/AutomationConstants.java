@@ -104,6 +104,8 @@ public final class AutomationConstants {
 	public static final String OUTPUT_KIND_TABLE = "TABLE";
 	public static final String OUTPUT_VALUE = "OUTPUT_VALUE";
 	public static final String OUTPUT_PREVIEW = "OUTPUT_PREVIEW";
+	/** Bounded JSON of every run-scope variable as of this node's completion. */
+	public static final String SCOPE_SNAPSHOT = "SCOPE_SNAPSHOT";
 	public static final String ROOM_ID = "ROOM_ID";
 	public static final String WORKSPACE_ID = "WORKSPACE_ID";
 	public static final String MODEL_MESSAGE_ID = "MODEL_MESSAGE_ID";
@@ -446,6 +448,8 @@ public final class AutomationConstants {
 	public static final String RESULT_SUMMARY = "summary";
 	/** Per-node variable descriptors used by Automation authoring clients. */
 	public static final String RESULT_SCOPE_VARIABLES = "scopeVariables";
+	/** Point-in-time run-scope snapshot for one node's run-history "Variables" view. */
+	public static final String RESULT_SCOPE_SNAPSHOT = "scopeSnapshot";
 
 	// -- Pixel execution defaults
 	// ----------------------------------------------------
