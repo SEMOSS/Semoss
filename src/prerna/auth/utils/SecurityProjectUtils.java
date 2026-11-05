@@ -3188,6 +3188,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				"low_project_name"));
 		qs1.addSelector(
 				QueryFunctionSelector.makeCol2ValCoalesceSelector("USER_PREFERENCES__FAVORITE", 0, "project_favorite"));
+		qs1.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("USER_PREFERENCES__USERDISCOVERABLE", 0,
+				"project_user_discoverable"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
 		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "group_permission"));
 
@@ -3535,6 +3537,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
 		qs.addSelector(
 				QueryFunctionSelector.makeCol2ValCoalesceSelector("USER_PREFERENCES__FAVORITE", 0, "project_favorite"));
+		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("USER_PREFERENCES__USERDISCOVERABLE", 0,
+				"project_user_discoverable"));
 		// for sorting
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, QueryFunctionSelector
 				.makeCoalesceSelector("PROJECT__PROJECTDISPLAYNAME", "PROJECT__PROJECTNAME", "display_name"),
@@ -3569,9 +3573,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * A left join, as USER_PREFERENCES, to the user's preferences on each project:
-	 * FAVORITE is 1 when any of the user's logins favorited it, and VISIBILITY is 1
-	 * when any of them shows it and 0 when they all hide it, both cast to int. A
-	 * project the user has no preferences on joins to null.
+	 * FAVORITE is 1 when any of the user's logins favorited it, VISIBILITY is 1
+	 * when any of them shows it and 0 when they all hide it, and USERDISCOVERABLE
+	 * is 1 when any of them lets agents find it, all cast to int. A project the
+	 * user has no preferences on joins to null.
 	 *
 	 * @param securityDb the security database
 	 * @param user       the user; their logins come from the session
@@ -3591,6 +3596,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		castVisibility.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
 		prefQs.addSelector(
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castVisibility, "VISIBILITY"));
+		QueryFunctionSelector castUserDiscoverable = QueryFunctionSelector.makeFunctionSelector(
+				QueryFunctionHelper.CAST, "USERPROJECTPREFERENCE__USERDISCOVERABLE", "castUserDiscoverable");
+		castUserDiscoverable.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
+		prefQs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castUserDiscoverable,
+				"USERDISCOVERABLE"));
 		prefQs.addGroupBy(new QueryColumnSelector("USERPROJECTPREFERENCE__PROJECTID", "PROJECTID"));
 		prefQs.addExplicitFilter(
 				getUserIdAndTypeFilter(user, "USERPROJECTPREFERENCE__USERID", "USERPROJECTPREFERENCE__TYPE"));
@@ -3824,6 +3834,30 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		setUserPreference(user, "USERPROJECTPREFERENCE", List.of(Pair.with("PROJECTID", projectId)), "FAVORITE",
 				isFavorite);
+	}
+
+	/**
+	 * Let agents find and use a project for the user, or stop them, for each of
+	 * the user's logins. The choice is saved in USERPROJECTPREFERENCE, apart from
+	 * the user's permissions, and changes only this project. A project is not
+	 * discoverable to the user's agents until the user turns this on.
+	 *
+	 * @param user         the user
+	 * @param projectId    the project
+	 * @param discoverable true to let the user's agents find the project, false to
+	 *                     stop them
+	 * @throws IllegalAccessException when the project is not public and the user
+	 *                                cannot view it
+	 * @throws Exception              when the preference cannot be saved
+	 */
+	public static void setProjectUserDiscoverable(User user, String projectId, boolean discoverable)
+			throws Exception {
+		if (!projectIsGlobal(projectId) && !userCanViewProject(user, projectId)) {
+			throw new IllegalAccessException(
+					"The user doesn't have the permission to change whether this project is discoverable to their agents.");
+		}
+		setUserPreference(user, "USERPROJECTPREFERENCE", List.of(Pair.with("PROJECTID", projectId)),
+				"USERDISCOVERABLE", discoverable);
 	}
 
 	///////////////////////////////////////////////
