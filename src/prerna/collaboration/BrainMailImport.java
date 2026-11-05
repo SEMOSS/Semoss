@@ -27,6 +27,9 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -35,6 +38,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -66,6 +70,10 @@ public final class BrainMailImport {
 	// more people than this on To and Cc is a mailing: no new people from it
 	private static final int MAX_RECIPIENTS = 25;
 	private static final String SOURCE = "email";
+	// BRAIN_PERSON.DISPLAY_NAME is VARCHAR(255)
+	private static final int DISPLAY_NAME_CHARS = 255;
+	// a run with more messages it could not save than this has a problem of its own, not one bad message
+	private static final int MAX_UNSAVED = 5;
 	private static final String TEAMS = "teams";
 	private static final int MAX_CHATS = 300;
 	private static final int MAX_PER_CHAT = 200;
@@ -367,7 +375,8 @@ public final class BrainMailImport {
 	}
 
 	// oldest first so a thread takes its first subject; a message sent to yourself is in both folders once.
-	// One connection and one commit per batch; a failed batch rolls back and a re-run picks it up
+	// One connection and one commit per batch. A message that cannot be saved is undone alone and the batch keeps the
+	// rest; a run with more of them than MAX_UNSAVED fails, its batch rolls back, and a re-run picks it up
 	private static void importHeaders(CollaborationJobUtils.Job job, Run run, List<Map<String, Object>> headers,
 			int from, int to) throws Exception {
 		headers.sort(Comparator.comparing(h -> String.valueOf(h.get("receivedDateTime"))));
@@ -382,7 +391,7 @@ public final class BrainMailImport {
 			List<Map<String, Object>> part = all.subList(start, Math.min(all.size(), start + BATCH));
 			CollaborationDbUtils.batch(conn -> {
 				for (Map<String, Object> header : part) {
-					run.importOne(header);
+					run.importIsolated(conn, header);
 				}
 			});
 			job.count("imported", run.imported);
@@ -391,6 +400,7 @@ public final class BrainMailImport {
 			job.step("importing", from + (to - from) * (start + part.size()) / Math.max(1, all.size()));
 		}
 		job.count("imported", run.imported);
+		job.count("unsaved", run.unsaved);
 		job.count("alreadyImported", run.skipped);
 		job.count("keptOut", run.keptOut);
 		// calendar mail seen; 0 on a real mailbox means Graph gave no @odata.type
@@ -440,12 +450,26 @@ public final class BrainMailImport {
 		int newPeople;
 		// unique headers read so far, mail and Teams
 		int seen;
+		// messages whose writes failed and were undone alone
+		int unsaved;
 
 		Run(String ownerId, String ownerType, boolean followUps) {
 			this.ownerId = ownerId;
 			this.ownerType = ownerType;
 			this.followUps = followUps;
 			this.rules = BrainRulesGate.activeRules(ownerId, ownerType);
+			load(true);
+		}
+
+		// what the owner's Brain holds, read again after one message's writes are undone; the cut-off keys this run
+		// already took stay taken, so none is owed its steps twice
+		private void load(boolean withPending) {
+			people.clear();
+			threadsByKey.clear();
+			messages.clear();
+			mailbox.clear();
+			participants.clear();
+			known.clear();
 			CollaborationDbUtils.query(
 					"SELECT PERSON_ID, EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 							+ "AND EMAIL_NORM IS NOT NULL",
@@ -478,7 +502,7 @@ public final class BrainMailImport {
 						mailbox.put(rs.getString(1), new String[] { rs.getString(6),
 								CollaborationDbUtils.getString(rs, "CATEGORIES_JSON"),
 								String.valueOf(Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "FLAGGED"))) });
-						if (Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "SYNC_PENDING"))) {
+						if (withPending && Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "SYNC_PENDING"))) {
 							pending.add(rs.getString(1));
 						}
 						return messages.put(rs.getString(1), BrainRulesGate.result(rs.getString(2), rs.getString(3),
@@ -493,6 +517,50 @@ public final class BrainMailImport {
 						}
 						return participants.put(rs.getString(1) + "|" + rs.getString(2), roles);
 					}, ownerId, ownerType);
+		}
+
+		/**
+		 * One header inside the batch's transaction. When its writes fail they are undone alone, with what this run
+		 * noted for it, and the batch keeps the rest; more than MAX_UNSAVED such messages in one run is not one bad
+		 * message, so the run fails as before and its window is read again.
+		 */
+		void importIsolated(Connection conn, Map<String, Object> header) throws SQLException {
+			Savepoint savepoint = conn.setSavepoint();
+			int[] sizes = { ownerSent.size(), inbound.size(), owed.size(), threads.size(), refiled.size() };
+			int[] counts = { imported, skipped, keptOut, meetings, newPeople };
+			try {
+				importOne(header);
+			} catch (RuntimeException e) {
+				conn.rollback(savepoint);
+				if (++unsaved > MAX_UNSAVED) {
+					throw e;
+				}
+				classLogger.warn("Skipped message {}: it could not be saved, and the rest of its batch was kept",
+						messageId(header), e);
+				ownerSent.subList(sizes[0], ownerSent.size()).clear();
+				inbound.subList(sizes[1], inbound.size()).clear();
+				owed.subList(sizes[2], owed.size()).clear();
+				keepFirst(threads, sizes[3]);
+				keepFirst(refiled, sizes[4]);
+				imported = counts[0];
+				skipped = counts[1];
+				keptOut = counts[2];
+				meetings = counts[3];
+				newPeople = counts[4];
+				// the caches may name rows the rollback took back
+				load(false);
+			}
+		}
+
+		// insertion order: what was added after the first size entries goes
+		private static void keepFirst(Set<String> set, int size) {
+			Iterator<String> it = set.iterator();
+			for (int i = 0; it.hasNext(); i++) {
+				it.next();
+				if (i >= size) {
+					it.remove();
+				}
+			}
 		}
 
 		// a mail header this run already holds a message for
@@ -719,13 +787,13 @@ public final class BrainMailImport {
 			}
 			String id = "p-" + CollaborationDbUtils.deterministicId(ownerId, ownerType, "person", address);
 			Timestamp now = CollaborationDbUtils.now();
+			String displayName = displayName(name == null || name.isBlank() ? address : name.trim());
 			CollaborationDbUtils.inTransaction(conn -> {
 				CollaborationDbUtils.update(conn,
 						"INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, EMAIL_NORM, "
 								+ "DISPLAY_NAME, IS_VIP, NEVER_INGEST, STRENGTH, CREATED_AT, UPDATED_AT) "
 								+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-						ownerId, ownerType, id, address, name == null || name.isBlank() ? address : name.trim(), false,
-						false, 0, now, now);
+						ownerId, ownerType, id, address, displayName, false, false, 0, now, now);
 				CollaborationDbUtils.update(conn,
 						"INSERT INTO BRAIN_PERSON_ADDRESS (OWNER_ID, OWNER_TYPE, PERSON_ID, "
 								+ "KIND, VALUE_NORM, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?)",
@@ -973,6 +1041,16 @@ public final class BrainMailImport {
 		clean = clean.trim();
 		clean = clean.isEmpty() ? "(no subject)" : clean;
 		return clean.length() > 255 ? clean.substring(0, 255) : clean;
+	}
+
+	// a sender picks their own display name (a directory allows 256 characters): one longer than DISPLAY_NAME's 255
+	// would roll back its batch, and every later sync of the same window, so it is cut, never a pair split
+	static String displayName(String name) {
+		if (name.length() <= DISPLAY_NAME_CHARS) {
+			return name;
+		}
+		return name.substring(0,
+				Character.isHighSurrogate(name.charAt(DISPLAY_NAME_CHARS - 1)) ? DISPLAY_NAME_CHARS - 1 : DISPLAY_NAME_CHARS);
 	}
 
 	static String domain(String address) {

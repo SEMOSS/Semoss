@@ -27,54 +27,25 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import prerna.auth.User;
-import prerna.collaboration.BrainTopicUtils;
+import prerna.collaboration.BrainStyleLearning;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainSaveTopicNote(topicId=["..."], noteId=["..."], kind=["goal"], text=["..."], state=["open"]);
-// a topic note is a memory about the topic now (BrainSaveMemory)
-public class BrainSaveTopicNoteReactor extends AbstractCollaborationReactor {
+// BrainLearnStyle(); owner-only; follow it with BrainGetJob(kind=["style"])
+public class BrainLearnStyleReactor extends AbstractCollaborationReactor {
 
-	private static final String TOPIC_ID = "topicId";
-	private static final String NOTE_ID = "noteId";
-	private static final String KIND = "kind";
-	private static final String TEXT = "text";
-	private static final String STATE = "state";
-
-	public BrainSaveTopicNoteReactor() {
-		this.keysToGet = new String[] { TOPIC_ID, NOTE_ID, KIND, TEXT, STATE };
-		this.keyRequired = new int[] { 1, 0, 1, 1, 1 };
+	public BrainLearnStyleReactor() {
+		this.keysToGet = new String[] {};
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = getUser();
-		String topicId = getString(TOPIC_ID);
-		if (topicId == null) {
-			throw new IllegalArgumentException("Must pass a topicId");
-		}
-		return mapResult(BrainTopicUtils.saveTopicNote(user, topicId, getString(NOTE_ID), getString(KIND),
-				getString(TEXT), getString(STATE)));
+		return mapResult(BrainStyleLearning.start(getUser()));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Adds or edits a goal on a Brain topic";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (NOTE_ID.equals(key)) {
-			return "Note id to edit; omit to create";
-		} else if (KIND.equals(key)) {
-			return "goal";
-		} else if (TEXT.equals(key)) {
-			return "Goal text";
-		} else if (STATE.equals(key)) {
-			return "open or done";
-		}
-		return super.getDescriptionForKey(key);
+		return "Starts learning how the owner writes from their last 30 days of sent mail and chat messages, "
+				+ "or returns the running job. The result is a pending proposal on the profile that is never used "
+				+ "when drafting until the owner confirms it with BrainSaveProfile";
 	}
 }

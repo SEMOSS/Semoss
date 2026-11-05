@@ -305,6 +305,14 @@ public final class AutomationDefinitionValidator {
 				throw new IllegalArgumentException(
 						"Automation agent node '" + nodeId + "' skills configuration must be a list of skill ids.");
 			}
+			// the room's mcp option shape: a run reads the id, the room's settings show the name and type
+			Object mcps = config.get(AutomationConstants.CONFIG_MCPS);
+			if (mcps != null && !(mcps instanceof List<?> list && list.stream().allMatch(mcp -> mcp instanceof Map<?, ?> ref
+					&& ref.get("id") instanceof String && ref.get("name") instanceof String
+					&& ref.get("type") instanceof String))) {
+				throw new IllegalArgumentException("Automation agent node '" + nodeId
+						+ "' mcps configuration must be a list of {id, name, type} engines or projects.");
+			}
 			Object routine = config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE);
 			if (routine != null && !(routine instanceof Boolean)) {
 				throw new IllegalArgumentException("Automation agent node '" + nodeId

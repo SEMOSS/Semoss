@@ -25,45 +25,28 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.engine;
+package prerna.reactor.collaboration;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.Map;
 
-import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.collaboration.WorkRoutineRoom;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public abstract class AbstractEngineFileReactor extends AbstractReactor {
-
-	protected static final Logger classLogger = LogManager.getLogger(AbstractEngineFileReactor.class);
-
-	/**
-	 * 
-	 * @param user
-	 */
-	protected void validateUserAndEngineAccess(User user) {
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account to retrieve the function engine files",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
-
-		if (!SecurityQueryUtils.userIsPublisher(user)) {
-			throwUserNotPublisherError();
-		}
+public class WorkListRecentRoutineRunsReactor extends AbstractCollaborationReactor {
+	public WorkListRecentRoutineRunsReactor() {
+		this.keysToGet = new String[] {};
 	}
 
+	@Override
+	public NounMetadata execute() {
+		getUser();
+		return mapResult(Map.of("routines", WorkRoutineRoom.recentRuns(this.insight)));
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Lists the five routines the signed-in user ran last, newest first, each with its two latest runs: the "
+				+ "routine id, a custom routine's name, and per run its id, whether it is running, completed or failed, "
+				+ "when it started and finished, and for a running run of the user's own routine the room to watch";
+	}
 }

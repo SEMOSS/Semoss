@@ -351,6 +351,41 @@ class AutomationRunStoreUnitTests {
 	}
 
 	@Test
+	void deletingOneRunLeavesTheAutomationsOtherRuns() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			schema(db);
+			savedResultSchema(db);
+			db.execute(
+					"CREATE TABLE AUTOMATION_RUN_WAITS (WAIT_ID VARCHAR, RUN_ID VARCHAR, NODE_ID VARCHAR, WAIT_TYPE VARCHAR, AGENT_RUN_ID VARCHAR, ROOM_ID VARCHAR, RESUME_NODE_ID VARCHAR, STATUS VARCHAR, CREATED_BY VARCHAR, STARTED_AT TIMESTAMP, EXPIRES_AT TIMESTAMP, RESOLVED_AT TIMESTAMP, RESOLVED_BY VARCHAR)");
+			String scope = AutomationConstants.INLINE_RUN_SCOPE_PREFIX + "owner";
+			List<Map<String, Object>> nodes = List.of(Map.of("id", "node", "label", "Node"));
+			AutomationRunStore.initializeRun("old", scope, "brief", 1, "hash", "{}", Map.of(), "SCHEDULED", "user",
+					nodes, Map.of(), Map.of("node", "source"));
+			AutomationRunStore.initializeRun("new", scope, "brief", 1, "hash", "{}", Map.of(), "SCHEDULED", "user",
+					nodes, Map.of(), Map.of("node", "source"));
+			db.execute("INSERT INTO AUTOMATION_RUN_WAITS (WAIT_ID, RUN_ID, NODE_ID, STATUS) "
+					+ "VALUES ('wait', 'new', 'node', 'RESOLVED')",
+					"INSERT INTO AUTOMATION_SAVED_RESULTS (RESULT_ID, RUN_ID) VALUES ('result', 'new')",
+					"INSERT INTO AUTOMATION_RESULT_CHUNKS (RESULT_ID, CHUNK_INDEX) VALUES ('result', 0)");
+
+			// the run id alone is not enough: another scope or automation deletes nothing
+			assertEquals(0, AutomationRunStore.deleteRun(AutomationConstants.INLINE_RUN_SCOPE_PREFIX + "other",
+					"brief", "new"));
+			assertEquals(0, AutomationRunStore.deleteRun(scope, "default", "new"));
+			assertEquals(1, AutomationRunStore.deleteRun(scope, "brief", "new"));
+
+			assertEquals(1, db.count("AUTOMATION_RUNS"));
+			assertEquals("old", db.value("SELECT RUN_ID FROM AUTOMATION_RUNS"));
+			assertEquals(1, db.count("AUTOMATION_RUN_NODE_SOURCES"));
+			assertEquals(1, db.count("AUTOMATION_NODE_OUTPUTS"));
+			assertEquals(0, db.count("AUTOMATION_RUN_WAITS"));
+			assertEquals(0, db.count("AUTOMATION_SAVED_RESULTS"));
+			assertEquals(0, db.count("AUTOMATION_RESULT_CHUNKS"));
+			assertEquals(0, AutomationRunStore.deleteRun(scope, "brief", "new"));
+		}
+	}
+
+	@Test
 	void lookAlikeScopeGetsNoRunsFromADatabaseThatIgnoresCase() throws Exception {
 		String scope = AutomationConstants.INLINE_RUN_SCOPE_PREFIX + "owner";
 		String lookAlike = scope.toLowerCase();

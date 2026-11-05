@@ -184,28 +184,50 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 				requests.add(Map.of("id", String.valueOf(i), "method", "GET", "url",
 						"/me/messages/" + encode(graphIds.get(i)) + "/attachments?$select=" + ATTACHMENT_SELECT));
 			}
-			Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
-					BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
-					CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null, null,
-					null));
-			List<Object> responses = reply.get("responses") instanceof List<?> list ? (List<Object>) list : List.of();
-			for (Object r : responses) {
-				Map<String, Object> response = (Map<String, Object>) r;
-				int status = response.get("status") instanceof Number n ? n.intValue() : 0;
-				if (status != 200 || !(response.get("body") instanceof Map<?, ?> body)
-						|| !(body.get("value") instanceof List<?> items)) {
-					continue;
-				}
-				List<Map<String, Object>> described = new ArrayList<>();
-				for (Object item : items) {
-					if (item instanceof Map<?, ?> attachment) {
-						Map<String, Object> entry = BrainAttachments.describe((Map<String, Object>) attachment);
-						if (!Boolean.TRUE.equals(entry.get("isInline"))) {
-							described.add(entry);
+			// Graph allows about 4 requests at once per mailbox, so parallel downloads get 429s; those
+			// listings are sent again after Retry-After, as fetchAll does
+			for (int attempt = 0; !requests.isEmpty(); attempt++) {
+				Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
+						BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
+						CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null,
+						null, null));
+				List<Object> responses = reply.get("responses") instanceof List<?> list ? (List<Object>) list
+						: List.of();
+				List<Map<String, Object>> again = new ArrayList<>();
+				long wait = 0;
+				for (Object r : responses) {
+					Map<String, Object> response = (Map<String, Object>) r;
+					String id = String.valueOf(response.get("id"));
+					int status = response.get("status") instanceof Number n ? n.intValue() : 0;
+					if ((status == 429 || status >= 500) && attempt < RETRIES) {
+						requests.stream().filter(q -> id.equals(q.get("id"))).findFirst().ifPresent(again::add);
+						wait = Math.max(wait, retryAfter(response, attempt));
+						continue;
+					}
+					if (status != 200 || !(response.get("body") instanceof Map<?, ?> body)
+							|| !(body.get("value") instanceof List<?> items)) {
+						continue;
+					}
+					List<Map<String, Object>> described = new ArrayList<>();
+					for (Object item : items) {
+						if (item instanceof Map<?, ?> attachment) {
+							Map<String, Object> entry = BrainAttachments.describe((Map<String, Object>) attachment);
+							if (!Boolean.TRUE.equals(entry.get("isInline"))) {
+								described.add(entry);
+							}
 						}
 					}
+					out.put(graphIds.get(Integer.parseInt(id)), described);
 				}
-				out.put(graphIds.get(Integer.parseInt(String.valueOf(response.get("id")))), described);
+				requests = again;
+				if (!requests.isEmpty()) {
+					try {
+						Thread.sleep(wait);
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+						break;
+					}
+				}
 			}
 		}
 		return out;

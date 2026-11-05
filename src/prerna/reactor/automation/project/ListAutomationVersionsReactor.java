@@ -39,18 +39,19 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Returns the git commit history for an automation project's workflow definition.
+ * Returns the git commit history for an automation project's workflow
+ * definition.
  *
  * <p>
  * Each entry contains the commit author, timestamp, full revision SHA, and
  * message recorded when the Automation graph or an owned developer-node source
  * was saved.
  *
- * <p>Pixel: {@code ListAutomationVersions(project=["<projectId>"])}
+ * <p>
+ * Pixel: {@code ListAutomationVersions(project=["<projectId>"])}
  */
 public class ListAutomationVersionsReactor extends AbstractReactor {
 
@@ -67,15 +68,7 @@ public class ListAutomationVersionsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to list automation versions",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException error = new SemossPixelException(noun);
-			error.setContinueThreadOfExecution(false);
-			throw error;
-		}
+		User user = requireUser();
 
 		IProject project = AutomationProjectService.getViewableAutomationProject(user,
 				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()));
@@ -105,8 +98,8 @@ public class ListAutomationVersionsReactor extends AbstractReactor {
 			return "ID or alias of the automation project whose version history should be listed.";
 		}
 		if (ReactorKeysEnum.LIMIT.getKey().equals(key)) {
-			return "Maximum number of versions to return. Defaults to " + DEFAULT_LIMIT + ", capped at "
-					+ MAXIMUM_LIMIT + ".";
+			return "Maximum number of versions to return. Defaults to " + DEFAULT_LIMIT + ", capped at " + MAXIMUM_LIMIT
+					+ ".";
 		}
 		return super.getDescriptionForKey(key);
 	}

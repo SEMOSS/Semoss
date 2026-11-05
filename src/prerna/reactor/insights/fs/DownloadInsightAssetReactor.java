@@ -30,8 +30,6 @@ package prerna.reactor.insights.fs;
 import java.io.File;
 import java.util.UUID;
 
-import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.InsightFile;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -51,12 +49,6 @@ public class DownloadInsightAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
-		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		String relativeFilePath = this.keyValue.get(this.keysToGet[0]);
 		if (relativeFilePath != null) {

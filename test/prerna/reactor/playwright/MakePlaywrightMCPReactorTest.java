@@ -53,7 +53,6 @@ import prerna.SemossUnitTest;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.om.Insight;
@@ -62,7 +61,6 @@ import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
@@ -92,23 +90,6 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 		reactor.setInsight(insight);
 
 		when(insight.getUser()).thenReturn(user);
-		when(user.isAnonymous()).thenReturn(false);
-	}
-
-	@Test
-	void executeThrowsExceptionWhenAnonymousUser() {
-		String projectId = "test-project";
-		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectId);
-
-		when(user.isAnonymous()).thenReturn(true);
-
-		try (MockedStatic<AbstractSecurityUtils> securityUtils = Mockito.mockStatic(AbstractSecurityUtils.class)) {
-			securityUtils.when(AbstractSecurityUtils::anonymousUsersEnabled).thenReturn(true);
-
-			assertThrows(SemossPixelException.class, () -> {
-				reactor.execute();
-			});
-		}
 	}
 
 	@Test

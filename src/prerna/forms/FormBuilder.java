@@ -119,7 +119,7 @@ public final class FormBuilder {
 		if(!auditTableExists) {
 			String createAuditTable = "CREATE TABLE " + auditLogTableName + " ("
 					+ "ID IDENTITY, "
-					+ "USER VARCHAR(255), "
+					+ "\"USER\" VARCHAR(255), "
 					+ "ACTION VARCHAR(100), "
 					+ "START_NODE VARCHAR(255), "
 					+ "REL_NAME VARCHAR(255), "
@@ -1322,7 +1322,7 @@ public final class FormBuilder {
 		IRDBMSEngine rdbmsEng = (IRDBMSEngine) formEng;
 		AbstractSqlQueryUtil queryUtil = rdbmsEng.getQueryUtil();
 		PreparedStatement ps = null;
-		String queryString = "INSERT INTO " + auditLogTableName + "(USER, ACTION, START_NODE, REL_NAME, END_NODE, PROP_NAME, PROP_VALUE, TIME) VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+		String queryString = "INSERT INTO " + auditLogTableName + "(\"USER\", ACTION, START_NODE, REL_NAME, END_NODE, PROP_NAME, PROP_VALUE, TIME) VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
 		try {
 			ps = rdbmsEng.getPreparedStatement(queryString);
 			int parameterIndex = 1;

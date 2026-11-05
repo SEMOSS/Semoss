@@ -27,39 +27,53 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import prerna.collaboration.BrainAgentEdits;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import prerna.collaboration.WorkTaskUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class BrainCompleteGoalReactor extends AbstractCollaborationReactor {
+// WorkListMyWork(status=["open"], topicId=["..."], includeSuggested=[false]);
+public class WorkListMyWorkReactor extends AbstractWorkTaskReactor {
+	private static final String STATUS = "status";
+	private static final String TOPIC_ID = "topicId";
+	private static final String INCLUDE_SUGGESTED = "includeSuggested";
 
-	public BrainCompleteGoalReactor() {
-		this.keysToGet = new String[] { "topicId", "goalId", "resolution" };
-		this.keyRequired = new int[] { 1, 1, 1 };
+	public WorkListMyWorkReactor() {
+		this.keysToGet = new String[] { STATUS, TOPIC_ID, INCLUDE_SUGGESTED };
+		this.keyRequired = new int[] { 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		return mapResult(BrainAgentEdits.completeGoal(getUser(), this.insight.getRoomId(), getString("topicId"),
-				getString("goalId"), getString("resolution")));
+		Map<String, Object> filter = new LinkedHashMap<>();
+		filter.put("status", getString(STATUS));
+		filter.put("topicId", getString(TOPIC_ID));
+		filter.put("includeSuggested", Boolean.TRUE.equals(getBoolean(INCLUDE_SUGGESTED)));
+		return mapResult(WorkTaskUtils.listMyWork(getUser(), filter));
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		return INCLUDE_SUGGESTED.equals(key) ? MCP_KEY_TYPE.BOOLEAN : super.getKeyTypeForMCP(key);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Marks an existing goal in this chat's current topics done when the conversation or sources clearly "
-				+ "establish that it is achieved. Runs automatically; do not wait for the owner to ask. "
-				+ "Keeps the goal text and saves the outcome. Use exact ids from Chat topics or ListTopics. "
-				+ "A promise, plan, partial answer, or uncertain match is not completion. "
-				+ "Tell the owner which goal was marked done only after this succeeds.";
+		return "The owner's to-do list: their open work items (outcomes they are driving), each with its open steps, plus loose steps that belong to no work item. "
+				+ "Use it when the owner asks what is on their plate, for their to-do list, or what they owe someone. "
+				+ "It does not list mail waiting on a reply; use SearchMail for that";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		return switch (key) {
-			case "topicId" -> "Topic id from the current Chat topics or ListTopics; must apply to this chat";
-			case "goalId" -> "The existing goal's noteId from this topic's open goals";
-			case "resolution" -> "One short, plain-language accomplishment with the established outcome and useful facts. "
-					+ "Omit source labels, citations, and internal ids, including shortened thread/message ids";
-			default -> super.getDescriptionForKey(key);
-		};
+		if (STATUS.equals(key)) {
+			return "open (default), done, or all";
+		} else if (TOPIC_ID.equals(key)) {
+			return "Only work items under this topic";
+		} else if (INCLUDE_SUGGESTED.equals(key)) {
+			return "Also list the steps Brain pulled from mail that no work item holds yet; they are often noise";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

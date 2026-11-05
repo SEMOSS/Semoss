@@ -48,6 +48,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityUserUtils;
+import prerna.io.connector.ms.MicrosoftGraphCredentialStore;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionClient;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry.Subscription;
@@ -71,6 +72,7 @@ public final class BrainMailWebhook {
 	private static final List<String> EARLIER = List.of("me/mailFolders('inbox')/messages",
 			"me/mailFolders('sentitems')/messages");
 	private static final String CREATED = "created";
+	private static final String EMAIL = "email";
 	// Monolith's mail receiver (MicrosoftGraphSubscriptionService.MESSAGES_PATH)
 	private static final String NOTIFICATION_PATH = "/msgraph/notifications/messages";
 	// renewed with less than this left; a mail subscription lasts about a week
@@ -103,8 +105,10 @@ public final class BrainMailWebhook {
 			return;
 		}
 		try {
-			List<String[]> owners = owners(subscription.getUserId());
-			if (owners.isEmpty()) {
+			// not even read unless background access is saved and the owner reads mail
+			List<String[]> owners = owners(subscription.getUserId()).stream()
+					.filter(owner -> mailOn(owner[0], owner[1])).toList();
+			if (owners.isEmpty() || MicrosoftGraphCredentialStore.get(subscription.getUserId()) == null) {
 				return;
 			}
 			AccessToken microsoft = microsoftToken(subscription);
@@ -131,6 +135,17 @@ public final class BrainMailWebhook {
 		}
 		return CollaborationDbUtils.query("SELECT OWNER_ID, OWNER_TYPE FROM COLLAB_OWNER WHERE MS_USER_ID = ?",
 				rs -> new String[] { rs.getString("OWNER_ID"), rs.getString("OWNER_TYPE") }, msUserId);
+	}
+
+	// a subscription reads the mailbox with nobody watching, so only with background access saved for it
+	// (Settings > Connections) and an owner of it reading mail
+	static boolean wanted(String msUserId) {
+		return MicrosoftGraphCredentialStore.get(msUserId) != null
+				&& owners(msUserId).stream().anyMatch(owner -> mailOn(owner[0], owner[1]));
+	}
+
+	private static boolean mailOn(String ownerId, String ownerType) {
+		return Boolean.TRUE.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(EMAIL));
 	}
 
 	/**
@@ -179,6 +194,11 @@ public final class BrainMailWebhook {
 			return;
 		}
 		SUBSCRIBING.execute(() -> {
+			// a subscription reads mail while the app is closed, which needs background access; stop any left over
+			if (!wanted(msUserId)) {
+				unsubscribe(msUserId);
+				return;
+			}
 			try {
 				subscribe(user, msUserId);
 				FAILED.remove(msUserId);
@@ -220,6 +240,29 @@ public final class BrainMailWebhook {
 		}
 	}
 
+	/**
+	 * Stops the mailbox's Collaboration subscriptions at Graph and forgets them, with the sign-in each one keeps, so
+	 * no new mail arrives. Each is stopped with its own token; one Graph cannot be reached for is still forgotten,
+	 * and expires there unrenewed.
+	 */
+	public static void unsubscribe(String msUserId) {
+		if (msUserId == null) {
+			return;
+		}
+		for (Subscription subscription : MicrosoftGraphSubscriptionRegistry.forUser(msUserId)) {
+			if (!isMailResource(subscription.getResource())) {
+				continue;
+			}
+			String token = null;
+			try {
+				token = subscription.accessToken();
+			} catch (Exception e) {
+				classLogger.debug("No token to stop the Microsoft Graph subscription {} with", subscription.getId(), e);
+			}
+			stop(token, subscription);
+		}
+	}
+
 	// one made for an old url, or a duplicate: stopped at Graph when it still exists there, then forgotten
 	private static void stop(String token, Subscription subscription) {
 		try {
@@ -246,6 +289,11 @@ public final class BrainMailWebhook {
 			}
 			for (String msUserId : CollaborationDbUtils.query(
 					"SELECT DISTINCT MS_USER_ID FROM COLLAB_OWNER WHERE MS_USER_ID IS NOT NULL", rs -> rs.getString(1))) {
+				// background access forgotten or mail off: stopped, not renewed
+				if (!wanted(msUserId)) {
+					unsubscribe(msUserId);
+					continue;
+				}
 				for (Subscription subscription : MicrosoftGraphSubscriptionRegistry.forUser(msUserId)) {
 					if (!isMailResource(subscription.getResource()) || subscription.getExpiration() == null
 							|| subscription.getExpiration().isAfter(Instant.now().plus(RENEW_WITHIN))) {

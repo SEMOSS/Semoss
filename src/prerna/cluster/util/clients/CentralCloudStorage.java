@@ -1416,6 +1416,10 @@ public final class CentralCloudStorage implements ICloudClient {
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
 		}
+		if (!project.getProjectType().holdsInsights()) {
+			classLogger.info("Project {} does not hold insights, so there is no insights database to pull", projectId);
+			return;
+		}
 
 		String projectName = project.getProjectName();
 		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
@@ -1458,6 +1462,10 @@ public final class CentralCloudStorage implements ICloudClient {
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
 		}
+		if (!project.getProjectType().holdsInsights()) {
+			classLogger.info("Project {} does not hold insights, so there is no insights database to push", projectId);
+			return;
+		}
 
 		String projectName = project.getProjectName();
 		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
@@ -1492,6 +1500,28 @@ public final class CentralCloudStorage implements ICloudClient {
 			// always unlock regardless of errors
 			lock.unlock();
 			classLogger.info("Project {} is unlocked", aliasAndProjectId);
+		}
+	}
+
+	@Override
+	public void deleteInsightsDB(String projectId) throws IOException, InterruptedException {
+		String storageProjectFolder = PROJECT_CONTAINER_PREFIX + projectId;
+
+		// synchronize on the project id
+		classLogger.info("Applying lock for {} to delete insights db", projectId);
+		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
+		lock.lock();
+		classLogger.info("Project {} is locked", projectId);
+		try {
+			for (String fileName : ProjectHelper.INSIGHTS_DATABASE_FILES) {
+				String storageProjectInsightFilePath = storageProjectFolder + "/" + fileName;
+				classLogger.info("Deleting remote={}", storageProjectInsightFilePath);
+				storageDelete(storageProjectInsightFilePath);
+			}
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Project {} is unlocked", projectId);
 		}
 	}
 
@@ -1905,13 +1935,7 @@ public final class CentralCloudStorage implements ICloudClient {
 	 * @return
 	 */
 	protected String getInsightDB(IProject project, String specificProjectFolder) {
-		RdbmsTypeEnum insightDbType = project.getInsightDatabase().getDbType();
-		String insightDbName = null;
-		if (insightDbType == RdbmsTypeEnum.H2_DB) {
-			insightDbName = "insights_database.mv.db";
-		} else {
-			insightDbName = "insights_database.sqlite";
-		}
+		String insightDbName = getInsightDbFileName(project.getInsightDatabase().getDbType());
 		File dir = new File(specificProjectFolder);
 		for (File file : dir.listFiles()) {
 			if (file.getName().equalsIgnoreCase(insightDbName)) {
@@ -1919,6 +1943,17 @@ public final class CentralCloudStorage implements ICloudClient {
 			}
 		}
 		throw new IllegalArgumentException("There is no insight database for project: " + project.getProjectName());
+	}
+
+	/**
+	 * Name the file a project's insights database of the given type is kept in, in
+	 * the project folder and in cloud storage.
+	 *
+	 * @param insightDbType the insights database type
+	 * @return insights_database.mv.db for H2, insights_database.sqlite otherwise
+	 */
+	private static String getInsightDbFileName(RdbmsTypeEnum insightDbType) {
+		return insightDbType == RdbmsTypeEnum.H2_DB ? "insights_database.mv.db" : "insights_database.sqlite";
 	}
 
 	@Override

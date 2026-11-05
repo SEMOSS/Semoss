@@ -31,13 +31,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.playground.PlaygroundUtils;
 
 class CollaborationUtilsUnitTests {
@@ -88,6 +98,36 @@ class CollaborationUtilsUnitTests {
 				CollaborationUtils.ROOM_OPTION_SOURCE, Map.of("threadId", "th-1")));
 		assertFalse(CollaborationUtils.isAssistantRoom(delegation));
 		assertNull(CollaborationUtils.threadIdOf(delegation));
+	}
+
+	@Test
+	void aRoutineRoomStaysUnattendedForItsOwnRunAndIsTheOwnersChatOnceTheyFollowUp() {
+		Room routine = room(null, Map.of(CollaborationUtils.ROOM_OPTION_ROUTINE, true));
+		routine.setId("routine-room");
+		routine.setUserId("owner-one");
+		try (MockedStatic<ModelInferenceLogsUtils> logs = mockStatic(ModelInferenceLogsUtils.class)) {
+			// the routine's first turn, then the same run resumed
+			CollaborationUtils.handOverRoutineRoom(routine, "routine-run");
+			InputMessage command = InputMessage.builder(routine).withText("Run the routine").build();
+			command.setAgentRun(new AgentRunMessageContext("routine-run", "input"));
+			routine.setMessages(List.of(command));
+			CollaborationUtils.handOverRoutineRoom(routine, "routine-run");
+			assertEquals(CollaborationRunMode.ROUTINE, CollaborationRunMode.of(routine));
+			assertFalse(CollaborationUtils.isAssistantRoom(routine));
+			logs.verify(() -> ModelInferenceLogsUtils.setRoomOptions(anyString(), anyString(), anyMap()), never());
+
+			CollaborationUtils.handOverRoutineRoom(routine, "follow-up-run");
+
+			assertEquals(CollaborationRunMode.CHAT, CollaborationRunMode.of(routine));
+			assertTrue(CollaborationUtils.isAssistantRoom(routine));
+			assertTrue(CollaborationUtils.isCollaborationRoom(routine));
+			logs.verify(() -> ModelInferenceLogsUtils.setRoomOptions(eq("routine-room"), eq("owner-one"),
+					eq(Map.of(CollaborationUtils.ROOM_OPTION_ROUTINE, true,
+							CollaborationUtils.ROOM_OPTION_ROUTINE_HANDED_OVER, true))));
+		}
+		// a client options write keeps it, so only the server hands a room over
+		assertTrue(CollaborationUtils.SERVER_OWNED_ROOM_OPTIONS
+				.contains(CollaborationUtils.ROOM_OPTION_ROUTINE_HANDED_OVER));
 	}
 
 	@Test

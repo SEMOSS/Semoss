@@ -30,13 +30,9 @@ package prerna.reactor.insights;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EmailUtility;
 import prerna.util.Utility;
@@ -54,19 +50,7 @@ public class RequestInsightReactor extends AbstractReactor {
 		String insightId = this.keyValue.get(this.keysToGet[1]);
 		String permission = this.keyValue.get(this.keysToGet[2]);
 		String requestComment = this.keyValue.get(this.keysToGet[3]);
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to request a insight",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String userId = token.getId();

@@ -42,6 +42,7 @@ import org.javatuples.Pair;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.io.connector.mail.MailRecipientRules;
 import prerna.util.RuntimeTimeContext;
 import prerna.util.Utility;
 
@@ -95,7 +96,8 @@ public final class BrainProfileUtils {
 		Map<String, Object> profile = CollaborationDbUtils
 				.queryOne(
 						"SELECT DISPLAY_NAME, EMAIL, ORG, ROLE, ROLE_STATE, ROLE_NOTE, TIMEZONE, WORKING_HOURS_JSON, "
-								+ "STYLE_SUMMARY, STYLE_STATE, STYLE_EXAMPLES_JSON FROM BRAIN_PROFILE "
+								+ "STYLE_SUMMARY, STYLE_STATE, STYLE_EXAMPLES_JSON, STYLE_VARIANTS_JSON, STYLE_PENDING_JSON, "
+								+ "STYLE_LEARNED_AT FROM BRAIN_PROFILE "
 								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 						BrainProfileUtils::mapProfile, ownerId, ownerType);
 		if (profile != null) {
@@ -104,7 +106,7 @@ public final class BrainProfileUtils {
 		return profile;
 	}
 
-	// who the assistant writes as; role and style only once the owner set or confirmed them
+	// Owner identity stays in the general prompt; writing style is retrieved only when drafting.
 	@SuppressWarnings("unchecked")
 	public static String promptBlock(User user) {
 		Map<String, Object> profile;
@@ -117,7 +119,8 @@ public final class BrainProfileUtils {
 		if (profile == null) {
 			return null;
 		}
-		StringBuilder out = new StringBuilder("## Owner\nThe owner you work for. Write and sign as them.");
+		StringBuilder out = new StringBuilder(
+				"## Owner\nThe owner you work for. Write and sign as them when drafting on their behalf.");
 		appendField(out, "Name", profile.get("name"));
 		appendField(out, "Email", profile.get("email"));
 		appendField(out, "Organization", profile.get("org"));
@@ -126,11 +129,48 @@ public final class BrainProfileUtils {
 		if (role != null && YOU.equals(role.get("source"))) {
 			appendField(out, "Role", role.get("value"));
 		}
-		Map<String, Object> style = (Map<String, Object>) profile.get("style");
-		if (style != null && Boolean.TRUE.equals(style.get("confirmed"))) {
-			appendField(out, "Writing style", style.get("summary"));
-		}
 		return out.toString();
+	}
+
+	/** Current, confirmed writing guidance; unknown recipients use only the general style. */
+	public static Map<String, Object> getWritingStyle(User user, List<String> recipients) {
+		List<String> addresses = MailRecipientRules.validate(recipients);
+		Map<String, Object> profile = getProfile(user);
+		Map<String, Object> out = new LinkedHashMap<>();
+		out.put("confirmed", false);
+		out.put("audience", "unknown");
+		out.put("summary", "");
+		out.put("examples", List.of());
+		if (profile == null || !(profile.get("style") instanceof Map<?, ?> style)
+				|| !Boolean.TRUE.equals(style.get("confirmed"))) {
+			return out;
+		}
+		out.put("confirmed", true);
+		String summary = style.get("summary") instanceof String text ? text.strip() : "";
+		out.put("summary", summary.substring(0, Math.min(summary.length(), MAX_SUMMARY_CHARS)));
+		out.put("examples", cleanExamples(style.get("examples")));
+		if (addresses.isEmpty()) {
+			return out;
+		}
+		try {
+			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+			String email = CollaborationDbUtils.asString(profile.get("email"));
+			BrainOrgDomains.Org org = BrainOrgDomains.load(owner.getValue0(), owner.getValue1(),
+					email == null || !email.contains("@") ? null : email.substring(email.lastIndexOf('@') + 1));
+			if (!org.domains().isEmpty()) {
+				String audience = addresses.stream()
+						.allMatch(address -> org.isMine(address.substring(address.lastIndexOf('@') + 1)))
+						? "internal" : "external";
+				out.put("audience", audience);
+				Object variant = cleanVariants(style.get("variants")).get(audience);
+				if (variant != null) {
+					out.put("variant", variant);
+				}
+			}
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not resolve the writing style audience; using the general style", e);
+		}
+		return out;
 	}
 
 	private static void appendField(StringBuilder out, String label, Object value) {
@@ -168,14 +208,26 @@ public final class BrainProfileUtils {
 			if (style.containsKey("summary")) {
 				CollaborationDbUtils.addSet(sets, params, "STYLE_SUMMARY",
 						CollaborationDbUtils.asString(style.get("summary")));
-				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE", YOU);
+				// an accepted proposal stays "learned and confirmed"; what the owner typed is "you"; a reset
+				// style says confirmed false and goes back to unconfirmed whatever the summary is
+				boolean accepted = Boolean.TRUE.equals(style.get("confirmed")) && LEARNED.equals(style.get("source"));
+				String state = Boolean.FALSE.equals(style.get("confirmed")) ? LEARNED : accepted ? CONFIRMED : YOU;
+				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE", state);
 			} else if (style.containsKey("confirmed")) {
 				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE",
 						Boolean.TRUE.equals(style.get("confirmed")) ? CONFIRMED : LEARNED);
 			}
 			if (style.containsKey("examples")) {
 				CollaborationDbUtils.addSet(sets, params, "STYLE_EXAMPLES_JSON",
-						CollaborationDbUtils.toJson(style.get("examples")));
+						CollaborationDbUtils.toJson(cleanExamples(style.get("examples"))));
+			}
+			if (style.containsKey("variants")) {
+				CollaborationDbUtils.addSet(sets, params, "STYLE_VARIANTS_JSON",
+						CollaborationDbUtils.toJson(cleanVariants(style.get("variants"))));
+			}
+			// only the proposal's review clears it; a proposal is written by the style learning, never by a client
+			if (style.containsKey("pending") && isEmpty(style.get("pending"))) {
+				CollaborationDbUtils.addSet(sets, params, "STYLE_PENDING_JSON", null);
 			}
 		}
 		List<String> vips = changes.get("vips") instanceof List
@@ -239,6 +291,16 @@ public final class BrainProfileUtils {
 		style.put("confirmed", YOU.equals(styleState) || CONFIRMED.equals(styleState));
 		style.put("examples",
 				CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "STYLE_EXAMPLES_JSON")));
+		style.put("variants", cleanVariants(
+				CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "STYLE_VARIANTS_JSON"))));
+		String pending = CollaborationDbUtils.getString(rs, "STYLE_PENDING_JSON");
+		if (pending != null && !pending.isBlank()) {
+			style.put("pending", CollaborationDbUtils.parseMap(pending));
+		}
+		java.sql.Timestamp learnedAt = rs.getTimestamp("STYLE_LEARNED_AT");
+		if (learnedAt != null) {
+			style.put("learnedAt", learnedAt.toInstant().toString());
+		}
 
 		Map<String, Object> profile = new LinkedHashMap<>();
 		profile.put("id", "me");
@@ -250,6 +312,54 @@ public final class BrainProfileUtils {
 		profile.put("workingHours", CollaborationDbUtils.getString(rs, "WORKING_HOURS_JSON"));
 		profile.put("style", style);
 		return profile;
+	}
+
+	/** The audiences a style variant can be written for. */
+	static final List<String> AUDIENCES = List.of("internal", "external");
+	static final int MAX_EXAMPLES = 5;
+	static final int MAX_EXAMPLE_CHARS = 600;
+	static final int MAX_SUMMARY_CHARS = 1500;
+
+	private static boolean isEmpty(Object value) {
+		return value == null || (value instanceof String text && text.isBlank())
+				|| (value instanceof Map<?, ?> map && map.isEmpty());
+	}
+
+	// only short, non-blank strings, so a style can never smuggle in a large block
+	static List<String> cleanExamples(Object value) {
+		List<String> out = new ArrayList<>();
+		if (value instanceof List<?> list) {
+			for (Object item : list) {
+				if (item instanceof String text && !text.isBlank() && out.size() < MAX_EXAMPLES) {
+					String trimmed = text.strip();
+					out.add(trimmed.length() > MAX_EXAMPLE_CHARS ? trimmed.substring(0, MAX_EXAMPLE_CHARS) : trimmed);
+				}
+			}
+		}
+		return out;
+	}
+
+	// {internal, external}, each {summary, examples}; a variant with no summary is dropped
+	static Map<String, Object> cleanVariants(Object value) {
+		Map<String, Object> out = new LinkedHashMap<>();
+		if (!(value instanceof Map<?, ?> map)) {
+			return out;
+		}
+		for (String audience : AUDIENCES) {
+			if (!(map.get(audience) instanceof Map<?, ?> variant)) {
+				continue;
+			}
+			String summary = variant.get("summary") instanceof String text ? text.strip() : "";
+			if (summary.isEmpty()) {
+				continue;
+			}
+			Map<String, Object> entry = new LinkedHashMap<>();
+			entry.put("summary",
+					summary.length() > MAX_SUMMARY_CHARS ? summary.substring(0, MAX_SUMMARY_CHARS) : summary);
+			entry.put("examples", cleanExamples(variant.get("examples")));
+			out.put(audience, entry);
+		}
+		return out;
 	}
 
 	private static List<String> getVipIds(String ownerId, String ownerType) {
@@ -274,6 +384,7 @@ public final class BrainProfileUtils {
 		ensureSettings(ownerId, ownerType);
 		Map<String, Object> settings = CollaborationDbUtils.queryOne(
 				"SELECT FILE_AT, ASK_AT, VERSION, MEMORY_USE, MEMORY_LEARN, DRAFT_FOLDER_ID, DRAFT_FOLDER_NAME, "
+						+ "DRAFT_FONT, DRAFT_FONT_SIZE, DRAFT_SIGNATURE_HTML, DRAFT_SIGNATURE_ON, "
 						+ "ASSISTANT_SKILLS_JSON, SYNC_EVERY_MINUTES "
 						+ "FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> {
@@ -283,6 +394,14 @@ public final class BrainProfileUtils {
 					row.put("draftFolderId", folderId == null ? "" : folderId);
 					String folderName = CollaborationDbUtils.getString(rs, "DRAFT_FOLDER_NAME");
 					row.put("draftFolderName", folderName == null ? "" : folderName);
+					String font = CollaborationDbUtils.getString(rs, "DRAFT_FONT");
+					row.put("draftFont", font == null ? BrainDraftFormat.DEFAULT_FONT : font);
+					Integer fontSize = CollaborationDbUtils.getInteger(rs, "DRAFT_FONT_SIZE");
+					row.put("draftFontSize", fontSize == null ? BrainDraftFormat.DEFAULT_SIZE : fontSize);
+					String signature = CollaborationDbUtils.getString(rs, "DRAFT_SIGNATURE_HTML");
+					row.put("draftSignatureHtml", signature == null ? "" : signature);
+					row.put("draftSignatureOn",
+							!Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "DRAFT_SIGNATURE_ON")));
 					// read-only: one platform classifier (RDF_Map)
 					row.put("classifierEngineId", BrainThreadClassifier.platformEngine());
 					row.put("fileAt", CollaborationDbUtils.getInteger(rs, "FILE_AT"));
@@ -360,6 +479,29 @@ public final class BrainProfileUtils {
 			CollaborationDbUtils.addSet(sets, params, "DRAFT_FOLDER_ID", folderId);
 			CollaborationDbUtils.addSet(sets, params, "DRAFT_FOLDER_NAME", folderId == null ? null : folderName);
 		}
+		if (changes.containsKey("draftFont")) {
+			String font = trimToNull(changes.get("draftFont"));
+			if (font != null && !BrainDraftFormat.validFont(font)) {
+				throw new IllegalArgumentException("Choose a font name of letters, digits and spaces");
+			}
+			CollaborationDbUtils.addSet(sets, params, "DRAFT_FONT", font);
+		}
+		if (changes.containsKey("draftFontSize")) {
+			int size = CollaborationDbUtils.toInt(changes.get("draftFontSize"), "draftFontSize");
+			if (size < BrainDraftFormat.MIN_SIZE || size > BrainDraftFormat.MAX_SIZE) {
+				throw new IllegalArgumentException("draftFontSize must be " + BrainDraftFormat.MIN_SIZE + " to "
+						+ BrainDraftFormat.MAX_SIZE);
+			}
+			CollaborationDbUtils.addSet(sets, params, "DRAFT_FONT_SIZE", size);
+		}
+		if (changes.containsKey("draftSignatureOn")) {
+			CollaborationDbUtils.addSet(sets, params, "DRAFT_SIGNATURE_ON", isTrue(changes.get("draftSignatureOn")));
+		}
+		if (changes.containsKey("draftSignatureHtml")) {
+			// cleaned like a learned one; blank removes it
+			CollaborationDbUtils.addSet(sets, params, "DRAFT_SIGNATURE_HTML",
+					BrainDraftFormat.clean(trimToNull(changes.get("draftSignatureHtml"))));
+		}
 		if (changes.containsKey("syncEveryMinutes")) {
 			int minutes = CollaborationDbUtils.toInt(changes.get("syncEveryMinutes"), "syncEveryMinutes");
 			if (!SYNC_EVERY_MINUTES.contains(minutes)) {
@@ -384,9 +526,22 @@ public final class BrainProfileUtils {
 		if (updated == 0) {
 			throw new IllegalArgumentException("Settings were changed elsewhere; reload and try again");
 		}
+		Map<String, Boolean> wasEnabled = CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType);
+		boolean turnedOn = false;
 		for (Map.Entry<String, Object> source : sources.entrySet()) {
-			CollaborationSourceUtils.setSourceEnabled(ownerId, ownerType, source.getKey(),
-					Boolean.TRUE.equals(source.getValue()));
+			boolean on = Boolean.TRUE.equals(source.getValue());
+			CollaborationSourceUtils.setSourceEnabled(ownerId, ownerType, source.getKey(), on);
+			// calendar is read live; only mail and Teams are pulled in by the sync
+			turnedOn |= on && !Boolean.TRUE.equals(wasEnabled.get(source.getKey()))
+					&& !"calendar".equals(source.getKey());
+		}
+		if (turnedOn && BrainSync.lastRun(ownerId, ownerType) != null) {
+			// pull in what was missed (or Teams' first window) now instead of at the next check
+			try {
+				BrainSync.start(user);
+			} catch (RuntimeException e) {
+				classLogger.warn("Sync after turning a source on did not start: {}", e.getMessage());
+			}
 		}
 		return getSettings(ownerId, ownerType);
 	}

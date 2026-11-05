@@ -52,6 +52,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.JobBuilder;
@@ -72,6 +74,10 @@ import prerna.ds.py.PyUtils;
 import prerna.io.connector.ms.MicrosoftGraphCredentialStore;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry.Subscription;
+import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
+import prerna.io.connector.ms.teams.MicrosoftTeamsMessageHelper;
+import prerna.io.connector.ms.teams.MicrosoftTeamsSendChatMessageReactor;
 import prerna.om.Insight;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.definition.AutomationDefinitionService;
@@ -93,12 +99,15 @@ import prerna.util.Utility;
  */
 final class WorkRoutine {
 
+	private static final Logger classLogger = LogManager.getLogger(WorkRoutine.class);
+
 	// why a run failed, so Routines can name the fix
 	static final String CAUSE_CONNECTION = "connection";
 	static final String CAUSE_MODEL = "model";
 	static final String CAUSE_AGENT = "agent";
 	static final String CAUSE_DELIVERY = "delivery";
 	static final String CAUSE_INTERRUPTED = "interrupted";
+	static final String CAUSE_CANCELLED = "cancelled";
 
 	// how long Run now waits for the job to mark its run: 20 x 250 ms
 	private static final int RUN_NOW_WAIT_STEPS = 20;
@@ -148,6 +157,11 @@ final class WorkRoutine {
 		String failed() {
 			return "The " + label + " failed. Check your Microsoft connection and Collaboration model, then "
 					+ (scheduled() ? "retry on the next scheduled day." : "it runs again on the next request.");
+		}
+
+		String timedOut() {
+			return "The " + label + " ran out of time before it finished, so nothing was delivered. Ask it for less, "
+					+ "such as fewer emails to read, then run it again.";
 		}
 
 		String pythonDisabled() {
@@ -291,6 +305,10 @@ final class WorkRoutine {
 			}
 		}
 		synchronized (CollaborationDbUtils.ownerLock(kind.id(), owner.getValue0(), owner.getValue1())) {
+			// Turning a routine on consents to background access; saving one already on keeps what Connections set,
+			// so an edit never turns access back on after the owner turned it off.
+			Map<String, Object> before = stored(slot);
+			boolean turningOn = enabled && (before == null || !Boolean.TRUE.equals(before.get("enabled")));
 			try {
 				// The row lock serializes schedule changes across servers; the executor claims this same row.
 				CollaborationDbUtils.inTransaction(conn -> {
@@ -306,7 +324,9 @@ final class WorkRoutine {
 						}
 					}
 					if (enabled) {
-						MicrosoftGraphCredentialStore.save(mailboxToken);
+						if (turningOn) {
+							MicrosoftGraphCredentialStore.save(mailboxToken);
+						}
 						schedule(slot, config);
 						CollaborationDbUtils.update(conn, "UPDATE " + kind.table() + " SET ENABLED = ?" + slot.where(), slot.args(of(true)));
 					} else {
@@ -366,6 +386,46 @@ final class WorkRoutine {
 	}
 
 	/**
+	 * Stops the owner's running run: cancels its automation, which cancels its agent, and frees the row at once so
+	 * Run now can start another while the old run winds down; its own finish then matches no running row.
+	 */
+	static void stop(Slot slot) {
+		Kind kind = slot.kind();
+		Map<String, Object> row = stored(slot);
+		if (row == null) {
+			throw new IllegalArgumentException("Routine not found");
+		}
+		if (!"running".equals(row.get("status"))) {
+			throw new IllegalArgumentException("The " + kind.label() + " is not running");
+		}
+		String started = (String) row.get("startedAt");
+		String runId = (String) row.get("runId");
+		String roomId = null;
+		if (runId != null) {
+			// the run id is attached just before the automation row exists; wait briefly so the cancel reaches it
+			Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
+			for (int i = 0; run == null && i < RUN_NOW_WAIT_STEPS; i++) {
+				try {
+					Thread.sleep(RUN_NOW_WAIT_STEP_MS);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+				run = AutomationRunStore.getRunDetail(runId);
+			}
+			if (run != null) {
+				if (!TERMINAL.contains(run.get(AutomationConstants.STATUS))) {
+					RunAutomationDefinitionReactor.cancelRun(runId);
+				}
+				// keep the room the run worked in, so Open run still shows how far it got
+				roomId = (String) lastRun(row).get("roomId");
+			}
+		}
+		finish(slot, "failed", null, "You stopped this run. Run it again when you are ready.", roomId, started,
+				CAUSE_CANCELLED);
+	}
+
+	/**
 	 * Fires an unscheduled routine's durable job, now or after a delay, with the Pixel this run executes in place of
 	 * the job's recipe, as the owner on the scheduler like a Run now. Nothing happens while the routine is off.
 	 */
@@ -399,17 +459,23 @@ final class WorkRoutine {
 			if (stored(slot) == null) {
 				throw new IllegalArgumentException("Routine not found");
 			}
-			if (schedulerAvailable()) {
-				try {
-					Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
-					JobKey key = jobKey(slot);
-					scheduler.deleteJob(key);
-					SchedulerDatabaseUtility.removeFromJobRecipesTable(key.getName(), GROUP);
-				} catch (SchedulerException e) {
-					throw new IllegalStateException("Could not remove the " + kind.label() + " schedule", e);
-				}
-			}
+			unschedule(slot);
 			CollaborationDbUtils.update("DELETE FROM " + kind.table() + slot.where(), slot.args(of()));
+		}
+	}
+
+	/** Removes a routine's scheduler job and its recipe row; the routine's own row is the caller's to delete. */
+	static void unschedule(Slot slot) {
+		if (!schedulerAvailable()) {
+			return;
+		}
+		try {
+			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+			JobKey key = jobKey(slot);
+			scheduler.deleteJob(key);
+			SchedulerDatabaseUtility.removeFromJobRecipesTable(key.getName(), GROUP);
+		} catch (SchedulerException e) {
+			throw new IllegalStateException("Could not remove the " + slot.kind().label() + " schedule", e);
 		}
 	}
 
@@ -509,7 +575,13 @@ final class WorkRoutine {
 			}
 			RunAutomationDefinitionReactor.runDefinition(insight, runId, slot.automationId(), files, inputs,
 					now ? AutomationConstants.TRIGGER_MANUAL : AutomationConstants.TRIGGER_SCHEDULED, null);
-			return Map.of("status", finishFromRun(slot, runId, started));
+			String status = finishFromRun(slot, runId, started);
+			// a run cut off by its time limit never reaches the deliver step, so the owner would hear nothing
+			// shortcut: only a timeout sends a note; other failures show only in Routines, extend if owners miss them
+			if ("failed".equals(status) && timedOut(resultNode(kind, runId))) {
+				tellTimedOut(kind, user, recipient, config);
+			}
+			return Map.of("status", status);
 		} catch (Exception e) {
 			boolean interrupted = Thread.interrupted() || e instanceof InterruptedException;
 			try {
@@ -906,18 +978,14 @@ final class WorkRoutine {
 	private static String finishFromRun(Slot slot, String runId, String started) {
 		Kind kind = slot.kind();
 		Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
-		Map<String, Object> result = null;
-		for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(runId)) {
-			if (kind.outputNode().equals(node.get(AutomationConstants.NODE_ID)) && node.get(AutomationConstants.PARENT_NODE_ID) == null) {
-				result = node;
-			}
-		}
+		Map<String, Object> result = resultNode(kind, runId);
 		Object text = result == null || result.get(AutomationConstants.OUTPUT_VALUE) == null ? null
 				: AutomationRuntimeUtils.GSON.fromJson((String) result.get(AutomationConstants.OUTPUT_VALUE), Object.class);
 		boolean succeeded = AutomationConstants.NODE_STATUS_SUCCESS.equals(result == null ? null : result.get(AutomationConstants.STATUS));
 		if (!succeeded || !(text instanceof String summary) || summary.isBlank()) {
 			// an agent step that finished with no text is the model, not the connection
-			String error = succeeded && kind.agent() != null
+			String error = timedOut(result) ? kind.timedOut()
+					: succeeded && kind.agent() != null
 					? "The assistant finished without an answer. Run it again; if it keeps happening, make the task smaller."
 					: kind.failed();
 			finish(slot, "failed", null, error, result == null ? null : (String) result.get(AutomationConstants.ROOM_ID), started,
@@ -928,6 +996,48 @@ final class WorkRoutine {
 		finish(slot, "completed", summary, sent ? null : "The " + kind.noun() + " was saved but could not be delivered.",
 				(String) result.get(AutomationConstants.ROOM_ID), started, sent ? null : CAUSE_DELIVERY);
 		return "completed";
+	}
+
+	/** The run's top-level result node, or null when the run never reached it. */
+	static Map<String, Object> resultNode(Kind kind, String runId) {
+		Map<String, Object> result = null;
+		for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(runId)) {
+			if (kind.outputNode().equals(node.get(AutomationConstants.NODE_ID)) && node.get(AutomationConstants.PARENT_NODE_ID) == null) {
+				result = node;
+			}
+		}
+		return result;
+	}
+
+	/** Whether the node is an agent step cut off by its waitTimeoutMs. */
+	private static boolean timedOut(Map<String, Object> node) {
+		return node != null && node.get(AutomationConstants.ERROR_MESSAGE) instanceof String error
+				&& error.endsWith(AutomationConstants.AGENT_WAIT_TIMEOUT_ERROR);
+	}
+
+	/** A short note the way the routine's answer would have come: email, Teams to the owner, or none. */
+	private static void tellTimedOut(Kind kind, User user, String recipient, Map<String, Object> config) {
+		Object delivery = config.getOrDefault("delivery", "email");
+		if ("none".equals(delivery)) {
+			return;
+		}
+		String what = config.get("name") instanceof String name && !name.isBlank() ? "routine \"" + name + "\""
+				: kind.label();
+		String subject = "Your " + what + " ran out of time";
+		String text = subject + " before it finished, so nothing was delivered this time. Asking it for less, such as "
+				+ "fewer emails to read, helps it finish. Open Routines to see how far it got.";
+		try {
+			String token = MicrosoftLoginUtils.getValidAccessToken(user);
+			if ("teams".equals(delivery)) {
+				MicrosoftTeamsMessageHelper.sendChatMessage(token, MicrosoftTeamsSendChatMessageReactor.SELF_CHAT_ID,
+						text, false, null, null, null, 0);
+			} else {
+				new MicrosoftOutlookMailHelper().sendMail(token, null, MicrosoftOutlookMailHelper.buildMessage(subject,
+						text, false, new String[] { recipient }, null, null, null, null, null), true);
+			}
+		} catch (Exception e) {
+			classLogger.warn("Could not tell the owner their {} ran out of time", kind.label(), e);
+		}
 	}
 
 	private static void finish(Slot slot, String status, String summary, String error, String roomId, String started,

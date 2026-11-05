@@ -44,7 +44,6 @@ import prerna.reactor.automation.definition.AutomationScopeCatalog;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
@@ -72,15 +71,7 @@ public class RollbackAutomationReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to restore an automation version",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException error = new SemossPixelException(noun);
-			error.setContinueThreadOfExecution(false);
-			throw error;
-		}
+		User user = requireUser();
 
 		String projectIdOrAlias = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		String revision = this.keyValue.get(REVISION_KEY);
@@ -89,7 +80,8 @@ public class RollbackAutomationReactor extends AbstractReactor {
 			throw new IllegalArgumentException("revision must be provided.");
 		}
 
-		// Edit-level ACL — restoring writes a new commit, so the user needs edit access
+		// Edit-level ACL — restoring writes a new commit, so the user needs edit
+		// access
 		IProject project = AutomationProjectService.getEditableAutomationProject(user, projectIdOrAlias);
 		String projectId = project.getProjectId();
 		AutomationDefinitionService.DefinitionFiles files = AutomationVersionService.restore(project, revision,

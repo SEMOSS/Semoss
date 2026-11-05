@@ -47,14 +47,9 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 	private static final String INCLUDE_CHILD_ROOMS = "includeChildRooms";
 
 	public SearchRoomMessagesReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.PROJECT.getKey(),
-				ReactorKeysEnum.SEARCH.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(),
-				ReactorKeysEnum.OFFSET.getKey(),
-				INCLUDE_UNNAMED_ROOMS,
-				INCLUDE_CHILD_ROOMS
-		};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.SEARCH.getKey(),
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), INCLUDE_UNNAMED_ROOMS,
+				INCLUDE_CHILD_ROOMS };
 		this.keyRequired = new int[] { 0, 1, 0, 0, 0, 0 };
 	}
 
@@ -62,10 +57,7 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 		String userId = user.getPrimaryLoginToken().getId();
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
