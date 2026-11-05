@@ -239,13 +239,15 @@ final class BrainTopicOnboarding {
 		String me = emails.get(self);
 		Map<String, List<BrainTopicStructure.Message>> byThread = new LinkedHashMap<>();
 		Set<String> sentHistory = new HashSet<>();
+		// threads with a calendar item (invite, hold or reply), a hint for the away-notice check
+		Set<String> calendar = new HashSet<>();
 		int[] read = { 0 };
 		// the owner's own folders by id, with their paths; system folders say nothing about the work
 		BrainMailFolders.Tree tree = BrainMailFolders.load(ownerId, ownerType);
 		Map<String, String> folderPaths = new HashMap<>();
 		Map<String, Set<String>> folderThreads = new HashMap<>();
 		Map<String, Set<String>> folderWrote = new HashMap<>();
-		CollaborationDbUtils.query("SELECT THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT, BULK, FOLDER, CATEGORIES_JSON FROM BRAIN_MESSAGE "
+		CollaborationDbUtils.query("SELECT THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT, BULK, FOLDER, CATEGORIES_JSON, MEETING FROM BRAIN_MESSAGE "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND DECISION = ? AND RECEIVED_AT >= ? AND RECEIVED_AT <= ? "
 				+ "ORDER BY RECEIVED_AT", rs -> {
 					String thread = rs.getString(1);
@@ -271,6 +273,9 @@ final class BrainTopicOnboarding {
 						sentHistory.addAll(to);
 					}
 					read[0]++;
+					if (Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MEETING"))) {
+						calendar.add(thread);
+					}
 					String path = tree.custom(folder);
 					if (path != null) {
 						folderPaths.put(folder, path);
@@ -300,14 +305,21 @@ final class BrainTopicOnboarding {
 				guides.put(id, path);
 			}
 		});
+		BrainTopicStructure.Settings settings = settings(ownerId, ownerType);
+		// conversations that only say someone is away join no topic; the model judges each one
+		Set<String> away = BrainTopicNotices.judge(caller, byThread.entrySet().stream()
+				.map(e -> new BrainTopicNotices.Card(e.getKey(), subjects.getOrDefault(e.getKey(), ""),
+						e.getValue().size(), calendar.contains(e.getKey())))
+				.toList(), settings);
+		notes.put("awayNotices", away.size());
 		List<BrainTopicStructure.MailThread> input = byThread.entrySet().stream()
+				.filter(e -> !away.contains(e.getKey()))
 				.map(e -> new BrainTopicStructure.MailThread(e.getKey(), e.getValue().stream()
 						.map(m -> new BrainTopicStructure.Message(m.subject(), m.at(), m.sender(), m.to(), m.cc(),
 								m.bulk() || BrainFolderRoles.AUTOMATED.equals(roles.get(m.folder())),
 								guides.containsKey(m.folder()) ? m.folder() : null, m.categories()))
 						.toList()))
 				.toList();
-		BrainTopicStructure.Settings settings = settings(ownerId, ownerType);
 		notes.put("wide", settings.wide());
 		notes.put("folders", folderPaths.size());
 		notes.put("guideFolders", guides.size());
