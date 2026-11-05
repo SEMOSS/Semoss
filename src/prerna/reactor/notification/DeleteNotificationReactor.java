@@ -28,7 +28,6 @@
 package prerna.reactor.notification;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -60,10 +59,7 @@ public class DeleteNotificationReactor extends AbstractReactor {
 		if (!Utility.isNotificationDatabaseEnabled()) {
 			throw new IllegalArgumentException("Notifications are not enabled on this instance");
 		}
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		organizeKeys();
 		String notificationId = this.keyValue.get(this.keysToGet[0]);

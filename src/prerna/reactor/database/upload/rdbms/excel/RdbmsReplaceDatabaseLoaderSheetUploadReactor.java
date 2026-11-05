@@ -31,7 +31,6 @@ import java.io.File;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -43,7 +42,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -86,20 +84,7 @@ public class RdbmsReplaceDatabaseLoaderSheetUploadReactor extends RdbmsLoaderShe
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
 		}
 		// check security
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create or update a database",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		// check if input is alias since we are adding ot existing
 		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
@@ -136,7 +121,7 @@ public class RdbmsReplaceDatabaseLoaderSheetUploadReactor extends RdbmsLoaderShe
 			// UploadUtilities.updateMetadata(this.engine.getEngineId());
 			this.logger.info("Complete");
 		} catch (Exception e) {
-			this.logger.error(Constants.STACKTRACE, e);
+			this.logger.error("Failed to replace the data in database {}", databaseId, e);
 			this.error = true;
 			if (e instanceof SemossPixelException) {
 				throw (SemossPixelException) e;

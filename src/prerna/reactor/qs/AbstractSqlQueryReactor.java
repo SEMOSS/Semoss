@@ -130,14 +130,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to run this operation",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
+		User user = requireUser();
 
 		organizeKeys();
 		String sqlQuery = getDecodedQuery();
@@ -427,14 +420,11 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 		if (!(value instanceof ITask)) {
 			throw new IllegalStateException("Read statement did not return a query task");
 		}
-		ITask task = (ITask) value;
-		try {
+		try (ITask task = (ITask) value) {
 			result.put("type", "TABLE");
 			result.put("output", task.collect(false).get("data"));
 			result.put("timeToRun", elapsedMillis(startedAt));
 			return result;
-		} finally {
-			task.close();
 		}
 	}
 

@@ -41,7 +41,6 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -80,8 +79,7 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 		try (RevWalk outerWalk = new RevWalk(outerGit.getRepository())) {
 			targetOuter = outerWalk.parseCommit(targetOuterCommit);
 		}
-		try (TreeWalk assetsEntry = TreeWalk.forPath(outerGit.getRepository(), ASSETS_PATH,
-				targetOuter.getTree())) {
+		try (TreeWalk assetsEntry = TreeWalk.forPath(outerGit.getRepository(), ASSETS_PATH, targetOuter.getTree())) {
 			if (assetsEntry == null || !FileMode.GITLINK.equals(assetsEntry.getFileMode(0))) {
 				return null;
 			}
@@ -94,8 +92,7 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 					"Commit " + commitId + " references a nested assets repository that is not available locally");
 		}
 
-		try (Git assetsGit = Git.open(assetsFolder);
-				RevWalk walk = new RevWalk(assetsGit.getRepository())) {
+		try (Git assetsGit = Git.open(assetsFolder); RevWalk walk = new RevWalk(assetsGit.getRepository())) {
 			ObjectId originalAssetsHead = assetsGit.getRepository().resolve("HEAD");
 			if (originalAssetsHead == null) {
 				throw new IllegalArgumentException("Nested assets repository has no HEAD commit");
@@ -129,11 +126,6 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 		organizeKeys();
 
 		User user = this.insight.getUser();
-
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			classLogger.error("Unauthorized access: you must be logged in to perform this action");
-			throwAnonymousUserError();
-		}
 
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		String commitId = this.keyValue.get(COMMIT_ID_KEY);

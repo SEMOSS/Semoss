@@ -35,9 +35,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
@@ -149,7 +151,10 @@ class BrainSyncDbUnitTests {
 					.getDBSchema()) {
 				List<String> columns = new ArrayList<>();
 				for (Pair<String, String> column : table.getValue1()) {
-					columns.add(column.getValue0() + " " + column.getValue1());
+					// quoted as the server quotes them: H2 2.x reserves words such as VALUE
+					String name = column.getValue0();
+					columns.add((queryUtil.isSelectorKeyword(name) ? queryUtil.getEscapeKeyword(name) : name) + " "
+							+ column.getValue1());
 				}
 				statement.execute("CREATE TABLE " + table.getValue0() + " (" + String.join(", ", columns) + ")");
 			}
@@ -242,6 +247,69 @@ class BrainSyncDbUnitTests {
 		assertEquals(2, count("BRAIN_MESSAGE"));
 		assertEquals(0, pending());
 		assertEquals(1, reviews.size());
+	}
+
+	@Test
+	void aMessageThatCannotBeSavedIsUndoneAloneAndTheRestOfItsBatchIsKept() throws Exception {
+		// a conversation longer than THREAD_KEY holds: its thread insert fails after the gate saved its message row
+		mailbox.add(1, email("G3", "c".repeat(300), "Budget", "dana@test.com", "owner@test.com"));
+		BrainMailImport.Run run = new BrainMailImport.Run(ownerId, ownerType, true);
+		run.ensureSelf("owner@test.com", "Owner", "owner@test.com", List.of());
+		CollaborationDbUtils.batch(conn -> {
+			for (Map<String, Object> header : mailbox) {
+				run.importIsolated(conn, header);
+			}
+		});
+		assertEquals(2, count("BRAIN_MESSAGE"));
+		assertEquals(2, count("BRAIN_THREAD"));
+		assertEquals(2, pending());
+		assertEquals(2, run.imported);
+		assertEquals(1, run.unsaved);
+		// what the run noted for the bad message went with its rows
+		assertEquals(2, run.owed.size());
+		assertEquals(2, run.threads.size());
+		assertFalse(run.holds(mailbox.get(1)));
+		assertTrue(run.holds(mailbox.get(2)));
+	}
+
+	@Test
+	void aMessageThatFailsAfterItsStepsWereNotedLeavesNoStepsBehind() throws Exception {
+		BrainMailImport.Run run = spy(new BrainMailImport.Run(ownerId, ownerType, true));
+		run.ensureSelf("owner@test.com", "Owner", "owner@test.com", List.of());
+		// the owner's own answer gets all the way through, then fails
+		Map<String, Object> answer = mailbox.get(1);
+		doAnswer(call -> {
+			call.callRealMethod();
+			throw new IllegalStateException("failed after its steps were noted");
+		}).when(run).importOne(answer);
+		CollaborationDbUtils.batch(conn -> {
+			for (Map<String, Object> header : mailbox) {
+				run.importIsolated(conn, header);
+			}
+		});
+		assertEquals(1, count("BRAIN_MESSAGE"));
+		assertEquals(1, run.imported);
+		assertEquals(1, run.unsaved);
+		assertEquals(1, run.owed.size());
+		assertEquals(1, run.threads.size());
+		assertEquals(1, run.inbound.size());
+		assertTrue(run.ownerSent.isEmpty());
+		assertFalse(run.holds(answer));
+	}
+
+	@Test
+	void aRunWithMoreUnsavableMessagesThanOneBadOneFailsAndKeepsNothing() throws Exception {
+		for (int i = 0; i < 6; i++) {
+			mailbox.add(email("B" + i, i + "c".repeat(300), "Budget", "dana@test.com", "owner@test.com"));
+		}
+		BrainMailImport.Run run = new BrainMailImport.Run(ownerId, ownerType, true);
+		run.ensureSelf("owner@test.com", "Owner", "owner@test.com", List.of());
+		assertThrows(IllegalStateException.class, () -> CollaborationDbUtils.batch(conn -> {
+			for (Map<String, Object> header : mailbox) {
+				run.importIsolated(conn, header);
+			}
+		}));
+		assertEquals(0, count("BRAIN_MESSAGE"));
 	}
 
 	@Test

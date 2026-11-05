@@ -74,10 +74,7 @@ public class AskRoomReactor extends AbstractReactor {
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		String parentMessageId = this.keyValue.get(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey());
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(

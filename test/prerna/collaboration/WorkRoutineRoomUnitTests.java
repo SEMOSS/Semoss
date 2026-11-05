@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -49,10 +48,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 
+import org.quartz.Scheduler;
+
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.redis.RedisConnectionConfig;
+import prerna.util.Constants;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
@@ -67,6 +69,8 @@ import prerna.reactor.agent.runtime.AgentCodeExecutionContext;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.project.AutomationProjectService;
 import prerna.reactor.automation.run.AutomationRunStore;
+import prerna.reactor.scheduler.SchedulerDatabaseUtility;
+import prerna.reactor.scheduler.SchedulerFactorySingleton;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -101,11 +105,11 @@ class WorkRoutineRoomUnitTests {
 		registry.when(SystemEngineRegistry::getCollaborationDb).thenReturn(engine);
 		try (Statement statement = connection.createStatement()) {
 			for (String table : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE", "WORK_EXPENSE_ROUTINE",
-					"WORK_CUSTOM_ROUTINE")) {
+					"WORK_CUSTOM_ROUTINE", "WORK_EVENT_PLANNING_ROUTINE")) {
 				statement.execute("CREATE TABLE " + table + " (OWNER_ID VARCHAR, OWNER_TYPE VARCHAR, ROUTINE_ID VARCHAR, "
 						+ "SETTINGS_JSON CLOB, ENABLED BOOLEAN, RUN_STATUS VARCHAR, STARTED_AT TIMESTAMP, "
 						+ "FINISHED_AT TIMESTAMP, LAST_SUCCESS_AT TIMESTAMP, ROOM_ID VARCHAR, RUN_ID VARCHAR, "
-						+ "SUMMARY CLOB, ERROR CLOB, ERROR_CAUSE VARCHAR)");
+						+ "SUMMARY CLOB, ERROR CLOB, ERROR_CAUSE VARCHAR, UPDATED_AT TIMESTAMP)");
 			}
 		}
 		user = owner("owner-one");
@@ -263,21 +267,18 @@ class WorkRoutineRoomUnitTests {
 	}
 
 	@Test
-	void routineWithDocumentsGetsACopyInTheChatAndTheOutputNamesThem() {
+	void aRoutineWhoseAgentAnsweredOpensTheRoomItWorkedInWithoutAChat() {
 		completed(user, WorkExpenseRoutine.ID, STARTED, "Suggested decision");
-		utility.when(Utility::getBaseFolder).thenReturn("/base");
-		try (MockedStatic<WorkRoutineDocuments> documents = mockStatic(WorkRoutineDocuments.class)) {
-			documents.when(() -> WorkRoutineDocuments.copyInto(same(user), eq(WorkExpenseRoutine.DOCUMENTS_ID), anyString()))
-					.thenReturn(List.of("policy.pdf", "rates.xlsx"));
-
-			String id = open(WorkExpenseRoutine.ID);
-
-			documents.verify(() -> WorkRoutineDocuments.copyInto(same(user), eq(WorkExpenseRoutine.DOCUMENTS_ID),
-					eq("/base" + File.separator + "room" + File.separator + id)));
-			String content = ((ResponseMessage) storedRoom(id).getMessages().getFirst()).getContent();
-			assertTrue(content.startsWith("Suggested decision\n\n---\n\n"), content);
-			assertTrue(content.contains("\"documents\" folder"), content);
-			assertTrue(content.contains(": policy.pdf, rates.xlsx."), content);
+		User other = owner("owner-two");
+		try (MockedStatic<AutomationRunStore> history = runHistory(WorkExpenseRoutine.KIND, "run-1",
+				AutomationConstants.STATUS_SUCCESS)) {
+			assertEquals("automation-room", open(WorkExpenseRoutine.ID));
+			assertEquals("agent-room", WorkRoutineRoom.open(insight, WorkExpenseRoutine.ID, null, "run-1").get("roomId"));
+			assertThrows(IllegalArgumentException.class,
+					() -> WorkRoutineRoom.open(insight(other), WorkExpenseRoutine.ID, null, "run-1"));
+			rooms.verifyNoInteractions();
+		} finally {
+			other.removeUserMemory();
 		}
 	}
 
@@ -346,18 +347,74 @@ class WorkRoutineRoomUnitTests {
 		}
 	}
 
+	@Test
+	void deletingEveryRunTakesEachRoutinesRunsRoomsAndScheduleIncludingTheOwnersOwn() throws Exception {
+		completed(user, WorkInboxRoutine.ID, STARTED, "Saved output");
+		CollaborationDbUtils.update("INSERT INTO WORK_CUSTOM_ROUTINE (OWNER_ID, OWNER_TYPE, ROUTINE_ID, SETTINGS_JSON, ENABLED) "
+				+ "VALUES (?, ?, ?, ?, ?)", "owner-one", AuthProvider.NATIVE.getLabel(), "custom-1", "{}", true);
+		registry.when(SystemEngineRegistry::isSchedulerDbLoaded).thenReturn(true);
+		utility.when(() -> Utility.getDIHelperProperty(Constants.SCHEDULER_ENDPOINT)).thenReturn("https://semoss.test/Monolith");
+		List<String> closed = new ArrayList<>();
+		logs.when(() -> ModelInferenceLogsUtils.doSetRoomToInactive(anyString(), anyString())).thenAnswer(call -> {
+			closed.add(call.getArgument(1));
+			return true;
+		});
+		String scope = AutomationProjectService.inlineRunScope(user);
+		String custom = WorkCustomRoutine.KIND.automationId() + ":custom-1";
+		Scheduler scheduler = mock(Scheduler.class);
+		SchedulerFactorySingleton factory = mock(SchedulerFactorySingleton.class);
+		when(factory.getScheduler()).thenReturn(scheduler);
+		try (MockedStatic<AutomationRunStore> history = runHistory("run-1", AutomationConstants.STATUS_SUCCESS);
+				MockedStatic<AgentCodeExecutionContext> code = mockStatic(AgentCodeExecutionContext.class);
+				MockedStatic<SchedulerFactorySingleton> factories = mockStatic(SchedulerFactorySingleton.class);
+				MockedStatic<SchedulerDatabaseUtility> recipes = mockStatic(SchedulerDatabaseUtility.class)) {
+			factories.when(SchedulerFactorySingleton::getInstance).thenReturn(factory);
+			history.when(() -> AutomationRunStore.getRunsForAutomation(scope, WorkInboxRoutine.KIND.automationId(), -1))
+					.thenReturn(List.of(Map.of(AutomationConstants.RUN_ID, "run-1")));
+			history.when(() -> AutomationRunStore.getRunsForAutomation(scope, custom, -1))
+					.thenReturn(List.of(Map.of(AutomationConstants.RUN_ID, "run-c")));
+			history.when(() -> AutomationRunStore.getNodeOutputsForRun("run-c"))
+					.thenReturn(List.of(Map.of(AutomationConstants.ROOM_ID, "custom-agent-room")));
+			history.when(() -> AutomationRunStore.deleteRuns(eq(scope), anyString())).thenReturn(1);
+
+			// four system routines and the owner's own
+			assertEquals(5, WorkRoutineRoom.deleteAll(user));
+
+			assertTrue(closed.containsAll(List.of("agent-room", "loop-room", "custom-agent-room")));
+			history.verify(() -> AutomationRunStore.deleteRuns(scope, custom));
+			verify(scheduler, times(5)).deleteJob(any());
+			recipes.verify(() -> SchedulerDatabaseUtility.removeFromJobRecipesTable(anyString(), anyString()), times(5));
+		}
+	}
+
+	@Test
+	void deletingEveryRunRefusesWhileARoutineRunsAndDeletesNothing() {
+		CollaborationDbUtils.update("INSERT INTO WORK_INBOX_ROUTINE (OWNER_ID, OWNER_TYPE, SETTINGS_JSON, ENABLED, RUN_STATUS, "
+				+ "STARTED_AT) VALUES (?, ?, ?, ?, ?, ?)", "owner-one", AuthProvider.NATIVE.getLabel(), "{}", true, "running",
+				CollaborationDbUtils.now());
+		try (MockedStatic<AutomationRunStore> history = mockStatic(AutomationRunStore.class)) {
+			assertThrows(IllegalStateException.class, () -> WorkRoutineRoom.deleteAll(user));
+			history.verify(() -> AutomationRunStore.deleteRuns(anyString(), anyString()), never());
+			logs.verify(() -> ModelInferenceLogsUtils.doSetRoomToInactive(anyString(), anyString()), never());
+		}
+	}
+
 	/** The scheduler's record of one of the owner's inbox runs: its output and the rooms its agent worked in. */
 	private MockedStatic<AutomationRunStore> runHistory(String runId, String status) {
+		return runHistory(WorkInboxRoutine.KIND, runId, status);
+	}
+
+	private MockedStatic<AutomationRunStore> runHistory(WorkRoutine.Kind kind, String runId, String status) {
 		MockedStatic<AutomationRunStore> history = mockStatic(AutomationRunStore.class);
 		Map<String, Object> run = new HashMap<>();
 		run.put(AutomationConstants.RUN_ID, runId);
 		run.put(AutomationConstants.PROJECT_ID, AutomationProjectService.inlineRunScope(user));
-		run.put(AutomationConstants.AUTOMATION_ID, WorkInboxRoutine.KIND.automationId());
+		run.put(AutomationConstants.AUTOMATION_ID, kind.automationId());
 		run.put(AutomationConstants.STATUS, status);
 		run.put(AutomationConstants.STARTED_AT, Timestamp.valueOf("2026-10-15 12:00:05"));
 		history.when(() -> AutomationRunStore.getRunDetail(runId)).thenReturn(run);
 		Map<String, Object> agent = new HashMap<>();
-		agent.put(AutomationConstants.NODE_ID, WorkInboxRoutine.KIND.outputNode());
+		agent.put(AutomationConstants.NODE_ID, kind.outputNode());
 		agent.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
 		agent.put(AutomationConstants.OUTPUT_VALUE, "\"Saved output\"");
 		agent.put(AutomationConstants.ROOM_ID, "agent-room");

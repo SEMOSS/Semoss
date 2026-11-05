@@ -100,20 +100,7 @@ public class UploadEngineReactor extends AbstractReactor {
 		// do we want this project to be accessible to everyone
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 		// check security
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create or update an app",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		// throw error is user doesn't have rights to publish new apps
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
@@ -307,7 +294,7 @@ public class UploadEngineReactor extends AbstractReactor {
 					Utility.changePropertiesFileValue(finalEngineSmss.getAbsolutePath(), Constants.ENGINE_DISPLAY_NAME,
 							engineName);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to add the display name to the smss of engine {}", engineId, e);
 				}
 			}
 

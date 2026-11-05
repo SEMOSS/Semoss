@@ -100,8 +100,6 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminSetPublisher = false;
 	static boolean adminSetExporter = false;
 	static String ADMIN_ADDED_USER = "ADMIN_ADDED_USER";
-	static boolean anonymousUsersEnabled = false;
-	static boolean anonymousUsersUploadData = false;
 
 	static boolean adminOnlyProjectAdd = false;
 	static boolean adminOnlyProjectDelete = false;
@@ -198,22 +196,6 @@ public abstract class AbstractSecurityUtils {
 		// this is to update the bad naming in the security db for type values
 		updateUserTypeEnum();
 
-		Object anonymousUsers = Utility.getDIHelperLocalProperty(Constants.ANONYMOUS_USER_ALLOWED);
-		if (anonymousUsers == null) {
-			anonymousUsersEnabled = false;
-		} else {
-			anonymousUsersEnabled = (anonymousUsers instanceof Boolean && ((boolean) anonymousUsers))
-					|| (Boolean.parseBoolean(anonymousUsers.toString()));
-		}
-
-		Object anonymousUsersData = Utility.getDIHelperLocalProperty(Constants.ANONYMOUS_USER_UPLOAD_DATA);
-		if (anonymousUsersData == null) {
-			anonymousUsersUploadData = false;
-		} else {
-			anonymousUsersUploadData = (anonymousUsersData instanceof Boolean && ((boolean) anonymousUsersData))
-					|| (Boolean.parseBoolean(anonymousUsersData.toString()));
-		}
-
 		Object adminSetsPublisher = Utility.getDIHelperLocalProperty(Constants.ADMIN_SET_PUBLISHER);
 		if (adminSetsPublisher == null) {
 			adminSetPublisher = false;
@@ -292,14 +274,6 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyInsightAddAccess = Utility.getApplicationAdminOnlyInsightAddAccess();
 
 		adminOnlyInsightShare = Utility.getApplicationAdminOnlyInsightShare();
-	}
-
-	public static boolean anonymousUsersEnabled() {
-		return anonymousUsersEnabled;
-	}
-
-	public static boolean anonymousUserUploadData() {
-		return anonymousUsersEnabled() && anonymousUsersUploadData;
 	}
 
 	@Deprecated

@@ -66,12 +66,14 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 		HashMap<String, Object> recommendations = new HashMap<String, Object>();
 		String[] packages = { "igraph", "jsonlite" };
 		String userName = "null";
-		User user = this.insight.getUser();
+		User user = requireUser();
 		String baseFolder = Utility.getBaseFolder();
 
 		// Check to make sure that the necessary files exist
-		File itemsim = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-itemsim.rds");
-		File usersim = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-usersim.rds");
+		File itemsim = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR
+				+ "dataitem-itemsim.rds");
+		File usersim = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR
+				+ "dataitem-usersim.rds");
 		if (!itemsim.exists() || !usersim.exists()) {
 			String message = "Necessary files missing to generate recommendations. Please run UpdateQueryData().";
 			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -80,15 +82,7 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 			throw exception;
 		}
 
-		if (user == null) {
-			String message = "Please login to enable recommendation features.";
-			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-			SemossPixelException exception = new SemossPixelException(noun);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-
-		if (rJavaTranslator.checkPackages(packages, logger) && user != null) {
+		if (rJavaTranslator.checkPackages(packages, logger)) {
 			// Step 1:
 			// Run an R script to generate all communities, then get
 			// additional data for each engine that exists on this machine,
@@ -100,7 +94,7 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 			esb.append("source(\"" + baseFolder + "\\R\\Recommendations\\db_recom.r\"); ");
 			esb.append("fileroot<-\"" + baseFolder + "\\R\\Recommendations\\dataitem\" ; ");
 			String varR = esb.toString().replace("\\", "/");
-			
+
 			// run communities script
 			String communityOutput = Utility.getRandomString(8);
 			List<String> myEngines = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
@@ -109,27 +103,29 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 				String dbid = myEngines.get(row);
 				String dbname = SecurityEngineUtils.getEngineAliasForId(dbid);
 				String oneItem = dbid + "$" + dbname + "$";
-				if(row < myEngines.size() - 1) {
+				if (row < myEngines.size() - 1) {
 					items += "\"" + oneItem + "\", ";
-				}else {
+				} else {
 					items += "\"" + oneItem + "\"";
 				}
 			}
-			
+
 			StringBuilder rsb = new StringBuilder();
 			rsb.append(communityOutput + "<- locate_data_communities(fileroot,items=c(" + items + "));");
 			rsb.append(communityOutput + "<- jsonlite::toJSON(" + communityOutput + "[3]);");
-			
+
 			// Step 2:
 			// Run another R script to generate user specific recommendations,
 			// add additional data and package as a map to be added to the list
 			// for the FE.
 			String userSpecificOutput = Utility.getRandomString(8);
-			//rsb.append(userSpecificOutput + "<- dataitem_recom_mgr(\"" + userName + "\",fileroot);");
-			rsb.append(userSpecificOutput + "<- dataitem_recom_mgr(\"" + userName + "\",fileroot,items=c(" + items + "));");
+			// rsb.append(userSpecificOutput + "<- dataitem_recom_mgr(\"" + userName +
+			// "\",fileroot);");
+			rsb.append(userSpecificOutput + "<- dataitem_recom_mgr(\"" + userName + "\",fileroot,items=c(" + items
+					+ "));");
 			rsb.append(userSpecificOutput + "<- jsonlite::toJSON(as.data.table(" + userSpecificOutput
 					+ "[2])[,1:2], byrow = TRUE, colNames = TRUE);");
-			
+
 			String funcR = rsb.toString();
 			this.rJavaTranslator.runR(varR + funcR);
 			List<String> enginesWithAccess = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
@@ -251,9 +247,9 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 		}
 		return false;
 	}
-	
-	public String getName()
-	{
+
+	@Override
+	public String getName() {
 		return "DatabaseRecommendations";
 	}
 

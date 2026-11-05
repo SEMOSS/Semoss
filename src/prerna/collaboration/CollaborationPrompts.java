@@ -30,8 +30,8 @@ package prerna.collaboration;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
 
 /**
- * The baseline prompt of the owner's chats and routines (CollaborationRunMode), in place of
- * the general agent baseline, whichever agent runs them.
+ * The baseline prompt of the owner's chats and routines (CollaborationRunMode),
+ * in place of the general agent baseline, whichever agent runs them.
  */
 public final class CollaborationPrompts {
 
@@ -129,9 +129,10 @@ public final class CollaborationPrompts {
 			unless they ask; to show several, call it once for each. Bringing files into this chat ("pull \
 			those in", "get me the files") is a download, not a request to show them.
 			- Pass the exact id from a result in this chat: emailRef from ReadThread for one email; threadId \
-			from SearchMail or ReadThread for a whole email thread or Teams chat; chatId from ListChats or \
-			ListChatMessages for a Teams chat Brain does not hold; path for a file in this chat, as a download \
-			returned it. Never pass a subject or file name as an id, and never shorten, guess, or rebuild one. \
+			from SearchMail or ReadThread for a whole email thread or Teams chat; chatId from ListChats, \
+			ListChatMessages, or SearchTeamsMessages for a Teams chat Brain does not hold; path for a file in this \
+			chat, as a download returned it. Never pass a subject or file name as an id, and never shorten, guess, \
+			or rebuild one. \
 			If the id is no longer in this chat, find the item again first.
 			- "That" and "it" mean the item you and the owner were just talking about. When exactly one item \
 			fits, show it. When several fit (several results with none singled out, or similar subjects or \
@@ -207,7 +208,8 @@ public final class CollaborationPrompts {
 			otherwise make a reasonable assumption and state it in one line. The exception is which \
 			item to show: when more than one fits, ask (see Showing what you found).""";
 
-	// ComposeEmail is WorkComposeEmailReactor and SendEmail is WorkSendEmailReactor;
+	// ComposeEmail is WorkComposeEmailReactor and SendEmail is
+	// WorkSendEmailReactor;
 	// Work's FE opens ComposeEmail's resolved result in the email editor, sends the
 	// editor's email back as openEmail, and approves SendEmail with its saved draft
 	private static final String EMAILS = """
@@ -266,8 +268,10 @@ public final class CollaborationPrompts {
 			to press Send), or sent. Never say an email was sent or saved unless the status or \
 			a tool result says so. A sent email cannot change: write a new one.""";
 
-	// how to use and keep memories; BrainMemoryRecall puts it, with the memories, at the end of a thread's prompt
-	// only when the owner has memory on, so a run without the memory tools never reads about them
+	// how to use and keep memories; BrainMemoryRecall puts it, with the memories,
+	// at the end of a thread's prompt
+	// only when the owner has memory on, so a run without the memory tools never
+	// reads about them
 	public static final String MEMORY = """
 			## Memory
 			- Memories are short notes the owner keeps for you across threads: preferences \
@@ -388,7 +392,8 @@ public final class CollaborationPrompts {
 			a rejected external action. Finish with the verified artifact and a concise outcome.
 			""";
 
-	// a routine's own baseline: nobody is watching, and the final message is what gets delivered
+	// a routine's own baseline: nobody is watching, and the final message is what
+	// gets delivered
 	private static final String ROUTINE_INTRO = """
 			You are the owner's assistant in Collaboration, running one of their scheduled routines \
 			while they are away. The message gives the routine's name, the current time, and the task. \
@@ -516,7 +521,8 @@ public final class CollaborationPrompts {
 			send, or attach files, or apply the owner's voice to your ordinary explanations and answers to them.
 			""";
 
-	// a routine reads memories but never writes them: its only words from the owner are the task
+	// a routine reads memories but never writes them: its only words from the owner
+	// are the task
 	public static final String ROUTINE_MEMORY = """
 			## Memory
 			- Memories are short notes the owner keeps for you: preferences (how they want things done) \
@@ -527,11 +533,15 @@ public final class CollaborationPrompts {
 			- This run reads memories and cannot change them. Use SearchMemories when the task needs \
 			something about someone or something that is not below.""";
 
-	// the baseline of any Collaboration chat or routine; the agent's own prompt follows it.
-	// Joined at runtime so callers read it here instead of a copy javac inlined into them.
+	// the baseline of any Collaboration chat or routine; the agent's own prompt
+	// follows it.
+	// Joined at runtime so callers read it here instead of a copy javac inlined
+	// into them.
 	public static final String BASE_PROMPT = String.join("", INTRO, WRITING_STYLE, TOOLS, RULES, EMAILS, FILES);
 
-	/** A routine run's baseline in place of BASE_PROMPT, with where its answer goes. */
+	/**
+	 * A routine run's baseline in place of BASE_PROMPT, with where its answer goes.
+	 */
 	public static String routinePrompt(String delivery) {
 		String where = switch (delivery == null ? "email" : delivery) {
 		case "teams" -> ROUTINE_TEAMS;
@@ -542,9 +552,11 @@ public final class CollaborationPrompts {
 		return String.join("", ROUTINE_INTRO, where, WRITING_STYLE, ROUTINE_WORK);
 	}
 
-	// for an agent in a Collaboration room that has its own baseline (a PPTX workflow agent)
+	// for an agent in a Collaboration room that has its own baseline (a PPTX
+	// workflow agent)
 	public static final String FILES_PROMPT = FILES.strip();
 
-	// any collaboration run that may start the managed PPTX workflow (PptxWorkflow.onDemand)
+	// any collaboration run that may start the managed PPTX workflow
+	// (PptxWorkflow.onDemand)
 	public static final String PPTX_PROMPT = PPTX.stripTrailing();
 }
