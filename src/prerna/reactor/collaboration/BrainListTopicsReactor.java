@@ -51,7 +51,7 @@ public class BrainListTopicsReactor extends AbstractCollaborationReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		// one topic in full: description, goals, notes, and its people with names
+		// one topic in full: description, notes, and its people with names
 		String topicId = getString(TOPIC_ID);
 		String topicName = getString(TOPIC);
 		if ((topicId != null && !topicId.isBlank()) || (topicName != null && !topicName.isBlank())) {
@@ -67,7 +67,7 @@ public class BrainListTopicsReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Lists the signed-in user's Brain topics as { items, total }. Pass topicId or topic to get one topic "
-				+ "in full instead: its description, goals, open action items, notes, and people with their names, "
+				+ "in full instead: its description, open action items, notes, and people with their names, "
 				+ "roles, and state. "
 				+ "Its notes are the owner's memories about the topic, listed while the owner has memory on";
 	}

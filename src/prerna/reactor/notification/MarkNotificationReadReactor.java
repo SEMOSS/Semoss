@@ -32,7 +32,6 @@ import java.sql.Timestamp;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -63,10 +62,7 @@ public class MarkNotificationReadReactor extends AbstractReactor {
 		if (!Utility.isNotificationDatabaseEnabled()) {
 			throw new IllegalArgumentException("Notifications are not enabled on this instance");
 		}
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		organizeKeys();
 		String notificationId = StringUtils.trimToNull(this.keyValue.get(this.keysToGet[0]));

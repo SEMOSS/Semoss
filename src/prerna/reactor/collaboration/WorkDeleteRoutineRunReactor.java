@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
+import java.util.List;
 import java.util.Map;
 
 import prerna.collaboration.WorkRoutineRoom;
@@ -44,14 +45,15 @@ public class WorkDeleteRoutineRunReactor extends AbstractCollaborationReactor {
 	@Override
 	public NounMetadata execute() {
 		getUser();
-		WorkRoutineRoom.deleteRun(this.insight, getString(ROUTINE_ID), getString(RUN_ID));
-		return mapResult(Map.of("deleted", true));
+		List<String> roomIds = WorkRoutineRoom.deleteRun(this.insight, getString(ROUTINE_ID), getString(RUN_ID));
+		return mapResult(Map.of("deleted", true, "roomIds", roomIds));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Deletes one finished run of one of the signed-in user's routines from its run history; when it was the "
-				+ "routine's latest run, Routines stops showing its result. Chats opened from the run are kept";
+		return "Deletes one finished run of one of the signed-in user's routines from its run history, with the chats "
+				+ "opened from it and the rooms its agent worked in, and returns those rooms' ids; when it was the "
+				+ "routine's latest run, Routines stops showing its result";
 	}
 
 	@Override

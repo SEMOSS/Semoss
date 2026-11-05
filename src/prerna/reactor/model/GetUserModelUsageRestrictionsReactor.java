@@ -54,12 +54,8 @@ public class GetUserModelUsageRestrictionsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = insight.getUser();
+		User user = requireUser();
 		String engineId = this.keyValue.get(ENGINE);
-
-		if (user == null || user.isAnonymous()) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
 					"Model " + engineId + " does not exist or user does not have access to this model");

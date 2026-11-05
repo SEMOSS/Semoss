@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
@@ -59,11 +58,6 @@ public class DeleteInsightAssetsReactor extends AbstractReactor {
 		organizeKeys();
 
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
-
 		if (this.insight.isSavedInsight()) {
 			if (!SecurityProjectUtils.userCanEditProject(user, this.insight.getProjectId())) {
 				throw new IllegalArgumentException("Project " + this.insight.getProjectId()

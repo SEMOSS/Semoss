@@ -55,8 +55,9 @@ import prerna.util.ValueUtils;
  * </ul>
  *
  * <p>
- * Graph answers most recent first, and that is the order this keeps, so a limit
- * takes the latest part of the conversation rather than the oldest.
+ * The messages come back newest first by when each was sent, so a limit takes
+ * the latest part of the conversation rather than the oldest, and an old
+ * message that was edited or reacted to stays where it was sent.
  * </p>
  */
 public class MicrosoftTeamsListChatMessagesReactor extends AbstractMicrosoftTeamsMessageReactor {
@@ -111,7 +112,7 @@ public class MicrosoftTeamsListChatMessagesReactor extends AbstractMicrosoftTeam
 
 	@Override
 	public String getReactorDescription() {
-		return "Read the messages of a Microsoft Teams chat, most recent first.";
+		return "Read the messages of a Microsoft Teams chat, newest first by when each was sent.";
 	}
 
 	@Override

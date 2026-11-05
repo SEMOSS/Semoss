@@ -64,10 +64,7 @@ public class RemoveUserRoomReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 		String roomId = this.keyValue.get(this.keysToGet[0]);
 		boolean result = ModelInferenceLogsUtils.doSetRoomToInactive(user.getPrimaryLoginToken().getId(), roomId);
 		if (result) {

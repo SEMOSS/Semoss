@@ -42,7 +42,6 @@ import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditTargetType;
@@ -75,14 +74,7 @@ public class CreateAutomationReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a project",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException error = new SemossPixelException(noun);
-			error.setContinueThreadOfExecution(false);
-			throw error;
-		}
+		User user = requireUser();
 
 		String projectName = this.keyValue.get(PROJECT_NAME_KEY);
 		if (projectName == null || !Utility.validateName(projectName.trim())) {

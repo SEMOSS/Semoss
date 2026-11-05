@@ -27,43 +27,37 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import prerna.auth.User;
-import prerna.collaboration.BrainTopicUtils;
+import prerna.collaboration.WorkTaskUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainDeleteTopicNote(topicId=["..."], noteId=["..."]);
-public class BrainDeleteTopicNoteReactor extends AbstractCollaborationReactor {
+// WorkMergeItems(taskId=["from"], intoTaskId=["into"]);
+public class WorkMergeItemsReactor extends AbstractWorkTaskReactor {
+	private static final String TASK_ID = "taskId";
+	private static final String INTO_TASK_ID = "intoTaskId";
 
-	private static final String TOPIC_ID = "topicId";
-	private static final String NOTE_ID = "noteId";
-
-	public BrainDeleteTopicNoteReactor() {
-		this.keysToGet = new String[] { TOPIC_ID, NOTE_ID };
+	public WorkMergeItemsReactor() {
+		this.keysToGet = new String[] { TASK_ID, INTO_TASK_ID };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = getUser();
-		String topicId = getString(TOPIC_ID);
-		String noteId = getString(NOTE_ID);
-		if (topicId == null || noteId == null) {
-			throw new IllegalArgumentException("Must pass a topicId and noteId");
-		}
-		return mapResult(BrainTopicUtils.deleteTopicNote(user, topicId, noteId));
+		return mapResult(WorkTaskUtils.mergeWork(getUser(), getString(TASK_ID), getString(INTO_TASK_ID)));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Deletes a goal from a Brain topic";
+		return "Merges a duplicate work item into another: its steps, threads, topics and updates move over and the "
+				+ "duplicate closes";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (NOTE_ID.equals(key)) {
-			return "Note id";
+		if (TASK_ID.equals(key)) {
+			return "The duplicate work item's id";
+		}
+		if (INTO_TASK_ID.equals(key)) {
+			return "The work item to keep";
 		}
 		return super.getDescriptionForKey(key);
 	}

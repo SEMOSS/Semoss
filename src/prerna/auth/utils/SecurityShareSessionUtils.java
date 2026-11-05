@@ -123,7 +123,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	public static String createToken(User user, String sessionId, String routeId, boolean sessionToken,
 			boolean authToken) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (user == null || user.isAnonymous()) {
+		if (user == null) {
 			throw new IllegalArgumentException("Cannot share a session for a user who is not logged in");
 		}
 

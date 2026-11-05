@@ -74,6 +74,8 @@ public final class BrainConnection {
 		result.put("mailbox", mailbox.get("upn"));
 		result.put("background", background);
 		result.put("sources", CollaborationSourceUtils.getSourceStatuses(owner.getValue0(), owner.getValue1()));
+		// a finished import, so turning mail off reads as paused rather than never set up
+		result.put("imported", BrainSync.lastRun(owner.getValue0(), owner.getValue1()) != null);
 		// which Outlook folders mail is read from, and how many topics stand for one
 		result.put("folders", BrainMailFolders.summary(owner.getValue0(), owner.getValue1()));
 		return result;
@@ -97,7 +99,10 @@ public final class BrainConnection {
 	/** Removes the saved background access; scheduled routines stop until it is saved again. */
 	public static Map<String, Object> forgetBackground(User user) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		SecurityExternalConnectorsUtils.deleteMicrosoftGraphCredential(mailbox(owner).get("id"));
+		String mailboxId = mailbox(owner).get("id");
+		SecurityExternalConnectorsUtils.deleteMicrosoftGraphCredential(mailboxId);
+		// the new-mail subscription keeps a sign-in of its own, and a routine would restore background access from it
+		BrainMailWebhook.unsubscribe(mailboxId);
 		return status(user);
 	}
 

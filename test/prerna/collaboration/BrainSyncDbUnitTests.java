@@ -35,9 +35,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
@@ -79,8 +81,9 @@ import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
 /**
- * A sync cut off after its import and the next one picking up, and the schedule's turn for an owner, against an
- * in-memory H2 Collaboration schema: no message imported twice, the after-import steps owed once more, one expense
+ * A sync cut off after its import and the next one picking up, and the
+ * schedule's turn for an owner, against an in-memory H2 Collaboration schema:
+ * no message imported twice, the after-import steps owed once more, one expense
  * review per request, and an owner whose Microsoft sign-in expired.
  */
 class BrainSyncDbUnitTests {
@@ -130,7 +133,8 @@ class BrainSyncDbUnitTests {
 		registry.when(SystemEngineRegistry::getCollaborationDb).thenReturn(engine);
 		// summaries need a model; queued work is not under test here
 		insights = mockStatic(WorkThreadInsights.class);
-		// the review itself runs on the scheduler; what is under test is how often it is asked for
+		// the review itself runs on the scheduler; what is under test is how often it
+		// is asked for
 		expenses = mockStatic(WorkExpenseRoutine.class);
 		expenses.when(() -> WorkExpenseRoutine.onNewMail(anyString(), anyString(), any())).thenAnswer(call -> {
 			List<String> keys = new ArrayList<>();
@@ -147,7 +151,10 @@ class BrainSyncDbUnitTests {
 					.getDBSchema()) {
 				List<String> columns = new ArrayList<>();
 				for (Pair<String, String> column : table.getValue1()) {
-					columns.add(column.getValue0() + " " + column.getValue1());
+					// quoted as the server quotes them: H2 2.x reserves words such as VALUE
+					String name = column.getValue0();
+					columns.add((queryUtil.isSelectorKeyword(name) ? queryUtil.getEscapeKeyword(name) : name) + " "
+							+ column.getValue1());
 				}
 				statement.execute("CREATE TABLE " + table.getValue0() + " (" + String.join(", ", columns) + ")");
 			}
@@ -170,9 +177,10 @@ class BrainSyncDbUnitTests {
 		sql("INSERT INTO COLLAB_JOB (OWNER_ID, OWNER_TYPE, JOB_ID, KIND, STATUS, STARTED_AT, FINISHED_AT) "
 				+ "VALUES (?, ?, ?, 'import', 'done', ?, ?)", ownerId, ownerType, UUID.randomUUID().toString(),
 				utc(NOW.minus(Duration.ofHours(4))), utc(NOW.minus(Duration.ofHours(4))));
-		// an approval request to the owner, and the owner's own answer on another thread
-		mailbox.add(email("G1", "conv-1", "Meeting Approval: OSLT In Person (102783)", "mes@test.com",
-				"owner@test.com"));
+		// an approval request to the owner, and the owner's own answer on another
+		// thread
+		mailbox.add(
+				email("G1", "conv-1", "Meeting Approval: OSLT In Person (102783)", "mes@test.com", "owner@test.com"));
 		mailbox.add(email("G2", "conv-2", "RE: Aldercrest proposal", "owner@test.com", "kyle@aldercrest.com"));
 	}
 
@@ -190,7 +198,8 @@ class BrainSyncDbUnitTests {
 		assertEquals(2, cutOff.imported);
 		assertEquals(2, pending());
 
-		// the next sync reads the same window again: nothing imports twice, and both messages are owed their steps
+		// the next sync reads the same window again: nothing imports twice, and both
+		// messages are owed their steps
 		BrainMailImport.Run next = read(true);
 		assertEquals(0, next.imported);
 		assertEquals(2, count("BRAIN_MESSAGE"));
@@ -241,11 +250,74 @@ class BrainSyncDbUnitTests {
 	}
 
 	@Test
+	void aMessageThatCannotBeSavedIsUndoneAloneAndTheRestOfItsBatchIsKept() throws Exception {
+		// a conversation longer than THREAD_KEY holds: its thread insert fails after the gate saved its message row
+		mailbox.add(1, email("G3", "c".repeat(300), "Budget", "dana@test.com", "owner@test.com"));
+		BrainMailImport.Run run = new BrainMailImport.Run(ownerId, ownerType, true);
+		run.ensureSelf("owner@test.com", "Owner", "owner@test.com", List.of());
+		CollaborationDbUtils.batch(conn -> {
+			for (Map<String, Object> header : mailbox) {
+				run.importIsolated(conn, header);
+			}
+		});
+		assertEquals(2, count("BRAIN_MESSAGE"));
+		assertEquals(2, count("BRAIN_THREAD"));
+		assertEquals(2, pending());
+		assertEquals(2, run.imported);
+		assertEquals(1, run.unsaved);
+		// what the run noted for the bad message went with its rows
+		assertEquals(2, run.owed.size());
+		assertEquals(2, run.threads.size());
+		assertFalse(run.holds(mailbox.get(1)));
+		assertTrue(run.holds(mailbox.get(2)));
+	}
+
+	@Test
+	void aMessageThatFailsAfterItsStepsWereNotedLeavesNoStepsBehind() throws Exception {
+		BrainMailImport.Run run = spy(new BrainMailImport.Run(ownerId, ownerType, true));
+		run.ensureSelf("owner@test.com", "Owner", "owner@test.com", List.of());
+		// the owner's own answer gets all the way through, then fails
+		Map<String, Object> answer = mailbox.get(1);
+		doAnswer(call -> {
+			call.callRealMethod();
+			throw new IllegalStateException("failed after its steps were noted");
+		}).when(run).importOne(answer);
+		CollaborationDbUtils.batch(conn -> {
+			for (Map<String, Object> header : mailbox) {
+				run.importIsolated(conn, header);
+			}
+		});
+		assertEquals(1, count("BRAIN_MESSAGE"));
+		assertEquals(1, run.imported);
+		assertEquals(1, run.unsaved);
+		assertEquals(1, run.owed.size());
+		assertEquals(1, run.threads.size());
+		assertEquals(1, run.inbound.size());
+		assertTrue(run.ownerSent.isEmpty());
+		assertFalse(run.holds(answer));
+	}
+
+	@Test
+	void aRunWithMoreUnsavableMessagesThanOneBadOneFailsAndKeepsNothing() throws Exception {
+		for (int i = 0; i < 6; i++) {
+			mailbox.add(email("B" + i, i + "c".repeat(300), "Budget", "dana@test.com", "owner@test.com"));
+		}
+		BrainMailImport.Run run = new BrainMailImport.Run(ownerId, ownerType, true);
+		run.ensureSelf("owner@test.com", "Owner", "owner@test.com", List.of());
+		assertThrows(IllegalStateException.class, () -> CollaborationDbUtils.batch(conn -> {
+			for (Map<String, Object> header : mailbox) {
+				run.importIsolated(conn, header);
+			}
+		}));
+		assertEquals(0, count("BRAIN_MESSAGE"));
+	}
+
+	@Test
 	void theAssistantPutsEmailsBrainHasNotReadInATopicThroughTheSyncsImport() throws Exception {
 		// G1 is in Brain already; G2 and an Uber receipt are only in the mailbox
 		BrainSync.importHeaders(user, ownerId, ownerType, headers, List.of(mailbox.get(0)));
-		mailbox.add(email("G3", "conv-3", "Your Thursday morning trip with Uber", "noreply@uber.com",
-				"owner@test.com"));
+		mailbox.add(
+				email("G3", "conv-3", "Your Thursday morning trip with Uber", "noreply@uber.com", "owner@test.com"));
 		mailbox.add(email("G4", "conv-4", "Your Friday trip with Uber", "noreply@uber.com", "owner@test.com"));
 		BrainMailHeaderSource outlook = new BrainMailHeaderSource() {
 			@Override
@@ -271,19 +343,20 @@ class BrainSyncDbUnitTests {
 		try (MockedStatic<BrainMailHeaderSource> source = mockStatic(BrainMailHeaderSource.class)) {
 			source.when(BrainMailHeaderSource::current).thenReturn(outlook);
 			Map<String, Object> result = BrainAgentEdits.editTopic(user, null, null, "Uber", null, null, null, null,
-					null, null, null, null, null, List.of("G1", "G2", "G3"));
+					null, null, List.of("G1", "G2", "G3"));
 			assertEquals(List.of("created Uber", "added 3 conversations"), result.get("changes"));
 			assertEquals(3, count("BRAIN_MESSAGE"));
 			assertEquals(3, count("BRAIN_THREAD_TOPIC"));
 
-			// an id the mailbox does not have, or mail that cannot come in, stops the call before the topic is made
-			assertThrows(IllegalArgumentException.class, () -> BrainAgentEdits.editTopic(user, null, null, "Lyft",
-					null, null, null, null, null, null, null, null, null, List.of("G9")));
+			// an id the mailbox does not have, or mail that cannot come in, stops the call
+			// before the topic is made
+			assertThrows(IllegalArgumentException.class, () -> BrainAgentEdits.editTopic(user, null, null, "Lyft", null,
+					null, null, null, null, null, List.of("G9")));
 			sql("UPDATE SOURCE_CONNECTION SET ENABLED = FALSE WHERE OWNER_ID = ? AND OWNER_TYPE = ?", ownerId,
 					ownerType);
 			assertTrue(assertThrows(IllegalArgumentException.class, () -> BrainAgentEdits.editTopic(user, null, null,
-					"Lyft", null, null, null, null, null, null, null, null, null, List.of("G4"))).getMessage()
-					.contains("cannot be added"));
+					"Lyft", null, null, null, null, null, null, List.of("G4"))).getMessage()
+							.contains("cannot be added"));
 		}
 		assertEquals(1, count("BRAIN_TOPIC"));
 		assertEquals(3, count("BRAIN_MESSAGE"));
@@ -296,18 +369,21 @@ class BrainSyncDbUnitTests {
 			credentials.when(() -> MicrosoftGraphCredentialStore.get(MS_ID)).thenReturn(new AccessToken());
 			credentials.when(() -> MicrosoftGraphCredentialStore.accessToken(MS_ID))
 					.thenThrow(new IllegalArgumentException("Reconnect Microsoft to enable background inbox access."));
-			accounts.when(() -> SecurityQueryUtils.getUnlockedUser(ownerId, ownerType)).thenReturn(Map.of("id", ownerId));
+			accounts.when(() -> SecurityQueryUtils.getUnlockedUser(ownerId, ownerType))
+					.thenReturn(Map.of("id", ownerId));
 
 			assertEquals("sign-in expired", BrainSync.syncInBackground(ownerId, ownerType, MS_ID, NOW));
 		}
-		// no job was started, and the mail source says to sign in again without a newer read
+		// no job was started, and the mail source says to sign in again without a newer
+		// read
 		assertEquals(1, count("COLLAB_JOB"));
 		Map<String, Object> mail = CollaborationSourceUtils.getSources(ownerId, ownerType).get(0);
 		assertEquals("email", mail.get("id"));
 		assertEquals(Boolean.TRUE, mail.get("reauthNeeded"));
 		assertEquals(BrainSync.SIGN_IN_EXPIRED, mail.get("lastError"));
 		assertNull(mail.get("lastEventAt"));
-		assertEquals("needs_permission", CollaborationSourceUtils.getSourceStatuses(ownerId, ownerType).get(0).get("status"));
+		assertEquals("needs_permission",
+				CollaborationSourceUtils.getSourceStatuses(ownerId, ownerType).get(0).get("status"));
 	}
 
 	@Test
@@ -340,7 +416,8 @@ class BrainSyncDbUnitTests {
 	void anOwnerWhoTurnedBackgroundSyncOffIsLeftAlone() throws Exception {
 		sql("INSERT INTO BRAIN_SETTINGS (OWNER_ID, OWNER_TYPE, FILE_AT, ASK_AT, VERSION, SYNC_EVERY_MINUTES) "
 				+ "VALUES (?, ?, 85, 40, 1, 0)", ownerId, ownerType);
-		try (MockedStatic<MicrosoftGraphCredentialStore> credentials = mockStatic(MicrosoftGraphCredentialStore.class)) {
+		try (MockedStatic<MicrosoftGraphCredentialStore> credentials = mockStatic(
+				MicrosoftGraphCredentialStore.class)) {
 			assertEquals("background sync off", BrainSync.syncInBackground(ownerId, ownerType, MS_ID, NOW));
 			credentials.verifyNoInteractions();
 		}
@@ -353,8 +430,10 @@ class BrainSyncDbUnitTests {
 		sql("INSERT INTO COLLAB_JOB (OWNER_ID, OWNER_TYPE, JOB_ID, KIND, STATUS, STARTED_AT, FINISHED_AT) "
 				+ "VALUES (?, ?, ?, 'sync', 'done', ?, ?)", ownerId, ownerType, UUID.randomUUID().toString(),
 				utc(NOW.minus(Duration.ofMinutes(20))), utc(NOW.minus(Duration.ofMinutes(19))));
-		try (MockedStatic<MicrosoftGraphCredentialStore> credentials = mockStatic(MicrosoftGraphCredentialStore.class)) {
-			// every hour: 20 minutes after the last sync is too soon, though the default 15 would be due
+		try (MockedStatic<MicrosoftGraphCredentialStore> credentials = mockStatic(
+				MicrosoftGraphCredentialStore.class)) {
+			// every hour: 20 minutes after the last sync is too soon, though the default 15
+			// would be due
 			assertEquals("synced lately", BrainSync.syncInBackground(ownerId, ownerType, MS_ID, NOW));
 			// 70 minutes after it they are due, and go on to the next check
 			assertEquals("no background sign-in",
@@ -367,11 +446,13 @@ class BrainSyncDbUnitTests {
 		// the settings read names the platform classifier, which comes from RDF_Map
 		try (MockedStatic<BrainThreadClassifier> classifier = mockStatic(BrainThreadClassifier.class)) {
 			assertEquals(15, BrainProfileUtils.getSettings(ownerId, ownerType).get("syncEveryMinutes"));
-			assertEquals(60, BrainProfileUtils.saveSettings(user, Map.of("syncEveryMinutes", 60)).get("syncEveryMinutes"));
+			assertEquals(60,
+					BrainProfileUtils.saveSettings(user, Map.of("syncEveryMinutes", 60)).get("syncEveryMinutes"));
 			assertEquals(60, BrainProfileUtils.syncEveryMinutes(ownerId, ownerType));
 			assertThrows(IllegalArgumentException.class,
 					() -> BrainProfileUtils.saveSettings(user, Map.of("syncEveryMinutes", 45)));
-			assertEquals(0, BrainProfileUtils.saveSettings(user, Map.of("syncEveryMinutes", 0)).get("syncEveryMinutes"));
+			assertEquals(0,
+					BrainProfileUtils.saveSettings(user, Map.of("syncEveryMinutes", 0)).get("syncEveryMinutes"));
 		}
 	}
 
@@ -389,7 +470,8 @@ class BrainSyncDbUnitTests {
 			assertEquals(running.get("id"), refresh.get("id"));
 			assertEquals("busy", BrainSync.syncInBackground(ownerId, ownerType, MS_ID, NOW));
 		} finally {
-			// the job's own thread cannot see this test's database (static mocks are per thread), so it is only let go
+			// the job's own thread cannot see this test's database (static mocks are per
+			// thread), so it is only let go
 			release.countDown();
 		}
 	}
@@ -409,16 +491,19 @@ class BrainSyncDbUnitTests {
 		AccessToken session = token("session", NOW.plus(Duration.ofMinutes(50)));
 		User signedIn = new User();
 		signedIn.setAccessToken(session);
-		try (MockedStatic<MicrosoftGraphCredentialStore> credentials = mockStatic(MicrosoftGraphCredentialStore.class)) {
+		try (MockedStatic<MicrosoftGraphCredentialStore> credentials = mockStatic(
+				MicrosoftGraphCredentialStore.class)) {
 			credentials.when(() -> MicrosoftGraphCredentialStore.isRefreshable(any())).thenCallRealMethod();
-			// nothing saved: the owner never turned background sign-in on, so nothing is kept
+			// nothing saved: the owner never turned background sign-in on, so nothing is
+			// kept
 			BrainSync.keepBackgroundCurrent(signedIn);
 			credentials.verify(() -> MicrosoftGraphCredentialStore.save(any()), never());
 
 			credentials.when(() -> MicrosoftGraphCredentialStore.get(MS_ID))
 					.thenReturn(token("expired", NOW.minus(Duration.ofHours(1))));
 			BrainSync.keepBackgroundCurrent(signedIn);
-			// the user hands out a read-only copy of the token, so the save is matched by what it holds
+			// the user hands out a read-only copy of the token, so the save is matched by
+			// what it holds
 			credentials.verify(() -> MicrosoftGraphCredentialStore
 					.save(argThat(saved -> "session".equals(saved.getAccess_token()))));
 
@@ -430,7 +515,8 @@ class BrainSyncDbUnitTests {
 		}
 	}
 
-	// what a sync's import leaves when the server stops right after it: the messages, and none of the later steps
+	// what a sync's import leaves when the server stops right after it: the
+	// messages, and none of the later steps
 	private BrainMailImport.Run read(boolean followUps) {
 		BrainMailImport.Run run = new BrainMailImport.Run(ownerId, ownerType, followUps);
 		run.ensureSelf("owner@test.com", "Owner", "owner@test.com", List.of());

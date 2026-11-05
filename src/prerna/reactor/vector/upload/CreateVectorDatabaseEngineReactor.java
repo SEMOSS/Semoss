@@ -54,7 +54,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditTargetType;
@@ -75,21 +74,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create a model engine", PixelDataType.CONST_STRING,
-					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-			if (this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-		}
+		User user = requireUser();
 
 		// throw error is user doesn't have rights to publish new databases
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
@@ -224,7 +209,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 					vectorDbId, vectorDbName,
 					Map.of("global", global, "vectorType", vectorDbType.getVectorDatabaseName()));
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create vector database engine {} ({})", vectorDbName, vectorDbId, e);
 			UploadUtilities.cleanUpCreateNewError(vectorDb, vectorDbId, tempSmss, smssFile, specificEngineFolder);
 			return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 		}

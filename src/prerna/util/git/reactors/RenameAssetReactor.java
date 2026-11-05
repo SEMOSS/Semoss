@@ -39,7 +39,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -64,12 +63,8 @@ public class RenameAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		// check login user
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		// input paths check
 		String currentFileName = Utility.normalizePath(keyValue.get(this.keysToGet[0]));

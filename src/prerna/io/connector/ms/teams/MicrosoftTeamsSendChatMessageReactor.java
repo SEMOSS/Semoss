@@ -77,7 +77,7 @@ public class MicrosoftTeamsSendChatMessageReactor extends AbstractMicrosoftTeams
 	private static final String RECIPIENTS = "recipients";
 
 	// the Teams "(You)" chat every user has with themselves
-	static final String SELF_CHAT_ID = "48:notes";
+	public static final String SELF_CHAT_ID = "48:notes";
 
 	public MicrosoftTeamsSendChatMessageReactor() {
 		this.keysToGet = new String[] { CHAT_ID, RECIPIENTS, MESSAGE, HTML, MENTIONS, ATTACHMENT_URLS,

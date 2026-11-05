@@ -63,7 +63,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.node.NodeTranslator;
 import prerna.ds.node.NodeUtils;
@@ -1151,10 +1150,6 @@ final class PlatformAgentToolHandlers {
 		tc.requireWritable(file);
 		if (content == null) {
 			content = "";
-		}
-		User user = tc.ctx.getInsight().getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user != null && user.isAnonymous()) {
-			throw new IllegalArgumentException("Anonymous users are not allowed to save files");
 		}
 		String relativePath = tc.toRelative(file.getAbsolutePath());
 		if (".".equals(relativePath) || relativePath.startsWith("/")) {

@@ -28,7 +28,6 @@
 package prerna.util.usertracking.reactors.recommendations;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,7 +40,6 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IDatabaseEngine;
@@ -53,21 +51,19 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class VizRecommendationsReactor extends AbstractRFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(VizRecommendationsReactor.class);
-	
+
 	public static final String MAX_RECOMMENDATIONS = "max";
 
 	/**
-	 * This reactor generates visualization recommendations based on the data in
-	 * the current frame. It runs 2 R functions, both using historical data
-	 * tracked in server database One script recommends based on exact matches
-	 * and semantic matches of columns and the other uses data types, results
-	 * are combined.
+	 * This reactor generates visualization recommendations based on the data in the
+	 * current frame. It runs 2 R functions, both using historical data tracked in
+	 * server database One script recommends based on exact matches and semantic
+	 * matches of columns and the other uses data types, results are combined.
 	 */
 
 	public VizRecommendationsReactor() {
@@ -76,16 +72,10 @@ public class VizRecommendationsReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		if (user == null) {
-			String message = "Please login to enable recommendation features.";
-			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-			SemossPixelException exception = new SemossPixelException(noun);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
+		requireUser();
 		String baseFolder = Utility.getBaseFolder();
-		File desc = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-user-history.rds");
+		File desc = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR
+				+ "dataitem-user-history.rds");
 		if (!desc.exists()) {
 			String message = "Necessary files missing to generate search results. Please run UpdateQueryData().";
 			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -159,28 +149,18 @@ public class VizRecommendationsReactor extends AbstractRFrameReactor {
 				String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
 						+ "{ BIND(<http://semoss.org/ontologies/Concept/" + queryCol + "/" + table + "> AS ?concept)"
 						+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
-				IRawSelectWrapper it = null;
-				try {
-					it = engine.getOWLEngineFactory().getReadOWL().query(uniqueValQuery);
+				try (IRawSelectWrapper it = engine.getOWLEngineFactory().getReadOWL().query(uniqueValQuery)) {
 					while (it.hasNext()) {
 						Object[] row = it.next().getValues();
 						uniqueValues = Long.parseLong(row[1].toString());
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if(it != null) {
-						try {
-							it.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
+					classLogger.error("Failed to read the unique value count of {} in database {}", conceptProp, db, e);
 				}
 
-				builder.append(inputFrame).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$").append(dbname).append("$")
-						.append(table).append("$").append(column).append("\"").append(", \"").append(dataType)
-						.append("\" , ").append(uniqueValues).append(");");
+				builder.append(inputFrame).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$")
+						.append(dbname).append("$").append(table).append("$").append(column).append("\"").append(", \"")
+						.append(dataType).append("\" , ").append(uniqueValues).append(");");
 
 				// add column alias hash so we can look up alias later
 				aliasHash.put(column + "_" + table + "_" + db, alias);
@@ -197,9 +177,9 @@ public class VizRecommendationsReactor extends AbstractRFrameReactor {
 			maxRecommendations = "5";
 		}
 		builder.append("origDir <- getwd();");
-		builder.append("setwd(\"" + baseFolder + "\\R\\Recommendations\");"); 
-		builder.append("source(\"viz_recom.r\") ; "); 
-		builder.append(recommend + "<-viz_recom_mgr(\"dataitem\", " + inputFrame + ", \"Grid\", 5); "); 
+		builder.append("setwd(\"" + baseFolder + "\\R\\Recommendations\");");
+		builder.append("source(\"viz_recom.r\") ; ");
+		builder.append(recommend + "<-viz_recom_mgr(\"dataitem\", " + inputFrame + ", \"Grid\", 5); ");
 		builder.append("library(jsonlite);");
 		builder.append(outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);");
 		builder.append("setwd(origDir);");

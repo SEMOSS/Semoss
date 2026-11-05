@@ -55,7 +55,7 @@ public class BrainMergeTopicsReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Merges one Brain topic into another; threads, people, goals, notes, and keywords move to the target";
+		return "Merges one Brain topic into another; threads, people, notes, and keywords move to the target";
 	}
 
 	@Override

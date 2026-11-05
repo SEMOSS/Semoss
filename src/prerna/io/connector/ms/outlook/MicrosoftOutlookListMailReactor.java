@@ -64,8 +64,7 @@ public class MicrosoftOutlookListMailReactor extends AbstractListMailReactor {
 		// named is looked up; a thread is read from every folder
 		query.folder = request.conversationId() == null ? helper.resolveDestination(accessToken, null, request.folder())
 				: request.folder();
-		query.subject = request.subject();
-		query.from = request.from();
+		query.terms = request.terms();
 		query.unreadOnly = request.unreadOnly();
 		query.since = request.since() == null ? null : Date.from(request.since());
 		query.includeBody = request.includeBody();

@@ -37,7 +37,6 @@ import org.eclipse.jgit.lib.ObjectId;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -50,9 +49,9 @@ import prerna.util.Utility;
 
 /**
  * This reactor reverts an engine's git repository to a previous commit by
- * creating a new commit that restores the file state of the target commit.
- * Uses the reset --hard / reset --soft pattern to avoid JGit path matching
- * issues with checkout.
+ * creating a new commit that restores the file state of the target commit. Uses
+ * the reset --hard / reset --soft pattern to avoid JGit path matching issues
+ * with checkout.
  */
 public class EngineCommitRestoreReactor extends AbstractReactor {
 
@@ -70,11 +69,6 @@ public class EngineCommitRestoreReactor extends AbstractReactor {
 
 		User user = this.insight.getUser();
 
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			classLogger.error("Unauthorized access: you must be logged in to perform this action");
-			throwAnonymousUserError();
-		}
-
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String commitId = this.keyValue.get(COMMIT_ID_KEY);
 
@@ -90,8 +84,8 @@ public class EngineCommitRestoreReactor extends AbstractReactor {
 		}
 
 		IEngine engine = Utility.getEngine(engineId);
-		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(
-				engine.getCatalogType(), engineId, engine.getEngineName());
+		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(engine.getCatalogType(), engineId,
+				engine.getEngineName());
 
 		try (Git thisGit = Git.open(new File(versionFolder))) {
 			ObjectId commitObjectId = thisGit.getRepository().resolve(commitId);
@@ -122,10 +116,7 @@ public class EngineCommitRestoreReactor extends AbstractReactor {
 				email = "semoss@semoss.org";
 			}
 
-			thisGit.commit()
-					.setMessage("Reverted to commit: " + commitId)
-					.setAuthor(author, email)
-					.call();
+			thisGit.commit().setMessage("Reverted to commit: " + commitId).setAuthor(author, email).call();
 
 			classLogger.info("Reverted engine {} to commit {}", engineId, commitId);
 		} catch (IllegalArgumentException e) {
