@@ -35,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.Git;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -43,12 +42,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Template for the git working-tree reactors exposed for both engines and
- * projects. Owns the whole shell of a request: key organization, the anonymous
- * user guard, target id validation, the permission check, version folder
- * resolution, opening the repository, and error translation. Subclasses supply
- * only the operation itself through
- * {@link #runGitOperation(Git, GitTargetHandle)}, and the engine/project
- * difference arrives as a {@link GitReactorTarget}.
+ * projects. Owns the whole shell of a request: key organization, target id
+ * validation, the permission check, version folder resolution, opening the
+ * repository, and error translation. Subclasses supply only the operation
+ * itself through {@link #runGitOperation(Git, GitTargetHandle)}, and the
+ * engine/project difference arrives as a {@link GitReactorTarget}.
  */
 public abstract class AbstractGitWorktreeReactor extends AbstractReactor {
 
@@ -77,11 +75,7 @@ public abstract class AbstractGitWorktreeReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		User user = this.insight.getUser();
-		if (requiresEditPermission() && AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		String targetId = this.keyValue.get(this.target.getIdKey());
 		if (targetId == null || (targetId = targetId.trim()).isEmpty()) {
@@ -128,8 +122,7 @@ public abstract class AbstractGitWorktreeReactor extends AbstractReactor {
 	protected abstract Map<String, Object> runGitOperation(Git thisGit, GitTargetHandle handle) throws Exception;
 
 	/**
-	 * Whether the caller needs edit rather than view access. Operations that
-	 * require edit access also reject anonymous users.
+	 * Whether the caller needs edit rather than view access.
 	 */
 	protected abstract boolean requiresEditPermission();
 

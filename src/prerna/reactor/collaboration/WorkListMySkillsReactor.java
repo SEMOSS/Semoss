@@ -57,6 +57,7 @@ public class WorkListMySkillsReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Lists the owner's own skills (the ones they made for Collaboration) with id, name, description, and "
-				+ "whether their assistant uses it. Only these can be attached to a routine or the assistant.";
+				+ "whether their assistant uses it. Only these can be turned on for the assistant; a routine can also "
+				+ "use other skills the owner can use.";
 	}
 }

@@ -57,7 +57,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -79,19 +78,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		// throw error is user doesn't have rights to publish new databases
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
@@ -127,7 +114,8 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 
 			ClusterUtil.pushEngine(this.newDatabaseId);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create external graph database {} ({})", this.newDatabaseName,
+					this.newDatabaseId, e);
 			error = true;
 			if (e instanceof SemossPixelException) {
 				throw (SemossPixelException) e;
@@ -257,40 +245,39 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.newDatabaseId,
 					this.tempSmss.getAbsolutePath());
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the smss file for new database {}", this.newDatabaseId, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		classLogger.info("3. Complete");
 
 		// create owl file
 		classLogger.info("4. Start generating engine metadata...");
-		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
-		// add concepts
-		for (String concept : concepts) {
-			String conceptType = conceptTypes.get(concept);
-			owlEngine.addConcept(concept, conceptType);
-			Map<String, Object> propMap = (Map<String, Object>) nodes.get(concept);
-			// add properties
-			for (String prop : propMap.keySet()) {
-				if (!prop.equals(nodeType) && !prop.equals(nodeName)) {
-					String propType = propMap.get(prop).toString();
-					owlEngine.addProp(concept, prop, propType);
+		try (WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL()) {
+			// add concepts
+			for (String concept : concepts) {
+				String conceptType = conceptTypes.get(concept);
+				owlEngine.addConcept(concept, conceptType);
+				Map<String, Object> propMap = (Map<String, Object>) nodes.get(concept);
+				// add properties
+				for (String prop : propMap.keySet()) {
+					if (!prop.equals(nodeType) && !prop.equals(nodeName)) {
+						String propType = propMap.get(prop).toString();
+						owlEngine.addProp(concept, prop, propType);
+					}
 				}
 			}
-		}
-		// add relationships
-		for (String label : edgeLabels) {
-			List<String> rels = (List<String>) edges.get(label);
-			owlEngine.addRelation(rels.get(0), rels.get(1), label);
-		}
+			// add relationships
+			for (String label : edgeLabels) {
+				List<String> rels = (List<String>) edges.get(label);
+				owlEngine.addRelation(rels.get(0), rels.get(1), label);
+			}
 
-		try {
-			owlEngine.commit();
-			owlEngine.export();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			owlEngine.close();
+			try {
+				owlEngine.commit();
+				owlEngine.export();
+			} catch (IOException e) {
+				classLogger.error("Failed to write the OWL of new database {}", this.newDatabaseId, e);
+			}
 		}
 		classLogger.info("4. Complete");
 
@@ -298,7 +285,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		try {
 			UploadUtilities.updateMetadata(this.newDatabaseId, user);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to process the metadata of new database {}", this.newDatabaseId, e);
 		}
 		classLogger.info("5. Complete");
 
@@ -307,7 +294,8 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		try {
 			FileUtils.copyFile(this.tempSmss, this.smssFile);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to copy the temp smss to {} for new database {}", this.smssFile.getName(),
+					this.newDatabaseId, e);
 		}
 		this.tempSmss.delete();
 	}

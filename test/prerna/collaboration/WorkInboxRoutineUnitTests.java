@@ -71,6 +71,8 @@ import org.quartz.Trigger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IRDBMSEngine;
@@ -87,6 +89,7 @@ import prerna.reactor.automation.definition.AutomationDefinitionService;
 import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.reactor.automation.run.AutomationRunStore;
 import prerna.reactor.automation.run.RunAutomationDefinitionReactor;
+import prerna.reactor.agent.skill.SkillProjects;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.reactor.scheduler.SchedulerFactorySingleton;
@@ -241,9 +244,71 @@ class WorkInboxRoutineUnitTests {
 	void savedCustomRoutineKeepsAllOfItsSettingsWhenLoaded() {
 		Map<String, Object> custom = new HashMap<>(WorkCustomRoutine.KIND.defaults());
 		custom.putAll(Map.of("enabled", false, "name", "Project summary", "prompt", "Summarize my project updates",
-				"delivery", "none", "agentId", "chosen-agent", "skills", List.of("chosen-skill")));
+				"delivery", "none", "agentId", "chosen-agent", "skills", List.of("chosen-skill"), "tools",
+				List.of(Map.of("id", "sales-db", "name", "Sales DB", "type", "DATABASE"))));
 		Map<String, Object> result = WorkRoutine.save(WorkCustomRoutine.KIND, user, "custom-routine", custom);
 		custom.forEach((key, value) -> assertEquals(value, result.get(key), key));
+	}
+
+	@Test
+	void customRoutineToolsAreAShortListOfDistinctToolboxes() {
+		Map<String, Object> salesDb = Map.of("id", "sales-db", "name", "Sales DB", "type", "DATABASE");
+		List<Object> invalid = new ArrayList<>(List.of("sales-db", List.of("sales-db"), List.of(salesDb, salesDb),
+				List.of(Map.of("name", "No id", "type", "DATABASE")),
+				List.of(Map.of("id", "checks", "name", "Checks", "type", "GUARDRAIL")),
+				List.of(Map.of("id", "sales-db", "name", "x".repeat(WorkCustomRoutine.MAX_TOOL_NAME + 1), "type",
+						"DATABASE"))));
+		List<Map<String, Object>> eleven = new ArrayList<>();
+		for (int i = 0; i <= WorkCustomRoutine.MAX_TOOLS; i++) {
+			eleven.add(Map.of("id", "tool-" + i, "name", "Tool " + i, "type", "FUNCTION"));
+		}
+		invalid.add(eleven);
+		for (Object tools : invalid) {
+			Map<String, Object> custom = new HashMap<>(WorkCustomRoutine.KIND.defaults());
+			custom.putAll(Map.of("enabled", false, "name", "Pipeline", "prompt", "Summarize the pipeline", "tools", tools));
+			assertThrows(IllegalArgumentException.class,
+					() -> WorkRoutine.save(WorkCustomRoutine.KIND, user, "custom-routine", custom), String.valueOf(tools));
+		}
+		assertEquals(0, CollaborationDbUtils.count("SELECT COUNT(*) FROM WORK_CUSTOM_ROUTINE"));
+	}
+
+	@Test
+	void customRoutineTakesOnlySkillsAndToolsTheOwnerCanUseAndARunDropsOnesTheyLost() {
+		Map<String, Object> salesDb = Map.of("id", "sales-db", "name", "Sales DB", "type", "DATABASE");
+		Map<String, Object> jira = Map.of("id", "jira-app", "name", "Jira", "type", "PROJECT");
+		Map<String, Object> policies = Map.of("id", "policies", "name", "Policy library", "type", "VECTOR");
+		try (MockedStatic<SecurityEngineUtils> engines = mockStatic(SecurityEngineUtils.class);
+				MockedStatic<SecurityProjectUtils> projects = mockStatic(SecurityProjectUtils.class);
+				MockedStatic<SkillProjects> skills = mockStatic(SkillProjects.class)) {
+			skills.when(() -> SkillProjects.isSkillProject(anyString())).thenReturn(true);
+			engines.when(() -> SecurityEngineUtils.userCanViewEngine(user, "sales-db")).thenReturn(true);
+			engines.when(() -> SecurityEngineUtils.userCanViewEngine(user, "policies")).thenReturn(true);
+			projects.when(() -> SecurityProjectUtils.userCanViewProject(user, "jira-app")).thenReturn(true);
+			projects.when(() -> SecurityProjectUtils.userCanViewProject(user, "shared-skill")).thenReturn(true);
+			Map<String, Object> changes = new HashMap<>(Map.of("enabled", false, "name", "Pipeline", "prompt",
+					"Summarize the pipeline", "skills", List.of("shared-skill"), "tools", List.of(salesDb, jira, policies)));
+			Map<String, Object> saved = WorkCustomRoutine.save(user, null, changes);
+			assertEquals(List.of("shared-skill"), saved.get("skills"));
+			assertEquals(List.of(salesDb, jira, policies), saved.get("tools"));
+
+			// a skill or tool never shared with the owner, or an engine named as a project, is refused
+			for (Map.Entry<String, Object> refused : List.of(Map.entry("skills", (Object) List.of("someone-elses-skill")),
+					Map.entry("tools", (Object) List.of(Map.of("id", "hr-db", "name", "HR", "type", "DATABASE"))),
+					Map.entry("tools", (Object) List.of(Map.of("id", "sales-db", "name", "Sales DB", "type", "PROJECT"))))) {
+				Map<String, Object> attempt = new HashMap<>(changes);
+				attempt.put(refused.getKey(), refused.getValue());
+				assertThrows(IllegalArgumentException.class, () -> WorkCustomRoutine.save(user, null, attempt),
+						String.valueOf(refused));
+			}
+			assertEquals(1, CollaborationDbUtils.count("SELECT COUNT(*) FROM WORK_CUSTOM_ROUTINE"));
+
+			// access to the database was taken away after the owner added it
+			engines.when(() -> SecurityEngineUtils.userCanViewEngine(user, "sales-db")).thenReturn(false);
+			Map<String, Object> settings = new HashMap<>(WorkCustomRoutine.KIND.defaults());
+			settings.putAll(Map.of("name", "Pipeline", "prompt", "Summarize the pipeline", "tools",
+					List.of(salesDb, jira, policies)));
+			assertEquals(List.of(jira, policies), WorkCustomRoutine.KIND.agent().config(user, settings).get("mcps"));
+		}
 	}
 
 	@Test
@@ -1204,6 +1269,30 @@ class WorkInboxRoutineUnitTests {
 			assertEquals("Proposed agendas.", last.get("summary"));
 			assertEquals(WorkAgendaRoutine.ID, WorkAgendaRoutine.get(user).get("id"));
 			assertNull(WorkInboxRoutine.get(user).get("lastRun"));
+		}
+	}
+
+	@Test
+	void savingARoutineAlreadyOnNeverTurnsBackgroundAccessBackOn() throws Exception {
+		backgroundAvailable();
+		subscriptions.when(() -> MicrosoftGraphSubscriptionRegistry.forUser("ms-owner")).thenReturn(List.of());
+		user.setAccessToken(microsoftToken("ms-owner"));
+		Scheduler scheduler = mock(Scheduler.class);
+		SchedulerFactorySingleton factory = mock(SchedulerFactorySingleton.class);
+		when(factory.getScheduler()).thenReturn(scheduler);
+		try (MockedStatic<SchedulerFactorySingleton> factories = mockStatic(SchedulerFactorySingleton.class);
+				MockedStatic<SchedulerDatabaseUtility> database = mockStatic(SchedulerDatabaseUtility.class)) {
+			factories.when(SchedulerFactorySingleton::getInstance).thenReturn(factory);
+			database.when(() -> SchedulerDatabaseUtility.insertIntoJobRecipesTable(anyString(), anyString(), anyString(), anyString(),
+					anyString(), any(), anyString(), anyString(), anyString(), anyBoolean(), isNull(), anyList())).thenReturn(true);
+			// turning the routine on is the owner's consent to background access
+			WorkInboxRoutine.save(user, config(true));
+			credentials.verify(() -> MicrosoftGraphCredentialStore.save(any()), times(1));
+			// the owner turns background access off in Connections, then edits the routine, still on
+			savedTokens.clear();
+			assertEquals(true, WorkInboxRoutine.save(user, config(true)).get("enabled"));
+			credentials.verify(() -> MicrosoftGraphCredentialStore.save(any()), times(1));
+			assertFalse(savedTokens.containsKey("ms-owner"));
 		}
 	}
 

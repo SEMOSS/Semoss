@@ -60,6 +60,7 @@ public abstract class AbstractMailReactor extends AbstractConnectorAppReactor {
 	public static final String FOLDER = "folder";
 	public static final String LIMIT = "limit";
 	public static final String OFFSET = "offset";
+	public static final String SEARCH = "search";
 	public static final String SUBJECT = "subject";
 	public static final String FROM = "from";
 	public static final String UNREAD_ONLY = "unreadOnly";

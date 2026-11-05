@@ -119,12 +119,11 @@ import prerna.util.ValueUtils;
  * with 429 and its {@code resetsAt}. Counters are kept by
  * {@link LocalModelUsageCounterStore} on a single node and by
  * {@link RedisModelUsageCounterStore} when SEMOSS runs in a cluster with Redis
- * turned on. When the
- * counters cannot be reached, calls that a limit applies to are refused with
- * {@link ModelUsageLimitException#unavailable()}, which the endpoints answer
- * with 503; calls with no limit still run. Day and longer counters, and sliding
- * windows of an hour or longer, are filled from the inference logs the first
- * time they are read.
+ * turned on. When the counters cannot be reached, calls that a limit applies to
+ * are refused with {@link ModelUsageLimitException#unavailable()}, which the
+ * endpoints answer with 503; calls with no limit still run. Day and longer
+ * counters, and sliding windows of an hour or longer, are filled from the
+ * inference logs the first time they are read.
  * </p>
  */
 public final class ModelUsageGuard {
@@ -181,7 +180,8 @@ public final class ModelUsageGuard {
 	 * @return the ticket to bill when the call ends, or to release when it fails
 	 * @throws ModelUsageLimitException when a limit refuses the call, or the limits
 	 *                                  cannot be checked
-	 * @throws IllegalArgumentException for an anonymous user, who cannot use models
+	 * @throws IllegalArgumentException for a user with no login, who cannot use
+	 *                                  models
 	 */
 	public static ModelUsageTicket admit(User user, IModelEngine engine, ModelUsageRequest request) {
 		if (user == null || engine == null || ValueUtils.isBlank(engine.getEngineId())) {
@@ -238,10 +238,10 @@ public final class ModelUsageGuard {
 	 * @param engineId the model
 	 * @return how limits apply to the person on the model; kept briefly and shared,
 	 *         so it must not be changed
-	 * @throws IllegalArgumentException for an anonymous user
+	 * @throws IllegalArgumentException for a missing user or one with no login
 	 */
 	public static ModelUsageLimitPath pathOf(User user, String engineId) {
-		if (user == null || user.isAnonymous()) {
+		if (user == null) {
 			// throws, with the reason
 			ModelUsageLimitResolver.personOf(user);
 		}
@@ -741,7 +741,8 @@ public final class ModelUsageGuard {
 		}
 		// a cluster without Redis turned on cannot share counters; fall back to memory
 		if (RedisConnectionConfig.fromDIHelper() == null) {
-			classLogger.warn("SEMOSS runs in a cluster but Redis is not enabled; model usage limits are counted per server");
+			classLogger.warn(
+					"SEMOSS runs in a cluster but Redis is not enabled; model usage limits are counted per server");
 			return false;
 		}
 		return true;

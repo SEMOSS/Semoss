@@ -40,7 +40,6 @@ import org.h2.store.fs.FileUtils;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.engine.impl.InsightAdministrator;
@@ -75,9 +74,6 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 
 		// security
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 		if (!SecurityEngineUtils.userCanEditEngine(user, projectId)) {
 			throw new IllegalArgumentException("User does not have permission to add insights in the proejct");
 		}

@@ -32,6 +32,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -42,27 +43,32 @@ import java.util.UUID;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.reactor.agent.skill.SkillProjects;
 
 /**
- * The owner's own routines: an instruction of theirs, done on a schedule by their agent with its auto tools, the
- * answer delivered only to them (email, a Teams message to themselves, or kept in Routines). Many per owner, run by
- * {@link WorkRoutine}.
+ * The owner's own routines: an instruction of theirs, done on a schedule by their agent with its auto tools plus the
+ * skills and tools they add, the answer delivered only to them (email, a Teams message to themselves, or kept in
+ * Routines). Many per owner, run by {@link WorkRoutine}.
  */
 public final class WorkCustomRoutine {
 	public static final String ID = "custom";
 	static final int MAX_ROUTINES = 10;
 	static final int MAX_NAME = 80;
 	static final int MAX_PROMPT = 4000;
+	static final int MAX_TOOLS = 10;
+	static final int MAX_TOOL_NAME = 255;
 	static final Set<String> DELIVERIES = Set.of("email", "teams", "none");
+	/** The catalog types Routines offers: toolboxes (engines and projects with MCP tools) and knowledge (VECTOR). */
+	static final Set<String> TOOL_TYPES = Set.of("PROJECT", "STORAGE", "DATABASE", "FUNCTION", "MODEL", "VECTOR");
 	static final WorkRoutine.Kind KIND = new WorkRoutine.Kind(ID, "WORK_CUSTOM_ROUTINE",
 			"WorkRunCustomRoutine(routineId=[\"{routineId}\"]);", "Routine", "custom-routine.automation.json", "answer",
 			"routine", "result",
 			Map.of("time", "08:00", "days", WorkRoutine.WEEKDAYS.subList(0, 5), "timezone", "UTC", "name", "",
-					"prompt", "", "delivery", "email", "agentId", "", "skills", List.of()),
+					"prompt", "", "delivery", "email", "agentId", "", "skills", List.of(), "tools", List.of()),
 			WorkCustomRoutine::settings, WorkCustomRoutine::inputs, WorkCustomRoutine::agent);
 
 	private WorkCustomRoutine() { }
@@ -112,7 +118,15 @@ public final class WorkCustomRoutine {
 		}
 		// user-dependent checks; validate() covers the shape
 		if (merged.get("skills") instanceof List<?> skills) {
-			merged.put("skills", CollaborationSkills.requireMine(user, skills));
+			merged.put("skills", CollaborationSkills.requireUsable(user, skills));
+		}
+		if (merged.get("tools") instanceof List<?> tools) {
+			for (Object tool : tools) {
+				if (tool instanceof Map<?, ?> ref && !canUseTool(user, ref)) {
+					throw new IllegalArgumentException("Pick tools you can use; " + text(ref.get("name"))
+							+ " is not one of them");
+				}
+			}
 		}
 		String agentId = merged.get("agentId") == null ? "" : String.valueOf(merged.get("agentId")).trim();
 		if (!agentId.isEmpty() && (!SecurityProjectUtils.userCanViewProject(user, agentId)
@@ -172,11 +186,37 @@ public final class WorkCustomRoutine {
 		if (!(input.get("skills") instanceof List<?> skills) || !skills.stream().allMatch(String.class::isInstance)) {
 			throw new IllegalArgumentException("skills must be a list of skill ids");
 		}
+		if (!(input.get("tools") instanceof List<?> tools) || tools.size() > MAX_TOOLS) {
+			throw new IllegalArgumentException("Add at most " + MAX_TOOLS + " tools and knowledge bases in all");
+		}
+		// a run uses only the id; the name and type are what Routines shows
+		List<Map<String, Object>> refs = new ArrayList<>();
+		Set<String> toolIds = new HashSet<>();
+		for (Object tool : tools) {
+			if (!(tool instanceof Map<?, ?> ref) || text(ref.get("id")).isEmpty() || !toolIds.add(text(ref.get("id")))
+					|| !TOOL_TYPES.contains(text(ref.get("type"))) || text(ref.get("name")).length() > MAX_TOOL_NAME) {
+				throw new IllegalArgumentException("Each tool needs its own id, a name and a toolbox or knowledge type");
+			}
+			Map<String, Object> clean = new LinkedHashMap<>();
+			clean.put("id", text(ref.get("id")));
+			clean.put("name", text(ref.get("name")));
+			clean.put("type", text(ref.get("type")));
+			refs.add(clean);
+		}
 		config.put("name", name);
 		config.put("prompt", prompt);
 		config.put("delivery", delivery);
 		config.put("agentId", text(input.get("agentId")));
 		config.put("skills", List.copyOf(skills));
+		config.put("tools", refs);
+	}
+
+	/** Whether the owner can use a tool they added: a project or an engine, by its type, that they can view. */
+	private static boolean canUseTool(User user, Map<?, ?> tool) {
+		String toolId = text(tool.get("id"));
+		return !toolId.isEmpty() && ("PROJECT".equals(tool.get("type"))
+				? SecurityProjectUtils.userCanViewProject(user, toolId)
+				: SecurityEngineUtils.userCanViewEngine(user, toolId));
 	}
 
 	private static Map<String, Object> inputs(Map<String, Object> row, Map<String, Object> config) {
@@ -186,16 +226,26 @@ public final class WorkCustomRoutine {
 		return inputs;
 	}
 
-	/** The agent step: the owner's chosen agent (else the Collaboration Agent), their skills, their instruction. */
+	/** The agent step: the owner's chosen agent (else the Collaboration Agent), skills, tools and instruction. */
 	private static Map<String, Object> agent(User user, Map<String, Object> config) {
 		Map<String, Object> agent = new LinkedHashMap<>();
 		String agentId = text(config.get("agentId"));
 		if (!agentId.isEmpty()) {
 			agent.put("workspaceId", agentId);
 		}
-		List<String> skills = CollaborationSkills.keepMine(user, (List<?>) config.get("skills"));
+		List<String> skills = CollaborationSkills.keepUsable(user, (List<?>) config.get("skills"));
 		if (!skills.isEmpty()) {
 			agent.put("skills", skills);
+		}
+		// a tool the owner lost access to since they added it is dropped, as a skill is
+		List<Map<?, ?>> tools = new ArrayList<>();
+		for (Object tool : (List<?>) config.get("tools")) {
+			if (tool instanceof Map<?, ?> ref && canUseTool(user, ref)) {
+				tools.add(ref);
+			}
+		}
+		if (!tools.isEmpty()) {
+			agent.put("mcps", tools);
 		}
 		// the owner's reference documents; the automation copies them into the run room before the agent starts
 		String routineId = text(config.get("routineId"));

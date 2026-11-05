@@ -44,6 +44,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
@@ -56,6 +58,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.query.parsers.MailSearchParser;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Utility;
 
@@ -81,8 +84,10 @@ import prerna.util.Utility;
  * Two Graph rules are worth knowing, because they are the ones that shape
  * {@link MessageQuery}: {@code $search} and {@code $filter} cannot be combined
  * on messages, and {@code $orderby} is ignored while searching. So a query that
- * asks for text finds by search and narrows the rest in memory, and one that
- * does not filters and orders on the server.
+ * asks for text finds by search, which Graph orders by when each message was
+ * sent, then narrows the result in memory and orders it by when each message
+ * arrived, as every listing is; one that does not filters and orders on the
+ * server.
  */
 public class MicrosoftOutlookMailHelper {
 
@@ -112,11 +117,14 @@ public class MicrosoftOutlookMailHelper {
 	// graph refuses a message over this size on the simple send, and the limit is
 	// on the encoded form rather than the file, so it is checked after encoding
 	private static final long MAX_SEND_BYTES = 4L * 1024L * 1024L;
-	// graph takes a file under this in one attach request; larger needs an upload session
+	// graph takes a file under this in one attach request; larger needs an upload
+	// session
 	private static final int SMALL_ATTACHMENT_BYTES = 3 * 1024 * 1024;
-	// upload chunks are multiples of 320KiB and stay under the 4MB a request may carry
+	// upload chunks are multiples of 320KiB and stay under the 4MB a request may
+	// carry
 	private static final int UPLOAD_CHUNK_BYTES = 320 * 1024 * 10;
-	// RDF_Map, else an environment variable: the largest message sent, in MB, files encoded;
+	// RDF_Map, else an environment variable: the largest message sent, in MB, files
+	// encoded;
 	// Exchange Online's default per mailbox, which an admin can raise to 150
 	public static final String MAX_MESSAGE_MB_SETTING = "MS_MAIL_MAX_MESSAGE_MB";
 	private static final int DEFAULT_MAX_MESSAGE_MB = 35;
@@ -132,6 +140,64 @@ public class MicrosoftOutlookMailHelper {
 			"conversationhistory", "deleteditems", "drafts", "inbox", "junkemail", "localfailures", "msgfolderroot",
 			"outbox", "recoverableitemsdeletions", "scheduled", "searchfolders", "sentitems", "serverfailures",
 			"syncissues");
+
+	/**
+	 * Messages by when they arrived, newest first, for the reads Graph does not
+	 * order that way: a search, which it orders by when each message was sent, and
+	 * a conversation, which it will not order alongside its filter.
+	 */
+	private static final Comparator<Map<String, Object>> NEWEST_FIRST = Comparator
+			.comparing((Map<String, Object> message) -> String.valueOf(message.getOrDefault("receivedDateTime", "")))
+			.reversed();
+
+	/**
+	 * What the keyword query syntax reads as its own, taken as plain text in a
+	 * search.
+	 */
+	private static final Pattern KEYWORD_SYNTAX = Pattern.compile("[\"\\\\():<>=]");
+
+	/**
+	 * The message properties Graph's keyword query reads beyond the fields a search
+	 * names itself, which a search passes through when typed before a value, as in
+	 * {@code received>=2026-10-01}.
+	 */
+	private static final Set<String> KEYWORD_PROPERTIES = Set.of("attachment", "bcc", "hasattachment", "hasattachments",
+			"importance", "kind", "participants", "received", "recipients", "sent", "size");
+
+	/**
+	 * What the value of one of those properties may hold unquoted: words,
+	 * addresses, dates such as {@code 10/01/2026}, and ranges such as
+	 * {@code 1..500000}.
+	 */
+	private static final Pattern KEYWORD_VALUE = Pattern.compile("[A-Za-z0-9@._+\\-/:]+");
+
+	/**
+	 * The words the keyword query syntax joins clauses with, searched as words
+	 * instead.
+	 */
+	private static final Set<String> KEYWORD_JOINS = Set.of("AND", "OR", "NOT", "NEAR", "ONEAR");
+
+	/** What a walk of the folder tree reads of each folder. */
+	private static final String TREE_FOLDER_FIELDS = "id,displayName,totalItemCount,unreadItemCount,childFolderCount";
+
+	/** How many folders one read of a level of the folder tree asks for. */
+	private static final int FOLDER_PAGE_SIZE = 100;
+
+	/**
+	 * The most folders a walk of the folder tree reads, so a huge mailbox cannot
+	 * stall a listing.
+	 */
+	private static final int MAX_TREE_FOLDERS = 1000;
+
+	/** How many levels of folders a walk of the folder tree goes down. */
+	private static final int MAX_TREE_DEPTH = 10;
+
+	/**
+	 * A Graph folder id is a long run of the characters Graph writes ids with,
+	 * which no name a person gives a folder looks like. A slash is not among them,
+	 * so a long path such as {@code Inbox/Clients/Contoso} is never taken for one.
+	 */
+	private static final Pattern FOLDER_ID = Pattern.compile("[A-Za-z0-9+=_-]{60,}");
 
 	private final String graphBaseUrl;
 
@@ -174,8 +240,9 @@ public class MicrosoftOutlookMailHelper {
 		int requestBytes = body.getBytes(StandardCharsets.UTF_8).length;
 		long maxMessageBytes = maxMessageBytes();
 		if (requestBytes > maxMessageBytes) {
-			throw new IOException("The email is " + (requestBytes / (1024 * 1024)) + " MB with its files encoded, over the "
-					+ (maxMessageBytes / (1024 * 1024)) + " MB limit for one message (" + MAX_MESSAGE_MB_SETTING + ")");
+			throw new IOException("The email is " + (requestBytes / (1024 * 1024))
+					+ " MB with its files encoded, over the " + (maxMessageBytes / (1024 * 1024))
+					+ " MB limit for one message (" + MAX_MESSAGE_MB_SETTING + ")");
 		}
 		if (requestBytes > MAX_SEND_BYTES) {
 			if (message.get("attachments") instanceof List<?> files && !files.isEmpty()) {
@@ -197,7 +264,8 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
-	 * The largest message sent, files encoded, from {@link #MAX_MESSAGE_MB_SETTING}.
+	 * The largest message sent, files encoded, from
+	 * {@link #MAX_MESSAGE_MB_SETTING}.
 	 */
 	public static long maxMessageBytes() {
 		String value = Utility.getDIHelperProperty(MAX_MESSAGE_MB_SETTING);
@@ -217,8 +285,8 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
-	 * How many bytes of files fit in one message under that limit, once base64
-	 * adds its third and the body and headers have their room.
+	 * How many bytes of files fit in one message under that limit, once base64 adds
+	 * its third and the body and headers have their room.
 	 */
 	public static long maxAttachmentBytes() {
 		return Math.max(0, (maxMessageBytes() - MESSAGE_HEADROOM_BYTES) / 4 * 3);
@@ -580,21 +648,25 @@ public class MicrosoftOutlookMailHelper {
 	 *
 	 * <p>
 	 * Graph takes a well known name such as {@code archive} and an id, and nothing
-	 * else, so a folder somebody made is looked up by the name they call it. Only
-	 * the top level of the mailbox is searched, which is what {@link #listFolders}
-	 * reads, so a folder nested inside another has to be named by its id.
+	 * else, so a folder somebody made is looked up by the name they call it, or by
+	 * its path such as {@code Inbox/Projects}, anywhere in the mailbox. A value
+	 * shaped like a Graph id is passed straight through, since walking the folder
+	 * tree for it would cost a read for every folder that holds others.
 	 * </p>
 	 *
 	 * @param accessToken the token to read with
 	 * @param mailbox     the mailbox, or null for the signed in user
-	 * @param destination a well known name, a folder id, or the name of a folder in
-	 *                    the mailbox
+	 * @param destination a well known name, a folder id, or the name or path of a
+	 *                    folder in the mailbox
 	 * @return what Graph will accept for that folder
 	 */
 	public String resolveDestination(String accessToken, String mailbox, String destination) {
 		String wanted = destination.trim();
 		if (WELL_KNOWN_FOLDERS.contains(wanted.toLowerCase(Locale.ROOT))) {
 			return wanted.toLowerCase(Locale.ROOT);
+		}
+		if (isFolderIdShaped(wanted)) {
+			return wanted;
 		}
 		String byName = resolveFolderId(accessToken, mailbox, wanted);
 		// nothing of that name leaves the value as it was given, which is what an id
@@ -708,7 +780,11 @@ public class MicrosoftOutlookMailHelper {
 		url.append("/messages?$select=").append(query.includeBody ? MESSAGE_FIELDS : MESSAGE_FIELDS_NO_BODY);
 		url.append("&$top=").append(Math.max(1, query.top));
 
-		boolean searching = query.from != null || query.subject != null;
+		List<MailSearchParser.Term> terms = new ArrayList<>(query.terms);
+		terms.addAll(MailSearchParser.parse(MailSearchParser.Field.FROM, query.from));
+		terms.addAll(MailSearchParser.parse(MailSearchParser.Field.SUBJECT, query.subject));
+		String search = keywordQuery(terms);
+		boolean searching = !search.isEmpty();
 		if (!searching && query.skip > 0) {
 			// graph will not skip alongside a text search, so a search always reads
 			// from the first message
@@ -717,14 +793,7 @@ public class MicrosoftOutlookMailHelper {
 		if (searching) {
 			// $search cannot be combined with $filter, and ordering is ignored while
 			// searching, so the rest of the query is applied below in memory
-			List<String> terms = new ArrayList<>();
-			if (query.from != null) {
-				terms.add("from:" + query.from);
-			}
-			if (query.subject != null) {
-				terms.add("subject:" + query.subject);
-			}
-			url.append("&$search=").append(encode('"' + String.join(" AND ", terms) + '"'));
+			url.append("&$search=").append(encode('"' + search + '"'));
 		} else {
 			List<String> filters = new ArrayList<>();
 			if (query.since != null) {
@@ -752,7 +821,9 @@ public class MicrosoftOutlookMailHelper {
 		List<Map<String, Object>> messages = readList(response);
 
 		if (searching) {
-			// what the server could not be asked for alongside the text search
+			// what the server could not be asked for alongside the text search, and the
+			// order every listing has, by arrival, since a search comes back by when
+			// each message was sent and the page is cut from this
 			List<Map<String, Object>> narrowed = new ArrayList<>();
 			for (Map<String, Object> message : messages) {
 				if (query.unreadOnly && Boolean.TRUE.equals(message.get("isRead"))) {
@@ -766,9 +837,103 @@ public class MicrosoftOutlookMailHelper {
 				}
 				narrowed.add(message);
 			}
+			narrowed.sort(NEWEST_FIRST);
 			messages = narrowed;
 		}
 		return messages;
+	}
+
+	/**
+	 * Write a search's terms as the keyword query Graph's {@code $search} reads on
+	 * messages, every clause joined by {@code AND} and an excluded one led by
+	 * {@code NOT}.
+	 *
+	 * <p>
+	 * Each word of a term is a clause of its own, so {@code subject:budget report}
+	 * typed for the subject means a subject holding both words, where the query
+	 * syntax would narrow only the first. A phrase keeps its words together in
+	 * quotes, escaped because the whole query sits in quotes too. A term typed
+	 * after one of the properties Graph reads, such as {@code received>=2026-10-01}
+	 * or {@code participants:"Ada L"}, passes through as that property; any other
+	 * name, such as the {@code Re} of {@code Re:budget}, is searched for as a word.
+	 * What the syntax would read as its own, such as parentheses, quotes, a leading
+	 * minus, and a bare {@code AND}, is searched as plain text.
+	 * </p>
+	 *
+	 * @param terms the search's terms
+	 * @return the query, empty when there is nothing to look for
+	 */
+	static String keywordQuery(List<MailSearchParser.Term> terms) {
+		List<String> clauses = new ArrayList<>();
+		for (MailSearchParser.Term term : terms) {
+			for (String clause : keywordClauses(term)) {
+				clauses.add(term.excluded() ? "NOT " + clause : clause);
+			}
+		}
+		return String.join(" AND ", clauses);
+	}
+
+	/**
+	 * Write one term as keyword query clauses: one for a phrase or for a property
+	 * Graph reads, and one for each word otherwise.
+	 *
+	 * @param term the term
+	 * @return the clauses, empty when the term holds nothing to look for
+	 */
+	private static List<String> keywordClauses(MailSearchParser.Term term) {
+		MailSearchParser.Operator operator = term.operator();
+		if (operator != null) {
+			String property = operator.name().toLowerCase(Locale.ROOT);
+			if (KEYWORD_PROPERTIES.contains(property)) {
+				if (term.phrase()) {
+					String phrase = keywordText(term.value());
+					return phrase.isEmpty() ? List.of()
+							: List.of(property + operator.relation() + "\\\"" + phrase + "\\\"");
+				}
+				if (KEYWORD_VALUE.matcher(term.value()).matches()) {
+					return List.of(property + operator.relation() + term.value());
+				}
+			}
+			return keywordWords("", operator.name() + " " + term.value());
+		}
+		String prefix = term.field().getPrefix() == null ? "" : term.field().getPrefix() + ":";
+		if (term.phrase()) {
+			String phrase = keywordText(term.value());
+			return phrase.isEmpty() ? List.of() : List.of(prefix + "\\\"" + phrase + "\\\"");
+		}
+		return keywordWords(prefix, term.value());
+	}
+
+	/**
+	 * Text a search typed, without what the keyword query syntax would read as its
+	 * own.
+	 *
+	 * @param text the text
+	 * @return the text, trimmed
+	 */
+	private static String keywordText(String text) {
+		return KEYWORD_SYNTAX.matcher(text).replaceAll(" ").trim();
+	}
+
+	/**
+	 * Write text as one clause for each of its words.
+	 *
+	 * @param prefix the field every word is narrowed to, such as {@code subject:},
+	 *               or empty
+	 * @param text   the text
+	 * @return the clauses
+	 */
+	private static List<String> keywordWords(String prefix, String text) {
+		List<String> clauses = new ArrayList<>();
+		for (String word : keywordText(text).split("\\s+")) {
+			// a leading minus would exclude the word, and only the term says what is
+			// excluded
+			String plain = word.replaceFirst("^-+", "");
+			if (!plain.isEmpty()) {
+				clauses.add(prefix + (KEYWORD_JOINS.contains(plain) ? plain.toLowerCase(Locale.ROOT) : plain));
+			}
+		}
+		return clauses;
 	}
 
 	/**
@@ -800,10 +965,7 @@ public class MicrosoftOutlookMailHelper {
 		String response = HttpHelperUtility.getRequest(url.toString(), textBodyHeaders(accessToken), null, null, null);
 		throwOnError(response, "read the conversation");
 		List<Map<String, Object>> messages = new ArrayList<>(readList(response));
-		messages.sort(Comparator
-				.comparing(
-						(Map<String, Object> message) -> String.valueOf(message.getOrDefault("receivedDateTime", "")))
-				.reversed());
+		messages.sort(NEWEST_FIRST);
 		return messages;
 	}
 
@@ -819,6 +981,23 @@ public class MicrosoftOutlookMailHelper {
 		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "?$select=" + MESSAGE_FIELDS;
 		String response = HttpHelperUtility.getRequest(url, textBodyHeaders(accessToken), null, null, null);
 		throwOnError(response, "read a message");
+		return readMap(response);
+	}
+
+	/**
+	 * Read the body of one message as it was written, html for an html message, for
+	 * showing it the way Outlook does. {@link #getMessage} reads the body as
+	 * Outlook's text rendering instead, which is what everything else uses.
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param messageId   the message to read
+	 * @return the message with only its {@code body}, as Graph returned it
+	 */
+	public Map<String, Object> getMessageBody(String accessToken, String mailbox, String messageId) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "?$select=body";
+		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		throwOnError(response, "read the body of a message");
 		return readMap(response);
 	}
 
@@ -925,31 +1104,71 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
-	 * List the folders of a mailbox.
+	 * List every folder of a mailbox, the ones nested inside others included, each
+	 * followed by the folders inside it.
+	 *
+	 * <p>
+	 * Graph lists one level at a time, so every folder that holds others costs a
+	 * read of its own. The walk stops after {@value #MAX_TREE_FOLDERS} folders or
+	 * {@value #MAX_TREE_DEPTH} levels, and a level below the top that Graph will
+	 * not read is left out rather than failing the whole listing.
+	 * </p>
 	 *
 	 * @param accessToken the token to read with
 	 * @param mailbox     the mailbox, or null for the signed in user
-	 * @return the folders as Graph returned them
+	 * @return the folders, in the order a folder tree shows them
 	 */
-	public List<Map<String, Object>> listFolders(String accessToken, String mailbox) {
-		return listFolders(accessToken, mailbox, 100, 0);
+	public List<FolderNode> listFolderTree(String accessToken, String mailbox) {
+		List<FolderNode> tree = new ArrayList<>();
+		appendFolderLevel(accessToken, mailbox, null, null, 0, tree);
+		return tree;
 	}
 
 	/**
-	 * List one page of the folders of a mailbox.
+	 * Add one level of the folder tree, and below each folder the folders inside
+	 * it.
 	 *
 	 * @param accessToken the token to read with
 	 * @param mailbox     the mailbox, or null for the signed in user
-	 * @param top         how many folders to read
-	 * @param skip        how many folders to skip first
-	 * @return the folders as Graph returned them
+	 * @param parentId    the folder whose children are read, or null for the top of
+	 *                    the mailbox
+	 * @param parentPath  the parent's path, or null for the top of the mailbox
+	 * @param depth       how many folders the children sit in
+	 * @param tree        the folders read so far, added to
 	 */
-	public List<Map<String, Object>> listFolders(String accessToken, String mailbox, int top, int skip) {
-		String url = userPath(mailbox) + "/mailFolders?$top=" + Math.max(1, top) + "&$skip=" + Math.max(0, skip)
-				+ "&$select=id,displayName,totalItemCount,unreadItemCount";
-		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
-		throwOnError(response, "list the folders of the mailbox");
-		return readList(response);
+	private void appendFolderLevel(String accessToken, String mailbox, String parentId, String parentPath, int depth,
+			List<FolderNode> tree) {
+		String base = userPath(mailbox) + "/mailFolders";
+		String url = (parentId == null ? base : base + "/" + encode(parentId) + "/childFolders") + "?$top="
+				+ FOLDER_PAGE_SIZE + "&$select=" + TREE_FOLDER_FIELDS;
+		while (url != null) {
+			Map<String, Object> page;
+			try {
+				String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+				throwOnError(response, "list the folders of the mailbox");
+				page = readMap(response);
+			} catch (RuntimeException e) {
+				if (parentId == null) {
+					throw e;
+				}
+				classLogger.warn("Could not read the folders inside mail folder '{}'", parentPath, e);
+				return;
+			}
+			for (Map<String, Object> folder : values(page)) {
+				if (tree.size() >= MAX_TREE_FOLDERS) {
+					classLogger.warn("Stopped listing mail folders after {}", MAX_TREE_FOLDERS);
+					return;
+				}
+				String name = folder.get("displayName") instanceof String displayName ? displayName : "";
+				String path = parentPath == null ? name : parentPath + "/" + name;
+				tree.add(new FolderNode(folder, parentId, path, depth));
+				if (folder.get("id") instanceof String id && depth + 1 < MAX_TREE_DEPTH
+						&& folder.get("childFolderCount") instanceof Number children && children.intValue() > 0) {
+					appendFolderLevel(accessToken, mailbox, id, path, depth + 1, tree);
+				}
+			}
+			url = page != null && page.get("@odata.nextLink") instanceof String next ? next : null;
+		}
 	}
 
 	/**
@@ -958,7 +1177,8 @@ public class MicrosoftOutlookMailHelper {
 	 *
 	 * @param accessToken the token to read with
 	 * @param mailbox     the mailbox, or null for the signed in user
-	 * @param parentId    the parent folder id or well known name, or null for the top level
+	 * @param parentId    the parent folder id or well known name, or null for the
+	 *                    top level
 	 * @return the folders, each with its id, displayName and childFolderCount
 	 */
 	public List<Map<String, Object>> listFolderChildren(String accessToken, String mailbox, String parentId) {
@@ -990,7 +1210,8 @@ public class MicrosoftOutlookMailHelper {
 	 *
 	 * @param accessToken the token to write with
 	 * @param mailbox     the mailbox, or null for the signed in user
-	 * @param parentId    the parent folder id or well known name, or null for the top level
+	 * @param parentId    the parent folder id or well known name, or null for the
+	 *                    top level
 	 * @param name        the folder name
 	 * @return the folder, with its id and displayName
 	 */
@@ -1009,24 +1230,33 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
-	 * Find the id of a folder by the name a person would call it.
+	 * Find the id of a folder by the name a person would call it, anywhere in the
+	 * mailbox.
 	 *
 	 * <p>
 	 * Graph takes a well known name such as {@code inbox} straight through, so this
-	 * is only needed for a folder somebody made.
+	 * is only needed for a folder somebody made. A path such as
+	 * {@code Inbox/Projects} names one folder exactly; a bare name that more than
+	 * one folder has finds the one nearest the top of the mailbox.
+	 * </p>
 	 *
 	 * @param accessToken the token to read with
 	 * @param mailbox     the mailbox, or null for the signed in user
-	 * @param displayName the folder name to look for
+	 * @param displayName the folder name or path to look for
 	 * @return the folder id, or null when the mailbox has no such folder
 	 */
 	public String resolveFolderId(String accessToken, String mailbox, String displayName) {
-		for (Map<String, Object> folder : listFolders(accessToken, mailbox)) {
-			if (displayName.equalsIgnoreCase(String.valueOf(folder.get("displayName")))) {
-				return (String) folder.get("id");
+		FolderNode byName = null;
+		for (FolderNode node : listFolderTree(accessToken, mailbox)) {
+			if (displayName.equalsIgnoreCase(node.path())) {
+				return (String) node.folder().get("id");
+			}
+			if ((byName == null || node.depth() < byName.depth())
+					&& displayName.equalsIgnoreCase(String.valueOf(node.folder().get("displayName")))) {
+				byName = node;
 			}
 		}
-		return null;
+		return byName == null ? null : (String) byName.folder().get("id");
 	}
 
 	/**
@@ -1041,9 +1271,10 @@ public class MicrosoftOutlookMailHelper {
 	public Map<String, Object> ensureChildFolder(String accessToken, String mailbox, String parent,
 			String displayName) {
 		String url = userPath(mailbox) + "/mailFolders/" + encode(parent) + "/childFolders";
-		String response = HttpHelperUtility.getRequest(url + "?$select=id,displayName&$filter="
-				+ encode("displayName eq '" + displayName.replace("'", "''") + "'"), headers(accessToken), null, null,
-				null);
+		String response = HttpHelperUtility.getRequest(
+				url + "?$select=id,displayName&$filter="
+						+ encode("displayName eq '" + displayName.replace("'", "''") + "'"),
+				headers(accessToken), null, null, null);
 		throwOnError(response, "find a mail folder");
 		List<Map<String, Object>> found = readList(response);
 		if (!found.isEmpty()) {
@@ -1133,9 +1364,18 @@ public class MicrosoftOutlookMailHelper {
 	 * @param response the response body
 	 * @return the collection, empty when there is none
 	 */
-	@SuppressWarnings("unchecked")
 	private static List<Map<String, Object>> readList(String response) {
-		Map<String, Object> parsed = readMap(response);
+		return values(readMap(response));
+	}
+
+	/**
+	 * Read the {@code value} collection out of a parsed Graph response.
+	 *
+	 * @param parsed the response, or null
+	 * @return the collection, empty when there is none
+	 */
+	@SuppressWarnings("unchecked")
+	private static List<Map<String, Object>> values(Map<String, Object> parsed) {
 		if (parsed == null) {
 			return new ArrayList<>();
 		}
@@ -1144,6 +1384,17 @@ public class MicrosoftOutlookMailHelper {
 			return new ArrayList<>();
 		}
 		return (List<Map<String, Object>>) value;
+	}
+
+	/**
+	 * Whether a value somebody gave as a folder is shaped like a Graph folder id
+	 * rather than a name.
+	 *
+	 * @param value the value, trimmed
+	 * @return true when it can only be an id
+	 */
+	private static boolean isFolderIdShaped(String value) {
+		return FOLDER_ID.matcher(value).matches();
 	}
 
 	/**
@@ -1240,10 +1491,16 @@ public class MicrosoftOutlookMailHelper {
 		 */
 		public int skip = 0;
 
-		/** Text the sender has to contain, which makes this a search. */
+		/**
+		 * What a search typed by a person looks for, as {@link MailSearchParser} reads
+		 * it, which makes this a search. The sender and subject below add to it.
+		 */
+		public List<MailSearchParser.Term> terms = List.of();
+
+		/** Words the sender has to contain, which makes this a search. */
 		public String from = null;
 
-		/** Text the subject has to contain, which makes this a search. */
+		/** Words the subject has to contain, which makes this a search. */
 		public String subject = null;
 
 		/** The oldest message to return. */
@@ -1264,6 +1521,19 @@ public class MicrosoftOutlookMailHelper {
 		 */
 		public String conversationId = null;
 
+	}
+
+	/**
+	 * One folder of a mailbox's folder tree.
+	 *
+	 * @param folder   the folder as Graph returned it
+	 * @param parentId the id of the folder it sits in, or null at the top of the
+	 *                 mailbox
+	 * @param path     its display name after those of the folders it sits in,
+	 *                 separated by {@code /}
+	 * @param depth    how many folders it sits in, 0 at the top of the mailbox
+	 */
+	public record FolderNode(Map<String, Object> folder, String parentId, String path, int depth) {
 	}
 
 }

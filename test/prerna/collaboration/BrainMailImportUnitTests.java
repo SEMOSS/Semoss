@@ -25,45 +25,24 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.engine;
+package prerna.collaboration;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import org.junit.jupiter.api.Test;
 
-public abstract class AbstractEngineFileReactor extends AbstractReactor {
+class BrainMailImportUnitTests {
 
-	protected static final Logger classLogger = LogManager.getLogger(AbstractEngineFileReactor.class);
-
-	/**
-	 * 
-	 * @param user
-	 */
-	protected void validateUserAndEngineAccess(User user) {
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account to retrieve the function engine files",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
-
-		if (!SecurityQueryUtils.userIsPublisher(user)) {
-			throwUserNotPublisherError();
-		}
+	@Test
+	void aSendersDisplayNameAlwaysFitsItsColumn() {
+		assertEquals("Dana Smith", BrainMailImport.displayName("Dana Smith"));
+		String spoofed = "x".repeat(300);
+		assertEquals("x".repeat(255), BrainMailImport.displayName(spoofed));
+		// an emoji across the cut is dropped whole, never left half a pair
+		String emoji = "x".repeat(254) + "\uD83D\uDE00" + "tail";
+		String cut = BrainMailImport.displayName(emoji);
+		assertEquals("x".repeat(254), cut);
+		assertFalse(Character.isHighSurrogate(cut.charAt(cut.length() - 1)));
 	}
-
 }

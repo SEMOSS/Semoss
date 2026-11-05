@@ -38,6 +38,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetUserConversationRoomsReactor extends AbstractReactor {
+
 	private static final String INCLUDE_UNNAMED_ROOMS = "includeUnnamedRooms";
 	private static final String INCLUDE_CHILD_ROOMS = "includeChildRooms";
 
@@ -51,10 +52,7 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 
 		String roomOptionsSearch = this.keyValue.get("roomOptionsSearch");
 		if (roomOptionsSearch != null) {
@@ -83,8 +81,7 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		}
 
 		String search = this.keyValue.get(ReactorKeysEnum.SEARCH.getKey());
-		if (search != null && !search.trim().isEmpty()
-				&& (projectId == null || projectId.trim().isEmpty())) {
+		if (search != null && !search.trim().isEmpty() && (projectId == null || projectId.trim().isEmpty())) {
 			throw new IllegalArgumentException("A project must be provided or available from the current insight");
 		}
 
@@ -97,7 +94,6 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 
 		boolean includeUnnamedRooms = getBoolean(INCLUDE_UNNAMED_ROOMS, false);
 		boolean includeChildRooms = getBoolean(INCLUDE_CHILD_ROOMS, false);
-
 
 		// Call new overload of getUserConversations
 		List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(

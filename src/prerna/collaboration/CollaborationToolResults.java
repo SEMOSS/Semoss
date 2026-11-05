@@ -50,9 +50,10 @@ final class CollaborationToolResults {
 	// enough of a last message to tell what the chat is about
 	private static final int LAST_MESSAGE_CHARS = 300;
 
-	// tools whose results carry UI-only copies, links and defaults the model never uses
-	private static final Set<String> CLEANED = Set.of("ReadThread", "ListChatMessages", "ListEvents", "ListM365Mail",
-			"SearchFiles");
+	// tools whose results carry UI-only copies, links and defaults the model never
+	// uses
+	private static final Set<String> CLEANED = Set.of("ReadThread", "ListChatMessages", "SearchTeamsMessages",
+			"ListEvents", "ListM365Mail", "SearchFiles");
 	// formatted originals and links: the model reads text and acts by id
 	private static final Set<String> DROPPED_KEYS = Set.of("displayBody", "webLink", "webUrl", "lastModifiedDateTime",
 			"hostedContents", "bodyTruncated", "uniqueBodyTruncated");
@@ -62,7 +63,8 @@ final class CollaborationToolResults {
 	// an invite body is mostly join details
 	private static final int EVENT_BODY_CHARS = 1000;
 	private static final int EVENT_ATTENDEES = 10;
-	// a page of mail shares one body budget, so a call for 50 or 100 full mails cannot fill the context
+	// a page of mail shares one body budget, so a call for 50 or 100 full mails
+	// cannot fill the context
 	static final int MAIL_PAGE_BODY_CHARS = 30_000;
 
 	private CollaborationToolResults() {
@@ -95,8 +97,10 @@ final class CollaborationToolResults {
 		return output;
 	}
 
-	// id (the chatId other tools take), kind, name, last activity and unread, the last message's
-	// sender, time and start, and for a 1:1 the other person; no links, member ids or roles
+	// id (the chatId other tools take), kind, name, last activity and unread, the
+	// last message's
+	// sender, time and start, and for a 1:1 the other person; no links, member ids
+	// or roles
 	@SuppressWarnings("unchecked")
 	private static String listChats(String output, User user) {
 		Map<String, Object> result = CollaborationDbUtils.parseMap(output);
@@ -115,14 +119,15 @@ final class CollaborationToolResults {
 			put(out, "chatType", chat.get("chatType"));
 			put(out, "name", chat.get("displayName") != null ? chat.get("displayName") : chat.get("topic"));
 			put(out, "hasUnread", chat.get("hasUnread"));
-			// lastAt is when the last message came; Graph's lastUpdatedDateTime tracks chat edits, not messages
+			// lastAt is when the last message came; Graph's lastUpdatedDateTime tracks chat
+			// edits, not messages
 			if (chat.get("lastMessage") instanceof Map<?, ?> last) {
 				put(out, "lastAt", last.get("createdDateTime"));
 				Map<String, Object> message = new LinkedHashMap<>();
 				put(message, "from", last.get("fromName"));
 				if (last.get("body") instanceof String body && !body.isBlank()) {
-					message.put("text", body.length() > LAST_MESSAGE_CHARS
-							? body.substring(0, LAST_MESSAGE_CHARS) + "..." : body);
+					message.put("text",
+							body.length() > LAST_MESSAGE_CHARS ? body.substring(0, LAST_MESSAGE_CHARS) + "..." : body);
 				}
 				if (!message.isEmpty()) {
 					out.put("lastMessage", message);
@@ -131,7 +136,8 @@ final class CollaborationToolResults {
 			if ("oneOnOne".equals(chat.get("chatType")) && chat.get("members") instanceof List<?> members) {
 				for (Object m : members) {
 					if (m instanceof Map<?, ?> member
-							&& !(member.get("email") instanceof String email && email.toLowerCase(Locale.ROOT).equals(me))
+							&& !(member.get("email") instanceof String email
+									&& email.toLowerCase(Locale.ROOT).equals(me))
 							&& (member.get("name") != null || member.get("email") != null)) {
 						Map<String, Object> with = new LinkedHashMap<>();
 						put(with, "name", member.get("name"));
@@ -148,7 +154,8 @@ final class CollaborationToolResults {
 		return CollaborationDbUtils.toJson(trimmed);
 	}
 
-	// cuts every body on the page to an equal share of MAIL_PAGE_BODY_CHARS, and says so
+	// cuts every body on the page to an equal share of MAIL_PAGE_BODY_CHARS, and
+	// says so
 	@SuppressWarnings("unchecked")
 	private static void shareMailBodies(Object result) {
 		if (!(result instanceof Map<?, ?> page) || !(page.get("messages") instanceof List<?> messages)
@@ -218,7 +225,8 @@ final class CollaborationToolResults {
 		return value;
 	}
 
-	// the first attendees by name and address, the response only when given, and the full count
+	// the first attendees by name and address, the response only when given, and
+	// the full count
 	private static void putAttendees(Map<String, Object> out, List<?> attendees) {
 		List<Map<String, Object>> kept = new ArrayList<>();
 		for (Object a : attendees) {

@@ -102,8 +102,6 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 
 	@Test
 	void testDefaultVariables() {
-		assertFalse(AbstractSecurityUtils.anonymousUsersEnabled());
-		assertFalse(AbstractSecurityUtils.anonymousUserUploadData());
 		assertFalse(AbstractSecurityUtils.adminSetExporter());
 		assertFalse(AbstractSecurityUtils.adminOnlyProjectAdd());
 		assertFalse(AbstractSecurityUtils.adminOnlyProjectDelete());
