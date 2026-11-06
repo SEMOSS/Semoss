@@ -581,6 +581,12 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("SORT_ORDER", INTEGER_DATATYPE_NAME),
 				// the chat room the owner works this item in
 				Pair.with("ROOM_ID", VARCHAR_50)));
+		// Retain all rooms opened for an item, while WORK_TASK.ROOM_ID remains the latest shortcut.
+		addTable("WORK_TASK_ROOM", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("TASK_ID", VARCHAR_50),
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("LINKED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// a work item can sit under several topics: the products and the clients it touches
 		addTable("WORK_TASK_TOPIC", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,

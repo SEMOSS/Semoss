@@ -54,9 +54,7 @@ public final class WorkTaskBrief {
 		}
 		try {
 			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-			String taskId = CollaborationDbUtils.queryOne("SELECT TASK_ID FROM WORK_TASK WHERE OWNER_ID = ? AND "
-					+ "OWNER_TYPE = ? AND ROOM_ID = ?", rs -> rs.getString("TASK_ID"), owner.getValue0(),
-					owner.getValue1(), room.getId());
+			String taskId = WorkTaskUtils.taskForRoom(owner.getValue0(), owner.getValue1(), room.getId());
 			if (taskId == null) {
 				return null;
 			}
