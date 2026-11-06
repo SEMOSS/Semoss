@@ -66,16 +66,16 @@ public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Configuration map is null or empty");
 		}
 
-		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
+		this.connectionUrl = getOptionalStringValue(configMap, AbstractSqlQueryUtil.CONNECTION_URL, null);
 
-		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
-		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
-		this.httpPath = (String) configMap.get(AbstractSqlQueryUtil.HTTP_PATH);
-		this.uid = (String) configMap.get(AbstractSqlQueryUtil.UID);
-		this.pwd = (String) configMap.get(AbstractSqlQueryUtil.PWD);
-		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
-		this.database = (String) configMap.get(AbstractSqlQueryUtil.DATABASE);
-		this.schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
+		this.hostname = getOptionalStringValue(configMap, AbstractSqlQueryUtil.HOSTNAME, null);
+		this.port = getOptionalStringValue(configMap, AbstractSqlQueryUtil.PORT, null);
+		this.httpPath = getOptionalStringValue(configMap, AbstractSqlQueryUtil.HTTP_PATH, null);
+		this.uid = getOptionalStringValue(configMap, AbstractSqlQueryUtil.UID, null);
+		this.pwd = getOptionalStringValue(configMap, AbstractSqlQueryUtil.PWD, null);
+		this.additionalProps = getOptionalStringValue(configMap, AbstractSqlQueryUtil.ADDITIONAL, null);
+		this.database = getOptionalStringValue(configMap, AbstractSqlQueryUtil.DATABASE, null);
+		this.schema = getOptionalStringValue(configMap, AbstractSqlQueryUtil.SCHEMA, null);
 		// these are not in connection url, but needed
 		if (this.database == null || this.database.isEmpty()) {
 			throw new RuntimeException("Must pass in a database");
@@ -92,16 +92,16 @@ public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Properties object is null or empty");
 		}
 
-		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
+		this.connectionUrl = getOptionalStringValue(prop, AbstractSqlQueryUtil.CONNECTION_URL, null);
 
-		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
-		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
-		this.httpPath = (String) prop.get(AbstractSqlQueryUtil.HTTP_PATH);
-		this.uid = (String) prop.get(AbstractSqlQueryUtil.UID);
-		this.pwd = (String) prop.get(AbstractSqlQueryUtil.PWD);
-		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
-		this.database = (String) prop.get(AbstractSqlQueryUtil.DATABASE);
-		this.schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
+		this.hostname = getOptionalStringValue(prop, AbstractSqlQueryUtil.HOSTNAME, null);
+		this.port = getOptionalStringValue(prop, AbstractSqlQueryUtil.PORT, null);
+		this.httpPath = getOptionalStringValue(prop, AbstractSqlQueryUtil.HTTP_PATH, null);
+		this.uid = getOptionalStringValue(prop, AbstractSqlQueryUtil.UID, null);
+		this.pwd = getOptionalStringValue(prop, AbstractSqlQueryUtil.PWD, null);
+		this.additionalProps = getOptionalStringValue(prop, AbstractSqlQueryUtil.ADDITIONAL, null);
+		this.database = getOptionalStringValue(prop, AbstractSqlQueryUtil.DATABASE, null);
+		this.schema = getOptionalStringValue(prop, AbstractSqlQueryUtil.SCHEMA, null);
 		// these are not in connection url, but needed
 		if (this.database == null || this.database.isEmpty()) {
 			throw new RuntimeException("Must pass in a database");
