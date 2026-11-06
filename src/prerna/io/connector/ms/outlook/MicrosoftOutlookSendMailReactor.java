@@ -28,6 +28,7 @@
 package prerna.io.connector.ms.outlook;
 
 import java.util.Map;
+import java.util.Set;
 
 import prerna.auth.User;
 import prerna.io.connector.mail.AbstractSendMailReactor;
@@ -54,9 +55,20 @@ import prerna.io.connector.ms.MicrosoftLoginUtils;
  */
 public class MicrosoftOutlookSendMailReactor extends AbstractSendMailReactor {
 
+	/** Optional map of custom header names (starting "x-") to values, sent with the message. */
+	public static final String HEADERS = "headers";
+	/** Optional Outlook categories for the copy kept in Sent Items. */
+	public static final String CATEGORIES = "categories";
+
 	public MicrosoftOutlookSendMailReactor() {
 		// only Outlook can send without keeping a copy; Gmail always keeps one
-		super(SAVE_TO_SENT_ITEMS);
+		super(SAVE_TO_SENT_ITEMS, HEADERS, CATEGORIES);
+	}
+
+	// for callers that mark their own mail, such as Collaboration's routines; not offered to a model
+	@Override
+	protected Set<String> getViewerKeys() {
+		return Set.of(HEADERS, CATEGORIES);
 	}
 
 	@Override
@@ -71,6 +83,7 @@ public class MicrosoftOutlookSendMailReactor extends AbstractSendMailReactor {
 		boolean keepCopy = readBoolean(SAVE_TO_SENT_ITEMS, true);
 		Map<String, Object> message = MicrosoftOutlookMailHelper.buildMessage(mail.subject(), mail.body(), mail.html(),
 				mail.toArray(), mail.ccArray(), mail.bccArray(), null, null, mail.attachmentPaths());
+		MicrosoftOutlookMailHelper.mark(message, getMapFromKeyOrCurRow(HEADERS), readValues(CATEGORIES, false));
 		// a null mailbox addresses /me, so this sends as the signed in user
 		new MicrosoftOutlookMailHelper().sendMail(MicrosoftLoginUtils.getValidAccessToken(user), null, message,
 				keepCopy);

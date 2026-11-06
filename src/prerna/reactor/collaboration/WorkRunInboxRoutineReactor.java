@@ -27,22 +27,48 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
+import java.util.Map;
+
 import prerna.collaboration.WorkInboxRoutine;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+// WorkRunInboxRoutine(); is the scheduler's recipe and keeps to the brief's days; now=[true] starts a run off schedule on the
+// scheduler, which runs WorkRunInboxRoutine(manual=[true]); on any day
 public class WorkRunInboxRoutineReactor extends AbstractCollaborationReactor {
+	private static final String NOW = "now";
+	private static final String MANUAL = "manual";
+
 	public WorkRunInboxRoutineReactor() {
-		this.keysToGet = new String[] {};
+		this.keysToGet = new String[] { NOW, MANUAL };
+		this.keyRequired = new int[] { 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		getUser();
+		if (Boolean.TRUE.equals(getBoolean(NOW))) {
+			WorkInboxRoutine.runNow(this.insight.getUser());
+			return mapResult(Map.of("status", "started"));
+		}
+		if (Boolean.TRUE.equals(getBoolean(MANUAL))) {
+			return mapResult(WorkInboxRoutine.runManual(this.insight));
+		}
 		return mapResult(WorkInboxRoutine.run(this.insight));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Runs the opted-in inbox brief once per selected day for the signed-in user";
+		return "Runs the opted-in inbox brief once per selected day for the signed-in user, or now on the scheduler with now=true";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (NOW.equals(key)) {
+			return "Start a run now, off the schedule";
+		}
+		if (MANUAL.equals(key)) {
+			return "Set by the scheduler on the run that now=true started";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

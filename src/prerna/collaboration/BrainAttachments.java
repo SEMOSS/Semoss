@@ -48,6 +48,7 @@ import org.javatuples.Pair;
 import prerna.auth.User;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Utility;
+import prerna.io.connector.mail.AttachmentText;
 
 // One email attachment for the owner: read live, only while today's rules still show its email,
 // and written into the caller's folder. That is an insight folder, which is the room folder once
@@ -109,13 +110,14 @@ public final class BrainAttachments {
 	static Map<String, Object> stage(User user, String ownerId, String ownerType, String folder, String threadId,
 			String messageId, String attachmentId, String attachmentName, String fileName, boolean includeText,
 			BrainMessageSource messages, long maxBytes) {
-		Map<String, Object> reused = reuse(user, ownerId, ownerType, folder, threadId, attachmentId, attachmentName,
-				includeText, messages);
-		if (reused != null) {
-			return reused;
-		}
+		// the email first: a copy staged from an older email on the thread is not a revised file of the same name
 		if ((attachmentId == null || attachmentId.isBlank()) && attachmentName != null && !attachmentName.isBlank()) {
 			messageId = emailWithFile(user, ownerId, ownerType, threadId, messageId, attachmentName, messages);
+		}
+		Map<String, Object> reused = reuse(user, ownerId, ownerType, folder, threadId, messageId, attachmentId,
+				attachmentName, includeText, messages);
+		if (reused != null) {
+			return reused;
 		}
 		BrainThreadMessages.Readable email = BrainThreadMessages.readable(user, ownerId, ownerType, threadId,
 				messageId, messages);
@@ -195,7 +197,7 @@ public final class BrainAttachments {
 			}
 			result.put("size", size);
 			result.put("filePath", target);
-			if (includeText && BrainAttachmentText.supports(name)) {
+			if (includeText && AttachmentText.supports(name)) {
 				addText(result, path, name, email);
 			}
 			record(dir, result);
@@ -217,10 +219,10 @@ public final class BrainAttachments {
 	// the attachment this chat already downloaded, so asking again reuses the file instead of Graph;
 	// the email must still pass today's rules, as for a fresh download
 	private static Map<String, Object> reuse(User user, String ownerId, String ownerType, String folder,
-			String threadId, String attachmentId, String attachmentName, boolean includeText,
+			String threadId, String messageId, String attachmentId, String attachmentName, boolean includeText,
 			BrainMessageSource messages) {
 		Path dir = Path.of(folder).toAbsolutePath().normalize();
-		Map<String, Object> entry = staged(dir, threadId, attachmentId, attachmentName);
+		Map<String, Object> entry = staged(dir, threadId, messageId, attachmentId, attachmentName);
 		if (entry == null) {
 			return null;
 		}
@@ -242,7 +244,7 @@ public final class BrainAttachments {
 		}
 		result.put("alreadyInChat", true);
 		String name = String.valueOf(entry.get("name"));
-		if (includeText && BrainAttachmentText.supports(name)) {
+		if (includeText && AttachmentText.supports(name)) {
 			Path text = path.resolveSibling(path.getFileName() + ".txt");
 			if (Files.isRegularFile(text)) {
 				result.put("textPath", text.getFileName().toString());
@@ -253,9 +255,11 @@ public final class BrainAttachments {
 		return result;
 	}
 
-	// by attachment id when one is passed, else by the file name the assistant sees on the thread
+	// by attachment id when one is passed, else by the file name the assistant sees on the thread, from the same email
+	// when it is known
 	@SuppressWarnings("unchecked")
-	private static Map<String, Object> staged(Path dir, String threadId, String attachmentId, String attachmentName) {
+	private static Map<String, Object> staged(Path dir, String threadId, String messageId, String attachmentId,
+			String attachmentName) {
 		boolean byId = attachmentId != null && !attachmentId.isBlank();
 		if (!byId && (attachmentName == null || attachmentName.isBlank())) {
 			return null;
@@ -267,7 +271,8 @@ public final class BrainAttachments {
 					continue;
 				}
 				if (byId ? attachmentId.equals(entry.get("attachmentId"))
-						: looseName(attachmentName).equals(looseName(String.valueOf(entry.get("name"))))) {
+						: looseName(attachmentName).equals(looseName(String.valueOf(entry.get("name"))))
+								&& (messageId == null || messageId.equalsIgnoreCase(String.valueOf(entry.get("messageId"))))) {
 					return entry;
 				}
 			}
@@ -405,8 +410,8 @@ public final class BrainAttachments {
 	private static void addText(Map<String, Object> result, Path file, String name,
 			BrainThreadMessages.Readable email) {
 		try {
-			BrainAttachmentText.Extracted text = BrainAttachmentText.extract(file, name, header(name, email),
-					BrainAttachmentText.MAX_CHARS);
+			AttachmentText.Extracted text = AttachmentText.extract(file, name, header(name, email),
+					AttachmentText.MAX_CHARS);
 			if (text == null) {
 				return;
 			}

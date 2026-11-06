@@ -112,6 +112,9 @@ public class MicrosoftTeamsSendChatMessageReactor extends AbstractMicrosoftTeams
 				// built in chat with yourself under this id
 				chat = SELF_CHAT_ID;
 			}
+			if (chat == null && recipients.length > 1) {
+				chat = MicrosoftTeamsMessageHelper.findGroupChat(accessToken, recipients);
+			}
 			if (chat == null) {
 				// one person means the one on one chat with them, and several means a
 				// group chat of everybody named
@@ -171,7 +174,7 @@ public class MicrosoftTeamsSendChatMessageReactor extends AbstractMicrosoftTeams
 		if (key.equals(CHAT_ID)) {
 			return "Id of the chat to send to, as returned by MicrosoftTeamsListChats. Not needed when recipients are named.";
 		} else if (key.equals(RECIPIENTS)) {
-			return "Email addresses or user ids to message, passed as several values or as one comma separated value. The one on one chat with one person is used or started, several people are put in a group chat, and the user's own address sends to their chat with themselves. Not needed when a chat id is given.";
+			return "Email addresses or user ids to message, passed as several values or as one comma separated value. The one on one chat with one person is used or started, as is the group chat with exactly the people named when there are several, and the user's own address sends to their chat with themselves. Not needed when a chat id is given.";
 		}
 		return super.getDescriptionForKey(key);
 	}

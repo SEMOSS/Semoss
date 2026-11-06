@@ -64,30 +64,42 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mockStatic;
 
+import java.io.RandomAccessFile;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
 import com.google.gson.Gson;
 
+import prerna.io.connector.ConnectorPage;
+import prerna.io.connector.mail.AbstractListMailReactor;
+import prerna.io.connector.mail.MailMessage;
+import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.query.parsers.MailSearchParser;
 import prerna.security.HttpHelperUtility;
 
 class MicrosoftOutlookMailHelperUnitTests {
+
+	private static final String NEXT_PAGE = "https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$skiptoken=";
 
 	private final MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
 	private final MicrosoftOutlookMailHelper.MessageQuery query = new MicrosoftOutlookMailHelper.MessageQuery();
@@ -108,6 +120,37 @@ class MicrosoftOutlookMailHelperUnitTests {
 	@AfterEach
 	void cleanup() {
 		http.close();
+	}
+
+	@Test
+	void aMessageThatOnlyMentionsErrorIsReadAndARealGraphErrorStillThrows() {
+		response = "{\"id\":\"m1\",\"subject\":\"error\",\"from\":{\"emailAddress\":{\"name\":\"error\","
+				+ "\"address\":\"alerts@test.com\"}}}";
+		assertEquals("error", helper.getMessage("test-token", null, "m1").get("subject"));
+
+		response = "{\"error\":{\"code\":\"ErrorItemNotFound\",\"message\":\"The specified object was not found.\"}}";
+		IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+				() -> helper.getMessage("test-token", null, "m1"));
+		assertTrue(refused.getMessage().contains("ErrorItemNotFound"), refused.getMessage());
+	}
+
+	@Test
+	void aMarkedMessageCarriesItsCustomHeadersAndCategories() throws Exception {
+		Map<String, Object> message = MicrosoftOutlookMailHelper.buildMessage("Brief", "Body", false,
+				new String[] { "owner@test.com" }, null, null, null, null, null);
+		MicrosoftOutlookMailHelper.mark(message, Map.of("x-semoss-routine", "inbox-daily-brief"),
+				List.of("SEMOSS routine"));
+		assertEquals(List.of(Map.of("name", "x-semoss-routine", "value", "inbox-daily-brief")),
+				message.get("internetMessageHeaders"));
+		assertEquals(List.of("SEMOSS routine"), message.get("categories"));
+
+		Map<String, Object> plain = MicrosoftOutlookMailHelper.buildMessage("Hi", "Body", false,
+				new String[] { "owner@test.com" }, null, null, null, null, null);
+		MicrosoftOutlookMailHelper.mark(plain, null, null);
+		assertFalse(plain.containsKey("internetMessageHeaders") || plain.containsKey("categories"));
+		// Graph takes only custom headers
+		assertThrows(IllegalArgumentException.class,
+				() -> MicrosoftOutlookMailHelper.mark(plain, Map.of("Reply-To", "x@test.com"), null));
 	}
 
 	@Test
@@ -236,6 +279,69 @@ class MicrosoftOutlookMailHelperUnitTests {
 		List<Map<String, Object>> messages = helper.listMessages("test-token", null, query);
 		assertEquals(List.of("newest", "middle", "older"),
 				messages.stream().map(message -> message.get("id")).toList());
+	}
+
+	@Test
+	void anUnreadSearchReadsGraphsNextPagesUntilItHasEnough() {
+		query.terms = MailSearchParser.parse("budget");
+		query.unreadOnly = true;
+		query.top = 2;
+		List<String> urls = new ArrayList<>();
+		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
+				.thenAnswer(call -> {
+					urls.add(call.getArgument(0));
+					return switch (urls.size()) {
+					case 1 -> page("p2", hit("r1", true), hit("r2", true), hit("r3", true));
+					case 2 -> page("p3", hit("r4", true), hit("u1", false));
+					default -> page("p4", hit("u2", false));
+					};
+				});
+		List<Map<String, Object>> messages = helper.listMessages("test-token", null, query);
+		assertEquals(List.of("u2", "u1"), messages.stream().map(message -> message.get("id")).toList());
+		// full after the third page, so the fourth is never read
+		assertEquals(List.of(NEXT_PAGE + "p2", NEXT_PAGE + "p3"), urls.subList(1, urls.size()));
+	}
+
+	@Test
+	void aNarrowedSearchSaysThereIsMoreOnlyWhileGraphHasPagesLeft() throws Exception {
+		List<String> urls = new ArrayList<>();
+		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
+				.thenAnswer(call -> {
+					urls.add(call.getArgument(0));
+					return page("p" + (urls.size() + 1), hit("r" + urls.size(), true));
+				});
+		AbstractListMailReactor.ListMailRequest request = new AbstractListMailReactor.ListMailRequest("inbox", 20, 0,
+				MailSearchParser.parse("budget"), true, null, false, null);
+		try (MockedStatic<MicrosoftLoginUtils> login = mockStatic(MicrosoftLoginUtils.class)) {
+			login.when(() -> MicrosoftLoginUtils.getValidAccessToken(any())).thenReturn("test-token");
+			ConnectorPage<MailMessage> listed = new MicrosoftOutlookListMailReactor().listMail(null, request);
+			assertTrue(listed.items().isEmpty());
+			assertTrue(listed.hasMore());
+			assertEquals(5, urls.size());
+
+			urls.clear();
+			http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
+					.thenAnswer(call -> {
+						urls.add(call.getArgument(0));
+						return urls.size() == 1 ? page("p2", hit("r1", true)) : page(null, hit("u1", false));
+					});
+			listed = new MicrosoftOutlookListMailReactor().listMail(null, request);
+			assertEquals(List.of("u1"), listed.items().stream().map(MailMessage::id).toList());
+			assertFalse(listed.hasMore());
+		}
+	}
+
+	@Test
+	void aFolderReadStillReadsOnePageForGraphSkipsOnTheServer() {
+		List<String> urls = new ArrayList<>();
+		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
+				.thenAnswer(call -> {
+					urls.add(call.getArgument(0));
+					return page("p2", hit("r1", true));
+				});
+		query.unreadOnly = true;
+		assertEquals(1, helper.listMessages("test-token", null, query).size());
+		assertEquals(1, urls.size());
 	}
 
 	@Test
@@ -370,6 +476,21 @@ class MicrosoftOutlookMailHelperUnitTests {
 		assertEquals(Map.of("contentType", "html", "content", "<p>Hi</p>"), message.get("body"));
 	}
 
+	@Test
+	void filesTooLargeToSendAreRefusedBeforeAnyIsRead(@TempDir Path folder) throws Exception {
+		Path note = Files.writeString(folder.resolve("note.txt"), "hi");
+		Path recording = folder.resolve("recording.mp4");
+		try (RandomAccessFile out = new RandomAccessFile(recording.toFile(), "rw")) {
+			// sparse, so nothing that size is written
+			out.setLength(MicrosoftOutlookMailHelper.maxAttachmentBytes() + 1024 * 1024);
+		}
+
+		IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> MicrosoftOutlookMailHelper
+				.fileAttachments(new String[] { note.toString(), recording.toString() }));
+		assertEquals("The email's files are 26 MB, over the 25 MB that fit in one message (MS_MAIL_MAX_MESSAGE_MB)",
+				refused.getMessage());
+	}
+
 	private void stubFolderTree() {
 		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
 				.thenAnswer(call -> {
@@ -388,5 +509,22 @@ class MicrosoftOutlookMailHelperUnitTests {
 	@SafeVarargs
 	private static String folders(Map<String, ?>... folders) {
 		return new Gson().toJson(Map.of("value", List.of(folders)));
+	}
+
+	/** One page of search results, with Graph's link to the next page unless next is null. */
+	@SafeVarargs
+	private static String page(String next, Map<String, ?>... messages) {
+		Map<String, Object> page = new LinkedHashMap<>();
+		page.put("value", List.of(messages));
+		if (next != null) {
+			page.put("@odata.nextLink", NEXT_PAGE + next);
+		}
+		return new Gson().toJson(page);
+	}
+
+	/** A search hit; unread ones arrive newer the higher their number. */
+	private static Map<String, ?> hit(String id, boolean read) {
+		return Map.of("id", id, "isRead", read, "receivedDateTime",
+				"2026-10-" + (10 + Integer.parseInt(id.substring(1))) + "T09:00:00Z");
 	}
 }

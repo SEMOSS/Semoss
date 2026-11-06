@@ -30,20 +30,35 @@ package prerna.reactor.collaboration;
 import prerna.collaboration.WorkCustomRoutine;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+// WorkRunCustomRoutine(routineId=...); is the scheduler's recipe and keeps to the routine's days; Run now has the
+// scheduler run it with manual=[true], on any day
 public class WorkRunCustomRoutineReactor extends AbstractCollaborationReactor {
+	private static final String MANUAL = "manual";
+
 	public WorkRunCustomRoutineReactor() {
-		this.keysToGet = new String[] { "routineId" };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { "routineId", MANUAL };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		getUser();
+		if (Boolean.TRUE.equals(getBoolean(MANUAL))) {
+			return mapResult(WorkCustomRoutine.runManual(this.insight, getString("routineId")));
+		}
 		return mapResult(WorkCustomRoutine.run(this.insight, getString("routineId")));
 	}
 
 	@Override
 	public String getReactorDescription() {
 		return "Runs one of the signed-in user's routines; the scheduler's recipe for it";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (MANUAL.equals(key)) {
+			return "Set by the scheduler on the run that Run now started";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

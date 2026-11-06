@@ -282,8 +282,9 @@ public final class BrainDraftFormat {
 		int read = 0;
 		for (BrainMessageSource.Fetched fetched : BrainMessageSource.current().fetchAll(user, "email", null, ids)) {
 			Map<String, Object> message = fetched.message();
-			// a forward carries someone else's signature
-			if (message == null || FORWARD.matcher(String.valueOf(message.get("subject"))).find()) {
+			// a forward carries someone else's signature; a routine's styled result mailed to the owner carries none
+			if (message == null || FORWARD.matcher(String.valueOf(message.get("subject"))).find()
+					|| BrainStyleLearning.toThemselves(message)) {
 				continue;
 			}
 			// only what the owner wrote, never the quoted mail below it

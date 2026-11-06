@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -75,13 +76,17 @@ public final class WorkEventPlanningRoutine {
 		return WorkRoutine.save(KIND, user, changes);
 	}
 
-	// the cron only fires on the chosen day, so the day is not checked again, which lets Run now use the same job
 	public static Map<String, Object> run(Insight insight) {
+		return WorkRoutine.run(KIND, insight);
+	}
+
+	/** Run now's run, which runNow fires on the scheduler: on any day, and recorded as started by hand. */
+	public static Map<String, Object> runManual(Insight insight) {
 		return WorkRoutine.run(KIND, insight, null, true);
 	}
 
 	public static void runNow(User user) {
-		WorkRoutine.runNow(KIND, user, null);
+		WorkRoutine.runNow(KIND, user, null, "WorkRunEventPlanningRoutine(manual=[true]);");
 	}
 
 	private static void settings(Map<String, Object> input, Map<String, Object> config) {
@@ -93,13 +98,13 @@ public final class WorkEventPlanningRoutine {
 			throw new IllegalArgumentException("Pin at least one meeting to plan");
 		}
 		// each pinned meeting's title names its sheet, so two cannot share one
-		List<String> titles = new ArrayList<>();
+		List<String> sheets = new ArrayList<>();
 		for (Map<String, Object> pin : meetings) {
-			String title = ((String) pin.get("title")).toLowerCase();
-			if (titles.contains(title)) {
+			String sheet = sheetName((String) pin.get("title")).toLowerCase();
+			if (sheets.contains(sheet)) {
 				throw new IllegalArgumentException("Two pinned meetings cannot have the same title");
 			}
-			titles.add(title);
+			sheets.add(sheet);
 		}
 		List<Map<String, Object>> ignored = pins(input.get("ignored") == null ? List.of() : input.get("ignored"),
 				MAX_IGNORED, "ignored");
@@ -145,14 +150,32 @@ public final class WorkEventPlanningRoutine {
 		return a.get("kind").equals(b.get("kind")) && a.get("id").equals(b.get("id"));
 	}
 
+	@SuppressWarnings("unchecked")
 	private static Map<String, Object> inputs(Map<String, Object> row, Map<String, Object> config) {
 		Map<String, Object> inputs = new LinkedHashMap<>();
-		inputs.put("meetings", config.get("meetings"));
+		List<Map<String, Object>> meetings = new ArrayList<>();
+		for (Map<String, Object> pin : (List<Map<String, Object>>) config.get("meetings")) {
+			Map<String, Object> meeting = new LinkedHashMap<>(pin);
+			meeting.put("sheet", sheetName((String) pin.get("title")));
+			meetings.add(meeting);
+		}
+		inputs.put("meetings", meetings);
 		inputs.put("days_ahead", DAYS_AHEAD);
 		inputs.put("folder", FOLDER);
 		// the same model the run already checked the owner can use before starting
 		inputs.put("plan_model", text(Utility.getDIHelperProperty(Constants.COLLAB_LLM_ENGINE_ID)));
 		return inputs;
+	}
+
+	/**
+	 * A pinned meeting's sheet name, the one rule the automation, storage and the check that two pins never share a
+	 * sheet go by: the title as storage normalizes a path (NFKC), without the characters OneDrive refuses in a name.
+	 */
+	static String sheetName(String title) {
+		String name = Normalizer.normalize(title, Normalizer.Form.NFKC).replaceAll("[\\\\/:*?\"<>|#%]+", "-")
+				.replaceAll("^[ .-]+|[ .-]+$", "");
+		return name.substring(0, name.offsetByCodePoints(0, Math.min(MAX_TITLE, name.codePointCount(0, name.length()))))
+				+ ".xlsx";
 	}
 
 	private static String text(Object value) {
