@@ -38,6 +38,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hc.core5.http.ContentType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
@@ -47,6 +49,8 @@ import prerna.security.HttpHelperUtility;
 
 // reads one message from Graph with the owner's delegated token, only after the rules let it through
 final class BrainGraphMessageSource implements BrainMessageSource {
+
+	private static final Logger classLogger = LogManager.getLogger(BrainGraphMessageSource.class);
 
 	private static final String BASE = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0";
 	private static final int BATCH = 20;
@@ -119,7 +123,7 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Map<String, Object>> conversationMessages(User user, java.util.Collection<String> conversationIds,
-			int perConversation) throws Exception {
+			int perConversation, java.util.concurrent.atomic.AtomicInteger unread) throws Exception {
 		String token = MicrosoftLoginUtils.getValidAccessToken(user);
 		List<String> ids = new ArrayList<>(conversationIds);
 		List<Map<String, Object>> out = new ArrayList<>();
@@ -151,6 +155,10 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 						for (Object value : values) {
 							out.add((Map<String, Object>) value);
 						}
+					} else {
+						// refused, or still failing after the retries: the conversation was not read
+						classLogger.warn("Graph could not list a conversation of the topic: status {}", status);
+						unread.incrementAndGet();
 					}
 				}
 				requests = again;

@@ -64,7 +64,10 @@ public final class BrainThreadFinder {
 	private static final int PEOPLE_SHOWN = 5;
 	private static final Set<String> STOP_WORDS = Set.of("the", "and", "for", "with", "from", "about", "that", "this",
 			"have", "has", "was", "were", "are", "you", "your", "any", "all", "email", "emails", "mail", "thread",
-			"threads", "message", "messages", "find", "search", "show", "get", "into", "out",
+			"threads", "message", "messages", "find", "search", "show", "get", "into", "out");
+	// more that only say how a question was asked; dropped for the body search's words, not for the subject, summary and
+	// people match, where a word such as "new" or "it" can be what a thread is about
+	private static final Set<String> QUESTION_WORDS = Set.of(
 			// question and filler words say how the owner asked, not what the mail is about
 			"what", "when", "where", "which", "who", "whom", "whose", "how", "why", "does", "did", "can", "could",
 			"should", "would", "will", "shall", "may", "might", "must", "been", "being", "there", "their", "they",
@@ -336,7 +339,7 @@ public final class BrainThreadFinder {
 		}
 		Map<String, Object> bodySearch = null;
 		if (bodies && topics != null && query != null && !query.isBlank()) {
-			bodySearch = addBodyMatches(user, ownerId, ownerType, eligible, query, tokens, from, to, hits, privacy,
+			bodySearch = addBodyMatches(user, ownerId, ownerType, eligible, query, bodyTokens(query), from, to, hits, privacy,
 					selfId, linkSource);
 		}
 		hits.sort(Comparator.<Map<String, Object>>comparingDouble(i -> -((Number) i.get("score")).doubleValue())
@@ -663,6 +666,13 @@ public final class BrainThreadFinder {
 			}
 		}
 		return new ArrayList<>(out);
+	}
+
+	// the words the body search may use to find and show passages: without the filler of a question
+	private static List<String> bodyTokens(String query) {
+		List<String> out = new ArrayList<>(tokens(query));
+		out.removeIf(QUESTION_WORDS::contains);
+		return out;
 	}
 
 	// how many different words appear in the text
