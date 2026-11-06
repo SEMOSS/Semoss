@@ -36,6 +36,7 @@ import java.util.Map;
 import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.AgentRunner;
+import prerna.reactor.agent.AgentUserContent;
 import prerna.util.ValueUtils;
 
 /**
@@ -173,12 +174,25 @@ public final class AgentRunRequest {
 				ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel);
 	}
 
+	/** Normalize explicit rich input before persisting the durable request. */
+	AgentRunRequest withNormalizedUserContent() {
+		if (!AgentUserContent.isRich(agentParamMap)) {
+			return this;
+		}
+		AgentUserContent.Normalized content = AgentUserContent.normalize(input, agentParamMap);
+		return new AgentRunRequest(roomId, content.command(), engineIdFallback, harnessType, workspaceId, maxTurns,
+				maxReflections, paramMap, content.params(), mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId,
+				completionMode, ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel);
+	}
+
 	/** Builds a fresh same-room run that follows one detached child result. */
 	AgentRunRequest forContinuation(String parentRoomId, String childRunId, String continuationInput,
 			Insight continuationInsight) {
 		// the user's text belonged to the original request, not the continuation
 		Map<String, Object> continuationAgentParams = new HashMap<>(agentParamMap);
 		continuationAgentParams.remove(AgentRunner.AGENT_PARAM_USER_TEXT);
+		continuationAgentParams.remove(AgentUserContent.CONTENT_KEY);
+		continuationAgentParams.remove(AgentUserContent.FORMAT_KEY);
 		return new AgentRunRequest(parentRoomId, continuationInput, engineIdFallback, harnessType, workspaceId,
 				maxTurns, maxReflections, paramMap, continuationAgentParams, null, null, continuationInsight, false, null,
 				SubAgentRunCompletionMode.WAIT, ownerAuthType, childRunId, continuationDepth + 1, null);
