@@ -35,7 +35,6 @@ import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -81,11 +80,6 @@ public class MakePythonMCPReactor extends AbstractReactor {
 
 		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
 		User user = this.insight.getUser();
-
-		// check security
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		if (engineType == CATALOG_TYPE.PROJECT) {
 			if (!SecurityProjectUtils.userCanEditProject(user, engineId)) {

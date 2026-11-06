@@ -61,7 +61,6 @@ import com.google.gson.Gson;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.StreamingOutput;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -81,7 +80,6 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
-import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -1744,9 +1742,6 @@ public final class MCPUtility {
 	private static void checkEngineAccess(IEngine engine, User user) {
 		if (engine == null) {
 			throw new NullPointerException("Engine/Project is null");
-		}
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			AbstractReactor.throwAnonymousUserError();
 		}
 		if (engine instanceof IProject) {
 			if (!SecurityProjectUtils.userCanViewProject(user, engine.getEngineId())) {

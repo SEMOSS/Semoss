@@ -25,45 +25,23 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.engine;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.collaboration.BrainOwnMail;
+import prerna.io.connector.mail.ComposedMail;
+import prerna.io.connector.mail.OutgoingMail;
+import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.io.connector.ms.outlook.MicrosoftOutlookSendMailReactor;
 
-public abstract class AbstractEngineFileReactor extends AbstractReactor {
+// Sends a routine's result to its owner: MicrosoftOutlookSendMail, marked and recorded so mail import never reads
+// it back as the owner's own mail. Only to the owner; cc may carry copies the owner chose.
+public class BrainSendToOwnerReactor extends MicrosoftOutlookSendMailReactor {
 
-	protected static final Logger classLogger = LogManager.getLogger(AbstractEngineFileReactor.class);
-
-	/**
-	 * 
-	 * @param user
-	 */
-	protected void validateUserAndEngineAccess(User user) {
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account to retrieve the function engine files",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
-
-		if (!SecurityQueryUtils.userIsPublisher(user)) {
-			throwUserNotPublisherError();
-		}
+	@Override
+	protected ComposedMail sendMail(User user, OutgoingMail mail) throws Exception {
+		BrainOwnMail.sendToOwner(user, MicrosoftLoginUtils.getValidAccessToken(user), mail.subject(), mail.body(),
+				mail.html(), mail.toArray(), mail.ccArray(), mail.bccArray(), mail.attachmentPaths(), "routine");
+		return ComposedMail.of(mail, null, null, null);
 	}
-
 }

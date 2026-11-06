@@ -51,9 +51,11 @@ public class WorkShowItemReactor extends AbstractCollaborationReactor {
 	private static final String CHAT_ID = "chatId";
 	private static final String PATH = "path";
 	private static final String NOT_SHOWN = " Nothing was shown.";
-	// enough messages to tell a readable thread from one its rules or deletions emptied
+	// enough messages to tell a readable thread from one its rules or deletions
+	// emptied
 	private static final int THREAD_CHECK_LIMIT = 20;
-	// Graph chat ids go into the request path unencoded, so only their own characters pass
+	// Graph chat ids go into the request path unencoded, so only their own
+	// characters pass
 	private static final Pattern CHAT_ID_PATTERN = Pattern.compile("[A-Za-z0-9:@._=-]{1,256}");
 
 	public WorkShowItemReactor() {
@@ -114,7 +116,8 @@ public class WorkShowItemReactor extends AbstractCollaborationReactor {
 		} catch (IllegalArgumentException e) {
 			if ("Thread not found".equals(e.getMessage())) {
 				throw new IllegalArgumentException("No thread " + threadId
-						+ " is in the owner's Brain. Copy threadId exactly from SearchMail or ReadThread." + NOT_SHOWN, e);
+						+ " is in the owner's Brain. Copy threadId exactly from SearchMail or ReadThread." + NOT_SHOWN,
+						e);
 			}
 			throw e;
 		}
@@ -149,13 +152,15 @@ public class WorkShowItemReactor extends AbstractCollaborationReactor {
 	private static Map<String, Object> chat(User user, String chatId) {
 		if (!CHAT_ID_PATTERN.matcher(chatId).matches()) {
 			throw new IllegalArgumentException(
-					"That is not a Teams chat id. Copy chatId exactly from ListChats or ListChatMessages." + NOT_SHOWN);
+					"That is not a Teams chat id. Copy chatId exactly from ListChats, ListChatMessages, or "
+							+ "SearchTeamsMessages." + NOT_SHOWN);
 		}
 		String token;
 		try {
 			token = MicrosoftLoginUtils.getValidAccessToken(user);
 		} catch (RuntimeException e) {
-			// a missing Microsoft login keeps its own error, which asks the owner to sign in
+			// a missing Microsoft login keeps its own error, which asks the owner to sign
+			// in
 			throw e;
 		} catch (Exception e) {
 			throw new IllegalStateException("Could not sign in to Microsoft: " + e.getMessage() + NOT_SHOWN, e);
@@ -163,7 +168,8 @@ public class WorkShowItemReactor extends AbstractCollaborationReactor {
 		Map<String, Object> chat;
 		try {
 			chat = MicrosoftTeamsMessageHelper.getChat(token, chatId, MicrosoftLoginUtils.getMicrosoftEmail(user));
-			// the owner's chat reads the messages, so a chat they can list but not read fails now instead
+			// the owner's chat reads the messages, so a chat they can list but not read
+			// fails now instead
 			MicrosoftTeamsMessageHelper.listChatMessages(token, chatId, 1, 1);
 		} catch (Exception e) {
 			String error = String.valueOf(e.getMessage());
@@ -238,7 +244,8 @@ public class WorkShowItemReactor extends AbstractCollaborationReactor {
 					+ "the thread that email is on";
 		}
 		if (CHAT_ID.equals(key)) {
-			return "A Teams chat that Brain does not hold: its chat id from ListChats or ListChatMessages";
+			return "A Teams chat that Brain does not hold: its chat id from ListChats, ListChatMessages, or "
+					+ "SearchTeamsMessages";
 		}
 		if (PATH.equals(key)) {
 			return "A file in this chat's working directory: the path a download returned, for example report.pdf";

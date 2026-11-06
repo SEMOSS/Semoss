@@ -305,6 +305,10 @@ final class WorkRoutine {
 			}
 		}
 		synchronized (CollaborationDbUtils.ownerLock(kind.id(), owner.getValue0(), owner.getValue1())) {
+			// Turning a routine on consents to background access; saving one already on keeps what Connections set,
+			// so an edit never turns access back on after the owner turned it off.
+			Map<String, Object> before = stored(slot);
+			boolean turningOn = enabled && (before == null || !Boolean.TRUE.equals(before.get("enabled")));
 			try {
 				// The row lock serializes schedule changes across servers; the executor claims this same row.
 				CollaborationDbUtils.inTransaction(conn -> {
@@ -320,7 +324,9 @@ final class WorkRoutine {
 						}
 					}
 					if (enabled) {
-						MicrosoftGraphCredentialStore.save(mailboxToken);
+						if (turningOn) {
+							MicrosoftGraphCredentialStore.save(mailboxToken);
+						}
 						schedule(slot, config);
 						CollaborationDbUtils.update(conn, "UPDATE " + kind.table() + " SET ENABLED = ?" + slot.where(), slot.args(of(true)));
 					} else {
@@ -453,17 +459,23 @@ final class WorkRoutine {
 			if (stored(slot) == null) {
 				throw new IllegalArgumentException("Routine not found");
 			}
-			if (schedulerAvailable()) {
-				try {
-					Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
-					JobKey key = jobKey(slot);
-					scheduler.deleteJob(key);
-					SchedulerDatabaseUtility.removeFromJobRecipesTable(key.getName(), GROUP);
-				} catch (SchedulerException e) {
-					throw new IllegalStateException("Could not remove the " + kind.label() + " schedule", e);
-				}
-			}
+			unschedule(slot);
 			CollaborationDbUtils.update("DELETE FROM " + kind.table() + slot.where(), slot.args(of()));
+		}
+	}
+
+	/** Removes a routine's scheduler job and its recipe row; the routine's own row is the caller's to delete. */
+	static void unschedule(Slot slot) {
+		if (!schedulerAvailable()) {
+			return;
+		}
+		try {
+			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+			JobKey key = jobKey(slot);
+			scheduler.deleteJob(key);
+			SchedulerDatabaseUtility.removeFromJobRecipesTable(key.getName(), GROUP);
+		} catch (SchedulerException e) {
+			throw new IllegalStateException("Could not remove the " + slot.kind().label() + " schedule", e);
 		}
 	}
 
@@ -987,7 +999,7 @@ final class WorkRoutine {
 	}
 
 	/** The run's top-level result node, or null when the run never reached it. */
-	private static Map<String, Object> resultNode(Kind kind, String runId) {
+	static Map<String, Object> resultNode(Kind kind, String runId) {
 		Map<String, Object> result = null;
 		for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(runId)) {
 			if (kind.outputNode().equals(node.get(AutomationConstants.NODE_ID)) && node.get(AutomationConstants.PARENT_NODE_ID) == null) {
@@ -1020,8 +1032,9 @@ final class WorkRoutine {
 				MicrosoftTeamsMessageHelper.sendChatMessage(token, MicrosoftTeamsSendChatMessageReactor.SELF_CHAT_ID,
 						text, false, null, null, null, 0);
 			} else {
-				new MicrosoftOutlookMailHelper().sendMail(token, null, MicrosoftOutlookMailHelper.buildMessage(subject,
-						text, false, new String[] { recipient }, null, null, null, null, null), true);
+				// marked and recorded, so mail import never reads the note back as the owner's
+				BrainOwnMail.send(user, token, MicrosoftOutlookMailHelper.buildMessage(subject, text, false,
+						new String[] { recipient }, null, null, null, null, null), "notice");
 			}
 		} catch (Exception e) {
 			classLogger.warn("Could not tell the owner their {} ran out of time", kind.label(), e);

@@ -282,6 +282,8 @@ public final class AutomationConstants {
 	public static final String CONFIG_HARNESS_TYPE = "harnessType";
 	public static final String CONFIG_WORKSPACE_ID = "workspaceId";
 	public static final String CONFIG_SKILLS = "skills";
+	/** Extra MCP engines or projects for an agent node's room, as {id, name, type} like a room's own mcp option. */
+	public static final String CONFIG_MCPS = "mcps";
 	public static final String CONFIG_COLLABORATION_ROUTINE = "collaborationRoutine";
 	public static final String CONFIG_ROUTINE_ID = "routineId";
 	public static final String CONFIG_ROUTINE_DELIVERY = "routineDelivery";

@@ -85,10 +85,6 @@ class CreatePythonFunctionEngineAuditTest {
 		Files.createFile(directory.resolve("main.py"));
 		var reactor = new CreatePythonFunctionEngineReactor() {
 			@Override
-			protected void validateUserAndEngineAccess(User ignored) {
-			}
-
-			@Override
 			protected void organizeKeys() {
 			}
 

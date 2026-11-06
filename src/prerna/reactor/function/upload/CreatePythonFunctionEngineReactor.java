@@ -48,12 +48,13 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.function.FunctionParameter;
-import prerna.reactor.engine.AbstractEngineFileReactor;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -64,7 +65,7 @@ import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor {
+public class CreatePythonFunctionEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreatePythonFunctionEngineReactor.class);
 
@@ -75,8 +76,10 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		validateUserAndEngineAccess(user);
+		User user = requireUser();
+		if (!SecurityQueryUtils.userIsPublisher(user)) {
+			throwUserNotPublisherError();
+		}
 		// validate we have not restricted this to only admins
 		if (AbstractSecurityUtils.adminOnlyFunctionAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
