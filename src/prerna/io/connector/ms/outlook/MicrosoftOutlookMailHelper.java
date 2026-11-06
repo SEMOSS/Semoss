@@ -775,32 +775,6 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
-	 * Marks a message for the sender's own tools: custom internet headers travel with it to every recipient, and
-	 * categories mark the sender's copy in Sent Items.
-	 *
-	 * @param message    a message from {@link #buildMessage}
-	 * @param headers    header names (each starting "x-", the only ones Graph takes) to values, or null
-	 * @param categories Outlook categories, or null
-	 * @throws IllegalArgumentException for a header name that is not a custom one
-	 */
-	public static void mark(Map<String, Object> message, Map<String, ?> headers, List<String> categories) {
-		if (headers != null && !headers.isEmpty()) {
-			List<Map<String, String>> list = new ArrayList<>();
-			for (Map.Entry<String, ?> header : headers.entrySet()) {
-				String name = header.getKey() == null ? "" : header.getKey().trim();
-				if (name.length() < 3 || !name.regionMatches(true, 0, "x-", 0, 2)) {
-					throw new IllegalArgumentException("A custom email header has to start with x-: " + name);
-				}
-				list.add(Map.of("name", name, "value", String.valueOf(header.getValue())));
-			}
-			message.put("internetMessageHeaders", list);
-		}
-		if (categories != null && !categories.isEmpty()) {
-			message.put("categories", new ArrayList<>(categories));
-		}
-	}
-
-	/**
 	 * Build a message in the shape Graph reads.
 	 *
 	 * <p>

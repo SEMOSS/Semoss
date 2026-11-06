@@ -135,25 +135,6 @@ class MicrosoftOutlookMailHelperUnitTests {
 	}
 
 	@Test
-	void aMarkedMessageCarriesItsCustomHeadersAndCategories() throws Exception {
-		Map<String, Object> message = MicrosoftOutlookMailHelper.buildMessage("Brief", "Body", false,
-				new String[] { "owner@test.com" }, null, null, null, null, null);
-		MicrosoftOutlookMailHelper.mark(message, Map.of("x-semoss-routine", "inbox-daily-brief"),
-				List.of("SEMOSS routine"));
-		assertEquals(List.of(Map.of("name", "x-semoss-routine", "value", "inbox-daily-brief")),
-				message.get("internetMessageHeaders"));
-		assertEquals(List.of("SEMOSS routine"), message.get("categories"));
-
-		Map<String, Object> plain = MicrosoftOutlookMailHelper.buildMessage("Hi", "Body", false,
-				new String[] { "owner@test.com" }, null, null, null, null, null);
-		MicrosoftOutlookMailHelper.mark(plain, null, null);
-		assertFalse(plain.containsKey("internetMessageHeaders") || plain.containsKey("categories"));
-		// Graph takes only custom headers
-		assertThrows(IllegalArgumentException.class,
-				() -> MicrosoftOutlookMailHelper.mark(plain, Map.of("Reply-To", "x@test.com"), null));
-	}
-
-	@Test
 	void boundsFolderReadsInclusivelyWhilePreservingPaginationAndNewestFirstOrder() {
 		query.since = Date.from(Instant.parse("2026-10-12T12:00:00.001Z"));
 		query.until = Date.from(Instant.parse("2026-10-13T12:00:00Z"));

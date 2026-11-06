@@ -70,12 +70,8 @@ public final class BrainMailImport {
 	// more people than this on To and Cc is a mailing: no new people from it
 	private static final int MAX_RECIPIENTS = 25;
 	private static final String SOURCE = "email";
-	// what a routine marks the mail it sends with: the header travels to the copy that arrives, the category stays on
-	// the copy in Sent, whose headers are not kept (BrainMailFolders.keep)
-	public static final String ROUTINE_HEADER = "x-semoss-routine";
-	public static final String ROUTINE_CATEGORY = "SEMOSS routine";
 	// a system routine's dated title, as each deliver node writes it (older runs wrote other cases): how results sent
-	// before routines marked their mail are known
+	// before Collaboration recorded the mail it sends (BrainOwnMail) are known
 	static final Pattern SYSTEM_RESULT_SUBJECT = Pattern.compile(
 			"(?:Morning Work Briefing|Weekly Meeting Agendas|Event Planning) - \\d{4}-\\d{2}-\\d{2}",
 			Pattern.CASE_INSENSITIVE);
@@ -866,16 +862,13 @@ public final class BrainMailImport {
 			}
 		}
 
-		// a result one of the owner's routines mailed them: from them and marked, whoever else it went to; or, sent
-		// before routines marked their mail, under a system routine's dated title to the owner alone, Bcc included.
-		// A subject alone never decides: a note to self can carry a routine's name
+		// a result one of the owner's routines mailed them before Collaboration recorded the mail it sends: under a
+		// system routine's dated title, to the owner alone, Bcc included. A subject alone never decides: a note to
+		// self can carry a routine's name
 		boolean routineResult(Map<String, Object> header) {
 			String from = address(header.get("from"));
 			if (from == null || !selfAddresses.contains(from)) {
 				return false;
-			}
-			if (routineMarked(header)) {
-				return true;
 			}
 			String subject = header.get("subject") instanceof String s ? s.trim() : "";
 			if (!SYSTEM_RESULT_SUBJECT.matcher(subject).matches()) {
@@ -1144,25 +1137,6 @@ public final class BrainMailImport {
 		if (header.get("internetMessageHeaders") instanceof List<?> list) {
 			for (Object o : list) {
 				if ("list-id".equals(headerName(o)) || ("precedence".equals(headerName(o)) && "list".equals(headerValue(o)))) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	// a routine's own mail: its header on the copy that arrived, its category on the copy in Sent
-	static boolean routineMarked(Map<String, Object> header) {
-		if (header.get("categories") instanceof List<?> categories) {
-			for (Object category : categories) {
-				if (category instanceof String c && ROUTINE_CATEGORY.equalsIgnoreCase(c.trim())) {
-					return true;
-				}
-			}
-		}
-		if (header.get("internetMessageHeaders") instanceof List<?> list) {
-			for (Object h : list) {
-				if (ROUTINE_HEADER.equals(headerName(h))) {
 					return true;
 				}
 			}

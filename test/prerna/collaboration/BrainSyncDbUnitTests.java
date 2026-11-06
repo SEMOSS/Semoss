@@ -233,17 +233,17 @@ class BrainSyncDbUnitTests {
 		sql("INSERT INTO WORK_CUSTOM_ROUTINE (OWNER_ID, OWNER_TYPE, ROUTINE_ID, SETTINGS_JSON) VALUES (?, ?, 'r1', ?)",
 				ownerId, ownerType, "{\"name\":\"NVIDIA Follow-up Digest\"}");
 		mailbox.clear();
-		// sent before routines marked their mail: a system routine's dated title, to the owner alone
+		// sent before Collaboration recorded its mail: a system routine's dated title, to the owner alone
 		mailbox.add(email("B1", "conv-b1", "Morning Work Briefing - 2026-11-04", "owner@test.com", "owner@test.com"));
 		mailbox.add(email("B5", "conv-b5", "Event planning - 2026-10-29", "owner@test.com", "owner@test.com"));
-		// marked: the copy in Sent carries the category, the copy that arrived the header, whoever else it went to
-		Map<String, Object> sent = email("B2", "conv-b2", "NVIDIA Follow-up Digest", "owner@test.com", "owner@test.com");
-		sent.put("categories", List.of("SEMOSS routine"));
-		mailbox.add(sent);
+		// sent through BrainOwnMail: the copy in Sent is known by its recorded id, the copy that arrived by its
+		// header, whoever else it went to
+		mailbox.add(email("B2", "conv-b2", "NVIDIA Follow-up Digest", "owner@test.com", "owner@test.com"));
+		BrainOwnMail.record(ownerId, ownerType, "<B2@mail.example>", "routine");
 		Map<String, Object> arrived = email("B6", "conv-b6", "Expense Review: Q3 travel", "owner@test.com",
 				"owner@test.com");
 		arrived.put("ccRecipients", List.of(Map.of("emailAddress", Map.of("address", "dana@test.com"))));
-		arrived.put("internetMessageHeaders", List.of(Map.of("name", "X-Semoss-Routine", "value", "expense-review")));
+		arrived.put("internetMessageHeaders", List.of(Map.of("name", BrainOwnMail.HEADER, "value", "routine")));
 		mailbox.add(arrived);
 		// the same subjects to or from anyone else are ordinary mail
 		mailbox.add(email("B3", "conv-b3", "Morning Work Briefing - 2026-11-04", "owner@test.com", "kyle@test.com"));
@@ -256,10 +256,11 @@ class BrainSyncDbUnitTests {
 		mailbox.add(bcc);
 		BrainMailImport.Run run = read(true);
 		assertEquals(4, run.imported);
-		assertEquals(4, run.keptOut);
+		// what Collaboration sent leaves no row at all; the older results are decided once, and a sync leaves them be
+		assertEquals(2, run.ownMail);
+		assertEquals(2, run.keptOut);
 		assertEquals(4, count("BRAIN_THREAD"));
-		// decided once: a sync finds their rows and leaves them be
-		assertEquals(4, ((Number) value("SELECT COUNT(*) FROM BRAIN_MESSAGE WHERE DECISION = 'never' "
+		assertEquals(2, ((Number) value("SELECT COUNT(*) FROM BRAIN_MESSAGE WHERE DECISION = 'never' "
 				+ "AND THREAD_ID IS NULL")).intValue());
 		assertEquals(0, read(true).imported);
 		assertEquals(4, count("BRAIN_THREAD"));
