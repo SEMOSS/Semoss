@@ -101,6 +101,8 @@ public final class WorkPipeline {
 	// time in their own lane, so one owner's big build never holds up another's sync
 	private static final int PARALLEL = 3;
 	private static final int MAX_PARALLEL = 16;
+	// threads one run reads at once; RDF_Map COLLAB_WORK_EXTRACT_PARALLEL
+	private static final int EXTRACT_PARALLEL = 5;
 	private static final ExecutorService POOL = Executors.newFixedThreadPool(parallel(), r -> {
 		Thread t = new Thread(r, "collaboration-work-items");
 		t.setDaemon(true);
@@ -264,19 +266,36 @@ public final class WorkPipeline {
 						+ "OWNER_ID = ? AND OWNER_TYPE = ? AND RELATIONSHIP = ?",
 						rs -> new String[] { rs.getString("PERSON_ID"), rs.getString("DISPLAY_NAME") }, ownerId,
 						ownerType, "self");
-				int done = 0;
-				int found = 0;
-				int failed = 0;
-				for (String threadId : threadIds) {
-					try {
-						found += extract(user, ownerId, ownerType, threadId, model, self);
-					} catch (RuntimeException e) {
-						failed++;
-						classLogger.warn("Work items extract failed for thread {}", threadId, e);
+				// each thread's read stands alone (its own candidates and WORK_REF), so several go at once
+				java.util.concurrent.atomic.AtomicInteger done = new java.util.concurrent.atomic.AtomicInteger();
+				java.util.concurrent.atomic.AtomicInteger found = new java.util.concurrent.atomic.AtomicInteger();
+				java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
+				ExecutorService reads = Executors.newFixedThreadPool(Math.max(1, Math.min(extractParallel(),
+						threadIds.size())), r -> {
+							Thread t = new Thread(r, "collaboration-work-items-extract");
+							t.setDaemon(true);
+							return t;
+						});
+				try {
+					List<java.util.concurrent.Future<?>> pending = new ArrayList<>();
+					for (String threadId : threadIds) {
+						pending.add(reads.submit(() -> {
+							try {
+								found.addAndGet(extract(user, ownerId, ownerType, threadId, model, self));
+							} catch (RuntimeException e) {
+								failed.incrementAndGet();
+								classLogger.warn("Work items extract failed for thread {}", threadId, e);
+							}
+							status.put("extracted", done.incrementAndGet());
+							status.put("candidates", found.get());
+							status.put("failed", failed.get());
+						}));
 					}
-					status.put("extracted", ++done);
-					status.put("candidates", found);
-					status.put("failed", failed);
+					for (java.util.concurrent.Future<?> f : pending) {
+						f.get();
+					}
+				} finally {
+					reads.shutdownNow();
 				}
 				status.put("state", "grouping");
 				status.putAll(reconcile(user, ownerId, ownerType, model));
@@ -845,6 +864,17 @@ public final class WorkPipeline {
 			} catch (Throwable e) {
 				classLogger.error("Work items job failed", e);
 			}
+		}
+	}
+
+	private static int extractParallel() {
+		String value = Utility.getDIHelperProperty(Constants.COLLAB_WORK_EXTRACT_PARALLEL);
+		try {
+			return value == null || value.isBlank() ? EXTRACT_PARALLEL
+					: Math.max(1, Math.min(MAX_PARALLEL, Integer.parseInt(value.trim())));
+		} catch (NumberFormatException e) {
+			classLogger.warn("{} is not a number; using {}", Constants.COLLAB_WORK_EXTRACT_PARALLEL, EXTRACT_PARALLEL);
+			return EXTRACT_PARALLEL;
 		}
 	}
 
