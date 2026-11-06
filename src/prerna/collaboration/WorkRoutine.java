@@ -81,6 +81,7 @@ import prerna.io.connector.ms.teams.MicrosoftTeamsSendChatMessageReactor;
 import prerna.om.Insight;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.definition.AutomationDefinitionService;
+import prerna.reactor.automation.project.AutomationProjectService;
 import prerna.reactor.automation.run.AutomationRunStore;
 import prerna.reactor.automation.run.RunAutomationDefinitionReactor;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
@@ -107,10 +108,13 @@ final class WorkRoutine {
 	static final String CAUSE_AGENT = "agent";
 	static final String CAUSE_DELIVERY = "delivery";
 	static final String CAUSE_INTERRUPTED = "interrupted";
+	static final String CAUSE_CANCELLED = "cancelled";
 
 	// how long Run now waits for the job to mark its run: 20 x 250 ms
 	private static final int RUN_NOW_WAIT_STEPS = 20;
 	private static final long RUN_NOW_WAIT_STEP_MS = 250;
+	// how many past briefs a brief looks through for the reply drafts already saved
+	private static final int DRAFTED_RUNS = 10;
 
 	/** A run that cannot start; its message is ours, so it is safe to show the owner. */
 	private static final class RoutineFailure extends IllegalArgumentException {
@@ -155,7 +159,7 @@ final class WorkRoutine {
 
 		String failed() {
 			return "The " + label + " failed. Check your Microsoft connection and Collaboration model, then "
-					+ (scheduled() ? "retry on the next scheduled day." : "it runs again on the next request.");
+					+ (scheduled() ? "run it again, or wait for its next scheduled run." : "it runs again on the next request.");
 		}
 
 		String timedOut() {
@@ -304,6 +308,10 @@ final class WorkRoutine {
 			}
 		}
 		synchronized (CollaborationDbUtils.ownerLock(kind.id(), owner.getValue0(), owner.getValue1())) {
+			// Turning a routine on consents to background access; saving one already on keeps what Connections set,
+			// so an edit never turns access back on after the owner turned it off.
+			Map<String, Object> before = stored(slot);
+			boolean turningOn = enabled && (before == null || !Boolean.TRUE.equals(before.get("enabled")));
 			try {
 				// The row lock serializes schedule changes across servers; the executor claims this same row.
 				CollaborationDbUtils.inTransaction(conn -> {
@@ -319,7 +327,9 @@ final class WorkRoutine {
 						}
 					}
 					if (enabled) {
-						MicrosoftGraphCredentialStore.save(mailboxToken);
+						if (turningOn) {
+							MicrosoftGraphCredentialStore.save(mailboxToken);
+						}
 						schedule(slot, config);
 						CollaborationDbUtils.update(conn, "UPDATE " + kind.table() + " SET ENABLED = ?" + slot.where(), slot.args(of(true)));
 					} else {
@@ -343,6 +353,14 @@ final class WorkRoutine {
 
 	/** Starts a run now on the scheduler, as a scheduled run would, so it runs as the owner off this request. */
 	static void runNow(Kind kind, User user, String routineId) {
+		runNow(kind, user, routineId, null);
+	}
+
+	/**
+	 * Starts a run now on the scheduler, as the owner off this request. A pixel, when given, is what this run executes
+	 * in place of the job's recipe, so a kind whose scheduled runs keep to their days can still be run by hand.
+	 */
+	static void runNow(Kind kind, User user, String routineId, String pixel) {
 		Slot slot = new Slot(kind, CollaborationDbUtils.ownerOf(user), routineId);
 		Map<String, Object> row = stored(slot);
 		if (row == null) {
@@ -358,7 +376,14 @@ final class WorkRoutine {
 			throw new IllegalArgumentException("The SEMOSS scheduler is unavailable");
 		}
 		try {
-			SchedulerFactorySingleton.getInstance().getScheduler().triggerJob(jobKey(slot));
+			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+			// after a restart the scheduler stands by until a schedule is saved; the fired job would wait with it
+			SchedulerDatabaseUtility.startScheduler(scheduler);
+			if (pixel == null) {
+				scheduler.triggerJob(jobKey(slot));
+			} else {
+				scheduler.triggerJob(jobKey(slot), new JobDataMap(Map.of(JobConfigKeys.PIXEL, pixel)));
+			}
 		} catch (SchedulerException e) {
 			throw new IllegalStateException("Could not start the " + kind.label(), e);
 		}
@@ -376,6 +401,46 @@ final class WorkRoutine {
 				return;
 			}
 		}
+	}
+
+	/**
+	 * Stops the owner's running run: cancels its automation, which cancels its agent, and frees the row at once so
+	 * Run now can start another while the old run winds down; its own finish then matches no running row.
+	 */
+	static void stop(Slot slot) {
+		Kind kind = slot.kind();
+		Map<String, Object> row = stored(slot);
+		if (row == null) {
+			throw new IllegalArgumentException("Routine not found");
+		}
+		if (!"running".equals(row.get("status"))) {
+			throw new IllegalArgumentException("The " + kind.label() + " is not running");
+		}
+		String started = (String) row.get("startedAt");
+		String runId = (String) row.get("runId");
+		String roomId = null;
+		if (runId != null) {
+			// the run id is attached just before the automation row exists; wait briefly so the cancel reaches it
+			Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
+			for (int i = 0; run == null && i < RUN_NOW_WAIT_STEPS; i++) {
+				try {
+					Thread.sleep(RUN_NOW_WAIT_STEP_MS);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+				run = AutomationRunStore.getRunDetail(runId);
+			}
+			if (run != null) {
+				if (!TERMINAL.contains(run.get(AutomationConstants.STATUS))) {
+					RunAutomationDefinitionReactor.cancelRun(runId);
+				}
+				// keep the room the run worked in, so Open run still shows how far it got
+				roomId = (String) lastRun(row).get("roomId");
+			}
+		}
+		finish(slot, "failed", null, "You stopped this run. Run it again when you are ready.", roomId, started,
+				CAUSE_CANCELLED);
 	}
 
 	/**
@@ -404,7 +469,10 @@ final class WorkRoutine {
 		}
 	}
 
-	/** Deletes one routine of a many-per-owner kind, with its schedule; its past runs stay in the scheduler history. */
+	/**
+	 * Deletes one routine of a many-per-owner kind: stops its run if one is going, then deletes its runs with the chats
+	 * and agent rooms they made, its schedule and its row.
+	 */
 	static void delete(Kind kind, User user, String routineId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		Slot slot = new Slot(kind, owner, Objects.requireNonNull(routineId, "routineId"));
@@ -412,17 +480,29 @@ final class WorkRoutine {
 			if (stored(slot) == null) {
 				throw new IllegalArgumentException("Routine not found");
 			}
-			if (schedulerAvailable()) {
-				try {
-					Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
-					JobKey key = jobKey(slot);
-					scheduler.deleteJob(key);
-					SchedulerDatabaseUtility.removeFromJobRecipesTable(key.getName(), GROUP);
-				} catch (SchedulerException e) {
-					throw new IllegalStateException("Could not remove the " + kind.label() + " schedule", e);
-				}
+			// off first, so no run starts or attaches while its runs go; the row goes last, so a failed delete can retry
+			CollaborationDbUtils.update("UPDATE " + kind.table() + " SET ENABLED = ?" + slot.where(), slot.args(of(false)));
+			if ("running".equals(stored(slot).get("status"))) {
+				stop(slot);
 			}
+			WorkRoutineRoom.deleteRuns(user, slot);
+			unschedule(slot);
 			CollaborationDbUtils.update("DELETE FROM " + kind.table() + slot.where(), slot.args(of()));
+		}
+	}
+
+	/** Removes a routine's scheduler job and its recipe row; the routine's own row is the caller's to delete. */
+	static void unschedule(Slot slot) {
+		if (!schedulerAvailable()) {
+			return;
+		}
+		try {
+			Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+			JobKey key = jobKey(slot);
+			scheduler.deleteJob(key);
+			SchedulerDatabaseUtility.removeFromJobRecipesTable(key.getName(), GROUP);
+		} catch (SchedulerException e) {
+			throw new IllegalStateException("Could not remove the " + slot.kind().label() + " schedule", e);
 		}
 	}
 
@@ -451,7 +531,8 @@ final class WorkRoutine {
 			return Map.of("status", "skipped");
 		}
 		java.sql.Timestamp startedAt = CollaborationDbUtils.now();
-		startedAt.setNanos(startedAt.getNanos() / 1_000_000 * 1_000_000);
+		// whole hundredths: SQL Server's DATETIME keeps 1/300 s, so only these match the STARTED_AT checks below
+		startedAt.setNanos(startedAt.getNanos() / 10_000_000 * 10_000_000);
 		String started = CollaborationDbUtils.toIso(startedAt);
 		// Preserve an existing successful run's cutoff when upgrading an older routine row.
 		// shortcut: once-per-day guard off for testing (no "AND (LAST_DATE IS NULL OR LAST_DATE <> ?)"); restore before release,
@@ -475,18 +556,23 @@ final class WorkRoutine {
 				throw new RoutineFailure(CAUSE_CONNECTION, "The routine owner account is no longer active.");
 			}
 			mailboxId = mailboxId(owner);
-			if (!MicrosoftGraphCredentialStore.isRefreshable(MicrosoftGraphCredentialStore.get(mailboxId))) {
-				// Older opted-in routines may still hold their credentials in the subscription registry.
-				AccessToken mailboxToken = mailboxToken(mailboxId, null);
-				if (mailboxToken == null) {
-					throw new RoutineFailure(CAUSE_CONNECTION, mailboxUnavailable(mailboxId));
-				}
-				MicrosoftGraphCredentialStore.save(mailboxToken);
+			AccessToken lent;
+			if (MicrosoftGraphCredentialStore.isRefreshable(MicrosoftGraphCredentialStore.get(mailboxId))) {
+				// Refresh and persist first, then lend the stored owner's delegated /me token to this session user,
+				// whose Python process runs the automation; a new User's process would never be shut down.
+				MicrosoftGraphCredentialStore.accessToken(mailboxId);
+				lent = MicrosoftGraphCredentialStore.get(mailboxId);
+			} else {
+				// Older opted-in routines may still hold their credentials in the subscription registry. Lent to this run
+				// only, never saved: a subscribe still in flight when the owner turned access off would turn it back on.
+				lent = mailboxToken(mailboxId, null);
 			}
-			// Refresh and persist first, then lend the stored owner's delegated /me token to this session user,
-			// whose Python process runs the automation; a new User's process would never be shut down.
-			attachedToken = MicrosoftGraphCredentialStore.accessToken(mailboxId);
-			user.setAccessToken(MicrosoftGraphCredentialStore.get(mailboxId));
+			// none, or background access was turned off while the stored one was renewed
+			if (lent == null) {
+				throw new RoutineFailure(CAUSE_CONNECTION, mailboxUnavailable(mailboxId));
+			}
+			attachedToken = lent.getAccess_token();
+			user.setAccessToken(lent);
 			user.setPrimaryLogin(AuthProvider.getProviderFromString(owner.getValue1()));
 			String recipient = BrainMailImport.first(BrainMailHeaderSource.current().me(user), "mail", "userPrincipalName");
 			if (recipient == null) {
@@ -507,6 +593,10 @@ final class WorkRoutine {
 			inputs.put("owner_email", recipient);
 			inputs.put("timezone", config.get("timezone"));
 			inputs.putAll(kind.inputs().apply(row, config));
+			if (kind == WorkInboxRoutine.KIND) {
+				// an ask an earlier brief saved a reply draft for gets no second one, such as on a Run now or a Retry
+				inputs.put("drafted", drafted(user, slot));
+			}
 			if (config.containsKey("preferences")) {
 				inputs.put("preferences", config.get("preferences"));
 			}
@@ -549,7 +639,7 @@ final class WorkRoutine {
 					// A Graph call during the run may have refreshed the lent token; keep the new pair for the next run.
 					if (current != null && !Objects.equals(attachedToken, current.getAccess_token())
 							&& MicrosoftGraphCredentialStore.isRefreshable(current) && mailboxId.equals(current.getId())) {
-						MicrosoftGraphCredentialStore.save(current);
+						MicrosoftGraphCredentialStore.update(current);
 					}
 				} finally {
 					// An interactive caller's session must not keep the stored credential once nothing reads it.
@@ -650,6 +740,10 @@ final class WorkRoutine {
 				if (agentConfig != null) {
 					agentConfig.forEach((key, value) -> config.add(key, AutomationRuntimeUtils.GSON.toJsonTree(value)));
 				}
+				// RunAgent URL-decodes a command holding "%"; escaped, its text reaches the model as written. The
+				// ${context...} values filled in later are escaped by the step that makes them.
+				String command = config.get(AutomationConstants.CONFIG_COMMAND).getAsString();
+				config.addProperty(AutomationConstants.CONFIG_COMMAND, command.replace("%", "%25").replace("+", "%2B"));
 			}
 		}
 		return AutomationDefinitionService.fromInline(AutomationRuntimeUtils.GSON.toJson(definition), null);
@@ -946,7 +1040,7 @@ final class WorkRoutine {
 	}
 
 	/** The run's top-level result node, or null when the run never reached it. */
-	private static Map<String, Object> resultNode(Kind kind, String runId) {
+	static Map<String, Object> resultNode(Kind kind, String runId) {
 		Map<String, Object> result = null;
 		for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(runId)) {
 			if (kind.outputNode().equals(node.get(AutomationConstants.NODE_ID)) && node.get(AutomationConstants.PARENT_NODE_ID) == null) {
@@ -954,6 +1048,26 @@ final class WorkRoutine {
 			}
 		}
 		return result;
+	}
+
+	/**
+	 * The reply drafts earlier briefs saved, by message id with where each went; the newest brief that saved drafts
+	 * carries those of the briefs before it.
+	 */
+	private static Object drafted(User user, Slot slot) {
+		// shortcut: looks back DRAFTED_RUNS briefs; after more in a row without saved drafts, their asks are drafted again
+		for (Map<String, Object> run : AutomationRunStore.getRunsForAutomation(AutomationProjectService.inlineRunScope(user),
+				slot.automationId(), DRAFTED_RUNS)) {
+			for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun((String) run.get(AutomationConstants.RUN_ID))) {
+				if ("save_drafts".equals(node.get(AutomationConstants.NODE_ID)) && node.get(AutomationConstants.PARENT_NODE_ID) == null
+						&& AutomationConstants.NODE_STATUS_SUCCESS.equals(node.get(AutomationConstants.STATUS))
+						&& node.get(AutomationConstants.OUTPUT_VALUE) instanceof String output) {
+					return AutomationRuntimeUtils.GSON.fromJson(output, Object.class) instanceof Map<?, ?> saved
+							&& saved.get("drafted") instanceof Map<?, ?> earlier ? earlier : Map.of();
+				}
+			}
+		}
+		return Map.of();
 	}
 
 	/** Whether the node is an agent step cut off by its waitTimeoutMs. */
@@ -979,8 +1093,9 @@ final class WorkRoutine {
 				MicrosoftTeamsMessageHelper.sendChatMessage(token, MicrosoftTeamsSendChatMessageReactor.SELF_CHAT_ID,
 						text, false, null, null, null, 0);
 			} else {
-				new MicrosoftOutlookMailHelper().sendMail(token, null, MicrosoftOutlookMailHelper.buildMessage(subject,
-						text, false, new String[] { recipient }, null, null, null, null, null), true);
+				// marked and recorded, so mail import never reads the note back as the owner's
+				BrainOwnMail.send(user, token, MicrosoftOutlookMailHelper.buildMessage(subject, text, false,
+						new String[] { recipient }, null, null, null, null, null), "notice");
 			}
 		} catch (Exception e) {
 			classLogger.warn("Could not tell the owner their {} ran out of time", kind.label(), e);

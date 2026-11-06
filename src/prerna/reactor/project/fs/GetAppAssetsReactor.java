@@ -28,7 +28,6 @@
 package prerna.reactor.project.fs;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
@@ -51,12 +50,7 @@ public class GetAppAssetsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		// editors/owners can read everything; view-only users are confined to the

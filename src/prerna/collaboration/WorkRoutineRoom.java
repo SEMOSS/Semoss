@@ -27,11 +27,11 @@
  *******************************************************************************/
 package prerna.collaboration;
 
-import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -41,7 +41,6 @@ import java.util.Set;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
-import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -53,8 +52,8 @@ import prerna.reactor.automation.run.AutomationRunStore;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 /**
- * The owner's routine runs: their history, the latest runs for the sidebar, deleting one, and a private discussion of
- * one completed output, without exposing the automation history behind them.
+ * The owner's routine runs: their history, the latest runs for the sidebar, deleting one, and opening one completed
+ * output, in the room its agent worked in or, for a routine with no agent, a private chat that starts with it.
  */
 public final class WorkRoutineRoom {
 	private static final int MAX_RUNS = 30;
@@ -62,13 +61,12 @@ public final class WorkRoutineRoom {
 	private static final int RECENT_ROUTINES = 5;
 	private static final int RECENT_RUNS = 2;
 	private static final Set<String> FAILED = Set.of(AutomationConstants.STATUS_FAILED,
-			AutomationConstants.STATUS_INTERRUPTED, AutomationConstants.STATUS_CANCELLED);
+			AutomationConstants.STATUS_INTERRUPTED);
 
 	private WorkRoutineRoom() { }
 
-	// a routine id names its kind, its row and the documents its runs read
-	private record Target(WorkRoutine.Kind kind, String customId, String documentsId, Pair<String, String> owner,
-			Map<String, Object> row) {
+	// a routine id names its kind and its row
+	private record Target(WorkRoutine.Kind kind, String customId, Pair<String, String> owner, Map<String, Object> row) {
 		WorkRoutine.Slot slot() {
 			return new WorkRoutine.Slot(kind, owner, customId);
 		}
@@ -93,8 +91,6 @@ public final class WorkRoutineRoom {
 		WorkRoutine.Kind kind;
 		// any other id names one of the owner's own routines
 		String customId = null;
-		// the reference documents the routine's runs read; the inbox and agenda routines have none
-		String documentsId = null;
 		if (WorkInboxRoutine.ID.equals(routineId)) {
 			kind = WorkInboxRoutine.KIND;
 		} else if (WorkAgendaRoutine.ID.equals(routineId)) {
@@ -103,11 +99,9 @@ public final class WorkRoutineRoom {
 			kind = WorkEventPlanningRoutine.KIND;
 		} else if (WorkExpenseRoutine.ID.equals(routineId)) {
 			kind = WorkExpenseRoutine.KIND;
-			documentsId = WorkExpenseRoutine.DOCUMENTS_ID;
 		} else if (routineId != null && !routineId.isBlank()) {
 			kind = WorkCustomRoutine.KIND;
 			customId = routineId.trim();
-			documentsId = customId;
 		} else {
 			throw new IllegalArgumentException("Unknown routine");
 		}
@@ -116,7 +110,7 @@ public final class WorkRoutineRoom {
 		if (row == null && customId != null) {
 			throw new IllegalArgumentException("Unknown routine");
 		}
-		return new Target(kind, customId, documentsId, owner, row);
+		return new Target(kind, customId, owner, row);
 	}
 
 	/** The routine's past runs for the signed-in owner, newest first, from the scheduler history. */
@@ -150,17 +144,9 @@ public final class WorkRoutineRoom {
 	public static List<Map<String, Object>> recentRuns(Insight insight) {
 		User user = insight.getUser();
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		List<WorkRoutine.Slot> slots = new ArrayList<>();
-		for (WorkRoutine.Kind kind : List.of(WorkInboxRoutine.KIND, WorkAgendaRoutine.KIND, WorkEventPlanningRoutine.KIND,
-				WorkExpenseRoutine.KIND)) {
-			slots.add(new WorkRoutine.Slot(kind, owner, null));
-		}
-		for (String routineId : WorkRoutine.routineIds(WorkCustomRoutine.KIND, owner)) {
-			slots.add(new WorkRoutine.Slot(WorkCustomRoutine.KIND, owner, routineId));
-		}
 		// the rows say when each routine last started, so only the routines shown read their run history
 		List<Last> last = new ArrayList<>();
-		for (WorkRoutine.Slot slot : slots) {
+		for (WorkRoutine.Slot slot : slots(owner)) {
 			Map<String, Object> row = WorkRoutine.stored(slot);
 			if (row != null && row.get("startedAt") instanceof String startedAt) {
 				last.add(new Last(slot, row, Instant.parse(startedAt)));
@@ -213,7 +199,13 @@ public final class WorkRoutineRoom {
 	private static String status(Map<String, Object> run) {
 		String status = String.valueOf(run.get(AutomationConstants.STATUS));
 		return AutomationConstants.STATUS_SUCCESS.equals(status) ? "completed"
+				: AutomationConstants.STATUS_CANCELLED.equals(status) ? "stopped"
 				: FAILED.contains(status) ? "failed" : "running";
+	}
+
+	/** Stops the owner's running run of the routine, so it can be run again. */
+	public static void stopRun(Insight insight, String routineId) {
+		WorkRoutine.stop(target(insight, routineId).slot());
 	}
 
 	/** The room a run's agent works in, from its first node that names one; null until the agent starts. */
@@ -245,19 +237,93 @@ public final class WorkRoutineRoom {
 		if ("running".equals(status(run))) {
 			throw new IllegalArgumentException("This run is still going. Delete it once it has finished.");
 		}
-		// every run's agent gets rooms of its own, and only the run's history names them
+		Set<String> roomIds = rooms(target, id);
+		// the chats go first, so after a failure deleting the run again finishes the job
+		deleteRooms(user, target, roomIds);
+		AutomationRunStore.deleteRun(AutomationProjectService.inlineRunScope(user), slot.automationId(), id);
+		// the row keeps its start, which orders the sidebar, and the older runs stay in the history
+		CollaborationDbUtils.update("UPDATE " + slot.kind().table() + " SET RUN_STATUS = NULL, FINISHED_AT = NULL, "
+				+ "ROOM_ID = NULL, RUN_ID = NULL, SUMMARY = NULL, ERROR = NULL, ERROR_CAUSE = NULL" + slot.where()
+				+ " AND RUN_ID = ?", slot.args(new Object[0], id));
+		return List.copyOf(roomIds);
+	}
+
+	/**
+	 * Deletes every run of all the owner's routines, with the chats opened from them and the rooms their agents worked
+	 * in, and removes each routine's schedule. Reset calls it before it deletes the routine rows, which name the
+	 * routines; while one is running it refuses before deleting anything.
+	 *
+	 * @return the runs deleted
+	 */
+	static int deleteAll(User user) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		List<WorkRoutine.Slot> slots = slots(owner);
+		for (WorkRoutine.Slot slot : slots) {
+			WorkRoutine.settle(slot);
+			Map<String, Object> row = WorkRoutine.stored(slot);
+			if (row != null && "running".equals(row.get("status"))) {
+				throw new IllegalStateException("A routine is running; wait for it to finish or stop it, then reset");
+			}
+		}
+		String scope = AutomationProjectService.inlineRunScope(user);
+		// runs of the owner's own routines that were deleted without them, which no row names any more
+		String custom = WorkCustomRoutine.KIND.automationId() + ":";
+		Set<String> named = new HashSet<>();
+		slots.forEach(slot -> named.add(slot.automationId()));
+		for (Map<String, Object> run : AutomationRunStore.getRunsForProject(scope, -1)) {
+			if (run.get(AutomationConstants.AUTOMATION_ID) instanceof String id && id.startsWith(custom) && named.add(id)) {
+				slots.add(new WorkRoutine.Slot(WorkCustomRoutine.KIND, owner, id.substring(custom.length())));
+			}
+		}
+		int deleted = 0;
+		for (WorkRoutine.Slot slot : slots) {
+			deleted += deleteRuns(user, slot);
+			WorkRoutine.unschedule(slot);
+		}
+		return deleted;
+	}
+
+	/** Deletes every run of one routine, with the chats opened from them and the rooms their agents worked in. */
+	static int deleteRuns(User user, WorkRoutine.Slot slot) {
+		String scope = AutomationProjectService.inlineRunScope(user);
+		Target target = new Target(slot.kind(), slot.routineId(), slot.owner(), WorkRoutine.stored(slot));
+		for (Map<String, Object> run : AutomationRunStore.getRunsForAutomation(scope, slot.automationId(), -1)) {
+			deleteRooms(user, target, rooms(target, String.valueOf(run.get(AutomationConstants.RUN_ID))));
+		}
+		return AutomationRunStore.deleteRuns(scope, slot.automationId());
+	}
+
+	// the four system routines and each of the owner's own
+	private static List<WorkRoutine.Slot> slots(Pair<String, String> owner) {
+		List<WorkRoutine.Slot> slots = new ArrayList<>();
+		for (WorkRoutine.Kind kind : List.of(WorkInboxRoutine.KIND, WorkAgendaRoutine.KIND, WorkEventPlanningRoutine.KIND,
+				WorkExpenseRoutine.KIND)) {
+			slots.add(new WorkRoutine.Slot(kind, owner, null));
+		}
+		for (String routineId : WorkRoutine.routineIds(WorkCustomRoutine.KIND, owner)) {
+			slots.add(new WorkRoutine.Slot(WorkCustomRoutine.KIND, owner, routineId));
+		}
+		return slots;
+	}
+
+	// every run's agent gets rooms of its own, and only the run's history names them; plus the chats opened from it
+	private static Set<String> rooms(Target target, String runId) {
 		Set<String> roomIds = new LinkedHashSet<>();
-		for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(id)) {
+		for (Map<String, Object> node : AutomationRunStore.getNodeOutputsForRun(runId)) {
 			if (node.get(AutomationConstants.ROOM_ID) instanceof String roomId && !roomId.isBlank()) {
 				roomIds.add(roomId);
 			}
 		}
-		roomIds.add(target.runRoom(id));
+		roomIds.add(target.runRoom(runId));
 		Map<String, Object> row = target.row();
-		if (row != null && id.equals(row.get("runId")) && row.get("startedAt") instanceof String started) {
+		if (row != null && runId.equals(row.get("runId")) && row.get("startedAt") instanceof String started) {
 			roomIds.add(target.latestRoom(started));
 		}
-		// as deleting a chat does; the chats go first, so after a failure deleting the run again finishes the job
+		return roomIds;
+	}
+
+	// as deleting a chat does
+	private static void deleteRooms(User user, Target target, Set<String> roomIds) {
 		for (String roomId : roomIds) {
 			if (!ModelInferenceLogsUtils.doSetRoomToInactive(target.owner().getValue0(), roomId)) {
 				throw new IllegalStateException("The run's chats could not be deleted. Try again.");
@@ -265,12 +331,6 @@ public final class WorkRoutineRoom {
 			AgentCodeExecutionContext.removeForRoom(user, roomId);
 			RoomMessageStore.evictRedisProjection(roomId);
 		}
-		AutomationRunStore.deleteRun(AutomationProjectService.inlineRunScope(user), slot.automationId(), id);
-		// the row keeps its start, which orders the sidebar, and the older runs stay in the history
-		CollaborationDbUtils.update("UPDATE " + slot.kind().table() + " SET RUN_STATUS = NULL, FINISHED_AT = NULL, "
-				+ "ROOM_ID = NULL, RUN_ID = NULL, SUMMARY = NULL, ERROR = NULL, ERROR_CAUSE = NULL" + slot.where()
-				+ " AND RUN_ID = ?", slot.args(new Object[0], id));
-		return List.copyOf(roomIds);
 	}
 
 	/** The run, only when it is this owner's run of this routine; the client id is never trusted alone. */
@@ -306,12 +366,13 @@ public final class WorkRoutineRoom {
 		return open(insight, routineId, startedAt, null);
 	}
 
-	/** Opens the latest output, or with a run id that past run's output, as a chat. */
+	/**
+	 * Opens the latest output, or with a run id that past run's output. A routine whose answer is its agent's opens the
+	 * room that agent worked in, tool calls and all; the others get a chat that starts with the output.
+	 */
 	public static Map<String, Object> open(Insight insight, String routineId, String startedAt, String runId) {
 		Target target = target(insight, routineId);
 		WorkRoutine.Kind kind = target.kind();
-		String customId = target.customId();
-		String documentsId = target.documentsId();
 		Pair<String, String> owner = target.owner();
 		Map<String, Object> row = target.row();
 		String summary;
@@ -344,39 +405,39 @@ public final class WorkRoutineRoom {
 					? target.runRoom(latestRun)
 					: earlier;
 		}
-		String title = customId != null && row.get("settings") instanceof Map<?, ?> settings
-				&& settings.get("name") instanceof String name && !name.isBlank() ? name : kind.jobName();
+		// past the same checks as a chat: the owner's own run, with output, and still the one shown
+		if (kind.agent() != null) {
+			return Map.of("roomId", agentRoom(target, runId));
+		}
 		String messageId = CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), roomId, "output");
 		String modelId = BrainTopicModel.engine(insight.getUser());
 		Map<String, Object> options = modelId == null ? Map.of() : Map.of("modelId", modelId);
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {
 			String date = runStarted.length() >= 10 ? " - " + runStarted.substring(0, 10) : "";
-			RoomUtils.createRoomIfNotExists(roomId, insight, null, title + date, null, options, null,
+			RoomUtils.createRoomIfNotExists(roomId, insight, null, kind.jobName() + date, null, options, null,
 					CollaborationUtils.COLLABORATION_PROJECT_ID, null);
-			// the same copy a run gets, refreshed on every open so a document uploaded since is there too
-			List<String> documents = List.of();
-			if (documentsId != null) {
-				try {
-					documents = WorkRoutineDocuments.copyInto(insight.getUser(), documentsId, Room.roomFolderPath(roomId));
-				} catch (IOException e) {
-					throw new IllegalStateException("Could not copy the routine's reference documents into the chat", e);
-				}
-			}
 			// A deterministic message makes retries safe even if the room was created before persistence failed.
 			RoomMessageStore.appendPlatformMessageIfAbsent(roomId, insight.getUser().getPrimaryLoginToken().getId(),
-					messageId, withDocuments(summary, documents), null);
+					messageId, summary, null);
 		}
 		return Map.of("roomId", roomId);
 	}
 
-	// shortcut: the note names the documents present at first open; a later upload is copied on reopen but stays
-	// unnamed here, so add a per-turn runtime note if owners add documents mid-chat
-	static String withDocuments(String summary, List<String> documents) {
-		if (documents.isEmpty()) {
-			return summary;
+	/**
+	 * The room the run's agent answered in, which already holds the output after its tool calls and the reference
+	 * documents the run read: the past run's, else the latest run's from the routine's row.
+	 */
+	private static String agentRoom(Target target, String runId) {
+		Object roomId;
+		if (runId != null && !runId.isBlank()) {
+			Map<String, Object> result = WorkRoutine.resultNode(target.kind(), runId.trim());
+			roomId = result == null ? null : result.get(AutomationConstants.ROOM_ID);
+		} else {
+			roomId = target.row().get("roomId");
 		}
-		return summary + "\n\n---\n\nThe routine's reference documents are in the \"" + WorkRoutineDocuments.FOLDER
-				+ "\" folder of this chat's working folder: " + String.join(", ", documents)
-				+ ". Read the ones a question needs with the file tools, or the document reader for Office files and PDFs.";
+		if (!(roomId instanceof String id) || id.isBlank()) {
+			throw new IllegalArgumentException("This run has no room to open");
+		}
+		return id;
 	}
 }

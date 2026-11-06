@@ -90,11 +90,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		String existingId = getRdbmsId();
 
 		User user = this.insight.getUser();
-		// security
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
-
 		if (!SecurityInsightUtils.userCanEditInsight(user, projectId, existingId)) {
 			throw new IllegalArgumentException("User does not have permission to edit this insight");
 		}

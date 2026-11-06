@@ -910,13 +910,13 @@ public class Insight implements Serializable {
 	}
 
 	/**
-	 * Returns the user's ID using the primary login provider. Returns "-1" for
-	 * anonymous or unset users.
+	 * Returns the user's ID using the primary login provider. Returns "-1" when
+	 * there is no user.
 	 *
 	 * @return the user ID string
 	 */
 	public String getUserId() {
-		if (this.user == null || this.user.isAnonymous()) {
+		if (this.user == null) {
 			return "-1";
 		}
 		return user.getAccessToken(user.getLogins().get(0)).getId();

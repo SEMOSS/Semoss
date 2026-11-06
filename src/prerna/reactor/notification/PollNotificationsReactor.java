@@ -28,7 +28,6 @@
 package prerna.reactor.notification;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -50,10 +49,7 @@ public class PollNotificationsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Notifications are not enabled on this instance");
 		}
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		String scopeId = this.keyValue.get(SCOPE_ID);
 		String scopeType = NotificationDbUtils.resolveReadScope(user, this.keyValue.get(SCOPE_TYPE), scopeId);

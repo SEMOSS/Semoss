@@ -31,13 +31,10 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
@@ -68,26 +65,15 @@ public class FetchNotificationsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Notifications are not enabled on this instance");
 		}
 		organizeKeys();
-		User user = this.insight.getUser();
+		User user = requireUser();
 		String limit = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
 		String offset = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
 		String scopeId = this.keyValue.get(SCOPE_ID);
 		String markRead = this.keyValue.get(MARK_READ);
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account to retrieve the function engine files",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
 		String scopeType = NotificationDbUtils.resolveReadScope(user, this.keyValue.get(SCOPE_TYPE), scopeId);
 
-		List<Map<String, Object>> allNotifications = NotificationDbUtils.fetchNotifications(user, scopeType, scopeId, limit,
-				offset);
+		List<Map<String, Object>> allNotifications = NotificationDbUtils.fetchNotifications(user, scopeType, scopeId,
+				limit, offset);
 		boolean resetReadState = markRead == null || markRead.isBlank() || Boolean.parseBoolean(markRead.trim());
 		if (resetReadState && !allNotifications.isEmpty()) {
 			NotificationDbUtils.resetNotificationActionType(user, scopeType, scopeId);

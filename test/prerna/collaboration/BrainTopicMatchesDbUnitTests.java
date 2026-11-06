@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -48,17 +49,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 
 import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.MockedStatic;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -66,7 +71,8 @@ import prerna.util.sql.SqlQueryUtilFactory;
 
 /**
  * Re-sorting after a topic changes, against an in-memory H2 Collaboration schema: which conversations a preview
- * scores, which scores become rows, and what move, also_link and reject leave behind.
+ * scores, which scores become rows, and what move, also_link and reject leave behind. Also which topics a chat can
+ * still be linked to once a topic is gone.
  */
 class BrainTopicMatchesDbUnitTests {
 
@@ -318,7 +324,79 @@ class BrainTopicMatchesDbUnitTests {
 		assertThrows(IllegalArgumentException.class, () -> apply(change("x", BrainTopicMatches.ALSO_LINK)));
 	}
 
+	// ---- a chat's topics ----
+
+	@Test
+	void aChatIsNotTaggedWithATopicGoneWhileItWasScored() throws Exception {
+		BrainTopicRoomUtils.Chat chat = new BrainTopicRoomUtils.Chat("chat", null, Map.of());
+		sql("DELETE FROM BRAIN_TOPIC WHERE TOPIC_ID = ?", A);
+		sql("UPDATE BRAIN_TOPIC SET STATUS = 'archived' WHERE TOPIC_ID = ?", B);
+		assertEquals("none", BrainTopicRoomUtils.brainTag(ownerId, ownerType, chat, A, true));
+		assertEquals("none", BrainTopicRoomUtils.brainTag(ownerId, ownerType, chat, B, true));
+		assertEquals(BrainTopicRoomUtils.LINKED, BrainTopicRoomUtils.brainTag(ownerId, ownerType, chat, T, true));
+		assertEquals(1L, value("SELECT COUNT(*) FROM BRAIN_TOPIC_ROOM"));
+	}
+
+	@Test
+	void aTopicDeletedWhileTheOwnersLinkWaitsIsNotLinked() throws Exception {
+		assertThrows(IllegalArgumentException.class,
+				() -> deletedWhileWaiting(A, () -> BrainTopicRoomUtils.linkRoomTopic(user, "chat", A, null, false)));
+		assertEquals(0L, value("SELECT COUNT(*) FROM BRAIN_TOPIC_ROOM"));
+	}
+
+	@Test
+	void aTopicDeletedWhileTheAssistantsTagWaitsIsNotTagged() throws Exception {
+		assertThrows(IllegalArgumentException.class,
+				() -> deletedWhileWaiting(B, () -> BrainTopicRoomUtils.tagRoomTopic(user, "chat", B, true)));
+		assertEquals(0L, value("SELECT COUNT(*) FROM BRAIN_TOPIC_ROOM"));
+	}
+
+	@Test
+	void aLinkLeftToADeletedTopicIsNotOneOfTheChatsTopics() throws Exception {
+		for (String topic : List.of(T, "deleted")) {
+			sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+					+ "VALUES (?, ?, 'chat', ?, 'linked', 'brain')", ownerId, ownerType, topic);
+		}
+		Room room = mock(Room.class);
+		when(room.getId()).thenReturn("chat");
+		when(room.getProjectId()).thenReturn(CollaborationUtils.COLLABORATION_PROJECT_ID);
+		when(room.getOptionsMap()).thenReturn(Map.of());
+		// sending from the chat links the email to each of these
+		assertEquals(List.of(T), BrainTopicRoomUtils.topicsOf(user, room));
+	}
+
 	// ---- helpers ----
+
+	// runs call on the owner's chat while another thread holds the chat-topic lock; that thread deletes the topic
+	// once call is waiting for the lock, as a delete during the classifier's model call would
+	private void deletedWhileWaiting(String topicId, Executable call) throws Throwable {
+		Object lock = CollaborationDbUtils.ownerLock("topic-room", ownerId, ownerType);
+		Thread caller = Thread.currentThread();
+		CountDownLatch held = new CountDownLatch(1);
+		Thread holder = new Thread(() -> {
+			synchronized (lock) {
+				held.countDown();
+				long until = System.nanoTime() + 5_000_000_000L;
+				while (caller.getState() != Thread.State.BLOCKED && System.nanoTime() < until) {
+					Thread.onSpinWait();
+				}
+				try {
+					sql("DELETE FROM BRAIN_TOPIC WHERE TOPIC_ID = ?", topicId);
+				} catch (Exception e) {
+					throw new IllegalStateException(e);
+				}
+			}
+		});
+		try (MockedStatic<ModelInferenceLogsUtils> logs = mockStatic(ModelInferenceLogsUtils.class)) {
+			logs.when(() -> ModelInferenceLogsUtils.getActiveRoomSummaries(anyString(), anyList())).thenReturn(
+					List.of(Map.of("ROOM_ID", "chat", "PROJECT_ID", CollaborationUtils.COLLABORATION_PROJECT_ID)));
+			holder.start();
+			held.await();
+			call.execute();
+		} finally {
+			holder.join();
+		}
+	}
 
 	@SafeVarargs
 	private Map<String, Object> apply(Map<String, Object>... changes) {

@@ -40,7 +40,6 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
@@ -71,14 +70,7 @@ public class CreateProjectReactor extends AbstractReactor {
 		this.organizeKeys();
 		IProject.PROJECT_TYPE projectType = null;
 
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a project",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
+		User user = requireUser();
 
 		int index = 0;
 

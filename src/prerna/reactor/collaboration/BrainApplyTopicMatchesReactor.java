@@ -75,7 +75,8 @@ public class BrainApplyTopicMatchesReactor extends AbstractCollaborationReactor 
 		if (TOPIC_ID.equals(key)) {
 			return "The topic the preview was for";
 		} else if (CHANGES.equals(key)) {
-			return "Maps of threadId and op (move, also_link or reject); conversations left out are not changed";
+			return "Maps of threadId and op (move, also_link or reject), with toTopicId on a re-sort move; "
+					+ "conversations left out are not changed";
 		}
 		return super.getDescriptionForKey(key);
 	}

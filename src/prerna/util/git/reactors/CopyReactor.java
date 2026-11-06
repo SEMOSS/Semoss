@@ -43,7 +43,6 @@ import org.json.JSONObject;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -133,11 +132,7 @@ public class CopyReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		SpaceType sourceType = SpaceType.parse(SOURCE_TYPE, this.keyValue.get(SOURCE_TYPE));
 		SpaceType targetType = SpaceType.parse(TARGET_TYPE, this.keyValue.get(TARGET_TYPE));

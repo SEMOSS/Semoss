@@ -33,6 +33,7 @@ import java.util.Map;
 import org.jsoup.nodes.Entities;
 
 import prerna.auth.User;
+import prerna.collaboration.BrainDraftFormat;
 import prerna.io.connector.mail.AbstractReplyMailReactor;
 import prerna.io.connector.mail.ComposedMail;
 import prerna.io.connector.mail.MailApp;
@@ -72,19 +73,23 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractReplyMailReactor {
 		List<Map<String, Object>> files = MicrosoftOutlookMailHelper.fileAttachments(
 				request.attachments().stream().map(file -> file.getAbsolutePath()).toArray(String[]::new));
 
+		// a Collaboration owner's reply is HTML in their font and signature; anyone else's goes as given
+		BrainDraftFormat.Format look = BrainDraftFormat.forOwner(user);
+		boolean html = look != null || request.html();
+		String body = look == null ? request.body() : BrainDraftFormat.body(look, request.body(), request.html());
 		Map<String, Object> draft;
 		MailRecipients recipients = request.recipients();
 		if (recipients != null) {
 			// graph only takes chosen recipients on the formatted draft, so a plain
 			// text reply is written as html that reads the same
-			draft = helper.replyHtmlDraft(accessToken, request.id(), asHtml(request.body(), request.html()),
+			draft = helper.replyHtmlDraft(accessToken, request.id(), asHtml(body, html),
 					request.replyAll(), recipients.to().toArray(new String[0]), recipients.cc().toArray(new String[0]));
-		} else if (request.html()) {
-			draft = helper.replyHtmlDraft(accessToken, request.id(), request.body(), request.replyAll());
+		} else if (html) {
+			draft = helper.replyHtmlDraft(accessToken, request.id(), body, request.replyAll());
 		} else {
 			draft = helper.reply(accessToken, null, request.id(), request.body(), request.replyAll(), true);
 		}
-		helper.attachToDraft(accessToken, draft, files);
+		helper.attachToNewDraft(accessToken, draft, files);
 		return MicrosoftOutlookMessageMapper.toComposedMail(draft, request.body(), request.html(),
 				request.attachments().stream().map(OutgoingMail::attachmentName).toList());
 	}

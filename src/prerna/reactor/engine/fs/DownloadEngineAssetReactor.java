@@ -31,7 +31,6 @@ import java.io.File;
 import java.util.UUID;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.om.InsightFile;
@@ -54,12 +53,7 @@ public class DownloadEngineAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		// editors/owners can download everything; view-only users are confined to the

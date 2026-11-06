@@ -53,7 +53,6 @@ import org.javatuples.Pair;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.model.Room;
@@ -128,9 +127,6 @@ public class User implements Serializable {
 	// this is a unique identifier for this user instance
 	private String userEpoch = null;
 
-	private boolean anonymous;
-	private String anonymousId;
-
 	private transient volatile String[] cachedTemporalAccessSecretKey = null;
 
 	public User() {
@@ -155,7 +151,6 @@ public class User implements Serializable {
 			loggedInProfiles.add(name);
 		}
 		accessTokens.put(name, value);
-		setAnonymous(false);
 	}
 
 	/**
@@ -230,22 +225,6 @@ public class User implements Serializable {
 
 	public boolean isLoggedIn() {
 		return !this.loggedInProfiles.isEmpty();
-	}
-
-	public void setAnonymous(boolean anonymous) {
-		this.anonymous = anonymous;
-	}
-
-	public boolean isAnonymous() {
-		return this.anonymous;
-	}
-
-	public void setAnonymousId(String anonymousId) {
-		this.anonymousId = anonymousId;
-	}
-
-	public String getAnonymousId() {
-		return this.anonymousId;
 	}
 
 	////////////////////////////////////////////////////////////////////////
@@ -657,9 +636,9 @@ public class User implements Serializable {
 
 	/**
 	 * Get the socket client for this user's node.js agent worker, optionally
-	 * starting the worker if it is not running. Unlike the python process, the
-	 * node worker is only ever reached through agent harness tools - there is
-	 * no user-facing reactor or endpoint for it.
+	 * starting the worker if it is not running. Unlike the python process, the node
+	 * worker is only ever reached through agent harness tools - there is no
+	 * user-facing reactor or endpoint for it.
 	 *
 	 * @param create true to lazily start/revive the worker
 	 * @return the socket client, or null when create is false and none exists
@@ -688,8 +667,8 @@ public class User implements Serializable {
 
 	/**
 	 * Start the per-user node.js agent worker and its socket client. The worker
-	 * self-exits after an idle period (NODE_IDLE_TIMEOUT minutes, default 30)
-	 * since no user session depends on it directly.
+	 * self-exits after an idle period (NODE_IDLE_TIMEOUT minutes, default 30) since
+	 * no user session depends on it directly.
 	 *
 	 * @param port the port to connect on; negative to auto-allocate
 	 */
@@ -974,18 +953,13 @@ public class User implements Serializable {
 		if (semossUser == null) {
 			return retMap;
 		}
-		if (semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled()
-				&& semossUser.isAnonymous()) {
-			retMap.put("ANONYMOUS", "Sign In");
-		} else {
-			for (AuthProvider p : semossUser.loggedInProfiles) {
-				String name = semossUser.getAccessToken(p).getName();
-				if (name == null) {
-					// need to send something
-					name = "";
-				}
-				retMap.put(p.toString().toUpperCase(), name);
+		for (AuthProvider p : semossUser.loggedInProfiles) {
+			String name = semossUser.getAccessToken(p).getName();
+			if (name == null) {
+				// need to send something
+				name = "";
 			}
+			retMap.put(p.toString().toUpperCase(), name);
 		}
 
 		return retMap;
@@ -996,31 +970,23 @@ public class User implements Serializable {
 		if (semossUser == null) {
 			return retMap;
 		}
-		if (semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled()
-				&& semossUser.isAnonymous()) {
-			Map<String, Object> innerMap = new HashMap<>();
-			innerMap.put("id", semossUser.getAnonymousId());
-			innerMap.put("name", "Sign In");
-			retMap.put("ANONYMOUS", innerMap);
-		} else {
-			for (AuthProvider p : semossUser.loggedInProfiles) {
-				AccessToken token = semossUser.getAccessToken(p);
-				String id = token.getId();
-				String name = token.getName();
-				if (name == null) {
-					// need to send something
-					name = "";
-				}
-
-				Map<String, Object> innerMap = new HashMap<>();
-				innerMap.put("id", id);
-				innerMap.put("name", name);
-				Map<String, String> sans = token.getSAN();
-				if (sans != null && sans.size() > 0) {
-					innerMap.put("san", sans);
-				}
-				retMap.put(p.toString(), innerMap);
+		for (AuthProvider p : semossUser.loggedInProfiles) {
+			AccessToken token = semossUser.getAccessToken(p);
+			String id = token.getId();
+			String name = token.getName();
+			if (name == null) {
+				// need to send something
+				name = "";
 			}
+
+			Map<String, Object> innerMap = new HashMap<>();
+			innerMap.put("id", id);
+			innerMap.put("name", name);
+			Map<String, String> sans = token.getSAN();
+			if (sans != null && sans.size() > 0) {
+				innerMap.put("san", sans);
+			}
+			retMap.put(p.toString(), innerMap);
 		}
 
 		return retMap;
@@ -1031,11 +997,6 @@ public class User implements Serializable {
 			return "";
 		}
 
-		if (semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled()
-				&& semossUser.isAnonymous()) {
-			return "ANONYMOUS " + semossUser.anonymousId;
-		}
-
 		AccessToken token = semossUser.accessTokens.get(semossUser.getPrimaryLogin());
 		return token.getId();
 	}
@@ -1043,10 +1004,6 @@ public class User implements Serializable {
 	public static List<Pair<String, String>> getUserIdAndType(User user) {
 		if (user == null) {
 			throw new IllegalArgumentException("User cannot be null.");
-		}
-
-		if (user.isAnonymous()) {
-			throw new IllegalArgumentException("User cannot be anonymous.");
 		}
 
 		List<Pair<String, String>> creds = new ArrayList<>();
@@ -1068,10 +1025,6 @@ public class User implements Serializable {
 	public static Pair<String, String> getPrimaryUserIdAndTypePair(User user) {
 		if (user == null) {
 			throw new IllegalArgumentException("User cannot be null.");
-		}
-
-		if (user.isAnonymous()) {
-			throw new IllegalArgumentException("User cannot be anonymous.");
 		}
 
 		AuthProvider login = user.getPrimaryLogin();

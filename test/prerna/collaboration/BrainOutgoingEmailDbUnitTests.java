@@ -190,10 +190,22 @@ class BrainOutgoingEmailDbUnitTests {
 	}
 
 	@Test
-	void missingTopicRollsBackEveryLinkBeforeSending() {
+	void aLinkLeftToADeletedTopicDoesNotBlockSending() throws Exception {
 		CollaborationDbUtils.update("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE) "
 				+ "VALUES (?, ?, 'room-1', 'topic-deleted', 'linked')", ownerId, ownerType);
-		assertThrows(IllegalArgumentException.class, () -> BrainOutgoingEmail.trackDraft(insight, "draft-1"));
+		BrainOutgoingEmail.trackDraft(insight, "draft-1");
+		assertEquals(1, count("BRAIN_THREAD"));
+		assertEquals(1, count("BRAIN_THREAD_TOPIC"));
+		assertEquals("topic-1", value("SELECT TOPIC_ID FROM BRAIN_THREAD_TOPIC"));
+	}
+
+	@Test
+	void aFailedLinkRollsBackEveryLinkBeforeSending() {
+		try (MockedStatic<BrainThreadRoomUtils> chats = mockStatic(BrainThreadRoomUtils.class)) {
+			chats.when(() -> BrainThreadRoomUtils.linkRoomThread(any(), anyString(), anyString(), anyBoolean()))
+					.thenThrow(new IllegalArgumentException("Chat not found"));
+			assertThrows(IllegalArgumentException.class, () -> BrainOutgoingEmail.trackDraft(insight, "draft-1"));
+		}
 		assertEquals(0, count("BRAIN_THREAD"));
 		assertEquals(0, count("BRAIN_THREAD_TOPIC"));
 		assertEquals(0, count("BRAIN_THREAD_ALIAS"));

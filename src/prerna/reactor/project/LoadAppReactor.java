@@ -27,12 +27,10 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
-import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class LoadAppReactor extends AbstractReactor {
@@ -49,14 +47,7 @@ public class LoadAppReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		User user = insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to set app context",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
+		requireUser();
 
 		organizeKeys();
 		String context = keyValue.get(keysToGet[0]);

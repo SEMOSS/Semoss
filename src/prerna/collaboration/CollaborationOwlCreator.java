@@ -150,11 +150,20 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// the Outlook folder drafts are left in; null means the mailbox's own Drafts
 				Pair.with("DRAFT_FOLDER_ID", VARCHAR_255),
 				Pair.with("DRAFT_FOLDER_NAME", VARCHAR_255),
+				// how drafts look: font (null is Aptos 12pt) and the signature copied from sent mail; null on is on
+				Pair.with("DRAFT_FONT", VARCHAR_255),
+				Pair.with("DRAFT_FONT_SIZE", INTEGER_DATATYPE_NAME),
+				Pair.with("DRAFT_SIGNATURE_HTML", CLOB_DATATYPE_NAME),
+				Pair.with("DRAFT_SIGNATURE_ON", BOOLEAN_DATATYPE_NAME),
 				// ids of the owner's own Collaboration skills staged in their assistant chats
 				Pair.with("ASSISTANT_SKILLS_JSON", CLOB_DATATYPE_NAME),
 				// minutes between scheduled syncs of the owner's mail while the app is closed (BrainSync); 0 is off,
 				// null the default 15
 				Pair.with("SYNC_EVERY_MINUTES", INTEGER_DATATYPE_NAME),
+				// when the owner finished setup (Open Work) or skipped the rest of it; null sends them back to it
+				Pair.with("SETUP_DONE_AT", TIMESTAMP_DATATYPE_NAME),
+				// the first Work build over the imported mail: its state and the threads it has left (WorkPipeline)
+				Pair.with("WORK_BUILD_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// One resumable topic-review draft per owner; only profiles and bounded evidence metadata.
 		addTable("BRAIN_TOPIC_REVIEW", Arrays.asList(
@@ -273,6 +282,12 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// outlook when onboarding found it from the folder, you when the owner linked it
 				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// mail Collaboration sent the owner (routine results, notices), by the key import gives it, so import skips it
+		addTable("BRAIN_OWN_MAIL", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("MESSAGE_KEY", VARCHAR_50),
+				Pair.with("KIND", VARCHAR_20),
+				Pair.with("SENT_AT", TIMESTAMP_DATATYPE_NAME)));
 		// the owner's Outlook folder tree; KIND is inbox, sentitems, archive, custom (one the owner made) or skipped
 		addTable("BRAIN_MAIL_FOLDER", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
