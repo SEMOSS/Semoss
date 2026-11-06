@@ -19,7 +19,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -96,6 +100,11 @@ public final class WorkPipeline {
 			due: YYYY-MM-DD when a message gives or clearly implies a date, else "".
 			alreadyNoted lists what earlier messages of this thread already gave: do not list those again, but do \
 			list a done_claim or update when these messages finish or change one of them.
+			earlier, when given, holds the messages just before these, already read: use them to understand the new \
+			ones, but list only what the new messages ask, decide or report.
+			A chat comes in short lines: read them together as one conversation and write one candidate per ask, \
+			not one per line. Name what the ask is about from the whole conversation ("Answer the question on the \
+			agent lab model costs", not "Answer the question").
 			Leave out greetings, thanks, scheduling chatter, and mail sent by the owner's own routines \
 			(digests, lineups, briefs). An empty list is fine.
 			""";
@@ -109,6 +118,8 @@ public final class WorkPipeline {
 	// time in their own lane, so one owner's big build never holds up another's sync. Not final so tests can swap it
 	private static final int PARALLEL = 3;
 	private static final int MAX_PARALLEL = 16;
+	// threads one run reads at once; RDF_Map COLLAB_WORK_EXTRACT_PARALLEL
+	private static final int EXTRACT_PARALLEL = 5;
 	static Executor pool = Executors.newFixedThreadPool(parallel(), r -> {
 		Thread t = new Thread(r, "collaboration-work-items");
 		t.setDaemon(true);
@@ -119,10 +130,28 @@ public final class WorkPipeline {
 	static final int BUILD_PART = 25;
 	private static final Map<String, Lane> LANES = new ConcurrentHashMap<>();
 
+	// a chat comes in short lines: it is read once it goes quiet, so a burst is one conversation, and a chat that
+	// never pauses is still read every CHAT_MAX_WAIT_MS. Settling chats live in memory; after a restart their lines
+	// stay unread (WORK_REF) until the chat's next message
+	private static final String CHAT_SOURCE = "teams";
+	private static final long CHAT_QUIET_MS = 10 * 60_000L;
+	private static final long CHAT_MAX_WAIT_MS = 30 * 60_000L;
+	private static final long CHAT_CHECK_MS = 2 * 60_000L;
+	// lines before the new ones, given as context only
+	private static final int EARLIER = 6;
+	private static final ScheduledExecutorService WAKE = Executors.newSingleThreadScheduledExecutor(r -> {
+		Thread t = new Thread(r, "collaboration-work-items-wake");
+		t.setDaemon(true);
+		return t;
+	});
+
 	// one owner's queued runs; syncs that land while a run is going merge into one follow-up run
 	private static final class Lane {
 		final java.util.ArrayDeque<Runnable> jobs = new java.util.ArrayDeque<>();
 		final Set<String> syncThreads = new LinkedHashSet<>();
+		// chats still talking, with when each was first held back
+		final Map<String, Long> settling = new LinkedHashMap<>();
+		ScheduledFuture<?> wake;
 		boolean busy;
 	}
 
@@ -153,10 +182,35 @@ public final class WorkPipeline {
 			classLogger.warn("Work items skipped: {}", e.getMessage());
 			return;
 		}
+		Set<String> talking = talkingChats(ownerId, ownerType);
 		Lane lane = lane(ownerId, ownerType);
 		synchronized (lane) {
+			long now = System.currentTimeMillis();
+			List<String> ready = new ArrayList<>();
+			for (String id : threadIds) {
+				Long since = lane.settling.get(id);
+				if (talking.contains(id) && (since == null || now - since < CHAT_MAX_WAIT_MS)) {
+					lane.settling.putIfAbsent(id, now);
+				} else {
+					lane.settling.remove(id);
+					ready.add(id);
+				}
+			}
+			if (!lane.settling.isEmpty() && lane.wake == null) {
+				lane.wake = WAKE.schedule(() -> {
+					List<String> held;
+					synchronized (lane) {
+						held = new ArrayList<>(lane.settling.keySet());
+						lane.wake = null;
+					}
+					queue(user, ownerId, ownerType, held);
+				}, CHAT_CHECK_MS, TimeUnit.MILLISECONDS);
+			}
+			if (ready.isEmpty()) {
+				return;
+			}
 			boolean waiting = !lane.syncThreads.isEmpty();
-			lane.syncThreads.addAll(threadIds);
+			lane.syncThreads.addAll(ready);
 			if (waiting) {
 				return; // joins the sync run already queued
 			}
@@ -247,6 +301,12 @@ public final class WorkPipeline {
 		return out;
 	}
 
+	private static int pendingCount(String ownerId, String ownerType) {
+		Integer n = CollaborationDbUtils.queryOne("SELECT COUNT(*) AS N FROM WORK_CANDIDATE WHERE OWNER_ID = ? AND "
+				+ "OWNER_TYPE = ? AND RESULT IS NULL", rs -> rs.getInt("N"), ownerId, ownerType);
+		return n == null ? 0 : n;
+	}
+
 	// the owner's threads with mail in the last days, newest first, muted and automated ones left out
 	private static List<String> recent(String ownerId, String ownerType, int days) {
 		Timestamp since = Timestamp.from(Instant.now().minus(Math.max(1, days), ChronoUnit.DAYS));
@@ -289,22 +349,49 @@ public final class WorkPipeline {
 						+ "OWNER_ID = ? AND OWNER_TYPE = ? AND RELATIONSHIP = ?",
 						rs -> new String[] { rs.getString("PERSON_ID"), rs.getString("DISPLAY_NAME") }, ownerId,
 						ownerType, "self");
-				int done = 0;
-				int found = 0;
-				int failed = 0;
-				for (String threadId : threadIds) {
-					try {
-						found += extract(user, ownerId, ownerType, threadId, model, self);
-					} catch (RuntimeException e) {
-						failed++;
-						classLogger.warn("Work items extract failed for thread {}", threadId, e);
+				// each thread's read stands alone (its own candidates and WORK_REF), so several go at once
+				java.util.concurrent.atomic.AtomicInteger done = new java.util.concurrent.atomic.AtomicInteger();
+				java.util.concurrent.atomic.AtomicInteger found = new java.util.concurrent.atomic.AtomicInteger();
+				java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
+				ExecutorService reads = Executors.newFixedThreadPool(Math.max(1, Math.min(extractParallel(),
+						threadIds.size())), r -> {
+							Thread t = new Thread(r, "collaboration-work-items-extract");
+							t.setDaemon(true);
+							return t;
+						});
+				try {
+					List<java.util.concurrent.Future<?>> pending = new ArrayList<>();
+					for (String threadId : threadIds) {
+						pending.add(reads.submit(() -> {
+							try {
+								found.addAndGet(extract(user, ownerId, ownerType, threadId, model, self));
+							} catch (RuntimeException e) {
+								failed.incrementAndGet();
+								classLogger.warn("Work items extract failed for thread {}", threadId, e);
+							}
+							status.put("extracted", done.incrementAndGet());
+							status.put("candidates", found.get());
+							status.put("failed", failed.get());
+						}));
 					}
-					status.put("extracted", ++done);
-					status.put("candidates", found);
-					status.put("failed", failed);
+					for (java.util.concurrent.Future<?> f : pending) {
+						f.get();
+					}
+				} finally {
+					reads.shutdownNow();
 				}
 				status.put("state", "grouping");
-				status.putAll(reconcile(user, ownerId, ownerType, model));
+				// one pass takes at most MAX_PENDING candidates; go again while passes still place some
+				int before = pendingCount(ownerId, ownerType);
+				while (true) {
+					reconcile(user, ownerId, ownerType, model).forEach(
+							(k, v) -> status.merge(k, v, (a, b) -> a instanceof Integer x && b instanceof Integer y ? x + y : b));
+					int after = pendingCount(ownerId, ownerType);
+					if (after == 0 || after >= before) {
+						break;
+					}
+					before = after;
+				}
 				status.put("state", "done");
 			} catch (Throwable e) {
 				classLogger.error("Work items run failed", e);
@@ -394,11 +481,14 @@ public final class WorkPipeline {
 		// the cursor goes to the thread's newest mail, hidden or gone mail included, unless some was left unread
 		String end = (String) thread.get("last");
 		List<Map<String, Object>> fresh = new ArrayList<>();
+		List<Map<String, Object>> older = new ArrayList<>();
 		for (Map<String, Object> m : (List<Map<String, Object>>) read.get("messages")) {
 			String at = String.valueOf(m.get("at"));
 			end = end == null || at.compareTo(end) > 0 ? at : end;
 			if (ref == null || at.compareTo(ref) > 0) {
 				fresh.add(m);
+			} else {
+				older.add(m);
 			}
 		}
 		// unread: a fetch that failed, or the first message past the budget; the next run starts there
@@ -411,6 +501,10 @@ public final class WorkPipeline {
 			}
 		}
 		String reached = held == null ? end : secondBefore(held);
+		// the lines before the new ones, for context only; the new ones follow, so a later window sees the earlier ones
+		List<Map<String, Object>> context = new ArrayList<>(WorkThreadInsights.messages(older, people, selfId));
+		int firstNew = context.size();
+		context.addAll(messages);
 		if (messages.isEmpty()) {
 			CollaborationDbUtils.inTransaction(conn -> moveCursor(conn, ownerId, ownerType, threadId, ref, reached));
 			return 0;
@@ -438,6 +532,17 @@ public final class WorkPipeline {
 			input.put("facts", facts);
 			input.put("people", peopleInput);
 			input.put("alreadyNoted", noted);
+			// the lines just before this window, so a reply or a short chat line is read in its conversation
+			int start = firstNew + from;
+			List<Map<String, Object>> earlier = new ArrayList<>();
+			for (Map<String, Object> m : context.subList(Math.max(0, start - EARLIER), start)) {
+				Map<String, Object> e = new LinkedHashMap<>(m);
+				e.remove("id");
+				earlier.add(e);
+			}
+			if (!earlier.isEmpty()) {
+				input.put("earlier", earlier);
+			}
 			input.put("messages", window);
 			Map<String, Object> answer = CollaborationDbUtils.firstJsonObject(ask(model, user, input));
 			if (answer == null || !(answer.get("candidates") instanceof List<?> list)) {
@@ -559,12 +664,14 @@ public final class WorkPipeline {
 		// only a person and a topic that still exist: a candidate naming one that doesn't would fail its save on every
 		// run (older rows hold names the model made up, and topics merged or deleted since)
 		CollaborationDbUtils.query("SELECT c.CANDIDATE_ID, c.THREAD_ID, c.MESSAGE_REF, c.KIND, c.TEXT, c.DUE_AT, "
-				+ "c.ASSIGNEE, tp.TOPIC_ID, th.SUBJECT, p.DISPLAY_NAME, p.PERSON_ID AS KNOWN_PERSON FROM WORK_CANDIDATE c "
-				+ "LEFT JOIN BRAIN_THREAD th ON th.OWNER_ID = c.OWNER_ID AND th.OWNER_TYPE = c.OWNER_TYPE AND "
-				+ "th.THREAD_ID = c.THREAD_ID LEFT JOIN BRAIN_PERSON p ON p.OWNER_ID = c.OWNER_ID AND p.OWNER_TYPE = "
-				+ "c.OWNER_TYPE AND p.PERSON_ID = c.ASSIGNEE LEFT JOIN BRAIN_TOPIC tp ON tp.OWNER_ID = c.OWNER_ID AND "
-				+ "tp.OWNER_TYPE = c.OWNER_TYPE AND tp.TOPIC_ID = c.TOPIC_ID WHERE c.OWNER_ID = ? AND c.OWNER_TYPE = ? "
-				+ "AND c.RESULT IS NULL ORDER BY c.MESSAGE_AT",
+				// the thread's topic now, not at extract: a thread filed, moved or left without a topic since
+				+ "c.ASSIGNEE, (SELECT MIN(bt.TOPIC_ID) FROM BRAIN_THREAD_TOPIC bt JOIN BRAIN_TOPIC tp ON "
+				+ "tp.OWNER_ID = bt.OWNER_ID AND tp.OWNER_TYPE = bt.OWNER_TYPE AND tp.TOPIC_ID = bt.TOPIC_ID WHERE "
+				+ "bt.OWNER_ID = c.OWNER_ID AND bt.OWNER_TYPE = c.OWNER_TYPE AND bt.THREAD_ID = c.THREAD_ID AND "
+				+ "bt.IS_PRIMARY = ?) AS TOPIC_ID, th.SUBJECT, p.DISPLAY_NAME, p.PERSON_ID AS KNOWN_PERSON FROM WORK_CANDIDATE c LEFT JOIN BRAIN_THREAD th ON "
+				+ "th.OWNER_ID = c.OWNER_ID AND th.OWNER_TYPE = c.OWNER_TYPE AND th.THREAD_ID = c.THREAD_ID LEFT JOIN "
+				+ "BRAIN_PERSON p ON p.OWNER_ID = c.OWNER_ID AND p.OWNER_TYPE = c.OWNER_TYPE AND p.PERSON_ID = "
+				+ "c.ASSIGNEE WHERE c.OWNER_ID = ? AND c.OWNER_TYPE = ? AND c.RESULT IS NULL ORDER BY c.MESSAGE_AT",
 				rs -> {
 					if (byShort.size() >= MAX_PENDING) {
 						return null;
@@ -594,7 +701,7 @@ public final class WorkPipeline {
 					c.put("due", due == null ? "" : due.substring(0, Math.min(10, due.length())));
 					input.add(c);
 					return null;
-				}, ownerId, ownerType);
+				}, true, ownerId, ownerType);
 		Map<String, Object> counts = new LinkedHashMap<>();
 		if (input.isEmpty()) {
 			return counts;
@@ -747,6 +854,11 @@ public final class WorkPipeline {
 				if (!mine && assigneeId == null && c.get("assigneeId") != null) {
 					assigneeId = (String) c.get("assigneeId");
 				}
+			}
+			// a candidate from before unmatched names became unclear can still name no one
+			if (assigneeId != null && !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_PERSON WHERE OWNER_ID = ? AND "
+					+ "OWNER_TYPE = ? AND PERSON_ID = ?", ownerId, ownerType, assigneeId)) {
+				assigneeId = null;
 			}
 			Map<String, Object> args = new LinkedHashMap<>();
 			args.put("text", step.get("text"));
@@ -918,6 +1030,13 @@ public final class WorkPipeline {
 
 	// ---- lanes ----
 
+	// the owner's chats with a message inside the quiet window
+	private static Set<String> talkingChats(String ownerId, String ownerType) {
+		return new HashSet<>(CollaborationDbUtils.query("SELECT THREAD_ID FROM BRAIN_THREAD WHERE OWNER_ID = ? AND "
+				+ "OWNER_TYPE = ? AND SOURCE = ? AND LAST_MESSAGE_AT > ?", rs -> rs.getString("THREAD_ID"), ownerId,
+				ownerType, CHAT_SOURCE, Timestamp.from(Instant.now().minusMillis(CHAT_QUIET_MS))));
+	}
+
 	static Lane lane(String ownerId, String ownerType) {
 		return LANES.computeIfAbsent(key(ownerId, ownerType), k -> new Lane());
 	}
@@ -952,6 +1071,17 @@ public final class WorkPipeline {
 			}
 		}
 		pool.execute(() -> drain(lane));
+	}
+
+	private static int extractParallel() {
+		String value = Utility.getDIHelperProperty(Constants.COLLAB_WORK_EXTRACT_PARALLEL);
+		try {
+			return value == null || value.isBlank() ? EXTRACT_PARALLEL
+					: Math.max(1, Math.min(MAX_PARALLEL, Integer.parseInt(value.trim())));
+		} catch (NumberFormatException e) {
+			classLogger.warn("{} is not a number; using {}", Constants.COLLAB_WORK_EXTRACT_PARALLEL, EXTRACT_PARALLEL);
+			return EXTRACT_PARALLEL;
+		}
 	}
 
 	private static int parallel() {
@@ -1083,11 +1213,15 @@ public final class WorkPipeline {
 				.quoteReplacement(names.getOrDefault(m.group(), m.group())));
 	}
 
+	// a p id becomes the person it stands for; anything else the model wrote that is not me or group is unclear
 	private static String person(String value, Map<String, String> people) {
 		if (value == null || value.isBlank()) {
 			return null;
 		}
-		return people.getOrDefault(value, value);
+		if (people.containsKey(value)) {
+			return people.get(value);
+		}
+		return ME.equals(value) || GROUP.equals(value) ? value : UNCLEAR;
 	}
 
 	// a name ("Bob") or a p id the model made up is no one Brain knows: unclear, not a person id addStep refuses
