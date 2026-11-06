@@ -282,6 +282,12 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// outlook when onboarding found it from the folder, you when the owner linked it
 				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// mail Collaboration sent the owner (routine results, notices), by the key import gives it, so import skips it
+		addTable("BRAIN_OWN_MAIL", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("MESSAGE_KEY", VARCHAR_50),
+				Pair.with("KIND", VARCHAR_20),
+				Pair.with("SENT_AT", TIMESTAMP_DATATYPE_NAME)));
 		// the owner's Outlook folder tree; KIND is inbox, sentitems, archive, custom (one the owner made) or skipped
 		addTable("BRAIN_MAIL_FOLDER", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,

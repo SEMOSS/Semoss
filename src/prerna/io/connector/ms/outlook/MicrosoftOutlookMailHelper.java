@@ -472,6 +472,33 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
+	 * Send a message through a draft, so its internetMessageId is known before it goes out. The id stays the same
+	 * on the sent and received copies, which lets a caller recognize the message when it reads it back.
+	 *
+	 * @param beforeSend given the id once the draft exists and before it is sent
+	 * @return the sent message's internetMessageId
+	 */
+	public String sendThroughDraft(String accessToken, String mailbox, Map<String, Object> message,
+			java.util.function.Consumer<String> beforeSend) {
+		Map<String, Object> draft = createDraft(accessToken, mailbox, message);
+		String draftId = draftId(draft);
+		boolean sent = false;
+		try {
+			if (!(draft.get("internetMessageId") instanceof String internetId) || internetId.isBlank()) {
+				throw new IllegalStateException("Microsoft Graph did not return the draft's message id");
+			}
+			beforeSend.accept(internetId);
+			sendDraft(accessToken, mailbox, draftId);
+			sent = true;
+			return internetId;
+		} finally {
+			if (!sent) {
+				deleteQuietly(accessToken, mailbox, draftId);
+			}
+		}
+	}
+
+	/**
 	 * Answer a message, either to the sender alone or to everybody on it.
 	 *
 	 * <p>

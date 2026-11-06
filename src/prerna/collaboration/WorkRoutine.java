@@ -1093,12 +1093,9 @@ final class WorkRoutine {
 				MicrosoftTeamsMessageHelper.sendChatMessage(token, MicrosoftTeamsSendChatMessageReactor.SELF_CHAT_ID,
 						text, false, null, null, null, 0);
 			} else {
-				Map<String, Object> message = MicrosoftOutlookMailHelper.buildMessage(subject, text, false,
-						new String[] { recipient }, null, null, null, null, null);
-				// marked like the routine's own results, so Brain leaves it out of Work
-				MicrosoftOutlookMailHelper.mark(message, Map.of(BrainMailImport.ROUTINE_HEADER, kind.id()),
-						List.of(BrainMailImport.ROUTINE_CATEGORY));
-				new MicrosoftOutlookMailHelper().sendMail(token, null, message, true);
+				// marked and recorded, so mail import never reads the note back as the owner's
+				BrainOwnMail.send(user, token, MicrosoftOutlookMailHelper.buildMessage(subject, text, false,
+						new String[] { recipient }, null, null, null, null, null), "notice");
 			}
 		} catch (Exception e) {
 			classLogger.warn("Could not tell the owner their {} ran out of time", kind.label(), e);

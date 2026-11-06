@@ -677,10 +677,10 @@ class WorkInboxRoutineUnitTests {
 			assertTrue(((String) failed.get("error")).startsWith("The inbox brief ran out of time"));
 			assertEquals("brief-room", failed.get("roomId"));
 			ArgumentCaptor<Map<String, Object>> message = ArgumentCaptor.forClass(Map.class);
-			verify(mail.constructed().get(0)).sendMail(eq("owner-token"), isNull(), message.capture(), eq(true));
+			verify(mail.constructed().get(0)).sendThroughDraft(eq("owner-token"), isNull(), message.capture(), any());
 			assertEquals("Your inbox brief ran out of time", message.getValue().get("subject"));
-			// marked like a routine's results, so the import keeps the note out of Work
-			assertTrue(BrainMailImport.routineMarked(message.getValue()));
+			// marked and recorded like a routine's results, so the import keeps the note out of Work
+			assertTrue(BrainOwnMail.marked(message.getValue()));
 			assertEquals(1, mail.constructed().size());
 		}
 	}
@@ -1000,7 +1000,7 @@ class WorkInboxRoutineUnitTests {
 			mailOperations.add(calls.group());
 		}
 		assertEquals(Set.of("MicrosoftOutlookListMail", "MicrosoftOutlookReplyMail", "MicrosoftOutlookCreateMailFolder",
-				"MicrosoftOutlookMoveMail", "MicrosoftOutlookSendMail"), mailOperations);
+				"MicrosoftOutlookMoveMail"), mailOperations);
 		String saveDrafts = files.nodeSources().get("save_drafts");
 		assertNotNull(saveDrafts);
 		assertTrue(saveDrafts.contains("MicrosoftOutlookReplyMail"));
@@ -1013,7 +1013,8 @@ class WorkInboxRoutineUnitTests {
 		assertEquals(AutomationConstants.NODE_DEVELOPER_PYTHON, brief.get(AutomationConstants.NODE_FIELD_TYPE));
 		assertEquals("brief", brief.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR));
 		String deliver = files.nodeSources().get("deliver");
-		assertTrue(deliver.contains("MicrosoftOutlookSendMail("));
+		// only to the owner, recorded first so the import keeps the brief out of Work
+		assertTrue(deliver.contains("BrainSendToOwner("));
 		assertTrue(deliver.contains("scope.get(\"owner_email\")"));
 		assertTrue(deliver.contains("_pixel_value(\"to\", [recipient])"));
 	}

@@ -829,7 +829,8 @@ public final class BrainThreadClassifier {
 		List<BrainClassifier.TopicOption> topics = new ArrayList<>(topics(ownerId, ownerType));
 		if (!topics.isEmpty()) {
 			topics.add(new BrainClassifier.TopicOption(OTHER_TOPIC, "Something else",
-					"Not about the other topics: other work, personal, travel, or automated mail."));
+					"Not about the other topics: other work, personal, travel, automated mail, or a note that someone is away "
+							+ "(time off, out of office, an appointment)."));
 		}
 		return topics;
 	}
