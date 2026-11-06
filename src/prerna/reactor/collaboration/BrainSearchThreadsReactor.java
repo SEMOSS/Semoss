@@ -118,7 +118,8 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 		} else if (TOPIC.equals(key)) {
 			return "Only threads in this topic, by name, when the id is not known; must match one topic";
 		} else if (QUERY.equals(key)) {
-			return "Optional. Words to look for in the thread subject, summary, and people";
+			return "Optional. The owner's question exactly as asked, as a whole sentence and not shortened to keywords; it is "
+					+ "matched against the thread subject, summary, and people, and inside a topic against the message text";
 		} else if (PERSON.equals(key)) {
 			return "Only threads with a person whose name or email contains this";
 		} else if (FROM.equals(key)) {

@@ -84,6 +84,7 @@ final class BrainTopicJudge {
 	// the classifier's likeliest messages that the text model reads, and the probability below which a message is not
 	// a candidate at all
 	static final int TOP_FOR_JUDGE = 10;
+	private static final int JUDGE_BATCH = 4;
 	static final double MIN_PROBABILITY = 0.1;
 	private static final int MAX_CLASSIFY_TEXT = 6000;
 	private static final int CLASSIFY_THREADS = 6;
@@ -646,18 +647,44 @@ final class BrainTopicJudge {
 		boolean judged = false;
 		if (!top.isEmpty() && judge != null) {
 			List<Passage> chosen = new ArrayList<>();
+			Map<String, Double> scoreById = new HashMap<>();
 			for (int i : top) {
 				Passage p = passages.get(i);
-				chosen.add(new Passage("p" + (chosen.size() + 1), p.threadId(), p.graphId(), p.at(), p.from(),
-						p.subject(), p.text()));
+				String id = "p" + (chosen.size() + 1);
+				chosen.add(new Passage(id, p.threadId(), p.graphId(), p.at(), p.from(), p.subject(), p.text()));
+				scoreById.put(id, scores[i]);
 			}
-			Map<String, Verdict> verdicts = judge.judge(asked, chosen.stream().map(
-					p -> new Judge.Candidate(p.id(), p.from(), p.at() == null ? "" : CollaborationDbUtils.toIso(p.at()),
-							p.subject(), excerpt(p.text(), terms)))
-					.toList());
-			if (verdicts != null) {
+			// small batches in parallel: quicker, and one unreadable answer costs only its own batch
+			List<List<Passage>> batches = new ArrayList<>();
+			List<Future<Map<String, Verdict>>> answers = new ArrayList<>();
+			for (int start = 0; start < chosen.size(); start += JUDGE_BATCH) {
+				List<Passage> batch = chosen.subList(start, Math.min(chosen.size(), start + JUDGE_BATCH));
+				batches.add(batch);
+				answers.add(CLASSIFY_POOL.submit(() -> judge.judge(asked, batch.stream().map(
+						p -> new Judge.Candidate(p.id(), p.from(),
+								p.at() == null ? "" : CollaborationDbUtils.toIso(p.at()), p.subject(),
+								excerpt(p.text(), terms)))
+						.toList())));
+			}
+			Map<String, Double> bestScore = new HashMap<>();
+			for (int b = 0; b < batches.size(); b++) {
+				Map<String, Verdict> verdicts;
+				try {
+					verdicts = answers.get(b).get(MODEL_TIMEOUT_SECONDS + 30, TimeUnit.SECONDS);
+				} catch (InterruptedException e) {
+					answers.forEach(f -> f.cancel(true));
+					Thread.currentThread().interrupt();
+					throw new IllegalStateException("The relevance model was interrupted", e);
+				} catch (TimeoutException | ExecutionException e) {
+					answers.get(b).cancel(true);
+					judge.lastError = "a batch did not answer in time";
+					continue;
+				}
+				if (verdicts == null) {
+					continue;
+				}
 				judged = true;
-				for (Passage passage : chosen) {
+				for (Passage passage : batches.get(b)) {
 					Verdict verdict = verdicts.get(passage.id());
 					if (verdict == null || !verdict.relevant()) {
 						continue;
@@ -672,8 +699,14 @@ final class BrainTopicJudge {
 					Hit hit = new Hit(passage.threadId(), snippet, passage.graphId(), passage.at(), passage.from(), 1,
 							verdict.quote().strip(), verdict.reason(), confidence(verdict.confidence()));
 					Hit previous = best.get(passage.threadId());
-					if (previous == null || better(hit, previous)) {
+					double score = scoreById.get(passage.id());
+					// a thread shows the message the judge is surest of, then the one the classifier scored highest
+					int byConfidence = previous == null ? 1
+							: Integer.compare(rank(hit.confidence()), rank(previous.confidence()));
+					if (previous == null || byConfidence > 0
+							|| (byConfidence == 0 && score > bestScore.get(passage.threadId()))) {
 						best.put(passage.threadId(), hit);
+						bestScore.put(passage.threadId(), score);
 					}
 				}
 			}
