@@ -217,6 +217,27 @@ public final class AutomationConstants {
 	public static final String NODE_CONTROL_JEV = "control.jev";
 	public static final String NODE_CONTROL_LOOP = "control.loop";
 	public static final String NODE_DEVELOPER_PYTHON = "developer.python";
+	public static final String NODE_API_REQUEST = "api.request";
+
+	// -- API Request node ---------------------------------------------------------
+
+	public static final String CONFIG_API_METHOD = "method";
+	public static final String CONFIG_API_URL = "url";
+	public static final String CONFIG_API_CONNECTION_ID = "connectionId";
+	public static final String CONFIG_API_QUERY = "query";
+	public static final String CONFIG_API_HEADERS = "headers";
+	public static final String CONFIG_API_BODY_TYPE = "bodyType";
+	public static final String CONFIG_API_BODY = "body";
+	public static final String CONFIG_API_TIMEOUT_SECONDS = "timeoutSeconds";
+	public static final String API_BODY_NONE = "none";
+	public static final String API_BODY_JSON = "json";
+	public static final String API_BODY_FORM = "form";
+	public static final String API_BODY_RAW = "raw";
+	public static final int API_DEFAULT_TIMEOUT_SECONDS = 30;
+	public static final int API_MIN_TIMEOUT_SECONDS = 1;
+	public static final int API_MAX_TIMEOUT_SECONDS = 120;
+	/** Response bodies larger than this are truncated and flagged. */
+	public static final int API_RESPONSE_MAX_BYTES = 1_048_576;
 
 	// -- Node config keys (node.config map fields, shared across executors)
 	// --------

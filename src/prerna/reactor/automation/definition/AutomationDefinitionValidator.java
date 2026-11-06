@@ -293,6 +293,7 @@ public final class AutomationDefinitionValidator {
 			validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
 		}
 		case FUNCTION_EXECUTE -> requireConfigObject(nodeId, config, "arguments");
+		case API_REQUEST -> validateApiRequestConfig(nodeId, config);
 		case APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
 		case AGENT_RUN -> {
 			validateOptionalConfigString(nodeId, config, AutomationConstants.CONFIG_WORKSPACE_ID);
@@ -343,6 +344,72 @@ public final class AutomationDefinitionValidator {
 			// These node types have no additional required configuration here.
 		}
 		}
+	}
+
+	private static final Set<String> API_METHODS = Set.of("GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS");
+	private static final Set<String> API_BODY_TYPES = Set.of(AutomationConstants.API_BODY_NONE,
+			AutomationConstants.API_BODY_JSON, AutomationConstants.API_BODY_FORM, AutomationConstants.API_BODY_RAW);
+	private static final Set<String> API_CREDENTIAL_HEADERS = Set.of("authorization", "proxy-authorization",
+			"x-api-key", "api-key", "apikey", "x-auth-token", "cookie");
+
+	/**
+	 * Validates an {@code api.request} node's configuration. Public so the
+	 * request-test Pixel applies exactly the rules a saved node does.
+	 *
+	 * @param nodeId node whose configuration is being validated
+	 * @param config generated node configuration
+	 */
+	public static void validateApiRequestConfig(String nodeId, Map<String, Object> config) {
+		String prefix = "API request node '" + nodeId + "' config.";
+		Object rawMethod = config.get(AutomationConstants.CONFIG_API_METHOD);
+		String method = rawMethod instanceof String text ? text.trim().toUpperCase(java.util.Locale.ROOT) : "";
+		if (!API_METHODS.contains(method)) {
+			throw new IllegalArgumentException(prefix + AutomationConstants.CONFIG_API_METHOD + " must be one of "
+					+ new java.util.TreeSet<>(API_METHODS) + ".");
+		}
+		String url = requireNonblankString(config.get(AutomationConstants.CONFIG_API_URL),
+				prefix + AutomationConstants.CONFIG_API_URL).trim();
+		validateOptionalConfigString(nodeId, config, AutomationConstants.CONFIG_API_CONNECTION_ID);
+		boolean hasConnection = hasNonblankConfigString(config, AutomationConstants.CONFIG_API_CONNECTION_ID);
+		if (!hasConnection) {
+			// The host decides which destination is allowed, so it cannot be a reference.
+			java.util.regex.Matcher origin = java.util.regex.Pattern.compile("(?i)^https?://([^/?#]+)").matcher(url);
+			if (!origin.find()) {
+				throw new IllegalArgumentException(
+						prefix + AutomationConstants.CONFIG_API_URL + " must start with http:// or https://.");
+			}
+			if (origin.group(1).contains("${")) {
+				throw new IllegalArgumentException(prefix + AutomationConstants.CONFIG_API_URL
+						+ " host must be written out, not a scope reference.");
+			}
+		}
+		validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_API_QUERY);
+		validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_API_HEADERS);
+		if (config.get(AutomationConstants.CONFIG_API_HEADERS) instanceof Map<?, ?> headers) {
+			for (Map.Entry<?, ?> header : headers.entrySet()) {
+				String name = String.valueOf(header.getKey()).trim().toLowerCase(java.util.Locale.ROOT);
+				String value = header.getValue() == null ? "" : String.valueOf(header.getValue());
+				if (API_CREDENTIAL_HEADERS.contains(name) && !value.isBlank() && !value.contains("${")) {
+					throw new IllegalArgumentException(prefix + AutomationConstants.CONFIG_API_HEADERS + "."
+							+ header.getKey() + " is a credential header; reference a trigger input such as "
+							+ "${token} or use a Connection instead of typing the value.");
+				}
+			}
+		}
+		Object rawBodyType = config.get(AutomationConstants.CONFIG_API_BODY_TYPE);
+		String bodyType = rawBodyType == null || String.valueOf(rawBodyType).isBlank()
+				? AutomationConstants.API_BODY_NONE
+				: String.valueOf(rawBodyType).trim().toLowerCase(java.util.Locale.ROOT);
+		if (!API_BODY_TYPES.contains(bodyType)) {
+			throw new IllegalArgumentException(prefix + AutomationConstants.CONFIG_API_BODY_TYPE + " must be one of "
+					+ new java.util.TreeSet<>(API_BODY_TYPES) + ".");
+		}
+		if (!AutomationConstants.API_BODY_NONE.equals(bodyType) && ("GET".equals(method) || "HEAD".equals(method))) {
+			throw new IllegalArgumentException(prefix + AutomationConstants.CONFIG_API_METHOD + " " + method
+					+ " cannot send a body.");
+		}
+		validateBoundedInteger(nodeId, config, AutomationConstants.CONFIG_API_TIMEOUT_SECONDS,
+				AutomationConstants.API_MIN_TIMEOUT_SECONDS, AutomationConstants.API_MAX_TIMEOUT_SECONDS);
 	}
 
 	private static void validateDataExtractConfig(String nodeId, Map<String, Object> config) {
