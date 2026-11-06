@@ -44,6 +44,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -520,9 +521,10 @@ final class BrainTopicJudge {
 		// 1. every message of the topic's conversations, whether or not it was imported
 		long step = System.nanoTime();
 		List<Map<String, Object>> all;
+		AtomicInteger unread = new AtomicInteger();
 		try {
 			all = BrainMessageSource.current().conversationMessages(user, context.byConversation().keySet(),
-					PER_CONVERSATION);
+					PER_CONVERSATION, unread);
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
@@ -534,6 +536,13 @@ final class BrainTopicJudge {
 		}
 		times.put("fetch", ms(step));
 		stats.put("inTopic", all.size());
+		if (all.isEmpty() && unread.get() > 0) {
+			// nothing could be read, which is a failure of the mailbox and not an empty topic
+			throw new IllegalStateException("The mailbox could not list any of the topic's conversations");
+		}
+		if (unread.get() > 0) {
+			stats.put("conversationsUnread", unread.get());
+		}
 
 		// the owner's own date limits, then newest first up to the cap
 		Timestamp after = CollaborationDbUtils.toTimestamp(from, "from");
@@ -745,6 +754,10 @@ final class BrainTopicJudge {
 		if (failed > 0) {
 			status = BrainTopicBodySearch.PARTIAL;
 			note.append(failed).append(" messages could not be scored. ");
+		}
+		if (unread.get() > 0) {
+			status = BrainTopicBodySearch.PARTIAL;
+			note.append(unread.get()).append(" conversations of the topic could not be read from the mailbox. ");
 		}
 		if (top.isEmpty()) {
 			note.append("The classifier found no message that answers the question among the ")

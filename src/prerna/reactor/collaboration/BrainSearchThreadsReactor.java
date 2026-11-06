@@ -31,13 +31,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadFinder;
 import prerna.collaboration.BrainTopicBrief;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSearchThreads(topic=["Air Force AIMES"], query=["renewal pricing"], person=["priya"], from=["2026-09-01"], to=["2026-10-05"], limit=[10]);
 public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(BrainSearchThreadsReactor.class);
 
 	private static final String TOPIC_ID = "topicId";
 	private static final String TOPIC = "topic";
@@ -94,7 +100,11 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 		}
 		try {
 			return BrainTopicBrief.chatTopics(user, roomId);
+		} catch (SemossPixelException e) {
+			throw e;
 		} catch (RuntimeException e) {
+			// without the chat's topics this becomes a search of all mail, so the failure must not go unseen
+			classLogger.warn("The topics of chat {} could not be read, so the search covers all mail", roomId, e);
 			return List.of();
 		}
 	}

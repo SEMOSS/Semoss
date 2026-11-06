@@ -79,10 +79,11 @@ public interface BrainMessageSource {
 
 	// the messages of these conversations, body included, newest first in each, at most perConversation of each, in
 	// Graph shape (id, conversationId, subject, from, toRecipients, ccRecipients, receivedDateTime, parentFolderId,
-	// body, uniqueBody). A source that cannot list a conversation returns null; a login problem
-	// (SemossPixelException) is thrown
+	// body, uniqueBody), at most perConversation from each, in no particular order. A source that cannot list a
+	// conversation returns null; a login problem (SemossPixelException) is thrown. unread counts the conversations
+	// that could not be listed, so the caller can say the search was partial.
 	default List<Map<String, Object>> conversationMessages(User user, java.util.Collection<String> conversationIds,
-			int perConversation) throws Exception {
+			int perConversation, java.util.concurrent.atomic.AtomicInteger unread) throws Exception {
 		return null;
 	}
 

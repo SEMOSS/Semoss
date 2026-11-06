@@ -94,7 +94,7 @@ final class BrainFixtureMessageSource implements BrainMessageSource {
 	// the same over mail.json: every message of these conversations, newest first in each
 	@Override
 	public List<Map<String, Object>> conversationMessages(User user, java.util.Collection<String> conversationIds,
-			int perConversation) {
+			int perConversation, java.util.concurrent.atomic.AtomicInteger unread) {
 		java.util.Set<String> wanted = new java.util.HashSet<>(conversationIds);
 		Map<String, List<Map<String, Object>>> byConversation = new LinkedHashMap<>();
 		for (Map<String, Object> message : byId.values()) {
