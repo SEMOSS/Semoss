@@ -29,16 +29,21 @@ package prerna.collaboration;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +51,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
+import prerna.auth.utils.SecurityUserUtils;
 import prerna.io.connector.ms.MicrosoftGraphCredentialStore;
+import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionClient;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry.Subscription;
@@ -141,6 +150,72 @@ class BrainMailWebhookUnitTests {
 	void unsubscribingStopsTheSubscriptionAtGraphAndForgetsIt() {
 		BrainMailWebhook.unsubscribe(MAILBOX);
 		graph.verify(() -> MicrosoftGraphSubscriptionClient.delete("subscription-token", "sub-1"));
+		registry.verify(() -> MicrosoftGraphSubscriptionRegistry.remove("sub-1"));
+	}
+
+	@Test
+	void theHourlyRenewalForgetsASubscriptionGraphRemovedSoTheNextSyncMakesANewOne() {
+		mail(true);
+		backgroundAccess(true);
+		when(subscription.getExpiration()).thenReturn(Instant.now().plus(Duration.ofDays(1)));
+		graph.when(() -> MicrosoftGraphSubscriptionClient.renew(anyString(), anyString(), anyString(), anyInt()))
+				.thenThrow(new IllegalArgumentException("PATCH request to https://graph.microsoft.com/v1.0/"
+						+ "subscriptions/sub-1 returned HTTP 404. Response body: ResourceNotFound"));
+		BrainMailWebhook.renewAll();
+		registry.verify(() -> MicrosoftGraphSubscriptionRegistry.remove("sub-1"));
+	}
+
+	@Test
+	void theHourlyRenewalForgetsASubscriptionWhoseSignInNoLongerRefreshes() throws Exception {
+		mail(true);
+		backgroundAccess(true);
+		when(subscription.getExpiration()).thenReturn(Instant.now().plus(Duration.ofDays(1)));
+		when(subscription.accessToken()).thenThrow(new IllegalStateException("invalid_grant"));
+		BrainMailWebhook.renewAll();
+		registry.verify(() -> MicrosoftGraphSubscriptionRegistry.remove("sub-1"));
+		graph.verify(() -> MicrosoftGraphSubscriptionClient.renew(anyString(), anyString(), anyString(), anyInt()),
+				never());
+	}
+
+	@Test
+	void aSyncReplacesASubscriptionGraphRemovedInsteadOfKeepingItsRow() throws Exception {
+		when(subscription.getExpiration()).thenReturn(Instant.now().plus(Duration.ofDays(1)));
+		when(subscription.getNotificationUrl()).thenReturn("https://semoss.test/notify");
+		graph.when(() -> MicrosoftGraphSubscriptionClient.notificationUrl(anyString()))
+				.thenReturn("https://semoss.test/notify");
+		graph.when(() -> MicrosoftGraphSubscriptionClient.renew(anyString(), anyString(), anyString(), anyInt()))
+				.thenThrow(new IllegalArgumentException("PATCH request returned HTTP 404. Response body: gone"));
+		graph.when(() -> MicrosoftGraphSubscriptionClient.create(anyString(), anyString(), anyString(), anyString(),
+				anyString(), anyInt())).thenReturn(Map.of("id", "sub-2", "expirationDateTime", "2026-11-12T00:00:00Z"));
+		User user = new User();
+		try (MockedStatic<MicrosoftLoginUtils> login = mockStatic(MicrosoftLoginUtils.class)) {
+			login.when(() -> MicrosoftLoginUtils.getValidAccessToken(user)).thenReturn("session-token");
+			BrainMailWebhook.subscribe(user, MAILBOX);
+		}
+		registry.verify(() -> MicrosoftGraphSubscriptionRegistry.remove("sub-1"));
+		registry.verify(() -> MicrosoftGraphSubscriptionRegistry.register(eq("sub-2"), eq("me/messages"), anyString(),
+				anyString(), eq("https://semoss.test/notify"), any(), eq(user)));
+	}
+
+	@Test
+	void newMailIsReadWithTheStoredCredentialWhenTheSubscriptionsSignInNoLongerRefreshes() throws Exception {
+		mail(true);
+		AccessToken stored = new AccessToken();
+		stored.setProvider(AuthProvider.MICROSOFT);
+		stored.setId(MAILBOX);
+		credentials.when(() -> MicrosoftGraphCredentialStore.get(MAILBOX)).thenReturn(stored);
+		when(subscription.accessToken()).thenThrow(new IllegalStateException("invalid_grant"));
+		credentials.when(() -> MicrosoftGraphCredentialStore.accessToken(MAILBOX)).thenReturn("stored-token");
+		BrainMailHeaderSource source = mock(BrainMailHeaderSource.class);
+		when(source.message(any(), eq("message-1"))).thenReturn(Map.of("id", "message-1"));
+		headers.when(BrainMailHeaderSource::current).thenReturn(source);
+		try (MockedStatic<SecurityUserUtils> accounts = mockStatic(SecurityUserUtils.class);
+				MockedStatic<BrainSync> sync = mockStatic(BrainSync.class)) {
+			sync.when(() -> BrainSync.importHeaders(any(), anyString(), anyString(), any(), any())).thenReturn(Set.of());
+			BrainMailWebhook.onMail(subscription, "created", "message-1");
+			sync.verify(() -> BrainSync.importHeaders(any(), eq("owner-one"), eq("NATIVE"), eq(source), any()));
+		}
+		credentials.verify(() -> MicrosoftGraphCredentialStore.accessToken(MAILBOX));
 		registry.verify(() -> MicrosoftGraphSubscriptionRegistry.remove("sub-1"));
 	}
 

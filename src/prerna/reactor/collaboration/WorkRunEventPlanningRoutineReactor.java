@@ -32,13 +32,15 @@ import java.util.Map;
 import prerna.collaboration.WorkEventPlanningRoutine;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// WorkRunEventPlanningRoutine(); is the scheduler's recipe; now=[true] starts a run off schedule on the scheduler.
+// WorkRunEventPlanningRoutine(); is the scheduler's recipe and keeps to the chosen day; now=[true] starts a run off
+// schedule on the scheduler, which runs WorkRunEventPlanningRoutine(manual=[true]); on any day
 public class WorkRunEventPlanningRoutineReactor extends AbstractCollaborationReactor {
 	private static final String NOW = "now";
+	private static final String MANUAL = "manual";
 
 	public WorkRunEventPlanningRoutineReactor() {
-		this.keysToGet = new String[] { NOW };
-		this.keyRequired = new int[] { 0 };
+		this.keysToGet = new String[] { NOW, MANUAL };
+		this.keyRequired = new int[] { 0, 0 };
 	}
 
 	@Override
@@ -47,6 +49,9 @@ public class WorkRunEventPlanningRoutineReactor extends AbstractCollaborationRea
 		if (Boolean.TRUE.equals(getBoolean(NOW))) {
 			WorkEventPlanningRoutine.runNow(this.insight.getUser());
 			return mapResult(Map.of("status", "started"));
+		}
+		if (Boolean.TRUE.equals(getBoolean(MANUAL))) {
+			return mapResult(WorkEventPlanningRoutine.runManual(this.insight));
 		}
 		return mapResult(WorkEventPlanningRoutine.run(this.insight));
 	}
@@ -60,6 +65,9 @@ public class WorkRunEventPlanningRoutineReactor extends AbstractCollaborationRea
 	protected String getDescriptionForKey(String key) {
 		if (NOW.equals(key)) {
 			return "Start a run now, off the schedule";
+		}
+		if (MANUAL.equals(key)) {
+			return "Set by the scheduler on the run that now=true started";
 		}
 		return super.getDescriptionForKey(key);
 	}

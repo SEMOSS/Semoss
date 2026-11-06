@@ -304,7 +304,7 @@ public final class BrainThreadClassifier {
 		return summary;
 	}
 
-	private record Self(String personId, String name, Set<String> addresses) {
+	record Self(String personId, String name, Set<String> addresses) {
 	}
 
 	private record Context(User user, Insight insight, String ownerId, String ownerType, BrainClassifier classifier,
@@ -383,7 +383,7 @@ public final class BrainThreadClassifier {
 		}
 		Map<String, Object> newest = messages.get(messages.size() - 1);
 		boolean fromMe = ctx.self().personId() != null && ctx.self().personId().equals(newest.get("fromId"));
-		String onIt = recipientRole(ctx.self(), newest);
+		String onIt = recipientRole(ctx.self(), newest, (String) thread.get("source"));
 		// filed by the owner or by onboarding: no topic question, the link stays
 		boolean kept = !ctx.dryRun() && hasKeptLink(ctx, threadId);
 
@@ -565,16 +565,33 @@ public final class BrainThreadClassifier {
 					List<String> candidates = OTHER_TOPIC.equals(nextId) ? List.of(bestId) : List.of(bestId, nextId);
 					// the runner-up is linked too, so the owner can pick either one or both
 					if (candidates.size() > 1) {
-						link(ctx, threadId, nextId, "suggested", confidence, scores.topics());
+						link(ctx, threadId, nextId, "suggested", (int) Math.round(100 * ranked.get(1).getValue()),
+								scores.topics());
 					}
-					BrainReviewUtils.addReview(ctx.ownerId(), ctx.ownerType(), BrainReviewUtils.TOPIC_CHOICE, "thread",
-							threadId, ctx.classifier().version(), Map.of("candidates", candidates));
+					ask(ctx, threadId, candidates);
 				}
 			} else {
 				band = "unassigned";
 			}
 		}
 		return new Filing(topicId, confidence, band);
+	}
+
+	// keyed by its candidates, so a new question replaces the open one; Brain's own close is undone, the owner's stands
+	private static void ask(Context ctx, String threadId, List<String> candidates) {
+		Map<?, ?> review = (Map<?, ?>) BrainReviewUtils.addReview(ctx.ownerId(), ctx.ownerType(),
+				BrainReviewUtils.TOPIC_CHOICE, "thread", threadId,
+				ctx.classifier().version() + ":" + String.join(",", candidates), Map.of("candidates", candidates))
+				.get("review");
+		String questions = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND KIND = ? AND REF_TYPE = ? AND REF_ID = ?";
+		CollaborationDbUtils.update("UPDATE BRAIN_REVIEW SET STATUS = ?, RESOLVED_AT = ?, RESOLVED_BY = ?" + questions
+				+ " AND STATUS = ? AND REVIEW_ID <> ?", BrainReviewUtils.DISMISSED, CollaborationDbUtils.now(),
+				WorkItemUtils.BRAIN, ctx.ownerId(), ctx.ownerType(), BrainReviewUtils.TOPIC_CHOICE, "thread", threadId,
+				BrainReviewUtils.OPEN, review.get("id"));
+		CollaborationDbUtils.update("UPDATE BRAIN_REVIEW SET STATUS = ?, RESOLVED_AT = NULL, RESOLVED_BY = NULL"
+				+ questions + " AND REVIEW_ID = ? AND STATUS = ? AND RESOLVED_BY = ?", BrainReviewUtils.OPEN,
+				ctx.ownerId(), ctx.ownerType(), BrainReviewUtils.TOPIC_CHOICE, "thread", threadId, review.get("id"),
+				BrainReviewUtils.DISMISSED, WorkItemUtils.BRAIN);
 	}
 
 	private static BrainClassifier.Scores modelScores(Context ctx, String threadId, String subject,
@@ -771,19 +788,19 @@ public final class BrainThreadClassifier {
 		return new Self((String) person.get("id"), (String) person.get("name"), addresses);
 	}
 
-	// "to" or "cc" when the owner is on the newest message that way, else "none"
-	private static String recipientRole(Self self, Map<String, Object> message) {
-		// the owner's addresses are not known yet: do not guess
-		if (self.addresses().isEmpty()) {
+	// "to" or "cc" when the owner is on the newest message that way, else "none". By address only: a colleague with
+	// the owner's name is someone else
+	static String recipientRole(Self self, Map<String, Object> message, String source) {
+		// the owner's addresses are not known yet: do not guess. A chat message read live has no To or Cc, and
+		// everyone in the chat is on it (the import lists them all as To)
+		if (self.addresses().isEmpty() || "teams".equals(source)) {
 			return "to";
 		}
 		for (String field : new String[] { "to", "cc" }) {
 			if (message.get(field) instanceof List<?> list) {
 				for (Object r : list) {
-					if (r instanceof Map<?, ?> m && (self.addresses()
-							.contains(BrainRulesGate.norm(CollaborationDbUtils.asString(m.get("address"))))
-							|| (self.name() != null
-									&& self.name().equalsIgnoreCase(String.valueOf(m.get("name")).trim())))) {
+					if (r instanceof Map<?, ?> m && self.addresses()
+							.contains(BrainRulesGate.norm(CollaborationDbUtils.asString(m.get("address"))))) {
 						return field;
 					}
 				}
@@ -1019,12 +1036,13 @@ public final class BrainThreadClassifier {
 		}
 	}
 
-	// a classifier link replaces an earlier classifier link on the same topic; the
-	// first link is the primary
+	// a classifier link replaces an earlier classifier link on the same topic, and a confirmed one also the topics
+	// Brain suggested before; the first link left is the primary
 	private static boolean link(Context ctx, String threadId, String topicId, String source, int confidence,
 			Map<String, Double> topics) {
 		Timestamp now = CollaborationDbUtils.now();
 		boolean[] written = { false };
+		boolean filed = "confirmed".equals(source);
 		CollaborationDbUtils.batch(conn -> {
 			BrainTopicReviewProfiles.lock(ctx.ownerId(), ctx.ownerType());
 			BrainTopicUtils.requireTopic(ctx.ownerId(), ctx.ownerType(), topicId);
@@ -1032,6 +1050,11 @@ public final class BrainThreadClassifier {
 			if (BrainThreadTopicDecisions.rejected(ctx.ownerId(), ctx.ownerType(), threadId).contains(topicId)
 					|| hasKeptLink(ctx, threadId)) {
 				return;
+			}
+			if (filed) {
+				CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "AND THREAD_ID = ? AND SOURCE = ? AND CHANGED_BY = ?", ctx.ownerId(), ctx.ownerType(),
+						threadId, "suggested", "brain");
 			}
 			boolean hasPrimary = CollaborationDbUtils.exists(
 					"SELECT 1 FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
@@ -1047,6 +1070,10 @@ public final class BrainThreadClassifier {
 					CollaborationDbUtils.toJson(topics), ctx.classifier().version(), "brain", now);
 			written[0] = true;
 		});
+		if (written[0] && filed) {
+			// a question about which topic it is no longer applies
+			BrainReviewUtils.dismissForRef(ctx.ownerId(), ctx.ownerType(), "thread", threadId);
+		}
 		return written[0];
 	}
 

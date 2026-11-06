@@ -208,7 +208,8 @@ public final class CollaborationAgentTools {
 
 	// calendar reads that take a timeZone, filled in with the owner's when the
 	// model leaves it out
-	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent");
+	// times the model writes are read in the owner's zone too: CreateEvent at 09:00 with no zone was 09:00 UTC
+	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent", "CreateEvent", "UpdateEvent");
 
 	// tools about the chat itself: only for the owner's chat at the root of the
 	// run, never a routine;
