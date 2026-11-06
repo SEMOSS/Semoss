@@ -38,6 +38,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -82,6 +88,13 @@ final class BrainTopicJudge {
 	private static final int MIN_QUOTE = 8;
 	private static final int MAX_QUOTE = 400;
 	private static final int MAX_EXPANDED = 6;
+	private static final long MODEL_TIMEOUT_SECONDS = 120;
+	// the model calls run here, off the assistant's thread, so nothing they log lands in the owner's chat
+	private static final ExecutorService MODEL_CALLS = Executors.newCachedThreadPool(r -> {
+		Thread t = new Thread(r, "collaboration-topic-judge");
+		t.setDaemon(true);
+		return t;
+	});
 	// what the screening call reads of each message
 	private static final int SCREEN_EXCERPT = 320;
 	private static final int ATTEMPTS = 2;
@@ -387,6 +400,13 @@ final class BrainTopicJudge {
 		stats.put("passedRules", allowed.size());
 		stats.put("read", readCount);
 		stats.put("screened", screened);
+		// which messages the judge saw, newest facts first in rank order, so a miss can be traced to its candidates
+		List<String> shown = new ArrayList<>();
+		for (Passage p : passages.subList(0, Math.min(passages.size(), 8))) {
+			shown.add((p.at() == null ? "" : CollaborationDbUtils.toIso(p.at()).substring(0, 10)) + " "
+					+ (p.from() == null ? "" : p.from()) + ": " + clip(p.text(), 70));
+		}
+		stats.put("judgedFirst", shown);
 		stats.put("judged", answered);
 		stats.put("relevant", relevant);
 		stats.put("unverifiedQuotes", unverified);
@@ -610,6 +630,10 @@ final class BrainTopicJudge {
 		return byConfidence != 0 ? byConfidence > 0 : BrainTopicBodySearch.compare(candidate.at(), previous.at()) > 0;
 	}
 
+	private static String clip(String text, int max) {
+		return text.length() > max ? text.substring(0, max) + "..." : text;
+	}
+
 	private static long ms(long startNanos) {
 		return (System.nanoTime() - startNanos) / 1_000_000;
 	}
@@ -779,17 +803,36 @@ final class BrainTopicJudge {
 			params.put("temperature", 0);
 			params.put("max_tokens", maxTokens);
 			params.put("schema", schema);
-			for (int attempt = 1; attempt <= ATTEMPTS; attempt++) {
-				// an insight of its own: nothing goes through a room
-				Insight insight = new Insight();
-				insight.setUser(user);
-				Map<String, Object> answer = CollaborationDbUtils.firstJsonObject(
-						model.ask(prompt, instructions, insight, new LinkedHashMap<>(params)).getStringResponse());
-				if (answer != null && answer.containsKey(requiredKey)) {
-					return answer;
+			// On a thread of its own. Model calls are logged against the room of the thread that makes them, so a call
+			// from the assistant's tool thread would put its raw JSON into the owner's chat and into the assistant's own
+			// context. Memory review and style learning stay out of the chat the same way, on their own pool threads.
+			Future<Map<String, Object>> future = MODEL_CALLS.submit(() -> {
+				for (int attempt = 1; attempt <= ATTEMPTS; attempt++) {
+					// an insight of its own: nothing goes through a room
+					Insight insight = new Insight();
+					insight.setUser(user);
+					Map<String, Object> answer = CollaborationDbUtils.firstJsonObject(
+							model.ask(prompt, instructions, insight, new LinkedHashMap<>(params)).getStringResponse());
+					if (answer != null && answer.containsKey(requiredKey)) {
+						return answer;
+					}
 				}
+				return null;
+			});
+			try {
+				return future.get(MODEL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+			} catch (InterruptedException e) {
+				future.cancel(true);
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException("The relevance model call was interrupted", e);
+			} catch (TimeoutException e) {
+				future.cancel(true);
+				throw new IllegalStateException("The relevance model did not answer in " + MODEL_TIMEOUT_SECONDS + " seconds",
+						e);
+			} catch (ExecutionException e) {
+				Throwable cause = e.getCause() == null ? e : e.getCause();
+				throw cause instanceof RuntimeException runtime ? runtime : new IllegalStateException(cause);
 			}
-			return null;
 		}
 	}
 
