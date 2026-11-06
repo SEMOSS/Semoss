@@ -234,6 +234,12 @@ public final class WorkPipeline {
 		return out;
 	}
 
+	private static int pendingCount(String ownerId, String ownerType) {
+		Integer n = CollaborationDbUtils.queryOne("SELECT COUNT(*) AS N FROM WORK_CANDIDATE WHERE OWNER_ID = ? AND "
+				+ "OWNER_TYPE = ? AND RESULT IS NULL", rs -> rs.getInt("N"), ownerId, ownerType);
+		return n == null ? 0 : n;
+	}
+
 	/** Where the owner's last build stands. */
 	public static Map<String, Object> status(User user) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -298,7 +304,17 @@ public final class WorkPipeline {
 					reads.shutdownNow();
 				}
 				status.put("state", "grouping");
-				status.putAll(reconcile(user, ownerId, ownerType, model));
+				// one pass takes at most MAX_PENDING candidates; go again while passes still place some
+				int before = pendingCount(ownerId, ownerType);
+				while (true) {
+					reconcile(user, ownerId, ownerType, model).forEach(
+							(k, v) -> status.merge(k, v, (a, b) -> a instanceof Integer x && b instanceof Integer y ? x + y : b));
+					int after = pendingCount(ownerId, ownerType);
+					if (after == 0 || after >= before) {
+						break;
+					}
+					before = after;
+				}
 				status.put("state", "done");
 			} catch (Throwable e) {
 				classLogger.error("Work items run failed", e);
@@ -668,6 +684,11 @@ public final class WorkPipeline {
 					assigneeId = (String) c.get("assigneeId");
 				}
 			}
+			// a candidate from before unmatched names became unclear can still name no one
+			if (assigneeId != null && !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_PERSON WHERE OWNER_ID = ? AND "
+					+ "OWNER_TYPE = ? AND PERSON_ID = ?", ownerId, ownerType, assigneeId)) {
+				assigneeId = null;
+			}
 			Map<String, Object> args = new LinkedHashMap<>();
 			args.put("text", step.get("text"));
 			args.put("taskId", taskId);
@@ -950,11 +971,15 @@ public final class WorkPipeline {
 				.quoteReplacement(names.getOrDefault(m.group(), m.group())));
 	}
 
+	// a p id becomes the person it stands for; anything else the model wrote that is not me or group is unclear
 	private static String person(String value, Map<String, String> people) {
 		if (value == null || value.isBlank()) {
 			return null;
 		}
-		return people.getOrDefault(value, value);
+		if (people.containsKey(value)) {
+			return people.get(value);
+		}
+		return ME.equals(value) || GROUP.equals(value) ? value : UNCLEAR;
 	}
 
 	private static boolean isPerson(String assignee) {
