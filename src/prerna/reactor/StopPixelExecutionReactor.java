@@ -29,6 +29,7 @@ package prerna.reactor;
 
 import java.util.Objects;
 
+import prerna.openapi.PixelOutput;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.agent.AgentCancelHook;
@@ -42,6 +43,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.SocketClient;
 
+@PixelOutput(value = String.class, description = "Whether the job was not found, asked to cancel, or already completed")
 public class StopPixelExecutionReactor extends AbstractReactor {
 
 	public StopPixelExecutionReactor() {

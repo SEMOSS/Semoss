@@ -27,11 +27,13 @@
  *******************************************************************************/
 package prerna.reactor;
 
+import prerna.openapi.PixelInput;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+@PixelInput(name = "value", type = Object.class)
 public class EchoReactor extends AbstractReactor {
 
 	public EchoReactor() {

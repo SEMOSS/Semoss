@@ -27,10 +27,12 @@
  *******************************************************************************/
 package prerna.reactor.insights;
 
+import prerna.openapi.PixelOutput;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+@PixelOutput(value = String.class, description = "The id of the current insight")
 public class GetCurrentInsightIdReactor extends AbstractReactor {
 
 	@Override
