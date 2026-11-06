@@ -66,6 +66,11 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractReplyMailReactor {
 
 	@Override
 	protected ComposedMail draftReply(User user, ReplyMailRequest request) throws Exception {
+		return draftReplyFor(user, request);
+	}
+
+	/** Writes the reply as a draft in the thread of the message it answers; shared with SaveDraft's replyTo. */
+	static ComposedMail draftReplyFor(User user, ReplyMailRequest request) throws Exception {
 		String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 		MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
 		// the files are read before anything is written to the mailbox, so one that
