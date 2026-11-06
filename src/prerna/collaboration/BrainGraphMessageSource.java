@@ -33,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,7 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 	private static final int BATCH = 20;
 	private static final int SEARCH_PAGE = 50;
 	private static final int CONVERSATION_BATCH = 10;
+	private static final int CONVERSATION_PAGE = 25;
 	private static final String CONVERSATION_SELECT = "id,conversationId,subject,from,toRecipients,ccRecipients,"
 			+ "receivedDateTime,parentFolderId,body,uniqueBody";
 	private static final String SEARCH_SELECT = "id,conversationId,subject,from,receivedDateTime,parentFolderId,"
@@ -118,8 +120,10 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 		return List.of();
 	}
 
-	// Graph $batch of conversation listings, 10 a call: every message of each conversation with its body, so a topic's
-	// mail can be read whole whether or not it was imported. A throttled (429) or busy (5xx) listing is sent again
+	// Graph $batch of conversation listings, 10 a call: the messages of each conversation with their bodies, so a
+	// topic's mail can be read whole whether or not it was imported. A conversation is followed page by page until
+	// perConversation messages are read or it has no more. A throttled (429) or busy (5xx) listing is sent again;
+	// one that is refused, or still failing after the retries, counts in unread.
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Map<String, Object>> conversationMessages(User user, java.util.Collection<String> conversationIds,
@@ -127,42 +131,61 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 		String token = MicrosoftLoginUtils.getValidAccessToken(user);
 		List<String> ids = new ArrayList<>(conversationIds);
 		List<Map<String, Object>> out = new ArrayList<>();
+		int pageSize = Math.min(perConversation, CONVERSATION_PAGE);
 		for (int start = 0; start < ids.size(); start += CONVERSATION_BATCH) {
-			List<Map<String, Object>> requests = new ArrayList<>();
+			Map<String, Map<String, Object>> pending = new LinkedHashMap<>();
 			for (int i = start; i < Math.min(ids.size(), start + CONVERSATION_BATCH); i++) {
 				String filter = "conversationId eq '" + ids.get(i).replace("'", "''") + "'";
-				requests.add(Map.of("id", String.valueOf(i), "method", "GET", "url", "/me/messages?$filter="
-						+ encode(filter) + "&$top=" + perConversation + "&$select=" + CONVERSATION_SELECT));
+				pending.put(String.valueOf(i), Map.of("id", String.valueOf(i), "method", "GET", "url",
+						"/me/messages?$filter=" + encode(filter) + "&$top=" + pageSize + "&$select="
+								+ CONVERSATION_SELECT));
 			}
-			for (int attempt = 0; !requests.isEmpty(); attempt++) {
+			Map<String, Integer> collected = new HashMap<>();
+			Map<String, Integer> retries = new HashMap<>();
+			while (!pending.isEmpty()) {
 				Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
 						BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
-						CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null,
-						null, null));
-				List<Object> responses = reply.get("responses") instanceof List<?> list ? (List<Object>) list
-						: List.of();
-				List<Map<String, Object>> again = new ArrayList<>();
+						CollaborationDbUtils.toJson(Map.of("requests", new ArrayList<>(pending.values()))),
+						ContentType.APPLICATION_JSON, null, null, null));
+				Map<String, Map<String, Object>> answered = new HashMap<>();
+				if (reply.get("responses") instanceof List<?> list) {
+					for (Object r : list) {
+						Map<String, Object> response = (Map<String, Object>) r;
+						answered.put(String.valueOf(response.get("id")), response);
+					}
+				}
+				Map<String, Map<String, Object>> next = new LinkedHashMap<>();
 				long wait = 0;
-				for (Object r : responses) {
-					Map<String, Object> response = (Map<String, Object>) r;
-					int status = response.get("status") instanceof Number n ? n.intValue() : 0;
-					if ((status == 429 || status >= 500) && attempt < RETRIES) {
-						requests.stream().filter(q -> String.valueOf(response.get("id")).equals(q.get("id")))
-								.findFirst().ifPresent(again::add);
+				for (Map.Entry<String, Map<String, Object>> entry : pending.entrySet()) {
+					String id = entry.getKey();
+					Map<String, Object> response = answered.get(id);
+					int status = response != null && response.get("status") instanceof Number n ? n.intValue() : 0;
+					if (response != null && (status == 429 || status >= 500) && retries.getOrDefault(id, 0) < RETRIES) {
+						int attempt = retries.merge(id, 1, Integer::sum) - 1;
+						next.put(id, entry.getValue());
 						wait = Math.max(wait, retryAfter(response, attempt));
 					} else if (status == 200 && response.get("body") instanceof Map<?, ?> body
 							&& body.get("value") instanceof List<?> values) {
+						int have = collected.getOrDefault(id, 0);
 						for (Object value : values) {
-							out.add((Map<String, Object>) value);
+							if (have < perConversation) {
+								out.add((Map<String, Object>) value);
+								have++;
+							}
+						}
+						collected.put(id, have);
+						// the rest of a long conversation, from the link Graph gives for the next page
+						if (have < perConversation && body.get("@odata.nextLink") instanceof String link
+								&& link.startsWith(BASE)) {
+							next.put(id, Map.of("id", id, "method", "GET", "url", link.substring(BASE.length())));
 						}
 					} else {
-						// refused, or still failing after the retries: the conversation was not read
 						classLogger.warn("Graph could not list a conversation of the topic: status {}", status);
 						unread.incrementAndGet();
 					}
 				}
-				requests = again;
-				if (!requests.isEmpty()) {
+				pending = next;
+				if (wait > 0 && !pending.isEmpty()) {
 					try {
 						Thread.sleep(wait);
 					} catch (InterruptedException e) {
