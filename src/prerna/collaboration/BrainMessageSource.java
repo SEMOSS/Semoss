@@ -77,6 +77,15 @@ public interface BrainMessageSource {
 		return null;
 	}
 
+	// the messages of these conversations, body included, newest first in each, at most perConversation of each, in
+	// Graph shape (id, conversationId, subject, from, toRecipients, ccRecipients, receivedDateTime, parentFolderId,
+	// body, uniqueBody). A source that cannot list a conversation returns null; a login problem
+	// (SemossPixelException) is thrown
+	default List<Map<String, Object>> conversationMessages(User user, java.util.Collection<String> conversationIds,
+			int perConversation) throws Exception {
+		return null;
+	}
+
 	// what is attached to messages already known to have attachments, by message id, as
 	// BrainAttachments.describe maps (no bytes, inline images left out); a source that
 	// cannot tell returns nothing

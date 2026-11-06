@@ -74,6 +74,31 @@ final class BrainTopicJudge {
 
 	static final String JUDGED = "judged";
 	static final String KEYWORDS = "keywords";
+	static final String CLASSIFIED = "classified";
+
+	// the question is kept whole, but not without limit
+	private static final int MAX_QUESTION = 500;
+	// messages read from a topic's conversations for one question, newest first, and from each conversation
+	static final int MAX_CLASSIFY = 200;
+	static final int PER_CONVERSATION = 25;
+	// the classifier's likeliest messages that the text model reads, and the probability below which a message is not
+	// a candidate at all
+	static final int TOP_FOR_JUDGE = 10;
+	static final double MIN_PROBABILITY = 0.1;
+	private static final int MAX_CLASSIFY_TEXT = 6000;
+	private static final int CLASSIFY_THREADS = 6;
+	private static final long CLASSIFY_TIMEOUT_SECONDS = 180;
+	// the classifier's calls run here, off the assistant's thread, like the text model's
+	private static final ExecutorService CLASSIFY_POOL = Executors.newFixedThreadPool(CLASSIFY_THREADS, r -> {
+		Thread t = new Thread(r, "collaboration-topic-classifier");
+		t.setDaemon(true);
+		return t;
+	});
+
+	private static final String RELEVANCE_INSTRUCTIONS = "The owner's question is in state.question. Answer yes only "
+			+ "when state.message itself states information that answers it, such as a concrete date, number, name, or "
+			+ "decision. A message that only discusses the same subject, or only says that something will be decided "
+			+ "later, is a no.";
 
 	// messages read from the mailbox for one question: three Graph batches
 	static final int MAX_READ = 60;
@@ -163,19 +188,45 @@ final class BrainTopicJudge {
 
 	static Result search(User user, String ownerId, String ownerType, Collection<String> threadIds, String question,
 			List<String> terms, String from, String to, BrainThreadFinder.Privacy privacy) {
-		if (threadIds.isEmpty() || terms.isEmpty()) {
+		// the question as it was asked: trimmed and on one line, nothing dropped
+		String asked = question == null ? "" : question.replaceAll("\\s+", " ").trim();
+		if (asked.length() > MAX_QUESTION) {
+			asked = asked.substring(0, MAX_QUESTION);
+		}
+		if (threadIds.isEmpty() || asked.isEmpty()) {
 			return new Result(Map.of(), BrainTopicBodySearch.SEARCHED, "");
 		}
 		List<Judge> judges = Judge.forUser(user);
+		StringBuilder failures = new StringBuilder();
+
+		// 1. the classifier scores every message of the topic against the question, and the text model quotes the
+		// likeliest; the words of the question are not used at all
+		Screener screener = Screener.forUser(user);
+		if (screener != null) {
+			try {
+				return classified(screener, judges.isEmpty() ? null : judges.get(0), user, ownerId, ownerType,
+						threadIds, asked, terms, from, to, privacy);
+			} catch (SemossPixelException e) {
+				throw e;
+			} catch (RuntimeException e) {
+				classLogger.warn("The classifier search with model {} failed", screener.engine, e);
+				failures.append("classifier ").append(screener.engine).append(": ")
+						.append(shorten(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+			}
+		}
+		if (terms.isEmpty()) {
+			return new Result(Map.of(), BrainTopicBodySearch.UNAVAILABLE,
+					"Message text could not be searched" + (failures.length() > 0 ? " (" + failures + ")" : "") + ".");
+		}
 		if (judges.isEmpty()) {
 			return byWords(user, ownerId, ownerType, threadIds, terms, from, to, privacy,
-					"No relevance model is available, so the passages were matched by words only.");
+					"No relevance model is available, so the passages were matched by words only"
+							+ (failures.length() > 0 ? " (" + failures + ")" : "") + ".");
 		}
-		// the text model first, then an ordinary classifier model if there is one
-		StringBuilder failures = new StringBuilder();
+		// 2. the words of the question find candidates in the mailbox, and the text model judges them
 		for (Judge judge : judges) {
 			try {
-				return judged(judge, user, ownerId, ownerType, threadIds, question, terms, from, to, privacy);
+				return judged(judge, user, ownerId, ownerType, threadIds, asked, terms, from, to, privacy);
 			} catch (SemossPixelException e) {
 				throw e;
 			} catch (RuntimeException e) {
@@ -189,6 +240,10 @@ final class BrainTopicJudge {
 		return byWords(user, ownerId, ownerType, threadIds, terms, from, to, privacy,
 				"The relevance model could not judge the passages (" + failures
 						+ "), so they were matched by words only.");
+	}
+
+	private static String shorten(String text) {
+		return text.length() > 160 ? text.substring(0, 160) + "..." : text;
 	}
 
 	// why a model failed, short enough to show the owner
@@ -444,6 +499,287 @@ final class BrainTopicJudge {
 		return new Result(hits, status, note.toString().trim(), stats);
 	}
 
+	// ---- the classifier reads every message ----
+
+	/**
+	 * The question as asked, against every message of the topic's conversations: each is read whole, passes the rules
+	 * gate, and is scored by the classifier (a Jev model answering "does this message answer the question?" with a
+	 * probability). The likeliest go to the text model, which quotes the words that answer; a quote that is not in the
+	 * message is thrown away. The question's words are never used to choose what is read.
+	 */
+	private static Result classified(Screener screener, Judge judge, User user, String ownerId, String ownerType,
+			Collection<String> threadIds, String asked, List<String> terms, String from, String to,
+			BrainThreadFinder.Privacy privacy) {
+		long started = System.nanoTime();
+		Map<String, Object> times = new LinkedHashMap<>();
+		Map<String, Object> stats = new LinkedHashMap<>();
+		stats.put("mode", CLASSIFIED);
+		Context context = BrainTopicBodySearch.context(ownerId, ownerType, threadIds, privacy);
+
+		// 1. every message of the topic's conversations, whether or not it was imported
+		long step = System.nanoTime();
+		List<Map<String, Object>> all;
+		try {
+			all = BrainMessageSource.current().conversationMessages(user, context.byConversation().keySet(),
+					PER_CONVERSATION);
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new IllegalStateException("The mailbox could not list the topic's conversations: " + e.getMessage(),
+					e);
+		}
+		if (all == null) {
+			throw new IllegalStateException("The mail source cannot list a conversation");
+		}
+		times.put("fetch", ms(step));
+		stats.put("inTopic", all.size());
+
+		// the owner's own date limits, then newest first up to the cap
+		Timestamp after = CollaborationDbUtils.toTimestamp(from, "from");
+		Timestamp before = CollaborationDbUtils.toTimestamp(to, "to");
+		if (before != null && to.trim().length() == 10) {
+			before = Timestamp.valueOf(before.toLocalDateTime().plusDays(1));
+		}
+		List<Map<String, Object>> inRange = new ArrayList<>();
+		for (Map<String, Object> message : all) {
+			Timestamp at = BrainTopicBodySearch.timestamp(message.get("receivedDateTime"));
+			if ((after != null && (at == null || at.before(after))) || (before != null && (at == null || !at.before(before)))) {
+				continue;
+			}
+			inRange.add(message);
+		}
+		inRange.sort((a, b) -> String.valueOf(b.get("receivedDateTime")).compareTo(String.valueOf(a.get("receivedDateTime"))));
+		boolean capped = inRange.size() > MAX_CLASSIFY;
+		List<Map<String, Object>> candidates = capped ? inRange.subList(0, MAX_CLASSIFY) : inRange;
+
+		// 2. the rules gate, then the cleaned text
+		List<Passage> passages = new ArrayList<>();
+		for (Map<String, Object> message : candidates) {
+			String graphId = CollaborationDbUtils.asString(message.get("id"));
+			Row row = context.byGraphId().get(graphId);
+			String threadId = row != null ? row.threadId()
+					: context.byConversation().get(CollaborationDbUtils.asString(message.get("conversationId")));
+			if (graphId == null || threadId == null || !privacy.visible(threadId)
+					|| !context.gate().allows(threadId, row, BrainTopicBodySearch.address(message),
+							CollaborationDbUtils.asString(message.get("parentFolderId")))) {
+				continue;
+			}
+			Passage passage = passage(message, threadId, graphId, context, passages.size() + 1);
+			if (passage != null) {
+				passages.add(passage);
+			}
+		}
+		stats.put("passedRules", passages.size());
+		if (passages.isEmpty()) {
+			times.put("total", ms(started));
+			stats.put("ms", times);
+			return new Result(Map.of(), BrainTopicBodySearch.SEARCHED,
+					"No message of this topic was left to read after the rules.", stats);
+		}
+
+		// 3. the classifier scores each message, several at a time
+		step = System.nanoTime();
+		double[] scores = new double[passages.size()];
+		List<Future<Double>> futures = new ArrayList<>();
+		for (Passage passage : passages) {
+			futures.add(CLASSIFY_POOL.submit(() -> screener.relevance(asked, passage)));
+		}
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(CLASSIFY_TIMEOUT_SECONDS);
+		int failed = 0;
+		String firstError = null;
+		for (int i = 0; i < futures.size(); i++) {
+			scores[i] = -1;
+			try {
+				scores[i] = futures.get(i).get(Math.max(1, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+			} catch (InterruptedException e) {
+				futures.forEach(f -> f.cancel(true));
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException("The classifier was interrupted", e);
+			} catch (TimeoutException e) {
+				futures.forEach(f -> f.cancel(true));
+				failed += futures.size() - i;
+				firstError = firstError == null ? "it did not answer in " + CLASSIFY_TIMEOUT_SECONDS + " seconds"
+						: firstError;
+				break;
+			} catch (ExecutionException e) {
+				failed++;
+				Throwable cause = e.getCause() == null ? e : e.getCause();
+				firstError = firstError == null
+						? cause.getClass().getSimpleName() + (cause.getMessage() == null ? "" : ": " + cause.getMessage())
+						: firstError;
+			}
+		}
+		if (failed >= passages.size()) {
+			throw new IllegalStateException("The classifier could not score the messages: " + firstError);
+		}
+		times.put("classify", ms(step));
+		stats.put("scored", passages.size() - failed);
+
+		// 4. the likeliest, best first; a probability under the floor is not a candidate at all
+		List<Integer> order = new ArrayList<>();
+		for (int i = 0; i < scores.length; i++) {
+			if (scores[i] >= MIN_PROBABILITY) {
+				order.add(i);
+			}
+		}
+		order.sort((a, b) -> {
+			int byScore = Double.compare(scores[b], scores[a]);
+			return byScore != 0 ? byScore : BrainTopicBodySearch.compare(passages.get(b).at(), passages.get(a).at());
+		});
+		List<Integer> top = order.size() > TOP_FOR_JUDGE ? order.subList(0, TOP_FOR_JUDGE) : order;
+		List<String> likeliest = new ArrayList<>();
+		for (int i : top.subList(0, Math.min(top.size(), 8))) {
+			Passage p = passages.get(i);
+			likeliest.add(String.format(Locale.ROOT, "%.2f %s %s: %s", scores[i],
+					p.at() == null ? "" : CollaborationDbUtils.toIso(p.at()).substring(0, 10),
+					p.from() == null ? "" : p.from(), clip(p.text(), 70)));
+		}
+		stats.put("classifiedTop", likeliest);
+		stats.put("aboveFloor", order.size());
+
+		// 5. the text model quotes the words that answer, from the likeliest only
+		step = System.nanoTime();
+		Map<String, Hit> best = new LinkedHashMap<>();
+		Map<String, Integer> counts = new HashMap<>();
+		int relevant = 0;
+		int unverified = 0;
+		boolean judged = false;
+		if (!top.isEmpty() && judge != null) {
+			List<Passage> chosen = new ArrayList<>();
+			for (int i : top) {
+				Passage p = passages.get(i);
+				chosen.add(new Passage("p" + (chosen.size() + 1), p.threadId(), p.graphId(), p.at(), p.from(),
+						p.subject(), p.text()));
+			}
+			Map<String, Verdict> verdicts = judge.judge(asked, chosen.stream().map(
+					p -> new Judge.Candidate(p.id(), p.from(), p.at() == null ? "" : CollaborationDbUtils.toIso(p.at()),
+							p.subject(), excerpt(p.text(), terms)))
+					.toList());
+			if (verdicts != null) {
+				judged = true;
+				for (Passage passage : chosen) {
+					Verdict verdict = verdicts.get(passage.id());
+					if (verdict == null || !verdict.relevant()) {
+						continue;
+					}
+					relevant++;
+					String snippet = locate(passage.text(), verdict.quote());
+					if (snippet == null) {
+						unverified++;
+						continue;
+					}
+					counts.merge(passage.threadId(), 1, Integer::sum);
+					Hit hit = new Hit(passage.threadId(), snippet, passage.graphId(), passage.at(), passage.from(), 1,
+							verdict.quote().strip(), verdict.reason(), confidence(verdict.confidence()));
+					Hit previous = best.get(passage.threadId());
+					if (previous == null || better(hit, previous)) {
+						best.put(passage.threadId(), hit);
+					}
+				}
+			}
+		}
+		if (!judged) {
+			// without the text model the classifier's own ranking is the answer, with no quote to show
+			for (int i : top) {
+				Passage p = passages.get(i);
+				counts.merge(p.threadId(), 1, Integer::sum);
+				Hit hit = new Hit(p.threadId(), clip(p.text(), 240), p.graphId(), p.at(), p.from(), 1, null, null,
+						scores[i] >= 0.7 ? "high" : scores[i] >= 0.4 ? "medium" : "low");
+				Hit previous = best.get(p.threadId());
+				if (previous == null || better(hit, previous)) {
+					best.put(p.threadId(), hit);
+				}
+			}
+		}
+		times.put("judge", ms(step));
+		Map<String, Hit> hits = new LinkedHashMap<>();
+		best.forEach((id, hit) -> hits.put(id, new Hit(id, hit.snippet(), hit.messageId(), hit.at(), hit.from(),
+				counts.getOrDefault(id, 1), hit.quote(), hit.reason(), hit.confidence())));
+		times.put("total", ms(started));
+		stats.put("judged", judged ? top.size() : 0);
+		stats.put("relevant", relevant);
+		stats.put("unverifiedQuotes", unverified);
+		stats.put("ms", times);
+		classLogger.info("Topic text search (classified): inTopic={} rules={} scored={} aboveFloor={} judged={} relevant={} "
+				+ "kept={} unverified={} ms={}", all.size(), passages.size(), passages.size() - failed, order.size(),
+				judged ? top.size() : 0, relevant, hits.size(), unverified, times);
+
+		StringBuilder note = new StringBuilder();
+		String status = BrainTopicBodySearch.SEARCHED;
+		if (capped) {
+			status = BrainTopicBodySearch.PARTIAL;
+			note.append("The topic has more than ").append(MAX_CLASSIFY)
+					.append(" messages, so only the newest were read. ");
+		}
+		if (failed > 0) {
+			status = BrainTopicBodySearch.PARTIAL;
+			note.append(failed).append(" messages could not be scored. ");
+		}
+		if (top.isEmpty()) {
+			note.append("The classifier found no message that answers the question among the ")
+					.append(passages.size()).append(" it read.");
+		} else if (judged) {
+			note.append("The classifier scored every message and a model quoted the likeliest.");
+		} else {
+			note.append("The classifier scored every message; no model was available to quote them, so the likeliest "
+					+ "are shown from their start.");
+		}
+		return new Result(hits, status, note.toString().trim(), stats);
+	}
+
+	/** The platform classifier when it is a Jev (TypeSafe) model: a probability that a message answers a question. */
+	static final class Screener {
+
+		private final String engine;
+		private final ITypeSafeEngine model;
+		private final User user;
+
+		private Screener(String engine, ITypeSafeEngine model, User user) {
+			this.engine = engine;
+			this.model = model;
+			this.user = user;
+		}
+
+		/** Null when there is no classifier, the owner may not use it, or it is not a Jev model. */
+		static Screener forUser(User user) {
+			try {
+				String id = BrainThreadClassifier.platformEngine();
+				if (id == null || !SecurityEngineUtils.userCanViewEngine(user, id)) {
+					return null;
+				}
+				return Utility.getModel(id) instanceof ITypeSafeEngine jev ? new Screener(id, jev, user) : null;
+			} catch (RuntimeException e) {
+				classLogger.warn("The classifier is not usable for the topic search: {}", e.getMessage());
+				return null;
+			}
+		}
+
+		/** Probability from 0 to 1 that the message itself answers the question. Runs on a pool thread. */
+		double relevance(String question, Passage passage) {
+			Map<String, Object> message = new LinkedHashMap<>();
+			message.put("subject", passage.subject());
+			message.put("from", passage.from() == null ? "" : passage.from());
+			message.put("at", passage.at() == null ? "" : CollaborationDbUtils.toIso(passage.at()));
+			message.put("text", clip(passage.text(), MAX_CLASSIFY_TEXT));
+			Map<String, Object> state = new LinkedHashMap<>();
+			state.put("question", question);
+			state.put("message", message);
+			Map<String, Object> relevant = new LinkedHashMap<>();
+			relevant.put("type", "noul");
+			relevant.put("instructions", RELEVANCE_INSTRUCTIONS);
+			// an insight of its own: nothing goes through a room
+			Insight insight = new Insight();
+			insight.setUser(user);
+			Object answers = model.evaluate(state, Map.of("relevant", relevant), insight, null).getResponse()
+					.get("answers");
+			if (answers instanceof Map<?, ?> byName && byName.get("relevant") instanceof Map<?, ?> answer
+					&& answer.get("noul") instanceof Number probability) {
+				return probability.doubleValue();
+			}
+			throw new IllegalStateException("The classifier gave no relevance score");
+		}
+	}
+
 	// ---- reading the candidates ----
 
 	private static List<Passage> fetch(User user, BrainMessageSource source, List<Map<String, Object>> allowed,
@@ -461,26 +797,35 @@ final class BrainTopicJudge {
 			if (message == null || threadId == null) {
 				continue;
 			}
-			String subject = CollaborationDbUtils.asString(message.get("subject"));
-			Map<String, Object> unique = BrainTopicBodySearch.content(message.get("uniqueBody"));
-			Map<String, Object> body = BrainTopicBodySearch.content(message.get("body"));
-			Map<String, Object> clean = BrainMessageText.extract(subject, (String) unique.get("content"),
-					(String) unique.get("contentType"), (String) body.get("content"), (String) body.get("contentType"),
-					false);
-			String text = CollaborationDbUtils.asString(clean.get("body"));
-			if (text == null || text.isBlank()) {
-				text = BrainTopicBodySearch.plain((String) body.get("content"));
+			Passage passage = passage(message, threadId, graphId, context, out.size() + 1);
+			if (passage != null) {
+				out.add(passage);
 			}
-			String flat = text == null ? "" : text.replace('\u00a0', ' ').replaceAll("\\s+", " ").trim();
-			if (flat.isEmpty() || context.gate().keyword(subject, flat)) {
-				continue;
-			}
-			Row row = context.byGraphId().get(graphId);
-			Timestamp at = row != null ? row.at() : BrainTopicBodySearch.timestamp(message.get("receivedDateTime"));
-			out.add(new Passage("p" + (out.size() + 1), threadId, graphId, at, BrainTopicBodySearch.sender(message),
-					subject == null ? "" : subject, flat));
 		}
 		return out;
+	}
+
+	/** The message as a passage: cleaned of quoted history and signatures, or null when it is empty or a keyword rule hides it. */
+	private static Passage passage(Map<String, Object> message, String threadId, String graphId, Context context,
+			int number) {
+		String subject = CollaborationDbUtils.asString(message.get("subject"));
+		Map<String, Object> unique = BrainTopicBodySearch.content(message.get("uniqueBody"));
+		Map<String, Object> body = BrainTopicBodySearch.content(message.get("body"));
+		Map<String, Object> clean = BrainMessageText.extract(subject, (String) unique.get("content"),
+				(String) unique.get("contentType"), (String) body.get("content"), (String) body.get("contentType"),
+				false);
+		String text = CollaborationDbUtils.asString(clean.get("body"));
+		if (text == null || text.isBlank()) {
+			text = BrainTopicBodySearch.plain((String) body.get("content"));
+		}
+		String flat = text == null ? "" : text.replace('\u00a0', ' ').replaceAll("\\s+", " ").trim();
+		if (flat.isEmpty() || context.gate().keyword(subject, flat)) {
+			return null;
+		}
+		Row row = context.byGraphId().get(graphId);
+		Timestamp at = row != null ? row.at() : BrainTopicBodySearch.timestamp(message.get("receivedDateTime"));
+		return new Passage("p" + number, threadId, graphId, at, BrainTopicBodySearch.sender(message),
+				subject == null ? "" : subject, flat);
 	}
 
 	/**
