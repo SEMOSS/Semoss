@@ -15,6 +15,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -80,6 +83,11 @@ public final class WorkPipeline {
 			due: YYYY-MM-DD when a message gives or clearly implies a date, else "".
 			alreadyNoted lists what earlier messages of this thread already gave: do not list those again, but do \
 			list a done_claim or update when these messages finish or change one of them.
+			earlier, when given, holds the messages just before these, already read: use them to understand the new \
+			ones, but list only what the new messages ask, decide or report.
+			A chat comes in short lines: read them together as one conversation and write one candidate per ask, \
+			not one per line. Name what the ask is about from the whole conversation ("Answer the question on the \
+			agent lab model costs", not "Answer the question").
 			Leave out greetings, thanks, scheduling chatter, and mail sent by the owner's own routines \
 			(digests, lineups, briefs). An empty list is fine.
 			""";
@@ -100,10 +108,28 @@ public final class WorkPipeline {
 	});
 	private static final Map<String, Lane> LANES = new ConcurrentHashMap<>();
 
+	// a chat comes in short lines: it is read once it goes quiet, so a burst is one conversation, and a chat that
+	// never pauses is still read every CHAT_MAX_WAIT_MS. Settling chats live in memory; after a restart their lines
+	// stay unread (WORK_REF) until the chat's next message
+	private static final String CHAT_SOURCE = "teams";
+	private static final long CHAT_QUIET_MS = 10 * 60_000L;
+	private static final long CHAT_MAX_WAIT_MS = 30 * 60_000L;
+	private static final long CHAT_CHECK_MS = 2 * 60_000L;
+	// lines before the new ones, given as context only
+	private static final int EARLIER = 6;
+	private static final ScheduledExecutorService WAKE = Executors.newSingleThreadScheduledExecutor(r -> {
+		Thread t = new Thread(r, "collaboration-work-items-wake");
+		t.setDaemon(true);
+		return t;
+	});
+
 	// one owner's queued runs; syncs that land while a run is going merge into one follow-up run
 	private static final class Lane {
 		final java.util.ArrayDeque<Runnable> jobs = new java.util.ArrayDeque<>();
 		final Set<String> syncThreads = new LinkedHashSet<>();
+		// chats still talking, with when each was first held back
+		final Map<String, Long> settling = new LinkedHashMap<>();
+		ScheduledFuture<?> wake;
 		boolean busy;
 	}
 
@@ -126,10 +152,35 @@ public final class WorkPipeline {
 			classLogger.warn("Work items skipped: {}", e.getMessage());
 			return;
 		}
+		Set<String> talking = talkingChats(ownerId, ownerType);
 		Lane lane = lane(ownerId, ownerType);
 		synchronized (lane) {
+			long now = System.currentTimeMillis();
+			List<String> ready = new ArrayList<>();
+			for (String id : threadIds) {
+				Long since = lane.settling.get(id);
+				if (talking.contains(id) && (since == null || now - since < CHAT_MAX_WAIT_MS)) {
+					lane.settling.putIfAbsent(id, now);
+				} else {
+					lane.settling.remove(id);
+					ready.add(id);
+				}
+			}
+			if (!lane.settling.isEmpty() && lane.wake == null) {
+				lane.wake = WAKE.schedule(() -> {
+					List<String> held;
+					synchronized (lane) {
+						held = new ArrayList<>(lane.settling.keySet());
+						lane.wake = null;
+					}
+					queue(user, ownerId, ownerType, held);
+				}, CHAT_CHECK_MS, TimeUnit.MILLISECONDS);
+			}
+			if (ready.isEmpty()) {
+				return;
+			}
 			boolean waiting = !lane.syncThreads.isEmpty();
-			lane.syncThreads.addAll(threadIds);
+			lane.syncThreads.addAll(ready);
 			if (waiting) {
 				return; // joins the sync run already queued
 			}
@@ -304,8 +355,11 @@ public final class WorkPipeline {
 				people, selfId);
 		String ref = (String) thread.get("ref");
 		List<Map<String, Object>> messages = new ArrayList<>();
-		for (Map<String, Object> m : all) {
+		int firstNew = all.size();
+		for (int i = 0; i < all.size(); i++) {
+			Map<String, Object> m = all.get(i);
 			if (ref == null || String.valueOf(m.get("at")).compareTo(ref) > 0) {
+				firstNew = Math.min(firstNew, i);
 				messages.add(m);
 			}
 		}
@@ -336,6 +390,17 @@ public final class WorkPipeline {
 			input.put("facts", facts);
 			input.put("people", peopleInput);
 			input.put("alreadyNoted", noted);
+			// the lines just before this window, so a reply or a short chat line is read in its conversation
+			int start = firstNew + from;
+			List<Map<String, Object>> earlier = new ArrayList<>();
+			for (Map<String, Object> m : all.subList(Math.max(0, start - EARLIER), start)) {
+				Map<String, Object> e = new LinkedHashMap<>(m);
+				e.remove("id");
+				earlier.add(e);
+			}
+			if (!earlier.isEmpty()) {
+				input.put("earlier", earlier);
+			}
 			input.put("messages", window);
 			Map<String, Object> answer = CollaborationDbUtils.firstJsonObject(ask(model, user, input));
 			if (answer == null || !(answer.get("candidates") instanceof List<?> list)) {
@@ -737,6 +802,13 @@ public final class WorkPipeline {
 	}
 
 	// ---- lanes ----
+
+	// the owner's chats with a message inside the quiet window
+	private static Set<String> talkingChats(String ownerId, String ownerType) {
+		return new HashSet<>(CollaborationDbUtils.query("SELECT THREAD_ID FROM BRAIN_THREAD WHERE OWNER_ID = ? AND "
+				+ "OWNER_TYPE = ? AND SOURCE = ? AND LAST_MESSAGE_AT > ?", rs -> rs.getString("THREAD_ID"), ownerId,
+				ownerType, CHAT_SOURCE, Timestamp.from(Instant.now().minusMillis(CHAT_QUIET_MS))));
+	}
 
 	private static Lane lane(String ownerId, String ownerType) {
 		return LANES.computeIfAbsent(key(ownerId, ownerType), k -> new Lane());
