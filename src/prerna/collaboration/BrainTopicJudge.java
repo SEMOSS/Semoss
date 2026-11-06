@@ -49,6 +49,7 @@ import prerna.collaboration.BrainTopicBodySearch.Hit;
 import prerna.collaboration.BrainTopicBodySearch.Result;
 import prerna.collaboration.BrainTopicBodySearch.Row;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ITypeSafeEngine;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Utility;
@@ -132,20 +133,36 @@ final class BrainTopicJudge {
 		if (threadIds.isEmpty() || terms.isEmpty()) {
 			return new Result(Map.of(), BrainTopicBodySearch.SEARCHED, "");
 		}
-		Judge judge = Judge.forUser(user);
-		if (judge == null) {
+		List<Judge> judges = Judge.forUser(user);
+		if (judges.isEmpty()) {
 			return byWords(user, ownerId, ownerType, threadIds, terms, from, to, privacy,
 					"No relevance model is available, so the passages were matched by words only.");
 		}
-		try {
-			return judged(judge, user, ownerId, ownerType, threadIds, question, terms, from, to, privacy);
-		} catch (SemossPixelException e) {
-			throw e;
-		} catch (RuntimeException e) {
-			classLogger.warn("The relevance search failed; matching by words instead", e);
-			return byWords(user, ownerId, ownerType, threadIds, terms, from, to, privacy,
-					"The relevance model could not judge the passages, so they were matched by words only.");
+		// the text model first, then an ordinary classifier model if there is one
+		StringBuilder failures = new StringBuilder();
+		for (Judge judge : judges) {
+			try {
+				return judged(judge, user, ownerId, ownerType, threadIds, question, terms, from, to, privacy);
+			} catch (SemossPixelException e) {
+				throw e;
+			} catch (RuntimeException e) {
+				classLogger.warn("The relevance search with model {} failed", judge.engine, e);
+				if (failures.length() > 0) {
+					failures.append("; ");
+				}
+				failures.append(judge.engine).append(": ").append(reason(judge, e));
+			}
 		}
+		return byWords(user, ownerId, ownerType, threadIds, terms, from, to, privacy,
+				"The relevance model could not judge the passages (" + failures
+						+ "), so they were matched by words only.");
+	}
+
+	// why a model failed, short enough to show the owner
+	private static String reason(Judge judge, RuntimeException e) {
+		String text = judge.lastError != null ? judge.lastError
+				: e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+		return text.length() > 160 ? text.substring(0, 160) + "..." : text;
 	}
 
 	private static Result byWords(User user, String ownerId, String ownerType, Collection<String> threadIds,
@@ -454,34 +471,61 @@ final class BrainTopicJudge {
 
 	// ---- the model ----
 
-	/** The model that judges: the classifier, else the text model, as the owner is allowed to use them. */
+	/** A model that judges: the text model, or an ordinary classifier model, as the owner is allowed to use them. */
 	static final class Judge {
 
 		/** One passage as the model reads it. */
 		record Candidate(String id, String from, String date, String subject, String text) {
 		}
 
+		private final String engine;
 		private final IModelEngine model;
 		private final User user;
+		// why the last call failed, for the note the owner reads
+		private String lastError;
 
-		private Judge(IModelEngine model, User user) {
+		private Judge(String engine, IModelEngine model, User user) {
+			this.engine = engine;
 			this.model = model;
 			this.user = user;
 		}
 
-		/** Null when no model is set or the owner may not use it. */
-		static Judge forUser(User user) {
+		/** The models that may judge, best first: the text model, then an ordinary classifier model. */
+		static List<Judge> forUser(User user) {
+			List<Judge> judges = new ArrayList<>();
+			// a free-form question goes to the text model; the classifier is usually a Jev (TypeSafe) model that only
+			// answers typed questions (choice, yes or no, score), so it judges only when it is an ordinary model
+			String text = null;
 			try {
-				String engine = BrainThreadClassifier.platformEngine();
-				if (engine == null || !SecurityEngineUtils.userCanViewEngine(user, engine)) {
-					engine = BrainTopicModel.engine(user);
+				text = BrainTopicModel.engine(user);
+				if (text != null) {
+					add(judges, user, text, false);
 				}
-				IModelEngine model = engine == null ? null : Utility.getModel(engine);
-				return model == null ? null : new Judge(model, user);
 			} catch (RuntimeException e) {
-				classLogger.warn("No relevance model for the topic search: {}", e.getMessage());
-				return null;
+				classLogger.warn("The text model is not usable for the topic search: {}", e.getMessage());
 			}
+			String classifier = BrainThreadClassifier.platformEngine();
+			try {
+				if (classifier != null && !classifier.equals(text)
+						&& SecurityEngineUtils.userCanViewEngine(user, classifier)) {
+					add(judges, user, classifier, true);
+				}
+			} catch (RuntimeException e) {
+				classLogger.warn("The classifier is not usable for the topic search: {}", e.getMessage());
+			}
+			return judges;
+		}
+
+		private static void add(List<Judge> judges, User user, String engine, boolean skipTypeSafe) {
+			IModelEngine model = Utility.getModel(engine);
+			if (model == null) {
+				classLogger.warn("Model {} could not be loaded for the topic search", engine);
+				return;
+			}
+			if (skipTypeSafe && model instanceof ITypeSafeEngine) {
+				return;
+			}
+			judges.add(new Judge(engine, model, user));
 		}
 
 		/** Related single words an email that answers the question might use; empty when the model gives none. */
@@ -528,10 +572,12 @@ final class BrainTopicJudge {
 			try {
 				answer = call(JUDGE_INSTRUCTIONS, CollaborationDbUtils.toJson(prompt), JUDGE_SCHEMA, 1800, "results");
 			} catch (RuntimeException e) {
-				classLogger.warn("The relevance model failed on a batch", e);
+				classLogger.warn("The relevance model {} failed on a batch", engine, e);
+				lastError = e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage());
 				return null;
 			}
 			if (answer == null || !(answer.get("results") instanceof List<?> results)) {
+				lastError = "its answer could not be read as the expected JSON";
 				return null;
 			}
 			Map<String, Verdict> verdicts = new HashMap<>();
