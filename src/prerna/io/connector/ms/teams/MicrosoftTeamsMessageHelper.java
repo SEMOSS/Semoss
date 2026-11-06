@@ -28,7 +28,6 @@
 package prerna.io.connector.ms.teams;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -38,9 +37,12 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.hc.core5.http.ContentType;
@@ -127,7 +129,7 @@ public class MicrosoftTeamsMessageHelper {
 	private static final String ATTACHMENTS = "attachments";
 	private static final String NEXT_LINK = "@odata.nextLink";
 	private static final String SOFT_DELETE = "/softDelete";
-	private static final String HOSTED_CONTENTS = "/hostedContents/";
+	private static final String HOSTED_CONTENTS = "/hostedContents";
 
 	private static final String ONE_ON_ONE = "oneOnOne";
 	private static final String GROUP = "group";
@@ -476,6 +478,47 @@ public class MicrosoftTeamsMessageHelper {
 	}
 
 	/**
+	 * Finds the group chat holding the signed in user and exactly the people named.
+	 * Graph starts a new group chat on every create, so this is what lets a second
+	 * message to the same people land where the first one did.
+	 *
+	 * @param accessToken Microsoft Graph access token for the user
+	 * @param members     email addresses or user ids of the other people
+	 * @return the chat's id, or null when there is none or the chats cannot be read
+	 * @throws Exception if somebody named is not in the directory
+	 */
+	static String findGroupChat(String accessToken, String[] members) throws Exception {
+		Set<String> wanted = new HashSet<>();
+		wanted.add(signedInUserId(accessToken).toLowerCase(Locale.ROOT));
+		String name = null;
+		for (String member : members) {
+			Map<String, Object> user = resolveUser(accessToken, member);
+			wanted.add(String.valueOf(user.get(ID)).toLowerCase(Locale.ROOT));
+			name = String.valueOf(user.get(DISPLAY_NAME));
+		}
+		// Graph filters chats by a member's name only, so each one found is matched on ids
+		String url = GRAPH_BASE + "/me/chats?$expand=members&$filter="
+				+ encode("members/any(o: o/displayname eq '" + name.replace("'", "''") + "')");
+		try {
+			// shortcut: a match past the first MAX_CHATS_SCANNED chats with that person is missed and a new chat
+			// started, upgrade if Graph adds a chat lookup by members
+			for (Map<String, Object> chat : getPagedValues(accessToken, url, MAX_CHATS_SCANNED)) {
+				Set<String> ids = new HashSet<>();
+				for (Map<String, Object> member : mapList(chat.get(MEMBERS))) {
+					ids.add(String.valueOf(member.get("userId")).toLowerCase(Locale.ROOT));
+				}
+				if (GROUP.equals(chat.get("chatType")) && ids.equals(wanted)) {
+					return String.valueOf(chat.get(ID));
+				}
+			}
+		} catch (Exception e) {
+			// a new chat still carries the message, as it did before chats were looked up
+			classLogger.warn("Could not look for an existing Microsoft Teams group chat", e);
+		}
+		return null;
+	}
+
+	/**
 	 * Reads the messages of a chat, newest first by when each was sent.
 	 *
 	 * <p>
@@ -766,8 +809,8 @@ public class MicrosoftTeamsMessageHelper {
 			requireValue(messageId, "Message ID is required to read a Microsoft Teams channel message.");
 
 			boolean withReplies = includeReplies && ValueUtils.isBlank(replyId);
-			String url = messagePath(teamId, channelId, messageId, replyId) + (withReplies ? "?$expand=replies" : "");
-			return readMessage(accessToken, url, maxBodyChars, withReplies);
+			return readMessage(accessToken, messagePath(teamId, channelId, messageId, replyId), maxBodyChars,
+					withReplies);
 		} catch (Exception e) {
 			classLogger.error("Failed to read message '{}' of channel '{}' in Microsoft Team '{}'.", messageId,
 					channelId, teamId, e);
@@ -874,7 +917,8 @@ public class MicrosoftTeamsMessageHelper {
 	 *         {@code success}
 	 * @throws IllegalArgumentException if required inputs are missing, or the
 	 *                                  attachment is not something that can be
-	 *                                  downloaded
+	 *                                  downloaded or is over
+	 *                                  {@link MicrosoftOneDriveHelper#MAX_DOWNLOAD_BYTES}
 	 * @throws Exception                if the download or the file write fails
 	 */
 	public static Map<String, Object> downloadAttachment(String accessToken, String chatId, String teamId,
@@ -926,8 +970,8 @@ public class MicrosoftTeamsMessageHelper {
 	 *                    when the message has one and this is blank
 	 * @param destination local directory the file is written into
 	 * @param fileName    optional local file name to write as
-	 * @param message     the message, already read, so what it holds can be
-	 *                    described when nothing matches
+	 * @param message     the message, already read; a blank id is only taken to
+	 *                    mean its hosted content when it has no attachments
 	 * @return what was written
 	 * @throws IllegalArgumentException if there is no such hosted content
 	 * @throws Exception                if the download or the file write fails
@@ -935,8 +979,9 @@ public class MicrosoftTeamsMessageHelper {
 	private static Map<String, Object> downloadHostedContent(String accessToken, String messageUrl, String contentId,
 			String destination, String fileName, Map<String, Object> message) throws Exception {
 		String hostedContentId = contentId;
-		if (ValueUtils.isBlank(hostedContentId)) {
-			List<Map<String, Object>> hostedContents = mapList(message.get("hostedContents"));
+		if (ValueUtils.isBlank(hostedContentId) && mapList(message.get(ATTACHMENTS)).isEmpty()) {
+			// Graph leaves hosted content off the message, so it is listed from its own collection
+			List<Map<String, Object>> hostedContents = getPagedValues(accessToken, messageUrl + HOSTED_CONTENTS, 0);
 			if (hostedContents.size() == 1 && hostedContents.get(0).get(ID) != null) {
 				hostedContentId = hostedContents.get(0).get(ID).toString();
 			}
@@ -946,23 +991,24 @@ public class MicrosoftTeamsMessageHelper {
 					"The message holds no attachment of that name or id. Read the message to see what it has on it.");
 		}
 
-		String url = messageUrl + HOSTED_CONTENTS + hostedContentId.trim() + "/$value";
-		byte[] bytes = HttpHelperUtility.getRequestBytes(url, headers(accessToken), null, null, null);
-		if (bytes == null || bytes.length == 0) {
-			throw new IllegalStateException("Downloaded content is empty for hosted content id = " + hostedContentId);
-		}
+		String url = messageUrl + HOSTED_CONTENTS + "/" + hostedContentId.trim() + "/$value";
 
 		// hosted content is unnamed, so it is written under the name the caller
 		// asked for and under the id it has otherwise
 		String name = ValueUtils.isBlank(fileName) ? "hostedContent-" + Math.abs(hostedContentId.trim().hashCode())
 				: fileName;
-		File file = write(bytes, destination, name);
+		// Graph lists no size for hosted content, so only the bytes downloaded are checked
+		File file = target(destination, name);
+		long size = MicrosoftOneDriveHelper.download(url, headers(accessToken), file, name);
+		if (size == 0) {
+			throw new IllegalStateException("Downloaded content is empty for hosted content id = " + hostedContentId);
+		}
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("attachmentId", hostedContentId);
 		result.put(NAME, name);
 		result.put("filePath", Path.of(destination).relativize(file.toPath()).toString());
-		result.put("size", bytes.length);
+		result.put("size", (int) size);
 		result.put("success", true);
 		return result;
 	}
@@ -1044,7 +1090,8 @@ public class MicrosoftTeamsMessageHelper {
 		}
 
 		if (content != null) {
-			body.append(html ? content : escapeHtml(content));
+			// a text body is shown as written, so only text going into html is escaped
+			body.append(html || !asHtml ? content : escapeHtml(content));
 		}
 
 		if (hasAttachments) {
@@ -1099,14 +1146,27 @@ public class MicrosoftTeamsMessageHelper {
 	}
 
 	/**
-	 * Reads one message and describes it.
+	 * Reads one message, with the replies underneath it when asked, and describes
+	 * it.
 	 */
-	private static Map<String, Object> readMessage(String accessToken, String url, int maxBodyChars,
+	private static Map<String, Object> readMessage(String accessToken, String messageUrl, int maxBodyChars,
 			boolean includeReplies) throws Exception {
+		String url = messageUrl + (includeReplies ? "?$expand=replies" : "");
 		Map<String, Object> message = readMap(
 				HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null));
 		if (message == null) {
 			throw new IllegalStateException("Microsoft Graph returned no message for url = " + url);
+		}
+		// Graph leaves pasted images off the message, so the ones its body shows are
+		// listed for a download to name
+		if (message.get(BODY) instanceof Map<?, ?> body
+				&& String.valueOf(body.get(CONTENT)).contains(HOSTED_CONTENTS)) {
+			try {
+				message.put("hostedContents", getPagedValues(accessToken, messageUrl + HOSTED_CONTENTS, 0));
+			} catch (Exception e) {
+				// the message still reads, only without the ids its pasted content downloads by
+				classLogger.warn("Could not list the pasted content of Microsoft Teams message {}", messageUrl, e);
+			}
 		}
 		return MicrosoftTeamsMessageMapper.toMessage(message, maxBodyChars, includeReplies);
 	}
@@ -1204,17 +1264,13 @@ public class MicrosoftTeamsMessageHelper {
 	}
 
 	/**
-	 * Writes downloaded bytes into a directory.
+	 * The file a download is written to in a directory.
 	 */
-	private static File write(byte[] bytes, String destination, String fileName) throws Exception {
+	private static File target(String destination, String fileName) {
 		File file = new File(Paths.get(destination, fileName).toString());
 		File parent = file.getParentFile();
 		if (parent != null && !parent.exists() && !parent.mkdirs()) {
 			throw new IllegalStateException("Unable to create destination directory at: " + parent.getAbsolutePath());
-		}
-		try (FileOutputStream fos = new FileOutputStream(file)) {
-			fos.write(bytes);
-			fos.flush();
 		}
 		return file;
 	}
@@ -1254,7 +1310,7 @@ public class MicrosoftTeamsMessageHelper {
 	 * Runs a Graph collection request, following {@code @odata.nextLink} until the
 	 * limit is met or the collection runs out.
 	 */
-	private static List<Map<String, Object>> getPagedValues(String accessToken, String url, int limit)
+	static List<Map<String, Object>> getPagedValues(String accessToken, String url, int limit)
 			throws Exception {
 		List<Map<String, Object>> collected = new ArrayList<>();
 		String nextUrl = url;

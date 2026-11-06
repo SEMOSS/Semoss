@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -145,6 +146,30 @@ public final class WorkTaskUtils {
 					self == null ? "" : self));
 		}
 		return out;
+	}
+
+	/**
+	 * Open steps (open or waiting) for reconcile to match repeats and done claims against: any on threadIds, and the
+	 * loose ones under topicId when it is given. Newest first, at most max.
+	 */
+	static List<Map<String, Object>> openSteps(String ownerId, String ownerType, String topicId,
+			Collection<String> threadIds, int max) {
+		List<String> where = new ArrayList<>();
+		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType, "open", "waiting"));
+		if (!threadIds.isEmpty()) {
+			where.add("THREAD_ID IN (" + CollaborationDbUtils.placeholders(threadIds.size()) + ")");
+			params.addAll(threadIds);
+		}
+		if (topicId != null) {
+			where.add("(TASK_ID IS NULL AND LINK_TOPIC_ID = ?)");
+			params.add(topicId);
+		}
+		if (where.isEmpty()) {
+			return new ArrayList<>();
+		}
+		return CollaborationDbUtils.query(CollaborationDbUtils.page("SELECT " + STEP_COLUMNS + " FROM WORK_THREAD_STEP"
+				+ OWNED + " AND STATUS IN (?, ?) AND (" + String.join(" OR ", where) + ") ORDER BY CREATED_AT DESC", max,
+				0), WorkTaskUtils::mapStep, params.toArray());
 	}
 
 	/** One work item in full: steps, timeline, threads and topics. */
@@ -460,7 +485,7 @@ public final class WorkTaskUtils {
 
 	/**
 	 * Folds duplicate steps of one item into keepId: their evidence moves to it, they close as dropped, and the
-	 * kept step takes the new text unless the owner edited it. Steps the owner edited are never folded.
+	 * kept step takes the new text. Only steps Brain made and the owner never edited are folded or reworded.
 	 */
 	static int mergeSteps(String ownerId, String ownerType, String taskId, String keepId, String text,
 			List<String> mergeIds) {
@@ -468,15 +493,16 @@ public final class WorkTaskUtils {
 		int[] merged = { 0 };
 		// the kept step is the owner's to do when any folded step was
 		boolean ownerOpen = !mergeIds.isEmpty() && CollaborationDbUtils.queryOne("SELECT COUNT(*) AS N FROM "
-				+ "WORK_THREAD_STEP" + OWNED + " AND TASK_ID = ? AND STATUS = ? AND STEP_OWNER_ID IS NULL AND STEP_ID IN ("
+				+ "WORK_THREAD_STEP" + OWNED + " AND TASK_ID = ? AND STATUS = ? AND STEP_OWNER_ID IS NULL AND ORIGIN = ? "
+				+ "AND (EDITED IS NULL OR EDITED = ?) AND STEP_ID IN ("
 				+ CollaborationDbUtils.placeholders(mergeIds.size()) + ")", rs -> rs.getInt("N"),
-				concat(List.of(ownerId, ownerType, taskId, "open"), mergeIds)) > 0;
+				concat(List.of(ownerId, ownerType, taskId, "open", BRAIN, false), mergeIds)) > 0;
 		CollaborationDbUtils.inTransaction(conn -> {
 			for (String id : mergeIds) {
 				int n = CollaborationDbUtils.update(conn, "UPDATE WORK_THREAD_STEP SET STATUS = ?, CLOSED_BY = ?, "
-						+ "UPDATED_AT = ?" + OWNED + " AND STEP_ID = ? AND TASK_ID = ? AND STATUS IN (?, ?) AND "
-						+ "(EDITED IS NULL OR EDITED = ?)", DROPPED, keepId, now, ownerId, ownerType, id, taskId,
-						"open", "waiting", false);
+						+ "UPDATED_AT = ?" + OWNED + " AND STEP_ID = ? AND TASK_ID = ? AND STATUS IN (?, ?) AND ORIGIN = ? "
+						+ "AND (EDITED IS NULL OR EDITED = ?)", DROPPED, keepId, now, ownerId, ownerType, id, taskId,
+						"open", "waiting", BRAIN, false);
 				if (n == 0) {
 					continue;
 				}
@@ -490,8 +516,8 @@ public final class WorkTaskUtils {
 			}
 			if (merged[0] > 0 && text != null) {
 				CollaborationDbUtils.update(conn, "UPDATE WORK_THREAD_STEP SET TEXT = ?, UPDATED_AT = ?" + OWNED
-						+ " AND STEP_ID = ? AND (EDITED IS NULL OR EDITED = ?)", clip(text, 500), now, ownerId,
-						ownerType, keepId, false);
+						+ " AND STEP_ID = ? AND ORIGIN = ? AND (EDITED IS NULL OR EDITED = ?)", clip(text, 500), now,
+						ownerId, ownerType, keepId, BRAIN, false);
 			}
 		});
 		return merged[0];

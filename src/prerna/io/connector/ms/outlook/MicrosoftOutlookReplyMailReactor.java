@@ -89,7 +89,7 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractReplyMailReactor {
 		} else {
 			draft = helper.reply(accessToken, null, request.id(), request.body(), request.replyAll(), true);
 		}
-		helper.attachToDraft(accessToken, draft, files);
+		helper.attachToNewDraft(accessToken, draft, files);
 		return MicrosoftOutlookMessageMapper.toComposedMail(draft, request.body(), request.html(),
 				request.attachments().stream().map(OutgoingMail::attachmentName).toList());
 	}

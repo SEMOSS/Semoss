@@ -506,6 +506,12 @@ public class CollaborationDbUtils {
 		} catch (RuntimeException e) {
 			classLogger.error("Moving topic notes and thread facts into Brain memory failed; retrying next boot", e);
 		}
+		// Work Brain raised from routine results before imports kept them out; nothing matches once it is done
+		try {
+			BrainMailImport.dismissRoutineResultWork();
+		} catch (RuntimeException e) {
+			classLogger.error("Dismissing Work raised from routine results failed; retrying next boot", e);
+		}
 		BrainMailWebhook.startRenewals();
 		BrainSync.startSchedule();
 	}

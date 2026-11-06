@@ -27,22 +27,48 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
+import java.util.Map;
+
 import prerna.collaboration.WorkAgendaRoutine;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+// WorkRunAgendaRoutine(); is the scheduler's recipe and keeps to the agendas' days; now=[true] starts a run off schedule on the
+// scheduler, which runs WorkRunAgendaRoutine(manual=[true]); on any day
 public class WorkRunAgendaRoutineReactor extends AbstractCollaborationReactor {
+	private static final String NOW = "now";
+	private static final String MANUAL = "manual";
+
 	public WorkRunAgendaRoutineReactor() {
-		this.keysToGet = new String[] {};
+		this.keysToGet = new String[] { NOW, MANUAL };
+		this.keyRequired = new int[] { 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		getUser();
+		if (Boolean.TRUE.equals(getBoolean(NOW))) {
+			WorkAgendaRoutine.runNow(this.insight.getUser());
+			return mapResult(Map.of("status", "started"));
+		}
+		if (Boolean.TRUE.equals(getBoolean(MANUAL))) {
+			return mapResult(WorkAgendaRoutine.runManual(this.insight));
+		}
 		return mapResult(WorkAgendaRoutine.run(this.insight));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Runs the opted-in weekly meeting agendas on their selected day for the signed-in user";
+		return "Runs the opted-in weekly meeting agendas on their selected day for the signed-in user, or now on the scheduler with now=true";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (NOW.equals(key)) {
+			return "Start a run now, off the schedule";
+		}
+		if (MANUAL.equals(key)) {
+			return "Set by the scheduler on the run that now=true started";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

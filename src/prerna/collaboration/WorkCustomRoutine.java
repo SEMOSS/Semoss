@@ -109,6 +109,7 @@ public final class WorkCustomRoutine {
 			merged.putAll(saved);
 			merged.put("enabled", row.get("enabled"));
 		}
+		Map<String, Object> before = new LinkedHashMap<>(merged);
 		if (changes != null) {
 			changes.forEach((key, value) -> {
 				if (value != null) {
@@ -116,11 +117,12 @@ public final class WorkCustomRoutine {
 				}
 			});
 		}
-		// user-dependent checks; validate() covers the shape
-		if (merged.get("skills") instanceof List<?> skills) {
+		// user-dependent checks, only on a setting this save changes: access lost since it was saved must never block
+		// a pause or an edit, and a run checks again; validate() covers the shape
+		if (merged.get("skills") instanceof List<?> skills && !skills.equals(before.get("skills"))) {
 			merged.put("skills", CollaborationSkills.requireUsable(user, skills));
 		}
-		if (merged.get("tools") instanceof List<?> tools) {
+		if (merged.get("tools") instanceof List<?> tools && !tools.equals(before.get("tools"))) {
 			for (Object tool : tools) {
 				if (tool instanceof Map<?, ?> ref && !canUseTool(user, ref)) {
 					throw new IllegalArgumentException("Pick tools you can use; " + text(ref.get("name"))
@@ -128,9 +130,10 @@ public final class WorkCustomRoutine {
 				}
 			}
 		}
-		String agentId = merged.get("agentId") == null ? "" : String.valueOf(merged.get("agentId")).trim();
-		if (!agentId.isEmpty() && (!SecurityProjectUtils.userCanViewProject(user, agentId)
-				|| ModelInferenceLogsUtils.getWorkspaceEntry(agentId) == null)) {
+		String agentId = text(merged.get("agentId"));
+		if (!agentId.isEmpty() && !agentId.equals(text(before.get("agentId")))
+				&& (!SecurityProjectUtils.userCanViewProject(user, agentId)
+						|| ModelInferenceLogsUtils.getWorkspaceEntry(agentId) == null)) {
 			throw new IllegalArgumentException("Pick an agent you can use");
 		}
 		return WorkRoutine.save(KIND, user, routineId, merged);
@@ -145,17 +148,22 @@ public final class WorkCustomRoutine {
 		WorkRoutineDocuments.deleteAll(user, routineId);
 	}
 
-	/**
-	 * The scheduler's recipe. The cron only fires on the chosen days, so this does not check the day again, which
-	 * lets Run now go through the same job.
-	 */
+	/** The scheduler's recipe, on the routine's chosen days. */
 	public static Map<String, Object> run(Insight insight, String routineId) {
+		requireStored(insight.getUser(), routineId);
+		return WorkRoutine.run(KIND, insight, routineId, false);
+	}
+
+	/** Run now's run, which runNow fires on the scheduler: on any day, and recorded as started by hand. */
+	public static Map<String, Object> runManual(Insight insight, String routineId) {
 		requireStored(insight.getUser(), routineId);
 		return WorkRoutine.run(KIND, insight, routineId, true);
 	}
 
 	public static void runNow(User user, String routineId) {
-		WorkRoutine.runNow(KIND, user, routineId);
+		// routineId is a stored routine's: runNow finds its row first
+		WorkRoutine.runNow(KIND, user, routineId,
+				"WorkRunCustomRoutine(routineId=[\"" + routineId + "\"], manual=[true]);");
 	}
 
 	static Map<String, Object> requireStored(User user, String routineId) {

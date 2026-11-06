@@ -51,6 +51,7 @@ import org.mockito.MockedConstruction;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.util.JdbcTestDatabase;
 
@@ -130,6 +131,23 @@ class MicrosoftGraphCredentialStoreUnitTests {
 				assertNull(failure.getCause());
 				assertEquals("old-access", MicrosoftGraphCredentialStore.get("account-one").getAccess_token());
 				verify(users.constructed().get(0)).removeUserMemory();
+			}
+		}
+	}
+
+	@Test
+	void turningBackgroundAccessOffWhileItRenewsKeepsItOff() throws Exception {
+		try (var db = database(); var users = users()) {
+			MicrosoftGraphCredentialStore.save(token("old-access", "old-refresh", -1000L));
+			try (var fillers = mockConstruction(MicrosoftTokenFiller.class,
+					(filler, context) -> when(filler.refreshAccessToken(any(), anyMap())).thenAnswer(call -> {
+						// the owner turns background access off while Microsoft renews the sign-in
+						SecurityExternalConnectorsUtils.deleteMicrosoftGraphCredential("account-one");
+						return token("new-access", "new-refresh", 3_600_000L);
+					}))) {
+				MicrosoftGraphCredentialStore.accessToken("account-one");
+				assertNull(MicrosoftGraphCredentialStore.get("account-one"));
+				assertEquals(0, db.count("MS_GRAPH_CREDENTIAL"));
 			}
 		}
 	}
