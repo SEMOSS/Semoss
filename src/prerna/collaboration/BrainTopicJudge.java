@@ -80,18 +80,23 @@ final class BrainTopicJudge {
 	// the question is kept whole, but not without limit
 	private static final int MAX_QUESTION = 500;
 	// messages read from a topic's conversations for one question, newest first, and from each conversation
-	static final int MAX_CLASSIFY = 200;
-	static final int PER_CONVERSATION = 25;
+	// Each can be set in RDF_Map.prop; an unset or unusable value means the default, and a value outside the range is
+	// brought into it. The pool size is read once, when the class loads.
+	static final String MAX_MESSAGES_SETTING = "COLLAB_TOPIC_SEARCH_MAX_MESSAGES";
+	static final String PER_CONVERSATION_SETTING = "COLLAB_TOPIC_SEARCH_PER_CONVERSATION";
+	static final String THREADS_SETTING = "COLLAB_TOPIC_SEARCH_THREADS";
+	static final int DEFAULT_MAX_MESSAGES = 200;
+	static final int DEFAULT_PER_CONVERSATION = 25;
+	static final int DEFAULT_THREADS = 6;
 	// the classifier's likeliest messages that the text model reads, and the probability below which a message is not
 	// a candidate at all
 	static final int TOP_FOR_JUDGE = 10;
 	private static final int JUDGE_BATCH = 4;
 	static final double MIN_PROBABILITY = 0.1;
 	private static final int MAX_CLASSIFY_TEXT = 6000;
-	private static final int CLASSIFY_THREADS = 6;
 	private static final long CLASSIFY_TIMEOUT_SECONDS = 180;
 	// the classifier's calls run here, off the assistant's thread, like the text model's
-	private static final ExecutorService CLASSIFY_POOL = Executors.newFixedThreadPool(CLASSIFY_THREADS, r -> {
+	private static final ExecutorService CLASSIFY_POOL = Executors.newFixedThreadPool(setting(THREADS_SETTING, DEFAULT_THREADS, 1, 32), r -> {
 		Thread t = new Thread(r, "collaboration-topic-classifier");
 		t.setDaemon(true);
 		return t;
@@ -242,6 +247,19 @@ final class BrainTopicJudge {
 		return byWords(user, ownerId, ownerType, threadIds, terms, from, to, privacy,
 				"The relevance model could not judge the passages (" + failures
 						+ "), so they were matched by words only.");
+	}
+
+	// a whole-number setting from RDF_Map.prop, the default when it is unset or not a number, and kept within the range
+	static int setting(String name, int fallback, int min, int max) {
+		String value = Utility.getDIHelperProperty(name);
+		if (value != null && !value.isBlank()) {
+			try {
+				return Math.max(min, Math.min(max, Integer.parseInt(value.trim())));
+			} catch (NumberFormatException e) {
+				classLogger.warn("{} is not a whole number ({}); using {}", name, value, fallback);
+			}
+		}
+		return fallback;
 	}
 
 	private static String shorten(String text) {
@@ -513,6 +531,8 @@ final class BrainTopicJudge {
 			Collection<String> threadIds, String asked, List<String> terms, String from, String to,
 			BrainThreadFinder.Privacy privacy) {
 		long started = System.nanoTime();
+		int maxMessages = setting(MAX_MESSAGES_SETTING, DEFAULT_MAX_MESSAGES, 1, 2000);
+		int perConversation = setting(PER_CONVERSATION_SETTING, DEFAULT_PER_CONVERSATION, 1, 500);
 		Map<String, Object> times = new LinkedHashMap<>();
 		Map<String, Object> stats = new LinkedHashMap<>();
 		stats.put("mode", CLASSIFIED);
@@ -524,7 +544,7 @@ final class BrainTopicJudge {
 		AtomicInteger unread = new AtomicInteger();
 		try {
 			all = BrainMessageSource.current().conversationMessages(user, context.byConversation().keySet(),
-					PER_CONVERSATION, unread);
+					perConversation, unread);
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
@@ -559,8 +579,8 @@ final class BrainTopicJudge {
 			inRange.add(message);
 		}
 		inRange.sort((a, b) -> String.valueOf(b.get("receivedDateTime")).compareTo(String.valueOf(a.get("receivedDateTime"))));
-		boolean capped = inRange.size() > MAX_CLASSIFY;
-		List<Map<String, Object>> candidates = capped ? inRange.subList(0, MAX_CLASSIFY) : inRange;
+		boolean capped = inRange.size() > maxMessages;
+		List<Map<String, Object>> candidates = capped ? inRange.subList(0, maxMessages) : inRange;
 
 		// 2. the rules gate, then the cleaned text
 		List<Passage> passages = new ArrayList<>();
@@ -748,7 +768,7 @@ final class BrainTopicJudge {
 		String status = BrainTopicBodySearch.SEARCHED;
 		if (capped) {
 			status = BrainTopicBodySearch.PARTIAL;
-			note.append("The topic has more than ").append(MAX_CLASSIFY)
+			note.append("The topic has more than ").append(maxMessages)
 					.append(" messages, so only the newest were read. ");
 		}
 		if (failed > 0) {
