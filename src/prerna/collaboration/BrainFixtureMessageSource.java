@@ -112,6 +112,9 @@ final class BrainFixtureMessageSource implements BrainMessageSource {
 						"parentFolderId")) {
 					found.put(key, message.get(key));
 				}
+				// Graph's bodyPreview: the start of the body, so hits can be ranked before they are read
+				String preview = String.valueOf(body).replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
+				found.put("bodyPreview", preview.length() > 255 ? preview.substring(0, 255) : preview);
 				out.add(found);
 			}
 		}

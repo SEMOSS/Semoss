@@ -126,6 +126,9 @@ public final class CollaborationPrompts {
 			and nothing answers, tell the owner it was not found instead of searching again with other words. When \
 			it says partial, scanned_recent, or unavailable, say that message text was only partly searched. \
 			RelatedThreads lists mail that belongs with a thread you already have.
+			- Give only dates and facts that a quoted passage states. When passages disagree or change over time, \
+			list each with who wrote it and when, and say which is newest. Never work a date out from other clues, \
+			and never state one as certain when no passage says so.
 			- Only then use ListM365Mail, which reads Outlook directly. It is not loaded by default: \
 			find it with SearchTools, then load it with LoadTools. Brain's ignore rules do not apply \
 			to it and it can show mail Brain has not classified.
