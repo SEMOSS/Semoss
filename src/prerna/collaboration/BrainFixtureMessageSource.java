@@ -91,6 +91,27 @@ final class BrainFixtureMessageSource implements BrainMessageSource {
 		return "email".equals(source) && graphId != null ? byId.get(graphId) : null;
 	}
 
+	// the same over mail.json: every message of these conversations, newest first in each
+	@Override
+	public List<Map<String, Object>> conversationMessages(User user, java.util.Collection<String> conversationIds,
+			int perConversation) {
+		java.util.Set<String> wanted = new java.util.HashSet<>(conversationIds);
+		Map<String, List<Map<String, Object>>> byConversation = new LinkedHashMap<>();
+		for (Map<String, Object> message : byId.values()) {
+			String conversation = String.valueOf(message.get("conversationId"));
+			if (wanted.contains(conversation)) {
+				byConversation.computeIfAbsent(conversation, k -> new ArrayList<>()).add(message);
+			}
+		}
+		List<Map<String, Object>> out = new ArrayList<>();
+		for (List<Map<String, Object>> messages : byConversation.values()) {
+			messages.sort((a, b) -> String.valueOf(b.get("receivedDateTime"))
+					.compareTo(String.valueOf(a.get("receivedDateTime"))));
+			out.addAll(messages.size() > perConversation ? messages.subList(0, perConversation) : messages);
+		}
+		return out;
+	}
+
 	// the same search over mail.json: the terms are looked for in each message's subject and body text
 	@Override
 	public List<Map<String, Object>> search(User user, List<String> terms, boolean all, Instant from, Instant to,

@@ -51,6 +51,9 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 	private static final String BASE = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0";
 	private static final int BATCH = 20;
 	private static final int SEARCH_PAGE = 50;
+	private static final int CONVERSATION_BATCH = 10;
+	private static final String CONVERSATION_SELECT = "id,conversationId,subject,from,toRecipients,ccRecipients,"
+			+ "receivedDateTime,parentFolderId,body,uniqueBody";
 	private static final String SEARCH_SELECT = "id,conversationId,subject,from,receivedDateTime,parentFolderId,"
 			+ "bodyPreview";
 	private static final int RETRIES = 3;
@@ -109,6 +112,59 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 			return out.size() > max ? new ArrayList<>(out.subList(0, max)) : out;
 		}
 		return List.of();
+	}
+
+	// Graph $batch of conversation listings, 10 a call: every message of each conversation with its body, so a topic's
+	// mail can be read whole whether or not it was imported. A throttled (429) or busy (5xx) listing is sent again
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> conversationMessages(User user, java.util.Collection<String> conversationIds,
+			int perConversation) throws Exception {
+		String token = MicrosoftLoginUtils.getValidAccessToken(user);
+		List<String> ids = new ArrayList<>(conversationIds);
+		List<Map<String, Object>> out = new ArrayList<>();
+		for (int start = 0; start < ids.size(); start += CONVERSATION_BATCH) {
+			List<Map<String, Object>> requests = new ArrayList<>();
+			for (int i = start; i < Math.min(ids.size(), start + CONVERSATION_BATCH); i++) {
+				String filter = "conversationId eq '" + ids.get(i).replace("'", "''") + "'";
+				requests.add(Map.of("id", String.valueOf(i), "method", "GET", "url", "/me/messages?$filter="
+						+ encode(filter) + "&$top=" + perConversation + "&$select=" + CONVERSATION_SELECT));
+			}
+			for (int attempt = 0; !requests.isEmpty(); attempt++) {
+				Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
+						BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
+						CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null,
+						null, null));
+				List<Object> responses = reply.get("responses") instanceof List<?> list ? (List<Object>) list
+						: List.of();
+				List<Map<String, Object>> again = new ArrayList<>();
+				long wait = 0;
+				for (Object r : responses) {
+					Map<String, Object> response = (Map<String, Object>) r;
+					int status = response.get("status") instanceof Number n ? n.intValue() : 0;
+					if ((status == 429 || status >= 500) && attempt < RETRIES) {
+						requests.stream().filter(q -> String.valueOf(response.get("id")).equals(q.get("id")))
+								.findFirst().ifPresent(again::add);
+						wait = Math.max(wait, retryAfter(response, attempt));
+					} else if (status == 200 && response.get("body") instanceof Map<?, ?> body
+							&& body.get("value") instanceof List<?> values) {
+						for (Object value : values) {
+							out.add((Map<String, Object>) value);
+						}
+					}
+				}
+				requests = again;
+				if (!requests.isEmpty()) {
+					try {
+						Thread.sleep(wait);
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+						break;
+					}
+				}
+			}
+		}
+		return out;
 	}
 
 	// Graph $batch, 20 a call: one round trip instead of one per message

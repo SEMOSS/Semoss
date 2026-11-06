@@ -285,7 +285,6 @@ public final class BrainThreadFinder {
 		// the threads that passed every filter but the words, and whether one already holds all of them in what Brain
 		// stores: then the mailbox need not be asked
 		List<ThreadRow> eligible = new ArrayList<>();
-		boolean fullMatch = false;
 		for (ThreadRow row : rows) {
 			if (!privacy.visible(row.id())) {
 				continue;
@@ -311,9 +310,6 @@ public final class BrainThreadFinder {
 					continue;
 				}
 				score = 3 * inSubject + inSummary + 2 * inPeople;
-				if (tokens.stream().allMatch(t -> (subject + " " + summary + " " + people).contains(t))) {
-					fullMatch = true;
-				}
 				if (inSubject > 0) {
 					matched.add("subject");
 				}
@@ -339,15 +335,9 @@ public final class BrainThreadFinder {
 			hits.add(item);
 		}
 		Map<String, Object> bodySearch = null;
-		if (bodies && topics != null && !tokens.isEmpty()) {
-			if (fullMatch) {
-				bodySearch = Map.of("status", "skipped", "note",
-						"A thread already matches every word in its subject, summary, or people, so message text was not searched. "
-								+ "Search again with other words to look in message text.");
-			} else {
-				bodySearch = addBodyMatches(user, ownerId, ownerType, eligible, query, tokens, from, to, hits, privacy,
-						selfId, linkSource);
-			}
+		if (bodies && topics != null && query != null && !query.isBlank()) {
+			bodySearch = addBodyMatches(user, ownerId, ownerType, eligible, query, tokens, from, to, hits, privacy,
+					selfId, linkSource);
 		}
 		hits.sort(Comparator.<Map<String, Object>>comparingDouble(i -> -((Number) i.get("score")).doubleValue())
 				.thenComparing(i -> String.valueOf(i.get("lastAt")), Comparator.reverseOrder()));
@@ -423,9 +413,12 @@ public final class BrainThreadFinder {
 			found.put("messageId", hit.messageId());
 			found.put("matchingMessages", hit.matches());
 			if (hit.confidence() != null) {
-				found.put("foundBy", "a model judged this passage relevant");
+				found.put("foundBy", hit.quote() == null ? "the classifier scored this message likely relevant"
+						: "a model judged this passage relevant");
 				found.put("confidence", hit.confidence());
-				found.put("quote", hit.quote());
+				if (hit.quote() != null) {
+					found.put("quote", hit.quote());
+				}
 				if (hit.reason() != null && !hit.reason().isBlank()) {
 					found.put("reason", hit.reason());
 				}
