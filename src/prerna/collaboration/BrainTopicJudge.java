@@ -685,10 +685,8 @@ final class BrainTopicJudge {
 				counts.merge(p.threadId(), 1, Integer::sum);
 				Hit hit = new Hit(p.threadId(), clip(p.text(), 240), p.graphId(), p.at(), p.from(), 1, null, null,
 						scores[i] >= 0.7 ? "high" : scores[i] >= 0.4 ? "medium" : "low");
-				Hit previous = best.get(p.threadId());
-				if (previous == null || better(hit, previous)) {
-					best.put(p.threadId(), hit);
-				}
+				// the order is best score first, so a thread keeps its highest-scored message
+				best.putIfAbsent(p.threadId(), hit);
 			}
 		}
 		times.put("judge", ms(step));
@@ -721,8 +719,9 @@ final class BrainTopicJudge {
 		} else if (judged) {
 			note.append("The classifier scored every message and a model quoted the likeliest.");
 		} else {
-			note.append("The classifier scored every message; no model was available to quote them, so the likeliest "
-					+ "are shown from their start.");
+			note.append("The classifier scored every message, but the text model did not judge the likeliest")
+					.append(judge == null ? " (none available)" : " (" + judge.lastError + ")")
+					.append(", so they are shown from their start.");
 		}
 		return new Result(hits, status, note.toString().trim(), stats);
 	}
