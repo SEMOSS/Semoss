@@ -471,7 +471,11 @@ public final class WorkPipeline {
 		Map<String, Map<String, Object>> byShort = new LinkedHashMap<>();
 		List<Map<String, Object>> input = new ArrayList<>();
 		CollaborationDbUtils.query("SELECT c.CANDIDATE_ID, c.THREAD_ID, c.MESSAGE_REF, c.KIND, c.TEXT, c.DUE_AT, "
-				+ "c.ASSIGNEE, c.TOPIC_ID, th.SUBJECT, p.DISPLAY_NAME FROM WORK_CANDIDATE c LEFT JOIN BRAIN_THREAD th ON "
+				// the thread's topic now, not at extract: a thread filed, moved or left without a topic since
+				+ "c.ASSIGNEE, (SELECT MIN(bt.TOPIC_ID) FROM BRAIN_THREAD_TOPIC bt JOIN BRAIN_TOPIC tp ON "
+				+ "tp.OWNER_ID = bt.OWNER_ID AND tp.OWNER_TYPE = bt.OWNER_TYPE AND tp.TOPIC_ID = bt.TOPIC_ID WHERE "
+				+ "bt.OWNER_ID = c.OWNER_ID AND bt.OWNER_TYPE = c.OWNER_TYPE AND bt.THREAD_ID = c.THREAD_ID AND "
+				+ "bt.IS_PRIMARY = ?) AS TOPIC_ID, th.SUBJECT, p.DISPLAY_NAME FROM WORK_CANDIDATE c LEFT JOIN BRAIN_THREAD th ON "
 				+ "th.OWNER_ID = c.OWNER_ID AND th.OWNER_TYPE = c.OWNER_TYPE AND th.THREAD_ID = c.THREAD_ID LEFT JOIN "
 				+ "BRAIN_PERSON p ON p.OWNER_ID = c.OWNER_ID AND p.OWNER_TYPE = c.OWNER_TYPE AND p.PERSON_ID = "
 				+ "c.ASSIGNEE WHERE c.OWNER_ID = ? AND c.OWNER_TYPE = ? AND c.RESULT IS NULL ORDER BY c.MESSAGE_AT",
@@ -504,7 +508,7 @@ public final class WorkPipeline {
 					c.put("due", due == null ? "" : due.substring(0, Math.min(10, due.length())));
 					input.add(c);
 					return null;
-				}, ownerId, ownerType);
+				}, true, ownerId, ownerType);
 		Map<String, Object> counts = new LinkedHashMap<>();
 		if (input.isEmpty()) {
 			return counts;
