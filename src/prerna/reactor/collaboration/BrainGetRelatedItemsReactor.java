@@ -55,7 +55,8 @@ public class BrainGetRelatedItemsReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Lists the owner's other emails, meetings, and chats that belong with a thread, each with the reason "
-				+ "(same topic, same people, same account); never-ingest and muted content is left out";
+				+ "(same topic, same people, same account); never-ingest and muted content is left out. Pass a thread "
+				+ "id from BrainSearchThreads; read a result with BrainGetThreadMessages";
 	}
 
 	@Override
