@@ -51,7 +51,8 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 	private static final String BASE = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0";
 	private static final int BATCH = 20;
 	private static final int SEARCH_PAGE = 50;
-	private static final String SEARCH_SELECT = "id,conversationId,subject,from,receivedDateTime,parentFolderId";
+	private static final String SEARCH_SELECT = "id,conversationId,subject,from,receivedDateTime,parentFolderId,"
+			+ "bodyPreview";
 	private static final int RETRIES = 3;
 	private static final long MAX_WAIT_MS = 10000;
 	private static final String MAIL_SELECT = "subject,from,toRecipients,ccRecipients,body,uniqueBody,receivedDateTime,"

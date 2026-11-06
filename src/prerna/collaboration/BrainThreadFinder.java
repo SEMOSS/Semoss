@@ -64,7 +64,15 @@ public final class BrainThreadFinder {
 	private static final int PEOPLE_SHOWN = 5;
 	private static final Set<String> STOP_WORDS = Set.of("the", "and", "for", "with", "from", "about", "that", "this",
 			"have", "has", "was", "were", "are", "you", "your", "any", "all", "email", "emails", "mail", "thread",
-			"threads", "message", "messages", "find", "search", "show", "get", "into", "out");
+			"threads", "message", "messages", "find", "search", "show", "get", "into", "out",
+			// question and filler words say how the owner asked, not what the mail is about
+			"what", "when", "where", "which", "who", "whom", "whose", "how", "why", "does", "did", "can", "could",
+			"should", "would", "will", "shall", "may", "might", "must", "been", "being", "there", "their", "they",
+			"them", "our", "its", "not", "but", "than", "then", "also", "just", "please", "tell", "give", "know",
+			"need", "want", "new", "newer", "date", "dates", "time", "now", "still", "again",
+			// two-letter words that are never what a message is about
+			"is", "it", "be", "do", "to", "of", "in", "on", "at", "by", "as", "or", "if", "an", "we", "us", "my",
+			"me", "so", "no");
 
 	private BrainThreadFinder() {
 	}
