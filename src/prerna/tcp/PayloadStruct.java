@@ -41,7 +41,7 @@ public class PayloadStruct implements Serializable {
 
 	public enum OPERATION {
 		R, PYTHON, NODE, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR, STRUCTURED_STREAM,
-		CANCELLED, LOG
+		CANCELLED, LOG, CHANGES
 	};
 
 	public OPERATION operation = OPERATION.R; // setting default to R

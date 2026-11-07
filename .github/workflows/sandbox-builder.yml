@@ -1,0 +1,144 @@
+name: Sandbox Builder
+# Builds docker/Dockerfile.sandbox: the OpenShell sandbox image that runs a user's python
+# worker. It is the python-builder image plus this repo's py/, so it rebuilds when py/ changes
+# and after every successful Python Builder run (new interpreter or dependencies).
+on:
+  workflow_dispatch:
+  push:
+    branches: ["dev", "main"]
+    paths:
+      - "py/**"
+      - "docker/Dockerfile.sandbox"
+      - "docker/Dockerfile.sandbox.dockerignore"
+      - "docker/sandbox-smoke-test.sh"
+      - ".github/workflows/sandbox-builder.yml"
+  workflow_run:
+    workflows: ["Python Builder"]
+    types: [completed]
+    branches: ["dev", "main"]
+
+concurrency:
+  group: sandbox-builder-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: quay.io/semoss/semoss-sandbox
+  # must match the COPY --from tag in docker/Dockerfile.sandbox
+  PYTHON_BUILDER_TAG: "3.14-cpu"
+  BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+  SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build each architecture natively, push BY DIGEST (no tag), then smoke-test
+  # that digest. A failed smoke test never reaches the tagging job.
+  # ---------------------------------------------------------------------------
+  build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            arch: amd64
+            runner_prefix: codebuild-semoss-github-runner
+            container: quay.io/semoss/test-quay:ubuntu-dind
+          - platform: linux/arm64
+            arch: arm64
+            runner_prefix: codebuild-semoss-github-runner-arm64
+            container: quay.io/semoss/test-quay:ubuntu-dind-arm64
+    runs-on: ${{ matrix.runner_prefix }}-${{ github.run_id }}-${{ github.run_attempt }}
+    container:
+      image: ${{ matrix.container }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Quay
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_ROBOT_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_PASSWORD }}
+
+      - name: Build and push by digest (${{ matrix.platform }})
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          # context is py/; the Dockerfile and its .dockerignore live in docker/
+          context: ./py
+          file: ./docker/Dockerfile.sandbox
+          platforms: ${{ matrix.platform }}
+          pull: true
+          labels: |
+            org.opencontainers.image.revision=${{ env.SOURCE_SHA }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.semoss.python-builder=${{ env.PYTHON_BUILDER_TAG }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Smoke test (${{ matrix.platform }})
+        run: bash docker/sandbox-smoke-test.sh "${IMAGE}@${{ steps.build.outputs.digest }}" py
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # Stitch the per-arch digests into one tagged manifest list.
+  # ---------------------------------------------------------------------------
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Quay
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_ROBOT_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_PASSWORD }}
+
+      - name: Compute tags
+        id: meta
+        shell: bash
+        run: |
+          BASE="${BRANCH//\//-}-${PYTHON_BUILDER_TAG}"
+          TAGS=( "-t" "${IMAGE}:${BASE}" "-t" "${IMAGE}:${BASE}-${SOURCE_SHA:0:7}" )
+          if [[ "${{ vars.RELEASE }}" == "TRUE" ]]; then
+            TAGS+=( "-t" "${IMAGE}:${PYTHON_BUILDER_TAG}-${{ vars.VERSION }}" )
+          fi
+          echo "args=${TAGS[*]}" >> "$GITHUB_OUTPUT"
+          echo "primary=${IMAGE}:${BASE}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push manifest list
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create ${{ steps.meta.outputs.args }} \
+            $(printf "${IMAGE}@sha256:%s " *)
+
+      - name: Inspect manifest list
+        run: docker buildx imagetools inspect "${{ steps.meta.outputs.primary }}"

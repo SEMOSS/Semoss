@@ -13,7 +13,7 @@ class ServerProxy:
         """
         from gaas_tcp_server_handler import TCPServerHandler
 
-        self.server = TCPServerHandler.da_server
+        self.server = TCPServerHandler.current()
 
     def get_next_epoc(self) -> str:
         """This method atomically returns a random value that is unique across all thread operations and instances."""
