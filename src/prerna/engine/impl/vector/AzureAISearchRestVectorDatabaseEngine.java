@@ -37,10 +37,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -87,6 +90,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	public static final String INDEX_NAME = "INDEX_NAME";
 
 	private static final String TEXT_DATATYPE = "Edm.String";
+	private static final String TEXT_COLLECTION_DATATYPE = "Collection(Edm.String)";
 	private static final String INT_DATATYPE = "Edm.Int64";
 	private static final String EMBEDDINGS_DATATYPE = "Collection(Edm.Single)";
 
@@ -520,6 +524,265 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	}
 
 	@Override
+	public List<Map<String, Object>> keywordSearch(Insight insight, String searchStatement, List<String> searchFields,
+			Number limit, Map<String, Object> parameters) {
+		Map<String, AzureIndexField> liveFields = getLiveIndexFields();
+		List<String> selectFields = resolveSelectFields(parameters, liveFields);
+		JsonObject search = buildTextSearch(searchStatement, searchFields, selectFields, limit, parameters, liveFields);
+		applyNewSearchFilters(search, parameters, false);
+		return executeNewSearch(search, selectFields);
+	}
+
+	@Override
+	public List<Map<String, Object>> hybridSearch(Insight insight, String searchStatement, List<String> searchFields,
+			Number limit, Map<String, Object> parameters) {
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		if (!this.modelPropsLoaded) {
+			verifyModelProps();
+		}
+
+		Map<String, AzureIndexField> liveFields = getLiveIndexFields();
+		int resultLimit = normalizeLimit(limit);
+		List<String> selectFields = resolveSelectFields(parameters, liveFields);
+		JsonObject search = buildTextSearch(searchStatement, searchFields, selectFields, resultLimit, parameters,
+				liveFields);
+
+		IModelEngine engine = Utility.getModel(this.embedderEngineId);
+		EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Collections.singletonList(searchStatement),
+				insight, null);
+		JsonObject vectorQuery = new JsonObject();
+		vectorQuery.add("vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
+		vectorQuery.addProperty("k", resultLimit);
+		vectorQuery.addProperty("fields", this.embeddings);
+		vectorQuery.addProperty("kind", "vector");
+		JsonArray vectorQueries = new JsonArray();
+		vectorQueries.add(vectorQuery);
+		search.add("vectorQueries", vectorQueries);
+
+		applyNewSearchFilters(search, parameters, true);
+		return executeNewSearch(search, selectFields);
+	}
+
+	private JsonObject buildTextSearch(String searchStatement, List<String> requestedSearchFields,
+			List<String> selectFields, Number limit, Map<String, Object> parameters,
+			Map<String, AzureIndexField> liveFields) {
+		if (searchStatement == null || searchStatement.trim().isEmpty()) {
+			throw new IllegalArgumentException("Search statement must not be blank");
+		}
+		JsonObject search = new JsonObject();
+		search.addProperty("search", searchStatement);
+		search.addProperty("searchFields", String.join(",", resolveSearchFields(requestedSearchFields, liveFields)));
+		search.addProperty("searchMode", resolveSearchMode(parameters));
+		search.addProperty("top", normalizeLimit(limit));
+		search.addProperty("select", selectFields == null ? "*" : String.join(",", selectFields));
+		return search;
+	}
+
+	private String resolveSearchMode(Map<String, Object> parameters) {
+		Object value = parameters == null ? null : parameters.get(SEARCH_MODE_KEY);
+		if (value == null) {
+			return "any";
+		}
+		String searchMode = value.toString().trim();
+		if (!"any".equals(searchMode) && !"all".equals(searchMode)) {
+			throw new IllegalArgumentException("Search mode must be either 'any' or 'all'");
+		}
+		return searchMode;
+	}
+
+	private List<String> resolveSelectFields(Map<String, Object> parameters,
+			Map<String, AzureIndexField> liveFields) {
+		if (parameters == null || !parameters.containsKey(SELECT_KEY) || parameters.get(SELECT_KEY) == null) {
+			return null;
+		}
+		Object value = parameters.get(SELECT_KEY);
+		List<?> requestedFields;
+		if (value instanceof Collection<?>) {
+			requestedFields = new ArrayList<>((Collection<?>) value);
+		} else if (value instanceof String) {
+			requestedFields = Arrays.asList(((String) value).split(",", -1));
+		} else {
+			throw new IllegalArgumentException("Select must be supplied as a field name or list of field names");
+		}
+		if (requestedFields.isEmpty()) {
+			throw new IllegalArgumentException("Select must contain at least one field");
+		}
+
+		Set<String> resolved = new LinkedHashSet<>();
+		for (Object requestedField : requestedFields) {
+			if (requestedField == null || requestedField.toString().trim().isEmpty()) {
+				throw new IllegalArgumentException("Select must not contain blank field names");
+			}
+			String fieldName = requestedField.toString().trim();
+			if ("*".equals(fieldName)) {
+				if (requestedFields.size() != 1) {
+					throw new IllegalArgumentException("Select wildcard '*' cannot be combined with field names");
+				}
+				return null;
+			}
+			AzureIndexField field = liveFields.get(fieldName);
+			if (field == null) {
+				throw new IllegalArgumentException(
+						"Select field '" + fieldName + "' does not exist in the Azure AI Search index");
+			}
+			if (!field.selectable) {
+				throw new IllegalArgumentException("Select field '" + fieldName + "' is not selectable");
+			}
+			resolved.add(fieldName);
+		}
+		return new ArrayList<>(resolved);
+	}
+
+	private int normalizeLimit(Number limit) {
+		int normalizedLimit = limit == null ? 5 : limit.intValue();
+		if (normalizedLimit <= 0) {
+			throw new IllegalArgumentException("Limit must be greater than zero");
+		}
+		return normalizedLimit;
+	}
+
+	private List<String> resolveSearchFields(List<String> requestedSearchFields,
+			Map<String, AzureIndexField> liveFields) {
+		Set<String> resolved = new LinkedHashSet<>();
+		if (requestedSearchFields == null || requestedSearchFields.isEmpty()) {
+			for (AzureIndexField field : liveFields.values()) {
+				if (field.searchable && isTextSearchType(field.type)) {
+					resolved.add(field.name);
+				}
+			}
+			if (resolved.isEmpty()) {
+				throw new IllegalArgumentException(
+						"Azure AI Search index does not contain any searchable string fields");
+			}
+			return new ArrayList<>(resolved);
+		}
+
+		for (String requestedField : requestedSearchFields) {
+			if (requestedField == null || requestedField.trim().isEmpty()) {
+				throw new IllegalArgumentException("Search fields must not contain blank values");
+			}
+			String fieldName = requestedField.trim();
+			AzureIndexField field = liveFields.get(fieldName);
+			if (field == null) {
+				throw new IllegalArgumentException(
+						"Search field '" + fieldName + "' does not exist in the Azure AI Search index");
+			}
+			if (!field.searchable || !isTextSearchType(field.type)) {
+				throw new IllegalArgumentException(
+						"Search field '" + fieldName + "' is not a searchable string field");
+			}
+			resolved.add(fieldName);
+		}
+		return new ArrayList<>(resolved);
+	}
+
+	private boolean isTextSearchType(String type) {
+		return TEXT_DATATYPE.equals(type) || TEXT_COLLECTION_DATATYPE.equals(type);
+	}
+
+	private Map<String, AzureIndexField> getLiveIndexFields() {
+		String url = this.clusterUrl + "/" + DOES_INDEX_EXISTS.replace("{{INDEX_NAME}}", this.indexName) + "?"
+				+ this.getMustQueryParamString();
+		String response = HttpHelperUtility.getRequest(url, getAzureHeaders(), null, null, null);
+		JsonObject indexDefinition = JsonParser.parseString(response).getAsJsonObject();
+		JsonArray fields = indexDefinition.getAsJsonArray("fields");
+		if (fields == null) {
+			throw new IllegalArgumentException("Azure AI Search index definition does not contain fields");
+		}
+
+		Map<String, AzureIndexField> liveFields = new LinkedHashMap<>();
+		Map<String, String> liveFieldTypes = new LinkedHashMap<>();
+		for (JsonElement fieldElement : fields) {
+			JsonObject fieldJson = fieldElement.getAsJsonObject();
+			String name = fieldJson.get("name").getAsString();
+			String type = fieldJson.get("type").getAsString();
+			boolean searchable = fieldJson.has("searchable") && fieldJson.get("searchable").getAsBoolean();
+			boolean selectable = !fieldJson.has("retrievable") || fieldJson.get("retrievable").isJsonNull()
+					|| fieldJson.get("retrievable").getAsBoolean();
+			liveFields.put(name, new AzureIndexField(name, type, searchable, selectable));
+			liveFieldTypes.put(name, type);
+		}
+		this.otherPropsToType = liveFieldTypes;
+		return liveFields;
+	}
+
+	@SuppressWarnings("unchecked")
+	private void applyNewSearchFilters(JsonObject search, Map<String, Object> parameters, boolean vectorSearch) {
+		if (parameters == null || !parameters.containsKey(FILTERS_KEY)) {
+			return;
+		}
+		Object filterValue = parameters.get(FILTERS_KEY);
+		if (!(filterValue instanceof List<?>)) {
+			throw new IllegalArgumentException("Azure AI Search filters must be supplied as a list of query filters");
+		}
+		List<IQueryFilter> filters = (List<IQueryFilter>) filterValue;
+		if (filters.isEmpty()) {
+			return;
+		}
+		List<String> translatedFilters = new ArrayList<>();
+		for (IQueryFilter queryFilter : filters) {
+			translatedFilters.add(processFilter(queryFilter, ""));
+		}
+		search.addProperty("filter", String.join(" and ", translatedFilters));
+		if (vectorSearch) {
+			search.addProperty("vectorFilterMode", "preFilter");
+		}
+	}
+
+	private List<Map<String, Object>> executeNewSearch(JsonObject search, List<String> selectFields) {
+		String url = this.clusterUrl + "/" + SEARCH_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName) + "?"
+				+ this.getMustQueryParamString();
+		String response = HttpHelperUtility.postRequestStringBody(url, getAzureHeaders(), search.toString(),
+				ContentType.APPLICATION_JSON, null, null, null);
+		JsonArray hits = getHitsFromSearch(JsonParser.parseString(response).getAsJsonObject());
+		List<Map<String, Object>> searchResults = new ArrayList<>();
+		for (JsonElement element : hits) {
+			JsonObject hitJson = element.getAsJsonObject();
+			Map<String, Object> match = new HashMap<>();
+			match.put("Score", hitJson.get("@search.score").getAsDouble());
+			if (selectFields == null) {
+				match.put(VectorDatabaseCSVTable.SOURCE, hitJson.get(VectorDatabaseCSVTable.SOURCE).getAsString());
+				match.put(VectorDatabaseCSVTable.MODALITY, hitJson.get(VectorDatabaseCSVTable.MODALITY).getAsString());
+				match.put(VectorDatabaseCSVTable.DIVIDER, hitJson.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
+				match.put(VectorDatabaseCSVTable.PART, hitJson.get(VectorDatabaseCSVTable.PART).getAsString());
+				match.put(VectorDatabaseCSVTable.TOKENS, hitJson.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
+				match.put(VectorDatabaseCSVTable.CONTENT, hitJson.get(VectorDatabaseCSVTable.CONTENT).getAsString());
+			} else {
+				for (String fieldName : selectFields) {
+					if (hitJson.has(fieldName)) {
+						match.put(fieldName, GSON.fromJson(hitJson.get(fieldName), Object.class));
+					}
+				}
+			}
+			searchResults.add(match);
+		}
+		return searchResults;
+	}
+
+	private Map<String, String> getAzureHeaders() {
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(AZURE_AI_API_KEY, this.apiKey);
+		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+		return headersMap;
+	}
+
+	private static final class AzureIndexField {
+		private final String name;
+		private final String type;
+		private final boolean searchable;
+		private final boolean selectable;
+
+		private AzureIndexField(String name, String type, boolean searchable, boolean selectable) {
+			this.name = name;
+			this.type = type;
+			this.searchable = searchable;
+			this.selectable = selectable;
+		}
+	}
+
+	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
 		String url = this.clusterUrl + "/" + SEARCH_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName) + "?"
 				+ this.getMustQueryParamString();
@@ -837,12 +1100,12 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			return addOrFilter((OrQueryFilter) queryFilter, filterString);
 		} else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.FUNCTION) {
 			throw new IllegalArgumentException(
-					"Filters with a Query Filter Type of Function are not supported for Elastic Search vector databases");
+					"Filters with a Query Filter Type of Function are not supported for Azure AI Search vector databases");
 		} else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.BETWEEN) {
 			throw new IllegalArgumentException(
-					"Filters with a Query Filter Type of Between are not supported for Elastic Search vector databases");
+					"Filters with a Query Filter Type of Between are not supported for Azure AI Search vector databases");
 		}
-		return filterString;
+		throw new IllegalArgumentException("Unsupported query filter type for Azure AI Search: " + filterType);
 	}
 
 	/**
@@ -852,7 +1115,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	 * @param must_not
 	 */
 	private String addSimpleQueryFilter(SimpleQueryFilter filter, String filterString) {
-		return filterString += processSimpleQueryFilter(filter);
+		return filterString + processSimpleQueryFilter(filter);
 	}
 
 	/**
@@ -869,7 +1132,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 		if (fType == FILTER_TYPE.COL_TO_COL) {
 			throw new IllegalArgumentException(
-					"Filter of with a Filter Type of COL_TO_COL are not supported for Elastic/Open Search vector databases");
+					"Filters with a Filter Type of COL_TO_COL are not supported for Azure AI Search vector databases");
 		} else if (fType == FILTER_TYPE.COL_TO_VALUES) {
 			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator);
 		} else if (fType == FILTER_TYPE.VALUES_TO_COL) {
@@ -879,21 +1142,21 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 					IQueryFilter.getReverseNumericalComparator(thisComparator));
 		} else if (fType == FILTER_TYPE.COL_TO_QUERY) {
 			throw new IllegalArgumentException(
-					"Filter of with a Filter Type of COL_TO_QUERY are not supported for Elastic/Open Search vector databases");
+					"Filters with a Filter Type of COL_TO_QUERY are not supported for Azure AI Search vector databases");
 		} else if (fType == FILTER_TYPE.QUERY_TO_COL) {
 			throw new IllegalArgumentException(
-					"Filter of with a Filter Type of QUERY_TO_COL are not supported for Elastic/Open Search vector databases");
+					"Filters with a Filter Type of QUERY_TO_COL are not supported for Azure AI Search vector databases");
 		} else if (fType == FILTER_TYPE.COL_TO_LAMBDA) {
 			throw new IllegalArgumentException(
-					"Filter of with a Filter Type of COL_TO_LAMBDA are not supported for Elastic/Open Search vector databases");
+					"Filters with a Filter Type of COL_TO_LAMBDA are not supported for Azure AI Search vector databases");
 		} else if (fType == FILTER_TYPE.LAMBDA_TO_COL) {
 			throw new IllegalArgumentException(
-					"Filter of with a Filter Type of LAMBDA_TO_COL are not supported for Elastic/Open Search vector databases");
+					"Filters with a Filter Type of LAMBDA_TO_COL are not supported for Azure AI Search vector databases");
 		} else if (fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			throw new IllegalArgumentException(
-					"Filter of with a Filter Type of VALUE_TO_VALUE are not supported for Elastic/Open Search vector databases");
+					"Filters with a Filter Type of VALUE_TO_VALUE are not supported for Azure AI Search vector databases");
 		}
-		return null;
+		throw new IllegalArgumentException("Unsupported simple filter type for Azure AI Search: " + fType);
 	}
 
 	/**
@@ -918,6 +1181,8 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				filterString = addAndFilter((AndQueryFilter) filterList.get(i), filterString);
 			} else if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.OR) {
 				filterString = addOrFilter((OrQueryFilter) filterList.get(i), filterString);
+			} else {
+				filterString = processFilter(filter2, filterString);
 			}
 			filterString += " ) ";
 		}
@@ -947,6 +1212,8 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				filterString = addOrFilter((OrQueryFilter) filterList.get(i), filterString);
 			} else if (filter2.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
 				filterString = addAndFilter((AndQueryFilter) filterList.get(i), filterString);
+			} else {
+				filterString = processFilter(filter2, filterString);
 			}
 			filterString += " )";
 		}
@@ -962,46 +1229,52 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	 */
 	private String addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		List<Object> normalizedValues = normalizeToList(rightComp.getValue());
-		boolean isNumeric = this.otherPropsToType.get(leftComp.getValue().toString()).equals(INT_DATATYPE);
+		String fieldName = leftComp.getValue().toString();
+		String fieldType = this.otherPropsToType.get(fieldName);
+		if (fieldType == null) {
+			throw new IllegalArgumentException(
+					"Filter field '" + fieldName + "' does not exist in the Azure AI Search index");
+		}
+		boolean isNumeric = isNumericType(fieldType);
 		if (thisComparator.equals("<") || thisComparator.equals(">") || thisComparator.equals("<=")
 				|| thisComparator.equals(">=")) {
-			if (!NumberUtils.isCreatable(rightComp.getValue().toString())) {
+			if (normalizedValues.size() != 1 || !NumberUtils.isCreatable(normalizedValues.get(0).toString())) {
 				throw new IllegalArgumentException("Right hand operand must be a number");
 			}
 		}
 		if (thisComparator.equals("==")) {
 			return normalizedValues.stream().map(value -> {
 				String val = value.toString().replace("'", "''");
-				return isNumeric ? String.format("%s eq %s", leftComp.getValue().toString(), val)
-						: String.format("%s eq '%s'", leftComp.getValue().toString(), val);
+				return isNumeric ? String.format("%s eq %s", fieldName, val)
+						: String.format("%s eq '%s'", fieldName, val);
 			}).collect(Collectors.joining(" or "));
 		} else if (thisComparator.equals("!=")) {
 			return normalizedValues.stream().map(value -> {
 				String val = value.toString().replace("'", "''");
-				return isNumeric ? String.format("%s ne %s", leftComp.getValue().toString(), val)
-						: String.format("%s ne '%s'", leftComp.getValue().toString(), val);
+				return isNumeric ? String.format("%s ne %s", fieldName, val)
+						: String.format("%s ne '%s'", fieldName, val);
 			}).collect(Collectors.joining(" or "));
 
 		} else if (thisComparator.equals("<")) {
 			String expression = "";
-			expression += leftComp.getValue().toString() + " lt " + rightComp.getValue();
+			expression += fieldName + " lt " + normalizedValues.get(0);
 			return expression;
 		} else if (thisComparator.equals(">")) {
 			String expression = "";
-			expression += leftComp.getValue().toString() + " gt " + rightComp.getValue();
+			expression += fieldName + " gt " + normalizedValues.get(0);
 			return expression;
 		} else if (thisComparator.equals("<=")) {
 			String expression = "";
-			expression += leftComp.getValue().toString() + " le " + rightComp.getValue();
+			expression += fieldName + " le " + normalizedValues.get(0);
 			return expression;
 		} else if (thisComparator.equals(">=")) {
 			String expression = "";
-			expression += leftComp.getValue().toString() + " ge " + rightComp.getValue();
+			expression += fieldName + " ge " + normalizedValues.get(0);
 			return expression;
 		} else if (thisComparator.equals("?like")) {
 			String expression = "";
-			expression += "search.ismatch(" + "'" + rightComp.getValue().toString() + "'," + " '"
-					+ leftComp.getValue().toString() + "')";
+			String value = rightComp.getValue().toString().replace("'", "''");
+			expression += "search.ismatch('" + value + "', '" + fieldName + "')";
 			return expression;
 		} else if (thisComparator.equals("?begins")) {
 			throw new IllegalArgumentException(
@@ -1011,7 +1284,13 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 					"Filters with a Query Filter Type of Ends with are not supported for Azure AI Search vector databases");
 		}
 
-		return null;
+		throw new IllegalArgumentException("Unsupported comparator for Azure AI Search: " + thisComparator);
+	}
+
+	private boolean isNumericType(String fieldType) {
+		return fieldType.equals("Edm.Byte") || fieldType.equals("Edm.SByte") || fieldType.equals("Edm.Int16")
+				|| fieldType.equals("Edm.Int32") || fieldType.equals(INT_DATATYPE) || fieldType.equals("Edm.Single")
+				|| fieldType.equals("Edm.Double") || fieldType.equals("Edm.Decimal");
 	}
 
 	private List<Object> normalizeToList(Object values) {

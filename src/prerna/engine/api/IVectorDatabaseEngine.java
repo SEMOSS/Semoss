@@ -165,6 +165,40 @@ public interface IVectorDatabaseEngine extends IEngine {
 			Map<String, Object> parameters);
 
 	/**
+	 * Perform a keyword search against the vector database, when supported by the
+	 * implementation.
+	 *
+	 * @param insight         current insight
+	 * @param searchStatement keyword query
+	 * @param searchFields    fields to search, or {@code null}/empty for engine
+	 *                        defaults
+	 * @param limit           maximum number of results
+	 * @param parameters      implementation-specific parameters
+	 * @return normalized search results
+	 */
+	default List<Map<String, Object>> keywordSearch(Insight insight, String searchStatement, List<String> searchFields,
+			Number limit, Map<String, Object> parameters) {
+		throw new UnsupportedOperationException("Keyword search is not supported by this vector database engine");
+	}
+
+	/**
+	 * Perform a combined keyword and vector search against the vector database,
+	 * when supported by the implementation.
+	 *
+	 * @param insight         current insight
+	 * @param searchStatement search query
+	 * @param searchFields    fields to search, or {@code null}/empty for engine
+	 *                        defaults
+	 * @param limit           maximum number of results
+	 * @param parameters      implementation-specific parameters
+	 * @return normalized search results
+	 */
+	default List<Map<String, Object>> hybridSearch(Insight insight, String searchStatement, List<String> searchFields,
+			Number limit, Map<String, Object> parameters) {
+		throw new UnsupportedOperationException("Hybrid search is not supported by this vector database engine");
+	}
+
+	/**
 	 * List the set of documents a vector database is made from. At a minimum the
 	 * file names should be returned but the file size and last modified date are
 	 * also options.
