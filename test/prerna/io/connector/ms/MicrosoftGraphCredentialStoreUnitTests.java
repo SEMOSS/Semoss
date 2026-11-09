@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doAnswer;
@@ -54,6 +55,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.util.JdbcTestDatabase;
+import prerna.util.SystemEngineRegistry;
 
 class MicrosoftGraphCredentialStoreUnitTests {
 
@@ -150,6 +152,15 @@ class MicrosoftGraphCredentialStoreUnitTests {
 				assertEquals(0, db.count("MS_GRAPH_CREDENTIAL"));
 			}
 		}
+	}
+
+	@Test
+	void renewalSavesThroughAPackageAllowedToUseTheSecurityDatabase() {
+		// JdbcTestDatabase mocks the registry, which skips its caller check, so this runs the real one. No security
+		// database is loaded here, so a save that passes the check fails only for want of one.
+		assumeFalse(SystemEngineRegistry.isSecurityDbLoaded());
+		assertThrows(IllegalStateException.class,
+				() -> MicrosoftGraphCredentialStore.update(token("new-access", "new-refresh", 3_600_000L)));
 	}
 
 	@Test

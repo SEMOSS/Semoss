@@ -38,13 +38,13 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
-import prerna.engine.api.IRDBMSEngine;
 import prerna.io.connector.AbstractOAuthTokenFiller;
-import prerna.util.QueryExecutionUtility;
-import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
 
-/** Server-only delegated credentials for consented work that runs without a session. */
+/**
+ * Server-only delegated credentials for consented work that runs without a session. Every read and write goes through
+ * {@link SecurityExternalConnectorsUtils}: this package may not use the security database itself
+ * ({@code SystemEngineRegistry}).
+ */
 public final class MicrosoftGraphCredentialStore {
 
 	private MicrosoftGraphCredentialStore() {
@@ -107,23 +107,9 @@ public final class MicrosoftGraphCredentialStore {
 		if (insert) {
 			SecurityExternalConnectorsUtils.upsertMicrosoftGraphCredential(token.getId(), token.getEmail(),
 					token.getAccess_token(), refresh, expiration);
-			return;
-		}
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		try {
-			// one statement, so it cannot interleave with the DELETE that turns background access off
-			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE MS_GRAPH_CREDENTIAL SET USER_EMAIL = ?, "
-					+ "ACCESS_TOKEN = ?, REFRESH_TOKEN = ?, TOKEN_EXPIRATION = ?, UPDATED_ON = ? WHERE USER_ID = ?", ps -> {
-						ps.setString(1, token.getEmail());
-						securityDb.getQueryUtil().setNullableLargeText(ps, 2, token.getAccess_token());
-						securityDb.getQueryUtil().setNullableLargeText(ps, 3, refresh);
-						ps.setTimestamp(4, expiration);
-						ps.setTimestamp(5, Utility.getCurrentSqlTimestampUTC());
-						ps.setString(6, token.getId());
-					});
-		} catch (Exception e) {
-			// JDBC exceptions may include bound credential values.
-			throw new IllegalStateException("Unable to save Microsoft background credentials.");
+		} else {
+			SecurityExternalConnectorsUtils.updateMicrosoftGraphCredential(token.getId(), token.getEmail(),
+					token.getAccess_token(), refresh, expiration);
 		}
 	}
 
