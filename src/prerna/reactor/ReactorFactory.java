@@ -501,7 +501,8 @@ public class ReactorFactory {
 				// ignore abstract and engines
 				if (!Modifier.isAbstract(actualClass.getModifiers())
 						&& !Arrays.asList(actualClass.getInterfaces()).contains(IEngine.class)) {
-					// ReactorNames holds these rules so the OpenAPI export reads reactors the same way
+					// ReactorNames holds these rules so the OpenAPI export reads reactors the same
+					// way
 					String reactorName = ReactorNames.pixelName(name);
 					String frameType = ReactorNames.frameType(packageName);
 

@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainTopicMatches;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainPreviewTopicMatches(topicId=["..."], limit=[200]); BrainPreviewTopicMatches(topicId=["..."], resort=[true]);
@@ -52,23 +53,16 @@ public class BrainPreviewTopicMatchesReactor extends AbstractCollaborationReacto
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Starts a background job that scores the owner's newest conversations against their topics without "
-				+ "writing anything and lists the ones that fit this topic; when done, counts.matches holds rows with "
-				+ "threadId, subject, confidence, fit (best or shared), links, ops and a suggested op. With resort it "
-				+ "instead scores the conversations Brain filed under the topic and lists the ones it no longer fits: "
-				+ "fit elsewhere (with toTopicId) or none, ops move and reject";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "The active or dormant topic that was added or edited";
-		} else if (LIMIT.equals(key)) {
-			return "How many of the newest eligible conversations to score, 1 to 1000; default 200 (resort: 1000)";
-		} else if (RESORT.equals(key)) {
-			return "true to re-sort the topic's own conversations after narrowing it";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Starts a background job that scores the owner's newest conversations against their topics without "
+						+ "writing anything and lists the ones that fit this topic; when done, counts.matches holds rows with "
+						+ "threadId, subject, confidence, fit (best or shared), links, ops and a suggested op. With resort it "
+						+ "instead scores the conversations Brain filed under the topic and lists the ones it no longer fits: "
+						+ "fit elsewhere (with toTopicId) or none, ops move and reject")
+				.key(TOPIC_ID, "The active or dormant topic that was added or edited")
+				.key(LIMIT,
+						"How many of the newest eligible conversations to score, 1 to 1000; default 200 (resort: 1000)")
+				.key(RESORT, "true to re-sort the topic's own conversations after narrowing it");
 	}
 }

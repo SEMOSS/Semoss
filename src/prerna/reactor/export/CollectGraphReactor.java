@@ -38,6 +38,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.export.graph.GraphExporterFactory;
 import prerna.ds.export.graph.IGraphExporter;
 import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -137,5 +138,12 @@ public class CollectGraphReactor extends CollectReactor {
 				PixelOperationType.TASK_DATA);
 		outputs.add(output);
 		return outputs;
+	}
+
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		// it takes a frame rather than CollectReactor's keys, so it starts from its own
+		return startDefinition().description(
+				"Returns all of a frame's data as graph nodes and edges for a graph visualization, using the insight's graph colors when they are set. Uses the insight's current frame when no frame is given.");
 	}
 }

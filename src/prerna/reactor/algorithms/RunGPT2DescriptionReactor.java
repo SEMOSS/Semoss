@@ -28,11 +28,9 @@
 package prerna.reactor.algorithms;
 
 import java.util.List;
-import java.util.Vector;
-
-import org.apache.logging.log4j.Logger;
 
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -45,13 +43,12 @@ import prerna.util.Utility;
 
 public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 
-	private static final String CLASS_NAME = RunGPT2DescriptionReactor.class.getName();
 	private static final String DESCRIPTION_TYPE = "descriptionType";
 	private static final String NUMBER_DESCRIPTIONS = "numDescriptions";
 
 	public RunGPT2DescriptionReactor() {
 		this.keysToGet = new String[] { DESCRIPTION_TYPE, ReactorKeysEnum.DATABASE.getKey(),
-				ReactorKeysEnum.TABLE.getKey() , NUMBER_DESCRIPTIONS };
+				ReactorKeysEnum.TABLE.getKey(), NUMBER_DESCRIPTIONS };
 	}
 
 	@Override
@@ -59,12 +56,11 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 		// set up the class
 		init();
 		organizeKeys();
-		Logger logger = this.getLogger(CLASS_NAME);
 		StringBuilder rsb = new StringBuilder();
 
 		String[] packages = new String[] { "gpt2" };
 		this.rJavaTranslator.checkPackages(packages);
-		
+
 		// get inputs
 		String descType = getInputString(DESCRIPTION_TYPE);
 		String databaseId = getInputString(ReactorKeysEnum.DATABASE.getKey());
@@ -76,28 +72,29 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 		String baseFolder = getBaseFolder();
 		String source = "source(\"" + baseFolder + "\\R\\AnalyticsRoutineScripts\\proceed.R\");";
 		rsb.append(source.replace("\\", "/"));
-		
+
 		// get the db table
-		String dbTable = getDbTable(databaseId,tableName);
-		
+		String dbTable = getDbTable(databaseId, tableName);
+
 		// run the function on either table or database
 		String result = "result" + Utility.getRandomString(6);
 		String inputVar = "inputVar" + Utility.getRandomString(6);
-		if(descType.equals("Table")) {
-			rsb.append(inputVar + " <-" + dbTable + "[" + dbTable + "$Table==\"" + databaseId + "._." + tableName + "\",]$Column;");
+		if (descType.equals("Table")) {
+			rsb.append(inputVar + " <-" + dbTable + "[" + dbTable + "$Table==\"" + databaseId + "._." + tableName
+					+ "\",]$Column;");
 			rsb.append(result + " <- infer_tbl_desc(" + inputVar + ", qty=" + numDescriptions + ");");
-		} else if(descType.equals("App")) {
+		} else if (descType.equals("App")) {
 			rsb.append(inputVar + " <-" + dbTable + "[" + dbTable + "$AppID==\"" + databaseId + "\",];");
 			rsb.append(result + " <- infer_db_desc(" + inputVar + ", qty=" + numDescriptions + ");");
-		} 
-		
+		}
+
 		// get the result as a string
 		this.rJavaTranslator.runR(rsb.toString());
 		String[] resultStrings = this.rJavaTranslator.getStringArray(result);
-		
+
 		// gc
 		this.rJavaTranslator.executeEmptyR("rm( " + result + "," + inputVar + "," + dbTable + "); gc();");
-		
+
 		// return data to the front end as string array
 		return new NounMetadata(resultStrings, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
@@ -120,7 +117,7 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 		for (int i = 0; i < totalColCount; i++) {
 			Object[] entry = allTableCols.get(i);
 			String table = entry[0].toString();
-			
+
 			// if they specified table, make sure it matches
 			if (tableName == null || tableName.isEmpty() || table.equals(tableName)) {
 				if (entry[0] != null && entry[1] != null && entry[2] != null && entry[3] != null) {
@@ -150,20 +147,21 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 		rColNames += ")";
 		rColTypes += ")";
 		rPrimKey += ")";
-		
+
 		// create the session tables
 		String db = "dbtable" + Utility.getRandomString(5);
 		sessionTableBuilder.append(
 				db + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rAppIds
 						+ ", Datatype = " + rColTypes + ", Key = " + rPrimKey + ", stringsAsFactors = FALSE);");
-		
+
 		this.rJavaTranslator.runR(sessionTableBuilder.toString());
-		
+
 		return db;
 
 	}
 
 	///////////////////// UTILITY /////////////////////////////////////
+
 	private String getInputString(String inputName) {
 		GenRowStruct grs = this.store.getGenRowStruct(inputName);
 		String value = "";
@@ -173,16 +171,6 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 			value = noun.getValue().toString();
 		}
 		return value;
-	}
-
-	private List<String> getInputList(String input) {
-		List<String> retList = new Vector<>();
-		GenRowStruct engineGrs = this.store.getGenRowStruct(input);
-		for (int i = 0; i < engineGrs.size(); i++) {
-			retList.add(engineGrs.get(i).toString());
-		}
-
-		return retList;
 	}
 
 	private int getInputInt(String inputName) {
@@ -196,25 +184,15 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 		return value;
 	}
 
-	private String getPanelId() {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL.getKey());
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
-		}
-		return null;
-	}
-
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(DESCRIPTION_TYPE)) {
-			return "Indicate whether you would like to generate a description for one table or an entire database";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Generates descriptions of a database, or of one of its tables, from its table and column names with a GPT-2 text model run in R, and returns them as a list of strings.")
+				.key(NUMBER_DESCRIPTIONS,
+						key -> key.type(Integer.class).description("How many descriptions to generate."))
+				.key(DESCRIPTION_TYPE,
+						"Table to describe the table named in table, or App to describe the whole database.");
 	}
 }

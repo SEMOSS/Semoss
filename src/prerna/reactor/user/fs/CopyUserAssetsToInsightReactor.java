@@ -39,6 +39,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -126,16 +127,11 @@ public class CopyUserAssetsToInsightReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Copy a single or multiple files from the user's assets folder to the current insight";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file(s) to copy. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Copy a single or multiple files from the user's assets folder to the current insight")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"Names of the file(s) to copy. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.");
 	}
 
 }

@@ -28,7 +28,10 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkInboxRoutine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+import java.util.Map;
 
 public class WorkSaveInboxRoutineReactor extends AbstractCollaborationReactor {
 	public WorkSaveInboxRoutineReactor() {
@@ -43,7 +46,9 @@ public class WorkSaveInboxRoutineReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Opts the signed-in user into an inbox brief or pauses it";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Opts the signed-in user into an inbox brief or pauses it")
+				.key("settings", key -> key.type(Map.class).description(
+						"The inbox brief settings, as a map: enabled (true or false), time (HH:mm, 24-hour), days (one or more distinct weekdays, MON to SUN), timezone (an IANA time zone), lookbackHours (a whole number from 1 to 720) and preferences (optional free text). Optional sections (any of priorities, replies, meetings, actions; all by default), priorityCount (1 to 10, default 5) and writeDrafts (true or false, default true) shape the brief."));
 	}
 }

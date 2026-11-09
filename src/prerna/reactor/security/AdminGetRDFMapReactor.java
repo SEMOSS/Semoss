@@ -35,9 +35,9 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class AdminGetRDFMapReactor extends AbstractReactor {
@@ -61,7 +61,7 @@ public class AdminGetRDFMapReactor extends AbstractReactor {
 		try {
 			currentRDFMapPropContent = DIHelper.getInstance().getConcealedRDFMapContents();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not read the RDF_Map.prop file", e);
 			throw new IllegalArgumentException(
 					String.format("Error occurred reading the RDF_Map.prop file. Detailed error = %s", e.getMessage()),
 					e);
@@ -70,8 +70,9 @@ public class AdminGetRDFMapReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Admin reactor to get the contents of the RDF_Map.prop file with secrets concealed";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Admin Only: Gets the contents of the RDF_Map.prop file with secrets concealed").noKeys();
 	}
 
 }

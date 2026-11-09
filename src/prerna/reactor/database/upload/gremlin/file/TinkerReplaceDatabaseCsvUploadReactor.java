@@ -52,8 +52,8 @@ public class TinkerReplaceDatabaseCsvUploadReactor extends TinkerCsvUploadReacto
 		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH,
 				UploadInputUtility.SPACE, UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.DELIMITER,
 				UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS, UploadInputUtility.METAMODEL,
-				UploadInputUtility.PROP_FILE, UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.START_ROW,
-				UploadInputUtility.END_ROW, UploadInputUtility.ADDITIONAL_DATA_TYPES, TINKER_DRIVER_TYPE };
+				UploadInputUtility.PROP_FILE, UploadInputUtility.START_ROW, UploadInputUtility.END_ROW,
+				UploadInputUtility.ADDITIONAL_DATA_TYPES, TINKER_DRIVER_TYPE };
 	}
 
 	@Override

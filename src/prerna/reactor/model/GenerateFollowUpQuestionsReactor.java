@@ -53,6 +53,7 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.sablecc2.om.GenRowStruct;
@@ -322,33 +323,18 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (SUGGESTION_CONTEXT.equals(key) || ReactorKeysEnum.PARAM_VALUES_MAP.getKey().equals(key)) {
-			return MCP_KEY_TYPE.OBJECT;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Generates suggested follow-up messages from room history and currently attached capabilities.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The model engine that generates follow up suggestions.";
-		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-			return "The room id used to locate conversation history and attached capabilities.";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Optional number of follow up suggestions to generate (defaults to 3).";
-		}
-		if (SUGGESTION_CONTEXT.equals(key)) {
-			return "Optional current attachment snapshot: mcp id references, browser tool name/description summaries, and unavailableReactors. Context only; never authorizes execution.";
-		}
-		if (ReactorKeysEnum.PARENT_MESSAGE_ID.getKey().equals(key)) {
-			return "Optional conversation branch anchor; defaults to the latest room message.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Generates suggested follow-up messages from room history and currently attached capabilities.")
+				.key(ReactorKeysEnum.ENGINE, "The model engine that generates follow up suggestions.")
+				.key(ReactorKeysEnum.ROOM_ID,
+						"The room id used to locate conversation history and attached capabilities.")
+				.key(ReactorKeysEnum.LIMIT, "Optional number of follow up suggestions to generate (defaults to 3).")
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP, key -> key.type(Map.class))
+				.key(SUGGESTION_CONTEXT, key -> key.type(Map.class).description(
+						"Optional current attachment snapshot: mcp id references, browser tool name/description summaries, and unavailableReactors. Context only; never authorizes execution."))
+				.key(ReactorKeysEnum.PARENT_MESSAGE_ID,
+						"Optional conversation branch anchor; defaults to the latest room message.");
 	}
 }

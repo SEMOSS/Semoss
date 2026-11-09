@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainMailFolders;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainListMailFolders();
@@ -43,8 +44,10 @@ public class BrainListMailFoldersReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "The Outlook folders the signed-in owner made, with the topics linked to each, and which folders mail "
-				+ "is read from";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"The Outlook folders the signed-in owner made, with the topics linked to each, and which folders mail "
+						+ "is read from")
+				.noKeys();
 	}
 }

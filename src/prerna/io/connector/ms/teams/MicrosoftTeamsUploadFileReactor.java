@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -162,26 +163,18 @@ public class MicrosoftTeamsUploadFileReactor extends AbstractMicrosoftReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Upload a file from the insight folder into a Microsoft Teams channel.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(TEAM_ID)) {
-			return "Microsoft Teams team ID that owns the channel.";
-		} else if (key.equals(CHANNEL_ID)) {
-			return "Microsoft Teams channel ID to upload into.";
-		} else if (key.equals(ReactorKeysEnum.NAME.getKey())) {
-			return "Optional name to assign to the uploaded file in the channel. The source file name is used when omitted.";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Path of the file to upload, relative to the insight folder.";
-		} else if (key.equals(FOLDER_PATH)) {
-			return "Optional folder path relative to the channel root folder. The file lands in the channel root folder when omitted.";
-		} else if (key.equals(CONFLICT_BEHAVIOR)) {
-			return "Optional behavior when a file of the same name exists: fail, rename or replace. Defaults to rename.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Upload a file from the insight folder into a Microsoft Teams channel.")
+				.key(TEAM_ID, "Microsoft Teams team ID that owns the channel.")
+				.key(CHANNEL_ID, "Microsoft Teams channel ID to upload into.")
+				.key(ReactorKeysEnum.NAME,
+						"Optional name to assign to the uploaded file in the channel. The source file name is used when omitted.")
+				.key(ReactorKeysEnum.FILE_PATH, "Path of the file to upload, relative to the insight folder.")
+				.key(FOLDER_PATH,
+						"Optional folder path relative to the channel root folder. The file lands in the channel root folder when omitted.")
+				.key(CONFLICT_BEHAVIOR,
+						"Optional behavior when a file of the same name exists: fail, rename or replace. Defaults to rename.");
 	}
 
 	@Override

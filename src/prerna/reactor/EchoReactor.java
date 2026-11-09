@@ -27,44 +27,35 @@
  *******************************************************************************/
 package prerna.reactor;
 
-import prerna.openapi.PixelInput;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-@PixelInput(name = "value", type = Object.class)
 public class EchoReactor extends AbstractReactor {
 
 	public EchoReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.VALUE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.VALUE.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.getNoun(0);
 		}
 		grs = this.store.getGenRowStruct(ALL_NOUN_STORE);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.getNoun(0);
 		}
-		
+
 		return new NounMetadata("", PixelDataType.CONST_STRING);
 	}
-	
+
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.VALUE.getKey())) {
-			return "The value to echo back";
-		}
-		return super.getDescriptionForKey(key);
-	}
-	
-	@Override
-	public String getReactorDescription() {
-		return "This reactor returns back the input the user enters";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("This reactor returns back the input the user enters")
+				.key(ReactorKeysEnum.VALUE, key -> key.type(Object.class).description("The value to echo back"));
 	}
 }

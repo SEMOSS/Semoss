@@ -33,6 +33,7 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -84,17 +85,17 @@ public class DatabaseInfoReactor extends AbstractReactor {
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 
-	@Deprecated
 	@Override
-	public String getReactorDescription() {
-		return """
-				Deprecated: use EngineInfo instead.
-				Returns information for a single engine (legacy DatabaseInfo name) when the user can access it or it is discoverable.
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"""
+						Deprecated: use EngineInfo instead.
+						Returns information for a single engine (legacy DatabaseInfo name) when the user can access it or it is discoverable.
 
-				Inputs: database, metaKeys.
-				Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name).
-				Any response key prefixed with app_* or database_* is legacy and should not be used.
-				""";
+						Inputs: database, metaKeys.
+						Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name).
+						Any response key prefixed with app_* or database_* is legacy and should not be used.
+						""");
 	}
 
 }

@@ -32,6 +32,7 @@ import java.util.Map;
 
 import prerna.auth.utils.SecurityUserUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -40,9 +41,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GetUserMetakeyOptionsReactor extends AbstractReactor {
 
 	public GetUserMetakeyOptionsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.META_KEYS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.META_KEYS.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -50,18 +51,19 @@ public class GetUserMetakeyOptionsReactor extends AbstractReactor {
 		NounMetadata noun = new NounMetadata(ret, PixelDataType.PIXEL_OBJECT);
 		return noun;
 	}
-	
+
 	private List<String> getMetaKeys() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.META_KEYS.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
 		return null;
 	}
-	
+
 	@Override
-	public String getReactorDescription() {
-		return "Retrieve information about possible metadata keys applicable to users";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Retrieve information about possible metadata keys applicable to users");
 	}
-	
+
 }

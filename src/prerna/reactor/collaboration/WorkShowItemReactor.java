@@ -38,6 +38,7 @@ import prerna.auth.User;
 import prerna.collaboration.BrainThreadMessages;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.teams.MicrosoftTeamsMessageHelper;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -227,29 +228,20 @@ public class WorkShowItemReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Shows the owner one item you found, beside the chat: an email, an email thread, a Teams chat, or a "
-				+ "file in this chat. Use it only when the owner asks to see, open, or bring up an item. Pass exactly one "
-				+ "item, with its id copied from an earlier result in this chat. It checks that the item still exists and "
-				+ "that the owner can read it, and fails otherwise. It changes nothing.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (EMAIL_REF.equals(key)) {
-			return "One email: its emailRef (email:...) from ReadThread";
-		}
-		if (THREAD_ID.equals(key)) {
-			return "A whole email thread or Teams chat: its threadId from SearchMail or ReadThread. With emailRef, "
-					+ "the thread that email is on";
-		}
-		if (CHAT_ID.equals(key)) {
-			return "A Teams chat that Brain does not hold: its chat id from ListChats, ListChatMessages, or "
-					+ "SearchTeamsMessages";
-		}
-		if (PATH.equals(key)) {
-			return "A file in this chat's working directory: the path a download returned, for example report.pdf";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Shows the owner one item you found, beside the chat: an email, an email thread, a Teams chat, or a "
+						+ "file in this chat. Use it only when the owner asks to see, open, or bring up an item. Pass exactly one "
+						+ "item, with its id copied from an earlier result in this chat. It checks that the item still exists and "
+						+ "that the owner can read it, and fails otherwise. It changes nothing.")
+				.key(EMAIL_REF, "One email: its emailRef (email:...) from ReadThread")
+				.key(THREAD_ID,
+						"A whole email thread or Teams chat: its threadId from SearchMail or ReadThread. With emailRef, "
+								+ "the thread that email is on")
+				.key(CHAT_ID,
+						"A Teams chat that Brain does not hold: its chat id from ListChats, ListChatMessages, or "
+								+ "SearchTeamsMessages")
+				.key(PATH,
+						"A file in this chat's working directory: the path a download returned, for example report.pdf");
 	}
 }

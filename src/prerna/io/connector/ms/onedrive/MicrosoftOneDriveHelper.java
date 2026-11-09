@@ -943,8 +943,9 @@ public class MicrosoftOneDriveHelper {
 	}
 
 	/**
-	 * The last part of a name joined to a destination. A remote name, such as a Teams attachment's that its sender
-	 * chose, may carry "../" and would otherwise write outside the destination.
+	 * The last part of a name joined to a destination. A remote name, such as a
+	 * Teams attachment's that its sender chose, may carry "../" and would otherwise
+	 * write outside the destination.
 	 */
 	static String baseName(String name) {
 		String base = name.replace('\\', '/');

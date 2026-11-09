@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainConnection;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainFinishSetup();
@@ -43,7 +44,9 @@ public class BrainFinishSetupReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Mark the signed-in user's Collaboration setup finished or skipped, so Today stops sending them back to it; returns the connection state";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Mark the signed-in user's Collaboration setup finished or skipped, so Today stops sending them back to it; returns the connection state")
+				.noKeys();
 	}
 }

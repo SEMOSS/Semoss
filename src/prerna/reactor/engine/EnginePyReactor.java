@@ -40,6 +40,7 @@ import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -111,15 +112,16 @@ public class EnginePyReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
-			return """
-					The python code to execute against the engine. \
-					For convenience, instead of escaping quotes or backslashes you can wrap \
-					the input within "<encode>your_text</encode>" and the system will encode it for you.
-					""";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Runs Python code in the Python process of a Python model engine the user can edit, and returns the output as text.")
+				.key(ReactorKeysEnum.ENGINE,
+						"The id of the Python model engine to run the code in; the user needs edit access to it.")
+				.key(ReactorKeysEnum.CODE, """
+						The python code to execute against the engine. \
+						For convenience, instead of escaping quotes or backslashes you can wrap \
+						the input within "<encode>your_text</encode>" and the system will encode it for you.
+						""");
 	}
 
 	@Override

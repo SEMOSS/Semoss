@@ -33,6 +33,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -73,19 +74,11 @@ public class GetSpecificConceptPropertiesReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns the properties/columns for a specific concept/table within a database";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.CONCEPT.getKey())) {
-			return "The concept/table name to get properties for";
-		} else if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "The database id";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Returns the properties/columns for a specific concept/table within a database")
+				.key(ReactorKeysEnum.CONCEPT, "The concept/table name to get properties for")
+				.key(ReactorKeysEnum.DATABASE, "The database id");
 	}
 
 }

@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -121,18 +122,17 @@ public class MicrosoftTeamsSendChannelMessageReactor extends AbstractMicrosoftTe
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Post a message in a Microsoft Teams channel, or a reply underneath a message already there.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(SUBJECT)) {
-			return "Optional subject line for a new conversation in the channel. Microsoft Teams shows no subject on a reply.";
-		} else if (key.equals(REPLY_TO_ID)) {
-			return "Optional id of the message to reply to. A new conversation is started in the channel when omitted.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Post a message in a Microsoft Teams channel, or a reply underneath a message already there.")
+				.key(TEAM_ID, TEAM_ID_DESCRIPTION).key(CHANNEL_ID, CHANNEL_ID_DESCRIPTION)
+				.key(MESSAGE, MESSAGE_DESCRIPTION).key(HTML, HTML_DESCRIPTION).key(MENTIONS, MENTIONS_DESCRIPTION)
+				.key(ATTACHMENT_URLS, ATTACHMENT_URLS_DESCRIPTION).key(ATTACHMENT_NAMES, ATTACHMENT_NAMES_DESCRIPTION)
+				.key(SUBJECT,
+						"Optional subject line for a new conversation in the channel. Microsoft Teams shows no subject on a reply.")
+				.key(REPLY_TO_ID,
+						"Optional id of the message to reply to. A new conversation is started in the channel when omitted.");
 	}
 
 	@Override

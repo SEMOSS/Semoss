@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import java.io.IOException;
 
 import prerna.collaboration.WorkRoutineAttachments;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class WorkStageRoutineAttachmentsReactor extends AbstractCollaborationReactor {
@@ -51,15 +52,9 @@ public class WorkStageRoutineAttachmentsReactor extends AbstractCollaborationRea
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Copies the files a running routine of the signed-in user saved for them into this insight, to attach to its result";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (RUN_ID.equals(key)) {
-			return "The routine's automation run id";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Copies the files a running routine of the signed-in user saved for them into this insight, to attach to its result")
+				.key(RUN_ID, "The routine's automation run id");
 	}
 }

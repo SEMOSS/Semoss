@@ -44,6 +44,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -83,6 +84,41 @@ public class AssessAgentEffectivenessReactor extends AbstractReactor {
 	private static final int CONTEXT_FIELD_CAP = 4_000;
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
+
+	private static final String JUDGE_INSTRUCTIONS = """
+			You are an expert evaluator of AI agent runs. Assess how effectively the agent below \
+			completed its task. You are given (1) deterministic metrics precomputed from the \
+			transcript, (2) run context, and (3) the transcript itself (possibly truncated). \
+			Trust the transcript over the metrics if they conflict, and report any conflict.
+
+			Score each dimension 0-10 (10 = flawless):
+			- goalAchievement: did the final output actually satisfy the user's request?
+			- toolUseQuality: right tools, well-formed arguments, sensible reaction to tool errors?
+			- efficiency: minimal redundant calls, no wasted turns, direct path to the goal?
+			- skillUtilization: were available skills loaded when relevant and actually applied?
+			- communicationQuality: is the final response clear, faithful to the work done, complete?
+
+			""";
+
+	private static final String JUDGE_OUTPUT_CONTRACT = """
+			Return ONLY a JSON object, no markdown fences, exactly this shape:
+			{
+			  "goalAchievement": {"score": 0, "rationale": "..."},
+			  "toolUseQuality": {"score": 0, "rationale": "..."},
+			  "efficiency": {"score": 0, "rationale": "..."},
+			  "skillUtilization": {"score": 0, "rationale": "..."},
+			  "communicationQuality": {"score": 0, "rationale": "..."},
+			  "overallScore": 0,
+			  "verdict": "one short paragraph",
+			  "topIssues": ["..."],
+			  "recommendations": ["..."],
+			  "metricsDisagreements": ["..."]
+			}
+			overallScore is 0-100 and should reflect your dimension scores, weighted toward \
+			goalAchievement. skillUtilization: if no skills were available or relevant, score it \
+			10 and say so in the rationale.
+
+			""";
 
 	public AssessAgentEffectivenessReactor() {
 		this.keysToGet = new String[] { RUN_ID_KEY, JUDGE_MODEL_KEY, MAX_TRANSCRIPT_CHARS_KEY, FOCUS_KEY };
@@ -173,54 +209,27 @@ public class AssessAgentEffectivenessReactor extends AbstractReactor {
 	 */
 	public static String buildJudgePrompt(Map<String, Object> run, Map<String, Object> metrics, int maxTranscriptChars,
 			String focus) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("You are an expert evaluator of AI agent runs. Assess how effectively the agent below\n");
-		sb.append("completed its task. You are given (1) deterministic metrics precomputed from the\n");
-		sb.append("transcript, (2) run context, and (3) the transcript itself (possibly truncated).\n");
-		sb.append("Trust the transcript over the metrics if they conflict, and report any conflict.\n\n");
-		sb.append("Score each dimension 0-10 (10 = flawless):\n");
-		sb.append("- goalAchievement: did the final output actually satisfy the user's request?\n");
-		sb.append("- toolUseQuality: right tools, well-formed arguments, sensible reaction to tool errors?\n");
-		sb.append("- efficiency: minimal redundant calls, no wasted turns, direct path to the goal?\n");
-		sb.append("- skillUtilization: were available skills loaded when relevant and actually applied?\n");
-		sb.append("- communicationQuality: is the final response clear, faithful to the work done, complete?\n\n");
-		if (focus != null) {
-			sb.append("Caller-requested emphasis: ").append(focus).append("\n\n");
-		}
-		sb.append("Return ONLY a JSON object, no markdown fences, exactly this shape:\n");
-		sb.append("{\n");
-		sb.append("  \"goalAchievement\": {\"score\": 0, \"rationale\": \"...\"},\n");
-		sb.append("  \"toolUseQuality\": {\"score\": 0, \"rationale\": \"...\"},\n");
-		sb.append("  \"efficiency\": {\"score\": 0, \"rationale\": \"...\"},\n");
-		sb.append("  \"skillUtilization\": {\"score\": 0, \"rationale\": \"...\"},\n");
-		sb.append("  \"communicationQuality\": {\"score\": 0, \"rationale\": \"...\"},\n");
-		sb.append("  \"overallScore\": 0,\n");
-		sb.append("  \"verdict\": \"one short paragraph\",\n");
-		sb.append("  \"topIssues\": [\"...\"],\n");
-		sb.append("  \"recommendations\": [\"...\"],\n");
-		sb.append("  \"metricsDisagreements\": [\"...\"]\n");
-		sb.append("}\n");
-		sb.append("overallScore is 0-100 and should reflect your dimension scores, weighted toward\n");
-		sb.append("goalAchievement. skillUtilization: if no skills were available or relevant, score it\n");
-		sb.append("10 and say so in the rationale.\n\n");
-
-		sb.append("=== DETERMINISTIC METRICS ===\n");
-		sb.append(GSON.toJson(metrics)).append("\n\n");
-
-		sb.append("=== RUN CONTEXT ===\n");
-		sb.append("status: ").append(stringValue(run.get("status"))).append("\n");
-		sb.append("harness: ").append(stringValue(run.get("harnessType"))).append("\n");
+		String emphasis = focus == null ? "" : "Caller-requested emphasis: " + focus + "\n\n";
 		String errorMessage = stringValue(run.get("errorMessage"));
-		if (errorMessage != null) {
-			sb.append("errorMessage: ").append(truncate(errorMessage, CONTEXT_FIELD_CAP)).append("\n");
-		}
-		sb.append("userRequest: ").append(truncate(stringValue(run.get("input")), CONTEXT_FIELD_CAP)).append("\n");
-		sb.append("finalOutput: ").append(truncate(stringValue(run.get("finalText")), CONTEXT_FIELD_CAP))
-				.append("\n\n");
+		String errorLine = errorMessage == null ? ""
+				: "errorMessage: " + truncate(errorMessage, CONTEXT_FIELD_CAP) + "\n";
+		return JUDGE_INSTRUCTIONS + emphasis + JUDGE_OUTPUT_CONTRACT
+				+ """
+						=== DETERMINISTIC METRICS ===
+						%s
 
-		sb.append("=== TRANSCRIPT ===\n");
-		sb.append(renderTranscript(asListOfMaps(run.get("messages")), maxTranscriptChars));
-		return sb.toString();
+						=== RUN CONTEXT ===
+						status: %s
+						harness: %s
+						%suserRequest: %s
+						finalOutput: %s
+
+						=== TRANSCRIPT ===
+						%s""".formatted(GSON.toJson(metrics), stringValue(run.get("status")),
+						stringValue(run.get("harnessType")), errorLine,
+						truncate(stringValue(run.get("input")), CONTEXT_FIELD_CAP),
+						truncate(stringValue(run.get("finalText")), CONTEXT_FIELD_CAP),
+						renderTranscript(asListOfMaps(run.get("messages")), maxTranscriptChars));
 	}
 
 	/**
@@ -409,27 +418,16 @@ public class AssessAgentEffectivenessReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Runs an LLM-as-judge assessment of one agent run: combines the deterministic effectiveness "
-				+ "metrics with the run's message history and asks a judge model to score goal achievement, "
-				+ "tool use quality, efficiency, skill utilization, and communication quality with rationales.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (RUN_ID_KEY.equals(key)) {
-			return "The agent run to assess.";
-		}
-		if (JUDGE_MODEL_KEY.equals(key)) {
-			return "Model engine id used as the judge. Defaults to the model that executed the run.";
-		}
-		if (MAX_TRANSCRIPT_CHARS_KEY.equals(key)) {
-			return "Character budget for the transcript sent to the judge. Defaults to 60000; head and "
-					+ "tail of the run are kept when truncation is needed.";
-		}
-		if (FOCUS_KEY.equals(key)) {
-			return "Optional extra evaluation emphasis, e.g. 'focus on tool argument quality'.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Runs an LLM-as-judge assessment of one agent run: combines the deterministic effectiveness "
+						+ "metrics with the run's message history and asks a judge model to score goal achievement, "
+						+ "tool use quality, efficiency, skill utilization, and communication quality with rationales.")
+				.key(RUN_ID_KEY, "The agent run to assess.")
+				.key(JUDGE_MODEL_KEY, "Model engine id used as the judge. Defaults to the model that executed the run.")
+				.key(MAX_TRANSCRIPT_CHARS_KEY,
+						"Character budget for the transcript sent to the judge. Defaults to 60000; head and "
+								+ "tail of the run are kept when truncation is needed.")
+				.key(FOCUS_KEY, "Optional extra evaluation emphasis, e.g. 'focus on tool argument quality'.");
 	}
 }

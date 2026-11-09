@@ -33,6 +33,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -74,19 +75,11 @@ public class AdminCloseRoomReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Admins only. Closes a user's room with an agent, and its subagents' rooms, so no agent runs in them again, cancelling every run in them that has not finished, even while it executes. The user no longer sees the rooms. Returns the rooms closed and the runs cancelled.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
-			return "The room to close.";
-		} else if (USER_ID_KEY.equals(key)) {
-			return "The user the room belongs to; rooms are kept per user.";
-		} else if (USER_TYPE_KEY.equals(key)) {
-			return "The login type of the user, such as NATIVE. Runs that store no login type match the user id alone.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Closes a user's room with an agent, and its subagents' rooms, so no agent runs in them again, cancelling every run in them that has not finished, even while it executes. The user no longer sees the rooms. Returns the rooms closed and the runs cancelled.")
+				.key(ReactorKeysEnum.ROOM_ID, "The room to close.")
+				.key(USER_ID_KEY, "The user the room belongs to; rooms are kept per user.").key(USER_TYPE_KEY,
+						"The login type of the user, such as NATIVE. Runs that store no login type match the user id alone.");
 	}
 }

@@ -42,6 +42,7 @@ import org.json.JSONTokener;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -73,7 +74,8 @@ public class UpdatePlaywrightScriptVariablesReactor extends AbstractReactor {
 		}
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to edit the project");
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have access to edit the project");
 		}
 
 		if (fileName == null || fileName.trim().isEmpty()) {
@@ -168,20 +170,14 @@ public class UpdatePlaywrightScriptVariablesReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Update TYPE and VARIABLE elements in a Playwright script JSON file with new values and save as a new file in the recordings folder";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(SCRIPT_KEY)) {
-			return "The name of the original JSON file (e.g., 'script-1.json') located in the recordings folder";
-		} else if (key.equals(VARIABLES_KEY)) {
-			return "Map containing the label-value pairs to update in the script (e.g., {\"username\": \"newUser\", \"password\": \"newPass\"})";
-		} else if (key.equals(OUTPUT_SCRIPT_KEY)) {
-			return "The name of the new JSON file to save (e.g., 'script-1-updated.json'). If not provided, will append '-updated' to the original filename";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Update TYPE and VARIABLE elements in a Playwright script JSON file with new values and save as a new file in the recordings folder")
+				.key(SCRIPT_KEY,
+						"The name of the original JSON file (e.g., 'script-1.json') located in the recordings folder")
+				.key(VARIABLES_KEY,
+						"Map containing the label-value pairs to update in the script (e.g., {\"username\": \"newUser\", \"password\": \"newPass\"})")
+				.key(OUTPUT_SCRIPT_KEY,
+						"The name of the new JSON file to save (e.g., 'script-1-updated.json'). If not provided, will append '-updated' to the original filename");
 	}
 }

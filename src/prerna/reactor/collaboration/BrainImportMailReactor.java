@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainMailImport;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainImportMail(); or BrainImportMail(days=[30], teams=[true]);
@@ -48,20 +49,12 @@ public class BrainImportMailReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Starts a background import of Inbox and Sent headers, and Teams chats when turned on (people, threads, "
-				+ "participants) through the rules gate; returns the job to poll with BrainGetJob. Re-runnable (Refresh)";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (DAYS.equals(key)) {
-			return "How many days back to import (default 30, at most 180)";
-		}
-		if (TEAMS.equals(key)) {
-			return "Optional true or false to turn Teams chats on or off for this and later imports; the current "
-					+ "setting is kept when omitted";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Starts a background import of Inbox and Sent headers, and Teams chats when turned on (people, threads, "
+						+ "participants) through the rules gate; returns the job to poll with BrainGetJob. Re-runnable (Refresh)")
+				.key(DAYS, "How many days back to import (default 30, at most 180)").key(TEAMS,
+						"Optional true or false to turn Teams chats on or off for this and later imports; the current "
+								+ "setting is kept when omitted");
 	}
 }

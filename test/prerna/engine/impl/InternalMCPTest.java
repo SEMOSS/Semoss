@@ -193,4 +193,25 @@ class InternalMCPTest {
 	void genFromRoomFolderProducesAUsableMcp() throws Exception {
 		assertNotNull(twoToolFolder().getMCPTools().getJSONArray("tools"));
 	}
+
+	@Test
+	void answersWithTheClientsProtocolVersionWhenSupportedAndTheNewestOtherwise() {
+		assertEquals("2025-06-18", InternalMCP.negotiateProtocolVersion("2025-06-18"));
+		assertEquals("2024-11-05", InternalMCP.negotiateProtocolVersion("2024-11-05"));
+		assertEquals(InternalMCP.LATEST_PROTOCOL_VERSION, InternalMCP.negotiateProtocolVersion("2026-07-28"),
+				"a version without the initialize handshake is not spoken");
+		assertEquals(InternalMCP.LATEST_PROTOCOL_VERSION, InternalMCP.negotiateProtocolVersion("not-a-version"));
+		assertEquals(InternalMCP.LATEST_PROTOCOL_VERSION, InternalMCP.negotiateProtocolVersion(null));
+	}
+
+	@Test
+	void initializeAdvertisesOnlyWhatTheServerSupports() throws Exception {
+		JSONObject result = twoToolFolder().initMCP("2025-11-25");
+
+		assertEquals("2025-11-25", result.getString("protocolVersion"));
+		JSONObject capabilities = result.getJSONObject("capabilities");
+		assertFalse(capabilities.getJSONObject("resources").getBoolean("subscribe"));
+		assertFalse(capabilities.getJSONObject("tools").has("subscribe"), "tools has no subscribe capability");
+		assertFalse(capabilities.getJSONObject("prompts").has("subscribe"), "prompts has no subscribe capability");
+	}
 }

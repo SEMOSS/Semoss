@@ -42,7 +42,9 @@ public final class ReactorNames {
 	private ReactorNames() {
 	}
 
-	/** The name a reactor is called by in Pixel: its class name without "Reactor". */
+	/**
+	 * The name a reactor is called by in Pixel: its class name without "Reactor".
+	 */
 	public static String pixelName(String simpleClassName) {
 		if (simpleClassName.toUpperCase().endsWith(REACTOR_SUFFIX)) {
 			return simpleClassName.substring(0, simpleClassName.length() - REACTOR_SUFFIX.length());
@@ -52,8 +54,8 @@ public final class ReactorNames {
 
 	/**
 	 * The frame type a reactor in this package is specific to, as written in the
-	 * package (such as {@code r} for {@code prerna.reactor.frame.r}), or null for
-	 * a general reactor. A package one level below {@code frame}, or two
+	 * package (such as {@code r} for {@code prerna.reactor.frame.r}), or null for a
+	 * general reactor. A package one level below {@code frame}, or two
 	 * ({@code *.frame.r.util}), names its frame type.
 	 */
 	public static String frameType(String packageName) {

@@ -43,6 +43,7 @@ import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -182,19 +183,11 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Attaches a skill (a SKILL-type project) to a workspace: inserts the WORKSPACE_RESOURCE__ row and "
-				+ "mirrors it into CONFIG_JSON.skills[]. Idempotent.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.WORKSPACE_ID.getKey().equals(key)) {
-			return "Target workspace identifier";
-		}
-		if (SKILL_ID.equals(key)) {
-			return "Identifier of the skill project to attach (== the skill's project id)";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Attaches a skill (a SKILL-type project) to a workspace: inserts the WORKSPACE_RESOURCE__ row and "
+						+ "mirrors it into CONFIG_JSON.skills[]. Idempotent.")
+				.key(ReactorKeysEnum.WORKSPACE_ID, "Target workspace identifier")
+				.key(SKILL_ID, "Identifier of the skill project to attach (== the skill's project id)");
 	}
 }

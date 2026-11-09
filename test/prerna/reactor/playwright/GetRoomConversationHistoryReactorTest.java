@@ -388,7 +388,7 @@ class GetRoomConversationHistoryReactorTest {
 
 	@Test
 	void testGetReactorDescription() {
-		String description = reactor.getReactorDescription();
+		String description = reactor.getReactorDefinition().getDescription();
 
 		assertNotNull(description);
 		assertTrue(description.contains("conversation history"));
@@ -396,35 +396,35 @@ class GetRoomConversationHistoryReactorTest {
 
 	@Test
 	void testGetDescriptionForRoomIdKey() {
-		String description = reactor.getDescriptionForKey(ReactorKeysEnum.ROOM_ID.getKey());
+		String description = reactor.getReactorDefinition().getKey(ReactorKeysEnum.ROOM_ID.getKey()).getDescription();
 		assertNotNull(description);
 		assertTrue(description.contains("room"));
 	}
 
 	@Test
 	void testGetDescriptionForLimitKey() {
-		String description = reactor.getDescriptionForKey(ReactorKeysEnum.LIMIT.getKey());
+		String description = reactor.getReactorDefinition().getKey(ReactorKeysEnum.LIMIT.getKey()).getDescription();
 		assertNotNull(description);
 		assertTrue(description.contains("Maximum"));
 	}
 
 	@Test
 	void testGetDescriptionForOffsetKey() {
-		String description = reactor.getDescriptionForKey(ReactorKeysEnum.OFFSET.getKey());
+		String description = reactor.getReactorDefinition().getKey(ReactorKeysEnum.OFFSET.getKey()).getDescription();
 		assertNotNull(description);
 		assertTrue(description.contains("skip"));
 	}
 
 	@Test
 	void testGetDescriptionForSortKey() {
-		String description = reactor.getDescriptionForKey(ReactorKeysEnum.SORT.getKey());
+		String description = reactor.getReactorDefinition().getKey(ReactorKeysEnum.SORT.getKey()).getDescription();
 		assertNotNull(description);
 		assertTrue(description.contains("Sort"));
 	}
 
 	@Test
 	void testGetDescriptionForIncludePartialKey() {
-		String description = reactor.getDescriptionForKey("includePartial");
+		String description = reactor.getReactorDefinition().getKey("includePartial").getDescription();
 		assertNotNull(description);
 		assertTrue(description.contains("unanswered"));
 	}

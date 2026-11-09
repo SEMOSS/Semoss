@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainTopicChangeUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainUndoTopicChange(changeId=["..."]);
@@ -52,15 +53,9 @@ public class BrainUndoTopicChangeReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Undo: puts back a Brain topic delete or merge from the changeId it returned, if nothing changed since";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (CHANGE_ID.equals(key)) {
-			return "changeId returned by BrainDeleteTopic or BrainMergeTopics";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Undo: puts back a Brain topic delete or merge from the changeId it returned, if nothing changed since")
+				.key(CHANGE_ID, "changeId returned by BrainDeleteTopic or BrainMergeTopics");
 	}
 }

@@ -39,9 +39,9 @@ import java.lang.annotation.Target;
  * the document tags it so its users know not to rely on it. It still works for
  * everyone; this is a warning, not access control.
  * <p>
- * Put it on a resource method, on a resource class (every operation in it), or on
- * a reactor class. To leave something out of the document and
- * the SDKs entirely, use swagger-core's {@code @Hidden} instead.
+ * Put it on a resource method, on a resource class (every operation in it), or
+ * on a reactor class. To leave something out of the document and the SDKs
+ * entirely, use swagger-core's {@code @Hidden} instead.
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

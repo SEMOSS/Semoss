@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.collaboration;
 
 import java.util.ArrayList;
@@ -27,12 +54,15 @@ public final class WorkReconcile {
 	static final String NO_TOPIC = "(no topic)";
 	// more steps than this is more than one outcome
 	static final int MAX_STEPS = 10;
-	// an item already holding this many open steps takes no more; new asks make their own item or stay loose
+	// an item already holding this many open steps takes no more; new asks make
+	// their own item or stay loose
 	static final int MAX_OPEN_STEPS = 15;
 	private static final int MAX_EXISTING = 40;
-	// open items under other topics, titles only, so the same work is not made twice
+	// open items under other topics, titles only, so the same work is not made
+	// twice
 	private static final int MAX_OTHER = 40;
-	// shortcut: only the newest open steps outside the topic's items are shown, so a done claim for an older one stays
+	// shortcut: only the newest open steps outside the topic's items are shown, so
+	// a done claim for an older one stays
 	// unmatched; put the candidates' own threads first if owners hit it
 	private static final int MAX_OTHER_STEPS = 40;
 	private static final int MAX_TOKENS = 8000;
@@ -108,7 +138,8 @@ public final class WorkReconcile {
 			Every task appears once, in one item or in loose.
 			""";
 
-	// one item's open steps: the same deliverable said more than once becomes one step
+	// one item's open steps: the same deliverable said more than once becomes one
+	// step
 	static final int TIDY_MIN = 3;
 	private static final String TIDY_INSTRUCTIONS = """
 			You tidy the open steps of one work item. The input is JSON: the item title and its steps s1.. oldest \
@@ -131,36 +162,40 @@ public final class WorkReconcile {
 	private static final Map<String, Object> STR = Map.of("type", "string");
 	private static final Map<String, Object> SCHEMA = obj(props("decisions",
 			Map.of("type", "array", "items", obj(props("candidate", STR, "action", STR, "ref", STR, "reason", STR))),
-			"newItems", Map.of("type", "array", "items",
+			"newItems",
+			Map.of("type", "array", "items",
 					obj(props("title", STR, "candidates", Map.of("type", "array", "items", STR)))),
 			"loose", Map.of("type", "array", "items", STR)));
 
 	private static final Map<String, Object> GROUP_SCHEMA = obj(props("items",
-			Map.of("type", "array", "items",
-					obj(props("title", STR, "tasks", Map.of("type", "array", "items", STR)))),
+			Map.of("type", "array", "items", obj(props("title", STR, "tasks", Map.of("type", "array", "items", STR)))),
 			"loose", Map.of("type", "array", "items", STR)));
 
-	private static final Map<String, Object> TIDY_SCHEMA = obj(props("merges",
-			Map.of("type", "array", "items", obj(props("keep", STR, "text", STR, "merge",
-					Map.of("type", "array", "items", STR))))));
+	private static final Map<String, Object> TIDY_SCHEMA = obj(props("merges", Map.of("type", "array", "items",
+			obj(props("keep", STR, "text", STR, "merge", Map.of("type", "array", "items", STR))))));
 
 	private WorkReconcile() {
 	}
 
 	/**
-	 * The plan for a batch of candidates: per topic, steps under existing items, new items, loose steps, updates,
-	 * closes and drops. Each candidate map has id, threadId, thread, topicId, kind, assignee, text, at, due. The
-	 * owner's steps are the ones whose candidates were extracted as "me".
+	 * The plan for a batch of candidates: per topic, steps under existing items,
+	 * new items, loose steps, updates, closes and drops. Each candidate map has id,
+	 * threadId, thread, topicId, kind, assignee, text, at, due. The owner's steps
+	 * are the ones whose candidates were extracted as "me".
 	 */
 	public static Map<String, Object> plan(User user, String ownerId, String ownerType, IModelEngine model,
 			List<Map<String, Object>> candidates) {
 		return plan(user, ownerId, ownerType, model, candidates, null);
 	}
 
-	/** Same, calling onTopic after each topic so its items exist before the next topic is planned. */
+	/**
+	 * Same, calling onTopic after each topic so its items exist before the next
+	 * topic is planned.
+	 */
 	public static Map<String, Object> plan(User user, String ownerId, String ownerType, IModelEngine model,
 			List<Map<String, Object>> candidates, java.util.function.Consumer<Map<String, Object>> onTopic) {
-		// the same ask said again in an unfiled thread folds into the filed copy before splitting by topic;
+		// the same ask said again in an unfiled thread folds into the filed copy before
+		// splitting by topic;
 		// copies under two different topics stay apart
 		List<Map<String, Object>> kept = new ArrayList<>();
 		Map<String, List<String>> alsoSaid = new LinkedHashMap<>();
@@ -187,8 +222,8 @@ public final class WorkReconcile {
 			if ("me".equals(c.get("assignee"))) {
 				same.put("assignee", "me");
 			}
-			alsoSaid.computeIfAbsent(String.valueOf(same.get("id")), x -> new ArrayList<>()).add(
-					String.valueOf(c.get("id")));
+			alsoSaid.computeIfAbsent(String.valueOf(same.get("id")), x -> new ArrayList<>())
+					.add(String.valueOf(c.get("id")));
 		}
 		for (Map<String, Object> k : kept) {
 			List<String> also = alsoSaid.get(String.valueOf(k.get("id")));
@@ -238,7 +273,8 @@ public final class WorkReconcile {
 						}, ownerId, ownerType, topicId);
 		out.put("topic", topic == null ? topicId : topic.get("name"));
 
-		// the same ask said twice merges in code first; the model sees one with how often it was said
+		// the same ask said twice merges in code first; the model sees one with how
+		// often it was said
 		Map<String, List<String>> mergedInto = new LinkedHashMap<>();
 		List<Map<String, Object>> shown = new ArrayList<>();
 		for (Map<String, Object> c : candidates) {
@@ -252,8 +288,8 @@ public final class WorkReconcile {
 				}
 			}
 			if (same != null) {
-				mergedInto.computeIfAbsent(String.valueOf(same.get("id")), k -> new ArrayList<>()).add(
-						String.valueOf(c.get("id")));
+				mergedInto.computeIfAbsent(String.valueOf(same.get("id")), k -> new ArrayList<>())
+						.add(String.valueOf(c.get("id")));
 				// the owner's if either one is
 				if ("me".equals(c.get("assignee"))) {
 					same.put("assignee", "me");
@@ -326,7 +362,8 @@ public final class WorkReconcile {
 			items.open.put(w, ((List<?>) task.get("openSteps")).size());
 			other++;
 		}
-		// the topic's loose steps, and any step on the candidates' threads (one made before its thread was filed has
+		// the topic's loose steps, and any step on the candidates' threads (one made
+		// before its thread was filed has
 		// no topic), so a done claim can close it and a repeat can be same_step
 		Set<String> threads = new LinkedHashSet<>();
 		for (Map<String, Object> c : candidates) {
@@ -373,7 +410,8 @@ public final class WorkReconcile {
 		prompt.put("candidates", input);
 		String reply = ask(model, user, prompt);
 		Map<String, Object> answer = CollaborationDbUtils.firstJsonObject(reply);
-		// a reply cut off mid-list parses as its first whole decision, which has no decisions list
+		// a reply cut off mid-list parses as its first whole decision, which has no
+		// decisions list
 		if (answer == null || !(answer.get("decisions") instanceof List<?>)) {
 			out.put("error", "unreadable reconcile");
 			out.put("raw", reply);
@@ -381,14 +419,17 @@ public final class WorkReconcile {
 		}
 		boolean noTopic = NO_TOPIC.equals(topicId);
 		assemble(answer, shown, mergedInto, items, stepIds, existing, noTopic, out);
-		// unfiled threads have nothing in common but being unfiled; their tasks are not grouped across threads
+		// unfiled threads have nothing in common but being unfiled; their tasks are not
+		// grouped across threads
 		if (!noTopic) {
 			groupLoose(user, model, topic == null ? Map.of("name", topicId) : topic, out);
 		}
 	}
 
-	// the open items in one topic's plan: which are the topic's own, how many open steps each holds, and the
-	// threads feeding each; a candidate joins an item of its own topic, or any item its thread already feeds
+	// the open items in one topic's plan: which are the topic's own, how many open
+	// steps each holds, and the
+	// threads feeding each; a candidate joins an item of its own topic, or any item
+	// its thread already feeds
 	private static final class Items {
 		final Map<String, Set<String>> fedBy;
 		final Set<String> own = new LinkedHashSet<>();
@@ -426,33 +467,35 @@ public final class WorkReconcile {
 		}
 	}
 
-	// the threads behind each open item: its linked threads and the threads of its steps
+	// the threads behind each open item: its linked threads and the threads of its
+	// steps
 	private static Map<String, Set<String>> itemThreads(String ownerId, String ownerType) {
 		Map<String, Set<String>> out = new LinkedHashMap<>();
-		CollaborationDbUtils.query("SELECT TASK_ID, THREAD_ID FROM WORK_TASK_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-				+ "UNION SELECT TASK_ID, THREAD_ID FROM WORK_THREAD_STEP WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND "
-				+ "TASK_ID IS NOT NULL", rs -> {
-					if (rs.getString(1) != null && rs.getString(2) != null) {
-						out.computeIfAbsent(rs.getString(1), k -> new HashSet<>()).add(rs.getString(2));
-					}
-					return null;
-				}, ownerId, ownerType, ownerId, ownerType);
+		CollaborationDbUtils
+				.query("SELECT TASK_ID, THREAD_ID FROM WORK_TASK_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "UNION SELECT TASK_ID, THREAD_ID FROM WORK_THREAD_STEP WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND "
+						+ "TASK_ID IS NOT NULL", rs -> {
+							if (rs.getString(1) != null && rs.getString(2) != null) {
+								out.computeIfAbsent(rs.getString(1), k -> new HashSet<>()).add(rs.getString(2));
+							}
+							return null;
+						}, ownerId, ownerType, ownerId, ownerType);
 		return out;
 	}
 
-	// second pass: the first call decides too much at once to group well, so a busy topic's loose tasks
+	// second pass: the first call decides too much at once to group well, so a busy
+	// topic's loose tasks
 	// get a call that only groups them
 	@SuppressWarnings("unchecked")
-	private static void groupLoose(User user, IModelEngine model, Map<String, Object> topic,
-			Map<String, Object> out) {
+	private static void groupLoose(User user, IModelEngine model, Map<String, Object> topic, Map<String, Object> out) {
 		List<Map<String, Object>> loose = (List<Map<String, Object>>) out.get("looseSteps");
 		if (loose == null || loose.size() < GROUP_MIN) {
 			return;
 		}
 		List<Map<String, Object>> tasks = new ArrayList<>();
 		for (int i = 0; i < loose.size(); i++) {
-			tasks.add(Map.of("id", "c" + (i + 1), "assignee", String.valueOf(loose.get(i).get("assignee")),
-					"text", String.valueOf(loose.get(i).get("text")), "thread",
+			tasks.add(Map.of("id", "c" + (i + 1), "assignee", String.valueOf(loose.get(i).get("assignee")), "text",
+					String.valueOf(loose.get(i).get("text")), "thread",
 					String.valueOf(loose.get(i).getOrDefault("thread", ""))));
 		}
 		Map<String, Object> input = new LinkedHashMap<>();
@@ -510,7 +553,8 @@ public final class WorkReconcile {
 		out.put("looseSteps", rest);
 	}
 
-	// turns the model's decisions into the plan; code keeps the owner rule and the size cap
+	// turns the model's decisions into the plan; code keeps the owner rule and the
+	// size cap
 	@SuppressWarnings("unchecked")
 	private static void assemble(Map<String, Object> answer, List<Map<String, Object>> shown,
 			Map<String, List<String>> mergedInto, Items items, Map<String, String> stepIds,
@@ -573,7 +617,8 @@ public final class WorkReconcile {
 			switch (action) {
 			case "same_step" -> sameSteps.add(entry(c, evidence.get(id), "stepId", stepIds.get(ref)));
 			case "new_step", "update" -> {
-				// code holds the line: another topic's item only through a thread that feeds it, a full item
+				// code holds the line: another topic's item only through a thread that feeds
+				// it, a full item
 				// takes no more steps, and news is never a step
 				String taskId = items.join(ref, c);
 				if (taskId == null) {
@@ -587,15 +632,16 @@ public final class WorkReconcile {
 					underExisting.add(step(c, evidence.get(id), "taskId", taskId));
 				}
 			}
-			case "closes" -> closes.add(entry(c, evidence.get(id), "closes",
-					stepIds.containsKey(ref) ? stepIds.get(ref) : ref));
+			case "closes" ->
+				closes.add(entry(c, evidence.get(id), "closes", stepIds.containsKey(ref) ? stepIds.get(ref) : ref));
 			case "drop" -> dropped.add(entry(c, evidence.get(id), "reason", d.getValue().get("reason")));
 			default -> leftovers.add(id);
 			}
 		}
 		leftovers.addAll(undecided);
 
-		// new items from leftovers: two or more, no more than the cap, each leftover once
+		// new items from leftovers: two or more, no more than the cap, each leftover
+		// once
 		List<Map<String, Object>> newItems = new ArrayList<>();
 		Set<String> placed = new LinkedHashSet<>();
 		if (answer.get("newItems") instanceof List<?> list) {
@@ -646,7 +692,8 @@ public final class WorkReconcile {
 				}
 			}
 		}
-		// a close that names a candidate in this batch finishes the step made from it, or the step it repeats
+		// a close that names a candidate in this batch finishes the step made from it,
+		// or the step it repeats
 		for (Map<String, Object> close : closes) {
 			for (Map<String, Object> same : sameSteps) {
 				if (same.get("stepId") != null && ((List<?>) same.get("evidence")).contains(close.get("closes"))) {
@@ -694,8 +741,10 @@ public final class WorkReconcile {
 		return groups;
 	}
 
-	// the same ask said again: the same words, whatever the case and punctuation. A reworded ask is left to the
-	// model's same_as, since one other name or number ("Kira's PTO", "Bob's PTO") is a different ask
+	// the same ask said again: the same words, whatever the case and punctuation. A
+	// reworded ask is left to the
+	// model's same_as, since one other name or number ("Kira's PTO", "Bob's PTO")
+	// is a different ask
 	static boolean similar(String a, String b) {
 		String x = words(a);
 		return !x.isEmpty() && x.equals(words(b));
@@ -729,7 +778,8 @@ public final class WorkReconcile {
 		return "task".equals(kind) || "commitment".equals(kind);
 	}
 
-	// a step the plan would make: the owner's when one of its candidates was extracted as the owner's
+	// a step the plan would make: the owner's when one of its candidates was
+	// extracted as the owner's
 	private static Map<String, Object> step(Map<String, Object> c, Set<String> evidence, String key, Object value) {
 		Map<String, Object> s = entry(c, evidence, key, value);
 		boolean mine = "me".equals(c.get("assignee"));
@@ -753,8 +803,9 @@ public final class WorkReconcile {
 	}
 
 	/**
-	 * Which of one item's open steps are the same deliverable. steps are maps with id, text, assignee; the answer
-	 * is a list of {keep, text, merge} with real step ids, or empty when nothing merges or the call fails.
+	 * Which of one item's open steps are the same deliverable. steps are maps with
+	 * id, text, assignee; the answer is a list of {keep, text, merge} with real
+	 * step ids, or empty when nothing merges or the call fails.
 	 */
 	public static List<Map<String, Object>> tidy(User user, IModelEngine model, String title,
 			List<Map<String, Object>> steps) {
@@ -817,7 +868,8 @@ public final class WorkReconcile {
 		return out;
 	}
 
-	// the owner's date and weekday, as thread insights give it, so "tomorrow" and "Friday" are the owner's days
+	// the owner's date and weekday, as thread insights give it, so "tomorrow" and
+	// "Friday" are the owner's days
 	static String today(User user) {
 		java.time.LocalDate day = java.time.LocalDate.now(BrainProfileUtils.timeZone(user));
 		return day + " (" + day.getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.ENGLISH)
