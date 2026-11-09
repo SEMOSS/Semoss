@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.CollaborationSearchUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SearchCollaborationReactor extends AbstractCollaborationReactor {
@@ -47,7 +48,8 @@ public class SearchCollaborationReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Searches the signed-in user's saved Collaboration threads, people, and topics as { items, total }";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Searches the signed-in user's saved Collaboration threads, people, and topics as { items, total }");
 	}
 }

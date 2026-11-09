@@ -34,6 +34,7 @@ import org.apache.commons.lang3.StringUtils;
 import prerna.auth.User;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
@@ -79,19 +80,12 @@ public class MarkNotificationReadReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Marks a notification as read by the user, or every notification in a scope when no id is given";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SCOPE_TYPE.equals(key)) {
-			return "Scope to mark read when no notificationId is given: ALL (default), SYSTEM, or APP.";
-		}
-		if (SCOPE_ID.equals(key)) {
-			return "The app id when scopeType is APP, e.g. SYSTEM__COLLABORATION for the Collaboration inbox.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Marks a notification as read by the user, or every notification in a scope when no id is given")
+				.key(SCOPE_TYPE, "Scope to mark read when no notificationId is given: ALL (default), SYSTEM, or APP.")
+				.key(SCOPE_ID,
+						"The app id when scopeType is APP, e.g. SYSTEM__COLLABORATION for the Collaboration inbox.");
 	}
 
 }

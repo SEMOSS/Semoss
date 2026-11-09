@@ -30,6 +30,7 @@ package prerna.auth.utils.reactors.admin;
 import prerna.auth.utils.EnterpriseUsageUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -59,7 +60,22 @@ public class AdminGetEnterpriseUsageReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Administrator-only enterprise usage summary, daily trends, latency, feedback, rankings, or paginated metadata from model/activity logs, or a summary and paginated metadata of the audit trail's access changes, denied requests and usage limit changes. Model summaries, trends and rankings include their cost in millionths of a dollar, recorded and estimated; model log rows include their token parts, cost and whom the call was billed to. Dates are inclusive; filters match name/ID fragments or =exact IDs. No SQL input is accepted.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Enterprise usage summary, daily trends, latency, feedback, rankings, or paginated metadata from model/activity logs, or a summary and paginated metadata of the audit trail's access changes, denied requests and usage limit changes. Model summaries, trends and rankings include their cost in millionths of a dollar, recorded and estimated; model log rows include their token parts, cost and whom the call was billed to. Dates are inclusive; filters match name/ID fragments or =exact IDs. No SQL input is accepted.")
+				.key("app",
+						"Filters to apps whose id or name contains this text, or to the exact app id given after a leading =. Audit logs match the app id only.")
+				.key("dimension",
+						"What the ranking view groups model usage by: user, app or model. Used by the ranking view only.")
+				.key("engine",
+						"Filters to engines whose id or name contains this text, or to the exact engine id given after a leading =.")
+				.key("limit", key -> key.type(Integer.class))
+				.key("model", "The engine filter, used when engine is not given. It matches the same way engine does.")
+				.key("offset", key -> key.type(Integer.class))
+				.key("source", "Which logs to read: model, activity or audit.")
+				.key("user",
+						"Filters to users whose id or name contains this text, or to the exact user id given after a leading =. Audit logs match the acting or the affected user.")
+				.key("view",
+						"The report to return: summary, trend, latency, feedback, ranking or logs. The activity source supports summary, trend and logs, and the audit source supports summary and logs.");
 	}
 }

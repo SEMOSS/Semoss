@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import java.util.Map;
 
 import prerna.collaboration.WorkEventPlanningRoutine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkRunEventPlanningRoutine(); is the scheduler's recipe and keeps to the chosen day; now=[true] starts a run off
@@ -57,18 +58,10 @@ public class WorkRunEventPlanningRoutineReactor extends AbstractCollaborationRea
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Runs the signed-in user's event planning on its selected day, or now on the scheduler with now=true";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (NOW.equals(key)) {
-			return "Start a run now, off the schedule";
-		}
-		if (MANUAL.equals(key)) {
-			return "Set by the scheduler on the run that now=true started";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Runs the signed-in user's event planning on its selected day, or now on the scheduler with now=true")
+				.key(NOW, "Start a run now, off the schedule")
+				.key(MANUAL, "Set by the scheduler on the run that now=true started");
 	}
 }

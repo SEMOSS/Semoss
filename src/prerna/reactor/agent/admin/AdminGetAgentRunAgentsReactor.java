@@ -30,6 +30,7 @@ package prerna.reactor.agent.admin;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -63,18 +64,11 @@ public class AdminGetAgentRunAgentsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Admins only. Lists the agents of every user's rooms with agent runs, most recently active first, each with its id and name.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.SEARCH.getKey().equals(key)) {
-			return "Lists only the agents whose name or id contains this text, in any case.";
-		} else if (ReactorKeysEnum.LIMIT.getKey().equals(key)) {
-			return "Maximum number to return. Defaults to " + DEFAULT_LIMIT + " and must be between 1 and " + MAX_LIMIT
-					+ ".";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Lists the agents of every user's rooms with agent runs, most recently active first, each with its id and name.")
+				.key(ReactorKeysEnum.SEARCH, "Lists only the agents whose name or id contains this text, in any case.")
+				.key(ReactorKeysEnum.LIMIT, "Maximum number to return. Defaults to " + DEFAULT_LIMIT
+						+ " and must be between 1 and " + MAX_LIMIT + ".");
 	}
 }

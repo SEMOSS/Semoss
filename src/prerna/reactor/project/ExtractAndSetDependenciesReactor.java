@@ -37,6 +37,7 @@ import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -99,16 +100,12 @@ public class ExtractAndSetDependenciesReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Extract engine ids from the project's folder and adds the engine ids as project dependencies";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "This is an optional relative file path within the project assets folder to search";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Extract engine ids from the project's folder and adds the engine ids as project dependencies")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"This is an optional relative file path within the project assets folder to search");
 	}
 
 }

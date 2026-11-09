@@ -30,12 +30,13 @@ package prerna.io.connector.jira;
 import java.util.List;
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -76,17 +77,10 @@ public class JiraGetAssignableUsersReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists users assignable to issues in a Jira project. Returns accountId, displayName, and emailAddress for each user.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(PROJECT)) {
-			return "Required Jira project key in uppercase (for example, RTJ).";
-		} else if (key.equals(QUERY)) {
-			return "Optional free-text filter for name or email (for example, jane).";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists users assignable to issues in a Jira project. Returns accountId, displayName, and emailAddress for each user.")
+				.key(PROJECT, "Required Jira project key in uppercase (for example, RTJ).")
+				.key(QUERY, "Optional free-text filter for name or email (for example, jane).");
 	}
 }

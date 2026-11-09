@@ -31,6 +31,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainProfileUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSaveSettings(settings=[{...}]); owner-only
@@ -54,16 +55,11 @@ public class BrainSaveSettingsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Updates the signed-in user's Brain settings; pass version to refuse the save if they changed elsewhere";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (KEY.equals(key)) {
-			return "Partial settings: fileAt, askAt, sourcesJson {sourceId: bool}, memory {use: bool, learn: bool}, "
-					+ "syncEveryMinutes (0 off, 15, 30, 60 or 240: how often mail syncs while the app is closed), version";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Updates the signed-in user's Brain settings; pass version to refuse the save if they changed elsewhere")
+				.key(KEY,
+						"Partial settings: fileAt, askAt, sourcesJson {sourceId: bool}, memory {use: bool, learn: bool}, "
+								+ "syncEveryMinutes (0 off, 15, 30, 60 or 240: how often mail syncs while the app is closed), version");
 	}
 }

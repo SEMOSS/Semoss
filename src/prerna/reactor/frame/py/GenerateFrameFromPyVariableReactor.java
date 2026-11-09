@@ -32,6 +32,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.py.PyTranslator;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -89,12 +90,13 @@ public class GenerateFrameFromPyVariableReactor extends AbstractPyFrameReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.VARIABLE.getKey())) {
-			return "Name of the py variable";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Turns a pandas DataFrame variable in the Python session into a frame of the insight, cleaning its column names, and stores it under the variable's name. By default it also becomes the insight's current frame.")
+				.key(ReactorKeysEnum.OVERRIDE,
+						key -> key.type(Boolean.class).description(
+								"Whether the new frame becomes the insight's current frame (default true)."))
+				.key(ReactorKeysEnum.VARIABLE, "Name of the py variable");
 	}
 
 }

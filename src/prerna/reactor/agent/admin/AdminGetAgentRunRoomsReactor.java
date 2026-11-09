@@ -34,6 +34,7 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunStatus;
 import prerna.reactor.agent.run.AgentRunStore;
 import prerna.sablecc2.om.GenRowStruct;
@@ -115,28 +116,20 @@ public class AdminGetAgentRunRoomsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Admins only. Lists a page of rooms with agent runs across every user, most recently active first, with each room's user and login type, agent, run counts and first and last activity, and how many rooms match in all.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (AGENT_ID_KEY.equals(key)) {
-			return "Lists only the rooms holding a run of this agent. This corresponds to AGENT_RUN.WORKSPACE_ID.";
-		} else if (USER_ID_KEY.equals(key)) {
-			return "Lists only this user's rooms.";
-		} else if (USER_TYPE_KEY.equals(key)) {
-			return "The login type of the user filtered on, such as NATIVE. Runs that store no login type match the user id alone.";
-		} else if (ReactorKeysEnum.SEARCH.getKey().equals(key)) {
-			return "Lists only the rooms whose name or id contains this text, in any case.";
-		} else if (STATUS_KEY.equals(key)) {
-			return "Lists only the rooms holding a run in one of these statuses: SUBMITTED, RUNNING, INPUT_REQUIRED, COMPLETED, FAILED or CANCELLED.";
-		} else if (ReactorKeysEnum.LIMIT.getKey().equals(key)) {
-			return "Maximum number of rooms to return. Defaults to " + DEFAULT_LIMIT + " and must be between 1 and "
-					+ MAX_LIMIT + ".";
-		} else if (ReactorKeysEnum.OFFSET.getKey().equals(key)) {
-			return "Number of rooms to skip. Defaults to 0 and must not be negative.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Lists a page of rooms with agent runs across every user, most recently active first, with each room's user and login type, agent, run counts and first and last activity, and how many rooms match in all.")
+				.key(AGENT_ID_KEY,
+						"Lists only the rooms holding a run of this agent. This corresponds to AGENT_RUN.WORKSPACE_ID.")
+				.key(USER_ID_KEY, "Lists only this user's rooms.")
+				.key(USER_TYPE_KEY,
+						"The login type of the user filtered on, such as NATIVE. Runs that store no login type match the user id alone.")
+				.key(ReactorKeysEnum.SEARCH, "Lists only the rooms whose name or id contains this text, in any case.")
+				.key(STATUS_KEY,
+						"Lists only the rooms holding a run in one of these statuses: SUBMITTED, RUNNING, INPUT_REQUIRED, COMPLETED, FAILED or CANCELLED.")
+				.key(ReactorKeysEnum.LIMIT,
+						"Maximum number of rooms to return. Defaults to " + DEFAULT_LIMIT
+								+ " and must be between 1 and " + MAX_LIMIT + ".")
+				.key(ReactorKeysEnum.OFFSET, "Number of rooms to skip. Defaults to 0 and must not be negative.");
 	}
 }

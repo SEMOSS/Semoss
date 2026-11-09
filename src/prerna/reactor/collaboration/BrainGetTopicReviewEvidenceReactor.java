@@ -28,9 +28,12 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainTopicReviewUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** The examples are real imported conversations, not invented model summaries. */
+/**
+ * The examples are real imported conversations, not invented model summaries.
+ */
 public class BrainGetTopicReviewEvidenceReactor extends AbstractCollaborationReactor {
 	public BrainGetTopicReviewEvidenceReactor() {
 		this.keysToGet = new String[] { "reviewId", "revision", "topicKey", "query", "offset", "limit" };
@@ -46,12 +49,19 @@ public class BrainGetTopicReviewEvidenceReactor extends AbstractCollaborationRea
 		if (revision == null) {
 			throw new IllegalArgumentException("Pass the saved review revision");
 		}
-		return mapResult(BrainTopicReviewUtils.evidence(user, getString("reviewId"), revision,
-				getString("topicKey"), getString("query"), offset == null ? 0 : offset, limit == null ? 20 : limit));
+		return mapResult(BrainTopicReviewUtils.evidence(user, getString("reviewId"), revision, getString("topicKey"),
+				getString("query"), offset == null ? 0 : offset, limit == null ? 20 : limit));
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Reads owner-scoped imported conversation headers behind a draft topic, plus current links and a version for corrections; no body reads or writes";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Reads owner-scoped imported conversation headers behind a draft topic, plus current links and a version for corrections; no body reads or writes")
+				.key("limit", key -> key.type(Integer.class)).key("offset", key -> key.type(Integer.class))
+				.key("query", "Text to match against the conversation subjects, up to 200 characters.")
+				.key("reviewId", "The id of the signed-in user's topic review.")
+				.key("revision", key -> key.type(Integer.class).description(
+						"The review revision the caller last read. The call fails when the saved review has changed since."))
+				.key("topicKey", "The key of the draft topic whose conversations to list.");
 	}
 }

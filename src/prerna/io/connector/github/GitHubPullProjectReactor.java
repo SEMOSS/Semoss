@@ -39,6 +39,7 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -77,8 +78,7 @@ public class GitHubPullProjectReactor extends AbstractReactor {
 		projectId = projectId.trim();
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new SemossPixelException(
-					"Project does not exist or user does not have access to edit the project.");
+			throw new SemossPixelException("Project does not exist or user does not have access to edit the project.");
 		}
 
 		Map<String, Object> link = SecurityExternalConnectorsUtils.getGitHubProjectLink(projectId);
@@ -122,16 +122,11 @@ public class GitHubPullProjectReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Pull the latest changes from the GitHub repository linked to a project, authenticating as the configured GitHub App installation.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "The id of the project whose linked GitHub repository changes should be pulled";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Pull the latest changes from the GitHub repository linked to a project, authenticating as the configured GitHub App installation.")
+				.key(ReactorKeysEnum.PROJECT,
+						"The id of the project whose linked GitHub repository changes should be pulled");
 	}
 
 }

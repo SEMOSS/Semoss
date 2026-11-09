@@ -42,12 +42,11 @@ import org.json.JSONObject;
 
 import prerna.engine.impl.model.RoomUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-
-
 
 /**
  * One-shot reactor that reads an existing room's GitHub Copilot JSONL
@@ -71,7 +70,7 @@ public class GetGitHubCopilotTranscriptHistoryReactor extends AbstractReactor {
 		if (roomId == null || roomId.trim().isEmpty()) {
 			throw new IllegalArgumentException("Room id is required");
 		}
-		
+
 		List<Object> events = new ArrayList<>();
 
 		String finalRoomId = roomId.trim();
@@ -81,7 +80,6 @@ public class GetGitHubCopilotTranscriptHistoryReactor extends AbstractReactor {
 			return new NounMetadata(events, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}
 
-		
 		Set<String> suppressedToolCallIds = new HashSet<>();
 		Path jsonl = GitHubCopilotTranscriptLocator.findJsonlFile(finalRoomId);
 		if (jsonl == null) {
@@ -96,8 +94,8 @@ public class GetGitHubCopilotTranscriptHistoryReactor extends AbstractReactor {
 				}
 
 				try {
-					List<JSONObject> parsedEvents = GitHubCopilotTranscriptParser.parse(new JSONObject(line), finalRoomId,
-							suppressedToolCallIds);
+					List<JSONObject> parsedEvents = GitHubCopilotTranscriptParser.parse(new JSONObject(line),
+							finalRoomId, suppressedToolCallIds);
 					for (JSONObject event : parsedEvents) {
 						if (event != null) {
 							events.add(event.toMap());
@@ -116,15 +114,10 @@ public class GetGitHubCopilotTranscriptHistoryReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Reads an existing room's GitHub Copilot JSONL transcript from disk and returns parsed events in the same shape the live stream emits.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
-			return "Room identifier whose GitHub Copilot transcript should be read and parsed.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Reads an existing room's GitHub Copilot JSONL transcript from disk and returns parsed events in the same shape the live stream emits.")
+				.key(ReactorKeysEnum.ROOM_ID,
+						"Room identifier whose GitHub Copilot transcript should be read and parsed.");
 	}
 }

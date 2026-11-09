@@ -36,6 +36,7 @@ import org.eclipse.jgit.api.Git;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -166,10 +167,7 @@ public abstract class AbstractGitWorktreeReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(this.target.getIdKey())) {
-			return "The " + this.target.getLabel() + " id";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().key(this.target.getIdKey(), "The " + this.target.getLabel() + " id");
 	}
 }

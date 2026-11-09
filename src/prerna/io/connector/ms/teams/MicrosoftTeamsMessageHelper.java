@@ -496,11 +496,13 @@ public class MicrosoftTeamsMessageHelper {
 			wanted.add(String.valueOf(user.get(ID)).toLowerCase(Locale.ROOT));
 			name = String.valueOf(user.get(DISPLAY_NAME));
 		}
-		// Graph filters chats by a member's name only, so each one found is matched on ids
+		// Graph filters chats by a member's name only, so each one found is matched on
+		// ids
 		String url = GRAPH_BASE + "/me/chats?$expand=members&$filter="
 				+ encode("members/any(o: o/displayname eq '" + name.replace("'", "''") + "')");
 		try {
-			// shortcut: a match past the first MAX_CHATS_SCANNED chats with that person is missed and a new chat
+			// shortcut: a match past the first MAX_CHATS_SCANNED chats with that person is
+			// missed and a new chat
 			// started, upgrade if Graph adds a chat lookup by members
 			for (Map<String, Object> chat : getPagedValues(accessToken, url, MAX_CHATS_SCANNED)) {
 				Set<String> ids = new HashSet<>();
@@ -980,7 +982,8 @@ public class MicrosoftTeamsMessageHelper {
 			String destination, String fileName, Map<String, Object> message) throws Exception {
 		String hostedContentId = contentId;
 		if (ValueUtils.isBlank(hostedContentId) && mapList(message.get(ATTACHMENTS)).isEmpty()) {
-			// Graph leaves hosted content off the message, so it is listed from its own collection
+			// Graph leaves hosted content off the message, so it is listed from its own
+			// collection
 			List<Map<String, Object>> hostedContents = getPagedValues(accessToken, messageUrl + HOSTED_CONTENTS, 0);
 			if (hostedContents.size() == 1 && hostedContents.get(0).get(ID) != null) {
 				hostedContentId = hostedContents.get(0).get(ID).toString();
@@ -997,7 +1000,8 @@ public class MicrosoftTeamsMessageHelper {
 		// asked for and under the id it has otherwise
 		String name = ValueUtils.isBlank(fileName) ? "hostedContent-" + Math.abs(hostedContentId.trim().hashCode())
 				: fileName;
-		// Graph lists no size for hosted content, so only the bytes downloaded are checked
+		// Graph lists no size for hosted content, so only the bytes downloaded are
+		// checked
 		File file = target(destination, name);
 		long size = MicrosoftOneDriveHelper.download(url, headers(accessToken), file, name);
 		if (size == 0) {
@@ -1310,8 +1314,7 @@ public class MicrosoftTeamsMessageHelper {
 	 * Runs a Graph collection request, following {@code @odata.nextLink} until the
 	 * limit is met or the collection runs out.
 	 */
-	static List<Map<String, Object>> getPagedValues(String accessToken, String url, int limit)
-			throws Exception {
+	static List<Map<String, Object>> getPagedValues(String accessToken, String url, int limit) throws Exception {
 		List<Map<String, Object>> collected = new ArrayList<>();
 		String nextUrl = url;
 		while (nextUrl != null) {

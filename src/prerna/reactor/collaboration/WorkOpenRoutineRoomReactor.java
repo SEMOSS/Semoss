@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkRoutineRoom;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class WorkOpenRoutineRoomReactor extends AbstractCollaborationReactor {
@@ -43,26 +44,20 @@ public class WorkOpenRoutineRoomReactor extends AbstractCollaborationReactor {
 	@Override
 	public NounMetadata execute() {
 		getUser();
-		return mapResult(WorkRoutineRoom.open(this.insight, getString(ROUTINE_ID), getString(STARTED_AT), getString(RUN_ID)));
+		return mapResult(
+				WorkRoutineRoom.open(this.insight, getString(ROUTINE_ID), getString(STARTED_AT), getString(RUN_ID)));
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Opens the signed-in user's latest routine output, or one past run's output: the room the routine's agent "
-				+ "worked in for an expense review or one of the owner's own routines, else a collaboration chat that starts with it";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ROUTINE_ID.equals(key)) {
-			return "Routine id: inbox-daily-brief, weekly-meeting-agendas, event-planning, expense-review, or the id of one of the owner's own routines";
-		}
-		if (STARTED_AT.equals(key)) {
-			return "The displayed latest run's startedAt timestamp; rejects an output that changed since it was displayed";
-		}
-		if (RUN_ID.equals(key)) {
-			return "Optional id of one of the routine's past runs, from WorkListRoutineRuns; opens that run's output";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Opens the signed-in user's latest routine output, or one past run's output: the room the routine's agent "
+						+ "worked in for an expense review or one of the owner's own routines, else a collaboration chat that starts with it")
+				.key(ROUTINE_ID,
+						"Routine id: inbox-daily-brief, weekly-meeting-agendas, event-planning, expense-review, or the id of one of the owner's own routines")
+				.key(STARTED_AT,
+						"The displayed latest run's startedAt timestamp; rejects an output that changed since it was displayed")
+				.key(RUN_ID,
+						"Optional id of one of the routine's past runs, from WorkListRoutineRuns; opens that run's output");
 	}
 }

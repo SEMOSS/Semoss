@@ -37,6 +37,7 @@ import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -124,38 +125,32 @@ public class AdminProjectInfoReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Admin-only: returns the full settings/metadata record for a single project regardless of the caller's \
-				project permissions. The calling user must be an application admin or the reactor throws \
-				"User must be an admin to perform this function".
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Admin Only: Returns the full settings/metadata record for a single project regardless of the caller's \
+								project permissions. The calling user must be an application admin or the reactor throws \
+								"User must be an admin to perform this function".
 
-				This is the admin counterpart to ProjectInfo, which instead enforces the caller's view/discoverable access.
+								This is the admin counterpart to ProjectInfo, which instead enforces the caller's view/discoverable access.
 
-				Inputs:
-				  project  (required) - the project id.
-				  metaKeys (optional) - restrict the returned metadata tags to this list; omit to return all metadata.
+								Inputs:
+								  project  (required) - the project id.
+								  metaKeys (optional) - restrict the returned metadata tags to this list; omit to return all metadata.
 
-				Returns a single map (PROJECT_INFO/CUSTOM_DATA_STRUCTURE) containing:
-				  Core project fields: project_id, project_name, project_display_name, project_type, project_cost,
-				    project_global, project_discoverable, project_is_template, project_catalog_name, project_created_by, project_created_by_type,
-				    project_date_created, project_date_last_edited, low_project_name.
-				  Portal fields: project_has_portal, project_portal_name, project_portal_published_date, project_published_user,
-				    project_published_user_type, project_reactors_compiled_date, project_reactors_compiled_user,
-				    project_reactors_compiled_user_type.
-				  Metadata: one entry per metadata tag (e.g. tag, domain, etc.); a tag with multiple values is returned as a list.
-				  GitHub: if the project is linked to a GitHub repo, the link fields are returned prefixed with gh_ (e.g. gh_repo).
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "Id of the project to look up";
-		} else if (ReactorKeysEnum.META_KEYS.getKey().equals(key)) {
-			return "Optional list of metadata tag names to return for the project; omit to return all metadata tags";
-		}
-		return super.getDescriptionForKey(key);
+								Returns a single map (PROJECT_INFO/CUSTOM_DATA_STRUCTURE) containing:
+								  Core project fields: project_id, project_name, project_display_name, project_type, project_cost,
+								    project_global, project_discoverable, project_is_template, project_catalog_name, project_created_by, project_created_by_type,
+								    project_date_created, project_date_last_edited, low_project_name.
+								  Portal fields: project_has_portal, project_portal_name, project_portal_published_date, project_published_user,
+								    project_published_user_type, project_reactors_compiled_date, project_reactors_compiled_user,
+								    project_reactors_compiled_user_type.
+								  Metadata: one entry per metadata tag (e.g. tag, domain, etc.); a tag with multiple values is returned as a list.
+								  GitHub: if the project is linked to a GitHub repo, the link fields are returned prefixed with gh_ (e.g. gh_repo).
+								""")
+				.key(ReactorKeysEnum.PROJECT, "Id of the project to look up").key(ReactorKeysEnum.META_KEYS,
+						"Optional list of metadata tag names to return for the project; omit to return all metadata tags");
 	}
 
 }

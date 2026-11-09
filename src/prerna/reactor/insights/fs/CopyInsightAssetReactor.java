@@ -31,6 +31,7 @@ import org.json.JSONObject;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.FileSystemUtil;
@@ -73,20 +74,15 @@ public class CopyInsightAssetReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Copy (clone) a file or directory in the insight assets folder to a new path";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The source file or directory to copy. This relative path should assume the prefix of the insight folder.";
-		} else if (key.equals(ReactorKeysEnum.NEW_VALUE.getKey())) {
-			return "The destination path for the copy. This cannot be an existing file or directory unless override is true and has the same character restrictions you would expect on a typical file system.";
-		} else if (key.equals(OVERRIDE)) {
-			return "Whether to delete an existing file or directory at the destination before copying. Defaults to false.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Copy (clone) a file or directory in the insight assets folder to a new path")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"The source file or directory to copy. This relative path should assume the prefix of the insight folder.")
+				.key(ReactorKeysEnum.NEW_VALUE,
+						"The destination path for the copy. This cannot be an existing file or directory unless override is true and has the same character restrictions you would expect on a typical file system.")
+				.key(OVERRIDE, key -> key.type(Boolean.class).description(
+						"Whether to delete an existing file or directory at the destination before copying. Defaults to false."));
 	}
 
 	@Override
@@ -94,14 +90,6 @@ public class CopyInsightAssetReactor extends AbstractReactor {
 		JSONObject properties = super.getMcpProperties();
 		properties.getJSONObject(OVERRIDE).put("default", false);
 		return properties;
-	}
-
-	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals(OVERRIDE)) {
-			return MCP_KEY_TYPE.BOOLEAN;
-		}
-		return super.getKeyTypeForMCP(key);
 	}
 
 }

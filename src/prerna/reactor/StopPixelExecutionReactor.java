@@ -116,15 +116,10 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Stop the current execution of a pixel job";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equalsIgnoreCase(ReactorKeysEnum.ID.getKey())) {
-			return "The id for the job. If running the pixel synchronously, the job id will be the same as the insight id.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Stop the current execution of a pixel job").key(
+				ReactorKeysEnum.ID,
+				"The id for the job. If running the pixel synchronously, the job id will be the same as the insight id.")
+				.output(String.class, "Whether the job was not found, asked to cancel, or already completed");
 	}
 }

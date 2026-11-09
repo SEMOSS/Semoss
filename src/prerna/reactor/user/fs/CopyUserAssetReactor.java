@@ -35,6 +35,7 @@ import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
@@ -105,20 +106,15 @@ public class CopyUserAssetReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Copy (clone) a file or directory in the user's assets folder to a new path";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The source file or directory to copy. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		} else if (key.equals(ReactorKeysEnum.NEW_VALUE.getKey())) {
-			return "The destination path for the copy. This cannot be an existing file or directory and has the same character restrictions you would expect on a typical file system.";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository for the user's asset project";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Copy (clone) a file or directory in the user's assets folder to a new path")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"The source file or directory to copy. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.")
+				.key(ReactorKeysEnum.NEW_VALUE,
+						"The destination path for the copy. This cannot be an existing file or directory and has the same character restrictions you would expect on a typical file system.")
+				.key(ReactorKeysEnum.COMMENT_KEY,
+						"Comment to add while saving the files within the git repository for the user's asset project");
 	}
 
 }

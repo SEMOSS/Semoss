@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.ds.py;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -55,9 +82,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  *
  * Uses py/install_config/.venv (relative to the Semoss project dir) unless
  * -Dsemoss.test.python or SEMOSS_TEST_PYTHON points at another interpreter;
- * skipped when no interpreter is found. pandas FutureWarning, DeprecationWarning
- * and ChainedAssignmentError are raised as errors so the next upgrade fails here
- * instead of silently in production.
+ * skipped when no interpreter is found. pandas FutureWarning,
+ * DeprecationWarning and ChainedAssignmentError are raised as errors so the
+ * next upgrade fails here instead of silently in production.
  */
 @Timeout(value = 2, unit = TimeUnit.MINUTES)
 class PandasCompatibilityTests {
@@ -103,8 +130,8 @@ class PandasCompatibilityTests {
 		Path interpreter = findPython();
 		Assumptions.assumeTrue(Files.isExecutable(interpreter),
 				"No python at " + interpreter.toAbsolutePath() + "; set -Dsemoss.test.python to run these tests");
-		python = new ProcessBuilder(interpreter.toString(), "-I", "-c", DRIVER, Paths.get("py").toAbsolutePath().toString())
-				.redirectError(ProcessBuilder.Redirect.INHERIT).start();
+		python = new ProcessBuilder(interpreter.toString(), "-I", "-c", DRIVER,
+				Paths.get("py").toAbsolutePath().toString()).redirectError(ProcessBuilder.Redirect.INHERIT).start();
 		toPython = new BufferedWriter(new OutputStreamWriter(python.getOutputStream(), StandardCharsets.UTF_8));
 		fromPython = new BufferedReader(new InputStreamReader(python.getInputStream(), StandardCharsets.UTF_8));
 		translator = realPandasTranslator();
@@ -265,7 +292,8 @@ class PandasCompatibilityTests {
 				+ " 't': pd.to_datetime(['2024-01-02 10:00:00', '2024-01-03 10:00:00']), 's': ['a', 'b']})\n"
 				+ PandasSyntaxHelper.makeWrapper("dfw", "df"));
 		PandasFrame frame = new PandasFrame("df", translator);
-		// builds the frame metadata from the real pandas dtypes, as the platform does after a python edit
+		// builds the frame metadata from the real pandas dtypes, as the platform does
+		// after a python edit
 		frame.recreateMeta();
 		Map<String, SemossDataType> metaTypes = frame.getMetaData().getHeaderToTypeMap();
 		assertEquals(SemossDataType.INT, metaTypes.get("df__id"));
@@ -276,11 +304,12 @@ class PandasCompatibilityTests {
 		String[][] updates = { { "n", "null" }, { "t", "2024-05-06 07:08:09" }, { "s", "say \"hi\"" } };
 		for (String[] update : updates) {
 			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addExplicitFilter(new SimpleQueryFilter(
-					new NounMetadata(new QueryColumnSelector("df__id"), PixelDataType.COLUMN), "==",
-					new NounMetadata(1, PixelDataType.CONST_INT)));
-			AbstractReactor reactor = prepareReactor(new UpdateRowValuesReactor(), frame, Map
-					.of(ReactorKeysEnum.COLUMN.getKey(), List.of(update[0]), ReactorKeysEnum.VALUE.getKey(), List.of(update[1])));
+			qs.addExplicitFilter(
+					new SimpleQueryFilter(new NounMetadata(new QueryColumnSelector("df__id"), PixelDataType.COLUMN),
+							"==", new NounMetadata(1, PixelDataType.CONST_INT)));
+			AbstractReactor reactor = prepareReactor(new UpdateRowValuesReactor(), frame,
+					Map.of(ReactorKeysEnum.COLUMN.getKey(), List.of(update[0]), ReactorKeysEnum.VALUE.getKey(),
+							List.of(update[1])));
 			reactor.getNounStore().makeGenRowStruct(ReactorKeysEnum.QUERY_STRUCT.getKey())
 					.add(new NounMetadata(qs, PixelDataType.QUERY_STRUCT));
 			reactor.execute();
@@ -293,7 +322,8 @@ class PandasCompatibilityTests {
 
 	@Test
 	void imputeNullValues_fillsNumericTimestampAndStringNulls() {
-		py(IMPORTS + "\ndf = pd.DataFrame({'n': [1.0, None, 3.0], 't': pd.to_datetime(['2024-01-02', None, '2024-01-04']),"
+		py(IMPORTS
+				+ "\ndf = pd.DataFrame({'n': [1.0, None, 3.0], 't': pd.to_datetime(['2024-01-02', None, '2024-01-04']),"
 				+ " 's': ['a', 'a', None]})\n" + PandasSyntaxHelper.makeWrapper("dfw", "df"));
 
 		runReactor(new ImputeNullValuesReactor(), new PandasFrame("df", translator),
@@ -397,6 +427,7 @@ class PandasCompatibilityTests {
 			return Paths.get(configured);
 		}
 		Path venv = Paths.get("py", "install_config", ".venv");
-		return SystemUtils.IS_OS_WINDOWS ? venv.resolve("Scripts").resolve("python.exe") : venv.resolve("bin").resolve("python");
+		return SystemUtils.IS_OS_WINDOWS ? venv.resolve("Scripts").resolve("python.exe")
+				: venv.resolve("bin").resolve("python");
 	}
 }

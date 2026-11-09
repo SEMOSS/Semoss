@@ -44,6 +44,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -133,23 +134,17 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Delete a single or multiple files in the projects assets folder";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return """
-					Names of the file(s) to delete. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.
-					If no value passed in, all files in '/version/assets/' will be deleted.";
-					""";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while removing the files within the git repository for the project";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Delete a single or multiple files in the projects assets folder")
+				.key(ReactorKeysEnum.PROJECT, "The unique id for the project/app")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"""
+								Names of the file(s) to delete. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.
+								If no value passed in, all files in '/version/assets/' will be deleted.";
+								""")
+				.key(ReactorKeysEnum.COMMENT_KEY,
+						"Comment to add while removing the files within the git repository for the project");
 	}
 
 	@Override

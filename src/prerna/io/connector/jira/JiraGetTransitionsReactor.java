@@ -30,12 +30,13 @@ package prerna.io.connector.jira;
 import java.util.List;
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -69,20 +70,15 @@ public class JiraGetTransitionsReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.error("Failed to retrieve Jira transitions", e);
 			throw new SemossPixelException(
-					"An error occurred while retrieving Jira transitions for the issue. Error message: " + e.getMessage());
+					"An error occurred while retrieving Jira transitions for the issue. Error message: "
+							+ e.getMessage());
 		}
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns available workflow transitions for a Jira issue based on its current status. Returns transition id, name, and target status for each transition.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(JIRAID)) {
-			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns available workflow transitions for a Jira issue based on its current status. Returns transition id, name, and target status for each transition.")
+				.key(JIRAID, "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).");
 	}
 }

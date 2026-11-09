@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkCustomRoutine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkRunCustomRoutine(routineId=...); is the scheduler's recipe and keeps to the routine's days; Run now has the
@@ -50,15 +51,10 @@ public class WorkRunCustomRoutineReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Runs one of the signed-in user's routines; the scheduler's recipe for it";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (MANUAL.equals(key)) {
-			return "Set by the scheduler on the run that Run now started";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Runs one of the signed-in user's routines; the scheduler's recipe for it")
+				.key("routineId", "The id of the signed-in user's saved routine to run.").key(MANUAL, key -> key
+						.type(Boolean.class).description("Set by the scheduler on the run that Run now started"));
 	}
 }

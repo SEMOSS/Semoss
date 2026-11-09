@@ -37,6 +37,7 @@ import java.util.Map;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -226,19 +227,13 @@ public class SkipStepReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Skips the current step in the Playwright session, advancing the step and page indices.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "Playwright session ID that stores information about the history of actions done during that session";
-		} else if (key.equals("fileName")) {
-			return "File name containing the steps to be replayed";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Skips the current step in the Playwright session, advancing the step and page indices.")
+				.key("tabId", "The id of the browser tab whose current step is skipped.")
+				.key("sessionId",
+						"Playwright session ID that stores information about the history of actions done during that session")
+				.key("fileName", "File name containing the steps to be replayed");
 	}
 
 }
