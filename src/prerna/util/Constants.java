@@ -1067,6 +1067,9 @@ public class Constants {
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
 
+	// web search platform MCP; it needs a SearXNG service, so each instance turns it on in RDF_Map
+	public static final String WEB_SEARCH_ENABLED = "WEB_SEARCH_ENABLED";
+
 	// notification db
 	public static final String NOTIFICATION_DATABASE_ENABLED = "NOTIFICATION_DATABASE_ENABLED";
 	public static final String NOTIFICATION_DB = "Notification";
@@ -1091,6 +1094,8 @@ public class Constants {
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
 	// characters of memories a thread's assistant gets in its prompt (default 4000)
 	public static final String COLLAB_MEMORY_PROMPT_CHARS = "COLLAB_MEMORY_PROMPT_CHARS";
+	// minutes a routine's agent step may run before the routine stops (default 10)
+	public static final String COLLAB_ROUTINE_TIMEOUT_MINUTES = "COLLAB_ROUTINE_TIMEOUT_MINUTES";
 
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
@@ -1132,6 +1137,7 @@ public class Constants {
 	public static final String MCP_PIXABAY = "pixabay";
 	public static final String MCP_REACTOR_HELP = "reactor-help";
 	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
+	public static final String MCP_WEB_SEARCH = "web-search";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";

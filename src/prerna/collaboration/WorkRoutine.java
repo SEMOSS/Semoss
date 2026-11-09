@@ -115,6 +115,8 @@ final class WorkRoutine {
 	private static final long RUN_NOW_WAIT_STEP_MS = 250;
 	// how many past briefs a brief looks through for the reply drafts already saved
 	private static final int DRAFTED_RUNS = 10;
+	// minutes a routine's agent step may run when RDF_Map sets no COLLAB_ROUTINE_TIMEOUT_MINUTES
+	private static final int DEFAULT_TIMEOUT_MINUTES = 10;
 
 	/** A run that cannot start; its message is ours, so it is safe to show the owner. */
 	private static final class RoutineFailure extends IllegalArgumentException {
@@ -230,8 +232,9 @@ final class WorkRoutine {
 		Map<String, Object> row = stored(slot);
 		if (row != null && "running".equals(row.get("status"))) {
 			String started = (String) row.get("startedAt");
-			// Above every routine's own bounds: about 5 minutes of sync wait, two 10-minute agent waits, and the mail reads.
-			boolean stale = started != null && Instant.parse(started).plusSeconds(2100).isBefore(Instant.now());
+			// Above every routine's own bounds: about 5 minutes of sync wait, two agent waits, and the mail reads.
+			boolean stale = started != null
+					&& Instant.parse(started).plus(Duration.ofMinutes(15 + 2L * timeoutMinutes())).isBefore(Instant.now());
 			String runId = (String) row.get("runId");
 			Map<String, Object> run = runId == null ? null : AutomationRunStore.getRunDetail(runId);
 			if (run != null && TERMINAL.contains(run.get(AutomationConstants.STATUS))) {
@@ -737,6 +740,8 @@ final class WorkRoutine {
 			if (AutomationConstants.NODE_AGENT_RUN.equals(nodeType)) {
 				JsonObject config = node.getAsJsonObject(AutomationConstants.NODE_FIELD_CONFIG);
 				config.addProperty(AutomationConstants.CONFIG_ENGINE_ID, engineId);
+				config.addProperty(AutomationConstants.CONFIG_WAIT_TIMEOUT_MS,
+						String.valueOf(Duration.ofMinutes(timeoutMinutes()).toMillis()));
 				if (agentConfig != null) {
 					agentConfig.forEach((key, value) -> config.add(key, AutomationRuntimeUtils.GSON.toJsonTree(value)));
 				}
@@ -747,6 +752,21 @@ final class WorkRoutine {
 			}
 		}
 		return AutomationDefinitionService.fromInline(AutomationRuntimeUtils.GSON.toJson(definition), null);
+	}
+
+	/** Minutes a routine's agent step may run: RDF_Map's COLLAB_ROUTINE_TIMEOUT_MINUTES, or 10. */
+	static int timeoutMinutes() {
+		String value = Utility.getDIHelperProperty(Constants.COLLAB_ROUTINE_TIMEOUT_MINUTES);
+		if (value == null || value.isBlank()) {
+			return DEFAULT_TIMEOUT_MINUTES;
+		}
+		try {
+			return Math.max(1, Integer.parseInt(value.trim()));
+		} catch (NumberFormatException e) {
+			classLogger.warn("{} is not a whole number of minutes; using {}", Constants.COLLAB_ROUTINE_TIMEOUT_MINUTES,
+					DEFAULT_TIMEOUT_MINUTES);
+			return DEFAULT_TIMEOUT_MINUTES;
+		}
 	}
 
 	private static JsonObject serverDefinition(Kind kind) {
