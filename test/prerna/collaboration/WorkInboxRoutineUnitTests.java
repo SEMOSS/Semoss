@@ -62,6 +62,7 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedConstruction;
@@ -969,6 +970,17 @@ class WorkInboxRoutineUnitTests {
 				.findFirst().orElseThrow().get(AutomationConstants.NODE_FIELD_CONFIG);
 		assertEquals("owners-model", agent.get(AutomationConstants.CONFIG_ENGINE_ID));
 		agentConfig.forEach((key, value) -> assertEquals(value, agent.get(key), key));
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "25, 1500000", "soon, 600000", "0, 60000" })
+	void anAgentStepGetsTheMinutesRdfMapSets(String minutes, String waitTimeoutMs) {
+		utility.when(() -> Utility.getDIHelperProperty(Constants.COLLAB_ROUTINE_TIMEOUT_MINUTES)).thenReturn(minutes);
+		Map<?, ?> agent = (Map<?, ?>) AutomationDefinitionValidator.parseAndValidate(
+				WorkAgendaRoutine.definition("engine-1").definition()).nodes().stream()
+				.filter(node -> AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE)))
+				.findFirst().orElseThrow().get(AutomationConstants.NODE_FIELD_CONFIG);
+		assertEquals(waitTimeoutMs, agent.get(AutomationConstants.CONFIG_WAIT_TIMEOUT_MS));
 	}
 
 	@Test

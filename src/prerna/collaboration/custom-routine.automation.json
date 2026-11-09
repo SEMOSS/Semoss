@@ -50,7 +50,7 @@
           "command": "",
           "collaborationRoutine": true,
           "wait": true,
-          "waitTimeoutMs": "600000"
+          "waitTimeoutMs": ""
         }
       },
       {

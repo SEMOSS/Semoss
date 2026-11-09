@@ -132,8 +132,17 @@ public class SystemDefaultEngines {
 		return COLLABORATION_MCPS;
 	}
 
+	/**
+	 * Platform MCPs to catalog at boot. Web search joins them only when RDF_Map sets
+	 * {@code WEB_SEARCH_ENABLED}, since it needs a SearXNG service not every instance runs.
+	 */
 	public static List<String> getSystemMCPs() {
-		return SYSTEM_MCPS;
+		if (!Utility.isWebSearchEnabled()) {
+			return SYSTEM_MCPS;
+		}
+		List<String> mcps = new ArrayList<>(SYSTEM_MCPS);
+		mcps.add(Constants.MCP_WEB_SEARCH);
+		return Collections.unmodifiableList(mcps);
 	}
 
 	/**
