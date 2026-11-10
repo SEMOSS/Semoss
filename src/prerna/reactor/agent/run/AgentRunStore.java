@@ -307,7 +307,12 @@ public final class AgentRunStore {
 			if (!rs.next()) {
 				return null;
 			}
-			return runMapFromRow(rs);
+			Map<String, Object> run = runMapFromRow(rs);
+			AgentRunRequest request = requestFromJson(rs.getString("REQUEST_JSON"));
+			if (request != null && request.getLabel() != null) {
+				run.put("label", request.getLabel());
+			}
+			return run;
 		} catch (Exception e) {
 			if (e instanceof SecurityException) {
 				throw (SecurityException) e;
@@ -1082,8 +1087,8 @@ public final class AgentRunStore {
 	}
 
 	/**
-	 * Keeps the final text a cancelled run's thread still reached, without
-	 * touching its status, error or completion time, which the cancel set.
+	 * Keeps the final text a cancelled run's thread still reached, without touching
+	 * its status, error or completion time, which the cancel set.
 	 *
 	 * @param runId       the run
 	 * @param finalOutput its final text

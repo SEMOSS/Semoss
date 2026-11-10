@@ -72,6 +72,7 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(SpawnSubAgentReactor.class);
 
 	private static final String ALIAS_KEY = "alias";
+	private static final String LABEL_KEY = "label";
 	private static final String CONTEXT_KEY = "context";
 	private static final String HARNESS_TYPE_KEY = "harnessType";
 	/**
@@ -86,8 +87,8 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROMPT.getKey(), ALIAS_KEY,
 				ReactorKeysEnum.WORKSPACE_ID.getKey(), CONTEXT_KEY, ReactorKeysEnum.ENGINE.getKey(), HARNESS_TYPE_KEY,
 				ReactorKeysEnum.ROOM_ID.getKey(), // room defaults to insight's current room
-				INHERIT_PARENT_WORKDIR_KEY };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0, 0 };
+				INHERIT_PARENT_WORKDIR_KEY, LABEL_KEY };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -95,6 +96,7 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 		organizeKeys();
 		String prompt = this.keyValue.get(ReactorKeysEnum.PROMPT.getKey());
 		String alias = StringUtils.trimToNull(this.keyValue.get(ALIAS_KEY));
+		String label = StringUtils.trimToNull(this.keyValue.get(LABEL_KEY));
 		String workspaceId = StringUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey()));
 		String context = StringUtils.trimToNull(this.keyValue.get(CONTEXT_KEY));
 		String engine = StringUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.ENGINE.getKey()));
@@ -132,6 +134,7 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 		req.parentJobId = ThreadStore.getJobId();
 		req.parentRoomId = roomId;
 		req.alias = alias;
+		req.label = label;
 		req.workspaceId = workspaceId;
 		req.prompt = prompt;
 		req.additionalContext = context;
@@ -154,6 +157,9 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 		out.put("runId", result.getRunId());
 		out.put("roomId", result.getRoomId());
 		out.put("status", result.getStatus() == null ? null : result.getStatus().name());
+		if (result.getLabel() != null) {
+			out.put("label", result.getLabel());
+		}
 		if (result.getAlias() != null) {
 			out.put("alias", result.getAlias());
 		}
@@ -166,9 +172,10 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition()
 				.description(
-						"Spawn a subagent AgentRun and return {runId, jobId, roomId, status, alias} as a JSON string. "
+						"Spawn a subagent AgentRun and return {runId, jobId, roomId, status, alias, label} as a JSON string. "
 								+ "Use jobId with WaitSubAgent / CheckSubAgentStatus.")
 				.key(ALIAS_KEY, "A label for the subagent, saved in its room's options and returned with the result.")
+				.key(LABEL_KEY, "A short display name describing this subagent's task, returned with the result.")
 				.key(CONTEXT_KEY,
 						"System prompt text for a subagent spawned without a workspaceId, used in place of the parent room's prompt. A subagent with a workspaceId uses its workspace's prompt.")
 				.key(ReactorKeysEnum.ENGINE,
