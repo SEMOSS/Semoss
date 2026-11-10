@@ -398,7 +398,8 @@ public final class CollaborationAgentTools {
 			}
 			String output = MCPUtility.runPixelTool(null, insight, meta.getString(MCPUtility.SMSS_FUNCTION_NAME),
 					properties, params);
-			return ToolExecutionResult.success(CollaborationToolResults.forModel(toolName, output, insight.getUser()));
+			return ToolExecutionResult.success(CollaborationToolResults.forModel(toolName, output, insight.getUser(),
+					CollaborationToolResults.seenMail(insight)));
 		} catch (RuntimeException e) {
 			String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
 			return ToolExecutionResult.error(message, message);
