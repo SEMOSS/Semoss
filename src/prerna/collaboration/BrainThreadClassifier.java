@@ -184,8 +184,8 @@ public final class BrainThreadClassifier {
 		List<Result> results = new ArrayList<>();
 		List<String> left = new ArrayList<>();
 		for (String threadId : ids) {
-			String topicId = BrainMailFolders.topicFor(ctx.ownerId(), ctx.ownerType(), threadId, ctx.linkedFolders());
-			if (topicId != null && linkFolder(ctx.ownerId(), ctx.ownerType(), threadId, topicId)) {
+			String topicId = folderTopic(ctx.ownerId(), ctx.ownerType(), threadId, ctx.linkedFolders());
+			if (topicId != null) {
 				results.add(new Result(threadId, topicId, 100, "filed", null, null, null, null));
 			} else {
 				left.add(threadId);
@@ -955,17 +955,24 @@ public final class BrainThreadClassifier {
 		Map<String, String> linked = BrainMailFolders.linkedTopics(ownerId, ownerType);
 		int filed = 0;
 		for (String threadId : linked.isEmpty() ? List.<String>of() : threadIds) {
-			try {
-				String topicId = BrainMailFolders.topicFor(ownerId, ownerType, threadId, linked);
-				if (topicId != null && linkFolder(ownerId, ownerType, threadId, topicId)) {
-					filed++;
-				}
-			} catch (RuntimeException e) {
-				// a topic deleted meanwhile; the next sync or classify run files the thread
-				classLogger.warn("Could not file thread {} by its folder: {}", threadId, e.getMessage());
+			if (folderTopic(ownerId, ownerType, threadId, linked) != null) {
+				filed++;
 			}
 		}
 		return filed;
+	}
+
+	// the topic a thread was just filed under for its folder, or null when it was not; one thread that cannot be
+	// filed never stops the rest
+	private static String folderTopic(String ownerId, String ownerType, String threadId, Map<String, String> linked) {
+		try {
+			String topicId = BrainMailFolders.topicFor(ownerId, ownerType, threadId, linked);
+			return topicId != null && linkFolder(ownerId, ownerType, threadId, topicId) ? topicId : null;
+		} catch (RuntimeException e) {
+			// a topic deleted meanwhile; the next sync or classify run files the thread
+			classLogger.warn("Could not file thread {} by its folder: {}", threadId, e.getMessage());
+			return null;
+		}
 	}
 
 	// the folder's topic becomes the thread's: links Brain guessed give way, the owner's own never do
