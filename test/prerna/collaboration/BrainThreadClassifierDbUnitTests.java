@@ -181,6 +181,21 @@ class BrainThreadClassifierDbUnitTests {
 		assertEquals(List.of(List.of(A, "you", true), List.of(B, "suggested", false)), links());
 	}
 
+	@Test
+	void aThreadThatCannotBeFiledByItsFolderDoesNotStopTheRest() throws Exception {
+		sql("INSERT INTO BRAIN_TOPIC_FOLDER (OWNER_ID, OWNER_TYPE, TOPIC_ID, FOLDER_ID) VALUES (?, ?, ?, 'folder-1')",
+				ownerId, ownerType, A);
+		// mail in the folder on two threads; the first has no thread row, so its link fails
+		for (String thread : List.of("th-gone", THREAD)) {
+			sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, FOLDER, RECEIVED_AT) VALUES "
+					+ "(?, ?, ?, ?, 'folder-1', CURRENT_TIMESTAMP)", ownerId, ownerType, "m-" + thread, thread);
+		}
+
+		assertEquals(1, BrainThreadClassifier.fileByFolder(ownerId, ownerType, List.of("th-gone", THREAD)));
+
+		assertEquals(List.of(List.of(A, "confirmed", true)), links());
+	}
+
 	// ---- helpers ----
 
 	// the model's topic scores, best first, with the rest on "Something else"; run as classifyOne would

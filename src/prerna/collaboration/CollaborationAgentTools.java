@@ -50,12 +50,14 @@ import prerna.io.connector.ms.calendar.MicrosoftCalendarListCalendarsReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarListEventsReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarRespondToEventReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarUpdateEventReactor;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveCreateFolderReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveDownloadFileReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveGetFileReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListDrivesReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListFilesReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListSharedFilesReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveSearchFilesReactor;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveUploadFileReactor;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookListMailReactor;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookSaveDraftReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsDownloadFileReactor;
@@ -184,6 +186,10 @@ public final class CollaborationAgentTools {
 		REACTORS.put("SearchFiles", MicrosoftOneDriveSearchFilesReactor.class);
 		REACTORS.put("GetFile", MicrosoftOneDriveGetFileReactor.class);
 		REACTORS.put("DownloadDriveFile", MicrosoftOneDriveDownloadFileReactor.class);
+		// write to the owner's OneDrive; both wait for the owner to approve, so a
+		// routine never gets them
+		REACTORS.put("CreateDriveFolder", MicrosoftOneDriveCreateFolderReactor.class);
+		REACTORS.put("UploadDriveFile", MicrosoftOneDriveUploadFileReactor.class);
 		// the owner's memory: the owner's chat or routine, with memory on (see
 		// definitions(Room, User, boolean))
 		REACTORS.put("Remember", BrainRememberReactor.class);

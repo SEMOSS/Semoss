@@ -616,13 +616,7 @@ public class MicrosoftOneDriveHelper {
 		try {
 			requireValue(fileName, "A file name is required to upload to OneDrive.");
 			requireValue(filePath, "A file path is required to upload to OneDrive.");
-			if (fileName.indexOf('/') >= 0 || fileName.indexOf('\\') >= 0) {
-				// the name is one segment of the destination path, so a separator in it
-				// would silently move the file somewhere else
-				throw new IllegalArgumentException(
-						"A file name cannot contain a path separator. Name the folder in the path instead: "
-								+ fileName);
-			}
+			requireNoPathSeparator(fileName);
 
 			File file = new File(filePath);
 			if (!file.exists() || !file.isFile()) {
@@ -699,7 +693,52 @@ public class MicrosoftOneDriveHelper {
 		} catch (Exception e) {
 			classLogger.error("Failed to create the folder '{}' in drive '{}' item '{}' path '{}'.", folderName,
 					driveId, itemId, parentPath, e);
-			throw e;
+			throw nameTaken(e, folderName);
+		}
+	}
+
+	/**
+	 * Creates an empty file.
+	 *
+	 * <p>
+	 * A name that is already taken fails. It is never renamed or replaced, since
+	 * replacing a file with an empty one discards what is in it. The folder has to
+	 * exist already, as it does for an upload.
+	 * </p>
+	 *
+	 * @param accessToken Microsoft Graph access token for the user
+	 * @param driveId     optional drive to create in; the signed in user's own
+	 *                    OneDrive is used when blank
+	 * @param itemId      optional id of the folder to create inside; the drive root
+	 *                    is used when blank
+	 * @param parentPath  optional path of the folder to create inside
+	 * @param fileName    name of the file to create
+	 * @return the file as Graph created it
+	 * @throws IllegalArgumentException if the name is missing or holds a path
+	 *                                  separator
+	 * @throws Exception                if the create fails
+	 */
+	public static Map<String, Object> createFile(String accessToken, String driveId, String itemId, String parentPath,
+			String fileName) throws Exception {
+		try {
+			requireValue(fileName, "A file name is required to create a OneDrive file.");
+			requireNoPathSeparator(fileName);
+
+			// an upload of no bytes is an empty file
+			String url = itemUrl(driveId, itemId, joinPath(parentPath, fileName.trim())) + "/content?"
+					+ CONFLICT_BEHAVIOR_PARAM + "=" + CONFLICT_FAIL;
+			String response = HttpHelperUtility.putRequestBytesBody(url,
+					MicrosoftLoginUtils.getAuthorizationHeader(accessToken), new byte[0],
+					ContentType.APPLICATION_OCTET_STREAM, null, null, null);
+			Map<String, Object> created = readMap(response);
+			if (created == null) {
+				throw new IllegalStateException("Microsoft Graph returned no file for the create request: " + fileName);
+			}
+			return MicrosoftOneDriveItemMapper.toDriveItem(created, driveId);
+		} catch (Exception e) {
+			classLogger.error("Failed to create the file '{}' in drive '{}' item '{}' path '{}'.", fileName, driveId,
+					itemId, parentPath, e);
+			throw nameTaken(e, fileName);
 		}
 	}
 
@@ -1345,6 +1384,33 @@ public class MicrosoftOneDriveHelper {
 	private static void requireValue(String value, String message) {
 		if (ValueUtils.isBlank(value)) {
 			throw new IllegalArgumentException(message);
+		}
+	}
+
+	/**
+	 * Says plainly that a name is taken. Graph answers a create that fails on a
+	 * taken name with a 409, which would otherwise reach the user as the whole
+	 * request and response.
+	 *
+	 * @param e    what the create failed with
+	 * @param name the name that was asked for
+	 * @return the plain failure for a 409, or the failure as it was
+	 */
+	private static Exception nameTaken(Exception e, String name) {
+		if (e.getMessage() != null && e.getMessage().contains(" returned HTTP 409")) {
+			return new IllegalArgumentException("The name " + name.trim() + " is already taken in that folder.");
+		}
+		return e;
+	}
+
+	/**
+	 * Guards a file name, which is one segment of the destination path, so a
+	 * separator in it would silently put the file somewhere else.
+	 */
+	private static void requireNoPathSeparator(String fileName) {
+		if (fileName.indexOf('/') >= 0 || fileName.indexOf('\\') >= 0) {
+			throw new IllegalArgumentException(
+					"A file name cannot contain a path separator. Name the folder in the path instead: " + fileName);
 		}
 	}
 

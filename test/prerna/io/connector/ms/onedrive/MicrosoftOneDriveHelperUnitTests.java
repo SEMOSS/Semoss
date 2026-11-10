@@ -29,6 +29,7 @@ package prerna.io.connector.ms.onedrive;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.AdditionalMatchers.aryEq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -165,6 +166,35 @@ class MicrosoftOneDriveHelperUnitTests {
 		// the pre-authenticated url is called without the bearer header
 		http.verify(() -> HttpHelperUtility.getRequestFileDownload(eq("https://download.example/i1"), isNull(),
 				isNull(), isNull(), isNull(), anyString(), anyString()));
+	}
+
+	@Test
+	void aNewFileIsAnEmptyUploadThatNeverReplacesOne() throws Exception {
+		http.when(() -> HttpHelperUtility.putRequestBytesBody(anyString(), anyMap(), any(), any(), isNull(), isNull(),
+				isNull())).thenAnswer(call -> item());
+
+		assertEquals("i1", MicrosoftOneDriveHelper.createFile("token", null, null, "Reports/Q3 2026", " notes.txt ")
+				.get("id"));
+		http.verify(() -> HttpHelperUtility.putRequestBytesBody(eq(
+				"https://graph.microsoft.com/v1.0/me/drive/root:/Reports/Q3%202026/notes.txt:/content?@microsoft.graph.conflictBehavior=fail"),
+				eq(Map.of("Authorization", "Bearer token")), aryEq(new byte[0]), any(), isNull(), isNull(),
+				isNull()));
+	}
+
+	@Test
+	void aNewFileNameThatIsTakenOrHoldsAFolderIsRefusedInPlainWords() {
+		// a separator would put the file in another folder, so nothing is sent
+		assertThrows(IllegalArgumentException.class,
+				() -> MicrosoftOneDriveHelper.createFile("token", null, null, null, "Reports/notes.txt"));
+		http.verify(() -> HttpHelperUtility.putRequestBytesBody(any(), any(), any(), any(), any(), any(), any()),
+				never());
+
+		http.when(() -> HttpHelperUtility.putRequestBytesBody(anyString(), anyMap(), any(), any(), isNull(), isNull(),
+				isNull())).thenThrow(new IllegalArgumentException(
+						"PUT request to https://graph.microsoft.com/v1.0/me/drive returned HTTP 409. Response body: {}"));
+		IllegalArgumentException taken = assertThrows(IllegalArgumentException.class,
+				() -> MicrosoftOneDriveHelper.createFile("token", null, null, null, "notes.txt"));
+		assertEquals("The name notes.txt is already taken in that folder.", taken.getMessage());
 	}
 
 	private Map<String, Object> download() throws Exception {
