@@ -36,8 +36,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadFinder;
-import prerna.reactor.ReactorDefinition;
 import prerna.collaboration.BrainTopicBrief;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -115,13 +115,16 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 		return super.getReactorDefinition().description(
 				"Finds threads in the owner's Brain by words in the subject, summary, or people, by person, or by date, "
 						+ "newest first; each result names its topics. Pass a topic to look only inside it, and with nothing "
-						+ "else it lists that topic's newest threads. Inside a topic it also searches the text of the "
-						+ "messages, and a match there shows the passage and who wrote it. In a chat that has topics it looks "
+						+ "else it lists that topic's newest threads. Inside a topic it also reads the messages and a model "
+						+ "picks the passages that answer the question, so ask in a full sentence with the question's own "
+						+ "words; a match shows the quoted passage, who wrote it, and how sure the model is. In a chat that has topics it looks "
 						+ "inside them unless allTopics is set. Read a match with BrainGetThreadMessages. Never-ingest and "
 						+ "muted content is left out")
 				.key(TOPIC_ID, "Only threads in this topic, by id from ListTopics")
 				.key(TOPIC, "Only threads in this topic, by name, when the id is not known; must match one topic")
-				.key(QUERY, "Optional. Words to look for in the thread subject, summary, and people")
+				.key(QUERY, "Optional. The owner's question exactly as asked, as a whole sentence and not shortened to "
+						+ "keywords; it is matched against the thread subject, summary, and people, and inside a topic "
+						+ "against the message text")
 				.key(PERSON, "Only threads with a person whose name or email contains this")
 				.key(FROM, "Only threads with a message on or after this date (YYYY-MM-DD)")
 				.key(TO, "Only threads with a message on or before this date (YYYY-MM-DD)")
