@@ -36,6 +36,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -130,6 +131,18 @@ public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUp
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), this.databaseId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+	}
+
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		// takes space, not the parent's existing key, so it starts from its own
+		return startDefinition().description(
+				"Replaces all of the data in an RDF (triplestore) database the user owns with the data of an Excel file that follows the SEMOSS loader-sheet format. "
+						+ "Supports node, relationship, matrix, and subclass sheets, generating the corresponding triples.")
+				.key(UploadInputUtility.CUSTOM_BASE_URI,
+						"Not used when replacing data: the triples use the database's own base URI.")
+				.key(UploadInputUtility.DATABASE,
+						"The id or name of the RDF database whose data is replaced; the user must own it.");
 	}
 
 }
