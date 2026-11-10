@@ -33,6 +33,7 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -288,18 +289,14 @@ public class PivotReactor extends AbstractRFrameReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(PIVOT_COLUMN_KEY)) {
-			return "The column to pivot on";
-		} else if (key.equals(VALUE_COLUMN_KEY)) {
-			return "The column to turn into values for the selected pivot column";
-		} else if (key.equals(AGGREGATE_FUNCTION_KEY)) {
-			return "The function used to aggregate columns";
-		} else if (key.equals(NA_REPLACE_KEY)) {
-			return "The value used to replace n/a in a column";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Pivots the current R frame so each distinct value of the pivot column (with dashes changed to underscores) becomes a new column holding the value column, grouped by the columns to keep. An R function such as sum or mean aggregates a numeric value column.")
+				.key(ReactorKeysEnum.MAINTAIN_COLUMNS, key -> key.list(String.class))
+				.key(PIVOT_COLUMN_KEY, "The column to pivot on")
+				.key(VALUE_COLUMN_KEY, "The column to turn into values for the selected pivot column")
+				.key(AGGREGATE_FUNCTION_KEY, "The function used to aggregate columns")
+				.key(NA_REPLACE_KEY, "The value used to replace n/a in a column");
 	}
 
 	////////////////////// HELPER METHODS //////////////////////////////////

@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -111,21 +112,13 @@ public class MicrosoftTeamsListFilesReactor extends AbstractMicrosoftReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "List the files stored in a Microsoft Teams channel.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(TEAM_ID)) {
-			return "Microsoft Teams team ID that owns the channel.";
-		} else if (key.equals(CHANNEL_ID)) {
-			return "Microsoft Teams channel ID whose files should be listed.";
-		} else if (key.equals(FOLDER_PATH)) {
-			return "Optional folder path relative to the channel root folder. The channel root folder is listed when omitted.";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Optional maximum number of files to return. All files are returned when omitted.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("List the files stored in a Microsoft Teams channel.")
+				.key(TEAM_ID, "Microsoft Teams team ID that owns the channel.")
+				.key(CHANNEL_ID, "Microsoft Teams channel ID whose files should be listed.")
+				.key(FOLDER_PATH,
+						"Optional folder path relative to the channel root folder. The channel root folder is listed when omitted.")
+				.key(ReactorKeysEnum.LIMIT,
+						"Optional maximum number of files to return. All files are returned when omitted.");
 	}
 }

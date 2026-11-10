@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -122,16 +123,12 @@ public class MicrosoftTeamsListChannelMessagesReactor extends AbstractMicrosoftT
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Read the messages posted in a Microsoft Teams channel, most recent first.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Optional maximum number of messages to return. Defaults to " + DEFAULT_LIMIT + " and is capped at "
-					+ MAX_LIMIT + ".";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Read the messages posted in a Microsoft Teams channel, most recent first.")
+				.key(TEAM_ID, TEAM_ID_DESCRIPTION).key(CHANNEL_ID, CHANNEL_ID_DESCRIPTION)
+				.key(INCLUDE_REPLIES, INCLUDE_REPLIES_DESCRIPTION).key(MAX_BODY_CHARS, MAX_BODY_CHARS_DESCRIPTION)
+				.key(ReactorKeysEnum.LIMIT, "Optional maximum number of messages to return. Defaults to "
+						+ DEFAULT_LIMIT + " and is capped at " + MAX_LIMIT + ".");
 	}
 }

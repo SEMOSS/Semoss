@@ -54,6 +54,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.inferencetracking.GuardrailHitStore;
 import prerna.engine.impl.pipeline.EngineProxyFactory;
 import prerna.engine.impl.pipeline.GuardrailHitLimit;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.interceptor.GenericGuardrailInputReactor;
 import prerna.reactor.interceptor.GenericGuardrailOutputReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -530,18 +531,10 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Validates and saves the guardrail pipeline configuration (pipeline.json) for an engine of any type but a guardrail, applying it to the running engine immediately: its pipelines, and the hit limits that close a room or lock a user out of the engine after enough hits of the checks they name. An empty pipelines map removes all guardrails. Requires edit access to the engine.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The id of the engine";
-		}
-		if (key.equals(ReactorKeysEnum.MAP.getKey())) {
-			return "The guardrail configuration as a map matching the pipeline.json schema: pipelines, and optionally hitLimits";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Validates and saves the guardrail pipeline configuration (pipeline.json) for an engine of any type but a guardrail, applying it to the running engine immediately: its pipelines, and the hit limits that close a room or lock a user out of the engine after enough hits of the checks they name. An empty pipelines map removes all guardrails. Requires edit access to the engine.")
+				.key(ReactorKeysEnum.ENGINE, "The id of the engine").key(ReactorKeysEnum.MAP,
+						"The guardrail configuration as a map matching the pipeline.json schema: pipelines, and optionally hitLimits");
 	}
 }

@@ -31,6 +31,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainPeopleUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSaveAccount(account=[{"name": "Northwind", "domain": "northwind.example", "kind": "client"}]);
@@ -54,15 +55,9 @@ public class BrainSaveAccountReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates or edits a Brain account; only the fields passed are changed";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (KEY.equals(key)) {
-			return "Partial account: id (omit to create), name, domain, kind (client, internal, other), color";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Creates or edits a Brain account; only the fields passed are changed")
+				.key(KEY, "Partial account: id (omit to create), name, domain, kind (client, internal, other), color");
 	}
 }

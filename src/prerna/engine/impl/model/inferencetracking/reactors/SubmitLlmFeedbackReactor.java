@@ -37,6 +37,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.MessageIO;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -112,16 +113,14 @@ public class SubmitLlmFeedbackReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("messageId")) {
-			return "The unique identififer for the I/O betweeen a user and the LLM response";
-		} else if (key.equals("feedbackText")) {
-			return "Additional feedback in the form of text to decribe the issue/benefits of the response";
-		} else if (key.equals("rating")) {
-			return "true/false value to indicate if the reponse was helpful or not, or null if not parsed correctly/null";
-		} else if (key.equals("roomId")) {
-			return "The room into which to add this feedback";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Records the calling user's true or false rating, with optional text, on a model response in one of their rooms. A rating other than true or false removes the response's feedback instead.")
+				.key("roomId", "The room into which to add this feedback")
+				.key("messageId", "The unique identififer for the I/O betweeen a user and the LLM response")
+				.key("feedbackText",
+						"Additional feedback in the form of text to decribe the issue/benefits of the response")
+				.key("rating", key -> key.type(Boolean.class).description(
+						"true/false value to indicate if the reponse was helpful or not, or null if not parsed correctly/null"));
 	}
 }

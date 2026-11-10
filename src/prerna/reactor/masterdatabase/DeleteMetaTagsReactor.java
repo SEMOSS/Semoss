@@ -32,16 +32,17 @@ import java.util.List;
 
 import prerna.masterdatabase.AddToMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
-public class DeleteMetaTagsReactor extends  AbstractMetaDBReactor {
-	
+public class DeleteMetaTagsReactor extends AbstractMetaDBReactor {
+
 	public DeleteMetaTagsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), VALUES};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), VALUES };
 	}
 
 	@Override
@@ -59,21 +60,27 @@ public class DeleteMetaTagsReactor extends  AbstractMetaDBReactor {
 			}
 		}
 		// delete tags from list
-		for(String deleteTag: valuesToDelete) {
+		for (String deleteTag : valuesToDelete) {
 			int indexToRemove = tags.indexOf(deleteTag);
-			if(indexToRemove >=0) {
-			tags.remove(indexToRemove);
+			if (indexToRemove >= 0) {
+				tags.remove(indexToRemove);
 			}
 		}
 		// update list
 		String newTagList = "";
-		for(String newTag: tags) {
+		for (String newTag : tags) {
 			newTagList += newTag + VALUE_DELIMITER;
 		}
 		AddToMasterDB master = new AddToMasterDB();
 		boolean success = master.addMetadata(engineId, concept, Constants.TAG, newTagList);
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
-	
 
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Removes the given tags from a concept in a database's metadata and returns whether it saved.")
+				.key(VALUES, key -> key.list(String.class).description("The tags to remove from the concept."));
+	}
 }

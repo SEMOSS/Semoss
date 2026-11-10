@@ -46,6 +46,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -224,18 +225,10 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor reverts to the requested commit id";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "This is a required field containing the project id of a project";
-		} else if (key.equals(COMMIT_ID_KEY)) {
-			return "This is a required field containing the commit id of a project";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("This reactor reverts to the requested commit id")
+				.key(ReactorKeysEnum.PROJECT, "This is a required field containing the project id of a project")
+				.key(COMMIT_ID_KEY, "This is a required field containing the commit id of a project");
 	}
 
 }

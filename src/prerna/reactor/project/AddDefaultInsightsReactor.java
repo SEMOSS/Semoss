@@ -42,6 +42,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -273,15 +274,18 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(INSIGHT_KEYS)) {
-			return "Determine which default insights to append. " + "Value '" + EXPLORE_INSTANCE + "' = '"
-					+ UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME + "', " + "value '" + GRID_DELTA_INSTANCE + "' = '"
-					+ UploadUtilities.GRID_DELTA_INSIGHT_NAME + "'." + UploadUtilities.GRID_DELTA_INSIGHT_NAME
-					+ " only adds if database is type RDBMS."
-					+ "No inputs passed will attempt to add all default insight.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Adds default insights for a database to a project the user can edit: explore, grid-delta, insight-stats and insert-form. With no insights named, it adds explore, insight-stats and, for an RDBMS database, grid-delta.")
+				.key(ReactorKeysEnum.DATABASE,
+						"The id of the database the default insights are built on; not needed when insights is only insight-stats.")
+				.key(ReactorKeysEnum.PROJECT, "The id of the INSIGHTS project to add the default insights to.")
+				.key(INSIGHT_KEYS, key -> key.list(String.class)
+						.description("Determine which default insights to append. " + "Value '" + EXPLORE_INSTANCE
+								+ "' = '" + UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME + "', " + "value '"
+								+ GRID_DELTA_INSTANCE + "' = '" + UploadUtilities.GRID_DELTA_INSIGHT_NAME + "'."
+								+ UploadUtilities.GRID_DELTA_INSIGHT_NAME + " only adds if database is type RDBMS."
+								+ "No inputs passed will attempt to add all default insight."));
 	}
 
 }

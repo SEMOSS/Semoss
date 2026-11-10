@@ -31,6 +31,7 @@ import java.util.Calendar;
 
 import prerna.date.SemossDate;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -77,18 +78,12 @@ public class DateReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Get todays date or return a date based on a specific date input and format";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if ("date".equals(key)) {
-			return "A specific date to return. This is a string and assumes a date of yyyy-MM-dd";
-		} else if ("format".equals(key)) {
-			return "A specified format for the date parameter to parse. This should be a Java compliant format";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Get todays date or return a date based on a specific date input and format")
+				.key("date", "A specific date to return. This is a string and assumes a date of yyyy-MM-dd")
+				.key("format",
+						"A specified format for the date parameter to parse. This should be a Java compliant format");
 	}
 
 }

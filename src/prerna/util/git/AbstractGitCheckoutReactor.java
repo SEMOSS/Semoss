@@ -39,6 +39,7 @@ import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.git.GitBranchUtils.GitCheckoutTarget;
 
@@ -134,16 +135,10 @@ public abstract class AbstractGitCheckoutReactor extends AbstractGitWorktreeReac
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor checks out an existing local or remote-tracking branch in "
-				+ this.target.getLabelWithArticle() + "'s git repository";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(BRANCH_KEY)) {
-			return "The name of the branch to check out";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("This reactor checks out an existing local or remote-tracking branch in "
+						+ this.target.getLabelWithArticle() + "'s git repository")
+				.key(BRANCH_KEY, "The name of the branch to check out");
 	}
 }

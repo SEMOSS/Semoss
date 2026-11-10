@@ -33,6 +33,7 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -83,21 +84,12 @@ public class FetchNotificationsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Fetch all user notifications";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SCOPE_TYPE.equals(key)) {
-			return "ALL (default), SYSTEM, or APP.";
-		}
-		if (SCOPE_ID.equals(key)) {
-			return "The app id when scopeType is APP, e.g. SYSTEM__COLLABORATION for the Collaboration inbox.";
-		}
-		if (MARK_READ.equals(key)) {
-			return "Whether fetching marks every visible notification in the scope as read. Defaults to true.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Fetch all user notifications")
+				.key(SCOPE_TYPE, "ALL (default), SYSTEM, or APP.")
+				.key(SCOPE_ID,
+						"The app id when scopeType is APP, e.g. SYSTEM__COLLABORATION for the Collaboration inbox.")
+				.key(MARK_READ,
+						"Whether fetching marks every visible notification in the scope as read. Defaults to true.");
 	}
 }

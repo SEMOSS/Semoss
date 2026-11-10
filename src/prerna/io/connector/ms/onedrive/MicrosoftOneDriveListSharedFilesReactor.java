@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -117,18 +118,12 @@ public class MicrosoftOneDriveListSharedFilesReactor extends AbstractMicrosoftOn
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "List the OneDrive and SharePoint files other people have shared with the signed in user.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.SEARCH.getKey())) {
-			return "Optional text the file has to match. Everything shared with the signed in user is returned when omitted.";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Optional maximum number of files to return. Defaults to " + DEFAULT_LIMIT + " and is capped at "
-					+ MAX_LIMIT + ".";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("List the OneDrive and SharePoint files other people have shared with the signed in user.")
+				.key(ReactorKeysEnum.SEARCH,
+						"Optional text the file has to match. Everything shared with the signed in user is returned when omitted.")
+				.key(ReactorKeysEnum.LIMIT, "Optional maximum number of files to return. Defaults to " + DEFAULT_LIMIT
+						+ " and is capped at " + MAX_LIMIT + ".");
 	}
 }

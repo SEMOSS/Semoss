@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.security;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -76,8 +76,8 @@ public class MyDiscoverableEnginesReactor extends AbstractReactor {
 			metaKeys = null;
 		}
 
-		Map<String, Object> engineMetadataFilter = this.<String, Object>getGenericMap(
-				ReactorKeysEnum.META_FILTERS.getKey(), null);
+		Map<String, Object> engineMetadataFilter = this
+				.<String, Object>getGenericMap(ReactorKeysEnum.META_FILTERS.getKey(), null);
 		List<Map<String, Object>> engineInfo = SecurityEngineUtils.getUserDiscoverableEngineList(this.insight.getUser(),
 				engineTypes, engineIdFilters, engineMetadataFilter, searchTerm, limit, offset);
 
@@ -92,9 +92,8 @@ public class MyDiscoverableEnginesReactor extends AbstractReactor {
 				index.put(engineId, Integer.valueOf(i));
 			}
 
-			IRawSelectWrapper wrapper = null;
-			try {
-				wrapper = SecurityEngineUtils.getEngineMetadataWrapper(index.keySet(), metaKeys, true);
+			try (IRawSelectWrapper wrapper = SecurityEngineUtils.getEngineMetadataWrapper(index.keySet(), metaKeys,
+					true)) {
 				while (wrapper.hasNext()) {
 					Object[] data = wrapper.next().getValues();
 					String engineId = (String) data[0];
@@ -124,15 +123,6 @@ public class MyDiscoverableEnginesReactor extends AbstractReactor {
 				}
 			} catch (Exception e) {
 				classLogger.error("Failed to attach metadata values to discoverable engine list response", e);
-			} finally {
-				if (wrapper != null) {
-					try {
-						wrapper.close();
-					} catch (IOException e) {
-						classLogger.error(
-								"Failed to close metadata wrapper while building discoverable engine list response", e);
-					}
-				}
 			}
 		}
 
@@ -140,12 +130,16 @@ public class MyDiscoverableEnginesReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.SORT.getKey())) {
-			return "The sort is a string value containing either 'name' or 'date' for how to sort";
-		} else if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "This is an optional database filter";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the engines that are marked discoverable, are not public, and that the user has no access to, filtered by any given engine types, engine ids, search term and metadata and sorted by name, with their metadata unless noMeta is true.")
+				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class))
+				.key(ReactorKeysEnum.OFFSET, key -> key.type(Integer.class))
+				.key(ReactorKeysEnum.ENGINE_TYPE, key -> key.list(String.class))
+				.key(ReactorKeysEnum.ENGINE,
+						key -> key.list(String.class).description("Engine ids to filter the results to."))
+				.key(ReactorKeysEnum.META_KEYS, key -> key.list(String.class))
+				.key(ReactorKeysEnum.META_FILTERS, key -> key.type(Map.class))
+				.key(ReactorKeysEnum.NO_META, key -> key.type(Boolean.class));
 	}
 }

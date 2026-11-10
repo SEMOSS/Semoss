@@ -202,13 +202,15 @@ public final class SkillProjects {
 	}
 
 	/**
-	 * Copies the skill project's files to cloud storage after its content changes, so a pod that pulls the project
-	 * later, such as a new pod after a rollout, has them. The project is pushed once when it is created, before it has
-	 * any content. Does nothing outside a cluster.
+	 * Copies the skill project's files to cloud storage after its content changes,
+	 * so a pod that pulls the project later, such as a new pod after a rollout, has
+	 * them. The project is pushed once when it is created, before it has any
+	 * content. Does nothing outside a cluster.
 	 */
 	public static void pushContent(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
-			ClusterUtil.pushProjectFolder(Utility.getProject(projectId), AssetUtility.getProjectAppRootFolder(projectId));
+			ClusterUtil.pushProjectFolder(Utility.getProject(projectId),
+					AssetUtility.getProjectAppRootFolder(projectId));
 		}
 	}
 

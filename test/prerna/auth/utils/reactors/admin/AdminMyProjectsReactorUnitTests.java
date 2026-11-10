@@ -119,7 +119,7 @@ public class AdminMyProjectsReactorUnitTests {
 
 	@Test
 	void testGetDescriptionForSortKey() {
-		String desc = reactor.getDescriptionForKey(ReactorKeysEnum.SORT.getKey());
+		String desc = reactor.getReactorDefinition().getKey(ReactorKeysEnum.SORT.getKey()).getDescription();
 		assertEquals(
 				"The sort is a map with key and direction. Supported keys are 'PROJECTNAME', 'DATECREATED', and 'DATELASTEDITED' (or 'DATE_LAST_EDITED').",
 				desc);
@@ -127,7 +127,7 @@ public class AdminMyProjectsReactorUnitTests {
 
 	@Test
 	void testGetDescriptionForProjectKey() {
-		String desc = reactor.getDescriptionForKey(ReactorKeysEnum.PROJECT.getKey());
+		String desc = reactor.getReactorDefinition().getKey(ReactorKeysEnum.PROJECT.getKey()).getDescription();
 		assertEquals("This is an optional project filter", desc);
 	}
 

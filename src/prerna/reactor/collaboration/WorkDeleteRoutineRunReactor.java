@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.collaboration.WorkRoutineRoom;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class WorkDeleteRoutineRunReactor extends AbstractCollaborationReactor {
@@ -50,21 +51,14 @@ public class WorkDeleteRoutineRunReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Deletes one finished run of one of the signed-in user's routines from its run history, with the chats "
-				+ "opened from it and the rooms its agent worked in, and returns those rooms' ids; when it was the "
-				+ "routine's latest run, Routines stops showing its result";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ROUTINE_ID.equals(key)) {
-			return "Routine id: inbox-daily-brief, weekly-meeting-agendas, event-planning, expense-review, or the id of "
-					+ "one of the owner's own routines";
-		}
-		if (RUN_ID.equals(key)) {
-			return "The run to delete, from the routine's run history";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Deletes one finished run of one of the signed-in user's routines from its run history, with the chats "
+						+ "opened from it and the rooms its agent worked in, and returns those rooms' ids; when it was the "
+						+ "routine's latest run, Routines stops showing its result")
+				.key(ROUTINE_ID,
+						"Routine id: inbox-daily-brief, weekly-meeting-agendas, event-planning, expense-review, or the id of "
+								+ "one of the owner's own routines")
+				.key(RUN_ID, "The run to delete, from the routine's run history");
 	}
 }

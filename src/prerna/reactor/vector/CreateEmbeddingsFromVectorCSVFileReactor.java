@@ -47,6 +47,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.vector.FileEmbeddingStatus;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.CreateEmbeddingsParamOptions;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -332,54 +333,51 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Creates embeddings from VectorCSVFile-formatted csv files and adds them to a vector database. \
-				Accepts csv files directly or zip archives containing csv files. \
-				Expected csv headers are: Source, Modality, Divider, Part, Tokens, Content. \
-				Header names should match exactly as shown (case-sensitive). \
-				Standard CSV quoting is supported, but quotes are optional unless a value contains commas, newlines, or quotes. \
-				`Tokens` should be numeric, and `Modality` is typically `text` but can be `image`, `audio`, `video`, etc. \
-				Relative file paths are resolved from the current insight/room space by default, \
-				or from another space when the optional `space` parameter is provided.\
-				""";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Creates embeddings from VectorCSVFile-formatted csv files and adds them to a vector database. \
+								Accepts csv files directly or zip archives containing csv files. \
+								Expected csv headers are: Source, Modality, Divider, Part, Tokens, Content. \
+								Header names should match exactly as shown (case-sensitive). \
+								Standard CSV quoting is supported, but quotes are optional unless a value contains commas, newlines, or quotes. \
+								`Tokens` should be numeric, and `Modality` is typically `text` but can be `image`, `audio`, `video`, etc. \
+								Relative file paths are resolved from the current insight/room space by default, \
+								or from another space when the optional `space` parameter is provided.\
+								""")
+				.key(ReactorKeysEnum.ENGINE, "The vector database engine ID to add embeddings into.")
+				.key(FILE_PATHS_KEY, """
+						The list of csv file paths (or zip files containing csv files) to process. \
+						Each csv should include headers: Source, Modality, Divider, Part, Tokens, Content. \
+						Use these header names exactly (case-sensitive). \
+						CSV field quotes are optional unless needed for commas/newlines/quotes. \
+						Paths are resolved relative to the selected `space` \
+						(or current insight when `space` is omitted).\
+						""").key(ReactorKeysEnum.SPACE, """
+						Optional space used to resolve relative file paths. \
+						When omitted, files are resolved from the current insight/room space. \
+						Pass a project/app UUID to resolve from that app/project folder, or pass `user` for user space.\
+						""").key(ReactorKeysEnum.PARAM_VALUES_MAP, paramValuesDescription());
 	}
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The vector database engine ID to add embeddings into.";
-		} else if (key.equals(FILE_PATHS_KEY)) {
-			return """
-					The list of csv file paths (or zip files containing csv files) to process. \
-					Each csv should include headers: Source, Modality, Divider, Part, Tokens, Content. \
-					Use these header names exactly (case-sensitive). \
-					CSV field quotes are optional unless needed for commas/newlines/quotes. \
-					Paths are resolved relative to the selected `space` \
-					(or current insight when `space` is omitted).\
-					""";
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return """
-					Optional space used to resolve relative file paths. \
-					When omitted, files are resolved from the current insight/room space. \
-					Pass a project/app UUID to resolve from that app/project folder, or pass `user` for user space.\
-					""";
-		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
+	/**
+	 * The param options each vector database type accepts, listed in the
+	 * paramValues description.
+	 */
+	private static String paramValuesDescription() {
+		StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
 
-			for (CreateEmbeddingsParamOptions entry : CreateEmbeddingsParamOptions.values()) {
-				finalDescription.append("\n").append("\t\t\t\t\t")
-						.append(entry.getVectorDbType().getVectorDatabaseName()).append(":");
+		for (CreateEmbeddingsParamOptions entry : CreateEmbeddingsParamOptions.values()) {
+			finalDescription.append("\n").append("\t\t\t\t\t").append(entry.getVectorDbType().getVectorDatabaseName())
+					.append(":");
 
-				for (String paramKey : entry.getParamOptionsKeys()) {
-					finalDescription.append("\n").append("\t\t\t\t\t\t").append(paramKey).append("\t").append("-")
-							.append("\t").append("(").append(entry.getRequirementStatus(paramKey)).append(")")
-							.append(" ").append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
-				}
+			for (String paramKey : entry.getParamOptionsKeys()) {
+				finalDescription.append("\n").append("\t\t\t\t\t\t").append(paramKey).append("\t").append("-")
+						.append("\t").append("(").append(entry.getRequirementStatus(paramKey)).append(")").append(" ")
+						.append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
 			}
-			return finalDescription.toString();
 		}
-
-		return super.getDescriptionForKey(key);
+		return finalDescription.toString();
 	}
 }

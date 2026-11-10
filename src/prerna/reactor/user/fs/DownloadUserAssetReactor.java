@@ -34,6 +34,7 @@ import prerna.auth.User;
 import prerna.om.InsightFile;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -93,16 +94,11 @@ public class DownloadUserAssetReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Download a file or directory from within the user's assets folder";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The relative file path to a file or directory. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Download a file or directory from within the user's assets folder")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"The relative file path to a file or directory. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.");
 	}
 
 }

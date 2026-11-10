@@ -37,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -62,7 +63,8 @@ public class GetAllStepsReactor extends AbstractReactor {
 		}
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have access to view the project");
 		}
 
 		if (sessionId == null || sessionId.isEmpty()) {
@@ -230,18 +232,10 @@ public class GetAllStepsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Retrieves all recorded Playwright steps from a specified file and formats them for frontend display.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "The id of the current session of the playwright";
-		} else if (key.equals("fileName")) {
-			return "The name of the record file";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Retrieves all recorded Playwright steps from a specified file and formats them for frontend display.")
+				.key("sessionId", "The id of the current session of the playwright")
+				.key("fileName", "The name of the record file");
 	}
 }

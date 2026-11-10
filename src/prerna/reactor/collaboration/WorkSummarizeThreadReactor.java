@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.WorkThreadInsights;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkSummarizeThread(threadId=["..."], force=[true]);
@@ -53,18 +54,10 @@ public class WorkSummarizeThreadReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Starts a background summary and action-item pass for a thread unless its summary covers the newest "
-				+ "message; poll WorkGetThreadInsights until status is no longer running";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (FORCE.equals(key)) {
-			return "true to summarize again even when the summary is current";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Starts a background summary and action-item pass for a thread unless its summary covers the newest "
+						+ "message; poll WorkGetThreadInsights until status is no longer running")
+				.key(THREAD_ID, "Thread id").key(FORCE, "true to summarize again even when the summary is current");
 	}
 }

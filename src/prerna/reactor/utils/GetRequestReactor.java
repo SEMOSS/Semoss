@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.project.impl.ProjectHeaderAuthEvaluator;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -159,7 +160,7 @@ public class GetRequestReactor extends AbstractReactor {
 					try {
 						headers.putAll(((ProjectHeaderAuthEvaluator) noun.getValue()).eval());
 					} catch (UnsupportedEncodingException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Could not evaluate the project authorization headers", e);
 						throw new IllegalArgumentException(
 								"An error occurred trying to get the project authorization headers");
 					}
@@ -173,23 +174,17 @@ public class GetRequestReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Executes an HTTP GET request to a specified URL with optional headers and client certificate authentication. "
-				+ "Can optionally download and save the response as a file in the insight workspace, and commits the asset to storage if required.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.URL.getKey())) {
-			return "The URL to which the GET request will be sent.";
-		} else if (key.equals(ReactorKeysEnum.HEADERS_MAP.getKey())) {
-			return "Map containing key-value pairs to include as headers in the GET request.";
-		} else if (key.equals(ReactorKeysEnum.USE_APPLICATION_CERT.getKey())) {
-			return "Boolean flag indicating whether to use the application's certificate/keystore for authentication.";
-		} else if (key.equals("saveFile")) {
-			return "Boolean flag; if true, the response will be downloaded and saved as a file in the insight workspace.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Executes an HTTP GET request to a specified URL with optional headers and client certificate authentication. "
+						+ "Can optionally download and save the response as a file in the insight workspace, and commits the asset to storage if required.")
+				.key(ReactorKeysEnum.URL, "The URL to which the GET request will be sent.")
+				.key(ReactorKeysEnum.HEADERS_MAP,
+						"Map containing key-value pairs to include as headers in the GET request.")
+				.key(ReactorKeysEnum.USE_APPLICATION_CERT,
+						"Boolean flag indicating whether to use the application's certificate/keystore for authentication.")
+				.key("saveFile",
+						"Boolean flag; if true, the response will be downloaded and saved as a file in the insight workspace.");
 	}
 
 }

@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -127,31 +128,15 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals("fileNames")) {
-			return MCP_KEY_TYPE.ARRAY;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Removes documents from a vector database. \
 				Deletes the specified files and their associated embeddings from the vector database. \
 				The file names should match the source names that were used when the documents were added.\
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The vector database engine ID to remove documents from.";
-		} else if (key.equals("fileNames")) {
-			return "The list of source identifiers to remove from the vector database (typically document file names).";
-		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			return "Optional engine-specific parameters (for example index/collection selectors when supported).";
-		}
-		return super.getDescriptionForKey(key);
+				""").key(ReactorKeysEnum.ENGINE, "The vector database engine ID to remove documents from.")
+				.key("fileNames", key -> key.type(List.class).description(
+						"The list of source identifiers to remove from the vector database (typically document file names)."))
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP,
+						"Optional engine-specific parameters (for example index/collection selectors when supported).");
 	}
 }

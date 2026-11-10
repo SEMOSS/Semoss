@@ -28,6 +28,7 @@
 package prerna.reactor.automation.definition;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -43,7 +44,9 @@ public class GetAutomationNodeDefinitionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns the versioned server-owned catalog of supported Automation node definitions.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Returns the versioned server-owned catalog of supported Automation node definitions.")
+				.noKeys();
 	}
 }

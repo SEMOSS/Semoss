@@ -35,6 +35,7 @@ import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
@@ -97,18 +98,12 @@ public class NewUserAssetsDirectoryReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Create a new empty directory in the user's assets folder";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file to create. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while creating and saving the new file within the git repository for the user's asset project";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Create a new empty directory in the user's assets folder").key(
+				ReactorKeysEnum.FILE_PATH,
+				"Names of the file to create. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.")
+				.key(ReactorKeysEnum.COMMENT_KEY,
+						"Comment to add while creating and saving the new file within the git repository for the user's asset project");
 	}
 
 }

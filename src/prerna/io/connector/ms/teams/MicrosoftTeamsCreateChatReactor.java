@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -111,20 +112,15 @@ public class MicrosoftTeamsCreateChatReactor extends AbstractMicrosoftTeamsMessa
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Start a Microsoft Teams chat with one or more people, or find the existing one on one chat with somebody.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(MEMBERS)) {
-			return "Email addresses or user ids of the other people in the chat, passed as several values or as one comma separated value. The signed in user is always included.";
-		} else if (key.equals(CHAT_TYPE)) {
-			return "Optional kind of chat, either oneOnOne or group. Defaults to oneOnOne for one other person and group for several.";
-		} else if (key.equals(TOPIC)) {
-			return "Optional title for a group chat. Microsoft Teams does not let a one on one chat have one.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Start a Microsoft Teams chat with one or more people, or find the existing one on one chat with somebody.")
+				.key(MEMBERS,
+						"Email addresses or user ids of the other people in the chat, passed as several values or as one comma separated value. The signed in user is always included.")
+				.key(CHAT_TYPE,
+						"Optional kind of chat, either oneOnOne or group. Defaults to oneOnOne for one other person and group for several.")
+				.key(TOPIC,
+						"Optional title for a group chat. Microsoft Teams does not let a one on one chat have one.");
 	}
 
 	@Override

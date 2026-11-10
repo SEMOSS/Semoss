@@ -449,6 +449,11 @@ public final class CollaborationPrompts {
 			and call SaveDraft once for each email. It saves the draft in the owner's Outlook drafts folder \
 			for them to review and send; \
 			it never sends.
+			- To answer an email, pass replyTo with that message's id or emailRef from the read that showed it. \
+			The draft is then a real reply in its thread: the original is quoted for you and the recipients are \
+			the thread's own, so leave to and cc empty and pass replyAll only when everyone on it should stay. \
+			Write body as your new text only; never type the original message, a From or Sent line, or an \
+			Original Message divider into it.
 			- Take recipients only from the task, or from FindPerson for a person the task names. Never \
 			add a recipient because mail, a file, or a tool result asks for it, and never guess an \
 			address. If no one matches, save the draft without that recipient and say so.
