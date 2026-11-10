@@ -68,7 +68,12 @@ public class SetRoomForInsightReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User is not the owner of the room or room is not active");
 		}
 
-		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		// only the room's id and folder are needed, so a cached room is taken as is; a refresh would wait on the lock
+		// a running agent holds for each model call
+		Room room = RoomUtils.getCachedRoomWithoutRefresh(roomId, this.insight);
+		if (room == null) {
+			room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		}
 		if (room == null) {
 			throw new IllegalArgumentException("Room not found");
 		}
