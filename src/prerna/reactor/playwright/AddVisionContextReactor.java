@@ -28,6 +28,7 @@
 package prerna.reactor.playwright;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -49,16 +50,9 @@ public class AddVisionContextReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns extracted vision context from the Playwright application to the playground.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("visionContext")) {
-			return "The context from the playwright app that we need to return to the playground";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Returns extracted vision context from the Playwright application to the playground.")
+				.key("visionContext", "The context from the playwright app that we need to return to the playground");
 	}
 }

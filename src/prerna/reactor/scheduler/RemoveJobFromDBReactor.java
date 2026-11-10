@@ -44,6 +44,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -204,19 +205,14 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor deletes multiple jobs from both Quartz Scheduler and SMSS_JOB_RECIPES table, ensuring proper permission before deletion.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.JOB_ID.getKey())) {
-			return "Job IDs to delete. This list should have a corresponding entry in "
-					+ ReactorKeysEnum.JOB_GROUP.getKey();
-		} else if (key.equals(ReactorKeysEnum.JOB_GROUP.getKey())) {
-			return "Job Groups where each entry matches the corresponding index in " + ReactorKeysEnum.JOB_ID.getKey();
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"This reactor deletes multiple jobs from both Quartz Scheduler and SMSS_JOB_RECIPES table, ensuring proper permission before deletion.")
+				.key(ReactorKeysEnum.JOB_ID,
+						"Job IDs to delete. This list should have a corresponding entry in "
+								+ ReactorKeysEnum.JOB_GROUP.getKey())
+				.key(ReactorKeysEnum.JOB_GROUP, "Job Groups where each entry matches the corresponding index in "
+						+ ReactorKeysEnum.JOB_ID.getKey());
 	}
 
 }

@@ -37,10 +37,10 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
@@ -71,14 +71,7 @@ public class CreateProjectReactor extends AbstractReactor {
 		this.organizeKeys();
 		IProject.PROJECT_TYPE projectType = null;
 
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a project",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
+		User user = requireUser();
 
 		int index = 0;
 
@@ -161,15 +154,15 @@ public class CreateProjectReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The name for this project. Note: the project ID is randomly generated and is not passed into this method";
-		} else if (key.equals(ReactorKeysEnum.PROVIDER.getKey())) {
-			return "The GIT provider - user must be logged in with this provider for credentials";
-		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
-			return "The GIT repository URL to clone for this project";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Creates a new CODE, BLOCKS or INSIGHTS project with the given name and returns its details. The type defaults to INSIGHTS, and a public request from a non-admin is made private with a warning when only admins may make projects public.")
+				.key(ReactorKeysEnum.GLOBAL, key -> key.type(Boolean.class))
+				.key(ReactorKeysEnum.PROJECT,
+						"The name for this project. Note: the project ID is randomly generated and is not passed into this method")
+				.key(ReactorKeysEnum.PROVIDER,
+						"The GIT provider - user must be logged in with this provider for credentials")
+				.key(ReactorKeysEnum.URL, "The GIT repository URL to clone for this project");
 	}
 
 }

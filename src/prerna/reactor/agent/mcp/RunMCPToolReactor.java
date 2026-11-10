@@ -34,6 +34,7 @@ import java.util.Map;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -140,36 +141,26 @@ public class RunMCPToolReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Execute a tool defined in an engine or project/app. When actionId is provided, the call is a HITL decision: the result is written to the agent room and the agent run is resumed.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey()) || key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the engine or project/app";
-		} else if (key.equals(ReactorKeysEnum.FUNCTION.getKey())) {
-			return "The name of the tool/function to execute";
-		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			return "A key-value pair map containing the parameter inputs for the tool/function";
-		} else if (key.equals(ReactorKeysEnum.MCP_TOOL_RESULT.getKey())) {
-			return "If this key is present, its value will be returned as the result of the MCP tool execution, and the tool will not be executed.";
-		} else if (key.equals(RUN_ID_KEY)) {
-			return "Agent run id. Optional; validated against the AGENT_RUN_ACTION row when provided.";
-		} else if (key.equals(ROOM_ID_KEY)) {
-			return "Agent room id. Optional; validated against the AGENT_RUN_ACTION row when provided.";
-		} else if (key.equals(TOOL_CALL_ID_KEY)) {
-			return "The tool call id from the agent's paused tool-call batch. Optional; validated against the AGENT_RUN_ACTION row when provided.";
-		} else if (key.equals(PARENT_MESSAGE_ID_KEY)) {
-			return "The assistant message id that contains the tool-call batch. Optional; validated against the AGENT_RUN_ACTION row when provided.";
-		} else if (key.equals(ReactorKeysEnum.MCP_TOOL_STATUS.getKey())) {
-			return "Tool execution status: success, error, or cancelled. Defaults to success (or error for passthrough results).";
-		} else if (key.equals(ACTION_ID_KEY)) {
-			return "The AGENT_RUN_ACTION id for this pending tool call. Used to record the user's decision.";
-		} else if (key.equals(DECISION_KEY)) {
-			return "The user's decision: approve, edit, reject, or respond.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Execute a tool defined in an engine or project/app. When actionId is provided, the call is a HITL decision: the result is written to the agent room and the agent run is resumed.")
+				.key(ReactorKeysEnum.ENGINE, "The unique id for the engine or project/app")
+				.key(ReactorKeysEnum.FUNCTION, "The name of the tool/function to execute")
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP,
+						"A key-value pair map containing the parameter inputs for the tool/function")
+				.key(ReactorKeysEnum.MCP_TOOL_RESULT,
+						"If this key is present, its value will be returned as the result of the MCP tool execution, and the tool will not be executed.")
+				.key(RUN_ID_KEY, "Agent run id. Optional; validated against the AGENT_RUN_ACTION row when provided.")
+				.key(ROOM_ID_KEY, "Agent room id. Optional; validated against the AGENT_RUN_ACTION row when provided.")
+				.key(TOOL_CALL_ID_KEY,
+						"The tool call id from the agent's paused tool-call batch. Optional; validated against the AGENT_RUN_ACTION row when provided.")
+				.key(PARENT_MESSAGE_ID_KEY,
+						"The assistant message id that contains the tool-call batch. Optional; validated against the AGENT_RUN_ACTION row when provided.")
+				.key(ReactorKeysEnum.MCP_TOOL_STATUS,
+						"Tool execution status: success, error, or cancelled. Defaults to success (or error for passthrough results).")
+				.key(ACTION_ID_KEY,
+						"The AGENT_RUN_ACTION id for this pending tool call. Used to record the user's decision.")
+				.key(DECISION_KEY, "The user's decision: approve, edit, reject, or respond.");
 	}
 
 }

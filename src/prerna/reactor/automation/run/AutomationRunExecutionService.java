@@ -1647,10 +1647,10 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Room options a generated agent node asks for: extra skills (access is checked when the run loads them) and the
-	 * Collaboration routine flag, which only narrows what the run may do.
+	 * Room options a generated agent node asks for: extra skills and MCP tools (access is checked when the run loads
+	 * them) and the Collaboration routine flag, which only narrows what the run may do.
 	 */
-	private static Map<String, Object> generatedAgentRoomOptions(Map<String, Object> config) {
+	static Map<String, Object> generatedAgentRoomOptions(Map<String, Object> config) {
 		Map<String, Object> options = new LinkedHashMap<>();
 		if (config.get(AutomationConstants.CONFIG_SKILLS) instanceof List<?> skills && !skills.isEmpty()) {
 			List<Map<String, Object>> refs = new ArrayList<>();
@@ -1661,6 +1661,19 @@ final class AutomationRunExecutionService {
 				}
 			}
 			options.put("skills", refs);
+		}
+		if (config.get(AutomationConstants.CONFIG_MCPS) instanceof List<?> mcps && !mcps.isEmpty()) {
+			List<Map<String, Object>> refs = new ArrayList<>();
+			for (Object mcp : mcps) {
+				String mcpId = mcp instanceof Map<?, ?> ref ? stringValue(ref.get("id")) : null;
+				if (mcpId != null && !mcpId.isBlank()) {
+					// the room's own mcp shape: a run reads the id, the room's settings show the name and type
+					Map<?, ?> ref = (Map<?, ?>) mcp;
+					refs.add(Map.of("id", mcpId.trim(), "name", String.valueOf(ref.get("name")), "type",
+							String.valueOf(ref.get("type"))));
+				}
+			}
+			options.put("mcp", refs);
 		}
 		if (Boolean.TRUE.equals(config.get(AutomationConstants.CONFIG_COLLABORATION_ROUTINE))) {
 			options.put(CollaborationUtils.ROOM_OPTION_ROUTINE, true);

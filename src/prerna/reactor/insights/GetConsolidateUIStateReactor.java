@@ -30,6 +30,7 @@ package prerna.reactor.insights;
 import java.util.List;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -38,9 +39,9 @@ import prerna.util.insight.InsightUtility;
 public class GetConsolidateUIStateReactor extends AbstractReactor {
 
 	public GetConsolidateUIStateReactor() {
-		this.keysToGet = new String[] {InsightUtility.OUTPUT_TYPE};
+		this.keysToGet = new String[] { InsightUtility.OUTPUT_TYPE };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		String outputType = getOutput();
@@ -49,33 +50,32 @@ public class GetConsolidateUIStateReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals(InsightUtility.OUTPUT_TYPE)) {
-			return "The value to return - as a 'string' or 'map'";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the pixel steps that recreate the current insight's sheets and panels, with each state as a map or a string.")
+				.key(InsightUtility.OUTPUT_TYPE, "The value to return - as a 'string' or 'map'");
 	}
-	
+
 	private String getOutput() {
 		GenRowStruct grs = this.store.getGenRowStruct(InsightUtility.OUTPUT_TYPE);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			String input = grs.get(0).toString();
-			if(input.equalsIgnoreCase(InsightUtility.STRING_OUTPUT)) {
+			if (input.equalsIgnoreCase(InsightUtility.STRING_OUTPUT)) {
 				return InsightUtility.STRING_OUTPUT;
 			} else {
 				return InsightUtility.MAP_OUTPUT;
 			}
 		}
-		
-		if(!this.curRow.isEmpty()) {
-			if(this.curRow.toString().equalsIgnoreCase(InsightUtility.STRING_OUTPUT)) {
+
+		if (!this.curRow.isEmpty()) {
+			if (this.curRow.toString().equalsIgnoreCase(InsightUtility.STRING_OUTPUT)) {
 				return InsightUtility.STRING_OUTPUT;
 			} else {
 				return InsightUtility.MAP_OUTPUT;
 			}
 		}
-		
+
 		return InsightUtility.MAP_OUTPUT;
 	}
-	
+
 }

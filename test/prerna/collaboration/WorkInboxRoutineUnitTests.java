@@ -31,6 +31,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -54,15 +58,18 @@ import java.util.regex.Pattern;
 import com.google.gson.JsonParser;
 import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.quartz.CronExpression;
 import org.quartz.CronTrigger;
+import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
@@ -71,9 +78,12 @@ import org.quartz.Trigger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.io.connector.ms.MicrosoftGraphCredentialStore;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry;
@@ -87,6 +97,7 @@ import prerna.reactor.automation.definition.AutomationDefinitionService;
 import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.reactor.automation.run.AutomationRunStore;
 import prerna.reactor.automation.run.RunAutomationDefinitionReactor;
+import prerna.reactor.agent.skill.SkillProjects;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.reactor.scheduler.SchedulerFactorySingleton;
@@ -149,6 +160,12 @@ class WorkInboxRoutineUnitTests {
 		credentials.when(() -> MicrosoftGraphCredentialStore.save(any())).thenAnswer(call -> {
 			AccessToken token = call.getArgument(0);
 			savedTokens.put(token.getId(), AccessToken.copyToken(token));
+			return null;
+		});
+		// as the store does: a renewed pair replaces a stored one and never stores one anew
+		credentials.when(() -> MicrosoftGraphCredentialStore.update(any())).thenAnswer(call -> {
+			AccessToken token = call.getArgument(0);
+			savedTokens.computeIfPresent(token.getId(), (id, saved) -> AccessToken.copyToken(token));
 			return null;
 		});
 		credentials.when(() -> MicrosoftGraphCredentialStore.accessToken(anyString())).thenAnswer(call ->
@@ -241,9 +258,109 @@ class WorkInboxRoutineUnitTests {
 	void savedCustomRoutineKeepsAllOfItsSettingsWhenLoaded() {
 		Map<String, Object> custom = new HashMap<>(WorkCustomRoutine.KIND.defaults());
 		custom.putAll(Map.of("enabled", false, "name", "Project summary", "prompt", "Summarize my project updates",
-				"delivery", "none", "agentId", "chosen-agent", "skills", List.of("chosen-skill")));
+				"delivery", "none", "agentId", "chosen-agent", "skills", List.of("chosen-skill"), "tools",
+				List.of(Map.of("id", "sales-db", "name", "Sales DB", "type", "DATABASE"))));
 		Map<String, Object> result = WorkRoutine.save(WorkCustomRoutine.KIND, user, "custom-routine", custom);
 		custom.forEach((key, value) -> assertEquals(value, result.get(key), key));
+	}
+
+	@Test
+	void customRoutineToolsAreAShortListOfDistinctToolboxes() {
+		Map<String, Object> salesDb = Map.of("id", "sales-db", "name", "Sales DB", "type", "DATABASE");
+		List<Object> invalid = new ArrayList<>(List.of("sales-db", List.of("sales-db"), List.of(salesDb, salesDb),
+				List.of(Map.of("name", "No id", "type", "DATABASE")),
+				List.of(Map.of("id", "checks", "name", "Checks", "type", "GUARDRAIL")),
+				List.of(Map.of("id", "sales-db", "name", "x".repeat(WorkCustomRoutine.MAX_TOOL_NAME + 1), "type",
+						"DATABASE"))));
+		List<Map<String, Object>> eleven = new ArrayList<>();
+		for (int i = 0; i <= WorkCustomRoutine.MAX_TOOLS; i++) {
+			eleven.add(Map.of("id", "tool-" + i, "name", "Tool " + i, "type", "FUNCTION"));
+		}
+		invalid.add(eleven);
+		for (Object tools : invalid) {
+			Map<String, Object> custom = new HashMap<>(WorkCustomRoutine.KIND.defaults());
+			custom.putAll(Map.of("enabled", false, "name", "Pipeline", "prompt", "Summarize the pipeline", "tools", tools));
+			assertThrows(IllegalArgumentException.class,
+					() -> WorkRoutine.save(WorkCustomRoutine.KIND, user, "custom-routine", custom), String.valueOf(tools));
+		}
+		assertEquals(0, CollaborationDbUtils.count("SELECT COUNT(*) FROM WORK_CUSTOM_ROUTINE"));
+	}
+
+	@Test
+	void customRoutineTakesOnlySkillsAndToolsTheOwnerCanUseAndARunDropsOnesTheyLost() {
+		Map<String, Object> salesDb = Map.of("id", "sales-db", "name", "Sales DB", "type", "DATABASE");
+		Map<String, Object> jira = Map.of("id", "jira-app", "name", "Jira", "type", "PROJECT");
+		Map<String, Object> policies = Map.of("id", "policies", "name", "Policy library", "type", "VECTOR");
+		try (MockedStatic<SecurityEngineUtils> engines = mockStatic(SecurityEngineUtils.class);
+				MockedStatic<SecurityProjectUtils> projects = mockStatic(SecurityProjectUtils.class);
+				MockedStatic<SkillProjects> skills = mockStatic(SkillProjects.class)) {
+			skills.when(() -> SkillProjects.isSkillProject(anyString())).thenReturn(true);
+			engines.when(() -> SecurityEngineUtils.userCanViewEngine(user, "sales-db")).thenReturn(true);
+			engines.when(() -> SecurityEngineUtils.userCanViewEngine(user, "policies")).thenReturn(true);
+			projects.when(() -> SecurityProjectUtils.userCanViewProject(user, "jira-app")).thenReturn(true);
+			projects.when(() -> SecurityProjectUtils.userCanViewProject(user, "shared-skill")).thenReturn(true);
+			Map<String, Object> changes = new HashMap<>(Map.of("enabled", false, "name", "Pipeline", "prompt",
+					"Summarize the pipeline", "skills", List.of("shared-skill"), "tools", List.of(salesDb, jira, policies)));
+			Map<String, Object> saved = WorkCustomRoutine.save(user, null, changes);
+			assertEquals(List.of("shared-skill"), saved.get("skills"));
+			assertEquals(List.of(salesDb, jira, policies), saved.get("tools"));
+
+			// a skill or tool never shared with the owner, or an engine named as a project, is refused
+			for (Map.Entry<String, Object> refused : List.of(Map.entry("skills", (Object) List.of("someone-elses-skill")),
+					Map.entry("tools", (Object) List.of(Map.of("id", "hr-db", "name", "HR", "type", "DATABASE"))),
+					Map.entry("tools", (Object) List.of(Map.of("id", "sales-db", "name", "Sales DB", "type", "PROJECT"))))) {
+				Map<String, Object> attempt = new HashMap<>(changes);
+				attempt.put(refused.getKey(), refused.getValue());
+				assertThrows(IllegalArgumentException.class, () -> WorkCustomRoutine.save(user, null, attempt),
+						String.valueOf(refused));
+			}
+			assertEquals(1, CollaborationDbUtils.count("SELECT COUNT(*) FROM WORK_CUSTOM_ROUTINE"));
+
+			// access to the database was taken away after the owner added it
+			engines.when(() -> SecurityEngineUtils.userCanViewEngine(user, "sales-db")).thenReturn(false);
+			Map<String, Object> settings = new HashMap<>(WorkCustomRoutine.KIND.defaults());
+			settings.putAll(Map.of("name", "Pipeline", "prompt", "Summarize the pipeline", "tools",
+					List.of(salesDb, jira, policies)));
+			assertEquals(List.of(jira, policies), WorkCustomRoutine.KIND.agent().config(user, settings).get("mcps"));
+		}
+	}
+
+	@Test
+	void aCustomRoutineWhoseSkillToolOrAgentWasTakenAwayCanStillBePausedAndEdited() {
+		Map<String, Object> salesDb = Map.of("id", "sales-db", "name", "Sales DB", "type", "DATABASE");
+		try (MockedStatic<SecurityEngineUtils> engines = mockStatic(SecurityEngineUtils.class);
+				MockedStatic<SecurityProjectUtils> projects = mockStatic(SecurityProjectUtils.class);
+				MockedStatic<SkillProjects> skills = mockStatic(SkillProjects.class);
+				MockedStatic<ModelInferenceLogsUtils> agents = mockStatic(ModelInferenceLogsUtils.class)) {
+			skills.when(() -> SkillProjects.isSkillProject(anyString())).thenReturn(true);
+			engines.when(() -> SecurityEngineUtils.userCanViewEngine(user, "sales-db")).thenReturn(true);
+			projects.when(() -> SecurityProjectUtils.userCanViewProject(user, "shared-skill")).thenReturn(true);
+			projects.when(() -> SecurityProjectUtils.userCanViewProject(user, "chosen-agent")).thenReturn(true);
+			agents.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(anyString())).thenReturn(Map.of());
+			Map<String, Object> settings = new HashMap<>(Map.of("enabled", false, "name", "Pipeline", "prompt",
+					"Summarize the pipeline", "skills", List.of("shared-skill"), "tools", List.of(salesDb), "agentId",
+					"chosen-agent"));
+			String routineId = (String) WorkCustomRoutine.save(user, null, settings).get("id");
+
+			// the skill, the database and the agent are all taken away from the owner
+			engines.when(() -> SecurityEngineUtils.userCanViewEngine(eq(user), anyString())).thenReturn(false);
+			projects.when(() -> SecurityProjectUtils.userCanViewProject(eq(user), anyString())).thenReturn(false);
+			assertEquals(false, WorkCustomRoutine.setEnabled(user, routineId, false).get("enabled"));
+			// Routines saves every setting at once, here with a new task
+			settings.put("prompt", "Summarize the pipeline by region");
+			assertEquals("Summarize the pipeline by region", WorkCustomRoutine.save(user, routineId, settings).get("prompt"));
+
+			// what a save adds is still checked
+			for (Map.Entry<String, Object> added : List.of(Map.entry("skills", (Object) List.of("shared-skill", "new-skill")),
+					Map.entry("tools", (Object) List.of(salesDb, Map.of("id", "hr-db", "name", "HR", "type", "DATABASE"))),
+					Map.entry("agentId", (Object) "another-agent"))) {
+				Map<String, Object> attempt = new HashMap<>(settings);
+				attempt.put(added.getKey(), added.getValue());
+				assertThrows(IllegalArgumentException.class, () -> WorkCustomRoutine.save(user, routineId, attempt),
+						added.getKey());
+			}
+			assertEquals("Summarize the pipeline by region", WorkRoutine.get(WorkCustomRoutine.KIND, user, routineId).get("prompt"));
+		}
 	}
 
 	@Test
@@ -459,17 +576,23 @@ class WorkInboxRoutineUnitTests {
 		try (MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class)) {
 			accounts.when(() -> SecurityQueryUtils.getUnlockedUser("owner-one", AuthProvider.NATIVE.getLabel())).thenReturn(Map.of("id", "owner-one"));
 			assertEquals("completed", WorkInboxRoutine.run(insight).get("status"));
-			credentials.verify(() -> MicrosoftGraphCredentialStore.accessToken("ms-owner"));
-			// The migration save, if any, plus the refreshed pair the run left behind.
-			credentials.verify(() -> MicrosoftGraphCredentialStore.save(any()), times(alreadySaved ? 1 : 2));
-			assertEquals("refreshed-token", savedTokens.get("ms-owner").getAccess_token());
+			credentials.verify(() -> MicrosoftGraphCredentialStore.accessToken("ms-owner"), times(alreadySaved ? 1 : 0));
+			// The refreshed pair the run left behind replaces the saved one; a subscription's sign-in served this run
+			// only and is never saved as background access.
+			credentials.verify(() -> MicrosoftGraphCredentialStore.save(any()), never());
+			if (alreadySaved) {
+				assertEquals("refreshed-token", savedTokens.get("ms-owner").getAccess_token());
+			} else {
+				assertFalse(savedTokens.containsKey("ms-owner"));
+			}
 			assertNull(user.getAccessToken(AuthProvider.MICROSOFT));
 			Map<?, ?> brief = (Map<?, ?>) WorkInboxRoutine.get(user).get("lastRun");
 			assertEquals("completed", brief.get("status"));
 			assertEquals("Your private daily brief.", brief.get("summary"));
 			assertEquals("brief-room", brief.get("roomId"));
 			assertNull(brief.get("error"));
-			assertEquals(scanAt, lastSuccess());
+			// in whole hundredths, which SQL Server's DATETIME holds exactly
+			assertEquals("2026-10-12T12:00:00.120Z", lastSuccess());
 			assertEquals("2026-10-12T12:05:00Z", brief.get("finishedAt"));
 			assertNull(WorkInboxRoutine.get(owner("another-owner")).get("lastRun"));
 			ArgumentCaptor<AutomationDefinitionService.DefinitionFiles> files = ArgumentCaptor
@@ -478,9 +601,27 @@ class WorkInboxRoutineUnitTests {
 					eq(WorkInboxRoutine.AUTOMATION_ID), files.capture(), eq(Map.of("owner_email", "owner@example.com",
 							"timezone", "America/New_York", "lookback_hours", 24, "preferences", "", "sections",
 							List.of("priorities", "replies", "meetings", "actions"), "priority_count", 5, "write_drafts", true,
-							"skip_reply_subjects", WorkExpenseRoutine.SUBJECTS)),
+							"skip_reply_subjects", WorkExpenseRoutine.SUBJECTS, "drafted", Map.of())),
 					eq(AutomationConstants.TRIGGER_SCHEDULED), isNull()));
-			assertEquals(2, files.getValue().definition().split("\"text-model\"", -1).length - 1);
+			// once, as brief_model, which the meeting notes and the reply drafts both read
+			assertEquals(1, files.getValue().definition().split("\"text-model\"", -1).length - 1);
+		}
+	}
+
+	@Test
+	void aRunIsClaimedAndFinishedWhereStartTimesKeepLessThanMillisecondsAsSqlServerDatetimeDoes() throws Exception {
+		Insight insight = enabledRoutine();
+		// DATETIME keeps 1/300 s; two decimals stand in for it, so a start between them reads back as another time
+		try (Statement statement = connection.createStatement()) {
+			statement.execute("ALTER TABLE WORK_INBOX_ROUTINE ALTER COLUMN STARTED_AT TIMESTAMP(2)");
+		}
+		at("2026-10-12T08:00:00.125Z");
+		finished(AutomationConstants.STATUS_SUCCESS, AutomationConstants.NODE_STATUS_SUCCESS, "Your private daily brief.");
+		try (MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class)) {
+			accounts.when(() -> SecurityQueryUtils.getUnlockedUser("owner-one", AuthProvider.NATIVE.getLabel()))
+					.thenReturn(Map.of("id", "owner-one"));
+			assertEquals("completed", WorkInboxRoutine.run(insight).get("status"));
+			assertEquals("completed", ((Map<?, ?>) WorkInboxRoutine.get(user).get("lastRun")).get("status"));
 		}
 	}
 
@@ -537,8 +678,10 @@ class WorkInboxRoutineUnitTests {
 			assertTrue(((String) failed.get("error")).startsWith("The inbox brief ran out of time"));
 			assertEquals("brief-room", failed.get("roomId"));
 			ArgumentCaptor<Map<String, Object>> message = ArgumentCaptor.forClass(Map.class);
-			verify(mail.constructed().get(0)).sendMail(eq("owner-token"), isNull(), message.capture(), eq(true));
+			verify(mail.constructed().get(0)).sendThroughDraft(eq("owner-token"), isNull(), message.capture(), any());
 			assertEquals("Your inbox brief ran out of time", message.getValue().get("subject"));
+			// marked and recorded like a routine's results, so the import keeps the note out of Work
+			assertTrue(BrainOwnMail.marked(message.getValue()));
 			assertEquals(1, mail.constructed().size());
 		}
 	}
@@ -769,12 +912,12 @@ class WorkInboxRoutineUnitTests {
 	void briefDefinitionIsStrictlyValidAndReadsOnlyDeclaredScopeNames() {
 		assertStrictDefinition(WorkInboxRoutine.briefDefinition("engine-1"),
 				List.of("start", "sync", "wait_sync", "gather", "if_drafts", "drafts", "save_drafts", "prepare", "meeting_notes", "brief", "deliver"),
-				List.of("wait_sync", "gather", "save_drafts", "prepare", "summarize_meeting", "brief", "deliver"), List.of("drafts"),
+				List.of("wait_sync", "gather", "drafts", "save_drafts", "prepare", "summarize_meeting", "brief", "deliver"), List.of(),
 				Set.of("owner_email", "timezone", "lookback_hours", "brief_model", "preferences", "sections", "priority_count",
-						"write_drafts", "skip_reply_subjects"),
+						"write_drafts", "skip_reply_subjects", "drafted"),
 				Set.of("context", "drafts", "saved", "prepared", "meeting_notes", "brief", "brief_model",
 						"owner_email", "timezone", "lookback_hours", "preferences", "sections", "priority_count", "write_drafts",
-						"skip_reply_subjects"));
+						"skip_reply_subjects", "drafted"));
 	}
 
 	@Test
@@ -786,11 +929,31 @@ class WorkInboxRoutineUnitTests {
 		assertEquals("", defaults.get("owner_email"));
 		assertEquals("UTC", defaults.get("timezone"));
 		assertEquals(24, ((Number) defaults.get("lookback_hours")).intValue());
-		Map<?, ?> drafts = (Map<?, ?>) definition.nodes().stream()
-				.filter(node -> "drafts".equals(node.get(AutomationConstants.NODE_FIELD_ID))).findFirst().orElseThrow()
-				.get(AutomationConstants.NODE_FIELD_CONFIG);
-		assertEquals("owners-model", drafts.get(AutomationConstants.CONFIG_ENGINE_ID));
-		assertEquals(InboxBriefHarness.NAME, drafts.get(AutomationConstants.CONFIG_HARNESS_TYPE));
+		// the run ends at the first step that fails, so a draft that times out or comes back blank must not be an agent step
+		assertTrue(definition.nodes().stream()
+				.noneMatch(node -> AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))));
+		String drafts = WorkInboxRoutine.briefDefinition("owners-model").nodeSources().get("drafts");
+		assertTrue(drafts.contains("scope[\"brief_model\"]") && drafts.contains("except Exception:"),
+				"Reply drafts use the owner's model and fall back instead of failing the brief.");
+	}
+
+	@Test
+	void calendarReadsGoOnWhereAPageThatEndedEarlyStopped() {
+		// a page of events ends at about 40,000 characters, often a dozen events, and names the offset to go on from
+		for (AutomationDefinitionService.DefinitionFiles files : List.of(WorkInboxRoutine.briefDefinition("engine-1"),
+				WorkAgendaRoutine.definition("engine-1"), WorkRoutine.definition(WorkEventPlanningRoutine.KIND, "engine-1"))) {
+			String gather = files.nodeSources().get("gather");
+			assertTrue(gather.contains("\"MicrosoftCalendarListEvents\"") && gather.contains("page.get(\"nextOffset\""));
+			assertFalse(gather.contains("offset += 100"));
+		}
+	}
+
+	@Test
+	void briefLeavesOutARoutineSubjectOnlyWhenTheOwnerIsAloneOnTheThread() {
+		String gather = WorkInboxRoutine.briefDefinition("engine-1").nodeSources().get("gather");
+		// only the detailed listing carries each thread's people; a colleague's "Expense review:" thread is Work
+		assertTrue(gather.contains("\"BrainListThreads\", limit=2000, offset=0, detail=True"));
+		assertTrue(gather.contains("t.get(\"participants\")"));
 	}
 
 	@ParameterizedTest
@@ -809,6 +972,34 @@ class WorkInboxRoutineUnitTests {
 		agentConfig.forEach((key, value) -> assertEquals(value, agent.get(key), key));
 	}
 
+	@ParameterizedTest
+	@CsvSource({ "25, 1500000", "soon, 600000", "0, 60000" })
+	void anAgentStepGetsTheMinutesRdfMapSets(String minutes, String waitTimeoutMs) {
+		utility.when(() -> Utility.getDIHelperProperty(Constants.COLLAB_ROUTINE_TIMEOUT_MINUTES)).thenReturn(minutes);
+		Map<?, ?> agent = (Map<?, ?>) AutomationDefinitionValidator.parseAndValidate(
+				WorkAgendaRoutine.definition("engine-1").definition()).nodes().stream()
+				.filter(node -> AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE)))
+				.findFirst().orElseThrow().get(AutomationConstants.NODE_FIELD_CONFIG);
+		assertEquals(waitTimeoutMs, agent.get(AutomationConstants.CONFIG_WAIT_TIMEOUT_MS));
+	}
+
+	@Test
+	void aCustomRoutinesTaskReachesItsAgentAsWrittenThoughRunAgentUrlDecodesIt() {
+		String task = "Update https://contoso.sharepoint.com/sites/ops/Shared%20Documents/Tracker.xlsx and send it to "
+				+ "anna+vendors@contoso.com";
+		Map<String, Object> settings = new HashMap<>(WorkCustomRoutine.KIND.defaults());
+		settings.putAll(Map.of("name", "Vendor tracker", "prompt", task));
+		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator.parseAndValidate(
+				WorkRoutine.definition(WorkCustomRoutine.KIND, "owners-model",
+						WorkCustomRoutine.KIND.agent().config(user, settings)).definition());
+		Map<?, ?> agent = (Map<?, ?>) definition.nodes().stream()
+				.filter(node -> AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE)))
+				.findFirst().orElseThrow().get(AutomationConstants.NODE_FIELD_CONFIG);
+		// as RunAgentReactor decodes a command holding "%"
+		String command = URLDecoder.decode((String) agent.get(AutomationConstants.CONFIG_COMMAND), StandardCharsets.UTF_8);
+		assertTrue(command.endsWith("\nTask:\n" + task), command);
+	}
+
 	@Test
 	void dailyBriefSavesReplyAllDraftsAndOnlySendsTheOwnersBrief() {
 		AutomationDefinitionService.DefinitionFiles files = WorkInboxRoutine.briefDefinition("engine-1");
@@ -821,7 +1012,7 @@ class WorkInboxRoutineUnitTests {
 			mailOperations.add(calls.group());
 		}
 		assertEquals(Set.of("MicrosoftOutlookListMail", "MicrosoftOutlookReplyMail", "MicrosoftOutlookCreateMailFolder",
-				"MicrosoftOutlookMoveMail", "MicrosoftOutlookSendMail"), mailOperations);
+				"MicrosoftOutlookMoveMail"), mailOperations);
 		String saveDrafts = files.nodeSources().get("save_drafts");
 		assertNotNull(saveDrafts);
 		assertTrue(saveDrafts.contains("MicrosoftOutlookReplyMail"));
@@ -834,9 +1025,79 @@ class WorkInboxRoutineUnitTests {
 		assertEquals(AutomationConstants.NODE_DEVELOPER_PYTHON, brief.get(AutomationConstants.NODE_FIELD_TYPE));
 		assertEquals("brief", brief.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR));
 		String deliver = files.nodeSources().get("deliver");
-		assertTrue(deliver.contains("MicrosoftOutlookSendMail("));
+		// only to the owner, recorded first so the import keeps the brief out of Work
+		assertTrue(deliver.contains("BrainSendToOwner("));
 		assertTrue(deliver.contains("scope.get(\"owner_email\")"));
 		assertTrue(deliver.contains("_pixel_value(\"to\", [recipient])"));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void aBriefRunByHandPassesOnTheReplyDraftsTheNewestBriefThatSavedDraftsKept() throws Exception {
+		Insight insight = enabledRoutine();
+		at("2026-10-12T08:00:00Z");
+		finished(AutomationConstants.STATUS_SUCCESS, AutomationConstants.NODE_STATUS_SUCCESS, "Your private daily brief.");
+		// newest first: a run that failed before its drafts, then the brief that saved them
+		store.when(() -> AutomationRunStore.getRunsForAutomation(anyString(), eq(WorkInboxRoutine.AUTOMATION_ID), anyInt()))
+				.thenReturn(List.of(Map.of(AutomationConstants.RUN_ID, "failed-run"),
+						Map.of(AutomationConstants.RUN_ID, "drafting-run")));
+		store.when(() -> AutomationRunStore.getNodeOutputsForRun("failed-run")).thenReturn(List.of(Map.of(
+				AutomationConstants.NODE_ID, "gather", AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_FAILED)));
+		store.when(() -> AutomationRunStore.getNodeOutputsForRun("drafting-run")).thenReturn(List.of(Map.of(
+				AutomationConstants.NODE_ID, "save_drafts", AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS,
+				AutomationConstants.OUTPUT_VALUE, "{\"replies\": [], \"drafted\": {\"estimate-ask\": \"Drafts > Teamwork drafts\"}}")));
+		try (MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class)) {
+			accounts.when(() -> SecurityQueryUtils.getUnlockedUser("owner-one", AuthProvider.NATIVE.getLabel()))
+					.thenReturn(Map.of("id", "owner-one"));
+			assertEquals("completed", WorkInboxRoutine.runManual(insight).get("status"));
+			ArgumentCaptor<Map<String, Object>> inputs = ArgumentCaptor.forClass(Map.class);
+			automations.verify(() -> RunAutomationDefinitionReactor.runDefinition(any(), anyString(), anyString(), any(),
+					inputs.capture(), anyString(), isNull()));
+			assertEquals(Map.of("estimate-ask", "Drafts > Teamwork drafts"), inputs.getValue().get("drafted"));
+		}
+	}
+
+	@Test
+	void anAskAnEarlierBriefSavedADraftForGetsNoSecondDraft() throws Exception {
+		Map<String, String> sources = WorkInboxRoutine.briefDefinition("engine-1").nodeSources();
+		List<List<String>> steps = List.of(List.of("gather", sources.get("gather"), "context"),
+				List.of("drafts", sources.get("drafts"), "drafts"), List.of("save_drafts", sources.get("save_drafts"), "saved"));
+		String received = Instant.now().minusSeconds(3600).truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString();
+		// the model answers for both asks, as it would when shown both
+		List<List<Object>> answers = List.of(
+				List.of("LLM(", Map.of("messageType", "CHAT", "response",
+						"{\"drafts\": [{\"n\": 1, \"body\": \"Approved.\"}, {\"n\": 2, \"body\": \"Attached.\"}]}")),
+				List.of("WorkListItems", Map.of("items", List.of(ask("estimate", received), ask("report", received)))),
+				List.of("threadId=[\"estimate\"]", Map.of("messages", List.of(Map.of("id", "estimate-ask",
+						"fromAddress", "dana@example.com", "text", "Can you approve the estimate?")))),
+				List.of("threadId=[\"report\"]", Map.of("messages", List.of(Map.of("id", "report-ask",
+						"fromAddress", "lee@example.com", "text", "Can you send the report?")))),
+				List.of("MicrosoftOutlookCreateMailFolder", Map.of("id", "teamwork-folder")),
+				List.of("MicrosoftOutlookReplyMail", Map.of("id", "report-draft")));
+		Map<String, Object> scope = new HashMap<>(Map.of("owner_email", "owner@example.com", "timezone", "UTC",
+				"lookback_hours", 24, "brief_model", "engine-1", "sections", List.of("replies"), "write_drafts", true,
+				"drafted", Map.of("estimate-ask", "Drafts > Teamwork drafts")));
+
+		Map<?, ?> run = runSteps(scope, steps, answers);
+		Map<?, ?> context = (Map<?, ?>) ((Map<?, ?>) run.get("scope")).get("context");
+		List<?> drafting = (List<?>) AutomationRuntimeUtils.GSON.fromJson((String) context.get("draftsInput"), Map.class)
+				.get("replies");
+		assertEquals(List.of(2), drafting.stream().map(reply -> ((Number) ((Map<?, ?>) reply).get("n")).intValue()).toList());
+		List<?> written = ((List<?>) ((Map<?, ?>) run.get("pixels")).get("save_drafts")).stream()
+				.filter(pixel -> ((String) pixel).startsWith("MicrosoftOutlookReplyMail(")).toList();
+		assertEquals(1, written.size());
+		assertTrue(((String) written.get(0)).startsWith("MicrosoftOutlookReplyMail(id=[\"report-ask\"]"), written.toString());
+		Map<?, ?> saved = (Map<?, ?>) ((Map<?, ?>) run.get("scope")).get("saved");
+		assertEquals(List.of("saved", "saved"),
+				((List<?>) saved.get("replies")).stream().map(reply -> ((Map<?, ?>) reply).get("draft")).toList());
+		assertEquals(Map.of("estimate-ask", "Drafts > Teamwork drafts", "report-ask", "Drafts > Teamwork drafts"),
+				saved.get("drafted"));
+
+		// once every ask has its draft, the brief asks the model for none and writes none
+		scope.put("drafted", Map.of("estimate-ask", "Drafts > Teamwork drafts", "report-ask", "Drafts"));
+		run = runSteps(scope, steps, answers);
+		assertEquals(Set.of("gather"), ((Map<?, ?>) run.get("pixels")).keySet());
+		assertEquals(scope.get("drafted"), ((Map<?, ?>) ((Map<?, ?>) run.get("scope")).get("saved")).get("drafted"));
 	}
 
 	@Test
@@ -859,6 +1120,35 @@ class WorkInboxRoutineUnitTests {
 		// the summary is a step's text, and lastRun reads the HTML from the deliver step's output
 		assertEquals("digest", WorkEventPlanningRoutine.KIND.outputNode());
 		assertTrue(files.nodeSources().get("deliver").contains("\"html\": body"));
+	}
+
+	@Test
+	void eventPlanningNamesEachSheetAsItsStorageDoesSoTwoPinsNeverShareOne() {
+		// a full-width colon, which storage makes a colon OneDrive refuses; a slash; then a trailing dot and case
+		for (List<String> titles : List.of(List.of("Ops\uFF1ASync", "Ops/Sync"), List.of("Ops sync.", "OPS SYNC"))) {
+			Map<String, Object> input = eventPlanning(titles);
+			assertThrows(IllegalArgumentException.class, () -> WorkRoutine.validate(WorkEventPlanningRoutine.KIND, input),
+					titles.toString());
+		}
+		Map<String, Object> config = WorkRoutine.validate(WorkEventPlanningRoutine.KIND,
+				eventPlanning(List.of("Ops\uFF1ASync", "Board review")));
+		List<?> meetings = (List<?>) WorkEventPlanningRoutine.KIND.inputs().apply(Map.of(), config).get("meetings");
+		assertEquals(List.of("Ops-Sync.xlsx", "Board review.xlsx"),
+				meetings.stream().map(meeting -> ((Map<?, ?>) meeting).get("sheet")).toList());
+	}
+
+	@Test
+	void eventPlanningReadsEachSheetByTheNameItsStorageKeeps() throws Exception {
+		Map<String, Object> config = WorkRoutine.validate(WorkEventPlanningRoutine.KIND,
+				eventPlanning(List.of("Ops\uFF1ASync")));
+		Map<String, Object> scope = new HashMap<>(WorkEventPlanningRoutine.KIND.inputs().apply(Map.of(), config));
+		scope.put("timezone", "UTC");
+		Map<?, ?> run = runSteps(scope, List.of(List.of("gather",
+				WorkRoutine.definition(WorkEventPlanningRoutine.KIND, "engine-1").nodeSources().get("gather"), "context")),
+				List.of(List.of("MicrosoftCalendarListEvents", Map.of("events", List.of(), "hasMore", false))));
+		assertEquals(List.of("CopyUserAssetsToInsight(filePath=[[\"collaboration/routines/event-planning/Ops-Sync.xlsx\"]]);"),
+				((List<?>) ((Map<?, ?>) run.get("pixels")).get("gather")).stream()
+						.filter(pixel -> ((String) pixel).startsWith("CopyUserAssetsToInsight(")).toList());
 	}
 
 	@ParameterizedTest
@@ -1000,6 +1290,71 @@ class WorkInboxRoutineUnitTests {
 		store.clearInvocations();
 		assertNull(((Map<?, ?>) WorkInboxRoutine.get(user).get("lastRun")).get("html"));
 		store.verifyNoInteractions();
+	}
+
+	// Runs routine steps' Python as the automation does: one scope across them, each output under its outputVar. A Pixel
+	// answers with the output after the first needle it holds, else {}.
+	private static final String STEPS = """
+			import json, sys, types
+			job = json.load(sys.stdin)
+			pixels = {}
+			class Insight:
+			    def run_pixel(self, pixel, raw=True):
+			        pixels.setdefault(step, []).append(pixel)
+			        output = next((answer for needle, answer in job["answers"] if needle in pixel), {})
+			        return [{"pixelReturn": [{"operationType": ["OPERATION"], "output": output}]}]
+			semoss = types.ModuleType("semoss")
+			semoss.Insight = Insight
+			smssutil = types.ModuleType("smssutil")
+			smssutil.smss_get_runtime_var = lambda name: "/nonexistent"
+			sys.modules.update({"semoss": semoss, "smssutil": smssutil})
+			try:
+			    import openpyxl
+			except ImportError:
+			    sys.modules["openpyxl"] = types.ModuleType("openpyxl")
+			scope = job["scope"]
+			for step, source, output in job["steps"]:
+			    module = {}
+			    exec(compile(source, step, "exec"), module)
+			    scope[output] = module["run"](scope)
+			print(json.dumps({"scope": scope, "pixels": pixels}))
+			""";
+
+	/** The scope after the steps ran, and each step's Pixel calls by step id; -Dsemoss.test.python picks the python. */
+	private static Map<?, ?> runSteps(Map<String, Object> scope, List<List<String>> steps, List<List<Object>> answers)
+			throws Exception {
+		Process python;
+		try {
+			python = new ProcessBuilder(System.getProperty("semoss.test.python", "python3"), "-I", "-c", STEPS)
+					.redirectErrorStream(true).start();
+		} catch (IOException e) {
+			return Assumptions.abort("No python to run the routine's steps with: " + e.getMessage());
+		}
+		try (OutputStream in = python.getOutputStream()) {
+			in.write(AutomationRuntimeUtils.GSON.toJson(Map.of("scope", scope, "steps", steps, "answers", answers))
+					.getBytes(StandardCharsets.UTF_8));
+		}
+		String out = new String(python.getInputStream().readAllBytes(), StandardCharsets.UTF_8).strip();
+		assertEquals(0, python.waitFor(), out);
+		return AutomationRuntimeUtils.GSON.fromJson(out.substring(out.lastIndexOf('\n') + 1), Map.class);
+	}
+
+	/** A fresh ask in Work that a reply answers. */
+	private static Map<String, Object> ask(String threadId, String received) {
+		return Map.of("id", "item-" + threadId, "threadId", threadId, "received", received, "askType", "reply",
+				"priority", "P1");
+	}
+
+	/** Paused event planning settings pinning one series per title. */
+	private static Map<String, Object> eventPlanning(List<String> titles) {
+		Map<String, Object> config = new HashMap<>(WorkEventPlanningRoutine.KIND.defaults());
+		config.put("enabled", false);
+		List<Map<String, Object>> pins = new ArrayList<>();
+		for (String title : titles) {
+			pins.add(Map.of("kind", "series", "id", "series-" + pins.size(), "title", title));
+		}
+		config.put("meetings", pins);
+		return config;
 	}
 
 	/** Validates strictly; every scope name a step reads is a run input or an output; agents get the model and no tools. */
@@ -1204,6 +1559,191 @@ class WorkInboxRoutineUnitTests {
 			assertEquals("Proposed agendas.", last.get("summary"));
 			assertEquals(WorkAgendaRoutine.ID, WorkAgendaRoutine.get(user).get("id"));
 			assertNull(WorkInboxRoutine.get(user).get("lastRun"));
+		}
+	}
+
+	@Test
+	void savingARoutineAlreadyOnNeverTurnsBackgroundAccessBackOn() throws Exception {
+		backgroundAvailable();
+		subscriptions.when(() -> MicrosoftGraphSubscriptionRegistry.forUser("ms-owner")).thenReturn(List.of());
+		user.setAccessToken(microsoftToken("ms-owner"));
+		Scheduler scheduler = mock(Scheduler.class);
+		SchedulerFactorySingleton factory = mock(SchedulerFactorySingleton.class);
+		when(factory.getScheduler()).thenReturn(scheduler);
+		try (MockedStatic<SchedulerFactorySingleton> factories = mockStatic(SchedulerFactorySingleton.class);
+				MockedStatic<SchedulerDatabaseUtility> database = mockStatic(SchedulerDatabaseUtility.class)) {
+			factories.when(SchedulerFactorySingleton::getInstance).thenReturn(factory);
+			database.when(() -> SchedulerDatabaseUtility.insertIntoJobRecipesTable(anyString(), anyString(), anyString(), anyString(),
+					anyString(), any(), anyString(), anyString(), anyString(), anyBoolean(), isNull(), anyList())).thenReturn(true);
+			// turning the routine on is the owner's consent to background access
+			WorkInboxRoutine.save(user, config(true));
+			credentials.verify(() -> MicrosoftGraphCredentialStore.save(any()), times(1));
+			// the owner turns background access off in Connections, then edits the routine, still on
+			savedTokens.clear();
+			assertEquals(true, WorkInboxRoutine.save(user, config(true)).get("enabled"));
+			credentials.verify(() -> MicrosoftGraphCredentialStore.save(any()), times(1));
+			assertFalse(savedTokens.containsKey("ms-owner"));
+		}
+	}
+
+	@Test
+	void turningBackgroundAccessOffDuringARunKeepsItOff() throws Exception {
+		Insight insight = enabledRoutine();
+		automations.when(() -> RunAutomationDefinitionReactor.runDefinition(any(), anyString(), anyString(), any(), anyMap(),
+				anyString(), isNull())).thenAnswer(call -> {
+					// a Graph call renews the lent token, and the owner turns background access off in Connections
+					AccessToken refreshed = microsoftToken("ms-owner");
+					refreshed.setAccess_token("refreshed-token");
+					user.setAccessToken(refreshed);
+					savedTokens.clear();
+					return Map.of();
+				});
+		finished(AutomationConstants.STATUS_SUCCESS, AutomationConstants.NODE_STATUS_SUCCESS, "Your private daily brief.");
+		try (MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class)) {
+			accounts.when(() -> SecurityQueryUtils.getUnlockedUser("owner-one", AuthProvider.NATIVE.getLabel()))
+					.thenReturn(Map.of("id", "owner-one"));
+			assertEquals("completed", WorkInboxRoutine.run(insight).get("status"));
+			assertFalse(savedTokens.containsKey("ms-owner"));
+		}
+	}
+
+	@Test
+	void turningBackgroundAccessOffDuringAScheduledSyncKeepsItOff() throws Exception {
+		// a Microsoft owner with mail connected and imported, and background access saved
+		String ownerType = AuthProvider.MICROSOFT.getLabel();
+		CollaborationDbUtils.update("INSERT INTO COLLAB_OWNER (OWNER_ID, OWNER_TYPE, MS_USER_ID) VALUES (?, ?, ?)",
+				"ms-owner", ownerType, "ms-owner");
+		CollaborationDbUtils.update("INSERT INTO SOURCE_CONNECTION (OWNER_ID, OWNER_TYPE, SOURCE, ENABLED, REAUTH_NEEDED) "
+				+ "VALUES (?, ?, 'email', TRUE, FALSE)", "ms-owner", ownerType);
+		java.sql.Timestamp imported = CollaborationDbUtils.toTimestamp("2026-10-12T08:00:00Z", "imported");
+		CollaborationDbUtils.update("INSERT INTO COLLAB_JOB (OWNER_ID, OWNER_TYPE, JOB_ID, KIND, STATUS, STARTED_AT, "
+				+ "FINISHED_AT) VALUES (?, ?, 'import-1', 'import', 'done', ?, ?)", "ms-owner", ownerType, imported, imported);
+		savedTokens.put("ms-owner", microsoftToken("ms-owner"));
+		try (MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class);
+				MockedStatic<BrainSync> sync = mockStatic(BrainSync.class, CALLS_REAL_METHODS)) {
+			accounts.when(() -> SecurityQueryUtils.getUnlockedUser("ms-owner", ownerType)).thenReturn(Map.of("id", "ms-owner"));
+			sync.when(() -> BrainSync.start(any())).thenAnswer(call -> {
+				// a Graph call renews the token, and the owner turns background access off in Connections
+				AccessToken refreshed = microsoftToken("ms-owner");
+				refreshed.setAccess_token("refreshed-token");
+				((User) call.getArgument(0)).setAccessToken(refreshed);
+				savedTokens.clear();
+				return Map.of("id", "sync-1", "status", CollaborationJobUtils.DONE);
+			});
+			assertEquals(CollaborationJobUtils.DONE,
+					BrainSync.syncInBackground("ms-owner", ownerType, "ms-owner", Instant.now()));
+			assertFalse(savedTokens.containsKey("ms-owner"));
+		}
+	}
+
+	@Test
+	void runNowStartsTheBriefOnItsOwnJobAsARunByHand() throws Exception {
+		enabledRoutine();
+		registry.when(SystemEngineRegistry::isSchedulerDbLoaded).thenReturn(true);
+		at("2026-10-12T08:00:00Z");
+		Scheduler scheduler = mock(Scheduler.class);
+		SchedulerFactorySingleton factory = mock(SchedulerFactorySingleton.class);
+		when(factory.getScheduler()).thenReturn(scheduler);
+		// the fired job marks its run as it starts
+		doAnswer(call -> {
+			CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET RUN_STATUS = ?, STARTED_AT = ?", "running",
+					CollaborationDbUtils.now());
+			return null;
+		}).when(scheduler).triggerJob(any(JobKey.class), any(JobDataMap.class));
+		try (MockedStatic<SchedulerFactorySingleton> factories = mockStatic(SchedulerFactorySingleton.class);
+				MockedStatic<SchedulerDatabaseUtility> database = mockStatic(SchedulerDatabaseUtility.class)) {
+			factories.when(SchedulerFactorySingleton::getInstance).thenReturn(factory);
+			WorkInboxRoutine.runNow(user);
+			// a scheduler left standing by after a restart would hold the run
+			database.verify(() -> SchedulerDatabaseUtility.startScheduler(scheduler));
+			verify(scheduler).triggerJob(any(JobKey.class), argThat((JobDataMap data) -> "WorkRunInboxRoutine(manual=[true]);"
+					.equals(data.getString(JobConfigKeys.PIXEL))));
+			assertEquals("running", ((Map<?, ?>) WorkInboxRoutine.get(user).get("lastRun")).get("status"));
+			assertThrows(IllegalArgumentException.class, () -> WorkInboxRoutine.runNow(user));
+		}
+	}
+
+	@Test
+	void aRunByHandGoesAheadOnADayTheScheduleLeavesOut() throws Exception {
+		backgroundAvailable();
+		savedTokens.put("ms-owner", microsoftToken("ms-owner"));
+		registry.when(SystemEngineRegistry::isSchedulerDbLoaded).thenReturn(false);
+		Map<String, Object> notToday = config(false);
+		// tomorrow only, where the routine's clock is
+		notToday.put("days", List.of(
+				WorkRoutine.WEEKDAYS.get(LocalDate.now(ZoneId.of("America/New_York")).getDayOfWeek().getValue() % 7)));
+		WorkInboxRoutine.save(user, notToday);
+		CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET ENABLED = ?", true);
+		Insight insight = mock(Insight.class);
+		when(insight.getUser()).thenReturn(user);
+		at("2026-10-12T08:00:00Z");
+		finished(AutomationConstants.STATUS_SUCCESS, AutomationConstants.NODE_STATUS_SUCCESS, "Your brief, run by hand.");
+		try (MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class)) {
+			accounts.when(() -> SecurityQueryUtils.getUnlockedUser("owner-one", AuthProvider.NATIVE.getLabel()))
+					.thenReturn(Map.of("id", "owner-one"));
+			assertEquals("skipped", WorkInboxRoutine.run(insight).get("status"));
+			assertEquals("completed", WorkInboxRoutine.runManual(insight).get("status"));
+			automations.verify(() -> RunAutomationDefinitionReactor.runDefinition(eq(insight), anyString(),
+					eq(WorkInboxRoutine.AUTOMATION_ID), any(), anyMap(), eq(AutomationConstants.TRIGGER_MANUAL), isNull()));
+		}
+	}
+
+	@Test
+	void eventPlanningOnItsDayIsRecordedAsScheduledAndARunByHandAsByHand() throws Exception {
+		backgroundAvailable();
+		savedTokens.put("ms-owner", microsoftToken("ms-owner"));
+		registry.when(SystemEngineRegistry::isSchedulerDbLoaded).thenReturn(false);
+		Map<String, Object> today = eventPlanning(List.of("Board review"));
+		today.put("days", List.of(WorkRoutine.WEEKDAYS.get(LocalDate.now(ZoneId.of("UTC")).getDayOfWeek().getValue() - 1)));
+		WorkEventPlanningRoutine.save(user, today);
+		CollaborationDbUtils.update("UPDATE WORK_EVENT_PLANNING_ROUTINE SET ENABLED = ?", true);
+		Insight insight = mock(Insight.class);
+		when(insight.getUser()).thenReturn(user);
+		finished("digest", AutomationConstants.STATUS_SUCCESS, AutomationConstants.NODE_STATUS_SUCCESS, "Planned.");
+		try (MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class)) {
+			accounts.when(() -> SecurityQueryUtils.getUnlockedUser("owner-one", AuthProvider.NATIVE.getLabel()))
+					.thenReturn(Map.of("id", "owner-one"));
+			// History labels a run by its trigger: the schedule's run is not a Run now
+			assertEquals("completed", WorkEventPlanningRoutine.run(insight).get("status"));
+			automations.verify(() -> RunAutomationDefinitionReactor.runDefinition(eq(insight), anyString(), anyString(),
+					any(), anyMap(), eq(AutomationConstants.TRIGGER_SCHEDULED), isNull()));
+			assertEquals("completed", WorkEventPlanningRoutine.runManual(insight).get("status"));
+			automations.verify(() -> RunAutomationDefinitionReactor.runDefinition(eq(insight), anyString(), anyString(),
+					any(), anyMap(), eq(AutomationConstants.TRIGGER_MANUAL), isNull()));
+		}
+	}
+
+	@Test
+	void runNowStartsEventPlanningAndACustomRoutineAsRunsByHand() throws Exception {
+		backgroundAvailable();
+		// saved with no scheduler to keep in step, as enabledRoutine does
+		registry.when(SystemEngineRegistry::isSchedulerDbLoaded).thenReturn(false);
+		WorkEventPlanningRoutine.save(user, eventPlanning(List.of("Board review")));
+		CollaborationDbUtils.update("UPDATE WORK_EVENT_PLANNING_ROUTINE SET ENABLED = ?", true);
+		String routineId = (String) WorkCustomRoutine.save(user, null, new HashMap<>(Map.of("enabled", false, "name",
+				"Pipeline", "prompt", "Summarize the pipeline"))).get("id");
+		CollaborationDbUtils.update("UPDATE WORK_CUSTOM_ROUTINE SET ENABLED = ?", true);
+		registry.when(SystemEngineRegistry::isSchedulerDbLoaded).thenReturn(true);
+		Scheduler scheduler = mock(Scheduler.class);
+		SchedulerFactorySingleton factory = mock(SchedulerFactorySingleton.class);
+		when(factory.getScheduler()).thenReturn(scheduler);
+		// the fired job marks its run as it starts
+		doAnswer(call -> {
+			String pixel = ((JobDataMap) call.getArgument(1)).getString(JobConfigKeys.PIXEL);
+			CollaborationDbUtils.update("UPDATE " + (pixel.startsWith("WorkRunEventPlanningRoutine")
+					? "WORK_EVENT_PLANNING_ROUTINE" : "WORK_CUSTOM_ROUTINE") + " SET RUN_STATUS = ?, STARTED_AT = ?",
+					"running", CollaborationDbUtils.now());
+			return null;
+		}).when(scheduler).triggerJob(any(JobKey.class), any(JobDataMap.class));
+		try (MockedStatic<SchedulerFactorySingleton> factories = mockStatic(SchedulerFactorySingleton.class);
+				MockedStatic<SchedulerDatabaseUtility> database = mockStatic(SchedulerDatabaseUtility.class)) {
+			factories.when(SchedulerFactorySingleton::getInstance).thenReturn(factory);
+			WorkEventPlanningRoutine.runNow(user);
+			WorkCustomRoutine.runNow(user, routineId);
+			verify(scheduler).triggerJob(any(JobKey.class), argThat((JobDataMap data) -> "WorkRunEventPlanningRoutine(manual=[true]);"
+					.equals(data.getString(JobConfigKeys.PIXEL))));
+			verify(scheduler).triggerJob(any(JobKey.class), argThat((JobDataMap data) -> ("WorkRunCustomRoutine(routineId=[\""
+					+ routineId + "\"], manual=[true]);").equals(data.getString(JobConfigKeys.PIXEL))));
 		}
 	}
 

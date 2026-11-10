@@ -161,8 +161,10 @@ public final class AgentConfigLoader {
 		b.authoredPrompt(resolveAuthoredPrompt(room, workspaceId, workspaceRow, cfgJson));
 
 		// Workdir AGENTS.md / CLAUDE.md exact-dir lookup only (no walk-up). Loader
-		// tolerates null workingDir.
-		b.workdirAgentsMd(AgentsMdLoader.discover(workingDir));
+		// tolerates null workingDir. A Collaboration room's folder holds files
+		// downloaded from mail, Teams and OneDrive, so an outsider names them: one
+		// called AGENTS.md there is never instructions.
+		b.workdirAgentsMd(CollaborationUtils.isCollaborationRoom(room) ? null : AgentsMdLoader.discover(workingDir));
 
 		// Selected-engines block: read fresh from the project dependency store
 		// every run so workbench selections are always current and prompt-visible.
@@ -293,6 +295,9 @@ public final class AgentConfigLoader {
 			// Ordinary document reading uses the shared extraction helper. Managed
 			// presentation workflows perform their own review without this tool.
 			names.add("InspectPptx");
+			// the owner's tasks live in Work items; a chat todo list only competes with them
+			names.add("TodoWrite");
+			names.add("TodoRead");
 		}
 		JSONObject toolPolicy = cfgJson != null ? cfgJson.optJSONObject("tool_policy") : null;
 		JSONObject defaultTools = toolPolicy != null ? toolPolicy.optJSONObject("default_tools") : null;

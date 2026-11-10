@@ -31,6 +31,7 @@ import java.util.Arrays;
 
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.CreateRoomReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -49,7 +50,7 @@ public class CreatePlaygroundRoomReactor extends CreateRoomReactor {
 
 	@Override
 	public NounMetadata execute() {
-		// we are replacing any current project input with the playground system project id
+		// replace any current project input with the playground system project id
 		GenRowStruct projectGRS = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
 		if (projectGRS != null) {
 			projectGRS.clear();
@@ -57,7 +58,7 @@ public class CreatePlaygroundRoomReactor extends CreateRoomReactor {
 			projectGRS = new GenRowStruct();
 		}
 		// mode picks the system project; null is a normal playground room
-		GenRowStruct modeGRS = this.store.getNoun(MODE);
+		GenRowStruct modeGRS = this.store.getGenRowStruct(MODE);
 		String mode = modeGRS == null || modeGRS.isEmpty() ? null : String.valueOf(modeGRS.get(0));
 		projectGRS.add(new NounMetadata(CollaborationUtils.projectIdForMode(mode), PixelDataType.CONST_STRING));
 		this.store.addNoun(ReactorKeysEnum.PROJECT.getKey(), projectGRS);
@@ -66,11 +67,19 @@ public class CreatePlaygroundRoomReactor extends CreateRoomReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (MODE.equals(key)) {
-			return "Optional room mode. Omit for a normal playground room; 'collaboration' turns on collaboration tools.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Creates a new room for the calling user in the playground, or in the collaboration project when mode is collaboration, and returns its roomId.")
+				.key(ReactorKeysEnum.CONTEXT, "Context text saved with the new room.")
+				.key(ReactorKeysEnum.FUNCTION, key -> key.list(String.class).description(
+						"Function engine ids saved as the room's tools. Used only when workspaceId is not given."))
+				.key(ReactorKeysEnum.NAME, "The name of the new room; its first 100 characters are kept.")
+				.key(ReactorKeysEnum.PROJECT,
+						"Replaced by the playground project, or by the collaboration project when mode is collaboration.")
+				.key(ReactorKeysEnum.VECTORDB, key -> key.list(String.class).description(
+						"Vector database engine ids saved in the room's options. Used only when workspaceId is not given."))
+				.key(MODE,
+						"Optional room mode. Omit for a normal playground room; 'collaboration' turns on collaboration tools.");
 	}
 
 }

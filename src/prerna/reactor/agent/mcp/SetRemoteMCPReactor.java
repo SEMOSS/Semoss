@@ -38,11 +38,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -74,11 +74,7 @@ public class SetRemoteMCPReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
@@ -176,39 +172,34 @@ public class SetRemoteMCPReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Points a project's MCP at an external/remote MCP server rather than the tools generated inside the project.
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Points a project's MCP at an external/remote MCP server rather than the tools generated inside the project.
 
-				Access: the caller must be the owner of the project.
+								Access: the caller must be the owner of the project.
 
-				The endpoint and optional credential are written to the project smss (MCP_ENDPOINT, MCP_AUTH_SCHEME, \
-				MCP_AUTH_TOKEN), the cached MCP handler is dropped so the next call uses the new endpoint, and the smss \
-				is pushed to the cluster.
+								The endpoint and optional credential are written to the project smss (MCP_ENDPOINT, MCP_AUTH_SCHEME, \
+								MCP_AUTH_TOKEN), the cached MCP handler is dropped so the next call uses the new endpoint, and the smss \
+								is pushed to the cluster.
 
-				Passing an empty mcpEndpoint clears all three properties, which disconnects the remote MCP and reverts \
-				the project to serving its own generated tools.
+								Passing an empty mcpEndpoint clears all three properties, which disconnects the remote MCP and reverts \
+								the project to serving its own generated tools.
 
-				Because ProjectInfo returns the stored token as a mask rather than the secret, sending that same mask \
-				value back as mcpAuthToken leaves the existing token untouched.
+								Because ProjectInfo returns the stored token as a mask rather than the secret, sending that same mask \
+								value back as mcpAuthToken leaves the existing token untouched.
 
-				Returns a map of project_id, project_remote_mcp, project_remote_mcp_endpoint, \
-				project_remote_mcp_auth_scheme, and project_remote_mcp_auth_token (masked, never the secret).
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "Id of the project to set the remote MCP on";
-		} else if (MCP_ENDPOINT_KEY.equals(key)) {
-			return "The http/https url of the remote MCP server; pass empty to disconnect the remote MCP";
-		} else if (MCP_AUTH_SCHEME_KEY.equals(key)) {
-			return "Optional authentication scheme for the remote MCP, such as Bearer or Basic; defaults to Bearer when a token is provided";
-		} else if (MCP_AUTH_TOKEN_KEY.equals(key)) {
-			return "Optional credential for the remote MCP; pass the masked value returned by ProjectInfo to leave the stored token unchanged";
-		}
-		return super.getDescriptionForKey(key);
+								Returns a map of project_id, project_remote_mcp, project_remote_mcp_endpoint, \
+								project_remote_mcp_auth_scheme, and project_remote_mcp_auth_token (masked, never the secret).
+								""")
+				.key(ReactorKeysEnum.PROJECT, "Id of the project to set the remote MCP on")
+				.key(MCP_ENDPOINT_KEY,
+						"The http/https url of the remote MCP server; pass empty to disconnect the remote MCP")
+				.key(MCP_AUTH_SCHEME_KEY,
+						"Optional authentication scheme for the remote MCP, such as Bearer or Basic; defaults to Bearer when a token is provided")
+				.key(MCP_AUTH_TOKEN_KEY,
+						"Optional credential for the remote MCP; pass the masked value returned by ProjectInfo to leave the stored token unchanged");
 	}
 
 }

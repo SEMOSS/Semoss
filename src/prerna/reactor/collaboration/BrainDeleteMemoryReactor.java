@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainMemoryUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainDeleteMemory(memoryId=["..."]); or BrainDeleteMemory(all=[true]);
@@ -56,17 +57,8 @@ public class BrainDeleteMemoryReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Erases one Brain memory, or all of them";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (MEMORY_ID.equals(key)) {
-			return "Memory id";
-		} else if (ALL.equals(key)) {
-			return "true to erase every memory and suggestion";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Erases one Brain memory, or all of them")
+				.key(MEMORY_ID, "Memory id").key(ALL, "true to erase every memory and suggestion");
 	}
 }

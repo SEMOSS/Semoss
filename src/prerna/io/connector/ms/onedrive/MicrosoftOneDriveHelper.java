@@ -30,13 +30,13 @@ package prerna.io.connector.ms.onedrive;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -45,6 +45,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
@@ -148,6 +149,12 @@ public class MicrosoftOneDriveHelper {
 	 * multiple of 320 KiB.
 	 */
 	private static final int UPLOAD_CHUNK_BYTES = 320 * 1024 * 10;
+
+	/**
+	 * The largest file a download takes: checked against the size Graph lists
+	 * before anything is fetched, and against the bytes themselves after.
+	 */
+	public static final long MAX_DOWNLOAD_BYTES = 100L * 1024L * 1024L;
 
 	/** How many items one page of a listing asks Graph for. */
 	private static final int PAGE_SIZE = 200;
@@ -515,8 +522,9 @@ public class MicrosoftOneDriveHelper {
 	 * @return map carrying the item {@code id}, its {@code name}, the
 	 *         {@code driveId} it came from, the local {@code filePath} written, the
 	 *         {@code size} in bytes and {@code success}
-	 * @throws IllegalArgumentException if required inputs are missing or the item
-	 *                                  is a folder
+	 * @throws IllegalArgumentException if required inputs are missing, the item is
+	 *                                  a folder, or the file is over
+	 *                                  {@link #MAX_DOWNLOAD_BYTES}
 	 * @throws Exception                if the download or the file write fails
 	 */
 	public static Map<String, Object> downloadFile(String accessToken, String driveId, String itemId, String path,
@@ -558,15 +566,16 @@ public class MicrosoftOneDriveHelper {
 				}
 			}
 
-			byte[] fileBytes = downloadBytes(accessToken, item, resolvedDriveId, resolvedItemId);
-			File file = write(fileBytes, destination, fileName, itemName);
+			checkDownloadSize(item.get(SIZE), itemName);
+			File file = target(destination, fileName, itemName);
+			long size = downloadBytes(accessToken, item, resolvedDriveId, resolvedItemId, file, itemName);
 
 			Map<String, Object> result = new LinkedHashMap<>();
 			result.put(ID, resolvedItemId);
 			result.put(NAME, itemName);
 			putIfPresent(result, DRIVE_ID, resolvedDriveId);
 			result.put(FILE_PATH, Path.of(destination).relativize(file.toPath()).toString());
-			result.put(SIZE, fileBytes.length);
+			result.put(SIZE, (int) size);
 			result.put(SUCCESS, true);
 			return result;
 		} catch (Exception e) {
@@ -856,51 +865,113 @@ public class MicrosoftOneDriveHelper {
 	}
 
 	/**
-	 * Fetches the bytes of a file.
+	 * Fetches the bytes of a file into it.
 	 *
 	 * <p>
 	 * The pre-authenticated download url is used when there is one, and is called
 	 * without the bearer header, since SharePoint rejects a request carrying both.
 	 * </p>
+	 *
+	 * @return how many bytes were written
 	 */
-	private static byte[] downloadBytes(String accessToken, Map<String, Object> item, String driveId, String itemId)
-			throws Exception {
-		byte[] fileBytes = null;
+	private static long downloadBytes(String accessToken, Map<String, Object> item, String driveId, String itemId,
+			File file, String name) throws Exception {
+		long size = 0;
 		Object preAuthUrl = item.get(DOWNLOAD_URL);
 		if (preAuthUrl != null && !preAuthUrl.toString().trim().isEmpty()) {
-			fileBytes = HttpHelperUtility.getRequestBytes(preAuthUrl.toString(), null, null, null, null);
+			size = download(preAuthUrl.toString(), null, file, name);
 		}
-		if ((fileBytes == null || fileBytes.length == 0) && !ValueUtils.isBlank(driveId)
-				&& !ValueUtils.isBlank(itemId)) {
+		if (size == 0 && !ValueUtils.isBlank(driveId) && !ValueUtils.isBlank(itemId)) {
 			String contentUrl = GRAPH_BASE + "/drives/" + driveId + ITEMS + itemId + "/content";
-			fileBytes = HttpHelperUtility.getRequestBytes(contentUrl, headers(accessToken), null, null, null);
+			size = download(contentUrl, headers(accessToken), file, name);
 		}
-		if (fileBytes == null || fileBytes.length == 0) {
+		if (size == 0) {
 			throw new IllegalStateException("Downloaded file content is empty for OneDrive item id = " + itemId);
 		}
-		return fileBytes;
+		return size;
 	}
 
 	/**
-	 * Writes the downloaded bytes, treating an existing directory as the place to
-	 * write into rather than as the file to write.
+	 * Streams a url into a file, refusing more than {@link #MAX_DOWNLOAD_BYTES}.
+	 *
+	 * <p>
+	 * The bytes land under a temporary name beside the file first, so a refused or
+	 * failed download leaves nothing behind, and a file already there is replaced
+	 * only by a whole one.
+	 * </p>
+	 *
+	 * @param url     what to fetch
+	 * @param headers the request headers, or null
+	 * @param file    where the bytes go, in a folder that exists
+	 * @param name    what a refusal calls the file
+	 * @return how many bytes were written; the file is left as it was when there
+	 *         were none
+	 * @throws IllegalArgumentException if the request fails or the bytes are over
+	 *                                  the limit
+	 * @throws Exception                if the file cannot be put in place
 	 */
-	private static File write(byte[] fileBytes, String destination, String fileName, String itemName) throws Exception {
+	public static long download(String url, Map<String, String> headers, File file, String name) throws Exception {
+		String folder = file.getAbsoluteFile().getParent();
+		// named up front, so a download that breaks part way is deleted too
+		File temp = new File(folder, ".download-" + UUID.randomUUID());
+		try {
+			temp = HttpHelperUtility.getRequestFileDownload(url, headers, null, null, null, folder, temp.getName());
+			long size = temp.length();
+			checkDownloadSize(size, name);
+			if (size > 0) {
+				Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			}
+			return size;
+		} finally {
+			Files.deleteIfExists(temp.toPath());
+		}
+	}
+
+	/**
+	 * Refuses a file over {@link #MAX_DOWNLOAD_BYTES}.
+	 *
+	 * @param size its size in bytes, as Graph lists it or as downloaded; a size
+	 *             that is not a number is let through
+	 * @param name what the refusal calls the file
+	 * @throws IllegalArgumentException if the file is over the limit
+	 */
+	public static void checkDownloadSize(Object size, String name) {
+		if (size instanceof Number bytes && bytes.longValue() > MAX_DOWNLOAD_BYTES) {
+			throw new IllegalArgumentException(
+					name + " is larger than the " + MAX_DOWNLOAD_BYTES / (1024 * 1024) + " MB limit for a download.");
+		}
+	}
+
+	/**
+	 * The last part of a name joined to a destination. A remote name, such as a
+	 * Teams attachment's that its sender chose, may carry "../" and would otherwise
+	 * write outside the destination.
+	 */
+	static String baseName(String name) {
+		String base = name.replace('\\', '/');
+		base = base.substring(base.lastIndexOf('/') + 1).trim();
+		if (base.isEmpty() || base.equals(".") || base.equals("..")) {
+			throw new IllegalArgumentException("Not a file name: " + name);
+		}
+		return base;
+	}
+
+	/**
+	 * The file a download is written to, treating an existing directory as the
+	 * place to write into rather than as the file to write.
+	 */
+	private static File target(String destination, String fileName, String itemName) {
 		String normalizedFileName = fileName == null ? null : fileName.trim();
 		if (ValueUtils.isBlank(normalizedFileName) && new File(destination).isDirectory() && itemName != null) {
 			normalizedFileName = itemName;
 		}
 		String targetPath = ValueUtils.isBlank(normalizedFileName) ? destination
-				: Paths.get(destination, normalizedFileName).toString();
+				: Paths.get(destination, baseName(normalizedFileName)).toString();
 
 		File file = new File(targetPath);
 		File parent = file.getParentFile();
 		if (parent != null && !parent.exists() && !parent.mkdirs()) {
 			throw new IllegalStateException("Unable to create destination directory at: " + parent.getAbsolutePath());
-		}
-		try (FileOutputStream fos = new FileOutputStream(file)) {
-			fos.write(fileBytes);
-			fos.flush();
 		}
 		return file;
 	}

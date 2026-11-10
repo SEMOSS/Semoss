@@ -37,25 +37,24 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class AddOperationAliasReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(AddOperationAliasReactor.class);
 
 	/**
-	 * This reactor takes in the name of a reactor and allows the user to assign
-	 * it an alias The inputs to the reactor are: 
-	 * 1) the name of the reactor 
-	 * 2) the alias for the reactor
+	 * This reactor takes in the name of a reactor and allows the user to assign it
+	 * an alias The inputs to the reactor are: 1) the name of the reactor 2) the
+	 * alias for the reactor
 	 */
-	
+
 	public AddOperationAliasReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.REACTOR.getKey(), ReactorKeysEnum.ALIAS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.REACTOR.getKey(), ReactorKeysEnum.ALIAS.getKey() };
 	}
 
 	@Override
@@ -204,25 +203,24 @@ public class AddOperationAliasReactor extends AbstractReactor {
 			StringBuilder sb = new StringBuilder();
 			Object[] keys = prop.keySet().toArray();
 			Arrays.sort(keys);
-			for (Object operation: keys) {
+			for (Object operation : keys) {
 				Object reactor = prop.get(operation.toString());
 				sb.append(operation + " " + reactor + "\n");
 			}
 			pw.write(sb.toString());
 			pw.close();
 		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not write the operation aliases to {}", path, e);
 		}
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(keysToGet[0])) {
-			return "The name of the reactor";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Takes the name of a reactor and an alias for it, and returns no value without making any change.")
+				.key(ReactorKeysEnum.ALIAS, "The alias to give the reactor named by reactor.")
+				.key(keysToGet[0], "The name of the reactor");
 	}
 }

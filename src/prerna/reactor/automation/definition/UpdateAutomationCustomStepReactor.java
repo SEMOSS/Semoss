@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.project.AutomationProjectService;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
@@ -116,8 +117,7 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 		}
 		for (Object value : nodes) {
 			if (value instanceof Map<?, ?> node && nodeId.equals(node.get(AutomationConstants.NODE_FIELD_ID))) {
-				if (!AutomationConstants.NODE_DEVELOPER_PYTHON.equals(
-						node.get(AutomationConstants.NODE_FIELD_TYPE))
+				if (!AutomationConstants.NODE_DEVELOPER_PYTHON.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))
 						|| !AutomationConstants.NODE_CODE_MODE_CUSTOM
 								.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
 					throw new IllegalArgumentException(
@@ -130,24 +130,13 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Updates one custom automation Python node after verifying its current source hash.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "The Automation project ID or alias to update.";
-		}
-		if (NODE_ID_KEY.equals(key)) {
-			return "The custom node ID whose persisted Python source will be replaced.";
-		}
-		if (SOURCE_KEY.equals(key)) {
-			return "The complete replacement Python source defining run(scope).";
-		}
-		if (EXPECTED_SOURCE_HASH_KEY.equals(key)) {
-			return "The source hash returned by GetAutomation, used to reject stale edits.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Updates one custom automation Python node after verifying its current source hash.")
+				.key(ReactorKeysEnum.PROJECT, "The Automation project ID or alias to update.")
+				.key(NODE_ID_KEY, "The custom node ID whose persisted Python source will be replaced.")
+				.key(SOURCE_KEY, "The complete replacement Python source defining run(scope).")
+				.key(EXPECTED_SOURCE_HASH_KEY,
+						"The source hash returned by GetAutomation, used to reject stale edits.");
 	}
 }

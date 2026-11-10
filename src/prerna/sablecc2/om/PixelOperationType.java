@@ -29,12 +29,13 @@ package prerna.sablecc2.om;
 
 public enum PixelOperationType {
 
+	// @formatter:off
 	// JOB INFORMATION
 	TASK,
 	RESET_PANEL_TASKS,
 	REMOVE_TASK,
 	REMOVE_LAYER,
-	TASK_DATA,
+	TASK_DATA, 
 	TASK_METADATA,
 	
 	// QUERY
@@ -260,7 +261,6 @@ public enum PixelOperationType {
 	FRAME_SIZE_LIMIT_EXCEEDED,
 	USER_INPUT_REQUIRED,
 	LOGGIN_REQUIRED_ERROR,
-	ANONYMOUS_USER_ERROR,
 	INVALID_SYNTAX,
 	
 	// LOG TRACKING
@@ -270,4 +270,6 @@ public enum PixelOperationType {
 	ENGINE_ACTIVITY,
 	USER_TRACKING_DISABLED
 	;
+	
+	// @formatter:on
 }

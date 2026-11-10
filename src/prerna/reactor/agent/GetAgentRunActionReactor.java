@@ -31,9 +31,8 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.google.gson.Gson;
-
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunActionStore;
 import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.sablecc2.om.PixelDataType;
@@ -49,7 +48,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GetAgentRunActionReactor extends AbstractReactor {
 
 	private static final String ACTION_ID_KEY = "actionId";
-	private static final Gson GSON = new Gson();
 
 	public GetAgentRunActionReactor() {
 		this.keysToGet = new String[] { ACTION_ID_KEY };
@@ -90,15 +88,9 @@ public class GetAgentRunActionReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Look up a single pending HITL agent action by actionId (scoped to the logged-in user) so a portal can prefill its approve/decline form.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ACTION_ID_KEY)) {
-			return "The AGENT_RUN_ACTION id to look up.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Look up a single pending HITL agent action by actionId (scoped to the logged-in user) so a portal can prefill its approve/decline form.")
+				.key(ACTION_ID_KEY, "The AGENT_RUN_ACTION id to look up.");
 	}
 }

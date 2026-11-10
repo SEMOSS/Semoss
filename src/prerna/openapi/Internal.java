@@ -25,45 +25,32 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.engine;
+package prerna.openapi;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-
-public abstract class AbstractEngineFileReactor extends AbstractReactor {
-
-	protected static final Logger classLogger = LogManager.getLogger(AbstractEngineFileReactor.class);
+/**
+ * Marks a REST operation or a reactor as internal: it is published in the
+ * OpenAPI document as {@code "x-internal": true}, and every SDK generated from
+ * the document tags it so its users know not to rely on it. It still works for
+ * everyone; this is a warning, not access control.
+ * <p>
+ * Put it on a resource method, on a resource class (every operation in it), or
+ * on a reactor class. To leave something out of the document and the SDKs
+ * entirely, use swagger-core's {@code @Hidden} instead.
+ */
+@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.TYPE, ElementType.METHOD })
+public @interface Internal {
 
 	/**
-	 * 
-	 * @param user
+	 * Why it is internal, such as "Used by the admin console only". It is shown to
+	 * SDK users next to the internal tag.
 	 */
-	protected void validateUserAndEngineAccess(User user) {
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account to retrieve the function engine files",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
-
-		if (!SecurityQueryUtils.userIsPublisher(user)) {
-			throwUserNotPublisherError();
-		}
-	}
-
+	String value() default "";
 }

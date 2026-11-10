@@ -34,6 +34,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.AddToMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -50,19 +51,19 @@ import prerna.util.Constants;
  * 
  */
 public class AddMetaTagsReactor extends AbstractMetaDBReactor {
-	
+
 	public AddMetaTagsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), VALUES};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), VALUES };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		String engineId = getEngineId();
 		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
 			throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 		}
-		
+
 		String concept = getConcept();
 		List<String> values = getValues();
 		String newTagList = "";
@@ -89,4 +90,10 @@ public class AddMetaTagsReactor extends AbstractMetaDBReactor {
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.DATABASE_INFO);
 	}
 
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Adds the given tags to a concept in a database's metadata, skipping tags it already has, and returns whether it saved. The user must be able to edit the database.")
+				.key(VALUES, key -> key.list(String.class).description("The tags to add to the concept."));
+	}
 }

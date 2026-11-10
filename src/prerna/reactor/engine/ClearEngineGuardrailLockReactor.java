@@ -35,6 +35,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.inferencetracking.GuardrailHitStore;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -92,19 +93,10 @@ public class ClearEngineGuardrailLockReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Ends a user's guardrail lock on an engine early, so they can use it again before the lock runs out. Requires edit access to the engine, and is recorded in the audit trail. Returns whether a lock was in force.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The id of the engine";
-		} else if (USER_ID_KEY.equals(key)) {
-			return "The locked user's id";
-		} else if (USER_TYPE_KEY.equals(key)) {
-			return "The locked user's login type, such as NATIVE";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Ends a user's guardrail lock on an engine early, so they can use it again before the lock runs out. Requires edit access to the engine, and is recorded in the audit trail. Returns whether a lock was in force.")
+				.key(ReactorKeysEnum.ENGINE, "The id of the engine").key(USER_ID_KEY, "The locked user's id")
+				.key(USER_TYPE_KEY, "The locked user's login type, such as NATIVE");
 	}
 }

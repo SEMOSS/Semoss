@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.AgentToolDecisionHandler;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -97,7 +98,17 @@ public class ResolveAutomationAgentRunActionReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lets an Automation project editor resolve a trace-linked pending agent action.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Lets an Automation project editor resolve a trace-linked pending agent action.")
+				.key(ACTION_ID_KEY, "The id of the pending agent action to resolve.")
+				.key(AGENT_RUN_ID_KEY,
+						"The id of the agent run waiting on the action. It must be trace-linked to the given Automation run and node.")
+				.key(AUTOMATION_RUN_ID_KEY, "The id of the Automation run that started the agent run.")
+				.key(DECISION_KEY,
+						"The decision for the action: approve, edit, reject or respond. Approve and edit run the tool; reject and respond record a result without running it.")
+				.key(NODE_ID_KEY, "The id of the Automation node that started the agent run.")
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP, key -> key.type(Map.class)).key(ReactorKeysEnum.PROJECT,
+						"The id or alias of the Automation project the run belongs to; the caller needs edit access. Without it, the run must be in the caller's own inline run scope.");
 	}
 }

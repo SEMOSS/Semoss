@@ -30,12 +30,13 @@ package prerna.io.connector.jira;
 import java.util.List;
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -76,15 +77,9 @@ public class JiraGetUpdateFieldsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns editable fields for an existing Jira issue. Each field includes fieldId, name, required, schema (with type indicating value structure such as string, priority, user, array), and allowedValues listing valid options for enum-style fields.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(JIRAID)) {
-			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns editable fields for an existing Jira issue. Each field includes fieldId, name, required, schema (with type indicating value structure such as string, priority, user, array), and allowedValues listing valid options for enum-style fields.")
+				.key(JIRAID, "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).");
 	}
 }

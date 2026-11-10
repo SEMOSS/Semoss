@@ -39,6 +39,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityUserUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -46,9 +47,10 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetUserMetadataReactor extends AbstractReactor {
-	
+
 	public GetUserMetadataReactor() {
-		this.keysToGet = new String[]{"userId", ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.META_KEYS.getKey()};
+		this.keysToGet = new String[] { "userId", ReactorKeysEnum.PROVIDER.getKey(),
+				ReactorKeysEnum.META_KEYS.getKey() };
 		this.keyRequired = new int[] { 0, 0, 0 };
 	}
 
@@ -57,58 +59,52 @@ public class GetUserMetadataReactor extends AbstractReactor {
 		organizeKeys();
 
 		User user = this.insight.getUser();
-		
+
 		String userId = StringUtils.trimToNull(this.keyValue.get("userId"));
 		String userType = StringUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.PROVIDER.getKey()));
 		AuthProvider provider = AuthProvider.getProviderFromString(userType);
-		
-		if(userId == null) {
+
+		if (userId == null) {
 			AccessToken accessToken = null;
-			if(userType == null) {
+			if (userType == null) {
 				accessToken = user.getPrimaryLoginToken();
 			} else {
 				accessToken = user.getAccessToken(provider);
-				if(accessToken == null) {
+				if (accessToken == null) {
 					throw new IllegalArgumentException("Login for given provider not active in session");
 				}
 			}
 			userId = accessToken.getId();
 			provider = accessToken.getProvider();
 		} else {
-			if(userType == null) {
+			if (userType == null) {
 				throw new IllegalArgumentException("Provider parameter required");
 			}
 			AccessToken tokenForProvider = user.getAccessToken(provider);
-			if(!SecurityAdminUtils.userIsAdmin(user) && (tokenForProvider == null || !userId.equalsIgnoreCase(tokenForProvider.getId()))) {
+			if (!SecurityAdminUtils.userIsAdmin(user)
+					&& (tokenForProvider == null || !userId.equalsIgnoreCase(tokenForProvider.getId()))) {
 				throw new IllegalArgumentException("User does not have access to the requested user");
 			}
 		}
-		
+
 		Map<String, Object> userInfo = new HashMap<>();
 		userInfo.putAll(SecurityUserUtils.getAggregateUserMetadata(userId, provider, getMetaKeys(), false));
 		return new NounMetadata(userInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.USER_INFO);
 	}
-	
+
 	private List<String> getMetaKeys() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.META_KEYS.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
-		
+
 		return null;
 	}
-	
+
 	@Override
-	public String getReactorDescription() {
-		return "Retrieve metadata on a user";
-	}
-	
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals("userId")) {
-			return "ID of the SMSS_USER entry for which the metadata is being retrieved";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Retrieve metadata on a user").key("userId",
+				"ID of the SMSS_USER entry for which the metadata is being retrieved");
 	}
 
 }

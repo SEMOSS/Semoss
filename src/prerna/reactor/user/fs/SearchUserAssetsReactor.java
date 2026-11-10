@@ -34,9 +34,9 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -56,12 +56,7 @@ public class SearchUserAssetsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		User user = insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		IProject project = user.getAssetProject();
 		if (project == null) {
@@ -114,26 +109,19 @@ public class SearchUserAssetsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Recursively search files and directories within the user's assets folder, filtered by search term and optional searching flags.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The relative file path to search files from. This relative path should assume the file path till the user's asset app_root folder and relative path should start onwards";
-		} else if (key.equals(ReactorKeysEnum.SEARCH.getKey())) {
-			return "The search term used to filter file and directory names";
-		} else if (key.equals(ReactorKeysEnum.OPTIONS.getKey())) {
-			return """
-					A list of zero or more search flags to modify matching behavior.
-					       Valid values are:
-					          "case"  - perform a case-sensitive match
-					          "word"  - match only whole words
-					          "regex" - treat the search term as a full Java regular expression
-					       If omitted, defaults to a case-insensitive file search.
-					""";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Recursively search files and directories within the user's assets folder, filtered by search term and optional searching flags.")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"The relative file path to search files from. This relative path should assume the file path till the user's asset app_root folder and relative path should start onwards")
+				.key(ReactorKeysEnum.SEARCH, "The search term used to filter file and directory names")
+				.key(ReactorKeysEnum.OPTIONS, """
+						A list of zero or more search flags to modify matching behavior.
+						       Valid values are:
+						          "case"  - perform a case-sensitive match
+						          "word"  - match only whole words
+						          "regex" - treat the search term as a full Java regular expression
+						       If omitted, defaults to a case-insensitive file search.
+						""");
 	}
 }

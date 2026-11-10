@@ -30,6 +30,7 @@ package prerna.reactor.codeexec;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class PixelBase64Reactor extends AbstractPixelReactor {
@@ -46,10 +47,8 @@ public class PixelBase64Reactor extends AbstractPixelReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
-			return "The pixel code to execute. The pixel code should be passed in as a base64-encoded utf-8 string";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().key(ReactorKeysEnum.CODE,
+				"The pixel code to execute. The pixel code should be passed in as a base64-encoded utf-8 string");
 	}
 }

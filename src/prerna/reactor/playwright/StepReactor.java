@@ -36,6 +36,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -52,17 +53,18 @@ public class StepReactor extends AbstractReactor {
 
 	/**
 	 * Default constructor for StepReactor. Initializes the keys this reactor
-	 * expects: sessionId, tabId, shouldStore, paramValues, pageIndex, and stepIndex.
+	 * expects: sessionId, tabId, shouldStore, paramValues, pageIndex, and
+	 * stepIndex.
 	 */
 	public StepReactor() {
-		this.keysToGet = new String[] { "sessionId", "tabId", "shouldStore",
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), "pageIndex", "stepIndex" };
+		this.keysToGet = new String[] { "sessionId", "tabId", "shouldStore", ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
+				"pageIndex", "stepIndex" };
 		this.keyRequired = new int[] { 1, 1, 0, 1, 0, 0 };
 	}
 
 	/**
-	 * Executes a single Playwright step within an active session and records it.
-	 * If pageIndex and stepIndex are provided, the step is inserted at that position
+	 * Executes a single Playwright step within an active session and records it. If
+	 * pageIndex and stepIndex are provided, the step is inserted at that position
 	 * in the history instead of being appended.
 	 *
 	 * @return A NounMetadata object containing a screenshot of the page after the
@@ -162,8 +164,8 @@ public class StepReactor extends AbstractReactor {
 	public ScreenshotResponse executeStep(String sessionId, PlaywrightStep step, String tabId) {
 		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
 		if (playwrightSession == null) {
-			throw new IllegalArgumentException(
-					"Playwright session '" + sessionId + "' not found. The session may have expired or the server was restarted. Please start a new session.");
+			throw new IllegalArgumentException("Playwright session '" + sessionId
+					+ "' not found. The session may have expired or the server was restarted. Please start a new session.");
 		}
 		Map<String, Object> stepResult = PlaywrightSessionUtility.applyStep(playwrightSession, step, tabId);
 		boolean isPageChanged = (Boolean) stepResult.get("isPageChanged");
@@ -250,8 +252,8 @@ public class StepReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Inserts a step at a specific position in the history.
-	 * If stepIndex is out of bounds, appends as a new page at the end.
+	 * Inserts a step at a specific position in the history. If stepIndex is out of
+	 * bounds, appends as a new page at the end.
 	 *
 	 * @param playwrightSession The active {@link PlaywrightSession}.
 	 * @param tabId             The ID of the tab.
@@ -278,24 +280,19 @@ public class StepReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Execute a step in the current page of the playwright session";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "Playwright session ID that stores information about the history of actions done during that session";
-		} else if (key.equals("shouldStore")) {
-			return "Boolean flag to indicate whether to store the value of TYPE actions in the session history. If false, the value will be replaced with an empty string.";
-		} else if (key.equals("paramValues")) {
-			return "Map of step parameters. Required keys: type (NAVIGATE, CLICK, TYPE, SCROLL, WAIT), url (for NAVIGATE), coords (for CLICK and TYPE), text (for TYPE), pressEnter (for TYPE), deltaY (for SCROLL), waitAfterMs (optional for all types)";
-		} else if (key.equals("pageIndex")) {
-			return "Optional. Zero-based index of the page within the tab where the step should be inserted after execution. If not provided, step is appended based on page change detection.";
-		} else if (key.equals("stepIndex")) {
-			return "Optional. Zero-based index position where the step should be inserted within the page after execution. Required if pageIndex is provided. Use 0 to insert at the beginning, or any value up to the current number of steps to append.";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Execute a step in the current page of the playwright session")
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP, key -> key.type(Map.class))
+				.key("tabId", "The id of the browser tab to run the step in.")
+				.key("sessionId",
+						"Playwright session ID that stores information about the history of actions done during that session")
+				.key("shouldStore", key -> key.type(Boolean.class).description(
+						"Boolean flag to indicate whether to store the value of TYPE actions in the session history. If false, the value will be replaced with an empty string."))
+				.key("paramValues",
+						"Map of step parameters. Required keys: type (NAVIGATE, CLICK, TYPE, SCROLL, WAIT), url (for NAVIGATE), coords (for CLICK and TYPE), text (for TYPE), pressEnter (for TYPE), deltaY (for SCROLL), waitAfterMs (optional for all types)")
+				.key("pageIndex",
+						"Optional. Zero-based index of the page within the tab where the step should be inserted after execution. If not provided, step is appended based on page change detection.")
+				.key("stepIndex", key -> key.type(Integer.class).description(
+						"Optional. Zero-based index position where the step should be inserted within the page after execution. Required if pageIndex is provided. Use 0 to insert at the beginning, or any value up to the current number of steps to append."));
 	}
 }

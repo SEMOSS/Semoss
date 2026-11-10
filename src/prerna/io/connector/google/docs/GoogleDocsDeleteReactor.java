@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.google.AbstractGoogleReactor;
 import prerna.io.connector.google.GoogleLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -72,16 +73,10 @@ public class GoogleDocsDeleteReactor extends AbstractGoogleReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Delete an existing document in Google Docs.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ID.getKey())) {
-			return "Unique identifier of the Google Docs document to delete (" + ReactorKeysEnum.ID.getKey() + ").";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Delete an existing document in Google Docs.").key(
+				ReactorKeysEnum.ID,
+				"Unique identifier of the Google Docs document to delete (" + ReactorKeysEnum.ID.getKey() + ").");
 	}
 
 }

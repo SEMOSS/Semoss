@@ -33,15 +33,13 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -68,18 +66,7 @@ public class SyncModelMetadataReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed in to sync model metadata",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		if (!SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
@@ -131,19 +118,13 @@ public class SyncModelMetadataReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Backfill the model metadata stored for model engines from the meta/model.json catalog";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "Optional list of model engine ids to sync. Defaults to every model engine";
-		} else if (key.equals(FORCE_KEY)) {
-			return "Overwrite values that are already stored instead of only filling in empty ones. Default false";
-		} else if (key.equals(DRY_RUN_KEY)) {
-			return "Report what would change without writing anything. Default false";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Backfill the model metadata stored for model engines from the meta/model.json catalog")
+				.key(ReactorKeysEnum.ENGINE,
+						"Optional list of model engine ids to sync. Defaults to every model engine")
+				.key(FORCE_KEY,
+						"Overwrite values that are already stored instead of only filling in empty ones. Default false")
+				.key(DRY_RUN_KEY, "Report what would change without writing anything. Default false");
 	}
 }

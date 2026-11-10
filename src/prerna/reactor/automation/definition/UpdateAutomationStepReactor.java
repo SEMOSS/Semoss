@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.project.AutomationProjectService;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
@@ -134,24 +135,11 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Updates configuration for one generated automation node.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "The Automation project ID or alias to update.";
-		}
-		if (NODE_ID_KEY.equals(key)) {
-			return "The generated node ID to reconfigure.";
-		}
-		if (CONFIG_KEY.equals(key)) {
-			return "The complete node configuration as a JSON object or Base64-encoded JSON object.";
-		}
-		if (LABEL_KEY.equals(key)) {
-			return "An optional replacement user-facing node label.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Updates configuration for one generated automation node.")
+				.key(ReactorKeysEnum.PROJECT, "The Automation project ID or alias to update.")
+				.key(NODE_ID_KEY, "The generated node ID to reconfigure.")
+				.key(CONFIG_KEY, "The complete node configuration as a JSON object or Base64-encoded JSON object.")
+				.key(LABEL_KEY, "An optional replacement user-facing node label.");
 	}
 }

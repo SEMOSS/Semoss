@@ -571,8 +571,6 @@ public class Constants {
 
 	// Security
 	public static final String SECURITY_DB = "security";
-	public static final String ANONYMOUS_USER_ALLOWED = "anonymous-users-allowed";
-	public static final String ANONYMOUS_USER_UPLOAD_DATA = "anonymous-users-upload-data";
 	public static final String USE_LOGOUT_PAGE = "use-logout-page";
 	public static final String CUSTOM_LOGOUT_URL = "custom-logout-url";
 	public static final String SESSION_USER = "semoss_user";
@@ -690,8 +688,7 @@ public class Constants {
 	public static final String USE_CONNECTION_POOLING = "USE_CONNECTION_POOLING";
 	public static final String H2_BASE_CONNECTION_URL = "jdbc:h2:@" + Constants.BASE_FOLDER + "@"
 			+ System.getProperty("file.separator") + "@ENGINE" + Constants.ENGINE + "@"
-			+ System.getProperty("file.separator")
-			+ "database;query_timeout=180000;cache_size=32768";
+			+ System.getProperty("file.separator") + "database;query_timeout=180000;cache_size=32768";
 
 	// default rdbms insights type
 	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";
@@ -1070,6 +1067,9 @@ public class Constants {
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
 
+	// web search platform MCP; it needs a SearXNG service, so each instance turns it on in RDF_Map
+	public static final String WEB_SEARCH_ENABLED = "WEB_SEARCH_ENABLED";
+
 	// notification db
 	public static final String NOTIFICATION_DATABASE_ENABLED = "NOTIFICATION_DATABASE_ENABLED";
 	public static final String NOTIFICATION_DB = "Notification";
@@ -1082,14 +1082,20 @@ public class Constants {
 	public static final String COLLAB_CLASSIFIER_ENGINE_ID = "COLLAB_CLASSIFIER_ENGINE_ID";
 	public static final String COLLAB_CLASSIFIER_CUTOFFS = "COLLAB_CLASSIFIER_CUTOFFS";
 	public static final String COLLAB_CLASSIFIER_WINDOW = "COLLAB_CLASSIFIER_WINDOW";
-	// a general text model for topic grouping and naming, thread summaries and work items
+	// a general text model for topic grouping and naming, thread summaries and work
+	// items
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
-	// work items runs at once across owners; each owner's own runs still go one at a time (default 3)
+	// work items runs at once across owners; each owner's own runs still go one at
+	// a time (default 3)
 	public static final String COLLAB_WORK_ITEMS_PARALLEL = "COLLAB_WORK_ITEMS_PARALLEL";
+	// threads one work items run reads at once (default 5)
+	public static final String COLLAB_WORK_EXTRACT_PARALLEL = "COLLAB_WORK_EXTRACT_PARALLEL";
 	// threads the classifier sorts at once (default 8)
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
 	// characters of memories a thread's assistant gets in its prompt (default 4000)
 	public static final String COLLAB_MEMORY_PROMPT_CHARS = "COLLAB_MEMORY_PROMPT_CHARS";
+	// minutes a routine's agent step may run before the routine stops (default 10)
+	public static final String COLLAB_ROUTINE_TIMEOUT_MINUTES = "COLLAB_ROUTINE_TIMEOUT_MINUTES";
 
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
@@ -1131,6 +1137,7 @@ public class Constants {
 	public static final String MCP_PIXABAY = "pixabay";
 	public static final String MCP_REACTOR_HELP = "reactor-help";
 	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
+	public static final String MCP_WEB_SEARCH = "web-search";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";

@@ -17,7 +17,7 @@ login (the primary first), and the teams of every login.
 | `personOf(User)` | a signed-in user making a call, or reading their own limits | custom teams from `CUSTOMGROUPASSIGNMENT`, and login provider teams (such as Microsoft groups) from each login's token |
 | `storedPerson(userId, type)` | someone else, by id and login type, such as on Effective Permissions | custom teams only, since login provider teams are known only from the person's own sign-in |
 
-Anonymous users cannot use models; `personOf` throws for them. Memberships that
+A user who is not signed in cannot use models; `personOf` throws for them. Memberships that
 have ended are left out. Usage is counted under the primary login, while grants
 and limits on every login count.
 

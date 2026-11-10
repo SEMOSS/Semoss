@@ -75,12 +75,6 @@ public interface IReactor {
 	String MERGE_INTO_QS_FORMAT_SCALAR = "scalar";
 	String MERGE_INTO_QS_DATATYPE = "qsMergeDataType";
 
-	/*
-	 * 
-	 * To Be implemented by each reactor
-	 * 
-	 */
-
 	/**
 	 * Execute method - GREEDY translation
 	 * 
@@ -327,9 +321,9 @@ public interface IReactor {
 
 	/**
 	 * 
-	 * @return description of the reactor
+	 * @return
 	 */
-	String getReactorDescription();
+	ReactorDefinition getReactorDefinition();
 
 	/**
 	 * Determine if this reactor should be merged up to be put into a QS as is vs.

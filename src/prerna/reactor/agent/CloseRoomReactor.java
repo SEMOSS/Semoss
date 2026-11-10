@@ -33,6 +33,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -71,15 +72,9 @@ public class CloseRoomReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Closes one of your own rooms with an agent, and its subagents' rooms, so no agent runs in them again, cancelling every run in them that has not finished, even while it executes. You no longer see the rooms. Returns the rooms closed and the runs cancelled.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
-			return "Your room to close.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Closes one of your own rooms with an agent, and its subagents' rooms, so no agent runs in them again, cancelling every run in them that has not finished, even while it executes. You no longer see the rooms. Returns the rooms closed and the runs cancelled.")
+				.key(ReactorKeysEnum.ROOM_ID, "Your room to close.");
 	}
 }
