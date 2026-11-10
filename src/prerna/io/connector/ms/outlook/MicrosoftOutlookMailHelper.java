@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.apache.hc.core5.http.ContentType;
@@ -58,6 +59,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.io.connector.ConnectorPage;
 import prerna.query.parsers.MailSearchParser;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Utility;
@@ -130,6 +132,9 @@ public class MicrosoftOutlookMailHelper {
 	private static final int DEFAULT_MAX_MESSAGE_MB = 35;
 	// left for the body and headers when working out how much file fits
 	private static final long MESSAGE_HEADROOM_BYTES = 1024L * 1024L;
+	// the largest attachment a download takes, checked against the size Graph
+	// lists and against the bytes downloaded
+	static final long MAX_DOWNLOAD_BYTES = 100L * 1024L * 1024L;
 
 	/**
 	 * The folders Graph addresses by name rather than by id. Anything else somebody
@@ -191,6 +196,12 @@ public class MicrosoftOutlookMailHelper {
 
 	/** How many levels of folders a walk of the folder tree goes down. */
 	private static final int MAX_TREE_DEPTH = 10;
+
+	/**
+	 * The most pages of results a search narrowed in memory reads to fill what the
+	 * query asks for, so a sparse match cannot page through a whole mailbox.
+	 */
+	private static final int MAX_SEARCH_PAGES = 5;
 
 	/**
 	 * A Graph folder id is a long run of the characters Graph writes ids with,
@@ -461,6 +472,33 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
+	 * Send a message through a draft, so its internetMessageId is known before it goes out. The id stays the same
+	 * on the sent and received copies, which lets a caller recognize the message when it reads it back.
+	 *
+	 * @param beforeSend given the id once the draft exists and before it is sent
+	 * @return the sent message's internetMessageId
+	 */
+	public String sendThroughDraft(String accessToken, String mailbox, Map<String, Object> message,
+			java.util.function.Consumer<String> beforeSend) {
+		Map<String, Object> draft = createDraft(accessToken, mailbox, message);
+		String draftId = draftId(draft);
+		boolean sent = false;
+		try {
+			if (!(draft.get("internetMessageId") instanceof String internetId) || internetId.isBlank()) {
+				throw new IllegalStateException("Microsoft Graph did not return the draft's message id");
+			}
+			beforeSend.accept(internetId);
+			sendDraft(accessToken, mailbox, draftId);
+			sent = true;
+			return internetId;
+		} finally {
+			if (!sent) {
+				deleteQuietly(accessToken, mailbox, draftId);
+			}
+		}
+	}
+
+	/**
 	 * Answer a message, either to the sender alone or to everybody on it.
 	 *
 	 * <p>
@@ -551,11 +589,13 @@ public class MicrosoftOutlookMailHelper {
 
 	/**
 	 * Save an edited envelope on the same native reply draft as the formatted body.
+	 * An empty list removes everybody from it; a null one keeps the list Outlook
+	 * wrote.
 	 */
 	public Map<String, Object> replyHtmlDraft(String accessToken, String uid, String html, boolean replyAll,
 			String[] to, String[] cc) {
-		String[] validatedTo = MicrosoftOutlookReplyRecipients.validate(to);
-		String[] validatedCc = MicrosoftOutlookReplyRecipients.validate(cc);
+		String[] validatedTo = to == null ? null : MicrosoftOutlookReplyRecipients.validate(to);
+		String[] validatedCc = cc == null ? null : MicrosoftOutlookReplyRecipients.validate(cc);
 		return fillHtmlDraft(accessToken, reply(accessToken, null, uid, null, replyAll, true), html, validatedTo,
 				validatedCc);
 	}
@@ -569,40 +609,55 @@ public class MicrosoftOutlookMailHelper {
 		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
 			throw new IllegalStateException("The reply draft could not be confirmed. Check Outlook before retrying.");
 		}
-		Map<String, Object> original = draft.get("body") instanceof Map<?, ?> ? draft
-				: getMessage(accessToken, null, id);
-		if (original == null || !(original.get("body") instanceof Map<?, ?> body)) {
-			throw new IllegalStateException("The created draft body could not be read. Check Outlook before retrying.");
+		boolean filled = false;
+		try {
+			Map<String, Object> original = draft.get("body") instanceof Map<?, ?> ? draft
+					: getMessage(accessToken, null, id);
+			if (original == null || !(original.get("body") instanceof Map<?, ?> body)) {
+				throw new IllegalStateException(
+						"The created draft body could not be read. Check Outlook before retrying.");
+			}
+			Map<String, Object> request = new LinkedHashMap<>();
+			request.put("body", Map.of("contentType", "HTML", "content", prependHtml(html, body)));
+			boolean envelope = to != null || cc != null;
+			if (envelope) {
+				// Empty lists are intentional removals, not omitted properties; an omitted one
+				// keeps Outlook's own.
+				if (to != null) {
+					request.put("toRecipients", List.of());
+					putRecipients(request, "toRecipients", to);
+				}
+				if (cc != null) {
+					request.put("ccRecipients", List.of());
+					putRecipients(request, "ccRecipients", cc);
+				}
+				request.put("bccRecipients", List.of());
+			}
+			String response = HttpHelperUtility.patchRequestStringBody(userPath(null) + "/messages/" + encode(id),
+					headers(accessToken), GSON.toJson(request), ContentType.APPLICATION_JSON, null, null, null);
+			throwOnError(response, "format the draft");
+			Map<String, Object> updated = readMap(response);
+			if (updated == null || !id.equals(updated.get("id"))) {
+				throw new IllegalStateException(
+						"The formatted draft could not be confirmed. Check Outlook before retrying.");
+			}
+			if (envelope && ((to != null && !MicrosoftOutlookReplyRecipients.matches(updated.get("toRecipients"), to))
+					|| (cc != null && !MicrosoftOutlookReplyRecipients.matches(updated.get("ccRecipients"), cc))
+					|| !MicrosoftOutlookReplyRecipients.matches(updated.get("bccRecipients"), new String[0]))) {
+				throw new IllegalStateException(
+						"The saved reply recipients could not be confirmed. Check Outlook before retrying.");
+			}
+			if (!updated.containsKey("webLink") && draft.get("webLink") instanceof String link) {
+				updated.put("webLink", link);
+			}
+			filled = true;
+			return updated;
+		} finally {
+			if (!filled) {
+				// a half-made draft could still be sent, and every retry would leave another
+				deleteQuietly(accessToken, null, id);
+			}
 		}
-		Map<String, Object> request = new LinkedHashMap<>();
-		request.put("body", Map.of("contentType", "HTML", "content", prependHtml(html, body)));
-		if (to != null && cc != null) {
-			// Empty lists are intentional removals, not omitted properties.
-			request.put("toRecipients", List.of());
-			request.put("ccRecipients", List.of());
-			request.put("bccRecipients", List.of());
-			putRecipients(request, "toRecipients", to);
-			putRecipients(request, "ccRecipients", cc);
-		}
-		String response = HttpHelperUtility.patchRequestStringBody(userPath(null) + "/messages/" + encode(id),
-				headers(accessToken), GSON.toJson(request), ContentType.APPLICATION_JSON, null, null, null);
-		throwOnError(response, "format the draft");
-		Map<String, Object> updated = readMap(response);
-		if (updated == null || !id.equals(updated.get("id"))) {
-			throw new IllegalStateException(
-					"The formatted draft could not be confirmed. Check Outlook before retrying.");
-		}
-		if (to != null && cc != null
-				&& (!MicrosoftOutlookReplyRecipients.matches(updated.get("toRecipients"), to)
-						|| !MicrosoftOutlookReplyRecipients.matches(updated.get("ccRecipients"), cc)
-						|| !MicrosoftOutlookReplyRecipients.matches(updated.get("bccRecipients"), new String[0]))) {
-			throw new IllegalStateException(
-					"The saved reply recipients could not be confirmed. Check Outlook before retrying.");
-		}
-		if (!updated.containsKey("webLink") && draft.get("webLink") instanceof String link) {
-			updated.put("webLink", link);
-		}
-		return updated;
 	}
 
 	/**
@@ -641,6 +696,51 @@ public class MicrosoftOutlookMailHelper {
 		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
 		throwOnError(response, "read an attachment");
 		return readMap(response);
+	}
+
+	/**
+	 * Read the bytes of one file attachment raw ({@code $value}) rather than as
+	 * base64 {@code contentBytes}. They pass through a temporary file, so bytes
+	 * over {@link #MAX_DOWNLOAD_BYTES} are refused before they are read.
+	 *
+	 * @param accessToken  the token to read with
+	 * @param mailbox      the mailbox, or null for the signed in user
+	 * @param messageId    the message holding it
+	 * @param attachmentId the attachment to read
+	 * @param name         what a refusal calls it
+	 * @return the bytes
+	 * @throws IllegalArgumentException when the read fails or the attachment is
+	 *                                  over the limit
+	 * @throws IOException              when the temporary file cannot be read
+	 */
+	public byte[] getAttachmentBytes(String accessToken, String mailbox, String messageId, String attachmentId,
+			String name) throws IOException {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/attachments/" + encode(attachmentId)
+				+ "/$value";
+		String folder = System.getProperty("java.io.tmpdir");
+		// named up front, so a download that breaks part way is deleted too
+		File file = new File(folder, ".attachment-" + UUID.randomUUID());
+		try {
+			file = HttpHelperUtility.getRequestFileDownload(url, headers(accessToken), null, null, null, folder,
+					file.getName());
+			checkDownloadSize(file.length(), name);
+			return Files.readAllBytes(file.toPath());
+		} finally {
+			Files.deleteIfExists(file.toPath());
+		}
+	}
+
+	/**
+	 * Refuses an attachment over {@link #MAX_DOWNLOAD_BYTES}.
+	 *
+	 * @param size its size in bytes, as Graph lists it or as downloaded
+	 * @param name what the refusal calls it
+	 */
+	static void checkDownloadSize(long size, String name) {
+		if (size > MAX_DOWNLOAD_BYTES) {
+			throw new IllegalArgumentException(
+					name + " is larger than the " + MAX_DOWNLOAD_BYTES / (1024 * 1024) + " MB limit for a download.");
+		}
 	}
 
 	/**
@@ -725,12 +825,20 @@ public class MicrosoftOutlookMailHelper {
 
 	/**
 	 * Materialize files before creating a remote draft, so local failures cannot
-	 * send anything.
+	 * send anything. Files over {@link #maxAttachmentBytes()} in all are refused
+	 * before any is read.
 	 */
 	public static List<Map<String, Object>> fileAttachments(String[] paths) throws IOException {
 		List<Map<String, Object>> attached = new ArrayList<>();
 		if (paths == null) {
 			return attached;
+		}
+		// sized on disk before any is read, so files too large to send never reach memory
+		long total = Arrays.stream(paths).mapToLong(path -> new File(path).length()).sum();
+		if (total > maxAttachmentBytes()) {
+			throw new IllegalArgumentException("The email's files are " + (total / (1024 * 1024)) + " MB, over the "
+					+ (maxAttachmentBytes() / (1024 * 1024)) + " MB that fit in one message (" + MAX_MESSAGE_MB_SETTING
+					+ ")");
 		}
 		for (String path : paths) {
 			File file = new File(path);
@@ -761,6 +869,23 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
+	 * {@link #attachToDraft} for a draft a reply or forward has just made: when the
+	 * files cannot be added the draft is deleted, since it could still be sent
+	 * without them and every retry would leave another.
+	 */
+	public void attachToNewDraft(String accessToken, Map<String, Object> draft, List<Map<String, Object>> files) {
+		boolean attached = false;
+		try {
+			attachToDraft(accessToken, draft, files);
+			attached = true;
+		} finally {
+			if (!attached && draft != null && draft.get("id") instanceof String id && !id.isBlank()) {
+				deleteQuietly(accessToken, null, id);
+			}
+		}
+	}
+
+	/**
 	 * Find messages in a mailbox.
 	 *
 	 * @param accessToken the token to read with
@@ -769,8 +894,29 @@ public class MicrosoftOutlookMailHelper {
 	 * @return the messages, newest first, as Graph returned them
 	 */
 	public List<Map<String, Object>> listMessages(String accessToken, String mailbox, MessageQuery query) {
+		return listMessagePage(accessToken, mailbox, query).items();
+	}
+
+	/**
+	 * Find messages in a mailbox, and say whether Graph has more of them than were
+	 * read.
+	 *
+	 * <p>
+	 * A search narrowed in memory drops what it does not want, so it reads on
+	 * through Graph's pages, up to {@value #MAX_SEARCH_PAGES} of them, until it has
+	 * as many messages as the query asks for.
+	 * </p>
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox to read, or null for the signed in user
+	 * @param query       what to look for
+	 * @return the messages, newest first, as Graph returned them, with whether
+	 *         Graph has another page after the last one read
+	 */
+	public ConnectorPage<Map<String, Object>> listMessagePage(String accessToken, String mailbox,
+			MessageQuery query) {
 		if (query.conversationId != null) {
-			return listConversation(accessToken, mailbox, query);
+			return new ConnectorPage<>(listConversation(accessToken, mailbox, query), false);
 		}
 
 		StringBuilder url = new StringBuilder(userPath(mailbox));
@@ -815,32 +961,33 @@ public class MicrosoftOutlookMailHelper {
 			url.append("&$orderby=").append(encode("receivedDateTime desc"));
 		}
 
-		String response = HttpHelperUtility.getRequest(url.toString(),
-				query.includeBody ? textBodyHeaders(accessToken) : headers(accessToken), null, null, null);
-		throwOnError(response, "read the mailbox");
-		List<Map<String, Object>> messages = readList(response);
+		List<Map<String, Object>> messages = new ArrayList<>();
+		String next = url.toString();
+		int pages = 0;
+		do {
+			String response = HttpHelperUtility.getRequest(next,
+					query.includeBody ? textBodyHeaders(accessToken) : headers(accessToken), null, null, null);
+			throwOnError(response, "read the mailbox");
+			Map<String, Object> page = readMap(response);
+			for (Map<String, Object> message : values(page)) {
+				// what the server could not be asked for alongside the text search
+				if (searching && (query.unreadOnly && Boolean.TRUE.equals(message.get("isRead"))
+						|| query.since != null && receivedBefore(message, query.since)
+						|| query.until != null && receivedAfter(message, query.until))) {
+					continue;
+				}
+				messages.add(message);
+			}
+			next = page != null && page.get("@odata.nextLink") instanceof String link ? link : null;
+			pages++;
+		} while (searching && next != null && pages < MAX_SEARCH_PAGES && messages.size() < query.top);
 
 		if (searching) {
-			// what the server could not be asked for alongside the text search, and the
-			// order every listing has, by arrival, since a search comes back by when
+			// the order every listing has, by arrival, since a search comes back by when
 			// each message was sent and the page is cut from this
-			List<Map<String, Object>> narrowed = new ArrayList<>();
-			for (Map<String, Object> message : messages) {
-				if (query.unreadOnly && Boolean.TRUE.equals(message.get("isRead"))) {
-					continue;
-				}
-				if (query.since != null && receivedBefore(message, query.since)) {
-					continue;
-				}
-				if (query.until != null && receivedAfter(message, query.until)) {
-					continue;
-				}
-				narrowed.add(message);
-			}
-			narrowed.sort(NEWEST_FIRST);
-			messages = narrowed;
+			messages.sort(NEWEST_FIRST);
 		}
-		return messages;
+		return new ConnectorPage<>(messages, next != null);
 	}
 
 	/**
@@ -1348,10 +1495,12 @@ public class MicrosoftOutlookMailHelper {
 		try {
 			Map<String, Object> parsed = readMap(response);
 			Object error = parsed == null ? null : parsed.get("error");
-			if (error instanceof Map) {
-				Map<?, ?> errorMap = (Map<?, ?>) error;
-				detail = errorMap.get("code") + ": " + errorMap.get("message");
+			// a reply that only mentions "error" (a sender, subject or folder of that name) is not one
+			if (!(error instanceof Map)) {
+				return;
 			}
+			Map<?, ?> errorMap = (Map<?, ?>) error;
+			detail = errorMap.get("code") + ": " + errorMap.get("message");
 		} catch (RuntimeException e) {
 			classLogger.debug("Could not read the error Graph returned", e);
 		}

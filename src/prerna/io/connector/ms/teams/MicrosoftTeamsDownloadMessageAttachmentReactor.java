@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -134,24 +135,17 @@ public class MicrosoftTeamsDownloadMessageAttachmentReactor extends AbstractMicr
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Download a file or an image attached to a Microsoft Teams chat or channel message into the insight folder.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(CHAT_ID)) {
-			return "Id of the chat holding the message. Not needed when a team id and channel id are given.";
-		} else if (key.equals(TEAM_ID)) {
-			return "Id of the team holding the message. Not needed when a chat id is given.";
-		} else if (key.equals(CHANNEL_ID)) {
-			return "Id of the channel holding the message. Not needed when a chat id is given.";
-		} else if (key.equals(ATTACHMENT_ID)) {
-			return "Optional id or name of the attachment, as returned on the message. The only attachment is taken when the message has one.";
-		} else if (key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
-			return "Optional name to save the file as in the insight folder. The name the attachment carries is used when omitted, which a pasted image does not have.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Download a file or an image attached to a Microsoft Teams chat or channel message into the insight folder.")
+				.key(MESSAGE_ID, MESSAGE_ID_DESCRIPTION).key(REPLY_ID, REPLY_ID_DESCRIPTION)
+				.key(CHAT_ID, "Id of the chat holding the message. Not needed when a team id and channel id are given.")
+				.key(TEAM_ID, "Id of the team holding the message. Not needed when a chat id is given.")
+				.key(CHANNEL_ID, "Id of the channel holding the message. Not needed when a chat id is given.")
+				.key(ATTACHMENT_ID,
+						"Optional id or name of the attachment, as returned on the message. The only attachment is taken when the message has one.")
+				.key(ReactorKeysEnum.FILE_NAME,
+						"Optional name to save the file as in the insight folder. The name the attachment carries is used when omitted, which a pasted image does not have.");
 	}
 
 	/**

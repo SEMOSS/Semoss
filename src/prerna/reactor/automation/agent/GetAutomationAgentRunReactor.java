@@ -30,6 +30,7 @@ package prerna.reactor.automation.agent;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -72,7 +73,17 @@ public class GetAutomationAgentRunReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns an exact trace-linked Automation child agent run to project viewers.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Returns an exact trace-linked Automation child agent run to project viewers.")
+				.key(AGENT_RUN_ID_KEY,
+						"The id of the agent run to return. It must be trace-linked to the given Automation run and node.")
+				.key(AUTOMATION_RUN_ID_KEY, "The id of the Automation run that started the agent run.")
+				.key(INCLUDE_MESSAGES_KEY,
+						key -> key.type(Boolean.class).description(
+								"Whether to include the agent run's messages in the result. Defaults to false."))
+				.key(NODE_ID_KEY, "The id of the Automation node that started the agent run.")
+				.key(ReactorKeysEnum.PROJECT,
+						"The id or alias of the Automation project the run belongs to; the caller needs view access. Without it, the run must be in the caller's own inline run scope.");
 	}
 }

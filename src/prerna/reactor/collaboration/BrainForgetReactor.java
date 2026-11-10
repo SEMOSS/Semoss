@@ -31,6 +31,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainMemoryUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -64,16 +65,10 @@ public class BrainForgetReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Drop a memory when the owner asks you to forget it or says it is wrong and gives nothing in its place. "
-				+ "A memory the owner wrote or confirmed is kept until they approve it in the chat.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (MEMORY_ID.equals(key)) {
-			return "Id of the memory, as in [m:id] under What you remember or in SearchMemories results";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Drop a memory when the owner asks you to forget it or says it is wrong and gives nothing in its place. "
+						+ "A memory the owner wrote or confirmed is kept until they approve it in the chat.")
+				.key(MEMORY_ID, "Id of the memory, as in [m:id] under What you remember or in SearchMemories results");
 	}
 }

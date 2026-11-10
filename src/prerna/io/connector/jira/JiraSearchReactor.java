@@ -27,18 +27,19 @@
  *******************************************************************************/
 package prerna.io.connector.jira;
 
-import org.javatuples.Pair;
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-
-import java.util.Map;
 
 public class JiraSearchReactor extends AbstractReactor {
 
@@ -73,8 +74,7 @@ public class JiraSearchReactor extends AbstractReactor {
 				try {
 					maxResults = Integer.parseInt(maxResultsRaw.trim());
 				} catch (NumberFormatException e) {
-					throw new SemossPixelException(
-							"maxResults must be a number, got: '" + maxResultsRaw.trim() + "'.");
+					throw new SemossPixelException("maxResults must be a number, got: '" + maxResultsRaw.trim() + "'.");
 				}
 			}
 
@@ -97,19 +97,12 @@ public class JiraSearchReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Searches Jira issues using a JQL query string. Returns a paginated list of matching issues with their fields. Use nextPageToken from the response to fetch additional pages.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(JQL)) {
-			return "Required JQL query string (for example, project = RTJ AND status = Open ORDER BY created DESC).";
-		} else if (key.equals(NEXT_PAGE_TOKEN)) {
-			return "Optional pagination token from a previous response for fetching the next page.";
-		} else if (key.equals(MAX_RESULTS)) {
-			return "Optional maximum issues per page, default 50, server-capped at 100.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Searches Jira issues using a JQL query string. Returns a paginated list of matching issues with their fields. Use nextPageToken from the response to fetch additional pages.")
+				.key(JQL,
+						"Required JQL query string (for example, project = RTJ AND status = Open ORDER BY created DESC).")
+				.key(NEXT_PAGE_TOKEN, "Optional pagination token from a previous response for fetching the next page.")
+				.key(MAX_RESULTS, "Optional maximum issues per page, default 50, server-capped at 100.");
 	}
 }

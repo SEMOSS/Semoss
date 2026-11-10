@@ -33,6 +33,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainProfileUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -70,24 +71,11 @@ public class WorkUseSkillInAssistantReactor extends AbstractCollaborationReactor
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		return USE.equals(key) ? MCP_KEY_TYPE.BOOLEAN : super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Turns one of the owner's own skills on or off for their assistant, so their chats load it when "
-				+ "relevant. Takes effect from the next message.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SKILL_ID.equals(key)) {
-			return "Id of the skill, from ListMySkills or PublishSkill.";
-		}
-		if (USE.equals(key)) {
-			return "true to turn it on (default), false to turn it off.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Turns one of the owner's own skills on or off for their assistant, so their chats load it when "
+						+ "relevant. Takes effect from the next message.")
+				.key(SKILL_ID, "Id of the skill, from ListMySkills or PublishSkill.").key(USE, key -> key
+						.type(Boolean.class).description("true to turn it on (default), false to turn it off."));
 	}
 }

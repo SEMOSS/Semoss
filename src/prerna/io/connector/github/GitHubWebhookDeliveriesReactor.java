@@ -39,6 +39,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -101,8 +102,7 @@ public class GitHubWebhookDeliveriesReactor extends AbstractReactor {
 				installationFilter = ((Number) installObj).longValue();
 			}
 		} else if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
-			throw new SemossPixelException(
-					"A project is required unless the user has administrator access.");
+			throw new SemossPixelException("A project is required unless the user has administrator access.");
 		}
 
 		try {
@@ -131,18 +131,12 @@ public class GitHubWebhookDeliveriesReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Return the GitHub App's most recent webhook deliveries (event, response status, time), optionally scoped to a project's installation, for monitoring webhook health.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "Optional project id; when provided, only deliveries for that project's GitHub App installation are returned";
-		} else if (LIMIT.equals(key)) {
-			return "Optional maximum number of recent deliveries to return (default 30, max 100)";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Return the GitHub App's most recent webhook deliveries (event, response status, time), optionally scoped to a project's installation, for monitoring webhook health.")
+				.key(ReactorKeysEnum.PROJECT,
+						"Optional project id; when provided, only deliveries for that project's GitHub App installation are returned")
+				.key(LIMIT, "Optional maximum number of recent deliveries to return (default 30, max 100)");
 	}
 
 }

@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -219,19 +220,13 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(FILE_ORIGIN)) {
-			return "The format of the document to be summarized (file path, url, or free text)";
-		} else if (key.equals(USER_INPUT)) {
-			return "The actual file, whether that is a URL, file path, or free text";
-		} else if (key.equals(NUM_SENTENCES)) {
-			return "The number of sentences to be returned in the summary";
-		} else if (key.equals(NUM_TOPICS)) {
-			return "The number of major topics to be returned in the summary";
-		} else if (key.equals(NUM_TOPIC_TERMS)) {
-			return "The number of keywords within each major topic to be returned in the summary";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Summarizes a document from a file, a URL or entered text and fills the current R frame with the result: its top sentences, its main topics with their keywords, and its keywords with their frequencies.")
+				.key(FILE_ORIGIN, "Where the document comes from, written exactly as File Path, URL or Enter Manually.")
+				.key(USER_INPUT, "The actual file, whether that is a URL, file path, or free text")
+				.key(NUM_SENTENCES, "The number of sentences to be returned in the summary")
+				.key(NUM_TOPICS, "The number of major topics to be returned in the summary")
+				.key(NUM_TOPIC_TERMS, "The number of keywords within each major topic to be returned in the summary");
 	}
 }

@@ -99,6 +99,6 @@ public class AdminGetSystemInfoReactorUnitTests {
 
 	@Test
 	void testGetReactorDescription() {
-		assertNotNull(reactor.getReactorDescription());
+		assertNotNull(reactor.getReactorDefinition().getDescription());
 	}
 }

@@ -56,6 +56,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.excel.ExcelParsing;
 import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -87,9 +88,10 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Uploads an Excel file that follows the SEMOSS loader-sheet format to create a relational (RDBMS) database. "
-				+ "The 'Loader' tab specifies which sheets to load, and node/relationship sheets define the tables and their foreign-key relationships.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Uploads an Excel file that follows the SEMOSS loader-sheet format to create a relational (RDBMS) database. "
+						+ "The 'Loader' tab specifies which sheets to load, and node/relationship sheets define the tables and their foreign-key relationships.");
 	}
 
 	@Override
@@ -628,9 +630,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 						+ " = '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[setter]) + "' AND " + tableToInsert
 						+ "_FK IS NULL";
 				boolean isInsert = false;
-				IRawSelectWrapper wrapper = null;
-				try {
-					wrapper = WrapperManager.getInstance().getRawWrapper(database, getRowCountQuery);
+				try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(database,
+						getRowCountQuery)) {
 					if (wrapper.hasNext()) {
 						String rowcount = wrapper.next().getValues()[0].toString();
 						if (rowcount.equals("0")) {
@@ -640,15 +641,6 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 				} catch (Exception e) {
 					classLogger.error("Error executing row count query on table '{}' for relation processing: {}",
 							tableToSet, e.getMessage(), e);
-				} finally {
-					if (wrapper != null) {
-						try {
-							wrapper.close();
-						} catch (IOException e) {
-							logger.error("Error closing query wrapper for table '{}': {}", tableToSet, e.getMessage(),
-									e);
-						}
-					}
 				}
 
 				if (isInsert) {

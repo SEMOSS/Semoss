@@ -38,6 +38,7 @@ import org.json.JSONObject;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -139,23 +140,16 @@ public class MakeRoomPixelMCPReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Generates mcp/pixel_mcp.json in the room's folder from the reactors named, \
 				so the tools are available to that room alone rather than to a whole project. \
 				Reactors are named explicitly, since a room is not scoped to a project whose \
 				reactors could be scanned for it.\
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-			return "The room whose folder the tools are written to. If not passed, the calling insight's own room folder is used.";
-		} else if (key.equals(ReactorKeysEnum.REACTOR.getKey())) {
-			return "The list of reactors to turn into mcp tools in the room's pixel_mcp.json";
-		}
-		return super.getDescriptionForKey(key);
+				""").key(ReactorKeysEnum.ROOM_ID,
+				"The room whose folder the tools are written to. If not passed, the calling insight's own room folder is used.")
+				.key(ReactorKeysEnum.REACTOR,
+						"The list of reactors to turn into mcp tools in the room's pixel_mcp.json");
 	}
 
 }

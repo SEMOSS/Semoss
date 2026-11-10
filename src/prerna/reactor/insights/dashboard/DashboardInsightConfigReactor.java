@@ -43,6 +43,7 @@ import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -217,15 +218,13 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 
 	///////////////////////// KEYS /////////////////////////////////////
 
-	@Deprecated
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(INSIGHT_KEY)) {
-			return "The insights of the saved dashboard";
-		} else if (key.equals(OLD_ID_KEY)) {
-			return "The old insight ids of the saved dashboard";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Opens a new copy of each insight in a saved dashboard that the user can view, and returns each insight's details with its old and new insight ids plus the URL decoded layout config.")
+				.key(LAYOUT_KEY, "The URL encoded layout config of the saved dashboard, returned decoded.")
+				.key(INSIGHT_KEY, key -> key.list(String.class).description("The insights of the saved dashboard"))
+				.key(OLD_ID_KEY,
+						key -> key.list(String.class).description("The old insight ids of the saved dashboard"));
 	}
 }

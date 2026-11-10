@@ -41,12 +41,14 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
+import prerna.auth.User;
 import prerna.collaboration.BrainMemoryReview.Read;
 import prerna.collaboration.BrainMemoryReview.Turn;
 import prerna.collaboration.BrainMemoryUtils.Ref;
 import prerna.collaboration.BrainMemoryUtils.Suggestion;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 
@@ -110,6 +112,28 @@ class BrainMemoryReviewUnitTests {
 		// no watermark yet: from the start
 		assertEquals(4, BrainMemoryReview.read(messages, null).turns().size());
 		assertEquals("m2", BrainMemoryReview.read(List.of(), "m2").lastMessageId());
+	}
+
+	@Test
+	void aRoutineRoomsOwnRunIsNotTheOwnersChat() {
+		Room room = room();
+		AbstractMessage routine = owner(room, "m1", "Requests: Dana approves every Acme budget");
+		routine.setAgentRun(new AgentRunMessageContext("routine-run", "input"));
+		AbstractMessage followUp = owner(room, "m2", "Always cc Dana on expense replies");
+		followUp.setAgentRun(new AgentRunMessageContext("follow-up-run", "input"));
+		when(room.getMessages()).thenReturn(List.of(routine, followUp));
+		User user = new User();
+		user.getRoomHash().put("room-1", room);
+		// in an ordinary chat the first run is the owner's own
+		assertEquals(List.of("m1", "m2"), ids(BrainMemoryReview.messages(user, "room-1")));
+
+		when(room.getOptionsMap()).thenReturn(Map.of(CollaborationUtils.ROOM_OPTION_ROUTINE, true,
+				CollaborationUtils.ROOM_OPTION_ROUTINE_HANDED_OVER, true));
+		assertEquals(List.of("m2"), ids(BrainMemoryReview.messages(user, "room-1")));
+	}
+
+	private static List<String> ids(List<AbstractMessage> messages) {
+		return messages.stream().map(AbstractMessage::getMessageId).toList();
 	}
 
 	@Test

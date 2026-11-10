@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.CollaborationSearchUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class BrainGetSearchRecordReactor extends AbstractCollaborationReactor {
@@ -44,7 +45,10 @@ public class BrainGetSearchRecordReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Loads an owned Collaboration search record and its thread context";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Loads an owned Collaboration search record and its thread context")
+				.key("id", "The id of the thread, person or topic to load.")
+				.key("kind", "The kind of record to load: thread, person or topic.");
 	}
 }

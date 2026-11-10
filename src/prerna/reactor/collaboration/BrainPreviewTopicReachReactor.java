@@ -28,9 +28,14 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainTopicReviewUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** Live count of the owner's conversations that involve a set of their people. */
+import java.util.Map;
+
+/**
+ * Live count of the owner's conversations that involve a set of their people.
+ */
 public class BrainPreviewTopicReachReactor extends AbstractCollaborationReactor {
 	public BrainPreviewTopicReachReactor() {
 		this.keysToGet = new String[] { "reach" };
@@ -40,12 +45,16 @@ public class BrainPreviewTopicReachReactor extends AbstractCollaborationReactor 
 	@Override
 	public NounMetadata execute() {
 		var reach = getMapFromKeyOrCurRow("reach");
-		if (reach == null) throw new IllegalArgumentException("Pass reach.people as a list of person ids");
+		if (reach == null)
+			throw new IllegalArgumentException("Pass reach.people as a list of person ids");
 		return mapResult(BrainTopicReviewUtils.reach(getUser(), reach.get("people")));
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Counts the owner's non-automated conversations that involve any of reach.people, and those with at least two of them, with up to three example subjects; no writes";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Counts the owner's non-automated conversations that involve any of reach.people, and those with at least two of them, with up to three example subjects; no writes")
+				.key("reach", key -> key.type(Map.class)
+						.description("A map whose people list holds up to 60 person ids to count conversations for."));
 	}
 }

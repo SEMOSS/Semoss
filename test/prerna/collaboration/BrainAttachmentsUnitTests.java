@@ -81,7 +81,12 @@ class BrainAttachmentsUnitTests {
             if (listingError != null) {
                 throw listingError;
             }
-            return Map.of("native-id", List.of(BrainAttachments.describe(attachment)));
+            // every email on the thread carries the file
+            Map<String, List<Map<String, Object>>> listed = new java.util.LinkedHashMap<>();
+            for (String graphId : graphIds) {
+                listed.put(graphId, List.of(BrainAttachments.describe(attachment)));
+            }
+            return listed;
         }
 
         @Override
@@ -106,6 +111,11 @@ class BrainAttachmentsUnitTests {
 
     /** Runs body with the thread's database rows and rules mocked; never is the never-ingest answer. */
     private <T> T withThread(String graphId, boolean never, Supplier<T> body) {
+        return withThread(List.of(graphId), never, body);
+    }
+
+    /** The same, for a thread holding these emails. */
+    private <T> T withThread(List<String> graphIds, boolean never, Supplier<T> body) {
         try (MockedStatic<CollaborationDbUtils> db = mockStatic(CollaborationDbUtils.class, invocation -> {
             String method = invocation.getMethod().getName();
             if (method.equals("queryOne")) {
@@ -116,13 +126,17 @@ class BrainAttachmentsUnitTests {
             if (method.equals("query")) {
                 String sql = invocation.getArgument(0);
                 if (!sql.contains("FROM BRAIN_MESSAGE")) return List.of();
-                ResultSet rs = mock(ResultSet.class);
-                when(rs.getString("MESSAGE_KEY")).thenReturn("key-1");
-                when(rs.getString("GRAPH_ID")).thenReturn(graphId);
-                when(rs.getString("SENDER_PERSON_ID")).thenReturn("p-jane");
-                when(rs.getString("DECISION")).thenReturn(BrainRulesGate.INGESTED);
                 CollaborationDbUtils.RowMapper<?> mapper = invocation.getArgument(1);
-                return List.of(mapper.map(rs));
+                List<Object> rows = new java.util.ArrayList<>();
+                for (String graphId : graphIds) {
+                    ResultSet rs = mock(ResultSet.class);
+                    when(rs.getString("MESSAGE_KEY")).thenReturn("key-" + graphId);
+                    when(rs.getString("GRAPH_ID")).thenReturn(graphId);
+                    when(rs.getString("SENDER_PERSON_ID")).thenReturn("p-jane");
+                    when(rs.getString("DECISION")).thenReturn(BrainRulesGate.INGESTED);
+                    rows.add(mapper.map(rs));
+                }
+                return rows;
             }
             if (method.equals("getTimestamp")) return "2026-09-25T12:00:00Z";
             return invocation.callRealMethod();
@@ -191,6 +205,24 @@ class BrainAttachmentsUnitTests {
         assertEquals("Budget.docx", again.get("filePath"));
         assertEquals("Budget.docx.txt", again.get("textPath"));
         assertFalse(Files.exists(dir.resolve("Other.docx")));
+    }
+
+    @Test
+    void aRevisedFileOfTheSameNameOnAnotherEmailIsFetchedNotTheStagedCopy() throws Exception {
+        FakeSource source = new FakeSource(file("report.pdf", 4), "%PDF".getBytes());
+        List<String> thread = List.of("newer-id", "native-id");
+        withThread(thread, false, () -> BrainAttachments.stage(null, "owner", "type", dir.toString(), "thread",
+                "native-id", null, "report.pdf", null, false, source, 10 * MB));
+        Map<String, Object> revised = withThread(thread, false, () -> BrainAttachments.stage(null, "owner", "type",
+                dir.toString(), "thread", "newer-id", null, "report.pdf", null, false, source, 10 * MB));
+        assertEquals(2, source.downloads.get());
+        assertEquals("newer-id", revised.get("messageId"));
+        assertFalse(revised.containsKey("alreadyInChat"));
+        // the same email again is the staged copy
+        Map<String, Object> again = withThread(thread, false, () -> BrainAttachments.stage(null, "owner", "type",
+                dir.toString(), "thread", "newer-id", null, "report.pdf", null, false, source, 10 * MB));
+        assertEquals(2, source.downloads.get());
+        assertEquals(true, again.get("alreadyInChat"));
     }
 
     @Test

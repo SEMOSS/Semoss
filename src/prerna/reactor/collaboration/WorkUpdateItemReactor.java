@@ -32,6 +32,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.WorkItemUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkUpdateItem(itemId=["..."], status=["done"], snoozeUntil=["..."], priority=["P1"], title=["..."], dueAt=["..."], suggested=[false], reason=["..."]);
@@ -73,31 +74,14 @@ public class WorkUpdateItemReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Updates a Work item and records the change in its history; the result carries the changeId to undo";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ITEM_ID.equals(key)) {
-			return "Work item id";
-		} else if (STATUS.equals(key)) {
-			return "open, waiting, done, dismissed, or snoozed";
-		} else if (SNOOZE_UNTIL.equals(key)) {
-			return "ISO-8601 time; alone it snoozes the item";
-		} else if (PRIORITY.equals(key)) {
-			return "P0 to P3, a manual override";
-		} else if (TITLE.equals(key)) {
-			return "New title";
-		} else if (DUE_AT.equals(key)) {
-			return "ISO-8601 due time";
-		} else if (SUGGESTED.equals(key)) {
-			return "false accepts an assistant suggestion";
-		} else if (REASON.equals(key)) {
-			return "Why, kept in the item history";
-		} else if (CLOSED_REASON.equals(key)) {
-			return "Why it closed; no_response_needed (with dismissed) records the owner's correction";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Updates a Work item and records the change in its history; the result carries the changeId to undo")
+				.key(ITEM_ID, "Work item id").key(STATUS, "open, waiting, done, dismissed, or snoozed")
+				.key(SNOOZE_UNTIL, "ISO-8601 time; alone it snoozes the item")
+				.key(PRIORITY, "P0 to P3, a manual override").key(TITLE, "New title").key(DUE_AT, "ISO-8601 due time")
+				.key(SUGGESTED, "false accepts an assistant suggestion").key(REASON, "Why, kept in the item history")
+				.key(CLOSED_REASON,
+						"Why it closed; no_response_needed (with dismissed) records the owner's correction");
 	}
 }

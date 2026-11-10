@@ -248,7 +248,7 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 	 */
 	@Test
 	void getReactorDescriptionReturnsCorrectValue() {
-		String description = reactor.getReactorDescription();
+		String description = reactor.getReactorDefinition().getDescription();
 		assertTrue(description.contains("mcp/pixel_mcp.json"), description);
 	}
 }

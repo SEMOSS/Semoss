@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -112,6 +113,9 @@ public class MicrosoftTeamsSendChatMessageReactor extends AbstractMicrosoftTeams
 				// built in chat with yourself under this id
 				chat = SELF_CHAT_ID;
 			}
+			if (chat == null && recipients.length > 1) {
+				chat = MicrosoftTeamsMessageHelper.findGroupChat(accessToken, recipients);
+			}
 			if (chat == null) {
 				// one person means the one on one chat with them, and several means a
 				// group chat of everybody named
@@ -162,18 +166,16 @@ public class MicrosoftTeamsSendChatMessageReactor extends AbstractMicrosoftTeams
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Send a message in a Microsoft Teams chat, either to an existing chat or to the people named.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(CHAT_ID)) {
-			return "Id of the chat to send to, as returned by MicrosoftTeamsListChats. Not needed when recipients are named.";
-		} else if (key.equals(RECIPIENTS)) {
-			return "Email addresses or user ids to message, passed as several values or as one comma separated value. The one on one chat with one person is used or started, several people are put in a group chat, and the user's own address sends to their chat with themselves. Not needed when a chat id is given.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Send a message in a Microsoft Teams chat, either to an existing chat or to the people named.")
+				.key(MESSAGE, MESSAGE_DESCRIPTION).key(HTML, HTML_DESCRIPTION).key(MENTIONS, MENTIONS_DESCRIPTION)
+				.key(ATTACHMENT_URLS, ATTACHMENT_URLS_DESCRIPTION).key(ATTACHMENT_NAMES, ATTACHMENT_NAMES_DESCRIPTION)
+				.key(CHAT_ID,
+						"Id of the chat to send to, as returned by MicrosoftTeamsListChats. Not needed when recipients are named.")
+				.key(RECIPIENTS,
+						"Email addresses or user ids to message, passed as several values or as one comma separated value. The one on one chat with one person is used or started, as is the group chat with exactly the people named when there are several, and the user's own address sends to their chat with themselves. Not needed when a chat id is given.");
 	}
 
 	@Override

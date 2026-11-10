@@ -42,6 +42,7 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -340,24 +341,14 @@ public class GetRoomConversationHistoryReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Retrieves and formats the conversation history for a specific room, providing both structured data and a plain text string";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
-			return "Conversation/room identifier that the history should be pulled from.";
-		} else if (ReactorKeysEnum.LIMIT.getKey().equals(key)) {
-			return "Maximum number of question/answer pairs to return (default is all).";
-		} else if (ReactorKeysEnum.OFFSET.getKey().equals(key)) {
-			return "Number of question/answer pairs to skip before collecting history.";
-		} else if (ReactorKeysEnum.SORT.getKey().equals(key)) {
-			return "Sort direction for the returned pairs. Accepts ASC (oldest first) or DESC (newest first).";
-		} else if ("includePartial".equals(key)) {
-			return "Set to true to include the most recent unanswered question, if one exists.";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Retrieves and formats the conversation history for a specific room, providing both structured data and a plain text string")
+				.key(ReactorKeysEnum.ROOM_ID, "Conversation/room identifier that the history should be pulled from.")
+				.key(ReactorKeysEnum.LIMIT, "Maximum number of question/answer pairs to return (default is all).")
+				.key(ReactorKeysEnum.OFFSET, "Number of question/answer pairs to skip before collecting history.")
+				.key(ReactorKeysEnum.SORT,
+						"Sort direction for the returned pairs. Accepts ASC (oldest first) or DESC (newest first).")
+				.key("includePartial", "Set to true to include the most recent unanswered question, if one exists.");
 	}
 }

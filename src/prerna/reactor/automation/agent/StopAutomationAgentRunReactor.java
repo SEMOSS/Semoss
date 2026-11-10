@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -71,7 +72,14 @@ public class StopAutomationAgentRunReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Stops a trace-linked Automation child agent run for a project editor.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Stops a trace-linked Automation child agent run for a project editor.")
+				.key(AGENT_RUN_ID_KEY,
+						"The id of the agent run to stop. It must be trace-linked to the given Automation run and node.")
+				.key(AUTOMATION_RUN_ID_KEY, "The id of the Automation run that started the agent run.")
+				.key(NODE_ID_KEY, "The id of the Automation node that started the agent run.")
+				.key(ReactorKeysEnum.PROJECT,
+						"The id or alias of the Automation project the run belongs to; the caller needs edit access. Without it, the run must be in the caller's own inline run scope.");
 	}
 }

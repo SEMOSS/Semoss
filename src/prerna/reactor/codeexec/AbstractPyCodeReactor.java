@@ -34,6 +34,7 @@ import prerna.algorithm.api.ICodeExecution;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.om.Variable.LANGUAGE;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.py.AbstractPyFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -121,8 +122,8 @@ public abstract class AbstractPyCodeReactor extends AbstractPyFrameReactor imple
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Run Python code in the user's dedicated python process";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Run Python code in the user's dedicated python process");
 	}
 
 	/**

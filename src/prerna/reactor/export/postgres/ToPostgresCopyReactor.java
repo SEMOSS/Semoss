@@ -27,11 +27,14 @@
  *******************************************************************************/
 package prerna.reactor.export.postgres;
 
+import prerna.reactor.ReactorDefinition;
+
 @Deprecated
 public class ToPostgresCopyReactor extends PostgresCopyReactor {
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor is deprecated. Please use PostgresCopy() instead.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("This reactor is deprecated. Please use PostgresCopy() instead.");
 	}
 }

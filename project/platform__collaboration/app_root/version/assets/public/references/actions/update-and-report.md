@@ -6,8 +6,7 @@ Read the latest item and the owner's requested change. Preserve manual title,
 priority, due-time, owner, snooze, and dismissal choices unless the owner asked
 to change them or a supported policy explicitly authorizes the update.
 
-Use the actual item ID. A thread ID, message ID, or chat todo ID is not a Work item
-ID. If several items could match, use their source and intended outcome to resolve
+Use the actual item ID. A thread ID or message ID is not a Work item ID. If several items could match, use their source and intended outcome to resolve
 them; ask only when a mistaken update would affect a different task.
 
 ## Apply only supported changes
@@ -42,8 +41,7 @@ ambiguous failure, read the current item through an available tool before retryi
 Do not create a replacement item because an update response was delayed.
 
 Do not promise undo from a history ID alone. Undo requires an available working
-tool and a successful result. Chat `TodoWrite` tracks the agent's execution plan;
-it does not create or update the owner's persistent Work items.
+tool and a successful result.
 
 ## Report what happened
 

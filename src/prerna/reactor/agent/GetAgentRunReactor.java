@@ -32,6 +32,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -44,7 +45,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Returns the durable {@code AGENT_RUN} snapshot: status, final output, message
  * ids, error, and the pending actions a paused run is waiting on. Pass
  * {@code includeMessages=true} to also return the run's room messages, which is
- * what a client needs to render the conversation rather than just the run state.
+ * what a client needs to render the conversation rather than just the run
+ * state.
  */
 public class GetAgentRunReactor extends AbstractReactor {
 
@@ -66,7 +68,12 @@ public class GetAgentRunReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Get durable AgentRun status, output, message ids, error, and pending actions. Pass includeMessages=true to include this run's room messages.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Get durable AgentRun status, output, message ids, error, and pending actions. Pass includeMessages=true to include this run's room messages.")
+				.key(INCLUDE_MESSAGES_KEY,
+						key -> key.type(Boolean.class)
+								.description("When true, also returns the run's room messages; false when not given."))
+				.key(RUN_ID_KEY, "The id of the agent run to read.");
 	}
 }

@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.collaboration;
+package prerna.io.connector.mail;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -50,14 +50,14 @@ import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 
-class BrainAttachmentTextUnitTests {
+class AttachmentTextUnitTests {
 
     @TempDir
     Path dir;
 
     private String read(Path file, String name) throws Exception {
-        BrainAttachmentText.Extracted text = BrainAttachmentText.extract(file, name, "HEADER\n\n",
-                BrainAttachmentText.MAX_CHARS);
+        AttachmentText.Extracted text = AttachmentText.extract(file, name, "HEADER\n\n",
+                AttachmentText.MAX_CHARS);
         assertNotNull(text);
         assertTrue(text.text().startsWith("HEADER\n\n"));
         return text.text();
@@ -142,19 +142,19 @@ class BrainAttachmentTextUnitTests {
             doc.createParagraph().createRun().setText("x".repeat(500));
             doc.write(out);
         }
-        BrainAttachmentText.Extracted text = BrainAttachmentText.extract(file, "Long.docx", "", 100);
+        AttachmentText.Extracted text = AttachmentText.extract(file, "Long.docx", "", 100);
         assertTrue(text.truncated());
         assertTrue(text.text().endsWith("[Cut at 100 characters. Open the original file for the rest.]"));
     }
 
     @Test
     void onlyOfficeAndMailFilesAreRead() throws Exception {
-        assertTrue(BrainAttachmentText.supports("A.DOCX"));
-        assertTrue(BrainAttachmentText.supports("note.msg"));
-        assertTrue(BrainAttachmentText.supports("fwd.eml"));
-        assertFalse(BrainAttachmentText.supports("report.pdf"));
-        assertFalse(BrainAttachmentText.supports("photo.png"));
-        assertFalse(BrainAttachmentText.supports("README"));
-        assertNull(BrainAttachmentText.extract(dir.resolve("none.pdf"), "none.pdf", "", 100));
+        assertTrue(AttachmentText.supports("A.DOCX"));
+        assertTrue(AttachmentText.supports("note.msg"));
+        assertTrue(AttachmentText.supports("fwd.eml"));
+        assertFalse(AttachmentText.supports("report.pdf"));
+        assertFalse(AttachmentText.supports("photo.png"));
+        assertFalse(AttachmentText.supports("README"));
+        assertNull(AttachmentText.extract(dir.resolve("none.pdf"), "none.pdf", "", 100));
     }
 }

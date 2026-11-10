@@ -38,6 +38,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
@@ -116,24 +117,18 @@ public class CopyEngineAssetReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Copy (clone) a file or directory in the engine assets folder to a new path";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The unique id for the engine";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The source file or directory to copy. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		} else if (key.equals(ReactorKeysEnum.NEW_VALUE.getKey())) {
-			return "The destination path for the copy. This cannot be an existing file or directory unless override is true and has the same character restrictions you would expect on a typical file system.";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository for the engine";
-		} else if (key.equals(OVERRIDE)) {
-			return "Whether to delete an existing file or directory at the destination before copying. Defaults to false.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Copy (clone) a file or directory in the engine assets folder to a new path")
+				.key(ReactorKeysEnum.ENGINE, "The unique id for the engine")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"The source file or directory to copy. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.")
+				.key(ReactorKeysEnum.NEW_VALUE,
+						"The destination path for the copy. This cannot be an existing file or directory unless override is true and has the same character restrictions you would expect on a typical file system.")
+				.key(ReactorKeysEnum.COMMENT_KEY,
+						"Comment to add while saving the files within the git repository for the engine")
+				.key(OVERRIDE, key -> key.type(Boolean.class).description(
+						"Whether to delete an existing file or directory at the destination before copying. Defaults to false."));
 	}
 
 	@Override
@@ -141,14 +136,6 @@ public class CopyEngineAssetReactor extends AbstractReactor {
 		JSONObject properties = super.getMcpProperties();
 		properties.getJSONObject(OVERRIDE).put("default", false);
 		return properties;
-	}
-
-	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals(OVERRIDE)) {
-			return MCP_KEY_TYPE.BOOLEAN;
-		}
-		return super.getKeyTypeForMCP(key);
 	}
 
 }
