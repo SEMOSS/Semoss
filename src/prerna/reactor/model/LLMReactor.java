@@ -39,7 +39,9 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.usage.ModelUsageTicket;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -86,6 +88,9 @@ public class LLMReactor extends AbstractReactor {
 		if (paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
+		// the usage ceiling comes from the usage limits that apply, never from the
+		// caller
+		paramMap.remove(ModelUsageTicket.USAGE_CEILING);
 		Boolean useHistoryParam = Boolean
 				.parseBoolean(this.keyValue.getOrDefault(ReactorKeysEnum.USE_HISTORY.getKey(), "true") + "");
 		paramMap.put("use_history", useHistoryParam);
@@ -143,6 +148,8 @@ public class LLMReactor extends AbstractReactor {
 	}
 
 	/**
+	 * Reads the model call's parameters: the {@code paramValues} map, else the
+	 * first map passed without a name; null when there is neither.
 	 * 
 	 * @return
 	 */
@@ -175,37 +182,28 @@ public class LLMReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This method is used to run an LLM text-generation call";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-			return "This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room";
-		} else if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
-			return "This is the prompt to execute against the LLM";
-		} else if (key.equals(ReactorKeysEnum.CONTEXT.getKey())) {
-			return "The system prompt to use for the LLM call";
-		} else if (key.equals(ReactorKeysEnum.MEDIA.getKey())) {
-			return "This is an array of media file names that have already been uploaded to the insight folder, or base64 data URIs (e.g. data:image/jpeg;base64,.... or data:application/pdf;base64,....). "
-					+ "Any file type is accepted here - image, pdf, document, spreadsheet, audio, video - and what actually gets used depends on what the model supports.";
-		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
-			return "This is an array of media file urls whose contents will be fetched when building the message content.";
-		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			return "Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc. "
-					+ "In addition, you can pass in 'full_prompt' to represent a full prompt and history via ChatML format which will ignore inputs for "
-					+ Arrays.asList(ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(),
-							ReactorKeysEnum.USE_HISTORY.getKey(), ReactorKeysEnum.MEDIA.getKey(),
-							ReactorKeysEnum.URL.getKey())
-					+ ". Media for a full_prompt call has to travel inside the prompt as content parts instead.";
-		} else if (key.equals(ReactorKeysEnum.USE_HISTORY.getKey())) {
-			return "Boolean true/false to determine if we should incorporate the user's chat history based on the previous chats in this insight id. "
-					+ "Default is true. This is the same as passing 'use_history' in the "
-					+ ReactorKeysEnum.PARAM_VALUES_MAP.getKey() + " key-value map";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("This method is used to run an LLM text-generation call").key(
+				ReactorKeysEnum.ROOM_ID,
+				"This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room")
+				.key(ReactorKeysEnum.COMMAND, "This is the prompt to execute against the LLM")
+				.key(ReactorKeysEnum.CONTEXT, "The system prompt to use for the LLM call")
+				.key(ReactorKeysEnum.MEDIA,
+						"This is an array of media file names that have already been uploaded to the insight folder, or base64 data URIs (e.g. data:image/jpeg;base64,.... or data:application/pdf;base64,....). "
+								+ "Any file type is accepted here - image, pdf, document, spreadsheet, audio, video - and what actually gets used depends on what the model supports.")
+				.key(ReactorKeysEnum.URL,
+						"This is an array of media file urls whose contents will be fetched when building the message content.")
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP,
+						"Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc. "
+								+ "In addition, you can pass in 'full_prompt' to represent a full prompt and history via ChatML format which will ignore inputs for "
+								+ Arrays.asList(ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(),
+										ReactorKeysEnum.USE_HISTORY.getKey(), ReactorKeysEnum.MEDIA.getKey(),
+										ReactorKeysEnum.URL.getKey())
+								+ ". Media for a full_prompt call has to travel inside the prompt as content parts instead.")
+				.key(ReactorKeysEnum.USE_HISTORY,
+						"Boolean true/false to determine if we should incorporate the user's chat history based on the previous chats in this insight id. "
+								+ "Default is true. This is the same as passing 'use_history' in the "
+								+ ReactorKeysEnum.PARAM_VALUES_MAP.getKey() + " key-value map");
 	}
 
 }

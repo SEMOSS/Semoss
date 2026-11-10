@@ -28,7 +28,9 @@
 package prerna.io.connector;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
@@ -38,6 +40,7 @@ import org.json.JSONObject;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
@@ -72,22 +75,20 @@ public abstract class AbstractConnectorAppReactor extends AbstractConnectorReact
 	/**
 	 * The type of every key a mail or calendar reactor takes, for its MCP schema.
 	 */
-	private static final Map<String, MCP_KEY_TYPE> KEY_TYPES = Map.ofEntries(
-			Map.entry("unreadOnly", MCP_KEY_TYPE.BOOLEAN), Map.entry("includeBody", MCP_KEY_TYPE.BOOLEAN),
-			Map.entry("includeAttachments", MCP_KEY_TYPE.BOOLEAN),
-			Map.entry("includeDisplayBody", MCP_KEY_TYPE.BOOLEAN),
-			Map.entry("includeReplyRecipients", MCP_KEY_TYPE.BOOLEAN), Map.entry("html", MCP_KEY_TYPE.BOOLEAN),
-			Map.entry("replyAll", MCP_KEY_TYPE.BOOLEAN), Map.entry("asDraft", MCP_KEY_TYPE.BOOLEAN),
-			Map.entry("overrideRecipients", MCP_KEY_TYPE.BOOLEAN), Map.entry("read", MCP_KEY_TYPE.BOOLEAN),
-			Map.entry("saveToSentItems", MCP_KEY_TYPE.BOOLEAN), Map.entry("isAllDay", MCP_KEY_TYPE.BOOLEAN),
-			Map.entry("isOnlineMeeting", MCP_KEY_TYPE.BOOLEAN), Map.entry("sendResponse", MCP_KEY_TYPE.BOOLEAN),
-			Map.entry("limit", MCP_KEY_TYPE.INTEGER), Map.entry("offset", MCP_KEY_TYPE.INTEGER),
-			Map.entry("sinceDays", MCP_KEY_TYPE.INTEGER), Map.entry("maxBodyChars", MCP_KEY_TYPE.INTEGER),
-			Map.entry("days", MCP_KEY_TYPE.INTEGER), Map.entry("reminderMinutesBeforeStart", MCP_KEY_TYPE.INTEGER),
-			Map.entry("to", MCP_KEY_TYPE.ARRAY), Map.entry("cc", MCP_KEY_TYPE.ARRAY),
-			Map.entry("bcc", MCP_KEY_TYPE.ARRAY), Map.entry("attachments", MCP_KEY_TYPE.ARRAY),
-			Map.entry("attendees", MCP_KEY_TYPE.ARRAY), Map.entry("optionalAttendees", MCP_KEY_TYPE.ARRAY),
-			Map.entry("categories", MCP_KEY_TYPE.ARRAY), Map.entry("schedules", MCP_KEY_TYPE.ARRAY));
+	private static final Map<String, Class<?>> KEY_TYPES = Map.ofEntries(Map.entry("unreadOnly", Boolean.class),
+			Map.entry("includeBody", Boolean.class), Map.entry("includeAttachments", Boolean.class),
+			Map.entry("includeDisplayBody", Boolean.class), Map.entry("includeReplyRecipients", Boolean.class),
+			Map.entry("html", Boolean.class), Map.entry("replyAll", Boolean.class), Map.entry("asDraft", Boolean.class),
+			Map.entry("overrideRecipients", Boolean.class), Map.entry("read", Boolean.class),
+			Map.entry("saveToSentItems", Boolean.class), Map.entry("isAllDay", Boolean.class),
+			Map.entry("isOnlineMeeting", Boolean.class), Map.entry("sendResponse", Boolean.class),
+			Map.entry("limit", Integer.class), Map.entry("offset", Integer.class),
+			Map.entry("sinceDays", Integer.class), Map.entry("maxBodyChars", Integer.class),
+			Map.entry("days", Integer.class), Map.entry("reminderMinutesBeforeStart", Integer.class),
+			Map.entry("to", List.class), Map.entry("cc", List.class), Map.entry("bcc", List.class),
+			Map.entry("attachments", List.class), Map.entry("attendees", List.class),
+			Map.entry("optionalAttendees", List.class), Map.entry("categories", List.class),
+			Map.entry("schedules", List.class));
 
 	/**
 	 * @return the app this reactor works against
@@ -122,24 +123,46 @@ public abstract class AbstractConnectorAppReactor extends AbstractConnectorReact
 		return null;
 	}
 
+	/**
+	 * The keys only a viewer sends, which the tool an agent sees leaves out. A
+	 * viewer still passes them in its pixel; an agent never learns of them, since
+	 * what they bring back, such as an email's pictures, is for showing to a person
+	 * and would only fill a model's context.
+	 *
+	 * @return the keys, empty when an agent may send every key
+	 */
+	protected Set<String> getViewerKeys() {
+		return Set.of();
+	}
+
 	@Override
 	protected final AuthProvider getAuthProvider() {
 		return getApp().getAuthProvider();
 	}
 
 	@Override
-	public final String getReactorDescription() {
+	public final ReactorDefinition getReactorDefinition() {
+		ReactorDefinition definition = super.getReactorDefinition();
 		String description = describe();
 		if (getExecution() == MCPExecution.ASK) {
 			description = description + " " + ASK_NOTE;
 		}
-		return description;
-	}
-
-	@Override
-	protected final String getDescriptionForKey(String key) {
-		String description = describeKey(key);
-		return description == null ? super.getDescriptionForKey(key) : description;
+		definition.description(description);
+		for (ReactorDefinition.Key key : definition.getKeys()) {
+			String keyDescription = describeKey(key.getName());
+			if (keyDescription != null) {
+				key.description(keyDescription);
+			}
+			Class<?> type = KEY_TYPES.get(key.getName());
+			if (type == List.class) {
+				// a schema that says array without saying of what is refused by some
+				// model APIs, and every list these reactors take is a list of text
+				key.list(String.class);
+			} else if (type != null) {
+				key.type(type);
+			}
+		}
+		return definition;
 	}
 
 	@Override
@@ -171,20 +194,10 @@ public abstract class AbstractConnectorAppReactor extends AbstractConnectorReact
 	}
 
 	@Override
-	protected final MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		MCP_KEY_TYPE type = KEY_TYPES.get(key);
-		return type == null ? super.getKeyTypeForMCP(key) : type;
-	}
-
-	@Override
 	public final JSONObject getMcpProperties() {
 		JSONObject properties = super.getMcpProperties();
-		for (String key : properties.keySet()) {
-			if (getKeyTypeForMCP(key) == MCP_KEY_TYPE.ARRAY) {
-				// a schema that says array without saying of what is refused by some
-				// model APIs, and every list these reactors take is a list of text
-				properties.getJSONObject(key).put("items", new JSONObject().put("type", "string"));
-			}
+		for (String key : getViewerKeys()) {
+			properties.remove(key);
 		}
 		return properties;
 	}

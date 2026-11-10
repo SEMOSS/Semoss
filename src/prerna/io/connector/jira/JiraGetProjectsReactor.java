@@ -30,12 +30,13 @@ package prerna.io.connector.jira;
 import java.util.List;
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -44,10 +45,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class JiraGetProjectsReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(JiraGetProjectsReactor.class);
-
-	public JiraGetProjectsReactor() {
-
-	}
 
 	@Override
 	public NounMetadata execute() {
@@ -69,7 +66,9 @@ public class JiraGetProjectsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists all Jira projects visible to the current user. Returns id, project key, name, projectTypeKey, and lead for each project.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists all Jira projects visible to the current user. Returns id, project key, name, projectTypeKey, and lead for each project.")
+				.noKeys();
 	}
 }

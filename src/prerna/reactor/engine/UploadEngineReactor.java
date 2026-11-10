@@ -55,11 +55,15 @@ import prerna.engine.api.StorageTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
@@ -97,20 +101,7 @@ public class UploadEngineReactor extends AbstractReactor {
 		// do we want this project to be accessible to everyone
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 		// check security
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create or update an app",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		// throw error is user doesn't have rights to publish new apps
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
@@ -304,7 +295,7 @@ public class UploadEngineReactor extends AbstractReactor {
 					Utility.changePropertiesFileValue(finalEngineSmss.getAbsolutePath(), Constants.ENGINE_DISPLAY_NAME,
 							engineName);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to add the display name to the smss of engine {}", engineId, e);
 				}
 			}
 
@@ -334,7 +325,8 @@ public class UploadEngineReactor extends AbstractReactor {
 								}.getType());
 						SecurityModelMetadataUtils.restoreModelMetadata(engineId, modelMetadata);
 					} catch (Exception e) {
-						classLogger.error("Failed to apply the model metadata for engine {}. The engine is uploaded without it",
+						classLogger.error(
+								"Failed to apply the model metadata for engine {}. The engine is uploaded without it",
 								Utility.cleanLogString(engineId), e);
 					}
 					modelMetadataFile.delete();
@@ -371,6 +363,8 @@ public class UploadEngineReactor extends AbstractReactor {
 		}
 
 		ClusterUtil.pushEngine(engineId);
+		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_CREATE,
+				AuditTargetType.ofEngine(engineType), engineId, engineName, Map.of("global", global));
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), engineId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
@@ -393,20 +387,15 @@ public class UploadEngineReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Import a new engine. The user who uploads will by default be the owner of the engine";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "This is a required value containing the relative file path of the single zip file to be imported";
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-		} else if (key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
-			return "This is a required value to determine if the engine is public or private";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Import a new engine. The user who uploads will by default be the owner of the engine")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"This is a required value containing the relative file path of the single zip file to be imported")
+				.key(ReactorKeysEnum.SPACE,
+						"This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).")
+				.key(ReactorKeysEnum.GLOBAL,
+						"This is a required value to determine if the engine is public or private");
 	}
 
 }

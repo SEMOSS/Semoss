@@ -36,6 +36,8 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.IStorageEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
@@ -45,6 +47,7 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.om.ThreadStore;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -53,20 +56,18 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Submit a batch of LLM prompts using the provider's native batch API.
- * Mirrors LLMReactor's UX: accepts plain strings or {command, context} maps.
- * Python normalizes these to the provider wire format (OpenAI body / Anthropic params).
+ * Submit a batch of LLM prompts using the provider's native batch API. Mirrors
+ * LLMReactor's UX: accepts plain strings or {command, context} maps. Python
+ * normalizes these to the provider wire format (OpenAI body / Anthropic
+ * params).
  */
 public class BatchLLMReactor extends AbstractModelBatchReactor {
 
 	public BatchLLMReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.ENGINE.getKey(),
-				ReactorKeysEnum.BATCH_REQUESTS.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-				ReactorKeysEnum.ROOM_ID.getKey()
-		};
-		this.keyRequired = new int[] { 1, 1, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.BATCH_REQUESTS.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
+				ReactorKeysEnum.STORAGE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -87,7 +88,8 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 
 		IModelEngine engine = ModelBatchManager.resolveEngine(getUser(), engineId);
 
-		// optional: seed every request with a room's history + tools (one-shot, no tool execution)
+		// optional: seed every request with a room's history + tools (one-shot, no tool
+		// execution)
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		if (roomId != null && !roomId.isEmpty()) {
 			enrichWithRoomContext(requests, engine, roomId, sharedModelParams);
@@ -95,7 +97,26 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 			enrichWithMedia(requests, engine, sharedModelParams);
 		}
 
-		BatchSubmissionResponse response = engine.submitBatch(requests, batchParams);
+		String storageId = this.keyValue.get(ReactorKeysEnum.STORAGE.getKey());
+		BatchSubmissionResponse response;
+		if (storageId != null && !storageId.isEmpty()) {
+			if (engine.getModelType() != ModelTypeEnum.VERTEX) {
+				throw new IllegalArgumentException("The storage key is only applicable to Vertex-hosted engines");
+			}
+			IStorageEngine storage = ModelBatchManager.resolveStorage(getUser(), storageId, true);
+			response = ModelBatchManager.submitVertexBatch(engine, storage, requests, batchParams);
+		} else {
+			if (engine.getModelType() == ModelTypeEnum.VERTEX) {
+				// Vertex has no hosted batch API -- it requires staging the requests
+				// through Cloud Storage first. Without a storage engine, calling
+				// engine.submitBatch() directly would silently build the input JSONL
+				// and stop there, returning a non-error "BUILT" status with no
+				// upload and no Vertex job ever created.
+				throw new IllegalArgumentException(
+						"The storage key is required to submit a batch for this Vertex-hosted engine");
+			}
+			response = engine.submitBatch(requests, batchParams);
+		}
 		if (response.getProviderBatchId() != null) {
 			ModelBatchManager.recordBatchSubmission(getUser(), engine, response.getProviderBatchId(), requests,
 					this.insight.getInsightId(), ThreadStore.getSessionId());
@@ -135,10 +156,8 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 			if (commandObj == null) {
 				continue;
 			}
-			InputMessage.Builder builder = InputMessage.builder(room)
-					.withSystemPrompt(systemPrompt)
-					.withText(commandObj.toString())
-					.withModelType(engine.getModelType())
+			InputMessage.Builder builder = InputMessage.builder(room).withSystemPrompt(systemPrompt)
+					.withText(commandObj.toString()).withModelType(engine.getModelType())
 					.withParamMap(new HashMap<>(sharedModelParams));
 			attachMedia(builder, req, room);
 			List<AbstractMessage> branch = MessageUtils.getMessageBranchWithNewMessage(room.getMessages(),
@@ -157,8 +176,8 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 	 * attachment, build a one-shot message per request so the image is actually
 	 * sent to the provider. A single ephemeral room (not the insight's real
 	 * conversation room) is created purely to host the file copies the media
-	 * pipeline requires; it has no prior history, so each request's message_json
-	 * is just that request's own text + media, independent of the others.
+	 * pipeline requires; it has no prior history, so each request's message_json is
+	 * just that request's own text + media, independent of the others.
 	 */
 	private void enrichWithMedia(List<Map<String, Object>> requests, IModelEngine engine,
 			Map<String, Object> sharedModelParams) {
@@ -173,10 +192,8 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 			if (commandObj == null) {
 				continue;
 			}
-			InputMessage.Builder builder = InputMessage.builder(room)
-					.withSystemPrompt((String) req.get("context"))
-					.withText(commandObj.toString())
-					.withModelType(engine.getModelType())
+			InputMessage.Builder builder = InputMessage.builder(room).withSystemPrompt((String) req.get("context"))
+					.withText(commandObj.toString()).withModelType(engine.getModelType())
 					.withParamMap(new HashMap<>(sharedModelParams));
 			attachMedia(builder, req, room);
 			List<AbstractMessage> branch = MessageUtils.getMessageBranchWithNewMessage(room.getMessages(),
@@ -202,9 +219,9 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 	/**
 	 * Pulls "image" (insight-relative filenames or base64 data URIs) and "url"
 	 * (remote image URLs) off the request map and attaches them to the message
-	 * builder, mirroring LLMReactor's image handling. The keys are removed from
-	 * the request afterward so they never leak into the provider-native body as
-	 * stray params.
+	 * builder, mirroring LLMReactor's image handling. The keys are removed from the
+	 * request afterward so they never leak into the provider-native body as stray
+	 * params.
 	 */
 	private void attachMedia(InputMessage.Builder builder, Map<String, Object> req, Room room) {
 		List<String> images = toStringList(req.remove(ReactorKeysEnum.IMAGE.getKey()));
@@ -253,14 +270,16 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 				return;
 			}
 			if (s.startsWith("[")) {
-				List<Object> parsed = GSON.fromJson(s, new TypeToken<List<Object>>() {}.getType());
+				List<Object> parsed = GSON.fromJson(s, new TypeToken<List<Object>>() {
+				}.getType());
 				if (parsed != null) {
 					for (Object elem : parsed) {
 						addRequest(out, elem, sharedModelParams);
 					}
 				}
 			} else if (s.startsWith("{")) {
-				Map<String, Object> parsed = GSON.fromJson(s, new TypeToken<Map<String, Object>>() {}.getType());
+				Map<String, Object> parsed = GSON.fromJson(s, new TypeToken<Map<String, Object>>() {
+				}.getType());
 				if (parsed != null) {
 					out.add(normalizeEntry(parsed, out.size(), sharedModelParams));
 				}
@@ -292,25 +311,24 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Submit a batch of LLM prompts to the provider's native batch API. "
-				+ "Accepts plain strings or {command, context} maps; returns a batch id to poll for results.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.BATCH_REQUESTS.getKey())) {
-			return "List of prompts. Each entry is a plain string, or a map with 'command' (required), "
-					+ "'context' (optional system prompt), 'image' (optional insight-relative filename(s) or "
-					+ "base64 data URI(s)), and 'url' (optional remote image URL(s)). Shared paramValues "
-					+ "(max_tokens, temperature, etc.) are applied to every request as defaults.";
-		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-			return "Optional room id; when set, every request is seeded with the room's conversation "
-					+ "history and MCP tools (one-shot, tools are not executed).";
-		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			return "Shared model parameters (max_tokens, temperature, etc.) applied to every request as defaults. "
-					+ "Per-request values take precedence.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Submit a batch of LLM prompts to the provider's native batch API. "
+						+ "Accepts plain strings or {command, context} maps; returns a batch id to poll for results.")
+				.key(ReactorKeysEnum.BATCH_REQUESTS,
+						"List of prompts. Each entry is a plain string, or a map with 'command' (required), "
+								+ "'context' (optional system prompt), 'image' (optional insight-relative filename(s) or "
+								+ "base64 data URI(s)), and 'url' (optional remote image URL(s)). Shared paramValues "
+								+ "(max_tokens, temperature, etc.) are applied to every request as defaults.")
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP,
+						"Shared model parameters (max_tokens, temperature, etc.) applied to every request as defaults. "
+								+ "Per-request values take precedence.")
+				.key(ReactorKeysEnum.ROOM_ID,
+						"Optional room id; when set, every request is seeded with the room's conversation "
+								+ "history and MCP tools (one-shot, tools are not executed).")
+				.key(ReactorKeysEnum.STORAGE,
+						"Optional id of a Google Cloud Storage engine. Required only when the target engine's batch "
+								+ "requests must be staged through Cloud Storage (e.g. an Anthropic model hosted on Vertex AI); "
+								+ "ignored by providers with a native hosted batch API (OpenAI, direct Anthropic).");
 	}
 }

@@ -30,68 +30,96 @@ package prerna.engine.impl.model.responses;
 import java.util.Map;
 
 public class AskErrorModelEngineResponse extends AskModelEngineResponse<String> {
-    
-    public static final String ERROR_TYPE = "error_type";
-    public static final String CODE = "code";
-    public static final String CLIENT = "client";
-    public static final String MODEL = "model";
-    public static final String TRACEBACK = "traceback";
-    public static final String REASON = "reason";
-    public static final String REASON_DETAIL = "reason_detail";
-    // request did not fit the model context; callers may compact/fork and retry
-    public static final String REASON_CONTEXT_OVERFLOW = "CONTEXT_OVERFLOW";
 
-    protected String errorType;
-    protected int code;
-    protected String client;
-    protected String model;
-    protected String traceback;
-    protected String reason;
-    protected String reasonDetail;
+	private static final long serialVersionUID = 1L;
 
-    public AskErrorModelEngineResponse(String message, String errorType, int code, String client, String model, String traceback) {
-        super(message, 0, 0);
-        this.messageType = "ERROR";
-        this.errorType = errorType;
-        this.code = code;
-        this.client = client;
-        this.model = model;
-        this.traceback = traceback;
-    }
+	public static final String ERROR_TYPE = "error_type";
+	public static final String CODE = "code";
+	public static final String CLIENT = "client";
+	public static final String MODEL = "model";
+	public static final String TRACEBACK = "traceback";
+	public static final String REASON = "reason";
+	public static final String REASON_DETAIL = "reason_detail";
+	// request did not fit the model context; callers may compact/fork and retry
+	public static final String REASON_CONTEXT_OVERFLOW = "CONTEXT_OVERFLOW";
+	// request did not fit in what is left of its usage limit; refused before the
+	// provider saw it
+	public static final String REASON_USAGE_LIMIT_DOES_NOT_FIT = "USAGE_LIMIT_DOES_NOT_FIT";
 
-    @Override
-    public String getStringResponse() {
-        return (String) this.response;
-    }
-    
-    public String getClient() { return this.client; }
-    
-    public String getModel() { return this.model; }
-    
-    public int getCode() { return this.code; }
-    
-    public String getTraceback() { return this.traceback; }
+	protected String errorType;
+	protected int code;
+	protected String client;
+	protected String model;
+	protected String traceback;
+	protected String reason;
+	protected String reasonDetail;
 
-    public String getReason() { return this.reason; }
+	public AskErrorModelEngineResponse(String message, String errorType, int code, String client, String model,
+			String traceback) {
+		super(message, 0, 0);
+		this.messageType = "ERROR";
+		this.errorType = errorType;
+		this.code = code;
+		this.client = client;
+		this.model = model;
+		this.traceback = traceback;
+	}
 
-    public void setReason(String reason) { this.reason = reason; }
+	@Override
+	public String getStringResponse() {
+		return this.response;
+	}
 
-    public String getReasonDetail() { return this.reasonDetail; }
+	public String getClient() {
+		return this.client;
+	}
 
-    public void setReasonDetail(String reasonDetail) { this.reasonDetail = reasonDetail; }
+	public String getModel() {
+		return this.model;
+	}
 
-    public boolean isContextOverflow() { return REASON_CONTEXT_OVERFLOW.equals(this.reason); }
+	public int getCode() {
+		return this.code;
+	}
 
-    @Override
-    public Map<String, Object> toMap() {
-        Map<String, Object> map = super.toMap();
-        map.put(ERROR_TYPE, this.errorType);
-        map.put(CODE, this.code);
-        map.put(CLIENT, this.client);
-        map.put(MODEL, this.model);
-        map.put(TRACEBACK, this.traceback);
-        map.put(REASON, this.reason);
-        map.put(REASON_DETAIL, this.reasonDetail);
-        return map;
-    }
+	public String getTraceback() {
+		return this.traceback;
+	}
+
+	public String getReason() {
+		return this.reason;
+	}
+
+	public void setReason(String reason) {
+		this.reason = reason;
+	}
+
+	public String getReasonDetail() {
+		return this.reasonDetail;
+	}
+
+	public void setReasonDetail(String reasonDetail) {
+		this.reasonDetail = reasonDetail;
+	}
+
+	public boolean isContextOverflow() {
+		return REASON_CONTEXT_OVERFLOW.equals(this.reason);
+	}
+
+	public boolean callDoesNotFit() {
+		return REASON_USAGE_LIMIT_DOES_NOT_FIT.equals(this.reason);
+	}
+
+	@Override
+	public Map<String, Object> toMap() {
+		Map<String, Object> map = super.toMap();
+		map.put(ERROR_TYPE, this.errorType);
+		map.put(CODE, this.code);
+		map.put(CLIENT, this.client);
+		map.put(MODEL, this.model);
+		map.put(TRACEBACK, this.traceback);
+		map.put(REASON, this.reason);
+		map.put(REASON_DETAIL, this.reasonDetail);
+		return map;
+	}
 }

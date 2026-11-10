@@ -29,19 +29,21 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainTopicUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainSetTopicPerson(topicId=["..."], personId=["..."], state=["member"], role=["Client lead"]);
+// BrainSetTopicPerson(topicId=["..."], personId=["..."], state=["member"], role=["Client lead"], vip=[true]);
 public class BrainSetTopicPersonReactor extends AbstractCollaborationReactor {
 
 	private static final String TOPIC_ID = "topicId";
 	private static final String PERSON_ID = "personId";
 	private static final String STATE = "state";
 	private static final String ROLE = "role";
+	private static final String VIP = "vip";
 
 	public BrainSetTopicPersonReactor() {
-		this.keysToGet = new String[] { TOPIC_ID, PERSON_ID, STATE, ROLE };
-		this.keyRequired = new int[] { 1, 1, 1, 0 };
+		this.keysToGet = new String[] { TOPIC_ID, PERSON_ID, STATE, ROLE, VIP };
+		this.keyRequired = new int[] { 1, 1, 1, 0, 0 };
 	}
 
 	@Override
@@ -52,25 +54,17 @@ public class BrainSetTopicPersonReactor extends AbstractCollaborationReactor {
 		if (topicId == null || personId == null) {
 			throw new IllegalArgumentException("Must pass a topicId and personId");
 		}
-		return mapResult(BrainTopicUtils.setTopicPerson(user, topicId, personId, getString(STATE), getString(ROLE)));
+		return mapResult(BrainTopicUtils.setTopicPerson(user, topicId, personId, getString(STATE), getString(ROLE),
+				getBoolean(VIP)));
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Adds, accepts, or removes a person on a Brain topic";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (PERSON_ID.equals(key)) {
-			return "Person id";
-		} else if (STATE.equals(key)) {
-			return "member, suggested, or removed; removing stops the person as a signal but keeps thread links";
-		} else if (ROLE.equals(key)) {
-			return "Role in the topic; defaults to the person's job title for a new member";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Adds, accepts, or removes a person on a Brain topic")
+				.key(TOPIC_ID, "Topic id").key(PERSON_ID, "Person id")
+				.key(STATE,
+						"member, suggested, or removed; removing stops the person as a signal but keeps thread links")
+				.key(ROLE, "Role in the topic; defaults to the person's job title for a new member").key(VIP,
+						"true makes a member a VIP in this topic only; omit to keep it, any state but member clears it");
 	}
 }

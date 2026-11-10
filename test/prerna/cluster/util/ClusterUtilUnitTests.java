@@ -384,6 +384,11 @@ class ClusterUtilUnitTests {
 		}
 
 		@Test
+		void testDelInsightsDb() {
+			assertDoesNotThrow(() -> ClusterUtil.deleteInsightsDB("p"));
+		}
+
+		@Test
 		void testPullImgFolder_DB() {
 			assertDoesNotThrow(() -> ClusterUtil.pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE.DATABASE));
 		}
@@ -751,6 +756,19 @@ class ClusterUtilUnitTests {
 				ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
 				ClusterUtil.deleteEngineCloudFile("e11", IEngine.CATALOG_TYPE.FUNCTION, "/h");
 				verify(mock).deleteEngineCloudFile("e11", IEngine.CATALOG_TYPE.FUNCTION, "/h");
+			} finally {
+				setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);
+			}
+		}
+
+		@Test
+		void deleteInsightsDB() throws Exception {
+			setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
+			try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
+				CentralCloudStorage mock = mock(CentralCloudStorage.class);
+				ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
+				ClusterUtil.deleteInsightsDB("p12");
+				verify(mock).deleteInsightsDB("p12");
 			} finally {
 				setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);
 			}
@@ -1265,6 +1283,19 @@ class ClusterUtilUnitTests {
 						IEngine.CATALOG_TYPE.FUNCTION, "/h");
 				assertThrows(SemossPixelException.class,
 						() -> ClusterUtil.deleteEngineCloudFile("e", IEngine.CATALOG_TYPE.FUNCTION, "/h"));
+			} finally {
+				setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);
+			}
+		}
+
+		@Test
+		void deleteInsightsDB_error() throws Exception {
+			setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
+			try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
+				CentralCloudStorage mock = mock(CentralCloudStorage.class);
+				ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
+				doThrow(new RuntimeException("fail")).when(mock).deleteInsightsDB("p");
+				assertThrows(SemossPixelException.class, () -> ClusterUtil.deleteInsightsDB("p"));
 			} finally {
 				setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);
 			}

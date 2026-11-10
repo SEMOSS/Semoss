@@ -29,8 +29,6 @@ package prerna.reactor.insights.fs;
 
 import java.util.List;
 
-import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -43,12 +41,6 @@ public abstract class AbstractSaveInsightAssetsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
-		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		// Retrieve all file paths and contents
 		List<String> filePaths = getNounAsStringList(this.keysToGet[0]);

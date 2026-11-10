@@ -28,7 +28,6 @@
 package prerna.engine.impl.guardrail;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -97,8 +96,8 @@ class PolicyComplianceGuardrailEngineUnitTests {
 		assertTrue(policy instanceof PromptGuardrailEngine);
 		assertTrue(selfHarm.getDefaultSystemPrompt().contains("self"));
 		assertTrue(policy.getDefaultSystemPrompt().contains("${POLICY_DESCRIPTION}"));
-		assertFalse(selfHarm.isFailOpenByDefault());
-		assertTrue(policy.isFailOpenByDefault());
+		assertEquals(GuardrailVerdict.BLOCK, selfHarm.getDefaultJudgeErrorVerdict());
+		assertEquals(GuardrailVerdict.PASS, policy.getDefaultJudgeErrorVerdict());
 	}
 
 	@Test

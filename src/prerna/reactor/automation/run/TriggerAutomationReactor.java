@@ -32,6 +32,7 @@ import java.util.UUID;
 
 import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.definition.AutomationDefinitionService;
 import prerna.reactor.automation.project.AutomationProjectService;
@@ -41,17 +42,16 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Checks edit access to an Automation project, then starts its saved definition through
- * {@link AutomationRunExecutionService}.
+ * Checks edit access to an Automation project, then starts its saved definition
+ * through {@link AutomationRunExecutionService}.
  *
- * <p>Pixel: {@code TriggerAutomation(project=["appId"])}
+ * <p>
+ * Pixel: {@code TriggerAutomation(project=["appId"])}
  */
 public class TriggerAutomationReactor extends AbstractReactor {
 
 	public TriggerAutomationReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.PROJECT.getKey(),
-				AutomationConstants.AUTOMATION_INPUTS_KEY,
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), AutomationConstants.AUTOMATION_INPUTS_KEY,
 				AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY };
 		this.keyRequired = new int[] { 1, 0, 0 };
 	}
@@ -71,21 +71,13 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Runs a saved automation through the authenticated Java graph executor.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "The project ID or alias containing the automation workflow.";
-		}
-		if (AutomationConstants.AUTOMATION_INPUTS_KEY.equals(key)) {
-			return "Optional values overriding trigger globals; date, triggered_at, and run_id are runtime-owned.";
-		}
-		if (AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY.equals(key)) {
-			return "Optional trigger source: MANUAL (default), PLAYGROUND, or SCHEDULED.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Runs a saved automation through the authenticated Java graph executor.")
+				.key(ReactorKeysEnum.PROJECT, "The project ID or alias containing the automation workflow.")
+				.key(AutomationConstants.AUTOMATION_INPUTS_KEY,
+						"Optional values overriding trigger globals; date, triggered_at, and run_id are runtime-owned.")
+				.key(AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY,
+						"Optional trigger source: MANUAL (default), PLAYGROUND, or SCHEDULED.");
 	}
 }

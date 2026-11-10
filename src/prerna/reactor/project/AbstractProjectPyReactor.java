@@ -35,6 +35,7 @@ import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -91,8 +92,8 @@ public abstract class AbstractProjectPyReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Run Python code in the project's dedicated python process";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Run Python code in the project's dedicated python process");
 	}
 
 	/**

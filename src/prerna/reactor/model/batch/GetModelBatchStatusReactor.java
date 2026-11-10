@@ -27,9 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.model.batch;
 
-import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.batch.ModelBatchManager;
 import prerna.engine.impl.model.responses.BatchStatusResponse;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -51,22 +51,14 @@ public class GetModelBatchStatusReactor extends AbstractModelBatchReactor {
 		organizeKeys();
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String batchId = this.keyValue.get(ReactorKeysEnum.BATCH_ID.getKey());
-		IModelEngine engine = ModelBatchManager.resolveEngine(getUser(), engineId);
 		ModelBatchManager.assertUserOwnsBatch(getUser(), batchId);
-		BatchStatusResponse response = engine.getBatchStatus(batchId, baseParams());
+		BatchStatusResponse response = ModelBatchManager.status(getUser(), engineId, batchId, baseParams());
 		return new NounMetadata(response.toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Fetch the live status of a previously submitted model batch";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.BATCH_ID.getKey())) {
-			return "The provider batch id returned when the batch was submitted";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Fetch the live status of a previously submitted model batch")
+				.key(ReactorKeysEnum.BATCH_ID, "The provider batch id returned when the batch was submitted");
 	}
 }

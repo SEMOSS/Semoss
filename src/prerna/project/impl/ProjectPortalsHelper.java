@@ -45,9 +45,11 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -369,6 +371,23 @@ public class ProjectPortalsHelper {
 	 */
 	public SemossDate getLastPublishDate() {
 		return this.lastPortalPublishDate;
+	}
+
+	/**
+	 * Releases a project's portal to every container: marks it for publishing on
+	 * this one, pushes the portals folder to central storage, and moves the cluster
+	 * timestamp so every other container pulls and publishes it too.
+	 *
+	 * @param user    user releasing the portal
+	 * @param project project whose portal is released
+	 */
+	public static void releasePortal(User user, IProject project) {
+		String projectId = project.getProjectId();
+		project.setRepublish(true);
+		ClusterUtil.pushProjectFolder(project, EngineUtility
+				.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT, projectId, project.getProjectName()),
+				Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
+		notePortalChange(user, projectId);
 	}
 
 	/**

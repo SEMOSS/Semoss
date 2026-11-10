@@ -34,6 +34,7 @@ import prerna.engine.impl.model.batch.ModelBatchManager;
 import prerna.engine.impl.model.responses.BatchResultItem;
 import prerna.engine.impl.model.responses.BatchResultsResponse;
 import prerna.om.ThreadStore;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -57,18 +58,16 @@ public class GetModelBatchResultsReactor extends AbstractModelBatchReactor {
 		String batchId = this.keyValue.get(ReactorKeysEnum.BATCH_ID.getKey());
 		IModelEngine engine = ModelBatchManager.resolveEngine(getUser(), engineId);
 		ModelBatchManager.assertUserOwnsBatch(getUser(), batchId);
-		BatchResultsResponse response = engine.getBatchResults(batchId, baseParams());
-		ModelBatchManager.recordBatchResultsUsage(
-				getUser(), engine, batchId, response,
-				this.insight.getInsightId(),
-				this.insight.getProjectId(),
-				this.insight.getContextProjectId(),
-				ThreadStore.getSessionId()
-		);
+		// goes through the manager (not engine.getBatchResults directly) since a
+		// VERTEX engine's batchId carries a "<storageEngineId>." prefix that needs
+		// re-resolving/re-authorizing into fresh GCS parameters before the call
+		BatchResultsResponse response = ModelBatchManager.results(getUser(), engineId, batchId, baseParams());
+		ModelBatchManager.recordBatchResultsUsage(getUser(), engine, batchId, response, this.insight.getInsightId(),
+				this.insight.getProjectId(), this.insight.getContextProjectId(), ThreadStore.getSessionId());
 		Map<String, String> inputs = ModelBatchManager.getBatchInputs(getUser(), batchId);
 		if (!inputs.isEmpty() && response.getItems() != null) {
 			for (BatchResultItem item : response.getItems()) {
-				String input = inputs.get(item.getCustomId());
+				String input = inputs.get(ModelBatchManager.batchTransactionId(batchId, item.getCustomId()));
 				if (input != null) {
 					item.setInputText(input);
 				}
@@ -78,15 +77,8 @@ public class GetModelBatchResultsReactor extends AbstractModelBatchReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Fetch the per-request results of a completed model batch";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.BATCH_ID.getKey())) {
-			return "The provider batch id returned when the batch was submitted";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Fetch the per-request results of a completed model batch")
+				.key(ReactorKeysEnum.BATCH_ID, "The provider batch id returned when the batch was submitted");
 	}
 }

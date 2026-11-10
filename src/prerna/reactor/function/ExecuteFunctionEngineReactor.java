@@ -35,6 +35,7 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IFunctionEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -142,26 +143,16 @@ public class ExecuteFunctionEngineReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Runs a function engine - a server side tool an admin has registered on the platform, \
 				such as OCR or document extraction, audio transcription, image description, a wrapped \
 				enterprise REST API, a web search, or a registered python function. \
 				Call GetFunctionEngineDefinition first when the function's parameters are not already known.\
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The id of the function engine to run";
-		} else if (key.equals(ReactorKeysEnum.MAP.getKey())) {
-			return """
-					The function's parameters, as a map of parameter name to value. The parameters a given \
-					function accepts come back from GetFunctionEngineDefinition\
-					""";
-		}
-		return super.getDescriptionForKey(key);
+				""").key(ReactorKeysEnum.ENGINE, "The id of the function engine to run").key(ReactorKeysEnum.MAP, """
+				The function's parameters, as a map of parameter name to value. The parameters a given \
+				function accepts come back from GetFunctionEngineDefinition\
+				""");
 	}
 
 }

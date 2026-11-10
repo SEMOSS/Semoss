@@ -47,6 +47,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -59,8 +60,8 @@ import prerna.util.Utility;
 
 /**
  * Creates a new NOTEBOOK-type Project and always scaffolds a sample
- * {@code .ipynb} file at the project's {@code version/assets/public/main.ipynb}.
- * This is the notebook analogue of
+ * {@code .ipynb} file at the project's
+ * {@code version/assets/public/main.ipynb}. This is the notebook analogue of
  * {@link prerna.reactor.agent.skill.CreateSkillReactor}: {@code CreateProject}
  * rejects the NOTEBOOK type because it does not perform the starter-file
  * scaffold that this reactor adds.
@@ -83,14 +84,7 @@ public class CreateNotebookReactor extends AbstractReactor {
 
 		this.organizeKeys();
 
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a project",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
+		User user = requireUser();
 
 		String projectName = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		if (!Utility.validateName(projectName)) {
@@ -138,7 +132,8 @@ public class CreateNotebookReactor extends AbstractReactor {
 		return retNoun;
 	}
 
-	// minimal nbformat-4 notebook: a title markdown cell and a sample Python code cell
+	// minimal nbformat-4 notebook: a title markdown cell and a sample Python code
+	// cell
 	private static String buildSampleNotebook(String projectName) {
 		JsonArray cells = new JsonArray();
 
@@ -184,16 +179,11 @@ public class CreateNotebookReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates a new NOTEBOOK-type Project and scaffolds a sample public/main.ipynb file";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The name for this notebook project. Note: the project ID is randomly generated";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Creates a new NOTEBOOK-type Project and scaffolds a sample public/main.ipynb file")
+				.key(ReactorKeysEnum.PROJECT,
+						"The name for this notebook project. Note: the project ID is randomly generated");
 	}
 
 }

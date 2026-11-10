@@ -46,7 +46,13 @@ public interface BrainClassifier {
 	 * currentTime is captured by the server before scoring, with the owner's timezone.
 	 */
 	record ThreadInput(String threadId, String ownerName, String subject, List<String> participants,
-			List<Message> messages, boolean earlier, RuntimeTimeContext currentTime) {
+			List<Message> messages, boolean earlier, RuntimeTimeContext currentTime, Map<String, Object> outlook) {
+
+		// outlook: what the mailbox says (the owner's folders and categories, their flag); null when nothing
+		public ThreadInput(String threadId, String ownerName, String subject, List<String> participants,
+				List<Message> messages, boolean earlier, RuntimeTimeContext currentTime) {
+			this(threadId, ownerName, subject, participants, messages, earlier, currentTime, null);
+		}
 	}
 
 	/**

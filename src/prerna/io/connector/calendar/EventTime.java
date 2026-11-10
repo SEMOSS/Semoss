@@ -30,7 +30,10 @@ package prerna.io.connector.calendar;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 
 import prerna.io.connector.ConnectorTimes;
 
@@ -80,5 +83,17 @@ public record EventTime(Instant instant, LocalDate date) {
 	 */
 	public String format() {
 		return isDate() ? this.date.toString() : ConnectorTimes.format(this.instant);
+	}
+
+	/**
+	 * @param zone the zone to show the time in, or null for UTC
+	 * @return the time with that zone's offset, such as 2026-10-19T09:00:00-04:00, or the date for a whole day
+	 */
+	public String format(ZoneId zone) {
+		if (zone == null || isDate()) {
+			return format();
+		}
+		return OffsetDateTime.ofInstant(this.instant, zone).truncatedTo(ChronoUnit.SECONDS)
+				.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 	}
 }

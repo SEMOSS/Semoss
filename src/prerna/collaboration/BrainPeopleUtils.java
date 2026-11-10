@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -35,12 +37,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import org.javatuples.Pair;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 
 // Brain people and accounts: BRAIN_PERSON with addresses, BRAIN_ACCOUNT
@@ -245,13 +251,15 @@ public final class BrainPeopleUtils {
 				+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?", params.toArray());
 
 		// the Blocked list: never ingest is an exclude_everywhere rule; clearing it
-		// drops any person-level never rule
+		// drops any never rule on the person or on one of their addresses
 		if (Boolean.TRUE.equals(neverIngest)) {
 			BrainRuleUtils.addRule(ownerId, ownerType, BrainRuleUtils.EXCLUDE_EVERYWHERE, null, null, personId, null,
 					"Never ingest");
 		} else if (Boolean.FALSE.equals(neverIngest)) {
-			for (String ruleId : BrainRuleUtils.activeForPerson(ownerId, ownerType, personId,
-					List.of(BrainRuleUtils.EXCLUDE_EVERYWHERE, BrainRuleUtils.NEVER_SENDER), null)) {
+			Set<String> rules = new HashSet<>(BrainRuleUtils.activeForPerson(ownerId, ownerType, personId,
+					List.of(BrainRuleUtils.EXCLUDE_EVERYWHERE, BrainRuleUtils.NEVER_SENDER), null));
+			addressRules(ownerId, ownerType, List.of(personId)).forEach(row -> rules.add(row.getValue1()));
+			for (String ruleId : rules) {
 				BrainRuleUtils.disable(ownerId, ownerType, ruleId);
 			}
 		}
@@ -268,6 +276,62 @@ public final class BrainPeopleUtils {
 			}
 		}
 		return getPerson(ownerId, ownerType, personId);
+	}
+
+	// ---- photos ----
+
+	// a fixed Graph size: sharp for a 48px avatar on a 2x screen, a few KB each
+	private static final String PHOTO = "/photos/96x96/$value";
+	// the address goes into a Graph path as is, so only plain ones are asked about
+	private static final Pattern PLAIN_ADDRESS = Pattern.compile("[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+");
+
+	// what the Brain knows of an address: how it relates to the owner, and the directory's answer
+	private record Known(String relationship, String directoryId, boolean checked) {
+	}
+
+	/**
+	 * A person's Microsoft profile photo for their avatar, read with the owner's own Microsoft sign-in, so it is
+	 * only ever a photo Microsoft already shows them. Null when there is none to ask for: someone outside the
+	 * organization, a shared mailbox, list or bulk sender, or no directory at all (fixture mail).
+	 *
+	 * @throws Exception when Graph refuses, most often a 404 for someone who never set a photo
+	 */
+	public static byte[] photo(User user, String address) throws Exception {
+		return photo(user, address, BrainMailHeaderSource.current());
+	}
+
+	static byte[] photo(User user, String address, BrainMailHeaderSource source) throws Exception {
+		String email = address == null ? "" : address.trim().toLowerCase(Locale.ROOT);
+		if (!PLAIN_ADDRESS.matcher(email).matches()) {
+			return null;
+		}
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String personId = BrainRulesGate.findPerson(owner.getValue0(), owner.getValue1(), email);
+		Known person = personId == null ? null
+				: CollaborationDbUtils.queryOne(
+						"SELECT RELATIONSHIP, DIRECTORY_ID, DIRECTORY_CHECKED_AT FROM BRAIN_PERSON WHERE OWNER_ID = ? "
+								+ "AND OWNER_TYPE = ? AND PERSON_ID = ?",
+						rs -> new Known(rs.getString("RELATIONSHIP"), rs.getString("DIRECTORY_ID"),
+								rs.getTimestamp("DIRECTORY_CHECKED_AT") != null),
+						owner.getValue0(), owner.getValue1(), personId);
+		String relationship = person == null ? null : person.relationship();
+		AccessToken microsoft = user.getAccessToken(AuthProvider.MICROSOFT);
+		String path;
+		if ("self".equals(relationship) || (microsoft != null && email.equalsIgnoreCase(microsoft.getEmail()))) {
+			path = "/me" + PHOTO;
+		} else if (BrainSenderTyping.AUTOMATED.equals(relationship)) {
+			// shared mailboxes, lists and bulk senders
+			return null;
+		} else if (person != null && person.directoryId() != null) {
+			path = "/users/" + URLEncoder.encode(person.directoryId(), StandardCharsets.UTF_8) + PHOTO;
+		} else if (person != null && (person.checked() || "external".equals(relationship))) {
+			// the directory was asked and has no one, or the address is outside the organization
+			return null;
+		} else {
+			// not looked up yet, such as a directory search result: Graph finds a user by sign-in name
+			path = "/users/" + email + PHOTO;
+		}
+		return source.photo(user, path);
 	}
 
 	// ---- accounts ----
@@ -304,14 +368,19 @@ public final class BrainPeopleUtils {
 		CollaborationDbUtils.setIfPresent(changes, "name", "NAME", sets, params);
 		CollaborationDbUtils.setIfPresent(changes, "kind", "KIND", sets, params);
 		CollaborationDbUtils.setIfPresent(changes, "color", "COLOR", sets, params);
+		String domain = CollaborationDbUtils.asString(changes.get("domain"));
+		domain = domain == null || domain.isBlank() ? null : domain.trim().toLowerCase().replaceFirst("^@", "");
 		if (changes.containsKey("domain")) {
-			String domain = CollaborationDbUtils.asString(changes.get("domain"));
-			CollaborationDbUtils.addSet(sets, params, "DOMAINS_JSON", domain == null || domain.isBlank() ? null
-					: CollaborationDbUtils.toJson(List.of(domain.trim().toLowerCase().replaceFirst("^@", ""))));
+			CollaborationDbUtils.addSet(sets, params, "DOMAINS_JSON",
+					domain == null ? null : CollaborationDbUtils.toJson(List.of(domain)));
 		}
 
 		Timestamp now = CollaborationDbUtils.now();
-		if (accountId == null) {
+		// a create for a domain the owner already keeps returns that account as it is, so a retried save adds none
+		String kept = accountId == null && domain != null ? accountWithDomain(ownerId, ownerType, domain) : null;
+		if (kept != null) {
+			accountId = kept;
+		} else if (accountId == null) {
 			accountId = UUID.randomUUID().toString();
 			List<String> columns = new ArrayList<>();
 			for (String set : sets) {
@@ -352,6 +421,18 @@ public final class BrainPeopleUtils {
 				ownerType, accountId)) {
 			throw new IllegalArgumentException("Account not found");
 		}
+	}
+
+	private static String accountWithDomain(String ownerId, String ownerType, String domain) {
+		for (Pair<String, String> account : CollaborationDbUtils.query(
+				"SELECT ACCOUNT_ID, DOMAINS_JSON FROM BRAIN_ACCOUNT WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				rs -> Pair.with(rs.getString(1), CollaborationDbUtils.getString(rs, "DOMAINS_JSON")), ownerId,
+				ownerType)) {
+			if (CollaborationDbUtils.toStringList(CollaborationDbUtils.parseList(account.getValue1())).contains(domain)) {
+				return account.getValue0();
+			}
+		}
+		return null;
 	}
 
 	// a personId from the caller must be one of the owner's people; null is allowed
@@ -420,6 +501,10 @@ public final class BrainPeopleUtils {
 				ruleParams.toArray())) {
 			blocked.computeIfAbsent(row.getValue0(), k -> new HashSet<>()).add(row.getValue1());
 		}
+		for (Pair<String, String> row : addressRules(ownerId, ownerType,
+				people.stream().map(person -> person.get("id")).toList())) {
+			blocked.computeIfAbsent(row.getValue0(), k -> new HashSet<>()).add(NEVER);
+		}
 
 		for (Map<String, Object> person : people) {
 			Map<String, Integer> mine = counts.getOrDefault(person.get("id"), Map.of());
@@ -437,6 +522,22 @@ public final class BrainPeopleUtils {
 			person.put("channelScope", scope);
 			person.put("topics", topics.getOrDefault(person.get("id"), new ArrayList<>()));
 		}
+	}
+
+	// active never_sender rules on one of these people's addresses, as onboarding's Keep out saves them: person id
+	// and rule id. The gate blocks whoever sends from the address, so the person is blocked too
+	private static List<Pair<String, String>> addressRules(String ownerId, String ownerType, List<?> personIds) {
+		String value = "r." + BrainRuleUtils.valueColumn();
+		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType));
+		params.addAll(personIds);
+		params.add(BrainRuleUtils.NEVER_SENDER);
+		return CollaborationDbUtils.query("SELECT p.PERSON_ID, r.RULE_ID FROM BRAIN_PERSON p JOIN BRAIN_RULE r "
+				+ "ON r.OWNER_ID = p.OWNER_ID AND r.OWNER_TYPE = p.OWNER_TYPE WHERE p.OWNER_ID = ? AND p.OWNER_TYPE = ? "
+				+ "AND p.PERSON_ID IN (" + CollaborationDbUtils.placeholders(personIds.size()) + ") AND r.KIND = ? "
+				+ "AND r.DISABLED_AT IS NULL AND (" + value + " = p.EMAIL_NORM OR EXISTS (SELECT 1 FROM "
+				+ "BRAIN_PERSON_ADDRESS a WHERE a.OWNER_ID = p.OWNER_ID AND a.OWNER_TYPE = p.OWNER_TYPE "
+				+ "AND a.PERSON_ID = p.PERSON_ID AND a.VALUE_NORM = " + value + "))",
+				rs -> Pair.with(rs.getString(1), rs.getString(2)), params.toArray());
 	}
 
 	// ---- mapping ----

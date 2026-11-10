@@ -31,13 +31,30 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.runtime.AgentCodeExecutionContext;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Removes one of the caller's own rooms, for the playground's delete: marks the
+ * room inactive for the caller's user id, so it no longer shows in their
+ * conversations, and clears its Redis copy and the Python and Node state its
+ * agent code left in this session.
+ *
+ * <p>
+ * It does not stop the room's agent runs or close its subagents' rooms: a run
+ * still going fails on its next model call in the closed room.
+ * {@link prerna.reactor.agent.CloseRoomReactor}, from the agent's Activity tab,
+ * and {@link prerna.reactor.agent.admin.AdminCloseRoomReactor}, for an admin
+ * closing any user's room, cancel every unfinished run in the room and its
+ * subagents' rooms first, then close them all, matching the user by id and
+ * login type.
+ */
 public class RemoveUserRoomReactor extends AbstractReactor {
 
 	public RemoveUserRoomReactor() {
@@ -48,24 +65,21 @@ public class RemoveUserRoomReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 		String roomId = this.keyValue.get(this.keysToGet[0]);
 		boolean result = ModelInferenceLogsUtils.doSetRoomToInactive(user.getPrimaryLoginToken().getId(), roomId);
 		if (result) {
 			AgentCodeExecutionContext.removeForRoom(user, roomId);
+			RoomMessageStore.evictRedisProjection(roomId);
 		}
 		return new NounMetadata(result, PixelDataType.BOOLEAN);
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("roomId")) {
-			return "The room or conversation ID for a given chat app";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Removes one of the calling user's rooms from their conversations, and clears the room's cached copy and the agent code state it left in this session. Returns true when the update runs without error.")
+				.key("roomId", "The room or conversation ID for a given chat app");
 	}
 
 	@Override

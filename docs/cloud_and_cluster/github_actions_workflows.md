@@ -10,7 +10,7 @@ The workflows in [.github/workflows](../../.github/workflows/) build Java artifa
 | [python-builder.yml](../../.github/workflows/python-builder.yml) | Python runtime/dependency image |
 | [tomcat-builder.yml](../../.github/workflows/tomcat-builder.yml) | Java/Tomcat builder image |
 | [all-docker-builds.yml](../../.github/workflows/all-docker-builds.yml) | Application image build orchestration |
-| [ubuntu2204.yml](../../.github/workflows/ubuntu2204.yml), [ubuntu2404.yml](../../.github/workflows/ubuntu2404.yml) | Ubuntu application images |
+| [ubuntu2204.yml](../../.github/workflows/ubuntu2204.yml), [ubuntu2404.yml](../../.github/workflows/ubuntu2404.yml), [ubuntu2604.yml](../../.github/workflows/ubuntu2604.yml) | Ubuntu application images |
 | [al2023.yml](../../.github/workflows/al2023.yml) | Amazon Linux application image |
 | [docker-build-ubi8.yml](../../.github/workflows/docker-build-ubi8.yml), [docker-build-ubi9.yml](../../.github/workflows/docker-build-ubi9.yml) | UBI application images |
 | [ubuntu2204_cuda.yml](../../.github/workflows/ubuntu2204_cuda.yml) | CUDA application image |

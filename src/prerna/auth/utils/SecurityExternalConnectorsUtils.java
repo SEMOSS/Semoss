@@ -622,6 +622,53 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	/** Forgets one Microsoft account's background credentials; true when a row was removed. */
+	public static boolean deleteMicrosoftGraphCredential(String userId) {
+		if (userId == null || userId.isBlank()) {
+			return false;
+		}
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			return QueryExecutionUtility.executeUpdate(securityDb,
+					"DELETE FROM " + MS_GRAPH_CREDENTIAL_TABLE + " WHERE USER_ID = ?",
+					ps -> ps.setString(1, userId)) > 0;
+		} catch (Exception e) {
+			throw new IllegalStateException("Unable to remove Microsoft background credentials.");
+		}
+	}
+
+	/**
+	 * Keeps a renewed pair for one Microsoft account, only while its credential is
+	 * still stored. It never inserts one, so a background run still going when the
+	 * owner turns background access off cannot turn it back on, and it is one
+	 * statement, so it cannot interleave with the delete that turns it off.
+	 *
+	 * @return true when a stored credential was updated
+	 */
+	public static boolean updateMicrosoftGraphCredential(String userId, String userEmail, String accessToken,
+			String refreshToken, Timestamp tokenExpiration) {
+		if (userId == null || userId.isBlank() || accessToken == null || accessToken.isBlank()
+				|| refreshToken == null || refreshToken.isBlank()) {
+			throw new IllegalArgumentException("Renewable Microsoft credentials are required.");
+		}
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			return QueryExecutionUtility.executeUpdate(securityDb, "UPDATE " + MS_GRAPH_CREDENTIAL_TABLE
+					+ " SET USER_EMAIL = ?, ACCESS_TOKEN = ?, REFRESH_TOKEN = ?, TOKEN_EXPIRATION = ?, UPDATED_ON = ?"
+					+ " WHERE USER_ID = ?", ps -> {
+						ps.setString(1, userEmail);
+						securityDb.getQueryUtil().setNullableLargeText(ps, 2, accessToken);
+						securityDb.getQueryUtil().setNullableLargeText(ps, 3, refreshToken);
+						ps.setTimestamp(4, tokenExpiration);
+						ps.setTimestamp(5, Utility.getCurrentSqlTimestampUTC());
+						ps.setString(6, userId);
+					}) > 0;
+		} catch (Exception e) {
+			// JDBC exceptions may include bound credential values.
+			throw new IllegalStateException("Unable to save Microsoft background credentials.");
+		}
+	}
+
 	/**
 	 * Replaces delegated credentials after explicit opt-in or token refresh, while
 	 * preserving creation time. Secrets remain in the security database.

@@ -30,6 +30,9 @@ package prerna.io.connector.ms.outlook;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.collaboration.BrainDraftFormat;
+import prerna.collaboration.BrainThreadMessages;
+import prerna.io.connector.mail.AbstractReplyMailReactor.ReplyMailRequest;
 import prerna.io.connector.mail.AbstractSaveDraftReactor;
 import prerna.io.connector.mail.ComposedMail;
 import prerna.io.connector.mail.MailApp;
@@ -47,6 +50,10 @@ import prerna.util.ValueUtils;
  */
 public class MicrosoftOutlookSaveDraftReactor extends AbstractSaveDraftReactor {
 
+	public MicrosoftOutlookSaveDraftReactor() {
+		super(REPLY_TO, REPLY_ALL);
+	}
+
 	@Override
 	protected MailApp getMailApp() {
 		return MailApp.OUTLOOK;
@@ -54,19 +61,47 @@ public class MicrosoftOutlookSaveDraftReactor extends AbstractSaveDraftReactor {
 
 	@Override
 	protected ComposedMail saveDraft(User user, OutgoingMail mail) throws Exception {
-		// no from address, so the draft belongs to the mailbox the token belongs to
-		Map<String, Object> message = MicrosoftOutlookMailHelper.buildMessage(mail.subject(), mail.body(), mail.html(),
-				mail.toArray(), mail.ccArray(), mail.bccArray(), null, null, mail.attachmentPaths());
+		// a Collaboration owner's draft is in their font and signature, from their own address so Outlook lists a
+		// sender; anyone else's goes as given with no from address, so it belongs to the token's mailbox
+		BrainDraftFormat.Format look = BrainDraftFormat.forOwner(user);
+		String[] sender = look == null ? null : BrainDraftFormat.sender(user);
+		Map<String, Object> message = MicrosoftOutlookMailHelper.buildMessage(mail.subject(),
+				look == null ? mail.body() : BrainDraftFormat.body(look, mail.body(), mail.html()), look != null || mail.html(),
+				mail.toArray(), mail.ccArray(), mail.bccArray(), sender == null ? null : sender[0],
+				sender == null ? null : sender[1], mail.attachmentPaths());
 		// a null mailbox addresses /me, so the draft is saved in the signed in user's
-		// own Drafts folder and nowhere else
+		// own mailbox and nowhere else
 		Map<String, Object> draft = new MicrosoftOutlookMailHelper()
 				.createDraft(MicrosoftLoginUtils.getValidAccessToken(user), null, message);
 		if (draft == null) {
 			return ComposedMail.of(mail, null, null, null);
 		}
-		return ComposedMail.of(mail, ValueUtils.toStringOrNull(draft.get("id")),
-				ValueUtils.toStringOrNull(draft.get("conversationId")),
-				ValueUtils.toStringOrNull(draft.get("webLink")));
+		// into the folder chosen in Collaboration settings, when there is one
+		return MicrosoftOutlookDraftFolder.place(user,
+				ComposedMail.of(mail, ValueUtils.toStringOrNull(draft.get("id")),
+						ValueUtils.toStringOrNull(draft.get("conversationId")),
+						ValueUtils.toStringOrNull(draft.get("webLink"))));
+	}
+
+	@Override
+	protected ComposedMail saveReply(User user, ReplyMailRequest request) throws Exception {
+		// Outlook only finds a message in the signed in user's own mailbox, so an id from elsewhere cannot be answered
+		ReplyMailRequest resolved = new ReplyMailRequest(outlookId(user, request.id()), request.body(), request.html(),
+				request.replyAll(), request.recipients(), request.attachments());
+		// into the folder chosen in Collaboration settings, when there is one
+		return MicrosoftOutlookDraftFolder.place(user, MicrosoftOutlookReplyMailReactor.draftReplyFor(user, resolved));
+	}
+
+	// a Brain emailRef is mapped to its Outlook id, and only for mail in the owner's own Brain
+	private static String outlookId(User user, String id) {
+		if (!id.startsWith("email:")) {
+			return id;
+		}
+		Map<String, Object> email = BrainThreadMessages.composeSource(user, id);
+		if (email == null || !(email.get("id") instanceof String outlookId)) {
+			throw new IllegalArgumentException("That emailRef is not in your Brain; pass an id or emailRef a read returned.");
+		}
+		return outlookId;
 	}
 
 }

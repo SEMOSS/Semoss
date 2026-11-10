@@ -44,6 +44,8 @@ public class PermissionBatch {
 	}
 
 	/**
+	 * Creates a batch of changes to one target.
+	 *
 	 * @param target  what the batch changes
 	 * @param changes the changes, in order
 	 */
@@ -57,6 +59,8 @@ public class PermissionBatch {
 	}
 
 	/**
+	 * The batch's changes in order, or an empty list when it was given none.
+	 *
 	 * @return the changes, never null
 	 */
 	public List<PermissionChange> getChanges() {

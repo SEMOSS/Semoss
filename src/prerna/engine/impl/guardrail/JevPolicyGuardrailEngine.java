@@ -44,12 +44,12 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ITypeSafeEngine;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.om.Insight;
@@ -68,16 +68,17 @@ import prerna.util.Utility;
  * approved scope and a guardrail that checks whether a response violates a
  * disclosure policy differ only in their configuration.
  * <p>
- * The evaluation is a {@link ITypeSafeEngine#evaluate(Object, Map, Insight, Map)}
- * call with a structured typed question - a {@code noul} probability or a
- * {@code choice} selection - never a parsed free-text SAFE/UNSAFE answer.
+ * The evaluation is a
+ * {@link ITypeSafeEngine#evaluate(Object, Map, Insight, Map)} call with a
+ * structured typed question - a {@code noul} probability or a {@code choice}
+ * selection - never a parsed free-text SAFE/UNSAFE answer.
  * <p>
  * The engine calls {@code Utility.getModel(MODEL_ENGINE_ID)} at evaluation
  * time, so the judge model's usage restrictions and token accounting run as for
  * any other user, and the calling user must have view access to the judge.
  * <p>
- * Verdicts are pass/block only. Masking is a separate transformation
- * capability and is out of scope for this engine.
+ * Verdicts are pass/block only. Masking is a separate transformation capability
+ * and is out of scope for this engine.
  *
  * <h3>Required SMSS keys</h3>
  * <ul>
@@ -104,19 +105,21 @@ import prerna.util.Utility;
  * <li>{@code CONFIDENCE_THRESHOLD} - 0 through 1, default 0.5. A decision is
  * made only when the answer's confidence meets the threshold; the boundary is
  * inclusive, so confidence exactly at the threshold is decided.</li>
- * <li>{@code LOW_CONFIDENCE_VERDICT} - {@code BLOCK} (default) or
- * {@code PASS}. Below-threshold answers never silently become a successful
- * evaluation: by default they block, and the details record the indeterminate
- * outcome.</li>
- * <li>{@code FAIL_OPEN} - whether a judge error (missing model, timeout,
- * malformed or missing answers) allows the guarded call. Defaults to
- * {@code false}, i.e. blocking by default. Set it to {@code true} only where a
- * failed evaluation is preferable to refusing the call.</li>
- * <li>{@code BLOCKED_MESSAGE} - replacement text used by an input pipeline
- * when {@code respondWithGuardrailMessage=true}. Output pipelines can block a
+ * <li>{@code LOW_CONFIDENCE_VERDICT} - {@code BLOCK} (default) or {@code PASS}:
+ * the verdict when the answer's confidence is below the threshold.
+ * {@code BLOCK} lets a call through only when the judge is confident it is
+ * allowed; {@code PASS} blocks a call only when the judge is confident it
+ * violates. The details record the indeterminate outcome.</li>
+ * <li>{@code JUDGE_ERROR_VERDICT} - {@code BLOCK} (default) or {@code PASS}:
+ * the verdict when the evaluation fails, such as a missing or inaccessible
+ * judge, a timeout, or a malformed or missing answer. Choose {@code PASS} only
+ * where letting the call through is preferable to refusing it.</li>
+ * <li>{@code BLOCKED_MESSAGE} - replacement text used by an input pipeline when
+ * {@code respondWithGuardrailMessage=true}. Output pipelines can block a
  * failing response but cannot rewrite it.</li>
- * <li>{@code TIMEOUT_SECONDS} - optional seconds to pass to the judge call;
- * a timeout is an evaluation error under the failure policy.</li>
+ * <li>{@code TIMEOUT_SECONDS} - optional seconds to pass to the judge call; a
+ * timeout is an evaluation failure, decided by
+ * {@code JUDGE_ERROR_VERDICT}.</li>
  * </ul>
  *
  * <h3>Optional call parameters</h3>
@@ -124,10 +127,10 @@ import prerna.util.Utility;
  * <li>{@code questionInstructions}, {@code questionType},
  * {@code questionCriteria}, {@code violationChoices},
  * {@code violationDirection}, {@code confidenceThreshold},
- * {@code blockedMessage}, {@code failOpen} - per-call overrides of the engine
- * defaults, supplied through the pipeline's {@code directParameters}. An
- * invalid override or an invalid per-call configuration becomes an evaluation
- * error under the engine's failure policy.</li>
+ * {@code blockedMessage}, {@code judgeErrorVerdict} - per-call overrides of the
+ * engine defaults, supplied through the pipeline's {@code directParameters}. An
+ * invalid override or an invalid per-call configuration is an evaluation
+ * failure, decided by the engine's {@code JUDGE_ERROR_VERDICT}.</li>
  * </ul>
  */
 public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEngine {
@@ -142,7 +145,7 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 	public static final String VIOLATION_DIRECTION_KEY = "VIOLATION_DIRECTION";
 	public static final String CONFIDENCE_THRESHOLD_KEY = "CONFIDENCE_THRESHOLD";
 	public static final String LOW_CONFIDENCE_VERDICT_KEY = "LOW_CONFIDENCE_VERDICT";
-	public static final String FAIL_OPEN_KEY = "FAIL_OPEN";
+	public static final String JUDGE_ERROR_VERDICT_KEY = "JUDGE_ERROR_VERDICT";
 	public static final String BLOCKED_MESSAGE_KEY = "BLOCKED_MESSAGE";
 	public static final String TIMEOUT_SECONDS_KEY = "TIMEOUT_SECONDS";
 
@@ -154,15 +157,12 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 	static final String VIOLATION_DIRECTION_PARAM = "violationDirection";
 	static final String CONFIDENCE_THRESHOLD_PARAM = "confidenceThreshold";
 	static final String BLOCKED_MESSAGE_PARAM = "blockedMessage";
-	static final String FAIL_OPEN_PARAM = "failOpen";
+	static final String JUDGE_ERROR_VERDICT_PARAM = "judgeErrorVerdict";
 
 	static final String QUESTION_TYPE_NOUL = "NOUL";
 	static final String QUESTION_TYPE_CHOICE = "CHOICE";
 	/** The single named question asked of the judge. */
 	static final String QUESTION_NAME = "policy";
-
-	static final String LOW_CONFIDENCE_BLOCK = "BLOCK";
-	static final String LOW_CONFIDENCE_PASS = "PASS";
 
 	// per-thread stack of guardrail engine IDs currently evaluating. A pipeline
 	// invoked by the judge model runs on the calling thread, so membership here
@@ -175,8 +175,8 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 
 	public JevPolicyGuardrailEngine() {
 		this.keysToGet = new String[] { PROMPT_PARAM, QUESTION_TYPE_PARAM, QUESTION_INSTRUCTIONS_PARAM,
-				QUESTION_CRITERIA_PARAM, VIOLATION_CHOICES_PARAM, VIOLATION_DIRECTION_PARAM,
-				CONFIDENCE_THRESHOLD_PARAM, BLOCKED_MESSAGE_PARAM, FAIL_OPEN_PARAM };
+				QUESTION_CRITERIA_PARAM, VIOLATION_CHOICES_PARAM, VIOLATION_DIRECTION_PARAM, CONFIDENCE_THRESHOLD_PARAM,
+				BLOCKED_MESSAGE_PARAM, JUDGE_ERROR_VERDICT_PARAM };
 	}
 
 	@Override
@@ -202,10 +202,8 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 		// supplied natively in directParameters into non-JSON text - re-serialize those
 		putJsonOverride(keyValue, getRawNounValue(ns, null, QUESTION_CRITERIA_PARAM, 0), QUESTION_CRITERIA_PARAM,
 				false);
-		putJsonOverride(keyValue, getRawNounValue(ns, null, VIOLATION_CHOICES_PARAM, 0), VIOLATION_CHOICES_PARAM,
-				true);
-		String textToEvaluate = PromptGuardrailEngine
-				.extractText(getRawNounValue(ns, curRow, PROMPT_PARAM, 0));
+		putJsonOverride(keyValue, getRawNounValue(ns, null, VIOLATION_CHOICES_PARAM, 0), VIOLATION_CHOICES_PARAM, true);
+		String textToEvaluate = PromptGuardrailEngine.extractText(getRawNounValue(ns, curRow, PROMPT_PARAM, 0));
 		if (textToEvaluate == null || textToEvaluate.isEmpty()) {
 			Map<String, Object> details = new LinkedHashMap<>();
 			details.put("outcome", "SKIPPED_NO_TEXT");
@@ -215,27 +213,28 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 
 		Insight insight = insightFromNouns(ns);
 		CallConfig call;
-		boolean defaultFailOpen = this.defaults != null && this.defaults.failOpen;
+		GuardrailVerdict engineErrorVerdict = this.defaults == null ? GuardrailVerdict.BLOCK
+				: this.defaults.judgeErrorVerdict;
 		try {
 			call = resolveCallConfig(keyValue, this.defaults);
 		} catch (Exception e) {
-			// no valid per-call configuration - the engine's failure policy applies
-			return evaluationFailure(textToEvaluate, e, defaultFailOpen);
+			// no valid per-call configuration - the engine's judge error verdict applies
+			return evaluationFailure(textToEvaluate, e, engineErrorVerdict);
 		}
 		try {
 			requireUserContext(insight);
 			checkJudgeMount(targetEngine);
 		} catch (Exception e) {
-			return evaluationFailure(textToEvaluate, e, call.failOpen);
+			return evaluationFailure(textToEvaluate, e, call.judgeErrorVerdict);
 		}
 
 		Deque<String> active = ACTIVE_GUARDRAILS.get();
 		String guardrailId = getEngineId();
 		if (guardrailId != null && active.contains(guardrailId)) {
-			return evaluationFailure(textToEvaluate,
-					new IllegalStateException("Recursive guardrail evaluation detected for " + guardrailId
-							+ " - the judge model's pipeline must not invoke this guardrail"),
-					call.failOpen);
+			return evaluationFailure(
+					textToEvaluate, new IllegalStateException("Recursive guardrail evaluation detected for "
+							+ guardrailId + " - the judge model's pipeline must not invoke this guardrail"),
+					call.judgeErrorVerdict);
 		}
 		if (guardrailId != null) {
 			active.push(guardrailId);
@@ -249,9 +248,9 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 			}
 			return buildVerdict(textToEvaluate, call, decision, model(response));
 		} catch (Exception e) {
-			classLogger.error("{}: judge evaluation failed, failing {}: {}", getClass().getSimpleName(),
-					call.failOpen ? "open" : "closed", e.getMessage(), e);
-			return evaluationFailure(textToEvaluate, e, call.failOpen);
+			classLogger.error("{}: judge evaluation failed, verdict {}: {}", getClass().getSimpleName(),
+					call.judgeErrorVerdict, e.getMessage(), e);
+			return evaluationFailure(textToEvaluate, e, call.judgeErrorVerdict);
 		} finally {
 			if (guardrailId != null) {
 				active.pop();
@@ -372,10 +371,11 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 		boolean pass;
 		if (!decision.determined) {
 			details.put("outcome", "INDETERMINATE");
-			details.put("lowConfidenceVerdict", call.blockOnLowConfidence ? LOW_CONFIDENCE_BLOCK : LOW_CONFIDENCE_PASS);
-			details.put("reason", "Confidence " + decision.confidence + " is below threshold "
-					+ call.confidenceThreshold + "; the low-confidence policy applied");
-			pass = !call.blockOnLowConfidence;
+			details.put("lowConfidenceVerdict", call.lowConfidenceVerdict.name());
+			details.put("reason",
+					"Confidence " + decision.confidence + " is below threshold " + call.confidenceThreshold + "; "
+							+ LOW_CONFIDENCE_VERDICT_KEY + " is " + call.lowConfidenceVerdict);
+			pass = call.lowConfidenceVerdict.passes();
 		} else if (decision.violated) {
 			details.put("outcome", "VIOLATION");
 			details.put("reason", QUESTION_TYPE_CHOICE.equals(call.questionType)
@@ -385,10 +385,11 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 			pass = false;
 		} else {
 			details.put("outcome", "PASS");
-			details.put("reason", QUESTION_TYPE_CHOICE.equals(call.questionType)
-					? "Judge selected a non-violating choice with confidence " + decision.confidence
-					: "Violation probability is below 0.5 and confidence " + decision.confidence
-							+ " meets threshold " + call.confidenceThreshold);
+			details.put("reason",
+					QUESTION_TYPE_CHOICE.equals(call.questionType)
+							? "Judge selected a non-violating choice with confidence " + decision.confidence
+							: "Violation probability is below 0.5 and confidence " + decision.confidence
+									+ " meets threshold " + call.confidenceThreshold);
 			pass = true;
 		}
 		classLogger.info("{}: outcome='{}', pass={}", getClass().getSimpleName(), details.get("outcome"), pass);
@@ -397,44 +398,43 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 	}
 
 	/**
-	 * Builds the blocked / error verdict. A policy violation and an evaluation
-	 * error never share an outcome value, and an error only allows the guarded
-	 * call when the failure policy is explicitly fail-open.
+	 * Builds the verdict for an evaluation that failed. A policy violation and an
+	 * evaluation error never share an outcome value, and an error only allows the
+	 * guarded call when the judge error verdict is PASS.
 	 *
-	 * @param textToEvaluate the text that was under evaluation
-	 * @param error          what went wrong
-	 * @param failOpen       the failure policy in effect for this call
+	 * @param textToEvaluate    the text that was under evaluation
+	 * @param error             what went wrong
+	 * @param judgeErrorVerdict the judge error verdict in effect for this call
 	 * @return the verdict for the pipeline
 	 */
-	private GuardrailNounMetadata evaluationFailure(String textToEvaluate, Exception error, boolean failOpen) {
+	private GuardrailNounMetadata evaluationFailure(String textToEvaluate, Exception error,
+			GuardrailVerdict judgeErrorVerdict) {
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("outcome", "ERROR");
 		details.put("outcomeType", "EVALUATION_ERROR");
 		details.put("error", error.getMessage());
-		details.put("failPolicy", failOpen ? "OPEN" : "CLOSED");
-		details.put("reason", "The judge evaluation failed and the failure policy is fail-"
-				+ (failOpen ? "open" : "closed"));
+		details.put("judgeErrorVerdict", judgeErrorVerdict.name());
+		details.put("reason", "The judge evaluation failed; " + JUDGE_ERROR_VERDICT_KEY + " is " + judgeErrorVerdict);
 		if (this.defaults != null) {
 			details.put("judgeModelEngineId", this.defaults.judgeEngineId);
 		}
 		// like the other judge guardrails, an error returns the input unchanged: the
 		// pipeline then blocks with its blockErrorMessage rather than a canned answer
-		return new GuardrailNounMetadata(failOpen, textToEvaluate, details);
+		return new GuardrailNounMetadata(judgeErrorVerdict.passes(), textToEvaluate, details);
 	}
 
 	private ITypeSafeEngine resolveJudgeEngine(Insight insight) {
 		String judgeEngineId = this.defaults.judgeEngineId;
 		if (!SecurityEngineUtils.userCanViewEngine(insight.getUser(), judgeEngineId)) {
-			throw new IllegalStateException(
-					"User does not have access to the judge model engine " + judgeEngineId);
+			throw new IllegalStateException("User does not have access to the judge model engine " + judgeEngineId);
 		}
 		IModelEngine judge = Utility.getModel(judgeEngineId);
 		if (judge == null) {
 			throw new IllegalStateException("Could not find model engine with id: " + judgeEngineId);
 		}
 		if (!(judge instanceof ITypeSafeEngine)) {
-			throw new IllegalStateException("The judge model engine must be a TYPESAFE model engine, "
-					+ "but " + judgeEngineId + " is a " + judge.getModelType().getModelName());
+			throw new IllegalStateException("The judge model engine must be a TYPESAFE model engine, " + "but "
+					+ judgeEngineId + " is a " + judge.getModelType().getModelName());
 		}
 		return (ITypeSafeEngine) judge;
 	}
@@ -496,10 +496,10 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 	}
 
 	/**
-	 * Replaces a stringified override with its JSON form when the pipeline
-	 * supplied it as a native JSON object or array. A JSON-encoded string is left
-	 * as is, and for the choice list a single bare name is accepted as a one
-	 * element list (a one element array arrives as a single noun).
+	 * Replaces a stringified override with its JSON form when the pipeline supplied
+	 * it as a native JSON object or array. A JSON-encoded string is left as is, and
+	 * for the choice list a single bare name is accepted as a one element list (a
+	 * one element array arrives as a single noun).
 	 *
 	 * @param keyValue the organized string parameters, updated in place
 	 * @param raw      the raw noun value for the parameter
@@ -509,15 +509,13 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 	static void putJsonOverride(Map<String, String> keyValue, Object raw, String param, boolean asArray) {
 		if (raw instanceof Map || raw instanceof Collection) {
 			keyValue.put(param, GSON.toJson(raw));
-		} else if (asArray && raw instanceof String value && !value.isBlank()
-				&& !value.trim().startsWith("[")) {
+		} else if (asArray && raw instanceof String value && !value.isBlank() && !value.trim().startsWith("[")) {
 			keyValue.put(param, GSON.toJson(List.of(value.trim())));
 		}
 	}
 
 	List<FunctionParameter> getGuardrailParameters() {
-		return List.of(
-				new FunctionParameter(PROMPT_PARAM, "String", "The text to evaluate against the policy"),
+		return List.of(new FunctionParameter(PROMPT_PARAM, "String", "The text to evaluate against the policy"),
 				new FunctionParameter(QUESTION_TYPE_PARAM, "String", "Optional NOUL or CHOICE question override"),
 				new FunctionParameter(QUESTION_INSTRUCTIONS_PARAM, "String", "Optional per-call criterion override"),
 				new FunctionParameter(QUESTION_CRITERIA_PARAM, "String",
@@ -528,7 +526,8 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 						"Optional YES or NO violation direction override for NOUL questions"),
 				new FunctionParameter(CONFIDENCE_THRESHOLD_PARAM, "Number", "Optional confidence threshold override"),
 				new FunctionParameter(BLOCKED_MESSAGE_PARAM, "String", "Optional blocked message override"),
-				new FunctionParameter(FAIL_OPEN_PARAM, "Boolean", "Optional failure policy override"));
+				new FunctionParameter(JUDGE_ERROR_VERDICT_PARAM, "String",
+						"Optional BLOCK or PASS verdict override for when the evaluation fails"));
 	}
 
 	@Override
@@ -560,7 +559,8 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 
 				Optional: `QUESTION_CRITERIA` and `VIOLATION_CHOICES` (both required for `CHOICE`),
 				`CONFIDENCE_THRESHOLD` (0-1, default `0.5`, inclusive), `LOW_CONFIDENCE_VERDICT`
-				(default `BLOCK`), `FAIL_OPEN` (default `false`), `BLOCKED_MESSAGE`, `TIMEOUT_SECONDS`.
+				(`BLOCK` or `PASS` below the threshold, default `BLOCK`), `JUDGE_ERROR_VERDICT` (`BLOCK`
+				or `PASS` when the evaluation fails, default `BLOCK`), `BLOCKED_MESSAGE`, `TIMEOUT_SECONDS`.
 				The judge model must not run a pipeline that invokes this guardrail.
 
 				## Example: block a request outside the approved scope
@@ -634,7 +634,7 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 				- This guardrail blocks; it does not mask. Do not combine it with `maskOnGuardrailFailure`.
 
 				Errors (judge missing, not TYPESAFE, timeout, malformed answer, invalid override) block
-				unless `FAIL_OPEN` / `failOpen` is `true`. Verdict details record the outcome (`PASS`,
+				unless `JUDGE_ERROR_VERDICT` / `judgeErrorVerdict` is `PASS`. Verdict details record the outcome (`PASS`,
 				`VIOLATION`, `INDETERMINATE`, `ERROR`), criterion, typed answer, confidence, and reason.
 				"""
 				.formatted(getEngineId(), getEngineId());
@@ -680,19 +680,23 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 			yesViolates = parseYesNo(optional(props, VIOLATION_DIRECTION_KEY, "YES"), VIOLATION_DIRECTION_KEY);
 		}
 		double confidenceThreshold = parseThreshold(optional(props, CONFIDENCE_THRESHOLD_KEY, "0.5"));
-		boolean blockOnLowConfidence = parseLowConfidenceVerdict(
-				optional(props, LOW_CONFIDENCE_VERDICT_KEY, LOW_CONFIDENCE_BLOCK).toUpperCase());
-		boolean failOpen = parseStrictBoolean(optional(props, FAIL_OPEN_KEY, "false"), FAIL_OPEN_KEY);
+		GuardrailVerdict lowConfidenceVerdict = GuardrailVerdict.parse(
+				optional(props, LOW_CONFIDENCE_VERDICT_KEY, GuardrailVerdict.BLOCK.name()), LOW_CONFIDENCE_VERDICT_KEY);
+		GuardrailVerdict judgeErrorVerdict = GuardrailVerdict.parse(
+				optional(props, JUDGE_ERROR_VERDICT_KEY, GuardrailVerdict.BLOCK.name()), JUDGE_ERROR_VERDICT_KEY);
 		String blockedMessage = optional(props, BLOCKED_MESSAGE_KEY, null);
-		Double timeoutSeconds = props.containsKey(TIMEOUT_SECONDS_KEY) ? parseTimeout(optional(props, TIMEOUT_SECONDS_KEY, null)) : null;
+		// a blank timeout, as an SMSS written from an empty form field holds, is no
+		// timeout
+		String timeout = optional(props, TIMEOUT_SECONDS_KEY, null);
+		Double timeoutSeconds = timeout == null ? null : parseTimeout(timeout);
 		return new EngineDefaults(judgeEngineId, questionType, instructions, criteria, violationChoices, yesViolates,
-				confidenceThreshold, blockOnLowConfidence, failOpen, blockedMessage, timeoutSeconds);
+				confidenceThreshold, lowConfidenceVerdict, judgeErrorVerdict, blockedMessage, timeoutSeconds);
 	}
 
 	/**
-	 * Merges one call's explicit overrides with the engine defaults. Invalid
-	 * values throw and the caller turns the exception into an evaluation error
-	 * under the engine's failure policy - never into a silently successful
+	 * Merges one call's explicit overrides with the engine defaults. Invalid values
+	 * throw and the caller turns the exception into an evaluation error decided by
+	 * the engine's judge error verdict - never into a silently successful
 	 * evaluation.
 	 *
 	 * @param keyValue resolved named parameters for this call
@@ -727,19 +731,19 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 				? parseThreshold(keyValue.get(CONFIDENCE_THRESHOLD_PARAM))
 				: defaults.confidenceThreshold;
 		String blockedMessage = overrideOr(keyValue, BLOCKED_MESSAGE_PARAM, defaults.blockedMessage);
-		boolean failOpen = hasValue(keyValue.get(FAIL_OPEN_PARAM))
-				? parseStrictBoolean(keyValue.get(FAIL_OPEN_PARAM), FAIL_OPEN_PARAM)
-				: defaults.failOpen;
+		GuardrailVerdict judgeErrorVerdict = hasValue(keyValue.get(JUDGE_ERROR_VERDICT_PARAM))
+				? GuardrailVerdict.parse(keyValue.get(JUDGE_ERROR_VERDICT_PARAM), JUDGE_ERROR_VERDICT_PARAM)
+				: defaults.judgeErrorVerdict;
 		Double timeoutSeconds = defaults.timeoutSeconds;
-		return new CallConfig(questionType, instructions, criteria, violationChoices, yesViolates,
-				confidenceThreshold, defaults.blockOnLowConfidence, failOpen, blockedMessage, timeoutSeconds);
+		return new CallConfig(questionType, instructions, criteria, violationChoices, yesViolates, confidenceThreshold,
+				defaults.lowConfidenceVerdict, judgeErrorVerdict, blockedMessage, timeoutSeconds);
 	}
 
 	private static String normalizeType(String questionType, String source) {
 		String type = questionType == null ? null : questionType.trim().toUpperCase();
 		if (!QUESTION_TYPE_NOUL.equals(type) && !QUESTION_TYPE_CHOICE.equals(type)) {
-			throw new IllegalArgumentException(source + " must be " + QUESTION_TYPE_NOUL + " or "
-					+ QUESTION_TYPE_CHOICE + ", got '" + questionType + "'");
+			throw new IllegalArgumentException(source + " must be " + QUESTION_TYPE_NOUL + " or " + QUESTION_TYPE_CHOICE
+					+ ", got '" + questionType + "'");
 		}
 		return type;
 	}
@@ -799,8 +803,8 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 		try {
 			threshold = Double.parseDouble(value.trim());
 		} catch (RuntimeException e) {
-			throw new IllegalArgumentException("Confidence threshold must be a number from 0 through 1, got '"
-					+ value + "'");
+			throw new IllegalArgumentException(
+					"Confidence threshold must be a number from 0 through 1, got '" + value + "'");
 		}
 		if (!Double.isFinite(threshold) || threshold < 0 || threshold > 1) {
 			throw new IllegalArgumentException(
@@ -809,36 +813,13 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 		return threshold;
 	}
 
-	private static boolean parseLowConfidenceVerdict(String value) {
-		if (LOW_CONFIDENCE_BLOCK.equals(value)) {
-			return true;
-		}
-		if (LOW_CONFIDENCE_PASS.equals(value)) {
-			return false;
-		}
-		throw new IllegalArgumentException(
-				LOW_CONFIDENCE_VERDICT_KEY + " must be " + LOW_CONFIDENCE_BLOCK + " or " + LOW_CONFIDENCE_PASS
-						+ ", got '" + value + "'");
-	}
-
-	private static boolean parseStrictBoolean(String value, String source) {
-		String normalized = value == null ? null : value.trim();
-		if ("true".equalsIgnoreCase(normalized)) {
-			return true;
-		}
-		if ("false".equalsIgnoreCase(normalized)) {
-			return false;
-		}
-		throw new IllegalArgumentException(source + " must be true or false, got '" + value + "'");
-	}
-
 	private static Double parseTimeout(String value) {
 		Double timeout;
 		try {
 			timeout = Double.parseDouble(value.trim());
 		} catch (RuntimeException e) {
-			throw new IllegalArgumentException(TIMEOUT_SECONDS_KEY + " must be a positive number of seconds, got '"
-					+ value + "'");
+			throw new IllegalArgumentException(
+					TIMEOUT_SECONDS_KEY + " must be a positive number of seconds, got '" + value + "'");
 		}
 		if (!Double.isFinite(timeout) || timeout <= 0) {
 			throw new IllegalArgumentException(
@@ -858,7 +839,8 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 	private static String required(Properties props, String key) {
 		String value = props.getProperty(key);
 		if (value == null || value.trim().isEmpty()) {
-			throw new IllegalArgumentException(key + " is required for " + JevPolicyGuardrailEngine.class.getSimpleName());
+			throw new IllegalArgumentException(
+					key + " is required for " + JevPolicyGuardrailEngine.class.getSimpleName());
 		}
 		return value.trim();
 	}
@@ -877,15 +859,15 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 		final Set<String> violationChoices;
 		final boolean yesViolates;
 		final double confidenceThreshold;
-		final boolean blockOnLowConfidence;
-		final boolean failOpen;
+		final GuardrailVerdict lowConfidenceVerdict;
+		final GuardrailVerdict judgeErrorVerdict;
 		final String blockedMessage;
 		final Double timeoutSeconds;
 
 		private EngineDefaults(String judgeEngineId, String questionType, String instructions,
 				Map<String, Object> criteria, Set<String> violationChoices, Boolean yesViolates,
-				double confidenceThreshold, boolean blockOnLowConfidence, boolean failOpen, String blockedMessage,
-				Double timeoutSeconds) {
+				double confidenceThreshold, GuardrailVerdict lowConfidenceVerdict, GuardrailVerdict judgeErrorVerdict,
+				String blockedMessage, Double timeoutSeconds) {
 			this.judgeEngineId = judgeEngineId;
 			this.questionType = questionType;
 			this.instructions = instructions;
@@ -893,8 +875,8 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 			this.violationChoices = violationChoices;
 			this.yesViolates = yesViolates;
 			this.confidenceThreshold = confidenceThreshold;
-			this.blockOnLowConfidence = blockOnLowConfidence;
-			this.failOpen = failOpen;
+			this.lowConfidenceVerdict = lowConfidenceVerdict;
+			this.judgeErrorVerdict = judgeErrorVerdict;
 			this.blockedMessage = blockedMessage;
 			this.timeoutSeconds = timeoutSeconds;
 		}
@@ -908,22 +890,23 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 		final Set<String> violationChoices;
 		final boolean yesViolates;
 		final double confidenceThreshold;
-		final boolean blockOnLowConfidence;
-		final boolean failOpen;
+		final GuardrailVerdict lowConfidenceVerdict;
+		final GuardrailVerdict judgeErrorVerdict;
 		final String blockedMessage;
 		final Double timeoutSeconds;
 
 		private CallConfig(String questionType, String instructions, Map<String, Object> criteria,
 				Set<String> violationChoices, Boolean yesViolates, double confidenceThreshold,
-				boolean blockOnLowConfidence, boolean failOpen, String blockedMessage, Double timeoutSeconds) {
+				GuardrailVerdict lowConfidenceVerdict, GuardrailVerdict judgeErrorVerdict, String blockedMessage,
+				Double timeoutSeconds) {
 			this.questionType = questionType;
 			this.instructions = instructions;
 			this.criteria = criteria;
 			this.violationChoices = violationChoices;
 			this.yesViolates = yesViolates;
 			this.confidenceThreshold = confidenceThreshold;
-			this.blockOnLowConfidence = blockOnLowConfidence;
-			this.failOpen = failOpen;
+			this.lowConfidenceVerdict = lowConfidenceVerdict;
+			this.judgeErrorVerdict = judgeErrorVerdict;
 			this.blockedMessage = blockedMessage;
 			this.timeoutSeconds = timeoutSeconds;
 		}
@@ -950,8 +933,8 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 			this.answer = answer;
 		}
 
-		static Decision decided(boolean violated, boolean determined, double confidence,
-				Map<String, Object> typed, Map<String, Object> answer) {
+		static Decision decided(boolean violated, boolean determined, double confidence, Map<String, Object> typed,
+				Map<String, Object> answer) {
 			return new Decision(false, null, violated, determined, confidence, typed, answer);
 		}
 

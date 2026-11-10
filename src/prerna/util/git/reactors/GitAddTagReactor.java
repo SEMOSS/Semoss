@@ -40,6 +40,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -103,20 +104,11 @@ public class GitAddTagReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor add tag to a particular commit id";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "This is a required field containing the project id of a project";
-		} else if (key.equals(COMMIT_ID_KEY)) {
-			return "This is a required field containing the commit id of a project";
-		} else if (key.equals(ReactorKeysEnum.TAGS.getKey())) {
-			return "This is a required field containing the tag of a project";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("This reactor add tag to a particular commit id")
+				.key(ReactorKeysEnum.PROJECT, "This is a required field containing the project id of a project")
+				.key(COMMIT_ID_KEY, "This is a required field containing the commit id of a project")
+				.key(ReactorKeysEnum.TAGS, "This is a required field containing the tag of a project");
 	}
 
 }

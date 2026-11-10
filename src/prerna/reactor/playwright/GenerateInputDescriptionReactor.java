@@ -43,6 +43,7 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -347,22 +348,12 @@ public class GenerateInputDescriptionReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Generates a user-friendly description for an input field based on its DOM context using playwright";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The ID of the model engine to use for generating the description";
-		} else if (key.equals("sessionId")) {
-			return "The Playwright session ID containing the target input field";
-		} else if (key.equals("selector")) {
-			return "The CSS selector for the target input field element";
-		} else if (key.equals("tabId")) {
-			return "The ID of the tab containing the target input field";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Generates a user-friendly description for an input field based on its DOM context using playwright")
+				.key(ReactorKeysEnum.ENGINE, "The ID of the model engine to use for generating the description")
+				.key("sessionId", "The Playwright session ID containing the target input field")
+				.key("selector", "The CSS selector for the target input field element")
+				.key("tabId", "The ID of the tab containing the target input field");
 	}
 }

@@ -48,20 +48,25 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.function.FunctionParameter;
-import prerna.reactor.engine.AbstractEngineFileReactor;
+import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor {
+public class CreatePythonFunctionEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreatePythonFunctionEngineReactor.class);
 
@@ -72,8 +77,10 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		validateUserAndEngineAccess(user);
+		User user = requireUser();
+		if (!SecurityQueryUtils.userIsPublisher(user)) {
+			throwUserNotPublisherError();
+		}
 		// validate we have not restricted this to only admins
 		if (AbstractSecurityUtils.adminOnlyFunctionAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
@@ -153,6 +160,8 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 			}
 
 			ClusterUtil.pushEngine(functionId);
+			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.FUNCTION_CREATE, AuditTargetType.FUNCTION,
+					functionId, functionName, Map.of("functionType", functionType.getFunctionName()));
 		} catch (Exception e) {
 			classLogger.error("Unable to create Python function engine '{}' ({})", functionName, functionId, e);
 			UploadUtilities.cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineFolder);
@@ -275,32 +284,22 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Create and register a LOCAL_PYTHON function engine. The reactor writes the supplied Python source
 				to the engine assets folder, or generates a starter function from the function metadata when no
 				source content is supplied.
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.FUNCTION.getKey().equals(key)) {
-			return "The catalog name for the new Python function engine. It is normalized to UpperCamelCase for the engine name.";
-		} else if (ReactorKeysEnum.FUNCTION_DETAILS.getKey().equals(key)) {
-			return """
-					The function-engine SMSS properties. The map must define FUNCTION_TYPE as LOCAL_PYTHON,
-					PYTHON_FILE_NAME, FUNCTION_NAME, and FUNCTION_DESCRIPTION. FUNCTION_PARAMETERS and
-					FUNCTION_REQUIRED_PARAMETERS are used when generating starter source.
-					""";
-		} else if (ReactorKeysEnum.CONTENT.getKey().equals(key)) {
-			return """
-					Optional complete Python source for the configured file. When omitted, the reactor generates a
-					starter function with the configured function name, required parameters, parameter documentation,
-					and placeholder print statements.
-					""";
-		}
-
-		return super.getDescriptionForKey(key);
+				""").key(ReactorKeysEnum.FUNCTION,
+				"The catalog name for the new Python function engine. It is normalized to UpperCamelCase for the engine name.")
+				.key(ReactorKeysEnum.FUNCTION_DETAILS, """
+						The function-engine SMSS properties. The map must define FUNCTION_TYPE as LOCAL_PYTHON,
+						PYTHON_FILE_NAME, FUNCTION_NAME, and FUNCTION_DESCRIPTION. FUNCTION_PARAMETERS and
+						FUNCTION_REQUIRED_PARAMETERS are used when generating starter source.
+						""").key(ReactorKeysEnum.CONTENT,
+						"""
+								Optional complete Python source for the configured file. When omitted, the reactor generates a
+								starter function with the configured function name, required parameters, parameter documentation,
+								and placeholder print statements.
+								""");
 	}
 }

@@ -45,10 +45,14 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AssetUtility;
 
 /**
@@ -114,7 +118,7 @@ public class CloneSkillReactor extends AbstractReactor {
 					"Skill " + sourceSkillId + " does not exist or user does not have permission to view it");
 		}
 		if (!SecurityProjectUtils.userCanCloneProject(user, sourceSkillId)) {
-			throw new IllegalArgumentException("This skill is not enabled as a template and cannot be cloned.");
+			throw new IllegalArgumentException("This skill is not a template, so only its owners can clone it.");
 		}
 
 		if (!SkillProjects.isSkillProject(sourceSkillId)) {
@@ -158,6 +162,7 @@ public class CloneSkillReactor extends AbstractReactor {
 					: "";
 			String finalContent = Skill.buildFrontmatter(newName, sourceDescription) + bodyOnly;
 			Files.write(newSkillFile, finalContent.getBytes(StandardCharsets.UTF_8));
+			SkillProjects.pushContent(newSkillId);
 		} catch (Exception e) {
 			classLogger.error("Failed to clone skill into '{}' (id {})", newName, newSkillId, e);
 			throw new IllegalArgumentException("Failed to clone skill: " + e.getMessage(), e);
@@ -169,6 +174,8 @@ public class CloneSkillReactor extends AbstractReactor {
 		response.put("name", newName);
 		response.put("slug", newSlug);
 		response.put("source_skill_id", sourceSkillId);
+		UserAuditTrailUtils.recordResourceEvent(user, AuditEventType.SKILL_CREATE, AuditTargetType.SKILL, newSkillId,
+				newName, newSkillId, null, null, Map.of("clonedFrom", sourceSkillId));
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
@@ -191,18 +198,9 @@ public class CloneSkillReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Clones a skill into a new skill-project owned by the caller";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SKILL_ID.equals(key)) {
-			return "Identifier of the source skill to clone";
-		}
-		if (ReactorKeysEnum.NAME.getKey().equals(key)) {
-			return "Name for the cloned skill. Defaults to 'Copy of <original>'";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Clones a skill into a new skill-project owned by the caller")
+				.key(SKILL_ID, "Identifier of the source skill to clone")
+				.key(ReactorKeysEnum.NAME, "Name for the cloned skill. Defaults to 'Copy of <original>'");
 	}
 }

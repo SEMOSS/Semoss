@@ -40,6 +40,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
 import prerna.reactor.agent.skill.SkillScanner.SkillFile;
 import prerna.sablecc2.om.PixelDataType;
@@ -213,37 +214,29 @@ public class ListSkillsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists every skill discovered on disk under <root|client|java|py>/(.skills|.agents/skills|"
-				+ ".agents/skill|.claude/skills|.claude/skill)/<name>/SKILL.md, deduplicated by name "
-				+ "(first-match-wins, matching LoadSkill precedence). Scans the given project's assets folder "
-				+ "(project) or room folder (roomId); defaults to the current insight when neither is given. "
-				+ "Returns a list of skill maps {name, path, directory, description}; pass includeContent=true "
-				+ "to add a 'content' entry with each SKILL.md body (everything after the frontmatter), or "
-				+ "includeAll=true to also add a 'files' array crawling the rest of each skill folder "
-				+ "(implies includeContent). Reads the filesystem, not the DB "
-				+ "(skill projects are listed via MyProjects with type=SKILL).";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "Optional. Project id whose assets folder to scan for skills. Requires view access "
-					+ "to the project. Mutually exclusive with roomId.";
-		}
-		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
-			return "Optional. Room id whose folder to scan for skills. Must be a room you own. "
-					+ "Mutually exclusive with projectId.";
-		}
-		if (INCLUDE_CONTENT.equals(key)) {
-			return "Optional (default false). When true, each skill map includes a 'content' entry "
-					+ "with the SKILL.md body - everything after the YAML frontmatter.";
-		}
-		if (INCLUDE_ALL.equals(key)) {
-			return "Optional (default false). When true, also crawl every other file in each skill's "
-					+ "directory into a 'files' array, each {path, directory, content} relative to the "
-					+ "working directory (same shape as the skill itself). Implies includeContent=true.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Lists every skill discovered on disk under <root|client|java|py>/(.skills|.agents/skills|"
+						+ ".agents/skill|.claude/skills|.claude/skill)/<name>/SKILL.md, deduplicated by name "
+						+ "(first-match-wins, matching LoadSkill precedence). Scans the given project's assets folder "
+						+ "(project) or room folder (roomId); defaults to the current insight when neither is given. "
+						+ "Returns a list of skill maps {name, path, directory, description}; pass includeContent=true "
+						+ "to add a 'content' entry with each SKILL.md body (everything after the frontmatter), or "
+						+ "includeAll=true to also add a 'files' array crawling the rest of each skill folder "
+						+ "(implies includeContent). Reads the filesystem, not the DB "
+						+ "(skill projects are listed via MyProjects with type=SKILL).")
+				.key(ReactorKeysEnum.PROJECT,
+						"Optional. Project id whose assets folder to scan for skills. Requires view access "
+								+ "to the project. Mutually exclusive with roomId.")
+				.key(ReactorKeysEnum.ROOM_ID,
+						"Optional. Room id whose folder to scan for skills. Must be a room you own. "
+								+ "Mutually exclusive with projectId.")
+				.key(INCLUDE_CONTENT,
+						"Optional (default false). When true, each skill map includes a 'content' entry "
+								+ "with the SKILL.md body - everything after the YAML frontmatter.")
+				.key(INCLUDE_ALL,
+						"Optional (default false). When true, also crawl every other file in each skill's "
+								+ "directory into a 'files' array, each {path, directory, content} relative to the "
+								+ "working directory (same shape as the skill itself). Implies includeContent=true.");
 	}
 }

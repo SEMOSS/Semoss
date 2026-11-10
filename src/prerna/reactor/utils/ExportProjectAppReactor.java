@@ -45,11 +45,13 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.om.InsightFile;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
@@ -193,6 +195,12 @@ public class ExportProjectAppReactor extends AbstractReactor {
 			// }
 		}
 
+		// recorded once the archive is built, so an export that fails records only its
+		// failure; an app's files never include the version history
+		IProject.PROJECT_TYPE projectType = project.getProjectType();
+		UserAuditTrailUtils.recordProjectExport(user, projectId, projectName,
+				projectType == null ? null : projectType.name(), getPixelName(), null);
+
 		// Generate a new key for the name of the zip file.
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
@@ -213,16 +221,10 @@ public class ExportProjectAppReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Export an app as a single zip file";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "This is a required value containing the id of the app that is being exported";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Export an app as a single zip file").key(
+				ReactorKeysEnum.PROJECT,
+				"This is a required value containing the id of the app that is being exported");
 	}
 
 }

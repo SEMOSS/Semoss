@@ -49,7 +49,14 @@ import org.junit.jupiter.api.Test;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.ModelUsageLimit;
+import prerna.auth.access.ModelUsageLimitKey;
+import prerna.auth.access.ModelUsageLimitRule;
+import prerna.auth.access.ModelUsageLimitRule.Counts;
+import prerna.auth.access.ModelUsageLimitRule.Metric;
+import prerna.auth.access.ModelUsageLimitRule.Window;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class SecurityUpdateUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -214,10 +221,131 @@ public class SecurityUpdateUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		AccessToken at = UnitTestSecurityAuthUtils.createAccessToken(prefix);
 
 		SecurityUpdateUtils.registerUser(prefix + "id", prefix + "name", prefix + "@test.com", "Test123!",
-				AuthProvider.NATIVE.getLabel(), "5555555555", "001", "US", true, false, false, null, null, null, null);
+				AuthProvider.NATIVE.getLabel(), "5555555555", "001", "US", true, false, false, null);
 
 		// verify new user
 		SecurityNativeUserUtils.userEmailExists("admin@test.com");
+	}
+
+	@Test
+	void registerUser_savesTheAllModelsDefault() {
+		assertTrue(SecurityUpdateUtils.registerUser("limitedid", "limitedname", "limited@test.com", "Test123!",
+				AuthProvider.NATIVE.getLabel(), null, null, null, false, false, false, tokensADay(100)));
+
+		ModelUsageLimit saved = SecurityModelUsageLimitUtils
+				.getLimit(ModelUsageLimitKey.allModels("limitedid", AuthProvider.NATIVE.getLabel()));
+		assertNotNull(saved);
+		assertEquals(100L, saved.getRules().get(0).getAmount());
+	}
+
+	@Test
+	void registerUser_limitNotValid() {
+		// a person's own limit has no shared rules
+		ModelUsageLimit shared = ModelUsageLimit
+				.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, 100L, Window.DAY, Counts.SHARED)));
+		assertThrows(IllegalArgumentException.class,
+				() -> SecurityUpdateUtils.registerUser("limitedid", "limitedname", "limited@test.com", "Test123!",
+						AuthProvider.NATIVE.getLabel(), null, null, null, false, false, false, shared));
+		assertFalse(SecurityQueryUtils.checkUserExist("limitedid"));
+	}
+
+	@Test
+	void addOAuthUser_firstSignInKeepsTheLimitsAnAdminSet() throws Exception {
+		// an admin adds the person by email, before they sign in
+		assertTrue(SecurityUpdateUtils.registerUser("jdoe@test.com", null, "jdoe@test.com", null, null, null, null,
+				null, false, false, false, tokensADay(100)));
+		QueryExecutionUtility.write(SystemEngineRegistry.getSecurityDb(), connection -> {
+			SecurityModelUsageLimitUtils.setLimit(connection, ModelUsageLimitKey.direct("model", "jdoe@test.com", null),
+					tokensADay(50), null);
+			return null;
+		});
+
+		AccessToken at = new AccessToken();
+		at.setProvider(AuthProvider.GOOGLE);
+		at.setId("jdoe-google-id");
+		at.setName("Jane Doe");
+		at.setEmail("jdoe@test.com");
+		SecurityUpdateUtils.addOAuthUser(at);
+
+		ModelUsageLimit allModels = SecurityModelUsageLimitUtils
+				.getLimit(ModelUsageLimitKey.allModels("jdoe-google-id", AuthProvider.GOOGLE.toString()));
+		assertNotNull(allModels);
+		assertEquals(100L, allModels.getRules().get(0).getAmount());
+		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.allModels("jdoe@test.com", "")));
+		ModelUsageLimit direct = SecurityModelUsageLimitUtils
+				.getLimit(ModelUsageLimitKey.direct("model", "jdoe-google-id", null));
+		assertNotNull(direct);
+		assertEquals(50L, direct.getRules().get(0).getAmount());
+		// the limit on the grant moves to the login type they sign in with
+		assertTrue(SecurityModelUsageLimitUtils.getEngineLimits("model")
+				.containsKey(ModelUsageLimitKey.direct("model", "jdoe-google-id", AuthProvider.GOOGLE.toString())));
+		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct("model", "jdoe@test.com", null)));
+	}
+
+	@Test
+	void addOAuthUser_adminAddedUserKeepsTheRowWhenThePermissionMoveFails() throws Exception {
+		// an admin adds the person by email, with access to an engine
+		assertTrue(SecurityUpdateUtils.registerUser("jdoe@test.com", null, "jdoe@test.com", null, null, null, null,
+				null, false, false, false, null));
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID) VALUES (?,?,?)", ps -> {
+					ps.setString(1, "jdoe@test.com");
+					ps.setInt(2, 3);
+					ps.setString(3, "engine1");
+				});
+		UnitTestFailingTrigger.install(securityDb, "TEST_REFUSE_PERMISSION_MOVE", "UPDATE", "ENGINEPERMISSION");
+		try {
+			// the permissions move after the row takes the id they sign in with, in the
+			// same transaction
+			assertFalse(SecurityUpdateUtils.addOAuthUser(googleSignIn("jdoe-google-id", "jdoe@test.com")));
+		} finally {
+			UnitTestFailingTrigger.drop(securityDb, "TEST_REFUSE_PERMISSION_MOVE");
+		}
+
+		assertFalse(SecurityQueryUtils.checkUserExist("jdoe-google-id"));
+		assertEquals("ADMIN_ADDED_USER",
+				QueryExecutionUtility.queryOne(securityDb, "SELECT NAME FROM SMSS_USER WHERE ID=?",
+						ps -> ps.setString(1, "jdoe@test.com"), rs -> rs.getString(1)));
+		assertEquals(List.of("jdoe@test.com"),
+				QueryExecutionUtility.queryList(securityDb, "SELECT USERID FROM ENGINEPERMISSION WHERE ENGINEID=?",
+						ps -> ps.setString(1, "engine1"), rs -> rs.getString(1)));
+
+		// with the move allowed, the row and the permissions move together
+		assertFalse(SecurityUpdateUtils.addOAuthUser(googleSignIn("jdoe-google-id", "jdoe@test.com")));
+		assertTrue(SecurityQueryUtils.checkUserExist("jdoe-google-id"));
+		assertFalse(SecurityQueryUtils.checkUserExist("jdoe@test.com"));
+		assertEquals(List.of("jdoe-google-id"),
+				QueryExecutionUtility.queryList(securityDb, "SELECT USERID FROM ENGINEPERMISSION WHERE ENGINEID=?",
+						ps -> ps.setString(1, "engine1"), rs -> rs.getString(1)));
+	}
+
+	@Test
+	void addOAuthUser_insertFailureSavesNothing() throws Exception {
+		UnitTestFailingTrigger.install(securityDb, "TEST_REFUSE_USER", "INSERT", "SMSS_USER");
+		try {
+			assertFalse(SecurityUpdateUtils.addOAuthUser(googleSignIn("jdoe-google-id", "jdoe@test.com")));
+		} finally {
+			UnitTestFailingTrigger.drop(securityDb, "TEST_REFUSE_USER");
+		}
+
+		assertFalse(SecurityQueryUtils.checkUserExist("jdoe-google-id"));
+	}
+
+	/**
+	 * A first sign in with Google.
+	 */
+	private static AccessToken googleSignIn(String id, String email) {
+		AccessToken at = new AccessToken();
+		at.setProvider(AuthProvider.GOOGLE);
+		at.setId(id);
+		at.setName("Jane Doe");
+		at.setEmail(email);
+		return at;
+	}
+
+	private static ModelUsageLimit tokensADay(long amount) {
+		return ModelUsageLimit
+				.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, amount, Window.DAY, Counts.EACH_PERSON)));
 	}
 
 }

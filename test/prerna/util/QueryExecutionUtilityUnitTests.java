@@ -232,6 +232,33 @@ class QueryExecutionUtilityUnitTests {
 	}
 
 	@Test
+	void structuredTypedReadsBindValuesAndKeepEachColumnsType() throws Exception {
+		when(engine.isBasic()).thenReturn(true);
+		when(engine.getQueryUtil()).thenReturn(SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB));
+		try (var setup = connection.createStatement()) {
+			setup.execute("CREATE TABLE EVENTS (ID VARCHAR, OCCURRED TIMESTAMP)");
+			setup.execute("INSERT INTO EVENTS VALUES ('O''Brien', TIMESTAMP '2024-03-01 12:00:00.123456'), "
+					+ "('other', TIMESTAMP '2024-03-02 12:00:00')");
+		}
+		var query = new SelectQueryStruct();
+		query.addSelector(new QueryColumnSelector("EVENTS__ID"));
+		query.addSelector(new QueryColumnSelector("EVENTS__OCCURRED"));
+		query.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("EVENTS__ID", "==", "O'Brien"));
+		var rows = QueryExecutionUtility.queryList(engine, query,
+				row -> List.of(row.getString("ID"), row.getTimestamp("OCCURRED")), 9);
+		// the mapper reads the timestamp itself, to the microsecond, not as a
+		// SemossDate
+		assertEquals(List.of(List.of("O'Brien", Timestamp.valueOf("2024-03-01 12:00:00.123456"))), rows);
+		verify(statement).setObject(1, "O'Brien");
+		verify(statement).setQueryTimeout(9);
+		assertTrue(result.isClosed());
+		assertTrue(statement.isClosed());
+		assertFalse(connection.isClosed());
+		assertThrows(IllegalArgumentException.class,
+				() -> QueryExecutionUtility.queryList(engine, query, row -> row, -1));
+	}
+
+	@Test
 	void returnedReleaseFailureIsReportedAfterSuccessfulRead() throws Exception {
 		when(engine.isConnectionPooling()).thenReturn(true);
 		connection.setAutoCommit(false);

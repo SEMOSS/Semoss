@@ -83,12 +83,37 @@ public interface BrainMailHeaderSource {
 		return Map.of();
 	}
 
+	// a profile photo by its Graph path (/me/photos/..., /users/{id}/photos/...); null when there is no directory
+	default byte[] photo(User user, String path) throws Exception {
+		return null;
+	}
+
 	// headers received at or after since, newest first, at most max
 	List<Map<String, Object>> list(User user, String folder, Instant since, int max) throws Exception;
 
 	// Topic discovery additionally needs unsubscribe headers; fixtures already retain those when supplied.
 	default List<Map<String, Object>> topicHeaders(User user, String folder, Instant since, int max) throws Exception {
 		return list(user, folder, since, max);
+	}
+
+	/**
+	 * The mailbox's folders, all levels: id, parentFolderId, displayName, totalItemCount, and wellKnownName (inbox,
+	 * sentitems, deleteditems...) on the system folders. Empty when this source has no folders; mail is then read
+	 * from Inbox and Sent only.
+	 */
+	default List<Map<String, Object>> folders(User user) throws Exception {
+		return List.of();
+	}
+
+	/**
+	 * Headers from every folder at once, newest first, at most max, with the internet headers Inbox is read with.
+	 * changed reads what was received or changed (moved, flagged, categorized) at or after since; otherwise what
+	 * was received. Callers drop the folders they skip.
+	 */
+	default List<Map<String, Object>> allMail(User user, Instant since, int max, boolean changed) throws Exception {
+		List<Map<String, Object>> out = new java.util.ArrayList<>(topicHeaders(user, INBOX, since, max));
+		out.addAll(list(user, SENT, since, max));
+		return out;
 	}
 
 	// one message's headers by its Graph id, as Inbox is read; null when this source cannot read one

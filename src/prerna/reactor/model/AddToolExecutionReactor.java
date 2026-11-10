@@ -47,6 +47,7 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -103,10 +104,7 @@ public class AddToolExecutionReactor extends AbstractReactor {
 		List<Map<String, Object>> responseParts = getList(RESPONSE_PARTS_KEY);
 		String hiddenMessage = this.keyValue.get(HIDDEN_MESSAGE_KEY);
 
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 		String userId = user.getPrimaryLoginToken().getId();
 		if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
 			throw new IllegalArgumentException(
@@ -156,8 +154,8 @@ public class AddToolExecutionReactor extends AbstractReactor {
 			if (prebuiltResponse != null) {
 				if (hiddenMessage != null && !hiddenMessage.isEmpty()
 						&& responseMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
-					appendHiddenPairWithPersist(room, modelEngine, hiddenMessage, responseMessage.getMessageId(), userId,
-							extraMessages);
+					appendHiddenPairWithPersist(room, modelEngine, hiddenMessage, responseMessage.getMessageId(),
+							userId, extraMessages);
 				}
 			} else if (responseMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
 				RoomMessageStore.persist(room, userId);
@@ -209,40 +207,33 @@ public class AddToolExecutionReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Add a tool execution input message to the message history.
-				If all the tools have been executed from the previous tool response message, this will return the LLM response.
-				Otherwise, a default string message that more tools responses are needed
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The engine id of the model used for the message. If all the tools are added for the tool_resposne message, this model is used to invoke for the response.";
-		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-			return "The room id corresponding to the message history";
-		} else if (key.equals("toolId")) {
-			return "The id of the tool that was executed - must match the tool id of tool_response message";
-		} else if (key.equals("toolName")) {
-			return "The name of the tool that was executed - must match the tool name of tool_response message";
-		} else if (key.equals(TOOL_EXECUTION_RESPONSE)) {
-			return "The raw string output of the tool output";
-		} else if (key.equals(TOOL_PARAMETER_VALUES)) {
-			return "Map object with the string parameterName to object value for the tool execution";
-		} else if (key.equals(LEGACY_TOOL_EXECUTION_RESPONSE)) {
-			return "Deprecated parameter. Please switch to " + TOOL_EXECUTION_RESPONSE;
-		} else if (RESPONSE_PARTS_KEY.equals(key)) {
-			return "Optional. When provided, the LLM follow-up call is skipped and this array of response parts"
-					+ " (each a map with type=THINKING|TEXT and matching payload) is persisted as the assistant"
-					+ " follow-up. Used by a cancel flow when the user stopped a stream that fired after"
-					+ " tool execution.";
-		} else if (HIDDEN_MESSAGE_KEY.equals(key)) {
-			return "Optional. Cancel-flow only (paired with " + RESPONSE_PARTS_KEY + "). A hidden user-side note"
-					+ " appended after the tool follow-up, plus an auto-generated assistant ack, so the model sees on"
-					+ " the next turn that its previous response was cut short. Ignored on live LLM calls.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Add a tool execution input message to the message history.
+								If all the tools have been executed from the previous tool response message, this will return the LLM response.
+								Otherwise, a default string message that more tools responses are needed
+								""")
+				.key(ReactorKeysEnum.ENGINE,
+						"The engine id of the model used for the message. If all the tools are added for the tool_resposne message, this model is used to invoke for the response.")
+				.key(ReactorKeysEnum.ROOM_ID, "The room id corresponding to the message history")
+				.key("toolId", "The id of the tool that was executed - must match the tool id of tool_response message")
+				.key("toolName",
+						"The name of the tool that was executed - must match the tool name of tool_response message")
+				.key(TOOL_EXECUTION_RESPONSE, "The raw string output of the tool output")
+				.key(TOOL_PARAMETER_VALUES,
+						"Map object with the string parameterName to object value for the tool execution")
+				.key(LEGACY_TOOL_EXECUTION_RESPONSE,
+						"Deprecated parameter. Please switch to " + TOOL_EXECUTION_RESPONSE)
+				.key(RESPONSE_PARTS_KEY,
+						"Optional. When provided, the LLM follow-up call is skipped and this array of response parts"
+								+ " (each a map with type=THINKING|TEXT and matching payload) is persisted as the assistant"
+								+ " follow-up. Used by a cancel flow when the user stopped a stream that fired after"
+								+ " tool execution.")
+				.key(HIDDEN_MESSAGE_KEY, "Optional. Cancel-flow only (paired with " + RESPONSE_PARTS_KEY
+						+ "). A hidden user-side note"
+						+ " appended after the tool follow-up, plus an auto-generated assistant ack, so the model sees on"
+						+ " the next turn that its previous response was cut short. Ignored on live LLM calls.");
 	}
 }

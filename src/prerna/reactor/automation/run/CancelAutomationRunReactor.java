@@ -34,6 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.agent.AutomationAgentRunAccess;
@@ -42,6 +43,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Requests cancellation of a running or agent-waiting automation. Active
@@ -57,23 +60,22 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * <p>
  * Sets a cluster-safe cancellation flag
  * ({@code AUTOMATION_RUNS.CANCEL_REQUESTED}, via
- * {@link AutomationRunStore#setCancelRequested(String)}) that the
- * executing pod polls regardless of which pod owns the Python run. The same-pod
- * fast path also interrupts the matching Python socket job, allowing native
- * Python and blocking bridge calls to stop promptly. A running run's
- * {@code STATUS} is transitioned to CANCELLED by the executing pod, not by this
- * reactor; a truly orphaned run is caught by the periodic stale-heartbeat
- * sweep. A waiting run has no executing pod, so this reactor records the
- * request, stops the child agent, and reconciles the run to CANCELLED itself
- * without continuing the remaining graph.
+ * {@link AutomationRunStore#setCancelRequested(String)}) that the executing pod
+ * polls regardless of which pod owns the Python run. The same-pod fast path
+ * also interrupts the matching Python socket job, allowing native Python and
+ * blocking bridge calls to stop promptly. A running run's {@code STATUS} is
+ * transitioned to CANCELLED by the executing pod, not by this reactor; a truly
+ * orphaned run is caught by the periodic stale-heartbeat sweep. A waiting run
+ * has no executing pod, so this reactor records the request, stops the child
+ * agent, and reconciles the run to CANCELLED itself without continuing the
+ * remaining graph.
  */
 public class CancelAutomationRunReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CancelAutomationRunReactor.class);
 
 	// Not standardized in ReactorKeysEnum - matches the local-key convention used
-	// by
-	// prerna.reactor.agent (e.g. StopAgentRunReactor.RUN_ID_KEY).
+	// by prerna.reactor.agent (e.g. StopAgentRunReactor.RUN_ID_KEY).
 	private static final String RUN_ID_KEY = "runId";
 
 	public CancelAutomationRunReactor() {
@@ -104,7 +106,10 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 
 		String status = (String) runDetail.get(AutomationConstants.STATUS);
 		if (AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(status)) {
-			return cancelWaitingAgentRun(projectId, runId);
+			NounMetadata cancelled = cancelWaitingAgentRun(projectId, runId);
+			UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), AuditEventType.AUTOMATION_RUN_CANCEL,
+					projectId, runId, null, Map.of("previousStatus", status));
+			return cancelled;
 		}
 		if (!AutomationConstants.STATUS_RUNNING.equals(status)) {
 			throw new IllegalArgumentException(
@@ -120,6 +125,8 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 		boolean signalledLocally = AutomationRunRegistry.requestCancellation(runId);
 
 		classLogger.info("Cancel requested for automation run {}: signalledLocally={}", runId, signalledLocally);
+		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), AuditEventType.AUTOMATION_RUN_CANCEL,
+				projectId, runId, null, Map.of("previousStatus", status));
 
 		Map<String, Object> result = new HashMap<>();
 		result.put(AutomationConstants.RUN_ID, runId);
@@ -160,15 +167,10 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Requests cancellation of a running or agent-waiting Automation run for the given project.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (RUN_ID_KEY.equals(key)) {
-			return "Identifier of the running automation execution to cancel.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Requests cancellation of a running or agent-waiting Automation run for the given project.")
+				.key(RUN_ID_KEY, "Identifier of the running automation execution to cancel.");
 	}
 }

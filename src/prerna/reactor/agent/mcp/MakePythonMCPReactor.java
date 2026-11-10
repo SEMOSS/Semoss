@@ -35,7 +35,6 @@ import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -43,6 +42,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -63,6 +63,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = resolveContextEngineId(this.keyValue.get(this.keysToGet[0].split(",")[0]));
+		User user = requireUser();
 
 		// get engine
 		IEngine engine = null;
@@ -80,12 +81,6 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		}
 
 		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
-		User user = this.insight.getUser();
-
-		// check security
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		if (engineType == CATALOG_TYPE.PROJECT) {
 			if (!SecurityProjectUtils.userCanEditProject(user, engineId)) {
@@ -208,20 +203,15 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Generates a mcp/py_mcp.json file from the py/<file_placeholder> file function.
-				""".replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME).replace("<notebook_placeholder>",
-				MCPUtility.MCP_NOTEBOOK_NAME);
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey()) || key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the engine or project/app. If not passed, will try to use the app context.";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository for the project";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("""
+						Generates a mcp/py_mcp.json file from the py/<file_placeholder> file function.
+						""".replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME).replace("<notebook_placeholder>",
+						MCPUtility.MCP_NOTEBOOK_NAME))
+				.key(ReactorKeysEnum.ENGINE,
+						"The unique id for the engine or project/app. If not passed, will try to use the app context.")
+				.key(ReactorKeysEnum.COMMENT_KEY,
+						"Comment to add while saving the files within the git repository for the project");
 	}
 }

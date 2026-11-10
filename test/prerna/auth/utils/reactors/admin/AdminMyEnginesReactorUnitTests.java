@@ -120,7 +120,7 @@ public class AdminMyEnginesReactorUnitTests {
 
 	@Test
 	void testGetDescriptionForSortKey() {
-		String desc = reactor.getDescriptionForKey(ReactorKeysEnum.SORT.getKey());
+		String desc = reactor.getReactorDefinition().getKey(ReactorKeysEnum.SORT.getKey()).getDescription();
 		assertNotNull(desc);
 		assertEquals(
 				"The sort is a map with key and direction. Supported keys are 'ENGINENAME' and 'DATECREATED'. Use values like 'ASC' or 'DESC'. 'ENGINENAME' sorting is case-insensitive.",
@@ -129,15 +129,14 @@ public class AdminMyEnginesReactorUnitTests {
 
 	@Test
 	void testGetDescriptionForEngineKey() {
-		String desc = reactor.getDescriptionForKey(ReactorKeysEnum.ENGINE.getKey());
+		String desc = reactor.getReactorDefinition().getKey(ReactorKeysEnum.ENGINE.getKey()).getDescription();
 		assertEquals("This is an optional engine filter", desc);
 	}
 
 	@Test
 	void testGetDescriptionForOtherKey() {
-		// Unknown keys delegate to super, which returns null
-		String desc = reactor.getDescriptionForKey("unknownKey");
-		assertEquals(null, desc);
+		// A key the reactor does not take has no entry
+		assertEquals(null, reactor.getReactorDefinition().getKey("unknownKey"));
 	}
 
 	@Test

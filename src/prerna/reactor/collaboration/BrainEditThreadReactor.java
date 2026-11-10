@@ -31,6 +31,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainAgentEdits;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -65,36 +66,22 @@ public class BrainEditThreadReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (MAKE_PRIMARY.equals(key) || MUTED.equals(key) || NOT_AUTOMATED.equals(key)) {
-			return MCP_KEY_TYPE.BOOLEAN;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Changes how one thread sits in the owner's Brain, as the owner would on the thread: tag it with a "
-				+ "topic, untag it from a topic, mute or unmute it, or correct it as not automated. Several changes "
-				+ "can go in one call. It waits for the owner to approve. Take the threadId from SearchMail "
-				+ "or the current thread";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (ADD_TOPIC.equals(key)) {
-			return "Topic to tag the thread with: its id or its name";
-		} else if (REMOVE_TOPIC.equals(key)) {
-			return "Topic to untag the thread from: its id or its name; the thread is not deleted";
-		} else if (MAKE_PRIMARY.equals(key)) {
-			return "true makes addTopic the thread's one main topic";
-		} else if (MUTED.equals(key)) {
-			return "true mutes the thread so Brain leaves it out, false unmutes it";
-		} else if (NOT_AUTOMATED.equals(key)) {
-			return "true says the thread is not automated mail and keeps it that way, false removes the correction";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Changes how one thread sits in the owner's Brain, as the owner would on the thread: tag it with a "
+						+ "topic, untag it from a topic, mute or unmute it, or correct it as not automated. Several changes "
+						+ "can go in one call. It waits for the owner to approve. Take the threadId from SearchMail "
+						+ "or the current thread, or pass an email's id from ListM365Mail")
+				.key(THREAD_ID,
+						"Thread id from SearchMail or ReadThread, or an email's id from ListM365Mail for its thread")
+				.key(ADD_TOPIC, "Topic to tag the thread with: its id or its name")
+				.key(REMOVE_TOPIC, "Topic to untag the thread from: its id or its name; the thread is not deleted")
+				.key(MAKE_PRIMARY,
+						key -> key.type(Boolean.class).description("true makes addTopic the thread's one main topic"))
+				.key(MUTED,
+						key -> key.type(Boolean.class)
+								.description("true mutes the thread so Brain leaves it out, false unmutes it"))
+				.key(NOT_AUTOMATED, key -> key.type(Boolean.class).description(
+						"true says the thread is not automated mail and keeps it that way, false removes the correction"));
 	}
 }

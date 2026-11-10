@@ -32,10 +32,10 @@ import java.io.IOException;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -54,12 +54,7 @@ public class UnzipUserAssetFileReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		IProject project = user.getAssetProject();
 		if (project == null) {
@@ -103,16 +98,12 @@ public class UnzipUserAssetFileReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Unzips a zip file located in the user's assets folder and commits the extracted files to git";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The relative file path of the zip file within the user's assets folder to extract";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Unzips a zip file located in the user's assets folder and commits the extracted files to git")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"The relative file path of the zip file within the user's assets folder to extract");
 	}
 
 }

@@ -34,9 +34,11 @@ import java.util.Map;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.batch.ModelBatchManager;
 import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.om.ThreadStore;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -44,8 +46,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Submit a batch of model requests to the provider's native batch API.
- * Returns the provider batch id and initial status.
+ * Submit a batch of model requests to the provider's native batch API. Returns
+ * the provider batch id and initial status.
  */
 public class SubmitModelBatchReactor extends AbstractModelBatchReactor {
 
@@ -68,6 +70,13 @@ public class SubmitModelBatchReactor extends AbstractModelBatchReactor {
 		Map<String, Object> params = baseParams();
 
 		IModelEngine engine = ModelBatchManager.resolveEngine(getUser(), engineId);
+		if (engine.getModelType() == ModelTypeEnum.VERTEX) {
+			// Vertex has no hosted batch API -- it requires staging the requests
+			// through Cloud Storage first, which this reactor has no key for.
+			// Use BatchLLM with the storage key for Vertex-hosted engines instead.
+			throw new UnsupportedOperationException(
+					"SubmitModelBatch does not support Vertex-hosted engines; use BatchLLM with the storage key");
+		}
 		BatchSubmissionResponse response = engine.submitBatch(requests, params);
 		if (response.getProviderBatchId() != null) {
 			ModelBatchManager.recordBatchSubmission(getUser(), engine, response.getProviderBatchId(), requests,
@@ -106,9 +115,8 @@ public class SubmitModelBatchReactor extends AbstractModelBatchReactor {
 				return;
 			}
 			if (s.startsWith("[")) {
-				List<Map<String, Object>> parsed = GSON.fromJson(s,
-						new TypeToken<List<Map<String, Object>>>() {
-						}.getType());
+				List<Map<String, Object>> parsed = GSON.fromJson(s, new TypeToken<List<Map<String, Object>>>() {
+				}.getType());
 				if (parsed != null) {
 					requests.addAll(parsed);
 				}
@@ -123,15 +131,10 @@ public class SubmitModelBatchReactor extends AbstractModelBatchReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Submit a batch of model requests to the provider's native batch API";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.BATCH_REQUESTS.getKey())) {
-			return "List of requests; each entry is a map with 'custom_id' and 'body' (the provider-native per-request payload). May also be a JSON string.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Submit a batch of model requests to the provider's native batch API")
+				.key(ReactorKeysEnum.BATCH_REQUESTS,
+						"List of requests; each entry is a map with 'custom_id' and 'body' (the provider-native per-request payload). May also be a JSON string.");
 	}
 }

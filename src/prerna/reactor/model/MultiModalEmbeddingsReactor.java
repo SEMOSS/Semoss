@@ -35,6 +35,7 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -114,21 +115,15 @@ public class MultiModalEmbeddingsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor is used to interact with multi modal Embedding Model Engines, passing any combination of "
-				+ "text, image, and video inputs to be embedded. The results are broken out by modality. If the model "
-				+ "does not support multi modal embeddings it will return \"This model does not support multi modal embeddings.\"";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.TEXT.getKey())) {
-			return "Specify the text string value(s) to generate embeddings vector(s) from.";
-		} else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
-			return "Specify the image input(s) - base64, data URL, or remote URL - to generate embeddings vector(s) from.";
-		} else if (key.equals(ReactorKeysEnum.VIDEO.getKey())) {
-			return "Specify the video input(s) - base64, data URL, or remote URL - to generate embeddings vector(s) from.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"This reactor is used to interact with multi modal Embedding Model Engines, passing any combination of "
+						+ "text, image, and video inputs to be embedded. The results are broken out by modality. If the model "
+						+ "does not support multi modal embeddings it will return \"This model does not support multi modal embeddings.\"")
+				.key(ReactorKeysEnum.TEXT, "Specify the text string value(s) to generate embeddings vector(s) from.")
+				.key(ReactorKeysEnum.IMAGE,
+						"Specify the image input(s) - base64, data URL, or remote URL - to generate embeddings vector(s) from.")
+				.key(ReactorKeysEnum.VIDEO,
+						"Specify the video input(s) - base64, data URL, or remote URL - to generate embeddings vector(s) from.");
 	}
 }

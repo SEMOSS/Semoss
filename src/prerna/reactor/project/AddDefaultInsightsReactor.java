@@ -30,11 +30,11 @@ package prerna.reactor.project;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -42,6 +42,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -57,11 +58,11 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 
 	private static final String EXPLORE_INSTANCE = "explore";
 	private static final String GRID_DELTA_INSTANCE = "grid-delta";
-	private static final String AUDIT_MODIFICATION = "audit-modification";
-	private static final String AUDIT_TIMELINE = "audit-timeline";
 	private static final String INSIGHT_STATS = "insight-stats";
 	private static final String INSERT_FORM = "insert-form";
-	private static final String UPDATE_FORM = "update-form";
+	/** The default insights this reactor can add */
+	private static final Set<String> DEFAULT_INSIGHTS = Set.of(EXPLORE_INSTANCE, GRID_DELTA_INSTANCE, INSIGHT_STATS,
+			INSERT_FORM);
 
 	public AddDefaultInsightsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.DATABASE.getKey(),
@@ -72,6 +73,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = this.getLogger(CLASS_NAME);
 		organizeKeys();
+
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
 		List<String> insightsToAdd = getDefaultInsights();
@@ -80,10 +82,6 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 			addAll = true;
 		}
 		boolean pullDatabase = true;
-		// security and stuff
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException("User does not have permission to add insights in the project");
@@ -101,6 +99,10 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 
 		logger.info("Retrieving database");
 		IProject project = Utility.getProject(projectId);
+		if (!project.getProjectType().holdsInsights()) {
+			throw new IllegalArgumentException("Project " + projectId + " is a " + project.getProjectType()
+					+ " project, which does not hold insights");
+		}
 		IRDBMSEngine insightEngine = project.getInsightDatabase();
 		String projectName = project.getProjectName();
 
@@ -153,49 +155,14 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 						cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
 				logger.info("Done adding grid delta");
 
-				// add audit insights
-				// there could be an issue with loading the recipes to create
-				retMap = UploadUtilities.addAuditModificationView(projectId, projectName, databaseId, databaseName,
-						insightEngine);
-				if (retMap != null) {
-					newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
-					recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
-					insightName = (String) retMap.get(UploadUtilities.INSIGHT_NAME_KEY);
-					schemaName = (String) retMap.get(UploadUtilities.SCHEMA_NAME_KEY);
-					if (newInsightId != null) {
-						registerInsightAndMetadata(projectId, newInsightId, insightName,
-								UploadUtilities.AUDIT_MODIFICATION_VIEW_LAYOUT, cacheable, cacheMinutes, cacheCron,
-								cachedOn, cacheEncrypt, recipe, schemaName);
-						logger.info("Done adding audit modification view");
-					} else {
-						additionalNouns
-								.add(NounMetadata.getWarningNounMessage("Unable to add audit modification view"));
-					}
-				} else {
-					additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit timeline view"));
-				}
-
-				retMap = UploadUtilities.addAuditTimelineView(projectId, projectName, databaseId, databaseName,
-						insightEngine);
-				if (retMap != null) {
-					newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
-					recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
-					insightName = (String) retMap.get(UploadUtilities.INSIGHT_NAME_KEY);
-					schemaName = (String) retMap.get(UploadUtilities.SCHEMA_NAME_KEY);
-					if (newInsightId != null) {
-						registerInsightAndMetadata(projectId, newInsightId, insightName,
-								UploadUtilities.AUDIT_TIMELINE_LAYOUT, cacheable, cacheMinutes, cacheCron, cachedOn,
-								cacheEncrypt, recipe, schemaName);
-						logger.info("Done adding audit timeline view");
-					} else {
-						additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit timeline view"));
-					}
-				} else {
-					additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit timeline view"));
-				}
-
 			}
 		} else {
+			for (String requested : insightsToAdd) {
+				if (!DEFAULT_INSIGHTS.contains(requested)) {
+					additionalNouns.add(NounMetadata.getWarningNounMessage(
+							"There is no default insight named " + requested + ", so it was not added"));
+				}
+			}
 			if (insightsToAdd.contains(EXPLORE_INSTANCE)) {
 				Map<String, Object> retMap = UploadUtilities.addExploreInstanceInsight(projectId, projectName,
 						databaseId, databaseName, insightEngine);
@@ -233,62 +200,6 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 					registerInsightAndMetadata(projectId, newInsightId, insightName, UploadUtilities.GRID_DELTA_LAYOUT,
 							cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
 					logger.info("Done adding grid delta");
-				} else {
-					additionalNouns.add(NounMetadata.getWarningNounMessage(
-							"This database is not an RDBMS so grid delta insight cannot be added"));
-				}
-			}
-			if (insightsToAdd.contains(AUDIT_MODIFICATION)) {
-				if (dbType == IDatabaseEngine.DATABASE_TYPE.RDBMS) {
-					Map<String, Object> retMap = UploadUtilities.addAuditModificationView(projectId, projectName,
-							databaseId, databaseName, insightEngine);
-					if (retMap != null) {
-						String newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
-						List<String> recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
-						String insightName = (String) retMap.get(UploadUtilities.INSIGHT_NAME_KEY);
-						String schemaName = (String) retMap.get(UploadUtilities.SCHEMA_NAME_KEY);
-						if (newInsightId != null) {
-							addedInsight = true;
-							registerInsightAndMetadata(projectId, newInsightId, insightName,
-									UploadUtilities.AUDIT_MODIFICATION_VIEW_LAYOUT, cacheable, cacheMinutes, cacheCron,
-									cachedOn, cacheEncrypt, recipe, schemaName);
-							logger.info("Done adding audit modification view");
-						} else {
-							additionalNouns
-									.add(NounMetadata.getWarningNounMessage("Unable to add audit modification view"));
-						}
-					} else {
-						additionalNouns
-								.add(NounMetadata.getWarningNounMessage("Unable to add audit modification view"));
-					}
-				} else {
-					additionalNouns.add(NounMetadata.getWarningNounMessage(
-							"This database is not an RDBMS so audit modification view insight cannot be added"));
-				}
-			}
-			if (insightsToAdd.contains(AUDIT_TIMELINE)) {
-				if (dbType == IDatabaseEngine.DATABASE_TYPE.RDBMS) {
-					Map<String, Object> retMap = UploadUtilities.addAuditTimelineView(projectId, projectName,
-							databaseId, databaseName, insightEngine);
-					if (retMap != null) {
-						String newInsightId = (String) retMap.get(UploadUtilities.INSIGHT_ID_KEY);
-						List<String> recipe = (List<String>) retMap.get(UploadUtilities.RECIPE_ID_KEY);
-						String insightName = (String) retMap.get(UploadUtilities.INSIGHT_NAME_KEY);
-						String schemaName = (String) retMap.get(UploadUtilities.SCHEMA_NAME_KEY);
-						if (newInsightId != null) {
-							addedInsight = true;
-							registerInsightAndMetadata(projectId, newInsightId, insightName,
-									UploadUtilities.AUDIT_TIMELINE_LAYOUT, cacheable, cacheMinutes, cacheCron, cachedOn,
-									cacheEncrypt, recipe, schemaName);
-							logger.info("Done adding audit timeline view");
-						} else {
-							additionalNouns
-									.add(NounMetadata.getWarningNounMessage("Unable to add audit timeline view"));
-						}
-					} else {
-						additionalNouns
-								.add(NounMetadata.getWarningNounMessage("Unable to add audit modification view"));
-					}
 				} else {
 					additionalNouns.add(NounMetadata.getWarningNounMessage(
 							"This database is not an RDBMS so grid delta insight cannot be added"));
@@ -363,17 +274,18 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(INSIGHT_KEYS)) {
-			return "Determine which default insights to append. " + "Value '" + EXPLORE_INSTANCE + "' = '"
-					+ UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME + "', " + "Value '" + AUDIT_MODIFICATION + "' = '"
-					+ UploadUtilities.AUDIT_MODIFICATION_VIEW_INSIGHT_NAME + "', " + "Value '" + AUDIT_TIMELINE
-					+ "' = '" + UploadUtilities.AUDIT_TIMELINE_INSIGHT_NAME + "', " + "value '" + GRID_DELTA_INSTANCE
-					+ "' = '" + UploadUtilities.GRID_DELTA_INSIGHT_NAME + "'." + UploadUtilities.GRID_DELTA_INSIGHT_NAME
-					+ " only adds if database is type RDBMS."
-					+ "No inputs passed will attempt to add all default insight.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Adds default insights for a database to a project the user can edit: explore, grid-delta, insight-stats and insert-form. With no insights named, it adds explore, insight-stats and, for an RDBMS database, grid-delta.")
+				.key(ReactorKeysEnum.DATABASE,
+						"The id of the database the default insights are built on; not needed when insights is only insight-stats.")
+				.key(ReactorKeysEnum.PROJECT, "The id of the INSIGHTS project to add the default insights to.")
+				.key(INSIGHT_KEYS, key -> key.list(String.class)
+						.description("Determine which default insights to append. " + "Value '" + EXPLORE_INSTANCE
+								+ "' = '" + UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME + "', " + "value '"
+								+ GRID_DELTA_INSTANCE + "' = '" + UploadUtilities.GRID_DELTA_INSIGHT_NAME + "'."
+								+ UploadUtilities.GRID_DELTA_INSIGHT_NAME + " only adds if database is type RDBMS."
+								+ "No inputs passed will attempt to add all default insight."));
 	}
 
 }

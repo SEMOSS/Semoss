@@ -34,7 +34,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -90,6 +92,18 @@ public class MicrosoftTeamsMessageMapper {
 	 * request away.
 	 */
 	private static final int PREVIEW_BODY_CHARS = 500;
+
+	/** The {@code kind} of a search hit posted in a chat. */
+	public static final String CHAT = "chat";
+
+	/** The {@code kind} of a search hit posted in a channel. */
+	public static final String CHANNEL = "channel";
+
+	// a search summary marks where it was cut with <ddd/> and each matched word
+	// with <c0>
+	private static final Pattern SUMMARY_CUT = Pattern.compile("<ddd\\s*/>");
+	private static final Pattern SUMMARY_TAG = Pattern.compile("<[^>]*>");
+	private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
 	private MicrosoftTeamsMessageMapper() {
 
@@ -191,6 +205,15 @@ public class MicrosoftTeamsMessageMapper {
 	 * @return the chat as a map
 	 */
 	public static Map<String, Object> toChat(Map<String, Object> chat, String userEmail) {
+		return toChat(chat, userEmail, Integer.MAX_VALUE);
+	}
+
+	/**
+	 * The same, keeping at most {@code maxMembers} members and the total in
+	 * memberCount; a list of chats uses it so a large group chat does not fill the
+	 * result.
+	 */
+	public static Map<String, Object> toChat(Map<String, Object> chat, String userEmail, int maxMembers) {
 		Map<String, Object> output = new LinkedHashMap<>();
 		output.put(ID, chat.get(ID));
 		putIfPresent(output, "chatType", chat.get("chatType"));
@@ -218,7 +241,11 @@ public class MicrosoftTeamsMessageMapper {
 
 		List<Map<String, Object>> members = new ArrayList<>();
 		List<String> otherNames = new ArrayList<>();
-		for (Map<String, Object> member : mapList(chat.get("members"))) {
+		List<Map<String, Object>> allMembers = mapList(chat.get("members"));
+		for (Map<String, Object> member : allMembers) {
+			if (members.size() >= maxMembers) {
+				break;
+			}
 			Map<String, Object> described = toMember(member);
 			members.add(described);
 			Object address = described.get(EMAIL);
@@ -232,14 +259,125 @@ public class MicrosoftTeamsMessageMapper {
 		if (!members.isEmpty()) {
 			output.put("members", members);
 		}
+		if (allMembers.size() > members.size()) {
+			output.put("memberCount", allMembers.size());
+		}
 
 		Object topic = chat.get(TOPIC);
 		if (topic != null && !topic.toString().trim().isEmpty()) {
 			output.put(DISPLAY_NAME, topic.toString());
 		} else if (!otherNames.isEmpty()) {
-			output.put(DISPLAY_NAME, String.join(", ", otherNames));
+			int others = allMembers.size() - members.size();
+			output.put(DISPLAY_NAME, String.join(", ", otherNames) + (others > 0 ? " and " + others + " others" : ""));
 		}
 		return output;
+	}
+
+	/**
+	 * Describe one hit of a Teams message search.
+	 *
+	 * <p>
+	 * A hit carries less than a listed message: Graph names the sender by their
+	 * address rather than their directory id, and returns no body, only a summary
+	 * of where the search matched, which comes back as plain text. A hit whose
+	 * {@code channelIdentity} names a team and a channel is a channel post, with
+	 * the {@code teamId} and {@code channelId} the channel reactors take; any other
+	 * is a chat message, with the {@code chatId} the chat reactors take.
+	 * </p>
+	 *
+	 * @param hit the hit as Graph returned it
+	 * @return the message as a map, or null when the hit names no message
+	 */
+	public static Map<String, Object> toSearchHit(Map<String, Object> hit) {
+		if (!(hit.get("resource") instanceof Map<?, ?> found)) {
+			return null;
+		}
+		Map<String, Object> resource = asStringKeyedMap(found);
+		String id = ValueUtils.toNonBlankString(resource.get(ID));
+		if (id == null) {
+			return null;
+		}
+		Map<String, Object> output = new LinkedHashMap<>();
+		output.put(ID, id);
+
+		String teamId = null;
+		String channelId = null;
+		if (resource.get("channelIdentity") instanceof Map<?, ?> identity) {
+			teamId = ValueUtils.toNonBlankString(identity.get("teamId"));
+			channelId = ValueUtils.toNonBlankString(identity.get("channelId"));
+		}
+		if (teamId != null && channelId != null) {
+			output.put("kind", CHANNEL);
+			output.put("teamId", teamId);
+			output.put("channelId", channelId);
+		} else {
+			output.put("kind", CHAT);
+			putIfPresent(output, "chatId", ValueUtils.toNonBlankString(resource.get("chatId")));
+		}
+
+		if (resource.get("from") instanceof Map<?, ?> from && from.get("emailAddress") instanceof Map<?, ?> address) {
+			putIfPresent(output, "fromName", ValueUtils.toNonBlankString(address.get(NAME)));
+			putIfPresent(output, "fromEmail", ValueUtils.toNonBlankString(address.get("address")));
+		} else {
+			putIfPresent(output, "fromName", senderName(resource.get("from")));
+		}
+		putIfPresent(output, "createdDateTime", ValueUtils.toNonBlankString(resource.get("createdDateTime")));
+		putIfPresent(output, "subject", ValueUtils.toNonBlankString(resource.get("subject")));
+		output.put("summary", searchSummary(hit.get("summary")));
+		putIfPresent(output, WEB_URL, ValueUtils.toNonBlankString(resource.get(WEB_URL)));
+		return output;
+	}
+
+	/**
+	 * The text of a search hit's summary, without the markup Graph puts in it.
+	 *
+	 * <p>
+	 * Graph writes {@code <ddd/>} where it cut the text and wraps every matched
+	 * word in {@code <c0>}, and escapes what the message itself said, so the
+	 * markers become an ellipsis, the tags go, and the escapes are read back to the
+	 * text.
+	 * </p>
+	 *
+	 * @param summary the summary as Graph returned it
+	 * @return the summary as plain text, empty when there is none
+	 */
+	public static String searchSummary(Object summary) {
+		if (summary == null) {
+			return "";
+		}
+		String text = SUMMARY_CUT.matcher(summary.toString()).replaceAll("...");
+		text = SUMMARY_TAG.matcher(text).replaceAll("");
+		text = StringEscapeUtils.unescapeHtml4(text);
+		return WHITESPACE.matcher(text).replaceAll(" ").trim();
+	}
+
+	/**
+	 * Orders two Graph timestamps newest first, with one that is missing or cannot
+	 * be read last.
+	 *
+	 * @param a the first timestamp
+	 * @param b the second timestamp
+	 * @return a negative number when {@code a} is newer, as a comparator answers
+	 */
+	public static int compareNewestFirst(Object a, Object b) {
+		Instant first = instantOf(a);
+		Instant second = instantOf(b);
+		if (first == null || second == null) {
+			return first == null ? (second == null ? 0 : 1) : -1;
+		}
+		return second.compareTo(first);
+	}
+
+	private static Instant instantOf(Object value) {
+		String text = ValueUtils.toNonBlankString(value);
+		if (text == null) {
+			return null;
+		}
+		try {
+			return Instant.parse(text);
+		} catch (DateTimeParseException e) {
+			return null;
+		}
 	}
 
 	/**

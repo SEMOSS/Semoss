@@ -42,10 +42,14 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.auth.User;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AssetUtility;
 
 /**
@@ -69,8 +73,8 @@ import prerna.util.AssetUtility;
  * when supplied; frontmatter is the fallback only when the param is omitted
  * entirely.</li>
  * <li>{@code description} - same rule as {@code name}: wins over the
- * frontmatter's {@code description} when supplied; frontmatter is the
- * fallback only when the param is omitted entirely.</li>
+ * frontmatter's {@code description} when supplied; frontmatter is the fallback
+ * only when the param is omitted entirely.</li>
  * </ul>
  *
  * <p>
@@ -98,10 +102,17 @@ public class CreateSkillReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String skillContent = this.keyValue.get(SKILL_CONTENT);
-		String nameInput = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
-		String descInput = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
+		Map<String, Object> response = create(this.insight.getUser(), this.keyValue.get(SKILL_CONTENT),
+				this.keyValue.get(ReactorKeysEnum.NAME.getKey()),
+				this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey()));
+		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
 
+	/**
+	 * Creates a private skill owned by {@code user}; returns skill_id, project_id,
+	 * slug and name.
+	 */
+	public static Map<String, Object> create(User user, String skillContent, String nameInput, String descInput) {
 		if (skillContent == null || skillContent.isEmpty()) {
 			throw new IllegalArgumentException("skillContent is required");
 		}
@@ -126,8 +137,6 @@ public class CreateSkillReactor extends AbstractReactor {
 					+ "or include 'description' in the SKILL.md frontmatter");
 		}
 
-		User user = this.insight.getUser();
-
 		String skillId = GUID.v7().toString();
 		String slug = Skill.slugify(name);
 		String contentToWrite = hasFrontmatter ? skillContent
@@ -144,6 +153,7 @@ public class CreateSkillReactor extends AbstractReactor {
 			}
 			Path skillFile = skillDir.toPath().resolve(Skill.SKILL_FILE);
 			Files.write(skillFile, contentToWrite.getBytes(StandardCharsets.UTF_8));
+			SkillProjects.pushContent(skillId);
 		} catch (Exception e) {
 			classLogger.error("Failed to create skill '{}' (id {})", name, skillId, e);
 			throw new IllegalArgumentException("Failed to create skill: " + e.getMessage(), e);
@@ -154,7 +164,9 @@ public class CreateSkillReactor extends AbstractReactor {
 		response.put("project_id", skillId);
 		response.put("slug", slug);
 		response.put("name", name);
-		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
+		UserAuditTrailUtils.recordResourceEvent(user, AuditEventType.SKILL_CREATE, AuditTargetType.SKILL, skillId, name,
+				skillId, null, null, Map.of("slug", slug));
+		return response;
 	}
 
 	private static String firstNonEmpty(String a, String b) {
@@ -168,24 +180,17 @@ public class CreateSkillReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates a new skill (a SKILL-type Project) and writes its SKILL.md into the project's version/assets/public/ folder";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SKILL_CONTENT.equals(key)) {
-			return "SKILL.md body, with or without a YAML frontmatter block. "
-					+ "A frontmatter block will be synthesized from 'name' and 'description' if absent";
-		}
-		if (ReactorKeysEnum.NAME.getKey().equals(key)) {
-			return "Display name. Wins over the SKILL.md frontmatter's 'name' when supplied; "
-					+ "frontmatter is the fallback only when this param is omitted entirely";
-		}
-		if (ReactorKeysEnum.DESCRIPTION.getKey().equals(key)) {
-			return "Description. Wins over the SKILL.md frontmatter's 'description' when supplied; "
-					+ "frontmatter is the fallback only when this param is omitted entirely";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Creates a new skill (a SKILL-type Project) and writes its SKILL.md into the project's version/assets/public/ folder")
+				.key(SKILL_CONTENT,
+						"SKILL.md body, with or without a YAML frontmatter block. "
+								+ "A frontmatter block will be synthesized from 'name' and 'description' if absent")
+				.key(ReactorKeysEnum.NAME,
+						"Display name. Wins over the SKILL.md frontmatter's 'name' when supplied; "
+								+ "frontmatter is the fallback only when this param is omitted entirely")
+				.key(ReactorKeysEnum.DESCRIPTION,
+						"Description. Wins over the SKILL.md frontmatter's 'description' when supplied; "
+								+ "frontmatter is the fallback only when this param is omitted entirely");
 	}
 }

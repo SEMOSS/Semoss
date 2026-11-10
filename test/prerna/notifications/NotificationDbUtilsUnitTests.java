@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.notifications;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -34,6 +35,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -131,7 +133,7 @@ class NotificationDbUtilsUnitTests {
 	}
 
 	@Test
-	void legacyDeliveryContinuesToNextRecipientAfterFailedInsert() throws Exception {
+	void accessRequestDeliveryNotifiesEveryRecipientOrNone() throws Exception {
 		try (var db = new JdbcTestDatabase(); var engines = mockStatic(prerna.auth.utils.SecurityEngineUtils.class)) {
 			schema(db);
 			db.execute("ALTER TABLE NOTIFICATION_EVENT ADD CHECK (AUDIENCE_ID <> 'reject')");
@@ -140,11 +142,34 @@ class NotificationDbUtilsUnitTests {
 			var actor = mock(prerna.auth.User.class, RETURNS_DEEP_STUBS);
 			when(actor.getLogins()).thenReturn(java.util.List.of(prerna.auth.AuthProvider.NATIVE));
 			when(actor.getAccessToken(prerna.auth.AuthProvider.NATIVE).getId()).thenReturn("actor");
+			db.manual();
+			assertDoesNotThrow(() -> NotificationDbUtils.createNotification(actor, "affected", "NATIVE", "engine",
+					"ACCESS_REQUEST", "ENGINE_CATALOG", "NORMAL", null, null, "BELL"));
+			assertEquals(0, db.count("NOTIFICATION_EVENT"));
+			verify(db.connection).rollback();
+			verify(db.connection, never()).commit();
+
+			engines.when(() -> prerna.auth.utils.SecurityEngineUtils.getEngineAuthors("engine"))
+					.thenReturn(java.util.List.of(java.util.Map.of("userId", "author", "userType", "NATIVE")));
 			NotificationDbUtils.createNotification(actor, "affected", "NATIVE", "engine", "ACCESS_REQUEST",
 					"ENGINE_CATALOG", "NORMAL", null, null, "BELL");
-			assertEquals(1, db.count("NOTIFICATION_EVENT"));
-			assertEquals("affected", db.value("SELECT AUDIENCE_ID FROM NOTIFICATION_EVENT"));
-			verify(db.connection).rollback();
+			db.connection.rollback();
+			assertEquals(2, db.count("NOTIFICATION_EVENT"));
+			assertEquals(1L, db.value("SELECT COUNT(*) FROM NOTIFICATION_EVENT WHERE AUDIENCE_ID='author'"));
+			verify(db.connection, times(1)).commit();
+			verify(db.engine, times(2)).getConnection();
+		}
+	}
+
+	@Test
+	void accessRequestDeliveryWithoutRecipientsAcquiresNoConnection() throws Exception {
+		try (var db = new JdbcTestDatabase(); var engines = mockStatic(prerna.auth.utils.SecurityEngineUtils.class)) {
+			engines.when(() -> prerna.auth.utils.SecurityEngineUtils.getEngineAuthors("engine")).thenReturn(null);
+			var actor = mock(prerna.auth.User.class, RETURNS_DEEP_STUBS);
+			when(actor.getLogins()).thenReturn(java.util.List.of(prerna.auth.AuthProvider.NATIVE));
+			NotificationDbUtils.createNotification(actor, null, null, "engine", "ACCESS_REQUEST", "ENGINE_CATALOG",
+					"NORMAL", null, null, "BELL");
+			verify(db.engine, never()).getConnection();
 		}
 	}
 }

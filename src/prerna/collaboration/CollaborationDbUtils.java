@@ -62,6 +62,7 @@ import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.util.ConnectionUtils;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
 // Loads the Collaboration database and holds the shared JDBC helpers for the *Utils classes
@@ -99,6 +100,12 @@ public class CollaborationDbUtils {
 		return SystemEngineRegistry.getCollaborationDb();
 	}
 
+	// quote a column name the backing db treats as a keyword (VALUE on H2 2.x, not on postgres)
+	static String column(String name) {
+		AbstractSqlQueryUtil queryUtil = db().getQueryUtil();
+		return queryUtil.isSelectorKeyword(name) ? queryUtil.getEscapeKeyword(name) : name;
+	}
+
 	static Timestamp now() {
 		return Utility.getCurrentSqlTimestampUTC();
 	}
@@ -130,11 +137,14 @@ public class CollaborationDbUtils {
 			return query(batch, sql, mapper, params);
 		}
 		IRDBMSEngine engine = db();
+		Connection conn = null;
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		List<T> rows = new ArrayList<>();
 		try {
-			ps = engine.getPreparedStatement(sql);
+			// the connection itself, not getPreparedStatement, which warns on every call under pooling
+			conn = engine.getConnection();
+			ps = conn.prepareStatement(sql);
 			bind(ps, params);
 			rs = ps.executeQuery();
 			while (rs.next()) {
@@ -144,7 +154,7 @@ public class CollaborationDbUtils {
 			classLogger.error("Collaboration query failed [{}]", sql, e);
 			throw new IllegalStateException("Collaboration query failed", e);
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(engine, ps, rs);
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, ps, rs);
 		}
 		return rows;
 	}
@@ -206,8 +216,8 @@ public class CollaborationDbUtils {
 		PreparedStatement ps = null;
 		Connection conn = null;
 		try {
-			ps = engine.getPreparedStatement(sql);
-			conn = ps.getConnection();
+			conn = engine.getConnection();
+			ps = conn.prepareStatement(sql);
 			bind(ps, params);
 			int count = ps.executeUpdate();
 			if (!conn.getAutoCommit()) {
@@ -219,7 +229,7 @@ public class CollaborationDbUtils {
 			classLogger.error("Collaboration update failed [{}]", sql, e);
 			throw new IllegalStateException("Collaboration update failed", e);
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(engine, ps);
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, ps);
 		}
 	}
 
@@ -496,7 +506,14 @@ public class CollaborationDbUtils {
 		} catch (RuntimeException e) {
 			classLogger.error("Moving topic notes and thread facts into Brain memory failed; retrying next boot", e);
 		}
+		// Work Brain raised from routine results before imports kept them out; nothing matches once it is done
+		try {
+			BrainMailImport.dismissRoutineResultWork();
+		} catch (RuntimeException e) {
+			classLogger.error("Dismissing Work raised from routine results failed; retrying next boot", e);
+		}
 		BrainMailWebhook.startRenewals();
+		BrainSync.startSchedule();
 	}
 
 	/**
@@ -516,7 +533,8 @@ public class CollaborationDbUtils {
 			AbstractOwlCreator.syncSchema(collaborationDb, conn, dbSchema);
 			// A single routine of each kind per owner is required for atomic schedule saves and run claims.
 			var queryUtil = collaborationDb.getQueryUtil();
-			for (String routineTable : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE")) {
+			for (String routineTable : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE", "WORK_EXPENSE_ROUTINE",
+					"WORK_EVENT_PLANNING_ROUTINE")) {
 				String routineIndex = routineTable + "_OWNER_UNIQUE";
 				if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, routineIndex,
 						routineTable, collaborationDb.getDatabase(), collaborationDb.getSchema())) {
@@ -538,6 +556,10 @@ public class CollaborationDbUtils {
 					OwlIndex.of("SOURCE_CONNECTION_OWNER_INDEX", "SOURCE_CONNECTION", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("SOURCE_CONNECTION_SOURCE_INDEX", "SOURCE_CONNECTION", "OWNER_ID", "OWNER_TYPE",
 							"SOURCE"),
+
+					// custom routines, many per owner
+					OwlIndex.of("WORK_CUSTOM_ROUTINE_OWNER_INDEX", "WORK_CUSTOM_ROUTINE", "OWNER_ID", "OWNER_TYPE",
+							"ROUTINE_ID"),
 
 					// brain: you
 					OwlIndex.of("BRAIN_PROFILE_OWNER_INDEX", "BRAIN_PROFILE", "OWNER_ID", "OWNER_TYPE"),
@@ -571,6 +593,11 @@ public class CollaborationDbUtils {
 							"ROOM_ID"),
 					OwlIndex.of("BRAIN_TOPIC_ROOM_TOPIC_ID_INDEX", "BRAIN_TOPIC_ROOM", "OWNER_ID", "OWNER_TYPE",
 							"TOPIC_ID"),
+					OwlIndex.of("BRAIN_TOPIC_FOLDER_TOPIC_ID_INDEX", "BRAIN_TOPIC_FOLDER", "OWNER_ID", "OWNER_TYPE",
+							"TOPIC_ID"),
+					OwlIndex.of("BRAIN_TOPIC_FOLDER_FOLDER_ID_INDEX", "BRAIN_TOPIC_FOLDER", "OWNER_ID", "OWNER_TYPE",
+							"FOLDER_ID"),
+					OwlIndex.of("BRAIN_MAIL_FOLDER_OWNER_INDEX", "BRAIN_MAIL_FOLDER", "OWNER_ID", "OWNER_TYPE"),
 
 					// brain: threads
 					OwlIndex.of("BRAIN_THREAD_OWNER_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE"),
@@ -634,7 +661,24 @@ public class CollaborationDbUtils {
 					OwlIndex.of("WORK_THREAD_FACT_THREAD_ID_INDEX", "WORK_THREAD_FACT", "OWNER_ID", "OWNER_TYPE",
 							"THREAD_ID"),
 					OwlIndex.of("WORK_OPEN_ROOM_THREAD_ID_INDEX", "WORK_OPEN_ROOM", "OWNER_ID", "OWNER_TYPE",
-							"THREAD_ID")));
+							"THREAD_ID"),
+					OwlIndex.of("WORK_THREAD_STEP_TASK_ID_INDEX", "WORK_THREAD_STEP", "OWNER_ID", "OWNER_TYPE", "TASK_ID"),
+
+					// work items
+					OwlIndex.of("WORK_TASK_TASK_ID_INDEX", "WORK_TASK", "OWNER_ID", "OWNER_TYPE", "TASK_ID"),
+					OwlIndex.of("WORK_TASK_TOPIC_TASK_ID_INDEX", "WORK_TASK_TOPIC", "OWNER_ID", "OWNER_TYPE", "TASK_ID"),
+					OwlIndex.of("WORK_TASK_TOPIC_TOPIC_ID_INDEX", "WORK_TASK_TOPIC", "OWNER_ID", "OWNER_TYPE",
+							"TOPIC_ID"),
+					OwlIndex.of("WORK_TASK_THREAD_TASK_ID_INDEX", "WORK_TASK_THREAD", "OWNER_ID", "OWNER_TYPE",
+							"TASK_ID"),
+					OwlIndex.of("WORK_TASK_THREAD_THREAD_ID_INDEX", "WORK_TASK_THREAD", "OWNER_ID", "OWNER_TYPE",
+							"THREAD_ID"),
+					OwlIndex.of("WORK_TASK_UPDATE_TASK_ID_INDEX", "WORK_TASK_UPDATE", "OWNER_ID", "OWNER_TYPE",
+							"TASK_ID"),
+					OwlIndex.of("WORK_CANDIDATE_THREAD_ID_INDEX", "WORK_CANDIDATE", "OWNER_ID", "OWNER_TYPE",
+							"THREAD_ID"),
+					OwlIndex.of("WORK_STEP_EVIDENCE_STEP_ID_INDEX", "WORK_STEP_EVIDENCE", "OWNER_ID", "OWNER_TYPE",
+							"STEP_ID")));
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();

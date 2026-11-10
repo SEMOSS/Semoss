@@ -35,8 +35,8 @@ This abstract class provides a common foundation for most model engine implement
 *   **Usage Tracking and Logging**:
     *   Reads `KEEP_CONVERSATION_HISTORY`; the shared engine base also reads `KEEP_INPUT_OUTPUT`. Persistent room messages and inference usage records are distinct stores; see [internal databases](../platform_services/internal_databases.md#model-inference-database).
     *   If model inference logging is enabled (`Utility.isModelInferenceLogsEnabled()`), it wraps the core model invocation calls (see below) with logic to record interaction details (prompt, response, tokens, timestamps, etc.) to the `ModelInferenceLogsDatabase` via `prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker`.
-*   **User Usage Restrictions**:
-    *   Integrates with `prerna.engine.impl.model.ModelUsageRestrictionUtility` to check if the user associated with the `Insight` has any usage restrictions (e.g., token limits, time limits) for the specific model engine or for models in general. It also updates the usage after a call.
+*   **Model Usage Limits**:
+    *   Every call goes through `prerna.engine.impl.model.ModelUsageRestrictionUtility`, which admits it against the [model usage limits](../model_usage_limits/README.md) that apply to the user, passes what is left to the Python client as `usage_ceiling`, and bills what the call used when it ends. See [enforcement](../model_usage_limits/enforcement.md).
 *   **Abstract `*Call` Methods**:
     *   Defines protected abstract methods:
         *   `askCall(InputMessage inputMessage, Insight insight, String roomId, Map<String, Object> parameters)`
@@ -51,7 +51,7 @@ This abstract class provides a common foundation for most model engine implement
 To create a new `MODEL` engine for a different provider or a new type of local model:
 
 1.  **Implement `IModelEngine`**.
-2.  **Extend `AbstractModelEngine`**: This provides the boilerplate for configuration, logging, and usage restrictions.
+2.  **Extend `AbstractModelEngine`**: This provides the boilerplate for configuration, logging, and model usage limits.
 3.  **Implement Core `*Call` Methods**:
     *   Implement the current `askCall` and `embeddingsCall` signatures, explicitly handling unsupported operations. Add optional multimodal or batch operations only when the provider supports them.
     *   Inside these methods:

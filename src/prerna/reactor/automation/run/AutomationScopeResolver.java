@@ -46,6 +46,7 @@ final class AutomationScopeResolver {
 	private static final Pattern LIST_INDEX = Pattern.compile("^[0-9]+$");
 
 	private AutomationScopeResolver() {
+
 	}
 
 	/**

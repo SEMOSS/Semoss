@@ -27,9 +27,22 @@
  *******************************************************************************/
 package prerna.engine.impl.model;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,9 +56,12 @@ import org.mockito.MockedStatic;
 import com.google.gson.Gson;
 
 import prerna.auth.User;
+import prerna.auth.access.ModelUsageLimitPath.StepLimitType;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
+import prerna.engine.impl.model.usage.ModelUsageLimitException;
+import prerna.engine.impl.model.usage.ModelUsageTicket;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
 
@@ -68,15 +84,15 @@ class TypeSafeEngineUnitTests {
 		when(engine.pyTranslator.runDirectPyNoCancelTrace(eq(insight), anyString())).thenReturn(output);
 
 		try (MockedStatic<ModelUsageRestrictionUtility> usage = mockStatic(ModelUsageRestrictionUtility.class)) {
-			usage.when(() -> ModelUsageRestrictionUtility.getModelUsageRestriction(insight.getUser(), "engine"))
-					.thenReturn(Map.of());
+			usage.when(() -> ModelUsageRestrictionUtility.admit(any(), same(engine), any()))
+					.thenReturn(ModelUsageTicket.none());
 			TypeSafeModelEngineResponse response = engine.evaluate(state, questions, insight, parameters);
 			assertEquals(output, response.getResponse());
 			assertEquals(425, response.getNumberOfTokensInPrompt());
 			assertEquals(73, response.getNumberOfTokensInResponse());
 			assertTrue(engine.socketChecked);
-			usage.verify(() -> ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(anyMap(), same(response),
-					any(), any()));
+			usage.verify(
+					() -> ModelUsageRestrictionUtility.bill(any(ModelUsageTicket.class), same(response), any(), any()));
 		}
 		ArgumentCaptor<String> command = ArgumentCaptor.forClass(String.class);
 		verify(engine.pyTranslator).runDirectPyNoCancelTrace(eq(insight), command.capture());
@@ -93,6 +109,29 @@ class TypeSafeEngineUnitTests {
 		assertEquals(questions, request.get("questions"));
 		assertEquals(Map.of("timeout", 5.0), request.get("parameters"));
 		assertEquals(3, request.size());
+	}
+
+	@Test
+	void sendsImagesAsAssetsBesideTheState() {
+		TestEngine engine = new TestEngine();
+		Insight insight = insight();
+		when(engine.pyTranslator.runDirectPyNoCancelTrace(eq(insight), anyString())).thenReturn(output());
+		List<Object> state = List.of("<image_1>", "What is in this screenshot?");
+		Map<String, String> images = Map.of("<image_1>", "iVBORw0KGgo=");
+		try (MockedStatic<ModelUsageRestrictionUtility> usage = mockStatic(ModelUsageRestrictionUtility.class)) {
+			usage.when(() -> ModelUsageRestrictionUtility.admit(any(), same(engine), any()))
+					.thenReturn(ModelUsageTicket.none());
+			engine.evaluate(state, Map.of("q", Map.of("type", "noul")), images, insight, null);
+		}
+		ArgumentCaptor<String> command = ArgumentCaptor.forClass(String.class);
+		verify(engine.pyTranslator).runDirectPyNoCancelTrace(eq(insight), command.capture());
+		String prefix = "test_model.ask(**__import__('json').loads(";
+		String script = command.getValue();
+		Gson gson = new Gson();
+		String json = gson.fromJson(script.substring(prefix.length(), script.length() - 2), String.class);
+		Map<?, ?> request = gson.fromJson(json, Map.class);
+		assertEquals(state, request.get("state"));
+		assertEquals(images, request.get("assets"));
 	}
 
 	@Test
@@ -125,13 +164,71 @@ class TypeSafeEngineUnitTests {
 		TestEngine engine = new TestEngine();
 		Insight insight = insight();
 		try (MockedStatic<ModelUsageRestrictionUtility> usage = mockStatic(ModelUsageRestrictionUtility.class)) {
-			usage.when(() -> ModelUsageRestrictionUtility.getModelUsageRestriction(insight.getUser(), "engine"))
-					.thenThrow(new IllegalArgumentException("Token limit exceeded"));
-			assertThrows(IllegalArgumentException.class,
+			usage.when(() -> ModelUsageRestrictionUtility.admit(any(), any(), any()))
+					.thenThrow(new ModelUsageLimitException("You have used your 100 tokens a day on engine.",
+							StepLimitType.DIRECT, false, "2026-10-13T00:00:00Z"));
+			ModelUsageLimitException e = assertThrows(ModelUsageLimitException.class,
 					() -> engine.evaluate("ticket", Map.of("q", Map.of("type", "noul")), insight, null));
+			assertEquals("2026-10-13T00:00:00Z", e.getResetsAt());
 		}
 		assertFalse(engine.socketChecked);
 		verifyNoInteractions(engine.pyTranslator);
+	}
+
+	@Test
+	void usageCeilingRidesBesideTheParameters() {
+		TestEngine engine = new TestEngine();
+		Insight insight = insight();
+		ModelUsageTicket ticket = mock(ModelUsageTicket.class);
+		Map<String, Object> ceiling = new LinkedHashMap<>();
+		ceiling.put("tokens", 5000L);
+		ceiling.put("cost_micros", null);
+		ceiling.put("rates", null);
+		ceiling.put("min_output_tokens", 256L);
+		ceiling.put("margin", 0.05);
+		when(ticket.pythonCeiling()).thenReturn(ceiling);
+		when(engine.pyTranslator.runDirectPyNoCancelTrace(eq(insight), anyString())).thenReturn(output());
+		try (MockedStatic<ModelUsageRestrictionUtility> usage = mockStatic(ModelUsageRestrictionUtility.class)) {
+			usage.when(() -> ModelUsageRestrictionUtility.admit(any(), any(), any())).thenReturn(ticket);
+			engine.evaluate("ticket", Map.of("q", Map.of("type", "noul")), insight, Map.of("timeout", 5));
+		}
+		ArgumentCaptor<String> command = ArgumentCaptor.forClass(String.class);
+		verify(engine.pyTranslator).runDirectPyNoCancelTrace(eq(insight), command.capture());
+		String prefix = "test_model.ask(**__import__('json').loads(";
+		String script = command.getValue();
+		Gson gson = new Gson();
+		String json = gson.fromJson(script.substring(prefix.length(), script.length() - 2), String.class);
+		Map<?, ?> request = gson.fromJson(json, Map.class);
+		assertEquals(4, request.size());
+		assertEquals(Map.of("timeout", 5.0), request.get("parameters"));
+		Map<?, ?> sent = (Map<?, ?>) request.get(ModelUsageTicket.USAGE_CEILING);
+		assertEquals(5000.0, sent.get("tokens"));
+		assertEquals(256.0, sent.get("min_output_tokens"));
+	}
+
+	@Test
+	void aCallThatDoesNotFitReleasesTheReservation() {
+		TestEngine engine = new TestEngine();
+		Insight insight = insight();
+		ModelUsageTicket ticket = mock(ModelUsageTicket.class);
+		ModelUsageLimitException named = new ModelUsageLimitException("There is not enough left of your limit.",
+				StepLimitType.DIRECT, true, "2026-10-12T14:01:00Z");
+		when(ticket.doesNotFit(any())).thenReturn(named);
+		Map<String, Object> refused = new LinkedHashMap<>();
+		refused.put("messageType", "ERROR");
+		refused.put("message", "There is not enough left of your usage limit for this request");
+		refused.put("code", 429);
+		refused.put("reason", "USAGE_LIMIT_DOES_NOT_FIT");
+		when(engine.pyTranslator.runDirectPyNoCancelTrace(eq(insight), anyString())).thenReturn(refused);
+		try (MockedStatic<ModelUsageRestrictionUtility> usage = mockStatic(ModelUsageRestrictionUtility.class)) {
+			usage.when(() -> ModelUsageRestrictionUtility.admit(any(), any(), any())).thenReturn(ticket);
+			ModelUsageLimitException e = assertThrows(ModelUsageLimitException.class,
+					() -> engine.evaluate("ticket", Map.of("q", Map.of("type", "noul")), insight, null));
+			assertSame(named, e);
+			assertTrue(e.isRateLimit());
+			usage.verify(() -> ModelUsageRestrictionUtility.bill(any(), any(), any(), any()), never());
+		}
+		verify(ticket).release();
 	}
 
 	@Test
@@ -153,7 +250,7 @@ class TypeSafeEngineUnitTests {
 	}
 
 	@Test
-	void responsePreservesNullUsageAndFutureAnswerKinds() {
+	void responsePreservesNullUsageAndFutureAnswerTypes() {
 		Map<String, Object> raw = output();
 		Map<String, Object> usage = new LinkedHashMap<>();
 		usage.put("input_tokens", null);
@@ -178,9 +275,9 @@ class TypeSafeEngineUnitTests {
 	}
 
 	private static Map<String, Object> output() {
-		return new LinkedHashMap<>(Map.of("model", "jev-1.13.0", "usage",
-				Map.of("input_tokens", 425L, "output_tokens", 73.0), "answers",
-				Map.of("is_urgent", Map.of("type", "noul", "noul", 0.99))));
+		return new LinkedHashMap<>(
+				Map.of("model", "jev-1.13.0", "usage", Map.of("input_tokens", 425L, "output_tokens", 73.0), "answers",
+						Map.of("is_urgent", Map.of("type", "noul", "noul", 0.99))));
 	}
 
 	private static class TestEngine extends TypeSafeEngine {

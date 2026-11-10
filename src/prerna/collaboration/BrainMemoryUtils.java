@@ -275,7 +275,7 @@ public final class BrainMemoryUtils {
 					insertLinks(conn, ownerId, ownerType, id, about, now);
 				}
 				if (accept) {
-					supersede(conn, ownerId, ownerType, current.replacesId(), now);
+					supersede(conn, ownerId, ownerType, current, now);
 				}
 			});
 			return toMap(find(ownerId, ownerType, id), null);
@@ -357,7 +357,7 @@ public final class BrainMemoryUtils {
 				case ACCEPT -> {
 					require(SUGGESTED.equals(state), "Only a suggestion can be accepted");
 					setState(conn, ownerId, ownerType, memory, ACTIVE, true, now);
-					supersede(conn, ownerId, ownerType, memory.replacesId(), now);
+					supersede(conn, ownerId, ownerType, memory, now);
 				}
 				case CONFIRM -> {
 					require(ACTIVE.equals(state), "Only an active memory can be confirmed");
@@ -374,7 +374,7 @@ public final class BrainMemoryUtils {
 				case RESTORE -> {
 					require(DISMISSED.equals(state), "Only a dismissed memory can be restored");
 					setState(conn, ownerId, ownerType, memory, ACTIVE, false, now);
-					supersede(conn, ownerId, ownerType, memory.replacesId(), now);
+					supersede(conn, ownerId, ownerType, memory, now);
 				}
 				case REOPEN -> {
 					// the owner's Undo of Keep: back to a suggestion, and what it replaced comes back
@@ -449,12 +449,12 @@ public final class BrainMemoryUtils {
 						about.isEmpty() ? target.about() : about);
 				CollaborationDbUtils.inTransaction(conn -> {
 					insert(conn, ownerId, ownerType, created);
-					supersede(conn, ownerId, ownerType, target.id(), now);
+					supersede(conn, ownerId, ownerType, created, now);
 				});
 				return toolResult(ownerId, ownerType, UPDATED, "Saved; it replaces the older memory.",
 						find(ownerId, ownerType, created.id()), find(ownerId, ownerType, target.id()), null);
 			}
-			Memory same = alike(load(ownerId, ownerType, Set.of(ACTIVE, SUGGESTED, DISMISSED)), text, about);
+			Memory same = identical(load(ownerId, ownerType, Set.of(ACTIVE, SUGGESTED, DISMISSED)), text, about);
 			if (same != null && ACTIVE.equals(same.state())) {
 				return toolResult(ownerId, ownerType, EXISTS, "Already remembered; nothing changed.", same, null,
 						null);
@@ -462,7 +462,7 @@ public final class BrainMemoryUtils {
 			if (same != null && SUGGESTED.equals(same.state())) {
 				CollaborationDbUtils.inTransaction(conn -> {
 					setState(conn, ownerId, ownerType, same, ACTIVE, false, now);
-					supersede(conn, ownerId, ownerType, same.replacesId(), now);
+					supersede(conn, ownerId, ownerType, same, now);
 				});
 				return toolResult(ownerId, ownerType, SAVED,
 						"Saved. It was waiting as a suggestion; it is now in use, and the owner can undo it.",
@@ -555,7 +555,9 @@ public final class BrainMemoryUtils {
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
 			List<Memory> known = new ArrayList<>(load(ownerId, ownerType, Set.of(ACTIVE, SUGGESTED, DISMISSED)));
 			for (Suggestion suggestion : suggestions) {
-				if (alike(known, suggestion.text(), suggestion.about()) != null) {
+				// a correction is alike the memory it replaces; only the others can make it a repeat
+				List<Memory> others = known.stream().filter(m -> !m.id().equals(suggestion.replacesId())).toList();
+				if (alike(others, suggestion.text(), suggestion.about()) != null) {
 					continue;
 				}
 				Memory memory = new Memory(newId(ownerId, ownerType), suggestion.kind(), suggestion.text(), SUGGESTED,
@@ -661,8 +663,12 @@ public final class BrainMemoryUtils {
 
 	/** People the owner excluded from assistant context; their memories are never recalled or searched. */
 	static Set<String> neverIngest(String ownerId, String ownerType) {
-		return new HashSet<>(CollaborationDbUtils.query("SELECT PERSON_ID FROM BRAIN_PERSON" + OWNED
-				+ " AND NEVER_INGEST = ?", rs -> rs.getString("PERSON_ID"), ownerId, ownerType, true));
+		// the person's never-ingest rules, as the gate and the person drawer read them; BRAIN_PERSON.NEVER_INGEST
+		// is never set
+		return new HashSet<>(CollaborationDbUtils.query("SELECT PERSON_ID FROM BRAIN_RULE" + OWNED
+				+ " AND DISABLED_AT IS NULL AND PERSON_ID IS NOT NULL AND KIND IN (?, ?)",
+				rs -> rs.getString("PERSON_ID"), ownerId, ownerType, BrainRuleUtils.EXCLUDE_EVERYWHERE,
+				BrainRuleUtils.NEVER_SENDER));
 	}
 
 	/** About, or said by, someone in excluded. */
@@ -812,6 +818,17 @@ public final class BrainMemoryUtils {
 		return null;
 	}
 
+	/** The memory with the same words and a link in common, or neither linked; "on March 5" is not "on March 3". */
+	static Memory identical(List<Memory> memories, String text, List<Ref> about) {
+		String said = words(text);
+		for (Memory memory : memories) {
+			if (!said.isEmpty() && said.equals(words(memory.text())) && sameScope(memory.about(), about)) {
+				return memory;
+			}
+		}
+		return null;
+	}
+
 	private static boolean sameScope(List<Ref> a, List<Ref> b) {
 		if (a.isEmpty() || b.isEmpty()) {
 			return true;
@@ -868,7 +885,7 @@ public final class BrainMemoryUtils {
 
 	static Set<String> terms(String text) {
 		Set<String> terms = new LinkedHashSet<>();
-		String norm = text == null ? "" : text.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", " ").trim();
+		String norm = words(text);
 		if (norm.isEmpty()) {
 			return terms;
 		}
@@ -881,6 +898,10 @@ public final class BrainMemoryUtils {
 			}
 		}
 		return terms;
+	}
+
+	private static String words(String text) {
+		return text == null ? "" : text.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", " ").trim();
 	}
 
 	// ---- validation ----
@@ -1058,13 +1079,39 @@ public final class BrainMemoryUtils {
 		}
 	}
 
-	// the memory a newer one replaced steps aside
-	private static void supersede(Connection conn, String ownerId, String ownerType, String memoryId, Timestamp now)
+	// the memory a newer one replaced steps aside; when another replacement already took its place, that one steps
+	// aside instead and the newer one records it, so one version stays in use and an undo brings back the one it displaced
+	private static void supersede(Connection conn, String ownerId, String ownerType, Memory newer, Timestamp now)
 			throws SQLException {
-		if (memoryId != null) {
-			CollaborationDbUtils.update(conn, "UPDATE BRAIN_MEMORY SET STATE = ?, UPDATED_AT = ?" + OWNED
-					+ " AND MEMORY_ID = ? AND STATE = ?", SUPERSEDED, now, ownerId, ownerType, memoryId, ACTIVE);
+		String inUse = inUse(conn, ownerId, ownerType, newer.replacesId(), newer.id());
+		if (inUse == null) {
+			return;
 		}
+		CollaborationDbUtils.update(conn, "UPDATE BRAIN_MEMORY SET STATE = ?, UPDATED_AT = ?" + OWNED
+				+ " AND MEMORY_ID = ? AND STATE = ?", SUPERSEDED, now, ownerId, ownerType, inUse, ACTIVE);
+		if (!inUse.equals(newer.replacesId())) {
+			CollaborationDbUtils.update(conn, "UPDATE BRAIN_MEMORY SET REPLACES_ID = ?" + OWNED + " AND MEMORY_ID = ?",
+					inUse, ownerId, ownerType, newer.id());
+		}
+	}
+
+	// the version of memoryId in use: itself, or the newer memory that replaced it; null when none is
+	private static String inUse(Connection conn, String ownerId, String ownerType, String memoryId, String newerId) {
+		Set<String> seen = new HashSet<>();
+		for (String id = memoryId; id != null && seen.add(id);) {
+			String at = id;
+			// active sorts before superseded, so a replacement in use comes first
+			List<String[]> rows = CollaborationDbUtils.query(conn, "SELECT MEMORY_ID, STATE FROM BRAIN_MEMORY" + OWNED
+					+ " AND (MEMORY_ID = ? OR REPLACES_ID = ?) AND MEMORY_ID <> ? AND STATE IN (?, ?) ORDER BY STATE",
+					rs -> new String[] { rs.getString(1), rs.getString(2) }, ownerId, ownerType, at, at, newerId, ACTIVE,
+					SUPERSEDED);
+			String state = rows.stream().filter(row -> row[0].equals(at)).map(row -> row[1]).findFirst().orElse(null);
+			if (!SUPERSEDED.equals(state)) {
+				return ACTIVE.equals(state) ? at : null;
+			}
+			id = rows.stream().filter(row -> !row[0].equals(at)).map(row -> row[0]).findFirst().orElse(null);
+		}
+		return null;
 	}
 
 	// and comes back when the newer one goes

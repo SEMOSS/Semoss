@@ -44,12 +44,19 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.model.usage.ModelUsageCost;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ModelServingProvider;
 
 public class GetModelMetadataReactor extends AbstractReactor {
+
+	private static final String EFFECTIVE_SERVING_PROVIDER = "effectiveServingProvider";
+	private static final String COST_PRICE_ENTRY = "costPriceEntry";
+	private static final String COST_PRICE_FOR_SERVING_PROVIDER = "costPriceForServingProvider";
 
 	public GetModelMetadataReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
@@ -77,11 +84,21 @@ public class GetModelMetadataReactor extends AbstractReactor {
 			metadata = new LinkedHashMap<>();
 			metadata.put("engineId", engineId);
 		}
+		// who serves the model when SERVINGPROVIDER is blank, the price entry cost
+		// limits count calls at, and whether it is the serving provider's own or one
+		// used in its place, such as the maker's, so the prices shown say which is used
+		String servingProvider = ModelServingProvider.resolve(engineId, metadata);
+		Map<String, Object> costPriceEntry = ModelUsageCost.priceEntry(engineId);
+		metadata.put(EFFECTIVE_SERVING_PROVIDER, servingProvider);
+		metadata.put(COST_PRICE_ENTRY, costPriceEntry);
+		metadata.put(COST_PRICE_FOR_SERVING_PROVIDER,
+				ModelUsageCost.isServingProviderEntry(costPriceEntry, servingProvider));
 		return new NounMetadata(metadata, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns identity, family, modality, token, feature, knowledge, release, and benchmark metadata for an accessible model engine";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns identity, family, modality, token, feature, knowledge, release, and benchmark metadata for an accessible model engine");
 	}
 }

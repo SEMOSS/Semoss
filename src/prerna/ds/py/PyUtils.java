@@ -54,6 +54,14 @@ public final class PyUtils {
 
 	public static final String PY_COMMAND_SEPARATOR = ";";
 
+	/**
+	 * Python call that drops the cached imports of the project modules under the
+	 * asset paths of the current execution, plus the MCP driver aliases in the
+	 * insight globals, so the next import reads the current .py files. Defined by
+	 * {@code smss_clear_app_imports} in gaas_tcp_server_thread_local.py.
+	 */
+	public static final String CLEAR_APP_IMPORTS_SCRIPT = "smss_clear_app_imports()";
+
 	private static Boolean pyEnabled = null;
 
 	/**

@@ -42,8 +42,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.reactor.agent.stream.AgentRunStreamService;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Decides which submitted agent runs start on this node, and when.
@@ -127,7 +129,9 @@ final class AgentRunQueueLoop {
 		}
 	}
 
-	/** Queue one idempotent platform-message append without starting a model run. */
+	/**
+	 * Queue one idempotent platform-message append without starting a model run.
+	 */
 	void enqueueChildCompletion(String childRunId) {
 		if (childRunId == null || childRunId.isBlank()) {
 			return;
@@ -177,8 +181,8 @@ final class AgentRunQueueLoop {
 					InsightHandle insightHandle = insightsByRun.get(record.runId());
 					if (insightHandle == null && record.request().getContinuationChildRunId() != null) {
 						try {
-							Insight continuationInsight = AgentRunService.createBackgroundExecutionInsight(record.userId(),
-									record.request());
+							Insight continuationInsight = AgentRunService
+									.createBackgroundExecutionInsight(record.userId(), record.request());
 							rememberInsight(record.runId(), continuationInsight, true);
 							insightHandle = insightsByRun.get(record.runId());
 						} catch (SecurityException e) {
@@ -208,7 +212,8 @@ final class AgentRunQueueLoop {
 		}
 	}
 
-	// Lost in-memory queue items are rebuilt once per JVM from recent durable child rows.
+	// Lost in-memory queue items are rebuilt once per JVM from recent durable child
+	// rows.
 	private void startRecoveryScan() {
 		if (!recoveryScanStarted.compareAndSet(false, true)) {
 			return;
@@ -238,7 +243,8 @@ final class AgentRunQueueLoop {
 		return runIds;
 	}
 
-	// A rebuilt context whose run started on another node would otherwise stay in memory forever.
+	// A rebuilt context whose run started on another node would otherwise stay in
+	// memory forever.
 	private void releaseStaleRebuiltHandles(Set<String> rebuiltBeforeScan, Set<String> submittedRunIds) {
 		for (String runId : rebuiltBeforeScan) {
 			if (!submittedRunIds.contains(runId) && !activeRuns.isRegistered(runId)) {
@@ -298,7 +304,8 @@ final class AgentRunQueueLoop {
 		long delayMs = Math.min(DELIVERY_RETRY_MAX_MS, DELIVERY_RETRY_BASE_MS << Math.min(attempts - 1, 16));
 		deliveryRetries.put(childRunId, new DeliveryRetry(attempts, System.currentTimeMillis() + delayMs));
 		childCompletions.offer(childRunId);
-		// Log on attempts 1, 2, 4, 8, ... so a permanently stuck item does not flood the log.
+		// Log on attempts 1, 2, 4, 8, ... so a permanently stuck item does not flood
+		// the log.
 		if (Integer.bitCount(attempts) == 1) {
 			logger.warn("AgentRunQueueLoop: child completion delivery failed runId={} attempt={} retryInMs={}: {}",
 					childRunId, attempts, delayMs, e.getMessage(), e);
@@ -317,8 +324,7 @@ final class AgentRunQueueLoop {
 		}
 		AgentRunRegistry.ActiveRun activeRun = claim.get();
 		try {
-			ClusterRoomTurnLock.RoomTurnLease lease = ClusterRoomTurnLock.tryClaim(workId,
-					delivery.parentRoomId());
+			ClusterRoomTurnLock.RoomTurnLease lease = ClusterRoomTurnLock.tryClaim(workId, delivery.parentRoomId());
 			if (lease == null) {
 				activeRun.close();
 				return false;
@@ -382,6 +388,21 @@ final class AgentRunQueueLoop {
 			// finds the lease to close.
 			activeRun.attachLease(lease);
 
+			// A room closed while the run waited takes no turn; the run is cancelled.
+			if (ModelInferenceLogsUtils.isRoomInActive(record.userId(), roomId)) {
+				activeRun.close();
+				cleanupInsight(runId, insightHandle);
+				if (AgentRunStore.markCancelledIfNotTerminal(runId, runId, AgentRunService.ROOM_CLOSED_MESSAGE)) {
+					AgentRunStreamService.get().markTerminal(runId);
+					AgentRunActionStore.cancelPendingForRun(runId);
+					// A child cancelled before it started has no executor to report it.
+					if (record.request() != null && record.request().getParentRunId() != null) {
+						enqueueChildCompletion(runId);
+					}
+				}
+				return true;
+			}
+
 			if (!AgentRunStore.markRunningIfSubmitted(runId, runId)) {
 				// Already claimed, cancelled, or otherwise no longer SUBMITTED.
 				activeRun.close();
@@ -391,7 +412,10 @@ final class AgentRunQueueLoop {
 
 			Room automationResumeRoom = automationResumeRoomsByRun.remove(runId);
 			Thread thread = Thread.ofVirtual().name("agent-run-" + runId).unstarted(() -> {
-				try (var ignored = CloseableThreadContext.putAll(insightHandle.log4jContextMap())) {
+				AgentRunRequest request = record.request();
+				try (var ignored = CloseableThreadContext.putAll(insightHandle.log4jContextMap())
+						.putAll(UserAuditTrailUtils.agentContext(request == null ? null : request.getWorkspaceId(),
+								request == null ? null : request.getHarnessType(), runId))) {
 					AgentRunExecutor.execute(record, insightHandle, activeRun, automationResumeRoom);
 				} finally {
 					cleanupInsight(runId, insightHandle);

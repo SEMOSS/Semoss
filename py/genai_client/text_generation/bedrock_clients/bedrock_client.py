@@ -1,4 +1,4 @@
-from typing import Dict, Any, TYPE_CHECKING, Optional
+from typing import Dict, Any, TYPE_CHECKING, Optional, Tuple
 
 if TYPE_CHECKING:
 
@@ -16,11 +16,29 @@ from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...message_builders.bedrock.bedrock_message_builder import BedrockMessageBuilder
 from ...constants import AskModelEngineResponse2
 from ..model_engine_exception import ModelEngineException, ErrorDetails
+from ...usage_ceiling import (
+    PromptCount,
+    count_prompt_tokens,
+    fit_thinking_budget,
+    note_output_stop,
+)
 from botocore.config import Config
+from botocore.exceptions import ClientError
 
 
 class BedrockClient(AbstractTextGenerationClient):
     client: "BedrockRuntimeClient"
+
+    # Claude's smallest extended thinking budget on Bedrock
+    MIN_THINKING_BUDGET = 1024
+
+    # CountTokens errors that mean it does not work for this model or account
+    _COUNT_TOKENS_UNSUPPORTED_CODES = {
+        "ValidationException",
+        "AccessDeniedException",
+        "ResourceNotFoundException",
+        "UnknownOperationException",
+    }
 
     def __init__(
         self,
@@ -44,7 +62,13 @@ class BedrockClient(AbstractTextGenerationClient):
         self.kwargs = kwargs
         self.model_id = modelId
 
-        self.client = self._create_client(region, access_key, secret_key, service_name, retry_config=Config(retries=retry_config))
+        self.client = self._create_client(
+            region,
+            access_key,
+            secret_key,
+            service_name,
+            retry_config=Config(retries=retry_config),
+        )
 
         self.guardrail_config = self._create_guardrail_config(
             guardrail_identifier, guardrail_version
@@ -120,6 +144,11 @@ class BedrockClient(AbstractTextGenerationClient):
             except Exception as e:
                 raise ValueError(f"Error building Bedrock messages: {str(e)}") from e
 
+            # fitted after the global parameter override, so the maximum fitted is
+            # the one sent; a refusal becomes the USAGE_LIMIT_DOES_NOT_FIT error
+            # response
+            self._apply_usage_ceiling(bedrock_request)
+
             if stream:
                 return self._handle_streaming(bedrock_request, prefix=prefix)
             return self._handle_non_streaming(bedrock_request)
@@ -127,6 +156,115 @@ class BedrockClient(AbstractTextGenerationClient):
             return ModelEngineException(
                 error=e, client="bedrock", model=self.model_id
             ).parse_error()
+
+    def _apply_usage_ceiling(self, request: Dict[str, Any]) -> None:
+        """Fit the Converse request to the usage ceiling of the call in progress.
+
+        inferenceConfig.maxTokens is lowered to what the prompt leaves, never
+        raised. A reasoning budget is lowered below it, leaving part of it for
+        the answer, and reasoning is turned off when even 1,024 tokens do not
+        fit.
+        """
+        # copies are changed, since these dicts may be the client's own
+        # global_param_override values, which later calls reuse
+        inference = dict(request.get("inferenceConfig") or {})
+        fit = self.fit_output_to_usage_ceiling(
+            inference.get("maxTokens"), lambda: self._count_prompt_tokens(request)
+        )
+        if fit is None or not fit.lowered:
+            return
+        inference["maxTokens"] = fit.max_tokens
+        request["inferenceConfig"] = inference
+
+        fields = request.get("additionalModelRequestFields")
+        if not isinstance(fields, dict):
+            return
+        # the reasoning field's name differs by model; thinking counts inside
+        # maxTokens, so its budget follows the lowered maximum
+        for key in ("reasoning_config", "thinking"):
+            reasoning = fields.get(key)
+            if not isinstance(reasoning, dict) or reasoning.get("type") != "enabled":
+                continue
+            budget = fit_thinking_budget(
+                int(reasoning.get("budget_tokens") or self.MIN_THINKING_BUDGET),
+                fit.max_tokens,
+                self.usage_ceiling_min_output_tokens(),
+                self.MIN_THINKING_BUDGET,
+            )
+            fields = dict(fields)
+            # too small a budget runs the call without reasoning
+            if budget is None:
+                fields.pop(key)
+            else:
+                fields[key] = {**reasoning, "budget_tokens": budget}
+            request["additionalModelRequestFields"] = fields
+
+    def _count_prompt_tokens(self, request: Dict[str, Any]) -> PromptCount:
+        """Count the prompt with the Bedrock CountTokens API where the model
+        supports it, and estimate it otherwise or when the count fails."""
+        if not getattr(self, "_count_tokens_unavailable", False):
+            converse = {
+                key: request[key]
+                for key in (
+                    "messages",
+                    "system",
+                    "toolConfig",
+                    "additionalModelRequestFields",
+                )
+                if request.get(key)
+            }
+            try:
+                result = self.client.count_tokens(
+                    modelId=self.model_id, input={"converse": converse}
+                )
+                return PromptCount(tokens=int(result["inputTokens"]), estimated=False)
+            except ClientError as e:
+                # remembered for the client, so a model without CountTokens is
+                # not asked again on every call
+                code = e.response.get("Error", {}).get("Code")
+                if code in self._COUNT_TOKENS_UNSUPPORTED_CODES:
+                    self._count_tokens_unavailable = True
+            except AttributeError:
+                # a boto3 release without CountTokens
+                self._count_tokens_unavailable = True
+            except Exception:
+                # a passing failure: this call is estimated, the next one counts
+                pass
+
+        messages = request.get("messages") or []
+        return count_prompt_tokens(
+            [request.get("system"), messages],
+            [request.get("toolConfig")],
+            message_count=len(messages),
+        )
+
+    @staticmethod
+    def _normalize_usage(
+        usage: Optional[Dict[str, Any]],
+    ) -> Tuple[int, int, Optional[int], Optional[int], Optional[int]]:
+        """Converse usage as (prompt, response, cache read, cache write,
+        thinking) tokens, counted like the other clients.
+
+        Converse reports inputTokens without the tokens read from or written
+        to the prompt cache (totalTokens is inputTokens + outputTokens +
+        cacheReadInputTokens + cacheWriteInputTokens), so the prompt count adds
+        them back. outputTokens already includes reasoning tokens.
+        """
+        usage = usage or {}
+        cache_read_tokens = usage.get("cacheReadInputTokens") or None
+        cache_creation_tokens = usage.get("cacheWriteInputTokens") or None
+        prompt_tokens = (
+            (usage.get("inputTokens") or 0)
+            + (cache_read_tokens or 0)
+            + (cache_creation_tokens or 0)
+        )
+        return (
+            prompt_tokens,
+            usage.get("outputTokens") or 0,
+            cache_read_tokens,
+            cache_creation_tokens,
+            usage.get("thinkingTokens") or None,
+        )
 
     def _handle_streaming(
         self, request: Dict[str, Any], prefix: str = ""
@@ -138,6 +276,7 @@ class BedrockClient(AbstractTextGenerationClient):
         prompt_tokens = 0
         output_tokens = 0
         # Bedrock outputTokens is total billed (thinking already included). thinkingTokens is observational.
+        # prompt_tokens includes cache reads and writes; see _normalize_usage.
         cache_read_tokens: Optional[int] = None
         cache_creation_tokens: Optional[int] = None
         thinking_tokens: Optional[int] = None
@@ -234,15 +373,19 @@ class BedrockClient(AbstractTextGenerationClient):
                 this_content_block = {}
                 this_content_block_type = ""
 
+            if "messageStop" in event:
+                note_output_stop(event["messageStop"].get("stopReason") == "max_tokens")
+
             if "metadata" in event:
                 metadata = event["metadata"]
                 if "usage" in metadata:
-                    usage = metadata["usage"]
-                    prompt_tokens = usage["inputTokens"]
-                    output_tokens = usage["outputTokens"]
-                    cache_read_tokens = usage.get("cacheReadInputTokens") or None
-                    cache_creation_tokens = usage.get("cacheWriteInputTokens") or None
-                    thinking_tokens = usage.get("thinkingTokens") or None
+                    (
+                        prompt_tokens,
+                        output_tokens,
+                        cache_read_tokens,
+                        cache_creation_tokens,
+                        thinking_tokens,
+                    ) = self._normalize_usage(metadata["usage"])
 
         if tool_result:
             data = StreamUtil.create_finish_reason_chunk("tool_use")
@@ -367,6 +510,7 @@ class BedrockClient(AbstractTextGenerationClient):
     def _handle_non_streaming(self, request: Dict[str, Any]) -> AskModelEngineResponse2:
         """Handle non-streaming responses from Bedrock"""
         response = self.client.converse(modelId=self.model_id, **request)
+        note_output_stop(response.get("stopReason") == "max_tokens")
 
         output = response.get("output", {})
         message = output.get("message", {})
@@ -411,14 +555,20 @@ class BedrockClient(AbstractTextGenerationClient):
         if tool_uses:
             for t in tool_uses:
                 parts.append({"type": "TOOL_CALL", "tool_call": t})
-        usage = response.get("usage", {})
+        (
+            prompt_tokens,
+            response_tokens,
+            cache_read_tokens,
+            cache_creation_tokens,
+            thinking_tokens,
+        ) = self._normalize_usage(response.get("usage"))
         return AskModelEngineResponse2(
             response=final_response,
-            prompt_tokens=usage.get("inputTokens", 0),
-            response_tokens=usage.get("outputTokens", 0),
-            cache_read_tokens=usage.get("cacheReadInputTokens") or None,
-            cache_creation_tokens=usage.get("cacheWriteInputTokens") or None,
-            thinking_tokens=usage.get("thinkingTokens") or None,
+            prompt_tokens=prompt_tokens,
+            response_tokens=response_tokens,
+            cache_read_tokens=cache_read_tokens,
+            cache_creation_tokens=cache_creation_tokens,
+            thinking_tokens=thinking_tokens,
             messageType=message_type,
             schemaVersion=2,
             io="OUTPUT",

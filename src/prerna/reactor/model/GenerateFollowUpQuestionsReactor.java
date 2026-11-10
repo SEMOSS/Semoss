@@ -31,8 +31,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.Locale;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -53,6 +53,7 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.sablecc2.om.GenRowStruct;
@@ -67,8 +68,8 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 
 	public GenerateFollowUpQuestionsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-				SUGGESTION_CONTEXT, ReactorKeysEnum.PARENT_MESSAGE_ID.getKey() };
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), SUGGESTION_CONTEXT,
+				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0 };
 	}
 
@@ -78,10 +79,7 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 		String modelId = this.keyValue.get(this.keysToGet[0]);
 		String roomId = this.keyValue.get(this.keysToGet[1]);
 
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 		if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
 			throw new IllegalArgumentException(
 					"Model " + modelId + " does not exist or user does not have access to this model");
@@ -104,8 +102,8 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 			parentId = room.getMessages().getLast().getMessageId();
 		}
 		String anchorId = parentId;
-		AbstractMessage anchor = room.getMessages().stream()
-				.filter(message -> anchorId.equals(message.getMessageId())).findFirst()
+		AbstractMessage anchor = room.getMessages().stream().filter(message -> anchorId.equals(message.getMessageId()))
+				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("Parent message does not belong to this room"));
 		if (!isSettledResponse(anchor)) {
 			return new NounMetadata(Map.of("suggestions", List.of()), PixelDataType.MAP);
@@ -114,14 +112,15 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 
 		Map<String, Object> params = generationParameters(getParamMap(), room.getOptionsMap());
 		int numResponses = parsePositiveInt(this.keyValue.get(ReactorKeysEnum.LIMIT.getKey()), 3);
-		params.put("schema", jsonToMap(String.format(PlaygroundUtils.FOLLOW_UP_SUGGESTIONS_SCHEMA,
-				numResponses, numResponses)));
+		params.put("schema",
+				jsonToMap(String.format(PlaygroundUtils.FOLLOW_UP_SUGGESTIONS_SCHEMA, numResponses, numResponses)));
 		String prompt = PlaygroundUtils.FOLLOW_UP_SUGGESTIONS_PROMPT
 				+ "\nCurrently attached capabilities (context only):\n"
 				+ new com.google.gson.Gson().toJson(resolvedCapabilitySummaries(room, context));
-		InputMessage input = InputMessage.builder(room).withText(prompt)
-				.withModelType(modelEngine.getModelType()).withParamMap(params).build();
-		// Preserve existing model/parameter controls for engines that do not use history.
+		InputMessage input = InputMessage.builder(room).withText(prompt).withModelType(modelEngine.getModelType())
+				.withParamMap(params).build();
+		// Preserve existing model/parameter controls for engines that do not use
+		// history.
 		boolean useHistory = Room.shouldPersistTurn(input, modelEngine) && modelEngine.keepsConversationHistory();
 		input.setParentMessageId(useHistory ? parentId : null);
 		Object useHistoryParam = params.get("use_history");
@@ -241,15 +240,16 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 		if (context.get("tools") instanceof List<?> tools) {
 			for (Object value : tools) {
 				if (value instanceof Map<?, ?> tool) {
-					addCapability(summaries, text(tool.get("name")), text(tool.get("description")), "Browser/folder tools");
+					addCapability(summaries, text(tool.get("name")), text(tool.get("description")),
+							"Browser/folder tools");
 				}
 			}
 		}
 		return new ArrayList<>(summaries.values());
 	}
 
-	private static void addCapability(Map<String, Map<String, String>> summaries, String name,
-			String description, String toolbox) {
+	private static void addCapability(Map<String, Map<String, String>> summaries, String name, String description,
+			String toolbox) {
 		if (!name.isBlank()) {
 			summaries.putIfAbsent(toolbox + "\n" + name,
 					Map.of("name", name, "description", description, "toolbox", toolbox));
@@ -323,33 +323,18 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (SUGGESTION_CONTEXT.equals(key) || ReactorKeysEnum.PARAM_VALUES_MAP.getKey().equals(key)) {
-			return MCP_KEY_TYPE.OBJECT;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Generates suggested follow-up messages from room history and currently attached capabilities.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The model engine that generates follow up suggestions.";
-		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-			return "The room id used to locate conversation history and attached capabilities.";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Optional number of follow up suggestions to generate (defaults to 3).";
-		}
-		if (SUGGESTION_CONTEXT.equals(key)) {
-			return "Optional current attachment snapshot: mcp id references, browser tool name/description summaries, and unavailableReactors. Context only; never authorizes execution.";
-		}
-		if (ReactorKeysEnum.PARENT_MESSAGE_ID.getKey().equals(key)) {
-			return "Optional conversation branch anchor; defaults to the latest room message.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Generates suggested follow-up messages from room history and currently attached capabilities.")
+				.key(ReactorKeysEnum.ENGINE, "The model engine that generates follow up suggestions.")
+				.key(ReactorKeysEnum.ROOM_ID,
+						"The room id used to locate conversation history and attached capabilities.")
+				.key(ReactorKeysEnum.LIMIT, "Optional number of follow up suggestions to generate (defaults to 3).")
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP, key -> key.type(Map.class))
+				.key(SUGGESTION_CONTEXT, key -> key.type(Map.class).description(
+						"Optional current attachment snapshot: mcp id references, browser tool name/description summaries, and unavailableReactors. Context only; never authorizes execution."))
+				.key(ReactorKeysEnum.PARENT_MESSAGE_ID,
+						"Optional conversation branch anchor; defaults to the latest room message.");
 	}
 }

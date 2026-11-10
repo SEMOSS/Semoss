@@ -40,8 +40,6 @@ import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.automation.AutomationConstants;
-import prerna.reactor.automation.project.AutomationProjectService;
-import prerna.reactor.automation.run.AutomationRunStore;
 
 // Wipes one owner's Collaboration data so onboarding starts fresh
 public final class BrainResetUtils {
@@ -50,7 +48,8 @@ public final class BrainResetUtils {
 
 	// the owner row and source connections carry the Microsoft link; everything
 	// else goes
-	private static final Set<String> KEPT = Set.of("COLLAB_OWNER", "SOURCE_CONNECTION");
+	// BRAIN_OWN_MAIL is kept so a fresh import after a reset still skips mail Collaboration sent
+	private static final Set<String> KEPT = Set.of("COLLAB_OWNER", "SOURCE_CONNECTION", "BRAIN_OWN_MAIL");
 
 	private BrainResetUtils() {
 	}
@@ -65,20 +64,25 @@ public final class BrainResetUtils {
 				throw new IllegalStateException(
 						"An import or classify is still running; wait for it to finish, then reset");
 			}
+			// the routines' runs keep mail, meetings and their results in the scheduler database, and their rooms
+			// what the agents read; all of them go, with each routine's schedule, while the rows still name them
+			int runs = WorkRoutineRoom.deleteAll(user);
+			// no new mail arrives for a Brain that is gone; the next import subscribes again
+			BrainMailWebhook.unsubscribe(CollaborationDbUtils.queryOne(
+					"SELECT MS_USER_ID FROM COLLAB_OWNER WHERE OWNER_ID = ? AND OWNER_TYPE = ?", rs -> rs.getString(1),
+					ownerId, ownerType));
 			Map<String, Object> deleted = new LinkedHashMap<>();
-			CollaborationDbUtils.inTransaction(conn -> {
-				for (String table : tables()) {
-					int rows = CollaborationDbUtils.update(conn,
-							"DELETE FROM " + table + " WHERE OWNER_ID = ? AND OWNER_TYPE = ?", ownerId, ownerType);
-					if (rows > 0) {
-						deleted.put(table, rows);
+			// a new-mail import already writing finishes first; one waiting on the lock then finds nothing to add to
+			synchronized (CollaborationDbUtils.ownerLock(BrainSync.INGEST_LOCK, ownerId, ownerType)) {
+				CollaborationDbUtils.inTransaction(conn -> {
+					for (String table : tables()) {
+						int rows = CollaborationDbUtils.update(conn,
+								"DELETE FROM " + table + " WHERE OWNER_ID = ? AND OWNER_TYPE = ?", ownerId, ownerType);
+						if (rows > 0) {
+							deleted.put(table, rows);
+						}
 					}
-				}
-			});
-			// the routines' runs keep mail, meetings and their results in the scheduler database
-			int runs = 0;
-			for (String automationId : List.of(WorkInboxRoutine.AUTOMATION_ID, WorkAgendaRoutine.AUTOMATION_ID)) {
-				runs += AutomationRunStore.deleteRuns(AutomationProjectService.inlineRunScope(user), automationId);
+				});
 			}
 			if (runs > 0) {
 				deleted.put(AutomationConstants.TABLE_AUTOMATION_RUNS, runs);

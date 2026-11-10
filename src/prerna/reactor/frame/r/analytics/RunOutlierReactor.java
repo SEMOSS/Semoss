@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -234,13 +235,10 @@ public class RunOutlierReactor extends AbstractRFrameReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ALPHA)) {
-			return "The statistical threshold to determine the cutoff point for outliers (Defaut = 0.05)";
-		} else if (key.equals(NULL_HANDLING)) {
-			return "An action specifying how to handle missing data (options: \"impute\",\"drop\",\"as_is\")";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Flags outlier rows in the R frame based on the given attribute columns, adding a new Outlier column of TRUE or FALSE values to the frame.")
+				.key(ReactorKeysEnum.ATTRIBUTES, key -> key.list(String.class))
+				.key(ALPHA, "The statistical threshold to determine the cutoff point for outliers (Defaut = 0.05)");
 	}
 }

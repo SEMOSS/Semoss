@@ -37,6 +37,7 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -77,8 +78,9 @@ public class SessionReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Reactor that initiate a new session and return its id";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Reactor that initiate a new session and return its id")
+				.noKeys();
 	}
 
 }

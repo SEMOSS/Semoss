@@ -50,8 +50,8 @@ public final class WorkAgendaRoutine {
 	private static final int MAX_IGNORED = 200;
 	static final WorkRoutine.Kind KIND = new WorkRoutine.Kind(ID, "WORK_AGENDA_ROUTINE", "WorkRunAgendaRoutine();",
 			"Weekly meeting agendas", "weekly-meeting-agendas.automation.json", "agendas", "weekly agenda", "agenda",
-			Map.of("time", "08:00", "days", List.of("MON"), "timezone", "UTC", "meetings", List.of(), "ignored", List.of()),
-			WorkAgendaRoutine::meetings, WorkAgendaRoutine::inputs);
+			Map.of("time", "08:00", "days", List.of("MON"), "timezone", "UTC", "meetings", List.of(), "ignored", List.of(), "preferences", ""),
+			WorkAgendaRoutine::meetings, WorkAgendaRoutine::inputs, null);
 
 	private WorkAgendaRoutine() { }
 
@@ -69,6 +69,16 @@ public final class WorkAgendaRoutine {
 
 	public static Map<String, Object> run(Insight insight) {
 		return WorkRoutine.run(KIND, insight);
+	}
+
+	/** Run now's run, which runNow fires on the scheduler: on any day, and recorded as started by hand. */
+	public static Map<String, Object> runManual(Insight insight) {
+		return WorkRoutine.run(KIND, insight, null, true);
+	}
+
+	/** Starts the agendas now, off the schedule, on the routine's own job. */
+	public static void runNow(User user) {
+		WorkRoutine.runNow(KIND, user, null, "WorkRunAgendaRoutine(manual=[true]);");
 	}
 
 	static Map<String, Object> validate(Map<String, Object> input) {

@@ -104,8 +104,8 @@ class QueryExecutionStatementUnitTests {
 		assertEquals(0,
 				QueryExecutionUtility.executeUpdate(db.engine, "DELETE FROM ITEMS WHERE ID=?", ps -> ps.setInt(1, 99)));
 		try (Connection observer = DriverManager.getConnection(db.connection.getMetaData().getURL())) {
-			assertEquals("O'Brien ? \u03bb", QueryExecutionUtility.queryOne(observer, SELECT, ps -> {
-			}, rs -> rs.getString(1)));
+			assertEquals("O'Brien ? \u03bb", QueryExecutionUtility.queryOne(observer, SELECT,
+					QueryExecutionUtility.NO_PARAMETERS, rs -> rs.getString(1)));
 		}
 		assertEquals(autoCommit, db.connection.getAutoCommit());
 		assertFalse(db.connection.isClosed());
@@ -124,8 +124,8 @@ class QueryExecutionStatementUnitTests {
 		});
 		assertEquals(List.of("row2", "row3"), QueryExecutionUtility.queryList(db.connection,
 				"SELECT V FROM ITEMS WHERE ID >= ? ORDER BY ID", ps -> ps.setInt(1, 2), rs -> rs.getString(1)));
-		assertEquals("one", QueryExecutionUtility.queryOne(db.connection, SELECT, ps -> {
-		}, rs -> rs.getString(1)));
+		assertEquals("one", QueryExecutionUtility.queryOne(db.connection, SELECT, QueryExecutionUtility.NO_PARAMETERS,
+				rs -> rs.getString(1)));
 		verify(db.connection, never()).commit();
 		verify(db.connection, never()).rollback();
 		verify(db.connection, never()).close();
@@ -170,8 +170,8 @@ class QueryExecutionStatementUnitTests {
 				ps.addBatch();
 			}
 		}));
-		assertEquals(Arrays.asList(null, ""), QueryExecutionUtility.queryList(db.engine, SELECT, ps -> {
-		}, rs -> rs.getString(1)));
+		assertEquals(Arrays.asList(null, ""), QueryExecutionUtility.queryList(db.engine, SELECT,
+				QueryExecutionUtility.NO_PARAMETERS, rs -> rs.getString(1)));
 	}
 
 	@Test
@@ -190,8 +190,7 @@ class QueryExecutionStatementUnitTests {
 	void firstRowDoesNotSkipNullOrVisitLaterRowsAndEmptyQueryReturnsNull() throws Exception {
 		db.execute("INSERT INTO ITEMS VALUES (1, NULL), (2, 'second')");
 		AtomicInteger mapped = new AtomicInteger();
-		assertNull(QueryExecutionUtility.queryOne(db.engine, SELECT, ps -> {
-		}, rs -> {
+		assertNull(QueryExecutionUtility.queryOne(db.engine, SELECT, QueryExecutionUtility.NO_PARAMETERS, rs -> {
 			mapped.incrementAndGet();
 			return rs.getString(1);
 		}));
@@ -206,8 +205,8 @@ class QueryExecutionStatementUnitTests {
 	@Test
 	void listPreservesOrderDuplicatesNullsAndRemainsMutable() throws Exception {
 		db.execute("INSERT INTO ITEMS VALUES (1, 'same'), (2, NULL), (3, 'same')");
-		List<String> rows = QueryExecutionUtility.queryList(db.engine, SELECT, ps -> {
-		}, rs -> rs.getString(1));
+		List<String> rows = QueryExecutionUtility.queryList(db.engine, SELECT, QueryExecutionUtility.NO_PARAMETERS,
+				rs -> rs.getString(1));
 		assertEquals(Arrays.asList("same", null, "same"), rows);
 		rows.add("caller-owned");
 		assertEquals(4, rows.size());
@@ -231,9 +230,8 @@ class QueryExecutionStatementUnitTests {
 		db.manual();
 		List<String> rows = new ArrayList<>(List.of("existing"));
 		SQLException failure = new SQLException("mapping failed");
-		assertSame(failure,
-				assertThrows(SQLException.class, () -> QueryExecutionUtility.queryList(db.engine, SELECT, ps -> {
-				}, rs -> {
+		assertSame(failure, assertThrows(SQLException.class,
+				() -> QueryExecutionUtility.queryList(db.engine, SELECT, QueryExecutionUtility.NO_PARAMETERS, rs -> {
 					String value = rs.getString(1);
 					if (value.equals("second")) {
 						throw failure;
@@ -251,9 +249,11 @@ class QueryExecutionStatementUnitTests {
 		db.execute("INSERT INTO ITEMS VALUES (1, 'new')");
 		db.manual();
 		List<String> rows = new ArrayList<>(List.of("existing"));
-		List<String> result = engineOwnsTransaction ? QueryExecutionUtility.queryList(db.engine, SELECT, ps -> {
-		}, rs -> rs.getString(1), rows) : QueryExecutionUtility.queryList(db.connection, SELECT, ps -> {
-		}, rs -> rs.getString(1), rows);
+		List<String> result = engineOwnsTransaction
+				? QueryExecutionUtility.queryList(db.engine, SELECT, QueryExecutionUtility.NO_PARAMETERS,
+						rs -> rs.getString(1), rows)
+				: QueryExecutionUtility.queryList(db.connection, SELECT, QueryExecutionUtility.NO_PARAMETERS,
+						rs -> rs.getString(1), rows);
 		assertSame(rows, result);
 		assertEquals(List.of("existing", "new"), rows);
 		verify(db.connection, times(engineOwnsTransaction ? 1 : 0)).rollback();
@@ -343,9 +343,8 @@ class QueryExecutionStatementUnitTests {
 		when(statement.executeQuery()).thenReturn(result);
 		when(result.next()).thenReturn(true);
 		IOException failure = new IOException("LOB decode");
-		assertSame(failure,
-				assertThrows(IOException.class, () -> QueryExecutionUtility.queryOne(connection, SELECT, ps -> {
-				}, rs -> {
+		assertSame(failure, assertThrows(IOException.class,
+				() -> QueryExecutionUtility.queryOne(connection, SELECT, QueryExecutionUtility.NO_PARAMETERS, rs -> {
 					throw failure;
 				})));
 		verify(result).close();
@@ -364,8 +363,8 @@ class QueryExecutionStatementUnitTests {
 						ps.setString(2, (String) row.getValues()[1]);
 					}));
 		}
-		assertEquals(List.of("one", "two", "three"), QueryExecutionUtility.queryList(db.engine, SELECT, ps -> {
-		}, rs -> rs.getString(1)));
+		assertEquals(List.of("one", "two", "three"), QueryExecutionUtility.queryList(db.engine, SELECT,
+				QueryExecutionUtility.NO_PARAMETERS, rs -> rs.getString(1)));
 		verify(wrapper).close();
 		assertTrue(db.connection.getAutoCommit());
 	}

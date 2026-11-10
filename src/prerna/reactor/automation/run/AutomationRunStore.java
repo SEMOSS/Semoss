@@ -127,6 +127,11 @@ import prerna.reactor.automation.definition.AutomationDefinitionService;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.reactor.scheduler.SchedulerOwlCreator;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.usertracking.AuditErrorCode;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.AuditStatus;
+import prerna.usertracking.AuditTargetType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
@@ -267,16 +272,22 @@ public final class AutomationRunStore {
 			PARENT_NODE_ID, ITERATION_INDEX, SOURCE_NODE_ID) \
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""";
 
-	// Child rows first, then the runs, all selected by run scope and automation.
+	// Child rows first, then the runs, all selected by run scope and automation, and for one run its id too.
 	private static final String RUNS_IN_SCOPE = "SELECT RUN_ID FROM AUTOMATION_RUNS WHERE PROJECT_ID = ? AND AUTOMATION_ID = ?";
-	private static final List<String> DELETE_RUNS = List.of(
-			"DELETE FROM AUTOMATION_RESULT_CHUNKS WHERE RESULT_ID IN (SELECT RESULT_ID FROM AUTOMATION_SAVED_RESULTS "
-					+ "WHERE RUN_ID IN (" + RUNS_IN_SCOPE + "))",
-			"DELETE FROM AUTOMATION_SAVED_RESULTS WHERE RUN_ID IN (" + RUNS_IN_SCOPE + ")",
-			"DELETE FROM AUTOMATION_RUN_NODE_SOURCES WHERE RUN_ID IN (" + RUNS_IN_SCOPE + ")",
-			"DELETE FROM AUTOMATION_NODE_OUTPUTS WHERE RUN_ID IN (" + RUNS_IN_SCOPE + ")",
-			"DELETE FROM AUTOMATION_RUN_WAITS WHERE RUN_ID IN (" + RUNS_IN_SCOPE + ")",
-			"DELETE FROM AUTOMATION_RUNS WHERE PROJECT_ID = ? AND AUTOMATION_ID = ?");
+	private static final List<String> DELETE_RUNS = deleteStatements("");
+	private static final List<String> DELETE_RUN = deleteStatements(" AND RUN_ID = ?");
+
+	private static List<String> deleteStatements(String andRun) {
+		String runs = RUNS_IN_SCOPE + andRun;
+		return List.of(
+				"DELETE FROM AUTOMATION_RESULT_CHUNKS WHERE RESULT_ID IN (SELECT RESULT_ID FROM AUTOMATION_SAVED_RESULTS "
+						+ "WHERE RUN_ID IN (" + runs + "))",
+				"DELETE FROM AUTOMATION_SAVED_RESULTS WHERE RUN_ID IN (" + runs + ")",
+				"DELETE FROM AUTOMATION_RUN_NODE_SOURCES WHERE RUN_ID IN (" + runs + ")",
+				"DELETE FROM AUTOMATION_NODE_OUTPUTS WHERE RUN_ID IN (" + runs + ")",
+				"DELETE FROM AUTOMATION_RUN_WAITS WHERE RUN_ID IN (" + runs + ")",
+				"DELETE FROM AUTOMATION_RUNS WHERE PROJECT_ID = ? AND AUTOMATION_ID = ?" + andRun);
+	}
 
 	private static final String INCREMENT_RUN_TOTAL_NODES =
 			"UPDATE AUTOMATION_RUNS SET TOTAL_NODES = TOTAL_NODES + ? WHERE RUN_ID = ?";
@@ -434,6 +445,7 @@ public final class AutomationRunStore {
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STATUS, STATUS));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + LAST_HEARTBEAT, LAST_HEARTBEAT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + PROJECT_ID, PROJECT_ID));
 		OrQueryFilter activeStatus = new OrQueryFilter();
 		activeStatus.addFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + STATUS, "==", STATUS_SUBMITTED,
 				PixelDataType.CONST_STRING));
@@ -448,6 +460,7 @@ public final class AutomationRunStore {
 
 		Timestamp threshold = toTimestamp(Instant.now().minusSeconds(STALE_HEARTBEAT_THRESHOLD_MINUTES * 60L));
 		Timestamp now = toTimestamp(Instant.now());
+		List<Map<String, Object>> interrupted = new ArrayList<>();
 
 		try {
 			QueryExecutionUtility.write(schedulerDb, conn -> {
@@ -476,6 +489,7 @@ public final class AutomationRunStore {
 						ps.setTimestamp(index++, threshold);
 						int updated = ps.executeUpdate();
 						if (updated > 0) {
+							interrupted.add(row);
 							classLogger.info("Marked stale automation run {} as INTERRUPTED", runId);
 						} else {
 							classLogger.debug("Automation run {} changed while stale recovery was in progress; "
@@ -487,6 +501,10 @@ public final class AutomationRunStore {
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to mark stale automation runs", e);
+			return;
+		}
+		for (Map<String, Object> row : interrupted) {
+			auditTerminalRun((String) row.get(RUN_ID), (String) row.get(PROJECT_ID), STATUS_INTERRUPTED, true);
 		}
 	}
 
@@ -907,6 +925,9 @@ public final class AutomationRunStore {
 	 */
 	public static void completeRun(String runId, String projectId, String status, String failedNodeId,
 			String errorMessage) {
+		if (!Set.of("SUCCESS", "FAILED", "CANCELLED", "INTERRUPTED").contains(status)) {
+			throw new IllegalArgumentException("A terminal automation status is required");
+		}
 		IRDBMSEngine schedulerDb = requireSchedulerDb("completing the automation run");
 
 		try {
@@ -928,6 +949,28 @@ public final class AutomationRunStore {
 			classLogger.error("Failed to complete run '{}' for project '{}'", runId, projectId, e);
 			throw new IllegalStateException("Unable to persist the completed automation run.", e);
 		}
+		auditTerminalRun(runId, projectId, status, false);
+	}
+
+	private static void auditTerminalRun(String runId, String projectId, String status, boolean recovery) {
+		boolean succeeded = "SUCCESS".equals(status);
+		var event = new UserAuditTrailUtils.AuditEvent().eventType(AuditEventType.AUTOMATION_RUN_END)
+				.status(succeeded ? AuditStatus.SUCCESS : AuditStatus.FAILURE)
+				.target(AuditTargetType.AUTOMATION, projectId, null).context(projectId, null, null, null)
+				.details(Map.of("runId", runId, "runStatus", status, "recovery", recovery));
+		String actor = org.apache.logging.log4j.ThreadContext.get(prerna.logging.SemossLogUtils.USER_ID);
+		if (recovery || actor == null || Set.of("UNKNOWN", "STARTUP", "SHUTDOWN").contains(actor)) {
+			event.systemActor();
+		}
+		if (!succeeded) {
+			AuditErrorCode errorCode = switch (status) {
+			case AutomationConstants.STATUS_FAILED -> AuditErrorCode.AUTOMATION_FAILED;
+			case AutomationConstants.STATUS_CANCELLED -> AuditErrorCode.AUTOMATION_CANCELLED;
+			default -> AuditErrorCode.AUTOMATION_INTERRUPTED;
+			};
+			event.error(errorCode, "Automation run ended with status " + status);
+		}
+		UserAuditTrailUtils.recordEvent(event);
 	}
 
 	/**
@@ -1050,6 +1093,45 @@ public final class AutomationRunStore {
 	}
 
 	/**
+	 * The newest runs of one automation in one run scope, newest first, with started and completed as timestamps.
+	 *
+	 * @param runScope     automation project ID or inline run scope
+	 * @param automationId logical automation stored in {@code AUTOMATION_ID}
+	 * @param limit        most runs returned
+	 * @return the runs; empty when the scheduler DB is unavailable
+	 */
+	public static List<Map<String, Object>> getRunsForAutomation(String runScope, String automationId, int limit) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) {
+			return new ArrayList<>();
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		for (String column : List.of(RUN_ID, PROJECT_ID, AUTOMATION_ID, STATUS, TRIGGER_TYPE, STARTED_AT, COMPLETED_AT,
+				FAILED_NODE_ID)) {
+			qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + column, column));
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + PROJECT_ID, "==", runScope,
+				PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + AUTOMATION_ID, "==", automationId,
+				PixelDataType.CONST_STRING));
+		qs.addOrderBy(TABLE_RUNS + "__" + STARTED_AT, QueryColumnOrderBySelector.ORDER_BY_DIRECTION.DESC.toString());
+		qs.setLimit(limit);
+		List<Map<String, Object>> results = new ArrayList<>();
+		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		if (rows != null) {
+			// exact match again: a case- or accent-insensitive database must not return a look-alike scope's runs
+			for (Map<String, Object> row : rows) {
+				if (runScope.equals(row.get(PROJECT_ID)) && automationId.equals(row.get(AUTOMATION_ID))) {
+					row.put(STARTED_AT, toTimestampSafe(row.get(STARTED_AT)));
+					row.put(COMPLETED_AT, toTimestampSafe(row.get(COMPLETED_AT)));
+					results.add(row);
+				}
+			}
+		}
+		return results;
+	}
+
+	/**
 	 * Deletes every run of one automation in one run scope, with its source
 	 * snapshot, node outputs, and waits, in one transaction.
 	 *
@@ -1059,6 +1141,24 @@ public final class AutomationRunStore {
 	 * @throws IllegalStateException when the rows cannot be deleted
 	 */
 	public static int deleteRuns(String runScope, String automationId) {
+		return delete(DELETE_RUNS, runScope, automationId, null);
+	}
+
+	/**
+	 * Deletes one run of one automation in one run scope, with its source snapshot, node outputs, and waits, in one
+	 * transaction. A run id from another scope or automation deletes nothing.
+	 *
+	 * @param runScope     Automation project ID or inline run scope
+	 * @param automationId logical automation stored in {@code AUTOMATION_ID}
+	 * @param runId        the run
+	 * @return 1 when the run was deleted, else 0; 0 when the scheduler DB is unavailable
+	 * @throws IllegalStateException when the rows cannot be deleted
+	 */
+	public static int deleteRun(String runScope, String automationId, String runId) {
+		return delete(DELETE_RUN, runScope, automationId, runId);
+	}
+
+	private static int delete(List<String> statements, String runScope, String automationId, String runId) {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
 		if (schedulerDb == null) {
 			return 0;
@@ -1066,10 +1166,13 @@ public final class AutomationRunStore {
 		try {
 			return QueryExecutionUtility.write(schedulerDb, conn -> {
 				int deleted = 0;
-				for (String sql : DELETE_RUNS) {
+				for (String sql : statements) {
 					deleted = QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
 						ps.setString(1, runScope);
 						ps.setString(2, automationId);
+						if (runId != null) {
+							ps.setString(3, runId);
+						}
 					});
 				}
 				// The last statement deletes the runs themselves.

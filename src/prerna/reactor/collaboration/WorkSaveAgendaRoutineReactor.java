@@ -28,7 +28,10 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkAgendaRoutine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+import java.util.Map;
 
 public class WorkSaveAgendaRoutineReactor extends AbstractCollaborationReactor {
 	public WorkSaveAgendaRoutineReactor() {
@@ -43,7 +46,10 @@ public class WorkSaveAgendaRoutineReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Opts the signed-in user into weekly meeting agendas or pauses them";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Opts the signed-in user into weekly meeting agendas or pauses them")
+				.key("settings", key -> key.type(Map.class).description(
+						"The agenda settings, as a map: enabled (true or false), time (HH:mm, 24-hour), days (a list of exactly one weekday, MON to SUN), timezone (an IANA time zone), meetings (up to 20 meeting titles to prepare agendas for), ignored (meeting titles hidden from the picker) and preferences (optional free text). Turning agendas on needs at least one meeting, and a title cannot be both chosen and ignored."));
 	}
 }

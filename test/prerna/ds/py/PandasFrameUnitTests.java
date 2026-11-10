@@ -132,8 +132,25 @@ class PandasFrameUnitTests {
 		}
 
 		@Test
-		void pyS_hasSixEntries() {
-			assertEquals(6, PandasFrame.pyS.size());
+		void pyS_pandas3StrMapsToString() {
+			assertEquals(SemossDataType.STRING, PandasFrame.pyS.get("str"));
+		}
+
+		@Test
+		void pyS_stringDtypeMapsToString() {
+			assertEquals(SemossDataType.STRING, PandasFrame.pyS.get("string"));
+		}
+
+		@Test
+		void pyS_datetimeResolutionsMapToTimestamp() {
+			for (String unit : new String[] { "s", "ms", "us", "ns" }) {
+				assertEquals(SemossDataType.TIMESTAMP, PandasFrame.pyS.get("datetime64[" + unit + "]"), unit);
+			}
+		}
+
+		@Test
+		void pyS_hasTwelveEntries() {
+			assertEquals(12, PandasFrame.pyS.size());
 		}
 
 		@Test

@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationRuntime;
 import prerna.reactor.automation.project.AutomationProjectService;
@@ -39,6 +40,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.AuditEventType;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Validates and saves an automation graph definition and its per-node Python
@@ -72,19 +75,23 @@ public class SaveAutomationReactor extends AbstractReactor {
 		projectId = AutomationProjectService.getEditableAutomationProject(this.insight.getUser(), projectId)
 				.getProjectId();
 
-		AutomationDefinitionService.DefinitionFiles files = AutomationProjectService.saveDefinition(projectId, definition,
-				nodeSources, this.keyValue.get(AutomationConstants.EXPECTED_REVISION_KEY), this.insight.getUser());
+		AutomationDefinitionService.DefinitionFiles files = AutomationProjectService.saveDefinition(projectId,
+				definition, nodeSources, this.keyValue.get(AutomationConstants.EXPECTED_REVISION_KEY),
+				this.insight.getUser());
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("saved", true);
 		result.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
 		result.put(AutomationConstants.RESULT_REVISION,
 				AutomationDefinitionService.calculateRevision(files.definition(), files.nodeSources()));
+		// only the revision hash and node count are audited, never the workflow source
+		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), AuditEventType.AUTOMATION_UPDATE, projectId,
+				null, null, Map.of("revision", String.valueOf(result.get(AutomationConstants.RESULT_REVISION)),
+						"nodeSourceCount", files.nodeSources() == null ? 0 : files.nodeSources().size()));
 		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
 				.parseAndValidateForAuthoring(files.definition());
 		result.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(validated));
-		result.put(AutomationConstants.RESULT_SCOPE_VARIABLES,
-				AutomationScopeCatalog.variablesByNode(validated));
+		result.put(AutomationConstants.RESULT_SCOPE_VARIABLES, AutomationScopeCatalog.variablesByNode(validated));
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
@@ -115,25 +122,14 @@ public class SaveAutomationReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Validates and saves an automation graph with Python source for each non-start node.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "The project ID or alias of the automation to save.";
-		}
-		if (ReactorKeysEnum.JSON.getKey().equals(key)) {
-			return "Base64-encoded workflow graph JSON.";
-		}
-		if (NODE_SOURCES_KEY.equals(key)) {
-			return "Optional raw or Base64-encoded JSON object: { nodeId: Python source }. "
-					+ "The trigger source may declare non-private globals; omitted entries receive generated source.";
-		}
-		if (AutomationConstants.EXPECTED_REVISION_KEY.equals(key)) {
-			return "Optional revision returned by GetAutomation. The save is rejected if the automation changed.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Validates and saves an automation graph with Python source for each non-start node.")
+				.key(ReactorKeysEnum.PROJECT, "The project ID or alias of the automation to save.")
+				.key(ReactorKeysEnum.JSON, "Base64-encoded workflow graph JSON.")
+				.key(NODE_SOURCES_KEY, "Optional raw or Base64-encoded JSON object: { nodeId: Python source }. "
+						+ "The trigger source may declare non-private globals; omitted entries receive generated source.")
+				.key(AutomationConstants.EXPECTED_REVISION_KEY,
+						"Optional revision returned by GetAutomation. The save is rejected if the automation changed.");
 	}
 }

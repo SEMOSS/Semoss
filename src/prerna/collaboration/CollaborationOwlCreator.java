@@ -97,9 +97,12 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("FINISHED_AT", TIMESTAMP_DATATYPE_NAME)));
 
 		// one table per routine kind (WorkRoutine.Kind), same columns
-		for (String routine : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE")) {
+		// WORK_CUSTOM_ROUTINE holds many per owner, told apart by ROUTINE_ID (null in the others)
+		for (String routine : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE", "WORK_EXPENSE_ROUTINE",
+				"WORK_EVENT_PLANNING_ROUTINE", "WORK_CUSTOM_ROUTINE")) {
 			addTable(routine, Arrays.asList(
 					OWNER_ID, OWNER_TYPE,
+					Pair.with("ROUTINE_ID", VARCHAR_50),
 					Pair.with("SETTINGS_JSON", CLOB_DATATYPE_NAME),
 					Pair.with("ENABLED", BOOLEAN_DATATYPE_NAME),
 					Pair.with("LAST_DATE", VARCHAR_20),
@@ -111,6 +114,7 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 					Pair.with("RUN_ID", VARCHAR_50),
 					Pair.with("SUMMARY", CLOB_DATATYPE_NAME),
 					Pair.with("ERROR", CLOB_DATATYPE_NAME),
+					Pair.with("ERROR_CAUSE", VARCHAR_20),
 					Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		}
 
@@ -128,6 +132,11 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("STYLE_SUMMARY", CLOB_DATATYPE_NAME),
 				Pair.with("STYLE_STATE", VARCHAR_20),
 				Pair.with("STYLE_EXAMPLES_JSON", CLOB_DATATYPE_NAME),
+				// audience variants the owner agreed, {internal, external} each {summary, examples}
+				Pair.with("STYLE_VARIANTS_JSON", CLOB_DATATYPE_NAME),
+				// the learned proposal waiting for the owner's review; never used when drafting
+				Pair.with("STYLE_PENDING_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("STYLE_LEARNED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// no topic cap; FILE_AT 85 and ASK_AT 40 defaults are set by the service
 		addTable("BRAIN_SETTINGS", Arrays.asList(
@@ -138,6 +147,23 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// memory recall and tools, and the review of finished chats; null reads as on
 				Pair.with("MEMORY_USE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("MEMORY_LEARN", BOOLEAN_DATATYPE_NAME),
+				// the Outlook folder drafts are left in; null means the mailbox's own Drafts
+				Pair.with("DRAFT_FOLDER_ID", VARCHAR_255),
+				Pair.with("DRAFT_FOLDER_NAME", VARCHAR_255),
+				// how drafts look: font (null is Aptos 12pt) and the signature copied from sent mail; null on is on
+				Pair.with("DRAFT_FONT", VARCHAR_255),
+				Pair.with("DRAFT_FONT_SIZE", INTEGER_DATATYPE_NAME),
+				Pair.with("DRAFT_SIGNATURE_HTML", CLOB_DATATYPE_NAME),
+				Pair.with("DRAFT_SIGNATURE_ON", BOOLEAN_DATATYPE_NAME),
+				// ids of the owner's own Collaboration skills staged in their assistant chats
+				Pair.with("ASSISTANT_SKILLS_JSON", CLOB_DATATYPE_NAME),
+				// minutes between scheduled syncs of the owner's mail while the app is closed (BrainSync); 0 is off,
+				// null the default 15
+				Pair.with("SYNC_EVERY_MINUTES", INTEGER_DATATYPE_NAME),
+				// when the owner finished setup (Open Work) or skipped the rest of it; null sends them back to it
+				Pair.with("SETUP_DONE_AT", TIMESTAMP_DATATYPE_NAME),
+				// the first Work build over the imported mail: its state and the threads it has left (WorkPipeline)
+				Pair.with("WORK_BUILD_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// One resumable topic-review draft per owner; only profiles and bounded evidence metadata.
 		addTable("BRAIN_TOPIC_REVIEW", Arrays.asList(
@@ -237,7 +263,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("ENGAGEMENT", INTEGER_DATATYPE_NAME),
 				Pair.with("REASON", CLOB_DATATYPE_NAME),
 				Pair.with("CHANGED_BY", VARCHAR_255),
-				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
+				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME),
+				// VIP in this topic only; read for members (BrainRulesGate.standing)
+				Pair.with("IS_VIP", BOOLEAN_DATATYPE_NAME)));
 		// a chat's topics: linked, suggested (a soft tag) or dismissed (not suggested again)
 		addTable("BRAIN_TOPIC_ROOM", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
@@ -246,6 +274,33 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("STATE", VARCHAR_20),
 				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// Outlook folders a topic stands for; mail in one of them is filed under the topic
+		addTable("BRAIN_TOPIC_FOLDER", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("TOPIC_ID", VARCHAR_50),
+				Pair.with("FOLDER_ID", VARCHAR_255),
+				// outlook when onboarding found it from the folder, you when the owner linked it
+				Pair.with("ORIGIN", VARCHAR_20),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// mail Collaboration sent the owner (routine results, notices), by the key import gives it, so import skips it
+		addTable("BRAIN_OWN_MAIL", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("MESSAGE_KEY", VARCHAR_50),
+				Pair.with("KIND", VARCHAR_20),
+				Pair.with("SENT_AT", TIMESTAMP_DATATYPE_NAME)));
+		// the owner's Outlook folder tree; KIND is inbox, sentitems, archive, custom (one the owner made) or skipped
+		addTable("BRAIN_MAIL_FOLDER", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("FOLDER_ID", VARCHAR_255),
+				Pair.with("PARENT_ID", VARCHAR_255),
+				Pair.with("NAME", VARCHAR_255),
+				Pair.with("PATH", CLOB_DATATYPE_NAME),
+				Pair.with("KIND", VARCHAR_20),
+				Pair.with("TOTAL", INTEGER_DATATYPE_NAME),
+				// what a folder the owner made is for, judged at onboarding: project, area, status, automated,
+				// person, time or other; null until judged
+				Pair.with("ROLE", VARCHAR_20),
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 
 		// --- Brain: threads ---
 		// topics and participants live in the link tables; one IS_PRIMARY topic per thread
@@ -268,7 +323,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("SUMMARY_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("MESSAGE_COUNT", INTEGER_DATATYPE_NAME),
 				Pair.with("LAST_MESSAGE_AT", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
+				// the newest message work candidates were pulled from
+				Pair.with("WORK_REF", VARCHAR_255)));
 		addTable("BRAIN_THREAD_TOPIC", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
 				Pair.with("THREAD_ID", VARCHAR_50),
@@ -337,7 +394,15 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// a calendar message: invite, reply, or cancellation
 				Pair.with("MEETING", BOOLEAN_DATATYPE_NAME),
 				// the sending system marked it machine-sent (Auto-Submitted, List-Unsubscribe, Precedence bulk)
-				Pair.with("AUTO", BOOLEAN_DATATYPE_NAME)));
+				Pair.with("AUTO", BOOLEAN_DATATYPE_NAME),
+				// the owner's Outlook categories on it, their follow-up flag, the sender's importance, attachments
+				Pair.with("CATEGORIES_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("FLAGGED", BOOLEAN_DATATYPE_NAME),
+				Pair.with("IMPORTANCE", VARCHAR_20),
+				Pair.with("ATTACHMENTS", BOOLEAN_DATATYPE_NAME),
+				// imported by a sync, a chat's pull or the webhook, and still owed its after-import steps (reply
+				// cards, the expense review): a run cut off before them leaves it to the next sync; null when nothing is owed
+				Pair.with("SYNC_PENDING", BOOLEAN_DATATYPE_NAME)));
 
 		// --- Brain: control ---
 		addTable("BRAIN_RULE", Arrays.asList(
@@ -492,7 +557,98 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("EDITED", BOOLEAN_DATATYPE_NAME),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME),
+				// the work item it serves; null is a loose step under its topic. THREAD_ID is null for one added in chat
+				Pair.with("TASK_ID", VARCHAR_50),
+				// what finished it: owner, or the candidate whose message showed it done
+				Pair.with("CLOSED_BY", VARCHAR_50),
+				Pair.with("STALE_AT", TIMESTAMP_DATATYPE_NAME),
+				// a discussion point's notes and outcome
+				Pair.with("NOTE", CLOB_DATATYPE_NAME)));
+		// a work item: an outcome someone is driving, or a running discussion list with one person
+		addTable("WORK_TASK", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("TASK_ID", VARCHAR_50),
+				Pair.with("KIND", VARCHAR_20),
+				Pair.with("TITLE", VARCHAR_255),
+				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
+				Pair.with("STATUS", VARCHAR_20),
+				// no due date, never finishes on its own (what a goal used to be)
+				Pair.with("ONGOING", BOOLEAN_DATATYPE_NAME),
+				Pair.with("NEXT_STEP", CLOB_DATATYPE_NAME),
+				Pair.with("WAITING_ON_PERSON_ID", VARCHAR_50),
+				// a discussion list's person
+				Pair.with("PERSON_ID", VARCHAR_50),
+				Pair.with("DUE_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PRIORITY", VARCHAR_20),
+				Pair.with("ORIGIN", VARCHAR_20),
+				// proposed until the owner accepts one Brain made
+				Pair.with("STATE", VARCHAR_20),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CLOSED_AT", TIMESTAMP_DATATYPE_NAME),
+				// the owner's order on the Work page; null sorts after, newest first
+				Pair.with("SORT_ORDER", INTEGER_DATATYPE_NAME),
+				// the chat room the owner works this item in
+				Pair.with("ROOM_ID", VARCHAR_50)));
+		// a work item can sit under several topics: the products and the clients it touches
+		addTable("WORK_TASK_TOPIC", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("TASK_ID", VARCHAR_50),
+				Pair.with("TOPIC_ID", VARCHAR_50),
+				Pair.with("IS_PRIMARY", BOOLEAN_DATATYPE_NAME),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// the threads that move a work item; rejected links stay so they are not proposed again
+		addTable("WORK_TASK_THREAD", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("TASK_ID", VARCHAR_50),
+				Pair.with("THREAD_ID", VARCHAR_50),
+				Pair.with("ORIGIN", VARCHAR_20),
+				Pair.with("STATE", VARCHAR_20),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// a work item's timeline: updates, decisions, asks, date and status changes, each with its source
+		addTable("WORK_TASK_UPDATE", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("UPDATE_ID", VARCHAR_50),
+				Pair.with("TASK_ID", VARCHAR_50),
+				Pair.with("KIND", VARCHAR_20),
+				Pair.with("TEXT", CLOB_DATATYPE_NAME),
+				Pair.with("THREAD_ID", VARCHAR_50),
+				Pair.with("SOURCE_REF", VARCHAR_255),
+				Pair.with("MESSAGE_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ORIGIN", VARCHAR_20),
+				Pair.with("STATE", VARCHAR_20),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// raw extract output, one row per thing a thread asks, decides or reports; reconcile turns it into steps
+		addTable("WORK_CANDIDATE", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("CANDIDATE_ID", VARCHAR_50),
+				Pair.with("THREAD_ID", VARCHAR_50),
+				Pair.with("MESSAGE_REF", VARCHAR_255),
+				Pair.with("MESSAGE_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("KIND", VARCHAR_20),
+				Pair.with("TEXT", CLOB_DATATYPE_NAME),
+				Pair.with("QUOTE", CLOB_DATATYPE_NAME),
+				Pair.with("DUE_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ASSIGNEE", VARCHAR_50),
+				Pair.with("ASKED_BY", VARCHAR_50),
+				Pair.with("ADDRESSING_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("TOPIC_ID", VARCHAR_50),
+				// evidence, new_step, new_task, closes, waiting_on, update or drop, and what it pointed at
+				Pair.with("RESULT", VARCHAR_20),
+				Pair.with("RESULT_REF", VARCHAR_50),
+				Pair.with("DROP_REASON", VARCHAR_50),
+				Pair.with("EXTRACTED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("RECONCILED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// every message behind a step: one ask however many threads repeat it
+		addTable("WORK_STEP_EVIDENCE", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("STEP_ID", VARCHAR_50),
+				Pair.with("CANDIDATE_ID", VARCHAR_50),
+				Pair.with("THREAD_ID", VARCHAR_50),
+				Pair.with("MESSAGE_REF", VARCHAR_255),
+				Pair.with("ROLE", VARCHAR_20),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// replaced by BRAIN_MEMORY (thread links); kept one release so BrainMemoryMigration can move old rows
 		addTable("WORK_THREAD_FACT", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,

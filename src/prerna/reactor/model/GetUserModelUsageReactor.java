@@ -27,22 +27,24 @@
  *******************************************************************************/
 package prerna.reactor.model;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.javatuples.Pair;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.usage.ModelUsageGuard;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -58,11 +60,7 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = insight.getUser();
-
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 
 		// Get the parameters
 		List<String> engineIds = getList(ReactorKeysEnum.ENGINE.getKey());
@@ -80,13 +78,13 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 		List<Map<String, Object>> usageData = ModelInferenceLogsUtils.getUserModelUsagePerEngine(user, engineIds,
 				startDate, endDate);
 
-		// Look up engine names from the input engineIds — always use the input list so
+		// Look up engine names from the input engineIds — always use the input list
+		// so
 		// engines with zero usage still get a named zero row
 		Map<Object, Object> idToAlias = SecurityEngineUtils.getEngineAliasForIds(engineIds);
 
 		// Index returned usage rows by engine ID for easy lookup
-		List<String> detailKeys = Arrays.asList(
-				"DETAIL_INPUT_TOKENS", "DETAIL_OUTPUT_TOKENS",
+		List<String> detailKeys = Arrays.asList("DETAIL_INPUT_TOKENS", "DETAIL_OUTPUT_TOKENS",
 				"DETAIL_CACHE_READ_TOKENS", "DETAIL_CACHE_CREATION_TOKENS", "DETAIL_THINKING_TOKENS");
 
 		Map<String, Map<String, Object>> usageByEngineId = new HashMap<>();
@@ -104,7 +102,8 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 			}
 		}
 
-		// Ensure every requested engine has a row — fill zeros for engines with no usage
+		// Ensure every requested engine has a row — fill zeros for engines with no
+		// usage
 		List<Map<String, Object>> result = new ArrayList<>();
 		for (String engineId : engineIds) {
 			if (usageByEngineId.containsKey(engineId)) {
@@ -128,6 +127,21 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 			}
 		}
 
+		// COST_MICROS is the cost a usage limit on the model would count for the same
+		// rows, whether or not one applies: the recorded cost plus calls logged before
+		// costs were recorded, at current base prices. Null when the model has no
+		// known prices. The range covers the end date in full, as the token totals do.
+		boolean hasDates = startDate != null && !startDate.trim().isEmpty();
+		Instant start = hasDates ? LocalDate.parse(startDate.trim()).atStartOfDay(ZoneOffset.UTC).toInstant()
+				: Instant.EPOCH;
+		Instant end = (hasDates ? LocalDate.parse(endDate.trim()) : LocalDate.now(ZoneOffset.UTC)).plusDays(1)
+				.atStartOfDay(ZoneOffset.UTC).toInstant();
+		Pair<String, String> primary = User.getPrimaryUserIdAndTypePair(user);
+		for (Map<String, Object> row : result) {
+			row.put("COST_MICROS", ModelUsageGuard.costUsedInLogs((String) row.get("ENGINE_ID"), primary.getValue0(),
+					primary.getValue1(), start, end));
+		}
+
 		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
@@ -149,15 +163,14 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
 		// If both dates are provided, validate them
 		if (hasStartDate && hasEndDate) {
-			DateTimeFormatter formatter = new DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd")
-					.parseDefaulting(ChronoField.HOUR_OF_DAY, 0).parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
-					.parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0).toFormatter().withZone(ZoneOffset.UTC);
-			ZonedDateTime start;
-			ZonedDateTime end;
+			// strict ISO parse, the same one the queries use, so 2026-02-30 is rejected
+			// here
+			LocalDate start;
+			LocalDate end;
 
 			// Parse and validate start date
 			try {
-				start = ZonedDateTime.parse(startDate.trim(), formatter);
+				start = LocalDate.parse(startDate.trim());
 			} catch (DateTimeParseException e) {
 				throw new IllegalArgumentException(
 						"Invalid startDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
@@ -165,16 +178,16 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
 			// Parse and validate end date
 			try {
-				end = ZonedDateTime.parse(endDate.trim(), formatter);
+				end = LocalDate.parse(endDate.trim());
 			} catch (DateTimeParseException e) {
 				throw new IllegalArgumentException(
 						"Invalid endDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
 			}
 
 			// Validate start date is not in the future
-			ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
-			if (start.isAfter(now)) {
-				throw new IllegalArgumentException("startDate cannot be in the future. Provided: startDate=" + startDate);
+			if (start.isAfter(LocalDate.now(ZoneOffset.UTC))) {
+				throw new IllegalArgumentException(
+						"startDate cannot be in the future. Provided: startDate=" + startDate);
 			}
 
 			// Validate start date is before or equal to end date
@@ -186,23 +199,19 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Returns model usage for the current user over a specified time period, broken down by engine. \
 				Reports INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS, \
-				TOTAL_TOKENS, and TOTAL_REQUESTS. Requires a list of engine IDs and optionally accepts a date range.
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "Required list of engine IDs to get usage for (can be a single engine or multiple engines).";
-		} else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
-			return "Optional start date (format: YYYY-MM-DD). Must be provided with endDate.";
-		} else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
-			return "Optional end date (format: YYYY-MM-DD). Must be provided with startDate.";
-		}
-		return super.getDescriptionForKey(key);
+				TOTAL_TOKENS, TOTAL_REQUESTS, and COST_MICROS (cost in millionths of a dollar, counted as usage \
+				limits count it; null when the model has no known prices). Requires a list of engine IDs and \
+				optionally accepts a date range; the end date is included in full.
+				""")
+				.key(ReactorKeysEnum.ENGINE,
+						"Required list of engine IDs to get usage for (can be a single engine or multiple engines).")
+				.key(ReactorKeysEnum.START_DATE,
+						"Optional start date (format: YYYY-MM-DD). Must be provided with endDate.")
+				.key(ReactorKeysEnum.END_DATE,
+						"Optional end date (format: YYYY-MM-DD). Must be provided with startDate.");
 	}
 }

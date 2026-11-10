@@ -28,9 +28,9 @@
 package prerna.reactor.notification;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -60,10 +60,7 @@ public class DeleteNotificationReactor extends AbstractReactor {
 		if (!Utility.isNotificationDatabaseEnabled()) {
 			throw new IllegalArgumentException("Notifications are not enabled on this instance");
 		}
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		organizeKeys();
 		String notificationId = this.keyValue.get(this.keysToGet[0]);
@@ -75,18 +72,11 @@ public class DeleteNotificationReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Deletes a user's notification. Takes in a notificatioinId for a single notification, or no value for all notifications in the scope";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SCOPE_TYPE.equals(key)) {
-			return "Scope to clear when no notificationId is given: ALL (default), SYSTEM, or APP.";
-		}
-		if (SCOPE_ID.equals(key)) {
-			return "The app id when scopeType is APP, e.g. SYSTEM__COLLABORATION for the Collaboration inbox.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Deletes a user's notification. Takes in a notificatioinId for a single notification, or no value for all notifications in the scope")
+				.key(SCOPE_TYPE, "Scope to clear when no notificationId is given: ALL (default), SYSTEM, or APP.")
+				.key(SCOPE_ID,
+						"The app id when scopeType is APP, e.g. SYSTEM__COLLABORATION for the Collaboration inbox.");
 	}
 }

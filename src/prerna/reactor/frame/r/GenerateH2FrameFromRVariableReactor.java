@@ -31,6 +31,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.query.querystruct.CsvQueryStruct;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.reactor.imports.RdbmsImporter;
 import prerna.sablecc2.om.PixelDataType;
@@ -137,11 +138,12 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.VARIABLE.getKey())) {
-			return "Name of the r variable";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Copies the data of an R variable into a new H2 grid frame and stores it under the variable's name. By default it also becomes the insight's current frame.")
+				.key(ReactorKeysEnum.OVERRIDE,
+						key -> key.type(Boolean.class).description(
+								"Whether the new frame becomes the insight's current frame (default true)."))
+				.key(ReactorKeysEnum.VARIABLE, "Name of the r variable");
 	}
 }

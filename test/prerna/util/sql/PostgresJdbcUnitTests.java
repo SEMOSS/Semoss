@@ -92,10 +92,10 @@ class PostgresJdbcUnitTests {
 							ps.setString(2, "must roll back");
 						}));
 				assertEquals(Arrays.asList("O'Brien ? \u03bb", null, ""),
-						QueryExecutionUtility.queryList(engine, "SELECT V FROM STATEMENT_VALUES ORDER BY ID", ps -> {
-						}, rs -> rs.getString(1)));
-				int count = QueryExecutionUtility.queryOne(engine, "SELECT COUNT(*) FROM BIND_VALUES", ps -> {
-				}, rs -> rs.getInt(1));
+						QueryExecutionUtility.queryList(engine, "SELECT V FROM STATEMENT_VALUES ORDER BY ID",
+								QueryExecutionUtility.NO_PARAMETERS, rs -> rs.getString(1)));
+				int count = QueryExecutionUtility.queryOne(engine, "SELECT COUNT(*) FROM BIND_VALUES",
+						QueryExecutionUtility.NO_PARAMETERS, rs -> rs.getInt(1));
 				assertEquals(5, count);
 				ParameterizedSqlInterpreterUnitTests.roundTrip(engine);
 				assertEquals(TransactionState.IDLE, connection.unwrap(BaseConnection.class).getTransactionState());

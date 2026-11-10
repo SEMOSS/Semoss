@@ -31,6 +31,8 @@ import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.List;
 
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -76,6 +78,59 @@ public interface IRDBMSEngine extends IDatabaseEngine {
 	 * @throws SQLException
 	 */
 	java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException;
+
+	/**
+	 * Runs SQL statements in order inside one transaction on a connection of their
+	 * own, and commits once after the last one. A failing statement rolls back the
+	 * statements before it, and the statements after it do not run. The engine's
+	 * shared connection is never used, so other callers can neither commit nor roll
+	 * back part of the script.
+	 *
+	 * <p>
+	 * Statements that control the transaction themselves are for the caller to
+	 * reject first. A statement the database will not run inside a transaction
+	 * fails, which rolls the script back. A database that commits data definition
+	 * as soon as it runs, as its driver reports and as H2, MySQL and Oracle do, can
+	 * commit other statements on their own too and would keep the statements before
+	 * such a commit, so on such a database a script of more than one statement with
+	 * a statement that does not only read or change rows, such as CREATE TABLE,
+	 * LOCK TABLES or CALL, is refused before anything runs; a script of one
+	 * statement runs. A statement's final semicolon is left off when it is sent,
+	 * since some drivers reject it.
+	 * </p>
+	 *
+	 * <p>
+	 * Up to {@code maxRows} rows are kept from each statement that returns rows,
+	 * with each value converted as an engine query converts it, including the rows
+	 * of a statement that was then rolled back, since they show what the script
+	 * saw.
+	 * </p>
+	 *
+	 * @param statements     the statements, in order, each as one SQL statement
+	 * @param timeoutSeconds the time limit for all the statements together, or 0
+	 *                       for none; it is not applied to the commit
+	 * @param maxRows        the most rows to keep from each statement that returns
+	 *                       rows; 0 keeps none, and a negative number keeps them
+	 *                       all
+	 * @return what happened to each statement, after the commit succeeded
+	 * @throws SqlTransactionException         when the transaction did not commit:
+	 *                                         a statement failed, the time limit
+	 *                                         was reached, or the commit failed. It
+	 *                                         carries what happened to each
+	 *                                         statement.
+	 * @throws SQLFeatureNotSupportedException when the database commits data
+	 *                                         definition as soon as it runs and a
+	 *                                         script of more than one statement has
+	 *                                         a statement that does not only read
+	 *                                         or change rows, so no statement ran
+	 * @throws SQLException                    when no connection could be opened,
+	 *                                         so no statement ran
+	 */
+	default SqlTransactionResult executeInTransaction(List<String> statements, int timeoutSeconds, int maxRows)
+			throws SQLException {
+		throw new UnsupportedOperationException(
+				"Database " + getEngineId() + " does not run SQL statements in one transaction");
+	}
 
 	/**
 	 * Return the engine metadata

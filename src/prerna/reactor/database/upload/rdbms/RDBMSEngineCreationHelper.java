@@ -29,10 +29,11 @@ package prerna.reactor.database.upload.rdbms;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -73,22 +74,18 @@ public class RDBMSEngineCreationHelper {
 		AbstractSqlQueryUtil queryUtil = rdbms.getQueryUtil();
 		RdbmsTypeEnum driverEnum = rdbms.getDbType();
 
-		// table that will store
-		// table_name -> {
-		// colname1 -> coltype,
-		// colname2 -> coltype,
-		// }
+		// {table_name -> { colname1 -> coltype, colname2 -> coltype}}
 		Map<String, Map<String, String>> tableColumnMap = new Hashtable<String, Map<String, String>>();
 
 		Connection con = null;
 		try {
+			con = rdbms.getConnection();
 			DatabaseMetaData meta = null;
 			try {
-				con = rdbms.getConnection();
 				meta = con.getMetaData();
 			} catch (SQLException e) {
-				classLogger.error("Failed to establish connection or retrieve database metadata", e);
-				throw new IllegalArgumentException("Could not make connection or get metadata.");
+				classLogger.error("Failed to establish database metadata", e);
+				throw new IllegalArgumentException("Failed to establish database metadata", e);
 			}
 
 			String catalogFilter = queryUtil.getDatabaseMetadataCatalogFilter();
@@ -105,47 +102,37 @@ public class RDBMSEngineCreationHelper {
 				schemaFilter = rdbms.getSchema();
 			}
 
-			String[] columnKeys = RdbmsConnectionHelper.getColumnKeys(driverEnum);
-			final String COLUMN_NAME_STR = columnKeys[0];
-			final String COLUMN_TYPE_STR = columnKeys[1];
-
-			CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter,
-					schemaFilter, driverEnum, tablesToRetrieve);
-			try {
+			// list the tables first, so their columns can be read together
+			List<String[]> tables = new ArrayList<>();
+			int schemaTableCount;
+			try (CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter,
+					schemaFilter, driverEnum, tablesToRetrieve)) {
 				while (tableViewIterator.hasNext()) {
-					String[] nextRow = tableViewIterator.next();
-					String tableOrView = nextRow[0];
-
-					// keep a map of the columns
-					Map<String, String> colDetails = new HashMap<String, String>();
-					// iterate through the columns
-
-					ResultSet columnsRs = null;
-					try {
-						columnsRs = RdbmsConnectionHelper.getColumns(meta, tableOrView, catalogFilter, schemaFilter,
-								driverEnum);
-						while (columnsRs.next()) {
-							colDetails.put(columnsRs.getString(COLUMN_NAME_STR), columnsRs.getString(COLUMN_TYPE_STR));
-						}
-					} catch (SQLException e) {
-						classLogger.error("Failed to retrieve columns for table {}", tableOrView, e);
-					} finally {
-						try {
-							if (columnsRs != null) {
-								columnsRs.close();
-							}
-						} catch (SQLException e1) {
-							classLogger.error("Failed to close columns result set for table {}", tableOrView, e1);
-						}
-					}
-					tableColumnMap.put(tableOrView, colDetails);
+					tables.add(tableViewIterator.next());
 				}
-			} finally {
-				if (tableViewIterator != null) {
-					tableViewIterator.close();
-				}
+				schemaTableCount = tableViewIterator.getListedCount();
 			}
+
+			// the columns of every table in one call for the whole schema, or a call per
+			// table when only a few of a large schema's tables are asked for; see
+			// readColumns
+			Map<String, List<RdbmsConnectionHelper.ColumnMetadata>> columnsByTable = RdbmsConnectionHelper
+					.readColumns(meta, tables, schemaTableCount, catalogFilter, schemaFilter, driverEnum);
+			for (String[] table : tables) {
+				// keep a map of the columns; a table whose columns could not be read has none
+				Map<String, String> colDetails = new HashMap<String, String>();
+				for (RdbmsConnectionHelper.ColumnMetadata column : columnsByTable.getOrDefault(table[0], List.of())) {
+					colDetails.put(column.name(), column.type());
+				}
+				tableColumnMap.put(table[0], colDetails);
+			}
+		} catch (SQLException e) {
+			classLogger.error("Failed to establish connection", e);
+			throw new IllegalArgumentException("Could not establish connection", e);
 		} finally {
+			// a pooled connection goes back to its pool; without pooling this is the
+			// engine's own connection, which every other query on the engine shares, so
+			// it stays open
 			if (con != null && rdbms.isConnectionPooling()) {
 				try {
 					con.close();

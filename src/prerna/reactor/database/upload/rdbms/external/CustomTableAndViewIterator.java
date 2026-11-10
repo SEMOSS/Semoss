@@ -55,10 +55,10 @@ public class CustomTableAndViewIterator implements Iterator<String[]>, Closeable
 	private ResultSet tablesRs;
 	private String[] tableKeys;
 	private Collection<String> tableAndViewFilters;
-//	private boolean useDirectValues = false;
-//	private Iterator<String> directValuesIterator;
 
 	private String[] currRow = null;
+	// every table and view the listing held, kept or filtered out
+	private int listedCount = 0;
 
 	/**
 	 * Generates an iterator to either use the database metadata to get a list of
@@ -110,6 +110,7 @@ public class CustomTableAndViewIterator implements Iterator<String[]>, Closeable
 		boolean findValidRow = true;
 		try {
 			while (findValidRow && this.tablesRs.next()) {
+				this.listedCount++;
 				String tableOrViewName = this.tablesRs.getString(this.tableKeys[0]);
 				String tableType = this.tablesRs.getString(this.tableKeys[1]);
 				String tableSchema = this.tablesRs.getString(this.tableKeys[2]);
@@ -147,6 +148,18 @@ public class CustomTableAndViewIterator implements Iterator<String[]>, Closeable
 		String[] retRow = this.currRow;
 		this.currRow = null;
 		return retRow;
+	}
+
+	/**
+	 * How many tables and views the listing has held so far, those filtered out
+	 * included. Once the iterator is done, it is the size of the whole schema,
+	 * which {@link RdbmsConnectionHelper#readColumns} weighs against the tables
+	 * kept.
+	 *
+	 * @return the number of tables and views listed
+	 */
+	public int getListedCount() {
+		return this.listedCount;
 	}
 
 	@Override
