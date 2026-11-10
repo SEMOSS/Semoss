@@ -127,6 +127,7 @@ public final class SubAgentDispatcher {
 
 		SpawnRequest req = new SpawnRequest();
 		req.completionMode = completionModeArg(args);
+		req.label = stringArg(args, "label");
 		req.parentJobId = resolveParentJobId(parentJobId);
 		logger.info(
 				"SubAgentDispatcher.spawnNamed: alias={} parentJobId={} (explicit={}) parentRoomId={} inheritWorkdir={}",
@@ -192,6 +193,7 @@ public final class SubAgentDispatcher {
 
 		SpawnRequest req = new SpawnRequest();
 		req.completionMode = completionModeArg(args);
+		req.label = stringArg(args, "label");
 		req.parentJobId = resolveParentJobId(parentJobId);
 		logger.info("SubAgentDispatcher.spawnAnonymous: parentJobId={} (explicit={}) parentRoomId={} inheritWorkdir={}",
 				req.parentJobId, parentJobId, parentRoom.getId(), inheritParentWorkdir);
@@ -361,6 +363,9 @@ public final class SubAgentDispatcher {
 		out.put("runId", result.getRunId());
 		out.put("roomId", result.getRoomId());
 		out.put("status", result.getStatus() == null ? null : result.getStatus().name());
+		if (result.getLabel() != null) {
+			out.put("label", result.getLabel());
+		}
 		if (result.getAlias() != null) {
 			out.put("alias", result.getAlias());
 		}

@@ -134,13 +134,8 @@ public final class SubAgentToolSynthesizer {
         properties.put("prompt", schemaString(
                 "Task, instructions, and all task-specific context or data for the "
                         + spec.getAlias() + " subagent. The named subagent always uses its configured system prompt."));
-        // Issue 3857: a short, human-readable name for this specific job, shown to the user as the
-        // subagent's name in the chat. Optional here (the subagent's configured name is the fallback),
-        // but a task-specific label reads better than the generic alias.
         properties.put("label", schemaString(
-                "Optional short, human-readable name for this specific job, a few words only (e.g. "
-                        + "\"Read NIH mail from this week\"). Shown to the user as the subagent's name in the chat. "
-                        + "When omitted, the subagent's configured name is used."));
+                "A concise, human-readable name for this specific task, a few words based on the prompt. Set this when spawning."));
         properties.put("inherit_parent_workdir", schemaBool(
                 "When true, the subagent operates on YOUR resolved working directory (shared filesystem -- any "
                         + "WriteFile/EditFile calls land in YOUR working directory). Stream + history stay isolated. "
@@ -158,9 +153,10 @@ public final class SubAgentToolSynthesizer {
         inputSchema.put("required", Collections.singletonList("prompt"));
 
         String description = spec.getDescription() != null && !spec.getDescription().isBlank()
-                ? spec.getDescription() + " (Returns a jobId handle; completionMode says how the result comes back.)"
+                ? spec.getDescription() + " Set label to a concise name for this task. "
+                        + "(Returns a jobId handle; completionMode says how the result comes back.)"
                 : "Delegate to the '" + spec.getAlias() + "' subagent. Returns a jobId handle; completionMode says "
-                        + "how the result comes back.";
+                        + "how the result comes back. Set label to a concise name for this task.";
 
         Map<String, Object> tool = new LinkedHashMap<>();
         tool.put("name", spec.getAlias());
@@ -182,12 +178,8 @@ public final class SubAgentToolSynthesizer {
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("prompt", schemaString(
                 "Task / instructions for the spawned anonymous subagent."));
-        // Issue 3857: a short, human-readable name for the subagent's job so the UI can label
-        // its card with a real name instead of "Child agent". Set it on every spawn.
         properties.put("label", schemaString(
-                "A short, human-readable name for this subagent's job, a few words only (e.g. "
-                        + "\"Read NIH mail from this week\" or \"Draft the intro section\"). Shown to the user as "
-                        + "the subagent's name in the chat. Always set it, in the imperative, describing the task."));
+                "A concise, human-readable name for this specific task, a few words based on the prompt. Set this when spawning."));
         properties.put("context", schemaString(
                 "Optional override system prompt for the spawned subagent."));
         properties.put("inherit_parent_workdir", schemaBool(
@@ -210,6 +202,7 @@ public final class SubAgentToolSynthesizer {
         tool.put("name", TOOL_SPAWN_SUBAGENT);
         tool.put("description",
                 "Spawn an anonymous subagent (clone of yourself: same model, MCP tools, system prompt). "
+                        + "Set label to a concise name for the task. "
                         + "Returns a jobId handle IMMEDIATELY. With the default completionMode=WAIT, call "
                         + "WaitForSubAgent(jobId) to collect the final answer. "
                         + "You may spawn multiple subagents in parallel before waiting on any.");

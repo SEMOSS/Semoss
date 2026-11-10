@@ -44,17 +44,19 @@ public final class SubAgentMeta {
 	private final String jobId;
 	private final String parentJobId;
 	private final String alias;
+	private final String label;
 	private final String workspaceId;
 	private final String childRoomId;
 	private final long spawnedAt;
 	// Root=0, direct children=1, etc.
 	private final int spawnDepth;
 
-	public SubAgentMeta(String jobId, String parentJobId, String alias, String workspaceId, String childRoomId,
-			long spawnedAt, int spawnDepth) {
+	public SubAgentMeta(String jobId, String parentJobId, String alias, String label, String workspaceId,
+			String childRoomId, long spawnedAt, int spawnDepth) {
 		this.jobId = jobId;
 		this.parentJobId = parentJobId;
 		this.alias = alias;
+		this.label = label;
 		this.workspaceId = workspaceId;
 		this.childRoomId = childRoomId;
 		this.spawnedAt = spawnedAt;
@@ -83,6 +85,11 @@ public final class SubAgentMeta {
 	 */
 	public String getAlias() {
 		return alias;
+	}
+
+	/** Short display name for this specific subagent task; {@code null} if absent. */
+	public String getLabel() {
+		return label;
 	}
 
 	/** Target child workspace id; {@code null} for anonymous (clone) spawns. */

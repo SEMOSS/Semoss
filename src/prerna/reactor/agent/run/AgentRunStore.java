@@ -308,10 +308,10 @@ public final class AgentRunStore {
 				return null;
 			}
 			Map<String, Object> run = runMapFromRow(rs);
-			// Issue 3857: the inspector reads a single run; give it the same executor
-			// and sub-agent-name fields the child-card list gets, so the side panel
-			// shows the real name and never a bare "Agent run".
-			applyExecutorFields(run, rs.getString("REQUEST_JSON"));
+			AgentRunRequest request = requestFromJson(rs.getString("REQUEST_JSON"));
+			if (request != null && request.getLabel() != null) {
+				run.put("label", request.getLabel());
+			}
 			return run;
 		} catch (Exception e) {
 			if (e instanceof SecurityException) {
@@ -1083,8 +1083,8 @@ public final class AgentRunStore {
 	}
 
 	/**
-	 * Keeps the final text a cancelled run's thread still reached, without
-	 * touching its status, error or completion time, which the cancel set.
+	 * Keeps the final text a cancelled run's thread still reached, without touching
+	 * its status, error or completion time, which the cancel set.
 	 *
 	 * @param runId       the run
 	 * @param finalOutput its final text

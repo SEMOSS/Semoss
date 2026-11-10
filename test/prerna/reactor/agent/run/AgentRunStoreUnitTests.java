@@ -85,12 +85,31 @@ class AgentRunStoreUnitTests {
 		when(user.getPrimaryLoginToken()).thenReturn(login);
 		Insight insight = mock(Insight.class);
 		when(insight.getUser()).thenReturn(user);
+		when(insight.getUserId()).thenReturn(userId);
 		return insight;
 	}
 
 	private static AgentRunRequest request(String roomId) {
 		return new AgentRunRequest(roomId, "Summarize the report", "model-1", "semoss", "agent-a", 5, 1, null, null,
 				null);
+	}
+
+	@Test
+	void aSubagentLabelSurvivesRequestPersistence() {
+		AgentRunRequest original = request("r1").withLabel("Read NIH mail");
+		AgentRunRequest restored = AgentRunRequest.fromPersistedMap(original.toPersistedMap(), null);
+
+		assertEquals("Read NIH mail", restored.getLabel());
+	}
+
+	@Test
+	void runDetailsExposeThePersistedSubagentLabel() throws Exception {
+		AgentRunStore.insertSubmitted("labeled-run", request("r1").withLabel("Read NIH mail"), "alice",
+				"MICROSOFT");
+
+		Map<String, Object> run = AgentRunStore.getRunMap("labeled-run", signedInAs("alice", AuthProvider.MICROSOFT));
+
+		assertEquals("Read NIH mail", run.get("label"));
 	}
 
 	@Test

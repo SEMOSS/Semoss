@@ -63,9 +63,6 @@ public final class AgentRunRequest {
 	private final int continuationDepth;
 	// Display name of the person answering a HUMAN child; null for agent runs.
 	private final String humanExecutorLabel;
-	// Issue 3857: a short, human-readable label for a sub-agent's job (a few words),
-	// set by the spawn tool so the UI can show a real name instead of "Child agent".
-	// Persisted in REQUEST_JSON via toPersistedMap and surfaced on the run read.
 	private final String label;
 	private final SubAgentRunCompletionMode completionMode;
 	private final String input;
@@ -108,7 +105,7 @@ public final class AgentRunRequest {
 		this.continuationChildRunId = trimmedStringValue(continuationChildRunId);
 		this.continuationDepth = Math.max(0, continuationDepth);
 		this.humanExecutorLabel = humanExecutorLabel == null ? null : humanExecutorLabel.trim();
-		this.label = label == null || label.trim().isEmpty() ? null : label.trim();
+		this.label = trimmedStringValue(label);
 		this.completionMode = completionMode == null ? SubAgentRunCompletionMode.WAIT : completionMode;
 		this.input = input;
 		this.engineIdFallback = engineIdFallback;
@@ -178,6 +175,13 @@ public final class AgentRunRequest {
 				ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel, label);
 	}
 
+	/** Returns an immutable copy carrying a display label for this run. */
+	public AgentRunRequest withLabel(String label) {
+		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
+				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode,
+				ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel, label);
+	}
+
 	/** Builds a fresh same-room run that follows one detached child result. */
 	AgentRunRequest forContinuation(String parentRoomId, String childRunId, String continuationInput,
 			Insight continuationInsight) {
@@ -185,8 +189,8 @@ public final class AgentRunRequest {
 		Map<String, Object> continuationAgentParams = new HashMap<>(agentParamMap);
 		continuationAgentParams.remove(AgentRunner.AGENT_PARAM_USER_TEXT);
 		return new AgentRunRequest(parentRoomId, continuationInput, engineIdFallback, harnessType, workspaceId,
-				maxTurns, maxReflections, paramMap, continuationAgentParams, null, null, continuationInsight, false, null,
-				SubAgentRunCompletionMode.WAIT, ownerAuthType, childRunId, continuationDepth + 1, null, label);
+				maxTurns, maxReflections, paramMap, continuationAgentParams, null, null, continuationInsight, false,
+				null, SubAgentRunCompletionMode.WAIT, ownerAuthType, childRunId, continuationDepth + 1, null, null);
 	}
 
 	/**
@@ -204,20 +208,12 @@ public final class AgentRunRequest {
 		return humanExecutorLabel != null;
 	}
 
-	/** Issue 3857: the short sub-agent job label, or null when none was set. */
-	public String getLabel() {
-		return label;
-	}
-
-	/** Returns an immutable copy carrying the given sub-agent job label. */
-	public AgentRunRequest withLabel(String newLabel) {
-		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
-				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode,
-				ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel, newLabel);
-	}
-
 	public String getHumanExecutorLabel() {
 		return humanExecutorLabel;
+	}
+
+	public String getLabel() {
+		return label;
 	}
 
 	public String getInput() {
@@ -313,7 +309,7 @@ public final class AgentRunRequest {
 				ValueUtils.toNonBlankString(map.get("continuationChildRunId")),
 				intValue(map.get("continuationDepth"), 0),
 				"HUMAN".equals(map.get("executorType")) ? String.valueOf(map.getOrDefault("executorLabel", "")) : null,
-				ValueUtils.toNonBlankString(map.get("label")));
+				trimmedStringValue(map.get("label")));
 	}
 
 	private static String resolveOwnerAuthType(Insight insight) {
