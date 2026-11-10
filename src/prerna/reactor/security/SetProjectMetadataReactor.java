@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -71,18 +72,11 @@ public class SetProjectMetadataReactor extends AbstractSetMetadataReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Define metadata on a project";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(META)) {
-			return "Map containing {'metaKey':['value1','value2', etc.]} containing the list of metadata values to define on the database. The list of values will determine the order that is defined for field";
-		} else if (key.equals(ReactorKeysEnum.JSON_CLEANUP.getKey())) {
-			return "Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Define metadata on a project").key(META,
+				"Map containing {'metaKey':['value1','value2', etc.]} containing the list of metadata values to define on the database. The list of values will determine the order that is defined for field")
+				.key(ReactorKeysEnum.JSON_CLEANUP,
+						"Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.");
 	}
 
 }

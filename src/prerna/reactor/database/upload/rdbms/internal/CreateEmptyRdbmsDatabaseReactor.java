@@ -50,6 +50,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -217,26 +218,14 @@ public class CreateEmptyRdbmsDatabaseReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates a new, empty H2 or SQLite database without requiring a file upload or predefined schema. "
-				+ "Tables can be added later via SQL or the metamodel API.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(UploadInputUtility.DATABASE)) {
-			return "The name of the new database to create";
-		}
-		if (key.equals(RDBMS_TYPE_KEY)) {
-			return "The database engine type: H2_DB (default) or SQLITE";
-		}
-		if (key.equals(USERNAME_KEY)) {
-			return "The database username (default: sa for H2, empty for SQLite)";
-		}
-		if (key.equals(PASSWORD_KEY)) {
-			return "The database password (default: empty)";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Creates a new, empty H2 or SQLite database without requiring a file upload or predefined schema. "
+						+ "Tables can be added later via SQL or the metamodel API.")
+				.key(UploadInputUtility.DATABASE, "The name of the new database to create")
+				.key(RDBMS_TYPE_KEY, "The database engine type: H2_DB (default) or SQLITE")
+				.key(USERNAME_KEY, "The database username (default: sa for H2, empty for SQLite)")
+				.key(PASSWORD_KEY, "The database password (default: empty)");
 	}
 
 }

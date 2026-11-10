@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import java.util.Map;
 
 import prerna.collaboration.BrainTopicReviewUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /** Save the editable draft against the last observed revision. */
@@ -51,17 +52,11 @@ public class BrainSaveTopicReviewReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Saves an owner-scoped topic-review draft with revision checking; no topic profiles or thread assignments are applied";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		return switch (key) {
-		case "reviewId" -> "The review ID returned by BrainStartTopicReview";
-		case "revision" -> "Last observed saved draft revision; conflicting edits are rejected";
-		case "draft" -> "topics list (maximum 100): key, id, name, description, short (empty uses name), keep and removedPeople. Source evidence is server-owned";
-		default -> super.getDescriptionForKey(key);
-		};
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Saves an owner-scoped topic-review draft with revision checking; no topic profiles or thread assignments are applied")
+				.key("reviewId", "The review ID returned by BrainStartTopicReview")
+				.key("revision", "Last observed saved draft revision; conflicting edits are rejected").key("draft",
+						"topics list (maximum 100): key, id, name, description, short (empty uses name), keep and removedPeople. Source evidence is server-owned");
 	}
 }

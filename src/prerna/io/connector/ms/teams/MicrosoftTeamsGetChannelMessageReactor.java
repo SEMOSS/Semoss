@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -108,15 +109,12 @@ public class MicrosoftTeamsGetChannelMessageReactor extends AbstractMicrosoftTea
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Read one message posted in a Microsoft Teams channel, with the replies underneath it when they are asked for.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(REPLY_ID)) {
-			return "Optional id of a reply to the message, which is what is read when it is given.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Read one message posted in a Microsoft Teams channel, with the replies underneath it when they are asked for.")
+				.key(TEAM_ID, TEAM_ID_DESCRIPTION).key(CHANNEL_ID, CHANNEL_ID_DESCRIPTION)
+				.key(MESSAGE_ID, MESSAGE_ID_DESCRIPTION).key(INCLUDE_REPLIES, INCLUDE_REPLIES_DESCRIPTION)
+				.key(MAX_BODY_CHARS, MAX_BODY_CHARS_DESCRIPTION)
+				.key(REPLY_ID, "Optional id of a reply to the message, which is what is read when it is given.");
 	}
 }

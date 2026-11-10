@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.WorkThreadInsights;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkGetThreadInsights(threadId=["..."]);
@@ -52,16 +53,10 @@ public class WorkGetThreadInsightsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "A thread's summary, whether it covers the newest message, the background run's status (running, done, "
-				+ "failed with error) and the thread's action items";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"A thread's summary, whether it covers the newest message, the background run's status (running, done, "
+						+ "failed with error) and the thread's action items")
+				.key(THREAD_ID, "Thread id");
 	}
 }

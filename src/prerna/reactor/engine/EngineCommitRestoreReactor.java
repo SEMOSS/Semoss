@@ -41,6 +41,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -134,18 +135,10 @@ public class EngineCommitRestoreReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor reverts an engine to the requested commit id";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The engine id to revert";
-		} else if (key.equals(COMMIT_ID_KEY)) {
-			return "The commit id to revert to";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("This reactor reverts an engine to the requested commit id")
+				.key(ReactorKeysEnum.ENGINE, "The engine id to revert")
+				.key(COMMIT_ID_KEY, "The commit id to revert to");
 	}
 
 }

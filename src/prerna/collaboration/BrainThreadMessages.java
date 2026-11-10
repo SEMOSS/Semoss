@@ -196,6 +196,7 @@ public final class BrainThreadMessages {
 		// shown emails that Graph says carry attachments; listed once the page is known
 		List<String> withAttachments = new ArrayList<>();
 		int unavailable = 0;
+		List<String> failedAt = new ArrayList<>();
 		int next = 0;
 		Exception firstError = null;
 		while (next < candidates.size() && out.size() < max) {
@@ -213,6 +214,7 @@ public final class BrainThreadMessages {
 				if (fetched.get(i).error() != null) {
 					firstError = firstError == null ? fetched.get(i).error() : firstError;
 					unavailable++;
+					failedAt.add(row.at());
 					continue;
 				}
 				Map<String, Object> message = fetched.get(i).message();
@@ -233,7 +235,7 @@ public final class BrainThreadMessages {
 				// have
 				Map<String, Object> clean = "teams".equals(source)
 						? Map.of("body", MicrosoftMessageDisplay.text(message))
-						: clean(message, row == rows.get(rows.size() - 1));
+						: clean(message, row == rows.get(rows.size() - 1), rules, ownerId, ownerType);
 				if (BrainRulesGate.keywordRule(rules, (String) clean.get("subject"),
 						(String) clean.get("body")) != null) {
 					hidden++;
@@ -276,6 +278,10 @@ public final class BrainThreadMessages {
 		result.put("messages", out);
 		result.put("hiddenCount", hidden);
 		result.put("unavailableCount", unavailable);
+		// when each failed fetch arrived, so Work's cursor waits for it; a gone message is not waited for
+		if (!failedAt.isEmpty()) {
+			result.put("failedAt", failedAt);
+		}
 		result.put("hasMore", next < candidates.size());
 		if (next > 0 && next < candidates.size()) {
 			result.put("nextCursor", Base64.getUrlEncoder().withoutPadding().encodeToString(
@@ -410,7 +416,7 @@ public final class BrainThreadMessages {
 			return null;
 		}
 		Map<String, Object> clean = "teams".equals(source) ? Map.of("body", MicrosoftMessageDisplay.text(message))
-				: clean(message, row == rows.get(rows.size() - 1));
+				: clean(message, row == rows.get(rows.size() - 1), rules, ownerId, ownerType);
 		if (BrainRulesGate.keywordRule(rules, (String) clean.get("subject"), (String) clean.get("body")) != null) {
 			return null;
 		}
@@ -513,12 +519,24 @@ public final class BrainThreadMessages {
 		return false;
 	}
 
-	private static Map<String, Object> clean(Map<String, Object> message, boolean keepHistory) {
+	private static Map<String, Object> clean(Map<String, Object> message, boolean keepHistory,
+			List<BrainRulesGate.Rule> rules, String ownerId, String ownerType) {
+		Map<String, Object> clean = clean(message, keepHistory, true);
+		// a never-ingest sender's own mail has no thread, so the reply or forward quoting it is what holds it
+		String from = BrainRulesGate.norm((String) clean.get("historyFrom"));
+		if (from != null && BrainRulesGate.neverRule(rules, from, BrainRulesGate.findPerson(ownerId, ownerType, from),
+				null) != null) {
+			return clean(message, false, false);
+		}
+		return clean;
+	}
+
+	private static Map<String, Object> clean(Map<String, Object> message, boolean keepHistory, boolean keepForward) {
 		Map<String, Object> unique = content(message.get("uniqueBody"));
 		Map<String, Object> body = content(message.get("body"));
 		return BrainMessageText.extract(CollaborationDbUtils.asString(message.get("subject")),
 				(String) unique.get("content"), (String) unique.get("contentType"), (String) body.get("content"),
-				(String) body.get("contentType"), keepHistory);
+				(String) body.get("contentType"), keepHistory, keepForward);
 	}
 
 	private static Map<String, Object> entry(Row row, Map<String, Object> clean, Map<String, Object> sender,

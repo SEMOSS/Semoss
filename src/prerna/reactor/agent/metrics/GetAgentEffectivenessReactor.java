@@ -38,6 +38,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.AgentRunStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -147,26 +148,15 @@ public class GetAgentEffectivenessReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Scores agent effectiveness for a room or single run: tool failure rates, improper tool use "
-				+ "(unknown tools, malformed arguments, identical retries, unanswered calls), skill loading, "
-				+ "turn counts, token usage, and a weighted 0-100 effectiveness score per run.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ROOM_ID_KEY.equals(key)) {
-			return "Room whose agent runs should be scored. Required unless runId is provided.";
-		}
-		if (RUN_ID_KEY.equals(key)) {
-			return "Single agent run to score. Required unless roomId is provided.";
-		}
-		if (INCLUDE_RUNS_KEY.equals(key)) {
-			return "When false, per-run detail is reduced to runId/status/score summaries. Defaults to true.";
-		}
-		if (LIMIT_KEY.equals(key)) {
-			return "Maximum number of most-recent runs to score in room mode. Defaults to 50.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Scores agent effectiveness for a room or single run: tool failure rates, improper tool use "
+						+ "(unknown tools, malformed arguments, identical retries, unanswered calls), skill loading, "
+						+ "turn counts, token usage, and a weighted 0-100 effectiveness score per run.")
+				.key(ROOM_ID_KEY, "Room whose agent runs should be scored. Required unless runId is provided.")
+				.key(RUN_ID_KEY, "Single agent run to score. Required unless roomId is provided.")
+				.key(INCLUDE_RUNS_KEY,
+						"When false, per-run detail is reduced to runId/status/score summaries. Defaults to true.")
+				.key(LIMIT_KEY, "Maximum number of most-recent runs to score in room mode. Defaults to 50.");
 	}
 }

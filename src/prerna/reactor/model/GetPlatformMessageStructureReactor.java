@@ -33,6 +33,7 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -71,20 +72,15 @@ public class GetPlatformMessageStructureReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Returns the current message history for a room in the exact JSON format sent to Python on ask/askRoom calls.
-				The output is a JSON array of SEMOSSMessage objects that can be deserialized using the semoss_models.py pydantic models:
-				  from genai_client.message_builders.semoss_base.semoss_models import SEMOSSMessage
-				  messages = [SEMOSSMessage(**m) for m in json.loads(result)]
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-			return "The room ID whose message history should be returned";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Returns the current message history for a room in the exact JSON format sent to Python on ask/askRoom calls.
+								The output is a JSON array of SEMOSSMessage objects that can be deserialized using the semoss_models.py pydantic models:
+								  from genai_client.message_builders.semoss_base.semoss_models import SEMOSSMessage
+								  messages = [SEMOSSMessage(**m) for m in json.loads(result)]
+								""")
+				.key(ReactorKeysEnum.ROOM_ID, "The room ID whose message history should be returned");
 	}
 }

@@ -44,6 +44,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.stream.JsonReader;
 
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -111,8 +112,8 @@ public class LoadProjectMetadataReactor extends AbstractSetMetadataReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Define metadata on a project through a JSON file";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Define metadata on a project through a JSON file");
 	}
 
 }

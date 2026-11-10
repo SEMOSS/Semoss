@@ -31,9 +31,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -102,8 +102,7 @@ public class JiraUtils {
 		}
 		String trimmed = id.trim();
 		if (!NUMERIC_ID_PATTERN.matcher(trimmed).matches()) {
-			throw new SemossPixelException(
-					"Invalid " + fieldName + ": '" + trimmed + "'. Must be a numeric ID.");
+			throw new SemossPixelException("Invalid " + fieldName + ": '" + trimmed + "'. Must be a numeric ID.");
 		}
 		return trimmed;
 	}
@@ -138,10 +137,10 @@ public class JiraUtils {
 			throw new SemossPixelException("User session is null. Please log in with Jira.");
 		}
 		AccessToken jiraToken = user.getAccessToken(AuthProvider.JIRA);
-        if (jiraToken == null) {
-            classLogger.error("No Jira token found for user.");
-            throw new SemossPixelException("No Jira token found for user. Please connect your Jira account.");
-        }
-        return jiraToken;
+		if (jiraToken == null) {
+			classLogger.error("No Jira token found for user.");
+			throw new SemossPixelException("No Jira token found for user. Please connect your Jira account.");
+		}
+		return jiraToken;
 	}
 }

@@ -29,13 +29,21 @@ package prerna.io.connector.ms.teams;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.endsWith;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
+import java.io.File;
+import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +52,7 @@ import org.apache.hc.core5.http.ContentType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
 import com.google.gson.Gson;
@@ -123,6 +132,92 @@ class MicrosoftTeamsMessageHelperUnitTests {
 		assertTrue(page.messages().isEmpty());
 		assertEquals(10, page.nextOffset());
 		assertFalse(page.hasMore());
+	}
+
+	@Test
+	void pastedContentIsStreamedToTheNameAskedForAndAnswersAsBefore(@TempDir Path folder) throws Exception {
+		servePastedContent(false);
+
+		Map<String, Object> result = MicrosoftTeamsMessageHelper.downloadAttachment("token", "19:a@thread.v2", null,
+				null, "m1", null, null, folder.toString(), "screenshot.png");
+		assertEquals(Map.of("attachmentId", "h1", "name", "screenshot.png", "filePath", "screenshot.png", "size", 5,
+				"success", true), result);
+		assertEquals("hello", Files.readString(folder.resolve("screenshot.png")));
+		assertEquals(List.of("screenshot.png"), List.of(folder.toFile().list()));
+		http.verify(() -> HttpHelperUtility.getRequestBytes(any(), any(), any(), any(), any()), never());
+	}
+
+	@Test
+	void pastedContentThatRunsPastTheCapIsDeletedAndRefused(@TempDir Path folder) {
+		servePastedContent(true);
+
+		IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+				() -> MicrosoftTeamsMessageHelper.downloadAttachment("token", "19:a@thread.v2", null, null, "m1", null,
+						null, folder.toString(), "screenshot.png"));
+		assertEquals("screenshot.png is larger than the 100 MB limit for a download.", refused.getMessage());
+		assertEquals(0, folder.toFile().list().length);
+	}
+
+	@Test
+	void aPastedImageIsFoundThroughTheMessagesOwnListing(@TempDir Path folder) throws Exception {
+		servePastedContent(false);
+
+		Map<String, Object> result = MicrosoftTeamsMessageHelper.downloadAttachment("token", "19:a@thread.v2", null,
+				null, "m1", null, null, folder.toString(), null);
+		assertEquals("h1", result.get("attachmentId"));
+		http.verify(() -> HttpHelperUtility.getRequestFileDownload(endsWith("/messages/m1/hostedContents/h1/$value"),
+				any(), isNull(), isNull(), isNull(), anyString(), anyString()));
+	}
+
+	@Test
+	void readingAMessageListsThePastedImagesItShows() throws Exception {
+		servePastedContent(false);
+
+		Map<String, Object> message = MicrosoftTeamsMessageHelper.getChatMessage("token", "19:a@thread.v2", "m1", 0);
+		assertEquals(List.of(Map.of("id", "h1")), message.get("hostedContents"));
+	}
+
+	@Test
+	void plainTextIsSentAsWrittenAndEscapedOnlyInsideHtml() throws Exception {
+		MicrosoftTeamsMessageHelper.sendChatMessage("token", "48:notes", "Q&A <draft>", false, null, null, null, 0);
+		MicrosoftTeamsMessageHelper.sendChatMessage("token", "48:notes", "Q&A <draft>", false, null,
+				new String[] { "https://contoso.sharepoint.com/a.docx" }, null, 0);
+
+		assertEquals(Map.of("contentType", "text", "content", "Q&A <draft>"), body(requests.get(0)));
+		// beside an attachment the body is html, where the same text has to be escaped
+		assertEquals("html", body(requests.get(1)).get("contentType"));
+		assertTrue(String.valueOf(body(requests.get(1)).get("content")).startsWith("Q&amp;A &lt;draft&gt;<attachment"));
+	}
+
+	private static Map<?, ?> body(String request) {
+		return (Map<?, ?>) GSON.fromJson(request, Map.class).get("body");
+	}
+
+	// a message holding one pasted image, whose bytes run past the cap when oversized; Graph
+	// lists the image only under the message's own hostedContents
+	private void servePastedContent(boolean oversized) {
+		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
+				.thenAnswer(call -> call.<String>getArgument(0).endsWith("/hostedContents")
+						? GSON.toJson(Map.of("value", List.of(Map.of("id", "h1"))))
+						: GSON.toJson(Map.of("id", "m1", "body", Map.of("contentType", "html", "content",
+								"<p><img src=\"https://graph.microsoft.com/v1.0/chats/19:a@thread.v2/messages/m1"
+										+ "/hostedContents/h1/$value\"></p>"))));
+		// a read into memory
+		http.when(() -> HttpHelperUtility.getRequestBytes(anyString(), any(), isNull(), isNull(), isNull()))
+				.thenReturn("hello".getBytes(StandardCharsets.UTF_8));
+		// a read onto disk
+		http.when(() -> HttpHelperUtility.getRequestFileDownload(anyString(), any(), isNull(), isNull(), isNull(),
+				anyString(), anyString())).thenAnswer(call -> {
+					File file = new File(call.<String>getArgument(5), call.<String>getArgument(6));
+					try (RandomAccessFile out = new RandomAccessFile(file, "rw")) {
+						out.write("hello".getBytes(StandardCharsets.UTF_8));
+						if (oversized) {
+							// sparse, so nothing that size is written
+							out.setLength(100L * 1024L * 1024L + 1);
+						}
+					}
+					return file;
+				});
 	}
 
 	private static Map<String, Object> chatHit(String id, String createdDateTime) {

@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -116,19 +117,10 @@ public class DeleteStepReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Deletes a specific step from the Playwright session history by step ID.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "The ID of the current Playwright session";
-		} else if (key.equals("tabId")) {
-			return "The ID of the tab containing the step";
-		} else if (key.equals("stepId")) {
-			return "The ID of the step to delete";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Deletes a specific step from the Playwright session history by step ID.")
+				.key("sessionId", "The ID of the current Playwright session")
+				.key("tabId", "The ID of the tab containing the step").key("stepId", "The ID of the step to delete");
 	}
 }

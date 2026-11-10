@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.security;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +44,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -107,10 +107,8 @@ public class MyEnginesReactor extends AbstractReactor {
 			}
 
 			if (!noMeta) {
-				IRawSelectWrapper wrapper = null;
-				try {
-					wrapper = SecurityEngineUtils.getEngineMetadataWrapper(index.keySet(),
-							getListString(ReactorKeysEnum.META_KEYS.getKey()), true);
+				try (IRawSelectWrapper wrapper = SecurityEngineUtils.getEngineMetadataWrapper(index.keySet(),
+						getListString(ReactorKeysEnum.META_KEYS.getKey()), true)) {
 					while (wrapper.hasNext()) {
 						Object[] data = wrapper.next().getValues();
 						String databaseId = (String) data[0];
@@ -141,14 +139,6 @@ public class MyEnginesReactor extends AbstractReactor {
 					}
 				} catch (Exception e) {
 					classLogger.error("Error retrieving engine metadata in MyEnginesReactor", e);
-				} finally {
-					if (wrapper != null) {
-						try {
-							wrapper.close();
-						} catch (IOException e) {
-							classLogger.error("Error closing engine metadata wrapper in MyEnginesReactor", e);
-						}
-					}
 				}
 
 				try {
@@ -206,19 +196,35 @@ public class MyEnginesReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Returns a list of engines that the user has access to.
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Returns a list of engines that the user has access to.
 
-				Inputs: filterWord, limit, offset, onlyFavorites, engineType, engine, permissionFilters, metaKeys, metaFilters, noMeta, includeUserTracking, sort.
-				Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name, engine_user_permission, engine_group_permission, engine_favorite, engine_user_discoverable).
-				Model engines also include a capabilities object containing modelId, capability, inputModalities, outputModalities, contextWindow, maxOutputTokens, and builtinTools when model metadata is available and noMeta is false.
-				Any response key prefixed with app_* or database_* is legacy and should not be used.
-				""";
+								Inputs: filterWord, limit, offset, onlyFavorites, engineType, engine, permissionFilters, metaKeys, metaFilters, noMeta, includeUserTracking, sort.
+								Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name, engine_user_permission, engine_group_permission, engine_favorite, engine_user_discoverable).
+								Model engines also include a capabilities object containing modelId, capability, inputModalities, outputModalities, contextWindow, maxOutputTokens, and builtinTools when model metadata is available and noMeta is false.
+								Any response key prefixed with app_* or database_* is legacy and should not be used.
+								""")
+				.key(ReactorKeysEnum.ENGINE, "This is an optional engine filter")
+				.key(ReactorKeysEnum.SORT,
+						"The sort is a map with key and direction. Supported keys are 'ENGINENAME' and 'DATECREATED'. Use values like 'ASC' or 'DESC'. 'ENGINENAME' sorting is case-insensitive.")
+				.key(EFFECTIVE_PERMISSIONS,
+						"""
+								Keep only the resources whose effective permission is one of these levels: 1 (owner), 2 (edit), \
+								or 3 (read only). The effective permission is the better of the user's own grant and their \
+								groups' grant; a global resource without a grant counts as read only.""")
+				.key(CREATED_BY, """
+						Keep only the resources created by one of these creators. Each is a map with the creator's \
+						login "id" and login "type", such as {"id": "abc", "type": "MICROSOFT"}; both must match.""")
+				.key(CREATED_BY_ME,
+						"When true, keep only the resources the calling user created, under any login in their session.")
+				.outputSchema(responseSchema());
 	}
 
-	@Override
-	public JSONObject getResponseSchema() {
+	/** The engines this reactor returns, as JSON Schema. */
+	private static JSONObject responseSchema() {
 		JSONObject schema = new JSONObject();
 		schema.put("type", "array");
 		schema.put("description", "List of engine objects the user has access to");
@@ -269,27 +275,6 @@ public class MyEnginesReactor extends AbstractReactor {
 		items.put("properties", itemProperties);
 		schema.put("items", items);
 		return schema;
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.SORT.getKey())) {
-			return "The sort is a map with key and direction. Supported keys are 'ENGINENAME' and 'DATECREATED'. Use values like 'ASC' or 'DESC'. 'ENGINENAME' sorting is case-insensitive.";
-		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "This is an optional engine filter";
-		} else if (key.equals(EFFECTIVE_PERMISSIONS)) {
-			return """
-					Keep only the resources whose effective permission is one of these levels: 1 (owner), 2 (edit), \
-					or 3 (read only). The effective permission is the better of the user's own grant and their \
-					groups' grant; a global resource without a grant counts as read only.""";
-		} else if (key.equals(CREATED_BY)) {
-			return """
-					Keep only the resources created by one of these creators. Each is a map with the creator's \
-					login "id" and login "type", such as {"id": "abc", "type": "MICROSOFT"}; both must match.""";
-		} else if (key.equals(CREATED_BY_ME)) {
-			return "When true, keep only the resources the calling user created, under any login in their session.";
-		}
-		return super.getDescriptionForKey(key);
 	}
 
 }

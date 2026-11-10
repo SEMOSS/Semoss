@@ -28,7 +28,10 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkEventPlanningRoutine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+import java.util.Map;
 
 public class WorkSaveEventPlanningRoutineReactor extends AbstractCollaborationReactor {
 	public WorkSaveEventPlanningRoutineReactor() {
@@ -43,7 +46,10 @@ public class WorkSaveEventPlanningRoutineReactor extends AbstractCollaborationRe
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Opts the signed-in user into event planning for their pinned meetings, or pauses it";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Opts the signed-in user into event planning for their pinned meetings, or pauses it")
+				.key("settings", key -> key.type(Map.class).description(
+						"The event planning settings, as a map: enabled (true or false), time (HH:mm, 24-hour), days (a list of exactly one weekday, MON to SUN), timezone (an IANA time zone), meetings (up to 10 pinned meetings, each a map with kind series or event, id and title), ignored (meetings to ignore, in the same form) and preferences (optional free text). Turning it on needs at least one pinned meeting, and a meeting cannot be both pinned and ignored."));
 	}
 }

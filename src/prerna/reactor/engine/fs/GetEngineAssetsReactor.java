@@ -31,6 +31,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -83,18 +84,10 @@ public class GetEngineAssetsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Retrieve the contents of a file in the engine";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The unique id for the engine";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file to get the contents";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Retrieve the contents of a file in the engine")
+				.key(ReactorKeysEnum.ENGINE, "The unique id for the engine")
+				.key(ReactorKeysEnum.FILE_PATH, "Names of the file to get the contents");
 	}
 
 }

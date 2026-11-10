@@ -36,6 +36,7 @@ import java.util.UUID;
 
 import prerna.ds.py.PyUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.project.AutomationProjectService;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
@@ -92,7 +93,6 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	private NounMetadata addStep(String projectId, AutomationDefinitionService.DefinitionFiles files, String nodeType,
 			String label, String outputVar, String afterNodeId, String branchPort, Map<String, Object> config,
 			String customSource) {
-		@SuppressWarnings("unchecked")
 		Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
 		@SuppressWarnings("unchecked")
@@ -195,8 +195,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		String parentType = (String) parent.get(AutomationConstants.NODE_FIELD_TYPE);
 		if (!isRoutingNode(parentType)) {
 			if (branchPort != null && !branchPort.isBlank()) {
-				throw new IllegalArgumentException(
-						"branchPort can only be used when afterNodeId is a routing node.");
+				throw new IllegalArgumentException("branchPort can only be used when afterNodeId is a routing node.");
 			}
 			return AutomationConstants.CONTROL_PORT_OUT;
 		}
@@ -292,8 +291,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		}
 		updated.add(controlEdge(parentId, nodeId, sourcePort));
 		if (replaced != null) {
-			String nodePort = isRoutingNode(nodeType) ? firstCasePort(config)
-					: AutomationConstants.CONTROL_PORT_OUT;
+			String nodePort = isRoutingNode(nodeType) ? firstCasePort(config) : AutomationConstants.CONTROL_PORT_OUT;
 			updated.add(controlEdge(nodeId, replaced.get(AutomationConstants.EDGE_FIELD_TARGET).toString(), nodePort));
 		}
 		return updated;
@@ -325,33 +323,16 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Adds one typed automation node after a specified node.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "The Automation project ID or alias to update.";
-		}
-		if (NODE_TYPE_KEY.equals(key)) {
-			return "The supported typed node to add, such as model.chat or developer.python.";
-		}
-		if (CONFIG_KEY.equals(key)) {
-			return "The node configuration as a JSON object or Base64-encoded JSON object.";
-		}
-		if (LABEL_KEY.equals(key)) {
-			return "The user-facing node label.";
-		}
-		if (OUTPUT_VAR_KEY.equals(key)) {
-			return "The Python identifier that stores this node's output; omitted for routing nodes.";
-		}
-		if (AFTER_NODE_ID_KEY.equals(key)) {
-			return "The existing node after which this node is inserted; defaults to the last graph node.";
-		}
-		if (BRANCH_PORT_KEY.equals(key)) {
-			return "The else or case:<clause-id> port when inserting directly after a routing node.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Adds one typed automation node after a specified node.")
+				.key(ReactorKeysEnum.PROJECT, "The Automation project ID or alias to update.")
+				.key(NODE_TYPE_KEY, "The supported typed node to add, such as model.chat or developer.python.")
+				.key(CONFIG_KEY, "The node configuration as a JSON object or Base64-encoded JSON object.")
+				.key(LABEL_KEY, "The user-facing node label.")
+				.key(OUTPUT_VAR_KEY, "The Python identifier that stores this node's output; omitted for routing nodes.")
+				.key(AFTER_NODE_ID_KEY,
+						"The existing node after which this node is inserted; defaults to the last graph node.")
+				.key(BRANCH_PORT_KEY,
+						"The else or case:<clause-id> port when inserting directly after a routing node.");
 	}
 }

@@ -34,6 +34,7 @@ import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -131,43 +132,37 @@ public class ProjectInfoReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Returns the full settings/metadata record for a single project.
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Returns the full settings/metadata record for a single project.
 
-				Access: the project must be one the current user can view, or the project must be marked discoverable. \
-				If neither is true the reactor throws "Project does not exist or user does not have access to the project". \
-				Use AdminProjectInfo if you need to read a project without regard to the caller's permissions.
+								Access: the project must be one the current user can view, or the project must be marked discoverable. \
+								If neither is true the reactor throws "Project does not exist or user does not have access to the project". \
+								Use AdminProjectInfo if you need to read a project without regard to the caller's permissions.
 
-				Inputs:
-				  project  (required) - the project id.
-				  metaKeys (optional) - restrict the returned metadata tags to this list; omit to return all metadata.
+								Inputs:
+								  project  (required) - the project id.
+								  metaKeys (optional) - restrict the returned metadata tags to this list; omit to return all metadata.
 
-				Returns a single map (PROJECT_INFO/CUSTOM_DATA_STRUCTURE) containing:
-				  Core project fields: project_id, project_name, project_display_name, project_type, project_cost,
-				    project_global, project_discoverable, project_is_template, project_catalog_name, project_created_by, project_created_by_type,
-				    project_date_created, project_date_last_edited, low_project_name, project_description.
-				  Portal fields: project_has_portal, project_portal_name, project_portal_published_date, project_published_user,
-				    project_published_user_type, project_reactors_compiled_date, project_reactors_compiled_user,
-				    project_reactors_compiled_user_type. When project_has_portal is true, project_portal_url is also returned.
-				  Permission fields (relative to the calling user): user_permission, group_permission, permission, project_favorite.
-				  Metadata: one entry per metadata tag (e.g. tag, domain, etc.); a tag with multiple values is returned as a list.
-				  GitHub: if the project is linked to a GitHub repo, the link fields are returned prefixed with gh_ (e.g. gh_repo).
-				  Remote MCP (editors only): project_remote_mcp is true when the project points at an external MCP server, in \
-				    which case project_remote_mcp_endpoint and project_remote_mcp_auth_scheme are also returned. \
-				    project_remote_mcp_auth_token is a fixed mask when a credential is stored and empty when it is not - the \
-				    stored credential is never returned. Use SetRemoteMCP to change these.
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "Id of the project to look up";
-		} else if (ReactorKeysEnum.META_KEYS.getKey().equals(key)) {
-			return "Optional list of metadata tag names to return for the project; omit to return all metadata tags";
-		}
-		return super.getDescriptionForKey(key);
+								Returns a single map (PROJECT_INFO/CUSTOM_DATA_STRUCTURE) containing:
+								  Core project fields: project_id, project_name, project_display_name, project_type, project_cost,
+								    project_global, project_discoverable, project_is_template, project_catalog_name, project_created_by, project_created_by_type,
+								    project_date_created, project_date_last_edited, low_project_name, project_description.
+								  Portal fields: project_has_portal, project_portal_name, project_portal_published_date, project_published_user,
+								    project_published_user_type, project_reactors_compiled_date, project_reactors_compiled_user,
+								    project_reactors_compiled_user_type. When project_has_portal is true, project_portal_url is also returned.
+								  Permission fields (relative to the calling user): user_permission, group_permission, permission, project_favorite.
+								  Metadata: one entry per metadata tag (e.g. tag, domain, etc.); a tag with multiple values is returned as a list.
+								  GitHub: if the project is linked to a GitHub repo, the link fields are returned prefixed with gh_ (e.g. gh_repo).
+								  Remote MCP (editors only): project_remote_mcp is true when the project points at an external MCP server, in \
+								    which case project_remote_mcp_endpoint and project_remote_mcp_auth_scheme are also returned. \
+								    project_remote_mcp_auth_token is a fixed mask when a credential is stored and empty when it is not - the \
+								    stored credential is never returned. Use SetRemoteMCP to change these.
+								""")
+				.key(ReactorKeysEnum.PROJECT, "Id of the project to look up").key(ReactorKeysEnum.META_KEYS,
+						"Optional list of metadata tag names to return for the project; omit to return all metadata tags");
 	}
 
 }

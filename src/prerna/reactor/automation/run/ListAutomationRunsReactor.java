@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.project.AutomationProjectService;
 import prerna.sablecc2.om.PixelDataType;
@@ -80,16 +81,10 @@ public class ListAutomationRunsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists automation run history for a project, newest first.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.LIMIT.getKey().equals(key)) {
-			return "Optional maximum number of runs to return. Must be positive and is capped at " + MAXIMUM_LIMIT
-					+ ".";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Lists automation run history for a project, newest first.")
+				.key(ReactorKeysEnum.LIMIT,
+						"Optional maximum number of runs to return. Must be positive and is capped at " + MAXIMUM_LIMIT
+								+ ".");
 	}
 }

@@ -47,6 +47,7 @@ import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -213,8 +214,8 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Create a new guardrail engine";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Create a new guardrail engine");
 	}
 
 }

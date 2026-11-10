@@ -115,7 +115,7 @@ x-semoss-env: &semoss-env
 
 # shared service definition for every semoss node in the cluster
 x-semoss-service: &semoss-service
-  image: quay.io/semoss/semoss-dev:6.0.0-SNAPSHOT-ubuntu22-latest
+  image: quay.io/semoss/semoss-dev:6.1.0-SNAPSHOT-ubuntu22-latest
   pull_policy: always
   user: "1001:1001"
   command: /bin/bash -c "runCS.sh"
@@ -176,7 +176,7 @@ services:
 
   # cloud storage
   minio:
-    image: minio/minio:latest
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     container_name: minio
     ports:
       - "9000:9000"  # S3 API

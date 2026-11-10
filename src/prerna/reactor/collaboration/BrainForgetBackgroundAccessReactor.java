@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainConnection;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainForgetBackgroundAccess();
@@ -43,7 +44,9 @@ public class BrainForgetBackgroundAccessReactor extends AbstractCollaborationRea
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Remove the signed-in user's saved Microsoft background access; scheduled routines stop until it is saved again";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Remove the signed-in user's saved Microsoft background access; scheduled routines stop until it is saved again")
+				.noKeys();
 	}
 }

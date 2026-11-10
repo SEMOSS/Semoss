@@ -29,6 +29,7 @@ package prerna.reactor.qs;
 
 import org.json.JSONObject;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 /**
@@ -42,15 +43,12 @@ public class SparqlQueryReactor extends AbstractSparqlQueryReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.QUERY_KEY.getKey())) {
-			return """
-					The SPARQL SELECT query to execute. \
-					For convenience, instead of escaping quotes or backslashes you can wrap \
-					the input within "<encode>your_text</encode>" and the system will encode it for you.
-					""";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().key(ReactorKeysEnum.QUERY_KEY, """
+				The SPARQL SELECT query to execute. \
+				For convenience, instead of escaping quotes or backslashes you can wrap \
+				the input within "<encode>your_text</encode>" and the system will encode it for you.
+				""");
 	}
 
 	@Override

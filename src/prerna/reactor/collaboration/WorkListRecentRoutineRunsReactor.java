@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import java.util.Map;
 
 import prerna.collaboration.WorkRoutineRoom;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class WorkListRecentRoutineRunsReactor extends AbstractCollaborationReactor {
@@ -44,9 +45,11 @@ public class WorkListRecentRoutineRunsReactor extends AbstractCollaborationReact
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the five routines the signed-in user ran last, newest first, each with its two latest runs: the "
-				+ "routine id, a custom routine's name, and per run its id, whether it is running, completed or failed, "
-				+ "when it started and finished, and for a running run of the user's own routine the room to watch";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists the five routines the signed-in user ran last, newest first, each with its two latest runs: the "
+						+ "routine id, a custom routine's name, and per run its id, whether it is running, completed or failed, "
+						+ "when it started and finished, and for a running run of the user's own routine the room to watch")
+				.noKeys();
 	}
 }

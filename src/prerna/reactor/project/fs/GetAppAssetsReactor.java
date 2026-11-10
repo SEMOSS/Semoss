@@ -32,6 +32,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -83,18 +84,10 @@ public class GetAppAssetsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Retrieve the contents of a file in the projects assets folder";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file to get the contents. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Retrieve the contents of a file in the projects assets folder")
+				.key(ReactorKeysEnum.PROJECT, "The unique id for the project/app").key(ReactorKeysEnum.FILE_PATH,
+						"Names of the file to get the contents. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.");
 	}
 
 }
