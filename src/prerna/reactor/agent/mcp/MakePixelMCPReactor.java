@@ -45,6 +45,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -73,7 +74,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
+		User user = requireUser();
 
 		String projectId = resolveContextEngineId(this.keyValue.get(this.keysToGet[0]));
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
@@ -149,32 +150,25 @@ public class MakePixelMCPReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Generates a mcp/pixel_mcp.json file from a set of reactors. \
-				By default, scans all of the app's reactors and includes every one whose getMcpToolMetadata() is non-null \
-				(the default; return null to opt a reactor out). \
-				Optionally filter by Java package via 'package', or list reactors explicitly via 'reactor'.\
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app. If not passed, will try to use the app context.";
-		} else if (key.equals(ReactorKeysEnum.REACTOR.getKey())) {
-			return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
-		} else if (key.equals(PACKAGE_KEY)) {
-			return """
-					Java package(s) to scan for reactor classes. \
-					Scans the project's compiled reactors and includes those whose package matches \
-					and whose getMcpToolMetadata() is non-null. \
-					Example: 'reactors.vaapi' includes all MCP reactors in reactors.vaapi and sub-packages.\
-					""";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository for the project";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Generates a mcp/pixel_mcp.json file from a set of reactors. \
+								By default, scans all of the app's reactors and includes every one whose getMcpToolMetadata() is non-null \
+								(the default; return null to opt a reactor out). \
+								Optionally filter by Java package via 'package', or list reactors explicitly via 'reactor'.\
+								""")
+				.key(ReactorKeysEnum.PROJECT,
+						"The unique id for the project/app. If not passed, will try to use the app context.")
+				.key(ReactorKeysEnum.REACTOR, "The list of reactors to turn into mcp tools in the pixel_mcp.json")
+				.key(PACKAGE_KEY, """
+						Java package(s) to scan for reactor classes. \
+						Scans the project's compiled reactors and includes those whose package matches \
+						and whose getMcpToolMetadata() is non-null. \
+						Example: 'reactors.vaapi' includes all MCP reactors in reactors.vaapi and sub-packages.\
+						""").key(ReactorKeysEnum.COMMENT_KEY,
+						"Comment to add while saving the files within the git repository for the project");
 	}
 
 }

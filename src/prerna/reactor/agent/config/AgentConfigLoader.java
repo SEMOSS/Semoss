@@ -295,6 +295,9 @@ public final class AgentConfigLoader {
 			// Ordinary document reading uses the shared extraction helper. Managed
 			// presentation workflows perform their own review without this tool.
 			names.add("InspectPptx");
+			// the owner's tasks live in Work items; a chat todo list only competes with them
+			names.add("TodoWrite");
+			names.add("TodoRead");
 		}
 		JSONObject toolPolicy = cfgJson != null ? cfgJson.optJSONObject("tool_policy") : null;
 		JSONObject defaultTools = toolPolicy != null ? toolPolicy.optJSONObject("default_tools") : null;

@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -104,17 +105,9 @@ public class MicrosoftTeamsListChannelsReactor extends AbstractMicrosoftReactor 
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "List the channels within a Microsoft Team.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(TEAM_ID)) {
-			return "Microsoft Teams team ID whose channels should be listed.";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Optional maximum number of channels to return. All channels are returned when omitted.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("List the channels within a Microsoft Team.")
+				.key(TEAM_ID, "Microsoft Teams team ID whose channels should be listed.").key(ReactorKeysEnum.LIMIT,
+						"Optional maximum number of channels to return. All channels are returned when omitted.");
 	}
 }

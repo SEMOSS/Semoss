@@ -76,9 +76,22 @@ public final class BrainConnection {
 		result.put("sources", CollaborationSourceUtils.getSourceStatuses(owner.getValue0(), owner.getValue1()));
 		// a finished import, so turning mail off reads as paused rather than never set up
 		result.put("imported", BrainSync.lastRun(owner.getValue0(), owner.getValue1()) != null);
+		// until the owner opens Work at the end of setup or skips it, Today sends them back to setup
+		result.put("setupDone", CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_SETTINGS WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ? AND SETUP_DONE_AT IS NOT NULL", owner.getValue0(), owner.getValue1()));
 		// which Outlook folders mail is read from, and how many topics stand for one
 		result.put("folders", BrainMailFolders.summary(owner.getValue0(), owner.getValue1()));
 		return result;
+	}
+
+	/** Records that the owner opened Work at the end of setup or skipped the rest of it; Reset clears it. */
+	public static Map<String, Object> finishSetup(User user) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		// creates the settings row a new owner does not have yet
+		BrainProfileUtils.getSettings(owner.getValue0(), owner.getValue1());
+		CollaborationDbUtils.update("UPDATE BRAIN_SETTINGS SET SETUP_DONE_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				CollaborationDbUtils.now(), owner.getValue0(), owner.getValue1());
+		return status(user);
 	}
 
 	/** Keeps this session's renewable Microsoft sign-in so routines and refresh work without the page open. */

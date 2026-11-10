@@ -50,6 +50,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.util.Constants;
@@ -65,17 +66,18 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH,
 				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP,
 				UploadInputUtility.NEW_HEADERS, UploadInputUtility.METAMODEL, UploadInputUtility.PROP_FILE,
-				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.START_ROW, UploadInputUtility.END_ROW,
-				UploadInputUtility.ADDITIONAL_DATA_TYPES, TINKER_DRIVER_TYPE };
+				UploadInputUtility.START_ROW, UploadInputUtility.END_ROW, UploadInputUtility.ADDITIONAL_DATA_TYPES,
+				TINKER_DRIVER_TYPE };
 	}
 
 	private CSVFileHelper helper;
 
 	@Override
-	public String getReactorDescription() {
-		return "Uploads a delimited file (CSV, TSV, etc.) to create a new graph database or append to an existing one. "
-				+ "The graph is stored using a TinkerPop-backed engine and is built from a user-defined metamodel "
-				+ "of nodes, properties, and relationships.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Uploads a delimited file (CSV, TSV, etc.) to create a new graph database or append to an existing one. "
+						+ "The graph is stored using a TinkerPop-backed engine and is built from a user-defined metamodel "
+						+ "of nodes, properties, and relationships.");
 	}
 
 	@Override

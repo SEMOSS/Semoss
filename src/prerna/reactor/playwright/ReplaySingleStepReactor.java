@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -258,21 +259,12 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Reactor that replays a single step by given stepId , sesionId, tabId, and fileName";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "The id of the current session of the playwright";
-		} else if (key.equals("fileName")) {
-			return "the name of the recorder file";
-		} else if (key.equals("stepId")) {
-			return "The id of the current step that needs to be played";
-		} else if (key.equals("tabId")) {
-			return "The id of the current tab of the playwright";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Reactor that replays a single step by given stepId , sesionId, tabId, and fileName")
+				.key("sessionId", "The id of the current session of the playwright")
+				.key("fileName", "the name of the recorder file")
+				.key("stepId", "The id of the current step that needs to be played")
+				.key("tabId", "The id of the current tab of the playwright");
 	}
 }

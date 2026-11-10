@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainMailFolders;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainLinkTopicFolder(topicId=["..."], folderId=["..."], remove=[false]);
@@ -49,20 +50,11 @@ public class BrainLinkTopicFolderReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "The owner links one of their Outlook folders to a topic, or removes the link; mail in a linked "
-				+ "folder is filed under the topic";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (FOLDER_ID.equals(key)) {
-			return "Outlook folder id, from BrainListMailFolders";
-		} else if (REMOVE.equals(key)) {
-			return "true removes the link";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"The owner links one of their Outlook folders to a topic, or removes the link; mail in a linked "
+						+ "folder is filed under the topic")
+				.key(TOPIC_ID, "Topic id").key(FOLDER_ID, "Outlook folder id, from BrainListMailFolders")
+				.key(REMOVE, "true removes the link");
 	}
 }

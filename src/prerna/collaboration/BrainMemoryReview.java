@@ -35,6 +35,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -59,6 +60,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.ResponseMessage;
@@ -231,11 +233,25 @@ public final class BrainMemoryReview {
 		Room cached = user.getRoomHash().get(roomId);
 		if (cached != null) {
 			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {
-				return new ArrayList<>(cached.getMessages());
+				return withoutRoutineRun(cached, new ArrayList<>(cached.getMessages()));
 			}
 		}
 		Room saved = ModelInferenceLogsUtils.getRoomById(roomId, user.getPrimaryLoginToken().getId());
-		return saved == null ? List.of() : new ArrayList<>(saved.getMessages());
+		return saved == null ? List.of() : withoutRoutineRun(saved, new ArrayList<>(saved.getMessages()));
+	}
+
+	// in a routine's room, its own run (the first there, see handOverRoutineRoom) wrote its prompt and email text
+	private static List<AbstractMessage> withoutRoutineRun(Room room, List<AbstractMessage> messages) {
+		if (CollaborationUtils.isRoutineRoom(room)) {
+			messages.stream().map(BrainMemoryReview::runId).filter(Objects::nonNull).findFirst()
+					.ifPresent(routineRun -> messages.removeIf(message -> routineRun.equals(runId(message))));
+		}
+		return messages;
+	}
+
+	private static String runId(AbstractMessage message) {
+		AgentRunMessageContext run = message.getAgentRun();
+		return run == null ? null : run.getRunId();
 	}
 
 	// ---- reading the chat ----

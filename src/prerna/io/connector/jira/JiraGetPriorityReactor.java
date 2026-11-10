@@ -30,12 +30,13 @@ package prerna.io.connector.jira;
 import java.util.List;
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -44,10 +45,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class JiraGetPriorityReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(JiraGetPriorityReactor.class);
-
-	public JiraGetPriorityReactor() {
-
-	}
 
 	@Override
 	public NounMetadata execute() {
@@ -69,7 +66,8 @@ public class JiraGetPriorityReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists available Jira priority levels with their ids and names.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Lists available Jira priority levels with their ids and names.").noKeys();
 	}
 }

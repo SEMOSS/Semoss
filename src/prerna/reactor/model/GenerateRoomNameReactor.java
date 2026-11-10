@@ -39,6 +39,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -116,20 +117,14 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Generates a concise room name from a user prompt using a one-off model call and persists it to the room.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-			return "The room ID to rename.";
-		} else if (key.equals(ReactorKeysEnum.PROMPT.getKey())) {
-			return "The user prompt to derive a title from. Truncated to " + PROMPT_CHAR_LIMIT
-					+ " characters before sending.";
-		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "Optional model engine ID. Falls back to the room's configured model if not provided.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Generates a concise room name from a user prompt using a one-off model call and persists it to the room.")
+				.key(ReactorKeysEnum.ROOM_ID, "The room ID to rename.")
+				.key(ReactorKeysEnum.PROMPT,
+						"The user prompt to derive a title from. Truncated to " + PROMPT_CHAR_LIMIT
+								+ " characters before sending.")
+				.key(ReactorKeysEnum.ENGINE,
+						"Optional model engine ID. Falls back to the room's configured model if not provided.");
 	}
 }

@@ -34,6 +34,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.task.TaskBuilderReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -42,7 +43,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.util.Constants;
 
 public class CollectReactor extends TaskBuilderReactor {
 
@@ -68,7 +68,7 @@ public class CollectReactor extends TaskBuilderReactor {
 		try {
 			buildTask();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not build task {}", this.task.getId(), e);
 			throw new SemossPixelException(e.getMessage());
 		}
 
@@ -163,11 +163,9 @@ public class CollectReactor extends TaskBuilderReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "The number to collect";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Collects up to the given number of rows from a task (500 by default, -1 for all) and returns them as formatted data for display.")
+				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class).description("The number to collect"));
 	}
 }

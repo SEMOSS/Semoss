@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadBrief;
 import prerna.collaboration.BrainThreadMessages;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainGetThreadMessages(threadId=["..."], limit=[20], refresh=[true]);
@@ -61,33 +62,19 @@ public class BrainGetThreadMessagesReactor extends AbstractCollaborationReactor 
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Reads a Brain thread's latest messages as clean text, fetched live; never-ingest senders are left out. "
-				+ "In the owner's assistant chat, pass the chosen email's emailRef to ComposeEmail for replies or forwards. "
-				+ "Delegation rooms must use selected or an exact native email id included in their context.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if ("cursor".equals(key)) {
-			return "Opaque continuation from the previous page, scoped to this thread.";
-		}
-		if ("includeAttachments".equals(key)) {
-			return "List each email's attachments by name and id, without their bytes; defaults to false.";
-		}
-		if (REFRESH.equals(key)) {
-			return "true first reads the mailbox for mail Brain does not hold yet (at most every 25 seconds); "
-					+ "defaults to false.";
-		}
-		if ("includeDisplayBody".equals(key)) {
-			return "Include bounded source display bodies only after access and ingestion rules pass; defaults to false.";
-		}
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		}
-		if (LIMIT.equals(key)) {
-			return "Most recent N messages, default 20, at most 100";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Reads a Brain thread's latest messages as clean text, fetched live; never-ingest senders are left out. "
+						+ "In the owner's assistant chat, pass the chosen email's emailRef to ComposeEmail for replies or forwards. "
+						+ "Delegation rooms must use selected or an exact native email id included in their context.")
+				.key(THREAD_ID, "Thread id").key(LIMIT, "Most recent N messages, default 20, at most 100")
+				.key("includeDisplayBody",
+						"Include bounded source display bodies only after access and ingestion rules pass; defaults to false.")
+				.key("cursor", "Opaque continuation from the previous page, scoped to this thread.")
+				.key("includeAttachments",
+						"List each email's attachments by name and id, without their bytes; defaults to false.")
+				.key(REFRESH,
+						"true first reads the mailbox for mail Brain does not hold yet (at most every 25 seconds); "
+								+ "defaults to false.");
 	}
 }

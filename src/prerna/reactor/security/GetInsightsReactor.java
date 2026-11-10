@@ -41,6 +41,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -211,10 +212,17 @@ public class GetInsightsReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.SORT.getKey())) {
-			return "The sort is a string value containing either 'name' or 'date' for how to sort";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the insights the user can view, filtered by any given projects, search term, favorites and metadata, and sorted by name or by last modified date, with each insight's description and tags unless noMeta is true.")
+				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class))
+				.key(ReactorKeysEnum.META_FILTERS, key -> key.type(Map.class))
+				.key(ReactorKeysEnum.NO_META, key -> key.type(Boolean.class))
+				.key(ReactorKeysEnum.OFFSET, key -> key.type(Integer.class))
+				.key(ReactorKeysEnum.ONLY_FAVORITES, key -> key.type(Boolean.class))
+				.key(ReactorKeysEnum.PROJECT, key -> key.list(String.class).description(
+						"Projects to return insights from, by id or name; any the user cannot view are skipped with a warning."))
+				.key(ReactorKeysEnum.SORT,
+						"The sort is a string value containing either 'name' or 'date' for how to sort");
 	}
 }

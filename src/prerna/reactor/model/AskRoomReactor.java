@@ -46,6 +46,7 @@ import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.runtime.PreChatContext;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -179,49 +180,33 @@ public class AskRoomReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals(ReactorKeysEnum.MEDIA.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())
-				|| RESPONSE_PARTS_KEY.equals(key)) {
-			return MCP_KEY_TYPE.ARRAY;
-		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			return MCP_KEY_TYPE.OBJECT;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Runs a room-aware LLM turn and returns both input and response message objects.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
-			return "This is the prompt to execute against the LLM";
-		} else if (key.equals(ReactorKeysEnum.CONTEXT.getKey())) {
-			return "The system prompt to use for the LLM call";
-		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-			return "This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room";
-		} else if (key.equals(ReactorKeysEnum.MEDIA.getKey())) {
-			return "This is an array of media file names that have already been uploaded to the insight folder, or base64 data URIs (e.g. data:image/jpeg;base64,.... or data:application/pdf;base64,....). "
-					+ "Any file type is accepted - image, pdf, document, spreadsheet, audio, video - and what actually gets used depends on what the model supports.";
-		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			return """
-					Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc.
-					In addition, you can pass in 'full_prompt' to represent a full prompt and history via ChatML format which will ignore inputs for
-					<replacement>
-					"""
-					.replace("<replacement>", Arrays.asList(ReactorKeysEnum.COMMAND.getKey(),
-							ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.USE_HISTORY.getKey()).toString());
-		} else if (RESPONSE_PARTS_KEY.equals(key)) {
-			return "Optional. When provided, the LLM call is skipped and this array of response parts"
-					+ " (each a map with type=THINKING|TEXT and matching payload) is persisted as the assistant"
-					+ " response. Used by a cancel flow to commit whatever streamed before the user stopped it.";
-		} else if (HIDDEN_MESSAGE_KEY.equals(key)) {
-			return "Optional. Cancel-flow only (paired with " + RESPONSE_PARTS_KEY + "). A hidden user-side note"
-					+ " appended after the visible turn, plus an auto-generated assistant ack, so the model sees on"
-					+ " the next turn that its previous response was cut short. Ignored on live LLM calls.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Runs a room-aware LLM turn and returns both input and response message objects.")
+				.key(ReactorKeysEnum.ROOM_ID,
+						"This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room")
+				.key(ReactorKeysEnum.COMMAND, "This is the prompt to execute against the LLM")
+				.key(ReactorKeysEnum.MEDIA, key -> key.type(List.class).description(
+						"This is an array of media file names that have already been uploaded to the insight folder, or base64 data URIs (e.g. data:image/jpeg;base64,.... or data:application/pdf;base64,....). "
+								+ "Any file type is accepted - image, pdf, document, spreadsheet, audio, video - and what actually gets used depends on what the model supports."))
+				.key(ReactorKeysEnum.URL, key -> key.type(List.class))
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP, key -> key.type(Map.class).description(
+						"""
+								Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc.
+								In addition, you can pass in 'full_prompt' to represent a full prompt and history via ChatML format which will ignore inputs for
+								<replacement>
+								"""
+								.replace("<replacement>",
+										Arrays.asList(ReactorKeysEnum.COMMAND.getKey(),
+												ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.USE_HISTORY.getKey())
+												.toString())))
+				.key(RESPONSE_PARTS_KEY, key -> key.type(List.class)
+						.description("Optional. When provided, the LLM call is skipped and this array of response parts"
+								+ " (each a map with type=THINKING|TEXT and matching payload) is persisted as the assistant"
+								+ " response. Used by a cancel flow to commit whatever streamed before the user stopped it."))
+				.key(HIDDEN_MESSAGE_KEY, "Optional. Cancel-flow only (paired with " + RESPONSE_PARTS_KEY
+						+ "). A hidden user-side note"
+						+ " appended after the visible turn, plus an auto-generated assistant ack, so the model sees on"
+						+ " the next turn that its previous response was cut short. Ignored on live LLM calls.");
 	}
 }

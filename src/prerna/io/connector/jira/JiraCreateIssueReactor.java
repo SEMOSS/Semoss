@@ -30,12 +30,13 @@ package prerna.io.connector.jira;
 import java.util.List;
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -64,8 +65,7 @@ public class JiraCreateIssueReactor extends AbstractReactor {
 
 			Map<String, Object> fieldMap = getInputFieldMap();
 			if (fieldMap == null || fieldMap.isEmpty()) {
-				throw new SemossPixelException(
-						"paramMap is required and must be passed as a JSON object / MAP");
+				throw new SemossPixelException("paramMap is required and must be passed as a JSON object / MAP");
 			}
 
 			Map<String, Object> result = JiraHelper.createIssueFromMap(accessToken, baseUrl, fieldMap);
@@ -97,15 +97,10 @@ public class JiraCreateIssueReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates a new Jira issue. Only accepts issue creation fields as returned by JiraGetCreateFields. Returns the created issue id and key.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(PARAM_MAP)) {
-			return "Required object / MAP of issue creation field key-value pairs as returned by JiraGetCreateFields. Pass paramMap as a raw JSON object / MAP, not as a quoted JSON string.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Creates a new Jira issue. Only accepts issue creation fields as returned by JiraGetCreateFields. Returns the created issue id and key.")
+				.key(PARAM_MAP,
+						"Required object / MAP of issue creation field key-value pairs as returned by JiraGetCreateFields. Pass paramMap as a raw JSON object / MAP, not as a quoted JSON string.");
 	}
 }

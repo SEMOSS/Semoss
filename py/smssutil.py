@@ -12,6 +12,15 @@ from gaas_tcp_server_thread_local import smss_clear_app_imports, smss_get_runtim
 logger = logging.getLogger("SocketServer")
 
 
+def _ensure_home_dir() -> None:
+    # sandboxed launches (env -i, uid without a passwd entry) leave no home; never point it at the room
+    if os.path.expanduser("~") != "~":
+        return
+    import tempfile
+
+    os.environ["HOME"] = tempfile.mkdtemp(prefix="smss-home-")
+
+
 def get_document_markdown(
     file_path: str | os.PathLike,
     *,
@@ -30,6 +39,9 @@ def get_document_markdown(
     by that timeout. Native readers remain necessary for exact Office semantics.
     """
     from pathlib import Path
+
+    # docling resolves Path.home() on import; give it a private temp home when there is none
+    _ensure_home_dir()
     from genai_client.message_builders.semoss_base.document_input import (
         DocumentInputProcessor,
     )

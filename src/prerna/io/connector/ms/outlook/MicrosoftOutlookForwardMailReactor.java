@@ -75,7 +75,7 @@ public class MicrosoftOutlookForwardMailReactor extends AbstractForwardMailReact
 				? helper.forwardHtmlDraft(accessToken, request.id(), to,
 						look == null ? request.body() : BrainDraftFormat.body(look, request.body(), request.html()))
 				: helper.forward(accessToken, null, request.id(), to, request.body(), true);
-		helper.attachToDraft(accessToken, draft, files);
+		helper.attachToNewDraft(accessToken, draft, files);
 		return MicrosoftOutlookMessageMapper.toComposedMail(draft, request.body() == null ? "" : request.body(),
 				request.html(), request.attachments().stream().map(OutgoingMail::attachmentName).toList());
 	}

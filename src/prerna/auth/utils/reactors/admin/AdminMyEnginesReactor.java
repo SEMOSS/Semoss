@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils.reactors.admin;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,6 +42,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -113,9 +113,8 @@ public class AdminMyEnginesReactor extends AbstractReactor {
 			}
 
 			if (!noMeta) {
-				IRawSelectWrapper wrapper = null;
-				try {
-					wrapper = SecurityEngineUtils.getEngineMetadataWrapper(index.keySet(), getMetaKeys(), true);
+				try (IRawSelectWrapper wrapper = SecurityEngineUtils.getEngineMetadataWrapper(index.keySet(),
+						getMetaKeys(), true)) {
 					while (wrapper.hasNext()) {
 						Object[] data = wrapper.next().getValues();
 						String databaseId = (String) data[0];
@@ -146,21 +145,10 @@ public class AdminMyEnginesReactor extends AbstractReactor {
 					}
 				} catch (Exception e) {
 					classLogger.error("Failed to attach engine metadata values to the admin engine list response", e);
-				} finally {
-					if (wrapper != null) {
-						try {
-							wrapper.close();
-						} catch (IOException e) {
-							classLogger.error(
-									"Failed to close metadata wrapper while building admin engine list response", e);
-						}
-					}
 				}
 			}
 			if (includeUserT) {
-				IRawSelectWrapper wrapper = null;
-				try {
-					wrapper = UserCatalogVoteUtils.getAllVotesWrapper(index.keySet());
+				try (IRawSelectWrapper wrapper = UserCatalogVoteUtils.getAllVotesWrapper(index.keySet())) {
 					while (wrapper.hasNext()) {
 						Object[] data = wrapper.next().getValues();
 						String databaseId = (String) data[0];
@@ -172,15 +160,6 @@ public class AdminMyEnginesReactor extends AbstractReactor {
 					}
 				} catch (Exception e) {
 					classLogger.error("Failed to attach vote totals to the admin engine list response", e);
-				} finally {
-					if (wrapper != null) {
-						try {
-							wrapper.close();
-						} catch (IOException e) {
-							classLogger.error("Failed to close vote wrapper while building admin engine list response",
-									e);
-						}
-					}
 				}
 
 				Map<String, Boolean> voted = UserCatalogVoteUtils
@@ -258,25 +237,30 @@ public class AdminMyEnginesReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.SORT.getKey())) {
-			return "The sort is a map with key and direction. Supported keys are 'ENGINENAME' and 'DATECREATED'. Use values like 'ASC' or 'DESC'. 'ENGINENAME' sorting is case-insensitive.";
-		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "This is an optional engine filter";
-		} else if (key.equals(EFFECTIVE_PERMISSIONS)) {
-			return """
-					Keep only the resources on which permissionUser holds one of these levels: 1 (owner), 2 (edit), \
-					or 3 (read only). Counts that user's direct grants and their custom groups' grants; identity \
-					provider groups are known only while the user is signed in, so they are not counted.""";
-		} else if (key.equals(PERMISSION_USER)) {
-			return "The id of the user whose permission effectivePermissions checks.";
-		} else if (key.equals(CREATED_BY)) {
-			return """
-					Keep only the resources created by one of these creators. Each is a map with the creator's \
-					login "id" and login "type", such as {"id": "abc", "type": "MICROSOFT"}; both must match.""";
-		} else if (key.equals(CREATED_BY_ME)) {
-			return "When true, keep only the resources the calling user created, under any login in their session.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Returns every engine on the server, filtered by id, type, search text, metadata, creator or a user's permission level, and sorted by name unless sort says otherwise. Each engine carries its metadata unless noMeta is true, and its upvote count and whether the caller upvoted it when userT is true.")
+				.key(ReactorKeysEnum.ENGINE_TYPE, key -> key.list(String.class))
+				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class))
+				.key(ReactorKeysEnum.META_FILTERS, key -> key.type(Map.class))
+				.key(ReactorKeysEnum.META_KEYS, key -> key.list(String.class))
+				.key(ReactorKeysEnum.NO_META, key -> key.type(Boolean.class))
+				.key(ReactorKeysEnum.OFFSET, key -> key.type(Integer.class))
+				.key(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY, key -> key.type(Boolean.class))
+				.key(ReactorKeysEnum.ENGINE,
+						key -> key.list(String.class).description("This is an optional engine filter"))
+				.key(ReactorKeysEnum.SORT, key -> key.type(Map.class).description(
+						"The sort is a map with key and direction. Supported keys are 'ENGINENAME' and 'DATECREATED'. Use values like 'ASC' or 'DESC'. 'ENGINENAME' sorting is case-insensitive."))
+				.key(PERMISSION_USER, "The id of the user whose permission effectivePermissions checks.")
+				.key(EFFECTIVE_PERMISSIONS, key -> key.list(Integer.class).description(
+						"""
+								Keep only the resources on which permissionUser holds one of these levels: 1 (owner), 2 (edit), \
+								or 3 (read only). Counts that user's direct grants and their custom groups' grants; identity \
+								provider groups are known only while the user is signed in, so they are not counted."""))
+				.key(CREATED_BY, key -> key.list(Map.class).description("""
+						Keep only the resources created by one of these creators. Each is a map with the creator's \
+						login "id" and login "type", such as {"id": "abc", "type": "MICROSOFT"}; both must match."""))
+				.key(CREATED_BY_ME, key -> key.type(Boolean.class).description(
+						"When true, keep only the resources the calling user created, under any login in their session."));
 	}
 }

@@ -47,69 +47,66 @@ import java.io.IOException;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
+import prerna.reactor.ReactorDefinition;
 
 public class LiveKitJoinRoomReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(LiveKitJoinRoomReactor.class);
 
-	
 	public LiveKitJoinRoomReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.ENGINE.getKey(),
-				"operation",
-				"roomId",
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-		};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), "operation", "roomId",
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		String roomId = this.keyValue.get("roomId");
 		if (roomId == null || roomId.isEmpty()) {
 			roomId = UUID.randomUUID().toString();
 		}
-		
+
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String operation = this.keyValue.get("operation");
-		
-		
+
 		User user = this.insight.getUser();
 		String userId = User.getSingleLogginName(user);
-		
+
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
+			throw new IllegalArgumentException(
+					"Model " + engineId + " does not exist or user does not have access to this model");
 		}
-		
+
 		Map<String, Object> paramMap = getParamMap();
 		if (paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
-		
+
 		LiveKitController controller = new LiveKitController();
 		try {
-		AccessToken token = controller.joinRoom(userId, userId, roomId, engineId, operation, this.insight, paramMap);
-		
-		String jwt = token.toJwt();
-		
-		HashMap<String, String> result = new HashMap<>();
-		
-		result.put("jwt", jwt);
-		result.put("room_id", roomId);
-		result.put("insightId", this.insight.getInsightId());
-		
-		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
-		
+			AccessToken token = controller.joinRoom(userId, userId, roomId, engineId, operation, this.insight,
+					paramMap);
+
+			String jwt = token.toJwt();
+
+			HashMap<String, String> result = new HashMap<>();
+
+			result.put("jwt", jwt);
+			result.put("room_id", roomId);
+			result.put("insightId", this.insight.getInsightId());
+
+			return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
+
 		} catch (Exception e) {
 			String errorMsg = "Failed to list LiveKit rooms: " + e.getMessage();
 			classLogger.error(errorMsg, e);
-			
+
 			return getError(errorMsg);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -129,20 +126,15 @@ public class LiveKitJoinRoomReactor extends AbstractReactor {
 		}
 		return null;
 	}
-	
-	@Override
-	public String getReactorDescription() {
-		return "Create or join a LiveKit Room.";
-	}
-	
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals("roomId")) {
-			return "This is the room ID of an existing room. To join a new room simply do not pass this param or pass as an empty string.";
-		}
 
-		return super.getDescriptionForKey(key);
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Create or join a LiveKit Room.")
+				.key(ReactorKeysEnum.ENGINE, "The id of the model engine that runs the room's audio operation.")
+				.key("operation",
+						"The audio operation to run with the model in the room: turn_based_transcription, turn_based_translation or speech_to_speech_realtime.")
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP, key -> key.type(Map.class)).key("roomId",
+						"This is the room ID of an existing room. To join a new room simply do not pass this param or pass as an empty string.");
 	}
-	
-	
+
 }

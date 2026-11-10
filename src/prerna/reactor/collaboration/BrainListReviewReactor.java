@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainReviewUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainListReview(status=["open"], limit=[30], offset=[0]);
@@ -53,19 +54,10 @@ public class BrainListReviewReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the signed-in user's Brain review questions as { items, total }";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (STATUS.equals(key)) {
-			return "open (default), accepted, or dismissed";
-		} else if (LIMIT.equals(key)) {
-			return "Page size, default 30";
-		} else if (OFFSET.equals(key)) {
-			return "Rows to skip, default 0";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Lists the signed-in user's Brain review questions as { items, total }")
+				.key(STATUS, "open (default), accepted, or dismissed").key(LIMIT, "Page size, default 30")
+				.key(OFFSET, "Rows to skip, default 0");
 	}
 }

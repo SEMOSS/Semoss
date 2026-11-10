@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainPeopleUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainListAccounts();
@@ -46,7 +47,8 @@ public class BrainListAccountsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the signed-in user's Brain accounts as { items, total }";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Lists the signed-in user's Brain accounts as { items, total }")
+				.noKeys();
 	}
 }

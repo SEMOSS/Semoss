@@ -30,12 +30,13 @@ package prerna.io.connector.jira;
 import java.util.List;
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -79,15 +80,10 @@ public class JiraIssueTypeReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists Jira issue types, optionally scoped to a specific project. Returns issuetypeid, name, and subtask flag for each type.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(PROJECT)) {
-			return "Optional Jira project key in uppercase (for example, RTJ). Omit to list all instance-wide issue types.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists Jira issue types, optionally scoped to a specific project. Returns issuetypeid, name, and subtask flag for each type.")
+				.key(PROJECT,
+						"Optional Jira project key in uppercase (for example, RTJ). Omit to list all instance-wide issue types.");
 	}
 }

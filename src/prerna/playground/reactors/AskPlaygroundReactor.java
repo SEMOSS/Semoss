@@ -28,6 +28,7 @@
 package prerna.playground.reactors;
 
 import prerna.playground.PlaygroundUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.runtime.PreChatContext;
 import prerna.reactor.model.AskRoomReactor;
 import prerna.theme.PlaygroundThemeUtils;
@@ -50,7 +51,8 @@ public class AskPlaygroundReactor extends AskRoomReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This method is used to run an LLM text-generation call (Playground) returns both input and response message objects.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"This method is used to run an LLM text-generation call (Playground) returns both input and response message objects.");
 	}
 }

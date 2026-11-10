@@ -47,6 +47,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -287,22 +288,15 @@ public class TextToSQLReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Convert natural language to SQL. Also allows users to pass in old SQL and SQL errors to generate new SQL";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "The database id for the RDBMS we want to generate a SQL query against";
-		} else if (key.equals(ReactorKeysEnum.MODEL.getKey())) {
-			return "The model id used to generate the SQL query";
-		} else if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
-			return "The user text to be turned into the SQL query based on the database schema";
-		} else if (key.equals(ERROR)) {
-			return "This is an optional parameter to pass in the error associated with a previous SQL query prediction";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Convert natural language to SQL. Also allows users to pass in old SQL and SQL errors to generate new SQL")
+				.key(ReactorKeysEnum.DATABASE, "The database id for the RDBMS we want to generate a SQL query against")
+				.key(ReactorKeysEnum.MODEL, "The model id used to generate the SQL query")
+				.key(ReactorKeysEnum.COMMAND,
+						"The user text to be turned into the SQL query based on the database schema")
+				.key(ERROR,
+						"This is an optional parameter to pass in the error associated with a previous SQL query prediction");
 	}
 
 }

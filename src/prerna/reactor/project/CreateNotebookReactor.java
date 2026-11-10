@@ -47,6 +47,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -178,16 +179,11 @@ public class CreateNotebookReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates a new NOTEBOOK-type Project and scaffolds a sample public/main.ipynb file";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The name for this notebook project. Note: the project ID is randomly generated";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Creates a new NOTEBOOK-type Project and scaffolds a sample public/main.ipynb file")
+				.key(ReactorKeysEnum.PROJECT,
+						"The name for this notebook project. Note: the project ID is randomly generated");
 	}
 
 }

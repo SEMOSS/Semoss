@@ -208,7 +208,8 @@ public final class CollaborationAgentTools {
 
 	// calendar reads that take a timeZone, filled in with the owner's when the
 	// model leaves it out
-	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent");
+	// times the model writes are read in the owner's zone too: CreateEvent at 09:00 with no zone was 09:00 UTC
+	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent", "CreateEvent", "UpdateEvent");
 
 	// tools about the chat itself: only for the owner's chat at the root of the
 	// run, never a routine;
@@ -397,7 +398,8 @@ public final class CollaborationAgentTools {
 			}
 			String output = MCPUtility.runPixelTool(null, insight, meta.getString(MCPUtility.SMSS_FUNCTION_NAME),
 					properties, params);
-			return ToolExecutionResult.success(CollaborationToolResults.forModel(toolName, output, insight.getUser()));
+			return ToolExecutionResult.success(CollaborationToolResults.forModel(toolName, output, insight.getUser(),
+					CollaborationToolResults.seenMail(insight)));
 		} catch (RuntimeException e) {
 			String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
 			return ToolExecutionResult.error(message, message);

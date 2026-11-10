@@ -62,10 +62,12 @@ final class OutlookMailProvider implements MailProvider {
 	public String saveDraft(OutgoingEmail email) throws Exception {
 		Map<String, Object> draft;
 		if (email.isReply()) {
-			// a reply-all draft keeps the thread; given lists replace the native ones
+			// a reply-all draft keeps the thread; given lists replace the native ones (to alone means just them), but a
+			// reply given only cc still goes to whoever it answers
 			String html = BrainDraftFormat.html(user, email.message());
 			draft = email.to().length > 0 || email.cc().length > 0
-					? mail.replyHtmlDraft(accessToken, email.replyTo(), html, true, email.to(), email.cc())
+					? mail.replyHtmlDraft(accessToken, email.replyTo(), html, true,
+							email.to().length > 0 ? email.to() : null, email.cc())
 					: mail.replyHtmlDraft(accessToken, email.replyTo(), html, true);
 		} else {
 			// in the owner's font and signature, from their own address so Outlook lists a sender

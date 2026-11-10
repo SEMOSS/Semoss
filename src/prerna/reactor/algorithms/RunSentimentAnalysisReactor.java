@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -222,15 +223,13 @@ public class RunSentimentAnalysisReactor extends AbstractRFrameReactor {
 ///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(SENTIMENT_COLUMN_KEY)) {
-			return "The text column to run the sentiment analysis on";
-		} else if (key.equals(GROUP_COLUMN_KEY)) {
-			return "The column to group the sentiment analysis results on to show the aggregate results";
-		} else if (key.equals(EMOTIONS_KEY)) {
-			return "Boolean to determine whether or not to also determine the emotions behind the sentiment column text";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Scores the sentiment of each value in a text column of the R frame and merges the scores back into the frame as new columns. With a group column it also adds an aggregate sentiment for each group, and it can add emotion score columns.")
+				.key(SENTIMENT_COLUMN_KEY, "The text column to run the sentiment analysis on")
+				.key(GROUP_COLUMN_KEY,
+						"The column to group the sentiment analysis results on to show the aggregate results")
+				.key(EMOTIONS_KEY, key -> key.type(Boolean.class).description(
+						"Boolean to determine whether or not to also determine the emotions behind the sentiment column text"));
 	}
 }

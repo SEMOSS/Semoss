@@ -43,6 +43,7 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -52,9 +53,9 @@ import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 /**
- * This reactor returns paginated commit details from an engine's git repository.
- * Each commit includes the commit SHA, author information, date, commit message,
- * and any tags pointing to that commit.
+ * This reactor returns paginated commit details from an engine's git
+ * repository. Each commit includes the commit SHA, author information, date,
+ * commit message, and any tags pointing to that commit.
  */
 public class EngineCommitDetailsReactor extends AbstractReactor {
 
@@ -110,8 +111,8 @@ public class EngineCommitDetailsReactor extends AbstractReactor {
 		}
 
 		IEngine engine = Utility.getEngine(engineId);
-		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(
-				engine.getCatalogType(), engineId, engine.getEngineName());
+		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(engine.getCatalogType(), engineId,
+				engine.getEngineName());
 
 		List<Map<String, Object>> commits = new ArrayList<>();
 
@@ -168,20 +169,12 @@ public class EngineCommitDetailsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor returns the details of all the commits in an engine";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The engine id";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Maximum number of commits to return";
-		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
-			return "Number of commits to skip for pagination";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("This reactor returns the details of all the commits in an engine")
+				.key(ReactorKeysEnum.ENGINE, "The engine id")
+				.key(ReactorKeysEnum.LIMIT, "Maximum number of commits to return")
+				.key(ReactorKeysEnum.OFFSET, "Number of commits to skip for pagination");
 	}
 
 }

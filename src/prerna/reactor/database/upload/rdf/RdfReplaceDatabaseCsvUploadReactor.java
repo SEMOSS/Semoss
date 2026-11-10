@@ -36,6 +36,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -133,6 +134,23 @@ public class RdfReplaceDatabaseCsvUploadReactor extends RdfCsvUploadReactor {
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), this.databaseId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+	}
+
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		// takes space, not the parent's existing key, so it starts from its own
+		return startDefinition().description(
+				"Replaces all of the data in an RDF (triplestore) database the user owns with the data of a delimited file (CSV, TSV, etc.). "
+						+ "Triples for nodes, properties, and relationships are generated from a user-defined metamodel.")
+				.key(UploadInputUtility.ADDITIONAL_DATA_TYPES, key -> key.type(Map.class))
+				.key(UploadInputUtility.CUSTOM_BASE_URI,
+						"The base URI for the instance triples the upload writes; defaults to the server's SEMOSS URI.")
+				.key(UploadInputUtility.DATABASE,
+						"The id or name of the RDF database whose data is replaced; the user must own it.")
+				.key(UploadInputUtility.DATA_TYPE_MAP, key -> key.type(Map.class))
+				.key(ReactorKeysEnum.METAMODEL, key -> key.type(Map.class))
+				.key(UploadInputUtility.NEW_HEADERS, key -> key.type(Map.class))
+				.key(UploadInputUtility.START_ROW, key -> key.type(Integer.class));
 	}
 
 }
