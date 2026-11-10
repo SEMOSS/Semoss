@@ -49,7 +49,6 @@ import prerna.auth.User;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RUserConnectionDedicated;
 import prerna.engine.impl.r.RserveUtil;
-import prerna.util.Constants;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
@@ -125,16 +124,12 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	private String getUserInfo() {
 		String userInfo = null;
 		User user = this.insight.getUser();
-		if (user.isAnonymous()) {
-			userInfo = "unk" + "___" + user.getAnonymousId();
+		AuthProvider primaryProvider = user.getPrimaryLogin();
+		AccessToken token = user.getAccessToken(primaryProvider);
+		if (token.getName() == null) {
+			userInfo = primaryProvider.name() + "___noname_" + UUID.randomUUID();
 		} else {
-			AuthProvider primaryProvider = user.getPrimaryLogin();
-			AccessToken token = user.getAccessToken(primaryProvider);
-			if (token.getName() == null) {
-				userInfo = primaryProvider.name() + "___noname_" + UUID.randomUUID();
-			} else {
-				userInfo = primaryProvider.name() + "___" + token.getName().replace(" ", "_");
-			}
+			userInfo = primaryProvider.name() + "___" + token.getName().replace(" ", "_");
 		}
 		return userInfo;
 	}
@@ -270,7 +265,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
 			return arr;
 		} catch (REXPMismatchException e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Failed to read the column types of frame {}", frameName, e);
 		}
 		return null;
 	}
@@ -437,7 +432,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.error(Constants.STACKTRACE, e);
+					logger.error("Failed to read column {} of frame {} as integers", colNames[i], framename, e);
 				}
 				// in case values cannot be put into an array
 				// for an integer
@@ -449,7 +444,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					dataMatrix.get(0)[i] = row;
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.error(Constants.STACKTRACE, e);
+					logger.error("Failed to read column {} of frame {} as an integer", colNames[i], framename, e);
 				}
 
 			} else {
@@ -465,7 +460,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.error(Constants.STACKTRACE, e);
+					logger.error("Failed to read column {} of frame {} as strings", colNames[i], framename, e);
 				}
 				// for a string
 				try {
@@ -476,7 +471,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					dataMatrix.get(0)[i] = row;
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.error(Constants.STACKTRACE, e);
+					logger.error("Failed to read column {} of frame {} as a string", colNames[i], framename, e);
 				}
 			}
 		}

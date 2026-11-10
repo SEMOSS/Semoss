@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.collaboration.WorkCustomRoutine;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -49,12 +50,13 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 	private static final String DELIVERY = "delivery";
 	private static final String SKILLS = "skills";
 	private static final String AGENT_ID = "agentId";
+	private static final String TOOLS = "tools";
 	private static final String ENABLED = "enabled";
 
 	public WorkSaveCustomRoutineReactor() {
 		this.keysToGet = new String[] { ROUTINE_ID, NAME, PROMPT, TIME, DAYS, TIMEZONE, DELIVERY, SKILLS, AGENT_ID,
-				ENABLED };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				TOOLS, ENABLED };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -71,6 +73,11 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 			if (values != null) {
 				changes.put(key, DAYS.equals(key) ? values.stream().map(String::toUpperCase).toList() : values);
 			}
+		}
+		// tools are {id, name, type} maps, so they are not split like the lists above
+		GenRowStruct tools = this.store.getNoun(TOOLS);
+		if (tools != null) {
+			changes.put(TOOLS, tools.getAllValues());
 		}
 		if (getBoolean(ENABLED) != null) {
 			changes.put(ENABLED, getBoolean(ENABLED));
@@ -97,64 +104,48 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public Map<String, String> getMcpToolMetadata() {
-		// a schedule that keeps reading the owner's data, so it waits for their approval
+		// a schedule that keeps reading the owner's data, so it waits for their
+		// approval
 		Map<String, String> meta = super.getMcpToolMetadata();
 		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
 		return meta;
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (DAYS.equals(key) || SKILLS.equals(key)) {
-			return MCP_KEY_TYPE.ARRAY;
-		}
-		if (ENABLED.equals(key)) {
-			return MCP_KEY_TYPE.BOOLEAN;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Creates or changes one of the owner's routines: an instruction their agent does on a schedule, with "
-				+ "the tools that need no approval, and delivers only to the owner; by email, files the run makes are attached. Use it when the owner asks for something to happen "
-				+ "regularly (\"every weekday at 8, summarize what my clients asked for and email it to me\"). Leave "
-				+ "out routineId to create one; pass it, from ListRoutines, to change one, sending only what changes. "
-				+ "The owner approves the exact routine on a card before it is saved. A routine can never send to "
-				+ "anyone else, but it can save email drafts for others in the owner's Outlook, never sent, for "
-				+ "the owner to review (\"draft Ryan a status update each morning\"). To try a saved routine now, use ManageRoutine with action run. Load "
-				+ "collaboration/references/routines/schedule-a-routine.md before creating one.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		switch (key) {
-		case ROUTINE_ID:
-			return "Id of the routine to change, from ListRoutines. Leave out to create a new routine.";
-		case NAME:
-			return "Short name the owner will recognize, at most 80 characters, such as \"Client asks digest\".";
-		case PROMPT:
-			return "The owner's request in their own words, a short paragraph: what to look at and what the result "
-					+ "should contain. Do not write steps, tool names, tool options, the time zone, a recipient, or "
-					+ "any instruction to send; delivery is its own argument and happens automatically. Put a lasting "
-					+ "layout in a skill instead. At most 4000 characters.";
-		case TIME:
-			return "Time of day to run, HH:mm in 24-hour format, in the routine's time zone. Default 08:00.";
-		case DAYS:
-			return "Days to run: MON, TUE, WED, THU, FRI, SAT, SUN. Default weekdays.";
-		case TIMEZONE:
-			return "IANA time zone of the time, such as America/New_York. Use the owner's own time zone.";
-		case DELIVERY:
-			return "Where the answer goes, always only to the owner: email (their own inbox, with any files the run "
-					+ "makes attached), teams (a Teams message to themselves, text only) or none (kept in Routines). Default email.";
-		case SKILLS:
-			return "Ids of the owner's own skills the agent loads, from ListMySkills. Optional.";
-		case AGENT_ID:
-			return "Agent to run it, when the owner names one; blank uses their assistant's agent.";
-		case ENABLED:
-			return "false saves the routine paused. New routines are on.";
-		default:
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Creates or changes one of the owner's routines: an instruction their agent does on a schedule, with "
+						+ "the tools that need no approval, and delivers only to the owner; by email, files the run makes are attached. Use it when the owner asks for something to happen "
+						+ "regularly (\"every weekday at 8, summarize what my clients asked for and email it to me\"). Leave "
+						+ "out routineId to create one; pass it, from ListRoutines, to change one, sending only what changes. "
+						+ "The owner approves the exact routine on a card before it is saved. A routine can never send to "
+						+ "anyone else, but it can save email drafts for others in the owner's Outlook, never sent, for "
+						+ "the owner to review (\"draft Ryan a status update each morning\"). To try a saved routine now, use ManageRoutine with action run. Load "
+						+ "collaboration/references/routines/schedule-a-routine.md before creating one.")
+				.key(ROUTINE_ID, "Id of the routine to change, from ListRoutines. Leave out to create a new routine.")
+				.key(NAME,
+						"Short name the owner will recognize, at most 80 characters, such as \"Client asks digest\".")
+				.key(PROMPT,
+						"The owner's request in their own words, a short paragraph: what to look at and what the result "
+								+ "should contain. Do not write steps, tool names, tool options, the time zone, a recipient, or "
+								+ "any instruction to send; delivery is its own argument and happens automatically. Put a lasting "
+								+ "layout in a skill instead. At most 4000 characters.")
+				.key(TIME, "Time of day to run, HH:mm in 24-hour format, in the routine's time zone. Default 08:00.")
+				.key(DAYS,
+						key -> key.type(List.class)
+								.description("Days to run: MON, TUE, WED, THU, FRI, SAT, SUN. Default weekdays."))
+				.key(TIMEZONE, "IANA time zone of the time, such as America/New_York. Use the owner's own time zone.")
+				.key(DELIVERY,
+						"Where the answer goes, always only to the owner: email (their own inbox, with any files the run "
+								+ "makes attached), teams (a Teams message to themselves, text only) or none (kept in Routines). Default email.")
+				.key(SKILLS, key -> key.type(List.class).description(
+						"Ids of the skills the agent loads: the owner's own from ListMySkills, or other skills they can use. "
+								+ "Optional."))
+				.key(AGENT_ID, "Agent to run it, when the owner names one; blank uses their assistant's agent.")
+				.key(TOOLS, key -> key.type(List.class).description(
+						"Tools and knowledge bases the owner added to the routine in Routines, as {id, name, type}. Leave "
+								+ "out to keep them."))
+				.key(ENABLED, key -> key.type(Boolean.class)
+						.description("false saves the routine paused. New routines are on."));
 	}
 }

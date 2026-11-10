@@ -28,9 +28,9 @@
 package prerna.reactor.notification;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
@@ -50,10 +50,7 @@ public class PollNotificationsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Notifications are not enabled on this instance");
 		}
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		String scopeId = this.keyValue.get(SCOPE_ID);
 		String scopeType = NotificationDbUtils.resolveReadScope(user, this.keyValue.get(SCOPE_TYPE), scopeId);
@@ -63,7 +60,9 @@ public class PollNotificationsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Get the number of new notifications for the user";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Get the number of new notifications for the user")
+				.key(SCOPE_TYPE, "Which notifications to count: ALL, SYSTEM or APP, in any case. Defaults to ALL.")
+				.key(SCOPE_ID, "The id of the app project to count notifications for, required when scopeType is APP.");
 	}
 }

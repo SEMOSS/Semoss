@@ -34,12 +34,12 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-
 
 public class DivisionReactor extends AbstractPyFrameReactor {
 	private static final String NUMERATOR = "numerator";
@@ -53,36 +53,36 @@ public class DivisionReactor extends AbstractPyFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
 		String frameName = frame.getName();
-		
+
 		// get the wrapper name
 		// which is the framename with w in the end
 		String wrapperFrameName = frame.getWrapperName();
-		
+
 		// get inputs
 		String numerator = this.keyValue.get(NUMERATOR);
 		String denominator = this.keyValue.get(DENOMINATOR);
 		String round = this.keyValue.get(ROUND);
-		if(round == null || round.isEmpty()) {
+		if (round == null || round.isEmpty()) {
 			round = "2";
 		} else {
 			// make sure positive #
 			int num = 0;
 			try {
 				num = ((Number) Double.parseDouble(round)).intValue();
-			} catch(Exception e) {
+			} catch (Exception e) {
 				throw new IllegalArgumentException("Must pass in a valid number for round");
 			}
-			if(num < 0) {
+			if (num < 0) {
 				throw new IllegalArgumentException("Round value must be > 0");
 			}
 		}
 		String newColName = this.keyValue.get(ReactorKeysEnum.NEW_COLUMN.getKey());
 		newColName = getCleanNewColName(newColName);
-		
+
 		// make sure column exists
 		String[] startingColumns = getColumns(frame);
 		List<String> startingColumnsList = new Vector<String>(startingColumns.length);
@@ -93,22 +93,24 @@ public class DivisionReactor extends AbstractPyFrameReactor {
 		}
 
 		// create script
-		String script = wrapperFrameName + ".col_division('" + numerator + "', '" + denominator + "', '" + newColName + "')";
-		
+		String script = wrapperFrameName + ".col_division('" + numerator + "', '" + denominator + "', '" + newColName
+				+ "')";
+
 		// run script
 		insight.getPyTranslator().runEmptyPy(script);
 		this.addExecutedCode(script);
-		
-		/*insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + newColName + "'] = " +
-				 wrapperFrameName + ".cache['data'].apply(lambda x: x['" + numerator + "']/x['" + denominator + "'] "
-				 		+ "if ("
-				 		+ "(isinstance(x['" + numerator + "'], int) or isinstance(x['" + numerator + "'], float) )  and "
-				 		+ "(isinstance(x['" + denominator + "'], int) or isinstance(x['" + denominator + "'], float) )  and "
-				 		+ "x['" + denominator + "'] != 0"
-				 		+ ") else 0 , axis = 1)");
-		*/
+
+		/*
+		 * insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" +
+		 * newColName + "'] = " + wrapperFrameName +
+		 * ".cache['data'].apply(lambda x: x['" + numerator + "']/x['" + denominator +
+		 * "'] " + "if (" + "(isinstance(x['" + numerator + "'], int) or isinstance(x['"
+		 * + numerator + "'], float) )  and " + "(isinstance(x['" + denominator +
+		 * "'], int) or isinstance(x['" + denominator + "'], float) )  and " + "x['" +
+		 * denominator + "'] != 0" + ") else 0 , axis = 1)");
+		 */
 		// check if new column exists
-		
+
 		String[] endingColumns = getColumns(frame);
 		List<String> endingColumnsList = new Vector<String>(endingColumns.length);
 		endingColumnsList.addAll(Arrays.asList(endingColumns));
@@ -136,14 +138,13 @@ public class DivisionReactor extends AbstractPyFrameReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(NUMERATOR)) {
-			return "The column to use as the numerator";
-		} else if (key.equals(DENOMINATOR)) {
-			return "The column to use as the denominator";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Adds a new column to the current Python frame that holds one numeric column divided by another.")
+				.key(ROUND,
+						key -> key.type(Integer.class)
+								.description("A non-negative number; other values return an error."))
+				.key(NUMERATOR, "The column to use as the numerator")
+				.key(DENOMINATOR, "The column to use as the denominator");
 	}
 }
-

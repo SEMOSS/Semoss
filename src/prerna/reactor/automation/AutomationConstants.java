@@ -282,6 +282,8 @@ public final class AutomationConstants {
 	public static final String CONFIG_HARNESS_TYPE = "harnessType";
 	public static final String CONFIG_WORKSPACE_ID = "workspaceId";
 	public static final String CONFIG_SKILLS = "skills";
+	/** Extra MCP engines or projects for an agent node's room, as {id, name, type} like a room's own mcp option. */
+	public static final String CONFIG_MCPS = "mcps";
 	public static final String CONFIG_COLLABORATION_ROUTINE = "collaborationRoutine";
 	public static final String CONFIG_ROUTINE_ID = "routineId";
 	public static final String CONFIG_ROUTINE_DELIVERY = "routineDelivery";
@@ -298,6 +300,8 @@ public final class AutomationConstants {
 	public static final String LOOP_MODE_REPEAT = "repeat";
 	public static final String LOOP_MODE_WHILE = "while";
 	public static final String CONFIG_WAIT_TIMEOUT_MS = "waitTimeoutMs";
+	/** How the ERROR_MESSAGE of an agent node cut off by its waitTimeoutMs ends. */
+	public static final String AGENT_WAIT_TIMEOUT_ERROR = " did not complete before the wait timeout.";
 	public static final String CONFIG_APP_ID = "appId";
 
 	// -- Node execution defaults / bounds

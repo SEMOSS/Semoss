@@ -25,46 +25,32 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.collaboration;
+package prerna.openapi;
 
-import prerna.auth.User;
-import prerna.collaboration.BrainTopicUtils;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-// BrainDeleteTopicNote(topicId=["..."], noteId=["..."]);
-public class BrainDeleteTopicNoteReactor extends AbstractCollaborationReactor {
+/**
+ * Marks a REST operation or a reactor as internal: it is published in the
+ * OpenAPI document as {@code "x-internal": true}, and every SDK generated from
+ * the document tags it so its users know not to rely on it. It still works for
+ * everyone; this is a warning, not access control.
+ * <p>
+ * Put it on a resource method, on a resource class (every operation in it), or
+ * on a reactor class. To leave something out of the document and the SDKs
+ * entirely, use swagger-core's {@code @Hidden} instead.
+ */
+@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.TYPE, ElementType.METHOD })
+public @interface Internal {
 
-	private static final String TOPIC_ID = "topicId";
-	private static final String NOTE_ID = "noteId";
-
-	public BrainDeleteTopicNoteReactor() {
-		this.keysToGet = new String[] { TOPIC_ID, NOTE_ID };
-		this.keyRequired = new int[] { 1, 1 };
-	}
-
-	@Override
-	public NounMetadata execute() {
-		User user = getUser();
-		String topicId = getString(TOPIC_ID);
-		String noteId = getString(NOTE_ID);
-		if (topicId == null || noteId == null) {
-			throw new IllegalArgumentException("Must pass a topicId and noteId");
-		}
-		return mapResult(BrainTopicUtils.deleteTopicNote(user, topicId, noteId));
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Deletes a goal from a Brain topic";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (NOTE_ID.equals(key)) {
-			return "Note id";
-		}
-		return super.getDescriptionForKey(key);
-	}
+	/**
+	 * Why it is internal, such as "Used by the admin console only". It is shown to
+	 * SDK users next to the internal tag.
+	 */
+	String value() default "";
 }

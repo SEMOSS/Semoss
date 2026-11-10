@@ -69,6 +69,7 @@ import com.microsoft.playwright.Playwright;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IStorageEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -448,21 +449,13 @@ public class GetStorageFileAsBase64Reactor extends AbstractReactor {
 	// ==================== DESCRIPTIONS ====================
 
 	@Override
-	public String getReactorDescription() {
-		return "Reads a file from storage into memory as a byte array and returns as base64. "
-				+ "Optionally converts DOCX, DOC, or XLSX to PDF using Playwright before returning.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.STORAGE.getKey())) {
-			return "The storage engine instance or id";
-		} else if (key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
-			return "The path to the file in storage to read into memory";
-		} else if (key.equals(CONVERT_TO_PDF_KEY)) {
-			return "If true, converts DOCX/DOC/XLSX to PDF via Playwright before returning. "
-					+ "PDF and TXT pass through unchanged. PPTX is returned as-is (unsupported).";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Reads a file from storage into memory as a byte array and returns as base64. "
+						+ "Optionally converts DOCX, DOC, or XLSX to PDF using Playwright before returning.")
+				.key(ReactorKeysEnum.STORAGE, "The storage engine instance or id")
+				.key(ReactorKeysEnum.STORAGE_PATH, "The path to the file in storage to read into memory")
+				.key(CONVERT_TO_PDF_KEY, "If true, converts DOCX/DOC/XLSX to PDF via Playwright before returning. "
+						+ "PDF and TXT pass through unchanged. PPTX is returned as-is (unsupported).");
 	}
 }

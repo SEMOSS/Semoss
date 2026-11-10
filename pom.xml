@@ -61,6 +61,8 @@
 		     cannot share a single property. -->
 		<jackson2.version>2.22.4</jackson2.version>
 		<jackson2.annotations.version>2.22</jackson2.annotations.version>
+		<!-- OpenAPI annotations for reactor contracts (AbstractReactor2); keep in step with Monolith's swagger.version -->
+		<swagger.version>2.2.30</swagger.version>
 		<guava.version>33.7.2-jre</guava.version>
 		<jackson3.version>3.1.8</jackson3.version>
 		<!-- Keep these security pins in sync with Monolith/pom.xml. -->
@@ -1988,6 +1990,13 @@
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>
 			<version>${jackson2.annotations.version}</version>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/io.swagger.core.v3/swagger-annotations-jakarta -->
+		<!-- Annotations only: describes AbstractReactor2 inputs for the OpenAPI document Monolith exports -->
+		<dependency>
+			<groupId>io.swagger.core.v3</groupId>
+			<artifactId>swagger-annotations-jakarta</artifactId>
+			<version>${swagger.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.datatype/jackson-datatype-jsr310 -->
 		<dependency>

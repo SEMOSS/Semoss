@@ -49,6 +49,7 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.remoteviewer.service.RemoteBrowserSession;
 import prerna.remoteviewer.service.RemoteBrowserSessionManager;
 import prerna.sablecc2.om.PixelDataType;
@@ -764,10 +765,22 @@ public class PlanNextPlaywrightActionReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Plans one validated click, fill, select, or scroll action toward a browser automation goal using the live page, \
-				recent Playground context, and previously executed automation actions.\
-				""";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Plans one validated click, fill, select, or scroll action toward a browser automation goal using the live page, \
+								recent Playground context, and previously executed automation actions.\
+								""")
+				.key(KEY_GOAL,
+						"The goal the browser automation works toward. It must not be blank, and only its first 4000 characters are used.")
+				.key(KEY_HISTORY,
+						"A JSON array of the actions this automation run has already taken, given to the model as its previous actions; only the last 25 are used.")
+				.key(KEY_ITERATION, key -> key.type(Integer.class).description(
+						"The number of this planning step in the automation run, from 1 to 25; defaults to 1 and must not exceed maxIterations."))
+				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class).description(
+						"The number of recent room messages to include as context, from 1 to 50; defaults to 20."))
+				.key(KEY_MAX_ITERATIONS, key -> key.type(Integer.class).description(
+						"The most planning steps the automation run may take, from 1 to 25; defaults to 10."));
 	}
 }

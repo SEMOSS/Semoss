@@ -33,11 +33,13 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetUserConversationRoomsReactor extends AbstractReactor {
+
 	private static final String INCLUDE_UNNAMED_ROOMS = "includeUnnamedRooms";
 	private static final String INCLUDE_CHILD_ROOMS = "includeChildRooms";
 
@@ -51,10 +53,7 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 
 		String roomOptionsSearch = this.keyValue.get("roomOptionsSearch");
 		if (roomOptionsSearch != null) {
@@ -83,8 +82,7 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		}
 
 		String search = this.keyValue.get(ReactorKeysEnum.SEARCH.getKey());
-		if (search != null && !search.trim().isEmpty()
-				&& (projectId == null || projectId.trim().isEmpty())) {
+		if (search != null && !search.trim().isEmpty() && (projectId == null || projectId.trim().isEmpty())) {
 			throw new IllegalArgumentException("A project must be provided or available from the current insight");
 		}
 
@@ -98,7 +96,6 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		boolean includeUnnamedRooms = getBoolean(INCLUDE_UNNAMED_ROOMS, false);
 		boolean includeChildRooms = getBoolean(INCLUDE_CHILD_ROOMS, false);
 
-
 		// Call new overload of getUserConversations
 		List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(
 				user.getPrimaryLoginToken().getId(), projectId, limit, offset, sortDir, search, pinned,
@@ -108,31 +105,22 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Retrieves conversation rooms for the current user, with optional project scoping, paging, room-name search, sort direction, and pinned filtering.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "Project ID used to scope rooms. If omitted, the current insight context project is used.";
-		} else if (ReactorKeysEnum.LIMIT.getKey().equals(key)) {
-			return "Maximum number of rooms to return. Use -1 (or omit) to return all available rooms.";
-		} else if (ReactorKeysEnum.OFFSET.getKey().equals(key)) {
-			return "Number of rooms to skip before returning results.";
-		} else if (ReactorKeysEnum.SEARCH.getKey().equals(key)) {
-			return "Optional room-name search term (case-insensitive).";
-		} else if (ReactorKeysEnum.SORT.getKey().equals(key)) {
-			return "Sort direction by room creation date. Accepts ASC or DESC (default is DESC).";
-		} else if (ReactorKeysEnum.PINNED.getKey().equals(key)) {
-			return "Optional pinned filter: true for pinned rooms only, false for unpinned rooms only, omit for no pinned filter.";
-		} else if ("roomOptionsSearch".equals(key)) {
-			return "Optional free-text search term applied against the room's options JSON. Any room whose options contain this substring is included.";
-		} else if (INCLUDE_UNNAMED_ROOMS.equals(key)) {
-			return "Whether to include rooms with a null or empty name. Defaults to false.";
-		} else if (INCLUDE_CHILD_ROOMS.equals(key)) {
-			return "Whether to include rooms that have a parent room. Defaults to false.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Retrieves conversation rooms for the current user, with optional project scoping, paging, room-name search, sort direction, and pinned filtering.")
+				.key(ReactorKeysEnum.PROJECT,
+						"Project ID used to scope rooms. If omitted, the current insight context project is used.")
+				.key(ReactorKeysEnum.LIMIT,
+						"Maximum number of rooms to return. Use -1 (or omit) to return all available rooms.")
+				.key(ReactorKeysEnum.OFFSET, "Number of rooms to skip before returning results.")
+				.key(ReactorKeysEnum.SEARCH, "Optional room-name search term (case-insensitive).")
+				.key(ReactorKeysEnum.SORT,
+						"Sort direction by room creation date. Accepts ASC or DESC (default is DESC).")
+				.key(ReactorKeysEnum.PINNED,
+						"Optional pinned filter: true for pinned rooms only, false for unpinned rooms only, omit for no pinned filter.")
+				.key("roomOptionsSearch",
+						"Optional free-text search term applied against the room's options JSON. Any room whose options contain this substring is included.")
+				.key(INCLUDE_UNNAMED_ROOMS, "Whether to include rooms with a null or empty name. Defaults to false.")
+				.key(INCLUDE_CHILD_ROOMS, "Whether to include rooms that have a parent room. Defaults to false.");
 	}
 }

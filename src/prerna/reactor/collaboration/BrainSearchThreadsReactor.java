@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadFinder;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSearchThreads(topic=["Air Force AIMES"], query=["renewal pricing"], person=["priya"], from=["2026-09-01"], to=["2026-10-05"], limit=[10]);
@@ -62,30 +63,18 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Finds threads in the owner's Brain by words in the subject or summary, by person, or by date, newest "
-				+ "first; each result names its topics. Pass a topic to look only inside it, and with nothing else "
-				+ "it lists that topic's newest threads. It does not search message text; read a match with "
-				+ "BrainGetThreadMessages. Never-ingest and muted content is left out";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Only threads in this topic, by id from ListTopics";
-		} else if (TOPIC.equals(key)) {
-			return "Only threads in this topic, by name, when the id is not known; must match one topic";
-		} else if (QUERY.equals(key)) {
-			return "Optional. Words to look for in the thread subject, summary, and people";
-		} else if (PERSON.equals(key)) {
-			return "Only threads with a person whose name or email contains this";
-		} else if (FROM.equals(key)) {
-			return "Only threads with a message on or after this date (YYYY-MM-DD)";
-		} else if (TO.equals(key)) {
-			return "Only threads with a message on or before this date (YYYY-MM-DD)";
-		} else if (LIMIT.equals(key)) {
-			return "Best N threads, default 10, at most 25";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Finds threads in the owner's Brain by words in the subject or summary, by person, or by date, newest "
+						+ "first; each result names its topics. Pass a topic to look only inside it, and with nothing else "
+						+ "it lists that topic's newest threads. It does not search message text; read a match with "
+						+ "BrainGetThreadMessages. Never-ingest and muted content is left out")
+				.key(TOPIC_ID, "Only threads in this topic, by id from ListTopics")
+				.key(TOPIC, "Only threads in this topic, by name, when the id is not known; must match one topic")
+				.key(QUERY, "Optional. Words to look for in the thread subject, summary, and people")
+				.key(PERSON, "Only threads with a person whose name or email contains this")
+				.key(FROM, "Only threads with a message on or after this date (YYYY-MM-DD)")
+				.key(TO, "Only threads with a message on or before this date (YYYY-MM-DD)")
+				.key(LIMIT, "Best N threads, default 10, at most 25");
 	}
 }

@@ -34,40 +34,41 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GrabScalarElementReactor extends AbstractReactor {
 
 	/**
-	 * This class is responsible for collecting the first element from a task and returning it as a noun
+	 * This class is responsible for collecting the first element from a task and
+	 * returning it as a noun
 	 */
-	
+
 	private static final String CLEAN_UP_KEY = "cleanUp";
 	private static final Logger classLogger = LogManager.getLogger(GrabScalarElementReactor.class);
 
 	public GrabScalarElementReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), CLEAN_UP_KEY};
+		this.keysToGet = new String[] { ReactorKeysEnum.TASK.getKey(), CLEAN_UP_KEY };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		ITask task = getTask();
-		if(task == null) {
+		if (task == null) {
 			throw new IllegalArgumentException("Could not find task to retrieve data from!");
 		}
 		String stringType = (String) task.getHeaderInfo().get(0).get("dataType");
-		
+
 		PixelDataType nounType = null;
 		Object nounValue = null;
-		if(task.hasNext()) {
+		if (task.hasNext()) {
 			nounValue = task.next().getValues()[0];
-			if(Utility.isNumericType(stringType)) {
+			if (Utility.isNumericType(stringType)) {
 				nounType = PixelDataType.CONST_DECIMAL;
 			} else {
 				nounType = PixelDataType.CONST_STRING;
@@ -75,54 +76,54 @@ public class GrabScalarElementReactor extends AbstractReactor {
 		} else {
 			nounType = PixelDataType.NULL_VALUE;
 		}
-		
+
 		boolean cleanUp = cleanUp();
-		if(cleanUp) {
+		if (cleanUp) {
 			try {
 				task.close();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Could not close task {}", task.getId(), e);
 			}
 			this.insight.getTaskStore().removeTask(task.getId());
 		}
-		
+
 		return new NounMetadata(nounValue, nounType);
 	}
 
-	//This gets the task to collect from
+	// This gets the task to collect from
 	private ITask getTask() {
 		ITask task;
-		
+
 		List<Object> tasks = curRow.getValuesOfType(PixelDataType.TASK);
-		//if we don't have jobs in the curRow, check if it exists in genrow under the key job
-		if(tasks == null || tasks.size() == 0) {
+		// if we don't have jobs in the curRow, check if it exists in genrow under the
+		// key job
+		if (tasks == null || tasks.size() == 0) {
 			task = (ITask) getNounStore().getGenRowStruct(PixelDataType.TASK.getKey()).get(0);
 		} else {
 			task = (ITask) curRow.getValuesOfType(PixelDataType.TASK).get(0);
 		}
 		return task;
 	}
-	
+
 	private boolean cleanUp() {
 		GenRowStruct cleanUpGrs = this.store.getGenRowStruct(CLEAN_UP_KEY);
-		if(cleanUpGrs != null && !cleanUpGrs.isEmpty()) {
+		if (cleanUpGrs != null && !cleanUpGrs.isEmpty()) {
 			boolean cleanUp = (boolean) cleanUpGrs.get(0);
 			return cleanUp;
 		}
-		
+
 		// default is to stop the iterator and clean up
 		return true;
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(CLEAN_UP_KEY)) {
-			return "Boolean indication (true or false) to clear the task - defaults to true";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the first value of the first row of a task as a single number or string, or null when the task has no rows. By default it then closes the task and removes it from the insight.")
+				.key(CLEAN_UP_KEY, key -> key.type(Boolean.class)
+						.description("Boolean indication (true or false) to clear the task - defaults to true"));
 	}
 
 }

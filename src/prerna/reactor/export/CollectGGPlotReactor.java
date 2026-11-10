@@ -46,6 +46,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.convert.ConvertReactor;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.reactor.task.TaskBuilderReactor;
@@ -300,15 +301,9 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		return outputs;
 	}
 
-	///////////////////////// KEYS /////////////////////////////////////
-
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "The number to collect";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Draws a ggplot2 chart in R from the data of the incoming task and returns it as an embedded image. The ggplot expression refers to the data as plotterframe, and a + animate step makes an animated GIF with gganimate.");
 	}
-
 }

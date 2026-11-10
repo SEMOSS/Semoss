@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
+import prerna.reactor.ReactorDefinition;
+
 @Deprecated
 public class SetContextReactor extends LoadAppReactor {
 
@@ -35,10 +37,10 @@ public class SetContextReactor extends LoadAppReactor {
 		super();
 	}
 
-	@Deprecated
 	@Override
-	public String getReactorDescription() {
-		return "This reactor is deprecated. Please update to LoadApp(project='') instead";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("This reactor is deprecated. Please update to LoadApp(project='') instead");
 	}
 
 }

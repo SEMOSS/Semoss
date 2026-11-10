@@ -33,6 +33,7 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -91,24 +92,13 @@ public class ResolvePlaywrightRoomRecordingReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Finds the Playwright recording in the current Playground room that best matches a natural-language description or filename, with an accessible project as an optional fallback.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
-			return "Active Playground room ID. The current insight must already be bound to this room.";
-		}
-		if (RECORDING_NAME_HINT.equals(key)) {
-			return "Natural-language description of the desired room recording.";
-		}
-		if (RECORDING_FILE.equals(key)) {
-			return "Optional exact recording JSON filename.";
-		}
-		if (PROJECT_ID.equals(key)) {
-			return "Optional accessible project whose recordings are searched as a fallback.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Finds the Playwright recording in the current Playground room that best matches a natural-language description or filename, with an accessible project as an optional fallback.")
+				.key(ReactorKeysEnum.ROOM_ID,
+						"Active Playground room ID. The current insight must already be bound to this room.")
+				.key(RECORDING_NAME_HINT, "Natural-language description of the desired room recording.")
+				.key(RECORDING_FILE, "Optional exact recording JSON filename.")
+				.key(PROJECT_ID, "Optional accessible project whose recordings are searched as a fallback.");
 	}
 }

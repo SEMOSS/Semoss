@@ -45,7 +45,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -77,9 +76,6 @@ public class DeleteInsightReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		organizeKeys();
 		GenRowStruct projectGrs = this.store.getGenRowStruct(this.keysToGet[0]);

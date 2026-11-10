@@ -30,8 +30,6 @@ package prerna.util.git.reactors;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -50,18 +48,14 @@ public class GetAssetCommentReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		// check if user is logged in
-		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		String space = this.keyValue.get(this.keysToGet[1]);
-		if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
+		if (space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
 			// if we are in the insight space
 			// it must be a saved insight
-			if(!this.insight.isSavedInsight()) {
-				return NounMetadata.getWarningNounMessage("Unable to get comments the insight must be saved to allow commenting.");
+			if (!this.insight.isSavedInsight()) {
+				return NounMetadata
+						.getWarningNounMessage("Unable to get comments the insight must be saved to allow commenting.");
 			}
 		}
 		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);

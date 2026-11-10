@@ -402,22 +402,25 @@ public final class WorkItemUtils {
 					1, 0), rs -> new String[] { rs.getString(1), rs.getString(2), rs.getString(3) }, ownerId,
 					ownerType, threadId, OPEN, WAITING, SNOOZED);
 			if (active == null) {
-				String[] closed = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
-						"SELECT STATUS, CLOSED_REASON FROM WORK_ITEM WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+				Object[] closed = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
+						"SELECT STATUS, CLOSED_REASON, RECEIVED_AT FROM WORK_ITEM WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 								+ "AND THREAD_ID = ? ORDER BY RECEIVED_AT DESC, ITEM_ID",
-						1, 0), rs -> new String[] { rs.getString(1), rs.getString(2) }, ownerId, ownerType, threadId);
+						1, 0), rs -> new Object[] { rs.getString(1), rs.getString(2), rs.getTimestamp(3) }, ownerId,
+						ownerType, threadId);
 				if (closed == null) {
 					return createFromIngest(ownerId, ownerType, item);
 				}
-				// done or dismissed: a thanks or an update is context, not new work
-				if (!ask) {
+				// done or dismissed: a thanks or an update is context, not new work; nor is the message the closed item
+				// came from, read again under the new id Outlook gives it when it is moved
+				if (!ask || Objects.equals(closed[2],
+						CollaborationDbUtils.toTimestamp(item.get("receivedAt"), "receivedAt"))) {
 					result.put("skipped", "closed");
 					return result;
 				}
 				// a new ask after a closed one says so, so it doesn't read as a duplicate
 				Map<String, Object> followUp = new LinkedHashMap<>(item);
 				List<Object> reasons = new ArrayList<>();
-				reasons.add(followUp(closed[0], closed[1]));
+				reasons.add(followUp((String) closed[0], (String) closed[1]));
 				if (item.get("reasons") instanceof List<?> given) {
 					reasons.addAll(given);
 				}
@@ -521,6 +524,13 @@ public final class WorkItemUtils {
 	public static List<String> dismissForMessage(String ownerId, String ownerType, String sourceRef) {
 		return closeWhere(ownerId, ownerType, " AND SOURCE_REF = ?", List.of(sourceRef), DISMISSED, "deleted",
 				"message deleted");
+	}
+
+	// a result the owner's routine mailed them: nothing Brain raised on its thread was anyone's ask (what the owner
+	// or the assistant added there stays)
+	public static List<String> dismissForRoutineResult(String ownerId, String ownerType, String threadId) {
+		return closeWhere(ownerId, ownerType, " AND THREAD_ID = ? AND ORIGIN = ?", List.of(threadId, BRAIN),
+				DISMISSED, "automated", "a routine's own result");
 	}
 
 	// a keep-out rule now covers these senders: dismiss what they raised (only on the topic's threads when topicId

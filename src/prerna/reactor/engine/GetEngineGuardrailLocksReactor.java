@@ -39,6 +39,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityUserUtils;
 import prerna.engine.impl.model.inferencetracking.GuardrailHitStore;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -95,15 +96,9 @@ public class GetEngineGuardrailLocksReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the users locked out of an engine after their guardrail hits reached one of its hit limits, ending soonest first: each user's id, login type, name and email, the limit, and when the lock started and ends, in UTC. Requires edit access to the engine.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The id of the engine";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists the users locked out of an engine after their guardrail hits reached one of its hit limits, ending soonest first: each user's id, login type, name and email, the limit, and when the lock started and ends, in UTC. Requires edit access to the engine.")
+				.key(ReactorKeysEnum.ENGINE, "The id of the engine");
 	}
 }

@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import prerna.auth.User;
 import prerna.collaboration.BrainPeopleUtils;
 import prerna.collaboration.BrainTopicUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainListPeople(query=["priya"], accountId=["..."], topicId=["..."], relationship=["automated"], follow=["following"],
@@ -54,32 +55,19 @@ public class BrainListPeopleReactor extends AbstractCollaborationReactor {
 		User user = getUser();
 		Integer limit = getIntFromKeyOrCurRow(LIMIT);
 		Integer offset = getIntFromKeyOrCurRow(OFFSET);
-		return mapResult(BrainPeopleUtils.listPeople(user, getString(QUERY), getString(ACCOUNT_ID),
-				getString(TOPIC_ID), getString(RELATIONSHIP), getString(FOLLOW), limit == null ? BrainTopicUtils.DEFAULT_LIMIT : limit, offset == null ? 0 : offset));
+		return mapResult(BrainPeopleUtils.listPeople(user, getString(QUERY), getString(ACCOUNT_ID), getString(TOPIC_ID),
+				getString(RELATIONSHIP), getString(FOLLOW), limit == null ? BrainTopicUtils.DEFAULT_LIMIT : limit,
+				offset == null ? 0 : offset));
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the signed-in user's Brain people as { items, total }, strongest first";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (QUERY.equals(key)) {
-			return "Name or email substring";
-		} else if (ACCOUNT_ID.equals(key)) {
-			return "Only people in this account";
-		} else if (TOPIC_ID.equals(key)) {
-			return "Only members of this topic";
-		} else if (FOLLOW.equals(key)) {
-			return "Only people you follow (following, VIPs included), or suggested / declined";
-		} else if (RELATIONSHIP.equals(key)) {
-			return "Only people with this relationship (colleague, external, automated, self)";
-		} else if (LIMIT.equals(key)) {
-			return "Page size, default 30";
-		} else if (OFFSET.equals(key)) {
-			return "Rows to skip, default 0";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Lists the signed-in user's Brain people as { items, total }, strongest first")
+				.key(QUERY, "Name or email substring").key(ACCOUNT_ID, "Only people in this account")
+				.key(TOPIC_ID, "Only members of this topic")
+				.key(RELATIONSHIP, "Only people with this relationship (colleague, external, automated, self)")
+				.key(FOLLOW, "Only people you follow (following, VIPs included), or suggested / declined")
+				.key(LIMIT, "Page size, default 30").key(OFFSET, "Rows to skip, default 0");
 	}
 }

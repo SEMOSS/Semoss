@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.WorkItemUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkCreateItem(threadId=["..."], title=["..."], askType=["errand"], assignee=["..."], dueAt=["..."]);
@@ -53,23 +54,10 @@ public class WorkCreateItemReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates a Work item of your own on a thread";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread the item belongs to";
-		} else if (TITLE.equals(key)) {
-			return "Short action phrase";
-		} else if (ASK_TYPE.equals(key)) {
-			return "reply, approve, attend, review, waiting_on, errand, or fyi";
-		} else if (ASSIGNEE.equals(key)) {
-			return "Person id, default you";
-		} else if (DUE_AT.equals(key)) {
-			return "ISO-8601 due time";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Creates a Work item of your own on a thread")
+				.key(THREAD_ID, "Thread the item belongs to").key(TITLE, "Short action phrase")
+				.key(ASK_TYPE, "reply, approve, attend, review, waiting_on, errand, or fyi")
+				.key(ASSIGNEE, "Person id, default you").key(DUE_AT, "ISO-8601 due time");
 	}
 }

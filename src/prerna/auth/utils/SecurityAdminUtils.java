@@ -1570,7 +1570,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param offset               how many engines to skip; null or empty for none
 	 * @param sortFields           sort keys and directions: {@code ENGINENAME} or
 	 *                             {@code DATECREATED} mapped to {@code ASC} or
-	 *                             {@code DESC}; null or empty to sort by name
+	 *                             {@code DESC}; null or empty to sort by name. The
+	 *                             name sort uses the display name, else the name,
+	 *                             ignoring case
 	 * @param permissionUser       the id of the user whose grants
 	 *                             {@code effectivePermissions} checks; when set,
 	 *                             each row also reports that user's direct grant as
@@ -1616,7 +1618,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "engine_created_by"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "engine_created_by_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME",
+		// the name sort follows the name shown, as the user's own list does
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, QueryFunctionSelector
+				.makeCoalesceSelector("ENGINE__ENGINEDISPLAYNAME", "ENGINE__ENGINENAME", "display_name"),
 				"low_engine_name"));
 
 		// legacy alias names
@@ -1820,7 +1824,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param sortFields            sort keys and directions: {@code PROJECTNAME},
 	 *                              {@code DATECREATED}, or {@code DATELASTEDITED}
 	 *                              mapped to {@code ASC} or {@code DESC}; null or
-	 *                              empty to sort by name
+	 *                              empty to sort by name. The name sort uses the
+	 *                              display name, else the name, ignoring case
 	 * @param permissionUser        the id of the user whose grants
 	 *                              {@code effectivePermissions} checks; when set,
 	 *                              each row also reports that user's direct grant
@@ -1879,8 +1884,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 				new QueryColumnSelector(projectPrefix + "REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
 		qs.addSelector(
 				new QueryColumnSelector(projectPrefix + "REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
-		// for sort
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME",
+		// the name sort follows the name shown, as the user's own list does
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, QueryFunctionSelector
+				.makeCoalesceSelector("PROJECT__PROJECTDISPLAYNAME", "PROJECT__PROJECTNAME", "display_name"),
 				"low_project_name"));
 
 		if (projectFilter != null && !projectFilter.isEmpty()) {

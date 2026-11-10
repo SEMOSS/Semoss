@@ -33,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
@@ -53,6 +54,19 @@ import prerna.util.EngineUtility;
 public class InternalMCP implements IMCP {
 
 	private static final Logger classLogger = LogManager.getLogger(InternalMCP.class);
+
+	/**
+	 * The newest MCP protocol version this server speaks, offered to a client that
+	 * asks for one it does not.
+	 */
+	static final String LATEST_PROTOCOL_VERSION = "2025-11-25";
+
+	/**
+	 * The MCP protocol versions this server speaks, all of which start with an
+	 * initialize handshake.
+	 */
+	static final List<String> SUPPORTED_PROTOCOL_VERSIONS = List.of(LATEST_PROTOCOL_VERSION, "2025-06-18", "2025-03-26",
+			"2024-11-05");
 
 	/**
 	 * Resolved once at construction. Every tool/resource/prompt read and every
@@ -231,10 +245,8 @@ public class InternalMCP implements IMCP {
 
 	@Override
 	public JSONObject initMCP(String protocolVersion) {
-		// need to return the protocol version of the client request
-		// as part of initialization
 		JSONObject resultJson = new JSONObject();
-		resultJson.put("protocolVersion", protocolVersion);
+		resultJson.put("protocolVersion", negotiateProtocolVersion(protocolVersion));
 
 		JSONObject serverJson = new JSONObject();
 		serverJson.put("name", this.engineName);
@@ -246,21 +258,31 @@ public class InternalMCP implements IMCP {
 
 		JSONObject promptJson = new JSONObject();
 		promptJson.put("listChanged", false);
-		promptJson.put("subscribe", true);
 		capabilitiesJson.put("prompts", promptJson);
 
 		JSONObject resourcesJson = new JSONObject();
 		resourcesJson.put("listChanged", false);
-		resourcesJson.put("subscribe", true);
+		resourcesJson.put("subscribe", false);
 		capabilitiesJson.put("resources", resourcesJson);
 
 		JSONObject toolsJson = new JSONObject();
 		toolsJson.put("listChanged", false);
-		toolsJson.put("subscribe", true);
 		capabilitiesJson.put("tools", toolsJson);
 
 		resultJson.put("capabilities", capabilitiesJson);
 		return resultJson;
+	}
+
+	/**
+	 * The protocol version to answer an initialize request with: the client's when
+	 * this server speaks it, otherwise the newest one it does.
+	 *
+	 * @param requested the version the client asked for, or null
+	 * @return a version in {@link #SUPPORTED_PROTOCOL_VERSIONS}
+	 */
+	static String negotiateProtocolVersion(String requested) {
+		return requested != null && SUPPORTED_PROTOCOL_VERSIONS.contains(requested) ? requested
+				: LATEST_PROTOCOL_VERSION;
 	}
 
 	@Override

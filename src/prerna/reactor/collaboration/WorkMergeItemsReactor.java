@@ -27,54 +27,30 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import prerna.auth.User;
-import prerna.collaboration.BrainTopicUtils;
+import prerna.collaboration.WorkTaskUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainSaveTopicNote(topicId=["..."], noteId=["..."], kind=["goal"], text=["..."], state=["open"]);
-// a topic note is a memory about the topic now (BrainSaveMemory)
-public class BrainSaveTopicNoteReactor extends AbstractCollaborationReactor {
+// WorkMergeItems(taskId=["from"], intoTaskId=["into"]);
+public class WorkMergeItemsReactor extends AbstractWorkTaskReactor {
+	private static final String TASK_ID = "taskId";
+	private static final String INTO_TASK_ID = "intoTaskId";
 
-	private static final String TOPIC_ID = "topicId";
-	private static final String NOTE_ID = "noteId";
-	private static final String KIND = "kind";
-	private static final String TEXT = "text";
-	private static final String STATE = "state";
-
-	public BrainSaveTopicNoteReactor() {
-		this.keysToGet = new String[] { TOPIC_ID, NOTE_ID, KIND, TEXT, STATE };
-		this.keyRequired = new int[] { 1, 0, 1, 1, 1 };
+	public WorkMergeItemsReactor() {
+		this.keysToGet = new String[] { TASK_ID, INTO_TASK_ID };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = getUser();
-		String topicId = getString(TOPIC_ID);
-		if (topicId == null) {
-			throw new IllegalArgumentException("Must pass a topicId");
-		}
-		return mapResult(BrainTopicUtils.saveTopicNote(user, topicId, getString(NOTE_ID), getString(KIND),
-				getString(TEXT), getString(STATE)));
+		return mapResult(WorkTaskUtils.mergeWork(getUser(), getString(TASK_ID), getString(INTO_TASK_ID)));
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Adds or edits a goal on a Brain topic";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (NOTE_ID.equals(key)) {
-			return "Note id to edit; omit to create";
-		} else if (KIND.equals(key)) {
-			return "goal";
-		} else if (TEXT.equals(key)) {
-			return "Goal text";
-		} else if (STATE.equals(key)) {
-			return "open or done";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Merges a duplicate work item into another: its steps, threads, topics and updates move over and the "
+						+ "duplicate closes")
+				.key(TASK_ID, "The duplicate work item's id").key(INTO_TASK_ID, "The work item to keep");
 	}
 }

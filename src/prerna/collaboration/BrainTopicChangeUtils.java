@@ -75,6 +75,8 @@ public final class BrainTopicChangeUtils {
 	private static final String ROOM_TOPIC = "BRAIN_TOPIC_ROOM";
 	// Outlook folders linked to the topics; likewise only when there are some
 	private static final String FOLDER_TOPIC = "BRAIN_TOPIC_FOLDER";
+	// work items linked to the topics; likewise only when there are some
+	private static final String TASK_TOPIC = "WORK_TASK_TOPIC";
 	// memories linked to the topics, keyed by memory: the rows and every link they have
 	private static final String MEMORY = "BRAIN_MEMORY";
 	private static final String MEMORY_LINK = "BRAIN_MEMORY_LINK";
@@ -251,7 +253,7 @@ public final class BrainTopicChangeUtils {
 								+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
 						params(ownerId, ownerType, topicIds));
 			}
-			for (String table : List.of(ROOM_TOPIC, FOLDER_TOPIC)) {
+			for (String table : List.of(ROOM_TOPIC, FOLDER_TOPIC, TASK_TOPIC)) {
 				CollaborationDbUtils.update(conn,
 						"DELETE FROM " + table + OWNED + " AND TOPIC_ID IN ("
 								+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
@@ -339,6 +341,12 @@ public final class BrainTopicChangeUtils {
 		if (!folders.isEmpty()) {
 			rows.put(FOLDER_TOPIC, folders);
 		}
+		List<Map<String, Object>> tasks = readRows(conn, "SELECT * FROM " + TASK_TOPIC + OWNED + " AND TOPIC_ID IN ("
+				+ CollaborationDbUtils.placeholders(topicIds.size()) + ") ORDER BY TOPIC_ID, TASK_ID",
+				params(ownerId, ownerType, topicIds));
+		if (!tasks.isEmpty()) {
+			rows.put(TASK_TOPIC, tasks);
+		}
 		if (!memoryIds.isEmpty()) {
 			String inMemories = " AND MEMORY_ID IN (" + CollaborationDbUtils.placeholders(memoryIds.size()) + ")";
 			rows.put(MEMORY, readRows(conn, "SELECT * FROM " + MEMORY + OWNED + inMemories + " ORDER BY MEMORY_ID",
@@ -395,8 +403,10 @@ public final class BrainTopicChangeUtils {
 		for (Map<String, Object> row : rows) {
 			List<String> columns = new ArrayList<>(row.keySet());
 			columns.retainAll(types.keySet());
-			try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table + " (" + String.join(", ", columns)
-					+ ") VALUES (" + CollaborationDbUtils.placeholders(columns.size()) + ")")) {
+			// H2 2.x reserves column names such as BRAIN_RULE's VALUE
+			try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table + " ("
+					+ String.join(", ", columns.stream().map(CollaborationDbUtils::column).toList()) + ") VALUES ("
+					+ CollaborationDbUtils.placeholders(columns.size()) + ")")) {
 				for (int i = 0; i < columns.size(); i++) {
 					int type = types.get(columns.get(i));
 					Object value = row.get(columns.get(i));

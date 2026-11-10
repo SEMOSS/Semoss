@@ -28,9 +28,9 @@
 package prerna.reactor.user.fs;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -49,12 +49,7 @@ public class GetUserAssetsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		IProject project = user.getAssetProject();
 		if (project == null) {
@@ -79,16 +74,10 @@ public class GetUserAssetsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Retrieve the contents of a file in the user's assets folder";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file to get the contents. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Retrieve the contents of a file in the user's assets folder")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"Names of the file to get the contents. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.");
 	}
 
 }

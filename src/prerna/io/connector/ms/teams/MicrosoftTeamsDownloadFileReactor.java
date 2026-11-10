@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -118,24 +119,19 @@ public class MicrosoftTeamsDownloadFileReactor extends AbstractMicrosoftReactor 
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Download a file from a Microsoft Teams channel into the insight folder.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(TEAM_ID)) {
-			return "Microsoft Teams team ID that owns the channel. Not needed when the drive ID is supplied.";
-		} else if (key.equals(CHANNEL_ID)) {
-			return "Microsoft Teams channel ID that holds the file. Not needed when the drive ID is supplied.";
-		} else if (key.equals(ReactorKeysEnum.ID.getKey())) {
-			return "Drive item ID of the file to download, as returned by MicrosoftTeamsListFiles.";
-		} else if (key.equals(FILE_NAME)) {
-			return "Optional name to save the file as in the insight folder. The name it carries in the channel is used when omitted.";
-		} else if (key.equals(DRIVE_ID)) {
-			return "Optional SharePoint drive ID returned by MicrosoftTeamsListFiles, which skips the channel lookup.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Download a file from a Microsoft Teams channel into the insight folder.")
+				.key(TEAM_ID,
+						"Microsoft Teams team ID that owns the channel. Not needed when the drive ID is supplied.")
+				.key(CHANNEL_ID,
+						"Microsoft Teams channel ID that holds the file. Not needed when the drive ID is supplied.")
+				.key(ReactorKeysEnum.ID,
+						"Drive item ID of the file to download, as returned by MicrosoftTeamsListFiles.")
+				.key(FILE_NAME,
+						"Optional name to save the file as in the insight folder. The name it carries in the channel is used when omitted.")
+				.key(DRIVE_ID,
+						"Optional SharePoint drive ID returned by MicrosoftTeamsListFiles, which skips the channel lookup.");
 	}
 
 	/**

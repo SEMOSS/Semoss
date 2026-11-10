@@ -4823,6 +4823,22 @@ public final class Utility {
 		return Boolean.parseBoolean(collaborationDb);
 	}
 
+	/**
+	 * Determine if the web search platform MCP is enabled. It needs a SearXNG service
+	 * that not every instance runs, so it stays off unless RDF_Map turns it on.
+	 *
+	 * @return
+	 */
+	public static boolean isWebSearchEnabled() {
+		String webSearch = Utility.getDIHelperProperty(Constants.WEB_SEARCH_ENABLED);
+		if (webSearch == null) {
+			// default configuration is false
+			return false;
+		}
+
+		return Boolean.parseBoolean(webSearch.trim());
+	}
+
 	public static DocumentBuilderFactory getDocumentBuilderFactory() {
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		try {

@@ -33,6 +33,7 @@ import java.util.Map;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -40,37 +41,38 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class StoreInsightRecipeStepMetadataReactor extends AbstractReactor {
 
 	public StoreInsightRecipeStepMetadataReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PIXEL_ID.getKey(), ReactorKeysEnum.ALIAS.getKey(), ReactorKeysEnum.DESCRIPTION.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.PIXEL_ID.getKey(), ReactorKeysEnum.ALIAS.getKey(),
+				ReactorKeysEnum.DESCRIPTION.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String pixelId = this.keyValue.get(this.keysToGet[0]);
 		String alias = this.keyValue.get(this.keysToGet[1]);
 		String description = this.keyValue.get(this.keysToGet[2]);
-		
+
 		PixelList pixelList = this.insight.getPixelList();
 		Pixel pixelObj = null;
-		if(pixelId == null || pixelId.isEmpty()) {
+		if (pixelId == null || pixelId.isEmpty()) {
 			int size = pixelList.size();
-			pixelObj = this.insight.getPixelList().get(size-1);
+			pixelObj = this.insight.getPixelList().get(size - 1);
 			pixelId = pixelObj.getId();
 		}
-		
-		if(pixelObj != null) {
+
+		if (pixelObj != null) {
 			pixelObj.setPixelAlias(alias);
 			pixelObj.setPixelDescription(description);
 		} else {
 			pixelObj = pixelList.getPixel(pixelId);
-			if(pixelObj != null) {
+			if (pixelObj != null) {
 				pixelObj.setPixelAlias(alias);
 				pixelObj.setPixelDescription(description);
 			} else {
 				return getWarning("Unable to find pixelId = " + pixelId);
 			}
 		}
-		
+
 		Map<String, String> newValues = new HashMap<>();
 		newValues.put(ReactorKeysEnum.PIXEL_ID.getKey(), pixelId);
 		newValues.put(ReactorKeysEnum.ALIAS.getKey(), alias);
@@ -79,13 +81,11 @@ public class StoreInsightRecipeStepMetadataReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.ALIAS.getKey())) {
-			return "The alias to assign for the pixel recipe step";
-		} else if(key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
-			return "The description to provide for the pixel recipe step";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Sets the alias and description of one step in the insight recipe, picked by pixel id or the last step when no id is given, and returns the stored values.")
+				.key(ReactorKeysEnum.ALIAS, "The alias to assign for the pixel recipe step")
+				.key(ReactorKeysEnum.DESCRIPTION, "The description to provide for the pixel recipe step");
 	}
-	
+
 }

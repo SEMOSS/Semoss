@@ -43,7 +43,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
@@ -52,6 +51,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRDFDatabase;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.engine.fs.BrowseEngineAssetsReactor;
 import prerna.reactor.engine.fs.CopyEngineAssetReactor;
@@ -146,11 +146,7 @@ public class MakeDefaultRoomToolsForEngineReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
-		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
@@ -331,16 +327,11 @@ public class MakeDefaultRoomToolsForEngineReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Generates mcp/pixel_mcp.json in a room using the default tools for an engine type";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The unique id for the engine whose tools should be added to the current room";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Generates mcp/pixel_mcp.json in a room using the default tools for an engine type")
+				.key(ReactorKeysEnum.ENGINE,
+						"The unique id for the engine whose tools should be added to the current room");
 	}
 
 	@Override

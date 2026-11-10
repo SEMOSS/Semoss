@@ -97,10 +97,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String projectId = getProject();
 
 		User user = this.insight.getUser();
-		// security
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-			throwAnonymousUserError();
-		}
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException("User does not have permission to add insights in the project");
 		}

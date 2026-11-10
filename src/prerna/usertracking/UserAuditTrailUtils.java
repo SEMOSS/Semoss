@@ -136,7 +136,7 @@ public final class UserAuditTrailUtils {
 	private static final Pattern ADMIN_DENIAL_PATTERN = Pattern
 			.compile("(?i)(only exposed for admins|must be an admin|is not an admin|not an admin)");
 	private static final Pattern LOGIN_REQUIRED_PATTERN = Pattern
-			.compile("(?i)(must be logged in|login required|user is not logged in|anonymous users)");
+			.compile("(?i)(must be logged in|login required|user is not logged in)");
 	private static final Pattern NOT_FOUND_PATTERN = Pattern.compile("(?i)(does not exist|could not find|not found)");
 	private static final Pattern REACTOR_CALL = Pattern.compile("([A-Za-z_][A-Za-z0-9_]*)\\s*\\(");
 
@@ -1063,8 +1063,8 @@ public final class UserAuditTrailUtils {
 					ps.setInt(index, (Integer) value);
 				}
 			}
-			case "OLD_VALUE", "NEW_VALUE", "DETAILS", "ERROR_MESSAGE" -> queryUtil.setNullableLargeText(ps, index,
-					(String) value);
+			case "OLD_VALUE", "NEW_VALUE", "DETAILS", "ERROR_MESSAGE" ->
+				queryUtil.setNullableLargeText(ps, index, (String) value);
 			default -> queryUtil.setNullableString(ps, index, (String) value);
 			}
 		}
@@ -1094,9 +1094,6 @@ public final class UserAuditTrailUtils {
 			return null;
 		}
 		try {
-			if (user.isAnonymous()) {
-				return Boolean.FALSE;
-			}
 			Actor actor = getActor(user, null);
 			String key = actor.userId == null ? null : actor.userId + "|" + actor.userType;
 			long now = System.currentTimeMillis();
@@ -1148,10 +1145,6 @@ public final class UserAuditTrailUtils {
 			return new Actor(null, null, null);
 		}
 		try {
-			if (user.isAnonymous()) {
-				return new Actor(user.getAnonymousId(), "ANONYMOUS", "ANONYMOUS " + user.getAnonymousId());
-			}
-
 			AuthProvider resolvedProvider = provider == null ? user.getPrimaryLogin() : provider;
 			AccessToken token = resolvedProvider == null ? null : user.getAccessToken(resolvedProvider);
 			if (token == null) {

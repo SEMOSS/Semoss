@@ -79,6 +79,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.om.InsightFile;
 import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.export.mustache.MustacheUtility;
 import prerna.reactor.export.pdf.PDFUtility;
 import prerna.reactor.export.pdf.PDFUtility.FormObject;
@@ -766,14 +767,6 @@ public class ToPdfReactor extends AbstractReactor {
 					logger.info("PDF post-processing completed");
 				} catch (IOException e) {
 					logger.error("Failed during legacy PDF post-processing", e);
-				} finally {
-					if (document != null) {
-						try {
-							document.close();
-						} catch (IOException e) {
-							logger.error("Failed to close PDF document after post-processing", e);
-						}
-					}
 				}
 			}
 		} catch (IOException e) {
@@ -811,40 +804,37 @@ public class ToPdfReactor extends AbstractReactor {
 	// ==================== REACTOR DESCRIPTION METHODS ====================
 
 	@Override
-	public String getReactorDescription() {
-		return "Converts HTML content to PDF format. Returns a download key for the generated PDF file.";
-	}
-
-	@Override
-	@SuppressWarnings("deprecation")
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.HTML.getKey())) {
-			return "The HTML content to convert to PDF format - Only use if there is no html file";
-		} else if (key.equals(ReactorKeysEnum.MARKDOWN.getKey())) {
-			return "The markdown content to convert to PDF format - Only use if there is no html input";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Path to an HTML file to convert to PDF";
-		} else if (key.equals(ReactorKeysEnum.MUSTACHE.getKey())) {
-			return "Boolean flag to enable Mustache template processing";
-		} else if (key.equals(ReactorKeysEnum.MUSTACHE_VARMAP.getKey())) {
-			return "Map containing variables for Mustache template substitution";
-		} else if (key.equals(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey())) {
-			return "Boolean flag to add interactive signature fields to the PDF";
-		} else if (key.equals(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey())) {
-			return "Boolean flag to add page numbers to the PDF";
-		} else if (key.equals(ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey())) {
-			return "Boolean flag to skip page numbering on the first page";
-		} else if (key.equals(ReactorKeysEnum.PDF_START_PAGE_NUM.getKey())) {
-			return "Starting page number for PDF page numbering";
-		} else if (key.equals(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey())) {
-			return "Output directory path where the PDF file will be saved - should be empty by default";
-		} else if (key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
-			return "Custom filename for the generated PDF (without extension)";
-		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
-			return "Frontend URL required for processing <semoss> tags";
-		} else if (key.equals(ReactorKeysEnum.IMAGE_WAIT_TIME.getKey())) {
-			return "Wait time in milliseconds for image generation from <semoss> tags";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Converts HTML content to PDF format. Returns a download key for the generated PDF file.")
+				.key(ReactorKeysEnum.PDF_SIGNATURE_LABEL, key -> key.list(String.class).description(
+						"The label texts to look for in the generated PDF; with pdfSignatureBlock true, form fields are placed where these labels appear."))
+				.key(ReactorKeysEnum.HTML,
+						"The HTML content to convert to PDF format - Only use if there is no html file")
+				.key(ReactorKeysEnum.MARKDOWN,
+						"The markdown content to convert to PDF format - Only use if there is no html input")
+				.key(ReactorKeysEnum.FILE_PATH, "Path to an HTML file to convert to PDF")
+				.key(ReactorKeysEnum.OUTPUT_FILE_PATH,
+						"Output directory path where the PDF file will be saved - should be empty by default")
+				.key(ReactorKeysEnum.FILE_NAME, "Custom filename for the generated PDF (without extension)")
+				.key(ReactorKeysEnum.URL, "Frontend URL required for processing <semoss> tags")
+				.key(ReactorKeysEnum.MUSTACHE,
+						key -> key.type(Boolean.class)
+								.description("Boolean flag to enable Mustache template processing"))
+				.key(ReactorKeysEnum.MUSTACHE_VARMAP,
+						key -> key.type(Map.class)
+								.description("Map containing variables for Mustache template substitution"))
+				.key(ReactorKeysEnum.PDF_SIGNATURE_BLOCK,
+						key -> key.type(Boolean.class)
+								.description("Boolean flag to add interactive signature fields to the PDF"))
+				.key(ReactorKeysEnum.PDF_PAGE_NUMBERS,
+						key -> key.type(Boolean.class).description("Boolean flag to add page numbers to the PDF"))
+				.key(ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST,
+						key -> key.type(Boolean.class)
+								.description("Boolean flag to skip page numbering on the first page"))
+				.key(ReactorKeysEnum.PDF_START_PAGE_NUM,
+						key -> key.type(Integer.class).description("Starting page number for PDF page numbering"))
+				.key(ReactorKeysEnum.IMAGE_WAIT_TIME, key -> key.type(Integer.class)
+						.description("Wait time in milliseconds for image generation from <semoss> tags"));
 	}
 }

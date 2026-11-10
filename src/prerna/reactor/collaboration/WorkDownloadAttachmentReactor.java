@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainAttachments;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkDownloadAttachment(threadId=["..."], messageId=["..."], attachmentName=["report.xlsx"], includeText=[true]);
@@ -43,7 +44,8 @@ public class WorkDownloadAttachmentReactor extends AbstractCollaborationReactor 
 	private static final String INCLUDE_TEXT = "includeText";
 
 	public WorkDownloadAttachmentReactor() {
-		this.keysToGet = new String[] { THREAD_ID, MESSAGE_ID, ATTACHMENT_NAME, ATTACHMENT_ID, FILE_NAME, INCLUDE_TEXT };
+		this.keysToGet = new String[] { THREAD_ID, MESSAGE_ID, ATTACHMENT_NAME, ATTACHMENT_ID, FILE_NAME,
+				INCLUDE_TEXT };
 		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0 };
 	}
 
@@ -53,7 +55,8 @@ public class WorkDownloadAttachmentReactor extends AbstractCollaborationReactor 
 		String threadId = getString(THREAD_ID);
 		String messageId = getString(MESSAGE_ID);
 		String attachmentName = getString(ATTACHMENT_NAME);
-		// only the app passes ids, and never a name; an assistant's attachmentId is a guess
+		// only the app passes ids, and never a name; an assistant's attachmentId is a
+		// guess
 		String attachmentId = attachmentName == null ? getString(ATTACHMENT_ID) : null;
 		if (threadId == null || (attachmentId == null && attachmentName == null)
 				|| (attachmentName == null && messageId == null)) {
@@ -64,35 +67,23 @@ public class WorkDownloadAttachmentReactor extends AbstractCollaborationReactor 
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Downloads one file attached to an email in this thread into the working directory, so it can be read "
-				+ "with the file tools. Downloads only the one attachment named, only while the thread's rules still show "
-				+ "its email. Use it when the owner asks about an attached file; each email in the thread lists the names of "
-				+ "its attachments. The result gives the file's path in the working directory (and a .txt path for Word, Excel, "
-				+ "PowerPoint, .msg and .eml files when includeText is true).";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Id of the thread the email is on";
-		}
-		if (MESSAGE_ID.equals(key)) {
-			return "Optional. Id of the email that carries the attachment; when omitted, the thread's newest email "
-					+ "with a file of that name is used";
-		}
-		if (ATTACHMENT_NAME.equals(key)) {
-			return "File name of the attachment, as listed on that email, for example report.xlsx";
-		}
-		if (ATTACHMENT_ID.equals(key)) {
-			return "Id of the attachment, instead of its name; the app passes this, you pass attachmentName";
-		}
-		if (FILE_NAME.equals(key)) {
-			return "Name to save the file as in the working directory; the attachment's own name when omitted";
-		}
-		if (INCLUDE_TEXT.equals(key)) {
-			return "Also write <file>.txt with the text of a Word, Excel, PowerPoint, .msg, or .eml file; defaults to false";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Downloads one file attached to an email in this thread into the working directory, so it can be read "
+						+ "with the file tools. Downloads only the one attachment named, only while the thread's rules still show "
+						+ "its email. Use it when the owner asks about an attached file; each email in the thread lists the names of "
+						+ "its attachments. The result gives the file's path in the working directory (and a .txt path for Word, Excel, "
+						+ "PowerPoint, .msg and .eml files when includeText is true).")
+				.key(THREAD_ID, "Id of the thread the email is on")
+				.key(MESSAGE_ID,
+						"Optional. Id of the email that carries the attachment; when omitted, the thread's newest email "
+								+ "with a file of that name is used")
+				.key(ATTACHMENT_NAME, "File name of the attachment, as listed on that email, for example report.xlsx")
+				.key(ATTACHMENT_ID,
+						"Id of the attachment, instead of its name; the app passes this, you pass attachmentName")
+				.key(FILE_NAME,
+						"Name to save the file as in the working directory; the attachment's own name when omitted")
+				.key(INCLUDE_TEXT,
+						"Also write <file>.txt with the text of a Word, Excel, PowerPoint, .msg, or .eml file; defaults to false");
 	}
 }

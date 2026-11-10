@@ -257,7 +257,7 @@ public final class ResourceAuditReadService {
 	 * audit trail is for admins only, whatever grants remain.
 	 */
 	static boolean isOwner(User user, String scope, String id) throws Exception {
-		if (user == null || user.isAnonymous()) {
+		if (user == null) {
 			return false;
 		}
 		if (SecurityAdminUtils.userIsAdmin(user)) {

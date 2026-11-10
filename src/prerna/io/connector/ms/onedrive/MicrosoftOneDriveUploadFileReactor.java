@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -165,24 +166,18 @@ public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriv
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Upload a file from the insight folder into OneDrive, into the signed in user's own drive or into a folder shared with them.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Path of the file to upload, relative to the insight folder.";
-		} else if (key.equals(ReactorKeysEnum.NAME.getKey())) {
-			return "Optional name to give the file in the drive. The source file name is used when omitted.";
-		} else if (key.equals(ITEM_ID)) {
-			return "Optional id of the folder to upload into. The drive root is used when omitted.";
-		} else if (key.equals(PATH)) {
-			return "Optional path of the folder to upload into, relative to the drive root, or relative to the folder the item id names when both are given. The folder has to exist already.";
-		} else if (key.equals(CONFLICT_BEHAVIOR)) {
-			return "Optional behavior when a file of the same name is already there: fail, rename or replace. Defaults to rename.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Upload a file from the insight folder into OneDrive, into the signed in user's own drive or into a folder shared with them.")
+				.key(DRIVE_ID, DRIVE_ID_DESCRIPTION)
+				.key(ReactorKeysEnum.FILE_PATH, "Path of the file to upload, relative to the insight folder.")
+				.key(ReactorKeysEnum.NAME,
+						"Optional name to give the file in the drive. The source file name is used when omitted.")
+				.key(ITEM_ID, "Optional id of the folder to upload into. The drive root is used when omitted.")
+				.key(PATH,
+						"Optional path of the folder to upload into, relative to the drive root, or relative to the folder the item id names when both are given. The folder has to exist already.")
+				.key(CONFLICT_BEHAVIOR,
+						"Optional behavior when a file of the same name is already there: fail, rename or replace. Defaults to rename.");
 	}
 
 	@Override

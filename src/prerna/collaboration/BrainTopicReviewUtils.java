@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import prerna.auth.User;
 
@@ -45,6 +46,8 @@ public final class BrainTopicReviewUtils {
 	public static final String MAP_KIND = "topic_map";
 	private static final String COLUMNS = "REVIEW_ID, REVISION, DRAFT_JSON, APPLIED_REVISION, RESULT_JSON, "
 			+ "FILING_JOB_ID, UPDATED_AT";
+	private static final Pattern BROWSER_SPACE = Pattern
+			.compile("^[\\s\\p{Zs}\\u2028\\u2029\\uFEFF]+|[\\s\\p{Zs}\\u2028\\u2029\\uFEFF]+\\z");
 
 	private BrainTopicReviewUtils() {
 	}
@@ -419,20 +422,20 @@ public final class BrainTopicReviewUtils {
 							}
 							continue;
 						}
-						String name = text(topic.get("name"), "Topic name", 255).trim();
+						String name = browserTrim(text(topic.get("name"), "Topic name", 255));
 						if (name.isEmpty()) {
 							throw new IllegalArgumentException("Every kept topic needs a name");
 						}
-						String alias = text(topic.get("short"), "Short label", 255).trim();
+						String alias = browserTrim(text(topic.get("short"), "Short label", 255));
 						Map<String, Object> edit = new LinkedHashMap<>();
 						if (topicId != null) {
 							edit.put("id", topicId);
 						}
 						edit.put("name", name);
 						edit.put("short", alias.isEmpty() ? name : alias);
-						edit.put("description", text(topic.get("description"), "Description", 12000).trim());
-						edit.put("keywords", BrainTopicReviewProfiles.terms(topic.get("terms")));
-						edit.put("status", BrainTopicUtils.ACTIVE);
+						edit.put("description", browserTrim(text(topic.get("description"), "Description", 12000)));
+						edit.put("keywords", BrainTopicReviewProfiles.terms(trimClueLines(topic.get("terms"))));
+						// no status: saving makes a new or suggested topic active and leaves one the owner archived
 						if (topicId == null && nullableText(topic.get("kind")) != null) {
 							edit.put("kind", topic.get("kind"));
 							edit.put("accountId", topic.get("accountId"));
@@ -479,7 +482,7 @@ public final class BrainTopicReviewUtils {
 					for (Map<String, Object> topic : maps(draft.get("topics"))) {
 						if (!Boolean.TRUE.equals(topic.get("keep"))) continue;
 						String id = BrainTopicReviewProfiles.id(topic);
-						Map<String, Object> saved = BrainTopicUtils.saveTopic(user, Map.of("id", id, "keywords", BrainTopicReviewProfiles.terms(topic.get("terms"))));
+						Map<String, Object> saved = BrainTopicUtils.saveTopic(user, Map.of("id", id, "keywords", BrainTopicReviewProfiles.terms(trimClueLines(topic.get("terms")))));
 						for (String personId : strings(topic.get("removedPeople"))) BrainTopicUtils.setTopicPerson(user, id, personId, BrainTopicUtils.REMOVED, null);
 						for (String personId : strings(topic.get("addedPeople"))) BrainTopicUtils.setTopicPerson(user, id, personId, BrainTopicUtils.MEMBER, null);
 						BrainTopicReviewProfiles.accept(ownerId, ownerType, topic);
@@ -708,6 +711,18 @@ public final class BrainTopicReviewUtils {
 			throw new IllegalArgumentException(field + " must be text of at most " + max + " characters");
 		}
 		return text;
+	}
+
+	// what JS trim() drops, since the page checks the receipt against it; Java's trim() keeps a no-break space
+	private static String browserTrim(String text) {
+		return BROWSER_SPACE.matcher(text).replaceAll("");
+	}
+
+	// each clue line trimmed the same way before the profile splits them
+	private static Object trimClueLines(Object terms) {
+		return terms instanceof String text
+				? String.join("\n", List.of(text.split("\\R", -1)).stream().map(BrainTopicReviewUtils::browserTrim).toList())
+				: terms;
 	}
 
 	@SuppressWarnings("unchecked")

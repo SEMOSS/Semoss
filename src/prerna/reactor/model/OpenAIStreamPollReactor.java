@@ -39,6 +39,7 @@ import prerna.engine.impl.model.ModelPixelInvoker;
 import prerna.engine.impl.model.openai.AbstractOpenAISseStream;
 import prerna.engine.impl.model.openai.OpenAIStreamRegistry;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -92,8 +93,9 @@ public class OpenAIStreamPollReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Return the openai formatted output a streaming model request has produced since the last call";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Return the openai formatted output a streaming model request has produced since the last call");
 	}
 
 	@Override

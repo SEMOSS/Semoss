@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainTopicUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSetTopicPerson(topicId=["..."], personId=["..."], state=["member"], role=["Client lead"], vip=[true]);
@@ -58,23 +59,12 @@ public class BrainSetTopicPersonReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Adds, accepts, or removes a person on a Brain topic";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (PERSON_ID.equals(key)) {
-			return "Person id";
-		} else if (STATE.equals(key)) {
-			return "member, suggested, or removed; removing stops the person as a signal but keeps thread links";
-		} else if (ROLE.equals(key)) {
-			return "Role in the topic; defaults to the person's job title for a new member";
-		} else if (VIP.equals(key)) {
-			return "true makes a member a VIP in this topic only; omit to keep it, any state but member clears it";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Adds, accepts, or removes a person on a Brain topic")
+				.key(TOPIC_ID, "Topic id").key(PERSON_ID, "Person id")
+				.key(STATE,
+						"member, suggested, or removed; removing stops the person as a signal but keeps thread links")
+				.key(ROLE, "Role in the topic; defaults to the person's job title for a new member").key(VIP,
+						"true makes a member a VIP in this topic only; omit to keep it, any state but member clears it");
 	}
 }
