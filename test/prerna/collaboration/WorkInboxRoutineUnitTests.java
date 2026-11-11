@@ -83,6 +83,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.io.connector.ms.MicrosoftGraphCredentialStore;
@@ -601,7 +602,8 @@ class WorkInboxRoutineUnitTests {
 					eq(WorkInboxRoutine.AUTOMATION_ID), files.capture(), eq(Map.of("owner_email", "owner@example.com",
 							"timezone", "America/New_York", "lookback_hours", 24, "preferences", "", "sections",
 							List.of("priorities", "replies", "meetings", "actions"), "priority_count", 5, "write_drafts", true,
-							"skip_reply_subjects", WorkExpenseRoutine.SUBJECTS, "drafted", Map.of())),
+							"skip_reply_subjects", WorkExpenseRoutine.SUBJECTS, "drafted", Map.of(),
+							"section_wait_seconds", 660)),
 					eq(AutomationConstants.TRIGGER_SCHEDULED), isNull()));
 			// once, as brief_model, which the meeting notes and the reply drafts both read
 			assertEquals(1, files.getValue().definition().split("\"text-model\"", -1).length - 1);
@@ -909,15 +911,138 @@ class WorkInboxRoutineUnitTests {
 	}
 
 	@Test
+	void theAssistantChangesOnlyThePreferencesOfARoutineThatIsSetUp() {
+		// not set up yet, a routine that takes no preferences, one of the owner's own, and none
+		for (String routine : List.of(WorkInboxRoutine.ID, WorkExpenseRoutine.ID, "custom-routine", "")) {
+			assertThrows(IllegalArgumentException.class, () -> WorkRoutinePreferences.save(user, routine, "Keep drafts short."),
+					routine);
+		}
+		assertEquals(0, CollaborationDbUtils.count("SELECT COUNT(*) FROM WORK_INBOX_ROUTINE"));
+		Map<String, Object> settings = config(false);
+		settings.put("lookbackHours", 72);
+		settings.put("preferences", "Sign off with my first name.");
+		WorkInboxRoutine.save(user, settings);
+
+		assertEquals(Map.of("routine", WorkInboxRoutine.ID, "name", "Daily inbox brief", "preferences",
+				"Sign off with my first name.\nKeep drafts to three sentences."),
+				WorkRoutinePreferences.save(user, WorkInboxRoutine.ID,
+						"  Sign off with my first name.\nKeep drafts to three sentences.  "));
+		// too long, or nothing, changes nothing
+		for (String invalid : List.of("x".repeat(WorkRoutine.MAX_PREFERENCES + 1), " ")) {
+			assertThrows(IllegalArgumentException.class, () -> WorkRoutinePreferences.save(user, WorkInboxRoutine.ID, invalid));
+		}
+		Map<String, Object> routine = WorkInboxRoutine.get(user);
+		assertEquals("Sign off with my first name.\nKeep drafts to three sentences.", routine.get("preferences"));
+		assertEquals(72, ((Number) routine.get("lookbackHours")).intValue());
+		assertEquals("America/New_York", routine.get("timezone"));
+		assertEquals(false, routine.get("enabled"));
+	}
+
+	@Test
+	void changingPreferencesKeepsARoutineThatIsOnScheduledAsItWas() throws Exception {
+		backgroundAvailable();
+		Scheduler scheduler = mock(Scheduler.class);
+		SchedulerFactorySingleton factory = mock(SchedulerFactorySingleton.class);
+		when(factory.getScheduler()).thenReturn(scheduler);
+		try (MockedStatic<SchedulerFactorySingleton> factories = mockStatic(SchedulerFactorySingleton.class);
+				MockedStatic<SchedulerDatabaseUtility> database = mockStatic(SchedulerDatabaseUtility.class)) {
+			factories.when(SchedulerFactorySingleton::getInstance).thenReturn(factory);
+			database.when(() -> SchedulerDatabaseUtility.insertIntoJobRecipesTable(anyString(), anyString(), anyString(), anyString(),
+					anyString(), any(), anyString(), anyString(), anyString(), anyBoolean(), isNull(), anyList())).thenReturn(true);
+			Map<String, Object> on = config(true); on.put("time", "09:45");
+			WorkInboxRoutine.save(user, on);
+
+			WorkRoutinePreferences.save(user, WorkInboxRoutine.ID, "Keep drafts short.");
+
+			Map<String, Object> routine = WorkInboxRoutine.get(user);
+			assertEquals(true, routine.get("enabled"));
+			assertEquals("Keep drafts short.", routine.get("preferences"));
+			ArgumentCaptor<Trigger> triggers = ArgumentCaptor.forClass(Trigger.class);
+			verify(scheduler, times(2)).scheduleJob(triggers.capture());
+			assertEquals("0 45 9 ? * MON,TUE,WED,THU,FRI", ((CronTrigger) triggers.getValue()).getCronExpression());
+		}
+	}
+
+	@Test
+	void aRoutineDeliveredToTheDailyBriefHasNoScheduleOfItsOwn() throws Exception {
+		backgroundAvailable();
+		Scheduler scheduler = mock(Scheduler.class);
+		SchedulerFactorySingleton factory = mock(SchedulerFactorySingleton.class);
+		when(factory.getScheduler()).thenReturn(scheduler);
+		// were it asked, the scheduler would name a next run for any trigger
+		Trigger scheduled = mock(Trigger.class);
+		when(scheduled.getNextFireTime()).thenReturn(new Date());
+		when(scheduler.getTrigger(any())).thenReturn(scheduled);
+		try (MockedStatic<SchedulerFactorySingleton> factories = mockStatic(SchedulerFactorySingleton.class);
+				MockedStatic<SchedulerDatabaseUtility> database = mockStatic(SchedulerDatabaseUtility.class)) {
+			factories.when(SchedulerFactorySingleton::getInstance).thenReturn(factory);
+			database.when(() -> SchedulerDatabaseUtility.insertIntoJobRecipesTable(anyString(), anyString(), anyString(), anyString(),
+					anyString(), any(), anyString(), anyString(), anyString(), anyBoolean(), isNull(), anyList())).thenReturn(true);
+			Map<String, Object> section = WorkCustomRoutine.save(user, null, new HashMap<>(Map.of("name", "Client news",
+					"prompt", "List this week's news about my clients", "delivery", "brief")));
+			assertEquals(true, section.get("enabled"));
+			assertEquals("brief", section.get("delivery"));
+			// the brief starts it; its own trigger never comes due and it names no next run
+			assertNull(section.get("nextRunAt"));
+			ArgumentCaptor<Trigger> triggers = ArgumentCaptor.forClass(Trigger.class);
+			verify(scheduler).scheduleJob(triggers.capture());
+			assertEquals("0 0 0 1 1 ? 2099", ((CronTrigger) triggers.getValue()).getCronExpression());
+
+			String routineId = (String) section.get("id");
+			assertNotNull(WorkCustomRoutine.save(user, routineId, new HashMap<>(Map.of("delivery", "email"))).get("nextRunAt"));
+			assertThrows(IllegalArgumentException.class,
+					() -> WorkCustomRoutine.save(user, routineId, new HashMap<>(Map.of("delivery", "pigeon"))));
+		}
+		// its agent is told it writes a section, not an email
+		String prompt = CollaborationPrompts.routinePrompt("brief");
+		assertTrue(prompt.contains("one section of the owner's daily brief"));
+		assertFalse(prompt.contains("is emailed to the owner"));
+	}
+
+	@Test
+	void theOwnersChatIsToldEachSetUpRoutinesPreferencesAndWhichOneItWasOpenedFrom() {
+		Room chat = mock(Room.class);
+		when(chat.getProjectId()).thenReturn(CollaborationUtils.COLLABORATION_PROJECT_ID);
+		when(chat.getOptionsMap()).thenReturn(Map.of(CollaborationUtils.ROOM_OPTION_ROUTINE_CHAT, WorkAgendaRoutine.ID));
+		// nothing set up: nothing to say
+		assertNull(WorkRoutinePreferences.promptBlock(user, chat));
+		Map<String, Object> brief = config(false);
+		brief.put("preferences", "Keep drafts short.\nSign off with my first name.");
+		WorkInboxRoutine.save(user, brief);
+		WorkAgendaRoutine.save(user, agendaConfig(false));
+
+		String block = WorkRoutinePreferences.promptBlock(user, chat);
+		assertTrue(block.startsWith("## Routine preferences\n"));
+		assertTrue(block.contains("at most " + WorkRoutine.MAX_PREFERENCES + " characters"));
+		assertTrue(block.contains("### Daily inbox brief\n- routine: inbox-daily-brief\n"));
+		assertTrue(block.contains("- Current preferences:\n> Keep drafts short.\n> Sign off with my first name."));
+		String agendas = block.substring(block.indexOf("### Weekly meeting agendas\n- routine: weekly-meeting-agendas\n"));
+		assertTrue(agendas.contains("This chat was opened from a result of this routine."));
+		assertTrue(agendas.contains("SetRoutinePreferences, routine \"weekly-meeting-agendas\"."));
+		assertTrue(agendas.endsWith("- Current preferences: none yet."));
+		assertEquals(1, block.split("This chat was opened from", -1).length - 1);
+		// event planning was never set up
+		assertFalse(block.contains("Event planning"));
+
+		// a routine's own unattended run reads its preferences as an input and cannot change them
+		Room unattended = mock(Room.class);
+		when(unattended.getOptionsMap()).thenReturn(Map.of(CollaborationUtils.ROOM_OPTION_ROUTINE, true));
+		assertNull(WorkRoutinePreferences.promptBlock(user, unattended));
+	}
+
+	@Test
 	void briefDefinitionIsStrictlyValidAndReadsOnlyDeclaredScopeNames() {
 		assertStrictDefinition(WorkInboxRoutine.briefDefinition("engine-1"),
-				List.of("start", "sync", "wait_sync", "gather", "if_drafts", "drafts", "save_drafts", "prepare", "meeting_notes", "brief", "deliver"),
-				List.of("wait_sync", "gather", "drafts", "save_drafts", "prepare", "summarize_meeting", "brief", "deliver"), List.of(),
+				List.of("start", "sync", "wait_sync", "gather", "if_drafts", "drafts", "save_drafts", "prepare", "meeting_notes",
+						"sections", "arrange", "brief", "deliver"),
+				List.of("wait_sync", "gather", "drafts", "save_drafts", "prepare", "summarize_meeting", "sections", "arrange",
+						"brief", "deliver"), List.of(),
 				Set.of("owner_email", "timezone", "lookback_hours", "brief_model", "preferences", "sections", "priority_count",
-						"write_drafts", "skip_reply_subjects", "drafted"),
-				Set.of("context", "drafts", "saved", "prepared", "meeting_notes", "brief", "brief_model",
+						"write_drafts", "skip_reply_subjects", "drafted", "section_wait_seconds"),
+				// added: the owner's routines printed as sections; plan: what their preferences change in the brief
+				Set.of("context", "drafts", "saved", "prepared", "meeting_notes", "added", "plan", "brief", "brief_model",
 						"owner_email", "timezone", "lookback_hours", "preferences", "sections", "priority_count", "write_drafts",
-						"skip_reply_subjects", "drafted"));
+						"skip_reply_subjects", "drafted", "section_wait_seconds"));
 	}
 
 	@Test
