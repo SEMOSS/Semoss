@@ -227,6 +227,30 @@ public class User implements Serializable {
 		return !this.loggedInProfiles.isEmpty();
 	}
 
+	/**
+	 * Returns whether another user is the same person as this one: the same
+	 * object, or a user who shares a login with the same id and login type.
+	 *
+	 * @param other the user to compare with, or null
+	 * @return true when both are the same person
+	 */
+	public boolean isSamePerson(User other) {
+		if (other == this) {
+			return true;
+		}
+		if (other == null) {
+			return false;
+		}
+		for (AuthProvider login : getLogins()) {
+			AccessToken mine = getAccessToken(login);
+			AccessToken theirs = other.getAccessToken(login);
+			if (mine != null && theirs != null && mine.getId() != null && mine.getId().equals(theirs.getId())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	////////////////////////////////////////////////////////////////////////
 
 	public AuthProvider getPrimaryLogin() {
@@ -992,13 +1016,22 @@ public class User implements Serializable {
 		return retMap;
 	}
 
+	/**
+	 * Returns the id of the user's primary login, or an empty string when there is
+	 * no user or no login left, as for a user who has just logged out of their
+	 * last login.
+	 *
+	 * @param semossUser the user, or null
+	 * @return the primary login's id, or an empty string
+	 */
 	public static String getSingleLogginName(User semossUser) {
 		if (semossUser == null) {
 			return "";
 		}
 
-		AccessToken token = semossUser.accessTokens.get(semossUser.getPrimaryLogin());
-		return token.getId();
+		AuthProvider primaryLogin = semossUser.getPrimaryLogin();
+		AccessToken token = primaryLogin == null ? null : semossUser.accessTokens.get(primaryLogin);
+		return token == null ? "" : token.getId();
 	}
 
 	public static List<Pair<String, String>> getUserIdAndType(User user) {

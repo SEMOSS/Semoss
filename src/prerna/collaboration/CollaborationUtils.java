@@ -58,10 +58,13 @@ public final class CollaborationUtils {
 	public static final String ROOM_OPTION_ROUTINE_DELIVERY = "collaboration_routine_delivery";
 	// Set on that room once its owner follows up there; it is their chat from then on.
 	public static final String ROOM_OPTION_ROUTINE_HANDED_OVER = "collaboration_routine_handed_over";
+	// Set on the chat opened from a routine's result; the id of that routine.
+	public static final String ROOM_OPTION_ROUTINE_CHAT = "collaboration_routine_chat";
 	// Only the server sets these; client option writes cannot add, change, or drop
 	// them.
 	public static final List<String> SERVER_OWNED_ROOM_OPTIONS = List.of(ROOM_OPTION_DELEGATION_ACTION_ID,
-			ROOM_OPTION_ROUTINE, ROOM_OPTION_ROUTINE_DELIVERY, ROOM_OPTION_ROUTINE_HANDED_OVER);
+			ROOM_OPTION_ROUTINE, ROOM_OPTION_ROUTINE_DELIVERY, ROOM_OPTION_ROUTINE_HANDED_OVER,
+			ROOM_OPTION_ROUTINE_CHAT);
 	// Set by Work on a thread's assistant room (threadId, contextRevision,
 	// modelId) until rooms opened from a thread switched to ROOM_OPTION_SOURCE.
 	public static final String ROOM_OPTION_WORK_THREAD = "workThread";

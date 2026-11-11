@@ -36,6 +36,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -160,10 +161,10 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 		}
 	}
 
-	@Deprecated
 	@Override
-	public String getReactorDescription() {
-		return "This reactor is deprecated. Please use CompileAppReactors(project='', release='') instead";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"This reactor is deprecated. Please use CompileAppReactors(project='', release='') instead");
 	}
 
 }

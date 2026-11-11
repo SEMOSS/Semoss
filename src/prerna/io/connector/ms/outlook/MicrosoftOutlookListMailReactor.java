@@ -82,10 +82,14 @@ public class MicrosoftOutlookListMailReactor extends AbstractListMailReactor {
 
 		// a null mailbox addresses /me, so the signed in user is the only mailbox
 		// this reactor is able to read
-		List<Map<String, Object>> found = helper.listMessages(accessToken, null, query);
-		List<MailMessage> messages = found.stream()
+		ConnectorPage<Map<String, Object>> found = helper.listMessagePage(accessToken, null, query);
+		List<MailMessage> messages = found.items().stream()
 				.map(message -> MicrosoftOutlookMessageMapper.toMailMessage(message, null, null, null)).toList();
-		return serverSkips ? ConnectorPage.ofWindow(messages, request.limit())
-				: ConnectorPage.of(messages, request.offset(), request.limit());
+		if (serverSkips) {
+			return ConnectorPage.ofWindow(messages, request.limit());
+		}
+		ConnectorPage<MailMessage> page = ConnectorPage.of(messages, request.offset(), request.limit());
+		// a search narrowed in memory can stop with Graph's later pages unread
+		return new ConnectorPage<>(page.items(), page.hasMore() || found.hasMore());
 	}
 }

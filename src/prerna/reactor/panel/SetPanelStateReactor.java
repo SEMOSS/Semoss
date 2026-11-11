@@ -28,6 +28,7 @@
 package prerna.reactor.panel;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,11 +38,11 @@ import com.google.gson.GsonBuilder;
 
 import prerna.date.SemossDate;
 import prerna.om.InsightPanel;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.NumberAdapter;
 import prerna.util.gson.SemossDateAdapter;
@@ -77,7 +78,7 @@ public class SetPanelStateReactor extends AbstractInsightPanelReactor {
 		try {
 			insightPanel = adapter.fromJson(serialized);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not read the panel state", e);
 			throw new IllegalArgumentException(
 					"Exeption occurred reading the panel state with error: " + e.getMessage());
 		}
@@ -87,11 +88,10 @@ public class SetPanelStateReactor extends AbstractInsightPanelReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(STATE)) {
-			return "The serialization for the insight panel";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Restores a panel in the insight from its serialized state, adding it or replacing the panel with the same id, and returns the panel.")
+				.key(STATE, key -> key.type(Map.class).description("The serialization for the insight panel"));
 	}
 
 	private String getSerialization() {

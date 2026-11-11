@@ -30,6 +30,7 @@ package prerna.reactor.notification;
 import prerna.auth.User;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
@@ -59,7 +60,9 @@ public class PollNotificationsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Get the number of new notifications for the user";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Get the number of new notifications for the user")
+				.key(SCOPE_TYPE, "Which notifications to count: ALL, SYSTEM or APP, in any case. Defaults to ALL.")
+				.key(SCOPE_ID, "The id of the app project to count notifications for, required when scopeType is APP.");
 	}
 }

@@ -55,6 +55,7 @@ import prerna.engine.api.StorageTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -386,20 +387,15 @@ public class UploadEngineReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Import a new engine. The user who uploads will by default be the owner of the engine";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "This is a required value containing the relative file path of the single zip file to be imported";
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-		} else if (key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
-			return "This is a required value to determine if the engine is public or private";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Import a new engine. The user who uploads will by default be the owner of the engine")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"This is a required value containing the relative file path of the single zip file to be imported")
+				.key(ReactorKeysEnum.SPACE,
+						"This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).")
+				.key(ReactorKeysEnum.GLOBAL,
+						"This is a required value to determine if the engine is public or private");
 	}
 
 }

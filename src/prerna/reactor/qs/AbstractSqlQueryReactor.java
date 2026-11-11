@@ -68,6 +68,7 @@ import prerna.query.parsers.SqlScriptSplitter;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -875,32 +876,22 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Execute one or more SQL statements against a database";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "The database id";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Limits the number of rows retrieved by a select query, or kept from each statement with "
-					+ "transaction=true";
-		} else if (key.equals(TRANSACTION_KEY)) {
-			return """
-					When true, runs every statement in one transaction that commits once, so a failing \
-					statement leaves none of the script's changes. Each statement needs the access it needs \
-					without transaction=true. Returns the outcome (COMMITTED, ROLLED_BACK or UNKNOWN), a \
-					message and each statement's result, with up to limit rows from each statement that \
-					returns rows. A database that commits DDL as soon as it runs, such as H2, MySQL or \
-					Oracle, refuses a script of more than one statement with any statement that is not a \
-					query or an insert, update, delete or merge, such as CREATE TABLE, LOCK TABLES or CALL, \
-					before anything runs.""";
-		} else if (key.equals(TIMEOUT_KEY)) {
-			return "Seconds the whole script may run with transaction=true; when reached, the script is rolled back";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Execute one or more SQL statements against a database")
+				.key(ReactorKeysEnum.DATABASE, "The database id")
+				.key(ReactorKeysEnum.LIMIT,
+						"Limits the number of rows retrieved by a select query, or kept from each statement with "
+								+ "transaction=true")
+				.key(TRANSACTION_KEY, """
+						When true, runs every statement in one transaction that commits once, so a failing \
+						statement leaves none of the script's changes. Each statement needs the access it needs \
+						without transaction=true. Returns the outcome (COMMITTED, ROLLED_BACK or UNKNOWN), a \
+						message and each statement's result, with up to limit rows from each statement that \
+						returns rows. A database that commits DDL as soon as it runs, such as H2, MySQL or \
+						Oracle, refuses a script of more than one statement with any statement that is not a \
+						query or an insert, update, delete or merge, such as CREATE TABLE, LOCK TABLES or CALL, \
+						before anything runs.""").key(TIMEOUT_KEY,
+						"Seconds the whole script may run with transaction=true; when reached, the script is rolled back");
 	}
 
 }

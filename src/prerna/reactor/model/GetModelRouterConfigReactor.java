@@ -33,6 +33,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IModelRouterEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -40,8 +41,8 @@ import prerna.util.Utility;
 
 /**
  * Returns the raw router.json contents for a MODEL_ROUTER engine so the
- * settings UI can load the current routing configuration. Requires edit
- * access - the config exposes the engine ids of every routing target.
+ * settings UI can load the current routing configuration. Requires edit access
+ * - the config exposes the engine ids of every routing target.
  */
 public class GetModelRouterConfigReactor extends AbstractReactor {
 
@@ -54,7 +55,8 @@ public class GetModelRouterConfigReactor extends AbstractReactor {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have edit access to it");
+			throw new IllegalArgumentException(
+					"Engine " + engineId + " does not exist or user does not have edit access to it");
 		}
 
 		IModelEngine model = Utility.getModel(engineId);
@@ -71,15 +73,9 @@ public class GetModelRouterConfigReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns the routing configuration (router.json contents) for a model router engine. Requires edit access to the engine.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The id of the model router engine";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the routing configuration (router.json contents) for a model router engine. Requires edit access to the engine.")
+				.key(ReactorKeysEnum.ENGINE, "The id of the model router engine");
 	}
 }

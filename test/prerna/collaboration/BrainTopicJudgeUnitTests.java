@@ -25,57 +25,26 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.auth.utils;
+package prerna.collaboration;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-public class SecurityTokenUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
+class BrainTopicJudgeUnitTests {
 
-	//@Test
-	void testClearExpiredTokens() {
-		String ipAddr = "ipAddress";
-		String clientId = "clientId";
-		Object[] tokenObj = SecurityTokenUtils.generateToken(ipAddr, clientId);
-		SecurityTokenUtils.clearExpiredTokens(0);
-		// test invalid token
-		tokenObj = SecurityTokenUtils.getToken(ipAddr);
-		assertNull(tokenObj);
-	}
+	private static final String MESSAGE = "Hi all, after the vendor call we agreed the cutover moves to 18 November. "
+			+ "It\u2019s final. Thanks, Priya";
 
 	@Test
-	void testGenerateToken() {
-		String ipAddr = "ipAddress";
-		String clientId = "clientId";
-		Object[] tokenObj = SecurityTokenUtils.generateToken(ipAddr, clientId);
-		String tokenValue = (String) tokenObj[0];
-		String ipActual = (String) tokenObj[1];
-		String cliendIdActual = (String) tokenObj[2];
-
-		assertTrue(tokenValue != null && !tokenValue.isEmpty());
-		assertEquals(ipAddr, ipActual);
-		assertEquals(clientId, cliendIdActual);
-	}
-
-	@Test
-	void testGetToken() {
-		String ipAddr = "ipAddress";
-		String clientId = "clientId";
-		SecurityTokenUtils.generateToken(ipAddr, clientId);
-		Object[] tokenObj = SecurityTokenUtils.getToken(ipAddr);
-		String tokenValue = (String) tokenObj[0];
-		String ipActual = (String) tokenObj[1];
-		String cliendIdActual = (String) tokenObj[2];
-
-		assertTrue(tokenValue != null && !tokenValue.isEmpty());
-		assertEquals(ipAddr, ipActual);
-		assertEquals(clientId, cliendIdActual);
-
-		// test invalid token
-		tokenObj = SecurityTokenUtils.getToken("badIP");
-		assertNull(tokenObj);
+	void aQuoteCountsOnlyWhenTheMessageHoldsIt() {
+		// the message's own words, whatever their case, spacing, or quote marks
+		assertNotNull(BrainTopicJudge.locate(MESSAGE, "the cutover moves to 18 November"));
+		assertNotNull(BrainTopicJudge.locate(MESSAGE, "THE CUTOVER  moves to 18 November. It's final."));
+		// made up, or too short to prove anything
+		assertNull(BrainTopicJudge.locate(MESSAGE, "the cutover moves to 20 November"));
+		assertNull(BrainTopicJudge.locate(MESSAGE, "cutover"));
+		assertNull(BrainTopicJudge.locate(MESSAGE, null));
 	}
 }

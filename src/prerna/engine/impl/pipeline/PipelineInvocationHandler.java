@@ -63,6 +63,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
+import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
@@ -228,6 +229,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				newMdc.put(SemossLogUtils.PROJECT_NAME, insight.getContextProjectName());
 				newMdc.put(SemossLogUtils.ROOM_ID, insight.getRoomId());
 			}
+			// the request context has no user off a browser request (pooled threads, jobs, routine steps): name the
+			// caller from the call's own insight so the audit log shows who it was
+			callerContext(newMdc, contextInsight(args));
 		}
 
 		boolean success = true;
@@ -940,6 +944,31 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * @param args the call's arguments
 	 * @return the insight, or null when there is none
 	 */
+	// fills user id, type and name when the context lacks them or has the UNKNOWN placeholder
+	static void callerContext(Map<String, String> mdc, Insight insight) {
+		User user = insight == null ? null : insight.getUser();
+		if (user == null || user.getPrimaryLogin() == null) {
+			return;
+		}
+		AccessToken token = user.getPrimaryLoginToken();
+		if (token == null || token.getId() == null) {
+			return;
+		}
+		if (missing(mdc.get(SemossLogUtils.USER_ID))) {
+			mdc.put(SemossLogUtils.USER_ID, token.getId());
+			mdc.put(SemossLogUtils.USER_TYPE, token.getProvider().getLabel());
+		}
+		String name = token.getResolvedDisplayName();
+		if (name != null && token.getId().equals(mdc.get(SemossLogUtils.USER_ID))
+				&& missing(mdc.get(SemossLogUtils.USER_NAME))) {
+			mdc.put(SemossLogUtils.USER_NAME, name);
+		}
+	}
+
+	private static boolean missing(String value) {
+		return value == null || value.isBlank() || "UNKNOWN".equals(value);
+	}
+
 	private static Insight contextInsight(Object[] args) {
 		if (args != null) {
 			for (Object arg : args) {

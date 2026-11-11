@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.google.AbstractGoogleReactor;
 import prerna.io.connector.google.GoogleLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -74,8 +75,9 @@ public class GoogleGmailProfileByIdReactor extends AbstractGoogleReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Retrieve Gmail profile details for the logged-in user.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Retrieve Gmail profile details for the logged-in user.")
+				.noKeys();
 	}
 
 }

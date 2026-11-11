@@ -39,6 +39,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -49,10 +50,13 @@ import prerna.util.Utility;
  * Returns safe input metadata for one project-specific custom reactor.
  *
  * <p>
- * The reactor first applies standard project alias and view-permission checks, then derives the
- * parameter contract from the target reactor's MCP schema. It does not execute the project reactor.
+ * The reactor first applies standard project alias and view-permission checks,
+ * then derives the parameter contract from the target reactor's MCP schema. It
+ * does not execute the project reactor.
  *
- * <p>Pixel: {@code GetProjectReactorSignature(project=["appId"], reactor=["ReactorName"])}
+ * <p>
+ * Pixel:
+ * {@code GetProjectReactorSignature(project=["appId"], reactor=["ReactorName"])}
  */
 public class GetProjectReactorSignatureReactor extends AbstractReactor {
 
@@ -108,8 +112,11 @@ public class GetProjectReactorSignatureReactor extends AbstractReactor {
 			}
 		}
 
+		String description = reactor instanceof AbstractReactor described
+				? described.getReactorDefinition().getDescription()
+				: reactor.getReactorDefinition().getDescription();
 		Map<String, Object> output = new LinkedHashMap<>();
-		output.put("description", reactor.getReactorDescription());
+		output.put("description", description);
 		output.put("params", params);
 		output.put("template", template(reactorName, params));
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
@@ -127,18 +134,10 @@ public class GetProjectReactorSignatureReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns parameter metadata for a project-specific custom reactor.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "The project ID or alias containing the custom reactor.";
-		}
-		if (REACTOR_KEY.equals(key)) {
-			return "Exact name of the project-specific reactor to inspect without executing it.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Returns parameter metadata for a project-specific custom reactor.")
+				.key(ReactorKeysEnum.PROJECT, "The project ID or alias containing the custom reactor.")
+				.key(REACTOR_KEY, "Exact name of the project-specific reactor to inspect without executing it.");
 	}
 }

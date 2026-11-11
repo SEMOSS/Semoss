@@ -403,8 +403,10 @@ public final class BrainTopicChangeUtils {
 		for (Map<String, Object> row : rows) {
 			List<String> columns = new ArrayList<>(row.keySet());
 			columns.retainAll(types.keySet());
-			try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table + " (" + String.join(", ", columns)
-					+ ") VALUES (" + CollaborationDbUtils.placeholders(columns.size()) + ")")) {
+			// H2 2.x reserves column names such as BRAIN_RULE's VALUE
+			try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table + " ("
+					+ String.join(", ", columns.stream().map(CollaborationDbUtils::column).toList()) + ") VALUES ("
+					+ CollaborationDbUtils.placeholders(columns.size()) + ")")) {
 				for (int i = 0; i < columns.size(); i++) {
 					int type = types.get(columns.get(i));
 					Object value = row.get(columns.get(i));

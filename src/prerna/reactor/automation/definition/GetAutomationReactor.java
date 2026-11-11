@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationRuntime;
 import prerna.reactor.automation.project.AutomationProjectService;
@@ -73,21 +74,14 @@ public class GetAutomationReactor extends AbstractReactor {
 		definition.put(AutomationConstants.RESULT_REVISION,
 				AutomationDefinitionService.calculateRevision(files.definition(), files.nodeSources()));
 		definition.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(validated));
-		definition.put(AutomationConstants.RESULT_SCOPE_VARIABLES,
-				AutomationScopeCatalog.variablesByNode(validated));
+		definition.put(AutomationConstants.RESULT_SCOPE_VARIABLES, AutomationScopeCatalog.variablesByNode(validated));
 		return new NounMetadata(definition, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns the automation graph, node sources, revision, trigger globals, and scope variables for a project.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "The project ID or alias of the automation to retrieve.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the automation graph, node sources, revision, trigger globals, and scope variables for a project.")
+				.key(ReactorKeysEnum.PROJECT, "The project ID or alias of the automation to retrieve.");
 	}
 }

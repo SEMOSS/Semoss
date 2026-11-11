@@ -49,6 +49,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -122,11 +123,11 @@ public class UpdateModelMetadataReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Updates editable provider, capability, modality, token, reasoning, built-in tool and pricing \
 				metadata for a model engine. Its editors can change everything but the prices, which need an \
 				owner or an admin and cannot be removed
-				""";
+				""");
 	}
 }

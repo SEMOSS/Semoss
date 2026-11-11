@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.CollaborationSkillFiles;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkOpenSkill(skillId=["..."]);
@@ -50,17 +51,11 @@ public class WorkOpenSkillReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Copies one of the owner's skills into this chat's folder as " + CollaborationSkillFiles.DRAFTS
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Copies one of the owner's skills into this chat's folder as "
+				+ CollaborationSkillFiles.DRAFTS
 				+ "/<name>/ so you can read or change it with the file tools, and returns its SKILL.md and file "
-				+ "list. Replaces any older copy there. Nothing changes for the owner until PublishSkill.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SKILL_ID.equals(key)) {
-			return "Id of the owner's skill, from ListMySkills.";
-		}
-		return super.getDescriptionForKey(key);
+				+ "list. Replaces any older copy there. Nothing changes for the owner until PublishSkill.")
+				.key(SKILL_ID, "Id of the owner's skill, from ListMySkills.");
 	}
 }

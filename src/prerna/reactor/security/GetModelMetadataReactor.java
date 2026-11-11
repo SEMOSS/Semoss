@@ -46,6 +46,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.usage.ModelUsageCost;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -96,7 +97,8 @@ public class GetModelMetadataReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns identity, family, modality, token, feature, knowledge, release, and benchmark metadata for an accessible model engine";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns identity, family, modality, token, feature, knowledge, release, and benchmark metadata for an accessible model engine");
 	}
 }

@@ -43,6 +43,7 @@ import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -195,24 +196,16 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns the provider-hosted built-in tools available to a model from meta/builtin-tools.json, resolved by serving provider and model provider. Pass an existing engine to resolve both from it (alongside its saved tool selection), or pass the providers and model id directly when the engine does not exist yet";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The id or name of an existing model engine; optional when the providers are passed directly";
-		}
-		if (key.equals(SERVING_PROVIDER_KEY)) {
-			return "Who hosts the model (openai, anthropic, google, bedrock, azure); the SMSS MODEL_TYPE values are also accepted";
-		}
-		if (key.equals(MODEL_PROVIDER_KEY)) {
-			return "Who made the model (openai, anthropic, google); inferred from the model id when omitted";
-		}
-		if (key.equals(MODEL_ID_KEY)) {
-			return "The provider model id, used to infer the model provider and evaluate per-tool model constraints";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the provider-hosted built-in tools available to a model from meta/builtin-tools.json, resolved by serving provider and model provider. Pass an existing engine to resolve both from it (alongside its saved tool selection), or pass the providers and model id directly when the engine does not exist yet")
+				.key(ReactorKeysEnum.ENGINE,
+						"The id or name of an existing model engine; optional when the providers are passed directly")
+				.key(SERVING_PROVIDER_KEY,
+						"Who hosts the model (openai, anthropic, google, bedrock, azure); the SMSS MODEL_TYPE values are also accepted")
+				.key(MODEL_PROVIDER_KEY,
+						"Who made the model (openai, anthropic, google); inferred from the model id when omitted")
+				.key(MODEL_ID_KEY,
+						"The provider model id, used to infer the model provider and evaluate per-tool model constraints");
 	}
 }

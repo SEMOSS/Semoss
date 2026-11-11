@@ -45,6 +45,7 @@ import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.project.impl.ProjectPortalsHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -161,17 +162,16 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The name for this project. Note: the project ID is randomly generated and is not passed into this method";
-		} else if (key.equals(ReactorKeysEnum.PROVIDER.getKey())) {
-			return "The GIT provider - user must be logged in with this provider for credentials";
-		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
-			return "The GIT repository URL to clone for this project";
-		} else if (key.equals(ReactorKeysEnum.JSON.getKey())) {
-			return "The JSON that represents the blocks for the app";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Creates a new BLOCKS app with the given name from a blocks JSON, commits the JSON as the app's first version, and returns the new app's details.")
+				.key(ReactorKeysEnum.GLOBAL, key -> key.type(Boolean.class))
+				.key(ReactorKeysEnum.PROJECT,
+						"The name for this project. Note: the project ID is randomly generated and is not passed into this method")
+				.key(ReactorKeysEnum.PROVIDER,
+						"The GIT provider - user must be logged in with this provider for credentials")
+				.key(ReactorKeysEnum.URL, "The GIT repository URL to clone for this project").key(ReactorKeysEnum.JSON,
+						key -> key.type(Map.class).description("The JSON that represents the blocks for the app"));
 	}
 
 }

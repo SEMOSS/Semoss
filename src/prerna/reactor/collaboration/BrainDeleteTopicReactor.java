@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainTopicUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainDeleteTopic(topicId=["..."]);
@@ -52,15 +53,10 @@ public class BrainDeleteTopicReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Deletes a Brain topic with its notes, people, and thread links; the threads themselves stay";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Deletes a Brain topic with its notes, people, and thread links; the threads themselves stay")
+				.key(TOPIC_ID, "Topic id");
 	}
 }

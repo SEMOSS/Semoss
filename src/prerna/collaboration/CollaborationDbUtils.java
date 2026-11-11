@@ -137,11 +137,14 @@ public class CollaborationDbUtils {
 			return query(batch, sql, mapper, params);
 		}
 		IRDBMSEngine engine = db();
+		Connection conn = null;
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		List<T> rows = new ArrayList<>();
 		try {
-			ps = engine.getPreparedStatement(sql);
+			// the connection itself, not getPreparedStatement, which warns on every call under pooling
+			conn = engine.getConnection();
+			ps = conn.prepareStatement(sql);
 			bind(ps, params);
 			rs = ps.executeQuery();
 			while (rs.next()) {
@@ -151,7 +154,7 @@ public class CollaborationDbUtils {
 			classLogger.error("Collaboration query failed [{}]", sql, e);
 			throw new IllegalStateException("Collaboration query failed", e);
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(engine, ps, rs);
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, ps, rs);
 		}
 		return rows;
 	}
@@ -213,8 +216,8 @@ public class CollaborationDbUtils {
 		PreparedStatement ps = null;
 		Connection conn = null;
 		try {
-			ps = engine.getPreparedStatement(sql);
-			conn = ps.getConnection();
+			conn = engine.getConnection();
+			ps = conn.prepareStatement(sql);
 			bind(ps, params);
 			int count = ps.executeUpdate();
 			if (!conn.getAutoCommit()) {
@@ -226,7 +229,7 @@ public class CollaborationDbUtils {
 			classLogger.error("Collaboration update failed [{}]", sql, e);
 			throw new IllegalStateException("Collaboration update failed", e);
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(engine, ps);
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, ps);
 		}
 	}
 
@@ -503,6 +506,12 @@ public class CollaborationDbUtils {
 		} catch (RuntimeException e) {
 			classLogger.error("Moving topic notes and thread facts into Brain memory failed; retrying next boot", e);
 		}
+		// Work Brain raised from routine results before imports kept them out; nothing matches once it is done
+		try {
+			BrainMailImport.dismissRoutineResultWork();
+		} catch (RuntimeException e) {
+			classLogger.error("Dismissing Work raised from routine results failed; retrying next boot", e);
+		}
 		BrainMailWebhook.startRenewals();
 		BrainSync.startSchedule();
 	}
@@ -539,6 +548,8 @@ public class CollaborationDbUtils {
 			}
 			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)
 			widenColumn(collaborationDb, conn, "BRAIN_TOPIC_PERSON", "ROLE_LABEL", 255);
+			// a topic's short name defaults to its name (VARCHAR 255)
+			widenColumn(collaborationDb, conn, "BRAIN_TOPIC", "SHORT_NAME", 255);
 
 			AbstractOwlCreator.syncIndexes(collaborationDb, conn, List.of(
 					// owner and sources

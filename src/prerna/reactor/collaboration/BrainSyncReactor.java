@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainSync;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSync();
@@ -44,9 +45,11 @@ public class BrainSyncReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Starts a background sync of mail (and Teams when on) since the last import or sync: new messages go "
-				+ "through the rules gate, the owner's replies close answered Work, and threads with new mail are "
-				+ "classified. Returns the job to poll with BrainGetJob(kind=sync)";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Starts a background sync of mail (and Teams when on) since the last import or sync: new messages go "
+						+ "through the rules gate, the owner's replies close answered Work, and threads with new mail are "
+						+ "classified. Returns the job to poll with BrainGetJob(kind=sync)")
+				.noKeys();
 	}
 }

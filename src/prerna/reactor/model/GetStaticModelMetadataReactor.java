@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.StaticModelMetadataCatalog;
@@ -70,15 +71,8 @@ public class GetStaticModelMetadataReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns static metadata for a model from meta/model.json";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(MODEL_ID_KEY)) {
-			return "The catalog model key or fully qualified provider model ID in meta/model.json";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Returns static metadata for a model from meta/model.json")
+				.key(MODEL_ID_KEY, "The catalog model key or fully qualified provider model ID in meta/model.json");
 	}
 }

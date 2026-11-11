@@ -31,6 +31,7 @@ import java.util.List;
 
 import org.json.JSONObject;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.FileSystemUtil;
 
@@ -48,24 +49,17 @@ public class SaveUserAssetsReactor extends AbstractSaveUserAssetsReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Saves one or more files to the user's assets folder and commits them to the user's asset git repository.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
-			return """
-					Contents of the file(s) to save. \
-					For convenience, instead of escaping quotes or backslashes you can wrap \
-					the input within "<encode>your_text</encode>" and the system will encode it for you.
-					""";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository for the user's asset project";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Saves one or more files to the user's assets folder and commits them to the user's asset git repository.")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.")
+				.key(ReactorKeysEnum.CONTENT, """
+						Contents of the file(s) to save. \
+						For convenience, instead of escaping quotes or backslashes you can wrap \
+						the input within "<encode>your_text</encode>" and the system will encode it for you.
+						""").key(ReactorKeysEnum.COMMENT_KEY,
+						"Comment to add while saving the files within the git repository for the user's asset project");
 	}
 
 	@Override

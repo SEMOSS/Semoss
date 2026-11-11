@@ -31,6 +31,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -265,16 +266,31 @@ public final class WorkRoutineRoom {
 			}
 		}
 		String scope = AutomationProjectService.inlineRunScope(user);
+		// runs of the owner's own routines that were deleted without them, which no row names any more
+		String custom = WorkCustomRoutine.KIND.automationId() + ":";
+		Set<String> named = new HashSet<>();
+		slots.forEach(slot -> named.add(slot.automationId()));
+		for (Map<String, Object> run : AutomationRunStore.getRunsForProject(scope, -1)) {
+			if (run.get(AutomationConstants.AUTOMATION_ID) instanceof String id && id.startsWith(custom) && named.add(id)) {
+				slots.add(new WorkRoutine.Slot(WorkCustomRoutine.KIND, owner, id.substring(custom.length())));
+			}
+		}
 		int deleted = 0;
 		for (WorkRoutine.Slot slot : slots) {
-			Target target = new Target(slot.kind(), slot.routineId(), owner, WorkRoutine.stored(slot));
-			for (Map<String, Object> run : AutomationRunStore.getRunsForAutomation(scope, slot.automationId(), -1)) {
-				deleteRooms(user, target, rooms(target, String.valueOf(run.get(AutomationConstants.RUN_ID))));
-			}
-			deleted += AutomationRunStore.deleteRuns(scope, slot.automationId());
+			deleted += deleteRuns(user, slot);
 			WorkRoutine.unschedule(slot);
 		}
 		return deleted;
+	}
+
+	/** Deletes every run of one routine, with the chats opened from them and the rooms their agents worked in. */
+	static int deleteRuns(User user, WorkRoutine.Slot slot) {
+		String scope = AutomationProjectService.inlineRunScope(user);
+		Target target = new Target(slot.kind(), slot.routineId(), slot.owner(), WorkRoutine.stored(slot));
+		for (Map<String, Object> run : AutomationRunStore.getRunsForAutomation(scope, slot.automationId(), -1)) {
+			deleteRooms(user, target, rooms(target, String.valueOf(run.get(AutomationConstants.RUN_ID))));
+		}
+		return AutomationRunStore.deleteRuns(scope, slot.automationId());
 	}
 
 	// the four system routines and each of the owner's own
@@ -395,7 +411,12 @@ public final class WorkRoutineRoom {
 		}
 		String messageId = CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), roomId, "output");
 		String modelId = BrainTopicModel.engine(insight.getUser());
-		Map<String, Object> options = modelId == null ? Map.of() : Map.of("modelId", modelId);
+		Map<String, Object> options = new LinkedHashMap<>();
+		// tells the chat's assistant which routine it is about (WorkRoutinePreferences)
+		options.put(CollaborationUtils.ROOM_OPTION_ROUTINE_CHAT, kind.id());
+		if (modelId != null) {
+			options.put("modelId", modelId);
+		}
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {
 			String date = runStarted.length() >= 10 ? " - " + runStarted.substring(0, 10) : "";
 			RoomUtils.createRoomIfNotExists(roomId, insight, null, kind.jobName() + date, null, options, null,
