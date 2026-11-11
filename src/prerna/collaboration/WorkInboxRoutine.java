@@ -123,6 +123,8 @@ public final class WorkInboxRoutine {
 		return Map.of("lookback_hours", ((Number) config.get("lookbackHours")).intValue(), "sections", config.get("sections"),
 				"priority_count", ((Number) config.get("priorityCount")).intValue(), "write_drafts", config.get("writeDrafts"),
 				// approval requests get a review for the owner, never a drafted answer to the requester
-				"skip_reply_subjects", WorkExpenseRoutine.SUBJECTS);
+				"skip_reply_subjects", WorkExpenseRoutine.SUBJECTS,
+				// the routines the owner added as sections run under their own time limit; the brief waits that and a minute
+				"section_wait_seconds", WorkRoutine.timeoutMinutes() * 60 + 60);
 	}
 }

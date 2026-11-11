@@ -44,6 +44,7 @@ import prerna.collaboration.CollaborationAgentTools;
 import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationRunMode;
 import prerna.collaboration.CollaborationUtils;
+import prerna.collaboration.WorkRoutinePreferences;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -265,6 +266,11 @@ public class SemossAgentHarness implements IAgentHarness {
 			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(), room);
 			if (memoryBlock != null) {
 				composed.append("\n\n").append(memoryBlock);
+			}
+			// the owner's chat: the routines that read preferences, never memories, and their current text
+			String routineBlock = WorkRoutinePreferences.promptBlock(ctx.getInsight().getUser(), room);
+			if (routineBlock != null) {
+				composed.append("\n\n").append(routineBlock);
 			}
 		}
 		composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));

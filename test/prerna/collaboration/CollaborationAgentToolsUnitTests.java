@@ -52,7 +52,7 @@ class CollaborationAgentToolsUnitTests {
 	@Test
 	void everyDedicatedToolHasAViewAndItsOwnApprovalSchema() throws Exception {
 		List<Map<String, Object>> tools = allDefinitions();
-		assertEquals(57, tools.size());
+		assertEquals(58, tools.size());
 		for (Map<String, Object> value : tools) {
 			JSONObject tool = new JSONObject(value);
 			JSONObject meta = tool.getJSONObject("_meta");
@@ -80,6 +80,21 @@ class CollaborationAgentToolsUnitTests {
 			}
 			}
 		}
+	}
+
+	@Test
+	void changingRoutinePreferencesWaitsForTheOwnerSoAnUnattendedRoutineNeverGetsIt() throws Exception {
+		for (Map<String, Object> value : allDefinitions()) {
+			JSONObject tool = new JSONObject(value);
+			if ("SetRoutinePreferences".equals(tool.getString("name"))) {
+				assertEquals(MCPUtility.MCPExecution.ASK.getValue(),
+						tool.getJSONObject("_meta").getString(MCPUtility.SMSS_MCP_EXECUTION));
+				assertEquals(WorkRoutinePreferences.ROUTINE_IDS, tool.getJSONObject("inputSchema")
+						.getJSONObject("properties").getJSONObject("routine").getJSONArray("enum").toList());
+				return;
+			}
+		}
+		throw new AssertionError("SetRoutinePreferences is not a collaboration tool");
 	}
 
 	@Test
