@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainConnection;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSaveBackgroundAccess();
@@ -43,7 +44,9 @@ public class BrainSaveBackgroundAccessReactor extends AbstractCollaborationReact
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Keep the signed-in user's renewable Microsoft sign-in so routines and refresh can read mail without the page open";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Keep the signed-in user's renewable Microsoft sign-in so routines and refresh can read mail without the page open")
+				.noKeys();
 	}
 }

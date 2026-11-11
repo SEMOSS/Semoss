@@ -89,7 +89,9 @@ class BrainOutgoingEmailDbUnitTests {
 			for (Pair<String, List<Pair<String, String>>> table : new CollaborationOwlCreator(queryUtil).getDBSchema()) {
 				List<String> columns = new ArrayList<>();
 				for (Pair<String, String> column : table.getValue1()) {
-					columns.add(column.getValue0() + " " + column.getValue1());
+					// quoted as the server quotes them: H2 2.x reserves words such as VALUE
+					String name = column.getValue0();
+					columns.add((queryUtil.isSelectorKeyword(name) ? queryUtil.getEscapeKeyword(name) : name) + " " + column.getValue1());
 				}
 				statement.execute("CREATE TABLE " + table.getValue0() + " (" + String.join(", ", columns) + ")");
 			}
@@ -188,10 +190,22 @@ class BrainOutgoingEmailDbUnitTests {
 	}
 
 	@Test
-	void missingTopicRollsBackEveryLinkBeforeSending() {
+	void aLinkLeftToADeletedTopicDoesNotBlockSending() throws Exception {
 		CollaborationDbUtils.update("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE) "
 				+ "VALUES (?, ?, 'room-1', 'topic-deleted', 'linked')", ownerId, ownerType);
-		assertThrows(IllegalArgumentException.class, () -> BrainOutgoingEmail.trackDraft(insight, "draft-1"));
+		BrainOutgoingEmail.trackDraft(insight, "draft-1");
+		assertEquals(1, count("BRAIN_THREAD"));
+		assertEquals(1, count("BRAIN_THREAD_TOPIC"));
+		assertEquals("topic-1", value("SELECT TOPIC_ID FROM BRAIN_THREAD_TOPIC"));
+	}
+
+	@Test
+	void aFailedLinkRollsBackEveryLinkBeforeSending() {
+		try (MockedStatic<BrainThreadRoomUtils> chats = mockStatic(BrainThreadRoomUtils.class)) {
+			chats.when(() -> BrainThreadRoomUtils.linkRoomThread(any(), anyString(), anyString(), anyBoolean()))
+					.thenThrow(new IllegalArgumentException("Chat not found"));
+			assertThrows(IllegalArgumentException.class, () -> BrainOutgoingEmail.trackDraft(insight, "draft-1"));
+		}
 		assertEquals(0, count("BRAIN_THREAD"));
 		assertEquals(0, count("BRAIN_THREAD_TOPIC"));
 		assertEquals(0, count("BRAIN_THREAD_ALIAS"));

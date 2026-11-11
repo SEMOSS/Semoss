@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationRuntime;
 import prerna.reactor.automation.project.AutomationProjectService;
@@ -121,25 +122,14 @@ public class SaveAutomationReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Validates and saves an automation graph with Python source for each non-start node.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "The project ID or alias of the automation to save.";
-		}
-		if (ReactorKeysEnum.JSON.getKey().equals(key)) {
-			return "Base64-encoded workflow graph JSON.";
-		}
-		if (NODE_SOURCES_KEY.equals(key)) {
-			return "Optional raw or Base64-encoded JSON object: { nodeId: Python source }. "
-					+ "The trigger source may declare non-private globals; omitted entries receive generated source.";
-		}
-		if (AutomationConstants.EXPECTED_REVISION_KEY.equals(key)) {
-			return "Optional revision returned by GetAutomation. The save is rejected if the automation changed.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Validates and saves an automation graph with Python source for each non-start node.")
+				.key(ReactorKeysEnum.PROJECT, "The project ID or alias of the automation to save.")
+				.key(ReactorKeysEnum.JSON, "Base64-encoded workflow graph JSON.")
+				.key(NODE_SOURCES_KEY, "Optional raw or Base64-encoded JSON object: { nodeId: Python source }. "
+						+ "The trigger source may declare non-private globals; omitted entries receive generated source.")
+				.key(AutomationConstants.EXPECTED_REVISION_KEY,
+						"Optional revision returned by GetAutomation. The save is rejected if the automation changed.");
 	}
 }

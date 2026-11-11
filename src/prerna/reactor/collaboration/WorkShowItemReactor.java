@@ -38,6 +38,7 @@ import prerna.auth.User;
 import prerna.collaboration.BrainThreadMessages;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.teams.MicrosoftTeamsMessageHelper;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -51,9 +52,11 @@ public class WorkShowItemReactor extends AbstractCollaborationReactor {
 	private static final String CHAT_ID = "chatId";
 	private static final String PATH = "path";
 	private static final String NOT_SHOWN = " Nothing was shown.";
-	// enough messages to tell a readable thread from one its rules or deletions emptied
+	// enough messages to tell a readable thread from one its rules or deletions
+	// emptied
 	private static final int THREAD_CHECK_LIMIT = 20;
-	// Graph chat ids go into the request path unencoded, so only their own characters pass
+	// Graph chat ids go into the request path unencoded, so only their own
+	// characters pass
 	private static final Pattern CHAT_ID_PATTERN = Pattern.compile("[A-Za-z0-9:@._=-]{1,256}");
 
 	public WorkShowItemReactor() {
@@ -114,7 +117,8 @@ public class WorkShowItemReactor extends AbstractCollaborationReactor {
 		} catch (IllegalArgumentException e) {
 			if ("Thread not found".equals(e.getMessage())) {
 				throw new IllegalArgumentException("No thread " + threadId
-						+ " is in the owner's Brain. Copy threadId exactly from SearchMail or ReadThread." + NOT_SHOWN, e);
+						+ " is in the owner's Brain. Copy threadId exactly from SearchMail or ReadThread." + NOT_SHOWN,
+						e);
 			}
 			throw e;
 		}
@@ -149,13 +153,15 @@ public class WorkShowItemReactor extends AbstractCollaborationReactor {
 	private static Map<String, Object> chat(User user, String chatId) {
 		if (!CHAT_ID_PATTERN.matcher(chatId).matches()) {
 			throw new IllegalArgumentException(
-					"That is not a Teams chat id. Copy chatId exactly from ListChats or ListChatMessages." + NOT_SHOWN);
+					"That is not a Teams chat id. Copy chatId exactly from ListChats, ListChatMessages, or "
+							+ "SearchTeamsMessages." + NOT_SHOWN);
 		}
 		String token;
 		try {
 			token = MicrosoftLoginUtils.getValidAccessToken(user);
 		} catch (RuntimeException e) {
-			// a missing Microsoft login keeps its own error, which asks the owner to sign in
+			// a missing Microsoft login keeps its own error, which asks the owner to sign
+			// in
 			throw e;
 		} catch (Exception e) {
 			throw new IllegalStateException("Could not sign in to Microsoft: " + e.getMessage() + NOT_SHOWN, e);
@@ -163,7 +169,8 @@ public class WorkShowItemReactor extends AbstractCollaborationReactor {
 		Map<String, Object> chat;
 		try {
 			chat = MicrosoftTeamsMessageHelper.getChat(token, chatId, MicrosoftLoginUtils.getMicrosoftEmail(user));
-			// the owner's chat reads the messages, so a chat they can list but not read fails now instead
+			// the owner's chat reads the messages, so a chat they can list but not read
+			// fails now instead
 			MicrosoftTeamsMessageHelper.listChatMessages(token, chatId, 1, 1);
 		} catch (Exception e) {
 			String error = String.valueOf(e.getMessage());
@@ -221,28 +228,20 @@ public class WorkShowItemReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Shows the owner one item you found, beside the chat: an email, an email thread, a Teams chat, or a "
-				+ "file in this chat. Use it only when the owner asks to see, open, or bring up an item. Pass exactly one "
-				+ "item, with its id copied from an earlier result in this chat. It checks that the item still exists and "
-				+ "that the owner can read it, and fails otherwise. It changes nothing.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (EMAIL_REF.equals(key)) {
-			return "One email: its emailRef (email:...) from ReadThread";
-		}
-		if (THREAD_ID.equals(key)) {
-			return "A whole email thread or Teams chat: its threadId from SearchMail or ReadThread. With emailRef, "
-					+ "the thread that email is on";
-		}
-		if (CHAT_ID.equals(key)) {
-			return "A Teams chat that Brain does not hold: its chat id from ListChats or ListChatMessages";
-		}
-		if (PATH.equals(key)) {
-			return "A file in this chat's working directory: the path a download returned, for example report.pdf";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Shows the owner one item you found, beside the chat: an email, an email thread, a Teams chat, or a "
+						+ "file in this chat. Use it only when the owner asks to see, open, or bring up an item. Pass exactly one "
+						+ "item, with its id copied from an earlier result in this chat. It checks that the item still exists and "
+						+ "that the owner can read it, and fails otherwise. It changes nothing.")
+				.key(EMAIL_REF, "One email: its emailRef (email:...) from ReadThread")
+				.key(THREAD_ID,
+						"A whole email thread or Teams chat: its threadId from SearchMail or ReadThread. With emailRef, "
+								+ "the thread that email is on")
+				.key(CHAT_ID,
+						"A Teams chat that Brain does not hold: its chat id from ListChats, ListChatMessages, or "
+								+ "SearchTeamsMessages")
+				.key(PATH,
+						"A file in this chat's working directory: the path a download returned, for example report.pdf");
 	}
 }

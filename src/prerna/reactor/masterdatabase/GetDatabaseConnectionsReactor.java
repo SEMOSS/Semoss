@@ -34,6 +34,7 @@ import java.util.Vector;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -132,26 +133,11 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals(ReactorKeysEnum.COLUMNS.getKey())) {
-			return MCP_KEY_TYPE.ARRAY;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Returns database connections and traversal options for specified columns/concepts";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.COLUMNS.getKey())) {
-			return "The columns/concepts to find connections for";
-		} else if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "Optional database id to filter connections to a specific database";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Returns database connections and traversal options for specified columns/concepts")
+				.key(ReactorKeysEnum.COLUMNS,
+						key -> key.type(List.class).description("The columns/concepts to find connections for"))
+				.key(ReactorKeysEnum.DATABASE, "Optional database id to filter connections to a specific database");
 	}
 }

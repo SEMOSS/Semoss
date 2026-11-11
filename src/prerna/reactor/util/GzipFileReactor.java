@@ -36,10 +36,10 @@ import org.apache.commons.io.FilenameUtils;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -59,10 +59,6 @@ public class GzipFileReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		// specify the folder from the base
 		String fileRelativePath = Utility.normalizePath(keyValue.get(keysToGet[0]));
@@ -118,20 +114,14 @@ public class GzipFileReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor is used to gzip a file";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "This is a required value containing the relative file path of a single file to be compressed";
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-		} else if (key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
-			return "This is a optional value to determine the filename of the gzip file. If not provided, the current file name will be appended with '.gz'";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("This reactor is used to gzip a file")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"This is a required value containing the relative file path of a single file to be compressed")
+				.key(ReactorKeysEnum.SPACE,
+						"This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).")
+				.key(ReactorKeysEnum.FILE_NAME,
+						"This is a optional value to determine the filename of the gzip file. If not provided, the current file name will be appended with '.gz'");
 	}
 
 }

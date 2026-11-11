@@ -160,10 +160,10 @@ public final class ProjectHelper {
 	 * @return the opened project
 	 * @throws IllegalArgumentException when the project name is null or empty
 	 * @throws SemossPixelException     when there is no signed in user, the user is
-	 *                                  anonymous, not a publisher or not an admin
-	 *                                  where those are required, a project folder
-	 *                                  with the name already exists, or creating
-	 *                                  the project fails
+	 *                                  not a publisher or not an admin where those
+	 *                                  are required, a project folder with the name
+	 *                                  already exists, or creating the project
+	 *                                  fails
 	 */
 	public static IProject generateNewProject(String projectId, String projectName, IProject.PROJECT_TYPE projectType,
 			boolean global, String gitProvider, String gitCloneUrl, User user, Logger logger) {
@@ -177,11 +177,6 @@ public final class ProjectHelper {
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
-		}
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			AbstractReactor.throwAnonymousUserError();
 		}
 
 		// throw error is user doesn't have rights to publish new apps

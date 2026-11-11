@@ -97,8 +97,6 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminSetPublisher = false;
 	static boolean adminSetExporter = false;
 	static String ADMIN_ADDED_USER = "ADMIN_ADDED_USER";
-	static boolean anonymousUsersEnabled = false;
-	static boolean anonymousUsersUploadData = false;
 
 	static boolean adminOnlyProjectAdd = false;
 	static boolean adminOnlyProjectDelete = false;
@@ -195,22 +193,6 @@ public abstract class AbstractSecurityUtils {
 		// this is to update the bad naming in the security db for type values
 		updateUserTypeEnum();
 
-		Object anonymousUsers = Utility.getDIHelperLocalProperty(Constants.ANONYMOUS_USER_ALLOWED);
-		if (anonymousUsers == null) {
-			anonymousUsersEnabled = false;
-		} else {
-			anonymousUsersEnabled = (anonymousUsers instanceof Boolean && ((boolean) anonymousUsers))
-					|| (Boolean.parseBoolean(anonymousUsers.toString()));
-		}
-
-		Object anonymousUsersData = Utility.getDIHelperLocalProperty(Constants.ANONYMOUS_USER_UPLOAD_DATA);
-		if (anonymousUsersData == null) {
-			anonymousUsersUploadData = false;
-		} else {
-			anonymousUsersUploadData = (anonymousUsersData instanceof Boolean && ((boolean) anonymousUsersData))
-					|| (Boolean.parseBoolean(anonymousUsersData.toString()));
-		}
-
 		Object adminSetsPublisher = Utility.getDIHelperLocalProperty(Constants.ADMIN_SET_PUBLISHER);
 		if (adminSetsPublisher == null) {
 			adminSetPublisher = false;
@@ -289,14 +271,6 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyInsightAddAccess = Utility.getApplicationAdminOnlyInsightAddAccess();
 
 		adminOnlyInsightShare = Utility.getApplicationAdminOnlyInsightShare();
-	}
-
-	public static boolean anonymousUsersEnabled() {
-		return anonymousUsersEnabled;
-	}
-
-	public static boolean anonymousUserUploadData() {
-		return anonymousUsersEnabled() && anonymousUsersUploadData;
 	}
 
 	@Deprecated
@@ -2494,46 +2468,6 @@ public abstract class AbstractSecurityUtils {
 						classLogger.info("Running sql {}", addColumnSql);
 						securityDb.insertData(addColumnSql);
 					}
-				}
-			}
-
-			// TOKEN
-			colNames = new String[] { "IPADDR", "VAL", "DATEADDED", "CLIENTID" };
-			types = new String[] { VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255 };
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists("TOKEN", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else {
-				// see if table exists
-				if (!queryUtil.tableExists(conn, "TOKEN", database, schema)) {
-					// make the table
-					String sql = queryUtil.createTable("TOKEN", colNames, types);
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-			}
-			// MAKING MODIFICATION FOR ADDING ID COLUMN - 10/03/2022
-			{
-				List<String> allCols = queryUtil.getTableColumns(conn, "TOKEN", database, schema);
-				// this should return in all upper case
-				// ... but sometimes it is not -_- i.e. postgres always lowercases
-				if (!allCols.contains("CLIENTID") && !allCols.contains("clientid")) {
-					String addIdColumn = queryUtil.alterTableAddColumn("TOKEN", "CLIENTID", VARCHAR_255);
-					classLogger.info("Running sql {}", addIdColumn);
-					securityDb.insertData(addIdColumn);
-				}
-			}
-			if (allowIfExistsIndexs) {
-				String sql = queryUtil.createIndexIfNotExists("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else {
-				// see if index exists
-				if (!queryUtil.indexExists(securityDb, "TOKEN_IPADDR_INDEX", "TOKEN", database, schema)) {
-					String sql = queryUtil.createIndex("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR");
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
 				}
 			}
 

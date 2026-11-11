@@ -42,6 +42,7 @@ import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.collaboration.CollaborationRunMode;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelCapabilityEnum;
@@ -251,6 +252,8 @@ public final class AgentRunner {
 				: (modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userText)
 						: RoomUtils.getOrLoadRoom(roomId, insight));
 		room.setInsight(insight);
+		// before anything reads the room's mode: the owner following up in a routine's room makes it their chat
+		CollaborationUtils.handOverRoutineRoom(room, runId);
 
 		Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
 		Map<String, Object> agentParams = agentParamMap != null ? new HashMap<>(agentParamMap) : new HashMap<>();
@@ -724,9 +727,8 @@ public final class AgentRunner {
 		}
 
 		if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
-			if (insight == null || insight.getUser() == null || insight.getUser().isAnonymous()
-					|| insight.getUser().getPrimaryLogin() == null) {
-				throw new IllegalArgumentException("Must be logged in as a non-anonymous user to access user assets");
+			if (insight == null || insight.getUser() == null || insight.getUser().getPrimaryLogin() == null) {
+				throw new IllegalArgumentException("Must be logged in to access user assets");
 			}
 			IProject project = insight.getUser().getAssetProject();
 			if (project == null) {

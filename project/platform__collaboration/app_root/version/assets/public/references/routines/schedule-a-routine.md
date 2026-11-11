@@ -4,9 +4,13 @@ A routine is a task the owner's agent repeats on a schedule while they are away.
 Each run can read the owner's data, make files, and save email drafts in the
 owner's Outlook for them to review, but cannot send, post, or change anything
 else, and nobody can approve anything during it. The platform delivers
-the final answer to the owner alone, by email, as a Teams message to themselves, or
-only in Routines. Use `CreateRoutine` to save or change one,
+the final answer to the owner alone, by email, as a Teams message to themselves, as a
+section of their daily brief, or only in Routines. Use `CreateRoutine` to save or change one,
 `ListRoutines` to find one, and `ManageRoutine` to pause, resume, run, or delete it.
+
+The owner can also add skills from their skill catalog and tools they can use,
+such as a database or another app's toolbox, to a routine in Routines. A run uses
+those tools too, except one that asks for approval, which never runs in a routine.
 
 ## Write the task
 
@@ -37,8 +41,9 @@ a Teams message to myself (me@example.com) with... No email delivery."
 
 Fill `time`, `days`, and `timezone` from what the owner said; ask only when the
 schedule is missing entirely. Pick `delivery` from their words: email when they
-want to be alerted, Teams for a quiet note in their own chat, none to only keep it
-in Routines. Give the routine a short `name` they will recognize.
+want to be alerted, Teams for a quiet note in their own chat, brief to add it to
+their daily brief as a section (below), none to only keep it in Routines. Give the
+routine a short `name` they will recognize.
 
 ## Files with the result
 
@@ -50,8 +55,24 @@ subject, time, and attendees"); the run knows where to save it, and attaching it
 part of delivery, so never write "attach" or "send". A file made in this chat is
 not carried over: the run makes its own each time.
 
-Teams and Routines-only delivery carry text only for now. When the owner wants a
-file in Teams, say it comes by email instead and offer that.
+Teams, daily brief, and Routines-only delivery carry text only for now. When the
+owner wants a file in Teams, say it comes by email instead and offer that.
+
+## A section of the daily brief
+
+With `delivery` brief the routine is a section of the owner's daily brief, printed
+under the routine's name. Use it when the owner asks to add something to their
+brief that the brief does not have, such as "add my open Jira tickets to my brief"
+or "put client news in my morning email".
+
+- It has no schedule of its own. The brief starts it on every run and waits for its
+  answer, so leave `time` and `days` out, and tell the owner it runs with their brief.
+- The `name` is the section's heading, so name it as a heading would read.
+- Keep the task to a result short enough to scan in a brief: a few lines or a short
+  list. A section is plain Markdown, so a skill with an HTML template does not fit.
+- Changing what the brief itself shows is not a routine. Leaving things out, the
+  order of its sections, or a line at the top are the brief's preferences: change
+  them with `SetRoutinePreferences`.
 
 ## Give a recurring result a skill
 

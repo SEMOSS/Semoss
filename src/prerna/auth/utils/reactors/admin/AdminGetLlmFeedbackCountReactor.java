@@ -34,48 +34,45 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AdminGetLlmFeedbackCountReactor extends AbstractReactor {
 
-    public AdminGetLlmFeedbackCountReactor() {
-        this.keysToGet = new String[] {
-                ReactorKeysEnum.START_DATE.getKey(),
-                ReactorKeysEnum.END_DATE.getKey(),
-                ReactorKeysEnum.PROJECT.getKey(),
-                "userId",
-                ReactorKeysEnum.ENGINE.getKey()
-        };
-    }
+	public AdminGetLlmFeedbackCountReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.START_DATE.getKey(), ReactorKeysEnum.END_DATE.getKey(),
+				ReactorKeysEnum.PROJECT.getKey(), "userId", ReactorKeysEnum.ENGINE.getKey() };
+	}
 
-    @Override
-    public NounMetadata execute() {
-        User user = this.insight.getUser();
-        SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-        if (adminUtils == null) {
-            throw new IllegalArgumentException("User must be an admin to perform this function");
-        }
-        organizeKeys();
+	@Override
+	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
+		if (adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
+		}
+		organizeKeys();
 
-        String startDate = this.keyValue.get(this.keysToGet[0]);
-        String endDate = this.keyValue.get(this.keysToGet[1]);
-        String projectId = this.keyValue.get(this.keysToGet[2]);
-        String userId = this.keyValue.get(this.keysToGet[3]);
-        String engineId = this.keyValue.get(this.keysToGet[4]);
+		String startDate = this.keyValue.get(this.keysToGet[0]);
+		String endDate = this.keyValue.get(this.keysToGet[1]);
+		String projectId = this.keyValue.get(this.keysToGet[2]);
+		String userId = this.keyValue.get(this.keysToGet[3]);
+		String engineId = this.keyValue.get(this.keysToGet[4]);
 
-        List<Map<String, Object>> feedbackCounts = ModelInferenceLogsUtils.getFeedbackCountForAdmin(
-                startDate, endDate, projectId, userId, engineId);
+		List<Map<String, Object>> feedbackCounts = ModelInferenceLogsUtils.getFeedbackCountForAdmin(startDate, endDate,
+				projectId, userId, engineId);
 
-        return new NounMetadata(feedbackCounts, PixelDataType.FORMATTED_DATA_SET);
-    }
+		return new NounMetadata(feedbackCounts, PixelDataType.FORMATTED_DATA_SET);
+	}
 
-    @Override
-    protected String getDescriptionForKey(String key) {
-        if (key.equals("userId")) {
-            return "The user id to filter feedback counts by";
-        }
-        return super.getDescriptionForKey(key);
-    }
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Returns the total, positive and negative counts of feedback on model responses, optionally filtered by date range, project, user and model engine.")
+				.key(ReactorKeysEnum.ENGINE, "The id of the model engine whose feedback to count.")
+				.key(ReactorKeysEnum.PROJECT, "The id of the project whose rooms' feedback to count.")
+				.key("userId", "The user id to filter feedback counts by");
+	}
 }

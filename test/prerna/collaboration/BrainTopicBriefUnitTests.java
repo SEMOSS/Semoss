@@ -122,7 +122,9 @@ class BrainTopicBriefUnitTests {
 			for (Pair<String, List<Pair<String, String>>> table : new CollaborationOwlCreator(queryUtil).getDBSchema()) {
 				List<String> columns = new ArrayList<>();
 				for (Pair<String, String> column : table.getValue1()) {
-					columns.add(column.getValue0() + " " + column.getValue1());
+					// quoted as the server quotes them: H2 2.x reserves words such as VALUE
+					String name = column.getValue0();
+					columns.add((queryUtil.isSelectorKeyword(name) ? queryUtil.getEscapeKeyword(name) : name) + " " + column.getValue1());
 				}
 				statement.execute("CREATE TABLE " + table.getValue0() + " (" + String.join(", ", columns) + ")");
 			}
@@ -237,39 +239,6 @@ class BrainTopicBriefUnitTests {
 		assertTrue(BrainTopicBrief.chatTopics(user, delegation).isEmpty());
 		assertTrue(BrainTopicBrief.chatTopics(null, unrelated).isEmpty());
 		assertNull(BrainTopicBrief.runtimeNote(user, delegation));
-	}
-
-	@Test
-	void briefCarriesGoalIdsAndReflectsCompletionOnTheNextCall() throws Exception {
-		Room room = room("chat", Map.of());
-		topic("nevada");
-		roomTopic("nevada", "linked", "you");
-		String goalId = (String) BrainTopicUtils.saveTopicNote(user, "nevada", null, BrainTopicUtils.GOAL,
-				"Get booking details for nevada", "open").get("noteId");
-		String before = BrainTopicBrief.runtimeNote(user, room);
-		assertTrue(before.contains("Get booking details for nevada (noteId " + goalId + ")"));
-		assertFalse(before.contains("more open goals"));
-
-		BrainTopicUtils.completeGoal(user, "nevada", goalId, "American flight 4884, arrival 11/01/2026");
-		String after = BrainTopicBrief.runtimeNote(user, room);
-		assertTrue(after.contains("Open goals: none"));
-		assertFalse(after.contains(goalId));
-		assertEquals("done", BrainTopicUtils.getGoals(ownerId, ownerType, "nevada").get(0).get("status"));
-	}
-
-	@Test
-	void reportsGoalsBeyondTheBriefLimit() throws Exception {
-		Room room = room("chat", Map.of());
-		topic("many-goals");
-		roomTopic("many-goals", "linked", "you");
-		for (int i = 0; i < BrainTopicBrief.MAX_GOALS + 2; i++) {
-			BrainTopicUtils.saveTopicNote(user, "many-goals", null, BrainTopicUtils.GOAL, "Goal " + i, "open");
-		}
-		BrainTopicUtils.saveTopicNote(user, "many-goals", null, BrainTopicUtils.GOAL, "Already finished", "done");
-		String brief = BrainTopicBrief.runtimeNote(user, room);
-		assertEquals(BrainTopicBrief.MAX_GOALS, brief.lines().filter(line -> line.contains("(noteId ")).count());
-		assertTrue(brief.contains("2 more open goals not shown; use ListTopics with this topic to review them."));
-		assertFalse(brief.contains("Already finished"));
 	}
 
 	private Room room(String id, Map<String, Object> options) {

@@ -29,8 +29,6 @@ package prerna.reactor.frame.r;
 
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -50,11 +48,6 @@ public class LookupGenerateReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		// initialize the reactor
 		init();
@@ -76,9 +69,10 @@ public class LookupGenerateReactor extends AbstractRFrameReactor {
 		// get the location to save
 		String space = this.keyValue.get(this.keysToGet[2]);
 		// if security enables, you need proper permissions
-		// this takes in the insight and does a user check that the user has access to perform the operations
+		// this takes in the insight and does a user check that the user has access to
+		// perform the operations
 		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
-		String fileName =  Utility.normalizePath(this.keyValue.get(keysToGet[1]));
+		String fileName = Utility.normalizePath(this.keyValue.get(keysToGet[1]));
 		String filePath = assetFolder + "/" + fileName;
 
 		// load the script

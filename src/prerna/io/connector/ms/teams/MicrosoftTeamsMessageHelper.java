@@ -28,7 +28,6 @@
 package prerna.io.connector.ms.teams;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -38,9 +37,12 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.hc.core5.http.ContentType;
@@ -127,7 +129,7 @@ public class MicrosoftTeamsMessageHelper {
 	private static final String ATTACHMENTS = "attachments";
 	private static final String NEXT_LINK = "@odata.nextLink";
 	private static final String SOFT_DELETE = "/softDelete";
-	private static final String HOSTED_CONTENTS = "/hostedContents/";
+	private static final String HOSTED_CONTENTS = "/hostedContents";
 
 	private static final String ONE_ON_ONE = "oneOnOne";
 	private static final String GROUP = "group";
@@ -163,6 +165,30 @@ public class MicrosoftTeamsMessageHelper {
 
 	// the largest chat page Graph answers when only the last message is expanded
 	private static final int CHAT_PREVIEW_PAGE_SIZE = 50;
+
+	/**
+	 * How many hits one message search asks Graph for. Graph documents 500 as the
+	 * largest search page but shows message searches with 25, so this stays at 25
+	 * and follows the paging from there.
+	 */
+	private static final int SEARCH_PAGE_SIZE = 25;
+
+	/**
+	 * How many hits a message search reads through before it stops. Keeping only
+	 * the chat messages can drop most of a page, so this is what bounds a search
+	 * that keeps finding channel posts.
+	 */
+	private static final int MAX_SEARCH_HITS_SCANNED = 500;
+
+	/**
+	 * One page of a message search.
+	 *
+	 * @param messages   the messages found, newest first
+	 * @param nextOffset the offset the next page starts from
+	 * @param hasMore    whether Graph holds more matches past this page
+	 */
+	public record MessageSearchPage(List<Map<String, Object>> messages, int nextOffset, boolean hasMore) {
+	}
 
 	/**
 	 * Utility class constructor intentionally hidden.
@@ -205,14 +231,16 @@ public class MicrosoftTeamsMessageHelper {
 	 * Lists the chats the signed in user is in, newest last message first, stopping
 	 * at chats whose last message is older than {@code since}.
 	 *
-	 * @param since optional cutoff; null reads back as far as the other bounds allow
+	 * @param since optional cutoff; null reads back as far as the other bounds
+	 *              allow
 	 * @see #listChats(String, String, boolean, boolean, int)
 	 */
 	public static List<Map<String, Object>> listChats(String accessToken, String userEmail, boolean includeLastMessage,
 			boolean unreadOnly, int limit, Instant since) throws Exception {
 		try {
 			boolean withPreview = includeLastMessage || unreadOnly || since != null;
-			// the last message names most 1:1 chats, so only a plain listing pays for the members
+			// the last message names most 1:1 chats, so only a plain listing pays for the
+			// members
 			String nextUrl = withPreview ? chatsUrl(LAST_MESSAGE_PREVIEW, CHAT_PREVIEW_PAGE_SIZE, true)
 					: chatsUrl(MEMBERS, CHAT_PAGE_SIZE, false);
 
@@ -271,7 +299,8 @@ public class MicrosoftTeamsMessageHelper {
 		}
 	}
 
-	// A 1:1 chat has no topic and was listed without members: name it after the other person,
+	// A 1:1 chat has no topic and was listed without members: name it after the
+	// other person,
 	// taken from the last message when they sent it, else from that chat's members.
 	private static void nameOneOnOnes(String accessToken, String userEmail, List<Map<String, Object>> chats) {
 		String myId = null;
@@ -309,7 +338,8 @@ public class MicrosoftTeamsMessageHelper {
 					members.add(described);
 					Object email = described.get("email");
 					Object name = described.get("name");
-					boolean isMe = userEmail != null && email != null && userEmail.trim().equalsIgnoreCase(email.toString());
+					boolean isMe = userEmail != null && email != null
+							&& userEmail.trim().equalsIgnoreCase(email.toString());
 					if (!isMe && name != null && chat.get(DISPLAY_NAME) == null) {
 						chat.put(DISPLAY_NAME, name.toString());
 					}
@@ -327,7 +357,7 @@ public class MicrosoftTeamsMessageHelper {
 	/**
 	 * The url a chat listing starts at.
 	 *
-	 * @param expand what to expand alongside each chat
+	 * @param expand      what to expand alongside each chat
 	 * @param pageSize    how many chats one page asks for
 	 * @param newestFirst whether Graph sorts by the last message, newest first
 	 * @return the url
@@ -337,7 +367,8 @@ public class MicrosoftTeamsMessageHelper {
 				+ (newestFirst ? "&$orderby=lastMessagePreview/createdDateTime%20desc" : "");
 	}
 
-	// when the chat's last message arrived; null when Graph gave none or the 0001 placeholder
+	// when the chat's last message arrived; null when Graph gave none or the 0001
+	// placeholder
 	private static Instant lastMessageAt(Map<String, Object> chat) {
 		if (!(chat.get("lastMessage") instanceof Map<?, ?> last)) {
 			return null;
@@ -447,7 +478,57 @@ public class MicrosoftTeamsMessageHelper {
 	}
 
 	/**
-	 * Reads the messages of a chat.
+	 * Finds the group chat holding the signed in user and exactly the people named.
+	 * Graph starts a new group chat on every create, so this is what lets a second
+	 * message to the same people land where the first one did.
+	 *
+	 * @param accessToken Microsoft Graph access token for the user
+	 * @param members     email addresses or user ids of the other people
+	 * @return the chat's id, or null when there is none or the chats cannot be read
+	 * @throws Exception if somebody named is not in the directory
+	 */
+	static String findGroupChat(String accessToken, String[] members) throws Exception {
+		Set<String> wanted = new HashSet<>();
+		wanted.add(signedInUserId(accessToken).toLowerCase(Locale.ROOT));
+		String name = null;
+		for (String member : members) {
+			Map<String, Object> user = resolveUser(accessToken, member);
+			wanted.add(String.valueOf(user.get(ID)).toLowerCase(Locale.ROOT));
+			name = String.valueOf(user.get(DISPLAY_NAME));
+		}
+		// Graph filters chats by a member's name only, so each one found is matched on
+		// ids
+		String url = GRAPH_BASE + "/me/chats?$expand=members&$filter="
+				+ encode("members/any(o: o/displayname eq '" + name.replace("'", "''") + "')");
+		try {
+			// shortcut: a match past the first MAX_CHATS_SCANNED chats with that person is
+			// missed and a new chat
+			// started, upgrade if Graph adds a chat lookup by members
+			for (Map<String, Object> chat : getPagedValues(accessToken, url, MAX_CHATS_SCANNED)) {
+				Set<String> ids = new HashSet<>();
+				for (Map<String, Object> member : mapList(chat.get(MEMBERS))) {
+					ids.add(String.valueOf(member.get("userId")).toLowerCase(Locale.ROOT));
+				}
+				if (GROUP.equals(chat.get("chatType")) && ids.equals(wanted)) {
+					return String.valueOf(chat.get(ID));
+				}
+			}
+		} catch (Exception e) {
+			// a new chat still carries the message, as it did before chats were looked up
+			classLogger.warn("Could not look for an existing Microsoft Teams group chat", e);
+		}
+		return null;
+	}
+
+	/**
+	 * Reads the messages of a chat, newest first by when each was sent.
+	 *
+	 * <p>
+	 * Graph sorts a chat's messages by when each last changed unless told
+	 * otherwise, so an old message somebody edited or reacted to would land among
+	 * the newest. The listing asks for the order they were sent in instead, which
+	 * is what makes a limit keep the latest part of the conversation.
+	 * </p>
 	 *
 	 * @param accessToken  Microsoft Graph access token for the user
 	 * @param chatId       id of the chat to read
@@ -455,7 +536,7 @@ public class MicrosoftTeamsMessageHelper {
 	 *                     return whatever length it is
 	 * @param limit        maximum number of messages to return; values less than or
 	 *                     equal to 0 return every message
-	 * @return the messages, most recent first, as Graph orders them
+	 * @return the messages, newest first by when each was sent
 	 * @throws IllegalArgumentException if required inputs are missing
 	 * @throws Exception                if the list retrieval fails
 	 */
@@ -470,7 +551,7 @@ public class MicrosoftTeamsMessageHelper {
 		try {
 			requireValue(chatId, "Chat ID is required to read Microsoft Teams chat messages.");
 
-			String url = chatPath(chatId) + "/messages?$top=" + pageSize(limit);
+			String url = chatPath(chatId) + "/messages?$top=" + pageSize(limit) + "&$orderby=createdDateTime%20desc";
 			List<Map<String, Object>> result = new ArrayList<>();
 			for (Map<String, Object> message : getPagedValues(accessToken, url, limit)) {
 				Map<String, Object> described = MicrosoftTeamsMessageMapper.toMessage(message, maxBodyChars, false);
@@ -485,6 +566,97 @@ public class MicrosoftTeamsMessageHelper {
 			classLogger.error("Failed to read the messages of Microsoft Teams chat '{}'.", chatId, e);
 			throw e;
 		}
+	}
+
+	/**
+	 * Searches the Teams messages the signed in user can read, in their chats and
+	 * in the channels of their teams.
+	 *
+	 * <p>
+	 * This is the Microsoft Search index rather than a message listing: it matches
+	 * the text of a message, the name of whoever sent it and the files attached to
+	 * it, and it reads Keyword Query Language such as {@code from:ada} or
+	 * {@code sent>2026-10-01}. Graph answers newest first and takes no other order;
+	 * the page is put newest first again here once it is read, so its order holds
+	 * whatever Graph sends.
+	 * </p>
+	 *
+	 * <p>
+	 * Graph cannot be asked for chat messages alone, so leaving out channel posts
+	 * happens here, reading on past them until the page is full. The offset that
+	 * comes back counts every match read, kept or not, which is what lets the next
+	 * page start where this one stopped.
+	 * </p>
+	 *
+	 * @param accessToken Microsoft Graph access token for the user
+	 * @param search      what to look for
+	 * @param offset      how many matches to skip first
+	 * @param limit       how many messages the page holds
+	 * @param chatsOnly   whether channel posts are left out
+	 * @return the page
+	 * @throws IllegalArgumentException if required inputs are missing
+	 * @throws Exception                if the search fails
+	 */
+	public static MessageSearchPage searchMessages(String accessToken, String search, int offset, int limit,
+			boolean chatsOnly) throws Exception {
+		try {
+			requireValue(search, "Search text is required to search Microsoft Teams messages.");
+
+			List<Map<String, Object>> found = new ArrayList<>();
+			int start = Math.max(0, offset);
+			int next = start;
+			boolean hasMore = true;
+			while (found.size() < limit && hasMore && next - start < MAX_SEARCH_HITS_SCANNED) {
+				int size = chatsOnly ? SEARCH_PAGE_SIZE : Math.min(SEARCH_PAGE_SIZE, limit - found.size());
+				Map<String, Object> container = searchHits(accessToken, search.trim(), next, size);
+				List<Map<String, Object>> hits = mapList(container == null ? null : container.get("hits"));
+				if (hits.isEmpty()) {
+					hasMore = false;
+					break;
+				}
+				int read = 0;
+				for (Map<String, Object> hit : hits) {
+					read++;
+					Map<String, Object> described = MicrosoftTeamsMessageMapper.toSearchHit(hit);
+					if (described == null
+							|| (chatsOnly && MicrosoftTeamsMessageMapper.CHANNEL.equals(described.get("kind")))) {
+						continue;
+					}
+					found.add(described);
+					if (found.size() >= limit) {
+						break;
+					}
+				}
+				next += read;
+				hasMore = read < hits.size() || Boolean.TRUE.equals(container.get("moreResultsAvailable"));
+			}
+			found.sort((a, b) -> MicrosoftTeamsMessageMapper.compareNewestFirst(a.get("createdDateTime"),
+					b.get("createdDateTime")));
+			return new MessageSearchPage(found, next, hasMore);
+		} catch (Exception e) {
+			classLogger.error("Failed to search Microsoft Teams messages for '{}'.", search, e);
+			throw e;
+		}
+	}
+
+	/**
+	 * Asks the search index for one page of Teams messages.
+	 *
+	 * @return the page's hits container, or null when Graph answered with none
+	 */
+	private static Map<String, Object> searchHits(String accessToken, String search, int from, int size)
+			throws Exception {
+		Map<String, Object> request = new LinkedHashMap<>();
+		request.put("entityTypes", List.of("chatMessage"));
+		request.put("query", Map.of("queryString", search));
+		request.put("from", from);
+		request.put("size", size);
+		String response = HttpHelperUtility.postRequestStringBody(GRAPH_BASE + "/search/query", headers(accessToken),
+				GSON.toJson(Map.of("requests", List.of(request))), ContentType.APPLICATION_JSON, null, null, null);
+		List<Map<String, Object>> answers = mapList(readValue(response));
+		List<Map<String, Object>> containers = answers.isEmpty() ? List.of()
+				: mapList(answers.get(0).get("hitsContainers"));
+		return containers.isEmpty() ? null : containers.get(0);
 	}
 
 	/**
@@ -639,8 +811,8 @@ public class MicrosoftTeamsMessageHelper {
 			requireValue(messageId, "Message ID is required to read a Microsoft Teams channel message.");
 
 			boolean withReplies = includeReplies && ValueUtils.isBlank(replyId);
-			String url = messagePath(teamId, channelId, messageId, replyId) + (withReplies ? "?$expand=replies" : "");
-			return readMessage(accessToken, url, maxBodyChars, withReplies);
+			return readMessage(accessToken, messagePath(teamId, channelId, messageId, replyId), maxBodyChars,
+					withReplies);
 		} catch (Exception e) {
 			classLogger.error("Failed to read message '{}' of channel '{}' in Microsoft Team '{}'.", messageId,
 					channelId, teamId, e);
@@ -747,7 +919,8 @@ public class MicrosoftTeamsMessageHelper {
 	 *         {@code success}
 	 * @throws IllegalArgumentException if required inputs are missing, or the
 	 *                                  attachment is not something that can be
-	 *                                  downloaded
+	 *                                  downloaded or is over
+	 *                                  {@link MicrosoftOneDriveHelper#MAX_DOWNLOAD_BYTES}
 	 * @throws Exception                if the download or the file write fails
 	 */
 	public static Map<String, Object> downloadAttachment(String accessToken, String chatId, String teamId,
@@ -799,8 +972,8 @@ public class MicrosoftTeamsMessageHelper {
 	 *                    when the message has one and this is blank
 	 * @param destination local directory the file is written into
 	 * @param fileName    optional local file name to write as
-	 * @param message     the message, already read, so what it holds can be
-	 *                    described when nothing matches
+	 * @param message     the message, already read; a blank id is only taken to
+	 *                    mean its hosted content when it has no attachments
 	 * @return what was written
 	 * @throws IllegalArgumentException if there is no such hosted content
 	 * @throws Exception                if the download or the file write fails
@@ -808,8 +981,10 @@ public class MicrosoftTeamsMessageHelper {
 	private static Map<String, Object> downloadHostedContent(String accessToken, String messageUrl, String contentId,
 			String destination, String fileName, Map<String, Object> message) throws Exception {
 		String hostedContentId = contentId;
-		if (ValueUtils.isBlank(hostedContentId)) {
-			List<Map<String, Object>> hostedContents = mapList(message.get("hostedContents"));
+		if (ValueUtils.isBlank(hostedContentId) && mapList(message.get(ATTACHMENTS)).isEmpty()) {
+			// Graph leaves hosted content off the message, so it is listed from its own
+			// collection
+			List<Map<String, Object>> hostedContents = getPagedValues(accessToken, messageUrl + HOSTED_CONTENTS, 0);
 			if (hostedContents.size() == 1 && hostedContents.get(0).get(ID) != null) {
 				hostedContentId = hostedContents.get(0).get(ID).toString();
 			}
@@ -819,23 +994,25 @@ public class MicrosoftTeamsMessageHelper {
 					"The message holds no attachment of that name or id. Read the message to see what it has on it.");
 		}
 
-		String url = messageUrl + HOSTED_CONTENTS + hostedContentId.trim() + "/$value";
-		byte[] bytes = HttpHelperUtility.getRequestBytes(url, headers(accessToken), null, null, null);
-		if (bytes == null || bytes.length == 0) {
-			throw new IllegalStateException("Downloaded content is empty for hosted content id = " + hostedContentId);
-		}
+		String url = messageUrl + HOSTED_CONTENTS + "/" + hostedContentId.trim() + "/$value";
 
 		// hosted content is unnamed, so it is written under the name the caller
 		// asked for and under the id it has otherwise
 		String name = ValueUtils.isBlank(fileName) ? "hostedContent-" + Math.abs(hostedContentId.trim().hashCode())
 				: fileName;
-		File file = write(bytes, destination, name);
+		// Graph lists no size for hosted content, so only the bytes downloaded are
+		// checked
+		File file = target(destination, name);
+		long size = MicrosoftOneDriveHelper.download(url, headers(accessToken), file, name);
+		if (size == 0) {
+			throw new IllegalStateException("Downloaded content is empty for hosted content id = " + hostedContentId);
+		}
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("attachmentId", hostedContentId);
 		result.put(NAME, name);
 		result.put("filePath", Path.of(destination).relativize(file.toPath()).toString());
-		result.put("size", bytes.length);
+		result.put("size", (int) size);
 		result.put("success", true);
 		return result;
 	}
@@ -917,7 +1094,8 @@ public class MicrosoftTeamsMessageHelper {
 		}
 
 		if (content != null) {
-			body.append(html ? content : escapeHtml(content));
+			// a text body is shown as written, so only text going into html is escaped
+			body.append(html || !asHtml ? content : escapeHtml(content));
 		}
 
 		if (hasAttachments) {
@@ -972,14 +1150,27 @@ public class MicrosoftTeamsMessageHelper {
 	}
 
 	/**
-	 * Reads one message and describes it.
+	 * Reads one message, with the replies underneath it when asked, and describes
+	 * it.
 	 */
-	private static Map<String, Object> readMessage(String accessToken, String url, int maxBodyChars,
+	private static Map<String, Object> readMessage(String accessToken, String messageUrl, int maxBodyChars,
 			boolean includeReplies) throws Exception {
+		String url = messageUrl + (includeReplies ? "?$expand=replies" : "");
 		Map<String, Object> message = readMap(
 				HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null));
 		if (message == null) {
 			throw new IllegalStateException("Microsoft Graph returned no message for url = " + url);
+		}
+		// Graph leaves pasted images off the message, so the ones its body shows are
+		// listed for a download to name
+		if (message.get(BODY) instanceof Map<?, ?> body
+				&& String.valueOf(body.get(CONTENT)).contains(HOSTED_CONTENTS)) {
+			try {
+				message.put("hostedContents", getPagedValues(accessToken, messageUrl + HOSTED_CONTENTS, 0));
+			} catch (Exception e) {
+				// the message still reads, only without the ids its pasted content downloads by
+				classLogger.warn("Could not list the pasted content of Microsoft Teams message {}", messageUrl, e);
+			}
 		}
 		return MicrosoftTeamsMessageMapper.toMessage(message, maxBodyChars, includeReplies);
 	}
@@ -1077,17 +1268,13 @@ public class MicrosoftTeamsMessageHelper {
 	}
 
 	/**
-	 * Writes downloaded bytes into a directory.
+	 * The file a download is written to in a directory.
 	 */
-	private static File write(byte[] bytes, String destination, String fileName) throws Exception {
+	private static File target(String destination, String fileName) {
 		File file = new File(Paths.get(destination, fileName).toString());
 		File parent = file.getParentFile();
 		if (parent != null && !parent.exists() && !parent.mkdirs()) {
 			throw new IllegalStateException("Unable to create destination directory at: " + parent.getAbsolutePath());
-		}
-		try (FileOutputStream fos = new FileOutputStream(file)) {
-			fos.write(bytes);
-			fos.flush();
 		}
 		return file;
 	}
@@ -1127,8 +1314,7 @@ public class MicrosoftTeamsMessageHelper {
 	 * Runs a Graph collection request, following {@code @odata.nextLink} until the
 	 * limit is met or the collection runs out.
 	 */
-	private static List<Map<String, Object>> getPagedValues(String accessToken, String url, int limit)
-			throws Exception {
+	static List<Map<String, Object>> getPagedValues(String accessToken, String url, int limit) throws Exception {
 		List<Map<String, Object>> collected = new ArrayList<>();
 		String nextUrl = url;
 		while (nextUrl != null) {

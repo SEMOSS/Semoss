@@ -66,6 +66,16 @@ public final class WorkInboxRoutine {
 		return WorkRoutine.run(KIND, insight);
 	}
 
+	/** Run now's run, which runNow fires on the scheduler: on any day, and recorded as started by hand. */
+	public static Map<String, Object> runManual(Insight insight) {
+		return WorkRoutine.run(KIND, insight, null, true);
+	}
+
+	/** Starts a brief now, off the schedule, on the routine's own job. */
+	public static void runNow(User user) {
+		WorkRoutine.runNow(KIND, user, null, "WorkRunInboxRoutine(manual=[true]);");
+	}
+
 	static Map<String, Object> defaults() {
 		return new LinkedHashMap<>(KIND.defaults());
 	}
@@ -113,6 +123,8 @@ public final class WorkInboxRoutine {
 		return Map.of("lookback_hours", ((Number) config.get("lookbackHours")).intValue(), "sections", config.get("sections"),
 				"priority_count", ((Number) config.get("priorityCount")).intValue(), "write_drafts", config.get("writeDrafts"),
 				// approval requests get a review for the owner, never a drafted answer to the requester
-				"skip_reply_subjects", WorkExpenseRoutine.SUBJECTS);
+				"skip_reply_subjects", WorkExpenseRoutine.SUBJECTS,
+				// the routines the owner added as sections run under their own time limit; the brief waits that and a minute
+				"section_wait_seconds", WorkRoutine.timeoutMinutes() * 60 + 60);
 	}
 }

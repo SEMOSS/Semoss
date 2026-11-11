@@ -28,6 +28,7 @@
 package prerna.reactor.agent.subagent;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -37,46 +38,51 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * {@code timeoutSec} elapses), then returns the subagent result envelope.
  *
  * <h3>Pixel syntax</h3>
+ * 
  * <pre>{@code
  * WaitSubAgent(jobId='<id>')                      -- default 300s timeout
  * WaitSubAgent(jobId='<id>', timeoutSec=60)
  * }</pre>
  *
- * <p>Returns a JSON string {@code {jobId, status, result, error}}.
+ * <p>
+ * Returns a JSON string {@code {jobId, status, result, error}}.
  */
 public class WaitSubAgentReactor extends AbstractReactor {
 
-    private static final String TIMEOUT_KEY = "timeoutSec";
+	private static final String TIMEOUT_KEY = "timeoutSec";
 
-    public WaitSubAgentReactor() {
-        this.keysToGet = new String[] {
-                ReactorKeysEnum.JOB_ID.getKey(),  // 0 required
-                TIMEOUT_KEY                        // 1 optional
-        };
-        this.keyRequired = new int[] { 1, 0 };
-    }
+	public WaitSubAgentReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), TIMEOUT_KEY };
+		this.keyRequired = new int[] { 1, 0 };
+	}
 
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
-        String jobId = this.keyValue.get(ReactorKeysEnum.JOB_ID.getKey());
-        if (jobId == null || jobId.trim().isEmpty()) {
-            throw new IllegalArgumentException("jobId is required for WaitSubAgent");
-        }
-        int timeoutSec = SubAgentDispatcher.DEFAULT_WAIT_TIMEOUT_SEC;
-        String raw = this.keyValue.get(TIMEOUT_KEY);
-        if (raw != null && !raw.trim().isEmpty()) {
-            try {
-                int parsed = Integer.parseInt(raw.trim());
-                if (parsed > 0) timeoutSec = parsed;
-            } catch (NumberFormatException ignored) { /* keep default */ }
-        }
-        return new NounMetadata(SubAgentDispatcher.wait(jobId, this.insight, timeoutSec), PixelDataType.CONST_STRING);
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String jobId = this.keyValue.get(ReactorKeysEnum.JOB_ID.getKey());
+		if (jobId == null || jobId.trim().isEmpty()) {
+			throw new IllegalArgumentException("jobId is required for WaitSubAgent");
+		}
+		int timeoutSec = SubAgentDispatcher.DEFAULT_WAIT_TIMEOUT_SEC;
+		String raw = this.keyValue.get(TIMEOUT_KEY);
+		if (raw != null && !raw.trim().isEmpty()) {
+			try {
+				int parsed = Integer.parseInt(raw.trim());
+				if (parsed > 0) {
+					timeoutSec = parsed;
+				}
+			} catch (NumberFormatException ignored) {
+				/* keep default */ }
+		}
+		return new NounMetadata(SubAgentDispatcher.wait(jobId, this.insight, timeoutSec), PixelDataType.CONST_STRING);
+	}
 
-    @Override
-    public String getReactorDescription() {
-        return "Block until a spawned subagent completes or timeoutSec (default 300) elapses; "
-                + "returns a JSON string with {jobId, status, result, error}.";
-    }
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Block until a spawned subagent completes or timeoutSec (default 300) elapses; "
+						+ "returns a JSON string with {jobId, status, result, error}.")
+				.key(TIMEOUT_KEY, key -> key.type(Integer.class).description(
+						"How many seconds to wait for the subagent before returning; 300 when not given or not a positive whole number."));
+	}
 }

@@ -34,6 +34,7 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.collaboration.BrainProfileUtils;
 import prerna.collaboration.CollaborationSkills;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class WorkListMySkillsReactor extends AbstractCollaborationReactor {
@@ -55,8 +56,11 @@ public class WorkListMySkillsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the owner's own skills (the ones they made for Collaboration) with id, name, description, and "
-				+ "whether their assistant uses it. Only these can be attached to a routine or the assistant.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists the owner's own skills (the ones they made for Collaboration) with id, name, description, and "
+						+ "whether their assistant uses it. Only these can be turned on for the assistant; a routine can also "
+						+ "use other skills the owner can use.")
+				.noKeys();
 	}
 }

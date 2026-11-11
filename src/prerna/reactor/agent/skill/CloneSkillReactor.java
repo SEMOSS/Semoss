@@ -45,6 +45,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -161,6 +162,7 @@ public class CloneSkillReactor extends AbstractReactor {
 					: "";
 			String finalContent = Skill.buildFrontmatter(newName, sourceDescription) + bodyOnly;
 			Files.write(newSkillFile, finalContent.getBytes(StandardCharsets.UTF_8));
+			SkillProjects.pushContent(newSkillId);
 		} catch (Exception e) {
 			classLogger.error("Failed to clone skill into '{}' (id {})", newName, newSkillId, e);
 			throw new IllegalArgumentException("Failed to clone skill: " + e.getMessage(), e);
@@ -196,18 +198,9 @@ public class CloneSkillReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Clones a skill into a new skill-project owned by the caller";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SKILL_ID.equals(key)) {
-			return "Identifier of the source skill to clone";
-		}
-		if (ReactorKeysEnum.NAME.getKey().equals(key)) {
-			return "Name for the cloned skill. Defaults to 'Copy of <original>'";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Clones a skill into a new skill-project owned by the caller")
+				.key(SKILL_ID, "Identifier of the source skill to clone")
+				.key(ReactorKeysEnum.NAME, "Name for the cloned skill. Defaults to 'Copy of <original>'");
 	}
 }

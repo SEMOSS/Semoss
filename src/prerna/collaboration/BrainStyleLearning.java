@@ -149,6 +149,12 @@ public final class BrainStyleLearning {
 		job.step("Reading chats", 30);
 		List<Sample> chats = sampleChats(user, ownerId, ownerType, since, emails.size());
 		job.count("chats", chats.size());
+		// the signature and font come with the style, without replacing ones already set
+		try {
+			BrainDraftFormat.learnInto(user, true);
+		} catch (Exception e) {
+			classLogger.warn("Could not copy the signature and font from sent mail: {}", e.getMessage());
+		}
 		List<Sample> samples = new ArrayList<>(emails);
 		samples.addAll(chats);
 		if (samples.isEmpty()) {
@@ -215,7 +221,7 @@ public final class BrainStyleLearning {
 			}
 			List<String> recipients = recipients(message.get("toRecipients"));
 			recipients.addAll(recipients(message.get("ccRecipients")));
-			if (recipients.isEmpty() || keptOut(rules, recipients, rows.get(i)[1])) {
+			if (recipients.isEmpty() || keptOut(rules, recipients, rows.get(i)[1]) || toThemselves(message)) {
 				continue;
 			}
 			Map<String, Object> unique = content(message.get("uniqueBody"));
@@ -267,6 +273,14 @@ public final class BrainStyleLearning {
 			}
 		}
 		return false;
+	}
+
+	/** A note to self, or a routine's result mailed to its owner: not how the owner writes to anyone. */
+	static boolean toThemselves(Map<String, Object> message) {
+		String from = BrainMailImport.address(message.get("from"));
+		List<String> recipients = recipients(message.get("toRecipients"));
+		recipients.addAll(recipients(message.get("ccRecipients")));
+		return from != null && !recipients.isEmpty() && recipients.stream().allMatch(from::equalsIgnoreCase);
 	}
 
 	private static List<String> recipients(Object value) {

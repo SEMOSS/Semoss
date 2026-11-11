@@ -30,10 +30,11 @@ package prerna.reactor.codeexec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.ds.py.PyUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.ds.py.PyUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -93,15 +94,9 @@ public class LoadPyFromFileProjectPyReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Load a python file as a variable (alias input) to reference as a class object into the project's python process";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ALIAS.getKey())) {
-			return "A valid string input for a python variable name";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Load a python file as a variable (alias input) to reference as a class object into the project's python process")
+				.key(ReactorKeysEnum.ALIAS, "A valid string input for a python variable name");
 	}
 }

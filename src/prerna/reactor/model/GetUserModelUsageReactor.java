@@ -44,6 +44,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.usage.ModelUsageGuard;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -59,11 +60,7 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = insight.getUser();
-
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 
 		// Get the parameters
 		List<String> engineIds = getList(ReactorKeysEnum.ENGINE.getKey());
@@ -81,13 +78,13 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 		List<Map<String, Object>> usageData = ModelInferenceLogsUtils.getUserModelUsagePerEngine(user, engineIds,
 				startDate, endDate);
 
-		// Look up engine names from the input engineIds — always use the input list so
+		// Look up engine names from the input engineIds — always use the input list
+		// so
 		// engines with zero usage still get a named zero row
 		Map<Object, Object> idToAlias = SecurityEngineUtils.getEngineAliasForIds(engineIds);
 
 		// Index returned usage rows by engine ID for easy lookup
-		List<String> detailKeys = Arrays.asList(
-				"DETAIL_INPUT_TOKENS", "DETAIL_OUTPUT_TOKENS",
+		List<String> detailKeys = Arrays.asList("DETAIL_INPUT_TOKENS", "DETAIL_OUTPUT_TOKENS",
 				"DETAIL_CACHE_READ_TOKENS", "DETAIL_CACHE_CREATION_TOKENS", "DETAIL_THINKING_TOKENS");
 
 		Map<String, Map<String, Object>> usageByEngineId = new HashMap<>();
@@ -105,7 +102,8 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 			}
 		}
 
-		// Ensure every requested engine has a row — fill zeros for engines with no usage
+		// Ensure every requested engine has a row — fill zeros for engines with no
+		// usage
 		List<Map<String, Object>> result = new ArrayList<>();
 		for (String engineId : engineIds) {
 			if (usageByEngineId.containsKey(engineId)) {
@@ -165,7 +163,8 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
 		// If both dates are provided, validate them
 		if (hasStartDate && hasEndDate) {
-			// strict ISO parse, the same one the queries use, so 2026-02-30 is rejected here
+			// strict ISO parse, the same one the queries use, so 2026-02-30 is rejected
+			// here
 			LocalDate start;
 			LocalDate end;
 
@@ -187,7 +186,8 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
 			// Validate start date is not in the future
 			if (start.isAfter(LocalDate.now(ZoneOffset.UTC))) {
-				throw new IllegalArgumentException("startDate cannot be in the future. Provided: startDate=" + startDate);
+				throw new IllegalArgumentException(
+						"startDate cannot be in the future. Provided: startDate=" + startDate);
 			}
 
 			// Validate start date is before or equal to end date
@@ -199,25 +199,19 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Returns model usage for the current user over a specified time period, broken down by engine. \
 				Reports INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS, \
 				TOTAL_TOKENS, TOTAL_REQUESTS, and COST_MICROS (cost in millionths of a dollar, counted as usage \
 				limits count it; null when the model has no known prices). Requires a list of engine IDs and \
 				optionally accepts a date range; the end date is included in full.
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "Required list of engine IDs to get usage for (can be a single engine or multiple engines).";
-		} else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
-			return "Optional start date (format: YYYY-MM-DD). Must be provided with endDate.";
-		} else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
-			return "Optional end date (format: YYYY-MM-DD). Must be provided with startDate.";
-		}
-		return super.getDescriptionForKey(key);
+				""")
+				.key(ReactorKeysEnum.ENGINE,
+						"Required list of engine IDs to get usage for (can be a single engine or multiple engines).")
+				.key(ReactorKeysEnum.START_DATE,
+						"Optional start date (format: YYYY-MM-DD). Must be provided with endDate.")
+				.key(ReactorKeysEnum.END_DATE,
+						"Optional end date (format: YYYY-MM-DD). Must be provided with startDate.");
 	}
 }

@@ -36,6 +36,7 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility.SchedulerAuditStats;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -150,24 +151,16 @@ public class SchedulerStatsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Returns a snapshot of scheduler health: execution counts, failure count, \
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
+				Admin Only: Returns a snapshot of scheduler health: execution counts, failure count, \
 				success rate, average and p95 duration over the given window, plus current \
 				trigger state (active, paused, overdue, next run time) and the job with \
-				the longest current run of consecutive failures within the window.""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (WINDOW.equals(key)) {
-			return """
-					Time window applied to execution-derived stats (totalRuns, failures, \
-					successRate, durations, worstJob). Format: <number><unit> with unit in \
-					s (seconds), m (minutes), h (hours), or d (days). Defaults to '24h'. \
-					Trigger-state stats (active/paused/overdue/nextRunAt) reflect current state \
-					and are not window-filtered.""";
-		}
-		return super.getDescriptionForKey(key);
+				the longest current run of consecutive failures within the window.""").key(WINDOW, """
+				Time window applied to execution-derived stats (totalRuns, failures, \
+				successRate, durations, worstJob). Format: <number><unit> with unit in \
+				s (seconds), m (minutes), h (hours), or d (days). Defaults to '24h'. \
+				Trigger-state stats (active/paused/overdue/nextRunAt) reflect current state \
+				and are not window-filtered.""");
 	}
 }

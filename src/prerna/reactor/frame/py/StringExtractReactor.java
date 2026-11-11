@@ -34,6 +34,7 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -155,15 +156,11 @@ public class StringExtractReactor extends AbstractPyFrameReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(WHERE)) {
-			return "Side of the string to work with (left/right)";
-		} else if (key.equals(OPTION)) {
-			return "Whether you want to keep or remove the characters (keep/remove)";
-		} else if (key.equals(AMOUNT)) {
-			return "Amount of characters to remove or keep";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Keeps or removes a number of characters at the left or right of a column's values in the current Python frame and writes the result to a new column.")
+				.key(WHERE, "Side of the string to work with (left/right)")
+				.key(OPTION, "Whether you want to keep or remove the characters (keep/remove)")
+				.key(AMOUNT, key -> key.type(Integer.class).description("Amount of characters to remove or keep"));
 	}
 }

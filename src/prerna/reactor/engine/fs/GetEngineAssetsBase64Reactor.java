@@ -28,10 +28,10 @@
 package prerna.reactor.engine.fs;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -50,12 +50,7 @@ public class GetEngineAssetsBase64Reactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		// editors/owners can read everything; view-only users are confined to the
@@ -87,18 +82,12 @@ public class GetEngineAssetsBase64Reactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Retrieve the contents of a file (image, pdf, etc.) as base64 encoded string in the engine";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The unique id for the engine";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Name of the file to get the contents as a base64 encoded string. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Retrieve the contents of a file (image, pdf, etc.) as base64 encoded string in the engine")
+				.key(ReactorKeysEnum.ENGINE, "The unique id for the engine").key(ReactorKeysEnum.FILE_PATH,
+						"Name of the file to get the contents as a base64 encoded string. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.");
 	}
 
 }

@@ -49,11 +49,11 @@ import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditTargetType;
@@ -75,21 +75,7 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create a function engine",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-			if (this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-		}
+		User user = requireUser();
 
 		// throw error is user doesn't have rights to publish new databases
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
@@ -213,31 +199,20 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Create and register a function engine from the supplied function metadata. The reactor validates the
 				engine type, creates its assets and SMSS configuration, assigns the caller as an owner, initializes
 				version control, and synchronizes the engine to the cluster.
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.FUNCTION.getKey().equals(key)) {
-			return "The catalog name for the new function engine. The name must be unique and contain only supported engine-name characters.";
-		} else if (ReactorKeysEnum.FUNCTION_DETAILS.getKey().equals(key)) {
-			return """
-					The function-engine SMSS properties. The map must include FUNCTION_TYPE and the configuration
-					required by that engine type, such as FUNCTION_NAME, FUNCTION_DESCRIPTION, parameters,
-					credentials, connection settings, or provider-specific options.
-					""";
-		} else if (ReactorKeysEnum.FILE_PATH.getKey().equals(key)) {
-			return """
-					Optional path to a file in the current insight folder. For LOCAL_PYTHON engines, each supplied
-					file is moved into the new engine assets folder.
-					""";
-		}
-
-		return super.getDescriptionForKey(key);
+				""").key(ReactorKeysEnum.FUNCTION,
+				"The catalog name for the new function engine. The name must be unique and contain only supported engine-name characters.")
+				.key(ReactorKeysEnum.FUNCTION_DETAILS, """
+						The function-engine SMSS properties. The map must include FUNCTION_TYPE and the configuration
+						required by that engine type, such as FUNCTION_NAME, FUNCTION_DESCRIPTION, parameters,
+						credentials, connection settings, or provider-specific options.
+						""").key(ReactorKeysEnum.FILE_PATH, """
+						Optional path to a file in the current insight folder. For LOCAL_PYTHON engines, each supplied
+						file is moved into the new engine assets folder.
+						""");
 	}
 }

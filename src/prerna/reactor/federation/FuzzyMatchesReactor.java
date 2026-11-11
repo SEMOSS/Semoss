@@ -28,7 +28,6 @@
 package prerna.reactor.federation;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 
@@ -42,6 +41,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -146,9 +146,7 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 				qs.addSelector(new QueryColumnSelector(frameCol));
 
 				File newFile = null;
-				IRawSelectWrapper iterator = null;
-				try {
-					iterator = frame.query(qs);
+				try (IRawSelectWrapper iterator = frame.query(qs)) {
 					ITask it2 = new BasicIteratorTask(qs, iterator);
 					String newFileLoc = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR) + "/"
 							+ Utility.getRandomString(6) + ".tsv";
@@ -156,14 +154,6 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 				} catch (Exception e) {
 					classLogger.error("Failed to write the frame column values to a TSV file for fuzzy matching", e);
 					throw new SemossPixelException(e.getMessage());
-				} finally {
-					if (iterator != null) {
-						try {
-							iterator.close();
-						} catch (IOException e) {
-							classLogger.error("Failed to close the frame query iterator used for fuzzy matching", e);
-						}
-					}
 				}
 				String loadFileRScript = RSyntaxHelper.getFReadSyntax(rCol2, newFile.getAbsolutePath(), "\t");
 				script.append(loadFileRScript);
@@ -356,14 +346,11 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(FRAME_COLUMN)) {
-			return "The column from the frame to join on";
-		} else if (key.equals(OUTPUT_FRAME_NAME)) {
-			return "Specify the output frame name";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Compares the values from a task or query with the values of a frame column and returns a new R frame pairing each distinct value with each distinct frame value and their string distance, where 0 is an exact match. It also returns the number of exact matches.")
+				.key(FRAME_COLUMN, "The column from the frame to join on")
+				.key(OUTPUT_FRAME_NAME, "Specify the output frame name");
 	}
 
 }

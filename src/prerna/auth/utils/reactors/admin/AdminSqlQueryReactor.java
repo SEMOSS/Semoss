@@ -47,6 +47,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -285,8 +286,13 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Admin-only SQL query execution with pagination support (limit and offset), bypassing normal permission checks";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: SQL query execution with pagination support (limit and offset), bypassing normal permission checks")
+				.key("commit",
+						key -> key.type(Boolean.class).description(
+								"A true or false flag sent with statements that change data; false when not given."))
+				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class));
 	}
 
 }

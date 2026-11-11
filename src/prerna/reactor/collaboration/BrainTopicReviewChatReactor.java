@@ -28,9 +28,15 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainTopicReviewUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** One onboarding chat turn over the topic draft. Read-only; the owner applies proposed changes through the draft. */
+import java.util.Map;
+
+/**
+ * One onboarding chat turn over the topic draft. Read-only; the owner applies
+ * proposed changes through the draft.
+ */
 public class BrainTopicReviewChatReactor extends AbstractCollaborationReactor {
 	public BrainTopicReviewChatReactor() {
 		this.keysToGet = new String[] { "reviewId", "revision", "chat" };
@@ -41,12 +47,19 @@ public class BrainTopicReviewChatReactor extends AbstractCollaborationReactor {
 	public NounMetadata execute() {
 		Integer revision = getIntFromKeyOrCurRow("revision");
 		var chat = getMapFromKeyOrCurRow("chat");
-		if (revision == null || chat == null) throw new IllegalArgumentException("Pass the saved review revision and the chat messages");
+		if (revision == null || chat == null)
+			throw new IllegalArgumentException("Pass the saved review revision and the chat messages");
 		return mapResult(BrainTopicReviewUtils.chat(getUser(), getString("reviewId"), revision, chat.get("messages")));
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Onboarding setup chat: given chat.messages (role owner or assistant, text), returns a reply and proposed topic draft changes (add_topic, edit_topic, keep, skip, combine) using only the draft's topic keys and the owner's own people; no writes";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Onboarding setup chat: given chat.messages (role owner or assistant, text), returns a reply and proposed topic draft changes (add_topic, edit_topic, keep, skip, combine) using only the draft's topic keys and the owner's own people; no writes")
+				.key("chat", key -> key.type(Map.class).description(
+						"A map whose messages list holds the conversation so far, each message with a role (owner or assistant) and text. The last message must be from the owner."))
+				.key("reviewId", "The id of the signed-in user's topic review.")
+				.key("revision", key -> key.type(Integer.class).description(
+						"The review revision the caller last read. The call fails when the saved review has changed since."));
 	}
 }

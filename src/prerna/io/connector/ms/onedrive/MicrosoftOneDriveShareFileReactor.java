@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -116,28 +117,22 @@ public class MicrosoftOneDriveShareFileReactor extends AbstractMicrosoftOneDrive
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Create a sharing link to a OneDrive file or folder so somebody else can reach it.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ITEM_ID)) {
-			return "Id of the item to share, as returned by the OneDrive listings. Not needed when a path is given.";
-		} else if (key.equals(PATH)) {
-			return "Path of the item to share, relative to the drive root. Not needed when an item id is given.";
-		} else if (key.equals(LINK_TYPE)) {
-			return "Optional kind of link, one of view, edit or embed. Defaults to view.";
-		} else if (key.equals(SCOPE)) {
-			return "Optional reach of the link, one of anonymous, organization or users. Defaults to organization, which keeps the link inside the tenant.";
-		} else if (key.equals(RECIPIENTS)) {
-			return "Email addresses the link is for, required when the scope is users, passed as several values or as one comma separated value.";
-		} else if (key.equals(PASSWORD)) {
-			return "Optional password the link asks for before it opens the item.";
-		} else if (key.equals(EXPIRATION_DATE_TIME)) {
-			return "Optional moment the link stops working, as an ISO 8601 date and time such as 2026-12-31T23:59:59Z.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Create a sharing link to a OneDrive file or folder so somebody else can reach it.")
+				.key(DRIVE_ID, DRIVE_ID_DESCRIPTION)
+				.key(ITEM_ID,
+						"Id of the item to share, as returned by the OneDrive listings. Not needed when a path is given.")
+				.key(PATH,
+						"Path of the item to share, relative to the drive root. Not needed when an item id is given.")
+				.key(LINK_TYPE, "Optional kind of link, one of view, edit or embed. Defaults to view.")
+				.key(SCOPE,
+						"Optional reach of the link, one of anonymous, organization or users. Defaults to organization, which keeps the link inside the tenant.")
+				.key(RECIPIENTS,
+						"Email addresses the link is for, required when the scope is users, passed as several values or as one comma separated value.")
+				.key(PASSWORD, "Optional password the link asks for before it opens the item.")
+				.key(EXPIRATION_DATE_TIME,
+						"Optional moment the link stops working, as an ISO 8601 date and time such as 2026-12-31T23:59:59Z.");
 	}
 
 	@Override

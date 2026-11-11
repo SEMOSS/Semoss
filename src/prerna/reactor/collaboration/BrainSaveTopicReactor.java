@@ -31,6 +31,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainTopicUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSaveTopic(topic=[{...}]); no id creates, an id edits or accepts a suggested topic
@@ -54,15 +55,9 @@ public class BrainSaveTopicReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates or edits a Brain topic; only the fields passed are changed";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (KEY.equals(key)) {
-			return "Partial topic: id (omit to create), name, short, accountId, kind, color, description, keywords, calendarSeries, status";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Creates or edits a Brain topic; only the fields passed are changed").key(KEY,
+						"Partial topic: id (omit to create), name, short, accountId, kind, color, description, keywords, calendarSeries, status");
 	}
 }

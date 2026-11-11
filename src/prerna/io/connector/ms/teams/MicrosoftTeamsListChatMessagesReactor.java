@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -55,8 +56,9 @@ import prerna.util.ValueUtils;
  * </ul>
  *
  * <p>
- * Graph answers most recent first, and that is the order this keeps, so a limit
- * takes the latest part of the conversation rather than the oldest.
+ * The messages come back newest first by when each was sent, so a limit takes
+ * the latest part of the conversation rather than the oldest, and an old
+ * message that was edited or reacted to stays where it was sent.
  * </p>
  */
 public class MicrosoftTeamsListChatMessagesReactor extends AbstractMicrosoftTeamsMessageReactor {
@@ -110,19 +112,14 @@ public class MicrosoftTeamsListChatMessagesReactor extends AbstractMicrosoftTeam
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Read the messages of a Microsoft Teams chat, most recent first.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if ("includeDisplayBody".equals(key)) {
-			return "Optional boolean for whether each message also carries displayBody, its formatted original for showing in a UI, with media labels. Defaults to false.";
-		}
-		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Optional maximum number of messages to return. Defaults to " + DEFAULT_LIMIT + " and is capped at "
-					+ MAX_LIMIT + ".";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Read the messages of a Microsoft Teams chat, newest first by when each was sent.")
+				.key(CHAT_ID, CHAT_ID_DESCRIPTION).key(MAX_BODY_CHARS, MAX_BODY_CHARS_DESCRIPTION)
+				.key(ReactorKeysEnum.LIMIT,
+						"Optional maximum number of messages to return. Defaults to " + DEFAULT_LIMIT
+								+ " and is capped at " + MAX_LIMIT + ".")
+				.key("includeDisplayBody",
+						"Optional boolean for whether each message also carries displayBody, its formatted original for showing in a UI, with media labels. Defaults to false.");
 	}
 }

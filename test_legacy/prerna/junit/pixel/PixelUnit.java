@@ -114,8 +114,6 @@ import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 
-// TODO: import org.json.simple.JSONObject;
-
 public class PixelUnit {
 
 	protected static final Logger classLogger = LogManager.getLogger(JUnit.class.getName());
@@ -132,7 +130,7 @@ public class PixelUnit {
 	protected static final String ACTUAL_JSON_DIRECOTRY = Paths.get(TEST_TEXT_DIRECTORY, "actual").toAbsolutePath()
 			.toString();
 
-	protected static final Gson GSON = GsonUtility.getDefaultGson();
+	protected static final Gson GSON = GsonUtility.getDefaultGson(); 
 	protected static final Gson GSON_PRETTY = GsonUtility.getDefaultGson(true);
 
 	private static final String TEST_DIR_REGEX = "<<<testDir>>>";
@@ -180,8 +178,7 @@ public class PixelUnit {
 			loadDatabases();
 			loadTestDatabases();
 			cleanActualDirectory();
-		} catch (Exception e) {
-
+		} catch (Exception e) { 
 			// Tests assume that this setup is correct in order to run
 			classLogger.error("Error: ", e);
 			assumeNoException(e);
@@ -218,23 +215,12 @@ public class PixelUnit {
 
 	private static void configureLog4j() {
 		String log4JPropFile = Paths.get(TEST_RESOURCES_DIRECTORY, "log4j.properties").toAbsolutePath().toString();
-		FileInputStream fis = null;
-		ConfigurationSource source = null;
-		try {
-			fis = new FileInputStream(log4JPropFile);
-			source = new ConfigurationSource(fis);
+		try (FileInputStream fis = new FileInputStream(log4JPropFile)) {
+			ConfigurationSource source = new ConfigurationSource(fis);
 			Configurator.initialize(null, source);
 			classLogger.info("Successfully configured Log4j for JUnit suite.");
 		} catch (IOException e) {
 			classLogger.warn("Unable to initialize log4j for testing.", e);
-		} finally {
-			if(fis != null) {
-				try {
-					fis.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
 		}
 	}
 
@@ -319,7 +305,7 @@ public class PixelUnit {
 			try {
 				formBuilder.close();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close the form builder database", e);
 			}
 		}
 
@@ -328,7 +314,7 @@ public class PixelUnit {
 			try {
 				localMaster.close();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close the local master database", e);
 			}
 		}
 
@@ -337,7 +323,7 @@ public class PixelUnit {
 			try {
 				security.close();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close the security database", e);
 			}
 		}
 
@@ -346,7 +332,7 @@ public class PixelUnit {
 			try {
 				themes.close();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close the theming database", e);
 			}
 		}
 
@@ -641,9 +627,7 @@ public class PixelUnit {
 
 	protected void initializeJep() {
 		User user = new User();
-		//user.setAnonymous(true);
 		String uId = "SemossTester";
-		//user.setAnonymousId(uId);
 		AccessToken token = new AccessToken();
 		token.setId(uId);
 		token.setName(uId);
@@ -1143,9 +1127,6 @@ public class PixelUnit {
 			// Try running deepdiff using a new jep thread...
 			//	Insight insightDeepDiff = new Insight();
 			//    User user = new User();
-			//  user.setAnonymous(true);
-			//  String uId = "UNK_" + UUID.randomUUID().toString();
-			//  user.setAnonymousId(uId);
 			//   insightDeepDiff.setUser(user);
 			//      String tempTupleSpace = PyUtils.getInstance().getTempTupleSpace(user, DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
 			//      insight.setTupleSpace(tempTupleSpace);

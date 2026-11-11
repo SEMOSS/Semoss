@@ -35,10 +35,10 @@ import org.apache.commons.io.FilenameUtils;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -58,9 +58,6 @@ public class ConvertFileUnoserverReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		String fileRelativePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 		String targetFormat = this.keyValue.get(this.keysToGet[1]);
@@ -82,7 +79,8 @@ public class ConvertFileUnoserverReactor extends AbstractReactor {
 
 		File targetFile = null;
 		String convertedRelativePath = null;
-		if (outputRelativePath == null || (outputRelativePath = Utility.normalizePath(outputRelativePath.trim())).isEmpty()) {
+		if (outputRelativePath == null
+				|| (outputRelativePath = Utility.normalizePath(outputRelativePath.trim())).isEmpty()) {
 			String outputFileName = FilenameUtils.getBaseName(sourceFile.getName()) + "." + targetFormat;
 			targetFile = new File(sourceFile.getParentFile(), outputFileName);
 			convertedRelativePath = FilenameUtils.getPath(fileRelativePath) + outputFileName;
@@ -123,24 +121,19 @@ public class ConvertFileUnoserverReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Converts a document to another format (e.g. docx to pdf) using the configured unoserver microservice. "
-				+ "The converted file is written next to the source file";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "This is a required value containing the relative file path of the document to convert";
-		} else if (key.equals(ReactorKeysEnum.FORMAT.getKey())) {
-			return "This is an optional value for the target format to convert to (e.g. pdf, docx, html, txt). Defaults to "
-					+ Unoserver.DEFAULT_TARGET_FORMAT;
-		} else if (key.equals(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey())) {
-			return "This is an optional value containing the relative file path to write the converted file to. If not provided, the converted file is written next to the source file with the target format as its extension";
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Converts a document to another format (e.g. docx to pdf) using the configured unoserver microservice. "
+						+ "The converted file is written next to the source file")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"This is a required value containing the relative file path of the document to convert")
+				.key(ReactorKeysEnum.FORMAT,
+						"This is an optional value for the target format to convert to (e.g. pdf, docx, html, txt). Defaults to "
+								+ Unoserver.DEFAULT_TARGET_FORMAT)
+				.key(ReactorKeysEnum.OUTPUT_FILE_PATH,
+						"This is an optional value containing the relative file path to write the converted file to. If not provided, the converted file is written next to the source file with the target format as its extension")
+				.key(ReactorKeysEnum.SPACE,
+						"This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).");
 	}
 
 }

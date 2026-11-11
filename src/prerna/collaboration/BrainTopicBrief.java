@@ -43,15 +43,14 @@ import prerna.collaboration.BrainTopicRoomUtils.Chat;
 import prerna.engine.impl.model.Room;
 
 /**
- * What the owner's assistant is told about the chat's topics on every turn: each topic's description, open goals
- * and open action items. It rides in the per-turn runtime note, not the system prompt, because goals and items
+ * What the owner's assistant is told about the chat's topics on every turn: each topic's description and open
+ * work items. It rides in the per-turn runtime note, not the system prompt, because work items
  * change mid-chat and the system prompt has to stay the same for caching.
  */
 public final class BrainTopicBrief {
 
 	private static final Logger classLogger = LogManager.getLogger(BrainTopicBrief.class);
 
-	static final int MAX_GOALS = 10;
 	static final int MAX_ITEMS = 10;
 	private static final int MAX_DESCRIPTION = 400;
 
@@ -133,10 +132,10 @@ public final class BrainTopicBrief {
 				return null;
 			}
 			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-			StringBuilder out = new StringBuilder("[Chat topics]\nThis chat is about the topics below. Their goals "
-					+ "and open action items are as of this turn; use ListTopics with a topic for more.");
+			StringBuilder out = new StringBuilder("[Chat topics]\nThis chat is about the topics below. Their open "
+					+ "work items are as of this turn; use ListMyWork or GetWork for more.");
 			for (String topicId : topics) {
-				out.append("\n\n").append(topic(owner.getValue0(), owner.getValue1(), topicId));
+				out.append("\n\n").append(topic(user, owner.getValue0(), owner.getValue1(), topicId));
 			}
 			return out.append("\n[/Chat topics]").toString();
 		} catch (RuntimeException e) {
@@ -146,7 +145,8 @@ public final class BrainTopicBrief {
 		}
 	}
 
-	private static String topic(String ownerId, String ownerType, String topicId) {
+	@SuppressWarnings("unchecked")
+	private static String topic(User user, String ownerId, String ownerType, String topicId) {
 		Map<String, String> row = CollaborationDbUtils.queryOne(
 				"SELECT NAME, DESCRIPTION FROM BRAIN_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
 				rs -> {
@@ -162,33 +162,46 @@ public final class BrainTopicBrief {
 		if (description != null && !description.isBlank()) {
 			out.append("\nDescription: ").append(clip(description.trim(), MAX_DESCRIPTION));
 		}
-		List<String> goals = new ArrayList<>();
-		int openGoals = 0;
-		for (Map<String, Object> goal : BrainTopicUtils.getGoals(ownerId, ownerType, topicId)) {
-			if ("open".equals(goal.get("status"))) {
-				openGoals++;
-				if (goals.size() < MAX_GOALS) {
-					goals.add(goal.get("text") + " (noteId " + goal.get("noteId") + ")");
-				}
+		// the topic's work items, each with the owner's next step or who they wait on
+		List<Map<String, Object>> items = new ArrayList<>();
+		for (Object o : (List<?>) WorkTaskUtils.listMyWork(user, Map.of("topicId", topicId)).get("workItems")) {
+			if (o instanceof Map<?, ?> m) {
+				items.add((Map<String, Object>) m);
 			}
 		}
-		out.append("\nOpen goals:").append(goals.isEmpty() ? " none" : "");
-		for (String goal : goals) {
-			out.append("\n- ").append(goal);
-		}
-		if (openGoals > goals.size()) {
-			out.append("\n").append(openGoals - goals.size())
-					.append(" more open goals not shown; use ListTopics with this topic to review them.");
-		}
-		List<Map<String, Object>> items = openItems(ownerId, ownerType, topicId, MAX_ITEMS);
-		out.append("\nOpen action items:").append(items.isEmpty() ? " none" : "");
-		for (Map<String, Object> item : items) {
-			out.append("\n- ").append(item.get("title"));
-			if (item.get("dueAt") != null) {
-				out.append(" (due ").append(String.valueOf(item.get("dueAt")), 0, 10).append(")");
+		out.append("\nOpen work items:").append(items.isEmpty() ? " none" : "");
+		for (Map<String, Object> item : items.subList(0, Math.min(items.size(), MAX_ITEMS))) {
+			out.append("\n- ").append(item.get("title")).append(" (id ").append(item.get("id"));
+			if ("proposed".equals(item.get("state"))) {
+				out.append(", not reviewed yet");
 			}
+			out.append(")");
+			String next = nextStep(item);
+			if (next != null) {
+				out.append(": ").append(next);
+			}
+		}
+		if (items.size() > MAX_ITEMS) {
+			out.append("\n").append(items.size() - MAX_ITEMS).append(" more; use ListMyWork with this topic.");
 		}
 		return out.toString();
+	}
+
+	// the owner's next step, else the first one someone else owes
+	@SuppressWarnings("unchecked")
+	private static String nextStep(Map<String, Object> item) {
+		List<Map<String, Object>> steps = item.get("openSteps") instanceof List<?> l ? (List<Map<String, Object>>) l
+				: List.of();
+		for (Map<String, Object> st : steps) {
+			if (st.get("assigneeId") == null) {
+				return "next " + st.get("text");
+			}
+		}
+		for (Map<String, Object> st : steps) {
+			Object who = st.get("assigneeName");
+			return "waiting on " + (who == null ? "someone" : who) + " to " + st.get("text");
+		}
+		return null;
 	}
 
 	/**

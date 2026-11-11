@@ -38,6 +38,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -123,19 +124,11 @@ public class CloseEngineReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Close engines so their next use opens them again from their smss file and files. \
 				Use this to restart an engine, for example to pick up changed python files: closing \
 				shuts down the python process the engine owns. In a cluster every node closes the engine. \
-				The user must own the engines.""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The ids of the engines to close";
-		}
-		return super.getDescriptionForKey(key);
+				The user must own the engines.""").key(ReactorKeysEnum.ENGINE, "The ids of the engines to close");
 	}
 }

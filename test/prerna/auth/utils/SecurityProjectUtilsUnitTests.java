@@ -67,6 +67,7 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
@@ -1915,6 +1916,46 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		Map<String, Object> result = SecurityProjectUtils.propagateProjectPermission(user, "testProjectId", "user2id",
 				"user", "READ_ONLY", null);
 		assertNotNull(result);
+	}
+
+	@Test
+	void testPropagateProjectPermission_leavesAnAdminOnlyDependencyToAdmins() {
+		User owner = UnitTestSecurityAuthUtils.createUser("owner", false);
+		UnitTestSecurityAuthUtils.createUser("user2", false);
+		Map<String, Object> result = propagateToAModelWhoseAddsAreAdminOnly(owner);
+
+		assertEquals(List.of("model1"), result.get("couldNotAddRequest"));
+		assertNull(SecurityEngineUtils.getUserEnginePermission("user2id", "model1"));
+	}
+
+	@Test
+	void testPropagateProjectPermission_letsAnAdminGrantAnAdminOnlyDependency() {
+		User admin = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createUser("user2", false);
+		Map<String, Object> result = propagateToAModelWhoseAddsAreAdminOnly(admin);
+
+		assertEquals(List.of("model1"), result.get("accessGranted"));
+		assertEquals(AccessPermissionEnum.READ_ONLY.getId(),
+				SecurityEngineUtils.getUserEnginePermission("user2id", "model1"));
+	}
+
+	/**
+	 * Propagates Read-Only access on a project that depends on one model, owned by
+	 * the requester, while only admins can give people access to models.
+	 */
+	private static Map<String, Object> propagateToAModelWhoseAddsAreAdminOnly(User requester) {
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", requester);
+		UnitTestSecurityAuthUtils.createEngine("model1", "Model One", IEngine.CATALOG_TYPE.MODEL, requester);
+		SecurityProjectUtils.updateProjectDependencies(requester, "testProjectId",
+				List.of(Map.<String, Object>of("ENGINEID", "model1", "ENGINETYPE", IEngine.CATALOG_TYPE.MODEL.name())));
+		boolean adminOnlyBefore = AbstractSecurityUtils.adminOnlyModelAddAccess;
+		AbstractSecurityUtils.adminOnlyModelAddAccess = true;
+		try {
+			return SecurityProjectUtils.propagateProjectPermission(requester, "testProjectId", "user2id", "NATIVE",
+					"READ_ONLY", null);
+		} finally {
+			AbstractSecurityUtils.adminOnlyModelAddAccess = adminOnlyBefore;
+		}
 	}
 
 	///

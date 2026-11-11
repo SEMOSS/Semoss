@@ -469,6 +469,15 @@ public class AutomationRunExecutionServiceUnitTests {
 	}
 
 	@Test
+	void anAgentNodesToolsBecomeItsRoomsMcpOption() {
+		Map<String, Object> options = AutomationRunExecutionService.generatedAgentRoomOptions(Map.of(
+				AutomationConstants.CONFIG_MCPS, List.of(Map.of("id", " engine-1 ", "name", "Sales DB", "type", "DATABASE"),
+						Map.of("id", "", "name", "Blank", "type", "PROJECT"), "project-1")));
+		assertEquals(Map.of("mcp", List.of(Map.of("id", "engine-1", "name", "Sales DB", "type", "DATABASE"))), options);
+		assertNull(AutomationRunExecutionService.generatedAgentRoomOptions(Map.of(AutomationConstants.CONFIG_MCPS, List.of())));
+	}
+
+	@Test
 	@SuppressWarnings("unchecked")
 	void groupsMaterializedLoopHistoryUnderItsParentNode() {
 		Map<String, Object> parent = new LinkedHashMap<>();

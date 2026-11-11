@@ -71,10 +71,10 @@ import jakarta.servlet.http.HttpSession;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.util.Constants;
 import prerna.util.SocialPropertiesUtil;
+import prerna.util.Utility;
 import prerna.util.ldap.ILdapAuthenticator;
 import prerna.util.ldap.LDAPPasswordChangeRequiredException;
 
@@ -143,12 +143,12 @@ public class LinOTPUtil {
 					HttpSession session = request.getSession(false);
 					if (session != null) {
 						User user = (User) session.getAttribute(Constants.SESSION_USER);
-						if (!AbstractSecurityUtils.anonymousUsersEnabled() && user != null
-								&& user.getLogins().isEmpty()) {
+						if (user != null && user.getLogins().isEmpty()) {
 							session.invalidate();
 						}
 					}
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Active directory requires a password change for LinOTP user {}",
+							Utility.cleanLogString(username), e);
 					returnMap.put(Constants.ERROR_MESSAGE, e.getMessage());
 					returnMap.put(ILdapAuthenticator.LDAP_PASSWORD_CHANGE_RETURN_KEY, true);
 					linotpResponse.setResponseCode(401);
@@ -157,12 +157,12 @@ public class LinOTPUtil {
 					HttpSession session = request.getSession(false);
 					if (session != null) {
 						User user = (User) session.getAttribute(Constants.SESSION_USER);
-						if (!AbstractSecurityUtils.anonymousUsersEnabled() && user != null
-								&& user.getLogins().isEmpty()) {
+						if (user != null && user.getLogins().isEmpty()) {
 							session.invalidate();
 						}
 					}
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to authenticate LinOTP user {} with active directory",
+							Utility.cleanLogString(username), e);
 					if (e.getMessage() != null) {
 						returnMap.put(Constants.ERROR_MESSAGE,
 								"Failed to authenticate with active directory. Error message = " + e.getMessage());
@@ -176,7 +176,7 @@ public class LinOTPUtil {
 						try {
 							authenticator.close();
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to close the active directory connection", e);
 						}
 					}
 				}
@@ -184,19 +184,16 @@ public class LinOTPUtil {
 
 			// first, request for challenge request using user pin
 			// Create HTTP request via ssl port (https) and pass post parameters
-			CloseableHttpClient httpclient = HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-					.build();
-			try {
-				HttpEntity entity = null;
+			try (CloseableHttpClient httpclient = HttpClients.custom()
+					.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).build()) {
 				HttpPost httpPost = new HttpPost(requestURL);
 				List<NameValuePair> nvps = new ArrayList<NameValuePair>();
 				nvps.add(new BasicNameValuePair("user", username));
 				nvps.add(new BasicNameValuePair("pass", pin));
 				nvps.add(new BasicNameValuePair("realm", realm));
 				httpPost.setEntity(new UrlEncodedFormEntity(nvps));
-				CloseableHttpResponse postResponse = httpclient.execute(httpPost);
-				try {
-					entity = postResponse.getEntity();
+				try (CloseableHttpResponse postResponse = httpclient.execute(httpPost)) {
+					HttpEntity entity = postResponse.getEntity();
 					String s_response = EntityUtils.toString(entity);
 					JsonObject j_response = JsonParser.parseString(s_response).getAsJsonObject();
 					// parse json response for result value
@@ -234,7 +231,8 @@ public class LinOTPUtil {
 						try {
 							resetCounter(new LinOTPResponse(), username);
 						} catch (Exception e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to reset the LinOTP counter for user {}",
+									Utility.cleanLogString(username), e);
 						}
 
 						return linotpResponse;
@@ -255,28 +253,14 @@ public class LinOTPUtil {
 							return linotpResponse;
 						}
 					}
-
-				} finally {
-					// consume will release the entity
-					if (entity != null) {
-						EntityUtils.consume(entity);
-					}
-					if (postResponse != null) {
-						postResponse.close();
-					}
-				}
-			} finally {
-				if (httpclient != null) {
-					httpclient.close();
 				}
 			}
 
 		} else {
 			// subsequent challenge request with otp
 			// Create HTTP request via ssl port (https) and pass post parameters
-			CloseableHttpClient httpclient = HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-					.build();
-			try {
+			try (CloseableHttpClient httpclient = HttpClients.custom()
+					.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).build()) {
 				HttpPost httpPost = new HttpPost(requestURL);
 				HttpSession session = request.getSession();
 				username = (String) session.getAttribute(LINOTP_USERNAME);
@@ -294,10 +278,8 @@ public class LinOTPUtil {
 				nvps.add(new BasicNameValuePair("realm", realm));
 				nvps.add(new BasicNameValuePair("transactionid", transactionId));
 				httpPost.setEntity(new UrlEncodedFormEntity(nvps));
-				CloseableHttpResponse postResponse = httpclient.execute(httpPost);
-				HttpEntity entity = null;
-				try {
-					entity = postResponse.getEntity();
+				try (CloseableHttpResponse postResponse = httpclient.execute(httpPost)) {
+					HttpEntity entity = postResponse.getEntity();
 					String s_response = EntityUtils.toString(entity);
 					JsonObject j_response = JsonParser.parseString(s_response).getAsJsonObject();
 					// parse json response for result value
@@ -331,7 +313,8 @@ public class LinOTPUtil {
 						try {
 							resetCounter(new LinOTPResponse(), username);
 						} catch (Exception e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to reset the LinOTP counter for user {}",
+									Utility.cleanLogString(username), e);
 						}
 
 						return linotpResponse;
@@ -340,18 +323,6 @@ public class LinOTPUtil {
 						linotpResponse.setResponseCode(401);
 						return linotpResponse;
 					}
-				} finally {
-					// consume will release the entity
-					if (entity != null) {
-						EntityUtils.consume(entity);
-					}
-					if (postResponse != null) {
-						postResponse.close();
-					}
-				}
-			} finally {
-				if (httpclient != null) {
-					httpclient.close();
 				}
 			}
 		}
@@ -474,9 +445,8 @@ public class LinOTPUtil {
 		context.setCookieStore(cstore);
 
 		// Create HTTP request via ssl port (https) and pass post parameters
-		CloseableHttpClient httpclient = HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-				.build();
-		try {
+		try (CloseableHttpClient httpclient = HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+				.build()) {
 			HttpPost httpPost = new HttpPost(requestURL);
 
 			List<NameValuePair> nvps = new ArrayList<NameValuePair>();
@@ -484,10 +454,8 @@ public class LinOTPUtil {
 			nvps.add(new BasicNameValuePair("realm", realm));
 			nvps.add(new BasicNameValuePair("session", token));
 			httpPost.setEntity(new UrlEncodedFormEntity(nvps));
-			CloseableHttpResponse postResponse = httpclient.execute(httpPost, context);
-			HttpEntity entity = null;
-			try {
-				entity = postResponse.getEntity();
+			try (CloseableHttpResponse postResponse = httpclient.execute(httpPost, context)) {
+				HttpEntity entity = postResponse.getEntity();
 				String s_response = EntityUtils.toString(entity);
 				JsonObject j_response = JsonParser.parseString(s_response).getAsJsonObject();
 				// parse json response for result value
@@ -531,18 +499,6 @@ public class LinOTPUtil {
 					linotpResponse.setResponseCode(500);
 					return linotpResponse;
 				}
-			} finally {
-				// consume will release the entity
-				if (entity != null) {
-					EntityUtils.consume(entity);
-				}
-				if (postResponse != null) {
-					postResponse.close();
-				}
-			}
-		} finally {
-			if (httpclient != null) {
-				httpclient.close();
 			}
 		}
 	}
