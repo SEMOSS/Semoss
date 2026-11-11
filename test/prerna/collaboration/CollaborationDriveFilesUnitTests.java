@@ -325,16 +325,21 @@ class CollaborationDriveFilesUnitTests {
 	}
 
 	@Test
-	void aFileOpenInOfficeSaysToCloseItAndIsSavedOnceItIs() throws Exception {
+	void aFileOpenInOfficeSaysSoAfterEveryRunAndIsSavedOnceItIsClosed() throws Exception {
 		File deck = copy("Deck.pptx", "i1", "v1", "first");
 		Files.writeString(deck.toPath(), "edited here");
 		held.put("i1", new String[] { "v1", "first" });
 		refusingSaves = 423;
 
-		assertEquals("[Deck.pptx](room://Deck.pptx) could not be saved back to OneDrive: the file is locked there, "
-				+ "which usually means it is open in PowerPoint, Word or Excel. The version with the changes is still "
-				+ "in this chat. Close the file and I will try again after my next reply.", save());
-		assertNull(save());
+		String locked = ": the file is locked there, which usually means it is open in PowerPoint, Word or Excel. The "
+				+ "version with the changes is still in this chat. Close the file and I will try again after my next "
+				+ "reply, or tell me to save it to OneDrive as a separate copy.";
+		assertEquals("[Deck.pptx](room://Deck.pptx) could not be saved back to OneDrive" + locked, save());
+		// said again for as long as it lasts: OneDrive still holds the version without the changes
+		assertEquals("[Deck.pptx](room://Deck.pptx) is still not saved back to OneDrive" + locked, save());
+		// an upload OneDrive is still taking is the same wait for the owner
+		refusingSaves = 409;
+		assertEquals("[Deck.pptx](room://Deck.pptx) is still not saved back to OneDrive" + locked, save());
 
 		refusingSaves = 0;
 		assertEquals("Saved [Deck.pptx](room://Deck.pptx) back to OneDrive.", save());

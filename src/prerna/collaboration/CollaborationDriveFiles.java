@@ -364,22 +364,27 @@ public final class CollaborationDriveFiles {
 			} catch (Exception e) {
 				classLogger.warn("Could not save {} back to OneDrive; it is tried again after the next run",
 						copy.getName(), e);
-				if (!FAILED.equals(source.told())) {
-					String why = String.valueOf(e.getMessage());
-					if (why.contains(" returned HTTP 403")) {
-						// a file shared as read only, or a sign in that was never allowed to write
-						line = name + " could not be saved back to OneDrive: OneDrive did not allow the change, so "
-								+ "the file may be read-only for you. The version with the changes is still in this "
-								+ "chat.";
-					} else if (why.contains(" returned HTTP 423")) {
-						// Office keeps a file locked while somebody has it open
-						line = name + " could not be saved back to OneDrive: the file is locked there, which usually "
-								+ "means it is open in PowerPoint, Word or Excel. The version with the changes is "
-								+ "still in this chat. Close the file and I will try again after my next reply.";
-					} else {
-						line = name + " could not be saved back to OneDrive just now. The version with the changes "
-								+ "is still in this chat, and I will try again after my next reply.";
-					}
+				String why = String.valueOf(e.getMessage());
+				boolean told = FAILED.equals(source.told());
+				if (why.contains(" returned HTTP 423") || why.contains(" returned HTTP 409")) {
+					// Office keeps a file locked while somebody has it open, and OneDrive refuses one it is
+					// still taking an earlier upload of. Said after every run it goes on, not once: the
+					// owner is the one who can end it, and until then OneDrive holds the old version
+					line = name
+							+ (told ? " is still not saved back to OneDrive" : " could not be saved back to OneDrive")
+							+ ": the file is locked there, which usually means it is open in PowerPoint, Word or "
+							+ "Excel. The version with the changes is still in this chat. Close the file and I will "
+							+ "try again after my next reply, or tell me to save it to OneDrive as a separate copy.";
+				} else if (!told && why.contains(" returned HTTP 403")) {
+					// a file shared as read only, or a sign in that was never allowed to write
+					line = name + " could not be saved back to OneDrive: OneDrive did not allow the change, so "
+							+ "the file may be read-only for you. The version with the changes is still in this "
+							+ "chat.";
+				} else if (!told) {
+					line = name + " could not be saved back to OneDrive just now. The version with the changes "
+							+ "is still in this chat, and I will try again after my next reply.";
+				}
+				if (!told) {
 					try {
 						MicrosoftOneDriveSources.tell(copy, source, FAILED);
 					} catch (Exception unrecorded) {

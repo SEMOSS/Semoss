@@ -1148,7 +1148,8 @@ public class MicrosoftOneDriveHelper {
 	 * </p>
 	 *
 	 * @param url     what to fetch
-	 * @param headers the request headers, or null
+	 * @param headers the request headers, or null for a url that is pre-authenticated,
+	 *                which a failure then does not quote
 	 * @param file    where the bytes go, in a folder that exists
 	 * @param name    what a refusal calls the file
 	 * @return how many bytes were written; the file is left as it was when there
@@ -1169,6 +1170,8 @@ public class MicrosoftOneDriveHelper {
 				Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
 			}
 			return size;
+		} catch (Exception e) {
+			throw headers == null ? withoutUrl(e, url, "the download link") : e;
 		} finally {
 			Files.deleteIfExists(temp.toPath());
 		}
@@ -1244,8 +1247,6 @@ public class MicrosoftOneDriveHelper {
 	 */
 	private static String sessionUpload(String accessToken, String driveId, String itemId, String targetPath,
 			String conflictBehavior, String fileName, File file) throws Exception {
-		final String CONTENT_RANGE = "Content-Range";
-
 		Map<String, Object> item = new LinkedHashMap<>();
 		item.put(CONFLICT_BEHAVIOR_PARAM, conflictBehavior);
 		if (fileName == null) {
@@ -1263,7 +1264,25 @@ public class MicrosoftOneDriveHelper {
 		if (sessionJson == null || sessionJson.get(UPLOAD_URL) == null) {
 			throw new IllegalStateException("Microsoft Graph did not return an upload session for file: " + fileName);
 		}
-		String uploadUrl = sessionJson.get(UPLOAD_URL).toString();
+		return sendToUploadSession(sessionJson.get(UPLOAD_URL).toString(), file, fileName);
+	}
+
+	/**
+	 * Sends a file to an upload session in pieces, for whichever helper opened the
+	 * session. A session whose upload fails is cancelled: while one is open OneDrive
+	 * answers every other upload of the same file with a 409, "currently being
+	 * uploaded", for a quarter of an hour or so, which is how one refusal of a file
+	 * open in Office became many. The failure does not quote the session's url,
+	 * which is what signs its requests.
+	 *
+	 * @param uploadUrl the url the session answered with
+	 * @param file      the file to send
+	 * @param fileName  what a failure calls the file
+	 * @return what the last piece was answered with, which is the uploaded item
+	 * @throws Exception if a piece is refused or the file cannot be read
+	 */
+	public static String sendToUploadSession(String uploadUrl, File file, String fileName) throws Exception {
+		final String CONTENT_RANGE = "Content-Range";
 
 		// the upload session url is pre-authenticated, so the bearer header is omitted
 		long totalSize = file.length();
@@ -1283,11 +1302,43 @@ public class MicrosoftOneDriveHelper {
 				}
 				offset += bytesRead;
 			}
+			if (offset != totalSize) {
+				throw new IllegalStateException(
+						"Uploaded " + offset + " of " + totalSize + " bytes for file: " + fileName);
+			}
+			return lastResponse;
+		} catch (Exception e) {
+			try {
+				HttpHelperUtility.deleteRequestStringBody(uploadUrl, null, null, null, null);
+			} catch (Exception notCancelled) {
+				// the url is what signs the request, so the failure, which quotes it, is not logged
+				classLogger.warn("Could not cancel the upload session of {}; Graph refuses another upload of that "
+						+ "file until the session expires", fileName);
+			}
+			throw withoutUrl(e, uploadUrl, "the upload session");
 		}
-		if (offset != totalSize) {
-			throw new IllegalStateException("Uploaded " + offset + " of " + totalSize + " bytes for file: " + fileName);
+	}
+
+	/**
+	 * The failure of a request to a pre-authenticated url, with the url taken out.
+	 * Such a url signs the request by itself, and a failure is logged on its way up
+	 * and handed to the model as the tool's error, so neither may quote it.
+	 *
+	 * @param e    the failure
+	 * @param url  the url the request went to
+	 * @param what what to call the url instead, such as "the upload session"
+	 * @return the failure itself when it does not quote the url, or one that says
+	 *         the same without it
+	 */
+	// shortcut: HttpHelperUtility logs the url itself when the connection drops, before it throws;
+	// have it leave query strings out of its own lines once that has to be closed too
+	private static Exception withoutUrl(Exception e, String url, String what) {
+		String why = e.getMessage();
+		if (why == null || !why.contains(url)) {
+			return e;
 		}
-		return lastResponse;
+		// without the failure as its cause, which says the same and is printed with it
+		return new IllegalArgumentException(why.replace(url, what));
 	}
 
 	/**
