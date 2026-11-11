@@ -610,7 +610,7 @@ public final class BrainProfileUtils {
 		return !Boolean.FALSE.equals(memorySetting(ownerId, ownerType, "MEMORY_USE"));
 	}
 
-	/** Finished chats are reviewed for memories to suggest; also needs memory itself to be on. */
+	/** Chats are reviewed in the background for memories to save; also needs memory itself to be on. */
 	static boolean learnsMemory(String ownerId, String ownerType) {
 		return usesMemory(ownerId, ownerType)
 				&& !Boolean.FALSE.equals(memorySetting(ownerId, ownerType, "MEMORY_LEARN"));
