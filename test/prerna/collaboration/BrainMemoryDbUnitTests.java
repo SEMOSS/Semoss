@@ -810,6 +810,28 @@ class BrainMemoryDbUnitTests {
 	}
 
 	@Test
+	void aTopicTextSearchKeepsOutWhatTheImportKeepsOut() throws Exception {
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE, SUBJECT, MUTED) VALUES "
+				+ "(?, ?, 'th-1', 'email:conv-1', 'email', 'Cutover', FALSE)", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, GRAPH_ID, SENDER_PERSON_ID, "
+				+ "DECISION) VALUES (?, ?, 'key-1', 'th-1', 'AQMk-1', 'p-priya', 'ingested')", ownerId, ownerType);
+		// blocked in People (Never ingest): a rule on the person's id, and the import never puts them on a thread
+		person("p-blocked", "Blocked Person", true);
+		sql("INSERT INTO BRAIN_PERSON_ADDRESS (OWNER_ID, OWNER_TYPE, PERSON_ID, KIND, VALUE_NORM) VALUES (?, ?, "
+				+ "'p-blocked', 'email', 'blocked@evil.com')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_MAIL_FOLDER (OWNER_ID, OWNER_TYPE, FOLDER_ID, NAME, PATH, KIND) VALUES (?, ?, "
+				+ "'f-deleted', 'Deleted Items', 'Deleted Items', ?)", ownerId, ownerType, BrainMailFolders.SKIPPED);
+
+		BrainTopicBodySearch.Gate gate = BrainTopicBodySearch.context(ownerId, ownerType, List.of("th-1"),
+				BrainThreadFinder.Privacy.load(ownerId, ownerType, List.of("th-1"))).gate();
+		// messages of the thread's conversation that Brain has not stored, as the mailbox lists them
+		assertTrue(gate.allows("th-1", null, listed("someone@acme.com", "f-inbox", false)));
+		assertFalse(gate.allows("th-1", null, listed("Blocked@Evil.com", "f-inbox", false)));
+		assertFalse(gate.allows("th-1", null, listed("someone@acme.com", "f-inbox", true)));
+		assertFalse(gate.allows("th-1", null, listed("someone@acme.com", "f-deleted", false)));
+	}
+
+	@Test
 	void collaborationToolsLeaveOutBlankArguments() {
 		// GPT-6 sent accountId "" and status "": ListTopics then failed or matched no
 		// topic
@@ -977,6 +999,12 @@ class BrainMemoryDbUnitTests {
 		sql("INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, STATUS, CREATED_AT, UPDATED_AT) "
 				+ "VALUES (?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", ownerId, ownerType, topicId,
 				name);
+	}
+
+	// a message as the mailbox lists it: its sender, its folder, and whether it is an unsent draft
+	private static Map<String, Object> listed(String address, String folder, boolean draft) {
+		return Map.of("from", Map.of("emailAddress", Map.of("address", address)), "parentFolderId", folder, "isDraft",
+				draft);
 	}
 
 	private void sql(String sql, Object... params) throws Exception {

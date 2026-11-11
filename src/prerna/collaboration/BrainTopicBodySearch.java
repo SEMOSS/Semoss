@@ -186,8 +186,7 @@ final class BrainTopicBodySearch {
 			Row row = graphId == null ? null : byGraphId.get(graphId);
 			String threadId = row != null ? row.threadId()
 					: byConversation.get(CollaborationDbUtils.asString(message.get("conversationId")));
-			if (threadId == null || !privacy.visible(threadId)
-					|| !gate.allows(threadId, row, address(message), CollaborationDbUtils.asString(message.get("parentFolderId")))) {
+			if (threadId == null || !privacy.visible(threadId) || !gate.allows(threadId, row, message)) {
 				continue;
 			}
 			threadOf.put(graphId, threadId);
@@ -255,26 +254,32 @@ final class BrainTopicBodySearch {
 
 	/** What keeps a message out of search results, decided once for the topic's threads. */
 	static final class Gate {
+		private final String ownerId;
+		private final String ownerType;
 		private final List<BrainRulesGate.Rule> rules;
 		private final BrainThreadFinder.Privacy privacy;
+		// the mail folders the import skips (Deleted Items, Junk, Drafts...)
+		private final BrainMailFolders.Tree folders;
+		// the sender of each address already looked up; null when Brain knows no such person
 		private final Map<String, String> personByAddress = new HashMap<>();
 		// thread|person the owner dropped from that thread
 		private final Set<String> excluded = new HashSet<>();
 		// the topics each thread is filed under, for the owner's topic-wide ignore rules
 		private final Map<String, List<String>> topicsOf = new HashMap<>();
 
-		private Gate(List<BrainRulesGate.Rule> rules, BrainThreadFinder.Privacy privacy) {
-			this.rules = rules;
+		private Gate(String ownerId, String ownerType, BrainThreadFinder.Privacy privacy) {
+			this.ownerId = ownerId;
+			this.ownerType = ownerType;
+			this.rules = BrainRulesGate.activeRules(ownerId, ownerType);
 			this.privacy = privacy;
+			this.folders = BrainMailFolders.load(ownerId, ownerType);
 		}
 
 		static Gate load(String ownerId, String ownerType, Collection<String> threadIds,
 				BrainThreadFinder.Privacy privacy) {
-			Gate gate = new Gate(BrainRulesGate.activeRules(ownerId, ownerType), privacy);
-			Set<String> personIds = new HashSet<>();
+			Gate gate = new Gate(ownerId, ownerType, privacy);
 			BrainThreadFinder.byIds("SELECT THREAD_ID, PERSON_ID, INCLUDED FROM BRAIN_THREAD_PARTICIPANT WHERE "
 					+ "OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IN (", ")", threadIds, rs -> {
-						personIds.add(rs.getString(2));
 						if (Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "INCLUDED"))) {
 							gate.excluded.add(rs.getString(1) + "|" + rs.getString(2));
 						}
@@ -285,13 +290,6 @@ final class BrainTopicBodySearch {
 						gate.topicsOf.computeIfAbsent(rs.getString(1), k -> new ArrayList<>()).add(rs.getString(2));
 						return null;
 					}, ownerId, ownerType);
-			if (!personIds.isEmpty()) {
-				BrainThreadFinder.byIds("SELECT PERSON_ID, VALUE_NORM FROM BRAIN_PERSON_ADDRESS WHERE OWNER_ID = ? "
-						+ "AND OWNER_TYPE = ? AND PERSON_ID IN (", ")", personIds, rs -> {
-							gate.personByAddress.put(rs.getString(2), rs.getString(1));
-							return null;
-						}, ownerId, ownerType);
-			}
 			return gate;
 		}
 
@@ -299,10 +297,15 @@ final class BrainTopicBodySearch {
 		// address, folder), a stored excluded or off decision, a person the owner dropped from the thread, and a
 		// topic or channel ignore rule. BrainRulesGate.standing decides the rule part for the gate, the classifier
 		// and memory alike. A message Brain already stored uses its own sender and folder; a newer one is judged by
-		// its address
-		boolean allows(String threadId, Row row, String address, String folder) {
-			String norm = BrainRulesGate.norm(address);
-			String person = row != null && row.personId() != null ? row.personId() : norm == null ? null : personByAddress.get(norm);
+		// its address. What the import leaves out stays out here too: a draft, and mail in a folder it skips.
+		// message is in Graph shape (from, parentFolderId, isDraft); a stored message may come with its id alone
+		boolean allows(String threadId, Row row, Map<String, Object> message) {
+			String folder = CollaborationDbUtils.asString(message.get("parentFolderId"));
+			if (Boolean.TRUE.equals(message.get("isDraft")) || folders.skipped(folder)) {
+				return false;
+			}
+			String norm = BrainRulesGate.norm(address(message));
+			String person = row != null && row.personId() != null ? row.personId() : norm == null ? null : person(norm);
 			if (row != null && (BrainRulesGate.NEVER.equals(row.decision()) || BrainRulesGate.OFF.equals(row.decision())
 					|| BrainRulesGate.EXCLUDED.equals(row.decision()))) {
 				return false;
@@ -313,6 +316,15 @@ final class BrainTopicBodySearch {
 			String where = row != null && row.folder() != null ? row.folder() : folder;
 			return !BrainRulesGate.standing(rules, norm == null ? "" : norm, person, where, "email",
 					topicsOf.getOrDefault(threadId, List.of()), Set.of(), false).keptOut();
+		}
+
+		// Among all of the owner's people, as the import's gate finds a sender: a person blocked in People is a rule
+		// on their id, and the import never stores them on a thread, so the thread's own people would not show them
+		private String person(String address) {
+			if (!personByAddress.containsKey(address)) {
+				personByAddress.put(address, BrainRulesGate.findPerson(ownerId, ownerType, address));
+			}
+			return personByAddress.get(address);
 		}
 
 		boolean keyword(String subject, String text) {

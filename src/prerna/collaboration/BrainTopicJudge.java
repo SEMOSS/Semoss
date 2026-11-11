@@ -212,7 +212,7 @@ final class BrainTopicJudge {
 		if (screener != null) {
 			try {
 				return classified(screener, judges.isEmpty() ? null : judges.get(0), user, ownerId, ownerType,
-						threadIds, asked, terms, from, to, privacy);
+						threadIds, asked, from, to, privacy);
 			} catch (SemossPixelException e) {
 				throw e;
 			} catch (RuntimeException e) {
@@ -374,9 +374,7 @@ final class BrainTopicJudge {
 			Row row = context.byGraphId().get(graphId);
 			String threadId = row != null ? row.threadId()
 					: context.byConversation().get(CollaborationDbUtils.asString(message.get("conversationId")));
-			if (threadId == null || !privacy.visible(threadId)
-					|| !context.gate().allows(threadId, row, BrainTopicBodySearch.address(message),
-							CollaborationDbUtils.asString(message.get("parentFolderId")))) {
+			if (threadId == null || !privacy.visible(threadId) || !context.gate().allows(threadId, row, message)) {
 				continue;
 			}
 			threadOf.put(graphId, threadId);
@@ -388,7 +386,8 @@ final class BrainTopicJudge {
 
 		// 4. fetch, clean, and apply the keyword rules
 		step = System.nanoTime();
-		List<Passage> read = fetch(user, source, allowed, threadOf, context);
+		AtomicInteger unfetched = new AtomicInteger();
+		List<Passage> read = fetch(user, source, allowed, threadOf, context, unfetched);
 		times.put("fetch", ms(step));
 
 		// 5. rank what was read by how well it holds the question's words, so the model sees the likeliest first and
@@ -515,6 +514,10 @@ final class BrainTopicJudge {
 			status = BrainTopicBodySearch.PARTIAL;
 			note.append("More messages matched than were read, so some were not checked. ");
 		}
+		if (unfetched.get() > 0) {
+			status = BrainTopicBodySearch.PARTIAL;
+			note.append(unfetched.get()).append(" messages could not be read from the mailbox. ");
+		}
 		note.append("A model judged which passages answer the question; each result quotes the message.");
 		return new Result(hits, status, note.toString().trim(), stats);
 	}
@@ -522,14 +525,13 @@ final class BrainTopicJudge {
 	// ---- the classifier reads every message ----
 
 	/**
-	 * The question as asked, against every message of the topic's conversations: each is read whole, passes the rules
-	 * gate, and is scored by the classifier (a Jev model answering "does this message answer the question?" with a
+	 * The question as asked, against every message of the topic's conversations: each is listed, passes the rules gate,
+	 * is read, and is scored by the classifier (a Jev model answering "does this message answer the question?" with a
 	 * probability). The likeliest go to the text model, which quotes the words that answer; a quote that is not in the
 	 * message is thrown away. The question's words are never used to choose what is read.
 	 */
 	private static Result classified(Screener screener, Judge judge, User user, String ownerId, String ownerType,
-			Collection<String> threadIds, String asked, List<String> terms, String from, String to,
-			BrainThreadFinder.Privacy privacy) {
+			Collection<String> threadIds, String asked, String from, String to, BrainThreadFinder.Privacy privacy) {
 		long started = System.nanoTime();
 		int maxMessages = setting(MAX_MESSAGES_SETTING, DEFAULT_MAX_MESSAGES, 1, 2000);
 		int perConversation = setting(PER_CONVERSATION_SETTING, DEFAULT_PER_CONVERSATION, 1, 500);
@@ -537,14 +539,17 @@ final class BrainTopicJudge {
 		Map<String, Object> stats = new LinkedHashMap<>();
 		stats.put("mode", CLASSIFIED);
 		Context context = BrainTopicBodySearch.context(ownerId, ownerType, threadIds, privacy);
+		BrainMessageSource source = BrainMessageSource.current();
 
-		// 1. every message of the topic's conversations, whether or not it was imported
+		// 1. every message of the topic's conversations, whether or not it was imported: listed without its body, so
+		// the rules and the cap are applied before a body is read
+		// shortcut: every conversation of the topic is still listed, 10 a call; list the newest threads first and
+		// stop at the cap once topics reach hundreds of threads
 		long step = System.nanoTime();
 		List<Map<String, Object>> all;
 		AtomicInteger unread = new AtomicInteger();
 		try {
-			all = BrainMessageSource.current().conversationMessages(user, context.byConversation().keySet(),
-					perConversation, unread);
+			all = source.conversationMessages(user, context.byConversation().keySet(), perConversation, unread);
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
@@ -554,7 +559,7 @@ final class BrainTopicJudge {
 		if (all == null) {
 			throw new IllegalStateException("The mail source cannot list a conversation");
 		}
-		times.put("fetch", ms(step));
+		times.put("list", ms(step));
 		stats.put("inTopic", all.size());
 		if (all.isEmpty() && unread.get() > 0) {
 			// nothing could be read, which is a failure of the mailbox and not an empty topic
@@ -564,50 +569,79 @@ final class BrainTopicJudge {
 			stats.put("conversationsUnread", unread.get());
 		}
 
-		// the owner's own date limits, then newest first up to the cap
+		// a conversation that came back at its limit may hold more than was listed
+		Map<String, Integer> listed = new HashMap<>();
+		for (Map<String, Object> message : all) {
+			listed.merge(String.valueOf(message.get("conversationId")), 1, Integer::sum);
+		}
+		boolean cut = listed.values().stream().anyMatch(count -> count >= perConversation);
+
+		// 2. the owner's own date limits and the rules gate, then newest first up to the cap
 		Timestamp after = CollaborationDbUtils.toTimestamp(from, "from");
 		Timestamp before = CollaborationDbUtils.toTimestamp(to, "to");
 		if (before != null && to.trim().length() == 10) {
 			before = Timestamp.valueOf(before.toLocalDateTime().plusDays(1));
 		}
-		List<Map<String, Object>> inRange = new ArrayList<>();
+		List<Map<String, Object>> allowed = new ArrayList<>();
+		Map<String, String> threadOf = new HashMap<>();
 		for (Map<String, Object> message : all) {
 			Timestamp at = BrainTopicBodySearch.timestamp(message.get("receivedDateTime"));
 			if ((after != null && (at == null || at.before(after))) || (before != null && (at == null || !at.before(before)))) {
 				continue;
 			}
-			inRange.add(message);
-		}
-		inRange.sort((a, b) -> String.valueOf(b.get("receivedDateTime")).compareTo(String.valueOf(a.get("receivedDateTime"))));
-		boolean capped = inRange.size() > maxMessages;
-		List<Map<String, Object>> candidates = capped ? inRange.subList(0, maxMessages) : inRange;
-
-		// 2. the rules gate, then the cleaned text
-		List<Passage> passages = new ArrayList<>();
-		for (Map<String, Object> message : candidates) {
 			String graphId = CollaborationDbUtils.asString(message.get("id"));
 			Row row = context.byGraphId().get(graphId);
 			String threadId = row != null ? row.threadId()
 					: context.byConversation().get(CollaborationDbUtils.asString(message.get("conversationId")));
 			if (graphId == null || threadId == null || !privacy.visible(threadId)
-					|| !context.gate().allows(threadId, row, BrainTopicBodySearch.address(message),
-							CollaborationDbUtils.asString(message.get("parentFolderId")))) {
+					|| !context.gate().allows(threadId, row, message)) {
 				continue;
 			}
-			Passage passage = passage(message, threadId, graphId, context, passages.size() + 1);
-			if (passage != null) {
-				passages.add(passage);
-			}
+			threadOf.put(graphId, threadId);
+			allowed.add(message);
 		}
+		allowed.sort((a, b) -> String.valueOf(b.get("receivedDateTime")).compareTo(String.valueOf(a.get("receivedDateTime"))));
+		boolean capped = allowed.size() > maxMessages;
+		List<Map<String, Object>> kept = capped ? allowed.subList(0, maxMessages) : allowed;
+
+		// 3. the bodies of what is left, cleaned, with the keyword rules
+		step = System.nanoTime();
+		AtomicInteger unfetched = new AtomicInteger();
+		List<Passage> passages = fetch(user, source, kept, threadOf, context, unfetched);
+		times.put("fetch", ms(step));
 		stats.put("passedRules", passages.size());
+		if (unfetched.get() > 0) {
+			stats.put("messagesUnread", unfetched.get());
+		}
+		if (!kept.isEmpty() && unfetched.get() == kept.size()) {
+			// no body could be read, which is a failure of the mailbox and not an empty topic
+			throw new IllegalStateException("The mailbox could not read the topic's messages");
+		}
+		// how far the reading reached: any of these makes the search partial, and the note says which
+		StringBuilder limits = new StringBuilder();
+		if (capped) {
+			limits.append("The topic has more than ").append(maxMessages)
+					.append(" messages, so only the newest were read. ");
+		}
+		if (unread.get() > 0) {
+			limits.append(unread.get()).append(" conversations of the topic could not be read from the mailbox. ");
+		}
+		if (cut) {
+			limits.append("A conversation has ").append(perConversation)
+					.append(" or more messages, so part of it may not have been read. ");
+		}
+		if (unfetched.get() > 0) {
+			limits.append(unfetched.get()).append(" messages could not be read from the mailbox. ");
+		}
 		if (passages.isEmpty()) {
 			times.put("total", ms(started));
 			stats.put("ms", times);
-			return new Result(Map.of(), BrainTopicBodySearch.SEARCHED,
-					"No message of this topic was left to read after the rules.", stats);
+			return new Result(Map.of(),
+					limits.length() > 0 ? BrainTopicBodySearch.PARTIAL : BrainTopicBodySearch.SEARCHED,
+					limits + "No message of this topic was left to read after the rules.", stats);
 		}
 
-		// 3. the classifier scores each message, several at a time
+		// 4. the classifier scores each message, several at a time
 		step = System.nanoTime();
 		double[] scores = new double[passages.size()];
 		List<Future<Double>> futures = new ArrayList<>();
@@ -645,7 +679,7 @@ final class BrainTopicJudge {
 		times.put("classify", ms(step));
 		stats.put("scored", passages.size() - failed);
 
-		// 4. the likeliest, best first; a probability under the floor is not a candidate at all
+		// 5. the likeliest, best first; a probability under the floor is not a candidate at all
 		List<Integer> order = new ArrayList<>();
 		for (int i = 0; i < scores.length; i++) {
 			if (scores[i] >= MIN_PROBABILITY) {
@@ -667,7 +701,7 @@ final class BrainTopicJudge {
 		stats.put("classifiedTop", likeliest);
 		stats.put("aboveFloor", order.size());
 
-		// 5. the text model quotes the words that answer, from the likeliest only
+		// 6. the text model quotes the words that answer, from the likeliest only
 		step = System.nanoTime();
 		Map<String, Hit> best = new LinkedHashMap<>();
 		Map<String, Integer> counts = new HashMap<>();
@@ -689,10 +723,11 @@ final class BrainTopicJudge {
 			for (int start = 0; start < chosen.size(); start += JUDGE_BATCH) {
 				List<Passage> batch = chosen.subList(start, Math.min(chosen.size(), start + JUDGE_BATCH));
 				batches.add(batch);
+				// the same text the classifier scored, so what made a message likely is there to be quoted
 				answers.add(CLASSIFY_POOL.submit(() -> judge.judge(asked, batch.stream().map(
 						p -> new Judge.Candidate(p.id(), p.from(),
 								p.at() == null ? "" : CollaborationDbUtils.toIso(p.at()), p.subject(),
-								excerpt(p.text(), terms)))
+								clip(p.text(), MAX_CLASSIFY_TEXT)))
 						.toList())));
 			}
 			Map<String, Double> bestScore = new HashMap<>();
@@ -764,21 +799,11 @@ final class BrainTopicJudge {
 				+ "kept={} unverified={} ms={}", all.size(), passages.size(), passages.size() - failed, order.size(),
 				judged ? top.size() : 0, relevant, hits.size(), unverified, times);
 
-		StringBuilder note = new StringBuilder();
-		String status = BrainTopicBodySearch.SEARCHED;
-		if (capped) {
-			status = BrainTopicBodySearch.PARTIAL;
-			note.append("The topic has more than ").append(maxMessages)
-					.append(" messages, so only the newest were read. ");
-		}
+		StringBuilder note = new StringBuilder(limits);
 		if (failed > 0) {
-			status = BrainTopicBodySearch.PARTIAL;
 			note.append(failed).append(" messages could not be scored. ");
 		}
-		if (unread.get() > 0) {
-			status = BrainTopicBodySearch.PARTIAL;
-			note.append(unread.get()).append(" conversations of the topic could not be read from the mailbox. ");
-		}
+		String status = note.length() > 0 ? BrainTopicBodySearch.PARTIAL : BrainTopicBodySearch.SEARCHED;
 		if (top.isEmpty()) {
 			note.append("The classifier found no message that answers the question among the ")
 					.append(passages.size()).append(" it read.");
@@ -847,8 +872,9 @@ final class BrainTopicJudge {
 
 	// ---- reading the candidates ----
 
+	// unread counts the messages the mailbox could not give, which is not the same as one that is gone
 	private static List<Passage> fetch(User user, BrainMessageSource source, List<Map<String, Object>> allowed,
-			Map<String, String> threadOf, Context context) {
+			Map<String, String> threadOf, Context context, AtomicInteger unread) {
 		List<Passage> out = new ArrayList<>();
 		if (allowed.isEmpty()) {
 			return out;
@@ -856,6 +882,9 @@ final class BrainTopicJudge {
 		List<String> ids = allowed.stream().map(m -> CollaborationDbUtils.asString(m.get("id"))).toList();
 		List<BrainMessageSource.Fetched> fetched = source.fetchAll(user, "email", null, ids);
 		for (int i = 0; i < fetched.size(); i++) {
+			if (fetched.get(i).error() != null) {
+				unread.incrementAndGet();
+			}
 			Map<String, Object> message = fetched.get(i).message();
 			String graphId = ids.get(i);
 			String threadId = threadOf.get(graphId);

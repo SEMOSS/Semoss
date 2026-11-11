@@ -58,10 +58,11 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 	private static final int SEARCH_PAGE = 50;
 	private static final int CONVERSATION_BATCH = 10;
 	private static final int CONVERSATION_PAGE = 25;
-	private static final String CONVERSATION_SELECT = "id,conversationId,subject,from,toRecipients,ccRecipients,"
-			+ "receivedDateTime,parentFolderId,body,uniqueBody";
+	// what the rules need of a message, and no body
+	private static final String CONVERSATION_SELECT = "id,conversationId,subject,from,receivedDateTime,parentFolderId,"
+			+ "isDraft";
 	private static final String SEARCH_SELECT = "id,conversationId,subject,from,receivedDateTime,parentFolderId,"
-			+ "bodyPreview";
+			+ "isDraft,bodyPreview";
 	private static final int RETRIES = 3;
 	private static final long MAX_WAIT_MS = 10000;
 	private static final String MAIL_SELECT = "subject,from,toRecipients,ccRecipients,body,uniqueBody,receivedDateTime,"
@@ -120,10 +121,11 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 		return List.of();
 	}
 
-	// Graph $batch of conversation listings, 10 a call: the messages of each conversation with their bodies, so a
-	// topic's mail can be read whole whether or not it was imported. A conversation is followed page by page until
-	// perConversation messages are read or it has no more. A throttled (429) or busy (5xx) listing is sent again;
-	// one that is refused, or still failing after the retries, counts in unread.
+	// Graph $batch of conversation listings, 10 a call: the messages of each conversation without their bodies, so a
+	// topic's mail can be listed whole whether or not it was imported, and the rules decide before a body is read.
+	// A conversation is followed page by page until perConversation messages are listed or it has no more. A
+	// throttled (429) or busy (5xx) listing is sent again; one that is refused, or still failing after the retries,
+	// counts in unread.
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Map<String, Object>> conversationMessages(User user, java.util.Collection<String> conversationIds,
@@ -146,7 +148,7 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 				Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
 						BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
 						CollaborationDbUtils.toJson(Map.of("requests", new ArrayList<>(pending.values()))),
-						ContentType.APPLICATION_JSON, null, null, null));
+						ContentType.APPLICATION_JSON, null, null, null, BrainGraphHeaderSource.TIMEOUT));
 				Map<String, Map<String, Object>> answered = new HashMap<>();
 				if (reply.get("responses") instanceof List<?> list) {
 					for (Object r : list) {

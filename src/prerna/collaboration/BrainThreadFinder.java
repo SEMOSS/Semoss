@@ -285,8 +285,7 @@ public final class BrainThreadFinder {
 		List<String> tokens = tokens(query);
 		String personNeedle = noPerson ? null : person.trim().toLowerCase(Locale.ROOT);
 		List<Map<String, Object>> hits = new ArrayList<>();
-		// the threads that passed every filter but the words, and whether one already holds all of them in what Brain
-		// stores: then the mailbox need not be asked
+		// the threads that passed every filter but the words: the ones whose message text is searched
 		List<ThreadRow> eligible = new ArrayList<>();
 		for (ThreadRow row : rows) {
 			if (!privacy.visible(row.id())) {
@@ -382,11 +381,12 @@ public final class BrainThreadFinder {
 		try {
 			result = BrainTopicJudge.search(user, ownerId, ownerType, ids(eligible), question, tokens, from, to,
 					privacy);
-		} catch (prerna.sablecc2.om.execptions.SemossPixelException e) {
-			throw e;
 		} catch (RuntimeException e) {
+			// a lapsed Microsoft sign-in too: what Brain stores is still returned, and the note says what is missing
 			status.put("status", BrainTopicBodySearch.UNAVAILABLE);
-			status.put("note", "Message text could not be searched right now: " + e.getMessage());
+			status.put("note", BrainSync.signInExpired(e)
+					? "Message text could not be searched: the owner has to sign in to Microsoft again."
+					: "Message text could not be searched right now: " + e.getMessage());
 			return status;
 		}
 		Map<String, Map<String, Object>> byId = new HashMap<>();

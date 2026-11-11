@@ -61,14 +61,6 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (ALL_TOPICS.equals(key)) {
-			return MCP_KEY_TYPE.BOOLEAN;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
 	public NounMetadata execute() {
 		User user = getUser();
 		String topicId = getString(TOPIC_ID);
@@ -129,6 +121,7 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 				.key(FROM, "Only threads with a message on or after this date (YYYY-MM-DD)")
 				.key(TO, "Only threads with a message on or before this date (YYYY-MM-DD)")
 				.key(LIMIT, "Best N threads, default 10, at most 25")
-				.key(ALL_TOPICS, "true to search all of the owner's threads even though this chat has topics");
+				.key(ALL_TOPICS, key -> key.type(Boolean.class).description(
+						"true to search all of the owner's threads even though this chat has topics"));
 	}
 }

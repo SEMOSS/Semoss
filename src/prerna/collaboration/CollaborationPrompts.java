@@ -137,7 +137,9 @@ public final class CollaborationPrompts {
 			searched. A result with textMatch shows the quoted passage, who wrote it, and a confidence: answer \
 			from a high one, say so when it is medium or low. One search is enough: when bodySearch says searched \
 			and nothing answers, tell the owner it was not found instead of searching again with other words. When \
-			it says partial, scanned_recent, or unavailable, say that message text was only partly searched. \
+			it says partial or scanned_recent, say that message text was only partly searched. When it says \
+			unavailable, message text was not searched: tell the owner so and what bodySearch.note says is \
+			needed, such as signing in to Microsoft again. \
 			RelatedThreads lists mail that belongs with a thread you already have.
 			- Give only dates and facts that a quoted passage states. When passages disagree or change over time, \
 			list each with who wrote it and when, and say which is newest. Never work a date out from other clues, \
