@@ -411,7 +411,12 @@ public final class WorkRoutineRoom {
 		}
 		String messageId = CollaborationDbUtils.deterministicId(owner.getValue0(), owner.getValue1(), roomId, "output");
 		String modelId = BrainTopicModel.engine(insight.getUser());
-		Map<String, Object> options = modelId == null ? Map.of() : Map.of("modelId", modelId);
+		Map<String, Object> options = new LinkedHashMap<>();
+		// tells the chat's assistant which routine it is about (WorkRoutinePreferences)
+		options.put(CollaborationUtils.ROOM_OPTION_ROUTINE_CHAT, kind.id());
+		if (modelId != null) {
+			options.put("modelId", modelId);
+		}
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {
 			String date = runStarted.length() >= 10 ? " - " + runStarted.substring(0, 10) : "";
 			RoomUtils.createRoomIfNotExists(roomId, insight, null, kind.jobName() + date, null, options, null,

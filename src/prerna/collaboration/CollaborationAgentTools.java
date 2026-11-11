@@ -97,6 +97,7 @@ import prerna.reactor.collaboration.WorkManageCustomRoutineReactor;
 import prerna.reactor.collaboration.WorkOpenSkillReactor;
 import prerna.reactor.collaboration.WorkPublishSkillReactor;
 import prerna.reactor.collaboration.WorkSaveCustomRoutineReactor;
+import prerna.reactor.collaboration.WorkSaveRoutinePreferencesReactor;
 import prerna.reactor.collaboration.WorkSaveWorkReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
 import prerna.reactor.collaboration.WorkShowItemReactor;
@@ -200,6 +201,9 @@ public final class CollaborationAgentTools {
 		REACTORS.put("CreateRoutine", WorkSaveCustomRoutineReactor.class);
 		REACTORS.put("ListRoutines", WorkListCustomRoutinesReactor.class);
 		REACTORS.put("ManageRoutine", WorkManageCustomRoutineReactor.class);
+		// the Preferences text of the inbox brief, agendas and event planning, which
+		// read it and no memories
+		REACTORS.put("SetRoutinePreferences", WorkSaveRoutinePreferencesReactor.class);
 		REACTORS.put("ListMySkills", WorkListMySkillsReactor.class);
 		REACTORS.put("OpenSkill", WorkOpenSkillReactor.class);
 		REACTORS.put("PublishSkill", WorkPublishSkillReactor.class);
@@ -233,7 +237,8 @@ public final class CollaborationAgentTools {
 	// the owner's routines and skills: at the root of the owner's chat or routine;
 	// a routine keeps only the auto ones
 	private static final Set<String> OWNER_TOOLS = Set.of("CreateRoutine", "ListRoutines", "ManageRoutine",
-			"ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant", "DeleteMySkill");
+			"SetRoutinePreferences", "ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant",
+			"DeleteMySkill");
 
 	// tools the model loads on demand (SearchTools/LoadTools): direct Microsoft 365
 	// mail after Brain's own search,
