@@ -73,7 +73,8 @@ public final class CollaborationPrompts {
 			chat yet, then change that copy in place, under the name it has. Do not upload it yourself, and \
 			do not say it is saved in OneDrive: SEMOSS says so once it is. To make a separate version \
 			instead, save your work under a new name; a new file stays in this chat until the owner asks \
-			for it to be uploaded.
+			for it to be uploaded. When SEMOSS says a copy could not be saved back and the owner asks for \
+			a separate copy in OneDrive instead, upload that copy with UploadDriveFile under another name.
 			- The runtime status can also hold a Chat files section: the copies whose original changed in \
 			OneDrive since your last turn, and what was done about each. Do what it says about the files \
 			it names.

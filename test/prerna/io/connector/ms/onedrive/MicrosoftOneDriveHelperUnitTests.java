@@ -316,6 +316,52 @@ class MicrosoftOneDriveHelperUnitTests {
 	}
 
 	@Test
+	void aLargeCopyOneDriveRefusesHasItsUploadSessionCancelledAndTheRefusalIsWhatIsThrown() throws Exception {
+		version = "c1";
+		download();
+		try (RandomAccessFile deck = new RandomAccessFile(copy(), "rw")) {
+			deck.setLength(5L * 1024L * 1024L);
+		}
+		http.when(() -> HttpHelperUtility.postRequestStringBody(anyString(), anyMap(), anyString(), any(), isNull(),
+				isNull(), isNull())).thenReturn("{\"uploadUrl\":\"https://upload.example/session\"}");
+		// the deck is open in PowerPoint
+		http.when(() -> HttpHelperUtility.putRequestBytesBody(eq("https://upload.example/session"), anyMap(), any(),
+				any(), isNull(), isNull(), isNull())).thenThrow(
+						new IllegalArgumentException("PUT request to https://upload.example/session returned HTTP 423."));
+		// and a cancel that fails too does not hide why the upload did
+		http.when(() -> HttpHelperUtility.deleteRequestStringBody(anyString(), isNull(), isNull(), isNull(), isNull()))
+				.thenThrow(new IllegalArgumentException("DELETE request returned HTTP 500."));
+
+		IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+				() -> MicrosoftOneDriveHelper.saveBack("token", copy(), false));
+		// the status is still there to be read, and the url, which signs the request, is not
+		assertEquals("PUT request to the upload session returned HTTP 423.", refused.getMessage());
+		// left open, the session has OneDrive refuse every later save of the deck with a 409
+		http.verify(() -> HttpHelperUtility.deleteRequestStringBody(eq("https://upload.example/session"), isNull(),
+				isNull(), isNull(), isNull()));
+		// the copy still waits to go back
+		assertEquals("c1", MicrosoftOneDriveSources.read(copy()).version());
+	}
+
+	@Test
+	void aFailedFetchOfALinkThatSignsItselfDoesNotQuoteTheLink() {
+		String link = "https://files.example/download?tempauth=secret";
+		http.when(() -> HttpHelperUtility.getRequestFileDownload(eq(link), any(), isNull(), isNull(), isNull(),
+				anyString(), anyString()))
+				.thenThrow(new IllegalArgumentException("GET request to " + link + " returned HTTP 503"));
+		File deck = folder.resolve("Deck.pptx").toFile();
+
+		// fetched with no headers, the link is all it takes to read the file
+		assertEquals("GET request to the download link returned HTTP 503",
+				assertThrows(IllegalArgumentException.class,
+						() -> MicrosoftOneDriveHelper.download(link, null, deck, "Deck.pptx")).getMessage());
+		// fetched with the owner's token, it is an address like any other
+		assertEquals("GET request to " + link + " returned HTTP 503",
+				assertThrows(IllegalArgumentException.class, () -> MicrosoftOneDriveHelper.download(link,
+						Map.of("Authorization", "Bearer token"), deck, "Deck.pptx")).getMessage());
+	}
+
+	@Test
 	void aCopyIsNotSavedOverAnOriginalThatChangedUntilTheOwnerWhoWasToldAsksAgain() throws Exception {
 		version = "c1";
 		download();
