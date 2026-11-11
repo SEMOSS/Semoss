@@ -77,9 +77,4 @@ public class ProductHuntTokenFiller extends AbstractOAuthTokenFiller {
 		return false;
 	}
 
-	@Override
-	protected boolean includeState() {
-		return false;
-	}
-
 }
