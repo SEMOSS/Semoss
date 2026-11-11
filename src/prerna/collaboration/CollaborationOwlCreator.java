@@ -284,6 +284,18 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// outlook when onboarding found it from the folder, you when the owner linked it
 				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// OneDrive and Teams files the owner linked to a topic, by the ids Microsoft 365 keeps for them
+		addTable("BRAIN_TOPIC_FILE", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("TOPIC_ID", VARCHAR_50),
+				Pair.with("DRIVE_ID", VARCHAR_255),
+				Pair.with("ITEM_ID", VARCHAR_255),
+				// as Microsoft 365 had them when the file was linked
+				Pair.with("NAME", VARCHAR_255),
+				Pair.with("WEB_URL", CLOB_DATATYPE_NAME),
+				// onedrive or teams: the app the owner picked the file in
+				Pair.with("SOURCE", VARCHAR_20),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// mail Collaboration sent the owner (routine results, notices), by the key import gives it, so import skips it
 		addTable("BRAIN_OWN_MAIL", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,

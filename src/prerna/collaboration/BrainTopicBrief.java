@@ -178,6 +178,7 @@ public final class BrainTopicBrief {
 		} catch (RuntimeException e) {
 			classLogger.warn("Could not count the threads of topic {} for the brief", topicId, e);
 		}
+		out.append(BrainTopicFiles.brief(ownerId, ownerType, topicId));
 		// the topic's work items, each with the owner's next step or who they wait on
 		List<Map<String, Object>> items = new ArrayList<>();
 		for (Object o : (List<?>) WorkTaskUtils.listMyWork(user, Map.of("topicId", topicId)).get("workItems")) {
