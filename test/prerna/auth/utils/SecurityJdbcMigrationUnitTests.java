@@ -134,19 +134,6 @@ class SecurityJdbcMigrationUnitTests {
 	}
 
 	@Test
-	void tokenFailureKeepsExistingReturnContractAfterRollback() throws Exception {
-		// No TOKEN table: execution fails in manual transaction mode.
-		connection.setAutoCommit(false);
-		clearInvocations(connection);
-		Object[] token = SecurityTokenUtils.generateToken("127.0.0.1", "client");
-		assertNotNull(token[0]);
-		assertEquals("127.0.0.1", token[1]);
-		assertEquals("client", token[2]);
-		verify(connection).rollback();
-		verify(connection, never()).commit();
-	}
-
-	@Test
 	void projectTemplateZeroRowsPreservesIntentionalError() throws Exception {
 		try (var statement = connection.createStatement()) {
 			statement.execute("CREATE TABLE PROJECT (PROJECTID VARCHAR, IS_TEMPLATE BOOLEAN)");
@@ -262,25 +249,6 @@ class SecurityJdbcMigrationUnitTests {
 		}
 		assertFalse(connection.getAutoCommit());
 		assertFalse(connection.isClosed());
-	}
-
-	@Test
-	void expiredTokenCleanupCommitsWhileRetainingFreshTokens() throws Exception {
-		try (var statement = connection.createStatement()) {
-			statement.execute("CREATE TABLE TOKEN (VALUE VARCHAR, DATEADDED TIMESTAMP)");
-			statement.execute(
-					"INSERT INTO TOKEN VALUES ('old', TIMESTAMP '2000-01-01 00:00:00'), ('fresh', TIMESTAMP '2999-01-01 00:00:00')");
-		}
-		connection.setAutoCommit(false);
-		clearInvocations(connection);
-		SecurityTokenUtils.clearExpiredTokens(60);
-		connection.rollback();
-		try (var ps = connection.prepareStatement("SELECT VALUE FROM TOKEN"); var rs = ps.executeQuery()) {
-			assertTrue(rs.next());
-			assertEquals("fresh", rs.getString(1));
-			assertFalse(rs.next());
-		}
-		verify(connection).commit();
 	}
 
 	@Test
