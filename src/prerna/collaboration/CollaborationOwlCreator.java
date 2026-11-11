@@ -160,7 +160,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// minutes between scheduled syncs of the owner's mail while the app is closed (BrainSync); 0 is off,
 				// null the default 15
 				Pair.with("SYNC_EVERY_MINUTES", INTEGER_DATATYPE_NAME),
-				// when the owner finished setup (Open Work) or skipped the rest of it; null sends them back to it
+				// when the owner finished setup (Open Work) or skipped the rest of it; null sends them back to it,
+				// unless their import is from before this column (BrainConnection)
 				Pair.with("SETUP_DONE_AT", TIMESTAMP_DATATYPE_NAME),
 				// the first Work build over the imported mail: its state and the threads it has left (WorkPipeline)
 				Pair.with("WORK_BUILD_JSON", CLOB_DATATYPE_NAME),
@@ -226,7 +227,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				OWNER_ID, OWNER_TYPE,
 				Pair.with("TOPIC_ID", VARCHAR_50),
 				Pair.with("NAME", VARCHAR_255),
-				Pair.with("SHORT_NAME", VARCHAR_50),
+				// defaults to the name, so as wide as NAME
+				Pair.with("SHORT_NAME", VARCHAR_255),
 				Pair.with("KIND", VARCHAR_20),
 				Pair.with("ACCOUNT_ID", VARCHAR_50),
 				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),

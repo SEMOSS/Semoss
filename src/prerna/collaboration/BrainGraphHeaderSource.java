@@ -41,6 +41,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -70,6 +71,9 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	private static final int CHAT_PAGE = 50;
 	// the subject of a chat with no topic of its own
 	static final String CHAT_PREFIX = "Chat: ";
+	// a call Graph leaves unanswered this long fails, so the job it is part of ends with Retry rather than waiting
+	// for good; BrainGraphMessageSource uses it too
+	static final Timeout TIMEOUT = Timeout.ofMinutes(2);
 	private static final String USER_SELECT = "id,displayName,mail,userPrincipalName,jobTitle,department,companyName,"
 			+ "accountEnabled,userType";
 	private static final Logger classLogger = LogManager.getLogger(BrainGraphHeaderSource.class);
@@ -137,7 +141,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
 				BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
 				CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null, null,
-				null));
+				null, TIMEOUT));
 		for (Object r : reply.get("responses") instanceof List<?> list ? list : List.of()) {
 			if (r instanceof Map<?, ?> response && response.get("body") instanceof Map<?, ?> body
 					&& body.get("id") instanceof String id && response.get("status") instanceof Number status
@@ -442,7 +446,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			// $search on users needs eventual consistency
 			headers.put("ConsistencyLevel", "eventual");
 			for (Map<String, Object> row : values(
-					CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(url, headers, null, null, null)))) {
+					CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(url, headers, null, null, null, TIMEOUT)))) {
 				String email = address(row);
 				// admin and service accounts have no mailbox
 				if (email == null || row.get("mail") == null || Boolean.FALSE.equals(row.get("accountEnabled"))) {
@@ -546,7 +550,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 					Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
 							BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
 							CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON,
-							null, null, null));
+							null, null, null, TIMEOUT));
 					for (Object r : reply.get("responses") instanceof List<?> list ? list : List.of()) {
 						Map<String, Object> response = (Map<String, Object>) r;
 						int status = ((Number) response.getOrDefault("status", 0)).intValue();
@@ -604,8 +608,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	}
 
 	private static Map<String, Object> get(String token, String url) throws Exception {
-		return CollaborationDbUtils.parseMap(
-				HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
+		return CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(url,
+				MicrosoftLoginUtils.getBearerHeader(token), null, null, null, TIMEOUT));
 	}
 
 	private static String encode(String value) {

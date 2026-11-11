@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -126,6 +127,14 @@ public class MicrosoftOneDriveHelper {
 	private static final String UPLOAD_URL = "uploadUrl";
 	private static final String DOWNLOAD_URL = "@microsoft.graph.downloadUrl";
 	private static final String CONFLICT_BEHAVIOR_PARAM = "@microsoft.graph.conflictBehavior";
+	private static final String LAST_MODIFIED = "lastModifiedDateTime";
+	private static final String LAST_MODIFIED_BY = "lastModifiedBy";
+
+	/** Key of the content version in what {@link #fileState} returns. */
+	public static final String VERSION = "version";
+
+	/** How long {@link #fileState} waits on Graph. */
+	private static final Timeout STATE_TIMEOUT = Timeout.ofSeconds(5);
 
 	private static final String CONFLICT_FAIL = "fail";
 	private static final String CONFLICT_RENAME = "rename";
@@ -468,6 +477,40 @@ public class MicrosoftOneDriveHelper {
 	}
 
 	/**
+	 * Reads what OneDrive holds for a file now, to compare with a copy taken
+	 * earlier.
+	 *
+	 * @param accessToken Microsoft Graph access token for the user
+	 * @param driveId     the drive holding the file; the signed in user's own
+	 *                    OneDrive is read when blank
+	 * @param itemId      the id of the file, or of a folder the path starts from
+	 * @param path        the path of the file, or null when the item id names it
+	 * @return the file as the listings describe it, with the {@link #VERSION} of
+	 *         its contents, or null when it is not there
+	 * @throws Exception if the read fails for any other reason
+	 */
+	public static Map<String, Object> fileState(String accessToken, String driveId, String itemId, String path)
+			throws Exception {
+		Map<String, Object> item;
+		try {
+			// asked before a chat's turn starts, so it never waits long on a silent Graph
+			item = readMap(HttpHelperUtility.getRequest(itemUrl(driveId, itemId, path), headers(accessToken), null,
+					null, null, STATE_TIMEOUT));
+		} catch (IllegalArgumentException e) {
+			if (e.getMessage() != null && e.getMessage().contains(" returned HTTP 404")) {
+				return null;
+			}
+			throw e;
+		}
+		if (item == null) {
+			return null;
+		}
+		Map<String, Object> state = new LinkedHashMap<>(MicrosoftOneDriveItemMapper.toDriveItem(item, driveId));
+		putIfPresent(state, VERSION, versionOf(item));
+		return state;
+	}
+
+	/**
 	 * Reads the item a sharing link points at.
 	 *
 	 * <p>
@@ -509,6 +552,17 @@ public class MicrosoftOneDriveHelper {
 	 * lives in.
 	 * </p>
 	 *
+	 * <p>
+	 * Where the copy came from is recorded beside it (see
+	 * {@link MicrosoftOneDriveSources}). A copy of the same file that is already
+	 * in the destination, and that nobody changed there, is the one brought up to
+	 * date: it is fetched again only when OneDrive holds a newer version, and no
+	 * second copy is written under another name. A copy that was changed there is
+	 * never written over unless the caller names it: a download that names no file
+	 * lands beside it, and one that names it replaces it, which is how a caller
+	 * takes OneDrive's version over the changes made there.
+	 * </p>
+	 *
 	 * @param accessToken Microsoft Graph access token for the user
 	 * @param driveId     optional drive holding the file
 	 * @param itemId      optional id of the file
@@ -521,7 +575,8 @@ public class MicrosoftOneDriveHelper {
 	 *                    carries in the drive is used when blank
 	 * @return map carrying the item {@code id}, its {@code name}, the
 	 *         {@code driveId} it came from, the local {@code filePath} written, the
-	 *         {@code size} in bytes and {@code success}
+	 *         {@code size} in bytes, when and by whom the file was last changed in
+	 *         the drive, and {@code success}
 	 * @throws IllegalArgumentException if required inputs are missing, the item is
 	 *                                  a folder, or the file is over
 	 *                                  {@link #MAX_DOWNLOAD_BYTES}
@@ -567,8 +622,28 @@ public class MicrosoftOneDriveHelper {
 			}
 
 			checkDownloadSize(item.get(SIZE), itemName);
-			File file = target(destination, fileName, itemName);
-			long size = downloadBytes(accessToken, item, resolvedDriveId, resolvedItemId, file, itemName);
+			Map<String, Object> described = MicrosoftOneDriveItemMapper.toDriveItem(item, resolvedDriveId);
+			String version = versionOf(item);
+			File asked = target(destination, fileName, itemName);
+			MicrosoftOneDriveSources.Source there = asked.isFile() ? MicrosoftOneDriveSources.read(asked) : null;
+			boolean isCopy = there != null && there.itemId().equals(resolvedItemId);
+			boolean isNamed = !ValueUtils.isBlank(fileName);
+			// a copy of this file that is already here, untouched, is the one to bring up
+			// to date: downloading again must not leave a second copy beside the first.
+			// A caller who names a copy of it has chosen that file, whatever state it is in
+			Map.Entry<File, MicrosoftOneDriveSources.Source> held = version == null
+					|| ValueUtils.isBlank(resolvedItemId) || (isCopy && isNamed) ? null
+							: MicrosoftOneDriveSources.untouchedCopy(new File(destination), resolvedDriveId,
+									resolvedItemId);
+			File file = held != null ? held.getKey() : asked;
+			if (held == null && isCopy && !isNamed && !MicrosoftOneDriveSources.isUntouched(asked, there)) {
+				// nobody named this file to be written over, and it holds changes OneDrive
+				// does not have: the download lands beside it
+				file = beside(asked);
+			}
+			long size = held != null && version.equals(held.getValue().version()) ? file.length()
+					: downloadBytes(accessToken, item, resolvedDriveId, resolvedItemId, file, itemName);
+			remember(file, resolvedDriveId, resolvedItemId, version, described);
 
 			Map<String, Object> result = new LinkedHashMap<>();
 			result.put(ID, resolvedItemId);
@@ -576,6 +651,8 @@ public class MicrosoftOneDriveHelper {
 			putIfPresent(result, DRIVE_ID, resolvedDriveId);
 			result.put(FILE_PATH, Path.of(destination).relativize(file.toPath()).toString());
 			result.put(SIZE, (int) size);
+			putIfPresent(result, LAST_MODIFIED, described.get(LAST_MODIFIED));
+			putIfPresent(result, LAST_MODIFIED_BY, described.get(LAST_MODIFIED_BY));
 			result.put(SUCCESS, true);
 			return result;
 		} catch (Exception e) {
@@ -593,6 +670,15 @@ public class MicrosoftOneDriveHelper {
 	 * through a resumable Graph upload session. The folder has to exist already,
 	 * since Graph answers a path addressed upload into a missing folder with a 404
 	 * rather than creating it.
+	 * </p>
+	 *
+	 * <p>
+	 * An upload that replaces is the one that can lose somebody's work, so when
+	 * the local file is a copy a download recorded, and the upload is aimed at the
+	 * file it was copied from, it goes through {@link #saveBack} instead, as a save
+	 * the owner asked for. Aimed nowhere in particular (no drive, folder or other
+	 * name) it goes back to that file too, wherever it lives, rather than to the
+	 * drive root.
 	 * </p>
 	 *
 	 * @param accessToken      Microsoft Graph access token for the user
@@ -616,13 +702,7 @@ public class MicrosoftOneDriveHelper {
 		try {
 			requireValue(fileName, "A file name is required to upload to OneDrive.");
 			requireValue(filePath, "A file path is required to upload to OneDrive.");
-			if (fileName.indexOf('/') >= 0 || fileName.indexOf('\\') >= 0) {
-				// the name is one segment of the destination path, so a separator in it
-				// would silently move the file somewhere else
-				throw new IllegalArgumentException(
-						"A file name cannot contain a path separator. Name the folder in the path instead: "
-								+ fileName);
-			}
+			requireNoPathSeparator(fileName);
 
 			File file = new File(filePath);
 			if (!file.exists() || !file.isFile()) {
@@ -630,6 +710,17 @@ public class MicrosoftOneDriveHelper {
 			}
 
 			String conflict = normalizeConflictBehavior(conflictBehavior);
+			// a copy of a OneDrive file sent to replace the file it was copied from goes
+			// back with the check that nobody changed the original in the meantime
+			if (CONFLICT_REPLACE.equals(conflict)
+					&& isOriginal(accessToken, file, driveId, itemId, folderPath, fileName.trim())) {
+				try {
+					return saveBack(accessToken, file, true);
+				} catch (SaveBackRefused e) {
+					throw new IllegalArgumentException(e.getMessage() + " Nothing was uploaded. Tell the owner; "
+							+ "if they still want this file there, upload it again the same way.", e);
+				}
+			}
 			String targetPath = joinPath(folderPath, fileName.trim());
 
 			String response;
@@ -654,6 +745,117 @@ public class MicrosoftOneDriveHelper {
 		} catch (Exception e) {
 			classLogger.error("Failed to upload '{}' to drive '{}' item '{}' path '{}' as '{}'.", filePath, driveId,
 					itemId, folderPath, fileName, e);
+			throw e;
+		}
+	}
+
+	/**
+	 * Why a copy did not go back over its original: the original changed, or is
+	 * gone, or the file is not a copy at all. The message says which, in words fit
+	 * for the owner.
+	 */
+	public static final class SaveBackRefused extends IllegalArgumentException {
+
+		private static final long serialVersionUID = 1L;
+
+		private final boolean alreadyTold;
+
+		SaveBackRefused(String message, boolean alreadyTold) {
+			super(message);
+			this.alreadyTold = alreadyTold;
+		}
+
+		/** Whether an earlier refusal already said this about the same change. */
+		public boolean alreadyTold() {
+			return alreadyTold;
+		}
+	}
+
+	/**
+	 * Puts a copy of a OneDrive file back over the file it was copied from.
+	 *
+	 * <p>
+	 * The copy has to be one a download recorded (see
+	 * {@link MicrosoftOneDriveSources}), and the original has to still hold the
+	 * version the copy was taken from. When somebody changed the original in the
+	 * meantime nothing is uploaded, since writing the copy over it would discard
+	 * their change without anybody having seen it. That refusal is recorded, and
+	 * an owner who was told of the change and asks again gets their way: the
+	 * second informed save writes the copy over it.
+	 * </p>
+	 *
+	 * <p>
+	 * An original that is gone has nothing to be saved over, so the copy stops
+	 * being tracked and is an ordinary file from then on.
+	 * </p>
+	 *
+	 * @param accessToken Microsoft Graph access token for the user
+	 * @param copy        the local copy to upload
+	 * @param informed    whether the owner asked for this save themselves, which
+	 *                    is what lets it write over a change they were already
+	 *                    told about; a save nobody asked for never does
+	 * @return the file as OneDrive now holds it
+	 * @throws SaveBackRefused if the file is not a recorded copy, or its original
+	 *                         is gone or has changed
+	 * @throws Exception       if the upload fails
+	 */
+	public static Map<String, Object> saveBack(String accessToken, File copy, boolean informed) throws Exception {
+		try {
+			MicrosoftOneDriveSources.Source source = MicrosoftOneDriveSources.read(copy);
+			if (source == null) {
+				throw new SaveBackRefused(
+						copy.getName() + " is not a copy of a OneDrive file, so there is no original to save it over.",
+						false);
+			}
+			Map<String, Object> current = fileState(accessToken, source.driveId(), source.itemId(), null);
+			if (current == null) {
+				MicrosoftOneDriveSources.record(copy, source.driveId(), source.itemId(), null, null, null);
+				throw new SaveBackRefused(
+						"The original of " + copy.getName() + " is no longer in OneDrive, so it was not saved back.",
+						false);
+			}
+			String version = ValueUtils.toNonBlankString(current.get(VERSION));
+			if (!source.version().equals(version)) {
+				boolean told = version != null && version.equals(source.told());
+				if (!informed || !told) {
+					if (!told) {
+						MicrosoftOneDriveSources.tell(copy, source, version);
+					}
+					throw new SaveBackRefused(copy.getName() + " was changed in OneDrive after this copy was taken"
+							+ changedBy(current) + ", so it was not saved over.", told);
+				}
+			}
+
+			// shortcut: the version is checked just before the upload, not together with
+			// it; send if-match on an upload session when two writers inside the same
+			// second have to be told apart
+			String response;
+			if (copy.length() <= SIMPLE_UPLOAD_MAX_BYTES) {
+				response = HttpHelperUtility.putRequestBytesBody(
+						itemUrl(source.driveId(), source.itemId(), null) + "/content",
+						MicrosoftLoginUtils.getAuthorizationHeader(accessToken), Files.readAllBytes(copy.toPath()),
+						ContentType.APPLICATION_OCTET_STREAM, null, null, null);
+			} else {
+				response = sessionUpload(accessToken, source.driveId(), source.itemId(), null, CONFLICT_REPLACE, null,
+						copy);
+			}
+			Map<String, Object> uploaded = readMap(response);
+			if (uploaded == null) {
+				throw new IllegalStateException(
+						"Microsoft Graph returned no item for the OneDrive upload of: " + copy.getName());
+			}
+			Map<String, Object> result = new LinkedHashMap<>(
+					MicrosoftOneDriveItemMapper.toDriveItem(uploaded, source.driveId()));
+			// the copy now is the original, so the next change on either side is told
+			// apart from this one
+			remember(copy, source.driveId(), source.itemId(), versionOf(uploaded), result);
+			result.put(SUCCESS, true);
+			return result;
+		} catch (SaveBackRefused e) {
+			classLogger.info("Did not save '{}' back over its OneDrive original: {}", copy.getName(), e.getMessage());
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to save '{}' back over its OneDrive original.", copy, e);
 			throw e;
 		}
 	}
@@ -699,7 +901,52 @@ public class MicrosoftOneDriveHelper {
 		} catch (Exception e) {
 			classLogger.error("Failed to create the folder '{}' in drive '{}' item '{}' path '{}'.", folderName,
 					driveId, itemId, parentPath, e);
-			throw e;
+			throw nameTaken(e, folderName);
+		}
+	}
+
+	/**
+	 * Creates an empty file.
+	 *
+	 * <p>
+	 * A name that is already taken fails. It is never renamed or replaced, since
+	 * replacing a file with an empty one discards what is in it. The folder has to
+	 * exist already, as it does for an upload.
+	 * </p>
+	 *
+	 * @param accessToken Microsoft Graph access token for the user
+	 * @param driveId     optional drive to create in; the signed in user's own
+	 *                    OneDrive is used when blank
+	 * @param itemId      optional id of the folder to create inside; the drive root
+	 *                    is used when blank
+	 * @param parentPath  optional path of the folder to create inside
+	 * @param fileName    name of the file to create
+	 * @return the file as Graph created it
+	 * @throws IllegalArgumentException if the name is missing or holds a path
+	 *                                  separator
+	 * @throws Exception                if the create fails
+	 */
+	public static Map<String, Object> createFile(String accessToken, String driveId, String itemId, String parentPath,
+			String fileName) throws Exception {
+		try {
+			requireValue(fileName, "A file name is required to create a OneDrive file.");
+			requireNoPathSeparator(fileName);
+
+			// an upload of no bytes is an empty file
+			String url = itemUrl(driveId, itemId, joinPath(parentPath, fileName.trim())) + "/content?"
+					+ CONFLICT_BEHAVIOR_PARAM + "=" + CONFLICT_FAIL;
+			String response = HttpHelperUtility.putRequestBytesBody(url,
+					MicrosoftLoginUtils.getAuthorizationHeader(accessToken), new byte[0],
+					ContentType.APPLICATION_OCTET_STREAM, null, null, null);
+			Map<String, Object> created = readMap(response);
+			if (created == null) {
+				throw new IllegalStateException("Microsoft Graph returned no file for the create request: " + fileName);
+			}
+			return MicrosoftOneDriveItemMapper.toDriveItem(created, driveId);
+		} catch (Exception e) {
+			classLogger.error("Failed to create the file '{}' in drive '{}' item '{}' path '{}'.", fileName, driveId,
+					itemId, parentPath, e);
+			throw nameTaken(e, fileName);
 		}
 	}
 
@@ -901,7 +1148,8 @@ public class MicrosoftOneDriveHelper {
 	 * </p>
 	 *
 	 * @param url     what to fetch
-	 * @param headers the request headers, or null
+	 * @param headers the request headers, or null for a url that is pre-authenticated,
+	 *                which a failure then does not quote
 	 * @param file    where the bytes go, in a folder that exists
 	 * @param name    what a refusal calls the file
 	 * @return how many bytes were written; the file is left as it was when there
@@ -922,6 +1170,8 @@ public class MicrosoftOneDriveHelper {
 				Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
 			}
 			return size;
+		} catch (Exception e) {
+			throw headers == null ? withoutUrl(e, url, "the download link") : e;
 		} finally {
 			Files.deleteIfExists(temp.toPath());
 		}
@@ -991,14 +1241,19 @@ public class MicrosoftOneDriveHelper {
 	/**
 	 * Streams the file through a resumable upload session. Used for payloads above
 	 * 4MB, where a single request is not supported.
+	 *
+	 * @param fileName the name to give the file in the drive, or null when the item
+	 *                 id names the file being replaced, which keeps its name
 	 */
 	private static String sessionUpload(String accessToken, String driveId, String itemId, String targetPath,
 			String conflictBehavior, String fileName, File file) throws Exception {
-		final String CONTENT_RANGE = "Content-Range";
-
 		Map<String, Object> item = new LinkedHashMap<>();
 		item.put(CONFLICT_BEHAVIOR_PARAM, conflictBehavior);
-		item.put(NAME, fileName);
+		if (fileName == null) {
+			fileName = file.getName();
+		} else {
+			item.put(NAME, fileName);
+		}
 		Map<String, Object> body = new LinkedHashMap<>();
 		body.put("item", item);
 
@@ -1009,7 +1264,25 @@ public class MicrosoftOneDriveHelper {
 		if (sessionJson == null || sessionJson.get(UPLOAD_URL) == null) {
 			throw new IllegalStateException("Microsoft Graph did not return an upload session for file: " + fileName);
 		}
-		String uploadUrl = sessionJson.get(UPLOAD_URL).toString();
+		return sendToUploadSession(sessionJson.get(UPLOAD_URL).toString(), file, fileName);
+	}
+
+	/**
+	 * Sends a file to an upload session in pieces, for whichever helper opened the
+	 * session. A session whose upload fails is cancelled: while one is open OneDrive
+	 * answers every other upload of the same file with a 409, "currently being
+	 * uploaded", for a quarter of an hour or so, which is how one refusal of a file
+	 * open in Office became many. The failure does not quote the session's url,
+	 * which is what signs its requests.
+	 *
+	 * @param uploadUrl the url the session answered with
+	 * @param file      the file to send
+	 * @param fileName  what a failure calls the file
+	 * @return what the last piece was answered with, which is the uploaded item
+	 * @throws Exception if a piece is refused or the file cannot be read
+	 */
+	public static String sendToUploadSession(String uploadUrl, File file, String fileName) throws Exception {
+		final String CONTENT_RANGE = "Content-Range";
 
 		// the upload session url is pre-authenticated, so the bearer header is omitted
 		long totalSize = file.length();
@@ -1029,11 +1302,43 @@ public class MicrosoftOneDriveHelper {
 				}
 				offset += bytesRead;
 			}
+			if (offset != totalSize) {
+				throw new IllegalStateException(
+						"Uploaded " + offset + " of " + totalSize + " bytes for file: " + fileName);
+			}
+			return lastResponse;
+		} catch (Exception e) {
+			try {
+				HttpHelperUtility.deleteRequestStringBody(uploadUrl, null, null, null, null);
+			} catch (Exception notCancelled) {
+				// the url is what signs the request, so the failure, which quotes it, is not logged
+				classLogger.warn("Could not cancel the upload session of {}; Graph refuses another upload of that "
+						+ "file until the session expires", fileName);
+			}
+			throw withoutUrl(e, uploadUrl, "the upload session");
 		}
-		if (offset != totalSize) {
-			throw new IllegalStateException("Uploaded " + offset + " of " + totalSize + " bytes for file: " + fileName);
+	}
+
+	/**
+	 * The failure of a request to a pre-authenticated url, with the url taken out.
+	 * Such a url signs the request by itself, and a failure is logged on its way up
+	 * and handed to the model as the tool's error, so neither may quote it.
+	 *
+	 * @param e    the failure
+	 * @param url  the url the request went to
+	 * @param what what to call the url instead, such as "the upload session"
+	 * @return the failure itself when it does not quote the url, or one that says
+	 *         the same without it
+	 */
+	// shortcut: HttpHelperUtility logs the url itself when the connection drops, before it throws;
+	// have it leave query strings out of its own lines once that has to be closed too
+	private static Exception withoutUrl(Exception e, String url, String what) {
+		String why = e.getMessage();
+		if (why == null || !why.contains(url)) {
+			return e;
 		}
-		return lastResponse;
+		// without the failure as its cause, which says the same and is printed with it
+		return new IllegalArgumentException(why.replace(url, what));
 	}
 
 	/**
@@ -1057,6 +1362,97 @@ public class MicrosoftOneDriveHelper {
 	 */
 	private static Map<String, Object> readItem(String accessToken, String url) throws Exception {
 		return readMap(HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null));
+	}
+
+	/**
+	 * A name no file in the folder has yet, numbered the way file managers do:
+	 * {@code report.docx}, then {@code report (2).docx}.
+	 */
+	private static File beside(File file) {
+		String name = file.getName();
+		int dot = name.lastIndexOf('.');
+		String base = dot > 0 ? name.substring(0, dot) : name;
+		String extension = dot > 0 ? name.substring(dot) : "";
+		File free = file;
+		for (int copy = 2; free.exists(); copy++) {
+			free = new File(file.getParentFile(), base + " (" + copy + ")" + extension);
+		}
+		return free;
+	}
+
+	/**
+	 * Records where a copy came from. A copy that cannot be recorded is only left
+	 * untracked: the download or upload it belongs to has already happened, and is
+	 * not failed for its bookkeeping.
+	 *
+	 * @param described the file as the listings describe it, for when and by whom
+	 *                  it was last changed
+	 */
+	private static void remember(File copy, String driveId, String itemId, String version,
+			Map<String, Object> described) {
+		try {
+			MicrosoftOneDriveSources.record(copy, driveId, itemId, version,
+					ValueUtils.toNonBlankString(described.get(LAST_MODIFIED)),
+					ValueUtils.toNonBlankString(described.get(LAST_MODIFIED_BY)));
+		} catch (Exception e) {
+			classLogger.warn("Could not record where {} came from; it will not be kept current with OneDrive",
+					copy.getName(), e);
+		}
+	}
+
+	/**
+	 * Whether an upload is aimed at the file its local file was copied from.
+	 *
+	 * @param copy       the local file being uploaded
+	 * @param driveId    the drive the upload names, or null
+	 * @param itemId     the folder the upload names, or null
+	 * @param folderPath the folder path the upload names, or null
+	 * @param fileName   the name the upload gives the file
+	 * @return true when the local file is a recorded copy and the upload names
+	 *         its original, or names nowhere else to go
+	 */
+	private static boolean isOriginal(String accessToken, File copy, String driveId, String itemId,
+			String folderPath, String fileName) throws Exception {
+		MicrosoftOneDriveSources.Source source = MicrosoftOneDriveSources.read(copy);
+		if (source == null) {
+			return false;
+		}
+		if (ValueUtils.isBlank(driveId) && ValueUtils.isBlank(itemId) && ValueUtils.isBlank(folderPath)
+				&& fileName.equals(copy.getName())) {
+			return true;
+		}
+		Map<String, Object> target = fileState(accessToken, driveId, itemId, joinPath(folderPath, fileName));
+		return target != null && source.itemId().equals(target.get(ID));
+	}
+
+	/**
+	 * The version of a file's contents, as Graph names it. The cTag changes only
+	 * when the contents do, where the eTag also moves for a rename or a share, so
+	 * the eTag is read only for an item that carries no cTag.
+	 *
+	 * @param item the item as Graph returned it
+	 * @return the version, or null when Graph named none
+	 */
+	private static String versionOf(Map<String, Object> item) {
+		Map<String, Object> described = MicrosoftOneDriveItemMapper.effectiveItem(item);
+		String version = ValueUtils.toNonBlankString(described.get("cTag"));
+		return version != null ? version : ValueUtils.toNonBlankString(described.get("eTag"));
+	}
+
+	/**
+	 * When and by whom a file was last changed, for a sentence about it.
+	 *
+	 * @param described the file as the listings describe it
+	 * @return " (last changed {when} by {who})" with whatever of the two is known,
+	 *         or nothing when neither is
+	 */
+	public static String changedBy(Map<String, Object> described) {
+		String when = ValueUtils.toNonBlankString(described.get(LAST_MODIFIED));
+		String who = ValueUtils.toNonBlankString(described.get(LAST_MODIFIED_BY));
+		if (when == null && who == null) {
+			return "";
+		}
+		return " (last changed" + (when == null ? "" : " " + when) + (who == null ? "" : " by " + who) + ")";
 	}
 
 	/**
@@ -1345,6 +1741,33 @@ public class MicrosoftOneDriveHelper {
 	private static void requireValue(String value, String message) {
 		if (ValueUtils.isBlank(value)) {
 			throw new IllegalArgumentException(message);
+		}
+	}
+
+	/**
+	 * Says plainly that a name is taken. Graph answers a create that fails on a
+	 * taken name with a 409, which would otherwise reach the user as the whole
+	 * request and response.
+	 *
+	 * @param e    what the create failed with
+	 * @param name the name that was asked for
+	 * @return the plain failure for a 409, or the failure as it was
+	 */
+	private static Exception nameTaken(Exception e, String name) {
+		if (e.getMessage() != null && e.getMessage().contains(" returned HTTP 409")) {
+			return new IllegalArgumentException("The name " + name.trim() + " is already taken in that folder.");
+		}
+		return e;
+	}
+
+	/**
+	 * Guards a file name, which is one segment of the destination path, so a
+	 * separator in it would silently put the file somewhere else.
+	 */
+	private static void requireNoPathSeparator(String fileName) {
+		if (fileName.indexOf('/') >= 0 || fileName.indexOf('\\') >= 0) {
+			throw new IllegalArgumentException(
+					"A file name cannot contain a path separator. Name the folder in the path instead: " + fileName);
 		}
 	}
 

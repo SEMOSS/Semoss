@@ -44,6 +44,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -711,6 +712,70 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		SecurityInsightUtils.addInsightUser(user, "user2id", "testProjectId", "testInsightId", "READ_ONLY", null);
 
 		assertTrue(SecurityInsightUtils.userCanViewInsight(user2, "testProjectId", "testInsightId"));
+	}
+
+	@Test
+	void testAddInsightUserWithProjectAccess_givesTheInsightAndReadOnlyProjectAccess() throws IllegalAccessException {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
+		createInsightOf(user);
+
+		SecurityInsightUtils.addInsightUserWithProjectAccess(user, "user2id", "testProjectId", "testInsightId", "EDIT",
+				null);
+
+		assertEquals(AccessPermissionEnum.READ_ONLY.getId(),
+				SecurityProjectUtils.getUserProjectPermission("user2id", "testProjectId"));
+		assertTrue(SecurityInsightUtils.userCanEditInsight(user2, "testProjectId", "testInsightId"));
+	}
+
+	@Test
+	void testAddInsightUserWithProjectAccess_keepsTheProjectAccessAPersonHas() throws IllegalAccessException {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createUser("user2", false);
+		createInsightOf(user);
+		SecurityProjectUtils.addProjectUser(user, "user2id", "testProjectId", "EDIT", null);
+
+		SecurityInsightUtils.addInsightUserWithProjectAccess(user, "user2id", "testProjectId", "testInsightId",
+				"READ_ONLY", null);
+
+		assertEquals(AccessPermissionEnum.EDIT.getId(),
+				SecurityProjectUtils.getUserProjectPermission("user2id", "testProjectId"));
+	}
+
+	@Test
+	void testAddInsightUserWithProjectAccess_refusesWhenTheUserCannotGiveProjectAccess() throws IllegalAccessException {
+		User owner = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User insightOwner = UnitTestSecurityAuthUtils.createUser("reader", false);
+		UnitTestSecurityAuthUtils.createUser("user3", false);
+		createInsightOf(owner);
+		SecurityProjectUtils.addProjectUser(owner, "readerid", "testProjectId", "READ_ONLY", null);
+		SecurityInsightUtils.addUserInsightCreator(insightOwner, "testProjectId", "testInsightId");
+
+		IllegalAccessException e = assertThrows(IllegalAccessException.class,
+				() -> SecurityInsightUtils.addInsightUserWithProjectAccess(insightOwner, "user3id", "testProjectId",
+						"testInsightId", "READ_ONLY", null));
+		assertEquals("Insufficient privileges to modify this project's permissions.", e.getMessage());
+		assertNull(SecurityProjectUtils.getUserProjectPermission("user3id", "testProjectId"));
+		assertNull(SecurityInsightUtils.getUserInsightPermission("user3id", "testProjectId", "testInsightId"));
+	}
+
+	@Test
+	void testAddInsightUserWithProjectAccess_givesNeitherWhenTheInsightAddIsRefused() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createUser("user2", false);
+		createInsightOf(user);
+		// insight access without project access, so the insight add is refused after the project add is planned
+		SecurityInsightUtils.addInsightUser(user, "user2id", "testProjectId", "testInsightId", "READ_ONLY", null);
+
+		assertThrows(IllegalArgumentException.class, () -> SecurityInsightUtils.addInsightUserWithProjectAccess(user,
+				"user2id", "testProjectId", "testInsightId", "EDIT", null));
+		assertNull(SecurityProjectUtils.getUserProjectPermission("user2id", "testProjectId"));
+	}
+
+	private static void createInsightOf(User owner) {
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", owner);
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
+		SecurityInsightUtils.addUserInsightCreator(owner, "testProjectId", "testInsightId");
 	}
 
 	///

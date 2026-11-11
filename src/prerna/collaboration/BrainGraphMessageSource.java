@@ -77,7 +77,7 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 		}
 		String token = MicrosoftLoginUtils.getValidAccessToken(user);
 		Map<String, Object> message = CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(BASE + path,
-				MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
+				MicrosoftLoginUtils.getBearerHeader(token), null, null, null, BrainGraphHeaderSource.TIMEOUT));
 		return "teams".equals(source) ? fromChat(message) : message;
 	}
 
@@ -235,7 +235,7 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 					Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
 							BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
 							CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null,
-							null, null));
+							null, null, BrainGraphHeaderSource.TIMEOUT));
 					responses = reply.get("responses") instanceof List<?> list ? (List<Object>) list : List.of();
 				} catch (Exception e) {
 					for (Map<String, Object> request : requests) {
@@ -320,7 +320,7 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 				Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
 						BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
 						CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null,
-						null, null));
+						null, null, BrainGraphHeaderSource.TIMEOUT));
 				List<Object> responses = reply.get("responses") instanceof List<?> list ? (List<Object>) list
 						: List.of();
 				List<Map<String, Object>> again = new ArrayList<>();
@@ -373,7 +373,8 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 		String url = BASE + attachmentPath(graphId, attachmentId) + "?$select=" + ATTACHMENT_SELECT;
 		try {
 			return CollaborationDbUtils.parseMap(
-					HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
+					HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null,
+							BrainGraphHeaderSource.TIMEOUT));
 		} catch (IllegalArgumentException e) {
 			// HttpHelperUtility reports a status as "... returned HTTP <code>"
 			if (String.valueOf(e.getMessage()).contains("returned HTTP 404")) {

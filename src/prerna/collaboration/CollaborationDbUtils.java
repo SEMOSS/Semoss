@@ -548,6 +548,8 @@ public class CollaborationDbUtils {
 			}
 			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)
 			widenColumn(collaborationDb, conn, "BRAIN_TOPIC_PERSON", "ROLE_LABEL", 255);
+			// a topic's short name defaults to its name (VARCHAR 255)
+			widenColumn(collaborationDb, conn, "BRAIN_TOPIC", "SHORT_NAME", 255);
 
 			AbstractOwlCreator.syncIndexes(collaborationDb, conn, List.of(
 					// owner and sources

@@ -1063,8 +1063,13 @@ public final class BrainMailImport {
 							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IS NOT NULL GROUP BY THREAD_ID",
 					rs -> agg.put(rs.getString(1), new Object[] { rs.getInt("N"), rs.getTimestamp("LAST") }), ownerId,
 					ownerType);
+			// a run cut off before this point left its threads uncounted, and the next one skips their mail as imported
+			Set<String> counted = new LinkedHashSet<>(threads);
+			counted.addAll(CollaborationDbUtils.query("SELECT THREAD_ID FROM BRAIN_THREAD WHERE OWNER_ID = ? AND "
+					+ "OWNER_TYPE = ? AND (MESSAGE_COUNT IS NULL OR MESSAGE_COUNT = 0)", rs -> rs.getString(1), ownerId,
+					ownerType));
 			CollaborationDbUtils.batch(conn -> {
-				for (String threadId : threads) {
+				for (String threadId : counted) {
 					Object[] a = agg.get(threadId);
 					if (a != null) {
 						CollaborationDbUtils.update(conn,
