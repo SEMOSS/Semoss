@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import java.io.IOException;
 
 import prerna.collaboration.WorkRoutineDocuments;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkRoutineDocuments(routineId=["..."]);
@@ -51,17 +52,11 @@ public class WorkRoutineDocumentsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Opens the reference documents folder of one of the signed-in user's routines in their user assets, "
-				+ "creating it when missing: its path for the user assets file reactors, and the documents in it. "
-				+ "Every run of the routine gets a copy of these files.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ROUTINE_ID.equals(key)) {
-			return "Id of the routine.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Opens the reference documents folder of one of the signed-in user's routines in their user assets, "
+						+ "creating it when missing: its path for the user assets file reactors, and the documents in it. "
+						+ "Every run of the routine gets a copy of these files.")
+				.key(ROUTINE_ID, "Id of the routine.");
 	}
 }

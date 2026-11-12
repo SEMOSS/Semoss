@@ -38,6 +38,7 @@ import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 
 /**
@@ -128,18 +129,11 @@ public abstract class AbstractGitCreateBranchReactor extends AbstractGitWorktree
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor creates and checks out a new local branch in " + this.target.getLabelWithArticle()
-				+ "'s git repository";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(BRANCH_KEY)) {
-			return "The name of the new branch";
-		} else if (key.equals(START_POINT_KEY)) {
-			return "Optional start point for the new branch, defaults to HEAD";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("This reactor creates and checks out a new local branch in "
+						+ this.target.getLabelWithArticle() + "'s git repository")
+				.key(BRANCH_KEY, "The name of the new branch")
+				.key(START_POINT_KEY, "Optional start point for the new branch, defaults to HEAD");
 	}
 }

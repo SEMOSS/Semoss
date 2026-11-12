@@ -28,7 +28,10 @@
 package prerna.auth;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import prerna.util.ValueUtils;
 
 public enum AccessPermissionEnum {
 	
@@ -36,6 +39,9 @@ public enum AccessPermissionEnum {
 	EDIT (2, "EDIT"),
 	READ_ONLY (3, "READ_ONLY");
 	
+	/** The key that holds the level on each row of a bulk permission request */
+	private static final String ROW_PERMISSION_KEY = "permission";
+
 	private final int id;
 	private final String permission;
 	
@@ -126,6 +132,71 @@ public enum AccessPermissionEnum {
 		return ep.getId();
 	}
 	
+	/**
+	 * Returns the name of the level a caller sends, such as EDIT for "edit",
+	 * ignoring case and surrounding spaces. Unlike
+	 * {@link #getIdByPermission(String)}, a missing or unknown level is refused
+	 * rather than read as READ_ONLY, so a typo cannot demote anyone.
+	 *
+	 * @param permission the level's name
+	 * @return OWNER, EDIT or READ_ONLY
+	 * @throws IllegalArgumentException when the level is missing or is not one of
+	 *                                  them
+	 */
+	public static String require(String permission) {
+		if (permission != null) {
+			String name = permission.trim();
+			for (AccessPermissionEnum perm : AccessPermissionEnum.values()) {
+				if (perm.permission.equalsIgnoreCase(name)) {
+					return perm.permission;
+				}
+			}
+		}
+		throw new IllegalArgumentException(
+				"The permission must be OWNER, EDIT or READ_ONLY. Received value = " + permission);
+	}
+
+	/**
+	 * Checks the level on each row of a bulk request, as {@link #require(String)}
+	 * does, and writes the level's name back to the row's {@code permission}.
+	 *
+	 * @param <M>  the row type
+	 * @param rows the rows, or null when the request sends none
+	 * @return the rows
+	 * @throws IllegalArgumentException when a row is missing or has no valid level
+	 */
+	public static <M extends Map<String, ? super String>> List<M> requireEach(List<M> rows) {
+		if (rows == null) {
+			return null;
+		}
+		for (M row : rows) {
+			if (row == null) {
+				throw new IllegalArgumentException("Each row must be an object with a permission");
+			}
+			row.put(ROW_PERMISSION_KEY, require(ValueUtils.toStringOrNull(row.get(ROW_PERMISSION_KEY))));
+		}
+		return rows;
+	}
+
+	/**
+	 * Returns the level with this id: 1 for OWNER, 2 for EDIT or 3 for READ_ONLY.
+	 * Unlike {@link #getPermissionValueById(int)}, an unknown id is refused rather
+	 * than read as READ_ONLY.
+	 *
+	 * @param id the level's id
+	 * @return the level
+	 * @throws IllegalArgumentException when the id is not a level
+	 */
+	public static AccessPermissionEnum requireById(int id) {
+		for (AccessPermissionEnum perm : AccessPermissionEnum.values()) {
+			if (perm.id == id) {
+				return perm;
+			}
+		}
+		throw new IllegalArgumentException(
+				"The permission must be 1 (OWNER), 2 (EDIT) or 3 (READ_ONLY). Received value = " + id);
+	}
+
 	public static Map<Integer, String> flushEnumInteger() {
 		AccessPermissionEnum[] values = AccessPermissionEnum.values();
 		Map<Integer, String> flushed = new HashMap<>(values.length);

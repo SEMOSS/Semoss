@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainRuleUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainListRules();
@@ -46,7 +47,8 @@ public class BrainListRulesReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the signed-in user's active Brain rules as { items, total }";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Lists the signed-in user's active Brain rules as { items, total }").noKeys();
 	}
 }

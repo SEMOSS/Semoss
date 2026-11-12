@@ -36,6 +36,7 @@ import prerna.auth.User;
 import prerna.collaboration.BrainProfileUtils;
 import prerna.collaboration.BrainThreadBrief;
 import prerna.collaboration.BrainTopicBrief;
+import prerna.collaboration.CollaborationDriveFiles;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.reactor.agent.AgentHarnessResult;
@@ -63,6 +64,8 @@ public final class AgentLoopState {
     private Room topicRoom;
     // and its email threads: their new emails on the run's first note, a line per thread after
     private BrainThreadBrief.Brief threadBrief;
+    // and its copies of OneDrive files: the ones that changed there, on the first note after they were compared
+    private CollaborationDriveFiles.Check driveFiles;
     private AgentRunProgress progress = new AgentRunProgress(30, 0, System::nanoTime);
 
     void initializeProgress(prerna.reactor.agent.AgentRunContext ctx) {
@@ -84,6 +87,8 @@ public final class AgentLoopState {
             topicUser = runUser;
             topicRoom = ctx.getRoom();
             threadBrief = BrainThreadBrief.prepare(runUser, ctx.getRoom());
+            // a run picked up after an approval compared them before it paused
+            driveFiles = ctx.isResumeMode() ? null : CollaborationDriveFiles.prepare(runUser, ctx.getRoom());
         }
         if (ctx.getAgentConfig().hasPptxWorkflow()) {
             startPptxWorkflow(ctx, ctx.isResumeMode());
@@ -105,12 +110,14 @@ public final class AgentLoopState {
         String topics = topicRoom == null ? null : BrainTopicBrief.runtimeNote(topicUser, topicRoom);
         String threads = threadBrief == null ? null : threadBrief.next();
         String work = topicRoom == null ? null : prerna.collaboration.WorkTaskBrief.runtimeNote(topicUser, topicRoom);
+        String files = driveFiles == null ? null : driveFiles.next();
         return "[SEMOSS runtime status]\n" + progress.guidance()
                 + (currentTimeZone == null ? "" : "\n" + RuntimeTimeContext.capture(currentTimeZone).guidance())
                 + (pptxWorkflow == null ? "" : "\n" + pptxWorkflow.guidance(iterations))
                 + (work == null ? "" : "\n" + work)
                 + (topics == null ? "" : "\n" + topics)
                 + (threads == null ? "" : "\n" + threads)
+                + (files == null ? "" : "\n" + files)
                 + "\n[/SEMOSS runtime status]";
     }
 

@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -97,15 +98,9 @@ public class MicrosoftTeamsListTeamsReactor extends AbstractMicrosoftReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "List the Microsoft Teams that the user has joined.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Optional maximum number of teams to return. All teams are returned when omitted.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("List the Microsoft Teams that the user has joined.").key(
+				ReactorKeysEnum.LIMIT,
+				"Optional maximum number of teams to return. All teams are returned when omitted.");
 	}
 }

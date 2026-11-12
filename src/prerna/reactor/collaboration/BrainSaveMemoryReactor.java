@@ -31,6 +31,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainMemoryUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSaveMemory(memory=[{"id": "...", "kind": "fact", "text": "...", "about": [{"type": "person", "id": "..."}]}]);
@@ -54,16 +55,11 @@ public class BrainSaveMemoryReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Adds a Brain memory, or changes the keys passed on one; the owner's save confirms it";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (MEMORY.equals(key)) {
-			return "Memory map: id (omit to create), kind (preference or fact), text, about [{type, id}], pinned, "
-					+ "expiresAt";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Adds a Brain memory, or changes the keys passed on one; the owner's save confirms it")
+				.key(MEMORY,
+						"Memory map: id (omit to create), kind (preference or fact), text, about [{type, id}], pinned, "
+								+ "expiresAt");
 	}
 }

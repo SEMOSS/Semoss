@@ -32,8 +32,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -41,6 +41,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.run.AgentRunHandle;
 import prerna.reactor.agent.run.AgentRunRequest;
@@ -51,6 +52,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * Starts a durable generic agent run and waits by default unless wait=false is
@@ -90,7 +92,7 @@ public class RunAgentReactor extends AbstractReactor {
 		String input = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
 		String engineIdFallback = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String harnessType = this.keyValue.get(HARNESS_TYPE_KEY);
-		String requestedSpace = StringUtils.trimToNull(this.keyValue.get(SPACE_KEY));
+		String requestedSpace = ValueUtils.trimToNull(this.keyValue.get(SPACE_KEY));
 
 		// FE sends `command` URL-encoded (spaces as %20, etc.). Decode before
 		// forwarding to the harness so the prompt reaches the model intact.
@@ -102,13 +104,14 @@ public class RunAgentReactor extends AbstractReactor {
 			}
 		}
 		// workspaceId overrides room.options.workspace.workspace_id for this run.
-		String explicitWorkspaceId = StringUtils.trimToNull(this.keyValue.get(WORKSPACE_ID_KEY));
+		String explicitWorkspaceId = ValueUtils.trimToNull(this.keyValue.get(WORKSPACE_ID_KEY));
 
 		int maxTurns = parseIntAtLeast(this.keyValue.get(MAX_TURNS_KEY), AgentRunContext.DEFAULT_MAX_TURNS, 1);
 		int maxReflections = parseIntAtLeast(this.keyValue.get(MAX_REFLECTIONS_KEY),
 				AgentRunContext.DEFAULT_MAX_REFLECTIONS, 0);
-		boolean wait = parseBoolean(this.keyValue.get(WAIT_KEY), true);
-		long waitTimeoutMs = parseLongAtLeast(this.keyValue.get(WAIT_TIMEOUT_MS_KEY), 0L, 0L);
+		boolean wait = ValueUtils.parseBoolean(this.keyValue.get(WAIT_KEY), true);
+		long waitTimeoutMs = Objects
+				.requireNonNullElse(ValueUtils.toPositiveLongOrNull(this.keyValue.get(WAIT_TIMEOUT_MS_KEY)), 0L);
 		Map<String, Object> paramMap = getMap("paramMap");
 		Map<String, Object> agentParams = getMap("agentParams");
 		if (paramMap.containsKey(AgentRunner.PARAM_SPACE)) {
@@ -125,10 +128,10 @@ public class RunAgentReactor extends AbstractReactor {
 		List<String> inputMedia = getListStringForAliasedKey(MEDIA_KEY);
 		List<String> inputMediaURLs = getListString(ReactorKeysEnum.URL.getKey());
 
-		if (roomId == null || roomId.trim().isEmpty()) {
+		if (ValueUtils.isBlank(roomId)) {
 			throw new IllegalArgumentException("roomId is required for RunAgent");
 		}
-		if (input == null || input.trim().isEmpty()) {
+		if (ValueUtils.isBlank(input)) {
 			throw new IllegalArgumentException("command (input) is required for RunAgent");
 		}
 
@@ -167,8 +170,29 @@ public class RunAgentReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Start a durable generic agent loop using a pluggable harness. By default RunAgent waits for terminal state; pass wait=false for async submission. space selects INSIGHT/USER or an editable project id; maxTurns applies to the SEMOSS harness tool loop; maxReflections controls optional self-critique rounds.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Start a durable generic agent loop using a pluggable harness. By default RunAgent waits for terminal state; pass wait=false for async submission. space selects INSIGHT/USER or an editable project id; maxTurns applies to the SEMOSS harness tool loop; maxReflections controls optional self-critique rounds.")
+				.key(ReactorKeysEnum.COMMAND,
+						"The prompt for the agent to work on. A URL-encoded value is decoded first.")
+				.key(HARNESS_TYPE_KEY,
+						"The name of the agent harness to run with; semoss when not given. An unknown name is rejected.")
+				.key(MAX_REFLECTIONS_KEY, key -> key.type(Integer.class).description(
+						"How many optional self-critique rounds the run may take, 0 or more; 0 when not given."))
+				.key(MAX_TURNS_KEY, key -> key.type(Integer.class).description(
+						"The most tool-call rounds the semoss harness takes, at least 1; 30 when not given or not valid."))
+				.key(WAIT_KEY, key -> key.type(Boolean.class).description(
+						"When true, the default, waits until the run finishes or pauses for input and returns its final state with its messages; when false, returns the run's handle right away."))
+				.key(WAIT_TIMEOUT_MS_KEY, key -> key.type(Integer.class).description(
+						"How long to wait, in milliseconds, when wait is true; once it passes, the run is returned as it stands with waitTimedOut set to true. 0 or not given uses the server's configured timeout."))
+				.key(ReactorKeysEnum.MEDIA, key -> key.type(List.class).description(
+						"Array of media file names already uploaded to the insight folder (any file type the model accepts - "
+								+ "image, pdf, document, spreadsheet, audio, video), or base64 image/PDF data URIs. "
+								+ "'image' is accepted as a legacy alias for this key."))
+				.key(ReactorKeysEnum.URL, key -> key.type(List.class).description(
+						"Array of image file URLs whose contents will be fetched when building the initial agent message."))
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP, key -> key.type(Map.class))
+				.key(ReactorKeysEnum.AGENT_PARAMS, key -> key.type(Map.class));
 	}
 
 	// Helpers
@@ -180,8 +204,8 @@ public class RunAgentReactor extends AbstractReactor {
 		}
 
 		IModelEngine modelEngine = null;
-		String runtimeModelId = engineIdFallback != null ? engineIdFallback.trim() : null;
-		if (runtimeModelId != null && !runtimeModelId.isEmpty()) {
+		String runtimeModelId = ValueUtils.trimToNull(engineIdFallback);
+		if (runtimeModelId != null) {
 			modelEngine = Utility.getModel(runtimeModelId);
 			if (modelEngine == null) {
 				throw new IllegalArgumentException(
@@ -242,73 +266,21 @@ public class RunAgentReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Parse {@code value} as an int, falling back to {@code defaultValue} when
-	 * null, blank, non-numeric, or below {@code minInclusive}.
+	 * Parse {@code value} as a whole number, falling back to {@code defaultValue}
+	 * when it is null, blank, not a whole number, or below {@code minInclusive}. A
+	 * number written as a decimal with nothing after the point, such as
+	 * {@code 10.0} from JSON, is the whole number it is.
 	 */
 	private static int parseIntAtLeast(String value, int defaultValue, int minInclusive) {
-		if (value == null || value.trim().isEmpty()) {
-			return defaultValue;
-		}
 		try {
-			int parsed = Integer.parseInt(value.trim());
-			return parsed >= minInclusive ? parsed : defaultValue;
+			Integer parsed = ValueUtils.parseWholeNumber(value);
+			return parsed != null && parsed >= minInclusive ? parsed : defaultValue;
 		} catch (NumberFormatException ignored) {
 			return defaultValue;
 		}
-	}
-
-	private static long parseLongAtLeast(String value, long defaultValue, long minInclusive) {
-		if (value == null || value.trim().isEmpty()) {
-			return defaultValue;
-		}
-		try {
-			long parsed = Long.parseLong(value.trim());
-			return parsed >= minInclusive ? parsed : defaultValue;
-		} catch (NumberFormatException ignored) {
-			return defaultValue;
-		}
-	}
-
-	private static boolean parseBoolean(String value, boolean defaultValue) {
-		if (value == null || value.trim().isEmpty()) {
-			return defaultValue;
-		}
-		String normalized = value.trim().toLowerCase(java.util.Locale.ROOT);
-		if ("false".equals(normalized) || "0".equals(normalized) || "no".equals(normalized)) {
-			return false;
-		}
-		if ("true".equals(normalized) || "1".equals(normalized) || "yes".equals(normalized)) {
-			return true;
-		}
-		return defaultValue;
 	}
 
 	private static int sizeOf(List<?> values) {
 		return values == null ? 0 : values.size();
-	}
-
-	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals(ReactorKeysEnum.MEDIA.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())) {
-			return MCP_KEY_TYPE.ARRAY;
-		}
-		if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())
-				|| key.equals(ReactorKeysEnum.AGENT_PARAMS.getKey())) {
-			return MCP_KEY_TYPE.OBJECT;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.MEDIA.getKey())) {
-			return "Array of media file names already uploaded to the insight folder (any file type the model accepts - "
-					+ "image, pdf, document, spreadsheet, audio, video), or base64 image/PDF data URIs. "
-					+ "'image' is accepted as a legacy alias for this key.";
-		}
-		if (key.equals(ReactorKeysEnum.URL.getKey())) {
-			return "Array of image file URLs whose contents will be fetched when building the initial agent message.";
-		}
-		return super.getDescriptionForKey(key);
 	}
 }

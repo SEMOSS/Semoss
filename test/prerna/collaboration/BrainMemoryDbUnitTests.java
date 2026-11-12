@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -59,6 +60,7 @@ import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.MockedStatic;
 
@@ -72,6 +74,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
@@ -266,6 +269,53 @@ class BrainMemoryDbUnitTests {
 	}
 
 	@Test
+	void rememberKeepsACorrectedDetailAsANewMemory() {
+		BrainMemoryUtils.remember(user, Map.of("text", "The quarterly board meeting is on March 3", "kind", "fact"),
+				CHAT);
+		Map<String, Object> corrected = BrainMemoryUtils.remember(user,
+				Map.of("text", "The quarterly board meeting is on March 5", "kind", "fact"), CHAT);
+		assertEquals(BrainMemoryUtils.SAVED, corrected.get("status"));
+	}
+
+	@Test
+	void theReviewCorrectsWhatTheAssistantLearnedWithoutAsking() {
+		String id = (String) memory(BrainMemoryUtils.remember(user, Map.of("text",
+				"Priya Shah runs the quarterly board meeting on March 3", "kind", "fact", "about", List.of(ABOUT_PRIYA)),
+				CHAT)).get("id");
+		BrainMemoryUtils.Suggestion correction = new BrainMemoryUtils.Suggestion(BrainMemoryUtils.FACT,
+				"Priya Shah runs the quarterly board meeting on March 5", List.of(), id, "msg-2");
+		List<Memory> created = BrainMemoryUtils.learn(ownerId, ownerType, List.of(correction), "th-1", "room-1");
+		assertEquals(1, created.size());
+		// in use at once, unconfirmed, about what the old one was about; the old one is history
+		Memory saved = BrainMemoryUtils.find(ownerId, ownerType, created.get(0).id());
+		assertEquals(BrainMemoryUtils.ACTIVE, saved.state());
+		assertFalse(saved.confirmed());
+		assertEquals(id, saved.replacesId());
+		assertEquals(List.of(new Ref("person", "p-priya")), saved.about());
+		assertEquals(BrainMemoryUtils.SUPERSEDED, BrainMemoryUtils.find(ownerId, ownerType, id).state());
+		// said again, it repeats the memory now in use; and a correction that changes nothing is not saved
+		assertTrue(BrainMemoryUtils.learn(ownerId, ownerType, List.of(correction), "th-1", "room-1").isEmpty());
+		assertTrue(BrainMemoryUtils.learn(ownerId, ownerType, List.of(new BrainMemoryUtils.Suggestion(
+				BrainMemoryUtils.FACT, saved.text(), List.of(), saved.id(), "msg-3")), "th-1", "room-1").isEmpty());
+		// the owner's Undo brings the old one back
+		BrainMemoryUtils.resolveMemory(user, saved.id(), BrainMemoryUtils.DISMISS);
+		assertEquals(BrainMemoryUtils.ACTIVE, BrainMemoryUtils.find(ownerId, ownerType, id).state());
+	}
+
+	@Test
+	void theReviewAsksBeforeChangingWhatTheOwnerWrote() {
+		String id = (String) BrainMemoryUtils.saveMemory(user, Map.of("text", "Standup is at 9 every day")).get("id");
+		List<Memory> created = BrainMemoryUtils.learn(ownerId, ownerType, List.of(new BrainMemoryUtils.Suggestion(
+				BrainMemoryUtils.FACT, "Standup is at 9:30 every day", List.of(), id, "msg-2")), "th-1", "room-1");
+		assertEquals(1, created.size());
+		assertEquals(BrainMemoryUtils.SUGGESTED, BrainMemoryUtils.find(ownerId, ownerType, created.get(0).id()).state());
+		assertEquals(BrainMemoryUtils.ACTIVE, BrainMemoryUtils.find(ownerId, ownerType, id).state());
+		// kept by the owner, it takes the old one's place
+		BrainMemoryUtils.resolveMemory(user, created.get(0).id(), BrainMemoryUtils.ACCEPT);
+		assertEquals(BrainMemoryUtils.SUPERSEDED, BrainMemoryUtils.find(ownerId, ownerType, id).state());
+	}
+
+	@Test
 	void theAssistantNeverChangesWhatTheOwnerWrote() {
 		String id = (String) BrainMemoryUtils.saveMemory(user, Map.of("text", "Dana is my manager")).get("id");
 
@@ -324,6 +374,29 @@ class BrainMemoryDbUnitTests {
 		// deleting the accepted memory takes the superseded version with it
 		BrainMemoryUtils.deleteMemory(user, suggestion.id());
 		assertNull(BrainMemoryUtils.find(ownerId, ownerType, ownerMemory));
+	}
+
+	@Test
+	void aSecondCorrectionOfOneMemoryReplacesTheFirstAndItsUndoBringsTheFirstBack() throws Exception {
+		String original = (String) BrainMemoryUtils.saveMemory(user, Map.of("text", "Standup is at 9")).get("id");
+		// two chat reviews each proposed a correction of the same memory
+		Memory first = suggestion("m-first", "Standup moved to 9:30", original);
+		Memory second = suggestion("m-second", "Standup is at 10 on Mondays", original);
+		BrainMemoryUtils.resolveMemory(user, first.id(), BrainMemoryUtils.ACCEPT);
+		BrainMemoryUtils.resolveMemory(user, second.id(), BrainMemoryUtils.ACCEPT);
+		assertEquals(BrainMemoryUtils.ACTIVE, state(second.id()));
+		assertEquals(BrainMemoryUtils.SUPERSEDED, state(first.id()));
+		assertEquals(BrainMemoryUtils.SUPERSEDED, state(original));
+
+		// the owner's Undo of Keep puts back the version in use before it, not the original
+		Map<String, Object> reopened = BrainMemoryUtils.resolveMemory(user, second.id(), BrainMemoryUtils.REOPEN);
+		assertEquals(first.id(), ((Map<?, ?>) reopened.get("restored")).get("id"));
+		assertEquals(BrainMemoryUtils.ACTIVE, state(first.id()));
+		assertEquals(BrainMemoryUtils.SUPERSEDED, state(original));
+	}
+
+	private String state(String memoryId) {
+		return BrainMemoryUtils.find(ownerId, ownerType, memoryId).state();
 	}
 
 	@Test
@@ -556,10 +629,10 @@ class BrainMemoryDbUnitTests {
 		return recall.lines().stream().map(line -> line.memory().id()).toList();
 	}
 
-	// ---- the review of finished chats ----
+	// ---- the background review of chats ----
 
 	@Test
-	void reviewSuggestsWhatTheOwnerSaidAndMovesItsWatermark() throws Exception {
+	void reviewSavesWhatTheOwnerSaidAndMovesItsWatermark() throws Exception {
 		person("p-dana", "Dana Lee", false);
 		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT) VALUES (?, ?, 'th-1', "
 				+ "'outlook', 'Q4 budget')", ownerId, ownerType);
@@ -586,32 +659,162 @@ class BrainMemoryDbUnitTests {
 
 			List<Memory> created = BrainMemoryReview.review(user, ownerId, ownerType, "room-1", "th-1");
 			assertEquals(1, created.size());
-			Memory suggestion = BrainMemoryUtils.find(ownerId, ownerType, created.get(0).id());
-			assertEquals(BrainMemoryUtils.SUGGESTED, suggestion.state());
-			assertEquals(WorkThreadInsights.BRAIN, suggestion.origin());
-			assertEquals(List.of(new Ref("person", "p-dana")), suggestion.about());
-			assertEquals("room-1", suggestion.source().roomId());
-			assertEquals("msg-1", suggestion.source().ref());
+			// in use at once, for the owner to confirm or undo later
+			Memory learned = BrainMemoryUtils.find(ownerId, ownerType, created.get(0).id());
+			assertEquals(BrainMemoryUtils.ACTIVE, learned.state());
+			assertFalse(learned.confirmed());
+			assertEquals(WorkThreadInsights.BRAIN, learned.origin());
+			assertEquals(List.of(new Ref("person", "p-dana")), learned.about());
+			assertEquals("room-1", learned.source().roomId());
+			assertEquals("msg-1", learned.source().ref());
 			assertEquals("msg-2", value("SELECT LAST_MESSAGE_ID FROM BRAIN_MEMORY_SCAN WHERE ROOM_ID = 'room-1'"));
 
-			// nothing new since: no second call, and the same answer would not be suggested
-			// twice anyway
+			// nothing new since, or nothing of the owner's long enough to quote: no second call
 			assertTrue(BrainMemoryReview.review(user, ownerId, ownerType, "room-1", "th-1").isEmpty());
 			ResponseMessage again = ResponseMessage.builder().withText("Anything else?").build();
 			again.setMessageId("msg-3");
 			messages.add(again);
 			assertTrue(BrainMemoryReview.review(user, ownerId, ownerType, "room-1", "th-1").isEmpty());
+			InputMessage thanks = InputMessage.text(room, "No.");
+			thanks.setMessageId("msg-4");
+			messages.add(thanks);
+			assertTrue(BrainMemoryReview.review(user, ownerId, ownerType, "room-1", "th-1").isEmpty());
 			verify(model, times(1)).ask(anyString(), anyString(), any(), anyMap());
-			assertEquals("msg-3", value("SELECT LAST_MESSAGE_ID FROM BRAIN_MEMORY_SCAN WHERE ROOM_ID = 'room-1'"));
+			assertEquals("msg-4", value("SELECT LAST_MESSAGE_ID FROM BRAIN_MEMORY_SCAN WHERE ROOM_ID = 'room-1'"));
 
 			// learning turned off: the chat is not read at all
 			InputMessage more = InputMessage.text(room, "Also, Dana signs off on every Acme hire.");
-			more.setMessageId("msg-4");
+			more.setMessageId("msg-5");
 			messages.add(more);
 			sql("INSERT INTO BRAIN_SETTINGS (OWNER_ID, OWNER_TYPE, FILE_AT, ASK_AT, VERSION, MEMORY_LEARN) "
 					+ "VALUES (?, ?, 85, 40, 1, FALSE)", ownerId, ownerType);
 			assertTrue(BrainMemoryReview.review(user, ownerId, ownerType, "room-1", "th-1").isEmpty());
 			verify(model, times(1)).ask(anyString(), anyString(), any(), anyMap());
+		}
+	}
+
+	@Test
+	void reviewCorrectsWhatItLearnedReadingEarlierTurnsOnlyAsContext() throws Exception {
+		Room room = Mockito.mock(Room.class);
+		when(room.getId()).thenReturn("room-1");
+		InputMessage said = InputMessage.text(room, "FYI Dana approves every Acme budget now.");
+		said.setMessageId("msg-1");
+		ResponseMessage answered = ResponseMessage.builder().withText("Noted.").build();
+		answered.setMessageId("msg-2");
+		List<AbstractMessage> messages = new ArrayList<>(List.of(said, answered));
+		when(room.getMessages()).thenReturn(messages);
+		user.getRoomHash().put("room-1", room);
+		IModelEngine model = Mockito.mock(IModelEngine.class);
+		when(model.ask(anyString(), anyString(), any(), anyMap())).thenReturn(new AskStringModelEngineResponse(
+				"{\"memories\": [{\"text\": \"Dana approves every Acme budget.\", \"kind\": \"fact\", \"about\": [], "
+						+ "\"replaces\": \"\", \"evidence\": \"Dana approves every Acme budget\"}]}",
+				0, 0)).thenReturn(new AskStringModelEngineResponse(
+						"{\"memories\": [{\"text\": \"Chris approves every Acme budget.\", \"kind\": \"fact\", "
+								+ "\"about\": [], \"replaces\": \"m1\", \"evidence\": \"Chris approves them now\"}, "
+								// quotes a turn the review already read
+								+ "{\"text\": \"Dana approves Acme budgets today.\", \"kind\": \"fact\", \"about\": [], "
+								+ "\"replaces\": \"\", \"evidence\": \"Dana approves every Acme budget now\"}]}",
+						0, 0));
+		try (MockedStatic<BrainTopicModel> topicModel = mockStatic(BrainTopicModel.class);
+				MockedStatic<Utility> utility = mockStatic(Utility.class, Mockito.CALLS_REAL_METHODS)) {
+			topicModel.when(() -> BrainTopicModel.engine(user)).thenReturn("llm-1");
+			utility.when(() -> Utility.getModel("llm-1")).thenReturn(model);
+			String old = BrainMemoryReview.review(user, ownerId, ownerType, "room-1", null).get(0).id();
+
+			InputMessage changed = InputMessage.text(room, "That changed last week: Chris approves them now.");
+			changed.setMessageId("msg-3");
+			messages.add(changed);
+			List<Memory> created = BrainMemoryReview.review(user, ownerId, ownerType, "room-1", null);
+
+			assertEquals(List.of("Chris approves every Acme budget."), created.stream().map(Memory::text).toList());
+			Memory corrected = BrainMemoryUtils.find(ownerId, ownerType, created.get(0).id());
+			assertEquals(BrainMemoryUtils.ACTIVE, corrected.state());
+			assertEquals(old, corrected.replacesId());
+			assertEquals(BrainMemoryUtils.SUPERSEDED, BrainMemoryUtils.find(ownerId, ownerType, old).state());
+			// the second pass: the first exchange as context, the new turn to learn from, and the memory to correct
+			ArgumentCaptor<String> inputs = ArgumentCaptor.forClass(String.class);
+			verify(model, times(2)).ask(inputs.capture(), anyString(), any(), anyMap());
+			Map<String, Object> input = CollaborationDbUtils.parseMap(inputs.getAllValues().get(1));
+			assertEquals(List.of("FYI Dana approves every Acme budget now.", "Noted."), texts(input.get("earlier")));
+			assertEquals(List.of("That changed last week: Chris approves them now."), texts(input.get("new")));
+			assertEquals(List.of("Dana approves every Acme budget."), texts(input.get("kept")));
+		}
+	}
+
+	@Test
+	void reviewLeavesHowARoutineWorksToThatRoutinesPreferences() throws Exception {
+		Room room = Mockito.mock(Room.class);
+		when(room.getId()).thenReturn("room-1");
+		when(room.getOptionsMap())
+				.thenReturn(Map.of(CollaborationUtils.ROOM_OPTION_ROUTINE_CHAT, WorkInboxRoutine.ID));
+		InputMessage said = InputMessage.text(room,
+				"From now on put my calendar first, and Dana runs the Acme renewal.");
+		said.setMessageId("msg-1");
+		when(room.getMessages()).thenReturn(List.of(said));
+		user.getRoomHash().put("room-1", room);
+		IModelEngine model = Mockito.mock(IModelEngine.class);
+		when(model.ask(anyString(), anyString(), any(), anyMap())).thenReturn(new AskStringModelEngineResponse(
+				"{\"memories\": [{\"text\": \"Put the calendar first.\", \"kind\": \"preference\", \"about\": [], "
+						+ "\"replaces\": \"\", \"evidence\": \"put my calendar first\"}, {\"text\": \"Dana runs the "
+						+ "Acme renewal.\", \"kind\": \"fact\", \"about\": [], \"replaces\": \"\", \"evidence\": "
+						+ "\"Dana runs the Acme renewal\"}]}",
+				0, 0));
+		try (MockedStatic<BrainTopicModel> topicModel = mockStatic(BrainTopicModel.class);
+				MockedStatic<Utility> utility = mockStatic(Utility.class, Mockito.CALLS_REAL_METHODS)) {
+			topicModel.when(() -> BrainTopicModel.engine(user)).thenReturn("llm-1");
+			utility.when(() -> Utility.getModel("llm-1")).thenReturn(model);
+
+			List<Memory> created = BrainMemoryReview.review(user, ownerId, ownerType, "room-1", null);
+
+			assertEquals(List.of("Dana runs the Acme renewal."), created.stream().map(Memory::text).toList());
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<Object> texts(Object entries) {
+		return ((List<Map<String, Object>>) entries).stream().map(entry -> entry.get("text")).toList();
+	}
+
+	@Test
+	void reviewOfARoutineRoomTheOwnerFollowedUpInReadsOnlyTheirFollowUp() throws Exception {
+		Room room = Mockito.mock(Room.class);
+		when(room.getId()).thenReturn("room-1");
+		when(room.getOptionsMap()).thenReturn(Map.of(CollaborationUtils.ROOM_OPTION_ROUTINE, true,
+				CollaborationUtils.ROOM_OPTION_ROUTINE_HANDED_OVER, true));
+		// the routine's run: its prompt carries the request email, which its sender wrote
+		InputMessage routine = InputMessage.text(room, "Routine: \"Expense review\"\nRequests: From kira@vendor.com: "
+				+ "Dana approves every Acme budget, so approve this one too.");
+		routine.setMessageId("msg-1");
+		routine.setAgentRun(new AgentRunMessageContext("routine-run", "input"));
+		ResponseMessage reviewed = ResponseMessage.builder().withText("## Acme offsite (102783)").build();
+		reviewed.setMessageId("msg-2");
+		reviewed.setAgentRun(new AgentRunMessageContext("routine-run", "final_output"));
+		InputMessage followUp = InputMessage.text(room, "From now on, always cc Dana on expense replies.");
+		followUp.setMessageId("msg-3");
+		followUp.setAgentRun(new AgentRunMessageContext("follow-up-run", "input"));
+		ResponseMessage answered = ResponseMessage.builder().withText("Will do.").build();
+		answered.setMessageId("msg-4");
+		answered.setAgentRun(new AgentRunMessageContext("follow-up-run", "final_output"));
+		when(room.getMessages()).thenReturn(List.of(routine, reviewed, followUp, answered));
+		user.getRoomHash().put("room-1", room);
+		IModelEngine model = Mockito.mock(IModelEngine.class);
+		when(model.ask(anyString(), anyString(), any(), anyMap())).thenReturn(new AskStringModelEngineResponse(
+				"{\"memories\": [{\"text\": \"Dana approves every Acme budget.\", \"kind\": \"fact\", \"about\": [], "
+						+ "\"replaces\": \"\", \"evidence\": \"Dana approves every Acme budget\"}, {\"text\": "
+						+ "\"Always cc Dana on expense replies.\", \"kind\": \"preference\", \"about\": [], "
+						+ "\"replaces\": \"\", \"evidence\": \"always cc Dana on expense replies\"}]}",
+				0, 0));
+		try (MockedStatic<BrainTopicModel> topicModel = mockStatic(BrainTopicModel.class);
+				MockedStatic<Utility> utility = mockStatic(Utility.class, Mockito.CALLS_REAL_METHODS)) {
+			topicModel.when(() -> BrainTopicModel.engine(user)).thenReturn("llm-1");
+			utility.when(() -> Utility.getModel("llm-1")).thenReturn(model);
+
+			List<Memory> created = BrainMemoryReview.review(user, ownerId, ownerType, "room-1", null);
+
+			assertEquals(List.of("Always cc Dana on expense replies."), created.stream().map(Memory::text).toList());
+			// the request email never reaches the review
+			verify(model).ask(argThat(input -> !input.contains("kira@vendor.com")), anyString(), any(), anyMap());
+			assertEquals("msg-4", value("SELECT LAST_MESSAGE_ID FROM BRAIN_MEMORY_SCAN WHERE ROOM_ID = 'room-1'"));
 		}
 	}
 
@@ -717,6 +920,28 @@ class BrainMemoryDbUnitTests {
 				BrainThreadFinder.searchTopic(user, "t-uber", null, "Uber", null, null, null, null).get("total"));
 		// a search across all mail still leaves automated mail out
 		assertEquals(0, BrainThreadFinder.searchAll(user, "Uber", null, null, null, null).get("total"));
+	}
+
+	@Test
+	void aTopicTextSearchKeepsOutWhatTheImportKeepsOut() throws Exception {
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE, SUBJECT, MUTED) VALUES "
+				+ "(?, ?, 'th-1', 'email:conv-1', 'email', 'Cutover', FALSE)", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, GRAPH_ID, SENDER_PERSON_ID, "
+				+ "DECISION) VALUES (?, ?, 'key-1', 'th-1', 'AQMk-1', 'p-priya', 'ingested')", ownerId, ownerType);
+		// blocked in People (Never ingest): a rule on the person's id, and the import never puts them on a thread
+		person("p-blocked", "Blocked Person", true);
+		sql("INSERT INTO BRAIN_PERSON_ADDRESS (OWNER_ID, OWNER_TYPE, PERSON_ID, KIND, VALUE_NORM) VALUES (?, ?, "
+				+ "'p-blocked', 'email', 'blocked@evil.com')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_MAIL_FOLDER (OWNER_ID, OWNER_TYPE, FOLDER_ID, NAME, PATH, KIND) VALUES (?, ?, "
+				+ "'f-deleted', 'Deleted Items', 'Deleted Items', ?)", ownerId, ownerType, BrainMailFolders.SKIPPED);
+
+		BrainTopicBodySearch.Gate gate = BrainTopicBodySearch.context(ownerId, ownerType, List.of("th-1"),
+				BrainThreadFinder.Privacy.load(ownerId, ownerType, List.of("th-1"))).gate();
+		// messages of the thread's conversation that Brain has not stored, as the mailbox lists them
+		assertTrue(gate.allows("th-1", null, listed("someone@acme.com", "f-inbox", false)));
+		assertFalse(gate.allows("th-1", null, listed("Blocked@Evil.com", "f-inbox", false)));
+		assertFalse(gate.allows("th-1", null, listed("someone@acme.com", "f-inbox", true)));
+		assertFalse(gate.allows("th-1", null, listed("someone@acme.com", "f-deleted", false)));
 	}
 
 	@Test
@@ -887,6 +1112,12 @@ class BrainMemoryDbUnitTests {
 		sql("INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, STATUS, CREATED_AT, UPDATED_AT) "
 				+ "VALUES (?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", ownerId, ownerType, topicId,
 				name);
+	}
+
+	// a message as the mailbox lists it: its sender, its folder, and whether it is an unsent draft
+	private static Map<String, Object> listed(String address, String folder, boolean draft) {
+		return Map.of("from", Map.of("emailAddress", Map.of("address", address)), "parentFolderId", folder, "isDraft",
+				draft);
 	}
 
 	private void sql(String sql, Object... params) throws Exception {

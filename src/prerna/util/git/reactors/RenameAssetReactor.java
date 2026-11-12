@@ -42,6 +42,7 @@ import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -187,22 +188,15 @@ public class RenameAssetReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Rename a file or directory";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Name of an existing file or directory";
-		} else if (key.equals(ReactorKeysEnum.NEW_VALUE.getKey())) {
-			return "The new name for the file or directory. This cannot be an name for an existing file or directory and has the same character restrictions you would expect on typical file system.";
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add with the rename into the git repository associated with the space";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Rename a file or directory")
+				.key(ReactorKeysEnum.FILE_PATH, "Name of an existing file or directory")
+				.key(ReactorKeysEnum.NEW_VALUE,
+						"The new name for the file or directory. This cannot be an name for an existing file or directory and has the same character restrictions you would expect on typical file system.")
+				.key(ReactorKeysEnum.SPACE,
+						"This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).")
+				.key(ReactorKeysEnum.COMMENT_KEY,
+						"Comment to add with the rename into the git repository associated with the space");
 	}
 
 }

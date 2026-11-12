@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.project.AutomationProjectService;
@@ -75,8 +76,8 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 				files -> removeStep(projectId, files, nodeId, removeDownstream));
 	}
 
-	private NounMetadata removeStep(String projectId, AutomationDefinitionService.DefinitionFiles files,
-			String nodeId, boolean removeDownstream) {
+	private NounMetadata removeStep(String projectId, AutomationDefinitionService.DefinitionFiles files, String nodeId,
+			boolean removeDownstream) {
 		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
 				.parseAndValidateForAuthoring(files.definition());
 		Map<String, Object> removedNode = findNode(validated.nodes(), nodeId);
@@ -178,18 +179,10 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Removes and detaches one Automation step, or removes the step and its downstream flow.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (NODE_ID_KEY.equals(key)) {
-			return "Existing non-trigger node ID to remove.";
-		}
-		if (REMOVE_DOWNSTREAM_KEY.equals(key)) {
-			return "When true, also removes every step reachable after the selected node; defaults to false.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Removes and detaches one Automation step, or removes the step and its downstream flow.")
+				.key(NODE_ID_KEY, "Existing non-trigger node ID to remove.").key(REMOVE_DOWNSTREAM_KEY,
+						"When true, also removes every step reachable after the selected node; defaults to false.");
 	}
 }

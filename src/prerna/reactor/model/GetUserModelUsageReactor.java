@@ -44,6 +44,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.usage.ModelUsageGuard;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -198,25 +199,19 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Returns model usage for the current user over a specified time period, broken down by engine. \
 				Reports INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS, \
 				TOTAL_TOKENS, TOTAL_REQUESTS, and COST_MICROS (cost in millionths of a dollar, counted as usage \
 				limits count it; null when the model has no known prices). Requires a list of engine IDs and \
 				optionally accepts a date range; the end date is included in full.
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "Required list of engine IDs to get usage for (can be a single engine or multiple engines).";
-		} else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
-			return "Optional start date (format: YYYY-MM-DD). Must be provided with endDate.";
-		} else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
-			return "Optional end date (format: YYYY-MM-DD). Must be provided with startDate.";
-		}
-		return super.getDescriptionForKey(key);
+				""")
+				.key(ReactorKeysEnum.ENGINE,
+						"Required list of engine IDs to get usage for (can be a single engine or multiple engines).")
+				.key(ReactorKeysEnum.START_DATE,
+						"Optional start date (format: YYYY-MM-DD). Must be provided with endDate.")
+				.key(ReactorKeysEnum.END_DATE,
+						"Optional end date (format: YYYY-MM-DD). Must be provided with startDate.");
 	}
 }

@@ -66,6 +66,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.om.InsightFile;
 import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.export.mustache.MustacheUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -471,30 +472,18 @@ public class ToDocxReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Converts HTML to DOCX using Docx4j. Supports HTML elements, CSS, tables, lists, images. "
-				+ "Processes <semoss> tags via headless Chrome. Supports Mustache templating.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.HTML.getKey())) {
-			return "HTML content to convert to DOCX - only use if there is no markdown input";
-		} else if (key.equals(ReactorKeysEnum.MARKDOWN.getKey())) {
-			return "Markdown content to convert to DOCX - only use if there is no html input";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Path to HTML file to convert";
-		} else if (key.equals(ReactorKeysEnum.MUSTACHE.getKey())) {
-			return "Enable Mustache template processing";
-		} else if (key.equals(ReactorKeysEnum.MUSTACHE_VARMAP.getKey())) {
-			return "Variables for Mustache template substitution";
-		} else if (key.equals(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey())) {
-			return "Output file path (e.g., /path/to/document.docx)";
-		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
-			return "Frontend URL for processing <semoss> tags";
-		} else if (key.equals(ReactorKeysEnum.IMAGE_WAIT_TIME.getKey())) {
-			return "Wait time in milliseconds for <semoss> image generation";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Converts HTML to DOCX using Docx4j. Supports HTML elements, CSS, tables, lists, images. "
+						+ "Processes <semoss> tags via headless Chrome. Supports Mustache templating.")
+				.key(ReactorKeysEnum.HTML, "HTML content to convert to DOCX - only use if there is no markdown input")
+				.key(ReactorKeysEnum.MARKDOWN,
+						"Markdown content to convert to DOCX - only use if there is no html input")
+				.key(ReactorKeysEnum.FILE_PATH, "Path to HTML file to convert")
+				.key(ReactorKeysEnum.OUTPUT_FILE_PATH, "Output file path (e.g., /path/to/document.docx)")
+				.key(ReactorKeysEnum.URL, "Frontend URL for processing <semoss> tags")
+				.key(ReactorKeysEnum.MUSTACHE, "Enable Mustache template processing")
+				.key(ReactorKeysEnum.MUSTACHE_VARMAP, "Variables for Mustache template substitution")
+				.key(ReactorKeysEnum.IMAGE_WAIT_TIME, "Wait time in milliseconds for <semoss> image generation");
 	}
 }

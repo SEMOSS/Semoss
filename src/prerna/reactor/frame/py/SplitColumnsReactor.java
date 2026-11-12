@@ -30,6 +30,7 @@ package prerna.reactor.frame.py;
 import java.util.List;
 
 import prerna.ds.py.PandasFrame;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -128,12 +129,11 @@ public class SplitColumnsReactor extends AbstractPyFrameReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(SEARCH_TYPE)) {
-			return "The type of search: Regex or an Exact Match";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Splits each given column of the current Python frame on a delimiter into new columns, named after the column with _0, _1 and so on; the original column stays.")
+				.key(ReactorKeysEnum.COLUMNS, key -> key.list(String.class))
+				.key(SEARCH_TYPE, "The type of search: Regex or an Exact Match");
 	}
 
 }

@@ -41,6 +41,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.EmbeddedModelEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -118,24 +119,21 @@ public class EmbedderKeywordExtractionReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Utilizes a keyBERT model to extract the keywords from the text input";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.INPUT.getKey())) {
-			return """
-					The input array of string values to extract keywords from. Each string input will result in a space delimited list of keywords. \
-					For convenience, instead of escaping quotes or backslashes you can wrap \
-					each element within "<encode>your_text</encode>" and the system will encode it for you.
-					""";
-		} else if (key.equals(PERCENTILE)) {
-			return "The percentile (integer) cutoff for the words within the text to be considered a keyword. Values must be between 0 and 100 inclusive.";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "The limit to be applied after the percentile for the maximum number of keywords to be returned for each string input";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Utilizes a keyBERT model to extract the keywords from the text input")
+				.key(ReactorKeysEnum.MODEL, "The id of the local embedded model engine to extract keywords with.")
+				.key(ReactorKeysEnum.INPUT,
+						key -> key.list(String.class).description(
+								"""
+										The input array of string values to extract keywords from. Each string input will result in a space delimited list of keywords. \
+										For convenience, instead of escaping quotes or backslashes you can wrap \
+										each element within "<encode>your_text</encode>" and the system will encode it for you.
+										"""))
+				.key(PERCENTILE, key -> key.type(Integer.class).description(
+						"The percentile (integer) cutoff for the words within the text to be considered a keyword. Values must be between 0 and 100 inclusive."))
+				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class).description(
+						"The limit to be applied after the percentile for the maximum number of keywords to be returned for each string input"));
 	}
 
 	@Override

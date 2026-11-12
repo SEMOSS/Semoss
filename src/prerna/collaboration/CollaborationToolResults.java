@@ -1,17 +1,50 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.collaboration;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.om.Insight;
 
 // What a collaboration tool's result keeps for the model: the shared Microsoft reactors return
 // everything Graph gives (links, member ids, every timestamp), which the chat's context pays for
@@ -39,12 +72,29 @@ final class CollaborationToolResults {
 	// a page of mail shares one body budget, so a call for 50 or 100 full mails
 	// cannot fill the context
 	static final int MAIL_PAGE_BODY_CHARS = 30_000;
+	// a mass mailing can list thousands of addresses; a mail keeps this many per list, with the full count
+	private static final int MAIL_RECIPIENTS = 10;
+	// the mail a run has already been given, by message id, and how many body characters it saw; a repeat of a
+	// message it has seen whole comes back as a stub, so overlapping list calls do not pay for it twice
+	private static final Cache<String, Map<String, Integer>> SEEN_MAIL = Caffeine.newBuilder()
+			.expireAfterAccess(Duration.ofHours(2)).maximumSize(500).build();
+	private static final Set<String> STUB_KEYS = Set.of("id", "conversationId", "subject", "from", "fromName",
+			"receivedDate", "unread");
 
 	private CollaborationToolResults() {
 
 	}
 
+	/** The mail this insight's run has been given so far. */
+	static Map<String, Integer> seenMail(Insight insight) {
+		return insight == null ? null : SEEN_MAIL.get(insight.getInsightId(), id -> new ConcurrentHashMap<>());
+	}
+
 	static String forModel(String toolName, String output, User user) {
+		return forModel(toolName, output, user, null);
+	}
+
+	static String forModel(String toolName, String output, User user, Map<String, Integer> seenMail) {
 		if (output == null || output.isBlank()) {
 			return output;
 		}
@@ -59,7 +109,10 @@ final class CollaborationToolResults {
 				}
 				Object cleaned = clean(toolName, null, parsed);
 				if ("ListM365Mail".equals(toolName)) {
+					stubSeenMail(cleaned, seenMail);
 					shareMailBodies(cleaned);
+					recordSeenMail(cleaned, seenMail);
+					capRecipients(cleaned, ownEmail(user));
 				}
 				return CollaborationDbUtils.toJson(cleaned);
 			}
@@ -135,7 +188,11 @@ final class CollaborationToolResults {
 				|| messages.isEmpty()) {
 			return;
 		}
-		int share = MAIL_PAGE_BODY_CHARS / messages.size();
+		long withBody = messages.stream().filter(m -> m instanceof Map<?, ?> x && x.get("body") instanceof String).count();
+		if (withBody == 0) {
+			return;
+		}
+		int share = (int) (MAIL_PAGE_BODY_CHARS / withBody);
 		boolean cut = false;
 		for (Object item : messages) {
 			if (item instanceof Map<?, ?> message && message.get("body") instanceof String body
@@ -150,6 +207,69 @@ final class CollaborationToolResults {
 		}
 	}
 
+	// a message this run has already seen whole, with no more of its body in this copy, keeps only what names it
+	@SuppressWarnings("unchecked")
+	private static void stubSeenMail(Object result, Map<String, Integer> seen) {
+		if (seen == null || !(result instanceof Map<?, ?> page) || !(page.get("messages") instanceof List<?> messages)) {
+			return;
+		}
+		for (Object item : messages) {
+			if (item instanceof Map<?, ?> raw && raw.get("id") instanceof String id && seen.containsKey(id)) {
+				Map<String, Object> message = (Map<String, Object>) raw;
+				int length = message.get("body") instanceof String body ? body.length() : 0;
+				if (length <= seen.get(id)) {
+					message.keySet().retainAll(STUB_KEYS);
+					message.put("seenBefore", "Returned earlier in this run; read its thread with conversationId to see it again.");
+				}
+			}
+		}
+	}
+
+	// notes how much of each fresh message's body went out, after the page's share cut
+	private static void recordSeenMail(Object result, Map<String, Integer> seen) {
+		if (seen == null || !(result instanceof Map<?, ?> page) || !(page.get("messages") instanceof List<?> messages)) {
+			return;
+		}
+		for (Object item : messages) {
+			if (item instanceof Map<?, ?> message && message.get("id") instanceof String id
+					&& !message.containsKey("seenBefore")) {
+				seen.merge(id, message.get("body") instanceof String body ? body.length() : 0, Math::max);
+			}
+		}
+	}
+
+	// cuts a long to or cc list to a few addresses and adds toCount or ccCount; the owner's own address is
+	// always kept, since being on To rather than Cc says whether a reply is owed
+	@SuppressWarnings("unchecked")
+	private static void capRecipients(Object result, String owner) {
+		if (!(result instanceof Map<?, ?> page) || !(page.get("messages") instanceof List<?> messages)) {
+			return;
+		}
+		for (Object item : messages) {
+			if (!(item instanceof Map<?, ?> raw)) {
+				continue;
+			}
+			Map<String, Object> message = (Map<String, Object>) raw;
+			for (String key : List.of("to", "cc")) {
+				if (message.get(key) instanceof List<?> list && list.size() > MAIL_RECIPIENTS) {
+					List<Object> kept = new ArrayList<>();
+					for (Object address : list) {
+						if (address instanceof String text && !owner.isEmpty() && text.equalsIgnoreCase(owner)) {
+							kept.add(address);
+						}
+					}
+					for (Object address : list) {
+						if (kept.size() < MAIL_RECIPIENTS && !kept.contains(address)) {
+							kept.add(address);
+						}
+					}
+					message.put(key, kept);
+					message.put(key + "Count", list.size());
+				}
+			}
+		}
+	}
+
 	// drops UI copies, links, defaults and empty values everywhere in the result
 	@SuppressWarnings("unchecked")
 	private static Object clean(String toolName, String key, Object value) {
@@ -161,7 +281,9 @@ final class CollaborationToolResults {
 			for (Map.Entry<String, Object> e : in.entrySet()) {
 				String k = e.getKey();
 				Object v = e.getValue();
+				// no mail tool takes the Message-ID header; id and conversationId are what the model passes on
 				if (DROPPED_KEYS.contains(k) || k.startsWith("@odata") || (unique && "body".equals(k))
+						|| ("ListM365Mail".equals(toolName) && "internetMessageId".equals(k))
 						|| (v != null && v.equals(DEFAULTS.get(k)))
 						|| (Boolean.FALSE.equals(v) && k.startsWith("is"))) {
 					continue;

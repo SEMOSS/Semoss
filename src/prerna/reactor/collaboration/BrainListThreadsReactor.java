@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadUtils;
 import prerna.collaboration.BrainTopicUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainListThreads(filter=["muted"], topicId=["..."], channel=["email"], limit=[30], offset=[0], detail=[true]);
@@ -52,31 +53,18 @@ public class BrainListThreadsReactor extends AbstractCollaborationReactor {
 		User user = getUser();
 		Integer limit = getIntFromKeyOrCurRow(LIMIT);
 		Integer offset = getIntFromKeyOrCurRow(OFFSET);
-		return mapResult(BrainThreadUtils.listThreads(user, getString(FILTER), getString(TOPIC_ID),
-				getString(CHANNEL), limit == null ? BrainTopicUtils.DEFAULT_LIMIT : limit, offset == null ? 0 : offset,
+		return mapResult(BrainThreadUtils.listThreads(user, getString(FILTER), getString(TOPIC_ID), getString(CHANNEL),
+				limit == null ? BrainTopicUtils.DEFAULT_LIMIT : limit, offset == null ? 0 : offset,
 				Boolean.TRUE.equals(getBoolean(DETAIL))));
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the signed-in user's Brain threads as { items, total }, newest first";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (FILTER.equals(key)) {
-			return "muted or needs_topic_choice";
-		} else if (TOPIC_ID.equals(key)) {
-			return "Only threads linked to this topic";
-		} else if (CHANNEL.equals(key)) {
-			return "email, teams, or calendar";
-		} else if (LIMIT.equals(key)) {
-			return "Page size, default 30";
-		} else if (OFFSET.equals(key)) {
-			return "Rows to skip, default 0";
-		} else if (DETAIL.equals(key)) {
-			return "true adds participants and summary to each thread";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Lists the signed-in user's Brain threads as { items, total }, newest first")
+				.key(FILTER, "muted or needs_topic_choice").key(TOPIC_ID, "Only threads linked to this topic")
+				.key(CHANNEL, "email, teams, or calendar").key(LIMIT, "Page size, default 30")
+				.key(OFFSET, "Rows to skip, default 0")
+				.key(DETAIL, "true adds participants and summary to each thread");
 	}
 }

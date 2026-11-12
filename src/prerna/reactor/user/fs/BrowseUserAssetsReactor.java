@@ -33,6 +33,7 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -82,16 +83,11 @@ public class BrowseUserAssetsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "List the files and directories from a relative filePath input from within the user's assets folder";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The relative file path to list contents from. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"List the files and directories from a relative filePath input from within the user's assets folder")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"The relative file path to list contents from. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.");
 	}
 
 }

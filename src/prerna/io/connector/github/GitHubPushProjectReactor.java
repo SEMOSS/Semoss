@@ -42,6 +42,7 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -80,8 +81,7 @@ public class GitHubPushProjectReactor extends AbstractReactor {
 		projectId = projectId.trim();
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new SemossPixelException(
-					"Project does not exist or user does not have access to edit the project.");
+			throw new SemossPixelException("Project does not exist or user does not have access to edit the project.");
 		}
 		String message = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 
@@ -144,18 +144,13 @@ public class GitHubPushProjectReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Commit a project's pending changes and push them to its linked GitHub repository, authenticating as the configured GitHub App installation.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "The id of the project whose changes should be committed and pushed to its linked GitHub repository";
-		} else if (ReactorKeysEnum.COMMENT_KEY.getKey().equals(key)) {
-			return "Optional commit message for the pending changes (defaults to a timestamped message)";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Commit a project's pending changes and push them to its linked GitHub repository, authenticating as the configured GitHub App installation.")
+				.key(ReactorKeysEnum.PROJECT,
+						"The id of the project whose changes should be committed and pushed to its linked GitHub repository")
+				.key(ReactorKeysEnum.COMMENT_KEY,
+						"Optional commit message for the pending changes (defaults to a timestamped message)");
 	}
 
 }

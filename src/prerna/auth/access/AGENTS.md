@@ -107,6 +107,11 @@ What validating a batch finds (built while saving; saving works from these)
 | `TEAM_MANAGERS` | custom group id | people only | none | `GROUPMANAGERS` |
 
 - Levels are `OWNER`, `EDIT` and `READ_ONLY`. The UI calls `OWNER` Author.
+  An endpoint checks each level it is sent before it calls a single or bulk
+  permission method: `AccessPermissionEnum.require` for one level,
+  `requireEach` for the rows of a bulk request, and `requireById` for a team
+  level sent as 1 to 3. Each refuses a missing or unknown level with an
+  `IllegalArgumentException`, which the endpoint answers with 400.
 - End dates are ISO dates and times with a zone, or null for never.
 - A person needs a login type only on `TEAM` and `TEAM_MANAGERS`, since the
   other tables keep only the id. A type that is given must match an account.

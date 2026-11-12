@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainProfileUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainGetSettings();
@@ -43,8 +44,10 @@ public class BrainGetSettingsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "The signed-in user's Brain settings: classifier, filing bands, sources, memory, background sync interval, "
-				+ "version, assistant agent";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"The signed-in user's Brain settings: classifier, filing bands, sources, memory, background sync interval, "
+						+ "version, assistant agent")
+				.noKeys();
 	}
 }

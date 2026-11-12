@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.project.impl.ProjectHeaderAuthEvaluator;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -90,7 +91,7 @@ public class PostRequestReactor extends AbstractReactor {
 					try {
 						headers.putAll(((ProjectHeaderAuthEvaluator) noun.getValue()).eval());
 					} catch (UnsupportedEncodingException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Could not evaluate the project authorization headers", e);
 						throw new IllegalArgumentException(
 								"An error occurred trying to get the project authorization headers");
 					}
@@ -121,13 +122,14 @@ public class PostRequestReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("headersMap")) {
-			return "Map containing key-value pairs to send in the POST request";
-		} else if (key.equals("bodyMap")) {
-			return "Map containing key-value pairs to send in the body of the POST request";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Sends a POST request with a URL-encoded form body to the given URL and returns the response body as text. When the server limits allowed domains, the URL must be in one of them.")
+				.key(ReactorKeysEnum.HEADERS_MAP, key -> key.type(Map.class))
+				.key(ReactorKeysEnum.USE_APPLICATION_CERT, key -> key.type(Boolean.class))
+				.key("headersMap", "Map containing key-value pairs to send in the POST request")
+				.key("bodyMap", key -> key.type(Map.class)
+						.description("Map containing key-value pairs to send in the body of the POST request"));
 	}
 
 }

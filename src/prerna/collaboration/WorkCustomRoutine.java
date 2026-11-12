@@ -51,8 +51,8 @@ import prerna.reactor.agent.skill.SkillProjects;
 
 /**
  * The owner's own routines: an instruction of theirs, done on a schedule by their agent with its auto tools plus the
- * skills and tools they add, the answer delivered only to them (email, a Teams message to themselves, or kept in
- * Routines). Many per owner, run by {@link WorkRoutine}.
+ * skills and tools they add, the answer delivered only to them (email, a Teams message to themselves, a section of
+ * their daily brief, or kept in Routines). Many per owner, run by {@link WorkRoutine}.
  */
 public final class WorkCustomRoutine {
 	public static final String ID = "custom";
@@ -61,7 +61,12 @@ public final class WorkCustomRoutine {
 	static final int MAX_PROMPT = 4000;
 	static final int MAX_TOOLS = 10;
 	static final int MAX_TOOL_NAME = 255;
-	static final Set<String> DELIVERIES = Set.of("email", "teams", "none");
+	/**
+	 * Delivered as a section of the owner's daily brief: the routine has no schedule of its own, the brief starts it
+	 * and prints its answer under its name (the sections step of inbox-daily-brief.automation.json).
+	 */
+	static final String BRIEF = "brief";
+	static final Set<String> DELIVERIES = Set.of("email", "teams", "none", BRIEF);
 	/** The catalog types Routines offers: toolboxes (engines and projects with MCP tools) and knowledge (VECTOR). */
 	static final Set<String> TOOL_TYPES = Set.of("PROJECT", "STORAGE", "DATABASE", "FUNCTION", "MODEL", "VECTOR");
 	static final WorkRoutine.Kind KIND = new WorkRoutine.Kind(ID, "WORK_CUSTOM_ROUTINE",
@@ -109,6 +114,7 @@ public final class WorkCustomRoutine {
 			merged.putAll(saved);
 			merged.put("enabled", row.get("enabled"));
 		}
+		Map<String, Object> before = new LinkedHashMap<>(merged);
 		if (changes != null) {
 			changes.forEach((key, value) -> {
 				if (value != null) {
@@ -116,11 +122,12 @@ public final class WorkCustomRoutine {
 				}
 			});
 		}
-		// user-dependent checks; validate() covers the shape
-		if (merged.get("skills") instanceof List<?> skills) {
+		// user-dependent checks, only on a setting this save changes: access lost since it was saved must never block
+		// a pause or an edit, and a run checks again; validate() covers the shape
+		if (merged.get("skills") instanceof List<?> skills && !skills.equals(before.get("skills"))) {
 			merged.put("skills", CollaborationSkills.requireUsable(user, skills));
 		}
-		if (merged.get("tools") instanceof List<?> tools) {
+		if (merged.get("tools") instanceof List<?> tools && !tools.equals(before.get("tools"))) {
 			for (Object tool : tools) {
 				if (tool instanceof Map<?, ?> ref && !canUseTool(user, ref)) {
 					throw new IllegalArgumentException("Pick tools you can use; " + text(ref.get("name"))
@@ -128,9 +135,10 @@ public final class WorkCustomRoutine {
 				}
 			}
 		}
-		String agentId = merged.get("agentId") == null ? "" : String.valueOf(merged.get("agentId")).trim();
-		if (!agentId.isEmpty() && (!SecurityProjectUtils.userCanViewProject(user, agentId)
-				|| ModelInferenceLogsUtils.getWorkspaceEntry(agentId) == null)) {
+		String agentId = text(merged.get("agentId"));
+		if (!agentId.isEmpty() && !agentId.equals(text(before.get("agentId")))
+				&& (!SecurityProjectUtils.userCanViewProject(user, agentId)
+						|| ModelInferenceLogsUtils.getWorkspaceEntry(agentId) == null)) {
 			throw new IllegalArgumentException("Pick an agent you can use");
 		}
 		return WorkRoutine.save(KIND, user, routineId, merged);
@@ -145,17 +153,22 @@ public final class WorkCustomRoutine {
 		WorkRoutineDocuments.deleteAll(user, routineId);
 	}
 
-	/**
-	 * The scheduler's recipe. The cron only fires on the chosen days, so this does not check the day again, which
-	 * lets Run now go through the same job.
-	 */
+	/** The scheduler's recipe, on the routine's chosen days. */
 	public static Map<String, Object> run(Insight insight, String routineId) {
+		requireStored(insight.getUser(), routineId);
+		return WorkRoutine.run(KIND, insight, routineId, false);
+	}
+
+	/** Run now's run, which runNow fires on the scheduler: on any day, and recorded as started by hand. */
+	public static Map<String, Object> runManual(Insight insight, String routineId) {
 		requireStored(insight.getUser(), routineId);
 		return WorkRoutine.run(KIND, insight, routineId, true);
 	}
 
 	public static void runNow(User user, String routineId) {
-		WorkRoutine.runNow(KIND, user, routineId);
+		// routineId is a stored routine's: runNow finds its row first
+		WorkRoutine.runNow(KIND, user, routineId,
+				"WorkRunCustomRoutine(routineId=[\"" + routineId + "\"], manual=[true]);");
 	}
 
 	static Map<String, Object> requireStored(User user, String routineId) {
@@ -181,7 +194,7 @@ public final class WorkCustomRoutine {
 		}
 		String delivery = text(input.get("delivery")).toLowerCase();
 		if (!DELIVERIES.contains(delivery)) {
-			throw new IllegalArgumentException("delivery must be email, teams or none");
+			throw new IllegalArgumentException("delivery must be email, teams, brief or none");
 		}
 		if (!(input.get("skills") instanceof List<?> skills) || !skills.stream().allMatch(String.class::isInstance)) {
 			throw new IllegalArgumentException("skills must be a list of skill ids");

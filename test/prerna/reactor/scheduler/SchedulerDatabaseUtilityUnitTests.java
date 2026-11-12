@@ -36,8 +36,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -49,11 +51,16 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.sql.DriverManager;
+import java.sql.Types;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
 import prerna.util.JdbcTestDatabase;
+import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 class SchedulerDatabaseUtilityUnitTests {
 
@@ -328,6 +335,37 @@ class SchedulerDatabaseUtilityUnitTests {
 				"CREATE TABLE SMSS_JOB_TAGS (JOB_ID VARCHAR, JOB_TAG VARCHAR)",
 				"CREATE TABLE QRTZ_TRIGGERS (JOB_NAME VARCHAR, JOB_GROUP VARCHAR, NEXT_FIRE_TIME BIGINT, TRIGGER_STATE VARCHAR)",
 				"CREATE TABLE SMSS_AUDIT_TRAIL (JOB_ID VARCHAR, IS_LATEST BOOLEAN, EXECUTION_START TIMESTAMP)");
+	}
+
+	@Test
+	void postgresQuartzIntegerColumnsCreatedAsBooleanAreChangedBackOnce() throws Exception {
+		// H2 with DATABASE_TO_LOWER keeps unquoted names lowercase, as Postgres does
+		try (var db = new JdbcTestDatabase();
+				var postgres = DriverManager.getConnection(
+						"jdbc:h2:mem:qrtz_" + UUID.randomUUID() + ";MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE");
+				var statement = postgres.createStatement()) {
+			doAnswer(call -> statement.execute(call.getArgument(0))).when(db.engine).insertData(anyString());
+			statement.execute("CREATE TABLE QRTZ_TRIGGERS (PRIORITY BOOLEAN)");
+			statement.execute("CREATE TABLE QRTZ_FIRED_TRIGGERS (PRIORITY BOOLEAN NOT NULL)");
+			statement.execute("CREATE TABLE QRTZ_SIMPROP_TRIGGERS (INT_PROP_1 BOOLEAN, INT_PROP_2 INTEGER)");
+
+			SchedulerDatabaseUtility.repairQuartzIntegerColumns(postgres, null, null);
+			verify(db.engine, never()).insertData(anyString());
+
+			when(db.engine.getQueryUtil()).thenReturn(SqlQueryUtilFactory.initialize(RdbmsTypeEnum.POSTGRES));
+			SchedulerDatabaseUtility.repairQuartzIntegerColumns(postgres, null, null);
+			SchedulerDatabaseUtility.repairQuartzIntegerColumns(postgres, null, null);
+
+			// three were BOOLEAN, INT_PROP_2 already was INTEGER, and the second pass changes nothing
+			verify(db.engine, times(3)).insertData(anyString());
+			for (String[] column : new String[][] { { "qrtz_triggers", "priority" },
+					{ "qrtz_fired_triggers", "priority" }, { "qrtz_simprop_triggers", "int_prop_1" } }) {
+				try (var columns = postgres.getMetaData().getColumns(null, null, column[0], column[1])) {
+					assertTrue(columns.next());
+					assertEquals(Types.INTEGER, columns.getInt("DATA_TYPE"), column[0] + "." + column[1]);
+				}
+			}
+		}
 	}
 
 	@Test

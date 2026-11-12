@@ -40,6 +40,7 @@ import prerna.cluster.util.DeleteProjectRunner;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -127,16 +128,10 @@ public class CreateAutomationReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates a new blank automation project and returns the standard project creation result.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (PROJECT_NAME_KEY.equals(key)) {
-			return "Display name for the new automation project. "
-					+ "Must follow the standard SEMOSS project naming rules.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Creates a new blank automation project and returns the standard project creation result.")
+				.key(PROJECT_NAME_KEY, "Display name for the new automation project. "
+						+ "Must follow the standard SEMOSS project naming rules.");
 	}
 }

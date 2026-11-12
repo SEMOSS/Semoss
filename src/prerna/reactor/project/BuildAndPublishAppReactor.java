@@ -60,6 +60,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectPortalsHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -355,15 +356,9 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Build the app from assets/client using the configured builder service, write output to assets/portals, and publish the project. Output that could not be served, such as absolute asset urls from a missing base setting, is reported instead of published.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (PROJECT_ID.equals(key)) {
-			return "The unique id (or alias) of the project to build and publish.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Build the app from assets/client using the configured builder service, write output to assets/portals, and publish the project. Output that could not be served, such as absolute asset urls from a missing base setting, is reported instead of published.")
+				.key(PROJECT_ID, "The unique id (or alias) of the project to build and publish.");
 	}
 }

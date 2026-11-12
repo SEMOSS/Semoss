@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.google.AbstractGoogleReactor;
 import prerna.io.connector.google.GoogleLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -81,18 +82,12 @@ public class GoogleDocsCreateReactor extends AbstractGoogleReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Create a document in Google Docs.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROMPT_TITLE.getKey())) {
-			return "Title of the Google Docs document (" + ReactorKeysEnum.PROMPT_TITLE.getKey() + ").";
-		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
-			return "Content to add to the document (" + ReactorKeysEnum.CONTENT.getKey() + ").";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Create a document in Google Docs.")
+				.key(ReactorKeysEnum.PROMPT_TITLE,
+						"Title of the Google Docs document (" + ReactorKeysEnum.PROMPT_TITLE.getKey() + ").")
+				.key(ReactorKeysEnum.CONTENT,
+						"Content to add to the document (" + ReactorKeysEnum.CONTENT.getKey() + ").");
 	}
 
 }

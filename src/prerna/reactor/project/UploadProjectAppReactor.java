@@ -56,6 +56,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -437,27 +438,19 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Import an app from an exported zip smss-app file";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "This is a required value containing the relative file path of the single zip file to be imported";
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-		} else if (key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
-			return "This is a required value to determine if the app is public or private";
-		} else if (key.equals(MODE_KEY)) {
-			return """
-					Optional paramter that is either 'create' or 'replace'.
-					'create' is the default and will break if the app id already exists.
-					'replace' will replace if the app id exist but user must be an owner of the app.
-					Default is 'create' if no value is passed in.
-					""";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Import an app from an exported zip smss-app file").key(
+				ReactorKeysEnum.FILE_PATH,
+				"This is a required value containing the relative file path of the single zip file to be imported")
+				.key(ReactorKeysEnum.SPACE,
+						"This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).")
+				.key(ReactorKeysEnum.GLOBAL, "This is a required value to determine if the app is public or private")
+				.key(MODE_KEY, """
+						Optional paramter that is either 'create' or 'replace'.
+						'create' is the default and will break if the app id already exists.
+						'replace' will replace if the app id exist but user must be an owner of the app.
+						Default is 'create' if no value is passed in.
+						""");
 	}
 
 }

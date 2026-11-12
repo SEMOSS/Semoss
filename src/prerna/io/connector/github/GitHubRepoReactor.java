@@ -31,6 +31,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -144,30 +145,14 @@ public class GitHubRepoReactor extends AbstractReactor {
 		}
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
-	public String getReactorDescription() {
-		return "Lists or searches repositories, and lists organizations and organization repositories for the authenticated GitHub user.";
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ACTION.equals(key)) {
-			return "Required action: list_repos, search_repos, list_orgs, or list_org_repos.";
-		} else if (OWNER.equals(key)) {
-			return "Owner login (user or organization). Optional for list_repos. Required for list_org_repos.";
-		} else if (QUERY.equals(key)) {
-			return "Repository search query. Required for search_repos.";
-		} else if (PAGE.equals(key)) {
-			return "Pagination page number. Defaults to 1.";
-		} else if (PER_PAGE.equals(key)) {
-			return "Pagination size per page. Defaults to 30 and is capped at 100.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists or searches repositories, and lists organizations and organization repositories for the authenticated GitHub user.")
+				.key(ACTION, "Required action: list_repos, search_repos, list_orgs, or list_org_repos.")
+				.key(OWNER, "Owner login (user or organization). Optional for list_repos. Required for list_org_repos.")
+				.key(QUERY, "Repository search query. Required for search_repos.")
+				.key(PAGE, "Pagination page number. Defaults to 1.")
+				.key(PER_PAGE, "Pagination size per page. Defaults to 30 and is capped at 100.");
 	}
 }

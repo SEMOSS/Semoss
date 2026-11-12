@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainTopicUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainGetTopic(topicId=["..."]);
@@ -52,15 +53,10 @@ public class BrainGetTopicReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns one Brain topic with its people and stats; its notes are memories (BrainListMemories)";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id from BrainListTopics";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Returns one Brain topic with its people and stats; its notes are memories (BrainListMemories)")
+				.key(TOPIC_ID, "Topic id from BrainListTopics");
 	}
 }

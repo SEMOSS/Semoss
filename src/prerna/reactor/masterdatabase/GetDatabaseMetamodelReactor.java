@@ -39,6 +39,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.masterdatabase.util.GenerateMetamodelUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -161,27 +162,11 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals(ReactorKeysEnum.OPTIONS.getKey())) {
-			return MCP_KEY_TYPE.ARRAY;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Returns the metamodel of the database";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "The database id";
-		} else if (key.equals(ReactorKeysEnum.OPTIONS.getKey())) {
-			return "Optional array for metamodel information: can include logicalnames, descriptions, and positions";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Returns the metamodel of the database")
+				.key(ReactorKeysEnum.DATABASE, "The database id")
+				.key(ReactorKeysEnum.OPTIONS, key -> key.type(List.class).description(
+						"Optional array for metamodel information: can include logicalnames, descriptions, and positions"));
 	}
 
 }

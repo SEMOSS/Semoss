@@ -38,6 +38,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -121,10 +122,17 @@ public class GetRoomMessages2Reactor extends AbstractReactor {
 
 	@Deprecated
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("roomId")) {
-			return "The room or conversation ID for a given chat app";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the messages of a room, oldest first unless sort is DESC, each with its text, creation date, id and whether it is an input or a response. Returns an empty list when the room cannot be loaded.")
+				.key("limit",
+						key -> key.type(Integer.class)
+								.description("The most messages to return. Applies only when offset is also given."))
+				.key("offset",
+						key -> key.type(Integer.class)
+								.description("How many messages to skip. Applies only when limit is also given."))
+				.key("sort",
+						"DESC, in capitals, returns the newest messages first; any other value keeps them oldest first.")
+				.key("roomId", "The room or conversation ID for a given chat app");
 	}
 }

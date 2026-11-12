@@ -35,6 +35,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.AgentRunStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -90,18 +91,11 @@ public class GetAgentRunsForRoomReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns the current user's durable top-level AgentRun rows for a room in chronological order.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ROOM_ID_KEY.equals(key)) {
-			return "The room whose top-level agent runs should be returned.";
-		}
-		if (INCLUDE_MESSAGES_KEY.equals(key)) {
-			return "When true, includes the messages associated with each run.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Returns the current user's durable top-level AgentRun rows for a room in chronological order.")
+				.key(ROOM_ID_KEY, "The room whose top-level agent runs should be returned.")
+				.key(INCLUDE_MESSAGES_KEY, "When true, includes the messages associated with each run.");
 	}
 }

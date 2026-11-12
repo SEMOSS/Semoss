@@ -35,6 +35,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -100,18 +101,11 @@ public class VisionReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This method is used to run a vision task with an Image-Text-to-Text model";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
-			return "This is the vision prompt to execute against the model";
-		} else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
-			return "The image URL or base64 string for the vision task.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("This method is used to run a vision task with an Image-Text-to-Text model")
+				.key(ReactorKeysEnum.COMMAND, "This is the vision prompt to execute against the model")
+				.key(ReactorKeysEnum.IMAGE, "The image URL or base64 string for the vision task.");
 	}
 
 }
