@@ -109,6 +109,8 @@ class BrainMemoryReviewUnitTests {
 		assertEquals(List.of(new Turn(BrainMemoryReview.OWNER, "Dana approves every Acme budget, keep that in mind",
 				"m3"), new Turn(BrainMemoryReview.ASSISTANT, "Noted.", "m5")), read.turns());
 		assertEquals("m5", read.lastMessageId());
+		// what came before is kept apart, as context
+		assertEquals(List.of("m1", "m2"), read.earlier().stream().map(Turn::messageId).toList());
 		// no watermark yet: from the start
 		assertEquals(4, BrainMemoryReview.read(messages, null).turns().size());
 		assertEquals("m2", BrainMemoryReview.read(List.of(), "m2").lastMessageId());
