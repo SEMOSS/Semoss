@@ -177,7 +177,7 @@ public class MakeDefaultRoomToolsForEngineReactor extends AbstractReactor {
 				true);
 		JSONObject mcpJson = wrapMcpJson(mergedTools);
 		FileSystemUtil.saveAssetFiles(roomFolder, List.of(MCPUtility.PIXEL_MCP_RELATIVE_PATH),
-				List.of(mcpJson.toString(4)));
+				List.of(mcpJson.toString(4)), true);
 
 		classLogger.info("Saved {} room MCP tool(s) for {} engine '{}'", generatedTools.length(),
 				engine.getCatalogType(), engine.getEngineId());

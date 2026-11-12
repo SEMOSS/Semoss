@@ -75,10 +75,12 @@ import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.agent.skill.Skill;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.tcp.client.SocketClient;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 import prerna.util.pptx.SemossPptxInspector;
 
@@ -157,7 +159,9 @@ final class PlatformAgentToolHandlers {
 		add(tools, handler("WriteFile",
 				"Writes text to a file under the working directory, creating parent directories as needed.",
 				objectSchema(props(prop(PARAM_PATH, stringProp("Path to write, relative to the working directory.")),
-						prop("content", stringProp("Complete file content."))), List.of(PARAM_PATH, "content")),
+						prop("content", stringProp("Complete file content.")),
+						prop(ReactorKeysEnum.OVERRIDE.getKey(), booleanProp(FileSystemUtil.OVERRIDE_SAVE_DESCRIPTION))),
+						List.of(PARAM_PATH, "content")),
 				PlatformAgentToolHandlers::writeFile));
 		add(tools, handler("EditFile",
 				"Performs one exact string replacement in a file. Fails if the old string is not unique unless replace_all=true.",
@@ -459,10 +463,15 @@ final class PlatformAgentToolHandlers {
 		if (filePath == null || filePath.trim().isEmpty()) {
 			return "Error: path is required";
 		}
+		Object overrideParam = params.get(ReactorKeysEnum.OVERRIDE.getKey());
+		boolean override = overrideParam == null || parseBoolean(overrideParam);
 		File file = tc.resolve(filePath);
 		tc.requireWritable(file);
-		saveTextFile(file, content, tc);
-		return "Wrote file: " + tc.toRelative(file.getAbsolutePath());
+		SavedAsset saved = saveTextFile(file, content, override, tc);
+		if (saved.renamed()) {
+			return "Wrote file: " + saved.savedPath() + " (" + saved.requestedPath() + " already exists)";
+		}
+		return "Wrote file: " + saved.savedPath();
 	}
 
 	private static String editFile(Map<String, Object> params, ToolContext tc) throws Exception {
@@ -495,7 +504,7 @@ final class PlatformAgentToolHandlers {
 		}
 		String updated = replaceAll ? content.replace(oldString, newString)
 				: content.replaceFirst(Pattern.quote(oldString), Matcher.quoteReplacement(newString));
-		saveTextFile(file, updated, tc);
+		saveTextFile(file, updated, true, tc);
 		return "Replaced " + occurrences + " occurrence(s) in: " + tc.toRelative(file.getAbsolutePath());
 	}
 
@@ -559,7 +568,7 @@ final class PlatformAgentToolHandlers {
 					: working.replaceFirst(Pattern.quote(oldString), Matcher.quoteReplacement(newString));
 			totalReplacements += occurrences;
 		}
-		saveTextFile(file, working, tc);
+		saveTextFile(file, working, true, tc);
 		return "Applied " + edits.length() + " edit(s) (" + totalReplacements + " replacement(s)) to: "
 				+ tc.toRelative(file.getAbsolutePath());
 	}
@@ -991,7 +1000,7 @@ final class PlatformAgentToolHandlers {
 		JSONObject doc = new JSONObject();
 		doc.put("updated_at", Instant.now().toString());
 		doc.put("items", validated);
-		saveTextFile(tc.resolve(TODOS_FILE), doc.toString(2), tc);
+		saveTextFile(tc.resolve(TODOS_FILE), doc.toString(2), true, tc);
 		return String.format("Wrote %d todo(s): %d pending, %d in_progress, %d completed", validated.length(), pending,
 				inProgress, completed);
 	}
@@ -1146,7 +1155,18 @@ final class PlatformAgentToolHandlers {
 		return out.toString();
 	}
 
-	private static void saveTextFile(File file, String content, ToolContext tc) {
+	/**
+	 * Writes a text file under the working directory and pushes the room. When a
+	 * file already exists at the path, {@code override} decides what happens: true
+	 * replaces it, false keeps it and writes beside it under the next copy number.
+	 *
+	 * @param file     the file to write
+	 * @param content  the text to write, null for an empty file
+	 * @param override whether an existing file at the path is replaced
+	 * @param tc       the tool context
+	 * @return where the file was written
+	 */
+	private static SavedAsset saveTextFile(File file, String content, boolean override, ToolContext tc) {
 		tc.requireWritable(file);
 		if (content == null) {
 			content = "";
@@ -1159,8 +1179,10 @@ final class PlatformAgentToolHandlers {
 		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
 		FileSystemUtil.validateAssetFiles(filePaths, strictScriptSource);
 		String encodedContent = Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
-		FileSystemUtil.saveAssetFilesBase64(tc.root, filePaths, Collections.singletonList(encodedContent), true);
+		List<SavedAsset> saved = FileSystemUtil.saveAssetFilesBase64(tc.root, filePaths,
+				Collections.singletonList(encodedContent), true, override);
 		pushRoom(tc);
+		return saved.get(0);
 	}
 
 	private static void pushRoom(ToolContext tc) {
