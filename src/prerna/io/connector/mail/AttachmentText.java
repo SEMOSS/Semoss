@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.collaboration;
+package prerna.io.connector.mail;
 
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -51,27 +51,27 @@ import prerna.io.connector.ms.MicrosoftMessageDisplay;
 
 // Office and mail attachments as plain text, so a model that cannot take the file itself can
 // still read it. PDFs and images are left alone: every provider takes them as they are.
-final class BrainAttachmentText {
+public final class AttachmentText {
 
 	// the same cap the Office app uses for chat uploads
-	static final int MAX_CHARS = 60_000;
+	public static final int MAX_CHARS = 60_000;
 	private static final Set<String> OFFICE = Set.of("doc", "docx", "docm", "dot", "dotx", "xls", "xlsx", "xlsm",
 			"ppt", "pptx", "pptm", "msg");
 
-	record Extracted(String text, boolean truncated) {
+	public record Extracted(String text, boolean truncated) {
 	}
 
-	private BrainAttachmentText() {
+	private AttachmentText() {
 
 	}
 
-	static boolean supports(String name) {
+	public static boolean supports(String name) {
 		String extension = extension(name);
 		return OFFICE.contains(extension) || "eml".equals(extension);
 	}
 
 	// header then the file's text, cut at maxChars; null for a type this does not read
-	static Extracted extract(Path file, String name, String header, int maxChars) throws Exception {
+	public static Extracted extract(Path file, String name, String header, int maxChars) throws Exception {
 		String extension = extension(name);
 		String body;
 		if ("eml".equals(extension)) {

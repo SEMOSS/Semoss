@@ -35,6 +35,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.runtime.PlatformAgentTools;
 import prerna.sablecc2.om.PixelDataType;
@@ -68,7 +69,8 @@ public class GetAgentFormOptionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Get the built-in agent tool catalog and known hook kinds for creating an agent";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Get the built-in agent tool catalog and known hook kinds for creating an agent").noKeys();
 	}
 }

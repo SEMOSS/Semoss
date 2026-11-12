@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -94,18 +95,11 @@ public class SalesforceCreateRecordReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates a Salesforce record using an object API name and a map of field/value pairs.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SOBJECT_NAME.equals(key)) {
-			return "Required Salesforce object API name to create a record in (for example, Lead).";
-		} else if (ReactorKeysEnum.MAP.getKey().equals(key)) {
-			return "Required map of Salesforce field API names to values for the new record.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Creates a Salesforce record using an object API name and a map of field/value pairs.")
+				.key(SOBJECT_NAME, "Required Salesforce object API name to create a record in (for example, Lead).")
+				.key(ReactorKeysEnum.MAP, "Required map of Salesforce field API names to values for the new record.");
 	}
 
 }

@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminExternalConnectorsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -85,23 +86,14 @@ public class AdminJiraInsertConnectionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates and stores a Jira OAuth connection configuration (client id, client secret, scope, and alias).";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ALIAS.equals(key)) {
-			return "Required unique alias used to identify this saved Jira connection.";
-		} else if (CLIENT_ID.equals(key)) {
-			return "Required Atlassian OAuth client id from the Jira app configuration.";
-		} else if (CLIENT_SECRET.equals(key)) {
-			return "Required Atlassian OAuth client secret from the Jira app configuration.";
-		} else if (SCOPE.equals(key)) {
-			return "Required space-separated Atlassian OAuth scopes (for example, read:jira-user read:jira-work write:jira-work).";
-		} else if (USER_PROFILE_URL.equals(key)) {
-			return "Required full HTTPS user profile endpoint URL for this Jira connector.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Creates and stores a Jira OAuth connection configuration (client id, client secret, scope, and alias).")
+				.key(ALIAS, "Required unique alias used to identify this saved Jira connection.")
+				.key(CLIENT_ID, "Required Atlassian OAuth client id from the Jira app configuration.")
+				.key(CLIENT_SECRET, "Required Atlassian OAuth client secret from the Jira app configuration.")
+				.key(SCOPE,
+						"Required space-separated Atlassian OAuth scopes (for example, read:jira-user read:jira-work write:jira-work).")
+				.key(USER_PROFILE_URL, "Required full HTTPS user profile endpoint URL for this Jira connector.");
 	}
 }

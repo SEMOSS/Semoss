@@ -1623,6 +1623,7 @@ public final class AgentRunStore {
 		map.put("userType", rs.getString("USER_TYPE"));
 		map.put("artifacts", new ArrayList<>());
 		addDeliveryMetadata(map);
+		map.put("taskOutcome", AgentTaskOutcome.fromRun(map));
 		return map;
 	}
 

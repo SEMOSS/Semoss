@@ -39,7 +39,10 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** The file side of a routine's reference documents, apart from the owner's user asset project. */
+/**
+ * The file side of a routine's reference documents, apart from the owner's user
+ * asset project.
+ */
 class WorkRoutineDocumentsUnitTests {
 
 	@TempDir

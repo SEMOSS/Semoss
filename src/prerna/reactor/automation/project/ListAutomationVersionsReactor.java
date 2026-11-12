@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -87,20 +88,13 @@ public class ListAutomationVersionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns the git commit history (author, time, revision hash, message) for each time "
-				+ "SaveAutomation was called on the given automation project.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "ID or alias of the automation project whose version history should be listed.";
-		}
-		if (ReactorKeysEnum.LIMIT.getKey().equals(key)) {
-			return "Maximum number of versions to return. Defaults to " + DEFAULT_LIMIT + ", capped at " + MAXIMUM_LIMIT
-					+ ".";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Returns the git commit history (author, time, revision hash, message) for each time "
+						+ "SaveAutomation was called on the given automation project.")
+				.key(ReactorKeysEnum.PROJECT,
+						"ID or alias of the automation project whose version history should be listed.")
+				.key(ReactorKeysEnum.LIMIT, "Maximum number of versions to return. Defaults to " + DEFAULT_LIMIT
+						+ ", capped at " + MAXIMUM_LIMIT + ".");
 	}
 }

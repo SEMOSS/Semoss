@@ -28,6 +28,7 @@
 package prerna.reactor.insights.fs;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -62,16 +63,11 @@ public class GetInsightAssetsBase64Reactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Retrieve the contents of a file (image, pdf, etc.) as base64 encoded string in the insight";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file to get the contents as a base64 encoded string";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Retrieve the contents of a file (image, pdf, etc.) as base64 encoded string in the insight")
+				.key(ReactorKeysEnum.FILE_PATH, "Names of the file to get the contents as a base64 encoded string");
 	}
 
 }

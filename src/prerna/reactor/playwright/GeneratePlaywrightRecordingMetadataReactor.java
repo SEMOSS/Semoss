@@ -48,6 +48,7 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.remoteviewer.service.RemoteBrowserSession;
 import prerna.remoteviewer.service.RemoteBrowserSessionManager;
 import prerna.sablecc2.om.PixelDataType;
@@ -431,7 +432,12 @@ public class GeneratePlaywrightRecordingMetadataReactor extends AbstractReactor 
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Generates privacy-safe title, intent, description, and a suggested filename from actual remote-browser recording actions";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Generates privacy-safe title, intent, description, and a suggested filename from actual remote-browser recording actions")
+				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class).description(
+						"The number of recent room messages to include as context when roomId is given, capped at 20; defaults to 8."))
+				.key("recording_name_hint",
+						"An optional hint, such as the original request, that the model uses as secondary context when it writes the title, intent and description. Sensitive values are removed and it is cut to 300 characters.");
 	}
 }

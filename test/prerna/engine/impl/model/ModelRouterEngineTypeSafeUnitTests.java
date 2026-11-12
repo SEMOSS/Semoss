@@ -65,8 +65,8 @@ class ModelRouterEngineTypeSafeUnitTests {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	void classifierGetsTheTurnsImagesOnlyWhenItsModalitiesAllowThem() throws Exception {
 		ITypeSafeEngine classifier = mock(ITypeSafeEngine.class);
-		when(classifier.evaluate(any(), any(), any(), any(), any())).thenReturn(TypeSafeModelEngineResponse.fromObject(
-				Map.of("model", "jev", "usage", Map.of(), "answers",
+		when(classifier.evaluate(any(), any(), any(), any(), any()))
+				.thenReturn(TypeSafeModelEngineResponse.fromObject(Map.of("model", "jev", "usage", Map.of(), "answers",
 						Map.of("route", Map.of("type", "choice", "choice", "Vision")))));
 		InputMessage message = mock(InputMessage.class);
 		List<MessageInputMedia> media = List.of(media("image/png", "aW1n"), media("application/pdf", "cGRm"));
@@ -99,8 +99,8 @@ class ModelRouterEngineTypeSafeUnitTests {
 	}
 
 	private static String route(ModelRouterEngine router, InputMessage message) throws Exception {
-		Method select = ModelRouterEngine.class.getDeclaredMethod("selectRouteByLLM", String.class,
-				InputMessage.class, Insight.class, Room.class, Map.class);
+		Method select = ModelRouterEngine.class.getDeclaredMethod("selectRouteByLLM", String.class, InputMessage.class,
+				Insight.class, Room.class, Map.class);
 		select.setAccessible(true);
 		return (String) select.invoke(router, "what is this?", message, null, null, new HashMap<String, Object>());
 	}

@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkTaskUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkMergeItems(taskId=["from"], intoTaskId=["into"]);
@@ -46,19 +47,10 @@ public class WorkMergeItemsReactor extends AbstractWorkTaskReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Merges a duplicate work item into another: its steps, threads, topics and updates move over and the "
-				+ "duplicate closes";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TASK_ID.equals(key)) {
-			return "The duplicate work item's id";
-		}
-		if (INTO_TASK_ID.equals(key)) {
-			return "The work item to keep";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Merges a duplicate work item into another: its steps, threads, topics and updates move over and the "
+						+ "duplicate closes")
+				.key(TASK_ID, "The duplicate work item's id").key(INTO_TASK_ID, "The work item to keep");
 	}
 }

@@ -43,6 +43,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -62,7 +63,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
+		User user = requireUser();
 
 		String projectId = resolveContextEngineId(this.keyValue.get(this.keysToGet[0]));
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
@@ -159,24 +160,20 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Generates a function from a specific cell in the <notebook_placeholder> that is written to py/<file_placeholder>.
-				The function is then added to the mcp/py_mcp.json.
-				"""
-				.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME)
-				.replace("<notebook_placeholder>", MCPUtility.MCP_NOTEBOOK_NAME);
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app. If not passed, will try to use the app context.";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository for the project";
-		} else if (key.equals("cellId")) {
-			return "The cell id in the " + MCPUtility.MCP_NOTEBOOK_NAME + " notebook to convert into an mcp tool";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Generates a function from a specific cell in the <notebook_placeholder> that is written to py/<file_placeholder>.
+								The function is then added to the mcp/py_mcp.json.
+								"""
+								.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME)
+								.replace("<notebook_placeholder>", MCPUtility.MCP_NOTEBOOK_NAME))
+				.key(ReactorKeysEnum.PROJECT,
+						"The unique id for the project/app. If not passed, will try to use the app context.")
+				.key(ReactorKeysEnum.COMMENT_KEY,
+						"Comment to add while saving the files within the git repository for the project")
+				.key("cellId",
+						"The cell id in the " + MCPUtility.MCP_NOTEBOOK_NAME + " notebook to convert into an mcp tool");
 	}
 }

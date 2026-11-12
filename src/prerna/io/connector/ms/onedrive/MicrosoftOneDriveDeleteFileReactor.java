@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -110,18 +111,14 @@ public class MicrosoftOneDriveDeleteFileReactor extends AbstractMicrosoftOneDriv
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Delete a OneDrive file or folder, which sends it to the drive's recycle bin.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ITEM_ID)) {
-			return "Id of the item to delete, as returned by the OneDrive listings. Not needed when a path is given.";
-		} else if (key.equals(PATH)) {
-			return "Path of the item to delete, relative to the drive root. Not needed when an item id is given.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Delete a OneDrive file or folder, which sends it to the drive's recycle bin.")
+				.key(DRIVE_ID, DRIVE_ID_DESCRIPTION)
+				.key(ITEM_ID,
+						"Id of the item to delete, as returned by the OneDrive listings. Not needed when a path is given.")
+				.key(PATH,
+						"Path of the item to delete, relative to the drive root. Not needed when an item id is given.");
 	}
 
 	@Override

@@ -30,6 +30,7 @@ package prerna.reactor.agent;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -61,15 +62,9 @@ public class GetAllAgentRunsForRoomReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns every run you have in one of your rooms, newest first, subagent runs included, with the room's name and whether it is closed.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
-			return "Your room whose runs are returned.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns every run you have in one of your rooms, newest first, subagent runs included, with the room's name and whether it is closed.")
+				.key(ReactorKeysEnum.ROOM_ID, "Your room whose runs are returned.");
 	}
 }

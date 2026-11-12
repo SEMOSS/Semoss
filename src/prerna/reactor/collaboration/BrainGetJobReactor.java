@@ -32,6 +32,7 @@ import java.util.HashMap;
 import prerna.collaboration.BrainSync;
 import prerna.collaboration.CollaborationJobUtils;
 import prerna.collaboration.WorkThreadInsights;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainGetJob(); or BrainGetJob(kind=["import"]);
@@ -53,7 +54,8 @@ public class BrainGetJobReactor extends AbstractCollaborationReactor {
 		var job = jobId == null ? CollaborationJobUtils.latest(user, getString(KIND), getString(MODE))
 				: CollaborationJobUtils.get(user, jobId);
 		var result = job == null ? new HashMap<String, Object>() : new HashMap<>(job);
-		// a sync's summaries keep landing after it finishes; the page reads again until none are left
+		// a sync's summaries keep landing after it finishes; the page reads again until
+		// none are left
 		if (BrainSync.KIND.equals(getString(KIND))) {
 			result.put("insightsPending", WorkThreadInsights.pendingCount(user));
 		}
@@ -61,21 +63,11 @@ public class BrainGetJobReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Read an owner-scoped background job by exact ID or the newest import/classify job, optionally filtered by sort/topics mode: status, progress, counts and error; with kind sync also insightsPending, the thread summaries still running";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (KIND.equals(key)) {
-			return "Job kind, for example import; omit for the newest of any kind";
-		}
-		if (JOB_ID.equals(key)) {
-			return "Exact job ID belonging to the signed-in owner; takes precedence over kind and mode";
-		}
-		if (MODE.equals(key)) {
-			return "With kind classify: sort or topics; omit for the newest job of either mode";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Read an owner-scoped background job by exact ID or the newest import/classify job, optionally filtered by sort/topics mode: status, progress, counts and error; with kind sync also insightsPending, the thread summaries still running")
+				.key(KIND, "Job kind, for example import; omit for the newest of any kind")
+				.key(JOB_ID, "Exact job ID belonging to the signed-in owner; takes precedence over kind and mode")
+				.key(MODE, "With kind classify: sort or topics; omit for the newest job of either mode");
 	}
 }

@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSetThreadParticipant(threadId=["..."], personId=["..."], included=[false]);
@@ -56,19 +57,10 @@ public class BrainSetThreadParticipantReactor extends AbstractCollaborationReact
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Excludes or includes a person on one Brain thread; an excluded person's messages make no items or alerts";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (PERSON_ID.equals(key)) {
-			return "Person id of a participant on the thread";
-		} else if (INCLUDED.equals(key)) {
-			return "false excludes the person on this thread, true includes them again";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Excludes or includes a person on one Brain thread; an excluded person's messages make no items or alerts")
+				.key(THREAD_ID, "Thread id").key(PERSON_ID, "Person id of a participant on the thread")
+				.key(INCLUDED, "false excludes the person on this thread, true includes them again");
 	}
 }

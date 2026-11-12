@@ -35,6 +35,7 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -116,16 +117,11 @@ public class EmbeddingsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor is used to interact with Embedding Model Engines. If the model does not support embeddings "
-				+ "it will return \"This model does not support embeddings.\"";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.VALUES.getKey())) {
-			return "Specify the string value(s) serving as input text, from which you aim to generate embeddings vector(s).";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"This reactor is used to interact with Embedding Model Engines. If the model does not support embeddings "
+						+ "it will return \"This model does not support embeddings.\"")
+				.key(ReactorKeysEnum.VALUES,
+						"Specify the string value(s) serving as input text, from which you aim to generate embeddings vector(s).");
 	}
 }

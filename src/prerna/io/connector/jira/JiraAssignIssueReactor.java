@@ -29,12 +29,13 @@ package prerna.io.connector.jira;
 
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -75,17 +76,10 @@ public class JiraAssignIssueReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Assigns a Jira issue to a user by accountId, or unassigns it by omitting the assignee.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(JIRAID)) {
-			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
-		} else if (key.equals(ASSIGNEE)) {
-			return "Optional Jira assignee accountId. Omit or pass blank to unassign.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Assigns a Jira issue to a user by accountId, or unassigns it by omitting the assignee.")
+				.key(JIRAID, "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).")
+				.key(ASSIGNEE, "Optional Jira assignee accountId. Omit or pass blank to unassign.");
 	}
 }

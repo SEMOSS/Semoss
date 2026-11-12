@@ -35,6 +35,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -45,7 +46,7 @@ public class SetRoomForInsightReactor extends AbstractReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -67,7 +68,12 @@ public class SetRoomForInsightReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User is not the owner of the room or room is not active");
 		}
 
-		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		// only the room's id and folder are needed, so a cached room is taken as is; a refresh would wait on the lock
+		// a running agent holds for each model call
+		Room room = RoomUtils.getCachedRoomWithoutRefresh(roomId, this.insight);
+		if (room == null) {
+			room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		}
 		if (room == null) {
 			throw new IllegalArgumentException("Room not found");
 		}
@@ -77,8 +83,9 @@ public class SetRoomForInsightReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Set the room for the insight. File system operations on the insight will now alter/show the room files";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Set the room for the insight. File system operations on the insight will now alter/show the room files");
 	}
 
 }

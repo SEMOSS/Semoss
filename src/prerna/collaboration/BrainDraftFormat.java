@@ -57,7 +57,10 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.util.Utility;
 
-/** How drafts written for the owner look in Outlook: their font, single spaced lines, and their signature. */
+/**
+ * How drafts written for the owner look in Outlook: their font, single spaced
+ * lines, and their signature.
+ */
 public final class BrainDraftFormat {
 
 	private static final Logger classLogger = LogManager.getLogger(BrainDraftFormat.class);
@@ -73,7 +76,8 @@ public final class BrainDraftFormat {
 	private static final Pattern FAMILY = Pattern.compile("font-family\\s*:\\s*([^;]+)", Pattern.CASE_INSENSITIVE);
 	private static final Pattern SIZE = Pattern.compile("font-size\\s*:\\s*([0-9.]+)\\s*(pt|px)",
 			Pattern.CASE_INSENSITIVE);
-	// where Outlook and Gmail put the signature they insert; mobile "Get Outlook" lines are not one
+	// where Outlook and Gmail put the signature they insert; mobile "Get Outlook"
+	// lines are not one
 	private static final Pattern FORWARD = Pattern.compile("^\\s*(fw|fwd)\\s*:", Pattern.CASE_INSENSITIVE);
 	private static final String SIGNATURE = "#Signature, [id^=x_Signature], div.gmail_signature";
 
@@ -85,8 +89,9 @@ public final class BrainDraftFormat {
 	}
 
 	/**
-	 * The Collaboration owner's draft look; null when Collaboration is off, the user has no Brain settings or they
-	 * cannot be read, so the mail connectors keep their own formatting for everyone else.
+	 * The Collaboration owner's draft look; null when Collaboration is off, the
+	 * user has no Brain settings or they cannot be read, so the mail connectors
+	 * keep their own formatting for everyone else.
 	 */
 	public static Format forOwner(User user) {
 		try {
@@ -101,8 +106,8 @@ public final class BrainDraftFormat {
 						boolean on = !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "DRAFT_SIGNATURE_ON"));
 						String signature = CollaborationDbUtils.getString(rs, "DRAFT_SIGNATURE_HTML");
 						return new Format(font == null || font.isBlank() ? DEFAULT_FONT : font,
-								size == null ? DEFAULT_SIZE : size, on && signature != null && !signature.isBlank()
-										? signature : null);
+								size == null ? DEFAULT_SIZE : size,
+								on && signature != null && !signature.isBlank() ? signature : null);
 					}, owner.getValue0(), owner.getValue1());
 			return format;
 		} catch (Exception e) {
@@ -112,7 +117,10 @@ public final class BrainDraftFormat {
 		}
 	}
 
-	/** Collaboration's own drafts: the owner's look, or the default one before they have Brain settings. */
+	/**
+	 * Collaboration's own drafts: the owner's look, or the default one before they
+	 * have Brain settings.
+	 */
 	public static String html(User user, String text) {
 		Format format = forOwner(user);
 		return html(format == null ? new Format(DEFAULT_FONT, DEFAULT_SIZE, null) : format, text);
@@ -123,7 +131,10 @@ public final class BrainDraftFormat {
 		return html ? htmlBody(format, body) : html(format, body);
 	}
 
-	/** Plain text as Outlook-style HTML: one div per line (no paragraph gaps), the owner's font, their signature. */
+	/**
+	 * Plain text as Outlook-style HTML: one div per line (no paragraph gaps), the
+	 * owner's font, their signature.
+	 */
 	public static String html(Format format, String text) {
 		if (format.signatureHtml() != null) {
 			text = stripTyped(text, signatureKeys(format.signatureHtml()));
@@ -145,8 +156,8 @@ public final class BrainDraftFormat {
 	}
 
 	/**
-	 * HTML from the editor in the owner's look: no paragraph gaps (Outlook's own mail has none), their font, and their
-	 * signature unless it is already there.
+	 * HTML from the editor in the owner's look: no paragraph gaps (Outlook's own
+	 * mail has none), their font, and their signature unless it is already there.
 	 */
 	public static String htmlBody(Format format, String html) {
 		Document doc = Jsoup.parseBodyFragment(html == null ? "" : html);
@@ -167,13 +178,18 @@ public final class BrainDraftFormat {
 		return out.append("</div>").toString();
 	}
 
-	/** The text without a signature typed at its end, when the owner's saved one is added anyway. */
+	/**
+	 * The text without a signature typed at its end, when the owner's saved one is
+	 * added anyway.
+	 */
 	public static String withoutTypedSignature(User user, String text) {
 		Format format = forOwner(user);
-		return format == null || format.signatureHtml() == null ? text : stripTyped(text, signatureKeys(format.signatureHtml()));
+		return format == null || format.signatureHtml() == null ? text
+				: stripTyped(text, signatureKeys(format.signatureHtml()));
 	}
 
-	// the signature's lines, letters and digits only, so "571-363-9720" matches "571 363 9720"
+	// the signature's lines, letters and digits only, so "571-363-9720" matches
+	// "571 363 9720"
 	static Set<String> signatureKeys(String html) {
 		Document doc = Jsoup.parseBodyFragment(html);
 		doc.select("br").after("\n");
@@ -235,7 +251,8 @@ public final class BrainDraftFormat {
 			typed.add(block);
 		}
 		if (matched >= 2) {
-			// with the blank lines between it and the body; the signature brings its own gap
+			// with the blank lines between it and the body; the signature brings its own
+			// gap
 			typed.forEach(Element::remove);
 		}
 	}
@@ -243,11 +260,15 @@ public final class BrainDraftFormat {
 	private static String cssFamily(String font) {
 		String name = FONT_NAME.matcher(font).matches() ? font : DEFAULT_FONT;
 		// Outlook names Aptos by its cloud font aliases too
-		return DEFAULT_FONT.equals(name) ? "Aptos, Aptos_EmbeddedFont, Aptos_MSFontService, Calibri, Helvetica, sans-serif"
+		return DEFAULT_FONT.equals(name)
+				? "Aptos, Aptos_EmbeddedFont, Aptos_MSFontService, Calibri, Helvetica, sans-serif"
 				: "'" + name + "', Calibri, Helvetica, sans-serif";
 	}
 
-	/** The owner's name and address, so a draft shows who it is from before it is sent; null when unknown. */
+	/**
+	 * The owner's name and address, so a draft shows who it is from before it is
+	 * sent; null when unknown.
+	 */
 	public static String[] sender(User user) {
 		AccessToken token = user == null ? null : user.getAccessToken(AuthProvider.MICROSOFT);
 		if (token == null || token.getEmail() == null || token.getEmail().isBlank()) {
@@ -260,7 +281,10 @@ public final class BrainDraftFormat {
 		return font != null && FONT_NAME.matcher(font).matches();
 	}
 
-	/** Their own signature HTML, made safe to put back in a draft; null when nothing is left. */
+	/**
+	 * Their own signature HTML, made safe to put back in a draft; null when nothing
+	 * is left.
+	 */
 	static String clean(String html) {
 		if (html == null || html.isBlank()) {
 			return null;
@@ -269,7 +293,8 @@ public final class BrainDraftFormat {
 		Document doc = Jsoup.parseBodyFragment(Jsoup.clean(html, safe));
 		// inline cid images do not travel with a copied signature
 		doc.select("img:not([src])").remove();
-		// Outlook's own stylesheet zeroes paragraph margins; inline it so lines do not spread apart
+		// Outlook's own stylesheet zeroes paragraph margins; inline it so lines do not
+		// spread apart
 		for (Element block : doc.select("p, div")) {
 			if (!block.attr("style").contains("margin")) {
 				block.attr("style", ("margin: 0; " + block.attr("style")).strip());
@@ -285,7 +310,10 @@ public final class BrainDraftFormat {
 
 	// ---- learning from sent mail ----
 
-	/** What sent mail shows: the signature most used and the body font most used; empty fields when not found. */
+	/**
+	 * What sent mail shows: the signature most used and the body font most used;
+	 * empty fields when not found.
+	 */
 	public static Map<String, Object> learn(User user) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		List<String> sentFolders = BrainMailFolders.load(owner.getValue0(), owner.getValue1()).byId().values().stream()
@@ -296,11 +324,10 @@ public final class BrainDraftFormat {
 		params.addAll(sentFolders);
 		String inSent = sentFolders.isEmpty() ? ""
 				: " OR FOLDER IN (" + String.join(",", Collections.nCopies(sentFolders.size(), "?")) + ")";
-		List<String> ids = CollaborationDbUtils.query(
-				CollaborationDbUtils.page("SELECT GRAPH_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+		List<String> ids = CollaborationDbUtils.query(CollaborationDbUtils.page(
+				"SELECT GRAPH_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 						+ "AND RECEIVED_AT >= ? AND (FOLDER LIKE ?" + inSent + ") ORDER BY RECEIVED_AT DESC",
-						SENT_TO_READ, 0),
-				rs -> rs.getString("GRAPH_ID"), params.toArray());
+				SENT_TO_READ, 0), rs -> rs.getString("GRAPH_ID"), params.toArray());
 		Map<String, Integer> signatures = new LinkedHashMap<>();
 		Map<String, String> signatureHtml = new HashMap<>();
 		Map<String, Integer> fonts = new LinkedHashMap<>();
@@ -309,8 +336,10 @@ public final class BrainDraftFormat {
 		int read = 0;
 		for (BrainMessageSource.Fetched fetched : BrainMessageSource.current().fetchAll(user, "email", null, ids)) {
 			Map<String, Object> message = fetched.message();
-			// a forward carries someone else's signature
-			if (message == null || FORWARD.matcher(String.valueOf(message.get("subject"))).find()) {
+			// a forward carries someone else's signature; a routine's styled result mailed
+			// to the owner carries none
+			if (message == null || FORWARD.matcher(String.valueOf(message.get("subject"))).find()
+					|| BrainStyleLearning.toThemselves(message)) {
 				continue;
 			}
 			// only what the owner wrote, never the quoted mail below it
@@ -369,7 +398,10 @@ public final class BrainDraftFormat {
 		return out;
 	}
 
-	/** Copies what sent mail shows into the settings; with onlyMissing, keeps anything already set. */
+	/**
+	 * Copies what sent mail shows into the settings; with onlyMissing, keeps
+	 * anything already set.
+	 */
 	public static Map<String, Object> learnInto(User user, boolean onlyMissing) {
 		Map<String, Object> learned = learn(user);
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -380,7 +412,8 @@ public final class BrainDraftFormat {
 		List<String> sets = new ArrayList<>();
 		List<Object> params = new ArrayList<>();
 		if (!signature.isEmpty()) {
-			sets.add(onlyMissing ? "DRAFT_SIGNATURE_HTML = COALESCE(DRAFT_SIGNATURE_HTML, ?)" : "DRAFT_SIGNATURE_HTML = ?");
+			sets.add(onlyMissing ? "DRAFT_SIGNATURE_HTML = COALESCE(DRAFT_SIGNATURE_HTML, ?)"
+					: "DRAFT_SIGNATURE_HTML = ?");
 			params.add(signature);
 		}
 		if (validFont(font)) {
@@ -398,13 +431,15 @@ public final class BrainDraftFormat {
 			params.add(CollaborationDbUtils.now());
 			params.add(owner.getValue0());
 			params.add(owner.getValue1());
-			CollaborationDbUtils.update("UPDATE BRAIN_SETTINGS SET " + String.join(", ", sets)
-					+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ?", params.toArray());
+			CollaborationDbUtils.update(
+					"UPDATE BRAIN_SETTINGS SET " + String.join(", ", sets) + " WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+					params.toArray());
 		}
 		return learned;
 	}
 
-	// first and last name from the Microsoft account, "Last, First M" or "First Last"
+	// first and last name from the Microsoft account, "Last, First M" or "First
+	// Last"
 	private static List<String> nameParts(User user) {
 		AccessToken token = user == null ? null : user.getAccessToken(AuthProvider.MICROSOFT);
 		String name = token == null ? null : token.getName();
@@ -418,8 +453,9 @@ public final class BrainDraftFormat {
 	}
 
 	/**
-	 * A signature Outlook did not mark: the last short line with their whole name, and what follows it.
-	 * The sign-off ("Kunal") is first name only, so it is never taken for the signature.
+	 * A signature Outlook did not mark: the last short line with their whole name,
+	 * and what follows it. The sign-off ("Kunal") is first name only, so it is
+	 * never taken for the signature.
 	 */
 	private static String byName(Document doc, List<String> names) {
 		if (names.size() < 2) {
@@ -428,7 +464,8 @@ public final class BrainDraftFormat {
 		Element nameLine = null;
 		for (Element block : doc.body().select("p, div, td, span, b, strong")) {
 			String text = block.ownText().strip();
-			if (!text.isEmpty() && text.length() <= 60 && names.stream().allMatch(text.toLowerCase(Locale.ROOT)::contains)) {
+			if (!text.isEmpty() && text.length() <= 60
+					&& names.stream().allMatch(text.toLowerCase(Locale.ROOT)::contains)) {
 				nameLine = block;
 			}
 		}
@@ -441,7 +478,8 @@ public final class BrainDraftFormat {
 		}
 		// a signature laid out in a table is the whole table
 		Element start = nameLine.closest("table") != null ? nameLine.closest("table") : nameLine;
-		// the name line and everything after it, in reading order, up to the end of what they wrote
+		// the name line and everything after it, in reading order, up to the end of
+		// what they wrote
 		StringBuilder html = new StringBuilder();
 		for (Node at = start; at != null && at != doc.body(); at = at.parent()) {
 			for (Node next = at == start ? start : at.nextSibling(); next != null; next = next.nextSibling()) {

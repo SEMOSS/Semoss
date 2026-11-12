@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkTaskUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkReorderItems(taskIds=["a","b"]);
@@ -45,15 +46,8 @@ public class WorkReorderItemsReactor extends AbstractWorkTaskReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Sets the owner's order of their work items, first to last";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TASK_IDS.equals(key)) {
-			return "Work item ids in the order the owner wants them";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Sets the owner's order of their work items, first to last")
+				.key(TASK_IDS, "Work item ids in the order the owner wants them");
 	}
 }

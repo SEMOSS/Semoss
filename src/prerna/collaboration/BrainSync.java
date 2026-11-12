@@ -172,13 +172,20 @@ public final class BrainSync {
 		boolean withTeams = Boolean.TRUE
 				.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(TEAMS));
 		job.count("since", since.toString());
+		// Graph first: a Send from a chat and the webhook wait on the ingest lock, so it is held only to import.
+		// Also mail moved, flagged or categorized since
+		BrainMailImport.Mail mail = BrainMailImport.readMail(user, source, job, ownerId, ownerType, since, true, 5, 10);
+		BrainMailImport.Chats chats = withTeams ? BrainMailImport.readTeams(user, source, job, ownerId, ownerType,
+				teamsSince(ownerId, ownerType, since, floor), 10, 60) : null;
+		String teamsError = chats == null ? null : chats.error();
 		BrainMailImport.Run run;
-		String teamsError;
 		synchronized (CollaborationDbUtils.ownerLock(INGEST_LOCK, ownerId, ownerType)) {
 			run = new BrainMailImport.Run(ownerId, ownerType, true);
 			run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"), aliases);
-			teamsError = BrainMailImport.importSince(user, source, job, run, since,
-					withTeams ? teamsSince(ownerId, ownerType, since, floor) : null);
+			BrainMailImport.importMail(job, run, mail, 60, 75);
+			if (chats != null) {
+				BrainMailImport.importHeaders(job, run, chats.headers(), 75, 85);
+			}
 			job.step("threads", 86);
 			run.refreshThreads();
 		}
@@ -254,7 +261,7 @@ public final class BrainSync {
 		if (!pullDue(purpose, ownerId, ownerType, now) || !canIngest(ownerId, ownerType)) {
 			return Set.of();
 		}
-		// a sync holds the ingest lock for minutes; not marked as tried, so the first pull after it runs
+		// a running sync brings this mail in itself; not marked as tried, so the first pull after it runs
 		Map<String, Object> syncing = CollaborationJobUtils.latest(ownerId, ownerType, KIND);
 		if (syncing != null && CollaborationJobUtils.RUNNING.equals(syncing.get("status"))) {
 			return Set.of();
@@ -327,8 +334,9 @@ public final class BrainSync {
 		fresh.sort(Comparator.comparing(header -> String.valueOf(header.get("receivedDateTime"))));
 		BrainMailImport.Run run;
 		synchronized (CollaborationDbUtils.ownerLock(INGEST_LOCK, ownerId, ownerType)) {
-			// again under the lock: a reset that held it meanwhile leaves nothing this import may add to
-			if (!canIngest(ownerId, ownerType)) {
+			// again under the lock: a reset that held it meanwhile clears the runs. Not canIngest: its job lock is
+			// the one Reset holds while it waits for this lock
+			if (lastRun(ownerId, ownerType) == null) {
 				return Set.of();
 			}
 			run = new BrainMailImport.Run(ownerId, ownerType, true);
@@ -344,7 +352,8 @@ public final class BrainSync {
 			WorkItemUtils.closeOnReply(ownerId, ownerType, sent[0], sent[1]);
 		}
 		WorkThreadInsights.queue(user, ownerId, ownerType, run.threads);
-		WorkPipeline.queue(user, ownerId, ownerType, run.threads);
+		// no Work yet: unclassified, a newsletter would raise steps and a new thread would have no topic. The next
+		// sync classifies these threads (threadsSince) and queues them
 		finishFollowUps(ownerId, ownerType, run);
 		return run.threads;
 	}
@@ -484,7 +493,7 @@ public final class BrainSync {
 		AccessToken current = user.getAccessToken(AuthProvider.MICROSOFT);
 		if (current != null && !Objects.equals(current.getAccess_token(), token.getAccess_token())
 				&& MicrosoftGraphCredentialStore.isRefreshable(current) && msUserId.equals(current.getId())) {
-			MicrosoftGraphCredentialStore.save(current);
+			MicrosoftGraphCredentialStore.update(current);
 		}
 		return String.valueOf(status);
 	}

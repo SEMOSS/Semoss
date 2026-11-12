@@ -66,7 +66,8 @@ class WorkShowItemReactorUnitTests {
 	@TempDir
 	Path temp;
 
-	// the room's working directory, one level down so a file beside it is outside the room
+	// the room's working directory, one level down so a file beside it is outside
+	// the room
 	private Path folder;
 	private User user;
 	private Insight insight;
@@ -149,8 +150,8 @@ class WorkShowItemReactorUnitTests {
 		assertEquals("th-teams", shown.get("threadId"));
 		assertEquals("teams", shown.get("source"));
 		assertEquals("", shown.get("title"));
-		brain.when(() -> BrainThreadMessages.read(user, "th-mail", 20)).thenReturn(Map.of("source", "email",
-				"messages", List.of(Map.of("excluded", false, "subject", "Plan"),
+		brain.when(() -> BrainThreadMessages.read(user, "th-mail", 20))
+				.thenReturn(Map.of("source", "email", "messages", List.of(Map.of("excluded", false, "subject", "Plan"),
 						Map.of("excluded", false, "subject", "RE: Plan"))));
 		assertEquals("RE: Plan", show(Map.of("threadId", "th-mail")).get("title"));
 	}

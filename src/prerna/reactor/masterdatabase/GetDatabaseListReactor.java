@@ -34,6 +34,7 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -75,29 +76,13 @@ public class GetDatabaseListReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return MCP_KEY_TYPE.INTEGER;
-		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
-			return MCP_KEY_TYPE.INTEGER;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Returns a list of databases accessible to the current user with optional pagination";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "The maximum number of databases to return";
-		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
-			return "The number of databases to skip for pagination";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Returns a list of databases accessible to the current user with optional pagination")
+				.key(ReactorKeysEnum.LIMIT,
+						key -> key.type(Integer.class).description("The maximum number of databases to return"))
+				.key(ReactorKeysEnum.OFFSET,
+						key -> key.type(Integer.class).description("The number of databases to skip for pagination"));
 	}
 
 }

@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import java.util.Map;
 
 import prerna.collaboration.WorkRoutineRoom;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkStopRoutineRun(routineId=["inbox-daily-brief"]);
@@ -49,16 +50,11 @@ public class WorkStopRoutineRunReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Stops the running run of one of the signed-in user's routines, with its agent, so it can be run again";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ROUTINE_ID.equals(key)) {
-			return "Routine id: inbox-daily-brief, weekly-meeting-agendas, event-planning, expense-review, or the id of "
-					+ "one of the owner's own routines";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Stops the running run of one of the signed-in user's routines, with its agent, so it can be run again")
+				.key(ROUTINE_ID,
+						"Routine id: inbox-daily-brief, weekly-meeting-agendas, event-planning, expense-review, or the id of "
+								+ "one of the owner's own routines");
 	}
 }
