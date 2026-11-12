@@ -70,7 +70,6 @@ public class DownloadRoomAssetReactor extends AbstractRoomAssetsReactor {
 		String downloadFileLocation = FileSystemUtil.prepareAssetForDownload(new File(filePath), relativeFilePath,
 				this.insight.getInsightFolder());
 
-		// the download key is only good in this insight
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);

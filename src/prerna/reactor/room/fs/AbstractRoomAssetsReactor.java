@@ -67,8 +67,8 @@ public abstract class AbstractRoomAssetsReactor extends AbstractReactor {
 	/**
 	 * The folder of the room named by the roomId key, once the signed in user is
 	 * known to own the room and the room is active. A room not loaded in this
-	 * session may have been written on another server, so its folder is pulled
-	 * from cloud storage first.
+	 * session may have been written on another server, so its folder is pulled from
+	 * cloud storage first.
 	 *
 	 * @param user the signed in user
 	 * @return the room's folder, created when missing
@@ -90,8 +90,8 @@ public abstract class AbstractRoomAssetsReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Uploads the room's folder to cloud storage after a write, without waiting
-	 * for the upload. Does nothing outside a cluster.
+	 * Uploads the room's folder to cloud storage after a write, without waiting for
+	 * the upload. Does nothing outside a cluster.
 	 */
 	protected void pushRoom() {
 		ClusterUtil.pushRoomAsync(getRoomId());
@@ -105,7 +105,6 @@ public abstract class AbstractRoomAssetsReactor extends AbstractReactor {
 	 * @return true when one of the user's logins owns the active room
 	 */
 	private static boolean ownsActiveRoom(User user, String roomId) {
-		// ROOM stores the owner's id without a login type, so a login with that id owns it
 		for (Pair<String, String> login : User.getUserIdAndType(user)) {
 			if (!ModelInferenceLogsUtils.getUserActiveRooms(roomId, login.getValue0()).isEmpty()) {
 				return true;

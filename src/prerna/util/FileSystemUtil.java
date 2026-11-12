@@ -564,7 +564,6 @@ public final class FileSystemUtil {
 			List<File> deletedFiles) {
 		for (String rawPath : filePaths) {
 			String inputFilePath = assetRelativePath(rawPath);
-			// a path naming the asset folder itself never deletes it
 			if (inputFilePath.isEmpty()) {
 				continue;
 			}
