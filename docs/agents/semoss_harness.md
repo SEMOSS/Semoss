@@ -22,7 +22,7 @@ The native harness builds a prompt from these sources:
 
 - Platform behavior from [SemossHarnessPrompts](../../src/prerna/reactor/agent/runtime/SemossHarnessPrompts.java).
 - Delegation instructions for the subagent tools actually exposed to the run.
-- Available skill names, descriptions, and paths discovered in the working directory.
+- Available skill names, descriptions, and paths discovered in the working directory, unless a toolbox replaces the built-in tools (see [Tools and execution policy](#tools-and-execution-policy)).
 - Resolved agent context: working-directory instructions, workspace/room authored instructions, and selected-engine context when applicable.
 - Runtime context, including identifiers and the execution target.
 - Specialized workflow instructions when configured, such as the presentation workflow.
@@ -79,6 +79,8 @@ policy are unchanged; old cards are not automatically reclassified.
 | Delegation | Spawn, check, wait, and named subagent tools | Subject to workspace policy and run-tree limits |
 
 `useDefaultAgentTools` and `disabledDefaultTools` control the agent's general built-in tools. Default-tool availability can also be supplied by a deployment-configured MCP project. Explicit resource attachments and their permission checks still matter; a skill does not grant an engine, filesystem, or tool permission.
+
+When a deployment replaces the built-in tools with a toolbox (`AGENT_DEFAULT_TOOLS_MCP_ID`), the prompt leaves out the parts written for the built-in tools: the available-skills block (which points at `LoadSkill`) and the runtime context's notes on `BashCommand`, `ExecutePythonCode`, `ExecuteNodeCode` and the file tools. That toolbox's tools are described by their own definitions, even where a name matches a built-in one. Notes on harness-owned tools, such as the presentation workflow's `BuildPptx`, and Collaboration file delivery stay.
 
 Tool execution mode such as `SMSS_MCP_EXECUTION=ask` requires an approval decision; see [MCP tools and `_meta` options](mcp_tools.md) for every tool metadata key, including deferred loading. The executor persists that decision point as a run action. [Tool hooks](../../src/prerna/reactor/agent/IToolHook.java) participate before and after dispatch; run hooks surround the overall harness lifecycle.
 

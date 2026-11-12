@@ -247,8 +247,10 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		// Advertise skills materialized into the working dir (by SkillStager, earlier
 		// in the run) so the model knows what it can pull in via LoadSkill. Empty when
-		// no skills are present.
-		String availableSkillsBlock = buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir());
+		// no skills are present, or when a toolbox replaces the built-in tools: LoadSkill
+		// is a built-in tool, and that toolbox brings its own way to find skills.
+		String availableSkillsBlock = PlatformAgentTools.defaultToolsReplaced() ? ""
+				: buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir());
 		if (!availableSkillsBlock.isEmpty()) {
 			composed.append("\n\n").append(availableSkillsBlock);
 		}
@@ -1236,29 +1238,52 @@ public class SemossAgentHarness implements IAgentHarness {
 					- Do not substitute the room id or another project id for the target project id.\
 					""");
 		}
-		sb.append("""
-
-				## Tool environment
-				- BashCommand, when enabled, allows: %s. One command per call; no pipes, chaining, redirects, \
-				$(), backticks, absolute paths, ~ paths, or .. . \
-				Use working-directory-relative paths and read output from the tool result.\
-				""".formatted(PlatformAgentToolHandlers.describeAllowedCommands()));
-		sb.append("""
-
-				- In ExecutePythonCode, import Path from pathlib and smss_get_runtime_var from smssutil. \
-				Resolve each output as Path(smss_get_runtime_var("ROOT")) / "<filename>". \
-				Python's current directory may differ from ROOT. Do not change the shared process directory.
-				- Verify generated outputs through working-directory file tools before reporting completion. \
-				Also reopen binary documents with a format-appropriate reader at the exact ROOT destination.\
-				""");
-		// the Collaboration prompt carries this itself; other agents in a Collaboration
-		// room get it here
-		if (CollaborationUtils.isCollaborationRoom(room) && !collaborationBaseline(ctx, room)) {
-			sb.append("\n\n").append(CollaborationPrompts.FILES_PROMPT);
+		String toolEnvironment = toolEnvironmentBlock(PlatformAgentTools.defaultToolsReplaced(),
+				ctx.getAgentConfig().hasPptxWorkflow(),
+				// the Collaboration prompt carries this itself; other agents in a Collaboration
+				// room get it here
+				CollaborationUtils.isCollaborationRoom(room) && !collaborationBaseline(ctx, room)
+						? CollaborationPrompts.FILES_PROMPT
+						: null);
+		if (!toolEnvironment.isEmpty()) {
+			sb.append("\n\n").append(toolEnvironment);
 		}
-		if (ctx.getAgentConfig().hasPptxWorkflow()) {
-			sb.append("""
+		return sb.toString();
+	}
 
+	/**
+	 * The "Tool environment" section of the runtime context. Its notes on the
+	 * built-in tools (BashCommand, ExecutePythonCode, ExecuteNodeCode and the file
+	 * tools) are left out when a toolbox replaces them; notes on harness-owned
+	 * PPTX workflow tools and Collaboration file delivery stay. Empty when nothing
+	 * applies.
+	 *
+	 * @param builtInToolsReplaced whether {@code AGENT_DEFAULT_TOOLS_MCP_ID} replaces
+	 *                             the built-in tools
+	 * @param pptxWorkflow         whether this run uses the PPTX workflow tools
+	 * @param collaborationFiles   Collaboration file-delivery notes, or {@code null}
+	 */
+	static String toolEnvironmentBlock(boolean builtInToolsReplaced, boolean pptxWorkflow,
+			String collaborationFiles) {
+		StringBuilder sb = new StringBuilder();
+		if (!builtInToolsReplaced) {
+			sb.append("""
+					- BashCommand, when enabled, allows: %s. One command per call; no pipes, chaining, redirects, \
+					$(), backticks, absolute paths, ~ paths, or .. . \
+					Use working-directory-relative paths and read output from the tool result.
+
+					- In ExecutePythonCode, import Path from pathlib and smss_get_runtime_var from smssutil. \
+					Resolve each output as Path(smss_get_runtime_var("ROOT")) / "<filename>". \
+					Python's current directory may differ from ROOT. Do not change the shared process directory.
+					- Verify generated outputs through working-directory file tools before reporting completion. \
+					Also reopen binary documents with a format-appropriate reader at the exact ROOT destination.\
+					""".formatted(PlatformAgentToolHandlers.describeAllowedCommands()));
+		}
+		if (collaborationFiles != null && !collaborationFiles.isEmpty()) {
+			appendSection(sb, collaborationFiles);
+		}
+		if (pptxWorkflow) {
+			appendSection(sb, """
 					- node, npm, npx and ExecuteNodeCode are unavailable to the author. \
 					Save a single async IIFE as build-deck.js and call BuildPptx.
 					- For existing decks, call PreparePptxEdit first. \
@@ -1266,19 +1291,28 @@ public class SemossAgentHarness implements IAgentHarness {
 					- ROOT is the working directory inside BuildPptx. \
 					Put all declarations inside the IIFE and await all asynchronous work.\
 					""");
-		} else {
-			sb.append(
-					"""
-
-							- node, npm, and npx are unavailable through BashCommand. Use ExecuteNodeCode for JavaScript.
-							- Each ExecuteNodeCode call must be one (async () => { ... })() with every require and declaration inside it. \
-							Top-level declarations collide with earlier calls. Await all work; use globalThis for durable state.
-							- In ExecuteNodeCode, ROOT is the working directory and relative paths resolve there. \
-							Write outputs with path.join(ROOT, "<exact filename>"). \
-							APP_ROOT and USER_ROOT identify project and user assets when available.\
-							""");
+		} else if (!builtInToolsReplaced) {
+			appendSection(sb, """
+					- node, npm, and npx are unavailable through BashCommand. Use ExecuteNodeCode for JavaScript.
+					- Each ExecuteNodeCode call must be one (async () => { ... })() with every require and declaration inside it. \
+					Top-level declarations collide with earlier calls. Await all work; use globalThis for durable state.
+					- In ExecuteNodeCode, ROOT is the working directory and relative paths resolve there. \
+					Write outputs with path.join(ROOT, "<exact filename>"). \
+					APP_ROOT and USER_ROOT identify project and user assets when available.\
+					""");
 		}
-		return sb.toString();
+		if (sb.length() == 0) {
+			return "";
+		}
+		// Collaboration file delivery has its own heading
+		return sb.charAt(0) == '#' ? sb.toString() : "## Tool environment\n" + sb;
+	}
+
+	private static void appendSection(StringBuilder sb, String text) {
+		if (sb.length() > 0) {
+			sb.append("\n\n");
+		}
+		sb.append(text);
 	}
 
 	private static String firstNonBlank(Object... values) {
