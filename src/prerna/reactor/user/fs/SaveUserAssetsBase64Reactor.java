@@ -32,6 +32,7 @@ import java.util.List;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 
 public class SaveUserAssetsBase64Reactor extends AbstractSaveUserAssetsReactor {
 
@@ -39,14 +40,15 @@ public class SaveUserAssetsBase64Reactor extends AbstractSaveUserAssetsReactor {
 
 	public SaveUserAssetsBase64Reactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey(), DECODE };
-		this.keyRequired = new int[] { 1, 1, 0, 0 };
+				ReactorKeysEnum.COMMENT_KEY.getKey(), DECODE, ReactorKeysEnum.OVERRIDE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
 	}
 
 	@Override
-	protected void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
+	protected List<SavedAsset> saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents,
+			boolean override) {
 		boolean decode = getBoolean(DECODE, true);
-		FileSystemUtil.saveAssetFilesBase64(assetFolder, filePaths, contents, decode);
+		return FileSystemUtil.saveAssetFilesBase64(assetFolder, filePaths, contents, decode, override);
 	}
 
 	@Override

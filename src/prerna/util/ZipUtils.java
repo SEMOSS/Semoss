@@ -46,6 +46,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
@@ -64,8 +65,8 @@ public final class ZipUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(ZipUtils.class);
 
-	// buffer for read and write data to file
-	private static byte[] buffer = new byte[2048];
+	// each read and write gets its own buffer: a shared one corrupts files when two zips run at once
+	private static final int BUFFER_SIZE = 2048;
 
 	// always need to use this for zipping up and unzipping
 	// traversing will break if the file separator is a "\"
@@ -135,6 +136,7 @@ public final class ZipUtils {
 
 		FileInputStream fis = null;
 		try {
+			byte[] buffer = new byte[BUFFER_SIZE];
 			int length;
 			fis = new FileInputStream(file);
 			while ((length = fis.read(buffer)) >= 0) {
@@ -184,6 +186,7 @@ public final class ZipUtils {
 
 		FileInputStream fis = null;
 		try {
+			byte[] buffer = new byte[BUFFER_SIZE];
 			int length;
 			fis = new FileInputStream(file);
 			while ((length = fis.read(buffer)) >= 0) {
@@ -231,6 +234,7 @@ public final class ZipUtils {
 				zos.putNextEntry(zipEntry);
 				FileInputStream fis = null;
 				try {
+					byte[] buffer = new byte[BUFFER_SIZE];
 					int length;
 					fis = new FileInputStream(file);
 					while ((length = fis.read(buffer)) >= 0) {
@@ -288,6 +292,62 @@ public final class ZipUtils {
 	}
 
 	/**
+	 * Extracts a zip file into a folder. With {@code override}, the extracted
+	 * entries replace what is already there. Without it, each top level file or
+	 * directory of the zip whose name is taken in the destination is extracted
+	 * beside it under the next copy number, such as {@code data (2)}, so nothing
+	 * already in the destination is touched.
+	 *
+	 * @param zipFilePath the zip file
+	 * @param destination the folder to extract into
+	 * @param override    whether extracted entries replace existing ones
+	 * @return each top level name in the zip mapped to the name it was extracted
+	 *         as, in zip order
+	 * @throws IOException if the zip cannot be read or an entry cannot be written
+	 */
+	public static Map<String, String> unzip(String zipFilePath, String destination, boolean override)
+			throws IOException {
+		Map<String, String> topLevelNames = new LinkedHashMap<>();
+		try (ZipFile zipIn = new ZipFile(Utility.normalizePath(zipFilePath))) {
+			Enumeration<? extends ZipEntry> entries = zipIn.entries();
+			while (entries.hasMoreElements()) {
+				ZipEntry entry = entries.nextElement();
+				String entryName = Utility.normalizePath(entry.getName());
+				while (entryName.startsWith("/")) {
+					entryName = entryName.substring(1);
+				}
+				if (entryName.isEmpty()) {
+					continue;
+				}
+				int slash = entryName.indexOf('/');
+				String topLevel = slash < 0 ? entryName : entryName.substring(0, slash);
+				String extractedTopLevel = topLevelNames.get(topLevel);
+				if (extractedTopLevel == null) {
+					File requested = new File(destination, topLevel);
+					extractedTopLevel = override ? topLevel
+							: FileSystemUtil.reserveAvailableFile(requested, slash >= 0 || entry.isDirectory())
+									.getName();
+					topLevelNames.put(topLevel, extractedTopLevel);
+				}
+
+				File file = new File(destination, extractedTopLevel + (slash < 0 ? "" : entryName.substring(slash)));
+				if (entry.isDirectory()) {
+					file.mkdirs();
+				} else {
+					File parent = file.getParentFile();
+					if (!parent.exists()) {
+						parent.mkdirs();
+					}
+					try (InputStream is = zipIn.getInputStream(entry)) {
+						extractFile(is, file.getAbsolutePath());
+					}
+				}
+			}
+		}
+		return topLevelNames;
+	}
+
+	/**
 	 * Copy file to path
 	 * 
 	 * @param zipIn
@@ -298,7 +358,7 @@ public final class ZipUtils {
 		BufferedOutputStream bos = null;
 		try {
 			bos = new BufferedOutputStream(new FileOutputStream(Utility.normalizePath(filePath)));
-			byte[] bytesIn = buffer;
+			byte[] bytesIn = new byte[BUFFER_SIZE];
 			int read = 0;
 			while ((read = zipIn.read(bytesIn)) != -1) {
 				bos.write(bytesIn, 0, read);

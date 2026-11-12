@@ -40,8 +40,11 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipOutputStream;
 
@@ -52,12 +55,131 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public final class FileSystemUtil {
 
 	private static final Logger classLogger = LogManager.getLogger(FileSystemUtil.class);
+
+	/**
+	 * Describes the override key of the reactors that save file contents. They
+	 * replace by default because editors save the file they have open again and
+	 * again.
+	 */
+	public static final String OVERRIDE_SAVE_DESCRIPTION = """
+			Whether to replace a file that already exists at a path. When false, the existing file is kept \
+			and the new one is saved beside it under the next copy number, such as 'report (2).pdf'. \
+			Defaults to true.""";
+
+	/**
+	 * Describes the override key of the reactors that create, copy or rename a
+	 * file or directory.
+	 */
+	public static final String OVERRIDE_KEEP_DESCRIPTION = """
+			Whether to replace a file or directory that already exists at the destination. When false, the \
+			existing one is kept and the new one is written beside it under the next copy number, such as \
+			'report (2).pdf' or 'data (2)'. Defaults to false.""";
+
+	/**
+	 * Describes the override key of the reactors that create a directory.
+	 */
+	public static final String OVERRIDE_DIRECTORY_DESCRIPTION = """
+			What to do when a directory already exists at the path. When true, that directory is used as it is \
+			and nothing is created. When false, the new directory is created beside it under the next copy \
+			number, such as 'data (2)'. Defaults to false.""";
+
+	/**
+	 * Describes the override key of the reactors that unzip a file.
+	 */
+	public static final String OVERRIDE_UNZIP_DESCRIPTION = """
+			Whether the extracted files replace ones that already exist beside the zip file. When false, each \
+			top level file or directory of the zip whose name is taken is extracted beside it under the next \
+			copy number, such as 'data (2)', and nothing already there is touched. Defaults to false.""";
+
+	/**
+	 * Describes the output of the reactors that write assets, one entry per
+	 * {@link SavedAsset}.
+	 */
+	public static final String SAVED_ASSETS_OUTPUT_DESCRIPTION = """
+			One entry per file or directory written: requestedPath is the path asked for, savedPath is the path \
+			written, and renamed is true when savedPath carries a copy number because requestedPath was taken.""";
+
+	private static final Pattern COPY_NUMBER_SUFFIX = Pattern.compile("^(.+) \\((\\d{1,6})\\)$");
+	private static final List<String> COMPOUND_EXTENSIONS = List.of(".tar.gz", ".tar.bz2", ".tar.xz", ".tar.zst");
+	private static final int MAX_COPY_NUMBERS = 10_000;
+
+	/**
+	 * Where an asset write landed, as paths relative to the asset folder without a
+	 * leading slash. The two differ when something already existed at the
+	 * requested path and the write was kept beside it under a copy number, such as
+	 * {@code notes (2).md}. Its components are the keys of each entry reactors
+	 * return (see {@link #savedAssetsAsNounMetadata(List)}).
+	 *
+	 * @param requestedPath the path asked for
+	 * @param savedPath     the path written
+	 * @param renamed       whether the saved path carries a copy number because
+	 *                      the requested path was taken
+	 */
+	public record SavedAsset(String requestedPath, String savedPath, boolean renamed) {
+
+		/**
+		 * Records a write, renamed when the saved path differs from the requested
+		 * path.
+		 *
+		 * @param requestedPath the path asked for
+		 * @param savedPath     the path written
+		 */
+		public SavedAsset(String requestedPath, String savedPath) {
+			this(requestedPath, savedPath, !requestedPath.equals(savedPath));
+		}
+
+		/**
+		 * The entry a reactor returns for this write.
+		 *
+		 * @return a map of requestedPath, savedPath and renamed
+		 */
+		public Map<String, Object> toMap() {
+			Map<String, Object> map = new LinkedHashMap<>();
+			map.put("requestedPath", requestedPath);
+			map.put("savedPath", savedPath);
+			map.put("renamed", renamed);
+			return map;
+		}
+	}
+
+	/**
+	 * Writes the contents of a file that has already been claimed.
+	 */
+	@FunctionalInterface
+	private interface AssetWriter {
+		void write(File file) throws IOException;
+	}
+
+	/**
+	 * A name split for copy numbering, such as {@code report (2).pdf} into the
+	 * stem {@code report} and the extension {@code .pdf}, with the first copy
+	 * number to try.
+	 *
+	 * @param stem        the name without its extension or copy number
+	 * @param extension   the extension with its dot, or empty
+	 * @param firstNumber the first copy number to try
+	 */
+	private record CopyName(String stem, String extension, int firstNumber) {
+
+		/**
+		 * The sibling of a path that carries a copy number.
+		 *
+		 * @param requested the path asked for
+		 * @param number    the copy number
+		 * @return the numbered file beside {@code requested}
+		 */
+		File sibling(File requested, int number) {
+			return new File(requested.getAbsoluteFile().getParentFile(), stem + " (" + number + ")" + extension);
+		}
+	}
 
 	/**
 	 * Lists the immediate (non-recursive) contents of an asset directory. Hidden
@@ -427,8 +549,9 @@ public final class FileSystemUtil {
 	}
 
 	/**
-	 * Deletes a list of asset files or directories.
-	 * 
+	 * Deletes a list of asset files or directories. Missing paths, and paths that
+	 * name the asset folder itself, are skipped.
+	 *
 	 * @param assetFolder          The base folder for the assets.
 	 * @param filePaths            A list of relative paths to the files/directories
 	 *                             to be deleted.
@@ -440,12 +563,10 @@ public final class FileSystemUtil {
 	public static void deleteAssetFiles(String assetFolder, List<String> filePaths, List<String> gitRelativeFilePaths,
 			List<File> deletedFiles) {
 		for (String rawPath : filePaths) {
-			String inputFilePath = Utility.normalizePath(rawPath.trim());
-			if (inputFilePath == null || inputFilePath.isEmpty()) {
+			String inputFilePath = assetRelativePath(rawPath);
+			// a path naming the asset folder itself never deletes it
+			if (inputFilePath.isEmpty()) {
 				continue;
-			}
-			while (inputFilePath.startsWith("/")) {
-				inputFilePath = inputFilePath.substring(1);
 			}
 
 			String realFilePath = assetFolder + "/" + inputFilePath;
@@ -583,28 +704,40 @@ public final class FileSystemUtil {
 
 	/**
 	 * Creates a new directory in the asset folder, including a placeholder file.
-	 * 
+	 * When a directory already exists at the path, {@code override} decides what
+	 * happens: true uses that directory as it is, false creates the new one beside
+	 * it under the next copy number, such as {@code data (2)}.
+	 *
 	 * @param assetFolder The base folder for the assets.
 	 * @param filePath    The relative path for the new directory.
+	 * @param override    Whether an existing directory at the path is used as it
+	 *                    is.
+	 * @return where the directory is
+	 * @throws IllegalArgumentException if the path is empty, or a file is at the
+	 *                                  path and {@code override} is true
 	 */
-	public static void createNewAssetDirectory(String assetFolder, String filePath) {
-		while (filePath.startsWith("/")) {
-			filePath = filePath.substring(1);
+	public static SavedAsset createNewAssetDirectory(String assetFolder, String filePath, boolean override) {
+		String directoryName = assetRelativePath(filePath);
+		if (directoryName.isEmpty()) {
+			throw new IllegalArgumentException("Must provide a valid filePath");
 		}
-		File directory = new File(assetFolder + "/" + filePath);
-
-		if (directory.exists() && directory.isDirectory()) {
-			classLogger.warn("Folder already exists: {}. Skipping creation.", filePath);
-			return;
+		File requested = new File(assetFolder + "/" + directoryName);
+		if (override && requested.isDirectory()) {
+			return new SavedAsset(directoryName, directoryName);
+		}
+		if (override && requested.exists()) {
+			throw new IllegalArgumentException("A file already exists at the path " + directoryName);
 		}
 
 		try {
-			directory.mkdirs();
-			File placeholder = new File(directory.getAbsolutePath(), "placeholder.txt");
+			File directory = override ? requested : reserveAvailableFile(requested, true);
+			FileUtils.forceMkdir(directory);
+			File placeholder = new File(directory, "placeholder.txt");
 			FileUtils.writeStringToFile(placeholder, "placeholder", StandardCharsets.UTF_8);
+			return new SavedAsset(directoryName, siblingPath(directoryName, directory.getName()));
 		} catch (IOException e) {
-			classLogger.error("Error creating new asset directory {}", filePath, e);
-			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to create directory: " + filePath);
+			classLogger.error("Error creating new asset directory {}", directoryName, e);
+			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to create directory: " + directoryName);
 			SemossPixelException exception = new SemossPixelException(error);
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
@@ -612,25 +745,25 @@ public final class FileSystemUtil {
 	}
 
 	/**
-	 * Creates a new empty file in the asset folder.
-	 * 
+	 * Creates a new file in the asset folder with starter content for its type,
+	 * such as an empty notebook for {@code .ipynb}. When something already exists
+	 * at the path, {@code override} decides what happens: true replaces it, false
+	 * keeps it and creates the new file beside it under the next copy number.
+	 *
 	 * @param assetFolder The base folder for the assets.
 	 * @param filePath    The relative path for the new file.
+	 * @param override    Whether an existing file at the path is replaced.
+	 * @return where the file was created
+	 * @throws IllegalArgumentException if the path is empty
 	 */
-	public static void createNewAssetFile(String assetFolder, String filePath) {
-		while (filePath.startsWith("/")) {
-			filePath = filePath.substring(1);
+	public static SavedAsset createNewAssetFile(String assetFolder, String filePath, boolean override) {
+		String fileName = assetRelativePath(filePath);
+		if (fileName.isEmpty()) {
+			throw new IllegalArgumentException("Must provide a valid filePath");
 		}
-		File file = new File(assetFolder + "/" + filePath);
-		try {
-			FileUtils.writeStringToFile(file, getDefaultAssetFileContent(filePath), StandardCharsets.UTF_8);
-		} catch (IOException e) {
-			classLogger.error("Error creating new asset file {}", filePath, e);
-			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + filePath);
-			SemossPixelException exception = new SemossPixelException(error);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
+		String content = getDefaultAssetFileContent(fileName);
+		return writeAssetFile(assetFolder, fileName, override,
+				file -> FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8));
 	}
 
 	private static String getDefaultAssetFileContent(String filePath) {
@@ -701,70 +834,101 @@ public final class FileSystemUtil {
 	}
 
 	/**
-	 * Renames a file or directory within the asset folder.
-	 * 
+	 * Renames or moves a file or directory within the asset folder. When something
+	 * already exists at the new path, {@code override} decides what happens: true
+	 * replaces it, false keeps it and gives the renamed entry the next copy number,
+	 * such as {@code report (2).pdf}.
+	 *
 	 * @param assetFolder     The base folder for the assets.
 	 * @param currentFileName The current relative path of the file/directory.
 	 * @param newFileName     The new relative path for the file/directory.
+	 * @param override        Whether an existing entry at the new path is
+	 *                        replaced.
+	 * @return where the entry was moved to
+	 * @throws IllegalArgumentException if the entry is missing, the new path is the
+	 *                                  entry itself, or the move would put a
+	 *                                  directory inside itself or replace a
+	 *                                  directory holding the entry
 	 */
-	public static void renameAsset(String assetFolder, String currentFileName, String newFileName) {
-		while (currentFileName.startsWith("/")) {
-			currentFileName = currentFileName.substring(1);
-		}
-		while (newFileName.startsWith("/")) {
-			newFileName = newFileName.substring(1);
-		}
-		String oldAbs = (assetFolder + "/" + currentFileName).replace("\\", "/");
-		String newAbs = (assetFolder + "/" + newFileName).replace("\\", "/");
-		File oldFile = new File(oldAbs);
-		File newFile = new File(newAbs);
+	public static SavedAsset renameAsset(String assetFolder, String currentFileName, String newFileName,
+			boolean override) {
+		String currentName = assetRelativePath(currentFileName);
+		String newName = assetRelativePath(newFileName);
+		File oldFile = new File(assetFolder + "/" + currentName);
+		File newFile = new File(assetFolder + "/" + newName);
 
-		// validation checks
 		if (!oldFile.exists()) {
-			throw new IllegalArgumentException("Cannot find file/folder to rename: " + currentFileName);
+			throw new IllegalArgumentException("Cannot find file/folder to rename: " + currentName);
 		}
+		Path oldPath = oldFile.toPath().toAbsolutePath().normalize();
+		Path newPath = newFile.toPath().toAbsolutePath().normalize();
+		if (oldFile.isDirectory() && newPath.startsWith(oldPath)) {
+			throw new IllegalArgumentException("Cannot move the directory " + currentName + " inside itself");
+		}
+
+		File target = newFile;
 		if (newFile.exists()) {
-			throw new IllegalArgumentException("A file or directory exists with the new name: " + newFileName);
+			if (isSameFile(oldPath, newPath)) {
+				throw new IllegalArgumentException("A file or directory exists with the new name: " + newName);
+			}
+			if (override) {
+				if (oldPath.startsWith(newPath)) {
+					throw new IllegalArgumentException(
+							"Cannot replace " + newName + " because it holds " + currentName);
+				}
+				try {
+					FileUtils.forceDelete(newFile);
+				} catch (IOException e) {
+					classLogger.error("Error deleting existing rename destination {}", newName, e);
+					throw new SemossPixelException(
+							NounMetadata.getErrorNounMessage("Unable to replace existing destination " + newName));
+				}
+			} else {
+				target = nextAvailableFile(newFile, oldFile.isDirectory());
+			}
 		}
 
 		try {
-			FileUtils.forceMkdirParent(newFile);
+			FileUtils.forceMkdirParent(target);
 		} catch (IOException e) {
-			classLogger.error("Error creating parent directory for new asset name {}", newFileName, e);
+			classLogger.error("Error creating parent directory for new asset name {}", newName, e);
 			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Unable to create parent directory for " + newFileName));
+					NounMetadata.getErrorNounMessage("Unable to create parent directory for " + newName));
 		}
 
-		// rename the file/folder
 		try {
 			if (oldFile.isDirectory()) {
-				FileUtils.moveDirectory(oldFile, newFile);
+				FileUtils.moveDirectory(oldFile, target);
 			} else {
-				FileUtils.moveFile(oldFile, newFile);
+				FileUtils.moveFile(oldFile, target);
 			}
 		} catch (IOException e) {
-			classLogger.error("Error renaming asset from {} to {}", currentFileName, newFileName, e);
+			classLogger.error("Error renaming asset from {} to {}", currentName, newName, e);
 			SemossPixelException ex = new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Failed to rename " + currentFileName));
+					NounMetadata.getErrorNounMessage("Failed to rename " + currentName));
 			ex.setContinueThreadOfExecution(false);
 			throw ex;
 		}
+		return new SavedAsset(newName, siblingPath(newName, target.getName()));
 	}
 
 	/**
-	 * Copies a single file between two already-resolved absolute paths, typically in
-	 * different asset spaces. Directories are rejected, and an existing destination
-	 * is only replaced when {@code override} is true. Error messages only mention
-	 * file names, never absolute paths.
+	 * Copies a single file between two already-resolved absolute paths, typically
+	 * in different asset spaces. Directories are rejected. When a file already
+	 * exists at the destination, {@code override} decides what happens: true
+	 * replaces it, false keeps it and writes the copy beside it under the next copy
+	 * number, such as {@code deck (2).pptx}. Error messages only mention file
+	 * names, never absolute paths.
 	 *
 	 * @param sourceAbsolutePath the file to copy
 	 * @param targetAbsolutePath where to copy it
 	 * @param override           replace an existing destination file
-	 * @return the size of the copied file in bytes
+	 * @return the file written, which is {@code targetAbsolutePath} unless that
+	 *         path was taken and {@code override} is false
 	 */
-	public static long copyResolvedFile(String sourceAbsolutePath, String targetAbsolutePath, boolean override) {
+	public static File copyResolvedFile(String sourceAbsolutePath, String targetAbsolutePath, boolean override) {
 		File source = new File(sourceAbsolutePath);
-		File target = new File(targetAbsolutePath);
+		File requested = new File(targetAbsolutePath);
 		if (!source.exists()) {
 			throw new IllegalArgumentException("Cannot find file to copy: " + source.getName());
 		}
@@ -772,112 +936,117 @@ public final class FileSystemUtil {
 			throw new IllegalArgumentException("Only files can be copied. '" + source.getName() + "' is a directory");
 		}
 		Path sourcePath = source.toPath().toAbsolutePath().normalize();
-		Path targetPath = target.toPath().toAbsolutePath().normalize();
-		if (sourcePath.equals(targetPath)) {
+		Path targetPath = requested.toPath().toAbsolutePath().normalize();
+		if (override && sourcePath.equals(targetPath)) {
 			throw new IllegalArgumentException("Source and destination are the same file");
 		}
-		if (target.exists()) {
-			if (target.isDirectory()) {
-				throw new IllegalArgumentException("The destination '" + target.getName() + "' is an existing directory");
-			}
-			if (!override) {
-				throw new IllegalArgumentException(
-						"A file already exists at the destination: " + target.getName() + ". Pass override=true to replace it");
-			}
+		if (override && requested.isDirectory()) {
+			throw new IllegalArgumentException(
+					"The destination '" + requested.getName() + "' is an existing directory");
 		}
+
+		File target = requested;
+		boolean claimed = false;
 		try {
-			FileUtils.forceMkdirParent(target);
+			if (override) {
+				FileUtils.forceMkdirParent(target);
+			} else {
+				target = reserveAvailableFile(requested, false);
+				claimed = true;
+			}
 			FileUtils.copyFile(source, target);
 		} catch (IOException e) {
-			classLogger.error("Error copying file {} to {}", sourceAbsolutePath, targetAbsolutePath, e);
+			if (claimed) {
+				FileUtils.deleteQuietly(target);
+			}
+			classLogger.error("Error copying file {} to {}", sourceAbsolutePath, target.getAbsolutePath(), e);
 			SemossPixelException ex = new SemossPixelException(
 					NounMetadata.getErrorNounMessage("Failed to copy " + source.getName()));
 			ex.setContinueThreadOfExecution(false);
 			throw ex;
 		}
-		return target.length();
+		return target;
 	}
 
 	/**
-	 * Copies a file or directory within the asset folder.
-	 * 
-	 * @param assetFolder    The base folder for the assets.
-	 * @param sourceFileName The current relative path of the file/directory to
-	 *                       copy.
-	 * @param destFileName   The destination relative path for the copy.
-	 */
-	public static void copyAsset(String assetFolder, String sourceFileName, String destFileName) {
-		copyAsset(assetFolder, sourceFileName, destFileName, false);
-	}
-
-	/**
-	 * Copies a file or directory within the asset folder, optionally replacing an
-	 * existing destination.
+	 * Copies a file or directory within the asset folder. When something already
+	 * exists at the destination, {@code override} decides what happens: true
+	 * replaces it, false keeps it and writes the copy beside it under the next copy
+	 * number. Copying an entry onto its own path with {@code override} false makes
+	 * a numbered duplicate beside it, such as {@code report (2).pdf}.
 	 *
 	 * @param assetFolder    The base folder for the assets.
 	 * @param sourceFileName The current relative path of the file/directory to
 	 *                       copy.
 	 * @param destFileName   The destination relative path for the copy.
-	 * @param override       If true, delete an existing destination before copying.
+	 * @param override       Whether an existing entry at the destination is
+	 *                       replaced.
+	 * @return where the copy was written
+	 * @throws IllegalArgumentException if the source is missing or the source and
+	 *                                  destination contain one another
 	 */
-	public static void copyAsset(String assetFolder, String sourceFileName, String destFileName, boolean override) {
-		while (sourceFileName.startsWith("/")) {
-			sourceFileName = sourceFileName.substring(1);
-		}
-		while (destFileName.startsWith("/")) {
-			destFileName = destFileName.substring(1);
-		}
-		String sourceAbs = (assetFolder + "/" + sourceFileName).replace("\\", "/");
-		String destAbs = (assetFolder + "/" + destFileName).replace("\\", "/");
-		File sourceFile = new File(sourceAbs);
-		File destFile = new File(destAbs);
+	public static SavedAsset copyAsset(String assetFolder, String sourceFileName, String destFileName,
+			boolean override) {
+		String sourceName = assetRelativePath(sourceFileName);
+		String destName = assetRelativePath(destFileName);
+		File sourceFile = new File(assetFolder + "/" + sourceName);
+		File destFile = new File(assetFolder + "/" + destName);
 
 		if (!sourceFile.exists()) {
-			throw new IllegalArgumentException("Cannot find file/folder to copy: " + sourceFileName);
+			throw new IllegalArgumentException("Cannot find file/folder to copy: " + sourceName);
 		}
+		boolean directory = sourceFile.isDirectory();
 
+		File checkedTarget = override ? destFile : nextAvailableFile(destFile, directory);
 		Path sourcePath = sourceFile.toPath().toAbsolutePath().normalize();
-		Path destPath = destFile.toPath().toAbsolutePath().normalize();
+		Path destPath = checkedTarget.toPath().toAbsolutePath().normalize();
 		if (sourcePath.equals(destPath) || sourcePath.startsWith(destPath)
-				|| (sourceFile.isDirectory() && destPath.startsWith(sourcePath))) {
+				|| (directory && destPath.startsWith(sourcePath))) {
 			throw new IllegalArgumentException("Source and destination paths cannot contain one another");
 		}
 
-		if (destFile.exists()) {
-			if (!override) {
-				throw new IllegalArgumentException(
-						"A file or directory already exists at the destination: " + destFileName);
-			}
+		if (override && destFile.exists()) {
 			try {
 				FileUtils.forceDelete(destFile);
 			} catch (IOException e) {
-				classLogger.error("Error deleting existing copy destination {}", destFileName, e);
+				classLogger.error("Error deleting existing copy destination {}", destName, e);
 				throw new SemossPixelException(
-						NounMetadata.getErrorNounMessage("Unable to replace existing destination " + destFileName));
+						NounMetadata.getErrorNounMessage("Unable to replace existing destination " + destName));
 			}
 		}
 
+		File target = destFile;
+		boolean claimed = false;
 		try {
-			FileUtils.forceMkdirParent(destFile);
-		} catch (IOException e) {
-			classLogger.error("Error creating parent directory for copy destination {}", destFileName, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Unable to create parent directory for " + destFileName));
-		}
-
-		try {
-			if (sourceFile.isDirectory()) {
-				FileUtils.copyDirectory(sourceFile, destFile);
+			if (override) {
+				FileUtils.forceMkdirParent(destFile);
 			} else {
-				FileUtils.copyFile(sourceFile, destFile);
+				target = reserveAvailableFile(destFile, directory);
+				claimed = true;
 			}
 		} catch (IOException e) {
-			classLogger.error("Error copying asset from {} to {}", sourceFileName, destFileName, e);
+			classLogger.error("Error creating parent directory for copy destination {}", destName, e);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Unable to create parent directory for " + destName));
+		}
+
+		try {
+			if (directory) {
+				FileUtils.copyDirectory(sourceFile, target);
+			} else {
+				FileUtils.copyFile(sourceFile, target);
+			}
+		} catch (IOException e) {
+			if (claimed) {
+				FileUtils.deleteQuietly(target);
+			}
+			classLogger.error("Error copying asset from {} to {}", sourceName, destName, e);
 			SemossPixelException ex = new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Failed to copy " + sourceFileName));
+					NounMetadata.getErrorNounMessage("Failed to copy " + sourceName));
 			ex.setContinueThreadOfExecution(false);
 			throw ex;
 		}
+		return new SavedAsset(destName, siblingPath(destName, target.getName()));
 	}
 
 	/**
@@ -900,92 +1069,320 @@ public final class FileSystemUtil {
 
 	/**
 	 * Saves a list of files with their corresponding content to the asset folder.
-	 * 
+	 * When a file already exists at a path, {@code override} decides what happens:
+	 * true replaces it, false keeps it and saves the new file beside it under the
+	 * next copy number, such as {@code notes (2).md}. Empty paths are skipped.
+	 *
 	 * @param assetFolder The base folder for the assets.
 	 * @param filePaths   A list of relative file paths.
 	 * @param contents    A list of file contents corresponding to the filePaths.
+	 * @param override    Whether an existing file at a path is replaced.
+	 * @return where each file was saved, in the order of {@code filePaths}
 	 */
-	public static void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
-		// iterate each fileName/content pair
+	public static List<SavedAsset> saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents,
+			boolean override) {
+		List<SavedAsset> saved = new ArrayList<>();
 		for (int i = 0; i < filePaths.size(); i++) {
-			String rawFileName = filePaths.get(i).trim();
-			String fileName = Utility.normalizePath(rawFileName);
-			if (fileName == null || fileName.isEmpty()) {
+			String fileName = assetRelativePath(filePaths.get(i));
+			if (fileName.isEmpty()) {
 				continue;
 			}
-			while (fileName.startsWith("/")) {
-				fileName = fileName.substring(1);
-			}
-
-			String filePath = assetFolder + "/" + fileName;
 			// content is written as-is: the Pixel translation layer already decodes
 			// <encode> blocks (PR #2510); decoding again corrupts literal "%xx" (e.g. %02x)
 			String content = contents.get(i);
-
-			File file = new File(filePath);
-			try {
-				FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
-			} catch (IOException e) {
-				classLogger.error("Error saving asset file {}", fileName, e);
-				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);
-				SemossPixelException exception = new SemossPixelException(error);
-				exception.setContinueThreadOfExecution(false);
-				throw exception;
-			}
+			saved.add(writeAssetFile(assetFolder, fileName, override,
+					file -> FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8)));
 		}
+		return saved;
 	}
 
 	/**
 	 * Saves a list of files with their corresponding base64 content to the asset
-	 * folder.
-	 * 
+	 * folder. When a file already exists at a path, {@code override} decides what
+	 * happens: true replaces it, false keeps it and saves the new file beside it
+	 * under the next copy number, such as {@code deck (2).pptx}. Empty paths are
+	 * skipped.
+	 *
 	 * @param assetFolder  The base folder for the assets.
 	 * @param filePaths    A list of relative file paths.
 	 * @param contents     A list of file contents corresponding to the filePaths.
 	 * @param decodeBase64 Boolean if we should decode the base64 string before
 	 *                     writing to the filePath
+	 * @param override     Whether an existing file at a path is replaced.
+	 * @return where each file was saved, in the order of {@code filePaths}
 	 */
-	public static void saveAssetFilesBase64(String assetFolder, List<String> filePaths, List<String> contents,
-			boolean decodeBase64) {
-		// iterate each fileName/content pair
+	public static List<SavedAsset> saveAssetFilesBase64(String assetFolder, List<String> filePaths,
+			List<String> contents, boolean decodeBase64, boolean override) {
+		List<SavedAsset> saved = new ArrayList<>();
 		for (int i = 0; i < filePaths.size(); i++) {
-			String rawFileName = filePaths.get(i).trim();
-			String fileName = Utility.normalizePath(rawFileName);
-			if (fileName == null || fileName.isEmpty()) {
+			String fileName = assetRelativePath(filePaths.get(i));
+			if (fileName.isEmpty()) {
 				continue;
 			}
-			while (fileName.startsWith("/")) {
-				fileName = fileName.substring(1);
-			}
-
-			String filePath = assetFolder + "/" + fileName;
 			String content = contents.get(i);
-			byte[] decodedBytes = null;
 			if (decodeBase64) {
-				try {
-					decodedBytes = Base64.getDecoder().decode(content);
-				} catch (Exception e) {
-					throw new IllegalArgumentException(
-							"Failed to decode string input: input is not base64-encoded utf-8 string", e);
-				}
+				byte[] decodedBytes = decodeBase64Content(content);
+				// write the decoded bytes directly - routing them through a
+				// String corrupts binary content (pptx, images, pdf, etc.)
+				saved.add(writeAssetFile(assetFolder, fileName, override,
+						file -> FileUtils.writeByteArrayToFile(file, decodedBytes)));
+			} else {
+				saved.add(writeAssetFile(assetFolder, fileName, override,
+						file -> FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8)));
 			}
+		}
+		return saved;
+	}
 
-			File file = new File(filePath);
-			try {
-				if (decodedBytes != null) {
-					// write the decoded bytes directly - routing them through a
-					// String corrupts binary content (pptx, images, pdf, etc.)
-					FileUtils.writeByteArrayToFile(file, decodedBytes);
-				} else {
-					FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
-				}
-			} catch (IOException e) {
-				classLogger.error("Error saving asset file {}", fileName, e);
-				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);
-				SemossPixelException exception = new SemossPixelException(error);
-				exception.setContinueThreadOfExecution(false);
-				throw exception;
+	/**
+	 * Decodes the base64 content of a file being saved.
+	 *
+	 * @param content the base64 content
+	 * @return the decoded bytes
+	 * @throws IllegalArgumentException if the content is not base64
+	 */
+	private static byte[] decodeBase64Content(String content) {
+		try {
+			return Base64.getDecoder().decode(content);
+		} catch (Exception e) {
+			throw new IllegalArgumentException(
+					"Failed to decode string input: input is not base64-encoded utf-8 string", e);
+		}
+	}
+
+	/**
+	 * Writes one asset file. With {@code override} the file at the path is
+	 * written, replacing what is there. Without it the path, or the first free
+	 * numbered sibling, is claimed first (see
+	 * {@link #reserveAvailableFile(File, boolean)}) and removed again when the
+	 * write fails.
+	 *
+	 * @param assetFolder the base folder for the assets
+	 * @param fileName    the file's path relative to the asset folder
+	 * @param override    whether an existing file at the path is replaced
+	 * @param writer      writes the content into the file
+	 * @return where the file was saved
+	 */
+	private static SavedAsset writeAssetFile(String assetFolder, String fileName, boolean override,
+			AssetWriter writer) {
+		File target = new File(assetFolder + "/" + fileName);
+		boolean claimed = false;
+		try {
+			if (!override) {
+				target = reserveAvailableFile(target, false);
+				claimed = true;
 			}
+			writer.write(target);
+		} catch (IOException e) {
+			if (claimed) {
+				FileUtils.deleteQuietly(target);
+			}
+			classLogger.error("Error saving asset file {}", fileName, e);
+			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);
+			SemossPixelException exception = new SemossPixelException(error);
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+		return new SavedAsset(fileName, siblingPath(fileName, target.getName()));
+	}
+
+	/**
+	 * The result a reactor returns after writing assets: one map per asset, as
+	 * {@link SavedAsset#toMap()} builds it, so callers read where each asset
+	 * landed. Each asset saved under a copy number also carries a success message
+	 * naming its new path, which clients show beside the result.
+	 *
+	 * @param savedAssets where each asset was written
+	 * @return the noun holding the list of maps
+	 */
+	public static NounMetadata savedAssetsAsNounMetadata(List<SavedAsset> savedAssets) {
+		List<Map<String, Object>> output = new ArrayList<>();
+		for (SavedAsset savedAsset : savedAssets) {
+			output.add(savedAsset.toMap());
+		}
+		NounMetadata noun = new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.OPERATION);
+		for (SavedAsset savedAsset : savedAssets) {
+			if (savedAsset.renamed()) {
+				noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("'" + savedAsset.requestedPath()
+						+ "' already exists, so it was saved as '" + savedAsset.savedPath() + "'"));
+			}
+		}
+		return noun;
+	}
+
+	/**
+	 * Where the top level entries of an unzipped file landed, relative to the
+	 * asset folder.
+	 *
+	 * @param zipRelativePath the zip file's path relative to the asset folder
+	 * @param extractedNames  each top level name in the zip mapped to the name it
+	 *                        was extracted as, as
+	 *                        {@link ZipUtils#unzip(String, String, boolean)}
+	 *                        returns them
+	 * @return one saved asset per top level entry
+	 */
+	public static List<SavedAsset> unzippedAssets(String zipRelativePath, Map<String, String> extractedNames) {
+		List<SavedAsset> savedAssets = new ArrayList<>();
+		for (Map.Entry<String, String> extracted : extractedNames.entrySet()) {
+			savedAssets.add(new SavedAsset(siblingPath(zipRelativePath, extracted.getKey()),
+					siblingPath(zipRelativePath, extracted.getValue())));
+		}
+		return savedAssets;
+	}
+
+	/**
+	 * The path to write for a request whose path may be taken: the requested path
+	 * when nothing is there, otherwise the first free sibling numbered the way
+	 * desktop file managers number a second download. {@code report.pdf} becomes
+	 * {@code report (2).pdf}, then {@code report (3).pdf}. A name that already
+	 * carries a copy number counts on from it, so a taken {@code report (2).pdf}
+	 * becomes {@code report (3).pdf}. The extension stays last, compound ones such
+	 * as {@code .tar.gz} included, while a directory or a dotfile such as
+	 * {@code .env} is numbered at the end of its whole name. Nothing is created;
+	 * use {@link #reserveAvailableFile(File, boolean)} to claim the path.
+	 *
+	 * @param requested the path asked for
+	 * @param directory whether a directory is being written
+	 * @return {@code requested} or its first free numbered sibling
+	 * @throws IllegalArgumentException if every copy number tried is taken
+	 */
+	static File nextAvailableFile(File requested, boolean directory) {
+		if (!requested.exists()) {
+			return requested;
+		}
+		CopyName name = copyName(requested.getName(), directory);
+		for (int number = name.firstNumber(); number < name.firstNumber() + MAX_COPY_NUMBERS; number++) {
+			File candidate = name.sibling(requested, number);
+			if (!candidate.exists()) {
+				return candidate;
+			}
+		}
+		throw noFreeName(requested);
+	}
+
+	/**
+	 * Claims the path to write: the requested path when it is free, otherwise its
+	 * first free numbered sibling, named as {@link #nextAvailableFile(File, boolean)}
+	 * describes. Claiming creates the entry, an empty file or directory, in one
+	 * step that fails when the name is taken, so two writes at the same time never
+	 * get the same name. Missing parent directories are created.
+	 *
+	 * @param requested the path asked for
+	 * @param directory whether to claim a directory instead of a file
+	 * @return the claimed file or directory, now existing and empty
+	 * @throws IOException              if the parent or the entry cannot be
+	 *                                  created for a reason other than a taken name
+	 * @throws IllegalArgumentException if every copy number tried is taken
+	 */
+	static File reserveAvailableFile(File requested, boolean directory) throws IOException {
+		FileUtils.forceMkdir(requested.getAbsoluteFile().getParentFile());
+		if (claim(requested, directory)) {
+			return requested;
+		}
+		CopyName name = copyName(requested.getName(), directory);
+		for (int number = name.firstNumber(); number < name.firstNumber() + MAX_COPY_NUMBERS; number++) {
+			File candidate = name.sibling(requested, number);
+			if (claim(candidate, directory)) {
+				return candidate;
+			}
+		}
+		throw noFreeName(requested);
+	}
+
+	/**
+	 * Creates a file or directory only when nothing is at its path.
+	 *
+	 * @param file      the path to create
+	 * @param directory whether to create a directory instead of a file
+	 * @return true when it was created, false when the path was taken
+	 * @throws IOException if it cannot be created and nothing is at its path
+	 */
+	private static boolean claim(File file, boolean directory) throws IOException {
+		boolean created = directory ? file.mkdir() : file.createNewFile();
+		if (!created && !file.exists()) {
+			throw new IOException("Unable to create " + file.getName());
+		}
+		return created;
+	}
+
+	/**
+	 * Splits a name for copy numbering.
+	 *
+	 * @param name      the file or directory name
+	 * @param directory whether the name is a directory's, which has no extension
+	 * @return the stem, the extension and the first copy number to try
+	 */
+	private static CopyName copyName(String name, boolean directory) {
+		String extension = "";
+		if (!directory) {
+			String lowerName = name.toLowerCase(Locale.ROOT);
+			for (String compound : COMPOUND_EXTENSIONS) {
+				if (lowerName.endsWith(compound) && lowerName.length() > compound.length()) {
+					extension = name.substring(name.length() - compound.length());
+					break;
+				}
+			}
+			int dot = name.lastIndexOf('.');
+			if (extension.isEmpty() && dot > 0) {
+				extension = name.substring(dot);
+			}
+		}
+		String stem = name.substring(0, name.length() - extension.length());
+		int firstNumber = 2;
+		Matcher numbered = COPY_NUMBER_SUFFIX.matcher(stem);
+		if (numbered.matches()) {
+			stem = numbered.group(1);
+			firstNumber = Math.max(2, Integer.parseInt(numbered.group(2)) + 1);
+		}
+		return new CopyName(stem, extension, firstNumber);
+	}
+
+	private static IllegalArgumentException noFreeName(File requested) {
+		return new IllegalArgumentException("Unable to find a free name for " + requested.getName());
+	}
+
+	/**
+	 * The path of an entry that sits beside another, both relative to the asset
+	 * folder.
+	 *
+	 * @param relativePath the path of the entry asked for, without a trailing slash
+	 * @param name         the name of the entry beside it
+	 * @return {@code relativePath} with its last segment replaced by {@code name}
+	 */
+	public static String siblingPath(String relativePath, String name) {
+		int slash = relativePath.lastIndexOf('/');
+		return slash < 0 ? name : relativePath.substring(0, slash + 1) + name;
+	}
+
+	/**
+	 * Normalizes a requested asset path for writing: back-slashes become slashes,
+	 * ".." segments are resolved (see {@link Utility#normalizePath(String)}), and
+	 * leading and trailing slashes are removed.
+	 *
+	 * @param rawPath the path from the request, may be null
+	 * @return the relative path, or an empty string for none
+	 */
+	private static String assetRelativePath(String rawPath) {
+		if (rawPath == null) {
+			return "";
+		}
+		return stripAssetPathSlashes(Utility.normalizePath(rawPath.trim()));
+	}
+
+	/**
+	 * Whether two existing paths are the same file, such as names that differ only
+	 * in case on a case-insensitive file system.
+	 *
+	 * @param first  one path
+	 * @param second the other path
+	 * @return true when both name the same file
+	 */
+	private static boolean isSameFile(Path first, Path second) {
+		try {
+			return Files.isSameFile(first, second);
+		} catch (IOException e) {
+			return first.equals(second);
 		}
 	}
 

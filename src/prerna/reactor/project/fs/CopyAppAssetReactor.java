@@ -45,16 +45,16 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
 public class CopyAppAssetReactor extends AbstractReactor {
 
-	private static final String OVERRIDE = ReactorKeysEnum.OVERRIDE.getKey();
-
 	public CopyAppAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.NEW_VALUE.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), OVERRIDE };
+				ReactorKeysEnum.NEW_VALUE.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(),
+				ReactorKeysEnum.OVERRIDE.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1, 0, 0 };
 	}
 
@@ -88,17 +88,18 @@ public class CopyAppAssetReactor extends AbstractReactor {
 				project.getEngineId(), project.getEngineName());
 		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
 				project.getEngineId(), project.getEngineName());
+
+		boolean override = getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), false);
+		SavedAsset savedAsset = FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName, override);
+
 		String comment = this.keyValue.get(this.keysToGet[3]);
 		if (comment == null) {
-			comment = "copy: Copying " + sourceFileName + " to " + destFileName;
+			comment = "copy: Copying " + sourceFileName + " to " + savedAsset.savedPath();
 		}
-
-		boolean override = getBoolean(OVERRIDE, false);
-		FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName, override);
 
 		// handle pushing to git and the cloud
 		List<String> toAdd = new ArrayList<>();
-		toAdd.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + destFileName);
+		toAdd.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + savedAsset.savedPath());
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
@@ -111,8 +112,7 @@ public class CopyAppAssetReactor extends AbstractReactor {
 		// handle synchronization to the cloud
 		ClusterUtil.pushProjectFolder(project, assetFolder);
 
-		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
-		return retNoun;
+		return FileSystemUtil.savedAssetsAsNounMetadata(List.of(savedAsset));
 	}
 
 	@Override
@@ -123,17 +123,18 @@ public class CopyAppAssetReactor extends AbstractReactor {
 				.key(ReactorKeysEnum.FILE_PATH,
 						"The source file or directory to copy. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.")
 				.key(ReactorKeysEnum.NEW_VALUE,
-						"The destination path for the copy. This cannot be an existing file or directory unless override is true and has the same character restrictions you would expect on a typical file system.")
+						"The destination path for the copy, with the same character restrictions you would expect on a typical file system. When something already exists there, override decides whether it is replaced or the copy is written beside it under the next copy number.")
 				.key(ReactorKeysEnum.COMMENT_KEY,
 						"Comment to add while saving the files within the git repository for the project")
-				.key(OVERRIDE, key -> key.type(Boolean.class).description(
-						"Whether to delete an existing file or directory at the destination before copying. Defaults to false."));
+				.key(ReactorKeysEnum.OVERRIDE,
+						key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_KEEP_DESCRIPTION))
+				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
 	}
 
 	@Override
 	public JSONObject getMcpProperties() {
 		JSONObject properties = super.getMcpProperties();
-		properties.getJSONObject(OVERRIDE).put("default", false);
+		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", false);
 		return properties;
 	}
 
