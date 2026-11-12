@@ -521,7 +521,7 @@ public final class WorkTaskUtils {
 					false, ownerId, ownerType, fromId);
 			// links the target lacks move over; duplicates go
 			for (String[] link : new String[][] { { "WORK_TASK_THREAD", "THREAD_ID" },
-					{ "WORK_TASK_TOPIC", "TOPIC_ID" }, { "WORK_TASK_ROOM", "ROOM_ID" } }) {
+					{ "WORK_TASK_TOPIC", "TOPIC_ID" } }) {
 				CollaborationDbUtils.update(conn,
 						"UPDATE " + link[0] + " SET TASK_ID = ?" + OWNED + " AND TASK_ID = ? " + "AND " + link[1]
 								+ " NOT IN (SELECT " + link[1] + " FROM " + link[0] + OWNED + " AND TASK_ID = ?)",
