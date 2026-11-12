@@ -31,6 +31,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -148,34 +149,14 @@ public class GitHubBranchReactor extends AbstractReactor {
 		}
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
-	public String getReactorDescription() {
-		return "Lists, creates, or deletes branches in a GitHub repository.";
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ACTION.equals(key)) {
-			return "Required action: list, create, or delete.";
-		} else if (OWNER.equals(key)) {
-			return "Required repository owner, either a user or organization.";
-		} else if (REPO.equals(key)) {
-			return "Required repository name.";
-		} else if (BRANCH.equals(key)) {
-			return "Branch name. Required for create and delete.";
-		} else if (FROM_BRANCH.equals(key)) {
-			return "Optional source branch to branch from. Defaults to the repository's default branch.";
-		} else if (PAGE.equals(key)) {
-			return "Pagination page number for list. Defaults to 1.";
-		} else if (PER_PAGE.equals(key)) {
-			return "Pagination size per page for list. Defaults to 30 and is capped at 100.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Lists, creates, or deletes branches in a GitHub repository.")
+				.key(ACTION, "Required action: list, create, or delete.")
+				.key(OWNER, "Required repository owner, either a user or organization.")
+				.key(REPO, "Required repository name.").key(BRANCH, "Branch name. Required for create and delete.")
+				.key(FROM_BRANCH, "Optional source branch to branch from. Defaults to the repository's default branch.")
+				.key(PAGE, "Pagination page number for list. Defaults to 1.")
+				.key(PER_PAGE, "Pagination size per page for list. Defaults to 30 and is capped at 100.");
 	}
 }

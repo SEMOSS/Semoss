@@ -56,6 +56,7 @@ import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdf.RDFDefaultDatabaseTypeFactory;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.poi.main.helper.excel.ExcelParsing;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -74,9 +75,14 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Uploads an Excel file that follows the SEMOSS loader-sheet format to create an RDF (triplestore) database. "
-				+ "Supports node, relationship, matrix, and subclass sheets, generating the corresponding triples.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Uploads an Excel file that follows the SEMOSS loader-sheet format to create an RDF (triplestore) database. "
+						+ "Supports node, relationship, matrix, and subclass sheets, generating the corresponding triples.")
+				.key("customBaseURI",
+						"The base URI for the triples of a new database, which the database also keeps as its base URI; defaults to the server's SEMOSS URI. When adding to an existing database, the database's own base URI is used.")
+				.key("existing", key -> key.type(Boolean.class).description(
+						"Whether to add the file's data to an existing database (true) instead of creating a new one (false, the default)."));
 	}
 
 	@Override

@@ -3,7 +3,7 @@ name: semoss-minio
 # MinIO - S3-compatible object store. Not a vector DB like most of this folder;
 # it connects to SEMOSS as a storage engine (STORAGE_TYPE MINIO, with S3_ENDPOINT
 # pointed here - see the README for the full settings).
-# Image: https://hub.docker.com/r/minio/minio
+# Image: https://hub.docker.com/r/pgsty/minio (community-maintained MinIO fork)
 #
 # Run:    docker compose -f semoss-minio.yml up -d
 # Stop:   docker compose -f semoss-minio.yml down       (add -v to wipe data)
@@ -21,7 +21,7 @@ name: semoss-minio
 # but SEMOSS storage engines expect it, so it is made here.
 services:
   minio:
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     container_name: semoss-minio
     command: server /data --console-address ":9001"
     environment:
@@ -42,7 +42,7 @@ services:
 
   # one-shot: creates the 'semoss' bucket, then exits
   createbucket:
-    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    image: pgsty/mc:RELEASE.2026-10-26T00-00-00Z
     container_name: semoss-minio-createbucket
     depends_on:
       minio:

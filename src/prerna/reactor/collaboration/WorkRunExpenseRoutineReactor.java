@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkExpenseRoutine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkRunExpenseRoutine(threadId=["..."], messageKey=["..."]); the mail import schedules this when a request arrives
@@ -43,23 +44,15 @@ public class WorkRunExpenseRoutineReactor extends AbstractCollaborationReactor {
 	@Override
 	public NounMetadata execute() {
 		getUser();
-		return mapResult(WorkExpenseRoutine.run(this.insight, getNounAsStringList(THREAD_ID),
-				getNounAsStringList(MESSAGE_KEY)));
+		return mapResult(
+				WorkExpenseRoutine.run(this.insight, getNounAsStringList(THREAD_ID), getNounAsStringList(MESSAGE_KEY)));
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Reviews the given approval requests for the signed-in user when their expense review routine is on";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Brain thread id of each request, in the same order as messageKey.";
-		}
-		if (MESSAGE_KEY.equals(key)) {
-			return "Brain message key of each request email.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Reviews the given approval requests for the signed-in user when their expense review routine is on")
+				.key(THREAD_ID, "Brain thread id of each request, in the same order as messageKey.")
+				.key(MESSAGE_KEY, "Brain message key of each request email.");
 	}
 }

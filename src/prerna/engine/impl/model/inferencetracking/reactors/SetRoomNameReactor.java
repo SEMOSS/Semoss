@@ -31,6 +31,7 @@ import prerna.auth.User;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -59,12 +60,11 @@ public class SetRoomNameReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("roomId")) {
-			return "The room or conversation ID for a given chat app";
-		} else if (key.equals("roomName")) {
-			return "A sequence of characters to set as the new name";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Renames one of the calling user's rooms. Returns true when the update runs without error.")
+				.key("roomId", "The room or conversation ID for a given chat app")
+				.key("roomName", "A sequence of characters to set as the new name");
 	}
 }

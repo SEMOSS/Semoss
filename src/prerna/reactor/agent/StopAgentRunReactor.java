@@ -32,6 +32,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -64,7 +65,8 @@ public class StopAgentRunReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Cancel a durable AgentRun by runId.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Cancel a durable AgentRun by runId.").key(RUN_ID_KEY,
+				"The id of the agent run to cancel.");
 	}
 }

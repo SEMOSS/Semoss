@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IStorageEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -120,22 +121,12 @@ public class PullFromStorageReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Pull files from a storage path to a local path";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.STORAGE.getKey())) {
-			return "The storage engine instance or id";
-		} else if (key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
-			return "The storage path(s) to download from";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The local path to download files to";
-		} else if (key.equals(ReactorKeysEnum.VERSION.getKey())) {
-			return "Optional version ID to download a specific object version (specific to the cloud storage provider)";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Pull files from a storage path to a local path")
+				.key(ReactorKeysEnum.STORAGE, "The storage engine instance or id")
+				.key(ReactorKeysEnum.STORAGE_PATH, "The storage path(s) to download from")
+				.key(ReactorKeysEnum.FILE_PATH, "The local path to download files to").key(ReactorKeysEnum.VERSION,
+						"Optional version ID to download a specific object version (specific to the cloud storage provider)");
 	}
 
 }

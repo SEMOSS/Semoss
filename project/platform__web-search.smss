@@ -1,0 +1,19 @@
+#Base Properties
+PROJECT	web-search
+PROJECT_ALIAS	platform
+PROJECT_DISPLAY_NAME	Web Search MCP
+PROJECT_TYPE	prerna.project.impl.Project
+PROJECT_ENUM_TYPE	CODE
+RDBMS_INSIGHTS	project/@PROJECT@/insights_database
+RDBMS_INSIGHTS_TYPE	H2_DB
+DRIVER	org.h2.Driver
+RDBMS_TYPE	H2_DB
+USERNAME	sa
+PASSWORD
+CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/project/platform__web-search/insights_database;query_timeout=180000;cache_size=32768
+PIPELINE	pipeline.json
+# Where SearXNG runs. A value in platform__web-search.smss.local wins over this one;
+# with both blank the driver uses the SEARXNG_URL environment variable, then
+# http://localhost:8888. See the README.
+SEARXNG_URL
+USE_PYTHON	project

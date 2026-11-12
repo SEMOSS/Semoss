@@ -31,6 +31,7 @@ import java.util.List;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainMemoryUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainListMemories(state=["active", "suggested"], refType=["person"], refId=["..."], query=["..."], limit=[50],
@@ -60,25 +61,13 @@ public class BrainListMemoriesReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the signed-in user's Brain memories as { items, total }";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (STATE.equals(key)) {
-			return "Memory states to include: active, suggested, superseded, dismissed; active and suggested when omitted";
-		} else if (REF_TYPE.equals(key)) {
-			return "With refId, only memories about this: person, topic, account, or thread";
-		} else if (REF_ID.equals(key)) {
-			return "Id of the person, topic, account, or thread";
-		} else if (QUERY.equals(key)) {
-			return "Words to match; best matches first";
-		} else if (LIMIT.equals(key)) {
-			return "Page size, default 50";
-		} else if (OFFSET.equals(key)) {
-			return "Rows to skip, default 0";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Lists the signed-in user's Brain memories as { items, total }")
+				.key(STATE,
+						"Memory states to include: active, suggested, superseded, dismissed; active and suggested when omitted")
+				.key(REF_TYPE, "With refId, only memories about this: person, topic, account, or thread")
+				.key(REF_ID, "Id of the person, topic, account, or thread")
+				.key(QUERY, "Words to match; best matches first").key(LIMIT, "Page size, default 50")
+				.key(OFFSET, "Rows to skip, default 0");
 	}
 }

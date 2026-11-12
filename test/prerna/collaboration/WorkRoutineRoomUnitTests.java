@@ -69,6 +69,7 @@ import prerna.reactor.agent.runtime.AgentCodeExecutionContext;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.project.AutomationProjectService;
 import prerna.reactor.automation.run.AutomationRunStore;
+import prerna.reactor.automation.run.RunAutomationDefinitionReactor;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.reactor.scheduler.SchedulerFactorySingleton;
 import prerna.util.SystemEngineRegistry;
@@ -182,6 +183,8 @@ class WorkRoutineRoomUnitTests {
 		assertTrue(CollaborationAgentTools.appliesTo(room));
 		assertTrue(CollaborationUtils.isAssistantRoom(room));
 		assertEquals("collaboration-model", room.getOptionsMap().get("modelId"));
+		// the chat's assistant is told which routine's result it starts with
+		assertEquals(routineId, room.getOptionsMap().get(CollaborationUtils.ROOM_OPTION_ROUTINE_CHAT));
 		assertNotEquals("automation-room", id);
 	}
 
@@ -384,6 +387,82 @@ class WorkRoutineRoomUnitTests {
 			history.verify(() -> AutomationRunStore.deleteRuns(scope, custom));
 			verify(scheduler, times(5)).deleteJob(any());
 			recipes.verify(() -> SchedulerDatabaseUtility.removeFromJobRecipesTable(anyString(), anyString()), times(5));
+		}
+	}
+
+	@Test
+	void deletingEveryRunAlsoTakesTheRunsOfOwnRoutinesDeletedWithoutThem() {
+		List<String> closed = new ArrayList<>();
+		logs.when(() -> ModelInferenceLogsUtils.doSetRoomToInactive(anyString(), anyString())).thenAnswer(call -> {
+			closed.add(call.getArgument(1));
+			return true;
+		});
+		String scope = AutomationProjectService.inlineRunScope(user);
+		String gone = WorkCustomRoutine.KIND.automationId() + ":gone-1";
+		try (MockedStatic<AutomationRunStore> history = mockStatic(AutomationRunStore.class);
+				MockedStatic<AgentCodeExecutionContext> code = mockStatic(AgentCodeExecutionContext.class)) {
+			// no row names that routine any more; the owner's other automations in the scope are not Collaboration's
+			history.when(() -> AutomationRunStore.getRunsForProject(scope, -1)).thenReturn(List.of(
+					Map.of(AutomationConstants.RUN_ID, "run-g", AutomationConstants.AUTOMATION_ID, gone),
+					Map.of(AutomationConstants.RUN_ID, "run-x", AutomationConstants.AUTOMATION_ID, "owners-automation")));
+			history.when(() -> AutomationRunStore.getRunsForAutomation(scope, gone, -1))
+					.thenReturn(List.of(Map.of(AutomationConstants.RUN_ID, "run-g")));
+			history.when(() -> AutomationRunStore.getNodeOutputsForRun("run-g"))
+					.thenReturn(List.of(Map.of(AutomationConstants.ROOM_ID, "gone-agent-room")));
+			history.when(() -> AutomationRunStore.deleteRuns(scope, gone)).thenReturn(1);
+
+			assertEquals(1, WorkRoutineRoom.deleteAll(user));
+
+			assertTrue(closed.contains("gone-agent-room"));
+			history.verify(() -> AutomationRunStore.deleteRuns(scope, gone));
+			history.verify(() -> AutomationRunStore.deleteRuns(scope, "owners-automation"), never());
+		}
+	}
+
+	@Test
+	void deletingAnOwnRoutineStopsItsRunAndTakesItsRunsRoomsAndSchedule() throws Exception {
+		CollaborationDbUtils.update("INSERT INTO WORK_CUSTOM_ROUTINE (OWNER_ID, OWNER_TYPE, ROUTINE_ID, SETTINGS_JSON, ENABLED, "
+				+ "RUN_STATUS, STARTED_AT, RUN_ID) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", "owner-one", AuthProvider.NATIVE.getLabel(),
+				"custom-1", "{}", true, "running", CollaborationDbUtils.toTimestamp(STARTED, "startedAt"), "run-c");
+		registry.when(SystemEngineRegistry::isSchedulerDbLoaded).thenReturn(true);
+		utility.when(() -> Utility.getDIHelperProperty(Constants.SCHEDULER_ENDPOINT)).thenReturn("https://semoss.test/Monolith");
+		List<String> closed = new ArrayList<>();
+		logs.when(() -> ModelInferenceLogsUtils.doSetRoomToInactive(anyString(), anyString())).thenAnswer(call -> {
+			closed.add(call.getArgument(1));
+			return true;
+		});
+		String scope = AutomationProjectService.inlineRunScope(user);
+		String custom = WorkCustomRoutine.KIND.automationId() + ":custom-1";
+		Scheduler scheduler = mock(Scheduler.class);
+		SchedulerFactorySingleton factory = mock(SchedulerFactorySingleton.class);
+		when(factory.getScheduler()).thenReturn(scheduler);
+		try (MockedStatic<AutomationRunStore> history = mockStatic(AutomationRunStore.class);
+				MockedStatic<RunAutomationDefinitionReactor> automations = mockStatic(RunAutomationDefinitionReactor.class);
+				MockedStatic<AgentCodeExecutionContext> code = mockStatic(AgentCodeExecutionContext.class);
+				MockedStatic<SchedulerFactorySingleton> factories = mockStatic(SchedulerFactorySingleton.class);
+				MockedStatic<SchedulerDatabaseUtility> recipes = mockStatic(SchedulerDatabaseUtility.class)) {
+			factories.when(SchedulerFactorySingleton::getInstance).thenReturn(factory);
+			// the run still going, and an earlier one
+			history.when(() -> AutomationRunStore.getRunDetail("run-c"))
+					.thenReturn(Map.of(AutomationConstants.STATUS, AutomationConstants.STATUS_RUNNING));
+			history.when(() -> AutomationRunStore.getRunsForAutomation(scope, custom, -1)).thenReturn(List.of(
+					Map.of(AutomationConstants.RUN_ID, "run-c"), Map.of(AutomationConstants.RUN_ID, "run-earlier")));
+			history.when(() -> AutomationRunStore.getNodeOutputsForRun("run-c"))
+					.thenReturn(List.of(Map.of(AutomationConstants.ROOM_ID, "running-agent-room")));
+			history.when(() -> AutomationRunStore.getNodeOutputsForRun("run-earlier"))
+					.thenReturn(List.of(Map.of(AutomationConstants.ROOM_ID, "earlier-agent-room")));
+			history.when(() -> AutomationRunStore.deleteRuns(scope, custom)).thenAnswer(call -> {
+				// the rooms go before the runs that name them
+				assertTrue(closed.containsAll(List.of("running-agent-room", "earlier-agent-room")));
+				return 2;
+			});
+
+			WorkRoutine.delete(WorkCustomRoutine.KIND, user, "custom-1");
+
+			automations.verify(() -> RunAutomationDefinitionReactor.cancelRun("run-c"));
+			history.verify(() -> AutomationRunStore.deleteRuns(scope, custom));
+			verify(scheduler).deleteJob(any());
+			assertEquals(0, CollaborationDbUtils.count("SELECT COUNT(*) FROM WORK_CUSTOM_ROUTINE"));
 		}
 	}
 

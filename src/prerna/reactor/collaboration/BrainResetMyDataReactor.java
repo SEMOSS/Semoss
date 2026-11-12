@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainResetUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainResetMyData(confirm=["reset"]);
@@ -50,16 +51,10 @@ public class BrainResetMyDataReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Deletes all of the caller's Collaboration data (profile, people, topics, threads, rules, work items, "
-				+ "jobs) so onboarding starts fresh; keeps the Microsoft link";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (CONFIRM.equals(key)) {
-			return "Must be \"reset\"";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Deletes all of the caller's Collaboration data (profile, people, topics, threads, rules, work items, "
+						+ "jobs) so onboarding starts fresh; keeps the Microsoft link")
+				.key(CONFIRM, "Must be \"reset\"");
 	}
 }

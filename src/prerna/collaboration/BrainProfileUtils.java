@@ -395,7 +395,7 @@ public final class BrainProfileUtils {
 					String folderName = CollaborationDbUtils.getString(rs, "DRAFT_FOLDER_NAME");
 					row.put("draftFolderName", folderName == null ? "" : folderName);
 					String font = CollaborationDbUtils.getString(rs, "DRAFT_FONT");
-					row.put("draftFont", font == null ? BrainDraftFormat.DEFAULT_FONT : font);
+					row.put("draftFont", font == null || font.isEmpty() ? BrainDraftFormat.DEFAULT_FONT : font);
 					Integer fontSize = CollaborationDbUtils.getInteger(rs, "DRAFT_FONT_SIZE");
 					row.put("draftFontSize", fontSize == null ? BrainDraftFormat.DEFAULT_SIZE : fontSize);
 					String signature = CollaborationDbUtils.getString(rs, "DRAFT_SIGNATURE_HTML");
@@ -484,7 +484,8 @@ public final class BrainProfileUtils {
 			if (font != null && !BrainDraftFormat.validFont(font)) {
 				throw new IllegalArgumentException("Choose a font name of letters, digits and spaces");
 			}
-			CollaborationDbUtils.addSet(sets, params, "DRAFT_FONT", font);
+			// a clear is "", not NULL, which Learn my style would fill again
+			CollaborationDbUtils.addSet(sets, params, "DRAFT_FONT", font == null ? "" : font);
 		}
 		if (changes.containsKey("draftFontSize")) {
 			int size = CollaborationDbUtils.toInt(changes.get("draftFontSize"), "draftFontSize");
@@ -498,9 +499,9 @@ public final class BrainProfileUtils {
 			CollaborationDbUtils.addSet(sets, params, "DRAFT_SIGNATURE_ON", isTrue(changes.get("draftSignatureOn")));
 		}
 		if (changes.containsKey("draftSignatureHtml")) {
-			// cleaned like a learned one; blank removes it
-			CollaborationDbUtils.addSet(sets, params, "DRAFT_SIGNATURE_HTML",
-					BrainDraftFormat.clean(trimToNull(changes.get("draftSignatureHtml"))));
+			// cleaned like a learned one; blank removes it, as "" for the same reason as the font
+			String signature = BrainDraftFormat.clean(trimToNull(changes.get("draftSignatureHtml")));
+			CollaborationDbUtils.addSet(sets, params, "DRAFT_SIGNATURE_HTML", signature == null ? "" : signature);
 		}
 		if (changes.containsKey("syncEveryMinutes")) {
 			int minutes = CollaborationDbUtils.toInt(changes.get("syncEveryMinutes"), "syncEveryMinutes");
@@ -609,7 +610,7 @@ public final class BrainProfileUtils {
 		return !Boolean.FALSE.equals(memorySetting(ownerId, ownerType, "MEMORY_USE"));
 	}
 
-	/** Finished chats are reviewed for memories to suggest; also needs memory itself to be on. */
+	/** Chats are reviewed in the background for memories to save; also needs memory itself to be on. */
 	static boolean learnsMemory(String ownerId, String ownerType) {
 		return usesMemory(ownerId, ownerType)
 				&& !Boolean.FALSE.equals(memorySetting(ownerId, ownerType, "MEMORY_LEARN"));

@@ -32,6 +32,7 @@ import java.util.Map;
 
 import org.eclipse.jgit.api.Git;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.git.GitConflictUtils.GitConflictDiffResult;
@@ -122,18 +123,12 @@ public abstract class AbstractGitDiffReactor extends AbstractGitWorktreeReactor 
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor returns the diff for a file on a given side (STAGED, UNSTAGED, or CONFLICT) in "
-				+ this.target.getLabelWithArticle() + "'s git repository";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The repo-relative file path to diff";
-		} else if (key.equals(SIDE_KEY)) {
-			return "STAGED, UNSTAGED, or CONFLICT";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"This reactor returns the diff for a file on a given side (STAGED, UNSTAGED, or CONFLICT) in "
+								+ this.target.getLabelWithArticle() + "'s git repository")
+				.key(ReactorKeysEnum.FILE_PATH, "The repo-relative file path to diff")
+				.key(SIDE_KEY, "STAGED, UNSTAGED, or CONFLICT");
 	}
 }

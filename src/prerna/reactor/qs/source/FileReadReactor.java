@@ -39,6 +39,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.EmbeddedRoutineReactor;
 import prerna.reactor.EmbeddedScriptReactor;
 import prerna.reactor.GenericReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -49,7 +50,7 @@ import prerna.util.Utility;
 
 public class FileReadReactor extends AbstractQueryStructReactor {
 
-	//keys to get inputs from pixel command
+	// keys to get inputs from pixel command
 	private static final String FILEPATH = ReactorKeysEnum.FILE_PATH.getKey();
 	private static final String SPACE = ReactorKeysEnum.SPACE.getKey();
 	private static final String PASSWORD = ReactorKeysEnum.PASSWORD.getKey();
@@ -61,21 +62,20 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	private static final String ADDITIONAL_DATA_TYPES = ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey();
 
 	/**
-	 * FileRead args 
+	 * FileRead args
 	 * 
 	 * FILE=["filePath"]
 	 * 
-	 * for csv must add delim = ["delimiter"]
-	 * for excel must add sheetName = ["sheetName"]
+	 * for csv must add delim = ["delimiter"] for excel must add sheetName =
+	 * ["sheetName"]
 	 * 
-	 * to set dataTypes 
-	 *     dataTypesMap = [{"column", "type"}]
-	 * to set newHeaders
-	 *     newHeaders = [{"oldColumn", "newColumn"}] 
+	 * to set dataTypes dataTypesMap = [{"column", "type"}] to set newHeaders
+	 * newHeaders = [{"oldColumn", "newColumn"}]
 	 */
-	
+
 	public FileReadReactor() {
-		this.keysToGet = new String[]{FILEPATH, SPACE, SHEET_NAME, SHEET_RANGE, DATA_TYPES, DELIMITER, HEADER_NAMES, ADDITIONAL_DATA_TYPES};
+		this.keysToGet = new String[] { FILEPATH, SPACE, SHEET_NAME, SHEET_RANGE, DATA_TYPES, DELIMITER, HEADER_NAMES,
+				ADDITIONAL_DATA_TYPES };
 	}
 
 	@Override
@@ -83,11 +83,11 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		AbstractFileQueryStruct qs = null;
 
 		// get inputs
-		Map<String, String> newHeaders = getHeaders(); 
+		Map<String, String> newHeaders = getHeaders();
 		Map<String, String> dataTypes = getDataTypes();
 		Map<String, String> additionalDataTypes = getAdditionalDataTypes();
 		String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
-		if(!new File(fileLocation).exists()) {
+		if (!new File(fileLocation).exists()) {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
 		String fileExtension = "";
@@ -97,13 +97,13 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		boolean isParquet = false;
 		if (fileLocation.contains(".")) {
 			fileExtension = fileLocation.substring(fileLocation.lastIndexOf('.'), fileLocation.length());
-			if(fileExtension.equals(".xls") || fileExtension.equals(".xlsx") || fileExtension.equals(".xlsm")) {
+			if (fileExtension.equals(".xls") || fileExtension.equals(".xlsx") || fileExtension.equals(".xlsm")) {
 				isExcel = true;
-			} else if(fileExtension.equals(".parquet")) {
+			} else if (fileExtension.equals(".parquet")) {
 				isParquet = true;
 			}
 		}
-		if(isExcel) { 
+		if (isExcel) {
 			// set excelQS
 			// get excel inputs
 			String sheetName = getSheetName();
@@ -113,7 +113,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 			((ExcelQueryStruct) qs).setSheetName(sheetName);
 			((ExcelQueryStruct) qs).setSheetRange(sheetRange);
 			((ExcelQueryStruct) qs).setPassword(password);
-		} else if(isParquet) {
+		} else if (isParquet) {
 			qs = new ParquetQueryStruct();
 		} else { // set csv qs
 			char delimiter = getDelimiter();
@@ -157,7 +157,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		}
 		return sheetName;
 	}
-	
+
 	private String getRange() {
 		GenRowStruct rangeGRS = this.store.getGenRowStruct(SHEET_RANGE);
 		String sheetRange = "";
@@ -170,7 +170,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		}
 		return sheetRange;
 	}
-	
+
 	private String getPassword() {
 		GenRowStruct rangeGRS = this.store.getGenRowStruct(PASSWORD);
 		String excelPassword = null;
@@ -192,7 +192,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		}
 		return dataTypes;
 	}
-	
+
 	private Map<String, String> getAdditionalDataTypes() {
 		GenRowStruct dataTypeGRS = this.store.getGenRowStruct(ADDITIONAL_DATA_TYPES);
 		Map<String, String> dataTypes = null;
@@ -207,22 +207,22 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	private char getDelimiter() {
 		GenRowStruct delimGRS = this.store.getGenRowStruct(DELIMITER);
 		String delimiter = "";
-		char delim = ','; //default
+		char delim = ','; // default
 		NounMetadata instanceIndexNoun;
 
 		if (delimGRS != null) {
 			instanceIndexNoun = delimGRS.getNoun(0);
 			delimiter = (String) instanceIndexNoun.getValue();
 		} else {
-			delimiter = delim+"";
+			delimiter = delim + "";
 		}
-		
-		if(delimiter == null) {
+
+		if (delimiter == null) {
 			throw new IllegalArgumentException("Need to specify " + DELIMITER + "=[delimiter] in pixel command");
 		}
 
 		// get char from input string
-		if(delimiter.length() > 0) {
+		if (delimiter.length() > 0) {
 			delim = delimiter.charAt(0);
 		}
 
@@ -244,48 +244,45 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 //		fileLocation = this.insight.getAbsoluteInsightFolderPath(fileLocation);
 //		return fileLocation;
 //	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(SHEET_NAME)) {
-			return "The excel sheet name. Only valid for excel files";
-		} else if(key.equals(SHEET_RANGE)) {
-			return "The excel sheet range. Only valid for excel files";
-		} else if(key.equals(PASSWORD)) {
-			return "The password if the excel is password protected. Only valid for excel files";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns a query struct that reads a delimited text, Excel or Parquet file at the given path, with optional new header names and column data types, for a following step such as an import.")
+				.key(ADDITIONAL_DATA_TYPES, key -> key.type(Map.class)).key(DATA_TYPES, key -> key.type(Map.class))
+				.key(HEADER_NAMES, key -> key.type(Map.class))
+				.key(SHEET_NAME, "The excel sheet name. Only valid for excel files")
+				.key(SHEET_RANGE, "The excel sheet range. Only valid for excel files");
 	}
-	
-	
+
 	@Override
 	public void mergeUp() {
 		// merge this reactor into the parent reactor
 		init();
 		createQueryStructPlan();
-		if(parentReactor != null) {
+		if (parentReactor != null) {
 			// this is only called lazy
 			// have to init to set the qs
 			// to them add to the parent
 			NounMetadata data = new NounMetadata(this.qs, PixelDataType.QUERY_STRUCT);
-	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
-	    			|| parentReactor instanceof GenericReactor) {
-	    		parentReactor.getCurRow().add(data);
-	    	} else {
-	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeGenRowStruct(PixelDataType.QUERY_STRUCT.toString());
+			if (parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
+					|| parentReactor instanceof GenericReactor) {
+				parentReactor.getCurRow().add(data);
+			} else {
+				GenRowStruct parentQSInput = parentReactor.getNounStore()
+						.makeGenRowStruct(PixelDataType.QUERY_STRUCT.toString());
 				parentQSInput.add(data);
-	    	}
+			}
 		}
 	}
-	
+
 	private AbstractQueryStruct createQueryStructPlan() {
 		AbstractFileQueryStruct qs = null;
 
 		// get inputs
-		Map<String, String> newHeaders = getHeaders(); 
+		Map<String, String> newHeaders = getHeaders();
 		Map<String, String> dataTypes = getDataTypes();
 		Map<String, String> additionalDataTypes = getAdditionalDataTypes();
 		String fileLocation = getPlanFileUpload();
@@ -296,20 +293,20 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		boolean isParquet = false;
 		if (fileLocation.contains(".")) {
 			fileExtension = fileLocation.substring(fileLocation.indexOf('.'), fileLocation.length());
-			if(fileExtension.equals(".xls") || fileExtension.equals(".xlsx") || fileExtension.equals(".xlsm")) {
+			if (fileExtension.equals(".xls") || fileExtension.equals(".xlsx") || fileExtension.equals(".xlsm")) {
 				isExcel = true;
-			} else if(fileExtension.equals(".parquet")) {
+			} else if (fileExtension.equals(".parquet")) {
 				isParquet = true;
 			}
 		}
-		if(isExcel) { // set excelQS
+		if (isExcel) { // set excelQS
 			// get excel inputs
 			String sheetName = getSheetName();
 			String sheetRange = getRange();
 			qs = new ExcelQueryStruct();
 			((ExcelQueryStruct) qs).setSheetName(sheetName);
 			((ExcelQueryStruct) qs).setSheetRange(sheetRange);
-		} else if(isParquet) {
+		} else if (isParquet) {
 			qs = new ParquetQueryStruct();
 		} else { // set csv qs
 			char delimiter = getDelimiter();
@@ -325,13 +322,14 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		this.qs = qs;
 		return qs;
 	}
-	
+
 	private String getPlanFileUpload() {
 		GenRowStruct fileGrs = store.getGenRowStruct(FILEPATH);
-		if(fileGrs == null || fileGrs.isEmpty()) {
-			throw new IllegalArgumentException("Must pass in the relative file path as " + FILEPATH + "=[\"input_path\"]");
+		if (fileGrs == null || fileGrs.isEmpty()) {
+			throw new IllegalArgumentException(
+					"Must pass in the relative file path as " + FILEPATH + "=[\"input_path\"]");
 		}
-		
+
 		String fileLocation = fileGrs.get(0).toString();
 		return fileLocation;
 	}

@@ -28,6 +28,7 @@
 package prerna.reactor.project;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -67,13 +68,9 @@ public class LoadAppReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Set the context for the insight in order to have access to app assets including custom reactors and python scripts";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Set the context for the insight in order to have access to app assets including custom reactors and python scripts");
 	}
 
 }

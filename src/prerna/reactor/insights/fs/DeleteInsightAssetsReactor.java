@@ -37,6 +37,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -118,21 +119,12 @@ public class DeleteInsightAssetsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Delete a single or multiple files in the insight folder";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return """
-					Names of the file(s) to delete. This relative path should assume the insight folder. \
-					If no value passed in, all files in the insight folder will be deleted.";
-					""";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while removing the files within the git repository for the insight if it is a saved insight";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Delete a single or multiple files in the insight folder")
+				.key(ReactorKeysEnum.FILE_PATH, """
+						Names of the file(s) to delete. This relative path should assume the insight folder. \
+						If no value passed in, all files in the insight folder will be deleted.";
+						""");
 	}
 
 	@Override

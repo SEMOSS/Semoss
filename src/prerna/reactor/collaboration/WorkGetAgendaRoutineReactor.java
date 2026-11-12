@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkAgendaRoutine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class WorkGetAgendaRoutineReactor extends AbstractCollaborationReactor {
@@ -42,7 +43,8 @@ public class WorkGetAgendaRoutineReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns the signed-in user's weekly agenda routine settings and latest agendas";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Returns the signed-in user's weekly agenda routine settings and latest agendas").noKeys();
 	}
 }

@@ -30,6 +30,7 @@ package prerna.auth.utils.reactors.admin;
 import prerna.auth.utils.EnterpriseUsageUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -55,7 +56,11 @@ public class AdminGetEnterpriseUsageFilterOptionsReactor extends AbstractReactor
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists Registered User IDs, Names And Authentication Types, App IDs And Names, Or Engine IDs And Names For Enterprise Usage Filters. Supports Bound Search, Exact ID Resolution And Bounded Pagination.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Lists registered user IDs, names and authentication types, app IDs and names, or engine IDs and names for enterprise usage filters. Supports bound search, exact ID resolution and bounded pagination.")
+				.key("dimension", "Which catalog to list: user, app or engine.")
+				.key("id", "An exact id to look up in the catalog. When it is given, search is not used.")
+				.key("limit", key -> key.type(Integer.class)).key("offset", key -> key.type(Integer.class));
 	}
 }

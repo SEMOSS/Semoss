@@ -223,7 +223,7 @@ public class DeleteStepReactorTest {
 
 	@Test
 	public void testGetReactorDescription() {
-		String description = reactor.getReactorDescription();
+		String description = reactor.getReactorDefinition().getDescription();
 		assertNotNull(description);
 		assertFalse(description.isEmpty());
 		assertTrue(description.contains("Delete") || description.contains("delete") || description.contains("step"));
@@ -231,7 +231,7 @@ public class DeleteStepReactorTest {
 
 	@Test
 	public void testGetDescriptionForSessionIdKey() {
-		String description = reactor.getDescriptionForKey("sessionId");
+		String description = reactor.getReactorDefinition().getKey("sessionId").getDescription();
 		assertNotNull(description);
 		assertFalse(description.isEmpty());
 		assertTrue(description.contains("session") || description.contains("Session"));
@@ -239,7 +239,7 @@ public class DeleteStepReactorTest {
 
 	@Test
 	public void testGetDescriptionForTabIdKey() {
-		String description = reactor.getDescriptionForKey("tabId");
+		String description = reactor.getReactorDefinition().getKey("tabId").getDescription();
 		assertNotNull(description);
 		assertFalse(description.isEmpty());
 		assertTrue(description.contains("tab") || description.contains("Tab"));
@@ -247,7 +247,7 @@ public class DeleteStepReactorTest {
 
 	@Test
 	public void testGetDescriptionForStepIdKey() {
-		String description = reactor.getDescriptionForKey("stepId");
+		String description = reactor.getReactorDefinition().getKey("stepId").getDescription();
 		assertNotNull(description);
 		assertFalse(description.isEmpty());
 		assertTrue(description.contains("step") || description.contains("Step"));
@@ -506,7 +506,6 @@ public class DeleteStepReactorTest {
 		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
 	}
 
-
 	@Test
 	public void testExecute_ScreenshotReturnsNull() {
 		String sessionId = "session123";
@@ -536,8 +535,7 @@ public class DeleteStepReactorTest {
 		mockSession.history = history;
 
 		try (MockedStatic<ScreenshotReactor> mockedScreenshot = mockStatic(ScreenshotReactor.class)) {
-			mockedScreenshot.when(() -> ScreenshotReactor.screenshot(mockSession, tabId))
-					.thenReturn(null);
+			mockedScreenshot.when(() -> ScreenshotReactor.screenshot(mockSession, tabId)).thenReturn(null);
 
 			NounMetadata result = reactor.execute();
 

@@ -31,6 +31,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainProfileUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSaveProfile(profile=[{...}]); owner-only
@@ -54,15 +55,9 @@ public class BrainSaveProfileReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Updates the signed-in user's Brain profile; only the fields passed are changed";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (KEY.equals(key)) {
-			return "Partial profile: name, email, org, timezone, workingHours, role {value, note}, style {summary, confirmed, examples}, vips (person ids)";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Updates the signed-in user's Brain profile; only the fields passed are changed").key(KEY,
+						"Partial profile: name, email, org, timezone, workingHours, role {value, note}, style {summary, confirmed, examples}, vips (person ids)");
 	}
 }

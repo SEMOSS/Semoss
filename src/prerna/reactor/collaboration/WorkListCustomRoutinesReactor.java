@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import java.util.Map;
 
 import prerna.collaboration.WorkCustomRoutine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class WorkListCustomRoutinesReactor extends AbstractCollaborationReactor {
@@ -44,9 +45,11 @@ public class WorkListCustomRoutinesReactor extends AbstractCollaborationReactor 
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the owner's own routines with their id, name, task, schedule, where each delivers, whether it "
-				+ "is on, the next run, and the last run: running, completed or failed, with its result or error. Use "
-				+ "it to answer whether a routine run has finished; routine runs are not sub-agents.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists the owner's own routines with their id, name, task, schedule, where each delivers, whether it "
+						+ "is on, the next run, and the last run: running, completed or failed, with its result or error. Use "
+						+ "it to answer whether a routine run has finished; routine runs are not sub-agents.")
+				.noKeys();
 	}
 }

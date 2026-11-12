@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -73,6 +74,31 @@ class MicrosoftGraphCredentialDbUnitTests {
 	}
 
 	@Test
+	void renewalUpdatesOnlyAStoredCredentialAndNeverAddsOne() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			db.execute("CREATE TABLE MS_GRAPH_CREDENTIAL (USER_ID VARCHAR PRIMARY KEY, USER_EMAIL VARCHAR, "
+					+ "ACCESS_TOKEN CLOB, REFRESH_TOKEN CLOB, TOKEN_EXPIRATION TIMESTAMP, CREATED_ON TIMESTAMP, UPDATED_ON TIMESTAMP)");
+			assertFalse(SecurityExternalConnectorsUtils.updateMicrosoftGraphCredential("one", null, "access", "refresh",
+					null));
+			assertEquals(0, db.count("MS_GRAPH_CREDENTIAL"));
+
+			SecurityExternalConnectorsUtils.upsertMicrosoftGraphCredential("one", "before@example.test", "old",
+					"old-refresh", null);
+			Object created = db.value("SELECT CREATED_ON FROM MS_GRAPH_CREDENTIAL WHERE USER_ID = 'one'");
+			Timestamp expiry = Timestamp.valueOf("2026-10-12 12:00:00");
+			assertTrue(SecurityExternalConnectorsUtils.updateMicrosoftGraphCredential("one", "after@example.test", "new",
+					"new-refresh", expiry));
+			var saved = SecurityExternalConnectorsUtils.getMicrosoftGraphCredential("one");
+			assertEquals("after@example.test", saved.get("userEmail"));
+			assertEquals("new", saved.get("accessToken"));
+			assertEquals("new-refresh", saved.get("refreshToken"));
+			assertEquals(expiry, saved.get("tokenExpiration"));
+			assertEquals(created, db.value("SELECT CREATED_ON FROM MS_GRAPH_CREDENTIAL WHERE USER_ID = 'one'"));
+			assertEquals(1, db.count("MS_GRAPH_CREDENTIAL"));
+		}
+	}
+
+	@Test
 	void blanksAreRejectedBeforeAccessingDatabase() throws Exception {
 		try (var db = new JdbcTestDatabase()) {
 			for (String blank : List.of("", " ")) {
@@ -82,6 +108,12 @@ class MicrosoftGraphCredentialDbUnitTests {
 						.upsertMicrosoftGraphCredential("one", null, blank, "refresh", null));
 				assertThrows(IllegalArgumentException.class, () -> SecurityExternalConnectorsUtils
 						.upsertMicrosoftGraphCredential("one", null, "access", blank, null));
+				assertThrows(IllegalArgumentException.class, () -> SecurityExternalConnectorsUtils
+						.updateMicrosoftGraphCredential(blank, null, "access", "refresh", null));
+				assertThrows(IllegalArgumentException.class, () -> SecurityExternalConnectorsUtils
+						.updateMicrosoftGraphCredential("one", null, blank, "refresh", null));
+				assertThrows(IllegalArgumentException.class, () -> SecurityExternalConnectorsUtils
+						.updateMicrosoftGraphCredential("one", null, "access", blank, null));
 			}
 			assertNull(SecurityExternalConnectorsUtils.getMicrosoftGraphCredential(null));
 			verify(db.engine, never()).getConnection();

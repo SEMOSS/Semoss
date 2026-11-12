@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -160,28 +161,21 @@ public class MicrosoftTeamsSearchMessagesReactor extends AbstractMicrosoftTeamsM
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Search the Microsoft Teams messages of the signed in user's chats and channels by their text, "
-				+ "their sender, and the files attached to them, newest first.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.SEARCH.getKey())) {
-			return "What to look for: words in the messages, the sender's name, or an attached file's name or contents. "
-					+ "Keyword Query Language narrows it, such as from:ada, sent>2026-10-01, or hasAttachment:true.";
-		}
-		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Optional maximum number of messages to return. Defaults to " + DEFAULT_LIMIT + " and is capped at "
-					+ MAX_LIMIT + ".";
-		}
-		if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
-			return "Optional number of matches to skip, such as the nextOffset of the page before. Defaults to 0.";
-		}
-		if (CHATS_ONLY.equals(key)) {
-			return "Optional boolean for whether only messages in chats come back, leaving out channel posts. "
-					+ "Defaults to false.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Search the Microsoft Teams messages of the signed in user's chats and channels by their text, "
+								+ "their sender, and the files attached to them, newest first.")
+				.key(ReactorKeysEnum.SEARCH,
+						"What to look for: words in the messages, the sender's name, or an attached file's name or contents. "
+								+ "Keyword Query Language narrows it, such as from:ada, sent>2026-10-01, or hasAttachment:true.")
+				.key(ReactorKeysEnum.LIMIT,
+						"Optional maximum number of messages to return. Defaults to " + DEFAULT_LIMIT
+								+ " and is capped at " + MAX_LIMIT + ".")
+				.key(ReactorKeysEnum.OFFSET,
+						"Optional number of matches to skip, such as the nextOffset of the page before. Defaults to 0.")
+				.key(CHATS_ONLY,
+						"Optional boolean for whether only messages in chats come back, leaving out channel posts. "
+								+ "Defaults to false.");
 	}
 }
