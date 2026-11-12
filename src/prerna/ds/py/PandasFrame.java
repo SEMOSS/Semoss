@@ -72,7 +72,6 @@ import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
-import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class PandasFrame extends AbstractTableDataFrame {
@@ -100,14 +99,16 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	static {
 		pyS.put("object", SemossDataType.STRING);
-		// pandas 3 reports string columns as "str" ("string" is the opt-in pd.NA variant)
+		// pandas 3 reports string columns as "str" ("string" is the opt-in pd.NA
+		// variant)
 		pyS.put("str", SemossDataType.STRING);
 		pyS.put("string", SemossDataType.STRING);
 		pyS.put("category", SemossDataType.STRING);
 		pyS.put("int64", SemossDataType.INT);
 		pyS.put("float64", SemossDataType.DOUBLE);
 		pyS.put("datetime64", SemossDataType.DATE);
-		// real pandas dtype names always carry a resolution, so the bare key above never matched
+		// real pandas dtype names always carry a resolution, so the bare key above
+		// never matched
 		pyS.put("datetime64[ns]", SemossDataType.TIMESTAMP);
 		pyS.put("datetime64[us]", SemossDataType.TIMESTAMP);
 		pyS.put("datetime64[ms]", SemossDataType.TIMESTAMP);
@@ -534,7 +535,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 			if (proposedType != null && pyproposedType != null && !pyproposedType.equalsIgnoreCase(colType)) {
 				// create and execute the type
 				if (proposedType == SemossDataType.DATE || proposedType == SemossDataType.TIMESTAMP) {
-					// pandas 3 removed to_datetime(errors='ignore'), so leave the column as-is when it will not parse
+					// pandas 3 removed to_datetime(errors='ignore'), so leave the column as-is when
+					// it will not parse
 					String dateSuffix = proposedType == SemossDataType.DATE ? ".dt.date" : "";
 					String typeChanger = "try:\n    " + tableName + "['" + colName + "'] = pd.to_datetime(" + tableName
 							+ "['" + colName + "'])" + dateSuffix + "\nexcept (ValueError, TypeError):\n    pass";
@@ -733,10 +735,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			// run the query
 			Object output = pyTranslator.runDirectPy(query);
 
-			// if using native py server, and cant'structure output, try convert.
-			if (Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER) != null
-					&& Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true")
-					&& output instanceof String) {
+			if (output instanceof String) {
 				output = PandasTimestampDeserializer.MAPPER.convertValue(output, Object.class);
 			}
 

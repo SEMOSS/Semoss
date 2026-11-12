@@ -39,7 +39,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -900,8 +899,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 																			// addDocument()->checkSocketStatus()->startServer()
 				.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
 					doNothing().when(mock).createProcessAndClient(any(boolean.class), nullable(SymlinkHelper.class),
-							any(int.class), nullable(String.class), nullable(String.class), nullable(String.class),
-							any(boolean.class), any(String.class), any(String.class));
+							any(int.class), nullable(String.class), nullable(String.class), any(boolean.class),
+							any(String.class), any(String.class));
 					doNothing().when(mock).shutdown(false);
 					when(mock.getSocketClient()).thenReturn(scMock);
 
@@ -932,31 +931,13 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(mockConn.prepareStatement(any())).thenReturn(psMock);
 				when(psMock.executeBatch()).thenReturn(new int[0]);
 
-//				printDirContents(tempDir);
 				assertTrue(Files.exists(file1));
 				assertTrue(Files.exists(file2));
 				engine.addDocument(fileNames, parameters);
-//				printDirContents(tempDir);
 				assertFalse(Files.exists(file1)); // deleted from insight folder
 				assertFalse(Files.exists(file2)); // deleted from insight folder
 				assertTrue(Files.exists(docDirPath.resolve(fileName1))); // moved to doc folder
 				assertTrue(Files.exists(docDirPath.resolve(fileName2))); // moved to doc folder
-			}
-		}
-	}
-
-	/*
-	 * Used for debugging file directory contents
-	 */
-	private void printDirContents(Path path) {
-		System.out.println(path.toAbsolutePath());
-		if (Files.isDirectory(path)) {
-			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
-				for (Path entry : stream) {
-					printDirContents(entry);
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
 		}
 	}

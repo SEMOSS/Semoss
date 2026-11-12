@@ -270,7 +270,6 @@ public class GitHubCopilotPyManager {
 			if (cpwToInit.getSocketClient() == null) {
 				boolean debug = false;
 				String forcePort = null;
-				String customClassPath = null;
 
 				if (port < 0) {
 					if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
@@ -285,8 +284,7 @@ public class GitHubCopilotPyManager {
 
 				String serverDirectory = this.cacheFolder.getAbsolutePath();
 				try {
-					cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, customClassPath, debug,
-							timeout, "INFO");
+					cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, debug, timeout, "INFO");
 				} catch (Exception e) {
 					classLogger.error("Failed to create python process for GitHub Copilot Py agent", e);
 					throw new IllegalArgumentException(

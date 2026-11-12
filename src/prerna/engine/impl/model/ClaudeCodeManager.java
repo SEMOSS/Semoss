@@ -270,7 +270,6 @@ public class ClaudeCodeManager {
 				boolean debug = false;
 
 				String forcePort = null; // Not sure where I'd keep this; possibly as reactor param
-				String customClassPath = null;
 				String loggerLevel = null;
 
 				if (port < 0) {
@@ -287,8 +286,7 @@ public class ClaudeCodeManager {
 				String serverDirectory = this.cacheFolder.getAbsolutePath();
 
 				try {
-					cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, customClassPath, debug,
-							timeout, "INFO");
+					cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, debug, timeout, "INFO");
 				} catch (Exception e) {
 					classLogger.error("Failed to create python process for Claude Code agent", e);
 					throw new IllegalArgumentException("Unable to connect to server for python Claude Code Agent.");

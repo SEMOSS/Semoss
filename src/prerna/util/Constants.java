@@ -748,8 +748,6 @@ public class Constants {
 	// max file transfer size
 	public static final String FILE_TRANSFER_LIMIT = "FILE_TRANSFER_LIMIT";
 
-	// is this server running locally
-	public static final String LOCAL_DEPLOYMENT = "LOCAL_DEPLOYMENT";
 	public static final String SAMESITE_COOKIE = "SAMESITE_COOKIE";
 
 	// moose configurations
@@ -760,7 +758,6 @@ public class Constants {
 
 	// if python is installed
 	public static final String USE_PYTHON = "USE_PYTHON";
-	public static final String NETTY_PYTHON = "NETTY_PYTHON";
 	public static final String PY_LOG_CAPTURE_ENABLED = "PY_LOG_CAPTURE_ENABLED";
 	public static final String PY_LOGGER_NAME = "py.native";
 
@@ -1001,7 +998,6 @@ public class Constants {
 
 	// starting process for r/py
 	public static final String JAVA_HOME = "JAVA_HOME";
-	public static final String TCP_WORKER = "TCP_WORKER";
 	public static final String ULIMIT_PROCESS = "ULIMIT_PROCESS";
 
 	public static final String WHITE_LIST_DOMAINS = "WHITE_LIST_DOMAINS";
@@ -1067,7 +1063,8 @@ public class Constants {
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
 
-	// web search platform MCP; it needs a SearXNG service, so each instance turns it on in RDF_Map
+	// web search platform MCP; it needs a SearXNG service, so each instance turns
+	// it on in RDF_Map
 	public static final String WEB_SEARCH_ENABLED = "WEB_SEARCH_ENABLED";
 
 	// notification db

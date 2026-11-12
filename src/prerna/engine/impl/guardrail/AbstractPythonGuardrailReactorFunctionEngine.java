@@ -118,7 +118,6 @@ public abstract class AbstractPythonGuardrailReactorFunctionEngine extends Abstr
 			boolean debug = false;
 			// pull the relevant values from the smss
 			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
 			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
 			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
 			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
@@ -140,8 +139,8 @@ public abstract class AbstractPythonGuardrailReactorFunctionEngine extends Abstr
 			boolean nativePyServer = true;
 			try {
 				cpwToInit.setEngineOwned(true);
-				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
-						debug, timeout, loggerLevel);
+				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, debug, timeout,
+						loggerLevel);
 			} catch (Exception e) {
 				classLogger.error("Unable to connect to python server for guardrail engine: {}",
 						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
