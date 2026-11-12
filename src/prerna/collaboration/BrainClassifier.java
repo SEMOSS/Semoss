@@ -64,7 +64,15 @@ public interface BrainClassifier {
 	}
 
 	/** A topic the thread can be filed under. */
-	record TopicOption(String id, String name, String description) {
+	record TopicOption(String id, String name, String description, List<String> keywords, List<String> personIds) {
+		public TopicOption {
+			keywords = keywords == null ? List.of() : List.copyOf(keywords);
+			personIds = personIds == null ? List.of() : List.copyOf(personIds);
+		}
+
+		public TopicOption(String id, String name, String description) {
+			this(id, name, description, List.of(), List.of());
+		}
 	}
 
 	/**

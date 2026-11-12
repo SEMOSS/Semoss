@@ -544,29 +544,34 @@ public final class BrainThreadClassifier {
 				// tie reads as no pick, so it stays unassigned instead of suggesting a topic
 				confidence = (int) Math.min(100, Math.round(900 * margin));
 			}
-			// surer, never a different topic: the VIP only counts for the topic the model already ranks first
-			if (vipTopics.contains(bestId)) {
+			int baseConfidence = confidence;
+			// A VIP supports only the best topic after keyword weighting.
+			boolean topicVipApplied = vipTopics.contains(bestId) && !OTHER_TOPIC.equals(bestId);
+			if (topicVipApplied) {
 				confidence = Math.min(100, confidence + VIP_FILING_POINTS);
 			}
+			Map<String, Object> bestSignals = BrainFilingSignals.forLink(scores, bestId, baseConfidence,
+					confidence, topicVipApplied);
 			if (OTHER_TOPIC.equals(bestId)) {
 				band = "unassigned";
 			} else if (confidence >= ctx.fileAt()) {
 				band = "filed";
 				topicId = bestId;
-				if (!ctx.dryRun() && !link(ctx, threadId, bestId, "confirmed", confidence, scores.topics())) {
+				if (!ctx.dryRun() && !link(ctx, threadId, bestId, "confirmed", confidence, bestSignals)) {
 					return new Filing(null, confidence, "unassigned");
 				}
 			} else if (confidence >= askAt && nextId != null) {
 				band = "asked";
 				if (!ctx.dryRun()) {
-					if (!link(ctx, threadId, bestId, "suggested", confidence, scores.topics())) {
+					if (!link(ctx, threadId, bestId, "suggested", confidence, bestSignals)) {
 						return new Filing(null, confidence, "unassigned");
 					}
 					List<String> candidates = OTHER_TOPIC.equals(nextId) ? List.of(bestId) : List.of(bestId, nextId);
 					// the runner-up is linked too, so the owner can pick either one or both
 					if (candidates.size() > 1) {
-						link(ctx, threadId, nextId, "suggested", (int) Math.round(100 * ranked.get(1).getValue()),
-								scores.topics());
+						int runnerUpConfidence = (int) Math.round(100 * ranked.get(1).getValue());
+						link(ctx, threadId, nextId, "suggested", runnerUpConfidence,
+								BrainFilingSignals.forLink(scores, nextId, runnerUpConfidence, runnerUpConfidence, false));
 					}
 					ask(ctx, threadId, candidates);
 				}
@@ -579,9 +584,18 @@ public final class BrainThreadClassifier {
 
 	// keyed by its candidates, so a new question replaces the open one; Brain's own close is undone, the owner's stands
 	private static void ask(Context ctx, String threadId, List<String> candidates) {
+		Map<String, Object> candidateSignals = new LinkedHashMap<>();
+		for (Map<String, Object> topicLink : BrainThreadUtils.getLinks(ctx.ownerId(), ctx.ownerType(), threadId)) {
+			if (topicLink.get("topicId") instanceof String id && candidates.contains(id)) {
+				candidateSignals.put(id, topicLink.get("signals"));
+			}
+		}
+		Map<String, Object> detail = new LinkedHashMap<>();
+		detail.put("candidates", candidates);
+		detail.put("candidateSignals", candidateSignals);
 		Map<?, ?> review = (Map<?, ?>) BrainReviewUtils.addReview(ctx.ownerId(), ctx.ownerType(),
 				BrainReviewUtils.TOPIC_CHOICE, "thread", threadId,
-				ctx.classifier().version() + ":" + String.join(",", candidates), Map.of("candidates", candidates))
+				ctx.classifier().version() + ":" + String.join(",", candidates), detail)
 				.get("review");
 		String questions = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND KIND = ? AND REF_TYPE = ? AND REF_ID = ?";
 		CollaborationDbUtils.update("UPDATE BRAIN_REVIEW SET STATUS = ?, RESOLVED_AT = ?, RESOLVED_BY = ?" + questions
@@ -592,6 +606,9 @@ public final class BrainThreadClassifier {
 				+ questions + " AND REVIEW_ID = ? AND STATUS = ? AND RESOLVED_BY = ?", BrainReviewUtils.OPEN,
 				ctx.ownerId(), ctx.ownerType(), BrainReviewUtils.TOPIC_CHOICE, "thread", threadId, review.get("id"),
 				BrainReviewUtils.DISMISSED, WorkItemUtils.BRAIN);
+		CollaborationDbUtils.update("UPDATE BRAIN_REVIEW SET DETAIL_JSON = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+				+ "AND REVIEW_ID = ? AND STATUS = ?", CollaborationDbUtils.toJson(detail), ctx.ownerId(),
+				ctx.ownerType(), review.get("id"), BrainReviewUtils.OPEN);
 	}
 
 	private static BrainClassifier.Scores modelScores(Context ctx, String threadId, String subject,
@@ -612,10 +629,24 @@ public final class BrainThreadClassifier {
 					names(ctx.self(), m.get("cc")), (String) m.get("at"), text,
 					footer == null || footer.isEmpty() ? null : footer));
 		}
-		return ctx.classifier().score(new BrainClassifier.ThreadInput(threadId, ctx.self().name(), subject,
+		List<BrainClassifier.TopicOption> options = kept ? List.of() : ctx.topics();
+		BrainClassifier.Scores scores = ctx.classifier().score(new BrainClassifier.ThreadInput(threadId, ctx.self().name(), subject,
 				participants(ctx, threadId), input, window.earlier(), RuntimeTimeContext.capture(ctx.timeZone()),
 				BrainMailFolders.facts(ctx.ownerId(), ctx.ownerType(), threadId, ctx.folders())),
-				kept ? List.of() : ctx.topics(), ctx.insight());
+				options, ctx.insight());
+		List<BrainClassifier.Message> evidenceMessages = input;
+		// Jev's default window sends only the newest message to the model.
+		if (ctx.classifier() instanceof JevBrainClassifier && !window.earlier() && !input.isEmpty()) {
+			evidenceMessages = List.of(input.get(input.size() - 1));
+		}
+		Set<String> senderIds = new HashSet<>();
+		for (int i = messages.size() - evidenceMessages.size(); i < messages.size(); i++) {
+			if (messages.get(i).get("fromId") instanceof String id) {
+				senderIds.add(id);
+			}
+		}
+		return BrainFilingSignals.apply(scores, options, subject, evidenceMessages, senderIds,
+				BrainThreadTopicDecisions.rejected(ctx.ownerId(), ctx.ownerType(), threadId));
 	}
 
 	private static String clip(Object value, int max) {
@@ -843,12 +874,15 @@ public final class BrainThreadClassifier {
 				"self"));
 		BrainOrgDomains.Org ownOrg = BrainOrgDomains.load(ownerId, ownerType, myDomain);
 		Map<String, Set<String>> people = new HashMap<>();
+		Map<String, Set<String>> personIds = new HashMap<>();
 		Map<String, Set<String>> domains = new HashMap<>();
 		// the folders the owner keeps the topic's mail in
 		Map<String, List<String>> folders = BrainMailFolders.topicFolders(ownerId, ownerType);
-		CollaborationDbUtils.query("SELECT tp.TOPIC_ID, p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_TOPIC_PERSON tp JOIN "
+		CollaborationDbUtils.query("SELECT tp.TOPIC_ID, p.PERSON_ID, p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_TOPIC_PERSON tp JOIN "
 				+ "BRAIN_PERSON p ON p.OWNER_ID = tp.OWNER_ID AND p.OWNER_TYPE = tp.OWNER_TYPE AND p.PERSON_ID = tp.PERSON_ID "
 				+ "WHERE tp.OWNER_ID = ? AND tp.OWNER_TYPE = ? AND tp.STATE IN (?, ?) ORDER BY tp.CHANGED_AT", rs -> {
+					personIds.computeIfAbsent(rs.getString("TOPIC_ID"), k -> new LinkedHashSet<>())
+							.add(rs.getString("PERSON_ID"));
 					String name = CollaborationDbUtils.getString(rs, "DISPLAY_NAME");
 					if (name != null && !name.isBlank()) {
 						people.computeIfAbsent(rs.getString(1), k -> new LinkedHashSet<>()).add(name);
@@ -898,7 +932,9 @@ public final class BrainThreadClassifier {
 								.append(String.join(", ", CollaborationDbUtils.toStringList(keywords))).append('.');
 					}
 					return new BrainClassifier.TopicOption(rs.getString("TOPIC_ID"),
-							CollaborationDbUtils.getString(rs, "NAME"), describe.toString().trim());
+							CollaborationDbUtils.getString(rs, "NAME"), describe.toString().trim(),
+							CollaborationDbUtils.toStringList(keywords),
+							new ArrayList<>(personIds.getOrDefault(topicId, Set.of())));
 				}, ownerId, ownerType, BrainTopicUtils.ACTIVE, BrainTopicUtils.DORMANT);
 	}
 
@@ -1046,7 +1082,7 @@ public final class BrainThreadClassifier {
 	// a classifier link replaces an earlier classifier link on the same topic, and a confirmed one also the topics
 	// Brain suggested before; the first link left is the primary
 	private static boolean link(Context ctx, String threadId, String topicId, String source, int confidence,
-			Map<String, Double> topics) {
+			Map<String, Object> filingSignals) {
 		Timestamp now = CollaborationDbUtils.now();
 		boolean[] written = { false };
 		boolean filed = "confirmed".equals(source);
@@ -1074,7 +1110,7 @@ public final class BrainThreadClassifier {
 							+ "SOURCE, CONFIDENCE, IS_PRIMARY, SIGNALS_JSON, CLASSIFIER_VERSION, CHANGED_BY, CHANGED_AT) "
 							+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 					ctx.ownerId(), ctx.ownerType(), threadId, topicId, source, confidence, !hasPrimary,
-					CollaborationDbUtils.toJson(topics), ctx.classifier().version(), "brain", now);
+					CollaborationDbUtils.toJson(filingSignals), ctx.classifier().version(), "brain", now);
 			written[0] = true;
 		});
 		if (written[0] && filed) {

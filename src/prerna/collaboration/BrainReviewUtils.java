@@ -74,7 +74,11 @@ public final class BrainReviewUtils {
 
 	// ---- read ----
 
-	// open: newest first; resolved: most recently resolved first
+	/**
+	 * Open reviews are newest first; resolved reviews are most recently resolved first.
+	 * Topic-choice reviews include data.candidateSignals keyed by topic id, capturing
+	 * the filing evidence when the question was last open. Older reviews may omit it.
+	 */
 	public static Map<String, Object> listReview(User user, String status, int limit, int offset) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
