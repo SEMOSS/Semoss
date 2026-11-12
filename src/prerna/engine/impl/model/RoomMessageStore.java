@@ -283,6 +283,50 @@ public final class RoomMessageStore {
 		}
 	}
 
+	/**
+	 * Appends every message of one room to the end of another and persists it. The
+	 * source room is left as it was. Each appended message whose parent is not in
+	 * the source history starts the appended branch, so it is re-parented onto the
+	 * destination's last message.
+	 *
+	 * @return how many messages were appended
+	 */
+	public static int appendRoomMessages(String intoRoomId, String fromRoomId, String userId) {
+		if (intoRoomId.equals(fromRoomId)) {
+			throw new IllegalArgumentException("Pick a different chat to merge into");
+		}
+		// locked in id order, so two merges over the same pair cannot wait on each other
+		String first = intoRoomId.compareTo(fromRoomId) < 0 ? intoRoomId : fromRoomId;
+		String second = first.equals(intoRoomId) ? fromRoomId : intoRoomId;
+		try (RoomMutationLock ignoredFirst = acquireMutationLock(first);
+				RoomMutationLock ignoredSecond = acquireMutationLock(second)) {
+			Room into = ModelInferenceLogsUtils.getRoomById(intoRoomId, userId);
+			Room from = ModelInferenceLogsUtils.getRoomById(fromRoomId, userId);
+			if (into == null || from == null) {
+				throw new IllegalArgumentException("Chat not found");
+			}
+			List<AbstractMessage> appended = new ArrayList<>(from.getMessages());
+			Set<String> appendedIds = requireUniqueMessageIds(appended);
+			Set<String> existingIds = requireUniqueMessageIds(into.getMessages());
+			if (appendedIds.stream().anyMatch(existingIds::contains)) {
+				throw new IllegalStateException("Both chats contain the same message, so they cannot be merged");
+			}
+			AbstractMessage last = into.getMessages().isEmpty() ? null : into.getMessages().getLast();
+			for (AbstractMessage message : appended) {
+				String parentMessageId = ValueUtils.trimToNull(message.getParentMessageId());
+				if (parentMessageId == null || !appendedIds.contains(parentMessageId)) {
+					message.setParentMessageId(last == null ? null : last.getMessageId());
+				}
+				message.setRoom(into);
+				into.getMessages().add(message);
+			}
+			if (!appended.isEmpty() && !persist(into, userId)) {
+				throw new IllegalStateException("Unable to save the merged chat " + intoRoomId);
+			}
+			return appended.size();
+		}
+	}
+
 	public static RoomMutationLock acquireMutationLock(Room room) {
 		if (room == null) {
 			return RoomMutationLock.NO_OP;

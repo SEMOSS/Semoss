@@ -606,6 +606,12 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("STATE", VARCHAR_20),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// the chat rooms a work item is discussed in; many rooms per task; newest first by CREATED_AT DESC
+		addTable("WORK_TASK_ROOM", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("TASK_ID", VARCHAR_50),
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// a work item's timeline: updates, decisions, asks, date and status changes, each with its source
 		addTable("WORK_TASK_UPDATE", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
