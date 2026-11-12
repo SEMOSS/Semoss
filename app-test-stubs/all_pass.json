@@ -1,0 +1,7 @@
+{
+  "status": "COMPLETED",
+  "tests": [
+    {"id": "t1", "name": "Open home page", "page": "home", "status": "PASSED"},
+    {"id": "t2", "name": "Create an order", "page": "orders", "status": "PASSED"}
+  ]
+}

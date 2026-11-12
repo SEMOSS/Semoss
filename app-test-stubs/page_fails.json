@@ -1,0 +1,15 @@
+{
+  "status": "COMPLETED",
+  "tests": [
+    {"id": "t1", "name": "Open home page", "page": "home", "status": "PASSED"},
+    {
+      "id": "t2", "name": "Create an order", "page": "orders", "status": "FAILED",
+      "classification": "REGRESSION_SUSPECTED",
+      "failedStep": {"id": 7, "type": "CLICK", "selector": "#submit-order"},
+      "reason": "Element not found: #submit-order",
+      "expected": "Order confirmation text is shown",
+      "actual": "Page stayed on the order form",
+      "evidence": {"screenshot": null, "consoleErrors": ["TypeError: orders is undefined"]}
+    }
+  ]
+}

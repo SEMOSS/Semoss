@@ -54,12 +54,16 @@ public class SystemDefaultEngines {
 
 	private static final List<String> SYSTEM_APPS = List.of(Constants.APP_REACT_TEMPLATE);
 
+	// local development only: the dev instance's test projects, to be replaced by platform projects
+	private static final String DEV_SKILL_APP_REGRESSION_TESTING = "01a1cfeb-3c86-75bd-8fe0-a715a88849ad";
+	private static final String DEV_MCP_APP_TESTS = "f4f34ddb-bd6e-4ac3-a3e2-4160fe83e841";
+
 	private static final List<String> APP_BUILDER_SKILLS = List.of(Constants.SKILL_AGENT_RUN,
 			Constants.SKILL_APP_BOOTSTRAP, Constants.SKILL_APP_DATA, Constants.SKILL_BUILD_AND_PUBLISH,
 			Constants.SKILL_DATABASE, Constants.SKILL_EXPORTS, Constants.SKILL_FILE_UPLOADS,
 			Constants.SKILL_FRONTEND_DESIGN, Constants.SKILL_FUNCTIONS, Constants.SKILL_MCP, Constants.SKILL_MODEL,
 			Constants.SKILL_PAGINATION, Constants.SKILL_PERMISSIONS, Constants.SKILL_PYTHON, Constants.SKILL_ROOM,
-			Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR);
+			Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR, DEV_SKILL_APP_REGRESSION_TESTING);
 
 	private static final List<String> SYSTEM_SKILLS = List.of(Constants.SKILL_AGENT_RUN, Constants.SKILL_APP_BOOTSTRAP,
 			Constants.SKILL_APP_DATA, Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_COLLABORATION,
@@ -91,7 +95,7 @@ public class SystemDefaultEngines {
 	 * agent.
 	 */
 	private static final List<String> APP_BUILDER_MCPS = List.of(Constants.MCP_DATABASE_MAKER,
-			Constants.MCP_NODE_BUILDER, Constants.MCP_REACTOR_HELP);
+			Constants.MCP_NODE_BUILDER, Constants.MCP_REACTOR_HELP, DEV_MCP_APP_TESTS);
 
 	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER,
 			Constants.AGENT_COLLABORATION, Constants.AGENT_DATABASE_EXPLORER, Constants.AGENT_NOTEBOOK_ANALYST,

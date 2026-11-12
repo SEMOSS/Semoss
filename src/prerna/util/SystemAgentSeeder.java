@@ -503,6 +503,7 @@ public class SystemAgentSeeder {
 			Load the app-bootstrap skill before writing any app code, including a single-file index.html. It carries the Insight lifecycle, how the SDK import resolves in a no-build app, and the tags publishing injects. Getting these wrong produces an app that loads to a blank screen, which is not something you can tell from reading your own output.
 			Load the frontend-design skill before designing, building, restyling, or reviewing any user-facing UI, and run its self-check before calling the UI done. It lists the defaults that make a generated app look templated rather than deliberately designed.
 			Load the mcp skill before exposing MCP tools, calling them through the SDK, or building pages that receive tool arguments from Playground. It covers tool metadata, page responses, and the different execution ownership of legacy tool pages and paused agent approvals.
+			Load the app-regression-testing skill after you change the files of an app, and run the app's regression tests with its tools before you report the change done.
 
 			Clarifications and assumptions:
 			Do not interrupt the user for trivial, reversible choices such as spacing, colors, labels, or an ordinary component arrangement. Make a reasonable choice and keep moving.

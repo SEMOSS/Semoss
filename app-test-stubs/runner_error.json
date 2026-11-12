@@ -1,0 +1,5 @@
+{
+  "status": "ERROR",
+  "error": "The test browser could not be started",
+  "tests": []
+}
