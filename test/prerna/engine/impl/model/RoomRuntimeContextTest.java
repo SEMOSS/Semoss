@@ -215,6 +215,58 @@ class RoomRuntimeContextTest {
 	}
 
 	@Test
+	void providerToolCalledBesideOursWaitsForOurResultsAlone() throws Exception {
+		var room = room();
+		var insight = insight();
+		var engine = mock(IModelEngine.class);
+		List<JSONArray> requests = new ArrayList<>();
+		when(engine.askRoom(any(), eq(room), anyMap())).thenAnswer(call -> {
+			requests.add(new JSONArray((String) ((Map<?, ?>) call.getArgument(2)).get("message_json")));
+			return new AskStringModelEngineResponse("Next step", 1, 1);
+		});
+		var initial = InputMessage.builder(room).withSystemPrompt(SYSTEM).withText("Which certifications?").build();
+		room.getMessages().add(initial);
+		// one batch holds our tool and the provider's own web search, which the
+		// provider has not run yet: it comes back with no result
+		var mixed = ResponseMessage.toolResponses(
+				List.of(Map.of("id", "a", "name", "ReadFile", "arguments", Map.of("path", "a.txt")), Map.of("id",
+						"srvtoolu_1", "name", "web_search", "arguments", Map.of("query", "q"), "server_tool", true)));
+		mixed.setRoom(room);
+		mixed.setParentMessageId(initial.getMessageId());
+		room.getMessages().add(mixed);
+		// a call of ours with no result is still refused, and only that one is named
+		var refused = assertThrows(IllegalStateException.class, () -> RoomMessageStore.currentMessageHistory(room));
+		assertTrue(refused.getMessage().endsWith("unresolved tool calls: [a]"), refused.getMessage());
+		var ours = results(room, mixed, "a");
+		assertTrue(RoomMessageStore.currentMessageHistory(room).contains("srvtoolu_1"));
+
+		String note = "[SEMOSS runtime status]\n39 remaining\n[/SEMOSS runtime status]";
+		try (var store = mockStatic(RoomMessageStore.class); var media = mockStatic(RoomUtils.class)) {
+			store.when(() -> RoomMessageStore.currentMessageHistory(room)).thenCallRealMethod();
+			store.when(() -> RoomMessageStore.providerContext(org.mockito.ArgumentMatchers.anyList()))
+					.thenCallRealMethod();
+			room.continueAfterToolExecutionResultsWithRuntimeContext(new HashMap<>(), mixed.getMessageId(), engine,
+					insight, SYSTEM, note);
+			// the provider runs its search only when our results are all the message holds
+			assertEquals(List.of(MessagePartType.SYSTEM, MessagePartType.TOOL_RESULT),
+					ours.getParts().stream().map(MessagePart::getType).toList());
+			assertTrue(requests.getFirst().toString().contains("srvtoolu_1"));
+
+			// its next response carries the search result; a later batch gets its status again
+			var searched = (ResponseMessage) room.getMessages().getLast();
+			searched.addPart(new prerna.engine.impl.model.message.ToolResultMessagePart(
+					new prerna.engine.impl.model.message.ToolResultPart("srvtoolu_1", "web_search", "[]", null,
+							"success", true)));
+			var next = calls(room, "c");
+			var nextResults = results(room, next, "c");
+			room.continueAfterToolExecutionResultsWithRuntimeContext(new HashMap<>(), next.getMessageId(), engine,
+					insight, SYSTEM, note);
+			assertEquals(note, ((TextMessagePart) nextResults.getParts().getLast()).getText());
+			assertFalse(ours.hasTextPart());
+		}
+	}
+
+	@Test
 	void retryOfPendingContinuationDoesNotDuplicateOrRewriteStatus() {
 		var room = room();
 		var engine = mock(IModelEngine.class);
