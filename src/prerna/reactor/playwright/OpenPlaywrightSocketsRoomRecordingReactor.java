@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -75,18 +76,10 @@ public class OpenPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Opens the Playwright Sockets remote browser, navigates to a URL, and starts a recording that can be saved to the current Playground room.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (START_URL.equals(key)) {
-			return "URL to open. Bare hostnames such as google.com are prefixed with https://.";
-		}
-		if (RECORDING_NAME_HINT.equals(key)) {
-			return "Optional short name or description for the recording.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Opens the Playwright Sockets remote browser, navigates to a URL, and starts a recording that can be saved to the current Playground room.")
+				.key(START_URL, "URL to open. Bare hostnames such as google.com are prefixed with https://.")
+				.key(RECORDING_NAME_HINT, "Optional short name or description for the recording.");
 	}
 }

@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainConnection;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainGetConnection();
@@ -43,7 +44,9 @@ public class BrainGetConnectionReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Microsoft sign-in, linked mailbox, background access and source status for the signed-in user; never returns tokens";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Microsoft sign-in, linked mailbox, background access and source status for the signed-in user; never returns tokens")
+				.noKeys();
 	}
 }

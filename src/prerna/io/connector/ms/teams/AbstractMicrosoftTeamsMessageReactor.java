@@ -78,6 +78,22 @@ public abstract class AbstractMicrosoftTeamsMessageReactor extends AbstractMicro
 	/** How much of a body comes back before it is cut short. */
 	protected static final int DEFAULT_MAX_BODY_CHARS = 10_000;
 
+	// descriptions for keys several of these reactors take; each reactor lists the
+	// keys it takes
+	protected static final String TEAM_ID_DESCRIPTION = "Microsoft Teams team id, as returned by MicrosoftTeamsListTeams.";
+	protected static final String CHANNEL_ID_DESCRIPTION = "Microsoft Teams channel id, as returned by MicrosoftTeamsListChannels.";
+	protected static final String CHAT_ID_DESCRIPTION = "Microsoft Teams chat id, as returned by MicrosoftTeamsListChats.";
+	protected static final String MESSAGE_ID_DESCRIPTION = "Id of the message, as returned by the Microsoft Teams message listings.";
+	protected static final String REPLY_ID_DESCRIPTION = "Optional id of a reply to the message, which is what is acted on when it is given.";
+	protected static final String MESSAGE_DESCRIPTION = "What the message says.";
+	protected static final String HTML_DESCRIPTION = "Optional boolean for whether the message is html rather than plain text. Defaults to false.";
+	protected static final String MENTIONS_DESCRIPTION = "Optional email addresses or user ids to mention, which is what notifies those people. Passed as several values or as one comma separated value.";
+	protected static final String ATTACHMENT_URLS_DESCRIPTION = "Optional urls of files already in OneDrive or SharePoint to attach, such as the webUrl a OneDrive or Teams channel upload returns.";
+	protected static final String ATTACHMENT_NAMES_DESCRIPTION = "Optional names to show the attached files under, in the same order as the urls. The name each url ends in is used when omitted.";
+	protected static final String MAX_BODY_CHARS_DESCRIPTION = "Optional longest message body to return before it is truncated. Defaults to "
+			+ DEFAULT_MAX_BODY_CHARS + ".";
+	protected static final String INCLUDE_REPLIES_DESCRIPTION = "Optional boolean for whether the replies underneath a channel message come back as well. Defaults to false.";
+
 	/**
 	 * Read a key that has to be a positive whole number.
 	 *
@@ -139,37 +155,6 @@ public abstract class AbstractMicrosoftTeamsMessageReactor extends AbstractMicro
 			return null;
 		}
 		return values.toArray(new String[0]);
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(TEAM_ID)) {
-			return "Microsoft Teams team id, as returned by MicrosoftTeamsListTeams.";
-		} else if (key.equals(CHANNEL_ID)) {
-			return "Microsoft Teams channel id, as returned by MicrosoftTeamsListChannels.";
-		} else if (key.equals(CHAT_ID)) {
-			return "Microsoft Teams chat id, as returned by MicrosoftTeamsListChats.";
-		} else if (key.equals(MESSAGE_ID)) {
-			return "Id of the message, as returned by the Microsoft Teams message listings.";
-		} else if (key.equals(REPLY_ID)) {
-			return "Optional id of a reply to the message, which is what is acted on when it is given.";
-		} else if (key.equals(MESSAGE)) {
-			return "What the message says.";
-		} else if (key.equals(HTML)) {
-			return "Optional boolean for whether the message is html rather than plain text. Defaults to false.";
-		} else if (key.equals(MENTIONS)) {
-			return "Optional email addresses or user ids to mention, which is what notifies those people. Passed as several values or as one comma separated value.";
-		} else if (key.equals(ATTACHMENT_URLS)) {
-			return "Optional urls of files already in OneDrive or SharePoint to attach, such as the webUrl a OneDrive or Teams channel upload returns.";
-		} else if (key.equals(ATTACHMENT_NAMES)) {
-			return "Optional names to show the attached files under, in the same order as the urls. The name each url ends in is used when omitted.";
-		} else if (key.equals(MAX_BODY_CHARS)) {
-			return "Optional longest message body to return before it is truncated. Defaults to "
-					+ DEFAULT_MAX_BODY_CHARS + ".";
-		} else if (key.equals(INCLUDE_REPLIES)) {
-			return "Optional boolean for whether the replies underneath a channel message come back as well. Defaults to false.";
-		}
-		return super.getDescriptionForKey(key);
 	}
 
 }

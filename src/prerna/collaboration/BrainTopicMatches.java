@@ -58,6 +58,11 @@ public final class BrainTopicMatches {
 	// the topic is the clear best fit, or fits next to a topic the conversation already has
 	static final String BEST = "best";
 	static final String SHARED = "shared";
+	// re-sorting a topic: its own conversations scored again after the owner narrowed it
+	public static final String RESORT_KIND = "topic_resort";
+	// another topic is now the clear fit, or none is
+	static final String ELSEWHERE = "elsewhere";
+	static final String NONE = "none";
 
 	private BrainTopicMatches() {
 	}
@@ -109,6 +114,156 @@ public final class BrainTopicMatches {
 			}
 			job.count("matches", matches);
 		});
+	}
+
+	/**
+	 * Re-sorting a topic, for after the owner narrows it: a dry run scores the conversations Brain filed under it
+	 * and lists the ones it no longer fits, with the topic that now fits each or none. Apply moves them (move with
+	 * toTopicId) or takes the topic off (reject). Links the owner, onboarding or an Outlook folder made are never
+	 * listed; the classifier only ever adds links, so this is the one way a Brain filing leaves a topic.
+	 */
+	public static Map<String, Object> resort(User user, String topicId, Integer limit) {
+		BrainThreadClassifier.requireEngine(user);
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		requireMatchable(ownerId, ownerType, topicId);
+		int scan = limit == null ? MAX_LIMIT : limit;
+		if (scan < 1 || scan > MAX_LIMIT) {
+			throw new IllegalArgumentException("limit must be between 1 and " + MAX_LIMIT);
+		}
+		Map<String, Object> running = CollaborationJobUtils.latest(ownerId, ownerType, RESORT_KIND);
+		if (running != null && CollaborationJobUtils.RUNNING.equals(running.get("status"))
+				&& running.get("params") instanceof Map<?, ?> params && !topicId.equals(params.get("topicId"))) {
+			throw new IllegalArgumentException("A re-sort of another topic is still running; try again when it finishes");
+		}
+		Map<String, Object> params = new LinkedHashMap<>();
+		params.put("topicId", topicId);
+		params.put("limit", scan);
+		return CollaborationJobUtils.start(ownerId, ownerType, RESORT_KIND, params, job -> {
+			Insight insight = new Insight();
+			insight.setUser(user);
+			job.step("finding", 1);
+			List<String> filed = filedByBrain(ownerId, ownerType, topicId, scan);
+			job.count("scanned", filed.size());
+			List<Map<String, Object>> leaving = List.of();
+			if (!filed.isEmpty()) {
+				Map<String, Object> summary = BrainThreadClassifier.classify(user, insight, filed, true,
+						(done, total) -> {
+							job.count("done", done);
+							job.count("total", total);
+							job.step("scoring", total == 0 ? 99 : Math.max(1, 99 * done / total));
+						});
+				job.count("errors", summary.get("errors"));
+				job.count("errorReason", summary.get("errorReason"));
+				leaving = leaving(ownerId, ownerType, topicId, summary);
+			}
+			job.count("matches", leaving);
+		});
+	}
+
+	// unmuted, not automated, with a link to the topic that Brain made (not the owner's, onboarding's or a folder's)
+	static List<String> filedByBrain(String ownerId, String ownerType, String topicId, int limit) {
+		return CollaborationDbUtils.query(CollaborationDbUtils.page("SELECT t.THREAD_ID FROM BRAIN_THREAD t "
+				+ "JOIN BRAIN_THREAD_TOPIC l ON l.OWNER_ID = t.OWNER_ID AND l.OWNER_TYPE = t.OWNER_TYPE AND "
+				+ "l.THREAD_ID = t.THREAD_ID AND l.TOPIC_ID = ? WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND "
+				+ "(t.MUTED IS NULL OR t.MUTED = ?) AND (t.AUTOMATED IS NULL OR t.AUTOMATED = ?) AND "
+				+ "(l.SOURCE IS NULL OR l.SOURCE <> ?) AND (l.CLASSIFIER_VERSION IS NULL OR l.CLASSIFIER_VERSION "
+				+ "NOT IN (?, ?)) ORDER BY t.LAST_MESSAGE_AT DESC, t.THREAD_ID", limit, 0), rs -> rs.getString(1),
+				topicId, ownerId, ownerType, false, false, BrainProfileUtils.YOU, BrainTopicOnboarding.VERSION,
+				BrainMailFolders.FILED);
+	}
+
+	// the dry run's results as re-sort rows, weakest fit first
+	@SuppressWarnings("unchecked")
+	static List<Map<String, Object>> leaving(String ownerId, String ownerType, String topicId,
+			Map<String, Object> summary) {
+		Map<String, Object> settings = BrainProfileUtils.getSettings(ownerId, ownerType);
+		int fileAt = (Integer) settings.get("fileAt");
+		int askAt = (Integer) settings.get("askAt");
+		List<Map<String, Object>> rows = new ArrayList<>();
+		for (Map<String, Object> result : (List<Map<String, Object>>) summary.get("results")) {
+			if (result.get("error") != null || "automated".equals(result.get("work"))
+					|| !(result.get("scores") instanceof Map<?, ?> scores)
+					|| !(scores.get("topics") instanceof Map<?, ?> topics)) {
+				continue;
+			}
+			String threadId = (String) result.get("threadId");
+			Map<String, Double> probabilities = new LinkedHashMap<>();
+			topics.forEach((id, p) -> {
+				if (p instanceof Number n) {
+					probabilities.put(String.valueOf(id), n.doubleValue());
+				}
+			});
+			Map<String, Object> row = leave(topicId, probabilities,
+					BrainThreadTopicDecisions.rejected(ownerId, ownerType, threadId), links(ownerId, ownerType, threadId),
+					fileAt, askAt);
+			Map<String, Object> described = row == null ? null : describe(ownerId, ownerType, threadId);
+			if (described != null) {
+				described.putAll(row);
+				rows.add(described);
+			}
+		}
+		rows.sort(Comparator.comparingInt((Map<String, Object> row) -> (Integer) row.get("confidence")));
+		return rows;
+	}
+
+	// The re-sort row for one conversation, or null while the topic still fits it: another topic is now the clear
+	// best (move there, unless the conversation has a kept link elsewhere), or the topic falls under the ask band
+	// with no clear best (take the topic off). A close second stays as it is.
+	static Map<String, Object> leave(String topicId, Map<String, Double> topics, Set<String> rejected,
+			List<Link> links, int fileAt, int askAt) {
+		if (links.stream().noneMatch(link -> link.topicId().equals(topicId) && !link.kept())) {
+			return null;
+		}
+		List<Map.Entry<String, Double>> ranked = new ArrayList<>(
+				topics.entrySet().stream().filter(entry -> !rejected.contains(entry.getKey())).toList());
+		ranked.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
+		if (ranked.isEmpty() || ranked.get(0).getKey().equals(topicId)) {
+			return null;
+		}
+		int fit = (int) Math.round(100 * topics.getOrDefault(topicId, 0d));
+		String best = ranked.get(0).getKey();
+		int bestAt = (int) Math.round(100 * ranked.get(0).getValue());
+		boolean elsewhere = !BrainThreadClassifier.OTHER_TOPIC.equals(best)
+				&& bestAt >= Math.max(askAt, fileAt - BrainThreadClassifier.WAY_OUT_ASK_BAND);
+		if (!elsewhere && fit >= askAt) {
+			return null;
+		}
+		boolean keptElsewhere = links.stream().anyMatch(link -> !link.topicId().equals(topicId) && link.kept());
+		List<Map<String, Object>> current = new ArrayList<>();
+		for (Link link : links) {
+			Map<String, Object> row = new LinkedHashMap<>();
+			row.put("topicId", link.topicId());
+			row.put("source", link.source());
+			row.put("primary", link.primary());
+			row.put("kept", link.kept());
+			current.add(row);
+		}
+		Map<String, Object> row = new LinkedHashMap<>();
+		row.put("confidence", fit);
+		row.put("fit", elsewhere ? ELSEWHERE : NONE);
+		if (elsewhere) {
+			row.put("toTopicId", best);
+			row.put("toConfidence", bestAt);
+		}
+		row.put("links", current);
+		List<String> ops = elsewhere && !keptElsewhere ? List.of(MOVE, REJECT) : List.of(REJECT);
+		row.put("ops", ops);
+		row.put("op", ops.get(0));
+		return row;
+	}
+
+	private static Map<String, Object> describe(String ownerId, String ownerType, String threadId) {
+		return CollaborationDbUtils.queryOne("SELECT SUBJECT, SOURCE, LAST_MESSAGE_AT FROM BRAIN_THREAD WHERE "
+				+ "OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?", rs -> {
+					Map<String, Object> thread = new LinkedHashMap<>();
+					thread.put("threadId", threadId);
+					thread.put("subject", CollaborationDbUtils.getString(rs, "SUBJECT"));
+					thread.put("channel", CollaborationDbUtils.getString(rs, "SOURCE"));
+					thread.put("lastMessageAt", CollaborationDbUtils.getTimestamp(rs, "LAST_MESSAGE_AT"));
+					return thread;
+				}, ownerId, ownerType, threadId);
 	}
 
 	// unmuted, not automated, not on the topic and not turned down for it; newest first
@@ -215,7 +370,8 @@ public final class BrainTopicMatches {
 
 	// ---- apply ----
 
-	// each change is {threadId, op} with op move, also_link or reject; every one is checked against the
+	// each change is {threadId, op} with op move (to toTopicId when given, else this topic), also_link or reject;
+	// every one is checked against the
 	// conversation as it is now, so a stale preview cannot undo what changed since. Each runs on its own, and one
 	// that no longer applies comes back skipped with the reason.
 	public static Map<String, Object> apply(User user, String topicId, List<Map<String, Object>> changes) {
@@ -249,7 +405,11 @@ public final class BrainTopicMatches {
 			String skipped;
 			try {
 				skipped = switch (op) {
-				case MOVE -> move(ownerId, ownerType, threadId, topicId);
+				case MOVE -> {
+					// a re-sort moves a conversation off this topic to the one that now fits
+					String to = CollaborationDbUtils.asString(change.get("toTopicId"));
+					yield move(ownerId, ownerType, threadId, to == null || to.isBlank() ? topicId : to);
+				}
 				case ALSO_LINK -> {
 					BrainThreadUtils.linkThreadTopic(user, threadId, topicId, false, false);
 					yield null;
@@ -373,7 +533,7 @@ public final class BrainTopicMatches {
 		}
 		String status = BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
 		if (!BrainTopicLifecycle.canFile(status)) {
-			throw new IllegalArgumentException("Only an active or dormant topic can be matched");
+			throw new IllegalArgumentException("Only an active or hibernated topic can be matched");
 		}
 	}
 }

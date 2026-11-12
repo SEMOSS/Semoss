@@ -2643,6 +2643,23 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Whether only admins can give people access to an engine or project a project
+	 * depends on. A dependency whose setting cannot be read counts as admin-only.
+	 *
+	 * @param isEngine whether the dependency is an engine rather than a project
+	 * @param id       the dependency's id
+	 * @return whether its admin-only add setting is on
+	 */
+	private static boolean dependencyAddsAreAdminOnly(boolean isEngine, String id) {
+		try {
+			return isEngine ? adminOnlyEngineAddAccess(id) : adminOnlyProjectAddAccess(id);
+		} catch (IllegalArgumentException e) {
+			classLogger.warn("Could not read the admin-only add setting of {}", id, e);
+			return true;
+		}
+	}
+
+	/**
 	 * Does the work of both propagateProjectPermission methods: for each engine and
 	 * project the project depends on, it gives the person the requested level, or
 	 * files an access request for its owners when the requester is Read-Only or has
@@ -2659,6 +2676,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		// get the requested permission as a numeric -- it was passed as a string
 		Integer requestedPermissionNumeric = AccessPermissionEnum.getIdByPermission(requestedPermission);
+		boolean requesterIsAdmin = SecurityAdminUtils.userIsAdmin(requester);
 
 		List<String> alreadyHaveAccess = new ArrayList<>();
 		List<String> requestAlreadyExists = new ArrayList<>();
@@ -2729,6 +2747,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 				// if the newUser has permissions on the engine but not to the level requested,
 				// edit the existing record
+			} else if (!requesterIsAdmin && dependencyAddsAreAdminOnly(isEngine, dependentEngineId)) {
+				// these grants skip the endpoints, so each dependency's own setting is checked
+				couldNotAddRequest.add(dependentEngineId);
+				classLogger.info("Only admins can give {} access to {}", newUserId, dependentEngineId);
 			} else if (requesterEnginePermission < 3 && currentNewUserPermission != null
 					&& currentNewUserPermission > requestedPermissionNumeric) {
 				try {

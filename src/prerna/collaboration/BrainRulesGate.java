@@ -56,6 +56,8 @@ public final class BrainRulesGate {
 	public static final String TOPIC_VIP = "topic_vip";
 	public static final String VIP = "vip";
 	private static final String NEVER_KEYWORD = "never_keyword";
+	// a gate header the import sets on a result one of the owner's routines mailed them (it reads the subject)
+	static final String ROUTINE_RESULT = "routineResult";
 
 	// never-ingest kinds in the order they are checked
 	private static final List<String> NEVER_KINDS = List.of("never_sender", "exclude_everywhere", "never_domain",
@@ -124,6 +126,11 @@ public final class BrainRulesGate {
 						rs -> CollaborationDbUtils.getBoolean(rs, "ENABLED"), ownerId, ownerType, source);
 		if (!Boolean.TRUE.equals(enabled)) {
 			return result(OFF, null, null, null);
+		}
+
+		// the owner's own routine result: counted, never listed, like a never-ingest sender
+		if (headers.get(ROUTINE_RESULT) != null) {
+			return record(ownerId, ownerType, messageKey, headers, null, null, receivedAt, NEVER, null, null);
 		}
 
 		String personId = known != null ? known.person().apply(from) : findPerson(ownerId, ownerType, from);

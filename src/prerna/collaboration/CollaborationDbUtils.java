@@ -506,6 +506,12 @@ public class CollaborationDbUtils {
 		} catch (RuntimeException e) {
 			classLogger.error("Moving topic notes and thread facts into Brain memory failed; retrying next boot", e);
 		}
+		// Work Brain raised from routine results before imports kept them out; nothing matches once it is done
+		try {
+			BrainMailImport.dismissRoutineResultWork();
+		} catch (RuntimeException e) {
+			classLogger.error("Dismissing Work raised from routine results failed; retrying next boot", e);
+		}
 		BrainMailWebhook.startRenewals();
 		BrainSync.startSchedule();
 	}
@@ -542,6 +548,8 @@ public class CollaborationDbUtils {
 			}
 			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)
 			widenColumn(collaborationDb, conn, "BRAIN_TOPIC_PERSON", "ROLE_LABEL", 255);
+			// a topic's short name defaults to its name (VARCHAR 255)
+			widenColumn(collaborationDb, conn, "BRAIN_TOPIC", "SHORT_NAME", 255);
 
 			AbstractOwlCreator.syncIndexes(collaborationDb, conn, List.of(
 					// owner and sources
@@ -591,6 +599,8 @@ public class CollaborationDbUtils {
 							"TOPIC_ID"),
 					OwlIndex.of("BRAIN_TOPIC_FOLDER_FOLDER_ID_INDEX", "BRAIN_TOPIC_FOLDER", "OWNER_ID", "OWNER_TYPE",
 							"FOLDER_ID"),
+					OwlIndex.of("BRAIN_TOPIC_FILE_TOPIC_ID_INDEX", "BRAIN_TOPIC_FILE", "OWNER_ID", "OWNER_TYPE",
+							"TOPIC_ID"),
 					OwlIndex.of("BRAIN_MAIL_FOLDER_OWNER_INDEX", "BRAIN_MAIL_FOLDER", "OWNER_ID", "OWNER_TYPE"),
 
 					// brain: threads

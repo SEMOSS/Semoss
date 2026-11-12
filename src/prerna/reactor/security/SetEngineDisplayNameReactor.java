@@ -36,6 +36,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -87,8 +88,8 @@ public class SetEngineDisplayNameReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Set the display name for an engine";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Set the display name for an engine");
 	}
 
 }

@@ -27,8 +27,11 @@
  *******************************************************************************/
 package prerna.io.connector.mail;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import prerna.auth.User;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
@@ -39,6 +42,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * required, since a draft is meant to be finished by hand.
  */
 public abstract class AbstractSaveDraftReactor extends AbstractComposeMailReactor {
+
+	public static final String REPLY_TO = "replyTo";
+
+	// an original typed into the body is a fake reply; a real one is made with replyTo
+	private static final Pattern PASTED_HISTORY = Pattern
+			.compile("(?im)^\\s*-{2,}\\s*original message\\s*-{2,}\\s*$|^\\s*from:.*\\R\\s*(sent|date):.*\\R\\s*to:");
 
 	protected AbstractSaveDraftReactor(String... extraKeys) {
 		super(extraKeys);
@@ -54,18 +63,62 @@ public abstract class AbstractSaveDraftReactor extends AbstractComposeMailReacto
 	 */
 	protected abstract ComposedMail saveDraft(User user, OutgoingMail mail) throws Exception;
 
+	/**
+	 * Save a reply in the thread of the message it answers, with that message
+	 * quoted by the mailbox. A mailbox that cannot says so; its reactor does not
+	 * offer {@code replyTo}.
+	 *
+	 * @param user    the signed in user
+	 * @param request the reply
+	 * @return the draft as saved
+	 * @throws Exception when the draft cannot be saved
+	 */
+	protected ComposedMail saveReply(User user, AbstractReplyMailReactor.ReplyMailRequest request) throws Exception {
+		throw new IllegalArgumentException("This mailbox cannot save a reply draft; save a new draft without " + REPLY_TO + ".");
+	}
+
 	@Override
 	protected final NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		return run("save the draft", () -> {
-			OutgoingMail mail = readOutgoing(false, "save a draft");
-			ComposedMail draft = saveDraft(this.insight.getUser(), mail);
+			String replyTo = readString(REPLY_TO);
+			ComposedMail draft;
+			String repliedTo = null;
+			if (replyTo != null && !replyTo.isBlank()) {
+				repliedTo = replyTo.trim();
+				draft = saveReply(this.insight.getUser(), readReply(repliedTo));
+			} else {
+				OutgoingMail mail = readOutgoing(false, "save a draft");
+				if (Arrays.asList(this.keysToGet).contains(REPLY_TO) && mail.body() != null
+						&& PASTED_HISTORY.matcher(mail.body()).find()) {
+					throw new IllegalArgumentException("The body quotes an original message. Do not type the original into "
+							+ "the body: pass " + REPLY_TO + " (the id or emailRef of the message being answered) and write "
+							+ "only your new text, and the original is quoted in the thread for you.");
+				}
+				draft = saveDraft(this.insight.getUser(), mail);
+			}
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put("draft", true);
+			if (repliedTo != null) {
+				output.put("repliedTo", repliedTo);
+			}
 			output.putAll(draft.toMap());
 			return output;
 		});
+	}
+
+	private AbstractReplyMailReactor.ReplyMailRequest readReply(String id) throws Exception {
+		String body = this.keyValue.get(BODY);
+		if (body == null || body.trim().isEmpty()) {
+			throw new IllegalArgumentException("A " + BODY + " is required to reply to a message.");
+		}
+		List<String> to = MailRecipientRules.validate(readValues(TO));
+		List<String> cc = MailRecipientRules.validate(readValues(CC));
+		// to and cc passed with replyTo replace the recipients the reply would have on its own
+		MailRecipients recipients = to.isEmpty() && cc.isEmpty() ? null : new MailRecipients(to, cc);
+		return new AbstractReplyMailReactor.ReplyMailRequest(id, body, readBoolean(HTML, false),
+				readBoolean(REPLY_ALL, false), recipients, readInsightFiles(ATTACHMENTS));
 	}
 
 	@Override
@@ -80,7 +133,9 @@ public abstract class AbstractSaveDraftReactor extends AbstractComposeMailReacto
 
 	@Override
 	protected final String describe() {
-		return "Save an email as a draft in the signed in user's own " + mailbox() + ", for them to review and send.";
+		return "Save an email as a draft in the signed in user's own " + mailbox() + ", for them to review and send. "
+				+ "To answer an email, pass " + REPLY_TO + ": the draft is then a real reply in that thread, with the "
+				+ "original quoted and the recipients chosen for you.";
 	}
 
 	@Override
@@ -90,9 +145,16 @@ public abstract class AbstractSaveDraftReactor extends AbstractComposeMailReacto
 			return "Optional recipients of the draft, as a list of email addresses, which can be left for the "
 					+ "person reviewing it to fill in.";
 		case SUBJECT:
-			return "Optional subject line of the draft.";
+			return "Optional subject line of the draft. Ignored with " + REPLY_TO + ", which keeps the thread's subject.";
 		case BODY:
-			return "Optional body of the draft.";
+			return "Optional body of the draft. With " + REPLY_TO + ", only your new text: never type the original "
+					+ "message or its From/Sent lines, which are added for you.";
+		case REPLY_TO:
+			return "Optional id of the message being answered, as an Outlook id or the emailRef a thread read "
+					+ "returned. Makes the draft a real reply in that thread.";
+		case REPLY_ALL:
+			return "Optional boolean with " + REPLY_TO + " to answer everybody on the message rather than only "
+					+ "whoever sent it. Defaults to false.";
 		default:
 			return super.describeKey(key);
 		}

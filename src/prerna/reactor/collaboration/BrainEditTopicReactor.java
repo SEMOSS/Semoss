@@ -33,6 +33,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainAgentEdits;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -52,8 +53,8 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 	private static final String ADD_EMAILS = "addEmails";
 
 	public BrainEditTopicReactor() {
-		this.keysToGet = new String[] { TOPIC_ID, TOPIC, NAME, DESCRIPTION, STATUS, ADD_PEOPLE, REMOVE_PEOPLE,
-				ADD_NOTE, DELETE_NOTE_ID, ADD_EMAILS };
+		this.keysToGet = new String[] { TOPIC_ID, TOPIC, NAME, DESCRIPTION, STATUS, ADD_PEOPLE, REMOVE_PEOPLE, ADD_NOTE,
+				DELETE_NOTE_ID, ADD_EMAILS };
 		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
@@ -61,12 +62,12 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 	public NounMetadata execute() {
 		User user = getUser();
 		return mapResult(BrainAgentEdits.editTopic(user, getString(TOPIC_ID), getString(TOPIC), getString(NAME),
-				getString(DESCRIPTION), getString(STATUS), people(ADD_PEOPLE),
-				people(REMOVE_PEOPLE), getString(ADD_NOTE), getString(DELETE_NOTE_ID),
-				getNounAsStringList(ADD_EMAILS)));
+				getString(DESCRIPTION), getString(STATUS), people(ADD_PEOPLE), people(REMOVE_PEOPLE),
+				getString(ADD_NOTE), getString(DELETE_NOTE_ID), getNounAsStringList(ADD_EMAILS)));
 	}
 
-	// each entry a string; a model that sends {name, email, personId} objects is read the same way
+	// each entry a string; a model that sends {name, email, personId} objects is
+	// read the same way
 	private List<String> people(String key) {
 		List<String> out = new ArrayList<>();
 		GenRowStruct grs = this.store.getGenRowStruct(key);
@@ -104,48 +105,27 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (ADD_PEOPLE.equals(key) || REMOVE_PEOPLE.equals(key) || ADD_EMAILS.equals(key)) {
-			return MCP_KEY_TYPE.ARRAY;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Changes one of the owner's Brain topics, as the owner would on the topic page: rename it, edit its "
-				+ "description, set its status, add or remove its people, put emails in it, or add or delete a "
-				+ "note. "
-				+ "Several changes can go in one call. To create a topic, leave out topicId and topic and pass its "
-				+ "name with any other changes; a name another topic has is refused. It waits for the owner to "
-				+ "approve. Read the topic with ListTopics first so you pass the right names";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id from ListTopics; pass this or topic, or neither to create a topic named name";
-		} else if (TOPIC.equals(key)) {
-			return "Topic name, when the id is not known; must match one topic";
-		} else if (NAME.equals(key)) {
-			return "New topic name, or the name of the topic to create";
-		} else if (DESCRIPTION.equals(key)) {
-			return "New description; replaces the old one";
-		} else if (STATUS.equals(key)) {
-			return "active, dormant, or archived";
-		} else if (ADD_PEOPLE.equals(key)) {
-			return "People to add to the topic: a list of plain strings, each an email, a name, or a person id (not objects); a suggested person becomes a member";
-		} else if (REMOVE_PEOPLE.equals(key)) {
-			return "People to remove from the topic: a list of plain strings, each an email, a name, or a person id (not objects); their threads stay linked";
-		} else if (ADD_NOTE.equals(key)) {
-			return "Text of a note to add; it is kept as the owner's memory about the topic";
-		} else if (DELETE_NOTE_ID.equals(key)) {
-			return "Id of a note to delete, from ListTopics";
-		} else if (ADD_EMAILS.equals(key)) {
-			return "Emails to put in the topic: a list of plain strings, each a threadId from SearchMail or ReadThread, "
-					+ "an emailRef from ReadThread, or an email's id from ListM365Mail. Any email in the owner's "
-					+ "mailbox can be added, with its whole conversation";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Changes one of the owner's Brain topics, as the owner would on the topic page: rename it, edit its "
+						+ "description, set its status, add or remove its people, put emails in it, or add or delete a "
+						+ "note. "
+						+ "Several changes can go in one call. To create a topic, leave out topicId and topic and pass its "
+						+ "name with any other changes; a name another topic has is refused. It waits for the owner to "
+						+ "approve. Read the topic with ListTopics first so you pass the right names")
+				.key(TOPIC_ID, "Topic id from ListTopics; pass this or topic, or neither to create a topic named name")
+				.key(TOPIC, "Topic name, when the id is not known; must match one topic")
+				.key(NAME, "New topic name, or the name of the topic to create")
+				.key(DESCRIPTION, "New description; replaces the old one").key(STATUS, "active, hibernated, or archived")
+				.key(ADD_PEOPLE, key -> key.type(List.class).description(
+						"People to add to the topic: a list of plain strings, each an email, a name, or a person id (not objects); a suggested person becomes a member"))
+				.key(REMOVE_PEOPLE, key -> key.type(List.class).description(
+						"People to remove from the topic: a list of plain strings, each an email, a name, or a person id (not objects); their threads stay linked"))
+				.key(ADD_NOTE, "Text of a note to add; it is kept as the owner's memory about the topic")
+				.key(DELETE_NOTE_ID, "Id of a note to delete, from ListTopics")
+				.key(ADD_EMAILS, key -> key.type(List.class).description(
+						"Emails to put in the topic: a list of plain strings, each a threadId from SearchMail or ReadThread, "
+								+ "an emailRef from ReadThread, or an email's id from ListM365Mail. Any email in the owner's "
+								+ "mailbox can be added, with its whole conversation"));
 	}
 }

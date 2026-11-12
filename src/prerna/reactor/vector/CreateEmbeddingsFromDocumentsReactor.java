@@ -48,6 +48,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.vector.FileEmbeddingStatus;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.CreateEmbeddingsParamOptions;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -338,55 +339,44 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals(FILE_PATHS_KEY)) {
-			return MCP_KEY_TYPE.ARRAY;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Creates embeddings from documents and adds them to a vector database. \
 				This reactor processes files (pdf, word, ppt, txt, or zip archives containing these files) \
 				and stores their embeddings in the specified vector database engine. \
 				Files can be located in the insight or project space.\
-				""";
+				""").key(ReactorKeysEnum.ENGINE, "The vector database engine ID to add embeddings into.")
+				.key(FILE_PATHS_KEY,
+						key -> key.type(List.class).description(
+								"""
+										The list of file paths to process. Can include pdf, word, ppt, txt files or zip archives. \
+										Paths are resolved relative to the selected `space` (or current insight when `space` is omitted).\
+										"""))
+				.key(ReactorKeysEnum.SPACE, """
+						Optional space used to resolve relative file paths. \
+						When omitted, files are resolved from the current insight/room space. \
+						Pass a project/app UUID to resolve from that app/project folder, or pass `user` for user space.\
+						""").key(ReactorKeysEnum.PARAM_VALUES_MAP, paramValuesDescription());
 	}
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The vector database engine ID to add embeddings into.";
-		} else if (key.equals(FILE_PATHS_KEY)) {
-			return """
-					The list of file paths to process. Can include pdf, word, ppt, txt files or zip archives. \
-					Paths are resolved relative to the selected `space` (or current insight when `space` is omitted).\
-					""";
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return """
-					Optional space used to resolve relative file paths. \
-					When omitted, files are resolved from the current insight/room space. \
-					Pass a project/app UUID to resolve from that app/project folder, or pass `user` for user space.\
-					""";
-		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
+	/**
+	 * The param options each vector database type accepts, listed in the
+	 * paramValues description.
+	 */
+	private static String paramValuesDescription() {
+		StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
 
-			for (CreateEmbeddingsParamOptions entry : CreateEmbeddingsParamOptions.values()) {
-				finalDescription.append("\n").append("\t\t\t\t\t")
-						.append(entry.getVectorDbType().getVectorDatabaseName()).append(":");
+		for (CreateEmbeddingsParamOptions entry : CreateEmbeddingsParamOptions.values()) {
+			finalDescription.append("\n").append("\t\t\t\t\t").append(entry.getVectorDbType().getVectorDatabaseName())
+					.append(":");
 
-				for (String paramKey : entry.getParamOptionsKeys()) {
-					finalDescription.append("\n").append("\t\t\t\t\t\t").append(paramKey).append("\t").append("-")
-							.append("\t").append("(").append(entry.getRequirementStatus(paramKey)).append(")")
-							.append(" ").append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
-				}
+			for (String paramKey : entry.getParamOptionsKeys()) {
+				finalDescription.append("\n").append("\t\t\t\t\t\t").append(paramKey).append("\t").append("-")
+						.append("\t").append("(").append(entry.getRequirementStatus(paramKey)).append(")").append(" ")
+						.append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
 			}
-			return finalDescription.toString();
 		}
-
-		return super.getDescriptionForKey(key);
+		return finalDescription.toString();
 	}
 
 }

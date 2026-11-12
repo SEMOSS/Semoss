@@ -158,6 +158,7 @@ public final class BrainTopicUtils {
 		topic.put("openActionItems", BrainTopicBrief.openItems(ownerId, ownerType, topicId, OPEN_ITEMS_SHOWN));
 		topic.put("people", getPeople(ownerId, ownerType, topicId));
 		topic.put("folders", BrainMailFolders.ofTopic(ownerId, ownerType, topicId));
+		topic.put("files", BrainTopicFiles.ofTopic(ownerId, ownerType, topicId));
 
 		return topic;
 	}
@@ -455,12 +456,22 @@ public final class BrainTopicUtils {
 					ownerId, ownerType, sourceTopicId, ownerId, ownerType, targetTopicId);
 			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC_FOLDER SET TOPIC_ID = ?" + owned, targetTopicId,
 					ownerId, ownerType, sourceTopicId);
+			// and so are its linked files; one on both keeps the target's link
+			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_TOPIC_FILE" + owned + " AND ITEM_ID IN (SELECT "
+					+ "ITEM_ID FROM BRAIN_TOPIC_FILE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?)",
+					ownerId, ownerType, sourceTopicId, ownerId, ownerType, targetTopicId);
+			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC_FILE SET TOPIC_ID = ?" + owned, targetTopicId,
+					ownerId, ownerType, sourceTopicId);
 			// the source's work items are the target's now; one on both keeps the target's link
 			CollaborationDbUtils.update(conn, "DELETE FROM WORK_TASK_TOPIC" + owned + " AND TASK_ID IN (SELECT "
 					+ "TASK_ID FROM WORK_TASK_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?)",
 					ownerId, ownerType, sourceTopicId, ownerId, ownerType, targetTopicId);
 			CollaborationDbUtils.update(conn, "UPDATE WORK_TASK_TOPIC SET TOPIC_ID = ?" + owned, targetTopicId,
 					ownerId, ownerType, sourceTopicId);
+			// under the source's id, Work's pending candidates would fail their save on every run
+			CollaborationDbUtils.update(conn, "UPDATE WORK_CANDIDATE SET TOPIC_ID = ?" + owned, targetTopicId,
+					ownerId, ownerType, sourceTopicId);
+			retargetChoices(conn, ownerId, ownerType, sourceTopicId, targetTopicId, now);
 			for (String table : new String[] { "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE", "BRAIN_RULE" }) {
 				CollaborationDbUtils.update(conn, "UPDATE " + table + " SET TOPIC_ID = ?" + owned, targetTopicId,
 						ownerId, ownerType, sourceTopicId);
@@ -545,7 +556,7 @@ public final class BrainTopicUtils {
 				}
 			}
 			for (String table : new String[] { "BRAIN_THREAD_TOPIC", "BRAIN_THREAD_TOPIC_REJECTION", "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE",
-					"BRAIN_RULE", "BRAIN_TOPIC_FOLDER", "WORK_TASK_TOPIC", "BRAIN_TOPIC" }) {
+					"BRAIN_RULE", "BRAIN_TOPIC_FOLDER", "BRAIN_TOPIC_FILE", "WORK_TASK_TOPIC", "BRAIN_TOPIC" }) {
 				CollaborationDbUtils.update(conn, "DELETE FROM " + table + owned, ownerId, ownerType, topicId);
 			}
 			// memories only about this topic go with it, as its notes did; the others just lose the link
@@ -563,6 +574,10 @@ public final class BrainTopicUtils {
 								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND LINK_TOPIC_ID = ?",
 						ownerId, ownerType, topicId);
 			}
+			// under its id, Work's pending candidates would fail their save on every run
+			CollaborationDbUtils.update(conn, "UPDATE WORK_CANDIDATE SET TOPIC_ID = NULL" + owned, ownerId, ownerType,
+					topicId);
+			retargetChoices(conn, ownerId, ownerType, topicId, null, now);
 			CollaborationDbUtils.update(conn,
 					"UPDATE BRAIN_TOPIC SET MERGE_CANDIDATE_ID = NULL "
 							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MERGE_CANDIDATE_ID = ?",
@@ -581,6 +596,35 @@ public final class BrainTopicUtils {
 		result.put("deleted", true);
 		result.put("canUndo", false);
 		return result;
+	}
+
+	// open "which topic?" questions offer the merge target instead of the topic, or drop a deleted one and go when
+	// none is left, so they never offer a topic that is gone
+	// shortcut: undoing a merge leaves the questions rewritten; snapshot them once that undo has a UI (F4)
+	private static void retargetChoices(Connection conn, String ownerId, String ownerType, String topicId,
+			String targetTopicId, Timestamp now) throws SQLException {
+		for (String[] review : CollaborationDbUtils.query(conn, "SELECT REVIEW_ID, DETAIL_JSON FROM BRAIN_REVIEW "
+				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND KIND = ? AND STATUS = ?",
+				rs -> new String[] { rs.getString(1), CollaborationDbUtils.getString(rs, "DETAIL_JSON") }, ownerId,
+				ownerType, BrainReviewUtils.TOPIC_CHOICE, BrainReviewUtils.OPEN)) {
+			Map<String, Object> detail = CollaborationDbUtils.parseMap(review[1]);
+			if (detail == null || !(detail.get("candidates") instanceof List<?> candidates)
+					|| !candidates.contains(topicId)) {
+				continue;
+			}
+			List<Object> kept = new ArrayList<>();
+			for (Object candidate : candidates) {
+				Object id = topicId.equals(candidate) ? targetTopicId : candidate;
+				if (id != null && !kept.contains(id)) {
+					kept.add(id);
+				}
+			}
+			detail.put("candidates", kept);
+			CollaborationDbUtils.update(conn, "UPDATE BRAIN_REVIEW SET DETAIL_JSON = ?, STATUS = ?, RESOLVED_AT = ? "
+					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ?", CollaborationDbUtils.toJson(detail),
+					kept.isEmpty() ? BrainReviewUtils.DISMISSED : BrainReviewUtils.OPEN, kept.isEmpty() ? now : null,
+					ownerId, ownerType, review[0]);
+		}
 	}
 
 	// Record an owner edit without changing lifecycle.

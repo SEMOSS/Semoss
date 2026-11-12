@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import prerna.auth.User;
 import prerna.collaboration.BrainTopicRoomUtils;
 import prerna.collaboration.BrainTopicUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainListTopicRooms(topicId=["..."], limit=[50], offset=[0]);
@@ -54,19 +55,8 @@ public class BrainListTopicRoomsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the chats linked to a topic, most recently active first";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (LIMIT.equals(key)) {
-			return "Most chats to return";
-		} else if (OFFSET.equals(key)) {
-			return "Chats to skip, for paging";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Lists the chats linked to a topic, most recently active first")
+				.key(TOPIC_ID, "Topic id").key(LIMIT, "Most chats to return").key(OFFSET, "Chats to skip, for paging");
 	}
 }

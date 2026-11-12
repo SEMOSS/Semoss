@@ -49,6 +49,7 @@ import com.google.gson.JsonParser;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.collaboration.BrainProfileUtils;
+import prerna.collaboration.CollaborationDriveFiles;
 import prerna.collaboration.CollaborationMemoryRunHook;
 import prerna.collaboration.CollaborationRunMode;
 import prerna.collaboration.CollaborationSkills;
@@ -295,6 +296,9 @@ public final class AgentConfigLoader {
 			// Ordinary document reading uses the shared extraction helper. Managed
 			// presentation workflows perform their own review without this tool.
 			names.add("InspectPptx");
+			// the owner's tasks live in Work items; a chat todo list only competes with them
+			names.add("TodoWrite");
+			names.add("TodoRead");
 		}
 		JSONObject toolPolicy = cfgJson != null ? cfgJson.optJSONObject("tool_policy") : null;
 		JSONObject defaultTools = toolPolicy != null ? toolPolicy.optJSONObject("default_tools") : null;
@@ -820,14 +824,16 @@ public final class AgentConfigLoader {
 	}
 
 	/**
-	 * An owner's chat also reviews its finished runs for memories to suggest, whatever its agent configures; a
-	 * routine's runs are not reviewed.
+	 * An owner's chat also saves the OneDrive copies a finished run changed back over their originals, and reviews
+	 * its finished runs for memories to suggest, whatever its agent configures; a routine's runs get neither.
 	 */
 	private static List<IAgentRunHook> withBuiltInRunHooks(Room room, List<IAgentRunHook> configured) {
 		if (!CollaborationRunMode.isChat(room)) {
 			return configured;
 		}
 		List<IAgentRunHook> hooks = new ArrayList<>(configured);
+		// first, so what it tells the owner is in the chat before the review reads it
+		hooks.add(new CollaborationDriveFiles.AfterRun());
 		hooks.add(new CollaborationMemoryRunHook());
 		return hooks;
 	}

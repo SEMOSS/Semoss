@@ -34,6 +34,7 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -44,7 +45,7 @@ public class DivisionReactor extends AbstractRFrameReactor {
 	private static final String NUMERATOR = "numerator";
 	private static final String DENOMINATOR = "denominator";
 	private static final String ROUND = "round";
-	
+
 	public DivisionReactor() {
 		this.keysToGet = new String[] { NUMERATOR, DENOMINATOR, ROUND, ReactorKeysEnum.NEW_COLUMN.getKey() };
 	}
@@ -60,17 +61,17 @@ public class DivisionReactor extends AbstractRFrameReactor {
 		String numerator = this.keyValue.get(NUMERATOR);
 		String denominator = this.keyValue.get(DENOMINATOR);
 		String round = this.keyValue.get(ROUND);
-		if(round == null || round.isEmpty()) {
+		if (round == null || round.isEmpty()) {
 			round = "2";
 		} else {
 			// make sure positive #
 			int num = 0;
 			try {
 				num = ((Number) Double.parseDouble(round)).intValue();
-			} catch(Exception e) {
+			} catch (Exception e) {
 				throw new IllegalArgumentException("Must pass in a valid number for round");
 			}
-			if(num < 0) {
+			if (num < 0) {
 				throw new IllegalArgumentException("Round value must be > 0");
 			}
 		}
@@ -88,10 +89,9 @@ public class DivisionReactor extends AbstractRFrameReactor {
 
 		// create R script
 		StringBuilder script = new StringBuilder();
-		script.append(frameName).append("$").append(newColName).append(" <- round(")
-			.append(frameName).append("$").append(numerator).append("/")
-			.append(frameName).append("$").append(denominator).append(", digits = ")
-			.append(round).append(");");
+		script.append(frameName).append("$").append(newColName).append(" <- round(").append(frameName).append("$")
+				.append(numerator).append("/").append(frameName).append("$").append(denominator).append(", digits = ")
+				.append(round).append(");");
 
 		// run R script
 		this.rJavaTranslator.runR(script.toString());
@@ -124,13 +124,12 @@ public class DivisionReactor extends AbstractRFrameReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(NUMERATOR)) {
-			return "The column to use as the numerator";
-		} else if (key.equals(DENOMINATOR)) {
-			return "The column to use as the denominator";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Adds a new column to the current R frame that holds one column divided by another, rounded to the given number of decimal places (2 by default).")
+				.key(ROUND, key -> key.type(Integer.class).description(
+						"The number of decimal places to round the result to, a non-negative number (default 2)."))
+				.key(NUMERATOR, "The column to use as the numerator")
+				.key(DENOMINATOR, "The column to use as the denominator");
 	}
 }

@@ -1,0 +1,17 @@
+# SearXNG settings for the web-search platform MCP. The README's docker command
+# mounts this folder as /etc/searxng. Anything not set here keeps SearXNG's
+# defaults (engines, timeouts, UI). The secret key comes from SEARXNG_SECRET.
+# SEMOSS-deployment's searxng-config ConfigMap carries a copy; change both together.
+use_default_settings: true
+
+server:
+  # Private instance that only SEMOSS calls: the limiter would answer the MCP's
+  # API calls with HTTP 429 (and it needs a valkey database).
+  limiter: false
+  public_instance: false
+
+search:
+  # The MCP requests /search?format=json, which returns 403 unless json is listed.
+  formats:
+    - html
+    - json

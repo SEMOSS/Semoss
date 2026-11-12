@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkTaskUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkGetWork(taskId=["..."]);
@@ -52,17 +53,12 @@ public class WorkGetWorkReactor extends AbstractWorkTaskReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "One of the owner's work items in full: every step and its status, the timeline of updates and "
-				+ "decisions, the threads that moved it, and its topics";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TASK_ID.equals(key)) {
-			return "The work item's id, from ListMyWork";
-		}
-		if (ROOM_ID.equals(key)) return "An owned assistant room; resolves its linked work item, or an empty map";
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"One of the owner's work items in full: every step and its status, the timeline of updates and "
+								+ "decisions, the threads that moved it, and its topics")
+				.key(TASK_ID, "The work item's id, from ListMyWork")
+				.key(ROOM_ID, "An owned assistant room; resolves its linked work item, or an empty map");
 	}
 }

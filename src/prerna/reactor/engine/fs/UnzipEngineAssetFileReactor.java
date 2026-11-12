@@ -36,6 +36,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -105,18 +106,10 @@ public class UnzipEngineAssetFileReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Unzips a zip file located in the engine's assets folder";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The unique id for the engine";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The relative file path of the zip file within the engine's assets folder to extract";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Unzips a zip file located in the engine's assets folder")
+				.key(ReactorKeysEnum.ENGINE, "The unique id for the engine").key(ReactorKeysEnum.FILE_PATH,
+						"The relative file path of the zip file within the engine's assets folder to extract");
 	}
 
 }

@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainTopicUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSetTopicStatus(topicId=["..."], status=["archived"]);
@@ -54,17 +55,8 @@ public class BrainSetTopicStatusReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Sets a Brain topic to active, hibernated, or archived";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (STATUS.equals(key)) {
-			return "active, hibernated, or archived";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Sets a Brain topic to active, hibernated, or archived")
+				.key(TOPIC_ID, "Topic id").key(STATUS, "active, hibernated, or archived");
 	}
 }

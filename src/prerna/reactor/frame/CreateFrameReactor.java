@@ -39,6 +39,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.reactor.EmbeddedRoutineReactor;
 import prerna.reactor.EmbeddedScriptReactor;
 import prerna.reactor.GenericReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -50,11 +51,11 @@ public class CreateFrameReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = CreateFrameReactor.class.getName();
 	private static final String OVERRIDE = "override";
-	
+
 	public CreateFrameReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FRAME_TYPE.getKey(), OVERRIDE, ReactorKeysEnum.ALIAS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME_TYPE.getKey(), OVERRIDE, ReactorKeysEnum.ALIAS.getKey() };
 	}
-	
+
 	public NounMetadata execute() {
 		organizeKeys();
 		// get the name of the frame type
@@ -62,14 +63,14 @@ public class CreateFrameReactor extends AbstractReactor {
 		// override the default frame
 		Boolean override = true;
 		String overrideStr = this.keyValue.get(this.keysToGet[1]);
-		if(overrideStr != null && !overrideStr.isEmpty()) {
+		if (overrideStr != null && !overrideStr.isEmpty()) {
 			override = Boolean.parseBoolean(overrideStr);
 		}
 		// set the alias for the frame
 		String alias = this.keyValue.get(this.keysToGet[2]);
 
 		Logger logger = getLogger(CLASS_NAME);
-		if(alias == null || alias.trim().isEmpty()) {
+		if (alias == null || alias.trim().isEmpty()) {
 			logger.info("Creating new frame of type = " + frameType + " with a random alias");
 			alias = "";
 		} else {
@@ -77,7 +78,7 @@ public class CreateFrameReactor extends AbstractReactor {
 			try {
 				alias = AbstractSqlQueryUtil.cleanTableName(alias);
 				logger.info("Creating new frame of type = " + frameType + " with alias = " + alias);
-			} catch(Exception e) {
+			} catch (Exception e) {
 				alias = "";
 				logger.info("Invalid alias - creating new frame of type = " + frameType + " with a random alias");
 			}
@@ -88,7 +89,7 @@ public class CreateFrameReactor extends AbstractReactor {
 		} catch (Exception e) {
 			String message = "Error occurred trying to create frame of type " + frameType;
 			String cause = e.getMessage();
-			if(cause != null && !cause.isEmpty()) {
+			if (cause != null && !cause.isEmpty()) {
 				message += ". Detailed error message = " + cause;
 			}
 			throw new IllegalArgumentException(message, e);
@@ -98,69 +99,70 @@ public class CreateFrameReactor extends AbstractReactor {
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 		// store it as the result and push it to the planner to override
 		// any existing frame that was in use
-		if(override) {
+		if (override) {
 			this.insight.setDataMaker(newFrame);
 		}
 		// add the alias as a noun by default
-		if(alias != null && !alias.isEmpty()) {
+		if (alias != null && !alias.isEmpty()) {
 			this.insight.getVarStore().put(alias, noun);
 		} else {
 			// even if we cannot create an alias for the frame
 			// always add it as the default
 			this.insight.getVarStore().put(newFrame.getName(), noun);
 		}
-		
+
 		return noun;
 	}
-	
+
 	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = super.getOutputs();
-		if(outputs != null) {
+		if (outputs != null) {
 			return outputs;
 		}
-		
+
 		outputs = new Vector<NounMetadata>();
 		NounMetadata output = new NounMetadata(this.signature, PixelDataType.FRAME, PixelOperationType.FRAME);
 		outputs.add(output);
 		return outputs;
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(OVERRIDE)) {
-			return "Indicates if the current frame should be overridden; default value of true";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Creates a new, empty frame of the given type and stores it in the insight under its alias, or under a generated name when no valid alias is given. By default it also becomes the insight's current frame.")
+				.key(ReactorKeysEnum.FRAME_TYPE,
+						"The type of frame to create: grid (SQL based), graph (Tinker), r (an R data table), py (a pandas frame), native (queries run on the source database) or default (the server's default type); any other value creates a grid frame.")
+				.key(OVERRIDE, key -> key.type(Boolean.class)
+						.description("Indicates if the current frame should be overridden; default value of true"));
 	}
-	
+
 	@Override
 	public void mergeUp() {
 		// merge this reactor into the parent reactor
-		if(parentReactor != null) {
+		if (parentReactor != null) {
 			// try to merge the actual frame
 			// else, merge the frame map
 			organizeKeys();
 			String alias = this.keyValue.get(this.keysToGet[2]);
 			NounMetadata data = null;
-			if(alias != null && !alias.isEmpty()) {
+			if (alias != null && !alias.isEmpty()) {
 				data = this.insight.getVarStore().get(alias);
 			}
-			if(data == null) {
+			if (data == null) {
 				Map<String, List<Map>> map = getStoreMap();
 				map.put("createFrame", new ArrayList<>());
 				data = new NounMetadata(map, PixelDataType.FRAME, PixelOperationType.FRAME_MAP);
 			}
-	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
-	    			|| parentReactor instanceof GenericReactor) {
-	    		parentReactor.getCurRow().add(data);
-	    	} else {
-	    		GenRowStruct parentInput = parentReactor.getNounStore().makeGenRowStruct(PixelDataType.FRAME.getKey());
+			if (parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
+					|| parentReactor instanceof GenericReactor) {
+				parentReactor.getCurRow().add(data);
+			} else {
+				GenRowStruct parentInput = parentReactor.getNounStore().makeGenRowStruct(PixelDataType.FRAME.getKey());
 				parentInput.add(data);
-	    	}
+			}
 		}
 	}
 

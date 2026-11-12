@@ -50,12 +50,14 @@ import prerna.io.connector.ms.calendar.MicrosoftCalendarListCalendarsReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarListEventsReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarRespondToEventReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarUpdateEventReactor;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveCreateFolderReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveDownloadFileReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveGetFileReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListDrivesReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListFilesReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListSharedFilesReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveSearchFilesReactor;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveUploadFileReactor;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookListMailReactor;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookSaveDraftReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsDownloadFileReactor;
@@ -76,6 +78,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.collaboration.BrainEditThreadReactor;
 import prerna.reactor.collaboration.BrainEditTopicReactor;
 import prerna.reactor.collaboration.BrainForgetReactor;
+import prerna.reactor.collaboration.BrainGetRelatedItemsReactor;
 import prerna.reactor.collaboration.BrainGetThreadMessagesReactor;
 import prerna.reactor.collaboration.BrainGetWritingStyleReactor;
 import prerna.reactor.collaboration.BrainListTopicsReactor;
@@ -95,6 +98,7 @@ import prerna.reactor.collaboration.WorkManageCustomRoutineReactor;
 import prerna.reactor.collaboration.WorkOpenSkillReactor;
 import prerna.reactor.collaboration.WorkPublishSkillReactor;
 import prerna.reactor.collaboration.WorkSaveCustomRoutineReactor;
+import prerna.reactor.collaboration.WorkSaveRoutinePreferencesReactor;
 import prerna.reactor.collaboration.WorkSaveWorkReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
 import prerna.reactor.collaboration.WorkShowItemReactor;
@@ -143,6 +147,7 @@ public final class CollaborationAgentTools {
 		REACTORS.put("ListTopics", BrainListTopicsReactor.class);
 		REACTORS.put("SearchMail", BrainSearchThreadsReactor.class);
 		REACTORS.put("ReadThread", BrainGetThreadMessagesReactor.class);
+		REACTORS.put("RelatedThreads", BrainGetRelatedItemsReactor.class);
 		// change the owner's Brain; both wait for the owner to approve
 		REACTORS.put("EditTopic", BrainEditTopicReactor.class);
 		REACTORS.put("EditThread", BrainEditThreadReactor.class);
@@ -184,6 +189,10 @@ public final class CollaborationAgentTools {
 		REACTORS.put("SearchFiles", MicrosoftOneDriveSearchFilesReactor.class);
 		REACTORS.put("GetFile", MicrosoftOneDriveGetFileReactor.class);
 		REACTORS.put("DownloadDriveFile", MicrosoftOneDriveDownloadFileReactor.class);
+		// write to the owner's OneDrive; both wait for the owner to approve, so a
+		// routine never gets them
+		REACTORS.put("CreateDriveFolder", MicrosoftOneDriveCreateFolderReactor.class);
+		REACTORS.put("UploadDriveFile", MicrosoftOneDriveUploadFileReactor.class);
 		// the owner's memory: the owner's chat or routine, with memory on (see
 		// definitions(Room, User, boolean))
 		REACTORS.put("Remember", BrainRememberReactor.class);
@@ -194,6 +203,9 @@ public final class CollaborationAgentTools {
 		REACTORS.put("CreateRoutine", WorkSaveCustomRoutineReactor.class);
 		REACTORS.put("ListRoutines", WorkListCustomRoutinesReactor.class);
 		REACTORS.put("ManageRoutine", WorkManageCustomRoutineReactor.class);
+		// the Preferences text of the inbox brief, agendas and event planning, which
+		// read it and no memories
+		REACTORS.put("SetRoutinePreferences", WorkSaveRoutinePreferencesReactor.class);
 		REACTORS.put("ListMySkills", WorkListMySkillsReactor.class);
 		REACTORS.put("OpenSkill", WorkOpenSkillReactor.class);
 		REACTORS.put("PublishSkill", WorkPublishSkillReactor.class);
@@ -208,7 +220,8 @@ public final class CollaborationAgentTools {
 
 	// calendar reads that take a timeZone, filled in with the owner's when the
 	// model leaves it out
-	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent");
+	// times the model writes are read in the owner's zone too: CreateEvent at 09:00 with no zone was 09:00 UTC
+	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent", "CreateEvent", "UpdateEvent");
 
 	// tools about the chat itself: only for the owner's chat at the root of the
 	// run, never a routine;
@@ -226,7 +239,8 @@ public final class CollaborationAgentTools {
 	// the owner's routines and skills: at the root of the owner's chat or routine;
 	// a routine keeps only the auto ones
 	private static final Set<String> OWNER_TOOLS = Set.of("CreateRoutine", "ListRoutines", "ManageRoutine",
-			"ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant", "DeleteMySkill");
+			"SetRoutinePreferences", "ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant",
+			"DeleteMySkill");
 
 	// tools the model loads on demand (SearchTools/LoadTools): direct Microsoft 365
 	// mail after Brain's own search,
@@ -248,7 +262,8 @@ public final class CollaborationAgentTools {
 			"[Brain: tags this chat with a topic]", "SaveDraft",
 			"[Outlook: saves a draft in the owner's drafts folder for them to review; it never sends]", "SearchMail",
 			"[Brain: the owner's classified mail, start here; one topic or all]", "ReadThread",
-			"[Brain: reads a thread found in Brain]", "ListM365Mail",
+			"[Brain: reads a thread found in Brain]", "RelatedThreads",
+			"[Brain: other mail, meetings, and chats that belong with a thread you already have]", "ListM365Mail",
 			"[Microsoft 365, direct: Outlook as it is now, outside Brain. Brain's never-ingest rules "
 					+ "and exclusions do NOT apply here, and mail Brain has not classified can show up. Use it after "
 					+ "SearchMail finds nothing, or when the owner asks about Outlook itself.]");
@@ -397,7 +412,8 @@ public final class CollaborationAgentTools {
 			}
 			String output = MCPUtility.runPixelTool(null, insight, meta.getString(MCPUtility.SMSS_FUNCTION_NAME),
 					properties, params);
-			return ToolExecutionResult.success(CollaborationToolResults.forModel(toolName, output, insight.getUser()));
+			return ToolExecutionResult.success(CollaborationToolResults.forModel(toolName, output, insight.getUser(),
+					CollaborationToolResults.seenMail(insight)));
 		} catch (RuntimeException e) {
 			String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
 			return ToolExecutionResult.error(message, message);

@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.google.AbstractGoogleReactor;
 import prerna.io.connector.google.GoogleLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -75,18 +76,10 @@ public class GoogleDriveUploadReactor extends AbstractGoogleReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Upload a local file to the user's Google Drive.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.NAME.getKey())) {
-			return "Name to assign to the uploaded file in Google Drive.";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Local file path of the file to upload.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Upload a local file to the user's Google Drive.")
+				.key(ReactorKeysEnum.NAME, "Name to assign to the uploaded file in Google Drive.")
+				.key(ReactorKeysEnum.FILE_PATH, "Local file path of the file to upload.");
 	}
 
 }

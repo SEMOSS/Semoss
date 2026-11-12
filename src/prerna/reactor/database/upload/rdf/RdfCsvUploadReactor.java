@@ -48,6 +48,7 @@ import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdf.RDFDefaultDatabaseTypeFactory;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.poi.main.helper.CSVFileHelper;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
@@ -67,9 +68,18 @@ public class RdfCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Uploads a delimited file (CSV, TSV, etc.) to create a new RDF (triplestore) database or append to an existing one. "
-				+ "Triples for nodes, properties, and relationships are generated from a user-defined metamodel.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Uploads a delimited file (CSV, TSV, etc.) to create a new RDF (triplestore) database or append to an existing one. "
+						+ "Triples for nodes, properties, and relationships are generated from a user-defined metamodel.")
+				.key("additionalDataTypes", key -> key.type(Map.class))
+				.key("customBaseURI",
+						"The base URI for the instance triples the upload writes, which a new database also keeps as its base URI; defaults to the server's SEMOSS URI.")
+				.key("dataTypeMap", key -> key.type(Map.class))
+				.key("existing", key -> key.type(Boolean.class).description(
+						"Whether to add the file's data to an existing database (true) instead of creating a new one (false, the default)."))
+				.key("metamodel", key -> key.type(Map.class)).key("newHeaders", key -> key.type(Map.class))
+				.key("startRow", key -> key.type(Integer.class));
 	}
 
 	@Override

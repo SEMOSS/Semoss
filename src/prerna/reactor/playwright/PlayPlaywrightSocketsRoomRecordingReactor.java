@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -79,24 +80,13 @@ public class PlayPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Opens Playwright Sockets and replays the current Playground room recording that best matches a natural-language description or filename.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (RECORDING_NAME_HINT.equals(key)) {
-			return "Natural-language description of the Playground room recording, such as google.com or login flow.";
-		}
-		if (RECORDING_FILE.equals(key)) {
-			return "Optional exact recording JSON filename.";
-		}
-		if (PROJECT_ID.equals(key)) {
-			return "Optional accessible Playwright project to search as a fallback.";
-		}
-		if (START_URL.equals(key)) {
-			return "Optional URL override to open before replaying the recording.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Opens Playwright Sockets and replays the current Playground room recording that best matches a natural-language description or filename.")
+				.key(RECORDING_NAME_HINT,
+						"Natural-language description of the Playground room recording, such as google.com or login flow.")
+				.key(RECORDING_FILE, "Optional exact recording JSON filename.")
+				.key(PROJECT_ID, "Optional accessible Playwright project to search as a fallback.")
+				.key(START_URL, "Optional URL override to open before replaying the recording.");
 	}
 }

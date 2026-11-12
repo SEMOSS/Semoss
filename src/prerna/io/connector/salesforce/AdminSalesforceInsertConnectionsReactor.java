@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminExternalConnectorsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -81,19 +82,11 @@ public class AdminSalesforceInsertConnectionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates and stores a Salesforce connection entry (client id, client secret, and alias).";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (CLIENT_ID.equals(key)) {
-			return "Required Salesforce connected-app client id.";
-		} else if (CLIENT_SECRET.equals(key)) {
-			return "Required Salesforce connected-app client secret.";
-		} else if (ALIAS.equals(key)) {
-			return "Required unique alias used to identify this saved Salesforce connection.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Creates and stores a Salesforce connection entry (client id, client secret, and alias).")
+				.key(CLIENT_ID, "Required Salesforce connected-app client id.")
+				.key(CLIENT_SECRET, "Required Salesforce connected-app client secret.")
+				.key(ALIAS, "Required unique alias used to identify this saved Salesforce connection.");
 	}
 }

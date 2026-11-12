@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.collaboration.BrainTopicMatches;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -64,19 +65,13 @@ public class BrainApplyTopicMatchesReactor extends AbstractCollaborationReactor 
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Applies the owner's choices from BrainPreviewTopicMatches, each checked against the conversation as it "
-				+ "is now: move replaces the topics Brain guessed (never the owner's own links), also_link adds the "
-				+ "topic, reject remembers the conversation is not about it; returns each change as applied or skipped";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "The topic the preview was for";
-		} else if (CHANGES.equals(key)) {
-			return "Maps of threadId and op (move, also_link or reject); conversations left out are not changed";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Applies the owner's choices from BrainPreviewTopicMatches, each checked against the conversation as it "
+						+ "is now: move replaces the topics Brain guessed (never the owner's own links), also_link adds the "
+						+ "topic, reject remembers the conversation is not about it; returns each change as applied or skipped")
+				.key(TOPIC_ID, "The topic the preview was for")
+				.key(CHANGES, "Maps of threadId and op (move, also_link or reject), with toTopicId on a re-sort move; "
+						+ "conversations left out are not changed");
 	}
 }

@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,12 +38,12 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class MyDiscoverableProjectsReactor extends AbstractReactor {
 
@@ -84,9 +83,8 @@ public class MyDiscoverableProjectsReactor extends AbstractReactor {
 				index.put(projectId, Integer.valueOf(i));
 			}
 
-			IRawSelectWrapper wrapper = null;
-			try {
-				wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(), getMetaKeys(), true);
+			try (IRawSelectWrapper wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(),
+					getMetaKeys(), true)) {
 				while (wrapper.hasNext()) {
 					Object[] data = wrapper.next().getValues();
 					String projectId = (String) data[0];
@@ -115,15 +113,7 @@ public class MyDiscoverableProjectsReactor extends AbstractReactor {
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (wrapper != null) {
-					try {
-						wrapper.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+				classLogger.error("Could not read the metadata of the discoverable projects", e);
 			}
 		}
 
@@ -181,12 +171,18 @@ public class MyDiscoverableProjectsReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.SORT.getKey())) {
-			return "The sort is a string value containing either 'name' or 'date' for how to sort";
-		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "This is an optional project filter";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the projects that are marked discoverable, are not public, and that the user has no access to, sorted by name, with their metadata unless noMeta is true.")
+				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class))
+				.key(ReactorKeysEnum.META_FILTERS, key -> key.type(Map.class))
+				.key(ReactorKeysEnum.META_KEYS, key -> key.list(String.class))
+				.key(ReactorKeysEnum.NO_META, key -> key.type(Boolean.class))
+				.key(ReactorKeysEnum.OFFSET, key -> key.type(Integer.class))
+				.key(ReactorKeysEnum.PROJECT_TYPE,
+						key -> key.list(String.class).description(
+								"Project types to filter the results to, such as INSIGHTS, CODE or BLOCKS."))
+				.key(ReactorKeysEnum.PROJECT,
+						key -> key.list(String.class).description("This is an optional project filter"));
 	}
 }

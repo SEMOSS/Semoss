@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -73,19 +74,11 @@ public class ServiceNowDeleteRecordReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Deletes a record from a ServiceNow table via OAuth authentication.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.TABLE.getKey())) {
-			return "Required ServiceNow table name from which the record will be deleted.";
-		} else if (key.equals(SYS_ID)) {
-			return "Required sys_id of the record to delete in the ServiceNow table.";
-		} else if (key.equals(INSTANCE_URL)) {
-			return "Required URL of the ServiceNow user's instance.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Deletes a record from a ServiceNow table via OAuth authentication.")
+				.key(ReactorKeysEnum.TABLE, "Required ServiceNow table name from which the record will be deleted.")
+				.key(SYS_ID, "Required sys_id of the record to delete in the ServiceNow table.")
+				.key(INSTANCE_URL, "Required URL of the ServiceNow user's instance.");
 	}
 }
