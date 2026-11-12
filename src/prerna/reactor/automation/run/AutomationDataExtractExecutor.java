@@ -30,6 +30,7 @@ package prerna.reactor.automation.run;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,6 +44,9 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.helpers.DefaultHandler;
+
+import com.univocity.parsers.csv.CsvParser;
+import com.univocity.parsers.csv.CsvParserSettings;
 
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
@@ -75,14 +79,18 @@ final class AutomationDataExtractExecutor {
 				"Data extract node '" + nodeId + "' nullValue");
 		String path = pathValue == null ? "" : pathValue.toString();
 		String format = formatValue == null ? "auto" : formatValue.toString().trim().toLowerCase();
-		if (!List.of("auto", "json", "xml").contains(format)) {
-			throw new IllegalArgumentException("Data format must be auto, json, or xml.");
+		if (!List.of("auto", "json", "xml", AutomationConstants.DATA_FORMAT_CSV).contains(format)) {
+			throw new IllegalArgumentException("Data format must be auto, json, xml, or csv.");
 		}
+		Object csvHasHeaderValue = AutomationScopeResolver.resolveExactOrLiteral(
+				config.getOrDefault(AutomationConstants.CONFIG_CSV_HAS_HEADER, true), scope,
+				"Data extract node '" + nodeId + "' csvHasHeader");
+		boolean csvHasHeader = !(csvHasHeaderValue instanceof Boolean bool) || bool;
 		List<Object> tokens = pathTokens(path);
 		Object data;
 		if (source instanceof AutomationFrameOutput.RegisteredFrame frame) {
-			if ("xml".equals(format)) {
-				throw new IllegalArgumentException("XML input cannot be a frame value.");
+			if ("xml".equals(format) || AutomationConstants.DATA_FORMAT_CSV.equals(format)) {
+				throw new IllegalArgumentException("XML/CSV input cannot be a frame value.");
 			}
 			if (tokens.isEmpty() || !(tokens.get(0) instanceof Integer rowIndex)
 					|| rowIndex < 0 || rowIndex >= frame.rowCount()) {
@@ -92,21 +100,31 @@ final class AutomationDataExtractExecutor {
 			data = frame.page(rowIndex, 1).get(0);
 			tokens = tokens.subList(1, tokens.size());
 		} else {
-			data = structuredData(source, format, assetReader);
+			data = structuredData(source, format, csvHasHeader, assetReader);
 		}
 		Object value = nestedValue(data, tokens);
 		return value == MISSING ? missingValue : value == null ? nullValue : value;
 	}
 
-	private static Object structuredData(Object source, String format, Function<String, String> assetReader) {
+	private static Object structuredData(Object source, String format, boolean csvHasHeader,
+			Function<String, String> assetReader) {
 		if (source instanceof Map<?, ?> || source instanceof List<?>) {
-			if ("xml".equals(format)) {
-				throw new IllegalArgumentException("XML input must be text or a run-workspace file path.");
+			if ("xml".equals(format) || AutomationConstants.DATA_FORMAT_CSV.equals(format)) {
+				throw new IllegalArgumentException("XML/CSV input must be text or a run-workspace file path.");
 			}
 			return source;
 		}
 		if (!(source instanceof String text) || text.isBlank()) {
-			throw new IllegalArgumentException("Data must be a JSON/XML value, encoded content, or file path.");
+			throw new IllegalArgumentException("Data must be a JSON/XML/CSV value, encoded content, or file path.");
+		}
+		if (AutomationConstants.DATA_FORMAT_CSV.equals(format)) {
+			// CSV parsing never throws on plain text, so a literal file path would otherwise be
+			// mistaken for one-cell CSV content; read it as a run-workspace file first instead.
+			try {
+				return parse(assetReader.apply(text), format, csvHasHeader);
+			} catch (RuntimeException ignored) {
+				// Not a run-workspace file path; fall through to treat the value as literal CSV text.
+			}
 		}
 		List<String> candidates = new ArrayList<>();
 		candidates.add(text);
@@ -117,21 +135,24 @@ final class AutomationDataExtractExecutor {
 		}
 		for (String candidate : candidates) {
 			try {
-				return parse(candidate, format);
+				return parse(candidate, format, csvHasHeader);
 			} catch (RuntimeException ignored) {
 				// Try the next supported representation.
 			}
 		}
 		try {
-			return parse(assetReader.apply(text), format);
+			return parse(assetReader.apply(text), format, csvHasHeader);
 		} catch (RuntimeException e) {
 			throw new IllegalArgumentException(
-					"Unable to read JSON or XML from the supplied value or run-workspace file.", e);
+					"Unable to read JSON, XML, or CSV from the supplied value or run-workspace file.", e);
 		}
 	}
 
-	private static Object parse(String source, String format) {
+	private static Object parse(String source, String format, boolean csvHasHeader) {
 		String text = source == null ? "" : source.replaceFirst("^[\\uFEFF\\r\\n\\t ]+", "");
+		if (AutomationConstants.DATA_FORMAT_CSV.equals(format)) {
+			return parseCsv(text, csvHasHeader);
+		}
 		if ("json".equals(format) || "auto".equals(format) && (text.startsWith("{") || text.startsWith("["))) {
 			try {
 				return AutomationRuntimeUtils.GSON.fromJson(text, Object.class);
@@ -153,6 +174,43 @@ final class AutomationDataExtractExecutor {
 			return parseXml(text);
 		}
 		throw new IllegalArgumentException("Input is not valid " + format.toUpperCase() + ".");
+	}
+
+	/**
+	 * Parses CSV text into a list of rows. With a header row, each row is a
+	 * LinkedHashMap keyed by column name; otherwise each row is a List of cell
+	 * values. Use value path "$" to return the full row list, for example as a
+	 * Loop node's items.
+	 */
+	private static List<Object> parseCsv(String text, boolean hasHeader) {
+		CsvParserSettings settings = new CsvParserSettings();
+		settings.setNullValue("");
+		settings.setEmptyValue("");
+		settings.setSkipEmptyLines(true);
+		settings.setMaxCharsPerColumn(-1);
+		CsvParser csvParser = new CsvParser(settings);
+		List<String[]> rawRows = csvParser.parseAll(new StringReader(text));
+		if (rawRows.isEmpty()) {
+			throw new IllegalArgumentException("Input is not valid CSV.");
+		}
+
+		List<Object> rows = new ArrayList<>();
+		if (hasHeader) {
+			String[] headers = rawRows.get(0);
+			for (int r = 1; r < rawRows.size(); r++) {
+				String[] cells = rawRows.get(r);
+				Map<String, Object> row = new LinkedHashMap<>();
+				for (int c = 0; c < headers.length; c++) {
+					row.put(headers[c], c < cells.length ? cells[c] : null);
+				}
+				rows.add(row);
+			}
+		} else {
+			for (String[] cells : rawRows) {
+				rows.add(new ArrayList<>(Arrays.asList(cells)));
+			}
+		}
+		return rows;
 	}
 
 	private static Object parseXml(String text) {

@@ -42,14 +42,18 @@ import static org.mockito.Mockito.verify;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.util.JdbcTestDatabase;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 class AutomationRunStoreUnitTests {
@@ -71,7 +75,8 @@ class AutomationRunStoreUnitTests {
 		db.execute(
 				"CREATE TABLE AUTOMATION_RUNS (RUN_ID VARCHAR PRIMARY KEY, PROJECT_ID VARCHAR, AUTOMATION_ID VARCHAR, DEFINITION_VERSION INT, DEFINITION_HASH VARCHAR, DEFINITION_SNAPSHOT CLOB, INPUT_SNAPSHOT CLOB, STATUS VARCHAR, TRIGGER_TYPE VARCHAR, STARTED_AT TIMESTAMP, LAST_HEARTBEAT TIMESTAMP, TOTAL_NODES INT, COMPLETED_NODES INT, CREATED_BY VARCHAR, CANCEL_REQUESTED BOOLEAN, RESULT_SUMMARY VARCHAR, COMPLETED_AT TIMESTAMP, FAILED_NODE_ID VARCHAR, ERROR_MESSAGE VARCHAR)",
 				"CREATE TABLE AUTOMATION_RUN_NODE_SOURCES (RUN_ID VARCHAR, NODE_ID VARCHAR, SOURCE_HASH VARCHAR, SOURCE_CODE CLOB)",
-				"CREATE TABLE AUTOMATION_NODE_OUTPUTS (RUN_ID VARCHAR, NODE_ID VARCHAR, NODE_LABEL VARCHAR, EXECUTION_ORDER INT, STATUS VARCHAR, ROOM_ID VARCHAR, WORKSPACE_ID VARCHAR, STARTED_AT TIMESTAMP, COMPLETED_AT TIMESTAMP, DURATION_MS BIGINT, OUTPUT_VAR_NAME VARCHAR, OUTPUT_KIND VARCHAR, OUTPUT_VALUE CLOB, OUTPUT_PREVIEW VARCHAR, MODEL_MESSAGE_ID VARCHAR, AGENT_RUN_ID VARCHAR, ERROR_MESSAGE VARCHAR)");
+				"CREATE TABLE AUTOMATION_NODE_OUTPUTS (RUN_ID VARCHAR, NODE_ID VARCHAR, NODE_LABEL VARCHAR, EXECUTION_ORDER INT, STATUS VARCHAR, ROOM_ID VARCHAR, WORKSPACE_ID VARCHAR, STARTED_AT TIMESTAMP, COMPLETED_AT TIMESTAMP, DURATION_MS BIGINT, OUTPUT_VAR_NAME VARCHAR, OUTPUT_KIND VARCHAR, OUTPUT_VALUE CLOB, OUTPUT_PREVIEW VARCHAR, MODEL_MESSAGE_ID VARCHAR, AGENT_RUN_ID VARCHAR, ERROR_MESSAGE VARCHAR)",
+				"CREATE TABLE AUTOMATION_RUN_VARIABLES (RUN_ID VARCHAR, NODE_ID VARCHAR, ITERATION_INDEX INT, VARIABLE_NAME VARCHAR, VARIABLE_VALUE VARCHAR)");
 	}
 
 	private void savedResultSchema(JdbcTestDatabase db) throws Exception {
@@ -266,12 +271,15 @@ class AutomationRunStoreUnitTests {
 			assertEquals("SUCCESS", db.value("SELECT STATUS FROM AUTOMATION_RUNS WHERE RUN_ID='brief'"));
 			db.execute("INSERT INTO AUTOMATION_RUN_WAITS (WAIT_ID, RUN_ID, NODE_ID, STATUS) "
 					+ "VALUES ('wait', 'brief', 'node', 'RESOLVED')",
+					"INSERT INTO AUTOMATION_RUN_VARIABLES (RUN_ID, NODE_ID, VARIABLE_NAME, VARIABLE_VALUE) "
+							+ "VALUES ('brief', 'node', 'trackingNumber', '4471')",
 					"INSERT INTO AUTOMATION_SAVED_RESULTS (RESULT_ID, RUN_ID) VALUES ('result', 'brief')",
 					"INSERT INTO AUTOMATION_RESULT_CHUNKS (RESULT_ID, CHUNK_INDEX) VALUES ('result', 0)");
 
 			assertEquals(1, AutomationRunStore.deleteRuns(scope, "brief"));
 
 			assertEquals(2, db.count("AUTOMATION_RUNS"));
+			assertEquals(0, db.count("AUTOMATION_RUN_VARIABLES"));
 			assertNull(db.value("SELECT RUN_ID FROM AUTOMATION_RUNS WHERE RUN_ID='brief'"));
 			assertNull(db.value("SELECT RUN_ID FROM AUTOMATION_RUN_NODE_SOURCES WHERE RUN_ID='brief'"));
 			assertNull(db.value("SELECT RUN_ID FROM AUTOMATION_NODE_OUTPUTS WHERE RUN_ID='brief'"));
@@ -334,6 +342,104 @@ class AutomationRunStoreUnitTests {
 			assertFalse(AutomationRunStore.hasAgentRunTrace(lookAlike, "brief", "node", "agent"));
 			assertEquals(1, AutomationRunStore.getRunsForProject(scope, 10).size());
 			assertTrue(AutomationRunStore.hasAgentRunTrace(scope, "brief", "node", "agent"));
+		}
+	}
+
+	@Test
+	void indexedVariablesAreStoredPerNodeAndIteration() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			schema(db);
+
+			AutomationRunStore.insertVariables("run", "loop", 7, Map.of("item.trackingNumber", "4471"));
+			AutomationRunStore.insertVariables("run", "trigger", null, Map.of("batch", "nightly"));
+			AutomationRunStore.insertVariables("run", "empty", null, Map.of());
+
+			assertEquals(2, db.count("AUTOMATION_RUN_VARIABLES"));
+			assertEquals("7", String.valueOf(db.value(
+					"SELECT ITERATION_INDEX FROM AUTOMATION_RUN_VARIABLES WHERE VARIABLE_VALUE='4471'")));
+			assertNull(db.value("SELECT ITERATION_INDEX FROM AUTOMATION_RUN_VARIABLES WHERE NODE_ID='trigger'"));
+		}
+	}
+
+	@Test
+	void variableSearchFiltersByNameValueAndProjectIsolation() throws Exception {
+		try (var db = new JdbcTestDatabase(); var queryExecution = mockStatic(QueryExecutionUtility.class)) {
+			List<SelectQueryStruct> queries = new ArrayList<>();
+			queryExecution
+					.when(() -> QueryExecutionUtility.flushRsToMap(eq(db.engine), any(SelectQueryStruct.class)))
+					.thenAnswer(invocation -> {
+						queries.add(invocation.getArgument(1));
+						return List.of(
+								new LinkedHashMap<>(Map.of(AutomationConstants.RUN_ID, "run",
+										AutomationConstants.PROJECT_ID, "project")),
+								new LinkedHashMap<>(Map.of(AutomationConstants.RUN_ID, "look-alike",
+										AutomationConstants.PROJECT_ID, "PROJECT")));
+					});
+
+			List<Map<String, Object>> matches = AutomationRunStore.findVariableMatches("project", "trackingNumber",
+					"4471", null, null);
+
+			assertEquals(1, matches.size());
+			assertEquals("run", matches.get(0).get(AutomationConstants.RUN_ID));
+			assertFalse(matches.get(0).containsKey(AutomationConstants.PROJECT_ID));
+			assertEquals(3, queries.get(0).getExplicitFilters().getFilters().size());
+			assertEquals(AutomationConstants.VARIABLE_SEARCH_MAX_MATCHES, queries.get(0).getLimit());
+		}
+	}
+
+	@Test
+	void runSearchRestrictedToNoRunsReturnsNothingWithoutQuerying() throws Exception {
+		try (var db = new JdbcTestDatabase(); var queryExecution = mockStatic(QueryExecutionUtility.class)) {
+			assertTrue(AutomationRunStore.searchRunsForProject("project", null, null, null, null, null, List.of(), 0,
+					10).isEmpty());
+			queryExecution.verifyNoInteractions();
+		}
+	}
+
+	@Test
+	void runSearchFiltersAndPagesOnlyAuthorizedRunSummaries() throws Exception {
+		try (var db = new JdbcTestDatabase(); var queryExecution = mockStatic(QueryExecutionUtility.class)) {
+			List<SelectQueryStruct> queries = new ArrayList<>();
+			queryExecution
+					.when(() -> QueryExecutionUtility.flushRsToMap(eq(db.engine), any(SelectQueryStruct.class)))
+					.thenAnswer(invocation -> {
+						queries.add(invocation.getArgument(1));
+						return switch (queries.size()) {
+						case 1 -> List.of(Map.of(AutomationConstants.RUN_ID, "manual-success",
+								AutomationConstants.PROJECT_ID, "project"));
+						case 2 -> List.of(Map.of(AutomationConstants.RUN_ID, "scheduled-failure",
+								AutomationConstants.PROJECT_ID, "project"));
+						default -> List.of(
+								Map.of(AutomationConstants.RUN_ID, "scheduled-failure",
+										AutomationConstants.PROJECT_ID, "project"),
+								Map.of(AutomationConstants.RUN_ID, "look-alike",
+										AutomationConstants.PROJECT_ID, "PROJECT"));
+						};
+					});
+
+			List<Map<String, Object>> firstPage = AutomationRunStore.searchRunsForProject("project", null, null, null,
+					null, null, 0, 1);
+			assertEquals(1, firstPage.size());
+			assertEquals("manual-success", firstPage.get(0).get(AutomationConstants.RUN_ID));
+			assertEquals("project", firstPage.get(0).get(AutomationConstants.PROJECT_ID));
+
+			List<Map<String, Object>> secondPage = AutomationRunStore.searchRunsForProject("project", null, null, null,
+					null, null, 1, 1);
+			assertEquals("scheduled-failure", secondPage.get(0).get(AutomationConstants.RUN_ID));
+
+			List<Map<String, Object>> failures = AutomationRunStore.searchRunsForProject("project", "smtp", "FAILED",
+					"SCHEDULED", java.time.Instant.parse("2026-10-14T07:00:00Z"),
+					java.time.Instant.parse("2026-10-14T08:30:00Z"), 0, 10);
+			assertEquals(1, failures.size());
+			assertEquals("scheduled-failure", failures.get(0).get(AutomationConstants.RUN_ID));
+
+			assertEquals(3, queries.size());
+			assertEquals(0, queries.get(0).getOffset());
+			assertEquals(1, queries.get(0).getLimit());
+			assertEquals(1, queries.get(1).getOffset());
+			assertEquals(1, queries.get(1).getLimit());
+			assertEquals(6, queries.get(2).getExplicitFilters().getFilters().size());
+			assertEquals(10, queries.get(2).getLimit());
 		}
 	}
 

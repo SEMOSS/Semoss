@@ -18,6 +18,8 @@ orchestrator.
 | `RunAutomationDefinition` | `json`, optional `nodeSources`, `inputs`, `triggerType` | Runs a validated inline definition under the caller's owner-scoped inline run ID. |
 | `GetAutomationRun` | optional `project`, `runId` | Returns authorized durable run state, node history, and bounded output details. |
 | `ListAutomationRuns` | optional `project`, optional `limit` | Returns authorized run history, newest first. |
+| `SearchAutomationRuns` | optional `project`, `search`, `status`, `triggerType`, `startDate`, `endDate`, `offset`, `limit`, `variableName`, `variableValue` | Pages authorized run summaries; `variableName`/`variableValue` find runs by an indexed variable such as a tracking number. |
+| `ListAutomationRunVariables` | optional `project`, `runId` | Lists the searchable variables a run set, with the node and loop iteration that set each. |
 | `CancelAutomationRun` | optional `project`, `runId` | Persists cancellation and signals the same-JVM fast path. |
 | `RemoveAutomationStep` | `project`, `nodeId`, optional `removeDownstream` | Removes the requested step and validates the resulting draft. |
 
@@ -66,6 +68,15 @@ references such as `${query_result[0].ID}` are resolved by
 `AutomationScopeResolver` while preserving the underlying Java value. The UI
 and durable history receive bounded presentation contracts, not raw tasks,
 engine objects, provider handles, Python variable names, or Insight internals.
+`data.transform` is a pure scope transform resolved directly by
+`AutomationDataTransformExecutor` - no Pixel call and no generated Python. It
+recursively resolves a configured field tree (nested objects/arrays, literals,
+and `${name.path}` references) into a brand-new JSON object built only from
+that tree; it never merges in any prior scope value. `data.declare-variable`
+builds its field tree the same way; besides its own `outputVar` entry, Java
+also spreads the declared names into scope as individually named variables -
+exactly like trigger globals - so later nodes can reference `${name}` directly
+instead of a dotted path into one output object.
 
 ## Node execution
 
@@ -93,6 +104,13 @@ table access. It is not the public node contract. Database results and supported
 Python frame results are captured into bounded, chunked table history with
 schema, row counts, byte counts, and checksums. Live consumers use the run
 Insight frame; reopened history uses the durable capture.
+
+`AUTOMATION_RUN_VARIABLES` indexes short scalar variables (trigger globals,
+declared variables, node output variables, and each loop item's fields as
+`item.<field>`) per node execution and loop iteration, so an operator can find a
+run from a business identifier. It holds no payloads: values are truncated,
+lists and frames are skipped, and indexing failures never fail a run. Run history
+does not snapshot the whole run scope after each node.
 
 Never infer a table/frame from user-controlled JSON fields. Persist the explicit
 output kind. Ordinary dictionaries that contain `dataType`, `rowCount`, or

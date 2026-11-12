@@ -61,6 +61,10 @@ public final class AutomationConstants {
 	public static final String TABLE_AUTOMATION_RUN_WAITS = "AUTOMATION_RUN_WAITS";
 	public static final String TABLE_AUTOMATION_SAVED_RESULTS = "AUTOMATION_SAVED_RESULTS";
 	public static final String TABLE_AUTOMATION_RESULT_CHUNKS = "AUTOMATION_RESULT_CHUNKS";
+	/** Searchable scalar variables a run set, one row per variable, node, and loop iteration. */
+	public static final String TABLE_AUTOMATION_RUN_VARIABLES = "AUTOMATION_RUN_VARIABLES";
+	public static final String VARIABLE_NAME = "VARIABLE_NAME";
+	public static final String VARIABLE_VALUE = "VARIABLE_VALUE";
 
 	// -- AUTOMATION_RUNS columns
 	// ---------------------------------------------------
@@ -212,6 +216,8 @@ public final class AutomationConstants {
 	public static final String NODE_FUNCTION_EXECUTE = "function.execute";
 	public static final String NODE_APP_PIXEL = "app.pixel";
 	public static final String NODE_AGENT_RUN = "agent.run";
+	public static final String NODE_DATA_TRANSFORM = "data.transform";
+	public static final String NODE_DATA_DECLARE_VARIABLE = "data.declare-variable";
 	public static final String NODE_CONTROL_WAIT = "control.wait";
 	public static final String NODE_CONTROL_IF = "control.if";
 	public static final String NODE_CONTROL_JEV = "control.jev";
@@ -247,6 +253,7 @@ public final class AutomationConstants {
 	public static final String CONFIG_GLOBALS = "globals";
 	public static final String CONFIG_DEFAULT_VALUE = "defaultValue";
 	public static final String CONFIG_SOURCE = "source";
+	public static final String CONFIG_FIELDS = "fields";
 	public static final String CONFIG_PATH = "path";
 	public static final String CONFIG_FORMAT = "format";
 	public static final String CONFIG_MISSING_VALUE = "missingValue";
@@ -303,6 +310,8 @@ public final class AutomationConstants {
 	/** How the ERROR_MESSAGE of an agent node cut off by its waitTimeoutMs ends. */
 	public static final String AGENT_WAIT_TIMEOUT_ERROR = " did not complete before the wait timeout.";
 	public static final String CONFIG_APP_ID = "appId";
+	public static final String CONFIG_CSV_HAS_HEADER = "csvHasHeader";
+	public static final String DATA_FORMAT_CSV = "csv";
 
 	// -- Node execution defaults / bounds
 	// --------------------------------------------
@@ -327,6 +336,16 @@ public final class AutomationConstants {
 	public static final int LOOP_MAX_BODY_NODES = 1_000;
 	/** Maximum materialized body-node rows created by one loop execution. */
 	public static final int LOOP_MAX_NODE_EXECUTIONS = 100_000;
+	/** Longest variable value retained for search; longer values are truncated, never rejected. */
+	public static final int VARIABLE_VALUE_MAX_LENGTH = 500;
+	/** Most variables indexed for one node execution. */
+	public static final int VARIABLES_PER_NODE_MAX = 25;
+	/** Deepest nested object level flattened into dotted variable names. */
+	public static final int VARIABLE_FLATTEN_MAX_DEPTH = 3;
+	/** Most variable matches one search reads before returning. */
+	public static final int VARIABLE_SEARCH_MAX_MATCHES = 1_000;
+	/** Most variable rows one run detail request lists. */
+	public static final int RUN_VARIABLE_LIST_MAX_ROWS = 5_000;
 	public static final int NODE_SOURCE_MAX_BYTES = 100_000;
 	public static final int NODE_OUTPUT_MAX_BYTES = 5 * 1024 * 1024;
 	public static final int RUN_INPUTS_MAX_BYTES = 5 * 1024 * 1024;
@@ -483,6 +502,8 @@ public final class AutomationConstants {
 	public static final String IDX_ARW_RUN = "IDX_ARW_RUN";
 	public static final String IDX_ARW_AGENT_RUN = "IDX_ARW_AGENT_RUN";
 	public static final String IDX_ASR_RUN = "IDX_ASR_RUN";
+	public static final String IDX_ARV_RUN = "IDX_ARV_RUN";
+	public static final String IDX_ARV_LOOKUP = "IDX_ARV_LOOKUP";
 	public static final String IDX_ASR_PROJECT_CREATED = "IDX_ASR_PROJECT_CREATED";
 
 	// -- Defaults

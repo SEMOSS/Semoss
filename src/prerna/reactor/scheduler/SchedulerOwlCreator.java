@@ -380,6 +380,13 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.CHECKSUM, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.CHUNK_VALUE, CLOB_DATATYPE)));
 
+		addTable(AutomationConstants.TABLE_AUTOMATION_RUN_VARIABLES, Arrays.asList(
+				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.NODE_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.ITERATION_INDEX, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.VARIABLE_NAME, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.VARIABLE_VALUE, AutomationConstants.VARCHAR_500)));
+
 		// @formatter:on 
 	}
 
@@ -432,6 +439,10 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				AutomationConstants.TABLE_AUTOMATION_SAVED_RESULTS,
 				AutomationConstants.TABLE_AUTOMATION_RESULT_CHUNKS + "." + AutomationConstants.RESULT_ID + "."
 						+ AutomationConstants.TABLE_AUTOMATION_SAVED_RESULTS + "." + AutomationConstants.RESULT_ID);
+		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_RUN_VARIABLES,
+				AutomationConstants.TABLE_AUTOMATION_RUNS,
+				AutomationConstants.TABLE_AUTOMATION_RUN_VARIABLES + "." + AutomationConstants.RUN_ID + "."
+						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
 	}
 
 }

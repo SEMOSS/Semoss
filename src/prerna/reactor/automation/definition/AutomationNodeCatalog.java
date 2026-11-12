@@ -153,13 +153,15 @@ public final class AutomationNodeCatalog {
 				"Delete a file from connected storage.", true, false));
 
 		definitions.add(definition(AutomationNodeType.DATA_EXTRACT, "Extract value",
-				"Read one value from JSON, XML, or a file in this run's workspace.",
+				"Read one value from JSON, XML, CSV, or a file in this run's workspace.",
 				orderedConfig(AutomationConstants.CONFIG_SOURCE, "", AutomationConstants.CONFIG_PATH, "",
 						AutomationConstants.CONFIG_FORMAT, "auto", AutomationConstants.CONFIG_MISSING_VALUE, null,
-						AutomationConstants.CONFIG_NULL_VALUE, null),
+						AutomationConstants.CONFIG_NULL_VALUE, null, AutomationConstants.CONFIG_CSV_HAS_HEADER, true),
 				List.of(field(AutomationConstants.CONFIG_SOURCE, ConfigFieldType.TEXT, "Data or file path", true, ""),
 						field(AutomationConstants.CONFIG_PATH, ConfigFieldType.STRING, "Value path", true, ""),
 						field(AutomationConstants.CONFIG_FORMAT, ConfigFieldType.STRING, "Data format", true, "auto"),
+						field(AutomationConstants.CONFIG_CSV_HAS_HEADER, ConfigFieldType.BOOLEAN,
+								"First row is headers", false, true),
 						field(AutomationConstants.CONFIG_MISSING_VALUE, ConfigFieldType.JSON,
 								"If the path is missing", false, null),
 						field(AutomationConstants.CONFIG_NULL_VALUE, ConfigFieldType.JSON, "If the value is null", false,
@@ -189,6 +191,21 @@ public final class AutomationNodeCatalog {
 								engineField(IEngine.CATALOG_TYPE.MODEL),
 								field("command", ConfigFieldType.TEXT, "Instruction", true, "")),
 						controlInputs(), controlAndResultOutputs()));
+
+		definitions.add(definition(AutomationNodeType.DATA_TRANSFORM, "Transform",
+				"Build a JSON object from field name/value pairs — no Python required.",
+				orderedConfig("fields", List.of()),
+				List.of(field("fields", ConfigFieldType.JSON, "Fields", true, List.of())),
+				List.of(outputField("result", OutputFieldType.OBJECT, "Result",
+						"JSON object built from the configured fields.", true)),
+				controlInputs(), controlAndResultOutputs()));
+		definitions.add(definition(AutomationNodeType.DATA_DECLARE_VARIABLE, "Declare variable",
+				"Declare one or more named variables so later steps can reference each one directly with ${name}.",
+				orderedConfig("fields", List.of()),
+				List.of(field("fields", ConfigFieldType.JSON, "Variables", true, List.of())),
+				List.of(outputField("result", OutputFieldType.OBJECT, "Result",
+						"JSON object of the declared variables.", true)),
+				controlInputs(), controlAndResultOutputs()));
 
 		definitions.add(definition(AutomationNodeType.CONTROL_WAIT, "Wait", "Pause the automation before continuing.",
 				Map.of("durationSeconds", 5),
