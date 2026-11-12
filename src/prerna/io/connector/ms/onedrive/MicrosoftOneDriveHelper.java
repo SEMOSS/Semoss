@@ -37,9 +37,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -167,6 +172,12 @@ public class MicrosoftOneDriveHelper {
 
 	/** How many items one page of a listing asks Graph for. */
 	private static final int PAGE_SIZE = 200;
+
+	/**
+	 * How many changes of a drive are read when looking for its recently changed
+	 * files.
+	 */
+	private static final int MAX_RECENT_CHANGES = 2000;
 
 	/** How many hits the search index is asked for when nothing says otherwise. */
 	private static final int DEFAULT_SEARCH_SIZE = 50;
@@ -381,6 +392,82 @@ public class MicrosoftOneDriveHelper {
 			return new ArrayList<>(shared.subList(0, limit));
 		}
 		return shared;
+	}
+
+	/**
+	 * Lists the files changed in the signed in user's own OneDrive since a moment,
+	 * the most recently changed first.
+	 *
+	 * <p>
+	 * Graph's own list of recent files, {@code /me/drive/recent}, is deprecated and
+	 * documented to stop returning data in November 2026. What is read instead is
+	 * the drive's change feed from a timestamp, which Graph takes in place of a
+	 * delta token on OneDrive for Business and SharePoint only, so a personal
+	 * Microsoft account is refused here. The feed is not behind a search index, so
+	 * a file saved a moment ago is already in it.
+	 * </p>
+	 *
+	 * <p>
+	 * The feed also reports folders, deletions, and files whose sharing or place
+	 * changed while their contents did not. None of those is a changed file, so
+	 * only files last modified since the moment are kept.
+	 * </p>
+	 *
+	 * @param accessToken Microsoft Graph access token for the user
+	 * @param since       the moment changes are read from
+	 * @param limit       maximum number of files to return; values less than or
+	 *                    equal to 0 return every file found
+	 * @return the files, each carrying the drive and item ids that address it
+	 * @throws Exception if the read fails
+	 */
+	public static List<Map<String, Object>> listRecentFiles(String accessToken, Instant since, int limit)
+			throws Exception {
+		try {
+			String url = GRAPH_BASE + "/me/drive/root/delta?token="
+					+ encodePathSegment(since.truncatedTo(ChronoUnit.SECONDS).toString()) + "&$top=" + PAGE_SIZE;
+			// shortcut: the owner's own drive only, so a file changed in a SharePoint
+			// library or a Teams channel is missed; add the search index, sorted by last
+			// modified, when those are asked for
+			// shortcut: at most MAX_RECENT_CHANGES changes are read and the feed is not
+			// documented to lead with the newest, so a drive busier than that inside the
+			// window can miss its latest files; keep the delta link per user and read on
+			// from it when that shows
+			Map<String, Map<String, Object>> files = new LinkedHashMap<>();
+			for (Map<String, Object> item : getPagedValues(accessToken, url, MAX_RECENT_CHANGES)) {
+				String id = MicrosoftOneDriveItemMapper.itemIdOf(item);
+				if (id == null) {
+					continue;
+				}
+				// an item can be reported more than once, and the last report is the one
+				// that holds
+				files.remove(id);
+				if (item.get("deleted") != null || !(item.get("file") instanceof Map)) {
+					continue;
+				}
+				Map<String, Object> described = MicrosoftOneDriveItemMapper.toDriveItem(item, null);
+				String name = String.valueOf(described.get(NAME)).toLowerCase(Locale.ROOT);
+				// OneNote keeps a notebook as section files, where OneDrive itself shows
+				// only the notebook
+				if (name.endsWith(".one") || name.endsWith(".onetoc2")) {
+					continue;
+				}
+				Instant modified = instantOf(described.get(LAST_MODIFIED));
+				if (modified != null && !modified.isBefore(since)) {
+					files.put(id, described);
+				}
+			}
+
+			List<Map<String, Object>> recent = new ArrayList<>(files.values());
+			recent.sort(Comparator.comparing((Map<String, Object> file) -> instantOf(file.get(LAST_MODIFIED)))
+					.reversed());
+			if (limit > 0 && recent.size() > limit) {
+				return new ArrayList<>(recent.subList(0, limit));
+			}
+			return recent;
+		} catch (Exception e) {
+			classLogger.error("Failed to list the files changed in the signed in user's OneDrive since {}.", since, e);
+			throw e;
+		}
 	}
 
 	/**
@@ -1453,6 +1540,22 @@ public class MicrosoftOneDriveHelper {
 			return "";
 		}
 		return " (last changed" + (when == null ? "" : " " + when) + (who == null ? "" : " by " + who) + ")";
+	}
+
+	/**
+	 * @param value a date and time as Graph writes it
+	 * @return the moment, or null when there is none or it cannot be read
+	 */
+	private static Instant instantOf(Object value) {
+		String text = ValueUtils.toNonBlankString(value);
+		if (text == null) {
+			return null;
+		}
+		try {
+			return OffsetDateTime.parse(text).toInstant();
+		} catch (DateTimeParseException e) {
+			return null;
+		}
 	}
 
 	/**
