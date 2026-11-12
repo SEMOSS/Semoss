@@ -39,7 +39,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
-import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.MalformedURLException;
@@ -1213,29 +1212,10 @@ public final class Utility {
 	public static Object getClassFromString(String className) {
 		Object obj = null;
 		try {
-			classLogger.debug("Dataframe name is {}", Utility.cleanLogString(className));
+			classLogger.debug("Instantiating class {}", Utility.cleanLogString(className));
 			obj = Class.forName(className).getDeclaredConstructor().newInstance();
-		} catch (ClassNotFoundException cnfe) {
-			classLogger.error("Failed to instantiate class from name: {}", cnfe.getMessage(), cnfe);
-			classLogger.fatal("No such class: " + Utility.cleanLogString(className));
-		} catch (InstantiationException ie) {
-			classLogger.error("Failed to instantiate class from name: {}", ie.getMessage(), ie);
-			classLogger.fatal("Failed instantiation: " + Utility.cleanLogString(className));
-		} catch (IllegalAccessException iae) {
-			classLogger.error("Failed to instantiate class from name: {}", iae.getMessage(), iae);
-			classLogger.fatal("Illegal Access: " + Utility.cleanLogString(className));
-		} catch (IllegalArgumentException iare) {
-			classLogger.error("Failed to instantiate class from name: {}", iare.getMessage(), iare);
-			classLogger.fatal("Illegal argument: " + Utility.cleanLogString(className));
-		} catch (InvocationTargetException ite) {
-			classLogger.error("Failed to instantiate class from name: {}", ite.getMessage(), ite);
-			classLogger.fatal("Invocation exception: " + Utility.cleanLogString(className));
-		} catch (NoSuchMethodException nsme) {
-			classLogger.error("Failed to instantiate class from name: {}", nsme.getMessage(), nsme);
-			classLogger.fatal("No constructor: " + Utility.cleanLogString(className));
-		} catch (SecurityException se) {
-			classLogger.error("Failed to instantiate class from name: {}", se.getMessage(), se);
-			classLogger.fatal("Security exception: " + Utility.cleanLogString(className));
+		} catch (ReflectiveOperationException | IllegalArgumentException | SecurityException e) {
+			classLogger.error("Failed to instantiate class {}", Utility.cleanLogString(className), e);
 		}
 		return obj;
 	}
@@ -4324,73 +4304,38 @@ public final class Utility {
 		}
 	}
 
-	public static String getCP(String specificJars, String insightFolder) {
-		StringBuffer envClassPath = new StringBuffer();
-		String osName = System.getProperty("os.name").toLowerCase();
-		boolean win = osName.indexOf("win") >= 0;
+	/**
+	 * Builds the classpath for a spawned Java worker: the insight folder, the
+	 * webapp's {@code WEB-INF/lib/*} and each class folder on the webapp class
+	 * loader, such as {@code WEB-INF/classes}.
+	 *
+	 * @param insightFolder the worker's working directory, placed first on the
+	 *                      classpath
+	 * @return the classpath in double quotes, joined with the platform path
+	 *         separator
+	 */
+	public static String getCP(String insightFolder) {
+		boolean win = System.getProperty("os.name").toLowerCase().contains("win");
+		List<String> entries = new ArrayList<>();
+		entries.add(insightFolder);
 
-		try {
-			StringBuffer retClassPath = new StringBuffer("");
-			Class utilClass = Class.forName("prerna.util.Utility");
-			ClassLoader cl = utilClass.getClassLoader();
-
-			URL[] urls = ((URLClassLoader) cl).getURLs();
-
-			String webinfLib = null;
-			boolean webinfTagged = false;
-
-			for (URL url : urls) {
-				String jarName = Paths.get(url.getPath()).getFileName().toString();
-				String thisURL = URLDecoder.decode(url.getFile().replaceFirst("/", ""), StandardCharsets.UTF_8);
-
-				String separator = ";";
-				if (!win) {
-					thisURL = "/" + thisURL;
-					separator = ":";
-				}
-
-				if (thisURL.endsWith(".jar") && thisURL.contains("WEB-INF/lib") && webinfLib == null) {
-					String thisJarName = getInstanceName(thisURL);
-					thisURL = thisURL.replace("/" + thisJarName, "");
-					webinfLib = thisURL + "/*";
-					if (!webinfTagged) {
-						retClassPath.append(webinfLib).append(separator);
-						webinfTagged = true;
-					}
-
-				}
-
-				// add the folder
-				else if (!thisURL.endsWith(".jar") && specificJars.contains(jarName)
-						&& !thisURL.contains("WEB-INF/lib")) {
-					if (thisURL.endsWith("/")) {
-						thisURL = thisURL.substring(0, thisURL.length() - 1);
-					}
-					retClassPath.append(thisURL).append(separator);
-				}
-				// address the issue when you are running outside of semoss
-				else if (thisURL.endsWith(".jar") && specificJars.contains(jarName)
-						&& !thisURL.contains("WEB-INF/lib")) {
-					if (thisURL.endsWith("/")) {
-						thisURL = thisURL.substring(0, thisURL.length() - 1);
-					}
-					retClassPath.append(thisURL).append(separator);
-				}
-
-			}
-			// remove the last one
-			String cp = retClassPath.toString();
-			String curPath = insightFolder + ";";
+		boolean webinfLibAdded = false;
+		URL[] urls = ((URLClassLoader) Utility.class.getClassLoader()).getURLs();
+		for (URL url : urls) {
+			String path = URLDecoder.decode(url.getFile().replaceFirst("/", ""), StandardCharsets.UTF_8);
 			if (!win) {
-				curPath = insightFolder + ":";
+				path = "/" + path;
 			}
-
-			envClassPath = new StringBuffer("\"" + curPath + cp.substring(0, cp.length() - 1) + "\"");
-		} catch (ClassNotFoundException cnfe) {
-			classLogger.error("Failed to build runtime classpath: {}", cnfe.getMessage(), cnfe);
+			if (path.endsWith(".jar")) {
+				if (!webinfLibAdded && path.contains("WEB-INF/lib")) {
+					entries.add(path.substring(0, path.lastIndexOf('/')) + "/*");
+					webinfLibAdded = true;
+				}
+			} else if (!path.contains("WEB-INF/lib")) {
+				entries.add(path.endsWith("/") ? path.substring(0, path.length() - 1) : path);
+			}
 		}
-
-		return envClassPath.toString();
+		return "\"" + String.join(win ? ";" : ":", entries) + "\"";
 	}
 
 	private static boolean fileInRelativeHiddenDirectory(Path file, Path folder) {
@@ -4824,8 +4769,9 @@ public final class Utility {
 	}
 
 	/**
-	 * Determine if the web search platform MCP is enabled. It needs a SearXNG service
-	 * that not every instance runs, so it stays off unless RDF_Map turns it on.
+	 * Determine if the web search platform MCP is enabled. It needs a SearXNG
+	 * service that not every instance runs, so it stays off unless RDF_Map turns it
+	 * on.
 	 *
 	 * @return
 	 */

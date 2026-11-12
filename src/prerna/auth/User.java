@@ -93,13 +93,13 @@ public class User implements Serializable {
 
 	// python related stuff
 	private transient ClientProcessWrapper pythonCPW = new ClientProcessWrapper();
-	private transient Process pyProcess = null;
 
 	// node.js agent execution environment - lazily spawned, agent-tool only
 	private transient ClientProcessWrapper nodeCPW = new ClientProcessWrapper();
 
+	private transient ClientProcessWrapper javaCPW = new ClientProcessWrapper();
+
 	// r
-	private transient ClientProcessWrapper rCPW = new ClientProcessWrapper();
 	private transient Process rProcess = null;
 
 	private String chrootPath = null;
@@ -228,8 +228,8 @@ public class User implements Serializable {
 	}
 
 	/**
-	 * Returns whether another user is the same person as this one: the same
-	 * object, or a user who shares a login with the same id and login type.
+	 * Returns whether another user is the same person as this one: the same object,
+	 * or a user who shares a login with the same id and login type.
 	 *
 	 * @param other the user to compare with, or null
 	 * @return true when both are the same person
@@ -524,9 +524,6 @@ public class User implements Serializable {
 			}
 		}
 
-		// invalidate the serialization map
-		this.insightSerializedMap.clear();
-
 		return this.pythonCPW.getSocketClient();
 	}
 
@@ -566,22 +563,19 @@ public class User implements Serializable {
 	}
 
 	/**
-	 * 
-	 * @param port
-	 * @param venvEngineId
+	 * Starts this user's native Python server process and connects its socket
+	 * client. The process runs inside the user's chroot when chroot is enabled.
+	 *
+	 * @param port         the port to connect on; negative to auto-allocate, or to
+	 *                     use FORCE_PORT when it is set
+	 * @param venvEngineId the virtual environment engine whose Python executable to
+	 *                     use, or null for the base Python
 	 */
 	public void startPythonSocketServerAndClient(int port, String venvEngineId) {
 		if (this.pythonCPW == null) {
 			this.pythonCPW = new ClientProcessWrapper();
 		}
 		if (this.pythonCPW.getSocketClient() == null || !this.pythonCPW.getSocketClient().isConnected()) {
-			boolean nativePyServer = false;
-			// defined in rdf map
-			String nativePyServerStr = Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER);
-			if (nativePyServerStr != null && !(nativePyServerStr = nativePyServerStr.trim()).isEmpty()) {
-				nativePyServer = Boolean.parseBoolean(nativePyServerStr);
-			}
-
 			boolean debug = false;
 			if (port < 0) {
 				String forcePort = Utility.getDIHelperProperty(Settings.FORCE_PORT);
@@ -602,11 +596,6 @@ public class User implements Serializable {
 				loggerLevel = "WARNING";
 			}
 
-			String customClassPath = Utility.getDIHelperProperty("TCP_WORKER_CP");
-			if (customClassPath == null) {
-				classLogger.info("No custom class path set");
-			}
-
 			String serverDirectory = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 			Path serverDirectoryPath = null;
 
@@ -618,8 +607,8 @@ public class User implements Serializable {
 				// we do not define the Server Directory here - because it will dynamically
 				// generate in the chroot location
 				try {
-					this.pythonCPW.createProcessAndClient(nativePyServer, this.symlinkHelper, port, null, null,
-							customClassPath, debug, "-1", loggerLevel, ThreadContext.getImmutableContext());
+					this.pythonCPW.createProcessAndClient(true, this.symlinkHelper, port, null, null, debug, "-1",
+							loggerLevel, ThreadContext.getImmutableContext());
 				} catch (Exception e) {
 					classLogger.error("Failed to start chrooted python process for user {}",
 							User.getSingleLogginName(this), e);
@@ -638,9 +627,8 @@ public class User implements Serializable {
 				try {
 					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable()
 							: null;
-					this.pythonCPW.createProcessAndClient(nativePyServer, null, port, venvPath,
-							serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel,
-							ThreadContext.getImmutableContext());
+					this.pythonCPW.createProcessAndClient(true, null, port, venvPath, serverDirectoryPath.toString(),
+							debug, "-1", loggerLevel, ThreadContext.getImmutableContext());
 				} catch (Exception e) {
 					classLogger.error("Failed to start non-chroot python process for user {}",
 							User.getSingleLogginName(this), e);
@@ -731,20 +719,119 @@ public class User implements Serializable {
 		}
 	}
 
+	/**
+	 * Returns the wrapper for this user's Java worker process, which runs R over
+	 * TCP and the custom reactors set to execute on the socket.
+	 *
+	 * @return the Java worker process wrapper
+	 */
+	public ClientProcessWrapper getJavaClientProcessWrapper() {
+		return this.javaCPW;
+	}
+
+	/**
+	 * Returns the socket client for this user's Java worker process, which runs R
+	 * over TCP and the custom reactors set to execute on the socket.
+	 *
+	 * @param create true to start the worker, or reconnect to it, when it is not
+	 *               connected
+	 * @return the socket client, or null when create is false and no worker exists
+	 */
+	public SocketClient getJavaSocketClient(boolean create) {
+		if (!create) {
+			if (this.javaCPW == null) {
+				return null;
+			}
+			return this.javaCPW.getSocketClient();
+		}
+		if (this.javaCPW == null || this.javaCPW.getSocketClient() == null) {
+			startJavaSocketServerAndClient(-1);
+			this.javaCPW.getSocketClient().setUser(this);
+		} else if (!this.javaCPW.getSocketClient().isConnected()) {
+			this.javaCPW.shutdown(false);
+			try {
+				this.javaCPW.reconnect();
+			} catch (Exception e) {
+				classLogger.error("Failed to reconnect to user Java worker", e);
+				throw new IllegalArgumentException("Failed to connect to your isolated Java worker");
+			}
+		}
+
+		this.insightSerializedMap.clear();
+
+		return this.javaCPW.getSocketClient();
+	}
+
+	/**
+	 * Starts this user's Java worker process and connects its socket client. The
+	 * worker runs inside the user's chroot when chroot is enabled.
+	 *
+	 * @param port the port to connect on; negative to auto-allocate, or to attach
+	 *             to JAVA_FORCE_PORT when it is set
+	 */
+	public void startJavaSocketServerAndClient(int port) {
+		if (this.javaCPW == null) {
+			this.javaCPW = new ClientProcessWrapper();
+		}
+		if (this.javaCPW.getSocketClient() == null || !this.javaCPW.getSocketClient().isConnected()) {
+			boolean debug = false;
+			if (port < 0) {
+				String forcePort = Utility.getDIHelperProperty(Settings.JAVA_FORCE_PORT);
+				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+					try {
+						port = Integer.parseInt(forcePort);
+						debug = true;
+					} catch (NumberFormatException e) {
+						classLogger.warn("User {} has an invalid JAVA_FORCE_PORT value",
+								User.getSingleLogginName(this));
+					}
+				}
+			}
+
+			String loggerLevel = Utility.getDIHelperProperty(Settings.LOGGER_LEVEL);
+			if (loggerLevel == null || (loggerLevel = loggerLevel.trim()).isEmpty()) {
+				loggerLevel = "WARNING";
+			}
+
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+				this.symlinkHelper = getUserSymlinkHelper();
+				try {
+					this.javaCPW.createProcessAndClient(false, this.symlinkHelper, port, null, null, debug, "-1",
+							loggerLevel, ThreadContext.getImmutableContext());
+				} catch (Exception e) {
+					classLogger.error("Failed to start chrooted Java worker for user {}",
+							User.getSingleLogginName(this), e);
+					throw new IllegalArgumentException("Unable to connect to the Java worker");
+				}
+			} else {
+				String serverDirectory = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
+				Path serverDirectoryPath = null;
+				try {
+					serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "j");
+				} catch (IOException e) {
+					classLogger.error("Failed to create temp directory for the Java worker under {}", serverDirectory,
+							e);
+					throw new IllegalArgumentException("Could not create directory to launch the Java worker");
+				}
+
+				classLogger.info("Starting Java worker for User = {}", User.getSingleLogginName(this));
+				try {
+					this.javaCPW.createProcessAndClient(false, null, port, null, serverDirectoryPath.toString(), debug,
+							"-1", loggerLevel, ThreadContext.getImmutableContext());
+				} catch (Exception e) {
+					classLogger.error("Failed to start Java worker for user {}", User.getSingleLogginName(this), e);
+					throw new IllegalArgumentException("Unable to connect to the Java worker");
+				}
+			}
+		}
+	}
+
 	public Process getrProcess() {
 		return rProcess;
 	}
 
 	public void setrProcess(Process rProcess) {
 		this.rProcess = rProcess;
-	}
-
-	public Process getPyProcess() {
-		return pyProcess;
-	}
-
-	public void setPyProcess(Process pyProcess) {
-		this.pyProcess = pyProcess;
 	}
 
 	public int getrPort() {
@@ -1018,8 +1105,8 @@ public class User implements Serializable {
 
 	/**
 	 * Returns the id of the user's primary login, or an empty string when there is
-	 * no user or no login left, as for a user who has just logged out of their
-	 * last login.
+	 * no user or no login left, as for a user who has just logged out of their last
+	 * login.
 	 *
 	 * @param semossUser the user, or null
 	 * @return the primary login's id, or an empty string

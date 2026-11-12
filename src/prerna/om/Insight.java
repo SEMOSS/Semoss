@@ -1538,7 +1538,7 @@ public class Insight implements Serializable {
 				// do this so that the netty client is initialized
 				// getPyTranslator();
 				// now set the netty client
-				((TCPRTranslator) this.rJavaTranslator).setClient(this.user.getPythonSocketClient(true));
+				((TCPRTranslator) this.rJavaTranslator).setClient(this.user.getJavaSocketClient(true));
 				this.rJavaTranslator.setInsight(this);
 				this.rJavaTranslator.startR();
 			}

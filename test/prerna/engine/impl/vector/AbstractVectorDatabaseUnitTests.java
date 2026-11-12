@@ -88,9 +88,9 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private AbstractVectorDatabaseEngine engine;
 	private IModelEngine modelEmbedder;
-	
+
 	private class VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
-		
+
 		@Override
 		public VectorDatabaseTypeEnum getVectorDatabaseType() {
 			// TODO Auto-generated method stub
@@ -98,7 +98,8 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		}
 
 		@Override
-		public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+		public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight,
+				Map<String, Object> parameters) throws Exception {
 			// TODO Auto-generated method stub
 			return null;
 		}
@@ -106,7 +107,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		@Override
 		public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws Exception {
 			// TODO Auto-generated method stub
-			
+
 		}
 
 		@Override
@@ -134,7 +135,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			return null;
 		}
 	}
-	
+
 	@BeforeEach
 	void setUp() throws IOException {
 		FileUtils.cleanDirectory(tempDir.toFile());
@@ -145,7 +146,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		insight = mock(Insight.class);
 		modelEmbedder = mock(IModelEngine.class);
 	}
-	
+
 	@Test
 	void testOpenWithFile() throws Exception {
 		Properties testProps = new Properties();
@@ -186,17 +187,17 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());
 				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineAssetFolder.toString());
-				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR,
+						engineNameAndId)).thenReturn(engineVersionFolder.toString());
 
-				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-						.thenReturn(engineAssetFolder.toString());
-				
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+						testEngineAlias)).thenReturn(engineAssetFolder.toString());
+
 				engine.open(propsFilePath.toString());
 				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
@@ -207,7 +208,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			}
 		}
 	}
-	
+
 	@Test
 	void testOpenWithProperties() throws Exception {
 		Properties testProps = new Properties();
@@ -235,17 +236,17 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());
 				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineAssetFolder.toString());
-				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR,
+						engineNameAndId)).thenReturn(engineVersionFolder.toString());
 
-				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-						.thenReturn(engineAssetFolder.toString());
-				
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+						testEngineAlias)).thenReturn(engineAssetFolder.toString());
+
 				engine.open(testProps);
 				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
@@ -256,7 +257,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			}
 		}
 	}
-	
+
 	@Test
 	void testOpenInvalidChunkUnit() throws Exception {
 		Properties testProps = new Properties();
@@ -284,25 +285,23 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());
 				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineAssetFolder.toString());
-				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR,
+						engineNameAndId)).thenReturn(engineVersionFolder.toString());
 
-				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-						.thenReturn(engineAssetFolder.toString());
-				
-				IllegalArgumentException e = assertThrows(
-						IllegalArgumentException.class,
-						()->engine.open(testProps));
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+						testEngineAlias)).thenReturn(engineAssetFolder.toString());
+
+				IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> engine.open(testProps));
 				assertEquals("DEFAULT_CHUNK_UNIT should be either 'tokens' or 'characters'", e.getMessage());
 			}
 		}
 	}
-	
+
 	@Test
 	void testAddDocument() throws Exception {
 		String testEngine = "asdf-1234";
@@ -314,14 +313,15 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 		openEngine(tempDir, engine, extraProps); // set initial properties
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
-		
+
 		String indexClass = "index_class";
-		
+
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
 		parameters.put(Constants.INSIGHT, insight);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine)); 
+
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER)
+				.resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
 		Path schemaDir = engineFolder.resolve("assets").resolve("schema");
 		Path indexDirPath = schemaDir.resolve(indexClass);
 		Files.createDirectories(indexDirPath);
@@ -344,15 +344,15 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		List<String> fileNames = new Vector<>();
 		fileNames.add(file1.toString());
 		fileNames.add(file2.toString());
-		
+
 		SocketClient scMock = mock(SocketClient.class); // used in addDocument()->checkSocketStatus()->startServer()
 		when(scMock.isConnected()).thenReturn(true);
 		try (MockedConstruction<ClientProcessWrapper> mockWrapper = Mockito// used in
 																			// addDocument()->checkSocketStatus()->startServer()
 				.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
 					doNothing().when(mock).createProcessAndClient(any(boolean.class), nullable(SymlinkHelper.class),
-							any(int.class), nullable(String.class), nullable(String.class), nullable(String.class),
-							any(boolean.class), any(String.class), any(String.class));
+							any(int.class), nullable(String.class), nullable(String.class), any(boolean.class),
+							any(String.class), any(String.class));
 					doNothing().when(mock).shutdown(false);
 					when(mock.getSocketClient()).thenReturn(scMock);
 
@@ -360,7 +360,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
 																										// addDocument()->checkSocketStatus()->startServer()
 						(mock, context) -> {
-							//doNothing().when(mock).setSocketClient(scMock);
+							// doNothing().when(mock).setSocketClient(scMock);
 							doNothing().when(mock).runEmptyPy(any());
 							when(mock.runScript(any())).thenReturn("true");
 						});
@@ -393,7 +393,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			}
 		}
 	}
-	
+
 	@Test
 	void testAddDocumentNoInsight() throws Exception {
 		String testEngine = "asdf-1234";
@@ -405,13 +405,14 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 		openEngine(tempDir, engine, extraProps); // set initial properties
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
-		
+
 		String indexClass = "index_class";
-		
+
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine)); 
+
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER)
+				.resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
 		Path schemaDir = engineFolder.resolve("schema");
 		Path indexDirPath = schemaDir.resolve(indexClass);
 		Files.createDirectories(indexDirPath);
@@ -434,15 +435,15 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		List<String> fileNames = new Vector<>();
 		fileNames.add(file1.toString());
 		fileNames.add(file2.toString());
-		
+
 		SocketClient scMock = mock(SocketClient.class); // used in addDocument()->checkSocketStatus()->startServer()
 		when(scMock.isConnected()).thenReturn(true);
 		try (MockedConstruction<ClientProcessWrapper> mockWrapper = Mockito// used in
 																			// addDocument()->checkSocketStatus()->startServer()
 				.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
 					doNothing().when(mock).createProcessAndClient(any(boolean.class), nullable(SymlinkHelper.class),
-							any(int.class), nullable(String.class), nullable(String.class), nullable(String.class),
-							any(boolean.class), any(String.class), any(String.class));
+							any(int.class), nullable(String.class), nullable(String.class), any(boolean.class),
+							any(String.class), any(String.class));
 					doNothing().when(mock).shutdown(false);
 					when(mock.getSocketClient()).thenReturn(scMock);
 
@@ -450,7 +451,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
 																										// addDocument()->checkSocketStatus()->startServer()
 						(mock, context) -> {
-							//doNothing().when(mock).setSocketClient(scMock);
+							// doNothing().when(mock).setSocketClient(scMock);
 							doNothing().when(mock).runEmptyPy(any());
 							when(mock.runScript(any())).thenReturn("true");
 						});
@@ -473,14 +474,13 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 				when(mockConn.prepareStatement(any())).thenReturn(psMock);
 				when(psMock.executeBatch()).thenReturn(new int[0]);
 
-				IllegalArgumentException e = assertThrows(
-						IllegalArgumentException.class,
-						()->engine.addDocument(fileNames, parameters));
+				IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+						() -> engine.addDocument(fileNames, parameters));
 				assertEquals("Insight must be provided to run Model Engine Encoder", e.getMessage());
 			}
 		}
 	}
-	
+
 	@Test
 	void testCleanUpDocument() throws Exception {
 		// we need to create a file in the "insight" folder
@@ -499,51 +499,54 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 	void testGetIndexFilePath() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
-	    String indexClass = "index_class";
-		
-	    openEngine(tempDir, engine, null);
-	    Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
- 		Path schemaDir = engineFolder.resolve("assets").resolve("schema");
- 		String indexDir = schemaDir.resolve(indexClass).resolve("indexed_files").toString();
-	    
-	    engine.addIndexClass(indexClass);
-	    assertEquals(Utility.normalizePath(indexDir), engine.getIndexFilesPath(indexClass)); 
+		String indexClass = "index_class";
+
+		openEngine(tempDir, engine, null);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER)
+				.resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path schemaDir = engineFolder.resolve("assets").resolve("schema");
+		String indexDir = schemaDir.resolve(indexClass).resolve("indexed_files").toString();
+
+		engine.addIndexClass(indexClass);
+		assertEquals(Utility.normalizePath(indexDir), engine.getIndexFilesPath(indexClass));
 	}
-	
+
 	@Test
 	void testGetIndexFilePathInvalidFile() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
-	    String indexClass = "index_class";
-		
-	    openEngine(tempDir, engine, null);
-	    Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-	    Path schemaDir = engineFolder.resolve("schema"); 		
- 		String indexDir = schemaDir.resolve(indexClass).resolve("indexed_files").toString();
-	    
- 		IllegalArgumentException e = assertThrows(
- 				IllegalArgumentException.class, 
- 				()->engine.getIndexFilesPath(indexClass));
- 		assertEquals("Unable to retieve document csv from a directory that does not exist", e.getMessage());
+		String indexClass = "index_class";
+
+		openEngine(tempDir, engine, null);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER)
+				.resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path schemaDir = engineFolder.resolve("schema");
+		String indexDir = schemaDir.resolve(indexClass).resolve("indexed_files").toString();
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> engine.getIndexFilesPath(indexClass));
+		assertEquals("Unable to retieve document csv from a directory that does not exist", e.getMessage());
 	}
-	
+
 	@Test
 	void testGetDocumentsFilesPath() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
-	    String indexClass = "index_class";
-		
-	    openEngine(tempDir, engine, null);
-		
-	 // run this part first to create an index class in the schema directory
-	    Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-	    Path schemaDir = engineFolder.resolve("assets").resolve("schema");
- 		String docDir = schemaDir.resolve(indexClass).resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME).toString();
- 		
-	    engine.addIndexClass(indexClass);
-	    assertEquals(Utility.normalizePath(docDir), engine.getDocumentsFilesPath(indexClass));
+		String indexClass = "index_class";
+
+		openEngine(tempDir, engine, null);
+
+		// run this part first to create an index class in the schema directory
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER)
+				.resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path schemaDir = engineFolder.resolve("assets").resolve("schema");
+		String docDir = schemaDir.resolve(indexClass).resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME)
+				.toString();
+
+		engine.addIndexClass(indexClass);
+		assertEquals(Utility.normalizePath(docDir), engine.getDocumentsFilesPath(indexClass));
 	}
-	
+
 	@Test
 	void testGetDocumentsFilesPathInvalidDir() throws Exception {
 		String nonExistantClass = "doesNotExist";
@@ -552,7 +555,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 				() -> engine.getDocumentsFilesPath(nonExistantClass));
 		assertEquals("Unable to retieve document csv from a directory that does not exist", e.getMessage());
 	}
-	
+
 	@Test
 	void testVerifyModelProps() throws Exception {
 		String testEmbedderId = "123-456-789";
@@ -577,7 +580,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			assertEquals("", engineProps.get(Constants.KEYWORD_ENGINE_ID));
 		}
 	}
-	
+
 	@Test
 	void testVerifyModelPropsNoEmbedderEngineId() throws Exception {
 		String testEmbedderId = "123-456-789";
@@ -593,13 +596,13 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			embedderProps.setProperty(Constants.MODEL, embedderModel);
 			embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
 			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
-			IllegalArgumentException e = assertThrows(
-					IllegalArgumentException.class,
-					()->engine.verifyModelProps());
-			assertEquals("Must define the embedder engine id for this vector database using " + Constants.EMBEDDER_ENGINE_ID, e.getMessage());
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> engine.verifyModelProps());
+			assertEquals(
+					"Must define the embedder engine id for this vector database using " + Constants.EMBEDDER_ENGINE_ID,
+					e.getMessage());
 		}
 	}
-	
+
 	@Test
 	void testVerifyModelPropsNoEmbedderEngine() throws Exception {
 		String testEmbedderId = "123-456-789";
@@ -615,14 +618,12 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			embedderProps.setProperty(Constants.MODEL, embedderModel);
 			embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
 			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
-			NullPointerException e = assertThrows(
-					NullPointerException.class,
-					()->engine.verifyModelProps());
+			NullPointerException e = assertThrows(NullPointerException.class, () -> engine.verifyModelProps());
 			assertEquals("Could not find the defined embedder engine id for this vector database with value = "
 					+ testEmbedderId, e.getMessage());
 		}
 	}
-	
+
 	@Test
 	void testVerifyModelPropsNoEmbedderProperties() throws Exception {
 		String testEmbedderId = "123-456-789";
@@ -632,14 +633,11 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);) {
 			u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
 			when(modelEmbedder.getSmssProp()).thenReturn(new Properties());
-			IllegalArgumentException e = assertThrows(
-					IllegalArgumentException.class,
-					()->engine.verifyModelProps());
-			assertEquals("Embedder engine exists but does not contain key "
-					+ Constants.MODEL, e.getMessage());
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> engine.verifyModelProps());
+			assertEquals("Embedder engine exists but does not contain key " + Constants.MODEL, e.getMessage());
 		}
 	}
-	
+
 	@Test
 	void testUserCanAccessEmbeddingModels() throws Exception {
 		String testEmbedderId = "123-456-789";
@@ -649,11 +647,11 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 		openEngine(tempDir, engine, extraProps); // set initial properties
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
-		
-		try(MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class);){
+
+		try (MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class);) {
 			// used in userCanAccessEmbeddingModels
-			seu.when(()->SecurityEngineUtils.userCanViewEngine(user, testEmbedderId)).thenReturn(true);
-			
+			seu.when(() -> SecurityEngineUtils.userCanViewEngine(user, testEmbedderId)).thenReturn(true);
+
 			assertTrue(engine.userCanAccessEmbeddingModels(user));
 			// verify added embedder engine props
 			Properties updateEngineProps = engine.getSmssProp();
@@ -668,7 +666,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			assertEquals("", updateEngineProps.get(Constants.KEYWORD_ENGINE_ID));
 		}
 	}
-	
+
 	@Test
 	void testUserCanAccessEmbeddingModelsInvalid() throws Exception {
 		String testEmbedderId = "123-456-789";
@@ -678,20 +676,19 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 		openEngine(tempDir, engine, extraProps); // set initial properties
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
-		
-		try(MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class);){
+
+		try (MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class);) {
 			// used in userCanAccessEmbeddingModels
-			seu.when(()->SecurityEngineUtils.userCanViewEngine(user, testEmbedderId)).thenReturn(false);
-			
-			IllegalArgumentException e = assertThrows(
-					IllegalArgumentException.class, 
-					()->engine.userCanAccessEmbeddingModels(user));
+			seu.when(() -> SecurityEngineUtils.userCanViewEngine(user, testEmbedderId)).thenReturn(false);
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> engine.userCanAccessEmbeddingModels(user));
 			assertEquals(
-					"Embeddings model " + testEmbedderId + " does not exist or user does not have access to this model"
-					,e.getMessage());
+					"Embeddings model " + testEmbedderId + " does not exist or user does not have access to this model",
+					e.getMessage());
 		}
 	}
-	
+
 	@Test
 	void testFillVars() throws Exception {
 		String testEmbedderId = "123-456-789";
@@ -701,43 +698,38 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 		openEngine(tempDir, engine, extraProps); // set initial properties
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
-		
-		String toBeFilled = "The embedder model is name ${" 
-		+ Constants.MODEL 
-		+ "} and is of type ${" 
-		+ IModelEngine.MODEL_TYPE 
-		+ "} with ID: ${" + Constants.EMBEDDER_ENGINE_ID + "}";
+
+		String toBeFilled = "The embedder model is name ${" + Constants.MODEL + "} and is of type ${"
+				+ IModelEngine.MODEL_TYPE + "} with ID: ${" + Constants.EMBEDDER_ENGINE_ID + "}";
 		String filledStr = engine.fillVars(toBeFilled);
-		
-		String expected = "The embedder model is name " 
-				+ embedderModel 
-				+ " and is of type " 
-				+ embedderModelType 
+
+		String expected = "The embedder model is name " + embedderModel + " and is of type " + embedderModelType
 				+ " with ID: " + testEmbedderId;
 		assertEquals(expected, filledStr);
 	}
-	
+
 	@Test
 	void testGetServerStartCommands() {
 		String[] cmmnds = engine.getServerStartCommands();
 		List<String> expectedCmmnds = new Vector<>();
 		expectedCmmnds.add("from genai_client import get_tokenizer");
-		expectedCmmnds.add("cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}')");
+		expectedCmmnds.add(
+				"cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}')");
 		expectedCmmnds.add("import vector_database");
 		assertLinesMatch(expectedCmmnds, Arrays.asList(cmmnds));
 	}
-	
+
 	@Test
 	void testGetInsight() {
 		assertEquals(insight, engine.getInsight(insight));
 	}
-	
+
 	@Test
 	void testKeepInputOutput() throws Exception {
 		openEngine(tempDir, engine, null); // set initial properties
 		assertFalse(engine.keepInputOutput());
 	}
-	
+
 	@Test
 	void testGetSetEngineId() throws Exception {
 		String testEngine = "asdf-1234";
@@ -747,7 +739,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		engine.setEngineId(newEngineId);
 		assertEquals(newEngineId, engine.getEngineId());
 	}
-	
+
 	@Test
 	void testGetSetEngineName() throws Exception {
 		String testEngineAlias = "TEST_ALIAS";
@@ -757,7 +749,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		engine.setEngineName(newEngineName);
 		assertEquals(newEngineName, engine.getEngineName());
 	}
-	
+
 	@Test
 	void testGetSetSmssFilePath() throws Exception {
 		openEngine(tempDir, engine, null); // set initial engine id
@@ -766,12 +758,12 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		engine.setSmssFilePath(newSmssFilePath);
 		assertEquals(newSmssFilePath, engine.getSmssFilePath());
 	}
-	
+
 	@Test
 	void testGetCatalogType() {
 		assertEquals(IEngine.CATALOG_TYPE.VECTOR, engine.getCatalogType());
 	}
-	
+
 	@Test
 	void testDelete() throws Exception {
 		String testEngine = "asdf-1234";
@@ -783,14 +775,15 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 		openEngine(tempDir, engine, extraProps); // set initial properties
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
-		
+
 		String indexClass = "index_class";
-		
+
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
 		parameters.put(Constants.INSIGHT, insight);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER)
+				.resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
 		Path schemaPath = engineFolder.resolve("schema");
 		Path indexDirPath = schemaPath.resolve(indexClass);
 		Files.createDirectories(indexDirPath);
@@ -823,13 +816,14 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			}
 		}
 	}
-	
+
 	@Test
 	void testHoldsFileLocks() {
 		assertFalse(engine.holdsFileLocks());
 	}
 
-	void openEngine(Path tempDir, AbstractVectorDatabaseEngine engine, Map<String, String> extraProps) throws Exception {
+	void openEngine(Path tempDir, AbstractVectorDatabaseEngine engine, Map<String, String> extraProps)
+			throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
@@ -860,17 +854,17 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());
 				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineAssetFolder.toString());
-				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR,
+						engineNameAndId)).thenReturn(engineVersionFolder.toString());
 
-				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-						.thenReturn(engineAssetFolder.toString());
-				
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+						testEngineAlias)).thenReturn(engineAssetFolder.toString());
+
 				engine.open(testProps);
 				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
@@ -881,7 +875,7 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 			}
 		}
 	}
-	
+
 	void verifyModelProps(AbstractVectorDatabaseEngine engine, String testEmbedderId, String embedderModel,
 			String embedderModelType) {
 		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);) {
