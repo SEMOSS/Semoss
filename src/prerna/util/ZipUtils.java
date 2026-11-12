@@ -65,7 +65,6 @@ public final class ZipUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(ZipUtils.class);
 
-	// each read and write gets its own buffer: a shared one corrupts files when two zips run at once
 	private static final int BUFFER_SIZE = 2048;
 
 	// always need to use this for zipping up and unzipping
