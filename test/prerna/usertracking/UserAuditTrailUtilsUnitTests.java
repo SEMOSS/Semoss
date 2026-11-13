@@ -97,7 +97,7 @@ class UserAuditTrailUtilsUnitTests {
 			createAuditTable(db);
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
 			UserAuditTrailUtils.recordPixelFailure(null,
-					"CreatePythonFunctionEngine(function=[\"Test\"],content=[\"private-source\"]);",
+					"CreatePythonFunctionEngine(catalogName=[\"Test\"],content=[\"private-source\"]);",
 					"CreatePythonFunctionEngineReactor", new IllegalArgumentException("Unable to create function"),
 					null);
 			assertEquals("FUNCTION_CREATE", db.value("SELECT EVENT_TYPE FROM USER_AUDIT_EVENTS"));
