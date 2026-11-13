@@ -134,6 +134,13 @@ public final class SubAgentToolSynthesizer {
         properties.put("prompt", schemaString(
                 "Task, instructions, and all task-specific context or data for the "
                         + spec.getAlias() + " subagent. The named subagent always uses its configured system prompt."));
+        // Issue 3857: a short, human-readable name for this specific job, shown to the user as the
+        // subagent's name in the chat. Optional here (the subagent's configured name is the fallback),
+        // but a task-specific label reads better than the generic alias.
+        properties.put("label", schemaString(
+                "Optional short, human-readable name for this specific job, a few words only (e.g. "
+                        + "\"Read NIH mail from this week\"). Shown to the user as the subagent's name in the chat. "
+                        + "When omitted, the subagent's configured name is used."));
         properties.put("inherit_parent_workdir", schemaBool(
                 "When true, the subagent operates on YOUR resolved working directory (shared filesystem -- any "
                         + "WriteFile/EditFile calls land in YOUR working directory). Stream + history stay isolated. "
@@ -175,6 +182,12 @@ public final class SubAgentToolSynthesizer {
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("prompt", schemaString(
                 "Task / instructions for the spawned anonymous subagent."));
+        // Issue 3857: a short, human-readable name for the subagent's job so the UI can label
+        // its card with a real name instead of "Child agent". Set it on every spawn.
+        properties.put("label", schemaString(
+                "A short, human-readable name for this subagent's job, a few words only (e.g. "
+                        + "\"Read NIH mail from this week\" or \"Draft the intro section\"). Shown to the user as "
+                        + "the subagent's name in the chat. Always set it, in the imperative, describing the task."));
         properties.put("context", schemaString(
                 "Optional override system prompt for the spawned subagent."));
         properties.put("inherit_parent_workdir", schemaBool(

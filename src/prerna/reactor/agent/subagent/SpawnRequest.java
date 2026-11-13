@@ -55,6 +55,10 @@ public final class SpawnRequest {
     /** Alias generated from the target agent's name; {@code null} for anonymous spawns. */
     public String alias;
 
+    // Issue 3857: a short, human-readable label for this sub-agent's job (a few words),
+    // set by the spawn tool so the UI can show a real name instead of "Child agent".
+    public String label;
+
     /** Target child workspace id; {@code null} for anonymous (parent-clone) spawns. */
     public String workspaceId;
 
