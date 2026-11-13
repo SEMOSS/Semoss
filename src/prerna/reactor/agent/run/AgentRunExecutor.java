@@ -214,15 +214,19 @@ final class AgentRunExecutor {
 			return;
 		}
 		String alias = null;
+		String label = record.request() != null ? record.request().getLabel() : null;
 		String workspaceId = record.request() != null ? record.request().getWorkspaceId() : null;
 		SubAgentMeta meta = AgentSubAgentRegistry.getManager().lookup(runId);
 		if (meta != null) {
 			alias = meta.getAlias();
+			if (meta.getLabel() != null) {
+				label = meta.getLabel();
+			}
 			if (meta.getWorkspaceId() != null) {
 				workspaceId = meta.getWorkspaceId();
 			}
 		}
-		Map<String, Object> item = AgentStreamItems.subagentItem(runId, alias, record.roomId(), workspaceId,
+		Map<String, Object> item = AgentStreamItems.subagentItem(runId, alias, label, record.roomId(), workspaceId,
 				status.name());
 		if (resultPreview != null && !resultPreview.isBlank()) {
 			item.put("resultPreview",
