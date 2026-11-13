@@ -54,19 +54,13 @@ public abstract class AbstractPyCodeReactor extends AbstractPyFrameReactor imple
 
 	@Override
 	public NounMetadata execute() {
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
+			throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
 		}
 
 		// check if py terminal is disabled
-		String disable_py_terminal = Utility.getDIHelperProperty(Constants.DISABLE_PY_TERMINAL);
-		if (disable_py_terminal != null && !disable_py_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_py_terminal)) {
-				throw new IllegalArgumentException("Python terminal has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_PY_TERMINAL))) {
+			throw new IllegalArgumentException("Python terminal has been disabled.");
 		}
 
 		if (!PyUtils.pyEnabled()) {
@@ -99,7 +93,7 @@ public abstract class AbstractPyCodeReactor extends AbstractPyFrameReactor imple
 		if (smartSync) {
 			// if this returns true
 			if (smartSync(pyTranslator)) {
-				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME,
+				outputs.add(new NounMetadata(this.insight.getCurrentFrame(), PixelDataType.FRAME,
 						PixelOperationType.FRAME_HEADERS_CHANGE));
 			}
 		}

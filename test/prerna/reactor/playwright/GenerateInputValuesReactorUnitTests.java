@@ -104,6 +104,7 @@ class GenerateInputValuesReactorUnitTests {
 		addParamsToStore(params);
 
 		Room historyRoom = mock(Room.class);
+		when(historyRoom.getId()).thenReturn(historyRoomId);
 		InputMessage historyQuestion = InputMessage.builder(historyRoom).withText("Where should we go?").build();
 		ResponseMessage historyAnswer = ResponseMessage.builder().withText("Head to Wonderland").build();
 		List<AbstractMessage> historyMessages = List.of(historyQuestion, historyAnswer);
@@ -111,6 +112,7 @@ class GenerateInputValuesReactorUnitTests {
 
 		IModelEngine modelEngine = mock(IModelEngine.class);
 		Room promptRoom = mock(Room.class);
+		when(promptRoom.getId()).thenReturn("prompt-room");
 		String modelResponseText = "```json[{\"id\":\"username\",\"value\":\"Alice\"}]```";
 		ResponseMessage modelResponse = ResponseMessage.builder().withText(modelResponseText).build();
 		when(promptRoom.ask(any(InputMessage.class), eq(modelEngine))).thenReturn(modelResponse);

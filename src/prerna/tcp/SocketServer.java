@@ -31,6 +31,7 @@ import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -56,6 +57,7 @@ public class SocketServer implements Runnable {
 	private static final int ACCEPT_TIMEOUT_MS = 10_000;
 	private static final int MAX_INITIAL_ACCEPT_ATTEMPTS = 6;
 	private static final long CRASH_WAIT_TIMEOUT_MS = 10_000L;
+	private static final String LOOPBACK_HOST = "127.0.0.1";
 	// allow multiple threads at the same time
 	private static boolean multi = false;
 	public static boolean testMode = false;
@@ -165,14 +167,15 @@ public class SocketServer implements Runnable {
 	}
 
 	/**
-	 * Binds and starts the socket listener thread.
+	 * Binds the IPv4 loopback address, the address the client connects to, so only
+	 * processes on this host can connect, and starts the socket listener thread.
 	 *
 	 * @param PORT   socket port to bind
 	 * @param engine engine identifier kept for startup compatibility
 	 */
 	public void bootServer(final int PORT, String engine) {
 		try {
-			serverSocket = new ServerSocket(PORT);
+			serverSocket = new ServerSocket(PORT, 50, InetAddress.getByName(LOOPBACK_HOST));
 			// Avoid blocking forever on initial client connect attempts.
 			serverSocket.setSoTimeout(ACCEPT_TIMEOUT_MS);
 		} catch (IOException e) {
@@ -215,26 +218,26 @@ public class SocketServer implements Runnable {
 						}
 					}
 					continue;
-					} catch (IOException e) {
-						classLogger.error("Socket accept failed on listening port {}; shutting down server loop",
-								serverSocket != null ? serverSocket.getLocalPort() : "unknown", e);
-						System.exit(1);
-					}
-					try {
+				} catch (IOException e) {
+					classLogger.error("Socket accept failed on listening port {}; shutting down server loop",
+							serverSocket != null ? serverSocket.getLocalPort() : "unknown", e);
+					System.exit(1);
+				}
+				try {
 					// One handler instance is bound to one accepted client connection.
 					ssh = new SocketServerHandler();
 					DIHelper.getInstance().setLocalProperty("SSH", ssh);
-						ssh.setLogger(classLogger);
-						ssh.setOutputStream(clientSocket.getOutputStream());
-						is = clientSocket.getInputStream();
-					} catch (IOException e) {
-						classLogger.error(
-								"Unable to initialize socket streams for client {}. Closing current client connection.",
-								clientSocket != null ? clientSocket.getRemoteSocketAddress() : "unknown", e);
-						closeStream(clientSocket);
-						clientSocket = null;
-						continue;
-					}
+					ssh.setLogger(classLogger);
+					ssh.setOutputStream(clientSocket.getOutputStream());
+					is = clientSocket.getInputStream();
+				} catch (IOException e) {
+					classLogger.error(
+							"Unable to initialize socket streams for client {}. Closing current client connection.",
+							clientSocket != null ? clientSocket.getRemoteSocketAddress() : "unknown", e);
+					closeStream(clientSocket);
+					clientSocket = null;
+					continue;
+				}
 
 				// Wire server->handler context so the handler can callback into
 				// signalCrash() when its socket loop fails.
@@ -263,15 +266,15 @@ public class SocketServer implements Runnable {
 						if (!testMode) {
 							ssh.cleanUp();
 						}
-						} catch (InterruptedException e) {
-							Thread.currentThread().interrupt();
-							done = true;
-							classLogger.error(
-									"Server listener thread interrupted while waiting up to {} ms for crash signal",
-									CRASH_WAIT_TIMEOUT_MS, e);
-						}
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+						done = true;
+						classLogger.error(
+								"Server listener thread interrupted while waiting up to {} ms for crash signal",
+								CRASH_WAIT_TIMEOUT_MS, e);
 					}
 				}
+			}
 		}
 	}
 

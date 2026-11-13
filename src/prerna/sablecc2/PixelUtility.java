@@ -496,35 +496,6 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Extracts `into` and `values` inputs from a form-widget pixel expression.
-	 *
-	 * @param pixel pixel expression
-	 * @return object array where index 0 is `into` and index 1 is `values`
-	 */
-	public static Object[] getFormWidgetInputs(String pixel) {
-		pixel = PixelPreProcessor.preProcessPixel(pixel, new ArrayList<String>(), new HashMap<String, String>());
-		Object[] ret = new Object[2];
-		try {
-			Parser p = new Parser(new Lexer(new PushbackReader(
-					new InputStreamReader(new ByteArrayInputStream(pixel.getBytes(StandardCharsets.UTF_8)),
-							StandardCharsets.UTF_8),
-					pixel.length())));
-			FormWidgetTranslation translation = new FormWidgetTranslation();
-			// parsing the pixel - this process also determines if expression is
-			// syntactically correct
-			Start tree = p.parse();
-			// apply the translation.
-			tree.apply(translation);
-			ret[0] = translation.getInto();
-			ret[1] = translation.getValues();
-			return ret;
-		} catch (ParserException | LexerException | IOException e) {
-			classLogger.error("Unable to parse form widget inputs from pixel expression", e);
-		}
-		return null;
-	}
-
-	/**
 	 * Replaces encoded placeholders in a parsed expression back to their original
 	 * values.
 	 *

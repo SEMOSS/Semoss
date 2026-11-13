@@ -32,6 +32,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 
@@ -48,13 +49,13 @@ public class CustomReactorWrapper extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		sc = this.insight.getUser().getPythonSocketClient(true);
+		sc = this.insight.getUser().getJavaSocketClient(true);
 
 		InsightSerializer is = new InsightSerializer(this.insight);
 		is.serializeInsight(false);
 
 		PayloadStruct ps = new PayloadStruct();
-		ps.operation = ps.operation.REACTOR;
+		ps.operation = PayloadStruct.OPERATION.REACTOR;
 
 		// set everything from the noun store
 		// hopefully this serializes well
@@ -64,10 +65,13 @@ public class CustomReactorWrapper extends AbstractReactor {
 		ps.insightId = this.insight.getInsightId();
 
 		PayloadStruct retStruct = (PayloadStruct) sc.executeCommand(ps);
-		classLogger.info("Got the response for reactor " + ps.payload[0]);
+		if (retStruct == null) {
+			throw new SemossPixelException("The Java worker did not return a result for reactor " + reactorCallName);
+		}
+		classLogger.info("Got the response for reactor {}", reactorCallName);
 
-		// did we have an error?
 		if (retStruct.ex != null) {
+			classLogger.error("Reactor {} failed in the Java worker: {}", reactorCallName, retStruct.ex);
 			return NounMetadata.getErrorNounMessage(retStruct.ex);
 		}
 		return (NounMetadata) retStruct.payload[0];

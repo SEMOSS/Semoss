@@ -44,14 +44,13 @@ import prerna.ds.py.PyUtils;
 import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.function.FunctionParameter;
-import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 
 public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReactorFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(PromptInjectionGuardrailEngine.class);
 
 	private static final String MODEL_NAME_KEY = "MODEL_NAME";
 	private static final String LABEL_DECISION_MAP_KEY = "LABEL_DECISION_MAP";
@@ -332,7 +331,7 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 
 				This guardrail runs a local Hugging Face text-classification model and evaluates its label scores using `LABEL_DECISION_MAP`. A label mapped to `BLOCK` fails when its score is at or above the threshold.
 
-				`MODEL_NAME` and `LABEL_DECISION_MAP` are required in the guardrail SMSS. Match the map keys to the exact labels produced by that model, for example `{"SAFE":"PASS","INJECTION":"BLOCK"}`. `DEFAULT_DECISION` (`BLOCK` or `PASS`) is used for unmapped or missing labels and defaults to `BLOCK`. Optional settings include `DEFAULT_THRESHOLD`, `DEFAULT_MAX_LENGTH`, `DEVICE`, `USE_CUDA`, and `TRUST_REMOTE_CODE`. Enable remote code only for a model repository you trust.
+				`MODEL_NAME` (the Hugging Face repository of the classifier to load) and `LABEL_DECISION_MAP` are required in the guardrail SMSS. Match the map keys to the exact labels produced by that model, for example `{"SAFE":"PASS","INJECTION":"BLOCK"}`. `DEFAULT_DECISION` (`BLOCK` or `PASS`) is used for unmapped or missing labels and defaults to `BLOCK`. Optional settings include `DEFAULT_THRESHOLD`, `DEFAULT_MAX_LENGTH`, `DEVICE`, `USE_CUDA`, and `TRUST_REMOTE_CODE`. Enable remote code only for a model repository you trust.
 
 				## Example: block injection attempts before model inference
 

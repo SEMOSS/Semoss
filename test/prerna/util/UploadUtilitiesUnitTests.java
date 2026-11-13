@@ -29,6 +29,9 @@ package prerna.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 
 class UploadUtilitiesUnitTests {
@@ -44,6 +47,31 @@ class UploadUtilitiesUnitTests {
 	@Test
 	void nullSmssValueIsWrittenAsEmpty() {
 		assertEquals("", UploadUtilities.escapeSmssPropertyValue(null));
+	}
+
+	@Test
+	void catalogNameIsDroppedFromEngineDetailsInAnyCase() {
+		Map<String, Object> details = new HashMap<>();
+		details.put(UploadUtilities.CATALOG_NAME_KEY, "My PII Filter");
+		details.put("catalog_name", "My PII Filter");
+		details.put("MODEL_NAME", "urchade/gliner_multi-v2.1");
+		details.put("GUARDRAIL_TYPE", "EMBEDDED_GLINER");
+
+		UploadUtilities.removeCatalogName(details);
+
+		assertEquals(Map.of("MODEL_NAME", "urchade/gliner_multi-v2.1", "GUARDRAIL_TYPE", "EMBEDDED_GLINER"),
+				details);
+	}
+
+	@Test
+	void engineDetailsWithoutACatalogNameAreUnchanged() {
+		Map<String, Object> details = new HashMap<>();
+		details.put("NAME", "My Bucket");
+		details.put("S3_BUCKET", "bucket");
+
+		UploadUtilities.removeCatalogName(details);
+
+		assertEquals(Map.of("NAME", "My Bucket", "S3_BUCKET", "bucket"), details);
 	}
 
 }

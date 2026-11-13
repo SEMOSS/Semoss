@@ -48,7 +48,7 @@ import prerna.util.SystemEngineRegistry;
 
 public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils {
 
-	private static final Logger classLogger = LogManager.getLogger(SecurityAdminUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(SecurityAdminExternalConnectorsUtils.class);
 
 	private static SecurityAdminExternalConnectorsUtils instance = new SecurityAdminExternalConnectorsUtils();
 

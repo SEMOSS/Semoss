@@ -46,7 +46,7 @@ import prerna.util.Utility;
 
 public class LoadPyFromFileProjectPyReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(LoadPyFromFileReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(LoadPyFromFileProjectPyReactor.class);
 
 	public LoadPyFromFileProjectPyReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.ALIAS.getKey(),

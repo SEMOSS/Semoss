@@ -43,6 +43,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditTargetType;
@@ -59,25 +60,26 @@ import prerna.util.Utility;
  * creation reactors.
  *
  * <p>
- * Pixel: {@code CreateAutomation(projectName=["My Claims Intake"])}
+ * Pixel: {@code CreateAutomation(catalogName=["My Claims Intake"])}
  */
 public class CreateAutomationReactor extends AbstractReactor {
 
+	private static final String CLASS_NAME = CreateAutomationReactor.class.getName();
 	private static final Logger classLogger = LogManager.getLogger(CreateAutomationReactor.class);
 
-	private static final String PROJECT_NAME_KEY = "projectName";
-
 	public CreateAutomationReactor() {
-		this.keysToGet = new String[] { PROJECT_NAME_KEY };
+		this.keysToGet = new String[] { ReactorKeysEnum.CATALOG_NAME.getKey() + ",projectName" };
 		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
+		Logger logger = getLogger(CLASS_NAME);
+
 		organizeKeys();
 		User user = requireUser();
 
-		String projectName = this.keyValue.get(PROJECT_NAME_KEY);
+		String projectName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
 		if (projectName == null || !Utility.validateName(projectName.trim())) {
 			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain "
 					+ "letters, numbers, spaces, underscores, and hyphens.");
@@ -87,7 +89,7 @@ public class CreateAutomationReactor extends AbstractReactor {
 		classLogger.info("Creating automation project '{}'", projectName);
 
 		IProject project = ProjectHelper.generateNewProject(projectName, IProject.PROJECT_TYPE.AUTOMATION, false, null,
-				null, user, classLogger);
+				null, user, logger);
 		String projectId = project.getProjectId();
 		try {
 			AutomationProjectService.createStarterDefinition(project, user);
@@ -131,7 +133,7 @@ public class CreateAutomationReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition()
 				.description("Creates a new blank automation project and returns the standard project creation result.")
-				.key(PROJECT_NAME_KEY, "Display name for the new automation project. "
+				.key(ReactorKeysEnum.CATALOG_NAME, "Display name for the new automation project. "
 						+ "Must follow the standard SEMOSS project naming rules.");
 	}
 }

@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 
 import org.javatuples.Pair;
 import org.json.JSONException;
@@ -57,6 +58,7 @@ import prerna.engine.impl.pipeline.GuardrailHitLimit;
 import prerna.reactor.ReactorDefinition;
 import prerna.reactor.interceptor.GenericGuardrailInputReactor;
 import prerna.reactor.interceptor.GenericGuardrailOutputReactor;
+import prerna.reactor.interceptor.PipelineReactorUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -98,6 +100,7 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 	private static final String SKIP_TOOL_CONTINUATION_TOOLS_KEY = "skipOnToolContinuationForTools";
 	private static final String TOOL_CONTINUATION_ARG_KEY = "toolContinuationArg";
 	private static final String DEFAULT_PIPELINE_FILE = "pipeline.json";
+	private static final Pattern ARGUMENT_ROOT = Pattern.compile("arg\\d+");
 
 	private static final Set<String> INPUT_REACTOR_WHITELIST = new HashSet<>(
 			Arrays.asList(GenericGuardrailInputReactor.class.getName()));
@@ -447,6 +450,7 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 				if (((String) mappingValue).trim().isEmpty()) {
 					throw new IllegalArgumentException(mappingPath + " cannot be an empty string");
 				}
+				validateMappingSource(mappingPath, (String) mappingValue, slotName);
 			} else if (mappingValue instanceof List) {
 				List<?> mappingList = (List<?>) mappingValue;
 				if (mappingList.isEmpty()) {
@@ -456,6 +460,7 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 					if (!(mappingItem instanceof String) || ((String) mappingItem).trim().isEmpty()) {
 						throw new IllegalArgumentException(mappingPath + " must only contain non-empty strings");
 					}
+					validateMappingSource(mappingPath, (String) mappingItem, slotName);
 				}
 			} else {
 				throw new IllegalArgumentException(mappingPath + " must be a string or a list of strings");
@@ -491,6 +496,31 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 						+ DIRECT_PARAMETERS_KEY + " does not override, since the masked value is written back to it");
 			}
 		}
+	}
+
+	/**
+	 * Check that a mapping reads something the guardrail receives at request time:
+	 * a method argument, keyed arg0, arg1, ... as the invocation handler names
+	 * them, the result of an earlier guardrail ({@code interim_result}), or, for an
+	 * output guardrail, the call's {@code result}, each optionally followed by a
+	 * dotted path. Any other source resolves to nothing, and a guardrail handed no
+	 * text passes the call, so a typo in a mapping would switch the guardrail off.
+	 *
+	 * @param mappingPath the mapping's path in the configuration, for the error
+	 * @param source      the mapping source to check
+	 * @param slotName    the guardrail's slot, input or output
+	 */
+	private static void validateMappingSource(String mappingPath, String source, String slotName) {
+		String root = source.trim().split("\\.", 2)[0];
+		boolean isOutput = OUTPUT_KEY.equals(slotName);
+		if (ARGUMENT_ROOT.matcher(root).matches() || PipelineReactorUtils.INTERIM_RESULT.equals(root)
+				|| (isOutput && PipelineReactorUtils.RESULT.equals(root))) {
+			return;
+		}
+		throw new IllegalArgumentException(mappingPath + " reads '" + source
+				+ "', which the guardrail does not receive: use arg0, arg1, ..."
+				+ (isOutput ? ", " + PipelineReactorUtils.RESULT : "") + " or " + PipelineReactorUtils.INTERIM_RESULT
+				+ ", optionally followed by a dotted path such as arg0.message");
 	}
 
 	/**

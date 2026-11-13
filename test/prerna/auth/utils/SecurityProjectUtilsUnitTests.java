@@ -1756,7 +1756,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testSetPortalPublish() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
 		// Verify no timestamp before publish
 		assertNull(SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId"));
@@ -1771,7 +1771,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testGetPortalPublishedTimestamp_noTimestamp() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
 		LocalDateTime timestamp = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
 		assertNull(timestamp);
@@ -1780,7 +1780,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testInitPortalPublishedTimestamp() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
 		assertNull(SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId"));
 
@@ -1792,7 +1792,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testInitPortalPublishedTimestamp_doesNotOverwriteExisting() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
 		SecurityProjectUtils.setPortalPublish(user, "testProjectId");
 		LocalDateTime reported = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
@@ -2303,10 +2303,21 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	private void stageLoadedProject(String projectId) {
 		IRDBMSEngine insightsDb = mock(IRDBMSEngine.class);
 		when(insightsDb.getQueryUtil()).thenReturn(SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB));
-		IProject project = mock(IProject.class);
-		when(project.getInsightDatabase()).thenReturn(insightsDb);
-		DIHelper.getInstance().setProjectProperty(projectId, project);
+		DIHelper.getInstance().setProjectProperty(projectId, loadedProject(projectId, insightsDb));
 		stagedProjects.add(projectId);
+	}
+
+	/**
+	 * A loaded project with its smss properties and the insights database given, as
+	 * Utility.getProject reads it.
+	 */
+	private static IProject loadedProject(String projectId, IRDBMSEngine insightsDb) {
+		IProject project = mock(IProject.class);
+		when(project.getEngineId()).thenReturn(projectId);
+		when(project.getCatalogType()).thenReturn(IEngine.CATALOG_TYPE.PROJECT);
+		when(project.getSmssProp()).thenReturn(new Properties());
+		when(project.getInsightDatabase()).thenReturn(insightsDb);
+		return project;
 	}
 
 	/**
@@ -2343,9 +2354,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 					null, false, null);
 			admin.updateInsightTags(insightId, List.of(insightName + "Tag"));
 		}
-		IProject project = mock(IProject.class);
-		when(project.getInsightDatabase()).thenReturn(insightsDb);
-		DIHelper.getInstance().setProjectProperty(projectId, project);
+		DIHelper.getInstance().setProjectProperty(projectId, loadedProject(projectId, insightsDb));
 		stagedProjects.add(projectId);
 
 		Properties props = new Properties();

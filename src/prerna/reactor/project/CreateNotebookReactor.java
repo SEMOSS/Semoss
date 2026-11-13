@@ -74,7 +74,8 @@ public class CreateNotebookReactor extends AbstractReactor {
 	private static final String NOTEBOOK_FILE_NAME = "main.ipynb";
 
 	public CreateNotebookReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.GLOBAL.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
+				ReactorKeysEnum.GLOBAL.getKey() };
 		this.keyRequired = new int[] { 1, 0 };
 	}
 
@@ -86,7 +87,7 @@ public class CreateNotebookReactor extends AbstractReactor {
 
 		User user = requireUser();
 
-		String projectName = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String projectName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
 		if (!Utility.validateName(projectName)) {
 			throw new IllegalArgumentException(
 					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
@@ -182,7 +183,7 @@ public class CreateNotebookReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition()
 				.description("Creates a new NOTEBOOK-type Project and scaffolds a sample public/main.ipynb file")
-				.key(ReactorKeysEnum.PROJECT,
+				.key(ReactorKeysEnum.CATALOG_NAME,
 						"The name for this notebook project. Note: the project ID is randomly generated");
 	}
 

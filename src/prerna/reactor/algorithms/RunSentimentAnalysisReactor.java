@@ -155,7 +155,7 @@ public class RunSentimentAnalysisReactor extends AbstractRFrameReactor {
 
 		// return the new frame
 		RDataTable newTable = createNewFrameFromVariable(frameName);
-		this.insight.setDataMaker(newTable);
+		this.insight.setCurrentFrame(newTable);
 		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 				PixelOperationType.FRAME_HEADERS_CHANGE);
 		this.insight.getVarStore().put(frameName, noun);

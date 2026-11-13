@@ -36,16 +36,16 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyUtils;
 import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.function.FunctionParameter;
-import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 
 public class DetoxifyGuardrailEngine extends AbstractPythonGuardrailReactorFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(DetoxifyGuardrailEngine.class);
 
 	private static final String DEFAULT_THRESHOLD_KEY = "DEFAULT_THRESHOLD";
 	private Double defaultThreshold = .7;
@@ -87,7 +87,10 @@ public class DetoxifyGuardrailEngine extends AbstractPythonGuardrailReactorFunct
 		if (keyValue.containsKey("threshold")) {
 			threshold = Double.parseDouble(keyValue.get("threshold"));
 		}
-		String script = "model.predict(\"\"\"" + prompt + "\"\"\")";
+		if (prompt == null) {
+			throw new IllegalArgumentException("No prompt has been defined");
+		}
+		String script = "model.predict(" + PyUtils.determineStringType(prompt) + ")";
 		Map<String, Object> value = (Map<String, Object>) pyTranslator.runDirectPyNoCancelTrace(script);
 
 		boolean pass = true;

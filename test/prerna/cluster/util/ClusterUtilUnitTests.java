@@ -74,17 +74,6 @@ import sun.misc.Unsafe;
 
 class ClusterUtilUnitTests {
 
-	// Force-load EngineUtility safely - its client calls Utility.getBaseFolder()
-	// which returns null in test context, causing NPE on .replace().
-	static {
-		try (MockedStatic<Utility> util = mockStatic(Utility.class)) {
-			util.when(Utility::getBaseFolder).thenReturn(System.getProperty("java.io.tmpdir"));
-			Class.forName("prerna.util.EngineUtility");
-		} catch (Exception e) {
-			// class already loaded or other issue - ok for tests
-		}
-	}
-
 	@Nested
 	class GetSubdirsTests {
 		@TempDir

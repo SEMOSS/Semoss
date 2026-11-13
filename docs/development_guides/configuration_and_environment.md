@@ -30,7 +30,7 @@ Local development images can reuse assets from the published base. A Java rebuil
 
 - **System databases:** configure the appropriate system engine connections. The Compose examples use `CUSTOM_*` environment groups and PostgreSQL initialization SQL.
 - **Persistent AI services:** enable and initialize the model-inference database for rooms, workspaces, run records, and approvals. `MODEL_INFERENCE_LOGS_ENABLED` is relevant to this storage, not only usage reporting.
-- **Language workers:** the examples enable Python through `NETTY_PYTHON` and `NATIVE_PY_SERVER`, configure `SMSS_PYTHONHOME`, and disable R with `R_ON=false`.
+- **Language workers:** Python is on by default (`USE_PYTHON`, set from `PY_ON`); the examples configure `SMSS_PYTHONHOME` and disable R with `R_ON=false`.
 - **Native agent tools:** workspace default-tool policy and deployment settings determine which built-in tools are offered. Node execution is optional; consult [js/README.md](../../js/README.md).
 - **Authentication:** configure the intended provider and browser-facing redirect/cookie behavior. Local Compose files enable native registration for development.
 - **Cloud storage and synchronization:** object storage, Redis/ZooKeeper asset synchronization, and Redis room/agent coordination have separate settings. See [cluster architecture](../cloud_and_cluster/README.md).

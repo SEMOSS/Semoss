@@ -51,7 +51,7 @@ public class ValidateRReactor extends AbstractReactor {
 
 		String result = "";
 
-		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(getLogger(this.getClass() + ""));
+		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(getLogger(this.getClass().getName()));
 		rJavaTranslator.startR();
 
 		String baseFolder = Utility.getBaseFolder();

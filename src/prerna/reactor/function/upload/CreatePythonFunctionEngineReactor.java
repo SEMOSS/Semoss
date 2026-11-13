@@ -71,7 +71,8 @@ public class CreatePythonFunctionEngineReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(CreatePythonFunctionEngineReactor.class);
 
 	public CreatePythonFunctionEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.FUNCTION_DETAILS.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.FUNCTION.getKey(),
+				ReactorKeysEnum.FUNCTION_DETAILS.getKey(),
 				ReactorKeysEnum.CONTENT.getKey() };
 	}
 
@@ -88,7 +89,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 
-		String functionEngineName = getStringFromKeyOrCurRowStringValue(ReactorKeysEnum.FUNCTION.getKey());
+		String functionEngineName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
 		if (functionEngineName == null || (functionEngineName = functionEngineName.trim()).isEmpty()) {
 			throw new NullPointerException("Must define the name of the new function engine");
 		}
@@ -289,7 +290,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractReactor {
 				Create and register a LOCAL_PYTHON function engine. The reactor writes the supplied Python source
 				to the engine assets folder, or generates a starter function from the function metadata when no
 				source content is supplied.
-				""").key(ReactorKeysEnum.FUNCTION,
+				""").key(ReactorKeysEnum.CATALOG_NAME,
 				"The catalog name for the new Python function engine. It is normalized to UpperCamelCase for the engine name.")
 				.key(ReactorKeysEnum.FUNCTION_DETAILS, """
 						The function-engine SMSS properties. The map must define FUNCTION_TYPE as LOCAL_PYTHON,

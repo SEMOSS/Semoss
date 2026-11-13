@@ -64,7 +64,7 @@ public class MatchColumnValuesReactor extends AbstractPyFrameReactor {
 
 		// get count of exact matches
 		Number exactMatchCount = (Number) returnTable
-				.runScript("len(" + matchesTable + "[" + matchesTable + "['distance'] == 100])");
+				.runScript("len(" + matchesTable + "[" + matchesTable + "['distance'] == 0])");
 		if (exactMatchCount != null) {
 			retNoun.addAdditionalReturn(new NounMetadata(exactMatchCount.longValue(), PixelDataType.CONST_INT));
 		} else {

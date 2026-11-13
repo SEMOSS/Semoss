@@ -58,19 +58,13 @@ public class RSourceReactor extends AbstractRFrameReactor {
 			relativePath = relativePath.substring(1);
 		}
 
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
+			throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
 		}
 
 		// check if script sourcing terminal is disabled
-		String disable_script_scource = Utility.getDIHelperProperty(Constants.DISABLE_SCRIPT_SOURCE);
-		if (disable_script_scource != null && !disable_script_scource.isEmpty()) {
-			if (Boolean.parseBoolean(disable_script_scource)) {
-				throw new IllegalArgumentException("Script Sourcing has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_SCRIPT_SOURCE))) {
+			throw new IllegalArgumentException("Script Sourcing has been disabled.");
 		}
 
 		AbstractRJavaTranslator rJavaTranslator = this.insight
@@ -144,7 +138,7 @@ public class RSourceReactor extends AbstractRFrameReactor {
 				&& insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
 		if (smartSync) {
 			if (smartSync(rJavaTranslator)) {
-				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME,
+				outputs.add(new NounMetadata(this.insight.getCurrentFrame(), PixelDataType.FRAME,
 						PixelOperationType.FRAME_HEADERS_CHANGE));
 			}
 		}

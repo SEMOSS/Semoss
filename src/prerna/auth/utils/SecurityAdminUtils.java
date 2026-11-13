@@ -2059,6 +2059,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param isPublic
 	 */
 	public boolean setProjectGlobal(String projectId, boolean global) {
+		if (global) {
+			SecurityProjectUtils.requireNotDigitalTwin(projectId);
+		}
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET GLOBAL=? WHERE PROJECTID=?", ps -> {
@@ -2082,6 +2085,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return {@code true} when the flag is updated
 	 */
 	public boolean setProjectTemplate(String projectId, boolean isTemplate) {
+		if (isTemplate) {
+			SecurityProjectUtils.requireNotDigitalTwin(projectId);
+		}
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		try {
@@ -2119,6 +2125,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public boolean setProjectDiscoverable(String projectId, boolean discoverable) {
+		if (discoverable) {
+			SecurityProjectUtils.requireNotDigitalTwin(projectId);
+		}
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET DISCOVERABLE=? WHERE PROJECTID=?",
@@ -2367,6 +2376,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (isAddNew) {
 			// rows with no level are no access, so those projects are added
 			Set<String> current = new HashSet<>(getProjectIdsUserCanUse(userId));
+			// a Digital Twin is left out: its owner names the people who can use it
+			current.addAll(SecurityProjectUtils
+					.getProjectIdsWithMetaValue(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "true"));
 			for (String projectId : SecurityProjectUtils.getAllProjectIds()) {
 				if (!current.contains(projectId)) {
 					batches.add(new PermissionBatch(PermissionTargetResource.project(projectId),
@@ -2492,6 +2504,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate    when the access ends, or null
 	 */
 	public void grantNewUsersProjectAccess(String projectId, String permission, User user, String endDate) {
+		SecurityProjectUtils.requireNotDigitalTwin(projectId);
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
 				PermissionChange.forPeople(PermissionChange.Action.ADD,
 						distinctIds(getProjectUsersNoCredentials(projectId, null, -1, -1)),
@@ -3247,6 +3260,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (projectId == null || permission == null) {
 			return;
 		}
+		SecurityProjectUtils.requireNotDigitalTwin(projectId);
 		List<PermissionChange> changes = PermissionChange.forPeople(PermissionChange.Action.ADD,
 				distinctIds(getProjectUsersNoCredentials(projectId, null, -1, -1)),
 				new PermissionGrant(permission, endDate));

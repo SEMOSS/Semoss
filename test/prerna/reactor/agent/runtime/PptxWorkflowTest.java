@@ -550,8 +550,8 @@ class PptxWorkflowTest {
 		String savedHash = PptxWorkflow.hash(root.resolve("deck.pptx"));
 		var room = mock(Room.class);
 		var messages = new ArrayList<AbstractMessage>();
-		messages.add(ResponseMessage.toolResponses(
-				List.of(Map.of("id", "read-generator", "name", "ReadFile", "input", Map.of("path", "build-deck.js")))));
+		messages.add(ResponseMessage.toolResponses(List.of(new HashMap<>(
+				Map.of("id", "read-generator", "name", "ReadFile", "input", Map.of("path", "build-deck.js"))))));
 		when(room.getMessages()).thenReturn(messages);
 		when(room.getOptionsMap()).thenReturn(new HashMap<>());
 		when(room.getSystemPromptForModel()).thenReturn("Stable PPTX author instructions");

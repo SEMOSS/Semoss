@@ -68,8 +68,10 @@ public class CreateModelEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateModelEngineReactor.class);
 
+	private static final String CATALOG_NAME_KEYS = ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.MODEL.getKey();
+
 	public CreateModelEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.MODEL_DETAILS.getKey(),
+		this.keysToGet = new String[] { CATALOG_NAME_KEYS, ReactorKeysEnum.MODEL_DETAILS.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey() };
 	}
 
@@ -196,15 +198,12 @@ public class CreateModelEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getModelName() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MODEL.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			List<String> strValues = grs.getAllStrValues();
-			if (strValues != null && !strValues.isEmpty()) {
-				return strValues.get(0).trim();
-			}
+		List<String> strValues = getListStringForAliasedKey(CATALOG_NAME_KEYS);
+		if (!strValues.isEmpty()) {
+			return strValues.get(0).trim();
 		}
 
-		List<String> strValues = this.curRow.getAllStrValues();
+		strValues = this.curRow.getAllStrValues();
 		if (strValues != null && !strValues.isEmpty()) {
 			return strValues.get(0).trim();
 		}

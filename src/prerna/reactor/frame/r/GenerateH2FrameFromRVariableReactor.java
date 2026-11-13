@@ -75,7 +75,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		// sync R dataframe to H2Frame
 		syncFromR(this.rJavaTranslator, varName, newTable);
 		if (getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), true)) {
-			this.insight.setDataMaker(newTable);
+			this.insight.setCurrentFrame(newTable);
 		}
 		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 				PixelOperationType.FRAME_HEADERS_CHANGE);

@@ -41,6 +41,8 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.show.ShowIndexStatement;
+import net.sf.jsqlparser.statement.show.ShowTablesStatement;
 import net.sf.jsqlparser.statement.update.Update;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -119,7 +121,8 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 			Statement statement = CCJSqlParserUtil.parse(sql);
 
 			if (statement instanceof Select || statement instanceof ShowStatement
-					|| statement instanceof ShowColumnsStatement || statement instanceof DescribeStatement
+					|| statement instanceof ShowColumnsStatement || statement instanceof ShowTablesStatement
+					|| statement instanceof ShowIndexStatement || statement instanceof DescribeStatement
 					|| statement instanceof ExplainStatement) {
 				return QueryType.SELECT;
 			} else if (statement instanceof Insert) {

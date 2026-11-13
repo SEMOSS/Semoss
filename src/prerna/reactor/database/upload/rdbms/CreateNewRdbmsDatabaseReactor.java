@@ -107,8 +107,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		this.databaseName = UploadInputUtility.getEngineNameOrId(this.store,
-				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
+		this.databaseName = this.keyValue.get(UploadInputUtility.CATALOG_NAME);
 		try {
 			// make a new id
 			this.databaseId = UUID.randomUUID().toString();
