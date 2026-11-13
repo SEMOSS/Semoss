@@ -291,7 +291,9 @@ public class SocketClient implements Runnable, Closeable {
 
 			// if this is a request, wait for the response to come back
 			if (!ps.response) {
-				long waitDeadline = System.nanoTime() + MAX_RESPONSE_WAIT.toNanos();
+				Duration responseWait = ps.maxWait != null && ps.maxWait.compareTo(MAX_RESPONSE_WAIT) < 0 ? ps.maxWait
+						: MAX_RESPONSE_WAIT;
+				long waitDeadline = System.nanoTime() + responseWait.toNanos();
 				int pollNum = 1;
 				while (!responseMap.containsKey(ps.epoc) && (pollNum < 10 || ps.longRunning) && !killAll
 						&& System.nanoTime() < waitDeadline) {
@@ -335,9 +337,12 @@ public class SocketClient implements Runnable, Closeable {
 					// that persists its own results can still finish
 					this.requestMap.remove(ps.epoc);
 					classLogger.warn(
-							"Stopped waiting for epoc {} method {} after the {}h max wait; the analytic engine keeps running it",
-							ps.epoc, ps.methodName, MAX_RESPONSE_WAIT.toHours());
-					throw new SemossPixelException("This step ran longer than the maximum wait of "
+							"Stopped waiting for epoc {} method {} after {} seconds; the analytic engine keeps running it",
+							ps.epoc, ps.methodName, responseWait.toSeconds());
+					if (ps.maxWaitMessage != null) {
+						throw new ResponseTimeoutException(ps.maxWaitMessage);
+					}
+					throw new ResponseTimeoutException("This step ran longer than the maximum wait of "
 							+ MAX_RESPONSE_WAIT.toHours()
 							+ " hours. The analytic engine keeps running it, so results the code saves can still be retrieved later.");
 				} else if (!responseMap.containsKey(ps.epoc) && ps.hasReturn) {

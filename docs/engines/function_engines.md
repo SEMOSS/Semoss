@@ -62,6 +62,7 @@ To create a new `FUNCTION` engine:
     *   `PYTHON_SCRIPT_PATH`: The file system path to the `.py` script.
     *   `PYTHON_FUNCTION_NAME`: The name of the function to call within the Python script.
     *   `FUNCTION_NAME`, `FUNCTION_DESCRIPTION`, `FUNCTION_PARAMETERS`, `FUNCTION_REQUIRED_PARAMETERS` defining the function's signature as seen by SEMOSS.
+    *   `TIMEOUT_SECONDS` (optional): how many seconds a call waits for the function, 24 hours by default and at most. A call that runs past it fails with `TIMEOUT_MESSAGE` (optional) or a default message, and the Python process keeps running.
     *   May also include Python environment details if not globally managed.
 
 ### `prerna.engine.impl.function.RESTFunctionEngine`

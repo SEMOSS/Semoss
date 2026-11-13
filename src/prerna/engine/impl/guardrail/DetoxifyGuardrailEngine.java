@@ -91,7 +91,8 @@ public class DetoxifyGuardrailEngine extends AbstractPythonGuardrailReactorFunct
 			throw new IllegalArgumentException("No prompt has been defined");
 		}
 		String script = "model.predict(" + PyUtils.determineStringType(prompt) + ")";
-		Map<String, Object> value = (Map<String, Object>) pyTranslator.runDirectPyNoCancelTrace(script);
+		Map<String, Object> value = (Map<String, Object>) pyTranslator.runDirectPyNoCancelTrace(null, this.timeout,
+				this.timeoutMessage, script);
 
 		boolean pass = true;
 		for (String category : value.keySet()) {

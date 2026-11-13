@@ -52,6 +52,8 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IGuardrailReactorFunctionEngine;
+import prerna.engine.impl.guardrail.PromptGuardrailEngine;
 import prerna.engine.impl.model.inferencetracking.GuardrailHitStore;
 import prerna.engine.impl.pipeline.EngineProxyFactory;
 import prerna.engine.impl.pipeline.GuardrailHitLimit;
@@ -148,7 +150,7 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 			throw new IllegalArgumentException("Must provide the guardrail configuration map");
 		}
 		ValidatedConfig validated = validateConfigStructure(config);
-		validateGuardrailEngines(user, validated.pipelines());
+		validateGuardrailEngines(user, engine.getEngineId(), validated.pipelines());
 
 		String json = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create().toJson(validated.toFile());
 		try {
@@ -525,12 +527,14 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 
 	/**
 	 * Database-backed validation that every referenced guardrail engine exists, is
-	 * a guardrail engine, and is visible to the user.
+	 * a guardrail engine, is visible to the user, and does not judge with the
+	 * engine it guards, since its check would then call the engine it is checking.
 	 *
-	 * @param user
-	 * @param pipelines
+	 * @param user            the user saving the configuration
+	 * @param guardedEngineId the engine the configuration guards
+	 * @param pipelines       the validated pipelines
 	 */
-	private static void validateGuardrailEngines(User user, Map<String, Object> pipelines) {
+	private static void validateGuardrailEngines(User user, String guardedEngineId, Map<String, Object> pipelines) {
 		for (Map.Entry<String, Object> pipelineEntry : pipelines.entrySet()) {
 			Map<?, ?> pipeline = (Map<?, ?>) pipelineEntry.getValue();
 			for (String slotName : new String[] { INPUT_KEY, OUTPUT_KEY }) {
@@ -554,6 +558,13 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 					if (!SecurityEngineUtils.userCanViewEngine(user, guardrailEngineId)) {
 						throw new IllegalArgumentException(
 								"User does not have access to guardrail engine " + guardrailEngineId);
+					}
+					IGuardrailReactorFunctionEngine guardrail = Utility.getGuardrailEngine(guardrailEngineId);
+					String judgeEngineId = guardrail == null || guardrail.getSmssProp() == null ? null
+							: guardrail.getSmssProp().getProperty(PromptGuardrailEngine.MODEL_ENGINE_ID_KEY);
+					if (judgeEngineId != null && guardedEngineId.equals(judgeEngineId.trim())) {
+						throw new IllegalArgumentException("Guardrail engine " + guardrailEngineId
+								+ " judges with this engine, so it cannot guard it: its check would call the engine it is checking");
 					}
 				}
 			}

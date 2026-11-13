@@ -196,10 +196,15 @@ public class OnTopicGuardrailEngine extends AbstractGuardrailReactorFunctionEngi
 		// Results are returned sorted by the vector DB - first result is the best
 		// match.
 		double bestScore = Double.MAX_VALUE;
+		boolean scored = false;
 		if (!results.isEmpty()) {
 			Object scoreObj = results.get(0).get(SCORE_KEY);
 			if (scoreObj instanceof Number) {
 				bestScore = ((Number) scoreObj).doubleValue();
+				scored = true;
+			} else {
+				classLogger.warn("OnTopicGuardrail: the top match has no numeric {}, so the prompt is off topic",
+						SCORE_KEY);
 			}
 			classLogger.info("OnTopicGuardrail: top match - score={}, content={}", bestScore,
 					results.get(0).getOrDefault("Content", results.get(0).getOrDefault("content", "<unknown>")));
@@ -207,7 +212,7 @@ public class OnTopicGuardrailEngine extends AbstractGuardrailReactorFunctionEngi
 			classLogger.info("OnTopicGuardrail: no results returned from vector DB");
 		}
 
-		boolean pass = !results.isEmpty() && (scoreIsDistance ? bestScore <= threshold : bestScore >= threshold);
+		boolean pass = scored && (scoreIsDistance ? bestScore <= threshold : bestScore >= threshold);
 
 		Map<String, Object> details = new HashMap<>();
 		details.put("threshold", threshold);

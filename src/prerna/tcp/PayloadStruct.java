@@ -28,6 +28,7 @@
 package prerna.tcp;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -100,6 +101,19 @@ public class PayloadStruct implements Serializable {
 	 * import-heavy init / ask scripts.
 	 */
 	public boolean disableCancelTrace = false;
+
+	/**
+	 * How long the caller waits for python to answer, when that is shorter than the
+	 * socket client's maximum wait. Transient, so it stays on the Java side and is
+	 * never sent to the python server.
+	 */
+	public transient Duration maxWait = null;
+
+	/**
+	 * The error the caller gets when python does not answer within
+	 * {@link #maxWait}. Transient, so it stays on the Java side.
+	 */
+	public transient String maxWaitMessage = null;
 
 	// set the session id
 	public String sessionId = null;

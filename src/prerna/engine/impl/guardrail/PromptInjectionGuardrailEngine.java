@@ -170,7 +170,8 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 
 		String script = "classifier.classify(" + PyUtils.determineStringType(prompt) + ", max_length="
 				+ PyUtils.determineStringType(maxLength) + ")";
-		Map<String, Object> predictions = (Map<String, Object>) pyTranslator.runDirectPyNoCancelTrace(script);
+		Map<String, Object> predictions = (Map<String, Object>) pyTranslator.runDirectPyNoCancelTrace(null,
+				this.timeout, this.timeoutMessage, script);
 
 		Map<String, Double> scoresByLabel = extractScoresByLabel(predictions);
 		DecisionResult decision = evaluate(scoresByLabel, this.labelDecisionMap, threshold, this.defaultDecision);
