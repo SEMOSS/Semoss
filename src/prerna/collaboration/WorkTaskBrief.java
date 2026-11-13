@@ -37,7 +37,9 @@ import org.javatuples.Pair;
 import prerna.auth.User;
 import prerna.engine.impl.model.Room;
 
-/** The work item a chat was opened for, as of this turn, for the runtime note. */
+/**
+ * The work item a chat was opened for, as of this turn, for the runtime note.
+ */
 public final class WorkTaskBrief {
 
 	private static final Logger classLogger = LogManager.getLogger(WorkTaskBrief.class);
@@ -46,7 +48,10 @@ public final class WorkTaskBrief {
 	private WorkTaskBrief() {
 	}
 
-	/** The work-item section, or null when the room was not opened for one. Never throws. */
+	/**
+	 * The work-item section, or null when the room was not opened for one. Never
+	 * throws.
+	 */
 	@SuppressWarnings("unchecked")
 	public static String runtimeNote(User user, Room room) {
 		if (user == null || room == null || !CollaborationUtils.isAssistantRoom(room)) {
@@ -54,9 +59,11 @@ public final class WorkTaskBrief {
 		}
 		try {
 			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-			String taskId = CollaborationDbUtils.queryOne("SELECT TASK_ID FROM WORK_TASK WHERE OWNER_ID = ? AND "
-					+ "OWNER_TYPE = ? AND ROOM_ID = ?", rs -> rs.getString("TASK_ID"), owner.getValue0(),
-					owner.getValue1(), room.getId());
+			// Get the newest task linked to this room (ordered by CREATED_AT DESC)
+			String taskId = CollaborationDbUtils.queryOne(
+					"SELECT TASK_ID FROM WORK_TASK_ROOM WHERE OWNER_ID = ? AND "
+							+ "OWNER_TYPE = ? AND ROOM_ID = ? ORDER BY CREATED_AT DESC LIMIT 1",
+					rs -> rs.getString("TASK_ID"), owner.getValue0(), owner.getValue1(), room.getId());
 			if (taskId == null) {
 				return null;
 			}

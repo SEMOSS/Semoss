@@ -42,6 +42,9 @@ import java.util.UUID;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
+import prerna.engine.impl.model.RoomMessageStore;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.reactor.agent.runtime.AgentCodeExecutionContext;
 
 // Work items (WORK_TASK): an outcome the owner is driving.
 // Steps live in WORK_THREAD_STEP with TASK_ID set; a step with no task is a loose step under its topic.
@@ -76,7 +79,7 @@ public final class WorkTaskUtils {
 
 	private static final String OWNED = " WHERE OWNER_ID = ? AND OWNER_TYPE = ?";
 	private static final String TASK_COLUMNS = "TASK_ID, KIND, TITLE, DESCRIPTION, STATUS, ONGOING, NEXT_STEP, "
-			+ "WAITING_ON_PERSON_ID, PERSON_ID, DUE_AT, PRIORITY, ORIGIN, STATE, CREATED_AT, UPDATED_AT, CLOSED_AT, SORT_ORDER, ROOM_ID";
+			+ "WAITING_ON_PERSON_ID, PERSON_ID, DUE_AT, PRIORITY, ORIGIN, STATE, CREATED_AT, UPDATED_AT, CLOSED_AT, SORT_ORDER";
 	private static final String STEP_COLUMNS = "STEP_ID, THREAD_ID, TASK_ID, TEXT, KIND, STATUS, STEP_OWNER_ID, "
 			+ "DUE_AT, LINK_TOPIC_ID, ORIGIN, NOTE, CLOSED_BY, CREATED_AT, UPDATED_AT";
 	private static final int MAX_TITLE = 255;
@@ -144,6 +147,7 @@ public final class WorkTaskUtils {
 			// a step nobody was named for (a group ask) counts as the owner's
 			task.put("mine", steps.stream()
 					.anyMatch(step -> step.get("assigneeId") == null || step.get("assigneeId").equals(self)));
+			task.put("rooms", getRoomsForTask(ownerId, ownerType, taskId));
 		}
 
 		// loose steps: the owner's open ones with no work item
@@ -238,6 +242,7 @@ public final class WorkTaskUtils {
 					t.put("lastMessageAt", CollaborationDbUtils.getTimestamp(rs, "LAST_MESSAGE_AT"));
 					return t;
 				}, ownerId, ownerType, taskId, "rejected"));
+		task.put("rooms", getRoomsForTask(ownerId, ownerType, taskId));
 		return task;
 	}
 
@@ -587,10 +592,51 @@ public final class WorkTaskUtils {
 	 */
 	public static void setRoom(User user, String taskId, String roomId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		requireTask(owner.getValue0(), owner.getValue1(), taskId);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		requireTask(ownerId, ownerType, taskId);
 		BrainTopicRoomUtils.requireChat(user, roomId);
-		CollaborationDbUtils.update("UPDATE WORK_TASK SET ROOM_ID = ?" + OWNED + " AND TASK_ID = ?", roomId,
-				owner.getValue0(), owner.getValue1(), taskId);
+		Timestamp now = CollaborationDbUtils.now();
+		// Insert a new link to the room
+		CollaborationDbUtils.update("INSERT INTO WORK_TASK_ROOM (OWNER_ID, OWNER_TYPE, TASK_ID, ROOM_ID, CREATED_AT) "
+				+ "VALUES (?, ?, ?, ?, ?)", ownerId, ownerType, taskId, roomId, now);
+	}
+
+	/**
+	 * Merges one of a work item's chats into another of its chats: the first chat's
+	 * messages are appended to the second, and the first chat is removed from the
+	 * owner's chats and from the item.
+	 */
+	public static Map<String, Object> mergeRooms(User user, String taskId, String fromRoomId, String intoRoomId) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		if (fromRoomId == null || fromRoomId.equals(intoRoomId)) {
+			throw new IllegalArgumentException("Pick a different chat to merge into");
+		}
+		requireTask(ownerId, ownerType, taskId);
+		for (String roomId : List.of(fromRoomId, intoRoomId)) {
+			if (!CollaborationDbUtils.exists(
+					"SELECT 1 FROM WORK_TASK_ROOM" + OWNED + " AND TASK_ID = ? AND ROOM_ID = ?", ownerId, ownerType,
+					taskId, roomId)) {
+				throw new IllegalArgumentException("That chat is not on this work item");
+			}
+			BrainTopicRoomUtils.requireChat(user, roomId);
+		}
+		String userId = user.getPrimaryLoginToken().getId();
+		RoomMessageStore.appendRoomMessages(intoRoomId, fromRoomId, userId);
+		// the messages are saved in the kept chat, so a failure from here on loses none
+		if (!ModelInferenceLogsUtils.doSetRoomToInactive(userId, fromRoomId)) {
+			throw new IllegalStateException(
+					"The chats were merged, but the merged chat could not be removed. Remove it from your chats.");
+		}
+		AgentCodeExecutionContext.removeForRoom(user, fromRoomId);
+		RoomMessageStore.evictRedisProjection(fromRoomId);
+		CollaborationDbUtils.update("DELETE FROM WORK_TASK_ROOM" + OWNED + " AND ROOM_ID = ?", ownerId, ownerType,
+				fromRoomId);
+		Timestamp now = CollaborationDbUtils.now();
+		CollaborationDbUtils.inTransaction(conn -> touch(conn, ownerId, ownerType, taskId, now));
+		return getWork(user, taskId);
 	}
 
 	public static void addUpdate(User user, String taskId, String kind, String text, String threadId, String messageAt,
@@ -613,6 +659,41 @@ public final class WorkTaskUtils {
 					BRAIN.equals(origin) ? PROPOSED : ACCEPTED, now);
 			touch(conn, ownerId, ownerType, taskId, now);
 		});
+	}
+
+	/**
+	 * Gets all rooms linked to a task, newest first by CREATED_AT DESC. Each room
+	 * has id and linkedAt timestamp, plus title and lastActivity when the room is
+	 * one of the owner's open chats.
+	 */
+	static List<Map<String, Object>> getRoomsForTask(String ownerId, String ownerType, String taskId) {
+		List<Map<String, Object>> rooms = CollaborationDbUtils.query(
+				"SELECT tr.ROOM_ID, tr.CREATED_AT FROM WORK_TASK_ROOM tr "
+						+ "WHERE tr.OWNER_ID = ? AND tr.OWNER_TYPE = ? AND tr.TASK_ID = ? ORDER BY tr.CREATED_AT DESC",
+				rs -> {
+					Map<String, Object> room = new LinkedHashMap<>();
+					room.put("id", rs.getString("ROOM_ID"));
+					putIfNotNull(room, "linkedAt", CollaborationDbUtils.getTimestamp(rs, "CREATED_AT"));
+					return room;
+				}, ownerId, ownerType, taskId);
+		if (rooms.isEmpty()) {
+			return rooms;
+		}
+		// the chat's name and last activity live with the chat, not the link
+		Map<String, Map<String, Object>> chats = new LinkedHashMap<>();
+		for (Map<String, Object> chat : ModelInferenceLogsUtils.getActiveRoomSummaries(ownerId,
+				rooms.stream().map(room -> (String) room.get("id")).toList())) {
+			chats.put((String) chat.get("ROOM_ID"), chat);
+		}
+		for (Map<String, Object> room : rooms) {
+			Map<String, Object> chat = chats.get(room.get("id"));
+			if (chat == null) {
+				continue;
+			}
+			putIfNotNull(room, "title", blankToNull(chat.get("ROOM_NAME")));
+			putIfNotNull(room, "lastActivity", CollaborationDbUtils.toIso((Timestamp) chat.get("UPDATED_AT")));
+		}
+		return rooms;
 	}
 
 	// ---- helpers ----
@@ -753,7 +834,6 @@ public final class WorkTaskUtils {
 		if (!rs.wasNull()) {
 			t.put("sortOrder", order);
 		}
-		putIfNotNull(t, "roomId", rs.getString("ROOM_ID"));
 		return t;
 	}
 
