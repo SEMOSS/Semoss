@@ -141,7 +141,11 @@ public final class BrainThreadUtils {
 		return page;
 	}
 
-	/** Reads one owned thread with the same metadata as a detailed list row. */
+	/**
+	 * Reads one owned thread with the same metadata as a detailed list row.
+	 * Each topicLinks entry includes signals: keyword matches, associated senders,
+	 * scores and the applied topic VIP boost. Older links may have legacy or null signals.
+	 */
 	public static Map<String, Object> getThread(User user, String threadId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		Map<String, Object> thread = CollaborationDbUtils.queryOne(
@@ -165,7 +169,7 @@ public final class BrainThreadUtils {
 	}
 
 	static List<Map<String, Object>> getLinks(String ownerId, String ownerType, String threadId) {
-		return CollaborationDbUtils.query("SELECT TOPIC_ID, SOURCE, CONFIDENCE, IS_PRIMARY FROM BRAIN_THREAD_TOPIC "
+		return CollaborationDbUtils.query("SELECT TOPIC_ID, SOURCE, CONFIDENCE, IS_PRIMARY, SIGNALS_JSON FROM BRAIN_THREAD_TOPIC "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? ORDER BY IS_PRIMARY DESC, CONFIDENCE DESC, "
 				+ "TOPIC_ID", BrainThreadUtils::mapLink, ownerId, ownerType, threadId);
 	}
@@ -375,7 +379,7 @@ public final class BrainThreadUtils {
 		}
 		params.addAll(ids);
 		for (Pair<String, Map<String, Object>> row : CollaborationDbUtils.query(
-				"SELECT THREAD_ID, TOPIC_ID, SOURCE, CONFIDENCE, IS_PRIMARY FROM BRAIN_THREAD_TOPIC "
+				"SELECT THREAD_ID, TOPIC_ID, SOURCE, CONFIDENCE, IS_PRIMARY, SIGNALS_JSON FROM BRAIN_THREAD_TOPIC "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IN ("
 						+ CollaborationDbUtils.placeholders(ids.size()) + ") "
 						+ "ORDER BY IS_PRIMARY DESC, CONFIDENCE DESC, TOPIC_ID",
@@ -479,6 +483,7 @@ public final class BrainThreadUtils {
 		Integer confidence = CollaborationDbUtils.getInteger(rs, "CONFIDENCE");
 		link.put("confidence", confidence == null ? 0 : confidence);
 		link.put("primary", Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "IS_PRIMARY")));
+		link.put("signals", CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "SIGNALS_JSON")));
 		return link;
 	}
 
